@@ -164,8 +164,8 @@ int wall_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
             break;
 
         case wall_type_3D:
-	    ret = wall_3d_hit_wall(r1, phi1, z1, r2, phi2, z2, &(w->w3d), w_coll);
-	    break;
+            ret = wall_3d_hit_wall(r1, phi1, z1, r2, phi2, z2, &(w->w3d), w_coll);
+            break;
     }
     return ret;
 }

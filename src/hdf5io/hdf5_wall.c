@@ -84,8 +84,8 @@ int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
     #undef WPATH
     #define WPATH "/wall/wall_2D_XXXXXXXXXX/"
 
-	int nelements,ret;
-	real *tmp;
+    int nelements,ret;
+    real *tmp;
 
     /* Read number of wall elements and allocate offload array */
     if( hdf5_read_int(WPATH "nelements", &nelements,
@@ -94,7 +94,7 @@ int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
 
     /* Pointers to beginning of different data series to make code more
      * readable */
-    real* r = &(tmp[ 0       ]);
+    real* r = &(tmp[0]);
     real* z = &(tmp[nelements]);
 
     /* Read the wall polygon */
@@ -103,9 +103,8 @@ int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
     if( hdf5_read_double(WPATH "z", z,
         f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    ret=hdf5_wall_2d_to_offload(
-            offload_data, offload_array,
-	        nelements, r, z );
+    ret=hdf5_wall_2d_to_offload(offload_data, offload_array,
+                                nelements, r, z );
     free(tmp);
 
     return ret;
@@ -122,10 +121,9 @@ int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
  *
  * @return Zero if assignment succeeded
  */
-
 int hdf5_wall_2d_to_offload(
-		wall_2d_offload_data *offload_data, real **offload_array,
-		int nelements, real *r, real *z ) {
+    wall_2d_offload_data *offload_data, real **offload_array,
+    int nelements, real *r, real *z ) {
 
 
     offload_data->n = nelements;
@@ -147,7 +145,6 @@ int hdf5_wall_2d_to_offload(
     return 0;
 }
 
-
 /**
  * @brief Read 3D wall data from HDF5 file
  *
@@ -164,7 +161,7 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
     #define WPATH "/wall/wall_3D_XXXXXXXXXX/"
 
     int nelements;
-  
+
     /* Read number of wall elements and allocate offload array to
        store n 3D triangles */
     if( hdf5_read_int(WPATH "nelements", &nelements,
@@ -183,12 +180,8 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     int retval;
-    retval = hdf5_wall_3d_to_offload(
-		offload_data, offload_array,
-		nelements,
-		x1x2x3,
-		y1y2y3,
-		z1z2z3 );
+    retval = hdf5_wall_3d_to_offload(offload_data, offload_array,
+                                     nelements, x1x2x3, y1y2y3, z1z2z3);
 
     free(x1x2x3);
     free(y1y2y3);
@@ -196,7 +189,6 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
 
     return retval;
 }
-
 
 /**
  * @brief Assign x1x2x3,y1y2y3,z1z2z3 to the offload array
@@ -210,16 +202,11 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
  *
  * @return Zero if assignment succeeded
  */
-
 int hdf5_wall_3d_to_offload(
-		wall_3d_offload_data *offload_data, real **offload_array,
-		int nelements,
-		real* x1x2x3,
-		real* y1y2y3,
-		real* z1z2z3 ) {
+    wall_3d_offload_data *offload_data, real **offload_array,
+    int nelements, real* x1x2x3, real* y1y2y3, real* z1z2z3) {
 
     offload_data->n = nelements;
-  
     offload_data->offload_array_length = 9 * offload_data->n;
     *offload_array = (real*) malloc(9 * offload_data->n * sizeof(real));
 
