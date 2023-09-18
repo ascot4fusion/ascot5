@@ -7,6 +7,14 @@
 #include "../nbi.h"
 #include "hdf5_helpers.h"
 
+/**
+ * @brief
+ *
+ * @param f
+ * @param n_inj_out
+ * @param inj_out
+ * @return
+ */
 int hdf5_nbi_read(hid_t f, int* n_inj_out, nbi_injector** inj_out) {
     herr_t err;
 
@@ -38,8 +46,13 @@ int hdf5_nbi_read(hid_t f, int* n_inj_out, nbi_injector** inj_out) {
     if(hdf5_find_group(f, path) == 0) {
         int n_inj;
 
-        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/nbi/nbi_XXXXXXXXXX/ninj", active, path), &n_inj);
-        if(err) {printf("Error while reading HDF5 data at %s line %d\n", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_int(
+            f,hdf5_generate_qid_path("/nbi/nbi_XXXXXXXXXX/ninj", active, path),
+            &n_inj);
+        if(err) {
+            printf("Error while reading HDF5 data at %s line %d\n", __FILE__, __LINE__);
+            return -1;
+        }
 
         printf("Reading %d injectors...\n", n_inj);
 
@@ -58,9 +71,9 @@ int hdf5_nbi_read(hid_t f, int* n_inj_out, nbi_injector** inj_out) {
             inj[i].beamlet_dx = malloc(inj[i].n_beamlet * sizeof(real));
             inj[i].beamlet_dy = malloc(inj[i].n_beamlet * sizeof(real));
             inj[i].beamlet_dz = malloc(inj[i].n_beamlet * sizeof(real));
-            
+
             sprintf(path, "/nbi/nbi_XXXXXXXXXX/inj%d/beamletx", i+1);
-            err = H5LTread_dataset_double(f, hdf5_generate_qid_path(path, active, path), inj[i].beamlet_x);
+            err = H5LTread_dataset_double(f, hdf5_generate_qid_path(path, active, path),inj[i].beamlet_x);
             sprintf(path, "/nbi/nbi_XXXXXXXXXX/inj%d/beamlety", i+1);
             err = H5LTread_dataset_double(f, hdf5_generate_qid_path(path, active, path), inj[i].beamlet_y);
             sprintf(path, "/nbi/nbi_XXXXXXXXXX/inj%d/beamletz", i+1);
@@ -90,7 +103,7 @@ int hdf5_nbi_read(hid_t f, int* n_inj_out, nbi_injector** inj_out) {
             sprintf(path, "/nbi/nbi_XXXXXXXXXX/inj%d/div_halo_v", i+1);
             err = H5LTread_dataset_double(f, hdf5_generate_qid_path(path, active, path), &(inj[i].div_halo_v));
 
-            /* even if halo fraction is zero, the divergences should be nonzero
+            /* Even if halo fraction is zero, the divergences should be nonzero
                to avoid division by zero during evaluation */
             if(inj[i].div_halo_frac == 0) {
                 inj[i].div_halo_h = 1e-10;

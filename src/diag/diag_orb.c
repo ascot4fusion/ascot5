@@ -2,17 +2,14 @@
  * @file diag_orb.c
  * @brief Functions to write particle and guiding center information.
  */
-
 #include "diag_orb.h"
 
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "../ascot5.h"
 #include "../consts.h"
 #include "../simulate.h"
-
 
 /**
  * @brief Initializes orbit diagnostics offload data.
@@ -709,7 +706,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                         data->mrk_recorded[imrk] = p_f->mileage[i];
                     }
                 }
-  
+
                 /* Check and store radial crossings. */
                 for(int j=0; j < data->nradialplots; j++) {
                     k = diag_orb_check_radial_crossing(p_f->rho[i],
@@ -744,9 +741,6 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
         }
     }
 }
-
-
-
 
 /**
  * @brief Check if marker has crossed a plane.
@@ -795,7 +789,6 @@ real diag_orb_check_plane_crossing(real fang, real iang, real ang0) {
  *
  * @return zero if no-crossing, number k, rho0 = k * (frho - irho), otherwise.
  */
-
 real diag_orb_check_radial_crossing(real frho, real irho, real rho0){
 
     real k = 0;
@@ -804,4 +797,3 @@ real diag_orb_check_radial_crossing(real frho, real irho, real rho0){
     }
     return k;
 }
-

@@ -61,7 +61,7 @@ void splinecomp(real* f, int n, int bc, real* c) {
         /** PERIODIC (Function has same value and derivatives at both ends) **/
 
         /* Initialize some additional helper variables */
-	
+
         /* Value that starts from lower left corner and moves right */
         real l     = 1.0;
         /* Last diagonal value        */
