@@ -15,6 +15,21 @@
 #include "suzuki.h"
 #include "wall.h"
 
+/**
+ * @brief
+ *
+ * @param n
+ * @param x
+ * @param y
+ * @param z
+ * @param vx
+ * @param vy
+ * @param vz
+ * @param anum
+ * @param znum
+ * @param mass
+ * @param rng
+ */
 void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
                 real* vz, int* anum, int* znum, real* mass, random_data* rng) {
     int i_beamlet = floor(random_uniform(rng) * n->n_beamlet);
@@ -72,9 +87,23 @@ void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
     *mass = n->mass;
 }
 
-void nbi_ionize(real* xyz, real* vxyz, real time, int* shinethrough, int anum, int znum,
-                B_field_data* Bdata, plasma_data* plsdata, wall_data* walldata,
-                random_data* rng) {
+/**
+ * @brief
+ *
+ * @param xyz
+ * @param vxyz
+ * @param time
+ * @param shinethrough
+ * @param anum
+ * @param znum
+ * @param Bdata
+ * @param plasdata
+ * @param walldata
+ * @param rng
+ */
+void nbi_ionize(real* xyz, real* vxyz, real time, int* shinethrough, int anum,
+                int znum, B_field_data* Bdata, plasma_data* plsdata,
+                wall_data* walldata, random_data* rng) {
     a5err err;
 
     real absv = math_norm(vxyz);
@@ -155,7 +184,7 @@ void nbi_ionize(real* xyz, real* vxyz, real time, int* shinethrough, int anum, i
         if(exited_plasma) {
             real rpz2[3]; /* new position, old position already in rpz */
             math_xyz2rpz(xyz, rpz2);
-	    real w_coll;
+            real w_coll;
             int tile = wall_hit_wall(rpz[0], rpz[1], rpz[2], rpz2[0], rpz2[1],
                                      rpz2[2], walldata, &w_coll);
 
@@ -176,6 +205,19 @@ void nbi_ionize(real* xyz, real* vxyz, real time, int* shinethrough, int anum, i
     }
 }
 
+/**
+ * @brief
+ *
+ * @param nprt
+ * @param t0
+ * @param t1
+ * @param p
+ * @param n
+ * @param Bdata
+ * @param plsdata
+ * @param walldata
+ * @param rng
+ */
 void nbi_generate(int nprt, real t0, real t1, particle* p, nbi_injector* n,
                   B_field_data* Bdata, plasma_data* plsdata,
                   wall_data* walldata, random_data* rng) {

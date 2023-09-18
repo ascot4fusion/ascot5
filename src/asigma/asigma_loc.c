@@ -442,7 +442,7 @@ a5err asigma_loc_eval_sigma(real* sigma,
                 /* Energy is outside spline domain */
                 if(*enable_atomic == 2) {
                     /* Set cross-section to 0 to avoid further problems */
-		    *sigma = 0.0;
+                    *sigma = 0.0;
                 } else {
                     /* Raise an error */
                     err = error_raise( ERR_INPUT_EVALUATION, __LINE__,
@@ -546,7 +546,7 @@ a5err asigma_loc_eval_sigmav(real* sigmav,
                 /* An abscissa is outside spline domain */
                 if(*enable_atomic == 2) {
                     /* Set rate coefficient to 0 to avoid further problems */
-		    *sigmav = 0.0;
+                    *sigmav = 0.0;
                 } else {
                     /* Raise an error */
                     err = error_raise( ERR_INPUT_EVALUATION, __LINE__,
@@ -558,16 +558,14 @@ a5err asigma_loc_eval_sigmav(real* sigmav,
                normalization of the fast particle energy with respect
                to mass (J --> eV/amu) in the function call. */
             int interperr = 0;
-            interperr += interp3Dcomp_eval_f(sigmav,
-					     &asgm_loc_data->BMSsigmav[i_reac],
-					     E/CONST_E/(m_1/CONST_U),
-					     z_2*n_i,
-					     T_e/CONST_E);
+            interperr += interp3Dcomp_eval_f(
+                sigmav, &asgm_loc_data->BMSsigmav[i_reac],
+                E/CONST_E/(m_1/CONST_U), z_2*n_i, T_e/CONST_E);
             if(interperr) {
                 /* An abscissa is outside spline domain */
                 if(*enable_atomic == 2) {
                     /* Set rate coefficient to 0 to avoid further problems */
-		    *sigmav = 0.0;
+                    *sigmav = 0.0;
                 } else {
                     /* Raise an error */
                     err = error_raise( ERR_INPUT_EVALUATION, __LINE__,

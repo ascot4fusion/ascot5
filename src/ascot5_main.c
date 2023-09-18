@@ -624,22 +624,22 @@ int write_output(
  */
 int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     struct option longopts[] = {
-        {"in", required_argument, 0, 1},
-        {"out", required_argument, 0, 2},
-        {"mpi_size", required_argument, 0, 3},
-        {"mpi_rank", required_argument, 0, 4},
-        {"d", required_argument, 0, 5},
-        {"options", required_argument, 0, 6},
-        {"bfield",  required_argument, 0, 7},
-        {"efield",  required_argument, 0, 8},
-        {"marker",  required_argument, 0, 9},
-        {"wall",    required_argument, 0, 10},
-        {"plasma",  required_argument, 0, 11},
-        {"neutral", required_argument, 0, 12},
-        {"boozer",  required_argument, 0, 13},
-        {"mhd",     required_argument, 0, 14},
-        {"asigma",  required_argument, 0, 15},
-        {0, 0, 0, 0}
+        {"in",       required_argument, 0, 1 },
+        {"out",      required_argument, 0, 2 },
+        {"mpi_size", required_argument, 0, 3 },
+        {"mpi_rank", required_argument, 0, 4 },
+        {"d",        required_argument, 0, 5 },
+        {"options",  required_argument, 0, 6 },
+        {"bfield",   required_argument, 0, 7 },
+        {"efield",   required_argument, 0, 8 },
+        {"marker",   required_argument, 0, 9 },
+        {"wall",     required_argument, 0, 10},
+        {"plasma",   required_argument, 0, 11},
+        {"neutral",  required_argument, 0, 12},
+        {"boozer",   required_argument, 0, 13},
+        {"mhd",      required_argument, 0, 14},
+        {"asigma",   required_argument, 0, 15},
+        {0,          0                , 0, 0 }
     };
 
     /* Initialize default values */
@@ -669,7 +669,7 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
                  * trailing .h5 */
                 slen = strlen(optarg);
                 if ( slen > 3 && !strcmp(optarg+slen-3,".h5") ) {
-                    strncpy(sim->hdf5_in,optarg,slen-3);
+                    strcpy(sim->hdf5_in,optarg);
                     (sim->hdf5_in)[slen-3]='\0';
                 }
                 else
@@ -680,7 +680,7 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
                  * trailing .h5 */
                 slen = strlen(optarg);
                 if ( slen > 3 && !strcmp(optarg+slen-3,".h5") ) {
-                    strncpy(sim->hdf5_out,optarg,slen-3);
+                    strcpy(sim->hdf5_out,optarg);
                     (sim->hdf5_out)[slen-3]='\0';
                 }
                 else

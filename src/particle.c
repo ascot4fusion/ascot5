@@ -710,7 +710,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
         /* Check that input is valid */
         if(!err && p->p_ml.r <= 0)      {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
         if(!err && p->p_ml.weight <= 0) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
-        if(!err && p->p_ml.id <= 0)     {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);} 
+        if(!err && p->p_ml.id <= 0)     {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
         /* Magnetic field line to state */
         p->type = input_particle_type_s;

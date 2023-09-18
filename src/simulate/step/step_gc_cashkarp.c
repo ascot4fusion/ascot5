@@ -20,8 +20,8 @@
  * @brief Integrate a guiding center step for a struct of markers
  *
  * This function calculates a guiding center step for a struct of NSIMD
- * markers with Cash-Karp (adaptive RK5) simultaneously using SIMD instructions. 
- * All arrays in the function are of NSIMD length so vectorization can be performed 
+ * markers with Cash-Karp (adaptive RK5) simultaneously using SIMD instructions.
+ * All arrays in the function are of NSIMD length so vectorization can be performed
  * directly without gather and scatter operations. Informs whther time step was accepted or
  * rejected and provides a suggestion for the next time step.
  *
@@ -232,9 +232,18 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol,
             }
 
             /* Test that results are physical */
-            if(!errflag && fabs(hnext[i]) < A5_EXTREMELY_SMALL_TIMESTEP)      {errflag = error_raise(ERR_INVALID_TIMESTEP, __LINE__, EF_STEP_GC_CASHKARP);}
-            else if(!errflag && rk5[0] <= 0)              {errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_CASHKARP);}
-            else if(!errflag && rk5[4] < 0)               {errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_CASHKARP);}
+            if(!errflag && fabs(hnext[i]) < A5_EXTREMELY_SMALL_TIMESTEP) {
+                errflag = error_raise(
+                    ERR_INVALID_TIMESTEP, __LINE__, EF_STEP_GC_CASHKARP);
+            }
+            else if(!errflag && rk5[0] <= 0) {
+                errflag = error_raise(
+                    ERR_INTEGRATION, __LINE__, EF_STEP_GC_CASHKARP);
+            }
+            else if(!errflag && rk5[4] < 0) {
+                errflag = error_raise(
+                    ERR_INTEGRATION, __LINE__, EF_STEP_GC_CASHKARP);
+            }
 
             /* Update gc phase space position */
             if(!errflag) {
