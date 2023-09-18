@@ -16,12 +16,15 @@ jobs:
           sudo apt-get install -y doxygen
           sudo apt install pandoc
           pip install -e .[doc]
+      - name: Add key
+        run: |
+          eval `ssh-agent -s`
+          ssh-add - <<< '${{ secrets.SSH_KEY_FIGURES }}'
       - name: Clone figures repository
         uses: actions/checkout@master
         with:
           repository: ascot4fusion/figures
           path: figures
-          ssh-key: ${{ secrets.SSH_KEY_FIGURES }}
       - name: Sphinx build
         run: |
           pwd
