@@ -34,8 +34,8 @@ Gallery
    :align: center
    :width: 300px
 
-   Runaway electron transport coefficients calculated with SPARC.
-   Ref. :cite:t:`tinguely2021modeling` studied an external coil for runaway electron mitigation.
+   Runaway electron transport coefficients calculated with ASCOT5.
+   Ref. :cite:t:`tinguely2021modeling` studied an external coil for runaway electron mitigation in SPARC.
    Markers were traced with ASCOT5 using magnetic fields computed with NIMROD, and the resulting coefficients allowed DREAM to take losses into account when calculating runaway electron beam evolution.
 
 ========================
