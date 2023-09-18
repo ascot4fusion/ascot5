@@ -1124,10 +1124,10 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         plot : bool, optional
             If True, the evaluated quantities are also plotted.
         axes1 : , optional
-            Axes for plotting ``amplitude`` if ``plot``=True.
+            Axes for plotting ``amplitude`` if ``plot`` = True.
         axes2 : , optional
             Axes for plotting ``delta``, ``deltacrit``, and ``ripplewell`` if
-            ``plot``=True.
+            ``plot`` = True.
 
         Returns
         -------
