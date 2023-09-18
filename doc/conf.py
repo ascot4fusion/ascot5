@@ -6,7 +6,7 @@
 # -- Set path to where the Python source can be found---------------------------
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../a5py'))
+sys.path.insert(0, os.path.abspath('../'))
 
 import a5py
 
@@ -30,7 +30,7 @@ numpydoc_xref_param_type = True # Automatically link str, array_like, etc.
 numpydoc_show_class_members = False # Removes table summarizing class methods
 
 # -- Where Doxygen generated xml files are located -----------------------------
-breathe_projects = {'ascot5': '_static/xml'}
+breathe_projects = {'ascot5': '_static/doxygen/xml'}
 breathe_default_project = 'ascot5'
 
 intersphinx_mapping = {
