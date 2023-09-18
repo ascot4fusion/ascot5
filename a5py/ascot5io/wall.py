@@ -15,7 +15,6 @@ import unyt
 from .coreio.fileapi import add_group
 from .coreio.treedata import DataGroup
 
-import a5py.wall.plot as plot
 import a5py.physlib as physlib
 
 class wall_2D(DataGroup):
