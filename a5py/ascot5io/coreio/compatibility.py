@@ -1,5 +1,4 @@
-"""
-Make older ASCOT5 HDF5 files compatible with newer versions of ASCOT5.
+"""Make older ASCOT5 HDF5 files compatible with newer versions.
 
 Whenever a new version is released, add a new function here that converts
 previous version to current version. Note that you might have to modify the HDF5
@@ -7,20 +6,14 @@ directly as this tool should be independent of ascot5io (which is subject to
 changes).
 
 Also update the CURRENT_VERSION number.
-
-File compatibility.py
 """
 import h5py
 import numpy as np
 import tempfile
 import subprocess
 
-## KEEP THIS UPDATED ##
-CURRENT_VERSION = 4
-
-def convert_oldtonew(fnin, origin, keeptemp=False):
-    """
-    Convert an old file to the current version.
+def _convert_oldtonew(fnin, origin, keeptemp=False):
+    """Convert an old file to the current version.
 
     The old file remains as it is, and the converted version will be named
     fnin_{CURRENT_VERSION}.h5.
@@ -55,18 +48,22 @@ def convert_oldtonew(fnin, origin, keeptemp=False):
         version += 1
         fntemp  = fnout
 
-def convert(fnin):
+def _convert4to5():
     """
-    Update version 3 HDF5 to version 4.
+    """
+    pass
+
+def _convert3to4(fnin):
+    """Update version 3 HDF5 to version 4.
 
     - Adds REVERSE_TIME option.
     - Renames ENDCOND_MAX_SIMTIME to ENDCOND_LIM_SIMTIME.
     """
-    from a5py.ascot5io.ascot5file import get_qid
+    from .coreio.treedata import get_qid
     from a5py.ascot5io.boozer import write_hdf5_dummy as boozer_write_hdf5_dummy
     from a5py.ascot5io.mhd    import write_hdf5_dummy as mhd_write_hdf5_dummy
 
-    fnout = fnin[:-3] + "_" + str(CURRENT_VERSION) + ".h5"
+    fnout = fnin[:-3] + "_" + "4" + ".h5"
 
     subprocess.call(["cp", fnin, fnout])
 
@@ -101,16 +98,12 @@ def convert(fnin):
                 for run in h5["results"]:
                     if run[:4] != "run": continue
                     run.attrs["qid_asigma"] = asigma.split["_"][-1]
-                    print(asigma)
 
     wrapper()
-
     print("Conversion complete.")
 
-
-def convert2to3(fnin):
-    """
-    Update version 2 HDF5 to version 3.
+def _convert2to3(fnin):
+    """Update version 2 HDF5 to version 3.
 
     - Adds dummy boozer and mhd groups.
     - Adds flags to wall input.
@@ -122,7 +115,7 @@ def convert2to3(fnin):
     from a5py.ascot5io.boozer import write_hdf5_dummy as boozer_write_hdf5_dummy
     from a5py.ascot5io.mhd    import write_hdf5_dummy as mhd_write_hdf5_dummy
 
-    fnout = fnin[:-3] + "_" + str(CURRENT_VERSION) + ".h5"
+    fnout = fnin[:-3] + "_" + "3" + ".h5"
 
     subprocess.call(["cp", fnin, fnout])
 
@@ -136,7 +129,8 @@ def convert2to3(fnin):
                 print("Adding dummy Boozer and MHD inputs for existing runs.")
                 for run in h5["results"]:
                     h5["results"][run].attrs["qid_mhd"] = np.string_(mhd_qid)
-                    h5["results"][run].attrs["qid_boozer"] = np.string_(boozer_qid)
+                    h5["results"][run].attrs["qid_boozer"] = \
+                        np.string_(boozer_qid)
 
             if "wall" in h5:
                 print("Adding flags to wall inputs.")
@@ -154,9 +148,10 @@ def convert2to3(fnin):
 
             if "options" in h5:
                 print("Adding ENABLE_MHD=0 and ENDCOND_MAX_MILEAGE=100")
-                print("and setting distribution momentum limits (DIST_MIN/MAX_P* ) to")
-                print("(DIST_MIN/MAX_V*)*helium mass. Bin number is kept same and")
-                print("the old velocity options are removed.")
+                print("and setting distribution velocity limits to momentums")
+                print("assuming that the test particle mass is equal to helium")
+                print("mass. Bin number is kept same and the original velocity")
+                print("limits are removed from the options.")
                 for opt in h5["options"]:
                     opt = h5["options"][opt]
                     opt.create_dataset("ENDCOND_MAX_MILEAGE", (1,), data=100,
@@ -182,20 +177,17 @@ def convert2to3(fnin):
                         del opt["DIST_MAX_V"+coord]
 
     wrapper()
-
     print("Conversion complete.")
 
-
-def convert_1to2(fnin):
-    """
-    Update version 1 HDF5 to version 2.
+def _convert_1to2(fnin):
+    """Update version 1 HDF5 to version 2.
 
     - Adds dummy NBI input to existing runs.
     """
     from .coreio.treedata import get_qid
     from a5py.ascot5io.nbi import write_hdf5_dummy
 
-    fnout = fnin[:-3] + "_" + str(CURRENT_VERSION) + ".h5"
+    fnout = fnin[:-3] + "_" + "2" + ".h5"
 
     subprocess.call(["cp", fnin, fnout])
 
@@ -212,5 +204,4 @@ def convert_1to2(fnin):
                 h5["results"][run].attrs["qid_nbi"] = np.string_(qid)
 
     wrapper()
-
     print("Conversion complete.")
