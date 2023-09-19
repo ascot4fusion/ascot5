@@ -26,12 +26,9 @@ setup(name='a5py',
                 "sphinx-rtd-theme",],
       },
       scripts=[
-        'bin/a5removegroup',
-        'bin/a5copygroup',
+        'bin/a5manage',
         'bin/a5editoptions',
         'bin/a5combine',
-        'bin/a5ascot4input',
-        'bin/a5setactive',
         'bin/a5gui',
         'bin/a5makecompatible',
       ],)
