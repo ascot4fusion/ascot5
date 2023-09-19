@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
+"""Update ASCOT5 file from an old version to current version.
+"""
+import argparse
+import a5py.ascot5io.coreio.compatibility as comp
 
-import sys
-import os
-
-import a5py.ascot5io.compatibility as comp
-
-if len(sys.argv) != 2:
-        print("Convert HDF5 file of the previous version to current version.")
-        quit()
-
-fnin  = sys.argv[1]
+parser = argparse.ArgumentParser(
+    description="Convert HDF5 file of the previous version to current version."
+)
 
 comp.convert(fnin)
