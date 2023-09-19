@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Manage contents of a HDF5 file.
 """
-#import sys
 import argparse
 import subprocess
 import a5py.ascot5io.coreio.tools as a5tools
@@ -62,8 +61,8 @@ if args.remove:
         repack = input("a5manage: hit enter to repack or \"n\" to skip: ")
         if repack == "":
             print("a5manage: repacking...")
-            subprocess.call(["h5repack", args.FILE, "repack_" + args.FILE])
-            subprocess.call(["mv", "repack_" + args.FILE, args.FILE])
+            subprocess.call(["h5repack", args.FILE, args.FILE + "_repack"])
+            subprocess.call(["mv", args.FILE + "_repack", args.FILE])
             break
         if repack == "n":
             print("a5manage: repack skipped")
