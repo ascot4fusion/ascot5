@@ -9,27 +9,25 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
+      # Checkout most recent version of this branch on ascot5 repo
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
+      # Packages required to compile documentation, got pandoc working this way
       - name: Install dependencies
         run: |
           sudo apt-get install -y doxygen
           sudo apt install pandoc
           pip install -e .[doc]
-      - name: Add key
-        run: |
-          eval `ssh-agent -s`
-          ssh-add - <<< '${{ secrets.SSH_KEY_FIGURES }}'
+      # Figures repo is stored as a subfolder since otherwise it would clean
+      # ascot5 repo. The SSH key corresponds to deploy key in figures repo.
       - name: Clone figures repository
         uses: actions/checkout@master
         with:
           repository: ascot4fusion/figures
+          ssh-key: ${{ secrets.SSH_KEY_FIGURES }}
           path: figures
       - name: Sphinx build
         run: |
-          pwd
-          ls
-          ls figures
           make doc
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
@@ -39,4 +37,4 @@ jobs:
           publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: build/doc/
-          force_orphan: true
+          force_orphan: true # No history is kept
