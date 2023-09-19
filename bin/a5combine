@@ -1,27 +1,70 @@
 #!/usr/bin/env python3
-
+"""Combine runs from different output files.
 """
-This script combines output of HDF5 files.
-"""
-
-import sys
-import subprocess
+import argparse
 import a5py.ascot5io.ascot5tools as tools
 import a5py.ascot5io.ascot5      as ascot5
 
-mode = ""
-if len(sys.argv) > 1:
-    mode = sys.argv[1]
+notesandexamples = """
+notes:
+  This tool is usually used ("add" mode) to replace MPI_GATHER if the code was
+  run in several nodes but with MPI=0. However, it can also be used to gather
+  e.g. results of an parameter scan where single input file was used but the
+  simulations were run simultaneously and stored in separate files (use "madd"
+  mode). Finally, this can be used to combine runs if you first ran a simulation
+  where markers hit CPU time limit, and then you continued that simulation by
+  running a second simulation for those markers using their endstates. Mode
+  "continue" combines the results so that e.g. distributions are for the whole
+  simulation.
 
-if mode == "add" and len(sys.argv) >= 4:
+examples:
 
+  a5combine -a input.h5 output_000001.h5 output_000002.h5 ...
+  a5combine -m input.h5 run1.h5 run2.h5 ...
+  a5combine -c firstrun.h5 secondrun.h5
+"""
+
+parser = argparse.ArgumentParser(
+    description="Combine simulation outputs from different files.",
+    epilog=notesandexamples,
+    formatter_class=argparse.RawDescriptionHelpFormatter)
+parser.add_argument("INPUT", help="File for storing the combined output")
+parser.add_argument("FILES", help="Files from where the output is collected",
+                    nargs="*")
+parser.add_argument("-a", "--add", action="store_true", dest="add",
+                    default=False,
+                    help="Combine outputs from a single run split to FILES to "
+                    + "INPUT")
+parser.add_argument("-m", "--madd", action="store_true", dest="madd",
+                    default=False, help="Combine several independent runs from "
+                    "FILES to INPUT")
+parser.add_argument("-c", "--continue", action="store_true", dest="cont",
+                    default=False,
+                    help="Combine simulation in FILE to INPUT assuming it "
+                    "continues the simulation from INPUT")
+args = parser.parse_args()
+opt = sum([args.add, args.madd, args.cont])
+if opt == 0:
+    print("a5manage: error: provide one of the -a, -m, -c options")
+    exit()
+if opt > 1:
+    print("a5manage: error: only one of the -a, -m, -c options can be used at "
+          + "a time")
+    exit()
+if args.cont and len(args.FILES) > 1:
+    print("a5manage: error: provide only a single FILE when using --continue.")
+    exit()
+
+print("This script is currently out of date. Sorry!")
+exit()
+if args.add:
     targetfile  = sys.argv[2]
     sourcefiles = sys.argv[3:]
 
     # Check if the target file contains the results group. Copy it from the
     # first source file if not.
-    a5 = ascot5.Ascot(targetfile)
-    s5 = ascot5.Ascot(sourcefiles[0])
+    a5 = Ascot(targetfile)
+    s5 = Ascot(sourcefiles[0])
     if not hasattr(a5, "active"):
         subprocess.call(["a5copygroup", sourcefiles[0], targetfile, "results"])
         del sourcefiles[0]
@@ -45,19 +88,9 @@ if mode == "add" and len(sys.argv) >= 4:
     for i in range(len(sourcefiles)):
         print("Combining " + sourcefiles[i] + " to " + targetfile)
         tools.combineoutput(targetfile, addfns=sourcefiles[i])
+    print("a5combine: done")
 
-    print("Combine complete.")
-
-elif mode == "continue" and len(sys.argv) == 4:
-    targetfile = sys.argv[2]
-    sourcefile = sys.argv[3]
-
-    print("Combining " + sourcefile + " to " + targetfile)
-    tools.combineoutput(targetfile, contfns=sourcefile)
-    print("Combine complete.")
-
-if mode == "madd" and len(sys.argv) >= 4:
-
+if args.madd:
     targetfile  = sys.argv[2]
     sourcefiles = sys.argv[3:]
 
@@ -66,16 +99,10 @@ if mode == "madd" and len(sys.argv) >= 4:
         qid = ascot5.Ascot(sourcefiles[i]).active.get_qid()
         subprocess.call(["a5copygroup", sourcefiles[i], targetfile,
                          "run_" + qid])
+    print("a5combine: done")
 
-    print("Combine complete.")
-
-else:
-    print("Combines output of HDF5 files. Three modes are available.\n")
-    print("Add results of a single run split into several files to a single\n"
-          + "run in a single file:\n"
-          + "a5combine add target.h5 several.h5 files.h5 ...\n")
-    print("Add results of a multiple runs, one per file, to a single file:\n"
-          + "a5combine madd target.h5 several.h5 files.h5 ...\n")
-    print("Combine results of two runs where the second run continued the first"
-          + " run (results are gathered to the first run):\n"
-          + "a5combine continue firstrun.h5 secondrun.h5\n")
+if args.cont:
+    targetfile = sys.argv[2]
+    sourcefile = sys.argv[3]
+    tools.combineoutput(targetfile, contfns=sourcefile)
+    print("a5combine: done")

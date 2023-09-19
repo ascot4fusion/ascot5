@@ -1,64 +1,77 @@
 #!/usr/bin/env python3
+"""Edit simulation options with a text editor.
+"""
 import os
 import subprocess
-import sys
 import tempfile
+import argparse
 
-from a5py import Ascot
+from a5py import Ascot, AscotIOException
 from a5py.ascot5io.options import Opt
 
-# Parse arguments
-remove = False
-if "-r" in sys.argv:
-    # Remove previous
-    sys.argv.remove("-r")
-    remove = True
-
-fn = "ascot.h5"
-if len(sys.argv) > 1:
-    fn = sys.argv[1]
+notes = """
+notes:
+  Options are edited using the text editor in variable EDITOR. Most likely
+  the default is vim. Change it to emacs with \"export EDITOR=/usr/bin/emacs\".
+"""
+parser = argparse.ArgumentParser(
+    description="Edit the active simulation options and store them as new "
+    + "input.", epilog=notes,
+    formatter_class=argparse.RawDescriptionHelpFormatter
+)
+parser.add_argument("FILE", help="ASCOT5 HDF5 file whose options are edited.")
+parser.add_argument("-r", "--remove", action="store_true", dest="remove",
+                    default=False,
+                    help="Remove the original options from FILE if possible.")
+args = parser.parse_args()
 
 # Open file and read options
-a5 = Ascot(fn)
+a5 = Ascot(args.FILE)
+newopt = False
 if not "options" in a5.data:
     a5.data.create_input("opt")
-    remove = False
-
+    newopt = True
+    args.remove = True
 options = a5.data.options.active.tostring(descriptions=True)
 
 # Write options to a temporary file for editing
-f,tmpfn = tempfile.mkstemp()
-f = os.fdopen(f,'w')
-f.write(options)
-f.close()
+f, tmpfn = tempfile.mkstemp()
+with os.fdopen(f, "w") as f:
+    f.write(options)
 
 # Get default text editor, use -nw for emacs
-ed=os.environ.get('EDITOR','vim')
+ed = os.environ.get("EDITOR", "vim")
 if "emacs" in ed:
-    subprocess.call([ed,"-nw",tmpfn])
+    subprocess.call([ed, "-nw", tmpfn])
 else:
-    subprocess.call([ed,tmpfn])
+    subprocess.call([ed, tmpfn])
 
 # Edit done, read options, remove temp file
-f = open(tmpfn)
-lines = f.readlines()
-f.close()
+with open(tmpfn) as f:
+    lines = f.readlines()
 os.remove(tmpfn)
 options = Opt.convert_string(lines)
 
 # Write options
 desc = input(
-    "Give description (leave empty if you don't want to save changes):\n")
+    "a5editoptions: give description or leave empty to undo changes:\n")
 
 if len(desc) == 0:
-    print("Options closed without changes.")
+    print("a5editoptions: options closed without changes.")
+    if newopt:
+        # Destroy dummy options
+        a5.data.options.active.destroy()
 else:
     name = a5.data.create_input("opt", activate=False, **options)
     old  = a5.data.options.active.get_name()
     a5.data.options[name].set_desc(desc)
     a5.data.options[name].activate()
-    print("New options are now set as active.")
+    print("a5editoptions: new options are now set as active.")
 
-    if remove:
-        # Note that remove was set False if these were first options
-        a5.data.options[old].destroy()
+    if args.remove:
+        try:
+            a5.data.options[old].destroy()
+        except AscotIOException:
+            print(
+                "a5editoptions: original options used in a simulation and "
+                + "hence can't be removed")
