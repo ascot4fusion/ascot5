@@ -88,7 +88,7 @@ def set_active(f, group):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise AscotNoDataException("Could not find group" + group)
+            raise AscotNoDataException("Could not find group " + group)
         else:
             group = grp
 
@@ -185,7 +185,7 @@ def set_desc(f, group, desc):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise AscotNoDataException("Could not find group" + group)
+            raise AscotNoDataException("Could not find group " + group)
         else:
             group = grp
 
@@ -217,7 +217,7 @@ def get_desc(f, group):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise AscotNoDataException("Could not find group" + group)
+            raise AscotNoDataException("Could not find group " + group)
         else:
             group = grp
 
@@ -248,7 +248,7 @@ def _set_date(f, group, date):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise AscotNoDataException("Could not find group" + group)
+            raise AscotNoDataException("Could not find group " + group)
         else:
             group = grp
 
@@ -280,7 +280,7 @@ def get_date(f, group):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise AscotNoDataException("Could not find group" + group)
+            raise AscotNoDataException("Could not find group " + group)
         else:
             group = grp
 
@@ -309,7 +309,7 @@ def _set_version(f, group):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise AscotNoDataException("Could not find group" + group)
+            raise AscotNoDataException("Could not find group " + group)
         else:
             group = grp
 
@@ -341,7 +341,7 @@ def get_version(f, group):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise AscotNoDataException("Could not find group" + group)
+            raise AscotNoDataException("Could not find group " + group)
         else:
             group = grp
 
@@ -581,7 +581,7 @@ def remove_group(f, group):
             qid = get_qid(group)
             grp = get_group(f, qid)
             if grp is None:
-                raise AscotNoDataException("Could not find group" + group)
+                raise AscotNoDataException("Could not find group " + group)
             else:
                 group = grp
 
