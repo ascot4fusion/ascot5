@@ -3,6 +3,7 @@
 *.pyc
 *.so
 *~
+/build
 /doc/_static/doxygen
 /.metadata/
 /a5py.egg-info/
