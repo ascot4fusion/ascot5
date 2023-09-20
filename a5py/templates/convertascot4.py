@@ -1,10 +1,11 @@
 import numpy as np
 import scipy
+import h5py
 import warnings
 
 class Ascot4Templates():
 
-    def ascot4_marker(self, fn="input.particles", force=None):
+    def ascot4_particles(self, fn="input.particles", force=None):
         """Convert marker input from ASCOT4 to ASCOT5.
 
         Parameters
@@ -345,78 +346,225 @@ class Ascot4Templates():
         data["b_phimax"] = phi[-1]
         return ("B_3DS", data)
 
-    def ascot4_stellarator(self, fn="input.magn_bkg",
-                           fnheader="input.magn_header"):
-        pass
+    def ascot4_stellarator(self, fn="ascot4.h5", psi0=None, psi1=None):
+        """Convert stellarator magnetic field data from ASCOT4 to ASCOT5.
 
-    def ascot4_erad(self, fn=""):
+        Parameters
+        ----------
+        fn : str, optional
+            HDF5 file with the ASCOT4 stellarator magnetic field data.
+        psi0 : float, optional
+            Poloidal flux on axis.
+        psi1 : float, optional
+            Poloidal flux at separatrix.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        if psi0 is None:
+            psi0 = 0
+            warnings.warn(
+                "Using dummy value for psi0. Find proper value with ascotpy")
+        if psi1 is None:
+            psi1 = 1
+            warnings.warn(
+                "Using dummy value for psi1. Find proper value with ascotpy")
+        data = {}
+        with h5py.File(fn, "r") as f:
+            f = f["bfield/stellarator"]
+
+            r    = f["r"][:]
+            phi  = f["phi"][:] * 180 / np.pi
+            z    = f["z"][:]
+
+            data["br"]   = f["br"][:]
+            data["bphi"] = f["bphi"][:]
+            data["bz"]   = f["bz"][:]
+            data["psi"]  = f["s"][:]
+
+            axis_r   = f["axis_R"][:]
+            axis_phi = f["axis_phi"][:] * 180 / np.pi
+            axis_z   = f["axis_z"][:]
+
+            nperiods = f["toroidalPeriods"][:]
+            if "symmetrymode" in f:
+                symmetrymode = f["symmetrymode"][:]
+            else:
+                warnings.warn(
+                    "No symmetry mode specified. Defaulting to stellarator "
+                    + "symmetry")
+                symmetrymode = 0
+
+        philim = 360 / nperiods / (2 if symmetrymode == 0 else 1)
+        if(symmetrymode == 0):
+            # Data is in the format f(z, phi, r)
+            phi = np.concatenate( (phi[:-1], phi[:] + phi[-1]) )
+
+            t            = data["br"][:, :-1, :]
+            t_sym        = -data["br"][-1::-1, -1:0:-1, :]
+            data["br"]   = np.concatenate((t, t_sym),1)
+
+            t            = data["bphi"][:, :-1, :]
+            t_sym        = data["bphi"][-1::-1, -1:0:-1, :]
+            data["bphi"] = np.concatenate((t, t_sym),1)
+
+            t            = data["bz"][:, :-1, :]
+            t_sym        = data["bz"][-1::-1, -1:0:-1, :]
+            data["bz"]   = np.concatenate((t, t_sym),1)
+
+            t            = data["psi"][:, :-1, :]
+            t_sym        = data["psi"][-1::-1, -1:0:-1, :]
+            data["psi"]  = np.concatenate((t, t_sym),1)
+        elif (phi[0] == np.mod(phi[-1], philim)):
+            warnings.warn("Removing duplicate field data point")
+            out["br"]   = data["br"][:, :-1, :]
+            out["bphi"] = data["bphi"][:, :-1, :]
+            out["bz"]   = data["bz"][:, :-1, :]
+            out["psi"]  = data["psi"][:, :-1, :]
+        if (axis_phi[0] == np.mod(axis_phi[-1], philim)):
+            warnings.warn("Removing duplicate axis data point")
+            axis_r = axis_r[:-1]
+            axis_z = axis_z[:-1]
+
+        # Transpose to Ascot5 format
+        data["br"]   = np.transpose(data["br"],   (2,1,0))
+        data["bphi"] = np.transpose(data["bphi"], (2,1,0))
+        data["bz"]   = np.transpose(data["bz"],   (2,1,0))
+        data["psi"]  = np.transpose(data["psi"],  (2,1,0))
+
+        data["b_rmin"]   = r[0]
+        data["b_rmax"]   = r[-1]
+        data["b_nr"]     = r.size
+        data["b_phimin"] = phi[0]
+        data["b_phimax"] = phi[-1]
+        data["b_nphi"]   = phi.size - 1
+        data["b_zmin"]   = z[0]
+        data["b_zmax"]   = z[-1]
+        data["b_nz"]     = z.size
+
+        data["psi0"] = psi0
+        data["psi1"] = psi1
+        data["axis_phimin"] = axis_phi[0]
+        data["axis_phimax"] = axis_phi[-1]
+        data["axis_nphi"]   = axis_phi.size-1
+        data["axisr"]       = axis_r
+        data["axisz"]       = axis_z
+
+        return ("B_STS", data)
+
+    def ascot4_erad(self, fn="input.erad", reff=1.0):
+        """Convert 1D electric field data from ASCOT4 to ASCOT5.
+
+        Parameters
+        ----------
+        fn : str, optional
+            Filename of the ASCOT4 electric field data.
+        reff : float, optional
+            Effective minor radius of the plasma used to convert ``dv/drho`` to
+            SI units as ``drho/dr=1/reff`` [m].
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        data = {}
         with open(fn, "r") as f:
             f.readline() # Skip comment line
-            data["n_rho"] = int(float(f.readline().split()[0]))
+            data["nrho"] = int(float(f.readline().split()[0]))
 
             h5data = np.loadtxt(f)
 
-            data["rho"]     = h5data[:,0]
-            data["dV_drho"] = h5data[:,1]
+            rho = h5data[:,0]
+            data["rhomin"]  = h5data[0,0]
+            data["rhomax"]  = h5data[-1,0]
+            data["dvdrho"] = h5data[:,1]
             # For data in format dV/rho, we can ignore effective minor radius
 
         # Make sure the input is linearly spaced. If not, interpolate
         tol = 1.0001
-        diff = np.diff(data["rho"])
+        diff = np.diff(rho)
         if ( max(diff)/min(diff) > tol):
-            warnings.warn("Interpolating dV_drho to uniform grid")
-            new_rho = np.linspace(
-                np.amin(data["rho"]), np.amax(data["rho"]), data["n_rho"])
-            data["dV_drho"] = np.interp(new_rho, data["rho"], data["dV_drho"])
-            data["rho"] = new_rho
+            warnings.warn("Interpolating dV/drho to uniform grid")
+            new_rho = np.linspace(np.amin(rho), np.amax(rho), data["nrho"])
+            data["dvdrho"] = np.interp(new_rho, rho, data["dvdrho"])
 
-        return data
+        data["reff"] = reff
+        return ("E_1DS", data)
 
-    def ascot4_neutral1d(self, fn="input.wall2d"):
+    def ascot4_neutral1d(self, fn="input.neutral1d", anum=1, znum=1):
+        """Convert 1D neutral data from ASCOT4 to ASCOT5.
+
+        Note that ASCOT4 input is always for a single species.
+
+        Parameters
+        ----------
+        fn : str, optional
+            Filename of the ASCOT4 neutral data.
+        anum : int, optional
+            Atomic mass number.
+        znum : int, optional
+            Atomic mass number.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        data = {}
+        data["nspecies"] = 1 #ASCOT4 doesn't support several neutral species
+        data["anum"]     = np.ones((1,1) * anum)
+        data["znum"]     = np.ones((1,1) * znum)
         with open(fn, "r") as fh:
-            data = {}
             fh.readline()
             fh.readline()
             fh.readline()
-
-            data["nspecies"] = 1 #ASCOT4 doesn't support several neutral species
-            data["nrho"]     = int(float(fh.readline()))
+            data["nrho"] = int(float(fh.readline()))
+            data["density"]     = np.zeros((data["nrho"],1))
+            data["temperature"] = np.zeros((data["nrho"],1))
 
             fh.readline() # ignore headers
             h5data = np.loadtxt(fh)
-            data["rho"] = np.array(h5data[:,0])
-            for i in range(data["nspecies"]):
-                data["dens"+str(i+1)] = np.array(h5data[:,1+i])
-            data["temp"] = np.array(h5data[:,2])
+            rho    = np.array(h5data[:,0])
+            data["density"][:,0]     = np.array(h5data[:,1])
+            data["temperature"][:,0] = np.array(h5data[:,2])
 
             # Make sure the input is linearly spaced. If not, interpolate
             tol = 1.0001
-            diff = np.diff(data["rho"])
-            if ( max(diff)/min(diff) > tol):
+            diff = np.diff(rho)
+            if ( max(diff)/min(diff) > tol ):
                 warnings.warn("Interpolating neutral data to uniform grid")
-                new_rho = np.linspace(
-                    np.amin(data["rho"]), np.amax(data["rho"]), data["nrho"])
-                for i in range(0, data['nspecies']):
-                    data["dens"+str(i+1)] = np.interp(
-                        new_rho, data["rho"], data["dens"+str(i+1)])
-                data["temp"] = np.interp(new_rho, data["rho"], data["temp"])
-                data["rho"]  = new_rho
-
-            data["dens"] = np.array(
-                [data["dens"+str(i+1)] for i in range(data["nspecies"])])
-            data["dens"] = np.transpose(data["dens"])
+                new_rho = np.linspace(rho[0], rho[-1], data["nrho"])
+                data["density"][:,0] = np.interp(
+                    new_rho, rho, data["density"][:,0])
+                data["temperature"][:,0] = np.interp(
+                    new_rho, rho, data["temperature"][:,0])
 
             # Add extra data point outside rho=1 to avoid out of data range
             # errors
-            if ( np.amax(data["rho"]) <= 1.0 ):
+            if ( np.amax(rho) <= 1.0 ):
                 warnings.warn("Adding small datapoint outside rho=1.0")
                 data["nrho"] = data["nrho"] + 1
-                data["rho"] = np.append(
-                    data["rho"], 2*data["rho"][-1]-data["rho"][-2])
-                data["dens"] = np.append(
-                    data["dens"], np.expand_dims(data["dens"][-1,:]*1e-10, 1).T,
-                    axis=0)
-                data["temp"] = np.append(data["temp"], data["temp"][-1])
+                rho = np.append(rho, 2*rho[-1]-rho[-2])
+                data["density"] = np.append(
+                    data["density"], data["density"][-1,:], axis=0)
+                data["temperature"] = np.append(
+                    data["temperature"], data["temperature"][-1,:], axis=0)
+
+            data["rhomin"] = rho[0]
+            data["rhomax"] = rho[-1]
+        return ("N0_1D", data)
 
     def ascot4_alfven(self, fn="input.alfven"):
         """Convert Alfvén MHD data from ASCOT4 to ASCOT5.
@@ -456,11 +604,11 @@ class Ascot4Templates():
 
             # Poloidal mode numbers
             data["mmodes"] = np.array(fh.readline().split()[:data["nmode"]])
-            data["mmodes"] = data["mmodes"].astype(int)
+            data["mmodes"] = -data["mmodes"].astype("i4")
 
             # Toroidal mode numbers
             data["nmodes"] = np.array(fh.readline().split()[:data["nmode"]])
-            data["nmodes"] = data["nmodes"].astype(int)
+            data["nmodes"] = data["nmodes"].astype("i4")
 
             # Amplitudes
             data["amplitude"] = np.array(fh.readline().split()[:data["nmode"]])
@@ -471,6 +619,7 @@ class Ascot4Templates():
             data["omega"] = data["omega"].astype("f8")
 
             # Phase not given, fix it at zero
+            warnings.warn("Phase not given, setting it to zero for all modes")
             data["phase"] = data["omega"]*0
 
             # psin, alpha profile, phi profile, each line corresponds to one psi
