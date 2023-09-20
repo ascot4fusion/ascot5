@@ -54,13 +54,13 @@ class N0_1D(DataGroup):
             Number of neutral species.
         anum : array_like (nspecies,1)
             Neutral species' atomic mass number.
-        znum array_like (nspecies,1)
+        znum : array_like (nspecies,1)
             Neutral species' charge number.
-        density array_like (nrho,nspecies)
+        density : array_like (nrho,nspecies)
             Neutral species-wise density [m^-3].
-        temperature array_like (nrho,nspecies)
+        temperature : array_like (nrho,nspecies)
             Neutral species-wise temperature [eV].
-        maxwellian array_like (nspecies,1)
+        maxwellian : array_like (nspecies,1)
             Whether species distribution is Maxwellian (1) of monoenergetic (0)
         desc : str, optional
             Input description.
