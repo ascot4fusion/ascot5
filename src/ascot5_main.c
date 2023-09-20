@@ -250,7 +250,6 @@ CLEANUP_FAILURE:
     return 1;
 }
 
-
 /**
  * @brief Prepare markers for offload
  *
@@ -272,6 +271,10 @@ int prepare_markers(
     sim_offload_data* sim, int mpi_size, int mpi_rank, int n_tot,
     input_particle** pin, particle_state** pout, int* nprts,
     real* B_offload_array) {
+
+    /* This sets up GC transformation order etc. so it must be called before
+     * initializing markers. */
+    simulate_init_offload(sim);
 
     /* Choose which markers are used in this MPI process. Simply put, markers
      * are divided into mpi_size sequential blocks and the mpi_rank:th block
@@ -337,7 +340,6 @@ int pack_offload_array(
     int** int_offload_array) {
 
     /* Pack offload data into single array and free individual offload arrays */
-    simulate_init_offload(sim);
     offload_init_offload(offload_data, offload_array, int_offload_array);
 
     offload_pack(offload_data, offload_array, *B_offload_array,
