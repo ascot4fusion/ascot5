@@ -176,12 +176,12 @@ def copygroup(fns, fnt, group, newgroup=False):
                 fileapi.copy_group(fs, ft, grp, newgroup=newgroup)
             return None
 
-def combineoutput(fnt, addfns=None, contfns=None):
+def combineoutput(fnt, fns, add=True):
     """Combine outputs of two HDF5 files.
 
-    Depending on which argument is given, this either combines the output by
-    assuming ``fnt`` and ``addfns`` are both part of a larger simulation,
-    or markers in ``contfns`` were initialized from the endstate of ``fnt``.
+    Depending on ``add`` value, this either combines the output by assuming
+    ``fnt`` and ``fns`` are both part of a larger simulation, or markers in
+    ``fns`` were initialized from the endstate of ``fnt``.
 
     The combined outputs will be stored on ``fnt`` on a run group that is
     active. The outputs are read from ``addfns`` (or ``contfns``) from the group
@@ -191,28 +191,24 @@ def combineoutput(fnt, addfns=None, contfns=None):
     ----------
     fnt : str
         Full path to HDF5 file where combined output will be stored.
-    addfns : str, optional
-        Name of the HDF5 file where results are read when assuming that they are
-        all part of a large simulation.
-    contfns : str, optional
-        Name of the HDF5 file where results are read when assuming that they
-        continue the simulation from the endstate of active run in ``fnt``.
+    fns : str, optional
+        Name of the HDF5 file where results are read.
+    add : bool, optional
+        If True, outputs are combined assuming they are part of a larger
+        simulation.
+
+        If False, it is assumed that the source simulation continues the target
+        simulation.
     """
-    if addfns is not None:
-        fns = addfns
-    elif contfns is not None:
-        fns = contfns
-    else:
-        raise ValueError("Specify either addfns or contfns but not both.")
+    with h5py.File(fns, "r") as fs, h5py.File(fnt, "a") as ft:
+        source = fileapi.get_active(fs, "results")
+        target = fileapi.get_active(ft, "results")
 
-    # Find the active groups
-    source = Ascot(fns).data.active
-    target = Ascot(fnt).data.active
-
-    # Combine states
-    if addfns is not None:
-        if hasattr(target, "inistate") and hasattr(source, "inistate"):
-            with target.inistate as tdata, source.inistate as sdata:
+        # Combine states
+        if add:
+            if "inistate" in target and "inistate" in source:
+                tdata = target["inistate"]
+                sdata = source["inistate"]
                 for field in tdata:
                     tsize = tdata[field].size
                     ssize = sdata[field].size
@@ -220,41 +216,43 @@ def combineoutput(fnt, addfns=None, contfns=None):
                     tdata[field].resize((tsize+ssize, ))
                     tdata[field][tsize:] = sdata[field][:]
 
-        if hasattr(target, "endstate") and hasattr(source, "endstate"):
-            with target.endstate as tdata, source.endstate as sdata:
+            if "endstate" in target and "endstate" in source:
+                tdata = target["endstate"]
+                sdata = source["endstate"]
                 for field in tdata:
                     tsize = tdata[field].size
                     ssize = sdata[field].size
 
                     tdata[field].resize((tsize+ssize, ))
                     tdata[field][tsize:] = sdata[field][:]
-    else:
-        # Sort target inistate by id.
-        if hasattr(target, "inistate"):
-            with target.inistate as tdata:
-                idx = np.argsort(tdata["id"][:])
+        else:
+            # Sort target inistate by id.
+            if "inistate" in target:
+                tdata = target["inistate"]
+                idx = np.argsort(tdata["ids"][:])
                 for field in tdata:
                     tdata[field][:] = tdata[field][:][idx]
 
-        # Replace target endstate with sorted by id source endstate.
-        if hasattr(target, "endstate") and hasattr(source, "endstate"):
-            with target.endstate as tdata, source.endstate as sdata:
-                idx = np.argsort(sdata["id"][:])
+            # Replace target endstate with sorted by id source endstate.
+            if "endstate" in target and "endstate" in source:
+                tdata = target["endstate"]
+                sdata = source["endstate"]
+                idx = np.argsort(sdata["ids"][:])
                 for field in tdata:
                     tdata[field][:] = sdata[field][:][idx]
 
-    # Combine dists
-    for d in ["5d", "6d", "rho5d", "rho6d", "com"]:
-        dname = "dist" + d
-        if hasattr(target, d) and \
-           hasattr(source, d):
-            with getattr(target, dname) as tdata, \
-                 getattr(source, dname) as sdata:
+        # Combine dists
+        for d in ["5d", "6d", "rho5d", "rho6d", "com"]:
+            dname = "dist" + d
+            if dname in target and dname in source:
+                tdata = target[dname]
+                sdata = source[dname]
                 tdata["ordinate"][:] += sdata["ordinate"][:]
 
-    # Combine orbits
-    if hasattr(target, "orbit") and hasattr(source, "orbit"):
-        with target.orbit as tdata, source.orbit as sdata:
+        # Combine orbits
+        if "orbit" in target and "orbit" in source:
+            tdata = target["orbit"]
+            sdata = source["orbit"]
             for field in tdata:
                 tsize = tdata[field].size
                 ssize = sdata[field].size
@@ -262,9 +260,10 @@ def combineoutput(fnt, addfns=None, contfns=None):
                 tdata[field].resize((tsize+ssize, ))
                 tdata[field][tsize:] = sdata[field][:]
 
-    # Combine transport coefficients
-    if hasattr(target, "transcoef") and hasattr(source, "transcoef"):
-        with target.transcoef as tdata, source.transcoef as sdata:
+        # Combine transport coefficients
+        if "transcoef" in target and "transcoef" in source:
+            tdata = target["transcoef"]
+            sdata = source["transcoef"]
             for field in tdata:
                 tsize = tdata[field].size
                 ssize = sdata[field].size
