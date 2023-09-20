@@ -112,9 +112,7 @@ int main(int argc, char** argv) {
      * feenableexcept(FE_DIVBYZERO  | FE_INVALID | FE_OVERFLOW);
      *
      * */
-
 #endif
-
 
     /* Read and parse command line arguments */
     sim_offload_data sim;
@@ -140,7 +138,6 @@ int main(int argc, char** argv) {
     print_out0(VERBOSE_MINIMAL, mpi_rank,
                "Not under version control\n\n");
 #endif
-
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
 
@@ -208,18 +205,23 @@ int main(int argc, char** argv) {
     }
 
     /* Actual simulation is done here; the results are stored in
-     * diag_offload_array and pout contains end states from all processes. */
+     * diag_offload_array and pout contains end states from all processes.
+     * n_gathered is the number of simulated markers, which can differ from
+     * n_tot if this process is run in a MPI-like manner without MPI and the
+     * output will contain only 1/mpi_size of the results. */
     real* diag_offload_array;
     particle_state* pout;
+    int n_gathered;
     offload_and_simulate(
         &sim, mpi_size, mpi_rank, mpi_root, n_tot, nprts, ps, &offload_data,
-        offload_array, int_offload_array, &pout, &diag_offload_array);
+        offload_array, int_offload_array, &n_gathered, &pout,
+        &diag_offload_array);
 
     /* Free input data */
     offload_free_offload(&offload_data, &offload_array, &int_offload_array);
 
     /* Write output and clean */
-    if( write_output(&sim, mpi_rank, mpi_root, pout, n_tot,
+    if( write_output(&sim, mpi_rank, mpi_root, pout, n_gathered,
                      diag_offload_array) ) {
         goto CLEANUP_FAILURE;
     }
@@ -422,7 +424,7 @@ int write_rungroup(
 
     if(mpi_rank == mpi_root) {
         /* Write inistate */
-        if(hdf5_interface_write_state(sim->hdf5_out, "inistate", n_tot,
+        if(hdf5_interface_write_state(sim->hdf5_out, "inistate", n_gathered,
                                       ps_gathered)) {
             print_out0(VERBOSE_MINIMAL, mpi_rank,
                        "\n"
@@ -452,6 +454,7 @@ int write_rungroup(
  * @param offload_data packed offload data struct
  * @param offload_array packed offload array containing the input data
  * @param int_offload_array packed offload integer array containg the input data
+ * @param n_gathered pointer for storing number of simulated markers
  * @param pout pointer to array containing all marker endstates
  * @param diag_offload_array allocated array to return output data from target
  *
@@ -460,8 +463,8 @@ int write_rungroup(
 int offload_and_simulate(
     sim_offload_data* sim, int mpi_size, int mpi_rank, int mpi_root, int n_tot,
     int nprts, particle_state* pin, offload_package* offload_data,
-    real* offload_array, int* int_offload_array, particle_state** pout,
-    real** diag_offload_array) {
+    real* offload_array, int* int_offload_array, int* n_gathered,
+    particle_state** pout, real** diag_offload_array) {
 
     /* Initialize diagnostics offload data */
     diag_init_offload(&sim->diag_offload_data, diag_offload_array, n_tot);
@@ -528,11 +531,10 @@ int offload_and_simulate(
 
     /* Code execution returns to host. */
     print_out0(VERBOSE_NORMAL, mpi_rank, "gpu %lf s, host %lf s\n",
-        mic_end-mic_start, host_end-host_start);
+               mic_end-mic_start, host_end-host_start);
 
     /* Gather output data */
-    int n_gathered;
-    mpi_gather_particlestate(pin, pout, &n_gathered, n_tot,
+    mpi_gather_particlestate(pin, pout, n_gathered, n_tot,
                              mpi_rank, mpi_size, mpi_root);
     free(pin);
 
@@ -550,21 +552,21 @@ int offload_and_simulate(
  * @param mpi_rank rank of this MPI process
  * @param mpi_root rank of the root process (which does the writing)
  * @param ps_gathered marker state array containing the end states
- * @param n_tot total number of markers
+ * @param n_gathered number of simulated markers
  * @param diag_offload_array diagnostics offload data array
  *
  * @return zero on success
  */
 int write_output(
     sim_offload_data* sim, int mpi_rank, int mpi_root,
-    particle_state* ps_gathered, int n_tot,
+    particle_state* ps_gathered, int n_gathered,
     real* diag_offload_array){
 
     if(mpi_rank == mpi_root) {
 
         /* Write endstate */
-        if( hdf5_interface_write_state(sim->hdf5_out, "endstate", n_tot,
-                                       ps_gathered)) {
+        if( hdf5_interface_write_state(
+                sim->hdf5_out, "endstate", n_gathered, ps_gathered)) {
             print_out0(VERBOSE_MINIMAL, mpi_rank,
                    "\nWriting endstate failed.\n"
                    "See stderr for details.\n");
@@ -624,22 +626,22 @@ int write_output(
  */
 int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     struct option longopts[] = {
-        {"in",       required_argument, 0, 1 },
-        {"out",      required_argument, 0, 2 },
-        {"mpi_size", required_argument, 0, 3 },
-        {"mpi_rank", required_argument, 0, 4 },
-        {"d",        required_argument, 0, 5 },
-        {"options",  required_argument, 0, 6 },
-        {"bfield",   required_argument, 0, 7 },
-        {"efield",   required_argument, 0, 8 },
-        {"marker",   required_argument, 0, 9 },
-        {"wall",     required_argument, 0, 10},
-        {"plasma",   required_argument, 0, 11},
-        {"neutral",  required_argument, 0, 12},
-        {"boozer",   required_argument, 0, 13},
-        {"mhd",      required_argument, 0, 14},
-        {"asigma",   required_argument, 0, 15},
-        {0,          0                , 0, 0 }
+        {"in", required_argument, 0, 1},
+        {"out", required_argument, 0, 2},
+        {"mpi_size", required_argument, 0, 3},
+        {"mpi_rank", required_argument, 0, 4},
+        {"d", required_argument, 0, 5},
+        {"options", required_argument, 0, 6},
+        {"bfield",  required_argument, 0, 7},
+        {"efield",  required_argument, 0, 8},
+        {"marker",  required_argument, 0, 9},
+        {"wall",    required_argument, 0, 10},
+        {"plasma",  required_argument, 0, 11},
+        {"neutral", required_argument, 0, 12},
+        {"boozer",  required_argument, 0, 13},
+        {"mhd",     required_argument, 0, 14},
+        {"asigma",  required_argument, 0, 15},
+        {0, 0, 0, 0}
     };
 
     /* Initialize default values */
@@ -668,23 +670,25 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
                 /* The .hdf5 filename can be specified with or without the
                  * trailing .h5 */
                 slen = strlen(optarg);
-                if ( slen > 3 && !strcmp(optarg+slen-3,".h5") ) {
-                    strcpy(sim->hdf5_in,optarg);
+                if ( slen > 3 && !strcmp(optarg+slen-3, ".h5") ) {
+                    strcpy(sim->hdf5_in, optarg);
                     (sim->hdf5_in)[slen-3]='\0';
                 }
-                else
+                else {
                     strcpy(sim->hdf5_in, optarg);
+                }
                 break;
             case 2:
                 /* The .hdf5 filename can be specified with or without the
                  * trailing .h5 */
                 slen = strlen(optarg);
-                if ( slen > 3 && !strcmp(optarg+slen-3,".h5") ) {
-                    strcpy(sim->hdf5_out,optarg);
+                if ( slen > 3 && !strcmp(optarg+slen-3, ".h5") ) {
+                    strcpy(sim->hdf5_out, optarg);
                     (sim->hdf5_out)[slen-3]='\0';
                 }
-                else
+                else {
                     strcpy(sim->hdf5_out, optarg);
+                }
                 break;
             case 3:
                 sim->mpi_size = atoi(optarg);
@@ -730,9 +734,9 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
                 print_out(VERBOSE_MINIMAL,
                           "\nUnrecognized argument. The valid arguments are:\n");
                 print_out(VERBOSE_MINIMAL,
-                          "--in input file without .h5 extension (default: ascot)\n");
+                          "--in input file (default: ascot.h5)\n");
                 print_out(VERBOSE_MINIMAL,
-                          "--out output file without .h5 extension (default: same as input)\n");
+                          "--out output file (default: same as input)\n");
                 print_out(VERBOSE_MINIMAL,
                           "--mpi_size number of independent processes\n");
                 print_out(VERBOSE_MINIMAL,
@@ -748,12 +752,13 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
      * add the .h5 extension here. */
     if(sim->hdf5_in[0] == '\0' && sim->hdf5_out[0] == '\0') {
         /* No input, use default values for both */
-        strcpy(sim->hdf5_in, "ascot.h5");
+        strcpy(sim->hdf5_in,  "ascot.h5");
         strcpy(sim->hdf5_out, "ascot.h5");
     }
     else if(sim->hdf5_in[0] == '\0' && sim->hdf5_out[0] != '\0') {
         /* Output file is given but the input file is not */
-        strcpy(sim->hdf5_in, "ascot.h5");
+        strcpy(sim->hdf5_in,  "ascot.h5");
+        strcat(sim->hdf5_out, ".h5");
     }
     else if(sim->hdf5_in[0] != '\0' && sim->hdf5_out[0] == '\0') {
         /* Input file is given but the output is not */
@@ -762,7 +767,7 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     }
     else {
         /* Both input and output files are given */
-        strcat(sim->hdf5_in, ".h5");
+        strcat(sim->hdf5_in,  ".h5");
         strcat(sim->hdf5_out, ".h5");
     }
     return 0;
