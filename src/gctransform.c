@@ -282,8 +282,8 @@ void gctransform_particle2guidingcenter(
         *zeta  = zeta0 + zeta1;
     }
     else {
-        *ppar  = ppar0;
-        *mu    = mu0;
+        *ppar = ppar0;
+        *mu   = mu0;
         *zeta = zeta0;
     }
 
