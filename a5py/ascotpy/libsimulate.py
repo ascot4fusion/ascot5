@@ -209,10 +209,6 @@ class LibSimulate():
                 p.p_z     = pvec[2]
                 p.mass    = mrk["mass"][i]
                 p.charge  = mrk["charge"][i]
-                print(mrk)
-                print(mrk["anum"])
-                print(mrk["anum"][i])
-                print(mrk["anum"][i][0])
                 p.anum    = mrk["anum"][i][0]
                 p.znum    = mrk["znum"][i]
                 p.weight  = mrk["weight"][i]
@@ -308,11 +304,13 @@ class LibSimulate():
                 val  = getattr(self._inistate[j], name)
                 setattr(self._endstate[j], name, val)
 
+        n_gather = ctypes.c_int32(0) # Not really needed unless MPI is used
         ascot2py.offload_and_simulate(
             ctypes.byref(self._sim), self._mpi_size, self._mpi_rank,
             self._mpi_root, self._nmrk, self._nmrk, self._endstate,
             ctypes.byref(self._offload_data), self._offload_array,
-            self._int_offload_array, ctypes.byref(self._endstate),
+            self._int_offload_array, ctypes.byref(n_gather),
+            ctypes.byref(self._endstate),
             ctypes.byref(self._diag_offload_array))
 
         self._diag_occupied = True

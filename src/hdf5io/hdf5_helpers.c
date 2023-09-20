@@ -40,7 +40,7 @@ hid_t hdf5_open(const char *filename) {
 }
 
 /**
- * @brief Open a hdf5 file for reading and writing. A negative value is
+ * @brief Open a hdf5 file for read only. A negative value is
  *returned on failure.
  */
 hid_t hdf5_open_ro(const char *filename) {
