@@ -53,25 +53,25 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
 
             real posrpz[3] = {p->r[i], p->phi[i], p->z[i]};
             real posxyz0[3],posxyz[3];
-            math_rpz2xyz(posrpz,posxyz0);
+            math_rpz2xyz(posrpz, posxyz0);
 
             /* Take a half step and evaluate fields at that position */
             real gamma = physlib_gamma_pnorm(mass, math_norm(pxyz));
-            posxyz[0] = posxyz0[0] + pxyz[0] * h[i] / (2 * gamma * mass);
-            posxyz[1] = posxyz0[1] + pxyz[1] * h[i] / (2 * gamma * mass);
-            posxyz[2] = posxyz0[2] + pxyz[2] * h[i] / (2 * gamma * mass);
+            posxyz[0] = posxyz0[0] + pxyz[0] * h[i] / (2.0 * gamma * mass);
+            posxyz[1] = posxyz0[1] + pxyz[1] * h[i] / (2.0 * gamma * mass);
+            posxyz[2] = posxyz0[2] + pxyz[2] * h[i] / (2.0 * gamma * mass);
 
-            math_xyz2rpz(posxyz,posrpz);
+            math_xyz2rpz(posxyz, posrpz);
 
             real Brpz[3];
             real Erpz[3];
             if(!errflag) {
                 errflag = B_field_eval_B(Brpz, posrpz[0], posrpz[1], posrpz[2],
-                                         t0 + h[i]/2, Bdata);
+                                         t0 + h[i]/2.0, Bdata);
             }
             if(!errflag) {
                 errflag = E_field_eval_E(Erpz, posrpz[0], posrpz[1], posrpz[2],
-                                         t0 + h[i]/2, Edata, Bdata);
+                                         t0 + h[i]/2.0, Edata, Bdata);
             }
 
             real fposxyz[3]; // final position in cartesian coordinates
@@ -98,7 +98,7 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
 
                 real Bhat[9] = {       0,  Bxyz[2], -Bxyz[1],
                                 -Bxyz[2],        0,  Bxyz[0],
-                        Bxyz[1], -Bxyz[0],        0};
+                                 Bxyz[1], -Bxyz[0],        0};
                 real Bhat2[9];
                 math_matmul(Bhat, Bhat, 3, 3, 3, Bhat2);
 
@@ -106,7 +106,7 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
 
                 real A[9];
                 for(int j=0; j<9; j++) {
-                    A[j] = (Bhat[j] + d*Bhat2[j]) * (2.0*d/(1+d2*B2));
+                    A[j] = (Bhat[j] + d*Bhat2[j]) * (2.0*d/(1.0+d2*B2));
                 }
 
                 real pplus[3];
@@ -124,9 +124,9 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
             }
 
             gamma = physlib_gamma_pnorm(mass, math_norm(pxyz));
-            fposxyz[0] = posxyz[0] + h[i] * pxyz[0] / (2 * gamma * mass);
-            fposxyz[1] = posxyz[1] + h[i] * pxyz[1] / (2 * gamma * mass);
-            fposxyz[2] = posxyz[2] + h[i] * pxyz[2] / (2 * gamma * mass);
+            fposxyz[0] = posxyz[0] + h[i] * pxyz[0] / (2.0 * gamma * mass);
+            fposxyz[1] = posxyz[1] + h[i] * pxyz[1] / (2.0 * gamma * mass);
+            fposxyz[2] = posxyz[2] + h[i] * pxyz[2] / (2.0 * gamma * mass);
 
             if(!errflag) {
                 /* Back to cylindrical coordinates */
