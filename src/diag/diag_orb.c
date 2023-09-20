@@ -197,7 +197,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         ipoint = 0;
                     }
                     data->mrk_pnt[imrk]      = ipoint;
-                    data->mrk_recorded[imrk] = p_f->mileage[i];
+                    data->mrk_recorded[imrk] = p_i->mileage[i];
                 }
 
                 /* Record marker if enough time has passed from last record, or
@@ -401,7 +401,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         ipoint = 0;
                     }
                     data->mrk_pnt[imrk]      = ipoint;
-                    data->mrk_recorded[imrk] = p_f->mileage[i];
+                    data->mrk_recorded[imrk] = p_i->mileage[i];
                 }
 
                 /* Record marker if enough time has passed from last record, or
@@ -604,7 +604,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                         ipoint = 0;
                     }
                     data->mrk_pnt[imrk]      = ipoint;
-                    data->mrk_recorded[imrk] = p_f->mileage[i];
+                    data->mrk_recorded[imrk] = p_i->mileage[i];
                 }
 
                 /* Record marker if enough time has passed from last record, or
