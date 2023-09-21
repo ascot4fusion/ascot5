@@ -1124,8 +1124,9 @@ class PhysTest():
         ax.scatter(1/bnorm**2, Dgca)
         ax.plot(1/bnorm**2, Dana, color="black")
         ax.set_xlabel(r"$1/B^{2}$ [1/T$^2$]")
+        ax.set_ylabel(r"Diffusion [m$^2$/s]")
 
-        print("Test Coulomb collisions:")
+        print("Test classical transport:")
         passed = True
         k0 = np.polyfit(1/bnorm**2, Dana, 1)[0]
         k1 = np.polyfit(1/bnorm**2, Dgo,  1)[0]
@@ -1239,14 +1240,15 @@ class PhysTest():
         items = self.ascot.data.bfield.ls(show=False)
         while PhysTest.tag_neoclassical_go + str(nscan) in items:
             nscan += 1
-            print(nscan)
 
         # Evaluate Ti and R_omp(rho) as these are needed
         run_go = self.ascot.data[PhysTest.tag_neoclassical_go  + "0"]
         self.ascot.input_init(run=run_go.get_qid(), bfield=True, plasma=True)
-        Ti         = self.ascot.input_eval(6.2, 0, 0, 0, "ti1")
+        Ti         = self.ascot.input_eval(
+            6.2*unyt.m, 0*unyt.deg, 0*unyt.m, 0*unyt.s, "ti1")
         rhoomp     = np.linspace(0, 1, 100)
-        romp, zomp = self.ascot.input_rhotheta2rz(rhoomp, 0, 0, 0)
+        romp, zomp = self.ascot.input_rhotheta2rz(
+            rhoomp, 0*unyt.rad, 0*unyt.rad, 0*unyt.s)
         self.ascot.input_free()
 
         # Initialize plots
@@ -1314,16 +1316,73 @@ class PhysTest():
             * ( unyt.mp / unyt.me )
         veff_x = collfreq / omegat
 
-        ax.plot(veff, Dps, color="black")
-        ax.plot(veff, Dp, color="black")
-        ax.plot(veff, Db, color="black")
-        ax.scatter(veff_x, Dgo, marker="*")
+        i1 = np.nonzero(veff==np.power(eps, 3.0/2.0))[0][0]
+        i2 = np.nonzero(veff==1)[0][0]
+        ax.plot(veff[i2:],     Dps[i2:],    color="black")
+        ax.plot(veff[i1:i2+1], Dp[i1:i2+1], color="black")
+        ax.plot(veff[:i1+1],   Db[:i1+1],   color="black")
+
+        ax.scatter(veff_x, Dgo,  marker="*")
         ax.scatter(veff_x, Dgcf, marker="o")
         ax.scatter(veff_x, Dgca, marker="^")
-        print(Dgo)
-        print(Dgcf)
-        print(Dgca)
-        plt.show()
+
+        ax.set_xlabel(r"Effective collisionality $\nu^*$")
+        ax.set_ylabel(r"Diffusion [m$^2$/s]")
+
+        ax.plot([1,1], [1e-6, 1e-1], color="gray")
+        ax.plot([eps**(3.0/2), eps**(3.0/2)], [1e-6, 1e-1], color="gray")
+        ax.text(10**(-1.9), 10**(-5.7), r"$\nu^*=\epsilon^{3/2}$", fontsize=10,
+           bbox={'facecolor':'white', 'edgecolor':'none', 'pad':0})
+        ax.text(10**(-0.25), 10**(-5.7), r"$\nu^*=1$", fontsize=10,
+               bbox={'facecolor':'white', 'edgecolor':'none', 'pad':0})
+        ax.text(10**(-2.5), 10**(-3.7), r"$D_{B}$",  fontsize=10)
+        ax.text(10**(-0.8), 10**(-2.7), r"$D_{P}$",  fontsize=10)
+        ax.text(10**(0.4),  10**(-1.8), r"$D_{PS}$", fontsize=10)
+
+        ax.set_xlim(1e-4, 1e2)
+        ax.set_ylim(1e-6, 1e-1)
+
+        f = "(FAILED)"
+        print("Test neoclassical transport:")
+        print("                   GO       GCF      GCA      analytical")
+        passed = True
+        idx = veff_x <= np.power(eps, 3.0/2.0)
+        k0 = np.polyfit(veff[:i1+1], Db[:i1+1], 1)[0]
+        k1 = np.polyfit(veff_x[idx], Dgo[idx],  1)[0]
+        k2 = np.polyfit(veff_x[idx], Dgcf[idx], 1)[0]
+        k3 = np.polyfit(veff_x[idx], Dgca[idx], 1)[0]
+        f = ""
+        if np.amax(np.abs(np.array([k1,k2,k3]) - k0)) > 2e-2:
+            f = "(FAILED)"
+            passed=False
+        print("  Banana regime    %1.2e %1.2e %1.2e %1.2e %s"
+              % (k1, k2, k3, k0, f))
+
+        idx = np.logical_and(veff_x >= np.power(eps, 3.0/2.0), veff_x <=1)
+        k0 = np.polyfit(veff[i1:i2+1], Dp[i1:i2+1], 1)[0]
+        k1 = np.polyfit(veff_x[idx],   Dgo[idx],    1)[0]
+        k2 = np.polyfit(veff_x[idx],   Dgcf[idx],   1)[0]
+        k3 = np.polyfit(veff_x[idx],   Dgca[idx],   1)[0]
+        f = ""
+        if np.amax(np.abs(np.array([k1,k2,k3]) - k0)) > 3e-3:
+            f = "(FAILED)"
+            passed=False
+        print("  Plateau regime   %1.2e %1.2e %1.2e %1.2e %s"
+              % (k1, k2, k3, k0, f))
+
+        idx = veff_x >=1
+        k0 = np.polyfit(veff[i2:],   Dps[i2:],  1)[0]
+        k1 = np.polyfit(veff_x[idx], Dgo[idx],  1)[0]
+        k2 = np.polyfit(veff_x[idx], Dgcf[idx], 1)[0]
+        k3 = np.polyfit(veff_x[idx], Dgca[idx], 1)[0]
+        f = ""
+        if np.amax(np.abs(np.array([k1,k2,k3]) - k0)) > 3e-4:
+            f = "(FAILED)"
+            passed=False
+        print("  Pfirsch-Schlüter %1.2e %1.2e %1.2e %1.2e %s"
+              % (k1, k2, k3, k0, f))
+
+        return passed
 
     def init_boozer(self):
         """Initialize data for the Boozer transformation test.
