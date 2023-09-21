@@ -402,7 +402,7 @@ class PhysTest():
         opt = Opt.get_default()
         opt.update({
             "SIM_MODE" : 1, "FIXEDSTEP_USE_USERDEFINED" : 1,
-            "FIXEDSTEP_USERDEFINED" : 1e-12, "ENDCOND_SIMTIMELIM" : 1,
+            "FIXEDSTEP_USERDEFINED" : 1e-11, "ENDCOND_SIMTIMELIM" : 1,
             "ENDCOND_LIM_SIMTIME" : 5e-6, "ENABLE_ORBIT_FOLLOWING" : 1,
             "ENABLE_ORBITWRITE" : 1, "ORBITWRITE_MODE" : 1,
             "ORBITWRITE_INTERVAL" : 1e-10, "ORBITWRITE_NPOINT" : 50002
@@ -416,7 +416,7 @@ class PhysTest():
         init("opt", **opt, desc=PhysTest.tag_orbfol_gcf)
         opt.update({
             "ENABLE_ADAPTIVE" : 1, "ADAPTIVE_MAX_DRHO" : 0.1,
-            "ADAPTIVE_MAX_DPHI" : 10, "ADAPTIVE_TOL_ORBIT" : 1e-10,
+            "ADAPTIVE_MAX_DPHI" : 10, "ADAPTIVE_TOL_ORBIT" : 1e-11,
             "FIXEDSTEP_USERDEFINED" : 1e-8
         })
         init("opt", **opt, desc=PhysTest.tag_orbfol_gca)
@@ -516,7 +516,7 @@ class PhysTest():
             err = np.polyfit(t, (q - q[0]) / q[0], 1)[0]
             msg = "Rate of change in %6s (%s/%11s): %e Tolerance: %e" \
                 % (qnt, otype, mode, err, eps)
-            if err > eps:
+            if np.abs(err) > eps:
                 msg += " (FAILED)"
                 print(msg)
                 return False
@@ -567,12 +567,12 @@ class PhysTest():
         simmode1 = "gyro-orbit"; simmode2 = "fixed GC"; simmode3 = "adaptive GC"
         if fails(tgo1,  ego1,   5e-6, "energy", otype1, simmode1):passed = False
         if fails(tgo2,  ego2,   5e-6, "energy", otype2, simmode1):passed = False
-        if fails(tgcf1, egcf1,  5e-3, "energy", otype1, simmode2):passed = False
-        if fails(tgcf2, egcf2,  5e-5, "energy", otype2, simmode2):passed = False
-        if fails(tgca1, egca1,  5e-3, "energy", otype1, simmode3):passed = False
-        if fails(tgca2, egca2,  5e-5, "energy", otype2, simmode3):passed = False
-        if fails(tgo1,  mugo1,  2e2,  "mu",     otype1, simmode1):passed = False
-        if fails(tgo2,  mugo2,  1e-1, "mu",     otype2, simmode1):passed = False
+        if fails(tgcf1, egcf1,  5e-6, "energy", otype1, simmode2):passed = False
+        if fails(tgcf2, egcf2,  5e-6, "energy", otype2, simmode2):passed = False
+        if fails(tgca1, egca1,  5e-6, "energy", otype1, simmode3):passed = False
+        if fails(tgca2, egca2,  5e-6, "energy", otype2, simmode3):passed = False
+        if fails(tgo1,  mugo1,   2e2, "mu",     otype1, simmode1):passed = False
+        if fails(tgo2,  mugo2,  2e-1, "mu",     otype2, simmode1):passed = False
         if fails(tgcf1, mugcf1, 1e-9, "mu",     otype1, simmode2):passed = False
         if fails(tgcf2, mugcf2, 1e-9, "mu",     otype2, simmode2):passed = False
         if fails(tgca1, mugca1, 1e-9, "mu",     otype1, simmode3):passed = False
@@ -704,11 +704,14 @@ class PhysTest():
         h3.set_yticklabels([])
 
         h1c.set_xlabel("Time [µs]")
-        h1a.set_ylabel(r"$(E-E_0)/E_0$")
-        h1b.set_ylabel(r"$(\mu-\mu_0)/\mu_0$")
-        h1c.set_ylabel(r"$(P-P_0)/P_0$")
+        h1a.set_ylabel(r"$\mu$")
+        h1b.set_ylabel(r"$E_\mathrm{kin}$")
+        h1c.set_ylabel(r"$P_\mathrm{ctor}$")
         h2.set_xlabel("R [m]")
-        h2.set_ylabel("z [m]")
+        h3.set_xlabel("R [m]")
+        h3.set_ylabel("z [m]")
+        h3.yaxis.set_label_position("right")
+        h3.yaxis.tick_right()
 
         # Get data and plot
         self.ascot.input_init(run=run_go.get_qid(), bfield=True)
@@ -753,22 +756,32 @@ class PhysTest():
         mugo    = np.interp(t, tgo,    mugo)
         mugc    = np.interp(t, tgc,    mugc)
         mugo2gc = np.interp(t, tgo2gc, mugo2gc)
-        ego    = np.interp(t, tgo,    ego)
-        egc    = np.interp(t, tgc,    egc)
-        ego2gc = np.interp(t, tgo2gc, ego2gc)
-        pgo    = np.interp(t, tgo,    pgo)
-        pgc    = np.interp(t, tgc,    pgc)
-        pgo2gc = np.interp(t, tgo2gc, pgo2gc)
+        ego     = np.interp(t, tgo,    ego)
+        egc     = np.interp(t, tgc,    egc)
+        ego2gc  = np.interp(t, tgo2gc, ego2gc)
+        pgo     = np.interp(t, tgo,    pgo)
+        pgc     = np.interp(t, tgc,    pgc)
+        pgo2gc  = np.interp(t, tgo2gc, pgo2gc)
 
-        err1 = np.sum( (mugo    - mugc)**2 )
-        err2 = np.sum( (mugo2gc - mugc)**2 )
-        print(err2/err1)
-        err1 = np.sum( (ego    - egc)**2 )
-        err2 = np.sum( (ego2gc - egc)**2 )
-        print(err2/err1)
-        err1 = np.sum( (pgo    - pgc)**2 )
-        err2 = np.sum( (pgo2gc - pgc)**2 )
-        print(err2/err1)
+        print("Test GC transformation:")
+        passed = True
+
+        mugo = np.mean(mugo); mugc = np.mean(mugc); mugo2gc = np.mean(mugo2gc)
+        ego  = np.mean(ego);  egc  = np.mean(egc);  ego2gc  = np.mean(ego2gc)
+        pgo  = np.mean(pgo);  pgc  = np.mean(pgc);  pgo2gc  = np.mean(pgo2gc)
+
+        print("  Mean value  GO        GC        GO2GC")
+        err = np.abs(mugc/mugo2gc-1)
+        print("  mu          %1.3e %1.3e %1.3e" % (mugo, mugc, mugo2gc))
+        if err > 1e-4: print("Error %e (FAILED)" % err); passed = False
+        err = np.abs(egc/ego2gc-1)
+        print("  Energy      %1.3e %1.3e %1.3e" % (ego, egc, ego2gc))
+        if err > 2e-4: print("Error %e (FAILED)" % err); passed = False
+        err = np.abs(pgc/pgo2gc-1)
+        print("  Pctor       %1.3e %1.3e %1.3e" % (-pgo, -pgc, -pgo2gc))
+        if err > 1e-4: print("Error %e (FAILED)" % err); passed = False
+
+        return passed
 
     def init_ccoll(self):
         """Initialize data for the Coulomb collision test.
@@ -784,11 +797,11 @@ class PhysTest():
             "ENDCOND_SIMTIMELIM" : 1, "ENDCOND_LIM_SIMTIME" : 2e-2,
             "ENABLE_ORBIT_FOLLOWING" : 1, "ENABLE_COULOMB_COLLISIONS" : 1,
             "ENABLE_DIST_5D" : 1,
-            "DIST_MIN_R" : 4, "DIST_MAX_R" : 10, "DIST_NBIN_R" : 1,
-            "DIST_MIN_PHI" : 0, "DIST_MAX_PHI" : 360, "DIST_NBIN_PHI" : 1,
-            "DIST_MIN_Z" : -5, "DIST_MAX_Z" : 5, "DIST_NBIN_Z" : 1,
-            "DIST_MIN_TIME" : 0, "DIST_MAX_TIME" : 2e-2, "DIST_NBIN_TIME" : 2,
-            "DIST_MIN_PPA" : -2.5e-21, "DIST_MAX_PPA" : 2.5e-21,
+            "DIST_MIN_R"    : 4,  "DIST_MAX_R"    : 10, "DIST_NBIN_R"      : 1,
+            "DIST_MIN_PHI"  : 0,  "DIST_MAX_PHI"  : 360, "DIST_NBIN_PHI"   : 1,
+            "DIST_MIN_Z"    : -5, "DIST_MAX_Z"    : 5, "DIST_NBIN_Z"       : 1,
+            "DIST_MIN_TIME" : 0,  "DIST_MAX_TIME" : 2e-2, "DIST_NBIN_TIME" : 2,
+            "DIST_MIN_PPA"  : -2.5e-21, "DIST_MAX_PPA" : 2.5e-21,
             "DIST_NBIN_PPA" : 140, "DIST_MIN_PPE" : 0, "DIST_MAX_PPE" : 2.5e-21,
             "DIST_NBIN_PPE" : 80
         })
@@ -892,42 +905,59 @@ class PhysTest():
         h4 = fig.add_subplot(gs[1,1])
 
         # Analytical results
-        alphaZ = 2
-        clog   = 16
-        vth    = np.sqrt(2*Te*e / m_e)
-        vcrit  = vth * np.power( (3.0*np.sqrt(np.pi)/4.0) * (m_e / m_p) , 1/3.0)
-        Ecrit  = 0.5 * m_a * vcrit * vcrit / e
-        ts     = 3 * np.sqrt( np.power(2*np.pi * Te * e, 3) / m_e ) * eps_0 * eps_0 \
-            * m_a /( alphaZ * alphaZ * np.power(e, 4) * ne * clog)
+        ne      = 1e20 / unyt.m**3
+        Te      = 1e3 * unyt.eV
+        m_e     = unyt.me
+        m_p     = unyt.mp
+        m_a     = 4.003*unyt.amu
+        eps_0   = unyt.eps_0
+        alphaZ  = 2
+        clog    = 16
+        E0      = 3.5e6*unyt.eV
+        Emin    = 50 * Te
 
-        heaviside = np.logical_and(SLOWING["Egrid"] <= Esd,
-                                   SLOWING["Egrid"] >= 50*Te)
+        # Thermal distribution with correct normalization
+        thdist  = run_tgo.getdist("5d", exi=True)
+        egridth = thdist.abscissa_edges("ekin")
+        simtime = np.diff(thdist.abscissa_edges("time")[-2:])
+        thermal = 2*np.sqrt(egridth/np.pi) * np.power(Te, -3.0/2) \
+            * np.exp(-egridth/Te) * simtime
 
-        THERMAL["analytical"]  = 2 * np.sqrt(THERMAL["Egrid"]/np.pi) \
-            * np.power(Te,-3.0/2) \
-            * np.exp(-THERMAL["Egrid"]/Te)
-        THERMAL["analytical"] *= (simtime_th/2)
-        SLOWING["analytical"] = heaviside * ts \
-            / ( ( 1 + np.power(Ecrit/SLOWING["Egrid"], 3.0/2) )\
-                * 2 * SLOWING["Egrid"] )
+        vth   = np.sqrt(2*Te / m_e)
+        vcrit = vth * np.power( (3.0*np.sqrt(np.pi)/4.0) * (m_e / m_p) , 1/3.0)
+        Ecrit = (0.5 * m_a * vcrit * vcrit).to("eV")
+        ts    = ( 3 * np.sqrt( (2*np.pi * Te)**3 / m_e ) * eps_0**2
+                  * m_a / ( alphaZ**2 * unyt.e**4 * ne * clog ) ).to("s")
+
+        #egridsd   = run_sgo.getdist("5d", exi=True).abscissa_edges("ekin")
+        egridsd   = np.linspace(Te, 1.1*E0, 100)
+        heaviside = np.logical_and(egridsd <= E0, egridsd >= Emin)
+        slowing   = heaviside * ts / ( ( 1 + np.power(Ecrit/egridsd, 3.0/2) )
+                                       * 2 * egridsd )
 
         # ts is slowing down rate which gives the slowing down time as
         # t_sd = ts*log(v_0 / v_th) = 0.5*ts*log(E_0/E_th)
-        slowingdowntime = 0.5*ts*np.log(Esd/(50*Te))
+        slowingdowntime = 0.5 * ts * np.log( E0 / Emin )
 
-        for run in [run_tgo, run_tgcf, run_tgca]:
-            dist = run.getdist("5d", exi=True)
+        th_ekin  = np.zeros((3,))
+        th_pitch = np.zeros((3,))
+        for i, run in enumerate([run_tgo, run_tgcf, run_tgca]):
+            dist  = run.getdist("5d", exi=True)
             edist = dist.integrate(
-                r=np.s_[:], phi=np.s_[:], z=np.s_[:], time=np.s_[:],
+                r=np.s_[:], phi=np.s_[:], z=np.s_[:], time=np.s_[1:],
                 charge=np.s_[:], pitch=np.s_[:], copy=True)
             xdist = dist.integrate(
-                r=np.s_[:], phi=np.s_[:], z=np.s_[:], time=np.s_[:],
+                r=np.s_[:], phi=np.s_[:], z=np.s_[:], time=np.s_[1:],
                 charge=np.s_[:], ekin=np.s_[:], copy=True)
             run.plotdist(edist, axes=h1)
             run.plotdist(xdist, axes=h2)
+            th_pitch[i] = np.mean(run.getstate("pitch", state="end"))
+            th_ekin[i]  = np.mean(run.getstate("ekin",  state="end"))
 
-        for run in [run_sgo, run_sgcf, run_sgca]:
-            dist = run.getdist("5d", exi=True)
+        sd_time  = np.zeros((3,))
+        sd_pitch = np.zeros((3,))
+        for i, run in enumerate([run_sgo, run_sgcf, run_sgca]):
+            dist = run.getdist("5d", exi=True, ekin_edges=egridsd)
             edist = dist.integrate(
                 r=np.s_[:], phi=np.s_[:], z=np.s_[:], time=np.s_[:],
                 charge=np.s_[:], pitch=np.s_[:], copy=True)
@@ -936,8 +966,39 @@ class PhysTest():
                 charge=np.s_[:], ekin=np.s_[:], copy=True)
             run.plotdist(edist, axes=h3)
             run.plotdist(xdist, axes=h4)
+            sd_pitch[i] = np.mean(run.getstate("pitch", state="end"))
+            sd_time[i]  = np.mean(run.getstate("time",  state="end"))
 
-        plt.show()
+        # These are multiplied with marker number to get correct normalization
+        Nmrkth = run_tgo.getstate("ids").size
+        Nmrksd = run_sgo.getstate("ids").size
+        h1.plot(egridth, thermal*Nmrkth, color="black")
+        h3.plot(egridsd, slowing*Nmrksd, color="black")
+
+        print("Test Coulomb collisions:")
+        passed = True
+
+        print("  Thermal final energy and pitch")
+        print("  GO            %1.1e      %1.2f" % (th_ekin[0], th_pitch[0]))
+        print("  GCF           %1.1e      %1.2f" % (th_ekin[1], th_pitch[1]))
+        print("  GCA           %1.1e      %1.2f" % (th_ekin[2], th_pitch[2]))
+        print("  Expected      %1.1e      %1.2f" % (Te, 0.0))
+        if np.amax(np.abs(Te.v - th_ekin)) > 1e3 or \
+           np.amax(np.abs(0.0 - th_pitch)) > 0.2:
+            print("  (Failed)")
+            passed = False
+        print("")
+        print("  Slowing final time  and  pitch")
+        print("  GO            %1.1e      %1.2f" % (sd_time[0], sd_pitch[0]))
+        print("  GCF           %1.1e      %1.2f" % (sd_time[1], sd_pitch[1]))
+        print("  GCA           %1.1e      %1.2f" % (sd_time[2], sd_pitch[2]))
+        print("  Expected      %1.1e      %1.2f" % (slowingdowntime, 0.0))
+        if np.amax(np.abs(slowingdowntime.v  - sd_time))  > 2e-3 or \
+           np.amax(np.abs(0.0 - th_pitch)) > 0.2:
+            print("  (Failed)")
+            passed = False
+
+        return passed
 
     def init_classical(self):
         """Initialize data for the classical transport test.
@@ -987,9 +1048,9 @@ class PhysTest():
             for tag in [PhysTest.tag_classical_go, PhysTest.tag_classical_gcf,
                         PhysTest.tag_classical_gca]:
                 # Transport is scanned as a function of magnetic field strength
-                d = {"bxyz" : np.array([1, 0, 0]), "rhoval" : 0.5,
+                d = {"bxyz" : np.array([1.0, 0.0, 0.0]), "rhoval" : 0.5,
                      "jacobian" : np.array([0,0,0,0,0,0,0,0,0])}
-                d["bxyz"][0] = 1.0 + i * (10.0 - 1.0) / 5
+                d["bxyz"][0] = np.sqrt(1.0/np.linspace(0.01, 1.0, 6))[i]
                 init("B_TC", **d, desc=tag + str(i))
                 init("gc", **mrk, desc=tag + str(i))
                 init("plasma_1D", **pls, desc=tag + str(i))
@@ -1050,11 +1111,9 @@ class PhysTest():
         clog = 13.4
         ekin = run_go.getstate("ekin")[0]
         self.ascot.input_init(run=run_go.get_qid(), bfield=True, plasma=True)
-        ne, Te = self.ascot.input_eval(6.2, 0, 0, 0, "ne", "te")
+        ne, Te = self.ascot.input_eval(
+            6.2*unyt.m, 0*unyt.deg, 0*unyt.m, 0*unyt.s, "ne", "te")
         self.ascot.input_free()
-        #collfreq = ( (unyt.me / unyt.mp) * ( np.sqrt(2 / np.pi) / 3 )
-        #             * ( unyt.e**2 / ( 4 * np.pi * unyt.eps_0 ) )**2 * ne * clog
-        #             * 4 * np.pi / np.sqrt( unyt.me * (Te)**3 ) ).to("1/s")
         collfreq = physlib.collfreq_ie(unyt.mp, unyt.e, ne, Te, clog)
         rhog = physlib.gyrolength(unyt.mp, 1*unyt.e, ekin, 0.0, bnorm).to("m")
         Dana = collfreq * rhog**2 / 2
@@ -1064,6 +1123,27 @@ class PhysTest():
         ax.scatter(1/bnorm**2, Dgcf)
         ax.scatter(1/bnorm**2, Dgca)
         ax.plot(1/bnorm**2, Dana, color="black")
+        ax.set_xlabel(r"$1/B^{2}$ [1/T$^2$]")
+
+        print("Test Coulomb collisions:")
+        passed = True
+        k0 = np.polyfit(1/bnorm**2, Dana, 1)[0]
+        k1 = np.polyfit(1/bnorm**2, Dgo,  1)[0]
+        k2 = np.polyfit(1/bnorm**2, Dgcf, 1)[0]
+        k3 = np.polyfit(1/bnorm**2, Dgca, 1)[0]
+
+        print(" slope (expected): %1.3f" % k0)
+        f = ""
+        if(np.abs(k0-k1) > 1e-2): passed=False; f = "(FAILED)"
+        print("               GO: %1.3f %s" % (k1, f))
+        f = ""
+        if(np.abs(k0-k1) > 1e-2): passed=False; f = "(FAILED)"
+        print("              GCF: %1.3f %s" % (k2, f))
+        f = ""
+        if(np.abs(k0-k1) > 1e-2): passed=False; f = "(FAILED)"
+        print("              GCA: %1.3f %s" % (k3, f))
+
+        return passed
 
     def init_neoclassical(self):
         """Initialize data for the neoclassical transport test.
@@ -1373,9 +1453,8 @@ class PhysTest():
             self.ascot.input_free()
 
             # Magnetic field vector from Boozer coordinates
-            veca = np.cross(gradpsi, gradtheta)
-            vecb = np.cross(gradzeta, gradpsi)
-            bvec = -veca*np.mean(qfac) - vecb
+            bvec = -( np.mean(qfac) * np.cross(gradpsi, gradtheta)
+                      - np.cross(gradpsi, gradzeta) )
 
             idx = np.nonzero(np.abs(np.diff(theta)) > np.pi)[0]
             dbpol = np.sqrt((bvec[:,0] - br.v)**2 + (bvec[:,2] - bz.v)**2)
@@ -1560,11 +1639,13 @@ class PhysTest():
         data.marker[tag0].activate()
 
     def _runascot(self, test):
-        subprocess.call(["./ascot5_main", "--in=testascot.h5", "--d="+test],
-                        stdout=subprocess.DEVNULL)
+        subprocess.call(
+            ["./../../build/ascot5_main", "--in=testascot.h5", "--d="+test],
+            stdout=subprocess.DEVNULL)
         self.ascot = Ascot(self.ascot.file_getpath())
 
 if __name__ == '__main__':
     test = PhysTest()
-    test.execute(init=True, run=True, check=True, tests=["boozer"])
+    #test.execute(init=True, run=True, check=False, tests=["classical"])
+    test.execute(init=False, run=False, check=True, tests=["neoclassical"])
     plt.show()
