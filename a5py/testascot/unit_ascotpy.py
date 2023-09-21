@@ -46,14 +46,14 @@ class TestAscot(unittest.TestCase):
             desc="Fast")
         a5.data.options[name].activate()
 
-        subprocess.run(["./ascot5_main", "--in=unittest.h5"])
+        subprocess.run(["./../../build/ascot5_main", "--in=unittest.h5"])
 
     @classmethod
     def tearDownClass(cls):
         super(TestAscot, cls).tearDownClass()
         subprocess.run(["rm", "-f", "unittest.h5"])
 
-    def _test_initandsim(self):
+    def test_initandsim(self):
         """Test :class:`Ascotpy` initialization and simulation routines.
         """
         a5 = Ascot("unittest.h5")
@@ -188,7 +188,7 @@ class TestAscot(unittest.TestCase):
                 msg="Trying to run without input should cause an error"):
             a5.simulation_run(printsummary=False)
 
-    def _test_eval(self):
+    def test_eval(self):
         """Test :class:`Ascotpy` evaluation routines.
         """
         a5 = Ascot("unittest.h5")
