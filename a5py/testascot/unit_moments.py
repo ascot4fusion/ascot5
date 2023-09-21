@@ -48,7 +48,7 @@ class TestAscot(unittest.TestCase):
             ORBITWRITE_NPOINT=60000)
         a5.data.options[name].activate()
 
-        subprocess.run(["./ascot5_main", "--in=unittest.h5"])
+        subprocess.run(["./../../build/ascot5_main", "--in=unittest.h5"])
 
     @classmethod
     def tearDownClass(cls):

@@ -83,11 +83,11 @@ class TestPlotting(unittest.TestCase):
                         cmap="Greys", axes=ax)
 
         ax = fig.add_subplot(2,4,4)
-        a5.input_plotrz(r, z, "log divergence", clim=[None, None],
+        a5.input_plotrz(r, z, "log divb", clim=[None, None],
                         cmap=None, axes=ax)
 
         ax = fig.add_subplot(2,4,8)
-        a5.input_plotrz(r, z, "log divergence",clim=[-1e-14, 1e-14],
+        a5.input_plotrz(r, z, "log divb",clim=[-1e-14, 1e-14],
                         cmap="PuOr",axes=ax)
 
         a5.input_free()
