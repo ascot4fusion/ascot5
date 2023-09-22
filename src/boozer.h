@@ -11,7 +11,7 @@
 #include "spline/interp.h"
 
 /**
- * @brief offload data for maps between boozer and cylinrdical coordinates
+ * @brief offload data for maps between boozer and cylindrical coordinates
  */
 typedef struct {
     int  npsi;     /**< Number of psi grid points for other fields            */

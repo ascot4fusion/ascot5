@@ -107,7 +107,6 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         print_out(VERBOSE_IO, "Options read and initialized.\n");
     }
 
-
     if(input_active & hdf5_input_bfield) {
         if(hdf5_find_group(f, "/bfield/")) {
             print_err("Error: No magnetic field in input file.");
@@ -129,7 +128,6 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         }
         print_out(VERBOSE_IO, "Magnetic field read and initialized.\n");
     }
-
 
     if(input_active & hdf5_input_efield) {
         if(hdf5_find_group(f, "/efield/")) {
@@ -153,7 +151,6 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         print_out(VERBOSE_IO, "Electric field read and initialized.\n");
     }
 
-
     if(input_active & hdf5_input_plasma) {
         if(hdf5_find_group(f, "/plasma/")) {
             print_err("Error: No plasma data in input file.");
@@ -175,7 +172,6 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         }
         print_out(VERBOSE_IO, "Plasma data read and initialized.\n");
     }
-
 
     if(input_active & hdf5_input_neutral) {
         if(hdf5_find_group(f, "/neutral/")) {
@@ -223,7 +219,6 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         print_out(VERBOSE_IO, "Wall data read and initialized.\n");
     }
 
-
     if(input_active & hdf5_input_boozer) {
         if(hdf5_find_group(f, "/boozer/")) {
             print_err("Error: No boozer data in input file.");
@@ -245,7 +240,6 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         }
         print_out(VERBOSE_IO, "Boozer data read and initialized.\n");
     }
-
 
     if(input_active & hdf5_input_mhd) {
         if(hdf5_find_group(f, "/mhd/")) {
@@ -269,7 +263,6 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         print_out(VERBOSE_IO, "MHD data read and initialized.\n");
     }
 
-
     if(input_active & hdf5_input_marker) {
         if(hdf5_find_group(f, "/marker/")) {
             print_err("Error: No marker data in input file.");
@@ -290,7 +283,6 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         }
         print_out(VERBOSE_IO, "Marker data read and initialized.\n");
     }
-
 
     if(input_active & hdf5_input_asigma) {
         if(hdf5_find_group(f, "/asigma/")) {
@@ -313,7 +305,6 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         }
         print_out(VERBOSE_IO, "Atomic reaction data read and initialized.\n");
     }
-
 
     /* Close the hdf5 file */
     if( hdf5_close(f) ) {
