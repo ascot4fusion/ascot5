@@ -29,6 +29,7 @@
  * a nonuniform magnetic field", E. Hirvijoki et. al.
  * https://arxiv.org/pdf/1412.1966.pdf
  */
+#include "offload_acc_omp.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -41,6 +42,13 @@
 #pragma omp declare target
 /** Order to which guiding center transformation is done in momentum space. */
 static int GCTRANSFORM_ORDER = 1;
+#ifdef _OPENACC
+#pragma acc declare copyin(GCTRANSFORM_ORDER)
+#elif _OPENMP
+#pragma omp declare target
+GCTRANSFORM_ORDER
+#pragma omp end declare target
+#endif
 #pragma omp end declare target
 
 /**

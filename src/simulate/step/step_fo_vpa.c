@@ -4,6 +4,7 @@
  **/
 #include <math.h>
 #include <stdio.h>
+#include "../../offload_acc_omp.h"
 #include "../../ascot5.h"
 #include "../../math.h"
 #include "../../consts.h"
@@ -37,6 +38,7 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
     int i;
     /* Following loop will be executed simultaneously for all i */
     #pragma omp simd  aligned(h : 64)
+OMP_L0
     for(i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
             a5err errflag = 0;

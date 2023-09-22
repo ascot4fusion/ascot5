@@ -59,6 +59,9 @@
 #ifndef ASCOT5_H
 #define ASCOT5_H
 
+#define stringify(...) #__VA_ARGS__
+#define str_macro(c) stringify(c)
+#include "offload_acc_omp.h"
 #include <omp.h>
 #include <time.h>
 
@@ -126,8 +129,7 @@ typedef double real;  /**< Double precision float   */
 
 /** @brief Choose whether to use tabulated values for collision coefficients */
 #define A5_CCOL_USE_TABULATED 0
-
-/** @brief Default depth of octree struct */
-#define WALL_OCTREE_DEPTH 7
-
+DECLARE_TARGET
+double fmod(double , double );
+DECLARE_TARGET_END
 #endif
