@@ -13,6 +13,7 @@
 #include "wall.h"
 
 #define NBI_MAX_DISTANCE 100
+#define MAX_NBI_INJ 10
 
 /**
  * @brief Structure for describing an NBI injector
@@ -38,6 +39,40 @@ typedef struct {
     int znum;           /**< Charge number of injected species */
     real mass;          /**< Mass of injected species */
 } nbi_injector;
+
+/**
+ * @brief NBI parameters consisting of a bundle of injectors.
+ */
+typedef struct {
+    int ninj; /**< number of injectors */
+    int n_beamlet[MAX_NBI_INJ]; /**< number of beamlets in a given injector */
+    int id[MAX_NBI_INJ];
+    real mass[MAX_NBI_INJ];    /**< plasma species masses [kg]          */
+    int anum[MAX_NBI_INJ];     /**< ion species atomic number           */
+    int znum[MAX_NBI_INJ];     /**< ion species charge number           */
+    real power[MAX_NBI_INJ];
+    real energy[MAX_NBI_INJ];
+    real efrac[MAX_NBI_INJ*3];
+    real div_h[MAX_NBI_INJ];
+    real div_v[MAX_NBI_INJ];
+    real div_halo_frac[MAX_NBI_INJ];
+    real div_halo_h[MAX_NBI_INJ];
+    real div_halo_v[MAX_NBI_INJ];
+    int offload_array_length;  /**< number of elements in offload_array */
+} nbi_offload_data;
+
+/**
+ * @brief NBI data on target.
+ */
+typedef struct {
+    int ninj;          /**< number of injectors */
+    nbi_injector inj[MAX_NBI_INJ]; /**< array of injectors */
+} nbi_data;
+
+int nbi_init_offload(nbi_offload_data* offload_data, real** offload_array);
+
+void nbi_init(nbi_data* nbi, nbi_offload_data* offload_data,
+              real* offload_array);
 
 void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
                 real* vz, int* anum, int* znum, real* mass, random_data* rng);

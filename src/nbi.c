@@ -4,16 +4,93 @@
  */
 #define _XOPEN_SOURCE 500 /**< drand48 requires POSIX 1995 standard */
 #include <math.h>
-#include "B_field.h"
+#include "print.h"
+#include "ascot5.h"
 #include "consts.h"
-#include "physlib.h"
 #include "math.h"
-#include "nbi.h"
+#include "physlib.h"
 #include "particle.h"
 #include "random.h"
-#include "plasma.h"
 #include "suzuki.h"
+#include "B_field.h"
+#include "plasma.h"
 #include "wall.h"
+#include "nbi.h"
+
+/**
+ * @brief Load NBI data and prepare parameters for offload.
+ *
+ * @param offload_data pointer to offload data struct
+ * @param offload_array pointer to pointer to offload array
+ *
+ * @return zero if initialization succeeded.
+ */
+int nbi_init_offload(nbi_offload_data* offload_data, real** offload_array) {
+    int err = 0;
+    print_out(VERBOSE_IO, "\nNBI input\n");
+    print_out(VERBOSE_IO, "Number of injectors %d:\n", offload_data->ninj);
+    for(int i=0; i<offload_data->ninj; i++) {
+        print_out(VERBOSE_IO, "\n  Injector ID %d (%d beamlets) Power: %1.1e\n",
+                  offload_data->id[i], offload_data->n_beamlet[i],
+                  offload_data->power[i]);
+        print_out(VERBOSE_IO,
+                  "    Anum %d Znum %d mass %1.1e amu energy %1.1e eV\n",
+                  offload_data->anum[i], offload_data->znum[i],
+                  offload_data->mass[i], offload_data->energy[i]);
+        print_out(VERBOSE_IO,
+                  "    Energy fractions: %1.1e (Full) %1.1e (1/2) %1.1e (1/3)\n",
+                  offload_data->efrac[0], offload_data->efrac[1],
+                  offload_data->efrac[2]);
+
+        /* Even if halo fraction is zero, the divergences should be nonzero
+           to avoid division by zero during evaluation. Do this after the
+           input has been printed as to not confuse the user */
+        if(offload_data->div_halo_frac[i] == 0) {
+            offload_data->div_halo_h[i] = 1e-10;
+            offload_data->div_halo_v[i] = 1e-10;
+        }
+    }
+    return err;
+}
+
+/**
+ * @brief Initialize NBI data struct on target
+ *
+ * @param nbidata pointer to data struct on target
+ * @param offload_data pointer to offload data struct
+ * @param offload_array pointer to offload array
+ */
+void nbi_init(nbi_data* nbi, nbi_offload_data* offload_data,
+              real* offload_array) {
+    int idx = 0;
+    nbi->ninj = offload_data->ninj;
+    for(int i=0; i<nbi->ninj; i++) {
+        nbi->inj[i].anum          = offload_data->anum[i];
+        nbi->inj[i].znum          = offload_data->znum[i];
+        nbi->inj[i].mass          = offload_data->mass[i];
+        nbi->inj[i].power         = offload_data->power[i];
+        nbi->inj[i].energy        = offload_data->energy[i];
+        nbi->inj[i].efrac[0]      = offload_data->efrac[3*i+0];
+        nbi->inj[i].efrac[1]      = offload_data->efrac[3*i+1];
+        nbi->inj[i].efrac[2]      = offload_data->efrac[3*i+2];
+        nbi->inj[i].div_h         = offload_data->div_h[i];
+        nbi->inj[i].div_v         = offload_data->div_v[i];
+        nbi->inj[i].div_halo_frac = offload_data->div_halo_frac[i];
+        nbi->inj[i].div_halo_h    = offload_data->div_halo_h[i];
+        nbi->inj[i].div_halo_v    = offload_data->div_halo_v[i];
+        nbi->inj[i].id            = offload_data->id[i];
+        nbi->inj[i].n_beamlet     = offload_data->n_beamlet[i];
+
+        int n_beamlet = nbi->inj[i].n_beamlet;
+        nbi->inj[i].beamlet_x  = &(offload_array[idx + 0*n_beamlet]);
+        nbi->inj[i].beamlet_y  = &(offload_array[idx + 1*n_beamlet]);
+        nbi->inj[i].beamlet_z  = &(offload_array[idx + 2*n_beamlet]);
+        nbi->inj[i].beamlet_dx = &(offload_array[idx + 3*n_beamlet]);
+        nbi->inj[i].beamlet_dy = &(offload_array[idx + 4*n_beamlet]);
+        nbi->inj[i].beamlet_dz = &(offload_array[idx + 5*n_beamlet]);
+        idx += 6 * n_beamlet;
+    }
+}
 
 /**
  * @brief
