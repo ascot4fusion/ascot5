@@ -6,6 +6,7 @@
  */
 #ifndef B_TC_H
 #define B_TC_H
+#include "../offload_acc_omp.h"
 #include "../ascot5.h"
 #include "../error.h"
 
@@ -56,19 +57,31 @@ void B_TC_free_offload(B_TC_offload_data* offload_data, real** offload_array);
 void B_TC_init(B_TC_data* Bdata, B_TC_offload_data* offload_data,
                real* offload_array);
 #pragma omp declare simd uniform(Bdata)
+DECLARE_TARGET
 a5err B_TC_eval_B(real B[3], real r, real phi, real z, B_TC_data* Bdata);
+DECLARE_TARGET_END
 #pragma omp declare simd uniform(Bdata)
+DECLARE_TARGET
 a5err B_TC_eval_psi(real* psi, real r, real phi, real z, B_TC_data* Bdata);
+DECLARE_TARGET_END
 #pragma omp declare simd uniform(Bdata)
+DECLARE_TARGET
 a5err B_TC_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
                          B_TC_data* Bdata);
+DECLARE_TARGET_END
 #pragma omp declare simd uniform(Bdata)
+DECLARE_TARGET
 a5err B_TC_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
                          B_TC_data* Bdata);
+DECLARE_TARGET_END
 #pragma omp declare simd uniform(Bdata)
+DECLARE_TARGET
 a5err B_TC_eval_B_dB(real B_dB[12], real r, real phi, real z, B_TC_data* Bdata);
+DECLARE_TARGET_END
 #pragma omp declare simd uniform(Bdata)
+DECLARE_TARGET
 a5err B_TC_get_axis_rz(real rz[2], B_TC_data* Bdata);
+DECLARE_TARGET_END
 #pragma omp end declare target
 
 #endif

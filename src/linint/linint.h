@@ -11,6 +11,7 @@
  */
 #ifndef LININT_H
 #define LININT_H
+#include "../offload_acc_omp.h"
 #include "../ascot5.h"
 #include "../spline/interp.h"
 
@@ -83,11 +84,17 @@ void linint3D_init(linint3D_data* str, real* c,
                    real z_min, real z_max);
 
 #pragma omp declare simd uniform(str)
+DECLARE_TARGET
 int linint1D_eval_f(real* f, linint1D_data* str, real x);
+DECLARE_TARGET_END
 #pragma omp declare simd uniform(str)
+DECLARE_TARGET
 int linint2D_eval_f(real* f, linint2D_data* str, real x, real y);
+DECLARE_TARGET_END
 #pragma omp declare simd uniform(str)
+DECLARE_TARGET
 int linint3D_eval_f(real* f, linint3D_data* str,
                     real x, real y, real z);
+DECLARE_TARGET_END
 #pragma omp end declare target
 #endif

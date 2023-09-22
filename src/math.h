@@ -5,6 +5,7 @@
 #ifndef MATH_H
 #define MATH_H
 
+#include "offload_acc_omp.h"
 #include <math.h>
 #include "ascot5.h"
 
@@ -112,9 +113,13 @@
 #pragma omp declare simd
 void math_jac_rpz2xyz(real* rpz, real* xyz, real r, real phi);
 #pragma omp declare simd
+DECLARE_TARGET
 void math_jac_xyz2rpz(real* xyz, real* rpz, real r, real phi);
+DECLARE_TARGET_END
 #pragma omp declare simd
+DECLARE_TARGET
 void math_matmul(real* matA, real* matB, int d1, int d2, int d3, real* matC);
+DECLARE_TARGET_END
 #pragma omp declare simd
 real math_normal_rand();
 #pragma omp declare simd

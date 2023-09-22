@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <omp.h>
+//#include <immintrin.h>
 #include <math.h>
 #include "../ascot5.h"
 #include "../physlib.h"
@@ -109,7 +110,25 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
                                 &sim->boozer_data, &sim->mhd_data);
             }
             else {
-                step_fo_vpa(&p, hin, &sim->B_data, &sim->E_data);
+	      particle_simd_fo *p_ptr=&p;
+	      particle_simd_fo *p0_ptr=&p0;
+	      B_field_data* Bdata = &sim->B_data;
+	      E_field_data* Edata = &sim->E_data;
+#pragma acc data copy(							\
+  		      p_ptr[0:1],p_ptr->running[0:NSIMD],p_ptr->r[0:NSIMD],p_ptr->phi[0:NSIMD],p_ptr->p_r[0:NSIMD],p_ptr->p_phi[0:NSIMD],p_ptr->p_z[0:NSIMD],p_ptr->mileage[0:NSIMD], \
+		      p_ptr->z[0:NSIMD],p_ptr->charge[0:NSIMD],p_ptr->mass[0:NSIMD],p_ptr->B_r[0:NSIMD],p_ptr->B_r_dr[0:NSIMD],p_ptr->B_r_dphi[0:NSIMD],p_ptr->B_r_dz[0:NSIMD],	\
+		      p_ptr->B_phi[0:NSIMD],p_ptr->B_phi_dr[0:NSIMD],p_ptr->B_phi_dphi[0:NSIMD],p_ptr->B_phi_dz[0:NSIMD],p_ptr->B_z[0:NSIMD],p_ptr->B_z_dr[0:NSIMD],p_ptr->B_z_dphi[0:NSIMD], \
+		      p_ptr->B_z_dz[0:NSIMD],p_ptr->rho[0:NSIMD],p_ptr->theta[0:NSIMD],p_ptr->err[0:NSIMD],p_ptr->time[0:NSIMD],p_ptr->weight[0:NSIMD],p_ptr->cputime[0:NSIMD],	\
+		      p_ptr->id[0:NSIMD],p_ptr->endcond[0:NSIMD],p_ptr->walltile[0:NSIMD],p_ptr->index[0:NSIMD],p_ptr->znum[0:NSIMD],p_ptr->anum[0:NSIMD],p_ptr->bounces[0:NSIMD], \
+		      hin[0:NSIMD],					\
+		      Bdata[0:1],Bdata->BTC.dB[0:1],Bdata->BSTS.axis_r,Bdata->BSTS.axis_r.c[0:1],Bdata->BSTS.axis_z,Bdata->BSTS.axis_z.c[0:1],Bdata->BSTS.B_r,Bdata->BSTS.B_r.c[0:1], \
+		      Bdata->BSTS.B_z,Bdata->BSTS.B_z.c[0:1],Bdata->BSTS.B_phi,Bdata->BSTS.B_phi.c[0:1],Bdata->B3DS.psi,Bdata->B3DS.psi.c[0:1],Bdata->B3DS.B_r,Bdata->B3DS.B_r.c[0:1], \
+		      Bdata->B3DS.B_phi,Bdata->B3DS.B_phi.c[0:1],Bdata->B3DS.B_z,Bdata->B3DS.B_z.c[0:1],Bdata->B2DS.psi,Bdata->B2DS.psi.c[0:1],Bdata->B2DS.B_r,Bdata->B2DS.B_r.c[0:1], \
+		      Bdata->B2DS.B_phi,Bdata->B2DS.B_phi.c[0:1],Bdata->B2DS.B_z,Bdata->B2DS.B_z.c[0:1],Bdata->BGS.psi_coeff[0:13], \
+		      Edata[0:1],Edata->type,Edata->ETC,Edata->E1DS,Edata->ETC.Exyz[0:1],Edata->E1DS.dV,Edata->E1DS.dV.c[0:1])
+	      {
+		step_fo_vpa(&p, hin, &sim->B_data, &sim->E_data);
+	      }
             }
         }
 
