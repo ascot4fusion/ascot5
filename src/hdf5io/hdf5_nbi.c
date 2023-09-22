@@ -9,7 +9,7 @@
 #include <hdf5_hl.h>
 #include "../ascot5.h"
 #include "../nbi.h"
-//#include "../consts.h"
+#include "../consts.h"
 #include "hdf5_helpers.h"
 #include "hdf5_nbi.h"
 
@@ -114,6 +114,10 @@ int hdf5_nbi_init_offload(hid_t f, nbi_offload_data* offload_data,
         sprintf(path, NBIPATH "inj%d/%s", i+1, "mass");
         if( hdf5_read_double(path, &(offload_data->mass[i]),
                              f, active, __FILE__, __LINE__) ) {return 1;}
+
+        /* Conver to SI */
+        offload_data->energy[i] *= CONST_E;
+        offload_data->mass[i]   *= CONST_U;
     }
 
     /* In second loop we now initialize the offload array which we are

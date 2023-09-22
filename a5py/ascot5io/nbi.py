@@ -352,8 +352,8 @@ class NBI(DataGroup):
         # Injected species
         n["anum"]   = anum
         n["znum"]   = znum
-        n["mass"]   = mass*unyt.amu
-        n["energy"] = energy*unyt.eV
+        n["mass"]   = mass
+        n["energy"] = energy
         n["efrac"]  = np.array(efrac)
         n["power"]  = power
 
