@@ -10,6 +10,11 @@ libascot:
 	mkdir -p build
 	mv src/libascot.so build/libascot.so
 
+bbnbi5:
+	$(MAKE) -C src bbnbi5
+	mkdir -p build
+	mv src/bbnbi5 build/bbnbi5
+
 doc:
 	$(MAKE) -C src doc
 	$(MAKE) -C doc
