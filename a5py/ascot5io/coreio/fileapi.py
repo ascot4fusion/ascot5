@@ -689,7 +689,7 @@ def copy_group(fs, ft, group, newgroup=False):
     return newgroupobj
 
 
-def write_data(group, name, data, shape, dtype, unit=None):
+def write_data(group, name, data, shape, dtype, unit=None, compress=False):
     """Write a dataset.
 
     The shape of the written dataset is same as the input array.
@@ -706,13 +706,24 @@ def write_data(group, name, data, shape, dtype, unit=None):
         Data type.
     unit : str, optional
         Unit string if the data has units.
+    compress : boolean, optional
+        Use gzip compression
     """
-    g = group.create_dataset(
-        name  = name,
-        shape = shape,
-        data  = data,
-        dtype = dtype
-    )
+    if compress:
+        g = group.create_dataset(
+            name  = name,
+            shape = shape,
+            data  = data,
+            dtype = dtype,
+            compression="gzip", compression_opts=9
+        )
+    else:
+        g = group.create_dataset(
+            name  = name,
+            shape = shape,
+            data  = data,
+            dtype = dtype
+        )
     if unit is not None:
         g.attrs.create("unit", np.string_(unit))
 

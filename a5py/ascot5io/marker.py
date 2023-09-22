@@ -257,14 +257,14 @@ class FL(Marker):
             g = add_group(f, parent, group, desc=desc)
             gname = g.name.split("/")[-1]
 
-            write_data(g, "n",      n,      (1,), "i8")
-            write_data(g, "r",      r,      (n,), "f8", "m")
-            write_data(g, "phi",    phi,    (n,), "f8", "deg")
-            write_data(g, "z",      z,      (n,), "f8", "m")
-            write_data(g, "pitch",  pitch,  (n,), "f8", "1")
-            write_data(g, "weight", weight, (n,), "f8", "particles/s")
-            write_data(g, "time",   time,   (n,), "f8", "s")
-            write_data(g, "id",     ids,    (n,), "i8", "1")
+            write_data(g, "n",      n,      (1,), "i8",                compress=False)
+            write_data(g, "r",      r,      (n,), "f8", "m",           compress=True )
+            write_data(g, "phi",    phi,    (n,), "f8", "deg",         compress=True )
+            write_data(g, "z",      z,      (n,), "f8", "m",           compress=True )
+            write_data(g, "pitch",  pitch,  (n,), "f8", "1",           compress=True )
+            write_data(g, "weight", weight, (n,), "f8", "particles/s", compress=True )
+            write_data(g, "time",   time,   (n,), "f8", "s",           compress=True )
+            write_data(g, "id",     ids,    (n,), "i8", "1",           compress=True )
 
         return gname
 
@@ -409,19 +409,19 @@ class GC(Marker):
             gname = g.name.split("/")[-1]
 
             g.create_dataset("n",      (1,), data=n,      dtype='i8').attrs['unit'] = '1';
-            g.create_dataset("r",      (n,), data=r,      dtype='f8').attrs['unit'] = 'm';
-            g.create_dataset("phi",    (n,), data=phi,    dtype='f8').attrs['unit'] = 'deg';
-            g.create_dataset("z",      (n,), data=z,      dtype='f8').attrs['unit'] = 'm';
-            g.create_dataset("energy", (n,), data=energy, dtype='f8').attrs['unit'] = 'ev';
-            g.create_dataset("pitch",  (n,), data=pitch,  dtype='f8').attrs['unit'] = '1';
-            g.create_dataset("zeta",   (n,), data=zeta,   dtype='f8').attrs['unit'] = 'rad';
-            g.create_dataset("mass",   (n,), data=mass,   dtype='f8').attrs['unit'] = 'amu';
-            g.create_dataset("charge", (n,), data=charge, dtype='i4').attrs['unit'] = 'e';
-            g.create_dataset("anum",   (n,), data=anum,   dtype='i4').attrs['unit'] = '1';
-            g.create_dataset("znum",   (n,), data=znum,   dtype='i4').attrs['unit'] = '1';
-            g.create_dataset("weight", (n,), data=weight, dtype='f8').attrs['unit'] = 'markers/s';
-            g.create_dataset("time",   (n,), data=time,   dtype='f8').attrs['unit'] = 's';
-            g.create_dataset("id",     (n,), data=ids,    dtype='i8').attrs['unit'] = '1';
+            g.create_dataset("r",      (n,), data=r,      dtype='f8', compression="gzip", compression_opts=9).attrs['unit'] = 'm';
+            g.create_dataset("phi",    (n,), data=phi,    dtype='f8', compression="gzip", compression_opts=9).attrs['unit'] = 'deg';
+            g.create_dataset("z",      (n,), data=z,      dtype='f8', compression="gzip", compression_opts=9).attrs['unit'] = 'm';
+            g.create_dataset("energy", (n,), data=energy, dtype='f8', compression="gzip", compression_opts=9).attrs['unit'] = 'ev';
+            g.create_dataset("pitch",  (n,), data=pitch,  dtype='f8', compression="gzip", compression_opts=9).attrs['unit'] = '1';
+            g.create_dataset("zeta",   (n,), data=zeta,   dtype='f8', compression="gzip", compression_opts=9).attrs['unit'] = 'rad';
+            g.create_dataset("mass",   (n,), data=mass,   dtype='f8', compression="gzip", compression_opts=9).attrs['unit'] = 'amu';
+            g.create_dataset("charge", (n,), data=charge, dtype='i4', compression="gzip", compression_opts=9).attrs['unit'] = 'e';
+            g.create_dataset("anum",   (n,), data=anum,   dtype='i4', compression="gzip", compression_opts=9).attrs['unit'] = '1';
+            g.create_dataset("znum",   (n,), data=znum,   dtype='i4', compression="gzip", compression_opts=9).attrs['unit'] = '1';
+            g.create_dataset("weight", (n,), data=weight, dtype='f8', compression="gzip", compression_opts=9).attrs['unit'] = 'markers/s';
+            g.create_dataset("time",   (n,), data=time,   dtype='f8', compression="gzip", compression_opts=9).attrs['unit'] = 's';
+            g.create_dataset("id",     (n,), data=ids,    dtype='i8', compression="gzip", compression_opts=9).attrs['unit'] = '1';
 
         return gname
 
@@ -581,19 +581,19 @@ class Prt(Marker):
             gname = g.name.split("/")[-1]
 
             g.create_dataset("n",      (1,), data=n,      dtype='i8').attrs['unit'] = '1';
-            g.create_dataset("r",      (n,), data=r,      dtype='f8').attrs['unit'] = 'm';
-            g.create_dataset("phi",    (n,), data=phi,    dtype='f8').attrs['unit'] = 'deg';
-            g.create_dataset("z",      (n,), data=z,      dtype='f8').attrs['unit'] = 'm';
-            g.create_dataset("vr",     (n,), data=vr,     dtype='f8').attrs['unit'] = 'm/s';
-            g.create_dataset("vphi",   (n,), data=vphi,   dtype='f8').attrs['unit'] = 'm/s';
-            g.create_dataset("vz",     (n,), data=vz,     dtype='f8').attrs['unit'] = 'm/s';
-            g.create_dataset("mass",   (n,), data=mass,   dtype='f8').attrs['unit'] = 'amu';
-            g.create_dataset("charge", (n,), data=charge, dtype='i4').attrs['unit'] = 'e';
-            g.create_dataset("anum",   (n,), data=anum,   dtype='i4').attrs['unit'] = '1';
-            g.create_dataset("znum",   (n,), data=znum,   dtype='i4').attrs['unit'] = '1';
-            g.create_dataset("weight", (n,), data=weight, dtype='f8').attrs['unit'] = 'markers/s';
-            g.create_dataset("time",   (n,), data=time,   dtype='f8').attrs['unit'] = 's';
-            g.create_dataset("id",     (n,), data=ids,    dtype='i8').attrs['unit'] = '1';
+            g.create_dataset("r",      (n,), data=r,      dtype='f8', compression="gzip", compression_opts=9).attrs['unit'] = 'm';
+            g.create_dataset("phi",    (n,), data=phi,    dtype='f8', compression="gzip", compression_opts=9).attrs['unit'] = 'deg';
+            g.create_dataset("z",      (n,), data=z,      dtype='f8', compression="gzip", compression_opts=9).attrs['unit'] = 'm';
+            g.create_dataset("vr",     (n,), data=vr,     dtype='f8', compression="gzip", compression_opts=9).attrs['unit'] = 'm/s';
+            g.create_dataset("vphi",   (n,), data=vphi,   dtype='f8', compression="gzip", compression_opts=9).attrs['unit'] = 'm/s';
+            g.create_dataset("vz",     (n,), data=vz,     dtype='f8', compression="gzip", compression_opts=9).attrs['unit'] = 'm/s';
+            g.create_dataset("mass",   (n,), data=mass,   dtype='f8', compression="gzip", compression_opts=9).attrs['unit'] = 'amu';
+            g.create_dataset("charge", (n,), data=charge, dtype='i4', compression="gzip", compression_opts=9).attrs['unit'] = 'e';
+            g.create_dataset("anum",   (n,), data=anum,   dtype='i4', compression="gzip", compression_opts=9).attrs['unit'] = '1';
+            g.create_dataset("znum",   (n,), data=znum,   dtype='i4', compression="gzip", compression_opts=9).attrs['unit'] = '1';
+            g.create_dataset("weight", (n,), data=weight, dtype='f8', compression="gzip", compression_opts=9).attrs['unit'] = 'markers/s';
+            g.create_dataset("time",   (n,), data=time,   dtype='f8', compression="gzip", compression_opts=9).attrs['unit'] = 's';
+            g.create_dataset("id",     (n,), data=ids,    dtype='i8', compression="gzip", compression_opts=9).attrs['unit'] = '1';
 
         return gname
 
