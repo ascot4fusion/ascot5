@@ -36,7 +36,8 @@ int nbi_init_offload(nbi_offload_data* offload_data, real** offload_array) {
         print_out(VERBOSE_IO,
                   "    Anum %d Znum %d mass %1.1e amu energy %1.1e eV\n",
                   offload_data->anum[i], offload_data->znum[i],
-                  offload_data->mass[i], offload_data->energy[i]);
+                  offload_data->mass[i] / CONST_U,
+                  offload_data->energy[i] / CONST_E);
         print_out(VERBOSE_IO,
                   "    Energy fractions: %1.1e (Full) %1.1e (1/2) %1.1e (1/3)\n",
                   offload_data->efrac[0], offload_data->efrac[1],
