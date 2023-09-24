@@ -266,27 +266,6 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         print_out(VERBOSE_IO, "MHD data read and initialized.\n");
     }
 
-    if(input_active & hdf5_input_marker) {
-        if(hdf5_find_group(f, "/marker/")) {
-            print_err("Error: No marker data in input file.");
-            return 1;
-        }
-        print_out(VERBOSE_IO, "\nReading marker input.\n");
-        if(sim->qid_marker[0] != '\0') {
-            strcpy(qid, sim->qid_marker);
-        }
-        else if( hdf5_get_active_qid(f, "/marker/", qid) ) {
-            print_err("Error: Active QID not declared.");
-            return 1;
-        }
-        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-        if( hdf5_marker_read(f, n_markers, p, qid) ) {
-            print_err("Error: Failed to read markers.\n");
-            return 1;
-        }
-        print_out(VERBOSE_IO, "Marker data read and initialized.\n");
-    }
-
     if(input_active & hdf5_input_asigma) {
         if(hdf5_find_group(f, "/asigma/")) {
             print_err("Error: No atomic reaction data in input file.");
@@ -307,6 +286,49 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             return 1;
         }
         print_out(VERBOSE_IO, "Atomic reaction data read and initialized.\n");
+    }
+
+    if(input_active & hdf5_input_nbi) {
+        if(hdf5_find_group(f, "/nbi/")) {
+            print_err("Error: No NBI data in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading NBI input.\n");
+        if(sim->qid_nbi[0] != '\0') {
+            strcpy(qid, sim->qid_nbi);
+        }
+        else if( hdf5_get_active_qid(f, "/nbi/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_nbi_init_offload(f, &(sim->nbi_offload_data),
+                                  nbi_offload_array, qid) ) {
+            print_err("Error: Failed to initialize NBI data.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "NBI data read and initialized.\n");
+    }
+
+    if(input_active & hdf5_input_marker) {
+        if(hdf5_find_group(f, "/marker/")) {
+            print_err("Error: No marker data in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading marker input.\n");
+        if(sim->qid_marker[0] != '\0') {
+            strcpy(qid, sim->qid_marker);
+        }
+        else if( hdf5_get_active_qid(f, "/marker/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_marker_read(f, n_markers, p, qid) ) {
+            print_err("Error: Failed to read markers.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Marker data read and initialized.\n");
     }
 
     /* Close the hdf5 file */
