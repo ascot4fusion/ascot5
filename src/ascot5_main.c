@@ -407,8 +407,8 @@ int write_rungroup(
 
     if(mpi_rank == mpi_root) {
         /* Initialize results group in the output file */
-        print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n")
-        if( hdf5_interface_init_results(sim, qid) ) {
+        print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n");
+        if( hdf5_interface_init_results(sim, qid, "run") ) {
             print_out0(VERBOSE_MINIMAL, mpi_rank,
                        "\nInitializing output failed.\n"
                        "See stderr for details.\n");
