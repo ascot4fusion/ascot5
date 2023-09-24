@@ -48,15 +48,17 @@ int main(int argc, char** argv) {
     }
 
     /* Initialize data needed for nbi simulation */
+    real* nbi_offload_array;
     real* B_offload_array;
     real* plasma_offload_array;
     real* wall_offload_array;
     int*  wall_int_offload_array;
     hdf5_interface_read_input(&sim, hdf5_input_bfield | hdf5_input_plasma |
-                              hdf5_input_wall, &B_offload_array, NULL,
-                              &plasma_offload_array, NULL, &wall_offload_array,
-                              &wall_int_offload_array, NULL, NULL, NULL, NULL,
-                              NULL);
+                              hdf5_input_wall | hdf5_input_nbi,
+                              &B_offload_array, NULL, &plasma_offload_array,
+                              NULL, &wall_offload_array,
+                              &wall_int_offload_array, NULL, NULL, NULL,
+                              &nbi_offload_array, NULL, NULL);
 
     B_field_data B_data;
     B_field_init(&B_data, &sim.B_offload_data, B_offload_array);
@@ -71,14 +73,14 @@ int main(int argc, char** argv) {
     random_init(&rng, time(NULL));
 
     /* NBI data read and initialized separately for now */
-    nbi_offload_data nbidata;
-    real * nbi_offload_array;
-    hid_t f = hdf5_open(sim.hdf5_in);
-    hdf5_nbi_init_offload(f, &nbidata, &nbi_offload_array);
-    hdf5_close(f);
+    //nbi_offload_data nbidata;
+    //real * nbi_offload_array;
+    //hid_t f = hdf5_open(sim.hdf5_in);
+    //hdf5_nbi_init_offload(f, &nbidata, &nbi_offload_array);
+    //hdf5_close(f);
 
     nbi_data nbi;
-    nbi_init(&nbi, &nbidata, nbi_offload_array);
+    nbi_init(&nbi, &sim.nbi_offload_data, nbi_offload_array);
 
     /* The number of markers generated is proportional to injector power */
     real total_power = 0;

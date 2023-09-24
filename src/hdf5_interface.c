@@ -33,6 +33,7 @@
 #include "hdf5io/hdf5_orbit.h"
 #include "hdf5io/hdf5_transcoef.h"
 #include "hdf5io/hdf5_asigma.h"
+#include "hdf5io/hdf5_nbi.h"
 
 /**
  * @brief Read and initialize input data
@@ -50,6 +51,7 @@
  * @param boozer_offload_array pointer to boozer offload array
  * @param mhd_offload_array pointer to mhd offload array
  * @param asigma_offload_array pointer to atomic offload array
+ * @param nbi_offload_array pointer to neutral beam injector data offload array
  * @param p pointer to marker offload data
  * @param n_markers pointer to integer notating how many markers were read
  *
@@ -62,10 +64,11 @@ int hdf5_interface_read_input(sim_offload_data* sim,
                               real** plasma_offload_array,
                               real** neutral_offload_array,
                               real** wall_offload_array,
-                              int** wall_int_offload_array,
+                              int**  wall_int_offload_array,
                               real** boozer_offload_array,
                               real** mhd_offload_array,
                               real** asigma_offload_array,
+                              real** nbi_offload_array,
                               input_particle** p,
                               int* n_markers){
 
