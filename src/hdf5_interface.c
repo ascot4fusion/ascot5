@@ -102,6 +102,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             print_err("Error: Active QID not declared.");
             return 1;
         }
+        strcpy(sim->qid_options, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
         if( hdf5_options_read(f, sim, qid) ) {
             print_err("Error: Failed to initialize options.\n");
@@ -123,6 +124,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             print_err("Error: Active QID not declared.");
             return 1;
         }
+        strcpy(sim->qid_bfield, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
         if( hdf5_bfield_init_offload(f, &(sim->B_offload_data),
                                      B_offload_array, qid) ) {
@@ -145,6 +147,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             print_err("Error: Active QID not declared.");
             return 1;
         }
+        strcpy(sim->qid_efield, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
         if( hdf5_efield_init_offload(f, &(sim->E_offload_data),
                                      E_offload_array, qid) ) {
@@ -167,6 +170,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             print_err("Error: Active QID not declared.");
             return 1;
         }
+        strcpy(sim->qid_plasma, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
         if( hdf5_plasma_init_offload(f, &(sim->plasma_offload_data),
                                      plasma_offload_array, qid) ) {
@@ -189,6 +193,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             print_err("Error: Active QID not declared.");
             return 1;
         }
+        strcpy(sim->qid_neutral, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
         if( hdf5_neutral_init_offload(f, &(sim->neutral_offload_data),
                                       neutral_offload_array, qid) ) {
@@ -197,7 +202,6 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         }
         print_out(VERBOSE_IO, "Neutral data read and initialized.\n");
     }
-
 
     if(input_active & hdf5_input_wall) {
         if(hdf5_find_group(f, "/wall/")) {
@@ -212,6 +216,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             print_err("Error: Active QID not declared.");
             return 1;
         }
+        strcpy(sim->qid_wall, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
         if( hdf5_wall_init_offload(f, &(sim->wall_offload_data),
                                    wall_offload_array, wall_int_offload_array,
@@ -235,6 +240,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             print_err("Error: Active QID not declared.");
             return 1;
         }
+        strcpy(sim->qid_boozer, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
         if( hdf5_boozer_init_offload(f, &(sim->boozer_offload_data),
                                      boozer_offload_array, qid) ) {
@@ -257,6 +263,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             print_err("Error: Active QID not declared.");
             return 1;
         }
+        strcpy(sim->qid_mhd, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
         if( hdf5_mhd_init_offload(f, &(sim->mhd_offload_data),
                                   mhd_offload_array, qid) ) {
@@ -279,6 +286,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             print_err("Error: Active QID not declared.");
             return 1;
         }
+        strcpy(sim->qid_asigma, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
         if( hdf5_asigma_init_offload(f, &(sim->asigma_offload_data),
                                      asigma_offload_array, qid) ) {
@@ -301,6 +309,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             print_err("Error: Active QID not declared.");
             return 1;
         }
+        strcpy(sim->qid_nbi, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
         if( hdf5_nbi_init_offload(f, &(sim->nbi_offload_data),
                                   nbi_offload_array, qid) ) {
@@ -323,6 +332,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             print_err("Error: Active QID not declared.");
             return 1;
         }
+        strcpy(sim->qid_marker, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
         if( hdf5_marker_read(f, n_markers, p, qid) ) {
             print_err("Error: Failed to read markers.\n");
@@ -399,98 +409,61 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid, char* run) {
         fin = hdf5_open(sim->hdf5_in);
     }
 
-
-    /* Read input data qids and store them here. */
-    char inputqid[11];
-    inputqid[10] = '\0';
-
+    /* Record input QIDs from sim struct to output group. */
     if(sim->qid_options[0] != '\0') {
-        strcpy(inputqid, sim->qid_options);
+        hdf5_write_string_attribute(
+            fout, path, "qid_options", sim->qid_options);
     }
-    else {
-        H5LTget_attribute_string(fin, "/options/", "active", inputqid);
-    }
-    hdf5_write_string_attribute(fout, path, "qid_options",  inputqid);
 
     if(sim->qid_bfield[0] != '\0') {
-        strcpy(inputqid, sim->qid_bfield);
+        hdf5_write_string_attribute(
+            fout, path, "qid_bfield", sim->qid_bfield);
     }
-    else {
-        H5LTget_attribute_string(fin, "/bfield/", "active", inputqid);
-    }
-    hdf5_write_string_attribute(fout, path, "qid_bfield",  inputqid);
 
     if(sim->qid_efield[0] != '\0') {
-        strcpy(inputqid, sim->qid_efield);
+        hdf5_write_string_attribute(
+            fout, path, "qid_efield", sim->qid_efield);
     }
-    else {
-        H5LTget_attribute_string(fin, "/efield/", "active", inputqid);
-    }
-    hdf5_write_string_attribute(fout, path, "qid_efield",  inputqid);
 
     if(sim->qid_plasma[0] != '\0') {
-        strcpy(inputqid, sim->qid_plasma);
+        hdf5_write_string_attribute(
+            fout, path, "qid_plasma", sim->qid_plasma);
     }
-    else {
-        H5LTget_attribute_string(fin, "/plasma/", "active", inputqid);
-    }
-    hdf5_write_string_attribute(fout, path, "qid_plasma",  inputqid);
 
     if(sim->qid_neutral[0] != '\0') {
-        strcpy(inputqid, sim->qid_neutral);
+        hdf5_write_string_attribute(
+            fout, path, "qid_neutral", sim->qid_neutral);
     }
-    else {
-        H5LTget_attribute_string(fin, "/neutral/", "active", inputqid);
-    }
-    hdf5_write_string_attribute(fout, path, "qid_neutral",  inputqid);
 
     if(sim->qid_wall[0] != '\0') {
-        strcpy(inputqid, sim->qid_wall);
+        hdf5_write_string_attribute(
+            fout, path, "qid_wall", sim->qid_wall);
     }
-    else {
-        H5LTget_attribute_string(fin, "/wall/", "active", inputqid);
-    }
-    hdf5_write_string_attribute(fout, path, "qid_wall",  inputqid);
 
     if(sim->qid_marker[0] != '\0') {
-        strcpy(inputqid, sim->qid_marker);
+        hdf5_write_string_attribute(
+            fout, path, "qid_marker", sim->qid_marker);
     }
-    else {
-        H5LTget_attribute_string(fin, "/marker/", "active", inputqid);
-    }
-    hdf5_write_string_attribute(fout, path, "qid_marker",  inputqid);
 
     if(sim->qid_boozer[0] != '\0') {
-        strcpy(inputqid, sim->qid_boozer);
+        hdf5_write_string_attribute(
+            fout, path, "qid_boozer", sim->qid_boozer);
     }
-    else {
-        H5LTget_attribute_string(fin, "/boozer/", "active", inputqid);
-    }
-    hdf5_write_string_attribute(fout, path, "qid_boozer",  inputqid);
 
     if(sim->qid_mhd[0] != '\0') {
-        strcpy(inputqid, sim->qid_mhd);
+        hdf5_write_string_attribute(
+            fout, path, "qid_mhd", sim->qid_mhd);
     }
-    else {
-        H5LTget_attribute_string(fin, "/mhd/", "active", inputqid);
-    }
-    hdf5_write_string_attribute(fout, path, "qid_mhd",  inputqid);
 
     if(sim->qid_asigma[0] != '\0') {
-        strcpy(inputqid, sim->qid_asigma);
+        hdf5_write_string_attribute(
+            fout, path, "qid_asigma", sim->qid_asigma);
     }
-    else {
-        H5LTget_attribute_string(fin, "/asigma/", "active", inputqid);
-    }
-    hdf5_write_string_attribute(fout, path, "qid_asigma",  inputqid);
 
     if(sim->qid_nbi[0] != '\0') {
-        strcpy(inputqid, sim->qid_nbi);
+        hdf5_write_string_attribute(
+            fout, path, "qid_nbi", sim->qid_nbi);
     }
-    else {
-        H5LTget_attribute_string(fin, "/nbi/", "active", inputqid);
-    }
-    hdf5_write_string_attribute(fout, path, "qid_nbi",  inputqid);
 
     /* If input and output are different files, close input */
     if( strcmp(sim->hdf5_in, sim->hdf5_out) != 0 ) {
