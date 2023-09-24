@@ -226,12 +226,19 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt,
     /* Initialize default values */
     sim->hdf5_in[0]     = '\0';
     sim->hdf5_out[0]    = '\0';
-    sim->mpi_rank       = 0;
-    sim->mpi_size       = 0;
+    sim->qid_options[0] = '\0';
     sim->qid_bfield[0]  = '\0';
+    sim->qid_efield[0]  = '\0';
+    sim->qid_marker[0]  = '\0';
     sim->qid_wall[0]    = '\0';
     sim->qid_plasma[0]  = '\0';
+    sim->qid_neutral[0] = '\0';
+    sim->qid_boozer[0]  = '\0';
+    sim->qid_mhd[0]     = '\0';
+    sim->qid_asigma[0]  = '\0';
     sim->qid_nbi[0]     = '\0';
+    sim->mpi_rank       = 0;
+    sim->mpi_size       = 0;
     *nprt               = 10000;
     *t1                 = 0.0;
     *t2                 = 0.0;
