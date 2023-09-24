@@ -169,7 +169,7 @@ int main(int argc, char** argv) {
                                   &plasma_offload_array, &neutral_offload_array,
                                   &wall_offload_array,  &wall_int_offload_array,
                                   &boozer_offload_array, &mhd_offload_array,
-                                  &asigma_offload_array,
+                                  &asigma_offload_array, NULL,
                                   &p, &n_tot) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
                    "\nInput reading or initializing failed.\n"

@@ -17,6 +17,7 @@
 #include "boozer.h"
 #include "mhd.h"
 #include "asigma.h"
+#include "nbi.h"
 #include "diag.h"
 #include "offload.h"
 #include "random.h"
@@ -61,6 +62,7 @@ typedef struct {
     boozer_offload_data boozer_offload_data;   /**< Boozer offload data         */
     mhd_offload_data mhd_offload_data;         /**< MHD offload data            */
     asigma_offload_data asigma_offload_data;   /**< Atomic sigma offload data   */
+    nbi_offload_data nbi_offload_data;         /**< NBI offload data            */
     diag_offload_data diag_offload_data;       /**< Diagnostics offload data    */
 
     /* Options - general */
@@ -134,6 +136,7 @@ typedef struct {
     char qid_boozer[256];  /* Boozer QID if active not used  */
     char qid_mhd[256];     /* MHD QID if active not used     */
     char qid_asigma[256];  /* Asigma QID if active not used  */
+    char qid_nbi[256];     /* NBI QID if active not used     */
 
 } sim_offload_data;
 
@@ -157,6 +160,7 @@ typedef struct {
     boozer_data boozer_data;   /**< Boozer data interface                     */
     mhd_data mhd_data;         /**< MHD data interface                        */
     asigma_data asigma_data;   /**< Atomic sigma data interface               */
+    nbi_data nbi_data;         /**< Neutral beam injection data interface     */
     diag_data diag_data;       /**< Diagnostics data interface                */
 
     /* Metadata */

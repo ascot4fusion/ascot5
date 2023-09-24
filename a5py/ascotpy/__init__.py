@@ -67,6 +67,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         Offload data for the MHD input.
     _asigma_offload_array
         Offload data for the atomic data input.
+    _nbi_offload_array
+        Offload data for the neutral beam injector data input.
     _mpi_root
         Rank of the root MPI process.
     _mpi_rank
@@ -108,6 +110,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         self._boozer_offload_array  = ctypes.POINTER(ctypes.c_double)()
         self._mhd_offload_array     = ctypes.POINTER(ctypes.c_double)()
         self._asigma_offload_array  = ctypes.POINTER(ctypes.c_double)()
+        self._nbi_offload_array     = ctypes.POINTER(ctypes.c_double)()
         self._diag_offload_array    = ctypes.POINTER(ctypes.c_double)()
 
         self._wall_int_offload_array = ctypes.POINTER(ctypes.c_int)()
@@ -228,6 +231,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                 ctypes.byref(self._boozer_offload_array),
                 ctypes.byref(self._mhd_offload_array),
                 ctypes.byref(self._asigma_offload_array),
+                ctypes.byref(self._nbi_offload_array),
                 None, # Marker array (ignore)
                 None  # Number of markers that were read (ignore)
             )
