@@ -1,6 +1,12 @@
 /**
  * @file bbnbi5.c
  * @brief BBNBI5 main program
+ *
+ * BBNBI5 models neutral beam injectors and is used to evaluate shine-through
+ * and beam birth-profile. Neutral markers are generated from injector geometry
+ * and traced until they ionize or hit the wall. Several injectors can be
+ * modelled simultaneously keeping in mind that in this case the output
+ * the injector from which a particle originated is lost.
  */
 #define _XOPEN_SOURCE 500 /**< drand48 requires POSIX 1995 standard */
 #include <getopt.h>
@@ -13,19 +19,16 @@
 #include <string.h>
 #include <time.h>
 #include "ascot5.h"
-#include "B_field.h"
 #include "consts.h"
-#include "hdf5_interface.h"
-#include "hdf5io/hdf5_helpers.h"
-#include "hdf5io/hdf5_nbi.h"
-#include "hdf5io/hdf5_marker.h"
 #include "math.h"
-#include "nbi.h"
-#include "particle.h"
-#include "plasma.h"
+#include "hdf5_interface.h"
 #include "print.h"
 #include "random.h"
+#include "particle.h"
+#include "B_field.h"
+#include "plasma.h"
 #include "wall.h"
+#include "nbi.h"
 
 int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt,
                    double* t1, double* t2);
@@ -40,12 +43,25 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt,
  */
 int main(int argc, char** argv) {
     /* Read and parse command line arguments */
-    int nprt;
-    double t1, t2;
+    int nprt; /* Number of markers to be generated excluding shinetrough */
+    real t1, t2; /* Markers are initialized in this time-spawn */
     sim_offload_data sim;
     if(read_arguments(argc, argv, &sim, &nprt, &t1, &t2) != 0) {
+        abort();
         return 1;
     }
+
+    int mpi_rank = 0; /* BBNBI 5 does not yet support MPI */
+    print_out0(VERBOSE_MINIMAL, mpi_rank,
+               "BBNBI5\n");
+
+#ifdef GIT_VERSION
+    print_out0(VERBOSE_MINIMAL, mpi_rank,
+               "Tag %s\nBranch %s\n\n", GIT_VERSION, GIT_BRANCH);
+#else
+    print_out0(VERBOSE_MINIMAL, mpi_rank,
+               "Not under version control\n\n");
+#endif
 
     /* Initialize data needed for nbi simulation */
     real* nbi_offload_array;
@@ -67,7 +83,8 @@ int main(int argc, char** argv) {
     plasma_init(&plasma_data, &sim.plasma_offload_data, plasma_offload_array);
 
     wall_data wall_data;
-    wall_init(&wall_data, &sim.wall_offload_data, wall_offload_array, wall_int_offload_array);
+    wall_init(&wall_data, &sim.wall_offload_data, wall_offload_array,
+              wall_int_offload_array);
 
     random_data rng;
     random_init(&rng, time(NULL));
@@ -97,9 +114,12 @@ int main(int argc, char** argv) {
                      &B_data, &plasma_data, &wall_data, &rng);
 
         nprt_generated += nprt_inj;
-        printf("Generated %d markers for injector %d.\n", nprt_inj, i+1);
+        print_out0(VERBOSE_NORMAL, mpi_rank,
+                   "Generated %d markers for injector %d.\n",
+                   nprt_inj, i+1);
     }
-    printf("\nWriting %d markers.\n", nprt_generated);
+    print_out0(VERBOSE_NORMAL, mpi_rank, "\nWriting %d markers.\n",
+               nprt_generated);
 
     /* Copy markers from particle structs into input_particle structs to be
      * written into the h5 file */
@@ -159,22 +179,26 @@ int main(int argc, char** argv) {
  * @param argv argument vector as given to main()
  * @param sim pointer to offload data struct
  * @param nprt pointer to integer where number of markers is stored
+ * @param t1 pointer to store beginning of time interval
+ * @param t2 pointer to store end of the time interval
  *
  * @return Zero if success
  */
-int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt, double* t1, double* t2) {
+int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt,
+                   real* t1, real* t2) {
     struct option longopts[] = {
-        {"in", required_argument, 0, 1},
-        {"out", required_argument, 0, 2},
-        {"mpi_size", required_argument, 0, 3},
-        {"mpi_rank", required_argument, 0, 4},
-        {"d", required_argument, 0, 5},
-        {"bfield",  required_argument, 0, 6},
-        {"wall",    required_argument, 0, 7},
-        {"plasma",  required_argument, 0, 8},
-        {"n",       required_argument, 0, 9},
-        {"t1", required_argument, 0, 10},
-        {"t2", required_argument, 0, 11},
+        {"in",       required_argument, 0,  1},
+        {"out",      required_argument, 0,  2},
+        {"mpi_size", required_argument, 0,  3},
+        {"mpi_rank", required_argument, 0,  4},
+        {"d",        required_argument, 0,  5},
+        {"bfield",   required_argument, 0,  6},
+        {"wall",     required_argument, 0,  7},
+        {"plasma",   required_argument, 0,  8},
+        {"nbi",      required_argument, 0,  9},
+        {"n",        required_argument, 0, 10},
+        {"t1",       required_argument, 0, 11},
+        {"t2",       required_argument, 0, 12},
         {0, 0, 0, 0}
     };
 
@@ -186,35 +210,40 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt, doub
     sim->qid_bfield[0]  = '\0';
     sim->qid_wall[0]    = '\0';
     sim->qid_plasma[0]  = '\0';
+    sim->qid_nbi[0]     = '\0';
     *nprt               = 10000;
     *t1                 = 0.0;
-    *t2                 = 1.0;
+    *t2                 = 0.0;
     strcpy(sim->description, "TAG");
 
     /* Read user input */
     int c;
-    int slen;  // String length
+    int slen;
     while((c = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
         switch(c) {
             case 1:
-                // The .hdf5 filename can be specified with or without the trailing .h5
+                /* The .hdf5 filename can be specified with or without the
+                 * trailing .h5 */
                 slen = strlen(optarg);
-                if ( slen > 3 && !strcmp(optarg+slen-3,".h5") ) {
-                    strncpy(sim->hdf5_in,optarg,slen-3);
+                if ( slen > 3 && !strcmp(optarg+slen-3, ".h5") ) {
+                    strcpy(sim->hdf5_in, optarg);
                     (sim->hdf5_in)[slen-3]='\0';
                 }
-                else
+                else {
                     strcpy(sim->hdf5_in, optarg);
+                }
                 break;
             case 2:
-                // The .hdf5 filename can be specified with or without the trailing .h5
+                /* The .hdf5 filename can be specified with or without the
+                 * trailing .h5 */
                 slen = strlen(optarg);
-                if ( slen > 3 && !strcmp(optarg+slen-3,".h5") ) {
-                    strncpy(sim->hdf5_out,optarg,slen-3);
+                if ( slen > 3 && !strcmp(optarg+slen-3, ".h5") ) {
+                    strcpy(sim->hdf5_out, optarg);
                     (sim->hdf5_out)[slen-3]='\0';
                 }
-                else
+                else {
                     strcpy(sim->hdf5_out, optarg);
+                }
                 break;
             case 3:
                 sim->mpi_size = atoi(optarg);
@@ -235,12 +264,15 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt, doub
                 strcpy(sim->qid_plasma, optarg);
                 break;
             case 9:
-                *nprt = atoi(optarg);
+                strcpy(sim->qid_nbi, optarg);
                 break;
             case 10:
-                *t1 = atof(optarg);
+                *nprt = atoi(optarg);
                 break;
             case 11:
+                *t1 = atof(optarg);
+                break;
+            case 12:
                 *t2 = atof(optarg);
                 break;
             default:
@@ -248,9 +280,9 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt, doub
                 print_out(VERBOSE_MINIMAL,
                           "\nUnrecognized argument. The valid arguments are:\n");
                 print_out(VERBOSE_MINIMAL,
-                          "--in input file without .h5 extension (default: ascot)\n");
+                          "--in input file (default: ascot.h5)\n");
                 print_out(VERBOSE_MINIMAL,
-                          "--out output file without .h5 extension (default: same as input)\n");
+                          "--out output file (default: same as input)\n");
                 print_out(VERBOSE_MINIMAL,
                           "--mpi_size number of independent processes\n");
                 print_out(VERBOSE_MINIMAL,
@@ -258,7 +290,11 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt, doub
                 print_out(VERBOSE_MINIMAL,
                           "--d run description maximum of 250 characters\n");
                 print_out(VERBOSE_MINIMAL,
-                    "--n number of markers to generate, (default: 10000)\n");
+                          "--n number of markers to generate (default: 10000)\n");
+                print_out(VERBOSE_MINIMAL,
+                          "--t1 time when injectors are turned on (default: 0.0 s)\n");
+                print_out(VERBOSE_MINIMAL,
+                          "--t2 time when injectors are turned off (default: 0.0 s)\n");
                 return 1;
         }
     }
@@ -267,22 +303,23 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt, doub
      * file. Adujust hdf5_in and hdf5_out accordingly. For output file, we don't
      * add the .h5 extension here. */
     if(sim->hdf5_in[0] == '\0' && sim->hdf5_out[0] == '\0') {
-        // No input, use default values for both
-        strcpy(sim->hdf5_in, "ascot.h5");
+        /* No input, use default values for both */
+        strcpy(sim->hdf5_in,  "ascot.h5");
         strcpy(sim->hdf5_out, "ascot.h5");
     }
     else if(sim->hdf5_in[0] == '\0' && sim->hdf5_out[0] != '\0') {
-        // Output file is given but the input file is not
-        strcpy(sim->hdf5_in, "ascot.h5");
+        /* Output file is given but the input file is not */
+        strcpy(sim->hdf5_in,  "ascot.h5");
+        strcat(sim->hdf5_out, ".h5");
     }
     else if(sim->hdf5_in[0] != '\0' && sim->hdf5_out[0] == '\0') {
-        // Input file is given but the output is not
+        /* Input file is given but the output is not */
         strcat(sim->hdf5_in, ".h5");
         strcpy(sim->hdf5_out, sim->hdf5_in);
     }
     else {
-        // Both input and output files are given
-        strcat(sim->hdf5_in, ".h5");
+        /* Both input and output files are given */
+        strcat(sim->hdf5_in,  ".h5");
         strcat(sim->hdf5_out, ".h5");
     }
     return 0;
