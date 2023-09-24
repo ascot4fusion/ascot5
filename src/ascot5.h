@@ -91,6 +91,12 @@ typedef double real;  /**< Double precision float   */
 /** @brief Maximum number of MHD modes */
 #define MHD_MODES_MAX_NUM 512
 
+/** @brief Maximum distance BBNBI traces markers in meters */
+#define NBI_MAX_DISTANCE 100
+
+/** @brief Maximum number of NBI injectors */
+#define NBI_MAX_INJ 16
+
 /** @brief Maximum number of Wiener processes stored (effectively number
  *  of time step reductions) */
 #define WIENERSLOTS 20
