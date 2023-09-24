@@ -17,6 +17,12 @@
 #include "wall.h"
 #include "nbi.h"
 
+void nbi_inject(real* xyz, real* vxyz, nbi_injector* inj, random_data* rng);
+
+void nbi_ionize(real* xyz, real* vxyz, real time, int* shinethrough, int anum,
+                int znum, real mass, B_field_data* Bdata, plasma_data* plsdata,
+                wall_data* walldata, random_data* rng);
+
 /**
  * @brief Load NBI data and prepare parameters for offload.
  *
@@ -94,46 +100,123 @@ void nbi_init(nbi_data* nbi, nbi_offload_data* offload_data,
 }
 
 /**
- * @brief
+ * @brief Free offload array
  *
- * @param n
- * @param x
- * @param y
- * @param z
- * @param vx
- * @param vy
- * @param vz
- * @param anum
- * @param znum
- * @param mass
- * @param rng
+ * @param offload_data pointer to offload data struct
+ * @param offload_array pointer to pointer to offload array
  */
-void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
-                real* vz, int* anum, int* znum, real* mass, random_data* rng) {
-    int i_beamlet = floor(random_uniform(rng) * n->n_beamlet);
+void nbi_free_offload(nbi_offload_data* offload_data,
+                      real** offload_array) {
+    for(int i=0; i<offload_data->ninj; i++) {
+        offload_data->n_beamlet[i] = 0;
+    }
+    offload_data->ninj = 0;
+    free(*offload_array);
+}
 
-    *x = n->beamlet_x[i_beamlet];
-    *y = n->beamlet_y[i_beamlet];
-    *z = n->beamlet_z[i_beamlet];
+/**
+ * @brief Generate NBI ions from injector
+ *
+ * @param p marker struct obtained as an output
+ * @param nprt number of markers to be injected
+ * @param t0
+ * @param t1
+ * @param inj pointer to injector data
+ * @param Bdata pointer to magnetic field data
+ * @param plsdata pointer to plasma data
+ * @param walldata pointer to wall data
+ * @param rng pointer to random number generator data
+ */
+void nbi_generate(particle* p, int nprt, real t0, real t1, nbi_injector* inj,
+                  B_field_data* Bdata, plasma_data* plsdata,
+                  wall_data* walldata, random_data* rng) {
 
-    real energy;
-    real r = random_uniform(rng);
-    if(r < n->efrac[0]) {
-        energy = n->energy;
-    } else if(r < n->efrac[0] + n->efrac[1]) {
-        energy = n->energy / 2;
-    } else {
-        energy = n->energy / 3;
+    real totalShined  = 0.0;
+    real totalIonized = 0.0;
+
+    //#pragma omp parallel for
+    for(int i = 0; i < nprt; i++) {
+        real xyz[3], vxyz[3];
+        int anum  = inj->anum;
+        int znum  = inj->znum;
+        real mass = inj->mass;
+        real gamma;
+
+        real time = t0 + random_uniform(rng) * (t1-t0);
+
+        int shinethrough = 1;
+        do {
+            nbi_inject(xyz, vxyz, inj, rng);
+            nbi_ionize(xyz, vxyz, time, &shinethrough, anum, znum, mass, Bdata,
+                       plsdata, walldata, rng);
+
+            if(shinethrough == 1) {
+                gamma = physlib_gamma_vnorm(math_norm(vxyz));
+                #pragma omp atomic
+                totalShined += physlib_Ekin_gamma(mass, gamma);
+            }
+        } while(shinethrough == 1);
+
+        real rpz[3], vrpz[3];
+        math_xyz2rpz(xyz, rpz);
+        math_vec_xyz2rpz(vxyz, vrpz, rpz[1]);
+
+        gamma = physlib_gamma_vnorm(math_norm(vrpz));
+        p[i].r      = rpz[0];
+        p[i].phi    = rpz[1];
+        p[i].z      = rpz[2];
+        p[i].p_r    = vrpz[0] * gamma * mass;
+        p[i].p_phi  = vrpz[1] * gamma * mass;
+        p[i].p_z    = vrpz[2] * gamma * mass;
+        p[i].anum   = anum;
+        p[i].znum   = znum;
+        p[i].charge = 1 * CONST_E; // Singly ionized always
+        p[i].mass   = mass;
+        p[i].id     = i+1;
+        p[i].time   = time;
+
+        #pragma omp atomic
+        totalIonized += physlib_Ekin_gamma(mass, gamma);
     }
 
-    /* calculate vertical and horizontal normals for divergence */
+    for(int i = 0; i < nprt; i++) {
+        p[i].weight = inj->power / (totalShined + totalIonized);
+    }
+}
+
+/**
+ * @brief Initialize a neutral marker from an injector.
+ *
+ * @param inj pointer to injector data
+ * @param xyz initialized marker's position in cartesian coordinates [m]
+ * @param vxyz initialized marker's velocity in cartesian coordinates [m/s]
+ * @param rng pointer to random number generator data
+ */
+void nbi_inject(real* xyz, real* vxyz, nbi_injector* inj, random_data* rng) {
+    /* Pick a random beamlet and initialize marker there */
+    int i_beamlet = floor(random_uniform(rng) * inj->n_beamlet);
+    xyz[0] = inj->beamlet_x[i_beamlet];
+    xyz[1] = inj->beamlet_y[i_beamlet];
+    xyz[2] = inj->beamlet_z[i_beamlet];
+
+    /* Pick marker energy based on the energy fractions */
+    real energy;
+    real r = random_uniform(rng);
+    if(r < inj->efrac[0]) {
+        energy = inj->energy;
+    } else if(r < inj->efrac[0] + inj->efrac[1]) {
+        energy = inj->energy / 2;
+    } else {
+        energy = inj->energy / 3;
+    }
+
+    /* Calculate vertical and horizontal normals for beam divergence */
     real dir[3], normalv[3], normalh[3], tmp[3];
+    dir[0] = inj->beamlet_dx[i_beamlet];
+    dir[1] = inj->beamlet_dy[i_beamlet];
+    dir[2] = inj->beamlet_dz[i_beamlet];
 
-    dir[0] = n->beamlet_dx[i_beamlet];
-    dir[1] = n->beamlet_dy[i_beamlet];
-    dir[2] = n->beamlet_dz[i_beamlet];
-
-    real phi = atan2(dir[1], dir[0]);
+    real phi   = atan2(dir[1], dir[0]);
     real theta = acos(dir[2]);
 
     normalv[0] = sin(theta+CONST_PI/2) * cos(phi);
@@ -143,73 +226,67 @@ void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
     math_cross(dir, normalv, tmp);
     math_unit(tmp, normalh);
 
-    /* assuming isotropic divergence using horizontal value,
+    /* Assuming isotropic divergence using horizontal value,
        ignoring halo divergence for now */
     r = random_uniform(rng);
-    real div = n->div_h * sqrt(log(1/(1-r)));
+    real div = inj->div_h * sqrt(log(1/(1-r)));
 
     real angle = random_uniform(rng) * 2 * CONST_PI;
-    tmp[0] = dir[0] + div * (cos(angle)*normalh[0] + sin(angle)*normalv[0]);
-    tmp[1] = dir[1] + div * (cos(angle)*normalh[1] + sin(angle)*normalv[1]);
-    tmp[2] = dir[2] + div * (cos(angle)*normalh[2] + sin(angle)*normalv[2]);
+    tmp[0] = dir[0] + div * ( cos(angle)*normalh[0] + sin(angle)*normalv[0] );
+    tmp[1] = dir[1] + div * ( cos(angle)*normalh[1] + sin(angle)*normalv[1] );
+    tmp[2] = dir[2] + div * ( cos(angle)*normalh[2] + sin(angle)*normalv[2] );
 
     math_unit(tmp, dir);
 
-    real absv = sqrt(2 * energy / (n->anum * CONST_U));
-    *vx = absv * dir[0];
-    *vy = absv * dir[1];
-    *vz = absv * dir[2];
-
-    *anum = n->anum;
-    *znum = n->znum;
-    *mass = n->mass;
+    real absv = sqrt(2 * energy / (inj->mass));
+    vxyz[0] = absv * dir[0];
+    vxyz[1] = absv * dir[1];
+    vxyz[2] = absv * dir[2];
 }
 
 /**
- * @brief
+ * @brief Trace a neutral marker until it has ionized or hit wall
  *
- * @param xyz
- * @param vxyz
- * @param time
- * @param shinethrough
- * @param anum
- * @param znum
- * @param Bdata
- * @param plasdata
- * @param walldata
- * @param rng
+ * This function updates marker's position and velocity coordinates that are
+ * given as an input.
+ *
+ * @param xyz marker initial position in cartesian coordinates [m]
+ * @param vxyz marker initial velocity vector in cartesian coordinates [m/s]
+ * @param time time instance when marker was born [s]
+ * @param shinethrough flag indicating if the marker hit the wall
+ * @param anum marker atomic mass number
+ * @param znum marker charge number
+ * @param mass marker mass
+ * @param Bdata pointer to magnetic field data
+ * @param plsdata pointer to plasma data
+ * @param walldata pointer to wall data
+ * @param rng pointer to random number generator data
  */
 void nbi_ionize(real* xyz, real* vxyz, real time, int* shinethrough, int anum,
-                int znum, B_field_data* Bdata, plasma_data* plsdata,
+                int znum, real mass, B_field_data* Bdata, plasma_data* plsdata,
                 wall_data* walldata, random_data* rng) {
     a5err err;
 
-    real absv = math_norm(vxyz);
-    real energy = 0.5 * anum * CONST_U * absv*absv / CONST_E / 1000;
+    real vnorm = math_norm(vxyz);
+    real gamma = physlib_gamma_vnorm(vnorm);
+    real ekin  = physlib_Ekin_gamma(mass, gamma);
     real vhat[3];
-    vhat[0] = vxyz[0] / absv;
-    vhat[1] = vxyz[1] / absv;
-    vhat[2] = vxyz[2] / absv;
+    vhat[0] = vxyz[0] / vnorm;
+    vhat[1] = vxyz[1] / vnorm;
+    vhat[2] = vxyz[2] / vnorm;
+
+    int n_species       = plasma_get_n_species(plsdata);
+    const int* pls_anum = plasma_get_species_anum(plsdata);
+    const int* pls_znum = plasma_get_species_znum(plsdata);
+    real pls_temp[MAX_SPECIES], pls_dens[MAX_SPECIES];
 
     real remaining = 1;
     real threshold = random_uniform(rng);
     real ds = 1e-3;
 
-    int n_species = plasma_get_n_species(plsdata);
-    const real* pls_mass = plasma_get_species_mass(plsdata);
-    const real* pls_charge = plasma_get_species_charge(plsdata);
-
-    real pls_temp[MAX_SPECIES], pls_dens[MAX_SPECIES];
-    int pls_anum[MAX_SPECIES], pls_znum[MAX_SPECIES];
-
-    for(int i = 0; i < n_species; i++) {
-        pls_anum[i] = round(pls_mass[i] / CONST_U);
-        pls_znum[i] = round(pls_charge[i] / CONST_E);
-    }
-
     real s = 0.0;
     int entered_plasma = 0;
-    int exited_plasma = 0;
+    int exited_plasma  = 0;
 
     while(remaining > threshold && s < NBI_MAX_DISTANCE) {
         err = 0;
@@ -224,7 +301,7 @@ void nbi_ionize(real* xyz, real* vxyz, real time, int* shinethrough, int anum,
         if(!err) {
             err = B_field_eval_rho(rho, psi, Bdata);
 
-            /* check for wall collisions after passing through separatrix
+            /* Check for wall collisions after passing through separatrix
              * twice */
             if(!entered_plasma && rho[0] < 1.0) {
                 entered_plasma = 1;
@@ -237,20 +314,20 @@ void nbi_ionize(real* xyz, real* vxyz, real time, int* shinethrough, int anum,
                                           rpz[1], rpz[2], time, plsdata);
 
             if(!err) {
-                rate = pls_dens[0] * 1e-4*suzuki_sigmav(energy / anum,
-                                                        pls_dens[0],
-                                                        pls_temp[0] / CONST_E,
-                                                        n_species-1,
-                                                        pls_dens+1,
-                                                        pls_anum+1,
-                                                        pls_znum+1);
+                real sigmav;
+                if( suzuki_sigmav(
+                        &sigmav, ekin / anum, pls_dens[0], pls_temp[0],
+                        n_species-1, &(pls_dens[1]), pls_anum, pls_znum) ) {
+                    err = 1;
+                }
+                rate = pls_dens[0] * sigmav;
             }
             else {
-                rate = 0.0; /* outside the plasma */
+                rate = 0.0; /* Outside the plasma */
             }
         }
         else {
-            rate = 0.0; /* outside the magnetic field */
+            rate = 0.0; /* Outside the magnetic field */
         }
 
         s += ds;
@@ -260,93 +337,25 @@ void nbi_ionize(real* xyz, real* vxyz, real time, int* shinethrough, int anum,
         remaining *= exp(-rate * ds);
 
         if(exited_plasma) {
-            real rpz2[3]; /* new position, old position already in rpz */
+            real rpz2[3]; /* New position, old position already in rpz */
             math_xyz2rpz(xyz, rpz2);
             real w_coll;
             int tile = wall_hit_wall(rpz[0], rpz[1], rpz[2], rpz2[0], rpz2[1],
                                      rpz2[2], walldata, &w_coll);
 
             if(tile > 0) {
-                /* hit wall */
+                /* Hit wall */
                 *shinethrough = 1;
                 return;
             }
         }
     }
 
-    /* check if we've missed the plasma entirely */
+    /* Check if we've missed the plasma entirely */
     if(s < NBI_MAX_DISTANCE) {
         *shinethrough = 0;
     }
     else {
         *shinethrough = 1;
-    }
-}
-
-/**
- * @brief
- *
- * @param nprt
- * @param t0
- * @param t1
- * @param p
- * @param n
- * @param Bdata
- * @param plsdata
- * @param walldata
- * @param rng
- */
-void nbi_generate(int nprt, real t0, real t1, particle* p, nbi_injector* n,
-                  B_field_data* Bdata, plasma_data* plsdata,
-                  wall_data* walldata, random_data* rng) {
-
-    real totalShined = 0.0;
-    real totalIonized = 0.0;
-
-    #pragma omp parallel for
-    for(int i = 0; i < nprt; i++) {
-        real xyz[3], vxyz[3];
-        int anum, znum;
-        real mass;
-
-        real time = t0 + random_uniform(rng) * (t1-t0);
-
-        int shinethrough = 1;
-        do {
-            nbi_inject(n, &xyz[0], &xyz[1], &xyz[2], &vxyz[0], &vxyz[1],
-                       &vxyz[2], &anum, &znum, &mass, rng);
-            nbi_ionize(xyz, vxyz, time, &shinethrough, anum, znum, Bdata,
-                   plsdata, walldata, rng);
-
-            if(shinethrough == 1) {
-                #pragma omp atomic
-                totalShined += 0.5 * mass * pow(math_norm(vxyz), 2);
-            }
-        } while(shinethrough == 1);
-
-        real rpz[3], vrpz[3];
-        math_xyz2rpz(xyz, rpz);
-        math_vec_xyz2rpz(vxyz, vrpz, rpz[1]);
-
-        real gamma = physlib_gamma_vnorm(math_norm(vrpz));
-        p[i].r      = rpz[0];
-        p[i].phi    = rpz[1];
-        p[i].z      = rpz[2];
-        p[i].p_r    = vrpz[0] * gamma * mass;
-        p[i].p_phi  = vrpz[1] * gamma * mass;
-        p[i].p_z    = vrpz[2] * gamma * mass;
-        p[i].anum   = anum;
-        p[i].znum   = znum;
-        p[i].charge = 1 * CONST_E;
-        p[i].mass   = mass;
-        p[i].id     = i+1;
-        p[i].time   = time;
-
-        #pragma omp atomic
-        totalIonized += 0.5 * mass * pow(math_norm(vxyz), 2);
-    }
-
-    for(int i = 0; i < nprt; i++) {
-        p[i].weight = n->power / (totalShined + totalIonized);
     }
 }

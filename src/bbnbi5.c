@@ -27,7 +27,8 @@
 #include "random.h"
 #include "wall.h"
 
-int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt, double* t1, double* t2);
+int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt,
+                   double* t1, double* t2);
 
 /**
  * @brief Main function for BBNBI5
@@ -70,56 +71,44 @@ int main(int argc, char** argv) {
     random_init(&rng, time(NULL));
 
     /* NBI data read and initialized separately for now */
-    int n_inj;
-    nbi_injector* inj;
+    nbi_offload_data nbidata;
+    real * nbi_offload_array;
     hid_t f = hdf5_open(sim.hdf5_in);
-    hdf5_nbi_read(f, &n_inj, &inj);
+    hdf5_nbi_init_offload(f, &nbidata, &nbi_offload_array);
     hdf5_close(f);
 
+    nbi_data nbi;
+    nbi_init(&nbi, &nbidata, nbi_offload_array);
+
+    /* The number of markers generated is proportional to injector power */
     real total_power = 0;
-
-    for(int i=0; i < n_inj; i++) {
-        printf("Injector %d:\n", i+1);
-        printf("id: %d\n", inj[i].id);
-        printf("n_beamlet: %d\n", inj[i].n_beamlet);
-        printf("power: %le\n", inj[i].power);
-        printf("energy: %le\n", inj[i].energy);
-        printf("efrac: %le %le %le\n", inj[i].efrac[0], inj[i].efrac[1], inj[i].efrac[2]);
-        printf("divergence: %le %le %le %le %le\n", inj[i].div_h, inj[i].div_v, inj[i].div_halo_frac, inj[i].div_halo_h, inj[i].div_halo_v);
-        printf("anum: %d\n", inj[i].anum);
-        printf("znum: %d\n", inj[i].znum);
-        printf("mass: %le\n", inj[i].mass);
-        printf("\n");
-
-        total_power += inj[i].power;
+    for(int i=0; i < nbi.ninj; i++) {
+        total_power += nbi.inj[i].power;
     }
-
 
     /* Simulate requested number of markers into array of particle structs */
     particle* p = (particle*) malloc(nprt*sizeof(particle));
     int nprt_generated = 0;
 
-    for(int i = 0; i < n_inj; i++) {
+    for(int i = 0; i < nbi.ninj; i++) {
         int nprt_inj;
-
-        if(i == n_inj-1) {
+        if(i == nbi.ninj-1) {
             nprt_inj = nprt - nprt_generated;
         }
         else {
-            nprt_inj = inj[i].power/total_power * nprt;
+            nprt_inj = nbi.inj[i].power/total_power * nprt;
         }
-
-        nbi_generate(nprt_inj, t1, t2, &p[nprt_generated], &inj[i], &B_data,
-                     &plasma_data, &wall_data, &rng);
+        nbi_generate(&p[nprt_generated], nprt_inj, t1, t2, &(nbi.inj[i]),
+                     &B_data, &plasma_data, &wall_data, &rng);
 
         nprt_generated += nprt_inj;
         printf("Generated %d markers for injector %d.\n", nprt_inj, i+1);
     }
-
     printf("\nWriting %d markers.\n", nprt_generated);
 
     /* Copy markers from particle structs into input_particle structs to be
      * written into the h5 file */
+    /*
     input_particle* ip = (input_particle*) malloc(nprt*sizeof(input_particle));
     for(int i=0; i < nprt; i++) {
         ip[i].type = input_particle_type_p;
@@ -133,9 +122,10 @@ int main(int argc, char** argv) {
     hid_t of = hdf5_create(sim.hdf5_out);
     hdf5_close(of);
     of = hdf5_open(sim.hdf5_out);
-    hdf5_marker_write_particle(of, nprt, ip, qid);
+    hdf5_marker_write_particle(of, nprt, ip, qid);*/
 
     /* Write metadata */
+    /*
     char path[256];
     hdf5_gen_path("/marker/prt_XXXXXXXXXX", qid, path);
 
@@ -147,8 +137,9 @@ int main(int argc, char** argv) {
     sprintf(date, "%04d-%02d-%02d %02d:%02d:%02d.", tm.tm_year + 1900,
             tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
     hdf5_write_string_attribute(of, path, "date",  date);
-
+    */
     /* Set this run as active. */
+    /*
     hdf5_write_string_attribute(of, "/marker", "active",  qid);
 
     hdf5_close(of);
@@ -156,6 +147,7 @@ int main(int argc, char** argv) {
     printf("\nDone.\n");
 
     return 0;
+    */
 }
 
 /**
@@ -191,20 +183,20 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt, doub
         {0, 0, 0, 0}
     };
 
-    // Initialize default values
+    /* Initialize default values */
     sim->hdf5_in[0]     = '\0';
     sim->hdf5_out[0]    = '\0';
     sim->mpi_rank       = 0;
     sim->mpi_size       = 0;
-    strcpy(sim->description, "No description.");
     sim->qid_bfield[0]  = '\0';
     sim->qid_wall[0]    = '\0';
     sim->qid_plasma[0]  = '\0';
     *nprt               = 10000;
     *t1                 = 0.0;
     *t2                 = 1.0;
+    strcpy(sim->description, "TAG");
 
-    // Read user input
+    /* Read user input */
     int c;
     int slen;  // String length
     while((c = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
