@@ -24,18 +24,17 @@ void hdf5_orbit_writeset(hid_t group,  const char* name, const char* unit,
  * @brief Write orbit diagnostics data to a HDF5 file
  *
  * @param f hdf5 file
- * @param qid qid of the results group
+ * @param run run group where the orbit data is written
  * @param data orbit diagnostics offload data
  * @param orbits array storing the orbit data (format same as in init() in
  *        diag_orb.c)
  *
  * @return zero on success
  */
-int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
+int hdf5_orbit_write(hid_t f, char* run, diag_orb_offload_data* data,
                      real* orbits) {
     char path[256];
-    hdf5_generate_qid_path("/results/run_XXXXXXXXXX/", qid, path);
-    strcat(path, "orbit");
+    sprintf(path, "%sorbit", run);
 
     hid_t group = H5Gcreate2(f, path, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
