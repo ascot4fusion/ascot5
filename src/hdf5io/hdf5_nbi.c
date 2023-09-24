@@ -4,7 +4,6 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h> //?
 #include <hdf5.h>
 #include <hdf5_hl.h>
 #include "../ascot5.h"
