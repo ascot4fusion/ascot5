@@ -346,7 +346,8 @@ int hdf5_interface_read_input(sim_offload_data* sim,
  *
  * This functions creates results group (if one does not already exist) and
  * creates run group corresponding to this run. Run group is named as
- * /results/run_XXXXXXXXXX/ where X's are the qid of current run.
+ * /results/<run>_XXXXXXXXXX/ where X's are the qid of current run and <run>
+ * is the type of the run: "run" for ascot5_main and "bbnbi" for bbnbi5.
  *
  * The group is initialized by writing qids of all used inputs as string
  * attributes in the run group. Also the date and empty "details" fields
@@ -354,10 +355,11 @@ int hdf5_interface_read_input(sim_offload_data* sim,
  *
  * @param sim pointer to simulation offload struct
  * @param qid qid of this run
+ * @param run type of this run
  *
  * @return Zero if initialization succeeded
  */
-int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
+int hdf5_interface_init_results(sim_offload_data* sim, char* qid, char* run) {
 
     /* Create new file for the output if one does not yet exist. */
     hid_t fout = hdf5_create(sim->hdf5_out);
@@ -374,7 +376,8 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
     /* Create a run group for this specific run (and results group if one */
     /* doesn't exist already.                                             */
     char path[256];
-    hdf5_gen_path("/results/run_XXXXXXXXXX", qid, path);
+    sprintf(path, "/results/%s_XXXXXXXXXX", run);
+    hdf5_gen_path(path, qid, path);
     hid_t newgroup = hdf5_create_group(fout, path);
 
     /* If a run with identical qid exists, abort. */
@@ -480,6 +483,14 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
         H5LTget_attribute_string(fin, "/asigma/", "active", inputqid);
     }
     hdf5_write_string_attribute(fout, path, "qid_asigma",  inputqid);
+
+    if(sim->qid_nbi[0] != '\0') {
+        strcpy(inputqid, sim->qid_nbi);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/nbi/", "active", inputqid);
+    }
+    hdf5_write_string_attribute(fout, path, "qid_nbi",  inputqid);
 
     /* If input and output are different files, close input */
     if( strcmp(sim->hdf5_in, sim->hdf5_out) != 0 ) {

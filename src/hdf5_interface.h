@@ -40,7 +40,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
                               input_particle** p,
                               int* n_markers);
 
-int hdf5_interface_init_results(sim_offload_data* sim, char* qid);
+int hdf5_interface_init_results(sim_offload_data* sim, char* qid, char* run);
 
 int hdf5_interface_write_state(char* fn, char* state, integer n,
                                particle_state* p);

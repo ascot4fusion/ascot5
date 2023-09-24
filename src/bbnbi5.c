@@ -51,7 +51,12 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    /* QID for this run */
+    char qid[11];
+    hdf5_generate_qid(qid);
+
     int mpi_rank = 0; /* BBNBI 5 does not yet support MPI */
+    int mpi_root = 0;
     print_out0(VERBOSE_MINIMAL, mpi_rank,
                "BBNBI5\n");
 
@@ -63,7 +68,7 @@ int main(int argc, char** argv) {
                "Not under version control\n\n");
 #endif
 
-    /* Initialize data needed for nbi simulation */
+    /* Read data needed for nbi simulation */
     real* nbi_offload_array;
     real* B_offload_array;
     real* plasma_offload_array;
@@ -75,7 +80,23 @@ int main(int argc, char** argv) {
                               NULL, &wall_offload_array,
                               &wall_int_offload_array, NULL, NULL, NULL,
                               &nbi_offload_array, NULL, NULL);
+    simulate_init_offload(&sim);
 
+    /* Write bbnbi run group to HDF5 */
+    if(mpi_rank == mpi_root) {
+        print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n");
+        if( hdf5_interface_init_results(&sim, qid, "bbnbi") ) {
+            print_out0(VERBOSE_MINIMAL, mpi_rank,
+                       "\nInitializing output failed.\n"
+                       "See stderr for details.\n");
+            /* Free offload data and terminate */
+            abort();
+            return 1;
+        }
+        strcpy(sim.qid, qid);
+    }
+
+    /* Initialize input data */
     B_field_data B_data;
     B_field_init(&B_data, &sim.B_offload_data, B_offload_array);
 
