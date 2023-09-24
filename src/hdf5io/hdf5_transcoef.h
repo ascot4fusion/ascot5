@@ -9,7 +9,7 @@
 #include "../ascot5.h"
 #include "../diag/diag_transcoef.h"
 
-int hdf5_transcoef_write(hid_t f, char* qid,
+int hdf5_transcoef_write(hid_t f, char* run,
                          diag_transcoef_offload_data* diag,
                          real* coefarr);
 

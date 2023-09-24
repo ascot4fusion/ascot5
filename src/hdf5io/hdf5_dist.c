@@ -20,11 +20,11 @@
  * @brief Write 5D distribution to an existing result group
  *
  * @param f HDF5 file id
- * @param qid run QID where distribution is written
+ * @param run run group where distribution is written
  * @param dist pointer to distribution data struct
  * @param hist pointer to distribution data
  */
-int hdf5_dist_write_5D(hid_t f, char* qid, dist_5D_offload_data* dist,
+int hdf5_dist_write_5D(hid_t f, char* run, dist_5D_offload_data* dist,
                        real* hist) {
 
     int abscissa_dim = 7;
@@ -65,7 +65,7 @@ int hdf5_dist_write_5D(hid_t f, char* qid, dist_5D_offload_data* dist,
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
-    hdf5_generate_qid_path("/results/run_XXXXXXXXXX/dist5d", qid, path);
+    sprintf(path, "%sdist5d", run);
 
     int retval = hdf5_histogram_write_uniform_double(
         f, path, abscissa_dim, ordinate_dim, abscissa_n_slots, abscissa_min,
@@ -79,11 +79,11 @@ int hdf5_dist_write_5D(hid_t f, char* qid, dist_5D_offload_data* dist,
  * @brief Write 6D distribution to an existing result group
  *
  * @param f HDF5 file id
- * @param qid run QID where distribution is written
+ * @param run run group where distribution is written
  * @param dist pointer to distribution data struct
  * @param hist pointer to distribution data
  */
-int hdf5_dist_write_6D(hid_t f, char* qid, dist_6D_offload_data* dist,
+int hdf5_dist_write_6D(hid_t f, char* run, dist_6D_offload_data* dist,
                        real* hist) {
 
     int abscissa_dim = 8;
@@ -128,7 +128,7 @@ int hdf5_dist_write_6D(hid_t f, char* qid, dist_6D_offload_data* dist,
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
-    hdf5_generate_qid_path("/results/run_XXXXXXXXXX/dist6d", qid, path);
+    sprintf(path, "%sdist6d", run);
 
     int retval = hdf5_histogram_write_uniform_double(
         f, path, abscissa_dim, ordinate_dim, abscissa_n_slots, abscissa_min,
@@ -142,11 +142,11 @@ int hdf5_dist_write_6D(hid_t f, char* qid, dist_6D_offload_data* dist,
  * @brief Write rho 5D distribution to an existing result group
  *
  * @param f HDF5 file id
- * @param qid run QID where distribution is written
+ * @param run run group where distribution is written
  * @param dist pointer to distribution data struct
  * @param hist pointer to distribution data
  */
-int hdf5_dist_write_rho5D(hid_t f, char* qid, dist_rho5D_offload_data* dist,
+int hdf5_dist_write_rho5D(hid_t f, char* run, dist_rho5D_offload_data* dist,
                           real* hist) {
 
     int abscissa_dim = 7;
@@ -188,7 +188,7 @@ int hdf5_dist_write_rho5D(hid_t f, char* qid, dist_rho5D_offload_data* dist,
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
-    hdf5_generate_qid_path("/results/run_XXXXXXXXXX/distrho5d", qid, path);
+    sprintf(path, "%sdistrho5d", run);
 
     int retval = hdf5_histogram_write_uniform_double(
         f, path, abscissa_dim, ordinate_dim, abscissa_n_slots, abscissa_min,
@@ -202,11 +202,11 @@ int hdf5_dist_write_rho5D(hid_t f, char* qid, dist_rho5D_offload_data* dist,
  * @brief Write rho 6D distribution to an existing result group
  *
  * @param f HDF5 file id
- * @param qid run QID where distribution is written
+ * @param run run group where distribution is written
  * @param dist pointer to distribution data struct
  * @param hist pointer to distribution data
  */
-int hdf5_dist_write_rho6D(hid_t f, char* qid, dist_rho6D_offload_data* dist,
+int hdf5_dist_write_rho6D(hid_t f, char* run, dist_rho6D_offload_data* dist,
                           real* hist) {
 
     int abscissa_dim = 8;
@@ -251,7 +251,7 @@ int hdf5_dist_write_rho6D(hid_t f, char* qid, dist_rho6D_offload_data* dist,
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
-    hdf5_generate_qid_path("/results/run_XXXXXXXXXX/distrho6d", qid, path);
+    sprintf(path, "%sdistrho6d", run);
 
     int retval = hdf5_histogram_write_uniform_double(
         f, path, abscissa_dim, ordinate_dim, abscissa_n_slots, abscissa_min,
@@ -265,11 +265,11 @@ int hdf5_dist_write_rho6D(hid_t f, char* qid, dist_rho6D_offload_data* dist,
  * @brief Write constants-of-motion distribution to an existing result group
  *
  * @param f HDF5 file id
- * @param qid run QID where distribution is written
+ * @param run run group where distribution is written
  * @param dist pointer to distribution data struct
  * @param hist pointer to distribution data
  */
-int hdf5_dist_write_COM(hid_t f, char* qid, dist_COM_offload_data* dist,
+int hdf5_dist_write_COM(hid_t f, char* run, dist_COM_offload_data* dist,
                         real* hist) {
 
     int abscissa_dim = 3;
@@ -297,7 +297,7 @@ int hdf5_dist_write_COM(hid_t f, char* qid, dist_COM_offload_data* dist,
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
-    hdf5_generate_qid_path("/results/run_XXXXXXXXXX/distcom", qid, path);
+    sprintf(path, "%sdistcom", run);
 
     int retval = hdf5_histogram_write_uniform_double(
         f, path, abscissa_dim, ordinate_dim, abscissa_n_slots, abscissa_min,

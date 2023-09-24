@@ -8,7 +8,7 @@
 #include <hdf5.h>
 #include "../particle.h"
 
-int hdf5_state_write(hid_t f, char* qid, char *state, integer n,
+int hdf5_state_write(hid_t f, char* run, char *state, integer n,
                      particle_state* p);
 
 #endif
