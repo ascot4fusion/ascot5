@@ -72,13 +72,6 @@ int main(int argc, char** argv) {
     random_data rng;
     random_init(&rng, time(NULL));
 
-    /* NBI data read and initialized separately for now */
-    //nbi_offload_data nbidata;
-    //real * nbi_offload_array;
-    //hid_t f = hdf5_open(sim.hdf5_in);
-    //hdf5_nbi_init_offload(f, &nbidata, &nbi_offload_array);
-    //hdf5_close(f);
-
     nbi_data nbi;
     nbi_init(&nbi, &sim.nbi_offload_data, nbi_offload_array);
 
