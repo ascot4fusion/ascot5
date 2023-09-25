@@ -14,7 +14,7 @@
 #include "hdf5_transcoef.h"
 
 /**
- * @brief Write transcport coefficients to a HDF5 file
+ * @brief Write transport coefficients to a HDF5 file
  *
  * @param f hdf5 file
  * @param run run group where the transport coefficients are written
