@@ -22,6 +22,8 @@
 #include "consts.h"
 #include "math.h"
 #include "hdf5_interface.h"
+#include "hdf5io/hdf5_helpers.h"
+#include "hdf5io/hdf5_marker.h"
 #include "print.h"
 #include "random.h"
 #include "particle.h"
@@ -50,6 +52,7 @@ int main(int argc, char** argv) {
         abort();
         return 1;
     }
+    int writemarker = 1;
 
     /* QID for this run */
     char qid[11];
@@ -57,8 +60,7 @@ int main(int argc, char** argv) {
 
     int mpi_rank = 0; /* BBNBI 5 does not yet support MPI */
     int mpi_root = 0;
-    print_out0(VERBOSE_MINIMAL, mpi_rank,
-               "BBNBI5\n");
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "BBNBI5\n");
 
 #ifdef GIT_VERSION
     print_out0(VERBOSE_MINIMAL, mpi_rank,
@@ -74,12 +76,16 @@ int main(int argc, char** argv) {
     real* plasma_offload_array;
     real* wall_offload_array;
     int*  wall_int_offload_array;
-    hdf5_interface_read_input(&sim, hdf5_input_bfield | hdf5_input_plasma |
-                              hdf5_input_wall | hdf5_input_nbi,
-                              &B_offload_array, NULL, &plasma_offload_array,
-                              NULL, &wall_offload_array,
-                              &wall_int_offload_array, NULL, NULL, NULL,
-                              &nbi_offload_array, NULL, NULL);
+    if( hdf5_interface_read_input(&sim, hdf5_input_bfield | hdf5_input_plasma |
+                                  hdf5_input_wall | hdf5_input_nbi,
+                                  &B_offload_array, NULL, &plasma_offload_array,
+                                  NULL, &wall_offload_array,
+                                  &wall_int_offload_array, NULL, NULL, NULL,
+                                  &nbi_offload_array, NULL, NULL) ) {
+        print_out0(VERBOSE_IO, mpi_rank, "Input initialization failed\n");
+        abort();
+        return 1;
+    }
     simulate_init_offload(&sim);
 
     /* Write bbnbi run group to HDF5 */
@@ -144,7 +150,7 @@ int main(int argc, char** argv) {
 
     /* Copy markers from particle structs into input_particle structs to be
      * written into the h5 file */
-    /*
+
     input_particle* ip = (input_particle*) malloc(nprt*sizeof(input_particle));
     for(int i=0; i < nprt; i++) {
         ip[i].type = input_particle_type_p;
@@ -152,38 +158,38 @@ int main(int argc, char** argv) {
         ip[i].p.id = i+1;
     }
 
-    char qid[11];
-    hdf5_generate_qid(qid);
+    /* Write marker output */
+    if(writemarker) {
+        char qid[11];
+        hdf5_generate_qid(qid);
 
-    hid_t of = hdf5_create(sim.hdf5_out);
-    hdf5_close(of);
-    of = hdf5_open(sim.hdf5_out);
-    hdf5_marker_write_particle(of, nprt, ip, qid);*/
+        hid_t of = hdf5_create(sim.hdf5_out);
+        hdf5_close(of);
+        of = hdf5_open(sim.hdf5_out);
+        hdf5_marker_write_particle(of, nprt, ip, qid);
 
-    /* Write metadata */
-    /*
-    char path[256];
-    hdf5_gen_path("/marker/prt_XXXXXXXXXX", qid, path);
+        char path[256];
+        hdf5_gen_path("/marker/prt_XXXXXXXXXX", qid, path);
 
-    hdf5_write_string_attribute(of, path, "description",  sim.description);
+        char desc[256];
+        sprintf(desc, "BBNBIRUN%s", sim.qid);
+        hdf5_write_string_attribute(of, path, "description", desc);
 
-    time_t t = time(NULL);
-    struct tm tm = *localtime(&t);
-    char date[21];
-    sprintf(date, "%04d-%02d-%02d %02d:%02d:%02d.", tm.tm_year + 1900,
-            tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-    hdf5_write_string_attribute(of, path, "date",  date);
-    */
-    /* Set this run as active. */
-    /*
-    hdf5_write_string_attribute(of, "/marker", "active",  qid);
+        time_t t = time(NULL);
+        struct tm tm = *localtime(&t);
+        char date[21];
+        sprintf(date, "%04d-%02d-%02d %02d:%02d:%02d.", tm.tm_year + 1900,
+                tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+        hdf5_write_string_attribute(of, path, "date",  date);
 
-    hdf5_close(of);
+        /* Set this run as active. */
+        hdf5_write_string_attribute(of, "/marker", "active",  qid);
+        hdf5_close(of);
+    }
 
-    printf("\nDone.\n");
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nDone\n");
 
     return 0;
-    */
 }
 
 /**

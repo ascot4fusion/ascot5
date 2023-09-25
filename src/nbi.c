@@ -144,18 +144,18 @@ void nbi_generate(particle* p, int nprt, real t0, real t1, nbi_injector* inj,
 
         real time = t0 + random_uniform(rng) * (t1-t0);
 
-        int shinethrough = 1;
+        int shinethrough = -1;
         do {
             nbi_inject(xyz, vxyz, inj, rng);
             nbi_ionize(xyz, vxyz, time, &shinethrough, anum, znum, mass, Bdata,
                        plsdata, walldata, rng);
 
-            if(shinethrough == 1) {
+            if(shinethrough > 0) {
                 gamma = physlib_gamma_vnorm(math_norm(vxyz));
                 #pragma omp atomic
                 totalShined += physlib_Ekin_gamma(mass, gamma);
             }
-        } while(shinethrough == 1);
+        } while(shinethrough != 0);
 
         real rpz[3], vrpz[3];
         math_xyz2rpz(xyz, rpz);
@@ -238,7 +238,8 @@ void nbi_inject(real* xyz, real* vxyz, nbi_injector* inj, random_data* rng) {
 
     math_unit(tmp, dir);
 
-    real absv = sqrt(2 * energy / (inj->mass));
+    real gamma = physlib_gamma_Ekin(inj->mass, energy);
+    real absv  = sqrt( 1.0 - 1.0 / (gamma * gamma) ) * CONST_C;
     vxyz[0] = absv * dir[0];
     vxyz[1] = absv * dir[1];
     vxyz[2] = absv * dir[2];
@@ -345,7 +346,7 @@ void nbi_ionize(real* xyz, real* vxyz, real time, int* shinethrough, int anum,
 
             if(tile > 0) {
                 /* Hit wall */
-                *shinethrough = 1;
+                *shinethrough = tile;
                 return;
             }
         }
@@ -356,6 +357,6 @@ void nbi_ionize(real* xyz, real* vxyz, real time, int* shinethrough, int anum,
         *shinethrough = 0;
     }
     else {
-        *shinethrough = 1;
+        *shinethrough = -1;
     }
 }
