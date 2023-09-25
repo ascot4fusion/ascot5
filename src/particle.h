@@ -393,6 +393,27 @@ typedef struct {
 } particle_simd_ml;
 
 
+/**
+ * @brief Local arrays for markers
+ *
+ */
+typedef struct {
+    real r_arr1[NSIMD];
+    real r_arr2[NSIMD];
+    real r_arr3[NSIMD];
+    real r_arr4[NSIMD];
+    real r_arr5[NSIMD];
+
+    int i_arr1[NSIMD];
+    int i_arr2[NSIMD];
+    int i_arr3[NSIMD];
+    int i_arr4[NSIMD];
+    int i_arr5[NSIMD];
+    int i_arr6[NSIMD];
+    int i_arr7[NSIMD];
+    int i_arr8[NSIMD];
+    int i_arr9[NSIMD];
+} particle_loc;
 
 
 #pragma omp declare target
@@ -438,7 +459,9 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
 int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
                       B_field_data* Bdata);
 #pragma omp declare simd
+DECLARE_TARGET
 void particle_copy_fo(particle_simd_fo* p1, int i, particle_simd_fo* p2, int j);
+DECLARE_TARGET_END
 #pragma omp declare simd
 void particle_copy_gc(particle_simd_gc* p1, int i, particle_simd_gc* p2, int j);
 #pragma omp declare simd

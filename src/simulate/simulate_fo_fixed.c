@@ -85,18 +85,73 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
      * - Check for end condition(s)
      * - Update diagnostics
      */
+    int diag_data_field_size = sim->diag_data.diagorb.Nmrk*sim->diag_data.diagorb.Npnt;
+    particle_simd_fo *p_ptr=&p;
+    particle_simd_fo *p0_ptr=&p0;
+    B_field_data* Bdata = &sim->B_data;
+    E_field_data* Edata = &sim->E_data;
+    particle_loc  p_loc;
+    
+/* #pragma acc enter data copyin(	\ */
+/* 		      p_loc.r_arr1[0:NSIMD],p_loc.r_arr2[0:NSIMD],p_loc.r_arr3[0:NSIMD],p_loc.r_arr4[0:NSIMD],p_loc.r_arr5[0:NSIMD],p_loc.i_arr1[0:NSIMD],p_loc.i_arr2[0:NSIMD],p_loc.i_arr3[0:NSIMD],p_loc.i_arr4[0:NSIMD],p_loc.i_arr5[0:NSIMD],p_loc.i_arr6[0:NSIMD],p_loc.i_arr7[0:NSIMD],p_loc.i_arr8[0:NSIMD],p_loc.i_arr9[0:NSIMD], \ */
+/*        		      sim[0:1],		\ */
+/* 		      sim->diag_data.dist5D.histogram[0:sim->diag_data.dist5D.n_r * sim->diag_data.dist5D.n_phi * sim->diag_data.dist5D.n_z * sim->diag_data.dist5D.n_ppara * sim->diag_data.dist5D.n_pperp * sim->diag_data.dist5D.n_time * sim->diag_data.dist5D.n_q], \ */
+/* 		      sim->diag_data.dist6D.histogram[0:sim->diag_data.dist6D.n_r * sim->diag_data.dist6D.n_phi * sim->diag_data.dist6D.n_z * sim->diag_data.dist6D.n_pr * sim->diag_data.dist6D.n_pphi * sim->diag_data.dist6D.n_pz * sim->diag_data.dist6D.n_time * sim->diag_data.dist6D.n_q], \ */
+/* 		      sim->diag_data.distrho5D.histogram[0:sim->diag_data.distrho5D.n_rho * sim->diag_data.distrho5D.n_theta * sim->diag_data.distrho5D.n_phi * sim->diag_data.distrho5D.n_ppara * sim->diag_data.distrho5D.n_pperp * sim->diag_data.distrho5D.n_time * sim->diag_data.distrho5D.n_q], \ */
+/* 		      sim->diag_data.distrho6D.histogram[0:sim->diag_data.distrho6D.n_rho*sim->diag_data.distrho6D.n_theta*sim->diag_data.distrho6D.n_phi*sim->diag_data.distrho6D.n_pr*sim->diag_data.distrho6D.n_pphi*sim->diag_data.distrho6D.n_pz*sim->diag_data.distrho6D.n_time*sim->diag_data.distrho6D.n_q], \ */
+/* 		      sim->wall_data.w2d.wall_r[0:sim->wall_data.w2d.n],sim->wall_data.w2d.wall_z[0:sim->wall_data.w2d.n],sim->wall_data.w3d.wall_tris[0:sim->wall_data.w3d.n*9+9],sim->wall_data.w3d.tree_array[0:sim->wall_data.w3d.tree_array_size], \ */
+/* 		      sim->plasma_data.plasma_1D.mass[0:MAX_SPECIES],sim->plasma_data.plasma_1D.charge[0:MAX_SPECIES],sim->plasma_data.plasma_1D.anum[0:MAX_SPECIES],sim->plasma_data.plasma_1D.znum[0:MAX_SPECIES],sim->plasma_data.plasma_1D.rho[0:sim->plasma_data.plasma_1D.n_rho],sim->plasma_data.plasma_1D.temp[0:sim->plasma_data.plasma_1D.n_rho*sim->plasma_data.plasma_1D.n_species],sim->plasma_data.plasma_1D.dens[0:sim->plasma_data.plasma_1D.n_rho*sim->plasma_data.plasma_1D.n_species], \ */
+/* 		      sim->plasma_data.plasma_1Dt.mass[0:MAX_SPECIES],sim->plasma_data.plasma_1Dt.charge[0:MAX_SPECIES],sim->plasma_data.plasma_1Dt.anum[0:MAX_SPECIES],sim->plasma_data.plasma_1Dt.znum[0:MAX_SPECIES],sim->plasma_data.plasma_1Dt.rho[0:sim->plasma_data.plasma_1Dt.n_rho],sim->plasma_data.plasma_1Dt.temp[0:sim->plasma_data.plasma_1Dt.n_time*sim->plasma_data.plasma_1Dt.n_rho*sim->plasma_data.plasma_1Dt.n_species],sim->plasma_data.plasma_1Dt.dens[0:sim->plasma_data.plasma_1Dt.n_rho*sim->plasma_data.plasma_1Dt.n_species*sim->plasma_data.plasma_1Dt.n_time],sim->plasma_data.plasma_1Dt.time[0:sim->plasma_data.plasma_1Dt.n_time], \ */
+/* 		      sim->plasma_data.plasma_1DS.mass[0:MAX_SPECIES],sim->plasma_data.plasma_1DS.charge[0:MAX_SPECIES],sim->plasma_data.plasma_1DS.anum[0:MAX_SPECIES],sim->plasma_data.plasma_1DS.znum[0:MAX_SPECIES],sim->plasma_data.plasma_1DS.temp[0:2],sim->plasma_data.plasma_1DS.dens[0:MAX_SPECIES], \ */
+/* 		      sim->plasma_data.plasma_1DS.temp[0].c[0:sim->plasma_data.plasma_1DS.temp[0].n_x*NSIZE_COMP1D],sim->plasma_data.plasma_1DS.temp[1].c[0:sim->plasma_data.plasma_1DS.temp[1].n_x*NSIZE_COMP1D], \ */
+/*   		      p_ptr[0:1],p_ptr->running[0:NSIMD],p_ptr->r[0:NSIMD],p_ptr->phi[0:NSIMD],p_ptr->p_r[0:NSIMD],p_ptr->p_phi[0:NSIMD],p_ptr->p_z[0:NSIMD],p_ptr->mileage[0:NSIMD], \ */
+/* 		      p_ptr->z[0:NSIMD],p_ptr->charge[0:NSIMD],p_ptr->mass[0:NSIMD],p_ptr->B_r[0:NSIMD],p_ptr->B_r_dr[0:NSIMD],p_ptr->B_r_dphi[0:NSIMD],p_ptr->B_r_dz[0:NSIMD],	\ */
+/* 		      p_ptr->B_phi[0:NSIMD],p_ptr->B_phi_dr[0:NSIMD],p_ptr->B_phi_dphi[0:NSIMD],p_ptr->B_phi_dz[0:NSIMD],p_ptr->B_z[0:NSIMD],p_ptr->B_z_dr[0:NSIMD],p_ptr->B_z_dphi[0:NSIMD], \ */
+/* 		      p_ptr->B_z_dz[0:NSIMD],p_ptr->rho[0:NSIMD],p_ptr->theta[0:NSIMD],p_ptr->err[0:NSIMD],p_ptr->time[0:NSIMD],p_ptr->weight[0:NSIMD],p_ptr->cputime[0:NSIMD],	\ */
+/* 		      p_ptr->id[0:NSIMD],p_ptr->endcond[0:NSIMD],p_ptr->walltile[0:NSIMD],p_ptr->index[0:NSIMD],p_ptr->znum[0:NSIMD],p_ptr->anum[0:NSIMD],p_ptr->bounces[0:NSIMD], \ */
+/*   		      p0_ptr[0:1],p0_ptr->running[0:NSIMD],p0_ptr->r[0:NSIMD],p0_ptr->phi[0:NSIMD],p0_ptr->p_r[0:NSIMD],p0_ptr->p_phi[0:NSIMD],p0_ptr->p_z[0:NSIMD],p0_ptr->mileage[0:NSIMD], \ */
+/* 		      p0_ptr->z[0:NSIMD],p0_ptr->charge[0:NSIMD],p0_ptr->mass[0:NSIMD],p0_ptr->B_r[0:NSIMD],p0_ptr->B_r_dr[0:NSIMD],p0_ptr->B_r_dphi[0:NSIMD],p0_ptr->B_r_dz[0:NSIMD],	\ */
+/* 		      p0_ptr->B_phi[0:NSIMD],p0_ptr->B_phi_dr[0:NSIMD],p0_ptr->B_phi_dphi[0:NSIMD],p0_ptr->B_phi_dz[0:NSIMD],p0_ptr->B_z[0:NSIMD],p0_ptr->B_z_dr[0:NSIMD],p0_ptr->B_z_dphi[0:NSIMD], \ */
+/* 		      p0_ptr->B_z_dz[0:NSIMD],p0_ptr->rho[0:NSIMD],p0_ptr->theta[0:NSIMD],p0_ptr->err[0:NSIMD],p0_ptr->time[0:NSIMD],p0_ptr->weight[0:NSIMD],p0_ptr->cputime[0:NSIMD],	\ */
+/* 		      p0_ptr->id[0:NSIMD],p0_ptr->endcond[0:NSIMD],p0_ptr->walltile[0:NSIMD],p0_ptr->index[0:NSIMD],p0_ptr->znum[0:NSIMD],p0_ptr->anum[0:NSIMD],p0_ptr->bounces[0:NSIMD], \ */
+/* 		      hin[0:NSIMD],cycle[0:NSIMD],\ */
+/* 		      Bdata[0:1],Bdata->BTC.dB[0:1],Bdata->BSTS.axis_r,Bdata->BSTS.axis_r.c[0:1],Bdata->BSTS.axis_z,Bdata->BSTS.axis_z.c[0:1],Bdata->BSTS.B_r,Bdata->BSTS.B_r.c[0:1], \ */
+/* 		      Bdata->BSTS.B_z,Bdata->BSTS.B_z.c[0:1],Bdata->BSTS.B_phi,Bdata->BSTS.B_phi.c[0:1],Bdata->B3DS.psi,Bdata->B3DS.psi.c[0:1],Bdata->B3DS.B_r,Bdata->B3DS.B_r.c[0:1], \ */
+/* 		      Bdata->B3DS.B_phi,Bdata->B3DS.B_phi.c[0:1],Bdata->B3DS.B_z,Bdata->B3DS.B_z.c[0:1],Bdata->B2DS.psi,Bdata->B2DS.psi.c[0:1],Bdata->B2DS.B_r,Bdata->B2DS.B_r.c[0:1], \ */
+/* 		      Bdata->B2DS.B_phi,Bdata->B2DS.B_phi.c[0:1],Bdata->B2DS.B_z,Bdata->B2DS.B_z.c[0:1],Bdata->BGS.psi_coeff[0:13], \ */
+/* 		      Edata[0:1],Edata->type,Edata->ETC,Edata->E1DS,Edata->ETC.Exyz[0:1],Edata->E1DS.dV,Edata->E1DS.dV.c[0:1] \ */
+/* 			) */
+/*     for (int i=0;i<MAX_SPECIES;i++) { */
+/* #pragma acc enter data copyin(sim->plasma_data.plasma_1DS.dens[i].c[0:sim->plasma_data.plasma_1DS.dens[i].n_x*NSIZE_COMP1D]) */
+/*     } */
+    
     while(n_running > 0) {
 
         /* Store marker states */
         #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
-            particle_copy_fo(&p, i, &p0, i);
-        }
 
+/* #pragma acc data copy(	\ */
+/*   		      p_ptr[0:1],p_ptr->running[0:NSIMD],p_ptr->r[0:NSIMD],p_ptr->phi[0:NSIMD],p_ptr->p_r[0:NSIMD],p_ptr->p_phi[0:NSIMD],p_ptr->p_z[0:NSIMD],p_ptr->mileage[0:NSIMD], \ */
+/* 		      p_ptr->z[0:NSIMD],p_ptr->charge[0:NSIMD],p_ptr->mass[0:NSIMD],p_ptr->B_r[0:NSIMD],p_ptr->B_r_dr[0:NSIMD],p_ptr->B_r_dphi[0:NSIMD],p_ptr->B_r_dz[0:NSIMD],	\ */
+/* 		      p_ptr->B_phi[0:NSIMD],p_ptr->B_phi_dr[0:NSIMD],p_ptr->B_phi_dphi[0:NSIMD],p_ptr->B_phi_dz[0:NSIMD],p_ptr->B_z[0:NSIMD],p_ptr->B_z_dr[0:NSIMD],p_ptr->B_z_dphi[0:NSIMD], \ */
+/* 		      p_ptr->B_z_dz[0:NSIMD],p_ptr->rho[0:NSIMD],p_ptr->theta[0:NSIMD],p_ptr->err[0:NSIMD],p_ptr->time[0:NSIMD],p_ptr->weight[0:NSIMD],p_ptr->cputime[0:NSIMD],	\ */
+/* 		      p_ptr->id[0:NSIMD],p_ptr->endcond[0:NSIMD],p_ptr->walltile[0:NSIMD],p_ptr->index[0:NSIMD],p_ptr->znum[0:NSIMD],p_ptr->anum[0:NSIMD],p_ptr->bounces[0:NSIMD], \ */
+/*   		      p0_ptr[0:1],p0_ptr->running[0:NSIMD],p0_ptr->r[0:NSIMD],p0_ptr->phi[0:NSIMD],p0_ptr->p_r[0:NSIMD],p0_ptr->p_phi[0:NSIMD],p0_ptr->p_z[0:NSIMD],p0_ptr->mileage[0:NSIMD], \ */
+/* 		      p0_ptr->z[0:NSIMD],p0_ptr->charge[0:NSIMD],p0_ptr->mass[0:NSIMD],p0_ptr->B_r[0:NSIMD],p0_ptr->B_r_dr[0:NSIMD],p0_ptr->B_r_dphi[0:NSIMD],p0_ptr->B_r_dz[0:NSIMD],	\ */
+/* 		      p0_ptr->B_phi[0:NSIMD],p0_ptr->B_phi_dr[0:NSIMD],p0_ptr->B_phi_dphi[0:NSIMD],p0_ptr->B_phi_dz[0:NSIMD],p0_ptr->B_z[0:NSIMD],p0_ptr->B_z_dr[0:NSIMD],p0_ptr->B_z_dphi[0:NSIMD], \ */
+/* 		      p0_ptr->B_z_dz[0:NSIMD],p0_ptr->rho[0:NSIMD],p0_ptr->theta[0:NSIMD],p0_ptr->err[0:NSIMD],p0_ptr->time[0:NSIMD],p0_ptr->weight[0:NSIMD],p0_ptr->cputime[0:NSIMD],	\ */
+/* 		      p0_ptr->id[0:NSIMD],p0_ptr->endcond[0:NSIMD],p0_ptr->walltile[0:NSIMD],p0_ptr->index[0:NSIMD],p0_ptr->znum[0:NSIMD],p0_ptr->anum[0:NSIMD],p0_ptr->bounces[0:NSIMD]) */
+      {
+      OMP_L0
+        for(int i = 0; i < NSIMD; i++) {
+            particle_copy_fo(p_ptr, i, p0_ptr, i);
+        }
+      }
         /*************************** Physics **********************************/
 
         /* Set time-step negative if tracing backwards in time */
         #pragma omp simd
+        OMP_L0
         for(int i = 0; i < NSIMD; i++) {
             if(sim->reverse_time) {
                 hin[i]  = -hin[i];
@@ -106,34 +161,21 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         /* Volume preserving algorithm for orbit-following */
         if(sim->enable_orbfol) {
             if(sim->enable_mhd) {
+#ifdef GPU
+	      printf("NOT PORTED TO GPU YET");
+	      exit(0);
                 step_fo_vpa_mhd(&p, hin, &sim->B_data, &sim->E_data,
                                 &sim->boozer_data, &sim->mhd_data);
+#endif
             }
             else {
-	      particle_simd_fo *p_ptr=&p;
-	      particle_simd_fo *p0_ptr=&p0;
-	      B_field_data* Bdata = &sim->B_data;
-	      E_field_data* Edata = &sim->E_data;
-#pragma acc data copy(							\
-  		      p_ptr[0:1],p_ptr->running[0:NSIMD],p_ptr->r[0:NSIMD],p_ptr->phi[0:NSIMD],p_ptr->p_r[0:NSIMD],p_ptr->p_phi[0:NSIMD],p_ptr->p_z[0:NSIMD],p_ptr->mileage[0:NSIMD], \
-		      p_ptr->z[0:NSIMD],p_ptr->charge[0:NSIMD],p_ptr->mass[0:NSIMD],p_ptr->B_r[0:NSIMD],p_ptr->B_r_dr[0:NSIMD],p_ptr->B_r_dphi[0:NSIMD],p_ptr->B_r_dz[0:NSIMD],	\
-		      p_ptr->B_phi[0:NSIMD],p_ptr->B_phi_dr[0:NSIMD],p_ptr->B_phi_dphi[0:NSIMD],p_ptr->B_phi_dz[0:NSIMD],p_ptr->B_z[0:NSIMD],p_ptr->B_z_dr[0:NSIMD],p_ptr->B_z_dphi[0:NSIMD], \
-		      p_ptr->B_z_dz[0:NSIMD],p_ptr->rho[0:NSIMD],p_ptr->theta[0:NSIMD],p_ptr->err[0:NSIMD],p_ptr->time[0:NSIMD],p_ptr->weight[0:NSIMD],p_ptr->cputime[0:NSIMD],	\
-		      p_ptr->id[0:NSIMD],p_ptr->endcond[0:NSIMD],p_ptr->walltile[0:NSIMD],p_ptr->index[0:NSIMD],p_ptr->znum[0:NSIMD],p_ptr->anum[0:NSIMD],p_ptr->bounces[0:NSIMD], \
-		      hin[0:NSIMD],					\
-		      Bdata[0:1],Bdata->BTC.dB[0:1],Bdata->BSTS.axis_r,Bdata->BSTS.axis_r.c[0:1],Bdata->BSTS.axis_z,Bdata->BSTS.axis_z.c[0:1],Bdata->BSTS.B_r,Bdata->BSTS.B_r.c[0:1], \
-		      Bdata->BSTS.B_z,Bdata->BSTS.B_z.c[0:1],Bdata->BSTS.B_phi,Bdata->BSTS.B_phi.c[0:1],Bdata->B3DS.psi,Bdata->B3DS.psi.c[0:1],Bdata->B3DS.B_r,Bdata->B3DS.B_r.c[0:1], \
-		      Bdata->B3DS.B_phi,Bdata->B3DS.B_phi.c[0:1],Bdata->B3DS.B_z,Bdata->B3DS.B_z.c[0:1],Bdata->B2DS.psi,Bdata->B2DS.psi.c[0:1],Bdata->B2DS.B_r,Bdata->B2DS.B_r.c[0:1], \
-		      Bdata->B2DS.B_phi,Bdata->B2DS.B_phi.c[0:1],Bdata->B2DS.B_z,Bdata->B2DS.B_z.c[0:1],Bdata->BGS.psi_coeff[0:13], \
-		      Edata[0:1],Edata->type,Edata->ETC,Edata->E1DS,Edata->ETC.Exyz[0:1],Edata->E1DS.dV,Edata->E1DS.dV.c[0:1])
-	      {
-		step_fo_vpa(&p, hin, &sim->B_data, &sim->E_data);
-	      }
+	      step_fo_vpa(&p, hin, &sim->B_data, &sim->E_data);
             }
         }
 
         /* Switch sign of the time-step again if it was reverted earlier */
         #pragma omp simd
+        OMP_L0
         for(int i = 0; i < NSIMD; i++) {
             if(sim->reverse_time) {
                 hin[i]  = -hin[i];
@@ -142,23 +184,30 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 
         /* Euler-Maruyama for Coulomb collisions */
         if(sim->enable_clmbcol) {
-            real rnd[3*NSIMD];
-            random_normal_simd(&sim->random_data, 3*NSIMD, rnd);
-            mccc_fo_euler(&p, hin, &sim->plasma_data, &sim->mccc_data, rnd);
+#ifdef GPU
+	  printf("NOT PORTED TO GPU YET");
+	  exit(0);
+            mccc_fo_euler(&p, hin, &sim->plasma_data, sim->random_data,
+                          &sim->mccc_data);
+#endif
         }
-
         /* Atomic reactions */
         if(sim->enable_atomic) {
+#ifdef GPU
+	  printf("NOT PORTED TO GPU YET");
+	  exit(0);
             atomic_fo(&p, hin, &sim->plasma_data, &sim->neutral_data,
-                      &sim->random_data, &sim->asigma_data);
+                      &sim->random_data, &sim->asigma_data,
+                      &sim->enable_atomic);
+#endif
         }
-
         /**********************************************************************/
 
 
         /* Update simulation and cpu times */
         cputime = A5_WTIME;
         #pragma omp simd
+        OMP_L0
         for(int i = 0; i < NSIMD; i++) {
             if(p.running[i]){
                 p.time[i]    += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) ) * hin[i];
@@ -174,10 +223,14 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         /* Update diagnostics */
         if(!(sim->record_mode)) {
             /* Record particle coordinates */
-            diag_update_fo(&sim->diag_data, &sim->B_data, &p, &p0);
+	  diag_update_fo(&sim->diag_data, &sim->B_data, &p, &p0, &p_loc);
         }
         else {
-            /* Instead of particle coordinates we record guiding center */
+#ifdef GPU
+	  printf("NOT PORTED TO GPU YET");
+	  exit(0);
+#endif	  
+	  /* Instead of particle coordinates we record guiding center */
 
             // Dummy guiding centers
             particle_simd_gc gc_f;
@@ -205,18 +258,39 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         }
 
         /* Update running particles */
-        n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
-
+/* #ifdef GPU */
+/* 	n_running = 0; */
+/* #pragma omp simd reduction(+:n_running) */
+/* #pragma acc parallel loop reduction(+:n_running) */
+/* 	for(int i = 0; i < NSIMD; i++) { */
+/* 	  n_running += p_ptr->running[i]; */
+/* 	} */
+/* #else */
+	n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
+/* #endif */
+	
         /* Determine simulation time-step for new particles */
         #pragma omp simd
+	OMP_L0
         for(int i = 0; i < NSIMD; i++) {
-            if(cycle[i] > 0) {
-                hin[i] = simulate_fo_fixed_inidt(sim, &p, i);
-            }
+/* #ifndef GPU */
+	  if(cycle[i] > 0)
+/* #endif */
+	    {
+	      hin[i] = simulate_fo_fixed_inidt(sim, &p, i);
+	    }
         }
+	printf("n_running = %d\n",n_running);
     }
-
     /* All markers simulated! */
+/* #pragma acc update host( \ */
+/*       p_ptr[0:1],p_ptr->running[0:NSIMD],p_ptr->r[0:NSIMD],p_ptr->phi[0:NSIMD],p_ptr->p_r[0:NSIMD],p_ptr->p_phi[0:NSIMD],p_ptr->p_z[0:NSIMD],p_ptr->mileage[0:NSIMD], \ */
+/*   p_ptr->z[0:NSIMD],p_ptr->charge[0:NSIMD],p_ptr->mass[0:NSIMD],p_ptr->B_r[0:NSIMD],p_ptr->B_r_dr[0:NSIMD],p_ptr->B_r_dphi[0:NSIMD],p_ptr->B_r_dz[0:NSIMD], \ */
+/*   p_ptr->B_phi[0:NSIMD],p_ptr->B_phi_dr[0:NSIMD],p_ptr->B_phi_dphi[0:NSIMD],p_ptr->B_phi_dz[0:NSIMD],p_ptr->B_z[0:NSIMD],p_ptr->B_z_dr[0:NSIMD],p_ptr->B_z_dphi[0:NSIMD], \ */
+/*   p_ptr->B_z_dz[0:NSIMD],p_ptr->rho[0:NSIMD],p_ptr->theta[0:NSIMD],p_ptr->err[0:NSIMD],p_ptr->time[0:NSIMD],p_ptr->weight[0:NSIMD],p_ptr->cputime[0:NSIMD], \ */
+/*   p_ptr->id[0:NSIMD],p_ptr->endcond[0:NSIMD],p_ptr->walltile[0:NSIMD],p_ptr->index[0:NSIMD],p_ptr->znum[0:NSIMD],p_ptr->anum[0:NSIMD],p_ptr->bounces[0:NSIMD] ) */
+/* #pragma acc exit data copyout(			\ */
+/* 			      sim[0:1]  ) */
 
 }
 
@@ -242,7 +316,7 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
         h = sim->fix_usrdef_val;
     }
     else {
-        /* Value calculated from gyrotime */
+      /* Value calculated from gyrotime */
         real Bnorm = math_normc( p->B_r[i], p->B_phi[i], p->B_z[i] );
         real pnorm = math_normc( p->p_r[i], p->p_phi[i], p->p_z[i] );
         real gyrotime = CONST_2PI/

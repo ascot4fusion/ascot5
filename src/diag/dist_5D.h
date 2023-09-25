@@ -93,7 +93,7 @@ void dist_5D_init(dist_5D_data* dist_data,
                   dist_5D_offload_data* offload_data,
                   real* offload_array);
 void dist_5D_update_fo(dist_5D_data* dist, particle_simd_fo* p_f,
-                       particle_simd_fo* p_i);
+                       particle_simd_fo* p_i, particle_loc* p_loc);
 void dist_5D_update_gc(dist_5D_data* dist, particle_simd_gc* p_f,
                        particle_simd_gc* p_i);
 #pragma omp end declare target
