@@ -5,7 +5,9 @@ import argparse
 import a5py.ascot5io.coreio.compatibility as comp
 
 parser = argparse.ArgumentParser(
-    description="Convert HDF5 file of the previous version to current version."
+    description="Update an outdated Ascot5 HDF5 file to current version."
 )
+parser.add_argument("FILE", help="Target file which is copied and updated")
 
-comp.convert(fnin)
+args = parser.parse_args()
+comp.convert(args.FILE)
