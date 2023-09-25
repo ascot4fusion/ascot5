@@ -222,34 +222,37 @@ void diag_free(diag_data* data) {
  *        current time-step
  */
 void diag_update_fo(diag_data* data, B_field_data* Bdata, particle_simd_fo* p_f,
-                    particle_simd_fo* p_i) {
+                    particle_simd_fo* p_i, particle_loc* p_loc) {
+#ifndef  GPU
     if(data->diagorb_collect) {
         diag_orb_update_fo(&data->diagorb, p_f, p_i);
     }
-
+#endif
     if(data->dist5D_collect) {
-        dist_5D_update_fo(&data->dist5D, p_f, p_i);
+        dist_5D_update_fo(&data->dist5D, p_f, p_i, p_loc);
     }
 
     if(data->dist6D_collect) {
-        dist_6D_update_fo(&data->dist6D, p_f, p_i);
+        dist_6D_update_fo(&data->dist6D, p_f, p_i, p_loc);
     }
 
     if(data->distrho5D_collect) {
-        dist_rho5D_update_fo(&data->distrho5D, p_f, p_i);
+        dist_rho5D_update_fo(&data->distrho5D, p_f, p_i, p_loc);
     }
 
     if(data->distrho6D_collect) {
-        dist_rho6D_update_fo(&data->distrho6D, p_f, p_i);
+        dist_rho6D_update_fo(&data->distrho6D, p_f, p_i, p_loc);
     }
 
+#ifndef  GPU
     if(data->distCOM_collect){
-        dist_COM_update_fo(&data->distCOM, Bdata, p_f, p_i);
+      dist_COM_update_fo(&data->distCOM, Bdata, p_f, p_i);
     }
-
+    
     if(data->diagtrcof_collect){
-        diag_transcoef_update_fo(&data->diagtrcof, p_f, p_i);
+      diag_transcoef_update_fo(&data->diagtrcof, p_f, p_i);
     }
+#endif
 }
 
 /**
