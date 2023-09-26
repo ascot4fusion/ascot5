@@ -49,7 +49,7 @@ ifneq ($(CC),h5cc)
 endif
 
 ifeq ($(ACC), 1)
-	CFLAGS += -O3 -acc -Minfo=accel # -gpu=deepcopy
+	CFLAGS += -O3 -acc -Minfo=accel -gpu=managed # -gpu=deepcopy
 	#CFLAGS += -fopenacc
 endif
 

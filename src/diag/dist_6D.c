@@ -138,7 +138,7 @@ void dist_6D_update_fo(dist_6D_data* dist, particle_simd_fo* p_f,
     real* weight = p_loc->r_arr2;
 
     #pragma omp simd
-/* #pragma acc data present(phi[0:NSIMD],i_r[0:NSIMD],i_phi[0:NSIMD],i_z[0:NSIMD],i_pr[0:NSIMD],i_pphi[0:NSIMD],i_pz[0:NSIMD],i_time[0:NSIMD],i_q[0:NSIMD],ok[0:NSIMD],weight[0:NSIMD]) */
+#pragma acc data present(phi[0:NSIMD],i_r[0:NSIMD],i_phi[0:NSIMD],i_z[0:NSIMD],i_pr[0:NSIMD],i_pphi[0:NSIMD],i_pz[0:NSIMD],i_time[0:NSIMD],i_q[0:NSIMD],ok[0:NSIMD],weight[0:NSIMD])
     {
     OMP_L0
     for(int i = 0; i < NSIMD; i++) {

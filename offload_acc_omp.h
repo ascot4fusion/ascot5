@@ -24,7 +24,7 @@
 #define OMP_L1 MY_PRAGMA()
 //#define OMP_L2 MY_PRAGMA(acc loop worker vector)
 #define OMP_L2 MY_PRAGMA()
-#define OMP_L0 MY_PRAGMA()
+#define OMP_L0 MY_PRAGMA(acc parallel loop)
 #define OMP_L0_DBG MY_PRAGMA(acc parallel loop)
 //#define OMP_L0 MY_PRAGMA()
 #define DECLARE_TARGET     MY_PRAGMA(acc routine seq)
