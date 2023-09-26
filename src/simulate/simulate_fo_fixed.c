@@ -258,28 +258,28 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         }
 
         /* Update running particles */
-/* #ifdef GPU */
-/* 	n_running = 0; */
-/* #pragma omp simd reduction(+:n_running) */
-/* #pragma acc parallel loop reduction(+:n_running) */
-/* 	for(int i = 0; i < NSIMD; i++) { */
-/* 	  n_running += p_ptr->running[i]; */
-/* 	} */
-/* #else */
+#ifdef GPU
+	n_running = 0;
+#pragma omp simd reduction(+:n_running)
+#pragma acc parallel loop reduction(+:n_running)
+	for(int i = 0; i < NSIMD; i++)
+	  {
+	    if(p_ptr->running[i] > 0) n_running++;
+	  }
+#else
 	n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
-/* #endif */
-	
+#endif
+#ifndef GPU	
         /* Determine simulation time-step for new particles */
         #pragma omp simd
 	OMP_L0
         for(int i = 0; i < NSIMD; i++) {
-/* #ifndef GPU */
 	  if(cycle[i] > 0)
-/* #endif */
 	    {
 	      hin[i] = simulate_fo_fixed_inidt(sim, &p, i);
 	    }
         }
+#endif	
 	printf("n_running = %d\n",n_running);
     }
     /* All markers simulated! */
@@ -292,6 +292,9 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 /* #pragma acc exit data copyout(			\ */
 /* 			      sim[0:1]  ) */
 
+#ifdef GPU
+	n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
+#endif    
 }
 
 /**
