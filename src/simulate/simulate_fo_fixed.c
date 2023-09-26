@@ -124,13 +124,12 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
     for (int i=0;i<MAX_SPECIES;i++) {
 #pragma acc enter data copyin(sim->plasma_data.plasma_1DS.dens[i].c[0:sim->plasma_data.plasma_1DS.dens[i].n_x*NSIZE_COMP1D])
     }
-int counter = 0;
     while(n_running > 0) {
       
         /* Store marker states */
         #pragma omp simd
 
-      OMP_L0
+        GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < NSIMD; i++) {
 	  particle_copy_fo(p_ptr, i, p0_ptr, i);
         }
@@ -138,7 +137,7 @@ int counter = 0;
 
         /* Set time-step negative if tracing backwards in time */
         #pragma omp simd
-        OMP_L0
+        GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < NSIMD; i++) {
             if(sim->reverse_time) {
                 hin[i]  = -hin[i];
@@ -162,7 +161,7 @@ int counter = 0;
 
         /* Switch sign of the time-step again if it was reverted earlier */
         #pragma omp simd
-        OMP_L0
+        GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < NSIMD; i++) {
             if(sim->reverse_time) {
                 hin[i]  = -hin[i];
@@ -194,7 +193,7 @@ int counter = 0;
         /* Update simulation and cpu times */
         cputime = A5_WTIME;
         #pragma omp simd
-        OMP_L0
+        GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < NSIMD; i++) {
             if(p.running[i]){
                 p.time[i]    += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) ) * hin[i];
@@ -259,7 +258,7 @@ int counter = 0;
 #ifndef GPU	
         /* Determine simulation time-step for new particles */
         #pragma omp simd
-	OMP_L0
+	GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < NSIMD; i++) {
 	  if(cycle[i] > 0)
 	    {
@@ -267,8 +266,6 @@ int counter = 0;
 	    }
         }
 #endif	
-	counter++;
-	printf("n_running = %d four count = %d \n",n_running, counter);
     }
     /* All markers simulated! */
 #pragma acc update host( \

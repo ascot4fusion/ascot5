@@ -88,7 +88,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
     int active_ioniz     = sim->endcond_active & endcond_ioniz;
 
     #pragma omp simd
-    OMP_L0
+    GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
 

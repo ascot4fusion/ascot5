@@ -137,7 +137,7 @@ void dist_5D_update_fo(dist_5D_data* dist, particle_simd_fo* p_f,
     #pragma omp simd
 #pragma acc data present(phi[0:NSIMD],ppara[0:NSIMD],pperp[0:NSIMD],i_r[0:NSIMD],i_phi[0:NSIMD],i_z[0:NSIMD],i_ppara[0:NSIMD],i_pperp[0:NSIMD],i_time[0:NSIMD],i_q[0:NSIMD],ok[0:NSIMD],weight[0:NSIMD])
     {
-    OMP_L0
+    GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
             i_r[i] = floor((p_f->r[i] - dist->min_r)
@@ -192,7 +192,7 @@ void dist_5D_update_fo(dist_5D_data* dist, particle_simd_fo* p_f,
         }
     }
 
-    OMP_L0
+    GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i] && ok[i]) {
             size_t index = dist_5D_index(
