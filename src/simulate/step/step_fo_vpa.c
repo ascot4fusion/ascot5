@@ -38,7 +38,7 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
     int i;
     /* Following loop will be executed simultaneously for all i */
     #pragma omp simd  aligned(h : 64)
-/* #pragma acc data present(h[0:NSIMD]) */
+#pragma acc data present(h[0:NSIMD])
     OMP_L0
     for(i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
