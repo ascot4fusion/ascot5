@@ -244,15 +244,13 @@ void diag_update_fo(diag_data* data, B_field_data* Bdata, particle_simd_fo* p_f,
         dist_rho6D_update_fo(&data->distrho6D, p_f, p_i, p_loc);
     }
 
-#ifndef  GPU
     if(data->distCOM_collect){
-      dist_COM_update_fo(&data->distCOM, Bdata, p_f, p_i);
+      dist_COM_update_fo(&data->distCOM, Bdata, p_f, p_i, p_loc);
     }
     
     if(data->diagtrcof_collect){
       diag_transcoef_update_fo(&data->diagtrcof, p_f, p_i);
     }
-#endif
 }
 
 /**

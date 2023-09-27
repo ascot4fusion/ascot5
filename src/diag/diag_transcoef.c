@@ -71,6 +71,7 @@ void diag_transcoef_free(diag_transcoef_data* data) {
 void diag_transcoef_update_fo(diag_transcoef_data* data,
                               particle_simd_fo* p_f, particle_simd_fo* p_i) {
     #pragma omp simd
+    GPU_PARALLEL_LOOP_ALL_LEVELS  
     for(int i=0; i < NSIMD; i++) {
         real p[3] = {p_f->p_r[i], p_f->p_phi[i], p_f->p_z[i]};
         real B[3] = {p_f->B_r[i], p_f->B_phi[i], p_f->B_z[i]};
@@ -81,6 +82,7 @@ void diag_transcoef_update_fo(diag_transcoef_data* data,
     }
 
     /* If marker simulation was ended, process and clean the data */
+    GPU_PARALLEL_LOOP_ALL_LEVELS  
     for(int i=0; i < NSIMD; i++) {
 
         /* Mask dummy markers and those which are running */
