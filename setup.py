@@ -30,5 +30,5 @@ setup(name='a5py',
         'bin/a5editoptions',
         'bin/a5combine',
         'bin/a5gui',
-        'bin/a5makecompatible',
+        'bin/a5update',
       ],)
