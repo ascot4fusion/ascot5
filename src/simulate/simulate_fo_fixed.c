@@ -255,17 +255,17 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 #else
 	n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
 #endif
+#ifndef GPU	
         /* Determine simulation time-step for new particles */
         #pragma omp simd
 	GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < NSIMD; i++) {
-#ifndef GPU	
 	  if(cycle[i] > 0)
-#endif
 	    {
 	      hin[i] = simulate_fo_fixed_inidt(sim, &p, i);
 	    }
         }
+#endif	
     }
     /* All markers simulated! */
 #pragma acc update host( \
