@@ -71,11 +71,8 @@ void dist_COM_init(dist_COM_data* dist_data,
 
 /**
  * @brief Update the histogram from full-orbit markers
- *
- * @param dist pointer to distribution parameter struct
- * @param Bdata pointer to magnetic field data
- * @param p_f pointer to SIMD fo struct at the end of current time step
- * @param p_i pointer to SIMD fo struct at the start of current time step
+ * @param p_loc pre-allocated pointer to SIMD arrays used in diagnostics kernels
+ *        to avoid dynamical allocation
  */
 void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
                         particle_simd_fo* p_f, particle_simd_fo* p_i, particle_loc* p_loc) {
