@@ -220,6 +220,8 @@ void diag_free(diag_data* data) {
  *        time-step
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
  *        current time-step
+ * @param p_loc pre-allocated pointer to SIMD arrays used in diagnostics kernels
+ *        to avoid dynamical allocation
  */
 void diag_update_fo(diag_data* data, B_field_data* Bdata, particle_simd_fo* p_f,
                     particle_simd_fo* p_i, particle_loc* p_loc) {

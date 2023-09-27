@@ -150,9 +150,9 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 #ifdef GPU
 	      printf("NOT PORTED TO GPU YET");
 	      exit(0);
+#endif
                 step_fo_vpa_mhd(&p, hin, &sim->B_data, &sim->E_data,
                                 &sim->boozer_data, &sim->mhd_data);
-#endif
             }
             else {
 	      step_fo_vpa(p_ptr, hin, &sim->B_data, &sim->E_data);
@@ -173,19 +173,19 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 #ifdef GPU
 	  printf("NOT PORTED TO GPU YET");
 	  exit(0);
+#endif
             mccc_fo_euler(p_ptr, hin, &sim->plasma_data, sim->random_data,
                           &sim->mccc_data);
-#endif
         }
         /* Atomic reactions */
         if(sim->enable_atomic) {
 #ifdef GPU
 	  printf("NOT PORTED TO GPU YET");
 	  exit(0);
+#endif
             atomic_fo(p_ptr, hin, &sim->plasma_data, &sim->neutral_data,
                       &sim->random_data, &sim->asigma_data,
                       &sim->enable_atomic);
-#endif
         }
         /**********************************************************************/
 
