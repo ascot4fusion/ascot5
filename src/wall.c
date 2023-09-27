@@ -169,3 +169,24 @@ int wall_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
     }
     return ret;
 }
+
+/**
+ * @brief Return the number of wall elements.
+ *
+ * @param w pointer to wall data struct on target
+ *
+ * @return Number of wall elements or zero on failure.
+ */
+int wall_get_n_elements(wall_data* w) {
+    int ret = 0;
+    switch(w->type) {
+        case wall_type_2D:
+            ret = w->w2d.n;
+            break;
+
+        case wall_type_3D:
+            ret = w->w3d.n;
+            break;
+    }
+    return ret;
+}
