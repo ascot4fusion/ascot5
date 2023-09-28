@@ -7,7 +7,7 @@ ASCOT5
 
 
 `ASCOT5 <https://arxiv.org/abs/1908.02482/>`_ is a test-particle orbit-following code for solving minority species' distribution functions, transport, and losses in tokamaks and stellarators.
-If you can't find here what you are looking for in this documentation, don't be afraid to ask at our `Slack channel <ascot-workspace.slack.com>`_.
+If you can't find here what you are looking for in this documentation, don't be afraid to ask at our `Slack channel <http://ascot-workspace.slack.com/>`_.
 
 .. toctree::
   :maxdepth: 2
@@ -25,7 +25,7 @@ If you can't find here what you are looking for in this documentation, don't be 
 
 .. toctree::
   :maxdepth: 2
-  :caption: Tutorials
+  :caption: Simulating Physics
   :hidden:
 
   teaching
@@ -74,30 +74,38 @@ The repository is maintained by Aalto University and VTT.
 - Can trace full gyro-orbits, guiding centers, field-lines, and neutrals.
 - Supports 3D tokamak and stellarator magnetic fields.
 - Supports 3D wall model and evaluation of particle loads on the wall.
-- Simulations assume test-particle approximation (no feedback from markers
-  to backgrounds) but otherwise any type of particles can be traced.
+- Simulations assume test-particle approximation (no feedback from markers to backgrounds) but otherwise any type of particles can be traced.
   - Mainly used to study fast ions, impurities and runaway electrons.
 - Physics include Coulomb collisions and charge-exchange reactions.
 - Simulations may include fast ion response to MHD.
-- Output consists of various distributions (1D-6D), marker orbits,
-  wall loads/FILD signals, and transport coefficients.
+- Output consists of various distributions (1D-6D), marker orbits, wall loads/FILD signals, and transport coefficients.
 
 **BBNBI5**
 
 - Calculates beam birth profile and shinethrough from NBI geometry.
-- Provides NBI source for ASCOT5 slowing-down simulations.
+- Can provides a NBI source for ASCOT5 slowing-down simulations.
 
 **AFSI**
 
-- Calculates neutron source from fast ion slowing-down distribution
-  (as computed by ASCOT5).
+- Calculates fusion product source from thermal plasma and fast ion slowing-down distributions (as computed by ASCOT5).
+  For fusion neutronics, this can be combined with `Serpent <https://serpent.vtt.fi/serpent/>`_.
 
 **BioSaw**
 
 - Calculates magnetic field based on a coil geometry.
-- Provides error fields for ASCOT5 simulations.
+- Can provide a 3D field for ASCOT5 simulations.
 
 **BMC**
 
-- Backward Monte-Carlo simulation tool that is essentially ASCOT5
-  but time-reversed.
+- Backward Monte-Carlo simulation tool that can be thought as time-reversed ASCOT5.
+- Effective tool for estimating FILD signals and wall loads on small but critical components.
+- Not yet fully complete.
+
+FAQ and Troubleshooting
+=======================
+
+**I'm receiving a fatal error when opening the input file in Python or in GUI**
+
+- There might be compatibility issues if the file was made with an older version of ASCOT5 that you are currently using.
+  These can be solved by running the script ``a5update ascot.h5`` which generates a copy ``ascot_<current version>.h5`` where the data has been updated to new format.
+  Note that it might not always be possible to enforce the backwards compatibility on results so rerunning the simulation might be necessary.
