@@ -325,7 +325,7 @@ Ascotpy
 .. currentmodule:: a5py
 
 Many post-processing (and also some pre-processing) tools make use of the Python interface to ASCOT5, referred as ``Ascotpy``.
-Instances of :class:`Ascot` automatically establish the interface if ``libascot.so`` has been compiled and found in ``LD_LIBRARY_PATH``.
+Instances of :class:`Ascot` automatically establish the interface if ``libascot.so`` has been compiled.
 The interface provides direct access to the C routines and it can be used to interpolate inputs exactly as they are interpolated during the simulation.
 It can also be used to simulate markers directly from Python.
 

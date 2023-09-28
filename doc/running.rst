@@ -99,7 +99,6 @@ Installing
 
 .. _Compiling:
 
-================================
 Compiling on different platforms
 ================================
 
@@ -293,7 +292,6 @@ Compiling libascot.so requires that you change Makefile as
 
 .. _Compilerflags:
 
-=======================
 Settings when compiling
 =======================
 
@@ -342,9 +340,9 @@ Additional parameters can be found in ``ascot5.h``, but there is rarely a need t
 
 .. _Simulationoptions:
 
-=======
-Options
-=======
+==================
+Simulation options
+==================
 
 .. currentmodule:: a5py.ascot5io.options
 
@@ -487,8 +485,12 @@ Options
 Simulations
 ===========
 
+TBD
+
 .. _Batchjobs:
 
 ==========
 Batch jobs
 ==========
+
+TBD
