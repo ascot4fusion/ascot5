@@ -29,7 +29,6 @@
 #include "gctransform.h"
 
 #pragma omp declare target
-void sim_init(sim_data* sim, sim_offload_data* offload_data);
 void sim_monitor(char* filename, volatile int* n, volatile int* finished);
 #pragma omp end declare target
 
