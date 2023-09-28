@@ -17,7 +17,11 @@
 #include "wall.h"
 #include "nbi.h"
 
-void nbi_inject(real* xyz, real* vxyz, nbi_injector* inj, random_data* rng);
+#include "diag.h"
+#include "diag/dist_5D.h"
+
+void nbi_inject(real* xyz, real* vxyz, real* efrac, nbi_injector* inj,
+                random_data* rng);
 
 void nbi_ionize(real* xyz, real* vxyz, real time, int* shinethrough, int anum,
                 int znum, real mass, B_field_data* Bdata, plasma_data* plsdata,
@@ -115,72 +119,179 @@ void nbi_free_offload(nbi_offload_data* offload_data,
 }
 
 /**
- * @brief Generate NBI ions from injector
+ * @brief Generate NBI ions by injecting and tracing neutrals from an injector
  *
- * @param p marker struct obtained as an output
- * @param nprt number of markers to be injected
- * @param t0
- * @param t1
+ * @param pou pointer where generated markers are stored or NULL
+ * @param nprt number of markers to be injected or generated
+ * @param t0 time when the injector is turned on
+ * @param t1 time when the injector is turned off
  * @param inj pointer to injector data
  * @param Bdata pointer to magnetic field data
- * @param plsdata pointer to plasma data
- * @param walldata pointer to wall data
- * @param rng pointer to random number generator data
+ * @param plasma_data pointer to plasma data
+ * @param wall_data pointer to wall data
+ * @param random_data pointer to random number generator data
+ * @param diag pointer to diagnostics data
  */
-void nbi_generate(particle* p, int nprt, real t0, real t1, nbi_injector* inj,
-                  B_field_data* Bdata, plasma_data* plsdata,
-                  wall_data* walldata, random_data* rng) {
+void nbi_generate(particle* pout, int nprt, real t0, real t1, nbi_injector* inj,
+                  B_field_data* Bdata, plasma_data* plasma_data,
+                  wall_data* wall_data, random_data* random_data,
+                  diag_data* diag) {
 
-    real totalShined  = 0.0;
-    real totalIonized = 0.0;
+    int nelements = wall_get_n_elements(wall_data);
+    real* eload   = (real*)malloc( nelements * sizeof(real) );
 
-    //#pragma omp parallel for
+    /* One marker contributes to a distribution as weight*dt. If beams are on
+     * for a set time, use the time interval as dt. If beams are on indefinitely
+     * (t1=t0) then use dt=1.0 s since then we don't need to normalize the
+     * distribution afterwards */
+    real dt = t1 - t0;
+    if(dt == 0.0) {
+        dt = 1.0;
+    }
+    /* Set marker weights assuming a large number is created so that the energy
+     * fractions of generated markers are close to the injector values */
+    real f  =     1.0 * inj->efrac[0] + (1.0/2) * inj->efrac[1]
+            + (1.0/3) * inj->efrac[2];
+    real weight = (inj->power / inj->energy ) / ( f * nprt );
+
+    int ngenerated = 0;
+    #pragma omp parallel for
     for(int i = 0; i < nprt; i++) {
+        particle ptemp, *p;
         real xyz[3], vxyz[3];
+        real charge, gamma, efrac;
         int anum  = inj->anum;
         int znum  = inj->znum;
         real mass = inj->mass;
-        real gamma;
+        real time = t0 + random_uniform(rng) * (t1-t0);
 
+        int walltile = -1;
+        nbi_inject(xyz, vxyz, &efrac, inj, random_data);
+        nbi_ionize(xyz, vxyz, time, &walltile, anum, znum, mass, Bdata,
+                   plasma_data, wall_data, random_data);
+
+        if(walltile > 0) {
+            eload[walltile] += weight;
+        }
+        else {
+            int idx;
+            #pragma omp critical
+            {
+                idx = ngenerated;
+                ngenerated++;
+            }
+
+            real rpz[3], vrpz[3];
+            math_xyz2rpz(xyz, rpz);
+            math_vec_xyz2rpz(vxyz, vrpz, rpz[1]);
+
+            /* Convert state to input and store in output array if requested */
+            gamma = physlib_gamma_vnorm(math_norm(vrpz));
+            charge = 1 * CONST_E; // Singly ionized always
+            if(pout != NULL) {
+                pout[idx].r      = rpz[0];
+                pout[idx].phi    = rpz[1];
+                pout[idx].z      = rpz[2];
+                pout[idx].p_r    = vrpz[0] * gamma * mass;
+                pout[idx].p_phi  = vrpz[1] * gamma * mass;
+                pout[idx].p_z    = vrpz[2] * gamma * mass;
+                pout[idx].anum   = anum;
+                pout[idx].znum   = znum;
+                pout[idx].charge = charge;
+                pout[idx].mass   = mass;
+                pout[idx].id     = i+1;
+                pout[idx].time   = time;
+                pout[idx].weight = weight;
+                p = &(pout[idx]);
+            }
+            else {
+                ptemp.r      = rpz[0];
+                ptemp.phi    = rpz[1];
+                ptemp.z      = rpz[2];
+                ptemp.p_r    = vrpz[0] * gamma * mass;
+                ptemp.p_phi  = vrpz[1] * gamma * mass;
+                ptemp.p_z    = vrpz[2] * gamma * mass;
+                ptemp.anum   = anum;
+                ptemp.znum   = znum;
+                ptemp.charge = charge;
+                ptemp.mass   = mass;
+                ptemp.id     = i+1;
+                ptemp.time   = time;
+                ptemp.weight = weight;
+                p = &ptemp;
+            }
+
+            /* Convert input to state and state to sim. struct for diagnostics*/
+            particle_state ps;
+            particle_simd_fo pi, pf;
+            particle_input_p_to_state(p, &ps, Bdata);
+            for(int j=0; j<NSIMD; j++) {
+                pi.id[j] = -1;
+                pf.id[j] = -1;
+            }
+            particle_state_to_fo(&ps, 0, &pi, 0, Bdata);
+            particle_copy_fo(&pi, 0, &pf, 0);
+            pf.time[0] = 1.0;
+
+            diag_update_fo(diag, Bdata, &pf, &pi);
+        }
+    }
+
+    /* Second loop but this time we don't update diagnostics. Instead we
+     * generate markers until the particle struct is filled (skip this loop
+     * if markers are not requested). We have do it like this because we can
+     * either fix the number of markers to be generated or the marker weight
+     * before the simulation loop but not both. Last loop fixed weight since
+     * it is required by the diagnostics (markers generated in last loop need
+     * to be reweighted). */
+    int nionized = 0;
+    int nshined  = 0;
+    if(pout == NULL) { ngenerated = nprt; }
+    #pragma omp parallel for
+    for(int i = ngenerated; i < nprt; i++) {
+        real xyz[3], vxyz[3];
+        real charge, gamma, efrac;
+        int anum  = inj->anum;
+        int znum  = inj->znum;
+        real mass = inj->mass;
         real time = t0 + random_uniform(rng) * (t1-t0);
 
         int shinethrough = -1;
         do {
-            nbi_inject(xyz, vxyz, inj, rng);
+            nbi_inject(xyz, vxyz, &efrac, inj, random_data);
             nbi_ionize(xyz, vxyz, time, &shinethrough, anum, znum, mass, Bdata,
-                       plsdata, walldata, rng);
-
+                       plasma_data, wall_data, random_data);
             if(shinethrough > 0) {
-                gamma = physlib_gamma_vnorm(math_norm(vxyz));
                 #pragma omp atomic
-                totalShined += physlib_Ekin_gamma(mass, gamma);
+                nshined++;
             }
         } while(shinethrough != 0);
-
         real rpz[3], vrpz[3];
         math_xyz2rpz(xyz, rpz);
         math_vec_xyz2rpz(vxyz, vrpz, rpz[1]);
 
-        gamma = physlib_gamma_vnorm(math_norm(vrpz));
-        p[i].r      = rpz[0];
-        p[i].phi    = rpz[1];
-        p[i].z      = rpz[2];
-        p[i].p_r    = vrpz[0] * gamma * mass;
-        p[i].p_phi  = vrpz[1] * gamma * mass;
-        p[i].p_z    = vrpz[2] * gamma * mass;
-        p[i].anum   = anum;
-        p[i].znum   = znum;
-        p[i].charge = 1 * CONST_E; // Singly ionized always
-        p[i].mass   = mass;
-        p[i].id     = i+1;
-        p[i].time   = time;
+        gamma  = physlib_gamma_vnorm(math_norm(vrpz));
+        charge = 1 * CONST_E; // Singly ionized always
+        pout[i].r      = rpz[0];
+        pout[i].phi    = rpz[1];
+        pout[i].z      = rpz[2];
+        pout[i].p_r    = vrpz[0] * gamma * mass;
+        pout[i].p_phi  = vrpz[1] * gamma * mass;
+        pout[i].p_z    = vrpz[2] * gamma * mass;
+        pout[i].anum   = anum;
+        pout[i].znum   = znum;
+        pout[i].charge = charge;
+        pout[i].mass   = mass;
+        pout[i].id     = i+1;
+        pout[i].time   = time;
+        pout[i].weight = weight;
 
         #pragma omp atomic
-        totalIonized += physlib_Ekin_gamma(mass, gamma);
+        nionized++;
     }
-
+    weight *= ((real) nprt) / (nprt + nshined + nionized);
     for(int i = 0; i < nprt; i++) {
-        p[i].weight = inj->power / (totalShined + totalIonized);
+        pout[i].weight = weight;
     }
 }
 
@@ -190,9 +301,11 @@ void nbi_generate(particle* p, int nprt, real t0, real t1, nbi_injector* inj,
  * @param inj pointer to injector data
  * @param xyz initialized marker's position in cartesian coordinates [m]
  * @param vxyz initialized marker's velocity in cartesian coordinates [m/s]
+ * @param efrac what fraction of injector energy was assigned to this marker
  * @param rng pointer to random number generator data
  */
-void nbi_inject(real* xyz, real* vxyz, nbi_injector* inj, random_data* rng) {
+void nbi_inject(real* xyz, real* vxyz, real* efrac, nbi_injector* inj,
+                random_data* rng) {
     /* Pick a random beamlet and initialize marker there */
     int i_beamlet = floor(random_uniform(rng) * inj->n_beamlet);
     xyz[0] = inj->beamlet_x[i_beamlet];
@@ -204,10 +317,13 @@ void nbi_inject(real* xyz, real* vxyz, nbi_injector* inj, random_data* rng) {
     real r = random_uniform(rng);
     if(r < inj->efrac[0]) {
         energy = inj->energy;
+        *efrac = 1.0;
     } else if(r < inj->efrac[0] + inj->efrac[1]) {
         energy = inj->energy / 2;
+        *efrac = 1.0/2;
     } else {
         energy = inj->energy / 3;
+        *efrac = 1.0/3;
     }
 
     /* Calculate vertical and horizontal normals for beam divergence */
@@ -254,7 +370,7 @@ void nbi_inject(real* xyz, real* vxyz, nbi_injector* inj, random_data* rng) {
  * @param xyz marker initial position in cartesian coordinates [m]
  * @param vxyz marker initial velocity vector in cartesian coordinates [m/s]
  * @param time time instance when marker was born [s]
- * @param shinethrough flag indicating if the marker hit the wall
+ * @param shinethrough flag indicating if the marker hit the wall and which tile
  * @param anum marker atomic mass number
  * @param znum marker charge number
  * @param mass marker mass
