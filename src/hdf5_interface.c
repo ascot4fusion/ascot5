@@ -590,7 +590,8 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
     }
     if(run[0] == '\0') {
         /* Check if this an bbnbi5 run */
-        sprintf(run, "/results/bbnbi5_%s/", qid);
+        sprintf(run, "/results/bbnbi_%s/", qid);
+        printf("\n%s %d\n", run, hdf5_find_group(f, run));
         if( hdf5_find_group(f, run) < 0 ) {
             run[0] = '\0';
         }
