@@ -288,7 +288,7 @@ class PoincareTemplates():
             ds    = (np.diff(r) * br + np.diff(z) * bz) / bpol # darc dot e^_pol
             r = r[:-1]; z = z[:-1]
 
-            # The toroidal current term (multiplying this with mu0/2 pi gets
+            # The toroidal current term (multiplying this with 2*pi/mu0 gets
             # enclosed toroidal current)
             Iprof[i] = np.sum( ds * bpol ) / ( 2*np.pi )
 
