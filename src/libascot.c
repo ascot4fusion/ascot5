@@ -12,6 +12,7 @@
 #include <math.h>
 
 #include "ascot5.h"
+#include "gitver.h"
 #include "math.h"
 #include "simulate.h"
 #include "B_field.h"
