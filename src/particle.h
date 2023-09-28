@@ -232,15 +232,15 @@ typedef struct {
     real B_z[NSIMD] __memalign__;        /**< Magnetic field z component at
                                               marker position [T]             */
 
-    real B_r_dr[NSIMD] __memalign__;     /**< dB_R/dR at marker position [T/m]     */
-    real B_phi_dr[NSIMD] __memalign__;   /**< dB_phi/dR at marker position [T/m]   */
-    real B_z_dr[NSIMD] __memalign__;     /**< dB_z/dR at marker position [T/m]     */
-    real B_r_dphi[NSIMD] __memalign__;   /**< dB_R/dphi at marker position [T/m]   */
-    real B_phi_dphi[NSIMD] __memalign__; /**< dB_phi/dphi at marker position [T/m] */
-    real B_z_dphi[NSIMD] __memalign__;   /**< dB_z/dphi at marker position [T/m]   */
-    real B_r_dz[NSIMD] __memalign__;     /**< dB_R/dz at marker position [T/m]     */
-    real B_phi_dz[NSIMD] __memalign__;   /**< dB_phi/dz at marker position [T/m]   */
-    real B_z_dz[NSIMD] __memalign__;     /**< dB_z/dz at marker position [T/m]     */
+    real B_r_dr[NSIMD] __memalign__;     /**< dB_R/dR at marker pos. [T/m]    */
+    real B_phi_dr[NSIMD] __memalign__;   /**< dB_phi/dR at marker pos. [T/m]  */
+    real B_z_dr[NSIMD] __memalign__;     /**< dB_z/dR at marker pos. [T/m]    */
+    real B_r_dphi[NSIMD] __memalign__;   /**< dB_R/dphi at marker pos. [T/m]  */
+    real B_phi_dphi[NSIMD] __memalign__; /**< dB_phi/dphi at marker pos. [T/m]*/
+    real B_z_dphi[NSIMD] __memalign__;   /**< dB_z/dphi at marker pos. [T/m]  */
+    real B_r_dz[NSIMD] __memalign__;     /**< dB_R/dz at marker pos. [T/m]    */
+    real B_phi_dz[NSIMD] __memalign__;   /**< dB_phi/dz at marker pos. [T/m]  */
+    real B_z_dz[NSIMD] __memalign__;     /**< dB_z/dz at marker pos. [T/m]    */
 
     /* Quantities used in diagnostics */
     int bounces[NSIMD] __memalign__;  /**< Number of times pitch sign changed */
@@ -299,15 +299,15 @@ typedef struct {
     real B_z[NSIMD] __memalign__;        /**< Magnetic field z component at
                                               marker position [T]             */
 
-    real B_r_dr[NSIMD] __memalign__;     /**< dB_R/dR at marker position [T/m]     */
-    real B_phi_dr[NSIMD] __memalign__;   /**< dB_phi/dR at marker position [T/m]   */
-    real B_z_dr[NSIMD] __memalign__;     /**< dB_z/dR at marker position [T/m]     */
-    real B_r_dphi[NSIMD] __memalign__;   /**< dB_R/dphi at marker position [T/m]   */
-    real B_phi_dphi[NSIMD] __memalign__; /**< dB_phi/dphi at marker position [T/m] */
-    real B_z_dphi[NSIMD] __memalign__;   /**< dB_z/dphi at marker position [T/m]   */
-    real B_r_dz[NSIMD] __memalign__;     /**< dB_R/dz at marker position [T/m]     */
-    real B_phi_dz[NSIMD] __memalign__;   /**< dB_phi/dz at marker position [T/m]   */
-    real B_z_dz[NSIMD] __memalign__;     /**< dB_z/dz at marker position [T/m]     */
+    real B_r_dr[NSIMD] __memalign__;     /**< dB_R/dR at marker pos. [T/m]    */
+    real B_phi_dr[NSIMD] __memalign__;   /**< dB_phi/dR at marker pos. [T/m]  */
+    real B_z_dr[NSIMD] __memalign__;     /**< dB_z/dR at marker pos. [T/m]    */
+    real B_r_dphi[NSIMD] __memalign__;   /**< dB_R/dphi at marker pos. [T/m]  */
+    real B_phi_dphi[NSIMD] __memalign__; /**< dB_phi/dphi at marker pos. [T/m]*/
+    real B_z_dphi[NSIMD] __memalign__;   /**< dB_z/dphi at marker pos. [T/m]  */
+    real B_r_dz[NSIMD] __memalign__;     /**< dB_R/dz at marker pos. [T/m]    */
+    real B_phi_dz[NSIMD] __memalign__;   /**< dB_phi/dz at marker pos. [T/m]  */
+    real B_z_dz[NSIMD] __memalign__;     /**< dB_z/dz at marker pos. [T/m]    */
 
     /* Quantities used in diagnostics */
     int bounces[NSIMD] __memalign__;  /**< Number of times pitch sign changed */
@@ -363,15 +363,15 @@ typedef struct {
     real B_z[NSIMD] __memalign__;        /**< Magnetic field z component at
                                               marker position [T]             */
 
-    real B_r_dr[NSIMD] __memalign__;     /**< dB_R/dR at marker position [T/m]     */
-    real B_phi_dr[NSIMD] __memalign__;   /**< dB_phi/dR at marker position [T/m]   */
-    real B_z_dr[NSIMD] __memalign__;     /**< dB_z/dR at marker position [T/m]     */
-    real B_r_dphi[NSIMD] __memalign__;   /**< dB_R/dphi at marker position [T/m]   */
-    real B_phi_dphi[NSIMD] __memalign__; /**< dB_phi/dphi at marker position [T/m] */
-    real B_z_dphi[NSIMD] __memalign__;   /**< dB_z/dphi at marker position [T/m]   */
-    real B_r_dz[NSIMD] __memalign__;     /**< dB_R/dz at marker position [T/m]     */
-    real B_phi_dz[NSIMD] __memalign__;   /**< dB_phi/dz at marker position [T/m]   */
-    real B_z_dz[NSIMD] __memalign__;     /**< dB_z/dz at marker position [T/m]     */
+    real B_r_dr[NSIMD] __memalign__;     /**< dB_R/dR at marker pos. [T/m]    */
+    real B_phi_dr[NSIMD] __memalign__;   /**< dB_phi/dR at marker pos. [T/m]  */
+    real B_z_dr[NSIMD] __memalign__;     /**< dB_z/dR at marker pos. [T/m]    */
+    real B_r_dphi[NSIMD] __memalign__;   /**< dB_R/dphi at marker pos. [T/m]  */
+    real B_phi_dphi[NSIMD] __memalign__; /**< dB_phi/dphi at marker pos. [T/m]*/
+    real B_z_dphi[NSIMD] __memalign__;   /**< dB_z/dphi at marker pos. [T/m]  */
+    real B_r_dz[NSIMD] __memalign__;     /**< dB_R/dz at marker pos. [T/m]    */
+    real B_phi_dz[NSIMD] __memalign__;   /**< dB_phi/dz at marker pos. [T/m]  */
+    real B_z_dz[NSIMD] __memalign__;     /**< dB_z/dz at marker pos. [T/m]    */
 
     /* Quantities used in diagnostics */
     real weight[NSIMD] __memalign__;  /**< Marker weight                      */
@@ -410,6 +410,12 @@ int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
 
 void particle_input_to_state(input_particle* p, particle_state* ps,
                              B_field_data* Bdata);
+a5err particle_input_p_to_state(particle* p, particle_state* ps,
+                                B_field_data* Bdata);
+a5err particle_input_gc_to_state(particle_gc* p, particle_state* ps,
+                                 B_field_data* Bdata);
+a5err particle_input_ml_to_state(particle_ml* p, particle_state* ps,
+                                 B_field_data* Bdata);
 
 #pragma omp declare simd uniform(Bdata)
 a5err particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo,
