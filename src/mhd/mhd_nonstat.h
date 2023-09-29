@@ -45,9 +45,13 @@ typedef struct {
                                                each mode [rad/s]              */
     real phase_nm[MHD_MODES_MAX_NUM];     /**< Phase of each mode [rad]       */
 
-    /**< 2D splines (rho,time) for each mode's magnetic eigenfunction */
+    /**
+     * @brief 2D splines (rho,time) for each mode's magnetic eigenfunction
+     */
     interp2D_data alpha_nm[MHD_MODES_MAX_NUM];
-    /**< 2D splines (rho,time) for each mode's electric eigenfunction */
+    /**
+     * @brief 2D splines (rho,time) for each mode's electric eigenfunction
+     */
     interp2D_data phi_nm[MHD_MODES_MAX_NUM];
 } mhd_nonstat_data;
 

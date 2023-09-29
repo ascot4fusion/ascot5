@@ -41,9 +41,6 @@ int write_output(
     particle_state* ps_gathered, int n_gathered,
     real* diag_offload_array);
 
-int free_simulation_output(
-    sim_offload_data* sim, particle_state **ps, real** diag_offload_array);
-
 void print_marker_summary(particle_state* ps, int n_tot);
 
 #endif

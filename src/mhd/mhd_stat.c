@@ -167,6 +167,7 @@ void mhd_stat_init(mhd_stat_data* mhddata, mhd_stat_offload_data* offload_data,
  * @param includemode mode number to include or MHD_INCLUDE_ALL
  * @param boozerdata pointer to boozer data
  * @param mhddata pointer to mhd data
+ * @param Bdata pointer to magnetic field data
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */

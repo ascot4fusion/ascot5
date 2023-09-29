@@ -449,7 +449,9 @@ int write_rungroup(
  * @brief Offload data to target, carry out the simulation, and return to host.
  *
  * @param sim simulation offload data struct
+ * @param mpi_size number of MPI processes
  * @param mpi_rank rank of this MPI process
+ * @param mpi_root rank of the root process
  * @param n_tot total number of markers
  * @param nprts number of markers in this process
  * @param pin marker state array for this process (deallocated here)

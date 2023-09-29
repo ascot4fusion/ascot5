@@ -144,6 +144,7 @@ int asigma_init(asigma_data* asgm_data,
  * @param reac_type reaction type
  * @param asigma_data pointer to atomic data struct
  * @param E_coll_per_amu energy per amu corresponding to collision speed
+ * @param enable_atomic pointer to atomic enable and functionality flag
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
@@ -196,7 +197,6 @@ a5err asigma_eval_sigma(
  * @param asigma_data pointer to atomic data struct
  * @param E energy of fast particle
  * @param T_e electron temperature of bulk plasma
- * @param T_i ion temperature of bulk plasma
  * @param T_0 temperature of bulk neutrals
  * @param n_i ion density of bulk plasma
  * @param enable_atomic pointer to atomic enable and functionality flag

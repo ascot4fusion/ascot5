@@ -12,6 +12,7 @@
 #include "boschhale.h"
 #include "diag/dist_5D.h"
 
+/** Random number generator used by AFSI */
 random_data rdata;
 
 void afsi_sample_reactant_velocities(
@@ -53,7 +54,7 @@ real afsi_get_volume(afsi_data* dist, int iR);
 void afsi_run(int reaction, int n, afsi_data* react1, afsi_data* react2,
               dist_5D_data* prod1, dist_5D_data* prod2) {
 
-    random_init(rdata, time((NULL)));
+    random_init(&rdata, time((NULL)));
 
     real m1=0, m2=0, mprod1=0, mprod2=0, Q=0;
     switch(reaction) {
@@ -364,7 +365,7 @@ void afsi_sample_5D(dist_5D_data* dist, int n, int iR, int iphi, int iz,
 /**
  * @brief Sample ppara and pperp from a thermal (Maxwellian) population.
  *
- * @param dist pointer to the thermal data.
+ * @param data pointer to the thermal data.
  * @param mass mass of the particle species.
  * @param n number of values to be sampled.
  * @param iR R index where sampling is done.
