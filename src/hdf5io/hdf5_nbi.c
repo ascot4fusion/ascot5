@@ -36,8 +36,10 @@ int hdf5_nbi_init_offload(hid_t f, nbi_offload_data* offload_data,
         return 1;
     }
 
+    /// @cond
     #undef NBIPATH
     #define NBIPATH "/nbi/nbi_XXXXXXXXXX/"
+    /// @endcond
 
     if( hdf5_read_int(NBIPATH "ninj", &(offload_data->ninj),
                       f, qid, __FILE__, __LINE__) ) {return 1;}

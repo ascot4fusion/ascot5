@@ -2,7 +2,6 @@
  * @file random.c
  * @brief Random number generator interface
  */
-
 #if defined(RANDOM_MKL)
 
 #include <mkl_vsl.h>
@@ -108,7 +107,8 @@ void random_lcg_uniform_simd(random_data* rdata, int n, double* r) {
 
 void random_lcg_normal_simd(random_data* rdata, int n, double* r) {
     double x1, x2, w; /* Helper variables */
-    int isEven = (n+1) % 2; /* Indicates if even number of random numbers are requested */
+    int isEven = (n+1) % 2; /* Indicates if even number of random numbers are
+                               requested */
 
 #if A5_CCOL_USE_GEOBM == 1
     /* The geometric form */
@@ -163,12 +163,25 @@ void random_lcg_normal_simd(random_data* rdata, int n, double* r) {
 #include "consts.h"
 #include "random.h"
 
+/**
+ * @brief Initialize random generator which uses the linear congruential
+ *        algorithm and 48-bit integer arithmetic.
+ *
+ */
 double random_drand48_normal() {
     double r;
     random_drand48_normal_simd(1, &r);
     return r;
 }
 
+/**
+ * @brief Vectorised sampling from uniform distribution
+ *
+ * Uses the linear congruential algorithm and 48-bit integer arithmetic.
+ *
+ * @param n number of numbers to be sampled
+ * @param r pointer where the values are stored
+ */
 void random_drand48_uniform_simd(int n, double* r) {
     #pragma omp simd
     for(int i = 0; i < n; i++) {
@@ -176,9 +189,18 @@ void random_drand48_uniform_simd(int n, double* r) {
     }
 }
 
+/**
+ * @brief Vectorised sampling from normal distribution
+ *
+ * Uses the linear congruential algorithm and 48-bit integer arithmetic.
+ *
+ * @param n number of numbers to be sampled
+ * @param r pointer where the values are stored
+ */
 void random_drand48_normal_simd(int n, double* r) {
     double x1, x2, w; /* Helper variables */
-    int isEven = (n+1) % 2; /* Indicates if even number of random numbers are requested */
+    int isEven = (n+1) % 2; /* Indicates if even number of random numbers
+                               are requested */
 
 #if A5_CCOL_USE_GEOBM == 1
     /* The geometric form */

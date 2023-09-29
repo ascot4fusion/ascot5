@@ -1,5 +1,5 @@
 /**
- * @file hdf5_markers.c
+ * @file hdf5_marker.c
  * @brief Read markers from HDF5 file
  *
  * Markers must be read by calling hdf5_marker_init() contained in this module

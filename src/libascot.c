@@ -104,7 +104,11 @@ void libascot_B_field_eval_B_dB(
  * @param z z coordinates of the evaluation points [m].
  * @param t time coordinates of the evaluation points [s].
  * @param rho output array for the normalized poloidal flux.
- * @param psi output array for the poloidal flux.
+ * @param drhodpsi output array for normalized poloidal flux psi derivative.
+ * @param psi output array for the poloidal flux [Wb].
+ * @param dpsidr output array for the poloidal flux R derivative [Wb/m].
+ * @param dpsidphi output array for the poloidal flux phi derivative [Wb/rad].
+ * @param dpsidz output array for the poloidal flux z derivative [Wb/m].
  */
 void libascot_B_field_eval_rho(
     sim_offload_data* sim_offload_data, real* B_offload_array, int Neval,
@@ -490,7 +494,7 @@ void libascot_boozer_eval_psithetazeta(
  * @param t time coordinates of the evaluation points [s].
  * @param qprof array for storing the (flux averaged) safety factor.
  * @param jac array for storing the coordinate Jacobian.
- * @param jacb2 array for storing the coordinate Jacobian multiplied with B^2.
+ * @param jacB2 array for storing the coordinate Jacobian multiplied with B^2.
  */
 void libascot_boozer_eval_fun(
     sim_offload_data* sim_offload_data, real* B_offload_array,
@@ -705,17 +709,18 @@ void libascot_mhd_eval_perturbation(
 }
 
 /**
- * @brief Evaluate collision coefficients.
+ * @brief Evaluate collision coefficients
  *
  * @param sim_offload_data initialized simulation offload data struct
  * @param B_offload_array initialized magnetic field offload data
  * @param plasma_offload_array initialized plasma offload data
- * @param Neval number of evaluation points.
- * @param va test particle velocities at the evaluation point [m/s].
- * @param R R coordinates of the evaluation points [m].
- * @param phi phi coordinates of the evaluation points [rad].
- * @param z z coordinates of the evaluation points [m].
- * @param t time coordinates of the evaluation points [s].
+ * @param Neval number of evaluation points
+ * @param R R coordinates of the evaluation points [m]
+ * @param phi phi coordinates of the evaluation points [rad]
+ * @param z z coordinates of the evaluation points [m]
+ * @param t time coordinates of the evaluation points [s]
+ * @param Nv number of velocity grid points
+ * @param va test particle velocities at the evaluation point [m/s]
  * @param ma test particle mass [kg]
  * @param qa test particle charge [C]
  * @param F output array

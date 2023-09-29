@@ -34,6 +34,7 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
  * @param f HDF5 file from which data is read
  * @param offload_data pointer to offload data
  * @param offload_array pointer to offload array
+ * @param int_offload_array pointer to integer offload array
  * @param qid QID of the data
  *
  * @return Zero if reading and initialization of data succeeded
@@ -115,9 +116,9 @@ int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
  *
  * @param offload_data pointer to offload data
  * @param offload_array pointer to offload array
- * @param rin a 1-d array of nelements containing R-coordinates
- * @param zin a 1-d array of nelements containing z-coordinates
  * @param nelements length of the wall data
+ * @param r a 1-d array of nelements containing R-coordinates
+ * @param z a 1-d array of nelements containing z-coordinates
  *
  * @return Zero if assignment succeeded
  */
@@ -196,9 +197,9 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
  * @param offload_data pointer to offload data
  * @param offload_array pointer to offload array
  * @param nelements length of the wall data
- * @param x1x2x3 a 1-d array of 3*nelements containing x-coordinates of triangle corners
- * @param y1y2y3 a 1-d array of 3*nelements containing y-coordinates of triangle corners
- * @param z1z2z3 a 1-d array of 3*nelements containing z-coordinates of triangle corners
+ * @param x1x2x3 a x-coords of triangle corners
+ * @param y1y2y3 a y-coords of triangle corners
+ * @param z1z2z3 a z-coords of triangle corners
  *
  * @return Zero if assignment succeeded
  */

@@ -168,8 +168,10 @@ int mhd_init(mhd_data* mhddata, mhd_offload_data* offload_data,
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
  * @param t time coordinate [s]
+ * @param includemode mode number to be included or MHD_INCLUDE_ALL
  * @param boozerdata pointer to boozer data
  * @param mhddata pointer to mhd data
+ * @param Bdata pointer to magnetic field data
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
@@ -222,6 +224,7 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
  * @param z z coordinate [m]
  * @param t time coordinate [s]
  * @param pertonly flag whether to return the whole field or only perturbation
+ * @param includemode mode number to be included or MHD_INCLUDE_ALL
  * @param boozerdata pointer to boozer data
  * @param mhddata pointer to mhd data
  * @param Bdata pointer to magnetic field data

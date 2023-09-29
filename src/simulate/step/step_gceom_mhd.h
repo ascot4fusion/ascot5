@@ -13,11 +13,9 @@
 
 #pragma omp declare target
 
-
 /**
  * @brief Calculate guiding center equations of motion for a single particle
  *
- * @param i particle index that is calculated
  * @param ydot output right hand side of the equations of motion in a
  *             6-length array (rdot, phidot, zdot, ppardot, mudot, chidot)
  * @param y input coordinates in a 5-length array (r, phi, z, rhopar, mu)
