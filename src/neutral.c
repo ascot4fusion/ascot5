@@ -218,7 +218,7 @@ a5err neutral_eval_t0(real* t0, real rho, real r, real phi, real z, real t,
  *
  * This is a SIMD function.
  *
- * @param neutral_data pointer to neutral data struct
+ * @param ndata pointer to neutral data struct
  *
  * @return The number of neutral species
  */

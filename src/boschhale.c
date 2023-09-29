@@ -1,5 +1,5 @@
 /**
- * @file boschdale.c
+ * @file boschhale.c
  * @brief Formulas for fusion cross-sections and thermal reactivities.
  *
  * The model is adapted from here:

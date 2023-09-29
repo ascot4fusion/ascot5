@@ -6,9 +6,6 @@
 #define WALL_3D_H
 #include "../ascot5.h"
 
-/** Default depth of octree struct */
-#define WALL_OCTREE_DEPTH 7
-
 /** Small value to check if x = 0 (i.e. abs(x) < WALL_EPSILON) */
 #define WALL_EPSILON 1e-9
 
@@ -52,15 +49,23 @@ typedef struct {
     int ngrid;           /**< Number of cells computational volume is divided
                               to in each direction. ngrid = 2^(depth-1)       */
     real* wall_tris;     /**< Array of wall triangle coordinates */
-    int tree_array_size; /**<  */
-    int* tree_array;     /**< Pointer to octree array */
+    int tree_array_size; /**< Number of elements in tree_array */
+
+    /**@brief Array storing information what triangles given octree cell stores
+     *
+     * First ncell elements store the array position where data for a given cell
+     * begins, where the cell index is icell = ix * ngrid**2 + iy * ngrid + iz.
+     * The first element in the cell data, i.e. tree_array[tree_array[icell]],
+     * is the number of triangles in this cell, ntriangle, and the next
+     * ntriangle elements are the triangle indices.
+     */
+    int* tree_array;
 } wall_3d_data;
 
 int wall_3d_init_offload(wall_3d_offload_data* offload_data,
                          real** offload_array, int** int_offload_array);
 void wall_3d_free_offload(wall_3d_offload_data* offload_data,
                           real** offload_array, int** int_offload_array);
-
 void wall_3d_init_octree(wall_3d_offload_data* w, real* offload_array,
                          int** int_offload_array);
 

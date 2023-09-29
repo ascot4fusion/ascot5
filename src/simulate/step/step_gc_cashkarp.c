@@ -322,6 +322,8 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol,
  * @param tol error tolerance
  * @param Bdata pointer to magnetic field data
  * @param Edata pointer to electric field data
+ * @param boozer pointer to Boozer data
+ * @param mhd pointer to MHD data
  */
 void step_gc_cashkarp_mhd(particle_simd_gc* p, real* h, real* hnext, real tol,
                           B_field_data* Bdata, E_field_data* Edata,

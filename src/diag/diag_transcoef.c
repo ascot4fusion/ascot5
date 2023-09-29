@@ -50,9 +50,13 @@ void diag_transcoef_init(diag_transcoef_data* data,
     }
 }
 
+/**
+ * @brief Free transport coefficient data on target
+ *
+ * @param data transport coefficient diagnostics data struct
+ */
 void diag_transcoef_free(diag_transcoef_data* data) {
     free(data->datapoints);
-
 }
 
 /**
@@ -154,18 +158,19 @@ void diag_transcoef_update_ml(diag_transcoef_data* data,
 
 
 /**
- * @brief Check if criteria for recording is met for a single marker and record.
+ * @brief Check if criteria for recording is met for a single marker and make
+ *        the record
  *
- * @param data pointer to transport coefficient data.
- * @param index marker index in the marker queue.
- * @param id marker id.
- * @param rho.
- * @param r.
- * @param pitchsign.
- * @param t_f time (mileage) at the end of the time step.
- * @param t_i time (mileage) at the beginning of the time step.
- * @param theta_f poloidal angle at the end of the time step.
- * @param theta_i poloidal angle at the beginning of the time step.
+ * @param data pointer to transport coefficient data
+ * @param index marker index in the marker queue
+ * @param id marker id
+ * @param rho marker rho coordinate to be recorded
+ * @param r marker R coordinate to be recorded
+ * @param pitchsign sign of the marker's pitch
+ * @param t_f time (mileage) at the end of the time step
+ * @param t_i time (mileage) at the beginning of the time step
+ * @param theta_f poloidal angle at the end of the time step
+ * @param theta_i poloidal angle at the beginning of the time step
  */
 void diag_transcoef_record(diag_transcoef_data* data, integer index,
                            integer id, real rho, real r, real pitchsign,
@@ -218,20 +223,13 @@ void diag_transcoef_record(diag_transcoef_data* data, integer index,
 
 
 /**
- * @brief Process recorded data to transport coefficients and clean.
+ * @brief Process recorded data to transport coefficients and clean
  *
- * This function is called when marker simulation has ended.
+ * This function is called when marker simulation has ended
  *
- * @param data pointer to transport coefficient data.
- * @param index marker index in the marker queue.
- * @param id marker id.
- * @param rho.
- * @param r.
- * @param pitchsign.
- * @param t_i time (mileage) at the beginning of the time step.
- * @param t_f time (mileage) at the end of the time step.
- * @param theta_i poloidal angle at the beginning of the time step.
- * @param theta_f poloidal angle at the end of the time step.
+ * @param data pointer to transport coefficient data
+ * @param index marker index in the marker queue
+ * @param id marker id
  */
 void diag_transcoef_process_and_clean(diag_transcoef_data* data,
                                       integer index, integer id) {

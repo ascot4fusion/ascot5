@@ -48,6 +48,7 @@
  * @param plasma_offload_array pointer to plasma data offload array
  * @param neutral_offload_array pointer to neutral data offload array
  * @param wall_offload_array pointer to wall offload array
+ * @param wall_int_offload_array pointer to wall integer offload array
  * @param boozer_offload_array pointer to boozer offload array
  * @param mhd_offload_array pointer to mhd offload array
  * @param asigma_offload_array pointer to atomic offload array
@@ -356,7 +357,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
  *
  * This functions creates results group (if one does not already exist) and
  * creates run group corresponding to this run. Run group is named as
- * /results/<run>_XXXXXXXXXX/ where X's are the qid of current run and <run>
+ * /results/\<run\>_XXXXXXXXXX/ where X's are the qid of current run and \<run\>
  * is the type of the run: "run" for ascot5_main and "bbnbi" for bbnbi5.
  *
  * The group is initialized by writing qids of all used inputs as string

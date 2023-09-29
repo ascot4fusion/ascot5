@@ -142,13 +142,14 @@ void plasma_1Dt_init(plasma_1Dt_data* pls_data,
  *
  * @param temp pointer to where evaluated temperature [J] is stored
  * @param rho radial coordinate
+ * @param t time instant
  * @param species index of plasma species
  * @param pls_data pointer to plasma data struct
  *
  * @return zero if evaluation succeeded
  */
 a5err plasma_1Dt_eval_temp(real* temp, real rho, real t, int species,
-                          plasma_1Dt_data* pls_data) {
+                           plasma_1Dt_data* pls_data) {
 
     real temp_dens[MAX_SPECIES], temp_temp[MAX_SPECIES];
 
@@ -169,6 +170,7 @@ a5err plasma_1Dt_eval_temp(real* temp, real rho, real t, int species,
  *
  * @param dens pointer to where evaluated density [m^-3] is stored
  * @param rho radial coordinate
+ * @param t time instant
  * @param species index of plasma species
  * @param pls_data pointer to plasma data struct
  *
@@ -196,6 +198,7 @@ a5err plasma_1Dt_eval_dens(real* dens, real rho, real t, int species,
  * @param dens pointer to where interpolated densities [m^-3] are stored
  * @param temp pointer to where interpolated temperatures [J] are stored
  * @param rho radial coordinate
+ * @param t time instant
  * @param pls_data pointer to plasma data struct
  *
  * @return zero if evaluation succeeded

@@ -1,5 +1,5 @@
 /**
- * @file boschdale.h
+ * @file boschhale.h
  * @brief Header file for boschdale.c
  */
 #ifndef BOSCHHALE_H

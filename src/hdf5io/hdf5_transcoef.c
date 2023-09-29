@@ -19,7 +19,7 @@
  * @param f hdf5 file
  * @param run run group where the transport coefficients are written
  * @param data transport coefficient diagnostics offload data
- * @param coefdata array storing the coefficient data [id, K, D]
+ * @param coefarr array storing the coefficient data [id, K, D]
  *
  * @return zero on success
  */

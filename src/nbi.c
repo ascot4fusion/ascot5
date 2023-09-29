@@ -67,7 +67,7 @@ int nbi_init_offload(nbi_offload_data* offload_data, real** offload_array) {
 /**
  * @brief Initialize NBI data struct on target
  *
- * @param nbidata pointer to data struct on target
+ * @param nbi pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
  */
@@ -121,7 +121,7 @@ void nbi_free_offload(nbi_offload_data* offload_data,
 /**
  * @brief Generate NBI ions by injecting and tracing neutrals from an injector
  *
- * @param pou pointer where generated markers are stored or NULL
+ * @param pout pointer where generated markers are stored or NULL
  * @param nprt number of markers to be injected or generated
  * @param t0 time when the injector is turned on
  * @param t1 time when the injector is turned off

@@ -1591,7 +1591,6 @@ a5err particle_input_gc_to_state(particle_gc* p, particle_state* ps,
  *
  * @param p pointer to field line marker input
  * @param ps pointer to state where converted marker will be stored
- * @param axisrz magnetic axis (R,z) coordinates [m]
  * @param Bdata pointer to magnetic field data
  *
  * @return zero if there was no error

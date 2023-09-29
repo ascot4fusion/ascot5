@@ -28,8 +28,10 @@
 int hdf5_boozer_init_offload(hid_t f, boozer_offload_data* offload_data,
                              real** offload_array, char* qid) {
 
+    /// @cond
     #undef BOOZERPATH
     #define BOOZERPATH "/boozer/Boozer_XXXXXXXXXX/"
+    /// @endcond
 
     /* Read data the QID corresponds to */
     char path[256];
