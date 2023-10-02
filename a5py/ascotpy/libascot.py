@@ -44,11 +44,14 @@ try:
 
 except OSError as error:
     _LIBASCOT = None
-    msg = """
-    Warning: Failed to import libascot.so. Some functionalities of Ascot
-    are not available. Verify that libascot.so has been compiled, it can be
-    found in LD_LIBRARY_PATH, and dependencies (e.g. HDF5) are available.
-    """
+    PTR_REAL  = None
+    PTR_INT   = None
+    PTR_SIM   = None
+    PTR_ARR   = None
+    msg = \
+      "Failed to import libascot.so: verify that it has been compiled, it is "
+    + "located in the build folder, and all dependencies are available.\n"
+    + "Some functionalities of Ascot are not available."
     warnings.warn(msg)
 
 class LibAscot:
