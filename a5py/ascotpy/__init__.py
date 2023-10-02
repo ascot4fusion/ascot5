@@ -435,7 +435,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         """
         out = {}
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
-                    "mhd", "asigma"]:
+                    "mhd", "asigma", "nbi"]:
             qid = getattr(self._sim, "qid_" + inp)
             if qid != Ascotpy.DUMMY_QID:
                 out[inp] = qid.decode("utf-8")
