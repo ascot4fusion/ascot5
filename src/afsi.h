@@ -8,8 +8,8 @@
 #include <math.h>
 #include "ascot5.h"
 #include "consts.h"
+#include "simulate.h"
 #include "random.h"
-#include "boschhale.h"
 #include "diag/dist_5D.h"
 
 /**
@@ -41,8 +41,11 @@ typedef struct {
     afsi_thermal_data* dist_thermal; /**< Thermal data                        */
 } afsi_data;
 
-void afsi_run(int reaction, int n, afsi_data* react1, afsi_data* react2,
-              dist_5D_data* prod1, dist_5D_data* prod2);
+void afsi_run(sim_offload_data* sim, int reaction, int n, afsi_data* react1,
+              afsi_data* react2, real mult,
+              dist_5D_offload_data* prod1_offload_data,
+              dist_5D_offload_data* prod2_offload_data,
+              real* prod1_offload_array, real* prod2_offload_array);
 void afsi_test_dist(dist_5D_data* dist1);
 void afsi_test_thermal();
 
