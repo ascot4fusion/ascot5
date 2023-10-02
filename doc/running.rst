@@ -338,11 +338,17 @@ Additional parameters can be found in ``ascot5.h``, but there is rarely a need t
 
 .. doxygendefine:: A5_CCOL_USE_TABULATED
 
+.. _Simulations:
+
+===========
+Simulations
+===========
+
 .. _Simulationoptions:
 
-==================
-Simulation options
-==================
+=======
+Options
+=======
 
 .. currentmodule:: a5py.ascot5io.options
 
@@ -479,18 +485,112 @@ Simulation options
 
 .. currentmodule:: a5py
 
-.. _Simulations:
-
-===========
-Simulations
-===========
-
-TBD
-
 .. _Batchjobs:
 
-==========
 Batch jobs
 ==========
 
-TBD
+Use this script to run ASCOT5 in multiple nodes using MPI (MPI=1 when the code was compiled).
+
+.. code-block::
+
+   #!/bin/bash
+
+   ## Set required nodes and CPUs (number of processes == number of nodes)
+   #SBATCH -N10 -n10 -c48
+
+   #SBATCH -t 24:00:00
+   #SBATCH -J ascot5
+
+   #SBATCH -e %x.e%j
+   #SBATCH -o %x.o%j
+
+   export <your exports>
+   module load <your modules>
+
+   echo Job name $SLURM_JOB_NAME
+   echo Job id $SLURM_JOB_ID
+
+   # Some platforms require that the number of threads must be given explicitly
+   # In those cases use (1-2) x number of CPUs (check which is faster)
+   export OMP_NUM_THREADS=48
+
+   INPUTFILE=ascot
+
+   date
+   export FOR_PRINT=$SLURM_JOB_ID.stdout
+   mpirun ./ascot5_main --in=$INPUTFILE --d="YOURTAG Your description"
+   date
+
+Use this script to run ASCOT5 in multiple nodes without MPI (MPI=0 when the code was compiled).
+This results in multiple output files that you have to combine using the python tool ``a5combine``.
+
+.. code-block::
+
+   #!/bin/bash
+
+   ## How many jobs this run is divided into
+   NJOBS=100
+
+   ## Name of the input file. Each output file begins with this name followed by
+   ## its "mpi_rank"
+   INPUTFILE=ascot
+
+   for i in $(seq 0 $(($NJOBS-1)))
+   do
+   filename=${RANDOM}
+   cat > $filename << EOF
+   #!/bin/bash
+
+   ## Use only single node and single process
+   #SBATCH -N1 -n1 -c48
+
+   #SBATCH -t 24:00:00
+   #SBATCH -J ascot5
+
+   #SBATCH -e ${i}.e%j
+   #SBATCH -o ${i}.o%j
+
+   export <your exports>
+   module load <your modules>
+
+   # Some platforms require that the number of threads must be given explicitly
+   # In those cases use (1-2) x number of CPUs (check which is faster)
+   export OMP_NUM_THREADS=96
+
+   echo Job name $SLURM_JOB_NAME
+   echo Job id $SLURM_JOB_ID
+
+   date
+   ./ascot5_main --mpi_rank=$i --mpi_size=$NJOBS --in=$INPUTFILE --d="YOURTAG Your description"
+   date
+
+   EOF
+
+   sbatch $filename
+   rm $filename
+   echo $i
+   ## If multiple jobs are reading from the same file at the same time this can
+   ## cause problems in the system, so give system some time to breathe
+   sleep 5s
+   done
+
+Examples
+========
+
+.. list-table:: Examples of simulation times and number of markers used
+   :widths: 50 25 25 25
+   :header-rows: 1
+
+   * - Simulation
+     - Hardware
+     - Number of markers
+     - CPU time
+   * - Alpha particle slowing-down in 3D ITER (Not real numbers!)
+     - Xeon-Phi, 10 nodes (MARCONI)
+     - :math:`1\times10^6`
+     - 24 h
+   * -
+     -
+     -
+     -
