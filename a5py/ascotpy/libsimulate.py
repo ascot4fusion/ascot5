@@ -196,7 +196,7 @@ class LibSimulate():
         if "vr" in mrk:
             for i in range(nmrk):
                 pin[i].type = ascot2py.input_particle_type_p
-                p = pin[i].c__SA_input_particle_0.p
+                p = pin[i].p
 
                 vvec = np.array([mrk["vr"][i], mrk["vphi"][i], mrk["vz"][i]]) * unyt.m/unyt.s
                 pvec = momentum_velocity(mrk["mass"][i], vvec)
@@ -220,7 +220,7 @@ class LibSimulate():
         elif "energy" in mrk:
             for i in range(nmrk):
                 pin[i].type = ascot2py.input_particle_type_gc
-                p = pin[i].c__SA_input_particle_0.p_gc
+                p = pin[i].p_gc
 
                 p.r       = mrk["r"][i]
                 p.phi     = mrk["phi"][i] * np.pi / 180
@@ -240,7 +240,7 @@ class LibSimulate():
         else:
             for i in range(nmrk):
                 pin[i].type = ascot2py.input_particle_type_ml
-                p = pin[i].c__SA_input_particle_0.p_ml
+                p = pin[i].p_ml
 
                 p.r       = mrk["r"][i]
                 p.phi     = mrk["phi"][i] * np.pi / 180

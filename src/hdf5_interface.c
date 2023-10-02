@@ -669,7 +669,7 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
     if(sim->diag_offload_data.diagorb_collect) {
         print_out(VERBOSE_IO, "Writing orbit diagnostics.\n");
         int idx = sim->diag_offload_data.offload_diagorb_index;
-        sprintf(path, "%sdist5d", run);
+        sprintf(path, "%sorbit", run);
         if( hdf5_orbit_write(f, path, &sim->diag_offload_data.diagorb,
                              &diag_offload_array[idx]) ) {
             print_err("Warning: Orbit diagnostics could not be written.\n");
@@ -679,7 +679,7 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
     if(sim->diag_offload_data.diagtrcof_collect) {
         print_out(VERBOSE_IO, "Writing transport coefficient diagnostics.\n");
         int idx = sim->diag_offload_data.offload_diagtrcof_index;
-        sprintf(path, "%sdist5d", run);
+        sprintf(path, "%stranscoef", run);
         if( hdf5_transcoef_write(f, path, &sim->diag_offload_data.diagtrcof,
                                  &diag_offload_array[idx]) ) {
             print_err("Warning: Coefficients could not be written.\n");
