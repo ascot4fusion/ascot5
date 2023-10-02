@@ -9,7 +9,7 @@
 #include "../ascot5.h"
 #include "../diag/diag_orb.h"
 
-int hdf5_orbit_write(hid_t f, char* run, diag_orb_offload_data* diag,
+int hdf5_orbit_write(hid_t f, char* path, diag_orb_offload_data* diag,
                      real* orbits);
 
 #endif

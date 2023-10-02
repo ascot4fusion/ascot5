@@ -384,6 +384,10 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid, char* run) {
 
     /* Open output file. */
     fout = hdf5_open(sim->hdf5_out);
+    if(fout < 0) {
+        print_err("Error: Output file %s doesn't exists.\n", sim->hdf5_out);
+        return 1;
+    }
 
     /* Create a run group for this specific run (and results group if one */
     /* doesn't exist already.                                             */
@@ -396,7 +400,6 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid, char* run) {
     print_out(VERBOSE_IO, "\nThe qid of this run is %s\n", qid);
     if(newgroup < 0) {
         print_err("Error: A run with qid %s already exists.\n", qid);
-        H5Gclose(newgroup);
         hdf5_close(fout);
         return 1;
     }
@@ -511,7 +514,7 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid, char* run) {
  * @return Zero if state was written succesfully
  */
 int hdf5_interface_write_state(char* fn, char* state, integer n,
-                             particle_state* p) {
+                               particle_state* p) {
     hid_t f = hdf5_open(fn);
     if(f < 0) {
         print_err("Error: File not found.\n");
@@ -535,7 +538,14 @@ int hdf5_interface_write_state(char* fn, char* state, integer n,
     }
     if(run[0] == '\0') {
         /* Check if this an bbnbi5 run */
-        sprintf(run, "/results/bbnbi5_%s/", qid);
+        sprintf(run, "/results/bbnbi_%s/", qid);
+        if( hdf5_find_group(f, run) < 0 ) {
+            run[0] = '\0';
+        }
+    }
+    if(run[0] == '\0') {
+        /* Check if this an afsi5 run */
+        sprintf(run, "/results/afsi_%s/", qid);
         if( hdf5_find_group(f, run) < 0 ) {
             run[0] = '\0';
         }
@@ -565,7 +575,7 @@ int hdf5_interface_write_state(char* fn, char* state, integer n,
  */
 int hdf5_interface_write_diagnostics(sim_offload_data* sim,
                                      real* diag_offload_array, char* out) {
-
+    char path[256]; /* For storing dataset names */
     print_out(VERBOSE_IO, "\nWriting diagnostics output.\n");
 
     hid_t f = hdf5_open(out);
@@ -592,7 +602,13 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
     if(run[0] == '\0') {
         /* Check if this an bbnbi5 run */
         sprintf(run, "/results/bbnbi_%s/", qid);
-        printf("\n%s %d\n", run, hdf5_find_group(f, run));
+        if( hdf5_find_group(f, run) < 0 ) {
+            run[0] = '\0';
+        }
+    }
+    if(run[0] == '\0') {
+        /* Check if this an afsi5 run */
+        sprintf(run, "/results/afsi_%s/", qid);
         if( hdf5_find_group(f, run) < 0 ) {
             run[0] = '\0';
         }
@@ -604,7 +620,8 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
     if(sim->diag_offload_data.dist5D_collect) {
         print_out(VERBOSE_IO, "\nWriting 5D distribution.\n");
         int idx = sim->diag_offload_data.offload_dist5D_index;
-        if( hdf5_dist_write_5D(f, run, &sim->diag_offload_data.dist5D,
+        sprintf(path, "%sdist5d", run);
+        if( hdf5_dist_write_5D(f, path, &sim->diag_offload_data.dist5D,
                                &diag_offload_array[idx]) ) {
             print_err("Warning: 5D distribution could not be written.\n");
         }
@@ -613,7 +630,8 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
     if(sim->diag_offload_data.dist6D_collect) {
         print_out(VERBOSE_IO, "\nWriting 6D distribution.\n");
         int idx = sim->diag_offload_data.offload_dist6D_index;
-        if( hdf5_dist_write_6D(f, run, &sim->diag_offload_data.dist6D,
+        sprintf(path, "%sdist6d", run);
+        if( hdf5_dist_write_6D(f, path, &sim->diag_offload_data.dist6D,
                                &diag_offload_array[idx]) ) {
             print_err("Warning: 6D distribution could not be written.\n");
         }
@@ -621,7 +639,8 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
     if(sim->diag_offload_data.distrho5D_collect) {
         print_out(VERBOSE_IO, "\nWriting rho 5D distribution.\n");
         int idx = sim->diag_offload_data.offload_distrho5D_index;
-        if( hdf5_dist_write_rho5D(f, run, &sim->diag_offload_data.distrho5D,
+        sprintf(path, "%sdistrho5d", run);
+        if( hdf5_dist_write_rho5D(f, path, &sim->diag_offload_data.distrho5D,
                                   &diag_offload_array[idx]) ) {
             print_err("Warning: rho 5D distribution could not be written.\n");
         }
@@ -630,8 +649,9 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
     if(sim->diag_offload_data.distrho6D_collect) {
         print_out(VERBOSE_IO, "\nWriting rho 6D distribution.\n");
         int idx = sim->diag_offload_data.offload_distrho6D_index;
-        if( hdf5_dist_write_rho6D( f, run, &sim->diag_offload_data.distrho6D,
-                                   &diag_offload_array[idx]) ) {
+        sprintf(path, "%sdistrho6d", run);
+        if( hdf5_dist_write_rho6D(f, path, &sim->diag_offload_data.distrho6D,
+                                  &diag_offload_array[idx]) ) {
             print_err("Warning: rho 6D distribution could not be written.\n");
         }
     }
@@ -639,7 +659,8 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
     if(sim->diag_offload_data.distCOM_collect) {
         print_out(VERBOSE_IO, "\nWriting COM distribution.\n");
         int idx = sim->diag_offload_data.offload_distCOM_index;
-        if( hdf5_dist_write_COM( f, run, &sim->diag_offload_data.distCOM,
+        sprintf(path, "%sdistcom", run);
+        if( hdf5_dist_write_COM( f, path, &sim->diag_offload_data.distCOM,
                                  &diag_offload_array[idx]) ) {
             print_err("Warning: COM distribution could not be written.\n");
         }
@@ -647,10 +668,10 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
 
     if(sim->diag_offload_data.diagorb_collect) {
         print_out(VERBOSE_IO, "Writing orbit diagnostics.\n");
-
         int idx = sim->diag_offload_data.offload_diagorb_index;
-        if( hdf5_orbit_write( f, run, &sim->diag_offload_data.diagorb,
-                              &diag_offload_array[idx]) ) {
+        sprintf(path, "%sdist5d", run);
+        if( hdf5_orbit_write(f, path, &sim->diag_offload_data.diagorb,
+                             &diag_offload_array[idx]) ) {
             print_err("Warning: Orbit diagnostics could not be written.\n");
         }
     }
@@ -658,9 +679,10 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
     if(sim->diag_offload_data.diagtrcof_collect) {
         print_out(VERBOSE_IO, "Writing transport coefficient diagnostics.\n");
         int idx = sim->diag_offload_data.offload_diagtrcof_index;
-        if( hdf5_transcoef_write( f, run, &sim->diag_offload_data.diagtrcof,
-                                  &diag_offload_array[idx]) ) {
-            print_err("Warning: Transport coefficients could not be written.\n");
+        sprintf(path, "%sdist5d", run);
+        if( hdf5_transcoef_write(f, path, &sim->diag_offload_data.diagtrcof,
+                                 &diag_offload_array[idx]) ) {
+            print_err("Warning: Coefficients could not be written.\n");
         }
     }
 

@@ -39,16 +39,11 @@
  *
  * @return zero on success
  */
-int hdf5_histogram_write_uniform_double(hid_t f, const char *path,
-                                        int abscissaDim, int ordinateDim,
-                                        int *abscissaNslots,
-                                        double *abscissaMin,
-                                        double *abscissaMax,
-                                        char **abscissaUnits,
-                                        char **abscissaNames,
-                                        char **ordinateUnits,
-                                        char **ordinateNames,
-                                        double *ordinate) {
+int hdf5_histogram_write_uniform_double(
+    hid_t f, const char *path, int abscissaDim, int ordinateDim,
+    int *abscissaNslots, double *abscissaMin, double *abscissaMax,
+    char **abscissaUnits, char **abscissaNames,
+    char **ordinateUnits, char **ordinateNames, double *ordinate) {
 
     char temppath[256]; /* Helper variable */
 
