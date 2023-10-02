@@ -6,7 +6,7 @@ import copy
 import numpy as np
 import numpy.ctypeslib as npctypes
 
-from a5py.ascotpy import ascot2py
+from a5py.ascotpy.libascot import _LIBASCOT
 
 class Afsi():
     """ASCOT Fusion Source Integrator AFSI.
@@ -156,8 +156,8 @@ class Afsi():
         prod2, prod2_data = self._init_product_dist(
             temp, q2, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
 
-        ascot2py.afsi_run(reaction, nmc, react1, react2, mult, prod1, prod2,
-                          prod1_data, prod2_data)
+        _LIBASCOT.afsi_run(reaction, nmc, react1, react2, mult, prod1, prod2,
+                           prod1_data, prod2_data)
 
         return prod1, prod2
 
@@ -245,13 +245,13 @@ class Afsi():
             dist, q2, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
 
         if swap:
-            ascot2py.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
-                              react1, react2, mult, prod1, prod2,
-                              prod1_data, prod2_data)
+            _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
+                               react1, react2, mult, prod1, prod2,
+                               prod1_data, prod2_data)
         else:
-            ascot2py.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
-                              react2, react1, mult, prod1, prod2,
-                              prod1_data, prod2_data)
+            _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
+                               react2, react1, mult, prod1, prod2,
+                               prod1_data, prod2_data)
         return prod1, prod2
 
     def beambeam(self, reaction, beam1, beam2=None, it=0, nmc=1000, mult=1.0,
@@ -318,8 +318,8 @@ class Afsi():
         prod2, prod2_data = self._init_product_dist(
             dist1, q2, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
 
-        ascot2py.afsi_run(reaction, nmc, react1, react2, mult, prod1, prod2,
-                          prod1_data, prod2_data)
+        _LIBASCOT.afsi_run(reaction, nmc, react1, react2, mult, prod1, prod2,
+                           prod1_data, prod2_data)
 
         return prod1, prod2
 

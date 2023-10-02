@@ -49,8 +49,8 @@ except OSError as error:
     PTR_SIM   = None
     PTR_ARR   = None
     msg = \
-      "Failed to import libascot.so: verify that it has been compiled, it is "
-    + "located in the build folder, and all dependencies are available.\n"
+      "Failed to import libascot.so: verify that it has been compiled, it is "\
+    + "located in the build folder, and all dependencies are available.\n"    \
     + "Some functionalities of Ascot are not available."
     warnings.warn(msg)
 
