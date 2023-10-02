@@ -7,8 +7,10 @@ import unyt
 from .ascot5io import Ascot5IO
 from .ascotpy  import Ascotpy
 
-from .ascotpy.libascot import _LIBASCOT
-from .exceptions import *
+from .ascotpy.libascot  import _LIBASCOT
+from .exceptions        import *
+from .routines.biosaw5  import BioSaw
+from .routines.afsi5    import Afsi
 from .routines.plotting import openfigureifnoaxes, line2d
 
 # Define the unit system ascot uses and add our own unit types
@@ -23,16 +25,7 @@ u["magnetic_field"] = "T"
 class Ascot(Ascotpy):
     """Primary tool for processing ASCOT5 data.
 
-    Ascot object represents the data in a single HDF5 file. The class provides
-    methods to:
-
-    - add, modify, and delete the data in HDF5 and set descriptions.
-    - access to input and output data, and premade plots for visualization.
-    - calculate derived quantities from the data.
-    - Python interface to ASCOT5 C routines to evaluate data as ASCOT5 does.
-    - capability to simulate individual markers using the Python interface.
-
-    In a nutshell, this object is all you need to work with ASCOT5 data unless
+    This object is supposed to be all you need to work with ASCOT5 data unless
     one is doing something exotic.
 
     The data is accessed via :attr:`~a5py.Ascot.data` attribute and its
@@ -43,10 +36,19 @@ class Ascot(Ascotpy):
     The active run is accessed as `Ascot5.data.active` and its methods contain
     most of the plotting and data access routines.
 
+    The methods in this class provide interface to ASCOT5 C-routines and allow
+    simulating markers in Python or evaluating data exactly as it is evaluated
+    run-time.
+
     Attributes
     ----------
     data : :class:`.Ascot5IO`
         Container for the HDF5 data.
+    biosaw : :class:`.BioSaw`
+        Tool for calculating magnetic field from coils.
+    afsi : :class:`Afsi`
+        Tool for calculating fusion source from thermal plasma and fast ion
+        distributions.
     """
 
     def __init__(self, inputfile=None, create=False, mute="err"):
@@ -69,6 +71,8 @@ class Ascot(Ascotpy):
 
         self._inputfile = None
         self.data       = None
+        self.biosaw     = BioSaw(self)
+        self.afsi       = Afsi(self)
         if mute not in ["yes", "no", "err"]:
             raise ValueError("mute must be either \"yes\", \"no\" or \"err\".")
 
