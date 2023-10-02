@@ -23,14 +23,12 @@
  * @brief Initialize 3D wall data and check inputs
  *
  * Before calling this function, the offload struct is expected to hold
- * xmin, xmax, ymin, ymax, zmin, and zmax values.
+ * triangle positions as
  *
- * The offload array is expected to hold plasma data as
- *   &(*offload_array)[0] = rho grid
- *   &(*offload_array)[n_rho] = electron temperature
- *   &(*offload_array)[n_rho*2] = ion temperature
- *   &(*offload_array)[n_rho*2 + n_rho*n_ions] = electron density
- *   &(*offload_array)[n_rho*2 + n_rho*n_ions + n_rho] = ion density
+ * [x1_1, y1_1, z1_1, x2_1, y2_1, z2_1, x3_1, y3_1, z3_1,... ],
+ *
+ * where first index is for the triangle vertex and second for the triangle
+ * itself.
  *
  * This function fill rest of the offload struct and constructs the octree,
  * while also printing some values as sanity check.
@@ -38,7 +36,8 @@
  * The default octree depth is defined by macro WALL_OCTREE_DEPTH in wall_3d.h.
  *
  * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param offload_array pointer to offload array
+ * @param int_offload_array pointer to offload array containing integers
  *
  * @return zero if initialization succeeded
  */
@@ -105,7 +104,8 @@ int wall_3d_init_offload(wall_3d_offload_data* offload_data,
  * This function is host only.
  *
  * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param offload_array pointer to offload array
+ * @param int_offload_array pointer to offload array containing integers
  */
 void wall_3d_free_offload(wall_3d_offload_data* offload_data,
                           real** offload_array, int** int_offload_array) {
@@ -123,11 +123,10 @@ void wall_3d_free_offload(wall_3d_offload_data* offload_data,
  * struct on target and sets the wall data pointers to correct offsets in the
  * offload array.
  *
- * @todo move init_octree to init_offload
- *
  * @param w pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array offload array
+ * @param int_offload_array offload array containing integers
  */
 void wall_3d_init(wall_3d_data* w, wall_3d_offload_data* offload_data,
                   real* offload_array, int* int_offload_array) {
@@ -237,16 +236,20 @@ void wall_3d_init_tree(wall_3d_data* w, real* offload_array) {
  *
  * @param w pointer to wall data
  * @param offload_array the offload array
+ * @param tree_array pointer to array storing what octree cells contain
+ *        which triangles
  */
 void wall_3d_init_octree(wall_3d_offload_data* w, real* offload_array,
                          int** tree_array) {
 
 
     if (w->n > 1000000){
-        print_out(VERBOSE_NORMAL, "Starting to initialize 3D-wall octree with %d triangles.\n", w->n);
+        print_out(VERBOSE_NORMAL,
+                  "Starting to initialize 3D-wall octree with %d triangles.\n",
+                  w->n);
     }
 
-    /* construct the octree and store triangles there */
+    /* Construct the octree and store triangles there */
     octree_node* tree;
     octree_create(&tree, w->xmin, w->xmax, w->ymin, w->ymax, w->zmin, w->zmax,
                   w->depth);
@@ -268,11 +271,11 @@ void wall_3d_init_octree(wall_3d_offload_data* w, real* offload_array,
         }
     }
 
-    /* create lists for triangles in each grid square and fill the lists
+    /* Create lists for triangles in each grid square and fill the lists
        by querying the octree in each grid point */
     int ncell = w->ngrid*w->ngrid*w->ngrid;
-    list_int_node** tri_list = (list_int_node**) malloc(ncell
-                                                    *sizeof(list_int_node*));
+    list_int_node** tri_list =
+        (list_int_node**) malloc(ncell * sizeof(list_int_node*));
     int ix, iy, iz;
     for(ix = 0; ix < w->ngrid; ix++) {
         for(iy = 0; iy < w->ngrid; iy++) {
@@ -288,7 +291,6 @@ void wall_3d_init_octree(wall_3d_offload_data* w, real* offload_array,
         }
     }
 
-
     /* construct an array from the triangle lists */
     int list_size = 0;
     for(i = 0; i < ncell; i++) {
@@ -300,10 +302,16 @@ void wall_3d_init_octree(wall_3d_offload_data* w, real* offload_array,
 
     int next_empty_list = ncell;
     for(i = 0; i < ncell; i++) {
+        /* First ncell elements store the position where the actual cell data
+         * begins in tree_array */
         (*tree_array)[i] = next_empty_list;
+
+        /* The first data point in the actual cell data is the number of
+         * triangles in this cell */
         (*tree_array)[next_empty_list] = list_int_size(tri_list[i]);
-        int j;
-        for(j = 0; j < (*tree_array)[next_empty_list]; j++) {
+
+        /* Store triangle IDs that are located in this cell */
+        for(int j = 0; j < (*tree_array)[next_empty_list]; j++) {
             (*tree_array)[next_empty_list+j+1] = list_int_get(tri_list[i], j);
         }
         next_empty_list += (*tree_array)[next_empty_list] + 1;
@@ -323,6 +331,8 @@ void wall_3d_init_octree(wall_3d_offload_data* w, real* offload_array,
  * @param phi2 end point phi coordinate [rad]
  * @param z2 end point z coordinate [rad]
  * @param wdata pointer to data struct on target
+ * @param w_coll pointer for storing the parameter in P = P1 + w_coll * (P2-P1),
+ *        where P is the point where the collision occurred.
  *
  * @return id, which is the first element id if hit, zero otherwise
  */
@@ -372,10 +382,11 @@ int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
 
                     for(int l = 0; l < wdata->tree_array[ilist]; l++) {
                         int itri = wdata->tree_array[ilist+l+1];
-                        real w = wall_3d_tri_collision(q1, q2,
-                                                       &wdata->wall_tris[9*itri],
-                                                       &wdata->wall_tris[9*itri+3],
-                                                       &wdata->wall_tris[9*itri+6]);
+                        real w = wall_3d_tri_collision(
+                            q1, q2,
+                            &wdata->wall_tris[9*itri],
+                            &wdata->wall_tris[9*itri+3],
+                            &wdata->wall_tris[9*itri+6]);
                         if(w >= 0 && w < smallest_w) {
                             smallest_w = w;
                             hit_tri = itri+1;
@@ -400,6 +411,8 @@ int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
  * @param phi2 end point phi coordinate [rad]
  * @param z2 end point z coordinate [rad]
  * @param wdata pointer to data struct on target
+ * @param w_coll pointer for storing the parameter in P = P1 + w_coll * (P2-P1),
+ *        where P is the point where the collision occurred.
  *
  * @return id is wall element id if hit, zero otherwise*
  */

@@ -7,7 +7,6 @@ import unyt
 
 from .coreio.treedata import DataGroup
 from .coreio.fileapi import read_data, add_group, write_data
-from a5py.marker.plot import plot_histogram
 
 from a5py.routines.plotting import openfigureifnoaxes
 from a5py.physlib.species import species as getspecies

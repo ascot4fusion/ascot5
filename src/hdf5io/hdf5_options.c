@@ -731,9 +731,17 @@ int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
     return 0;
 }
 
-int hdf5_options_read_diagtrcof(hid_t file,
-                                diag_transcoef_offload_data* diagtrcof,
-                                char* qid) {
+/**
+ * @brief Helper function to read transport coefficient settings from HDF5 file
+ *
+ * @param file the file where settings are read
+ * @param diagtrcof pointer to orbit diagnostics offload data
+ * @param qid QID of the options to be read
+ *
+ * @return zero if reading succeeded.
+ */
+int hdf5_options_read_diagtrcof(
+    hid_t file, diag_transcoef_offload_data* diagtrcof, char* qid) {
     #undef OPTPATH
     #define OPTPATH "/options/opt_XXXXXXXXXX/"
 
@@ -751,4 +759,3 @@ int hdf5_options_read_diagtrcof(hid_t file,
 
     return 0;
 }
-

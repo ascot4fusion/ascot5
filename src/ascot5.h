@@ -59,11 +59,14 @@
 #ifndef ASCOT5_H
 #define ASCOT5_H
 
-#define stringify(...) #__VA_ARGS__
-#define str_macro(c) stringify(c)
-
 #include <omp.h>
 #include <time.h>
+
+/** Stringify arguments */
+#define stringify(...) #__VA_ARGS__
+
+/** Wrapper to stringify for converting compiler macros to strings */
+#define str_macro(c) stringify(c)
 
 /** This is used to tell the compiler that we want a variable aligned to
  * 64 bits for Xeon Phi; may not be always necessary */
@@ -91,6 +94,12 @@ typedef double real;  /**< Double precision float   */
 /** @brief Maximum number of MHD modes */
 #define MHD_MODES_MAX_NUM 512
 
+/** @brief Maximum distance BBNBI traces markers in meters */
+#define NBI_MAX_DISTANCE 100
+
+/** @brief Maximum number of NBI injectors */
+#define NBI_MAX_INJ 16
+
 /** @brief Maximum number of Wiener processes stored (effectively number
  *  of time step reductions) */
 #define WIENERSLOTS 20
@@ -114,5 +123,8 @@ typedef double real;  /**< Double precision float   */
 
 /** @brief Choose whether to use tabulated values for collision coefficients */
 #define A5_CCOL_USE_TABULATED 0
+
+/** @brief Default depth of octree struct */
+#define WALL_OCTREE_DEPTH 7
 
 #endif

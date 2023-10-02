@@ -70,6 +70,10 @@ void offload_free_offload(offload_package* o, real** offload_array,
  * @param offload_array pointer to offload array where data will be packed
  * @param pack_array pack array containing the data to be appended
  * @param pack_length length of the offload_array
+ * @param int_offload_array pointer to offload array where integer data will be
+ *        packed
+ * @param int_pack_array pack array containing the integer data to be appended
+ * @param int_pack_length length of the int_offload_array
  */
 void offload_pack(offload_package* o, real** offload_array, real* pack_array,
                   size_t pack_length, int** int_offload_array,
@@ -128,7 +132,7 @@ void offload_pack(offload_package* o, real** offload_array, real* pack_array,
  * @param int_offload_array int offload array
  * @param int_pack_length
  * @param ptr pointer where the unpacked data begins
- * @param intrptr pointer where the unpacked int data begins
+ * @param intptr pointer where the unpacked int data begins
  */
 void offload_unpack(offload_package* o, real* offload_array,
                     size_t pack_length, int* int_offload_array,

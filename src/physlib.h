@@ -67,6 +67,30 @@
               ppar * ppar / ( m * m * CONST_C2 ) ) )
 
 /**
+* @brief Evaluate kinetic energy [J] from Lorentz factor
+*
+* \f$E_\mathrm{kin}=(\gamma - 1) * m c^2\f$
+*
+* where
+*
+* - \f$m\f$ is mass [kg]
+* - \f$\gamma\f$ is the Lorentz factor
+*/
+#define physlib_Ekin_gamma(m, gamma) ( ( gamma - 1.0 ) * m * CONST_C2 )
+
+/**
+* @brief Evaluate Lorentz factor from kinetic energy [J]
+*
+* \f$\gamma = \frac{E_\mathrm{kin}}{m c^2} + 1\f$
+*
+* where
+*
+* - \f$m\f$ is mass [kg]
+* - \f$\gamma\f$ is the Lorentz factor
+*/
+#define physlib_gamma_Ekin(m, ekin) ( ekin / ( m * CONST_C2 ) + 1.0 )
+
+/**
 * @brief Evaluate kinetic energy [J] from momentum norm
 *
 * \f$E_\mathrm{kin}=(\gamma(p) - 1) * m c^2\f$

@@ -35,6 +35,7 @@
  *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
+ * @param int_offload_array pointer to pointer to offload array storing integers
  *
  * @return zero if initialization succeeded
  */
@@ -85,6 +86,7 @@ int wall_init_offload(wall_offload_data* offload_data, real** offload_array,
  *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
+ * @param int_offload_array pointer to pointer to offload array storing integers
  */
 void wall_free_offload(wall_offload_data* offload_data, real** offload_array,
                        int** int_offload_array) {
@@ -110,6 +112,7 @@ void wall_free_offload(wall_offload_data* offload_data, real** offload_array,
  * @param w pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
+ * @param int_offload_array pointer to pointer to offload array storing integers
  *
  * @return zero on success
  */
@@ -152,6 +155,8 @@ int wall_init(wall_data* w, wall_offload_data* offload_data,
  * @param phi2 end point phi coordinate [rad]
  * @param z2 end point z coordinate [rad]
  * @param w pointer to data struct on target
+ * @param w_coll pointer for storing the parameter in P = P1 + w_coll * (P2-P1),
+ *        where P is the point where the collision occurred.
  *
  * @return wall element id if hit, zero otherwise
  */
@@ -164,8 +169,30 @@ int wall_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
             break;
 
         case wall_type_3D:
-	    ret = wall_3d_hit_wall(r1, phi1, z1, r2, phi2, z2, &(w->w3d), w_coll);
-	    break;
+            ret = wall_3d_hit_wall(r1, phi1, z1, r2, phi2, z2, &(w->w3d),
+                                   w_coll);
+            break;
+    }
+    return ret;
+}
+
+/**
+ * @brief Return the number of wall elements.
+ *
+ * @param w pointer to wall data struct on target
+ *
+ * @return Number of wall elements or zero on failure.
+ */
+int wall_get_n_elements(wall_data* w) {
+    int ret = 0;
+    switch(w->type) {
+        case wall_type_2D:
+            ret = w->w2d.n;
+            break;
+
+        case wall_type_3D:
+            ret = w->w3d.n;
+            break;
     }
     return ret;
 }

@@ -4,14 +4,22 @@
  */
 #define _XOPEN_SOURCE 500 /**< rand48 requires POSIX 1995 standard */
 
+#include <string.h>
 #include <math.h>
 #include "ascot5.h"
-#include "afsi.h"
+#include "print.h"
+#include "gitver.h"
 #include "consts.h"
 #include "random.h"
+#include "simulate.h"
 #include "boschhale.h"
 #include "diag/dist_5D.h"
+#include "hdf5_interface.h"
+#include "hdf5io/hdf5_helpers.h"
+#include "hdf5io/hdf5_dist.h"
+#include "afsi.h"
 
+/** Random number generator used by AFSI */
 random_data rdata;
 
 void afsi_sample_reactant_velocities(
@@ -43,17 +51,54 @@ real afsi_get_volume(afsi_data* dist, int iR);
  * Inputs and outputs are expected to have same physical (R, phi, z)
  * dimensions.
  *
- * @param reaction fusion reaction type, see the description.
- * @param n number of Monte Carlo samples to be used.
- * @param react1 reactant 1 distribution data.
- * @param react2 reactant 2 distribution data.
- * @param prod1 pointer to distribution where product 1 is stored.
- * @param prod2 pointer to distribution where product 2 is stored.
+ * @param sim pointer to simulation offload data
+ * @param reaction fusion reaction type, see the description
+ * @param n number of Monte Carlo samples to be used
+ * @param react1 reactant 1 distribution data
+ * @param react2 reactant 2 distribution data
+ * @param mult factor by which the output is scaled
+ * @param prod1_offload_data distribution data for product 1 output
+ * @param prod2_offload_data distribution data for product 2 output
+ * @param prod1_offload_array array where product 1 distribution is stored
+ * @param prod2_offload_array array where product 2 distribution is stored
  */
-void afsi_run(int reaction, int n, afsi_data* react1, afsi_data* react2,
-              dist_5D_data* prod1, dist_5D_data* prod2) {
+void afsi_run(sim_offload_data* sim, int reaction, int n, afsi_data* react1,
+              afsi_data* react2, real mult,
+              dist_5D_offload_data* prod1_offload_data,
+              dist_5D_offload_data* prod2_offload_data,
+              real* prod1_offload_array, real* prod2_offload_array) {
+    /* QID for this run */
+    char qid[11];
+    hdf5_generate_qid(qid);
+    strcpy(sim->qid, qid);
 
-    random_init(rdata, time((NULL)));
+    int mpi_rank = 0; /* AFSI does not support MPI */
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "AFSI5\n");
+
+#ifdef GIT_VERSION
+    print_out0(VERBOSE_MINIMAL, mpi_rank,
+               "Tag %s\nBranch %s\n\n", GIT_VERSION, GIT_BRANCH);
+#else
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "Not under version control\n\n");
+#endif
+
+    dist_5D_data prod1, prod2;
+    dist_5D_init(&prod1, prod1_offload_data, prod1_offload_array);
+    dist_5D_init(&prod2, prod2_offload_data, prod2_offload_array);
+
+    simulate_init_offload(sim);
+    random_init(&rdata, time((NULL)));
+    sim_data sim_data;
+    strcpy(sim->hdf5_out, sim->hdf5_in);
+    sim_init(&sim_data, sim);
+
+    if( hdf5_interface_init_results(sim, qid, "afsi") ) {
+        print_out0(VERBOSE_MINIMAL, mpi_rank,
+                   "\nInitializing output failed.\n"
+                   "See stderr for details.\n");
+        /* Free offload data and terminate */
+        abort();
+    }
 
     real m1=0, m2=0, mprod1=0, mprod2=0, Q=0;
     switch(reaction) {
@@ -138,26 +183,26 @@ void afsi_run(int reaction, int n, afsi_data* react1, afsi_data* react2,
                             ppara1, pperp1, ppara2, pperp2);
 
                         int ippara = floor(
-                            (ppara1[i] - prod1->min_ppara) * prod1->n_ppara
-                            / ( prod1->max_ppara - prod1->min_ppara ) );
+                            (ppara1[i] - prod1.min_ppara) * prod1.n_ppara
+                            / ( prod1.max_ppara - prod1.min_ppara ) );
                         int ipperp = floor(
-                            (pperp1[i] - prod1->min_pperp) * prod1->n_pperp
-                            / ( prod1->max_pperp - prod1->min_pperp ) );
-                        prod1->histogram[dist_5D_index(
+                            (pperp1[i] - prod1.min_pperp) * prod1.n_pperp
+                            / ( prod1.max_pperp - prod1.min_pperp ) );
+                        prod1.histogram[dist_5D_index(
                                 iR, iphi, iz, ippara, ipperp, 0, 0,
-                                prod1->n_phi, prod1->n_z, prod1->n_ppara,
-                                prod1->n_pperp, 1, 1)] += weight;
+                                prod1.n_phi, prod1.n_z, prod1.n_ppara,
+                                prod1.n_pperp, 1, 1)] += weight * mult;
 
                         ippara = floor(
-                            (ppara2[i] - prod2->min_ppara) * prod2->n_ppara
-                            / ( prod2->max_ppara - prod2->min_ppara ) );
+                            (ppara2[i] - prod2.min_ppara) * prod2.n_ppara
+                            / ( prod2.max_ppara - prod2.min_ppara ) );
                         ipperp = floor(
-                            (pperp2[i] - prod2->min_pperp) * prod2->n_pperp
-                            / ( prod2->max_pperp - prod2->min_pperp ) );
-                        prod2->histogram[dist_5D_index(
+                            (pperp2[i] - prod2.min_pperp) * prod2.n_pperp
+                            / ( prod2.max_pperp - prod2.min_pperp ) );
+                        prod2.histogram[dist_5D_index(
                                 iR, iphi, iz, ippara, ipperp, 0, 0,
-                                prod2->n_phi, prod2->n_z, prod2->n_ppara,
-                                prod2->n_pperp, 1, 1)] += weight;
+                                prod2.n_phi, prod2.n_z, prod2.n_ppara,
+                                prod2.n_pperp, 1, 1)] += weight * mult;
                     }
                 }
                 else {
@@ -176,6 +221,23 @@ void afsi_run(int reaction, int n, afsi_data* react1, afsi_data* react2,
         free(pperp1);
         free(pperp2);
     }
+
+    hid_t f = hdf5_open(sim->hdf5_out);
+    if(f < 0) {
+        print_err("Error: File not found.\n");
+        abort();
+    }
+    char path[300];
+    sprintf(path, "/results/afsi_%s/prod1dist5d", sim->qid);
+    if( hdf5_dist_write_5D(f, path, prod1_offload_data, prod1_offload_array) ) {
+        print_err("Warning: 5D distribution could not be written.\n");
+    }
+    sprintf(path, "/results/afsi_%s/prod2dist5d", sim->qid);
+    if( hdf5_dist_write_5D(f, path, prod2_offload_data, prod2_offload_array) ) {
+        print_err("Warning: 5D distribution could not be written.\n");
+    }
+
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nDone\n");
 }
 
 /**
@@ -364,7 +426,7 @@ void afsi_sample_5D(dist_5D_data* dist, int n, int iR, int iphi, int iz,
 /**
  * @brief Sample ppara and pperp from a thermal (Maxwellian) population.
  *
- * @param dist pointer to the thermal data.
+ * @param data pointer to the thermal data.
  * @param mass mass of the particle species.
  * @param n number of values to be sampled.
  * @param iR R index where sampling is done.

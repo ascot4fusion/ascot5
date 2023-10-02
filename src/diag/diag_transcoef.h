@@ -14,10 +14,10 @@
  * @brief Simple linked list link for storing data points.
  */
 typedef struct diag_transcoef_link{
-    real rho;
-    real time;
-    int pitchsign;
-    struct diag_transcoef_link* prevlink;
+    real rho;      /**< Current radial coordinate (R or rho)                */
+    real time;     /**< Current time                                        */
+    int pitchsign; /**< Sign of the pitch at this point                     */
+    struct diag_transcoef_link* prevlink; /**< Pointer to the previous link */
 }diag_transcoef_link;
 
 /**
@@ -40,12 +40,12 @@ typedef struct{
                         taking average value and evaluating K and D           */
     int recordrho; /**< Flag for whether the spatial unit is rho or R.        */
     real interval; /**< Interval at which markers are recorded.               */
-    diag_transcoef_link** datapoints; /* Temporary data storage               */
+    diag_transcoef_link** datapoints; /**< Temporary data storage             */
 
-    real* id;    /* Marker ID whose data is stored at this index              */
-    real* Kcoef; /* Calculated drift coefficients                             */
-    real* Dcoef; /* Calculated diffusion coefficients. Negative value means
-                    coefficients are/were not calculated                      */
+    real* id;    /**< Marker ID whose data is stored at this index            */
+    real* Kcoef; /**< Calculated drift coefficients                           */
+    real* Dcoef; /**< Calculated diffusion coefficients where negative value
+                    means coefficients are/were not calculated                */
 
 }diag_transcoef_data;
 

@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+"""Update ASCOT5 file from an old version to current version.
+"""
+import argparse
+import a5py.ascot5io.coreio.compatibility as comp
+
+parser = argparse.ArgumentParser(
+    description="Update an outdated Ascot5 HDF5 file to current version."
+)
+parser.add_argument("FILE", help="Target file which is copied and updated")
+
+args = parser.parse_args()
+comp.convert(args.FILE)

@@ -17,6 +17,7 @@
 #include "boozer.h"
 #include "mhd.h"
 #include "asigma.h"
+#include "nbi.h"
 #include "diag.h"
 #include "offload.h"
 #include "random.h"
@@ -53,15 +54,16 @@ enum {
  */
 typedef struct {
     /* Input and diagnostic interface offload data */
-    B_field_offload_data B_offload_data;       /**< Magnetic field offload data */
-    E_field_offload_data E_offload_data;       /**< Electric field offload data */
-    plasma_offload_data plasma_offload_data;   /**< Plasma offload data         */
-    neutral_offload_data neutral_offload_data; /**< Neutral offload data        */
-    wall_offload_data wall_offload_data;       /**< Wall offload data           */
-    boozer_offload_data boozer_offload_data;   /**< Boozer offload data         */
-    mhd_offload_data mhd_offload_data;         /**< MHD offload data            */
-    asigma_offload_data asigma_offload_data;   /**< Atomic sigma offload data   */
-    diag_offload_data diag_offload_data;       /**< Diagnostics offload data    */
+    B_field_offload_data B_offload_data;      /**< Magnetic field offload data*/
+    E_field_offload_data E_offload_data;      /**< Electric field offload data*/
+    plasma_offload_data plasma_offload_data;  /**< Plasma offload data        */
+    neutral_offload_data neutral_offload_data;/**< Neutral offload data       */
+    wall_offload_data wall_offload_data;      /**< Wall offload data          */
+    boozer_offload_data boozer_offload_data;  /**< Boozer offload data        */
+    mhd_offload_data mhd_offload_data;        /**< MHD offload data           */
+    asigma_offload_data asigma_offload_data;  /**< Atomic sigma offload data  */
+    nbi_offload_data nbi_offload_data;        /**< NBI offload data           */
+    diag_offload_data diag_offload_data;      /**< Diagnostics offload data   */
 
     /* Options - general */
     int sim_mode;        /**< Which simulation mode is used                   */
@@ -124,16 +126,17 @@ typedef struct {
     int mpi_size; /**< Total number of MPI processes */
 
     /* QIDs for inputs if the active inputs are not used */
-    char qid_options[256]; /* Options QID if active not used */
-    char qid_bfield[256];  /* Bfield QID if active not used  */
-    char qid_efield[256];  /* Efield QID if active not used  */
-    char qid_marker[256];  /* Marker QID if active not used  */
-    char qid_wall[256];    /* Wall QID if active not used    */
-    char qid_plasma[256];  /* Plasma QID if active not used  */
-    char qid_neutral[256]; /* Neutral QID if active not used */
-    char qid_boozer[256];  /* Boozer QID if active not used  */
-    char qid_mhd[256];     /* MHD QID if active not used     */
-    char qid_asigma[256];  /* Asigma QID if active not used  */
+    char qid_options[256]; /**< Options QID if active not used */
+    char qid_bfield[256];  /**< Bfield QID if active not used  */
+    char qid_efield[256];  /**< Efield QID if active not used  */
+    char qid_marker[256];  /**< Marker QID if active not used  */
+    char qid_wall[256];    /**< Wall QID if active not used    */
+    char qid_plasma[256];  /**< Plasma QID if active not used  */
+    char qid_neutral[256]; /**< Neutral QID if active not used */
+    char qid_boozer[256];  /**< Boozer QID if active not used  */
+    char qid_mhd[256];     /**< MHD QID if active not used     */
+    char qid_asigma[256];  /**< Asigma QID if active not used  */
+    char qid_nbi[256];     /**< NBI QID if active not used     */
 
 } sim_offload_data;
 
@@ -157,6 +160,7 @@ typedef struct {
     boozer_data boozer_data;   /**< Boozer data interface                     */
     mhd_data mhd_data;         /**< MHD data interface                        */
     asigma_data asigma_data;   /**< Atomic sigma data interface               */
+    nbi_data nbi_data;         /**< Neutral beam injection data interface     */
     diag_data diag_data;       /**< Diagnostics data interface                */
 
     /* Metadata */
@@ -219,6 +223,7 @@ typedef struct {
 void simulate_init_offload(sim_offload_data* sim);
 
 #pragma omp declare target
+void sim_init(sim_data* sim, sim_offload_data* sim_offload);
 void simulate(int id, int n_particles, particle_state* p,
               sim_offload_data* sim_offload,
               offload_package* offload_data,

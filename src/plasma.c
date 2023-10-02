@@ -332,15 +332,15 @@ int plasma_get_n_species(plasma_data* pls_data) {
     int n = 0;
     switch(pls_data->type) {
         case plasma_type_1D:
-            n = plasma_1D_get_n_species(&(pls_data->plasma_1D));
+            n = pls_data->plasma_1D.n_species;
             break;
 
         case plasma_type_1Dt:
-            n = plasma_1Dt_get_n_species(&(pls_data->plasma_1Dt));
+            n = pls_data->plasma_1Dt.n_species;
             break;
 
         case plasma_type_1DS:
-            n = plasma_1DS_get_n_species(&(pls_data->plasma_1DS));
+            n = pls_data->plasma_1DS.n_species;
             break;
     }
 
@@ -362,15 +362,15 @@ const real* plasma_get_species_mass(plasma_data* pls_data) {
     const real* mass = NULL;
     switch(pls_data->type) {
         case plasma_type_1D:
-            mass = plasma_1D_get_species_mass( &(pls_data->plasma_1D) );
+            mass = pls_data->plasma_1D.mass;
             break;
 
         case plasma_type_1Dt:
-            mass = plasma_1Dt_get_species_mass( &(pls_data->plasma_1Dt) );
+            mass = pls_data->plasma_1Dt.mass;
             break;
 
         case plasma_type_1DS:
-            mass = plasma_1DS_get_species_mass( &(pls_data->plasma_1DS) );
+            mass = pls_data->plasma_1DS.mass;
             break;
     }
 
@@ -392,15 +392,15 @@ const real* plasma_get_species_charge(plasma_data* pls_data) {
     const real* charge = NULL;
     switch(pls_data->type) {
         case plasma_type_1D:
-            charge = plasma_1D_get_species_charge(&(pls_data->plasma_1D));
+            charge = pls_data->plasma_1D.charge;
             break;
 
         case plasma_type_1Dt:
-            charge = plasma_1Dt_get_species_charge(&(pls_data->plasma_1Dt));
+            charge = pls_data->plasma_1Dt.charge;
             break;
 
         case plasma_type_1DS:
-            charge = plasma_1DS_get_species_charge(&(pls_data->plasma_1DS));
+            charge = pls_data->plasma_1DS.charge;
             break;
     }
 
@@ -408,29 +408,27 @@ const real* plasma_get_species_charge(plasma_data* pls_data) {
 }
 
 /**
- * @brief Get atomic number of all plasma species
- *
- * Retrieve species' atomic number.
+ * @brief Get charge number of ion species
  *
  * This is a SIMD function.
  *
  * @param pls_data pointer to plasma data struct
  *
- * @return Pointer to array containing the requested atomic number values
+ * @return Pointer to array containing the charge numbers
  */
 const int* plasma_get_species_znum(plasma_data* pls_data) {
     const int* znum = NULL;
     switch(pls_data->type) {
         case plasma_type_1D:
-            znum = plasma_1D_get_species_znum( &(pls_data->plasma_1D) );
+            znum = pls_data->plasma_1D.znum;
             break;
 
         case plasma_type_1Dt:
-            znum = plasma_1Dt_get_species_znum( &(pls_data->plasma_1Dt) );
+            znum = pls_data->plasma_1Dt.znum;
             break;
 
         case plasma_type_1DS:
-            znum = plasma_1DS_get_species_znum( &(pls_data->plasma_1DS) );
+            znum = pls_data->plasma_1DS.znum;
             break;
     }
 
@@ -438,29 +436,27 @@ const int* plasma_get_species_znum(plasma_data* pls_data) {
 }
 
 /**
- * @brief Get mass number of all plasma species
- *
- * Retrieve species' mass number.
+ * @brief Get atomic mass number of ion species
  *
  * This is a SIMD function.
  *
  * @param pls_data pointer to plasma data struct
  *
- * @return Pointer to array containing the requested mass number values
+ * @return Pointer to array containing the atomic mass numbers
  */
 const int* plasma_get_species_anum(plasma_data* pls_data) {
     const int* anum = NULL;
     switch(pls_data->type) {
         case plasma_type_1D:
-            anum = plasma_1D_get_species_anum(&(pls_data->plasma_1D));
+            anum = pls_data->plasma_1D.anum;
             break;
 
         case plasma_type_1Dt:
-            anum = plasma_1Dt_get_species_anum(&(pls_data->plasma_1Dt));
+            anum = pls_data->plasma_1Dt.anum;
             break;
 
         case plasma_type_1DS:
-            anum = plasma_1DS_get_species_anum(&(pls_data->plasma_1DS));
+            anum = pls_data->plasma_1DS.anum;
             break;
     }
 

@@ -66,6 +66,11 @@ void dist_COM_init(dist_COM_data* dist_data,
 
 /**
  * @brief Update the histogram from full-orbit markers
+ *
+ * @param dist pointer to distribution parameter struct
+ * @param Bdata pointer to magnetic field data
+ * @param p_f pointer to SIMD fo struct at the end of current time step
+ * @param p_i pointer to SIMD fo struct at the start of current time step
  */
 void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
                         particle_simd_fo* p_f, particle_simd_fo* p_i) {
@@ -106,11 +111,12 @@ void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
             Ekin = physlib_Ekin_pnorm(p_f->mass[i], pnorm);
 
             i_Ekin[i] = floor((Ekin - dist->min_Ekin)
-                              /  ((dist->max_Ekin - dist->min_Ekin) / dist->n_Ekin));
-            Ptor = phys_ptoroid_fo(p_f->charge[i], p_f->r[i], p_f->p_phi[i], psi);
+                         / ((dist->max_Ekin - dist->min_Ekin) / dist->n_Ekin));
+            Ptor = phys_ptoroid_fo(
+                p_f->charge[i], p_f->r[i], p_f->p_phi[i], psi);
 
             i_Ptor[i] = floor((Ptor - dist->min_Ptor)
-                              /  ((dist->max_Ptor - dist->min_Ptor)/dist->n_Ptor));
+                         / ((dist->max_Ptor - dist->min_Ptor)/dist->n_Ptor));
 
             if(i_mu[i]   >= 0 && i_mu[i]   <= dist->n_mu - 1   &&
                i_Ekin[i] >= 0 && i_Ekin[i] <= dist->n_Ekin - 1 &&
@@ -144,6 +150,7 @@ void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
  * avoid race conditions.
  *
  * @param dist pointer to distribution parameter struct
+ * @param Bdata pointer to magnetic field data
  * @param p_f pointer to SIMD gc struct at the end of current time step
  * @param p_i pointer to SIMD gc struct at the start of current time step
  */
@@ -175,11 +182,12 @@ void dist_COM_update_gc(dist_COM_data* dist, B_field_data* Bdata,
             Ekin = physlib_Ekin_ppar(p_f->mass[i], p_f->mu[i], p_f->ppar[i], B);
 
             i_Ekin[i] = floor((Ekin - dist->min_Ekin)
-                              /  ((dist->max_Ekin - dist->min_Ekin) / dist->n_Ekin));
-            Ptor = phys_ptoroid_gc(p_f->charge[i], p_f->r[i], p_f->ppar[i], psi, B, p_f->B_phi[i]);
+                         / ((dist->max_Ekin - dist->min_Ekin) / dist->n_Ekin));
+            Ptor = phys_ptoroid_gc(p_f->charge[i], p_f->r[i], p_f->ppar[i], psi,
+                                   B, p_f->B_phi[i]);
 
             i_Ptor[i] = floor((Ptor - dist->min_Ptor)
-                              /  ((dist->max_Ptor - dist->min_Ptor)/dist->n_Ptor));
+                         / ((dist->max_Ptor - dist->min_Ptor)/dist->n_Ptor));
 
             if(i_mu[i]   >= 0 && i_mu[i]   <= dist->n_mu - 1   &&
                i_Ekin[i] >= 0 && i_Ekin[i] <= dist->n_Ekin - 1 &&

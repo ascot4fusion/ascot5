@@ -59,16 +59,6 @@ a5err plasma_1DS_eval_dens(real* dens, real rho, int species,
 #pragma omp declare simd uniform(pls_data)
 a5err plasma_1DS_eval_densandtemp(real* dens, real* temp, real rho,
                                   plasma_1DS_data* pls_data);
-#pragma omp declare simd uniform(pls_data)
-int plasma_1DS_get_n_species(plasma_1DS_data* pls_data);
-#pragma omp declare simd uniform(pls_data)
-const real* plasma_1DS_get_species_mass(plasma_1DS_data* pls_data);
-#pragma omp declare simd uniform(pls_data)
-const real* plasma_1DS_get_species_charge(plasma_1DS_data* pls_data);
-#pragma omp declare simd uniform(pls_data)
-const int* plasma_1DS_get_species_znum(plasma_1DS_data* pls_data);
-#pragma omp declare simd uniform(pls_data)
-const int* plasma_1DS_get_species_anum(plasma_1DS_data* pls_data);
 #pragma omp end declare target
 
 #endif

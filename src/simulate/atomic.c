@@ -49,7 +49,7 @@ a5err atomic_react(
  * @param p_data pointer to plasma data
  * @param n_data pointer to neutral data
  * @param r_data pointer to random-generator data
- * @param asgm_data pointer to atomic reaction data
+ * @param asigmadata pointer to atomic reaction data
  * @param enable_atomic pointer to atomic enable and functionality flag
  */
 void atomic_fo(particle_simd_fo* p, real* h,

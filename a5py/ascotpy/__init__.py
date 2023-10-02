@@ -67,6 +67,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         Offload data for the MHD input.
     _asigma_offload_array
         Offload data for the atomic data input.
+    _nbi_offload_array
+        Offload data for the neutral beam injector data input.
     _mpi_root
         Rank of the root MPI process.
     _mpi_rank
@@ -108,6 +110,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         self._boozer_offload_array  = ctypes.POINTER(ctypes.c_double)()
         self._mhd_offload_array     = ctypes.POINTER(ctypes.c_double)()
         self._asigma_offload_array  = ctypes.POINTER(ctypes.c_double)()
+        self._nbi_offload_array     = ctypes.POINTER(ctypes.c_double)()
         self._diag_offload_array    = ctypes.POINTER(ctypes.c_double)()
 
         self._wall_int_offload_array = ctypes.POINTER(ctypes.c_int)()
@@ -228,6 +231,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                 ctypes.byref(self._boozer_offload_array),
                 ctypes.byref(self._mhd_offload_array),
                 ctypes.byref(self._asigma_offload_array),
+                ctypes.byref(self._nbi_offload_array),
                 None, # Marker array (ignore)
                 None  # Number of markers that were read (ignore)
             )
@@ -431,7 +435,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         """
         out = {}
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
-                    "mhd", "asigma"]:
+                    "mhd", "asigma", "nbi"]:
             qid = getattr(self._sim, "qid_" + inp)
             if qid != Ascotpy.DUMMY_QID:
                 out[inp] = qid.decode("utf-8")
@@ -579,12 +583,12 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             "bjac multiplied by B^2 which is constant along flux surfaces",
         }
 
-        nion, mass, charge, anum, znum = self.input_getplasmaspecies()
-        for i in range(nion):
-            out["ni" + str(i+1)] = "Ion species (anum, znum) = (%d, %d) density" \
-                % (anum[i], znum[i])
-            out["ti" + str(i+1)] = "Ion species (anum, znum) = (%d, %d) temperature" \
-                % (anum[i], znum[i])
+        #nion, mass, charge, anum, znum = self.input_getplasmaspecies()
+        #for i in range(nion):
+        #    out["ni" + str(i+1)] = "Ion species (anum, znum) = (%d, %d) density" \
+        #        % (anum[i], znum[i])
+        #    out["ti" + str(i+1)] = "Ion species (anum, znum) = (%d, %d) temperature" \
+        #        % (anum[i], znum[i])
 
         if show:
             for name, desc in out.items():
@@ -1124,10 +1128,10 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         plot : bool, optional
             If True, the evaluated quantities are also plotted.
         axes1 : , optional
-            Axes for plotting ``amplitude`` if ``plot``=True.
+            Axes for plotting ``amplitude`` if ``plot`` = True.
         axes2 : , optional
             Axes for plotting ``delta``, ``deltacrit``, and ``ripplewell`` if
-            ``plot``=True.
+            ``plot`` = True.
 
         Returns
         -------
@@ -1243,7 +1247,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             out = self._eval_mhd(r, r, z, r*0*0, evalpot=True)
             alphanm[i,:]  = out["alphaeig"]
             phinm[i,:]    = out["phieig"]
-            alphanm_[i,:] = (2*1.256e-6*np.pi) * (( nmode[i] * q - mmode[i] ) * phinm[i,:] / (g*q + I)) / omega[i]
+            alphanm_[i,:] = (( nmode[i] * q - mmode[i] ) * phinm[i,:] / (g*q + I)) / omega[i]
             print(nmode[i], mmode[i], np.amax(alphanm[i,:]), np.amax(alphanm_[i,:]))
 
             plt.plot(alphanm[i,:])

@@ -27,6 +27,7 @@
  * @param sim pointer to simulation offload struct
  * @param mpi_rank pointer to mpi_rank variable in main program
  * @param mpi_size pointer to mpi_size variable in main program
+ * @param mpi_root pointer to mpi_root variable in main program
  */
 void mpi_interface_init(int argc, char** argv, sim_offload_data* sim,
                         int* mpi_rank, int* mpi_size, int* mpi_root) {
@@ -106,6 +107,7 @@ void mpi_my_particles(int* start_index, int* n, int ntotal, int mpi_rank,
  * @param ntotal total number of markers in the simulation
  * @param mpi_rank rank of this MPI process
  * @param mpi_size total number of MPI processes
+ * @param mpi_root rank of the root process
  */
 void mpi_gather_particlestate(particle_state* ps, particle_state** psgathered,
                               int* ngathered, int ntotal, int mpi_rank,
@@ -279,11 +281,12 @@ void mpi_gather_particlestate(particle_state* ps, particle_state** psgathered,
  * Distributions are summed and orbit data is appended to the root process
  * diagnostics array.
  *
- * @param diag_offload_data diagnostics offload data
+ * @param data diagnostics offload data
  * @param offload_array pointer to diagnostics offload array
  * @param ntotal total number of markers in the simulation
  * @param mpi_rank rank of this MPI process
  * @param mpi_size total number of MPI processes
+ * @param mpi_root rank of the root process
  */
 void mpi_gather_diag(diag_offload_data* data, real* offload_array, int ntotal,
                      int mpi_rank, int mpi_size, int mpi_root) {

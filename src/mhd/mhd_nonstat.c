@@ -177,6 +177,7 @@ void mhd_nonstat_init(mhd_nonstat_data* mhddata,
  * @param includemode mode number to include or MHD_INCLUDE_ALL
  * @param boozerdata pointer to boozer data
  * @param mhddata pointer to mhd data
+ * @param Bdata pointer to magnetic field data
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */

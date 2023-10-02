@@ -1,32 +1,38 @@
-"""
-Tools to modify HDF5 files.
+"""Tools to modify HDF5 files.
 
-File: ascot5tools.py
+The purpose of these tools is to work on files that are possibly corrupted,
+so they can't necessarily be processed with a5py. Therefore, the methods
+here use the low-level API only (with the exception for the combine tool).
 """
 import numpy as np
 import h5py
-from a5py import Ascot
+import warnings
+from a5py import Ascot, AscotNoDataException
 from . import fileapi
 
 def call_fileapi(fn, method, *args):
-    """
-    Wrapper for calling fileapi methods.
+    """Wrapper for calling fileapi methods.
 
     This wrapper handles opening and closing of HDF5 file.
 
-    Args:
-        fn : str <br>
-            Full path to HDF5 file.
-        method: str <br>
-            Name of the method to be called.
-        *args: <br>
-            Arguments the called method requires.
+    Parameters
+    ----------
+    fn : str
+        Full path to HDF5 file.
+    method : str
+        Name of the method to be called.
+    *args
+        Arguments the called method requires.
 
-    Returns:
+    Returns
+    -------
+    val
         The value the called method returns.
 
-    Raise:
-        ValueError if the method does not exist.
+    Raises
+    ------
+    ValueError
+        If the method does not exist.
     """
     if hasattr(fileapi, method):
         method_to_call = getattr(fileapi, method)
@@ -35,10 +41,8 @@ def call_fileapi(fn, method, *args):
     else:
         raise ValueError(method + " is not a valid method.")
 
-
 def removegroup(fn, group, force=False):
-    """
-    Remove a group or a parent.
+    """Remove a group or a parent.
 
     Tries to remove a group. If the group to be removed is an input group which
     has been used as an input in some of the run groups, the group won't be
@@ -47,19 +51,23 @@ def removegroup(fn, group, force=False):
     Note that to reclaim the disk space which the group occupied, one needs
     to call h5repack in a terminal.
 
-    Args:
-        fn : str <br>
-            Full path to HDF5 file.
-        group: str <br>
-            Name of the group to be removed.
-        force: bool, optional <br>
-            Remove group and don't raise an exception even if the group has been
-            used as an input. Default is false.
-    Raise:
-        RuntimeError if the group has been used as an input.
+    Parameters
+    ----------
+    fn : str
+        Full path to HDF5 file.
+    group: str
+        Name of the group to be removed.
+    force: bool, optional
+        Remove group and don't raise an exception even if the group has been
+        used as an input.
+
+    Raises
+    ------
+    RuntimeError
+        If the group has been used as an input and ```force`` = False.
     """
     with h5py.File(fn, "a") as f:
-
+        isparent = False
         try:
             # This will raise an exception if group is not a data group.
             qid = fileapi.get_qid(group)
@@ -86,7 +94,10 @@ def removegroup(fn, group, force=False):
             # No references, the group can be removed.
             fileapi.remove_group(f, group)
 
-        except ValueError:
+        except AscotNoDataException:
+            isparent = True
+
+        if isparent:
             # The group is a parent group. If it is a results group or removal
             # is forced, we can remove it directly.
             if force or group == "results":
@@ -95,7 +106,7 @@ def removegroup(fn, group, force=False):
 
             try:
                 runqids  = fileapi.get_qids(f, "results")
-            except ValueError:
+            except AscotNoDataException:
                 # There is no results group, so we can safely remove the group
                 pass
             else:
@@ -108,37 +119,46 @@ def removegroup(fn, group, force=False):
                         rungroup = fileapi.get_group(f, runqid)
                         inqids   = fileapi.get_inputqids(f, rungroup)
                         if dataqid in inqids:
-                            raise RuntimeError("Run " + runqid
-                                               + " has used group " + dataqid
-                                               + " as an input. Removal aborted.")
+                            raise RuntimeError(
+                                "Run %s has used group %s as an input. Removal"\
+                                + " aborted." % (runqid, dataqid))
 
             # No references, the group can be removed.
             fileapi.remove_group(f, group)
 
-
 def copygroup(fns, fnt, group, newgroup=False):
-    """
-    Copy a group or a parent to a different HDF5 file.
+    """Copy a group or a parent to a different HDF5 file.
 
     The copied field is set as the active field in target HDF5 file. The copied
     group retains it qid and description.
 
-    Args:
-        fns : str <br>
-            Full path to source file.
-        fnt : str <br>
-            Full path to target file.
-        group : str <br>
-            Name of the group to be copied.
-        newgroup : bool, optional <br>
-            Flag indicating if copied group should be given new QID and creation
-            date. Default is false.
+    Parameters
+    ----------
+    fns : str
+        Full path to source file.
+    fnt : str
+        Full path to target file.
+    group : str
+        Name of the group to be copied.
+    newgroup : bool, optional
+        Flag indicating if copied group should be given new QID and creation
+        date.
 
-    Returns:
-        Name of the copied group or none if the group was parent.
+    Returns
+    -------
+    name : str
+        Name of the copied group or None if the group was a parent.
     """
 
     # Get the target field and type from source
+    try:
+        with h5py.File(fnt, "r") as ft:
+            pass
+    except FileNotFoundError:
+        warnings.warn("Creating file %s" % fnt)
+        ft = h5py.File(fnt, "w")
+        ft.close()
+
     with h5py.File(fns, "r") as fs, h5py.File(fnt, "a") as ft:
 
         try:
@@ -148,51 +168,47 @@ def copygroup(fns, fnt, group, newgroup=False):
             # This is a data group
             grp = fileapi.copy_group(fs, ft, group, newgroup=newgroup)
             return grp.name
-        except ValueError:
+        except AscotNoDataException:
             # This is a parent group
             qids = fileapi.get_qids(fs, group)
             for qid in qids:
                 grp = fileapi.get_group(fs, qid)
                 fileapi.copy_group(fs, ft, grp, newgroup=newgroup)
+            return None
 
+def combineoutput(fnt, fns, add=True):
+    """Combine outputs of two HDF5 files.
 
-def combineoutput(fnt, addfns=None, contfns=None):
+    Depending on ``add`` value, this either combines the output by assuming
+    ``fnt`` and ``fns`` are both part of a larger simulation, or markers in
+    ``fns`` were initialized from the endstate of ``fnt``.
+
+    The combined outputs will be stored on ``fnt`` on a run group that is
+    active. The outputs are read from ``addfns`` (or ``contfns``) from the group
+    that is active.
+
+    Parameters
+    ----------
+    fnt : str
+        Full path to HDF5 file where combined output will be stored.
+    fns : str, optional
+        Name of the HDF5 file where results are read.
+    add : bool, optional
+        If True, outputs are combined assuming they are part of a larger
+        simulation.
+
+        If False, it is assumed that the source simulation continues the target
+        simulation.
     """
-    Combine outputs of two HDF5 files.
+    with h5py.File(fns, "r") as fs, h5py.File(fnt, "a") as ft:
+        source = fileapi.get_active(fs, "results")
+        target = fileapi.get_active(ft, "results")
 
-    Depending on which argument is given, this either combines the output by
-    assuming fnt and addfns are both part of a larger simulation ("add"), or
-    markers in contfns were initialized from the endstate of fnt ("continue").
-
-    The combined outputs will be stored on fnt on a run group that is active.
-    The outputs are read from addfns (or contfns) from the group that is active.
-
-    Args:
-        fnt : str <br>
-            Full path to HDF5 file where combined output will be stored.
-        addfns : str, optional <br>
-            Name of the HDF5 file where results are read if "add" mode is being
-            used.
-        contfns : str, optional <br>
-            Name of the HDF5 file where results are read if "continue" mode is
-            being used.
-    """
-
-    if addfns is not None:
-        fns = addfns
-    elif contfns is not None:
-        fns = contfns
-    else:
-        return
-
-    # Find the active groups
-    source = Ascot(fns).data.active
-    target = Ascot(fnt).data.active
-
-    # Combine states
-    if addfns is not None:
-        if hasattr(target, "inistate") and hasattr(source, "inistate"):
-            with target.inistate as tdata, source.inistate as sdata:
+        # Combine states
+        if add:
+            if "inistate" in target and "inistate" in source:
+                tdata = target["inistate"]
+                sdata = source["inistate"]
                 for field in tdata:
                     tsize = tdata[field].size
                     ssize = sdata[field].size
@@ -200,57 +216,43 @@ def combineoutput(fnt, addfns=None, contfns=None):
                     tdata[field].resize((tsize+ssize, ))
                     tdata[field][tsize:] = sdata[field][:]
 
-        if hasattr(target, "endstate") and hasattr(source, "endstate"):
-            with target.endstate as tdata, source.endstate as sdata:
+            if "endstate" in target and "endstate" in source:
+                tdata = target["endstate"]
+                sdata = source["endstate"]
                 for field in tdata:
                     tsize = tdata[field].size
                     ssize = sdata[field].size
 
                     tdata[field].resize((tsize+ssize, ))
                     tdata[field][tsize:] = sdata[field][:]
-    else:
-        # Sort target inistate by id.
-        if hasattr(target, "inistate"):
-            with target.inistate as tdata:
-                idx = np.argsort(tdata["id"][:])
+        else:
+            # Sort target inistate by id.
+            if "inistate" in target:
+                tdata = target["inistate"]
+                idx = np.argsort(tdata["ids"][:])
                 for field in tdata:
                     tdata[field][:] = tdata[field][:][idx]
 
-        # Replace target endstate with sorted by id source endstate.
-        if hasattr(target, "endstate") and hasattr(source, "endstate"):
-            with target.endstate as tdata, source.endstate as sdata:
-                idx = np.argsort(sdata["id"][:])
+            # Replace target endstate with sorted by id source endstate.
+            if "endstate" in target and "endstate" in source:
+                tdata = target["endstate"]
+                sdata = source["endstate"]
+                idx = np.argsort(sdata["ids"][:])
                 for field in tdata:
                     tdata[field][:] = sdata[field][:][idx]
 
-    # Combine dists
-    if hasattr(target, "dist5d") and \
-       hasattr(source, "dist5d"):
-        with target.dist5d as tdata, \
-             source.dist5d as sdata:
-            tdata["ordinate"][:] += sdata["ordinate"][:]
+        # Combine dists
+        for d in ["5d", "6d", "rho5d", "rho6d", "com"]:
+            dname = "dist" + d
+            if dname in target and dname in source:
+                tdata = target[dname]
+                sdata = source[dname]
+                tdata["ordinate"][:] += sdata["ordinate"][:]
 
-    if hasattr(target, "dist6d") and \
-       hasattr(source, "dist6d"):
-        with target.dist6d as tdata, \
-             source.dist6d as sdata:
-            tdata["ordinate"][:] += sdata["ordinate"][:]
-
-    if hasattr(target, "distrho5d") and \
-       hasattr(source, "distrho5d"):
-        with target.distrho5d as tdata, \
-             source.distrho5d as sdata:
-            tdata["ordinate"][:] += sdata["ordinate"][:]
-
-    if hasattr(target, "distrho6d") and \
-       hasattr(source, "distrho6d"):
-        with target.distrho6d as tdata, \
-             source.distrho6d as sdata:
-            tdata["ordinate"][:] += sdata["ordinate"][:]
-
-    # Combine orbits
-    if hasattr(target, "orbit") and hasattr(source, "orbit"):
-        with target.orbit as tdata, source.orbit as sdata:
+        # Combine orbits
+        if "orbit" in target and "orbit" in source:
+            tdata = target["orbit"]
+            sdata = source["orbit"]
             for field in tdata:
                 tsize = tdata[field].size
                 ssize = sdata[field].size
@@ -258,9 +260,10 @@ def combineoutput(fnt, addfns=None, contfns=None):
                 tdata[field].resize((tsize+ssize, ))
                 tdata[field][tsize:] = sdata[field][:]
 
-    # Combine transport coefficients
-    if hasattr(target, "transcoef") and hasattr(source, "transcoef"):
-        with target.transcoef as tdata, source.transcoef as sdata:
+        # Combine transport coefficients
+        if "transcoef" in target and "transcoef" in source:
+            tdata = target["transcoef"]
+            sdata = source["transcoef"]
             for field in tdata:
                 tsize = tdata[field].size
                 ssize = sdata[field].size

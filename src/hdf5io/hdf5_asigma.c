@@ -70,8 +70,10 @@ int hdf5_asigma_init_offload(hid_t f,
 int hdf5_asigma_read_loc(hid_t f,
                          asigma_loc_offload_data* offload_data,
                          real** offload_array, char* qid) {
+    /// @cond
     #undef ASGMPATH
     #define ASGMPATH "/asigma/asigma_loc_XXXXXXXXXX/"
+    /// @endcond
 
     /* Read number of reactions */
     if (hdf5_read_int(ASGMPATH "nreac", &offload_data->N_reac,

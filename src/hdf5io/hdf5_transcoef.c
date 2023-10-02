@@ -14,23 +14,18 @@
 #include "hdf5_transcoef.h"
 
 /**
- * @brief Write transcport coefficients to a HDF5 file
+ * @brief Write transport coefficients to a HDF5 file
  *
  * @param f hdf5 file
- * @param qid qid of the results group
+ * @param path path to group which is created here and where the data is stored
  * @param data transport coefficient diagnostics offload data
- * @param coefdata array storing the coefficient data [id, K, D]
+ * @param coefarr array storing the coefficient data [id, K, D]
  *
  * @return zero on success
  */
-int hdf5_transcoef_write(hid_t f, char* qid, diag_transcoef_offload_data* data,
+int hdf5_transcoef_write(hid_t f, char* path, diag_transcoef_offload_data* data,
                          real* coefarr) {
-    char path[256];
-    hdf5_generate_qid_path("/results/run_XXXXXXXXXX/", qid, path);
-    strcat(path, "transcoef");
-
     hid_t group = H5Gcreate2(f, path, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
     if(group < 0) {
         return 1;
     }

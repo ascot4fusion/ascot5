@@ -7,6 +7,23 @@
 #include "consts.h"
 #include "math.h"
 
+/**
+ * @brief Evaluate magnetic field due to a coil at given points.
+ *
+ * The magnetic field is evaluated using Biot-Savart law.
+ *
+ * @param n number of query points
+ * @param x x-coordinate of a query point [m]
+ * @param y y-coordinate of a query point [m]
+ * @param z z-coordinate of a query point [m]
+ * @param coil_n number of points in coil geometry
+ * @param coil_x coil geometry x-coordinate [m]
+ * @param coil_y coil geometry y-coordinate [m]
+ * @param coil_z coil geometry z-coordinate [m]
+ * @param Bx evaluated magnetic field x-component [T]
+ * @param By evaluated magnetic field y-component [T]
+ * @param Bz evaluated magnetic field z-component [T]
+ */
 void biosaw_calc_B(int n, real* x, real* y, real* z,
                    int coil_n, real* coil_x, real* coil_y, real* coil_z,
                    real* Bx, real* By, real* Bz) {
@@ -49,7 +66,7 @@ void biosaw_calc_B(int n, real* x, real* y, real* z,
             real l = math_norm(p1p2);
             real s = math_dot(p1p2, p1x) / math_dot(p1p2, p1p2);
             real h = s * l;
-            
+
             real xs[3];
             xs[0] = p1[0] + s*p1p2[0] - x[ix];
             xs[1] = p1[1] + s*p1p2[1] - y[ix];

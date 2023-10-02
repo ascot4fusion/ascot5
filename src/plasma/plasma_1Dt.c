@@ -142,13 +142,14 @@ void plasma_1Dt_init(plasma_1Dt_data* pls_data,
  *
  * @param temp pointer to where evaluated temperature [J] is stored
  * @param rho radial coordinate
+ * @param t time instant
  * @param species index of plasma species
  * @param pls_data pointer to plasma data struct
  *
  * @return zero if evaluation succeeded
  */
 a5err plasma_1Dt_eval_temp(real* temp, real rho, real t, int species,
-                          plasma_1Dt_data* pls_data) {
+                           plasma_1Dt_data* pls_data) {
 
     real temp_dens[MAX_SPECIES], temp_temp[MAX_SPECIES];
 
@@ -169,6 +170,7 @@ a5err plasma_1Dt_eval_temp(real* temp, real rho, real t, int species,
  *
  * @param dens pointer to where evaluated density [m^-3] is stored
  * @param rho radial coordinate
+ * @param t time instant
  * @param species index of plasma species
  * @param pls_data pointer to plasma data struct
  *
@@ -196,6 +198,7 @@ a5err plasma_1Dt_eval_dens(real* dens, real rho, real t, int species,
  * @param dens pointer to where interpolated densities [m^-3] are stored
  * @param temp pointer to where interpolated temperatures [J] are stored
  * @param rho radial coordinate
+ * @param t time instant
  * @param pls_data pointer to plasma data struct
  *
  * @return zero if evaluation succeeded
@@ -289,61 +292,4 @@ a5err plasma_1Dt_eval_densandtemp(real* dens, real* temp, real rho, real t,
     }
 
     return err;
-}
-
-/**
- * @brief Return number of plasma species
- *
- * @param pls_data pointer to plasma data
- *
- * @return number of plasma species
- */
-int plasma_1Dt_get_n_species(plasma_1Dt_data* pls_data) {
-    return pls_data->n_species;
-}
-
-/**
- * @brief Return pointer to array storing species mass
- *
- * @param pls_data pointer to plasma data
- *
- * @return pointer to immutable MAX_SPECIES length array containing masses
- */
-const real* plasma_1Dt_get_species_mass(plasma_1Dt_data* pls_data) {
-    return pls_data->mass;
-}
-
-/**
- * @brief Return pointer to array storing species charge
- *
- * @param pls_data pointer to plasma data
- *
- * @return pointer to immutable MAX_SPECIES length array containing charges
- */
-const real* plasma_1Dt_get_species_charge(plasma_1Dt_data* pls_data) {
-    return pls_data->charge;
-}
-
-/**
- * @brief Return pointer to array storing species atomic number
- *
- * @param pls_data pointer to plasma data
- *
- * @return pointer to immutable MAX_SPECIES length array containing
- *         atomic numbers
- */
-const int* plasma_1Dt_get_species_znum(plasma_1Dt_data* pls_data) {
-    return pls_data->znum;
-}
-
-/**
- * @brief Return pointer to array storing species mass number
- *
- * @param pls_data pointer to plasma data
- *
- * @return pointer to immutable MAX_SPECIES length array containing
- *         mass numbers
- */
-const int* plasma_1Dt_get_species_anum(plasma_1Dt_data* pls_data) {
-    return pls_data->anum;
 }

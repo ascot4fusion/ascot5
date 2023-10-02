@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+"""Manage contents of a HDF5 file.
+"""
+import argparse
+import subprocess
+import a5py.ascot5io.coreio.tools as a5tools
+
+notesandexamples = """
+notes:
+  Ascot object is not used internally, so you can use this tool to rescue files
+  where a run or input is corrupted while still keeping the structure coherent
+  otherwise.
+
+  If also this fails, use h5py but make a backup first.
+
+examples:
+
+  a5manage -a ascot.h5 0123456789
+  a5manage -r backedup.h5 bfield
+  a5manage -c copyhere.h5 B_2DS_0123456789 fromhere.h5
+"""
+
+parser = argparse.ArgumentParser(
+    description="Manage contents of an ASCOT5 HDF5 file.",
+    epilog=notesandexamples,
+    formatter_class=argparse.RawDescriptionHelpFormatter)
+parser.add_argument("FILE", help="Target file whose contents are managed")
+parser.add_argument("GROUP", help="Name or QID of a data group or a parent "
+                    + "group name")
+parser.add_argument("FILE2", help="Source file when copying a group", nargs="?")
+parser.add_argument("-a", "--activate", action="store_true", dest="activate",
+                    default=False, help="Activate GROUP in FILE")
+parser.add_argument("-r", "--remove", action="store_true", dest="remove",
+                    default=False, help="Remove GROUP from FILE")
+parser.add_argument("-c", "--copy", action="store_true", dest="copy",
+                    default=False, help="Copy GROUP from FILE2 to FILE")
+
+args = parser.parse_args()
+opt = sum([args.activate, args.remove, args.copy])
+if opt == 0:
+    print("a5manage: error: provide one of the -a, -r, -c options")
+    exit()
+if opt > 1:
+    print("a5manage: error: only one of the -a, -r, -c options can be used at "
+          + "a time")
+    exit()
+if args.copy and args.FILE2 is None:
+    print("a5manage: error: provide FILE2 where the data is copied from.")
+    exit()
+
+if args.activate:
+    print("a5manage: setting group as active")
+    a5tools.call_fileapi(args.FILE, "set_active", args.GROUP)
+    print("a5manage: done")
+
+if args.remove:
+    print("a5manage: removing group from the file")
+    a5tools.removegroup(args.FILE, args.GROUP)
+    print("a5manage: removed: do you want to repack to reduce the file size?")
+    while True:
+        repack = input("a5manage: hit enter to repack or \"n\" to skip: ")
+        if repack == "":
+            print("a5manage: repacking...")
+            subprocess.call(["h5repack", args.FILE, args.FILE + "_repack"])
+            subprocess.call(["mv", args.FILE + "_repack", args.FILE])
+            break
+        if repack == "n":
+            print("a5manage: repack skipped")
+            break
+    print("a5manage: done")
+
+if args.copy:
+    print("a5manage: copying group from one file to another")
+    a5tools.copygroup(args.FILE2, args.FILE, args.GROUP, newgroup=False)
+    print("a5manage: done")
