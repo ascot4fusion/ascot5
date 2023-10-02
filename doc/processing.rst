@@ -1,6 +1,6 @@
-===========
-Data format
-===========
+============
+Data storage
+============
 
 Simulation inputs and options, as well as the outputs once the simulation is complete, are stored in a single HDF5 file.
 
@@ -9,7 +9,6 @@ The file is designed to hold multiple inputs (even of same type) and results of 
 
 The exact structure of the HDF5 file is not that relevent since it should always be accessed via the Python interface provided by :mod:`a5py`.
 
-===========
 Data access
 ===========
 
@@ -91,6 +90,31 @@ See the tutorial and API for the following entries for more details.
    ~a5py.ascot5io.RunGroup
    ~a5py.ascot5io.InputGroup
    ~a5py.ascot5io.coreio.treedata.DataGroup
+
+Terminal scripts
+================
+
+Some useful scripts found in `./bin` folder are accessible from terminal if ``a5py`` was installed succesfully.
+These scripts modify the contents of the HDF5 file and they are listed here.
+
+.. list-table:: Command line scripts
+   :widths: 25 75
+   :header-rows: 0
+
+   * - ``a5editoptions``
+     - Edit currently active simulation options (or create default options if none exists).
+       Options are edited with a text editor and set as active after saving.
+   * - ``a5manage``
+     - Manage data groups by setting them as active, removing them, or copying them to another file.
+       Inputs that have been used by a run cannot be removed unless that run is removed first.
+   * - ``a5gui``
+     - Open GUI where you can manage your data and view results and inputs.
+   * - ``a5combine``
+     - Combine simulation results if: a run was split into several processes without MPI (this creates multiple output files), several simulations were run in parallel and stored in different files, an existing simulation was continued.
+   * - ``a5upgrade``
+     - Makes a copy "<originalname>_<currentversion>.h5" of the file if it was made with an older version of ASCOT5.
+       The aim is to maintain backwards compatibility with this script.
+       However, it is not always possible to convert the results into a new format and in those cases rerunning the simulation with updated inputs is unfortunately necessary.
 
 ================
 Input generation
@@ -260,11 +284,23 @@ MHD input is used to model particle response to MHD (feedback from particles to 
    mhd.MHD_NONSTAT
    mhd.MHD_NONSTAT.write_hdf5
 
+MHD eigenfunctions ``asigma``
+=============================
+
+Atomic reaction data (e.g. from ADAS) for simulations where atomic reactions are enabled.
+
+.. autosummary::
+   :nosignatures:
+
+   asigma
+   asigma.Asigma_loc
+   asigma.Asigma_loc.write_hdf5
+
 Neutral beam injectors ``nbi``
 ==============================
 
-NBI input is used by BBNBI5 and not by ASCOT5.
-Hence, its presence is not required when running ASCOT5 simulations.
+NBI input is used by BBNBI5 exclusively.
+The input consists of a bundle of injectors, which in ``a5py`` are represented by :class:`Injector`.
 
 .. autosummary::
    :nosignatures:
@@ -275,6 +311,8 @@ Hence, its presence is not required when running ASCOT5 simulations.
 
 Markers ``marker``
 ==================
+
+Simulation markers.
 
 .. autosummary::
    :nosignatures:
@@ -704,6 +742,100 @@ List of methods relevant for running live simulations can be found below.
    a5py.Ascot.simulation_initoptions
    a5py.Ascot.simulation_run
    a5py.Ascot.simulation_free
+
+Neutral beam simulations (BBNBI5)
+=================================
+
+BBNBI5 implements a beamlet based model for generating neutrals from an injector geometry.
+Neutrals are then followed until they are ionized or they hit the wall (shinethrough).
+
+BBNBI5 uses :class:`.NBI` input which consists of a single or a bundle of injectors represented by :class:`.Injector`.
+It is important to note that there are now way to separate results by injector if the injectors were bundled.
+Only bundle injectors if they have identical geometries or otherwise there is no reason to separate the results.
+
+BBNBI5 is a separate program that has to be compiled separately: ``make bbnbi5`` in the main folder.
+This creates binary ``./build/bbnbi5`` that uses the same input file and shares some inputs with the main program.
+A ``bbnbi5`` run requires following inputs: ``nbi``, ``bfield``, ``plasma``, ``wall``, and ``options``.
+The only options that are used from the input are settings for the distributions: if a distribution is toggled on, BBNBI5 gathers ionized markers on that distribution.
+When these are present, the code is run with
+
+.. code-block::
+
+   # n is the number of markers to be used in simulation
+   # writemarkers creates marker input from ionized markers (on by default)
+   # [t0, t1] is the time interval when the beam is on. This affects the time
+   # assigned to generated markers and the output distributions are weighted
+   # with (t1-t0). Default is t0=t1=0.0 where all markers have t=0.0 and the
+   # the distribution is weighted with 1.0 s
+   ./bbnbi5 --in=ascot.h5 --d="MYTAG My description" --n=1000 --writemarkers=1 --t0=0.0 --t1=1.0
+
+If the option was set to generate marker input, there is a new instance of ``marker`` present in the file.
+Each BBNBI5 run is also stored in HDF5, and in Python it can read and access the data in same fashion as the ASCOT5 runs.
+Open Python terminal to access the data
+
+.. code-block:: python
+
+   # File which has BBNBI5 run tagged "BBNBI"
+   a5 = Ascot("ascot.h5")
+   # List all inputs and outputs
+   a5.data.BBNBI.ls()
+
+.. autosummary::
+   :nosignatures:
+
+   a5py.Ascot.simulation_initinputs
+
+Generating fusion products (AFSI5)
+==================================
+
+AFSI5 calculates distribution of fusion products from the interaction of two arbitrary populations.
+It can be used to create either a fast particle source for ASCOT5 simulations or a neutron source e.g. for codes such as Serpent.
+AFSI5 has three modes of operation: *thermal* where two Maxwellian populations are interacting, *beam-thermal* where one population is Maxwellian and the other is given by arbitrary distribution (e.g. beam ion slowing-down distribution), or *beam-beam* where both populations are given by arbitrary distributions.
+The distributions must have the format of a 5D distribution.
+
+AFSI5 uses ``libascot.so`` to perform the calculations efficiently, but the interface is completely in Python.
+Each AFSI5 run is also stored in HDF5, and in Python it can read and access the data in same fashion as the ASCOT5 runs.
+Assuming that we have a file with magnetic field data and DT plasma input present, and also a run tagged "BEAMS" which contains beam slowing-down distribution in 5D, then AFSI5 is run as
+
+.. code-block:: python
+
+   a5 = Ascot("ascot.h5")
+   a5.input_init(bfield=True, plasma=True)
+   a5.afsi.
+   a5.input_free()
+
+   # The output is stored in HDF5 as a results group (and set as active):
+   a5.ls()
+   a5.data.active.plot_dist("r", "z", "product1")
+
+Computing 3D field from coils (BioSaw)
+======================================
+
+BioSaw is a solver using Biot-Savart law to conveniently include perturbation from external coils to ASCOT5 simulation.
+It computes the magnetic field from a coil geometry and turns it into a :class:`.B_3DS` input.
+A common use of BioSaw is to incorporate the ripple from TF coils or the error-field from RMP coils into simulations.
+The produced data is divergence-free although the level of divergence in simulation, when the data is interpolated with splines, depends on the grid resolution.
+
+BioSaw uses ``libascot.so`` to perform the calculations efficiently, but the interface is completely in Python.
+To run BioSaw, first open a file that has either :class:`.B_2DS` or :class:`.B_3DS` magnetic field present or set as active.
+The calculation is then simply done as follows using the ``biosaw`` attribure which is an instance of :class:`.BioSaw`:
+
+.. code-block:: python
+
+   # Define a simple coil which does not have to form a closed loop
+
+
+   # Open a file that has B_2DS input "B2D" and B_3DS input "B3D"
+   # BioSaw is operated via "biosaw" attribute.
+   a5 = Ascot("ascot.h5")
+
+.. autosummary::
+   :nosignatures:
+
+   a5py.routines.biosaw5.BioSaw
+   a5py.routines.biosaw5.BioSaw.addto2d
+   a5py.routines.biosaw5.BioSaw.addto3d
+   a5py.routines.biosaw5.BioSaw.calculate
 
 Units
 =====
