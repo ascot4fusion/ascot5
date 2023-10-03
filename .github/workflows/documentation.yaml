@@ -3,7 +3,10 @@ on: [push, pull_request, workflow_dispatch]
 permissions:
     contents: write
 jobs:
-  build:
+  docs:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       # Checkout most recent version of this branch on ascot5 repo
@@ -26,19 +29,12 @@ jobs:
       - name: Sphinx build
         run: |
           make doc
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
-        path: "./build/doc"
-
-  publish:
-    needs: build
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    # Change the ref to refs/heads/main once the code is merged
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/feature/8-merging-python-and-c-repositories' }}
-    steps:
-      - name: Publish
-        id: deployment
-        uses: actions/deploy-pages@v2
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        # Change the ref to refs/heads/main once the code is merged
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/feature/8-merging-python-and-c-repositories' }}
+        with:
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/doc/
+          force_orphan: true # No history is kept
