@@ -28,6 +28,7 @@ jobs:
           make doc
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
+        path: "./build/doc"
 
   publish:
     needs: build
