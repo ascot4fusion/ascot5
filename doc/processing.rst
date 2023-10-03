@@ -1,3 +1,5 @@
+.. _Data:
+
 ============
 Data storage
 ============
@@ -91,6 +93,8 @@ See the tutorial and API for the following entries for more details.
    ~a5py.ascot5io.InputGroup
    ~a5py.ascot5io.coreio.treedata.DataGroup
 
+.. _Scripts:
+
 Terminal scripts
 ================
 
@@ -115,6 +119,8 @@ These scripts modify the contents of the HDF5 file and they are listed here.
      - Makes a copy "<originalname>_<currentversion>.h5" of the file if it was made with an older version of ASCOT5.
        The aim is to maintain backwards compatibility with this script.
        However, it is not always possible to convert the results into a new format and in those cases rerunning the simulation with updated inputs is unfortunately necessary.
+
+.. _Preprocessing:
 
 ================
 Input generation
@@ -353,6 +359,8 @@ Templates
    ~InputFactory.wall_rectangular
    ~InputFactory.options_tutorial
 
+.. _Postprocessing:
+
 ===============
 Post-processing
 ===============
@@ -564,7 +572,7 @@ To list all end conditions and possible errors, use the :meth:`~RunGroup.getstat
 The error shows the error message and the line and file in which it originated.
 
 Distributions
-=============
+*************
 
 ASCOT5 can be used to collect N-dimensional histograms that represent distribution of the simulated particle population in phase-space.
 There are in total of five distributions that can be collected:
@@ -666,23 +674,11 @@ Note that some of the moments require that the input data such as the magnetic f
    DistMoment
    DistMoment.ordinate
 
-Exceptions
-==========
-
-.. currentmodule:: a5py.ascot5io
-
-These are the custom exceptions and warnings used by :mod:`a5py`.
-
-.. autosummary::
-   :nosignatures:
-
-   ~a5py.exceptions.AscotIOException
-   ~a5py.exceptions.AscotNoDataException
-   ~a5py.exceptions.AscotInitException
-   ~a5py.exceptions.AscotUnitWarning
+Advanced
+========
 
 Interactive simulations
-=======================
+***********************
 
 Simulations can also be run directly from Python via the interface provided by ``libascot.so`` and :mod:`Ascotpy`.
 These simulations are equivalent to running ``ascot5_main`` with the exception that the output is not stored in ``ascot.h5``.
@@ -744,7 +740,7 @@ List of methods relevant for running live simulations can be found below.
    a5py.Ascot.simulation_free
 
 Neutral beam simulations (BBNBI5)
-=================================
+*********************************
 
 BBNBI5 implements a beamlet based model for generating neutrals from an injector geometry.
 Neutrals are then followed until they are ionized or they hit the wall (shinethrough).
@@ -786,7 +782,7 @@ Open Python terminal to access the data
    a5py.Ascot.simulation_initinputs
 
 Generating fusion products (AFSI5)
-==================================
+**********************************
 
 AFSI5 calculates distribution of fusion products from the interaction of two arbitrary populations.
 It can be used to create either a fast particle source for ASCOT5 simulations or a neutron source e.g. for codes such as Serpent.
@@ -809,7 +805,7 @@ Assuming that we have a file with magnetic field data and DT plasma input presen
    a5.data.active.plot_dist("r", "z", "product1")
 
 Computing 3D field from coils (BioSaw)
-======================================
+**************************************
 
 BioSaw is a solver using Biot-Savart law to conveniently include perturbation from external coils to ASCOT5 simulation.
 It computes the magnetic field from a coil geometry and turns it into a :class:`.B_3DS` input.
@@ -838,7 +834,7 @@ The calculation is then simply done as follows using the ``biosaw`` attribure wh
    a5py.routines.biosaw5.BioSaw.calculate
 
 Units
-=====
+*****
 
 :mod:`a5py` uses :mod:`unyt` package to include units in physical quantities.
 
@@ -885,3 +881,18 @@ The warning can be suppressed with:
    import warnings
    from a5py import AscotUnitWarning
    warnings.filterwarnings("ignore", category=AscotUnitWarning)
+
+Exceptions
+**********
+
+.. currentmodule:: a5py.ascot5io
+
+These are the custom exceptions and warnings used by :mod:`a5py`.
+
+.. autosummary::
+   :nosignatures:
+
+   ~a5py.exceptions.AscotIOException
+   ~a5py.exceptions.AscotNoDataException
+   ~a5py.exceptions.AscotInitException
+   ~a5py.exceptions.AscotUnitWarning
