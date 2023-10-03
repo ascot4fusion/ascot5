@@ -26,6 +26,10 @@ jobs:
       - name: Sphinx build
         run: |
           make doc
+          ls
+          ls build
+          ls build/doc
+          ls ..
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
