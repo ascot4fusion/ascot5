@@ -15,33 +15,40 @@ For questions related to the code or physics, please join our `Slack channel <ht
   :caption: Running Simulations
   :hidden:
 
-  running
+  installing
+  simulations
 
 .. toctree::
   :maxdepth: 2
   :caption: Processing Data
   :hidden:
 
-  processing
+  dataform
+  inputgen
+  postproc
 
 .. toctree::
   :maxdepth: 2
   :caption: Simulating Physics
   :hidden:
 
-  teaching
+  tutorials
+  physics
 
 .. toctree::
   :maxdepth: 2
   :caption: Publications
   :hidden:
 
-  publishing
+  acknowledging
+  gallery
 
 .. toctree::
   :caption: Code Development
   :hidden:
 
+  parallel
+  testing
   developing
 
 .. toctree::
