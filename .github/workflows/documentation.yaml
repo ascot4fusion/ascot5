@@ -44,7 +44,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
-          docs
+          name: docs
       - name: Publish
         uses: peaceiris/actions-gh-pages@v3
         with:
