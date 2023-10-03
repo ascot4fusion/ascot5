@@ -60,5 +60,5 @@ nbsphinx_execute = 'never'
 # Thumbnails
 nbsphinx_thumbnails = {
     "tutorials/tutorial": "_static/icon.png",
-    "tutorials/poincaretutorial": "../_images/poincare.png",
+    "tutorials/poincaretutorial": "_images/poincare.png",
 }
