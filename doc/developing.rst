@@ -1,3 +1,5 @@
+.. _Codingstyle:
+
 ==========================
 Coding style and practices
 ==========================
@@ -27,7 +29,6 @@ Copy paste these settings to your ``~/.emacs`` file to enforce the rules:
    ;; Kill all tabs
    (setq-default indent-tabs-mode nil)
 
-=========
 Git usage
 =========
 
@@ -47,7 +48,6 @@ Git usage
 
 - Only permitted developers can merge to ``master`` as each merge corresponds to a new version.
 
-=============
 Documentation
 =============
 
@@ -159,7 +159,6 @@ Testing
 
 TODO
 
-
-==================================
-`C API <_static/html/index.html>`_
-==================================
+=====================================
+`C API <_static/doxygen/index.html>`_
+=====================================

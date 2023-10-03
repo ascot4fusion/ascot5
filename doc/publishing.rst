@@ -1,3 +1,5 @@
+.. _Citing:
+
 =============
 Citing ASCOT5
 =============
@@ -19,7 +21,6 @@ It is also a good practice to refer as *markers* the points whose trajectories A
 Furthermore, *full orbit* can refer to both *poloidal orbit* and *gyro-orbit* meaning it is better to write "gyro-orbit" explicitly (e.g. when comparing the results to guiding-center simulations).
 Also, pitch can be defined either as the angle between velocity and magnetic field vectors but it can also be the cosine of that angle (the definition what ASCOT5 uses) so please be explicit when writing that "pitch is zero".
 
-=======
 License
 =======
 
@@ -28,6 +29,8 @@ This software is distributed under the `LGPLv3 <https://www.gnu.org/licenses/lgp
 =======
 Gallery
 =======
+
+WIP
 
 .. figure:: ../figures/sparcre.png
    :class: with-border
@@ -38,7 +41,6 @@ Gallery
    Ref. :cite:t:`tinguely2021modeling` studied an external coil for runaway electron mitigation in SPARC.
    Markers were traced with ASCOT5 using magnetic fields computed with NIMROD, and the resulting coefficients allowed DREAM to take losses into account when calculating runaway electron beam evolution.
 
-========================
 Publications using ASCOT
 ========================
 

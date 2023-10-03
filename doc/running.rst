@@ -346,9 +346,12 @@ Simulations
 
 .. _Simulationoptions:
 
-=======
 Options
 =======
+
+Simulation options are listed below.
+Click on the parameter name for more details.
+Note that the first underscore does not belong in a parameter name and only appear here for technical reasons.
 
 .. currentmodule:: a5py.ascot5io.options
 
@@ -574,6 +577,8 @@ This results in multiple output files that you have to combine using the python 
    ## cause problems in the system, so give system some time to breathe
    sleep 5s
    done
+
+.. _ExampleRuntimes:
 
 Examples
 ========
