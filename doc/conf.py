@@ -23,7 +23,8 @@ extensions = ['sphinx.ext.autodoc',      # For generating doc from Python source
               'breathe',                 # Sphinx can access Doxygen output
               'sphinxcontrib.bibtex',    # Can use bibtex
               'sphinx.ext.autosummary',  # Creating summary tables
-              'sphinx.ext.intersphinx',] # Link to external libraries
+              'sphinx.ext.intersphinx',  # Link to external libraries
+              "sphinx_gallery.load_style",] # Examples thumbnails
 
 exclude_patterns = []
 numpydoc_xref_param_type = True # Automatically link str, array_like, etc.
@@ -55,3 +56,8 @@ html_css_files = [
 # Bibtex
 bibtex_bibfiles = ['ascotwork.bib']
 nbsphinx_execute = 'never'
+
+# Thumbnails
+nbsphinx_thumbnails = {
+    "tutorials/tutorial": "../figures/sparcre.png",
+}

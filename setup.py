@@ -23,7 +23,8 @@ setup(name='a5py',
                 "nbsphinx",
                 "breathe",
                 "sphinxcontrib-bibtex",
-                "sphinx-rtd-theme",],
+                "sphinx-rtd-theme"
+                "sphinx-gallery",],
       },
       scripts=[
         'bin/a5manage',
