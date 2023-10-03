@@ -4,11 +4,10 @@
 Tutorials
 =========
 
-.. toctree::
-  :maxdepth: 1
+.. nbgallery::
+   :hidden:
 
-  tutorials/tutorial.ipynb
-  tutorials/poincaretutorial.ipynb
+   tutorials/tutorial.ipynb
 
 =================
 Physics in ASCOT5
