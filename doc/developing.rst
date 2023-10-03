@@ -1,8 +1,11 @@
 .. _Codingstyle:
 
-==========================
-Coding style and practices
-==========================
+==============
+For Developers
+==============
+
+Coding style
+************
 
 - Indentation is 4 spaces.
   - OpenMP pragmas indented same as normal code
@@ -30,7 +33,7 @@ Copy paste these settings to your ``~/.emacs`` file to enforce the rules:
    (setq-default indent-tabs-mode nil)
 
 Git usage
-=========
+*********
 
 `Git usage <https://about.gitlab.com/images/press/git-cheat-sheet.pdf>`_
 
@@ -49,7 +52,7 @@ Git usage
 - Only permitted developers can merge to ``master`` as each merge corresponds to a new version.
 
 Documentation
-=============
+*************
 
 The C code is documented with the help of Doxygen.
 Here's a sample of how the code blocks should look:
@@ -146,18 +149,6 @@ which produces this output:
 
 .. automethod:: a5py.Ascot.input_eval
    :noindex:
-
-===============
-Parallelization
-===============
-
-TODO
-
-=======
-Testing
-=======
-
-TODO
 
 =====================================
 `C API <_static/doxygen/index.html>`_
