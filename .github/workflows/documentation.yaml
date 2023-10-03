@@ -29,8 +29,9 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
-          path: "./build/doc"
-          path: "./figures"
+          path: |
+            "./build/doc"
+            "./figures"
 
   publish:
     needs: build
