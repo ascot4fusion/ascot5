@@ -27,10 +27,7 @@ jobs:
         run: |
           make doc
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: docs
-          path: build
+        uses: actions/upload-pages-artifact@v2
 
   publish:
     needs: build
@@ -41,14 +38,6 @@ jobs:
     # Change the ref to refs/heads/main once the code is merged
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/feature/8-merging-python-and-c-repositories' }}
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: docs
       - name: Publish
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          publish_branch: gh-pages
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: build/doc/
-          force_orphan: true # No history is kept
+        id: deployment
+        uses: actions/deploy-pages@v2
