@@ -22,8 +22,9 @@ import a5py.wall as wall
 from a5py.ascot5io import Marker, State, Orbits, Dist
 from a5py.ascot5io.dist import DistMoment
 import a5py.physlib as physlib
+from a5py.routines.distmixin import DistMixin
 
-class RunMixin():
+class RunMixin(DistMixin):
     """Class with methods to access and plot orbit and state data.
 
     This class assumes it is inherited by ResultsNode.
@@ -585,80 +586,25 @@ class RunMixin():
                     dists.remove(d)
             return dists
 
-        mass = np.mean(self.getstate("mass"))
         if dist == "5d":
             self._require("_dist5d")
             distout = self._dist5d.get()
-            if exi:
-                if ekin_edges is None:
-                    ekin_edges  = int(distout.abscissa("ppar").size / 2)
-                if pitch_edges is None:
-                    pitch_edges = distout.abscissa("pperp").size
-                distout = Dist.ppappe2ekinpitch(
-                    distout, mass, ekin_edges=ekin_edges,
-                    pitch_edges=pitch_edges)
-        elif dist == "6d":
+        if dist == "6d":
             self._require("_dist6d")
-            if exi:
-                raise ValueError("Energy-pitch transformation not valid for 6d")
             distout = self._dist6d.get()
-        elif dist == "rho5d":
+        if dist == "rho5d":
             self._require("_distrho5d")
             distout = self._distrho5d.get()
-            if exi:
-                if ekin_edges is None:
-                    ekin_edges  = int(distout.abscissa("ppar").size / 2)
-                if pitch_edges is None:
-                    pitch_edges = distout.abscissa("pperp").size
-                distout = Dist.ppappe2ekinpitch(
-                    distout, mass, ekin_edges=ekin_edges,
-                    pitch_edges=pitch_edges)
-        elif dist == "rho6d":
+        if dist == "rho6d":
             self._require("_distrho6d")
-            if exi:
-                raise ValueError("Energy-pitch transformation not valid for 6d")
             distout = self._distrho6d.get()
-        elif dist == "com":
+        if dist == "com":
             self._require("_distcom")
-            if exi:
-                raise ValueError(
-                    "Energy-pitch transformation not valid for COM")
             distout = self._distcom.get()
-        else:
-            raise ValueError("Unknown distribution")
 
-        if exi and plotexi:
-            if dist == "5d":    dist0 = self._dist5d.get()
-            if dist == "rho5d": dist0 = self._distrho5d.get()
-            integrate = {}
-            for k in dist0.abscissae:
-                if k not in ["ppar", "pperp"]:
-                    integrate[k] = np.s_[:]
-            dist0.integrate(**integrate)
-            integrate = {}
-            for k in distout.abscissae:
-                if k not in ["ekin", "pitch"]:
-                    integrate[k] = np.s_[:]
-            dist1 = distout.integrate(copy=True, **integrate)
-
-            g = physlib.gamma_energy(mass, dist1.abscissa_edges("ekin"))
-            pnorm_edges = physlib.pnorm_gamma(mass, g).to("kg*m/s")
-            pitch_edges = dist1.abscissa_edges("pitch")
-
-            import matplotlib.pyplot as plt
-            fig = plt.figure()
-            ax1 = fig.add_subplot(3,1,1)
-            ax2 = fig.add_subplot(3,1,2, projection='polar')
-            ax3 = fig.add_subplot(3,1,3)
-
-            self.plotdist(dist0, axes=ax1)
-            a5plt.momentumpolargrid(pnorm_edges, pitch_edges, axes=ax1)
-            a5plt.momentumpolarplot(pnorm_edges, pitch_edges,
-                                    dist1.distribution(), axes=ax2)
-            self.plotdist(dist1, axes=ax3)
-            plt.show()
-
-        return distout
+        mass = np.mean(self.getstate("mass"))
+        return self._getdist(distout, mass, exi=exi, ekin_edges=ekin_edges,
+                             pitch_edges=pitch_edges, plotexi=plotexi)
 
     def getdist_moments(self, dist, *moments, volmethod="prism"):
         """Calculate moments of distribution.
