@@ -180,12 +180,6 @@ def vpar_momentum(m, p, b):
     bnorm = np.sqrt( np.sum(b**2, axis=0) )
     return np.sum( p * b, axis=0 ) / ( gamma * m * bnorm)
 
-def mu_velocity(m, v, b):
-    """TODO: Evaluate magnetic moment from velocity vector.
-    """
-    gamma = gamma_velocity(v=v)
-    return 0
-
 def pitch_momentum(p, b):
     """Evaluate pitch from momentum vector.
     """
