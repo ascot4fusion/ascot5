@@ -22,6 +22,7 @@ from .coreio.fileapi import INPUTGROUPS
 from .coreio.treeview import RootNode, InputNode, ResultNode
 from .coreio.treedata import DataGroup
 from a5py.routines.runmixin import RunMixin
+from a5py.routines.afsi5 import AfsiMixin
 from a5py.templates import InputFactory
 
 HDF5TOOBJ = {
@@ -41,7 +42,7 @@ HDF5TOOBJ = {
     "inistate" : State,
     "endstate" : State,
     "orbit" : Orbits,
-    "dist5d" : Dist_5D,
+    "dist5d" : Dist_5D, "prod1dist5d" : Dist_5D, "prod2dist5d" : Dist_5D,
     "dist6d" : Dist_6D,
     "distrho5d" : Dist_rho5D,
     "distrho6d" : Dist_rho6D,
@@ -166,7 +167,12 @@ class Ascot5IO(RootNode):
         group : `ResultGroup`
             The result group that was created.
         """
-        return RunGroup(self, path, h5, inputqids)
+        if path.split("/")[-1].split("_")[0] == "run":
+            return RunGroup(self, path, h5, inputqids)
+        elif path.split("/")[-1].split("_")[0] == "afsi":
+            return AfsiGroup(self, path, h5, inputqids)
+        else:
+            raise ValueError("Unknown")
 
     def _create_datagroup(self, grouptype, path):
         """Create data group based on the given type.
@@ -252,5 +258,10 @@ class InputGroup(InputNode):
 
 class RunGroup(ResultNode, RunMixin):
     """Node containing results and methods to process them.
+    """
+    pass
+
+class AfsiGroup(ResultNode, AfsiMixin):
+    """Node containing AFSI results and methods to process them.
     """
     pass
