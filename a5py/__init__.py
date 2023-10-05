@@ -7,11 +7,12 @@ import unyt
 from .ascot5io import Ascot5IO
 from .ascotpy  import Ascotpy
 
-from .ascotpy.libascot  import _LIBASCOT
-from .exceptions        import *
-from .routines.biosaw5  import BioSaw
-from .routines.afsi5    import Afsi
-from .routines.plotting import openfigureifnoaxes, line2d
+from .ascotpy.libascot   import _LIBASCOT
+from .exceptions         import *
+from .routines.biosaw5   import BioSaw
+from .routines.afsi5     import Afsi
+from .routines.markergen import MarkerGenerator
+from .routines.plotting  import openfigureifnoaxes, line2d
 
 # Define the unit system ascot uses and add our own unit types
 unyt.define_unit("markers", 1*unyt.Dimensionless)
@@ -46,9 +47,11 @@ class Ascot(Ascotpy):
         Container for the HDF5 data.
     biosaw : :class:`.BioSaw`
         Tool for calculating magnetic field from coils.
-    afsi : :class:`Afsi`
+    afsi : :class:`.Afsi`
         Tool for calculating fusion source from thermal plasma and fast ion
         distributions.
+    markergen : :class:`.MarkerGenerator`
+        Tool for generating markers from distributions.
     """
 
     def __init__(self, inputfile=None, create=False, mute="err"):
@@ -73,6 +76,7 @@ class Ascot(Ascotpy):
         self.data       = None
         self.biosaw     = BioSaw(self)
         self.afsi       = Afsi(self)
+        self.markergen  = MarkerGenerator(self)
         if mute not in ["yes", "no", "err"]:
             raise ValueError("mute must be either \"yes\", \"no\" or \"err\".")
 
