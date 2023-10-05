@@ -168,7 +168,7 @@ class DistData():
 
             endpoints = dist.abscissa_edges(k)[[0,-1]]
             midpoints = dist.abscissa(k)[s]
-            edges = np.zeros((midpoints.size+1,))
+            edges = np.zeros((midpoints.size+1,)) * midpoints.units
             edges[0]  = endpoints[0]
             edges[-1] = endpoints[-1]
             if edges.size > 2:
