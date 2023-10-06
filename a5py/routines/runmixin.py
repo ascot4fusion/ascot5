@@ -395,6 +395,7 @@ class RunMixin(DistMixin):
         def opt2list(val):
             """Convert the option string to a list with tuples (val, pncrid)
             """
+            if not isinstance(val, list): val = [val]
             nonlocal pncrid
             tuples = []
             if val[0] < 0: val = []
