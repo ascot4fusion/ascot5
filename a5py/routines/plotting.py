@@ -981,10 +981,7 @@ def interactive(wallmesh, *args, points=None, data=None, log=False, cpos=None,
 
     # Set events
     for i in range(len(args)):
-        def wrapper(*wargs):
-            args[i][1](p)
-
-        p.add_key_event(args[i][0], wrapper)
+        p.add_key_event(args[i][0], lambda : args[i][1](p))
 
     # Set camera
     if cpos is not None:
