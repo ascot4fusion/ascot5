@@ -130,7 +130,7 @@ def _convert3to4(fn):
                 print("Removing ENDCOND_MAX_SIMTIME from %s" % opt)
                 simtime = grp["ENDCOND_MAX_SIMTIME"][:]
                 del grp["ENDCOND_MAX_SIMTIME"]
-                if not "ENDCOND_LIM_SIMTIME" in opt:
+                if not "ENDCOND_LIM_SIMTIME" in grp:
                     print("Adding ENDCOND_LIM_SIMTIME to %s" % opt)
                     grp.create_dataset("ENDCOND_LIM_SIMTIME", (1,),
                                        data=simtime, dtype='f8')
