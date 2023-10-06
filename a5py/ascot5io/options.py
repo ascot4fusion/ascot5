@@ -1168,24 +1168,30 @@ class Opt(DataGroup):
         opt = {}
         defopt = Opt.get_default()
         for line in lines:
-            paramval = line.split("=")
-            if len(paramval) != 2 or \
-               len(paramval[0].split()) > 1 or len(paramval[1].split()) > 1:
+            # Remove empty lines and lines with comments
+            line = line.strip()
+            if len(line) == 0 or line[0] == "#":
                 continue
 
+            # Separate key-value pairs
+            paramval = line.split("=")
             param = paramval[0].strip()
             val   = paramval[1].strip()
+
+            # Make sure that a parameter is a PARAMETER
             if param != param.upper():
                 continue
             if param not in defopt.keys():
                 warnings.warn("Possibly unknown option " + param + " ignored.")
                 continue
             if isinstance(defopt[param], list):
+                # Value is (supposed to be) a list
                 try:
                     opt[param] = [float(val)]
                 except ValueError:
                    opt[param] = ast.literal_eval(val)
             else:
+                # Value is a plain value
                 opt[param] = type(defopt[param])(val)
 
         return opt
