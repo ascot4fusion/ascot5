@@ -36,3 +36,4 @@ or you can convert these examples to ordinary Python scripts and execute them (e
    tutorials/introduction.ipynb
    tutorials/slowingdown.ipynb
    tutorials/poincare.ipynb
+   tutorials/wallload.ipynb
