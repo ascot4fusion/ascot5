@@ -6,6 +6,7 @@ import unyt
 import itertools
 from scipy.interpolate import griddata, RectBivariateSpline
 from a5py import physlib
+import a5py.routines.plotting as a5plt
 
 from .coreio.treedata import DataContainer
 
@@ -303,6 +304,52 @@ class DistData():
             dV    = (edges[1:] - edges[:-1])
             vol   = np.multiply.outer(vol, dV)
         return vol
+
+    def plot(self, axes=None, cax=None):
+        """Plot distribution in 1D or 2D.
+
+        This method assumes that the input distribution has been integrated,
+        sliced, and interpolated so that only one or two dimensions have
+        a size above one.
+
+        Parameters
+        ----------
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        cax : :obj:`~matplotlib.axes.Axes`, optional
+            The color bar axes or otherwise taken from the main axes.
+        """
+        x = None; y = None;
+        for key in self.abscissae:
+            val = self.abscissa_edges(key)
+            if val.size > 2:
+                if x is None:
+                    x = val
+                    xlabel = key + " [" + str(x.units) + "]"
+                elif y is None:
+                    y = val
+                    ylabel = key + " [" + str(y.units) + "]"
+                else:
+                    raise ValueError(
+                        "The distribution has more than two dimensions with "
+                        + "size greater than one")
+        if x is None: raise ValueError("The distribution is zero dimensional")
+
+        ordinate = np.squeeze(self.distribution())
+        if y is None:
+            ylabel = "f" + " [" + str(ordinate.units) + "]"
+            a5plt.mesh1d(x, ordinate, xlabel=xlabel, ylabel=ylabel, axes=axes)
+        else:
+            # Swap pitch and energy
+            if "ekin" in xlabel and "pitch" in ylabel:
+                temp = x; x = y; y = temp
+                temp = xlabel; xlabel = ylabel; ylabel = temp
+                ordinate = ordinate.T
+
+            axesequal = x.units == y.units
+            clabel = "f" + " [" + str(ordinate.units) + "]"
+            a5plt.mesh2d(x, y, ordinate, axesequal=axesequal, xlabel=xlabel,
+                         ylabel=ylabel, clabel=clabel, axes=axes, cax=cax)
 
 class DistMoment:
     """Class that stores moments calculated from a distribution.
@@ -962,7 +1009,7 @@ class Dist(DataContainer):
         ppar     = dist.abscissa("ppar").to("amu*m/s").v
         pperp    = dist.abscissa("pperp").to("amu*m/s").v
 
-        ppa0,ppe0 = np.meshgrid(dist.abscissa("ppar"), dist.abscissa("pperp"))
+        ppa0,ppe0 = np.meshgrid(dist.abscissa("ppar"), dist.abscissa("pperp"), indexing="ij")
         ppa0 = ppa0.ravel()
         ppe0 = ppe0.ravel()
         pnorm0 = np.sqrt(ppa0**2 + ppe0**2)
@@ -975,6 +1022,15 @@ class Dist(DataContainer):
         for a in dist.abscissae:
             if a != "ppar" and a != "pperp":
                 ranges.append(range(dist.abscissa(a).size))
+
+        #
+        ie = np.digitize(ekin0,  ekin_edges)-1
+        ip = np.digitize(pitch0, pitch_edges)-1
+        mask = np.logical_or.reduce([ie < 0, ip < 0, ie >= ekin_edges.size-1, ip >= pitch_edges.size-1])
+        ie = ie[~mask]
+        ip = ip[~mask]
+        vol = exdist.phasespacevolume()
+        hist = dist.histogram()
 
         # We loop over all dimensions except ppar and pperp
         for itr in itertools.product(*ranges):
@@ -993,10 +1049,15 @@ class Dist(DataContainer):
             # Apply jacobian and store the values to exidist
             #exdist._distribution[idx] = d * jac
 
-            d = np.histogram2d(
-                ekin0, pitch0, bins=(ekin_edges, pitch_edges),
-                weights=np.squeeze(dist.histogram()[idx]).T.ravel())[0]
-            exdist._distribution[idx] = d / exdist.phasespacevolume()[idx]
+            #d = np.histogram2d(
+            #    ekin0, pitch0, bins=(ekin_edges, pitch_edges),
+            #    weights=np.squeeze(dist.histogram()[idx]).T.ravel())[0]
+            #exdist._distribution[idx] = d / vol.units
+            a = np.zeros(exdist._distribution[idx].shape)
+            np.add.at(a, (ie,ip), hist[idx].v.ravel()[~mask])
+            exdist._distribution[idx] = a / vol.units
+
+        exdist._distribution /= vol.v
 
         return exdist
 
