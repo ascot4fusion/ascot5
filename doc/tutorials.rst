@@ -33,6 +33,6 @@ or you can convert these examples to ordinary Python scripts and execute them (e
 .. nbgallery::
    :hidden:
 
-   tutorials/tutorial.ipynb
+   tutorials/introduction.ipynb
    tutorials/slowingdown.ipynb
-   tutorials/poincaretutorial.ipynb
+   tutorials/poincare.ipynb
