@@ -9,6 +9,7 @@ from .coreio.treedata import DataGroup
 from .coreio.fileapi import read_data, add_group, write_data
 
 from a5py.routines.plotting import openfigureifnoaxes
+from a5py.physlib import parseunits
 from a5py.physlib.species import species as getspecies
 
 class Marker(DataGroup):
@@ -136,8 +137,7 @@ class Marker(DataGroup):
             "time"   : np.zeros((n,)),
         }
         if species is None:
-            species = {"mass":1*unyt.atomic_mass_unit, "charge":1*unyt.e,
-                       "anum":1, "znum":1}
+            species = {"mass":1*unyt.amu, "charge":1*unyt.e, "anum":1, "znum":1}
         else:
             species = getspecies(species)
 
@@ -145,7 +145,7 @@ class Marker(DataGroup):
             mrk["vr"]     = np.zeros((n,))
             mrk["vz"]     = np.zeros((n,))
             mrk["vphi"]   = np.zeros((n,))
-            mrk["mass"]   = ( species["mass"] * np.ones((n,)) ).to_value("amu")
+            mrk["mass"]   = species["mass"] * np.ones((n,))
             mrk["charge"] = species["charge"] * np.ones((n,), dtype=np.int16)
             mrk["anum"]   = species["anum"]   * np.ones((n,), dtype=np.int16)
             mrk["znum"]   = species["znum"]   * np.ones((n,), dtype=np.int16)
@@ -153,7 +153,7 @@ class Marker(DataGroup):
             mrk["pitch"]  = np.zeros((n,))
             mrk["energy"] = np.zeros((n,))
             mrk["zeta"]   = np.zeros((n,))
-            mrk["mass"]   = ( species["mass"] * np.ones((n,)) ).to_value("amu")
+            mrk["mass"]   = species["mass"] * np.ones((n,))
             mrk["charge"] = species["charge"] * np.ones((n,), dtype=np.int16)
             mrk["anum"]   = species["anum"]   * np.ones((n,), dtype=np.int16)
             mrk["znum"]   = species["znum"]   * np.ones((n,), dtype=np.int16)
@@ -336,6 +336,9 @@ class GC(Marker):
         return pitch
 
     @staticmethod
+    @parseunits(strip=True, mass="amu", charge="e", r="m", phi="deg", z="m",
+                energy="eV", pitch="1", zeta="rad", anum="1", znum="1",
+                time="s", weight="1")
     def write_hdf5(fn, n, ids, mass, charge, r, phi, z, energy, pitch, zeta,
                    anum, znum, weight, time, desc=None):
         """Write input data to the HDF5 file.
@@ -348,10 +351,10 @@ class GC(Marker):
             Number of markers.
         ids : array_like (n,)
             Unique identifier for each marker (must be a positive integer).
-        charge : array_like (n,)
-            Charge [e].
         mass : array_like (n,)
             Mass [amu].
+        charge : array_like (n,)
+            Charge [e].
         r : array_like (n,)
             Guiding center R coordinate [m].
         phi : array_like (n,)
