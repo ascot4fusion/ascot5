@@ -4,6 +4,15 @@ import os
 import numpy as np
 import unyt
 
+# Define the unit system ascot uses and add our own unit types
+unyt.define_unit("markers", 1*unyt.Dimensionless)
+unyt.define_unit("particles", 1*unyt.Dimensionless)
+unyt.define_unit("e", -unyt.electron_charge)
+u=unyt.UnitSystem("ascot", "m", "atomic_mass_unit", "s", angle_unit="deg")
+u["energy"] = "eV"
+u["charge"] = "e"
+u["magnetic_field"] = "T"
+
 from .ascot5io import Ascot5IO
 from .ascotpy  import Ascotpy
 
@@ -13,15 +22,6 @@ from .routines.biosaw5   import BioSaw
 from .routines.afsi5     import Afsi
 from .routines.markergen import MarkerGenerator
 from .routines.plotting  import openfigureifnoaxes, line2d
-
-# Define the unit system ascot uses and add our own unit types
-unyt.define_unit("markers", 1*unyt.Dimensionless)
-unyt.define_unit("particles", 1*unyt.Dimensionless)
-unyt.define_unit("e", -unyt.electron_charge)
-u=unyt.UnitSystem("ascot", "m", "atomic_mass_unit", "s", angle_unit="deg")
-u["energy"] = "eV"
-u["charge"] = "e"
-u["magnetic_field"] = "T"
 
 class Ascot(Ascotpy):
     """Primary tool for processing ASCOT5 data.
@@ -152,7 +152,8 @@ class Ascot(Ascotpy):
         If the input is already initialized, nothing is done. In case there is
         already different input of same type initialized, an error is raised.
 
-        If the input argument is a dict, it is used instead of reading the data from hdf5.
+        If the input argument is a dict, it is used instead of reading the data
+        from hdf5.
 
         Parameters
         ----------
