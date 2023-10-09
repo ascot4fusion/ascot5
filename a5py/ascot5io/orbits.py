@@ -19,7 +19,7 @@ class Orbits(DataContainer):
     FIELDLINE     = 3
 
     def read(self):
-        """Read raw state data to a dictionary.
+        """Read raw orbit data to a dictionary.
         """
         out = {}
         with self as f:
@@ -195,8 +195,9 @@ class Orbits(DataContainer):
             if "vperp" in qnt:
                 vpar = physlib.vpar_momentum(
                     mass[mask], pvecprt(mask), bvec(mask))
-                add("vperp", lambda : np.sqrt(np.sum(pvecprt(mask)**2, axis=0)
-                                              - vpar**2))
+                pnorm = np.sqrt(np.sum(pvecprt(mask)**2, axis=0))
+                vnorm = physlib.velocity_momentum(mass[mask], pnorm)
+                add("vperp", lambda : np.sqrt(vnorm**2 - vpar**2))
             if "vnorm" in qnt:
                 pnorm = np.sqrt(np.sum(pvecprt(mask)**2, axis=0))
                 add("vnorm", lambda : physlib.velocity_momentum(mass[mask],

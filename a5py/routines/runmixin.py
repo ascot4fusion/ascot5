@@ -165,6 +165,8 @@ class RunMixin(DistMixin):
             data[i] = data[i][idx]
         if "mu" in qnt:
             data[qnt.index("mu")].convert_to_units("eV/T")
+        if "psi" in qnt:
+            data[qnt.index("psi")].convert_to_units("Wb")
         return data if len(data) > 1 else data[0]
 
     def getorbit(self, *qnt, ids=None, pncrid=None, endcond=None):
@@ -225,6 +227,8 @@ class RunMixin(DistMixin):
             data[i] = data[i][idx]
         if "mu" in qnt:
             data[qnt.index("mu")].convert_to_units("eV/T")
+        if "psi" in qnt:
+            data[qnt.index("psi")].convert_to_units("Wb")
         return data if len(data) > 1 else data[0]
 
     def getstate_markersummary(self):
@@ -1478,7 +1482,6 @@ class RunMixin(DistMixin):
 
         a5plt.still(wallmesh, points=points, data=data, log=log, cpos=cpos,
                     cfoc=cfoc, cang=cang, axes=axes, cax=cax)
-
 
     def plotwall_3dinteractive(self, wallmesh=None, *args, points=None,
                                data=None, log=False, cpos=None, cfoc=None,
