@@ -6,6 +6,7 @@
 
 #include <string.h>
 #include <math.h>
+#include <hdf5_hl.h>
 #include "ascot5.h"
 #include "print.h"
 #include "gitver.h"
@@ -228,6 +229,40 @@ void afsi_run(sim_offload_data* sim, int reaction, int n, afsi_data* react1,
         abort();
     }
     char path[300];
+    sprintf(path, "/results/afsi_%s/reaction", sim->qid);
+    hid_t reactiondata = H5Gcreate2(f, path, H5P_DEFAULT, H5P_DEFAULT,
+                                    H5P_DEFAULT);
+    if(reactiondata < 0) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    hsize_t size = 1;
+    real q = Q / CONST_E;
+    if(H5LTmake_dataset_double(reactiondata, "m1", 1, &size, &m1)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    if(H5LTmake_dataset_double(reactiondata, "m2", 1, &size, &m2)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    if(H5LTmake_dataset_double(reactiondata, "mprod1", 1, &size, &mprod1)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    if(H5LTmake_dataset_double(reactiondata, "mprod2", 1, &size, &mprod2)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    if(H5LTmake_dataset_double(reactiondata, "q",      1, &size, &q)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    if(H5Gclose(reactiondata)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+
     sprintf(path, "/results/afsi_%s/prod1dist5d", sim->qid);
     if( hdf5_dist_write_5D(f, path, prod1_offload_data, prod1_offload_array) ) {
         print_err("Warning: 5D distribution could not be written.\n");
@@ -235,6 +270,10 @@ void afsi_run(sim_offload_data* sim, int reaction, int n, afsi_data* react1,
     sprintf(path, "/results/afsi_%s/prod2dist5d", sim->qid);
     if( hdf5_dist_write_5D(f, path, prod2_offload_data, prod2_offload_array) ) {
         print_err("Warning: 5D distribution could not be written.\n");
+    }
+    if(hdf5_close(f)) {
+        print_err("Failed to close the file.\n");
+        abort();
     }
 
     print_out0(VERBOSE_MINIMAL, mpi_rank, "\nDone\n");
