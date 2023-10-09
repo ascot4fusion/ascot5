@@ -34,4 +34,5 @@ or you can convert these examples to ordinary Python scripts and execute them (e
    :hidden:
 
    tutorials/tutorial.ipynb
+   tutorials/slowingdown.ipynb
    tutorials/poincaretutorial.ipynb
