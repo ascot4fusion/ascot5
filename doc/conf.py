@@ -57,8 +57,10 @@ html_css_files = [
 bibtex_bibfiles = ['ascotwork.bib']
 nbsphinx_execute = 'never'
 
-# Thumbnails
+# Thumbnails (also link images somewhere as otherwise they are not copied to
+# _images)
 nbsphinx_thumbnails = {
     "tutorials/tutorial": "_static/icon.png",
     "tutorials/poincaretutorial": "_images/poincare.png",
+    "tutorials/poincaretutorial": "_images/slowingdown.png",
 }
