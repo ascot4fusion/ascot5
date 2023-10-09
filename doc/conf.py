@@ -60,7 +60,7 @@ nbsphinx_execute = 'never'
 # Thumbnails (also link images somewhere as otherwise they are not copied to
 # _images)
 nbsphinx_thumbnails = {
-    "tutorials/tutorial": "_static/icon.png",
-    "tutorials/poincaretutorial": "_images/poincare.png",
-    "tutorials/poincaretutorial": "_images/slowingdown.png",
+    "tutorials/introduction": "_images/iconlarge.png",
+    "tutorials/poincare": "_images/poincare.png",
+    "tutorials/slowingdown": "_images/slowingdown.png",
 }
