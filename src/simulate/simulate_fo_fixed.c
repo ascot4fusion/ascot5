@@ -126,7 +126,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         if(sim->enable_orbfol) {
             if(sim->enable_mhd) {
 #ifdef GPU
-	      printf("NOT PORTED TO GPU YET");
+	      printf("step_fo_vpa_mhd NOT YET PORTED TO GPU");
 	      exit(0);
 #endif
                 step_fo_vpa_mhd(&p, hin, &sim->B_data, &sim->E_data,
@@ -149,7 +149,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         /* Euler-Maruyama for Coulomb collisions */
         if(sim->enable_clmbcol) {
 #ifdef GPU
-	  printf("NOT PORTED TO GPU YET");
+	  printf("mccc_fo_euler NOT YET PORTED TO GPU");
 	  exit(0);
 #endif
             mccc_fo_euler(p_ptr, hin, &sim->plasma_data, sim->random_data,
@@ -158,7 +158,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         /* Atomic reactions */
         if(sim->enable_atomic) {
 #ifdef GPU
-	  printf("NOT PORTED TO GPU YET");
+	  printf("atomic_fo NOT YET PORTED TO GPU");
 	  exit(0);
 #endif
             atomic_fo(p_ptr, hin, &sim->plasma_data, &sim->neutral_data,
@@ -191,7 +191,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         }
         else {
 #ifdef GPU
-	  printf("NOT PORTED TO GPU YET");
+	  printf("particle_fo_to_gc NOT YET PORTED TO GPU");
 	  exit(0);
 #endif	  
 	  /* Instead of particle coordinates we record guiding center */
