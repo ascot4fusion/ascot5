@@ -12,11 +12,11 @@ from .asigma  import Asigma_loc
 from .options import Opt
 from .nbi     import NBI
 
-from a5py.ascot5io.state      import State
-from a5py.ascot5io.orbits     import Orbits
-from a5py.ascot5io.transcoef  import Transcoef
-from .dist import Dist_5D, Dist_6D, Dist_rho5D, Dist_rho6D, Dist_COM
-from .dist import Dist
+from .state      import State
+from .orbits     import Orbits
+from .transcoef  import Transcoef
+from .dist import Dist_5D, Dist_6D, Dist_rho5D, Dist_rho6D, Dist_COM, Dist
+from .reaction import Reaction
 
 from .coreio.fileapi import INPUTGROUPS
 from .coreio.treeview import RootNode, InputNode, ResultNode
@@ -42,6 +42,7 @@ HDF5TOOBJ = {
     "inistate" : State,
     "endstate" : State,
     "orbit" : Orbits,
+    "reaction" : Reaction,
     "dist5d" : Dist_5D, "prod1dist5d" : Dist_5D, "prod2dist5d" : Dist_5D,
     "dist6d" : Dist_6D,
     "distrho5d" : Dist_rho5D,
