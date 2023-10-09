@@ -164,6 +164,9 @@ class Afsi():
                            react1, react2, mult, prod1, prod2,
                            prod1_data, prod2_data)
         self._ascot.input_free(bfield=True, plasma=True)
+
+        # Reload Ascot
+        self._ascot.file_load(self._ascot.file_getpath())
         return prod1, prod2
 
     def beamthermal(self, reaction, beam, it=1, nmc=1000, mult=1.0, ispecies=1,
@@ -259,6 +262,9 @@ class Afsi():
                                react2, react1, mult, prod1, prod2,
                                prod1_data, prod2_data)
         self._ascot.input_free(bfield=True, plasma=True)
+
+        # Reload Ascot
+        self._ascot.file_load(self._ascot.file_getpath())
         return prod1, prod2
 
     def beambeam(self, reaction, beam1, beam2=None, it=0, nmc=1000, mult=1.0,
@@ -325,6 +331,9 @@ class Afsi():
                            prod1_data, prod2_data)
 
         self._ascot.input_free(bfield=True, plasma=True)
+
+        # Reload Ascot
+        self._ascot.file_load(self._ascot.file_getpath())
         return prod1, prod2
 
     def _init_afsi_data(self, dist_5D=None, dist_thermal=None):
