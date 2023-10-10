@@ -28,12 +28,39 @@ or you can convert these examples to ordinary Python scripts and execute them (e
 
 .. _Examples:
 
-.. rubric:: Examples
+.. rubric:: Basics
 
 .. nbgallery::
    :hidden:
 
    tutorials/introduction.ipynb
+   tutorials/orbits.ipynb
+   tutorials/distributions.ipynb
+
+.. rubric:: Marker generation
+
+.. nbgallery::
+   :hidden:
+
+   tutorials/afsi.ipynb
+   tutorials/bbnbi.ipynb
+   tutorials/markergen.ipynb
+
+.. rubric:: Physics
+
+.. nbgallery::
+   :hidden:
+
    tutorials/slowingdown.ipynb
-   tutorials/poincare.ipynb
    tutorials/wallload.ipynb
+   tutorials/mhd.ipynb
+   tutorials/atomic.ipynb
+   tutorials/reversetime.ipynb
+
+.. rubric:: Tools
+
+.. nbgallery::
+   :hidden:
+
+   tutorials/poincare.ipynb
+   tutorials/biosaw.ipynb
