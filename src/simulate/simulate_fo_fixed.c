@@ -101,9 +101,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 #ifdef GPU
     simulate_fo_fixed_copy_to_gpu(sim, p_ptr, p0_ptr, Bdata, Edata, &p_loc, hin);
 #endif    
-    
     while(n_running > 0) {
-      
         /* Store marker states */
         #pragma omp simd
 
@@ -127,7 +125,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
             if(sim->enable_mhd) {
 #ifdef GPU
 	      printf("step_fo_vpa_mhd NOT YET PORTED TO GPU");
-	      exit(0);
+	      exit(1);
 #endif
                 step_fo_vpa_mhd(&p, hin, &sim->B_data, &sim->E_data,
                                 &sim->boozer_data, &sim->mhd_data);
@@ -150,7 +148,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         if(sim->enable_clmbcol) {
 #ifdef GPU
 	  printf("mccc_fo_euler NOT YET PORTED TO GPU");
-	  exit(0);
+	  exit(1);
 #endif
             mccc_fo_euler(p_ptr, hin, &sim->plasma_data, sim->random_data,
                           &sim->mccc_data);
@@ -159,7 +157,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         if(sim->enable_atomic) {
 #ifdef GPU
 	  printf("atomic_fo NOT YET PORTED TO GPU");
-	  exit(0);
+	  exit(1);
 #endif
             atomic_fo(p_ptr, hin, &sim->plasma_data, &sim->neutral_data,
                       &sim->random_data, &sim->asigma_data,
@@ -192,7 +190,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         else {
 #ifdef GPU
 	  printf("particle_fo_to_gc NOT YET PORTED TO GPU");
-	  exit(0);
+	  exit(1);
 #endif	  
 	  /* Instead of particle coordinates we record guiding center */
 
