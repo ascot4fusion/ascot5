@@ -143,7 +143,6 @@ int main(int argc, char** argv) {
 
     /* Total number of markers to be simulated */
     int n_tot;
-
     /* Marker input struct */
     input_particle* p;
 
@@ -185,6 +184,13 @@ int main(int argc, char** argv) {
     if( prepare_markers(&sim, n_tot, p, &ps, &n_proc, B_offload_array) ) {
         goto CLEANUP_FAILURE;
     }
+
+#ifdef GPU
+    if (nprts != NSIMD) {
+      printf("With GPU=1, NSIMD has to be equal to the number of markers = %d\n",nprts);
+      exit(1);
+    }
+#endif
 
     /* Combine input offload arrays to one */
     offload_package offload_data;
