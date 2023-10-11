@@ -742,7 +742,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             return [out[q] for q in qnt]
 
     def input_plotrz(self, r, z, qnt, phi=0*unyt.deg, t=0*unyt.s,
-                     clim=[None, None], cmap=None, axes=None, cax=None):
+                     clim=None, cmap=None, axes=None, cax=None):
         """Plot input quantity on a (R, z) plane at given coordinates.
 
         To plot quantity on a logarithmic scale (base 10), add "log" in

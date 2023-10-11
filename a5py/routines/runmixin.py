@@ -1394,9 +1394,9 @@ class RunMixin(DistMixin):
         d = self.wall.read()
         nelement = wetted.size
         color    = edepo/area
-        x1x2x3   = d["x1x2x3"][wetted]
-        y1y2y3   = d["y1y2y3"][wetted]
-        z1z2z3   = d["z1z2z3"][wetted]
+        x1x2x3   = d["x1x2x3"][wetted-1]
+        y1y2y3   = d["y1y2y3"][wetted-1]
+        z1z2z3   = d["z1z2z3"][wetted-1]
 
         # Toroidal angle for each vertex
         tor = np.rad2deg( np.arctan2( y1y2y3, x1x2x3 ))

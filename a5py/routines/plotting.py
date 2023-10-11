@@ -941,7 +941,9 @@ def still(wallmesh, points=None, data=None, log=False, cpos=None, cfoc=None,
             norm = mpl.colors.Normalize(vmin=0, vmax=maxval)
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         cbar = plt.colorbar(sm, ax=axes, cax=cax)
-        #cbar.set_label(r"Energy load J/m$^2$")
+
+        if data == "eload":
+            cbar.set_label(r"Power load W/m$^2$")
 
 
 def interactive(wallmesh, *args, points=None, data=None, log=False, cpos=None,
