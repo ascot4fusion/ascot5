@@ -65,4 +65,5 @@ nbsphinx_thumbnails = {
     "tutorials/slowingdown"  : "_images/slowingdown.png",
     "tutorials/wallload"     : "_images/wallload.png",
     "tutorials/mhd"          : "_images/mhd.png",
+    "tutorials/orbits"       : "_images/orbits.png",
 }
