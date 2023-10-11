@@ -5,13 +5,18 @@ import numpy as np
 import unyt
 
 # Define the unit system ascot uses and add our own unit types
-unyt.define_unit("markers", 1*unyt.Dimensionless)
-unyt.define_unit("particles", 1*unyt.Dimensionless)
-unyt.define_unit("e", -unyt.electron_charge)
-u=unyt.UnitSystem("ascot", "m", "atomic_mass_unit", "s", angle_unit="deg")
-u["energy"] = "eV"
-u["charge"] = "e"
-u["magnetic_field"] = "T"
+try:
+    unyt.define_unit("markers", 1*unyt.Dimensionless)
+    unyt.define_unit("particles", 1*unyt.Dimensionless)
+    unyt.define_unit("e", -unyt.electron_charge)
+    u=unyt.UnitSystem("ascot", "m", "atomic_mass_unit", "s", angle_unit="deg")
+    u["energy"] = "eV"
+    u["charge"] = "e"
+    u["magnetic_field"] = "T"
+except RuntimeError:
+    # We get exception when trying to define unit that is already defined.
+    # This can be ignored.
+    pass
 
 from .ascot5io import Ascot5IO
 from .ascotpy  import Ascotpy
