@@ -1,4 +1,11 @@
 """Module for generating common plots with ASCOT5.
+
+This module should be imported everywhere where plotting is done instead of
+using matplotlib directly. The reason is that on some platforms matplotlib
+is not available and even there we want to able to use all functionality
+that doesn't require plotting.
+
+So either import this module or use try-except when importing matplotlib.
 """
 import numpy as np
 import warnings
@@ -8,8 +15,11 @@ try:
     import matplotlib.pyplot as plt
     import mpl_toolkits
     from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 except ImportError:
     warnings.warn("Could not import matplotlib. Plotting disabled.")
+    plt = None
+    mpl = None
 
 try:
     import pyvista as pv
