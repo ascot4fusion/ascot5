@@ -1347,7 +1347,8 @@ class RunMixin(DistMixin):
         if plotconnlen:
             # Now set confined markers as having negative connection length
             connlen *= -1
-            lost1 = self.getstate("ids", state="end", endcond="rhomax wall")
+            lost1 = self.getstate("ids", state="end",
+                                  endcond=["rhomax", "wall"])
 
             idx = ~np.in1d(ids, lost1)
             connlen[idx] *= -1
