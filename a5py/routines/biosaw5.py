@@ -66,7 +66,7 @@ class BioSaw():
                 "Failed to load libascot.so which is required by BioSaw")
 
         if not isinstance(coilxyz, list): coilxyz = [coilxyz]
-        if not isinstance(current, list): current = [coilxyz] * len(coilxyz)
+        if not isinstance(current, list): current = [current] * len(coilxyz)
 
         [R,P,Z] = np.meshgrid(r, phi, z, indexing="ij")
         X = R * np.cos(P)
@@ -88,6 +88,9 @@ class BioSaw():
             bx0 = np.zeros(n, dtype="f8")
             by0 = np.zeros(n, dtype="f8")
             bz0 = np.zeros(n, dtype="f8")
+            if any(  np.diff(xyz[:,0])**2 + np.diff(xyz[:,1])**2
+                   + np.diff(xyz[:,2])**2 == 0):
+                raise ValueError("A coil has zero-length elements")
             _LIBASCOT.biosaw_calc_B(n, X.ravel(), Y.ravel(), Z.ravel(),
                                     coiln, xyz[:,0], xyz[:,1], xyz[:,2],
                                     bx0, by0, bz0)
@@ -104,15 +107,16 @@ class BioSaw():
         bphi = -bx*np.sin(P) + by*np.cos(P)
         bz   =  bz
 
-        i = 1
-        br0   = np.copy(br)
-        bphi0 = np.copy(bphi)
-        bz0   = np.copy(bz)
-        while i*revolve < phi.size:
-            br   += np.revolve(br0,   i*revolve, axis=1)
-            bphi += np.revolve(bphi0, i*revolve, axis=1)
-            bz   += np.revolve(bz0,   i*revolve, axis=1)
-            i += 1
+        if revolve is not None:
+            br0   = np.copy(br)
+            bphi0 = np.copy(bphi)
+            bz0   = np.copy(bz)
+            i = 1
+            while i*revolve < phi.size:
+                br   += np.roll(br0,   i*revolve, axis=1)
+                bphi += np.roll(bphi0, i*revolve, axis=1)
+                bz   += np.roll(bz0,   i*revolve, axis=1)
+                i += 1
 
         return br, bphi, bz
 
@@ -198,15 +202,15 @@ class BioSaw():
         b3d["b_zmin"]   = b2d["zmin"]   if zmin   is None else zmin
         b3d["b_zmax"]   = b2d["zmax"]   if zmax   is None else zmax
         b3d["b_nz"]     = b2d["nz"]     if nz     is None else nz
-        b3d["b_phimin"] = b2d["phimin"] if phimin is None else phimin
-        b3d["b_phimax"] = b2d["phimax"] if phimax is None else phimax
-        b3d["b_nphi"]   = b2d["nphi"]   if nphi   is None else nphi
+        b3d["b_phimin"] = phimin
+        b3d["b_phimax"] = phimax
+        b3d["b_nphi"]   = nphi
 
-        r = np.linspace(b3d["b_rmin"], b3d["b_rmax"], b3d["b_nr"])
-        z = np.linspace(b3d["b_zmin"], b3d["b_zmax"], b3d["b_nz"])
-        p = np.linspace(b3d["b_phimin"], b3d["b_phimax"], b3d["b_nphi"]+1)[:-1]
-        br, bphi, bz = self.calculate(r, p, z, coilxyz, current=current,
-                                      revolve=revolve)
+        r = np.linspace(b3d["b_rmin"], b3d["b_rmax"], int(b3d["b_nr"]))
+        z = np.linspace(b3d["b_zmin"], b3d["b_zmax"], int(b3d["b_nz"]))
+        p = np.linspace(phimin, phimax, nphi+1)[:-1]
+        br, bphi, bz = self.calculate(r, p*np.pi/180, z, coilxyz,
+                                      current=current, revolve=revolve)
 
         # Scale axis Bphi to given value if requested
         scaling = 1.0
@@ -261,18 +265,19 @@ class BioSaw():
             :class:`.B_3DS` data.
         """
         if b3d is None:
-            b2d = self._ascot.data.bfield.active
-            if b3d.get_type() != "B_2DS":
-                raise ValueError("Active bfield input is not B_2DS")
+            b3d = self._ascot.data.bfield.active
+            if b3d.get_type() != "B_3DS":
+                raise ValueError("Active bfield input is not B_3DS")
             b3d = b3d.read()
         else:
             b3d = deepcopy(b3d)
 
-        r = np.linspace(b3d["b_rmin"], b3d["b_rmax"], b3d["b_nr"])
-        z = np.linspace(b3d["b_zmin"], b3d["b_zmax"], b3d["b_nz"])
-        p = np.linspace(b3d["b_phimin"], b3d["b_phimax"], b3d["b_nphi"]+1)[:-1]
-        br, bphi, bz = self.calculate(r, p, z, coilxyz, current=current,
-                                      revolve=revolve)
+        r = np.linspace(b3d["b_rmin"], b3d["b_rmax"], int(b3d["b_nr"]))
+        z = np.linspace(b3d["b_zmin"], b3d["b_zmax"], int(b3d["b_nz"]))
+        p = np.linspace(b3d["b_phimin"], b3d["b_phimax"], int(b3d["b_nphi"])+1)
+        p = p[:-1]
+        br, bphi, bz = self.calculate(r, p*np.pi/180, z, coilxyz,
+                                      current=current, revolve=revolve)
         b3d["br"]   += br
         b3d["bphi"] += bphi
         b3d["bz"]   += bz
