@@ -282,9 +282,11 @@ def parseunits(strip=False, **units):
                 valdim = val.units.dimensions
             except AttributeError:
                 # Argument doesn't have units, assign and add warning
+                # except if the expected units were "dimensionless"
                 val = val*unit
                 valdim = dim
-                assignedunits[name] = unit
+                if dim != 1:
+                    assignedunits[name] = unit
 
             if valdim != dim:
                 raise ValueError(

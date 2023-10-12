@@ -750,7 +750,7 @@ class LibAscot:
         return out["nspecies"], out["mass"], out["charge"], out["anum"],\
             out["znum"]
 
-    @parseunits(rhovals="1", theta="rad", phi="rad", time="s")
+    @parseunits(rho="1", theta="rad", phi="rad", time="s")
     def input_rhotheta2rz(self, rho, theta, phi, time, maxiter=100, tol=1e-5):
         """Convert (rho, theta, phi) coordinates to (R,z) positions.
 
