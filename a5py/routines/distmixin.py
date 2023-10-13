@@ -1,3 +1,5 @@
+import numpy as np
+
 from a5py.exceptions import AscotNoDataException
 
 import a5py.routines.plotting as a5plt
@@ -69,8 +71,7 @@ class DistMixin():
             pnorm_edges = physlib.pnorm_gamma(mass, g).to("kg*m/s")
             pitch_edges = dist1.abscissa_edges("pitch")
 
-            import matplotlib.pyplot as plt
-            fig = plt.figure()
+            fig = a5plt.plt.figure()
             ax1 = fig.add_subplot(3,1,1)
             ax2 = fig.add_subplot(3,1,2, projection='polar')
             ax3 = fig.add_subplot(3,1,3)
@@ -80,6 +81,6 @@ class DistMixin():
             a5plt.momentumpolarplot(pnorm_edges, pitch_edges,
                                     dist1.distribution(), axes=ax2)
             self.plotdist(dist1, axes=ax3)
-            plt.show()
+            a5plt.plt.show()
 
         return distout
