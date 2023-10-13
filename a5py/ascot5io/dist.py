@@ -464,6 +464,36 @@ class DistMoment:
                 ordinates.append(k[10:])
         return ordinates
 
+    def plot(self, ordinate, axes=None, cax=None):
+        """Plot radial or (R,z) profile of a distribution moment.
+
+        The plotted profile is the average of (theta, phi) or phi depending
+        on whether the input is calculated from a rho distribution or not.
+
+        Parameters
+        ----------
+        ordinate : str
+            Name of the moment to be plotted.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        cax : :obj:`~matplotlib.axes.Axes`, optional
+            The color bar axes or otherwise taken from the main axes.
+        """
+        if self.rhodist:
+            ylabel = ordinate
+            ordinate = self.ordinate(ordinate, toravg=True, polavg=True)
+            ylabel += " [" + str(ordinate.units) + "]"
+            a5plt.mesh1d(self.rho, ordinate,
+                         xlabel="Normalized poloidal flux",
+                         ylabel=ylabel, axes=axes)
+        else:
+            clabel = ordinate
+            ordinate = self.ordinate(ordinate, toravg=True)
+            clabel += " [" + str(ordinate.units) + "]"
+            a5plt.mesh2d(self.r, self.z, ordinate, axesequal=True,
+                         xlabel="R [m]", ylabel="z [m]", clabel=clabel,
+                         axes=axes, cax=cax)
+
 class Dist(DataContainer):
 
     def get(self):

@@ -638,7 +638,7 @@ class RunMixin(DistMixin):
             ntheta = dist.abscissa_edges("theta").size
             nphi   = dist.abscissa_edges("phi").size
             volume, area, r, phi, z = self._root._ascot.input_rhovolume(
-                method=volmethod, tol=1e-2, nrho=nrho, ntheta=ntheta, nphi=nphi,
+                method=volmethod, tol=1e-1, nrho=nrho, ntheta=ntheta, nphi=nphi,
                 return_area=True, return_coords=True)
             volume[volume == 0] = 1e-8 # To avoid division by zero
             out = DistMoment(
@@ -683,12 +683,12 @@ class RunMixin(DistMixin):
             Dist.electronpowerdep(self._root._ascot, mass, dist, out)
         if "ionpowerdep" in moments:
             Dist.ionpowerdep(self._root._ascot, mass, dist, out)
-        if "jxbtorque" in moments:
-            Dist.jxbtorque(self._root._ascot, mass, dist, out)
-        if "colltorque" in moments:
-            Dist.collTorque(self._root._ascot, mass, dist, out)
-        if "canmomtorque" in moments:
-            Dist.canMomentTorque(dist, out)
+        #if "jxbtorque" in moments:
+        #    Dist.jxbtorque(self._root._ascot, mass, dist, out)
+        #if "colltorque" in moments:
+        #    Dist.collTorque(self._root._ascot, mass, dist, out)
+        #if "canmomtorque" in moments:
+        #    Dist.canMomentTorque(dist, out)
         return out
 
     def getdist_list(self, show=True):
@@ -733,9 +733,9 @@ class RunMixin(DistMixin):
             ("powerdep", "Total deposited power"),
             ("ionpowerdep", "Power deposited to ions"),
             ("electronpowerdep", "Power deposited to electrons"),
-            ("jxbtorque", "j_rad x B_pol torque"),
-            ("colltorque", "Torque from collisions"),
-            ("canmomtorque", "Torque from change in can. tor. ang. momentum"),
+            #("jxbtorque", "j_rad x B_pol torque"),
+            #("colltorque", "Torque from collisions"),
+            #("canmomtorque", "Torque from change in can. tor. ang. momentum"),
         ]
         if show:
             print("Available distributions:")
@@ -762,6 +762,8 @@ class RunMixin(DistMixin):
         cax : :obj:`~matplotlib.axes.Axes`, optional
             The color bar axes or otherwise taken from the main axes.
         """
+        warnings.warn("Deprecated. Use the plot method in DistData instead",
+                      DeprecationWarning, stacklevel=2)
         x = None; y = None;
         for key in dist.abscissae:
             val = dist.abscissa_edges(key)
@@ -811,6 +813,8 @@ class RunMixin(DistMixin):
         cax : :obj:`~matplotlib.axes.Axes`, optional
             The color bar axes or otherwise taken from the main axes.
         """
+        warnings.warn("Deprecated. Use the plot method in DistMoment instead",
+                      DeprecationWarning, stacklevel=2)
         if moment.rhodist:
             ylabel = ordinate
             ordinate = moment.ordinate(ordinate, toravg=True, polavg=True)
