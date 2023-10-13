@@ -12,6 +12,13 @@
 #include "particle.h"
 #include "simulate.h"
 
+/** @brief ASCOT integer in MPI standard */
+#define mpi_type_integer MPI_LONG
+/** @brief ASCOT real in MPI standard    */
+#define mpi_type_real    MPI_DOUBLE
+/** @brief ASCOT error in MPI standard   */
+#define mpi_type_a5err   MPI_UNSIGNED_LONG_LONG
+
 void mpi_interface_init(int argc, char** argv, sim_offload_data* sim,
                         int* mpi_rank, int* mpi_size, int* mpi_root);
 void mpi_interface_finalize();
