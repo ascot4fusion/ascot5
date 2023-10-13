@@ -172,7 +172,7 @@ class PoincareTemplates():
             out["ENDCOND_CPUTIMELIM"]  = 1
             out["ENDCOND_MAX_CPUTIME"] = cpulim
         if mhd:
-            out["ENABLE_MHD":mhd]
+            out["ENABLE_MHD"] = mhd
 
         return ("opt", out)
 

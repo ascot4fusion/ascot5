@@ -19,7 +19,7 @@ class Orbits(DataContainer):
     FIELDLINE     = 3
 
     def read(self):
-        """Read raw state data to a dictionary.
+        """Read raw orbit data to a dictionary.
         """
         out = {}
         with self as f:
@@ -59,7 +59,8 @@ class Orbits(DataContainer):
             """
             with self as h5:
                 if q in h5:
-                    return fileapi.read_data(h5, q)
+                    q = fileapi.read_data(h5, q)
+                    return q if mask is None else q[mask]
             return None
 
         # Sort using the fact that inistate.get return values ordered by ID
@@ -117,7 +118,14 @@ class Orbits(DataContainer):
         items = [None]*len(qnt)
         def add(q, val):
             if q in qnt:
-                items[qnt.index(q)] = val()
+                i = qnt.index(q)
+                if items[i] is None:
+                    items[i] = val()
+                else:
+                    # For hybrid mode GC values are appended by GO
+                    items[i].convert_to_base("ascot")
+                    v = val().in_base("ascot")
+                    items[i] = np.append(v.v, items[i].v) * v.units
 
         # Some helper quantities as functions so they are evaluated only
         # when needed. Mask is used to separate GOs, GCs, and FLs since
@@ -160,7 +168,7 @@ class Orbits(DataContainer):
         add("bphi", lambda : _val("bphi"))
         add("bnorm", lambda : np.sqrt( _val("br")**2 + _val("bphi")**2
                                        + _val("bz")**2 ))
-        add("rho", lambda : _eval("rho"))
+        add("rho", lambda : _val("rho"))
         add("psi", lambda : _eval("psi"))
         add("mileage", lambda : _val("mileage"))
         add("mass", lambda : mass)
@@ -173,9 +181,6 @@ class Orbits(DataContainer):
 
         firstmask = 0; lastmask=0
         if Orbits.GYROORBIT in mode:
-            # Record the index of first masked array so that we can later append
-            # all other arrays created here with GC mask (in hybrid mode)
-            firstmask = len(items)
             mask = mode == Orbits.GYROORBIT
             add("pr", lambda : _val("pr", mask))
             add("pz", lambda : _val("pz", mask))
@@ -195,8 +200,9 @@ class Orbits(DataContainer):
             if "vperp" in qnt:
                 vpar = physlib.vpar_momentum(
                     mass[mask], pvecprt(mask), bvec(mask))
-                add("vperp", lambda : np.sqrt(np.sum(pvecprt(mask)**2, axis=0)
-                                              - vpar**2))
+                pnorm = np.sqrt(np.sum(pvecprt(mask)**2, axis=0))
+                vnorm = physlib.velocity_momentum(mass[mask], pnorm)
+                add("vperp", lambda : np.sqrt(vnorm**2 - vpar**2))
             if "vnorm" in qnt:
                 pnorm = np.sqrt(np.sum(pvecprt(mask)**2, axis=0))
                 add("vnorm", lambda : physlib.velocity_momentum(mass[mask],
@@ -211,7 +217,6 @@ class Orbits(DataContainer):
             add("ptor", lambda : physlib.torcanangmom_momentum(
                 _val("charge", mask), _val("r", mask), pvecprt(mask),
                 _eval("psi", mask)))
-            lastmask = len(items)
 
         if Orbits.GUIDINGCENTER in mode:
             mask = mode == Orbits.GUIDINGCENTER
@@ -254,15 +259,6 @@ class Orbits(DataContainer):
             add("ptor", lambda : physlib.torcanangmom_ppar(
                 _val("charge", mask), _val("r", mask), _val("ppar", mask),
                 bvec(mask), _eval("psi", mask)))
-
-        if Orbits.GYROORBIT in mode and Orbits.GUIDINGCENTER in mode:
-            # Hybrid data, combine masked arrays
-            nmasked = lastmask - firstmask
-            for i in range(lastmask):
-                if i < firstmask: continue
-                items[i] = np.append(items[i], items[i+nmasked])
-            for i in range(nmasked):
-                del items[lastmask+i]
 
         for i in range(len(items)):
             if items[i] is None:

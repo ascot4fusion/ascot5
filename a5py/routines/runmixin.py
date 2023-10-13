@@ -22,8 +22,9 @@ import a5py.wall as wall
 from a5py.ascot5io import Marker, State, Orbits, Dist
 from a5py.ascot5io.dist import DistMoment
 import a5py.physlib as physlib
+from a5py.routines.distmixin import DistMixin
 
-class RunMixin():
+class RunMixin(DistMixin):
     """Class with methods to access and plot orbit and state data.
 
     This class assumes it is inherited by ResultsNode.
@@ -164,6 +165,8 @@ class RunMixin():
             data[i] = data[i][idx]
         if "mu" in qnt:
             data[qnt.index("mu")].convert_to_units("eV/T")
+        if "psi" in qnt:
+            data[qnt.index("psi")].convert_to_units("Wb")
         return data if len(data) > 1 else data[0]
 
     def getorbit(self, *qnt, ids=None, pncrid=None, endcond=None):
@@ -224,6 +227,8 @@ class RunMixin():
             data[i] = data[i][idx]
         if "mu" in qnt:
             data[qnt.index("mu")].convert_to_units("eV/T")
+        if "psi" in qnt:
+            data[qnt.index("psi")].convert_to_units("Wb")
         return data if len(data) > 1 else data[0]
 
     def getstate_markersummary(self):
@@ -394,6 +399,7 @@ class RunMixin():
         def opt2list(val):
             """Convert the option string to a list with tuples (val, pncrid)
             """
+            if not isinstance(val, list): val = [val]
             nonlocal pncrid
             tuples = []
             if val[0] < 0: val = []
@@ -585,80 +591,25 @@ class RunMixin():
                     dists.remove(d)
             return dists
 
-        mass = np.mean(self.getstate("mass"))
         if dist == "5d":
             self._require("_dist5d")
             distout = self._dist5d.get()
-            if exi:
-                if ekin_edges is None:
-                    ekin_edges  = int(distout.abscissa("ppar").size / 2)
-                if pitch_edges is None:
-                    pitch_edges = distout.abscissa("pperp").size
-                distout = Dist.ppappe2ekinpitch(
-                    distout, mass, ekin_edges=ekin_edges,
-                    pitch_edges=pitch_edges)
-        elif dist == "6d":
+        if dist == "6d":
             self._require("_dist6d")
-            if exi:
-                raise ValueError("Energy-pitch transformation not valid for 6d")
             distout = self._dist6d.get()
-        elif dist == "rho5d":
+        if dist == "rho5d":
             self._require("_distrho5d")
             distout = self._distrho5d.get()
-            if exi:
-                if ekin_edges is None:
-                    ekin_edges  = int(distout.abscissa("ppar").size / 2)
-                if pitch_edges is None:
-                    pitch_edges = distout.abscissa("pperp").size
-                distout = Dist.ppappe2ekinpitch(
-                    distout, mass, ekin_edges=ekin_edges,
-                    pitch_edges=pitch_edges)
-        elif dist == "rho6d":
+        if dist == "rho6d":
             self._require("_distrho6d")
-            if exi:
-                raise ValueError("Energy-pitch transformation not valid for 6d")
             distout = self._distrho6d.get()
-        elif dist == "com":
+        if dist == "com":
             self._require("_distcom")
-            if exi:
-                raise ValueError(
-                    "Energy-pitch transformation not valid for COM")
             distout = self._distcom.get()
-        else:
-            raise ValueError("Unknown distribution")
 
-        if exi and plotexi:
-            if dist == "5d":    dist0 = self._dist5d.get()
-            if dist == "rho5d": dist0 = self._distrho5d.get()
-            integrate = {}
-            for k in dist0.abscissae:
-                if k not in ["ppar", "pperp"]:
-                    integrate[k] = np.s_[:]
-            dist0.integrate(**integrate)
-            integrate = {}
-            for k in distout.abscissae:
-                if k not in ["ekin", "pitch"]:
-                    integrate[k] = np.s_[:]
-            dist1 = distout.integrate(copy=True, **integrate)
-
-            g = physlib.gamma_energy(mass, dist1.abscissa_edges("ekin"))
-            pnorm_edges = physlib.pnorm_gamma(mass, g).to("kg*m/s")
-            pitch_edges = dist1.abscissa_edges("pitch")
-
-            import matplotlib.pyplot as plt
-            fig = plt.figure()
-            ax1 = fig.add_subplot(3,1,1)
-            ax2 = fig.add_subplot(3,1,2, projection='polar')
-            ax3 = fig.add_subplot(3,1,3)
-
-            self.plotdist(dist0, axes=ax1)
-            a5plt.momentumpolargrid(pnorm_edges, pitch_edges, axes=ax1)
-            a5plt.momentumpolarplot(pnorm_edges, pitch_edges,
-                                    dist1.distribution(), axes=ax2)
-            self.plotdist(dist1, axes=ax3)
-            plt.show()
-
-        return distout
+        mass = np.mean(self.getstate("mass"))
+        return self._getdist(distout, mass, exi=exi, ekin_edges=ekin_edges,
+                             pitch_edges=pitch_edges, plotexi=plotexi)
 
     def getdist_moments(self, dist, *moments, volmethod="prism"):
         """Calculate moments of distribution.
@@ -687,7 +638,7 @@ class RunMixin():
             ntheta = dist.abscissa_edges("theta").size
             nphi   = dist.abscissa_edges("phi").size
             volume, area, r, phi, z = self._root._ascot.input_rhovolume(
-                method=volmethod, tol=1e-2, nrho=nrho, ntheta=ntheta, nphi=nphi,
+                method=volmethod, tol=1e-1, nrho=nrho, ntheta=ntheta, nphi=nphi,
                 return_area=True, return_coords=True)
             volume[volume == 0] = 1e-8 # To avoid division by zero
             out = DistMoment(
@@ -732,12 +683,12 @@ class RunMixin():
             Dist.electronpowerdep(self._root._ascot, mass, dist, out)
         if "ionpowerdep" in moments:
             Dist.ionpowerdep(self._root._ascot, mass, dist, out)
-        if "jxbtorque" in moments:
-            Dist.jxbtorque(self._root._ascot, mass, dist, out)
-        if "colltorque" in moments:
-            Dist.collTorque(self._root._ascot, mass, dist, out)
-        if "canmomtorque" in moments:
-            Dist.canMomentTorque(dist, out)
+        #if "jxbtorque" in moments:
+        #    Dist.jxbtorque(self._root._ascot, mass, dist, out)
+        #if "colltorque" in moments:
+        #    Dist.collTorque(self._root._ascot, mass, dist, out)
+        #if "canmomtorque" in moments:
+        #    Dist.canMomentTorque(dist, out)
         return out
 
     def getdist_list(self, show=True):
@@ -782,9 +733,9 @@ class RunMixin():
             ("powerdep", "Total deposited power"),
             ("ionpowerdep", "Power deposited to ions"),
             ("electronpowerdep", "Power deposited to electrons"),
-            ("jxbtorque", "j_rad x B_pol torque"),
-            ("colltorque", "Torque from collisions"),
-            ("canmomtorque", "Torque from change in can. tor. ang. momentum"),
+            #("jxbtorque", "j_rad x B_pol torque"),
+            #("colltorque", "Torque from collisions"),
+            #("canmomtorque", "Torque from change in can. tor. ang. momentum"),
         ]
         if show:
             print("Available distributions:")
@@ -811,6 +762,8 @@ class RunMixin():
         cax : :obj:`~matplotlib.axes.Axes`, optional
             The color bar axes or otherwise taken from the main axes.
         """
+        warnings.warn("Deprecated. Use the plot method in DistData instead",
+                      DeprecationWarning, stacklevel=2)
         x = None; y = None;
         for key in dist.abscissae:
             val = dist.abscissa_edges(key)
@@ -860,6 +813,8 @@ class RunMixin():
         cax : :obj:`~matplotlib.axes.Axes`, optional
             The color bar axes or otherwise taken from the main axes.
         """
+        warnings.warn("Deprecated. Use the plot method in DistMoment instead",
+                      DeprecationWarning, stacklevel=2)
         if moment.rhodist:
             ylabel = ordinate
             ordinate = moment.ordinate(ordinate, toravg=True, polavg=True)
@@ -1396,7 +1351,8 @@ class RunMixin():
         if plotconnlen:
             # Now set confined markers as having negative connection length
             connlen *= -1
-            lost1 = self.getstate("ids", state="end", endcond="rhomax wall")
+            lost1 = self.getstate("ids", state="end",
+                                  endcond=["rhomax", "wall"])
 
             idx = ~np.in1d(ids, lost1)
             connlen[idx] *= -1
@@ -1443,9 +1399,9 @@ class RunMixin():
         d = self.wall.read()
         nelement = wetted.size
         color    = edepo/area
-        x1x2x3   = d["x1x2x3"][wetted]
-        y1y2y3   = d["y1y2y3"][wetted]
-        z1z2z3   = d["z1z2z3"][wetted]
+        x1x2x3   = d["x1x2x3"][wetted-1]
+        y1y2y3   = d["y1y2y3"][wetted-1]
+        z1z2z3   = d["z1z2z3"][wetted-1]
 
         # Toroidal angle for each vertex
         tor = np.rad2deg( np.arctan2( y1y2y3, x1x2x3 ))
@@ -1489,7 +1445,8 @@ class RunMixin():
         axes.set_xticks([0, 90, 180, 270, 360])
         axes.set_yticks([-180, -90, 0, 90, 180])
 
-    def plotwall_3dstill(self, wallmesh=None, points=None, data=None, log=False,
+    def plotwall_3dstill(self, wallmesh=None, points=None, orbit=None,
+                         data=None, log=False,
                          cpos=None, cfoc=None, cang=None, axes=None, cax=None):
         """Take a still shot of the mesh and display it using matplotlib
         backend.
@@ -1508,6 +1465,10 @@ class RunMixin():
             Array Npoint x 3 defining points (markers) to be shown. For each
             point [x, y, z] coordinates are given. If boolean True is given,
             then markers are read from the endstate.
+        orbit : int, optional
+            ID of a marker whose orbit is plotted.
+        data : str, optional
+            Name of the cell data in the wall mesh that is shown in color.
         cpos : array_like, optional
             Camera position coordinates [x, y, z].
         cfoc : array_like, optional
@@ -1523,19 +1484,21 @@ class RunMixin():
             wallmesh = self.getwall_3dmesh()
         if isinstance(points, bool) and points == True:
             points = self.getstate_pointcloud(endcond="wall")
+        if orbit is not None:
+            x,y,z = self.getorbit("x", "y", "z", ids=orbit)
+            orbit = np.array([x,y,z]).T
 
         (cpos0, cfoc0, cang0) = a5plt.defaultcamera(wallmesh)
         if cpos is None: cpos = cpos0
         if cfoc is None: cfoc = cfoc0
         if cang is None: cang = cang0
 
-        a5plt.still(wallmesh, points=points, data=data, log=log, cpos=cpos,
-                    cfoc=cfoc, cang=cang, axes=axes, cax=cax)
-
+        a5plt.still(wallmesh, points=points, data=data, orbit=orbit, log=log,
+                    cpos=cpos, cfoc=cfoc, cang=cang, axes=axes, cax=cax)
 
     def plotwall_3dinteractive(self, wallmesh=None, *args, points=None,
-                               data=None, log=False, cpos=None, cfoc=None,
-                               cang=None):
+                               orbit=None, data=None, log=False,
+                               cpos=None, cfoc=None, cang=None):
         """Open vtk window to display interactive view of the wall mesh.
 
         Parameters
@@ -1551,6 +1514,10 @@ class RunMixin():
             Array Npoint x 3 defining points (markers) to be shown. For
             each point [x, y, z] coordinates are given. If boolean True is
             given, then markers are read from the endstate.
+        orbit : int, optional
+            ID of a marker whose orbit is plotted.
+        data : str, optional
+            Name of the cell data in the wall mesh that is shown in color.
         cpos : array_like, optional
             Camera position coordinates [x, y, z].
         cfoc : array_like, optional
@@ -1562,11 +1529,15 @@ class RunMixin():
             wallmesh = self.getwall_3dmesh()
         if isinstance(points, bool) and points == True:
             points = self.getstate_pointcloud(endcond="wall")
+        if orbit is not None:
+            x,y,z = self.getorbit("x", "y", "z", ids=orbit)
+            orbit = np.array([x,y,z]).T
 
         (cpos0, cfoc0, cang0) = a5plt.defaultcamera(wallmesh)
         if cpos is None: cpos = cpos0
         if cfoc is None: cfoc = cfoc0
         if cang is None: cang = cang0
 
-        a5plt.interactive(wallmesh, *args, points=points, data=data, log=log,
+        a5plt.interactive(wallmesh, *args, points=points, data=data,
+                          orbit=orbit, log=log,
                           cpos=cpos, cfoc=cfoc, cang=cang)

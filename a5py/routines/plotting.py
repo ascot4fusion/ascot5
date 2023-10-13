@@ -1,4 +1,11 @@
 """Module for generating common plots with ASCOT5.
+
+This module should be imported everywhere where plotting is done instead of
+using matplotlib directly. The reason is that on some platforms matplotlib
+is not available and even there we want to able to use all functionality
+that doesn't require plotting.
+
+So either import this module or use try-except when importing matplotlib.
 """
 import numpy as np
 import warnings
@@ -8,8 +15,11 @@ try:
     import matplotlib.pyplot as plt
     import mpl_toolkits
     from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 except ImportError:
     warnings.warn("Could not import matplotlib. Plotting disabled.")
+    plt = None
+    mpl = None
 
 try:
     import pyvista as pv
@@ -876,8 +886,8 @@ def poincare(x, y, ids, connlen=None, xlim=None, ylim=None, xlabel=None,
         axes.set_aspect("equal", adjustable="box")
 
 @openfigureifnoaxes(projection=None)
-def still(wallmesh, points=None, data=None, log=False, cpos=None, cfoc=None,
-          cang=None, axes=None, cax=None):
+def still(wallmesh, points=None, orbit=None, data=None, log=False,
+          cpos=None, cfoc=None, cang=None, axes=None, cax=None):
     """Take a still shot of the mesh and display it using matplotlib backend.
 
     The rendering is done using vtk but the vtk (interactive) window is not
@@ -892,6 +902,10 @@ def still(wallmesh, points=None, data=None, log=False, cpos=None, cfoc=None,
     points : array_like, optional
         Array Npoint x 3 defining points (markers) to be shown. For
         each point [x, y, z] coordinates are given.
+    orbit : array_like, (n,3), optional
+        Cartesian coordinates for an orbit to be plotted.
+    data : str, optional
+        Name of the cell data in the wall mesh that is shown in color.
     cpos : array_like, optional
         Camera position coordinates [x, y, z].
     cfoc : array_like, optional
@@ -919,6 +933,10 @@ def still(wallmesh, points=None, data=None, log=False, cpos=None, cfoc=None,
         p.theme.color = 'black'
         p.add_points(points, render_points_as_spheres=True, point_size=10)
 
+    if orbit is not None:
+        orbit = pv.lines_from_points(orbit)
+        p.add_mesh(orbit, color="red")
+
     # Set camera
     if cpos is not None:
         p.camera.position = cpos
@@ -941,11 +959,13 @@ def still(wallmesh, points=None, data=None, log=False, cpos=None, cfoc=None,
             norm = mpl.colors.Normalize(vmin=0, vmax=maxval)
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         cbar = plt.colorbar(sm, ax=axes, cax=cax)
-        #cbar.set_label(r"Energy load J/m$^2$")
+
+        if data == "eload":
+            cbar.set_label(r"Power load W/m$^2$")
 
 
-def interactive(wallmesh, *args, points=None, data=None, log=False, cpos=None,
-                cfoc=None, cang=None):
+def interactive(wallmesh, *args, points=None, orbit=None, data=None, log=False,
+                cpos=None, cfoc=None, cang=None):
     """Open VTK window to display interactive view of the wall mesh.
 
     Parameters
@@ -959,6 +979,10 @@ def interactive(wallmesh, *args, points=None, data=None, log=False, cpos=None,
     points : array_like, optional
         Array Npoint x 3 defining points (markers) to be shown. For
         each point [x, y, z] coordinates are given.
+    orbit : array_like, (n,3), optional
+        Cartesian coordinates for an orbit to be plotted.
+    data : str, optional
+        Name of the cell data in the wall mesh that is shown in color.
     cpos : array_like, optional
         Camera position coordinates [x, y, z].
     cfoc : array_like, optional
@@ -979,12 +1003,13 @@ def interactive(wallmesh, *args, points=None, data=None, log=False, cpos=None,
         p.theme.color = 'black'
         p.add_points(points, render_points_as_spheres=True, point_size=10)
 
+    if orbit is not None:
+        orbit = pv.lines_from_points(orbit)
+        p.add_mesh(orbit, color="red")
+
     # Set events
     for i in range(len(args)):
-        def wrapper(*wargs):
-            args[i][1](p)
-
-        p.add_key_event(args[i][0], wrapper)
+        p.add_key_event(args[i][0], lambda : args[i][1](p))
 
     # Set camera
     if cpos is not None:

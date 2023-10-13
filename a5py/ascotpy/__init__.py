@@ -9,7 +9,7 @@ import wurlitzer # For muting libascot.so
 
 import a5py.physlib as physlib
 import a5py.routines.plotting as a5plt
-from a5py.routines.plotting import openfigureifnoaxes
+from a5py.routines.plotting import openfigureifnoaxes, plt
 from a5py.exceptions import AscotInitException
 
 from .libascot    import LibAscot, _LIBASCOT
@@ -742,7 +742,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             return [out[q] for q in qnt]
 
     def input_plotrz(self, r, z, qnt, phi=0*unyt.deg, t=0*unyt.s,
-                     clim=[None, None], cmap=None, axes=None, cax=None):
+                     clim=None, cmap=None, axes=None, cax=None):
         """Plot input quantity on a (R, z) plane at given coordinates.
 
         To plot quantity on a logarithmic scale (base 10), add "log" in
@@ -787,17 +787,38 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                      clabel=qnt + " [" + str(out.units) + "]", clim=clim,
                      cmap=cmap, axes=axes, cax=cax)
 
-    def input_plotseparatrix(self, phi=0*unyt.deg, t=0*unyt.s,
-                             rlim=[0.1*unyt.m, 20*unyt.m],
-                             zlim=[-10*unyt.m, 10*unyt.m], axes=None):
-        """Plot separatrix on (R,z) plane.
+    @openfigureifnoaxes(projection=None)
+    def input_plotrhocontour(self, rho=1.0, phi=0*unyt.deg, t=0*unyt.s,
+                             ntheta=180, axes=None, **kwargs):
+        """Plot contours of constant rho.
+
+        Calling this without arguments plots the separatrix.
+
+        Parameters
+        ----------
+        rho : float or array_like, optional
+            Value(s) of square root of normalized poloidal flux whose
+            contours are plotted.
+        phi : float, optional
+            Toroidal angle at which contours are plotted.
+        t : float, optional
+            Time instance when the contours are plotted.
+        ntheta : int, optional
+            Poloidal resolution of the contours.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        **kwargs
+            Arguments passed to :meth:`.matplotlib.pyplot.plot`.
         """
-        r = np.linspace(rlim[0], rlim[1], 100)
-        z = np.linspace(zlim[0], zlim[1], 100)
-        v = np.squeeze(self.input_eval(r, phi, z, t, "rho", grid=True)[:,0,:,0])
-        a5plt.contour2d(r, z, v, [1], xlabel="R [m]", ylabel="z [m]",
-                        colors="black", linestyles="solid", linewidths=1,
-                        axesequal=True, axes=axes)
+        if not isinstance(rho, list): rho = [rho]
+        for rhoval in rho:
+            v  = 1.0 * np.ones((ntheta,))
+            th = np.linspace(0,2*np.pi,ntheta)*unyt.rad
+            r, z = self.input_rhotheta2rz(v, th, phi, t)
+            axes.plot(r, z, **kwargs)
+
+        axes.set_xlabel("R [m]")
+        axes.set_ylabel("z [m]")
 
     def get_plasmaquantities(self):
         """Return species present in plasma input.
@@ -1148,7 +1169,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             Ripple magnitude defined as  (Bmax-Bmin) / (Bmax+Bmin), where Bmax
             and Bmin are toroidal extrema of Bphi.
         deltacrit : array_like, (nr,nz)
-            Critical ripple magnitude.
+            Critical ripple magnitude divided by ``delta``.
 
             Particles are subject to stochastic ripple diffusion when
             ``deltacrit`` < 1.
@@ -1169,7 +1190,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         bmax = np.nanmax(bphi, axis=1)
         bmin = np.nanmin(bphi, axis=1)
         delta = (bmax - bmin) / (bmax + bmin)
-        rho = np.squeeze(rho[:,0,:,0])
+        rho   = np.squeeze(rho[:,0,:,0])
         drhodpsi = np.squeeze(drhodpsi[:,0,:,0])
 
         if not isinstance(rlarmor, float):
@@ -1182,7 +1203,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         r0, z0 = self.input_rhotheta2rz(rho0*np.ones((nphi,)),
                                         theta0*np.ones((nphi,)), phi, 0*unyt.s)
         amplitude = self.input_eval(r0, phi, z0, 0*unyt.s, "bphi")
-        amplitude -= np.mean(amplitude)
+        meanbphi  = np.mean(amplitude)
+        amplitude -= meanbphi
 
         # Use fft to find ripple periodicity
         ff      = np.fft.fftfreq(len(phi), (phi[1]-phi[0]))
@@ -1193,7 +1215,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         q, _, _ = self.input_eval_safetyfactor(rhogrid)
         q = scipy.interpolate.CubicSpline(rhogrid, q, extrapolate=False)
 
-        raxis, zaxis = self.input_rhotheta2rz(0.0*unyt.dimensionless, 0.0, 0.0, 0.0)
+        raxis, zaxis = self.input_rhotheta2rz(
+            0.0, 0*unyt.rad, 0*unyt.rad, 0*unyt.s)
 
         rg, zg = np.meshgrid(rgrid, zgrid, indexing="ij")
         rminor = np.sqrt( (rg - raxis)**2 + (zg - zaxis)**2 )
@@ -1202,18 +1225,44 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         qfac   = np.abs(q(rho))
         dqdpsi = np.abs(q(rho,1) * drhodpsi)
 
-        deltacrit = np.sqrt( eps / (np.pi * Nripple * qfac) )**3 \
-            / ( rlarmor * dqdpsi * delta )
+        deltacrit = np.power( eps / (np.pi * Nripple * qfac), 3.0/2 ) / \
+            ( rlarmor * dqdpsi * delta )
         ripplewell = rg * np.abs(sinth) / ( Nripple * qfac * delta )
 
         if plot:
-            axes1.plot(phi, amplitude)
-            axes2.contour(rgrid, zgrid, deltacrit.T.v, np.array([1.0]), colors="C0")
-            axes2.contour(rgrid, zgrid, ripplewell.T.v, np.array([1.0]), colors="C1")
-            cs = axes2.contour(rgrid, zgrid, delta.T, colors="black")
-            axes2.clabel(cs, cs.levels)
+            newfig = False
+            if axes1 is None or axes2 is None:
+                newfig = True
+                fig = plt.figure(figsize=(10,10))
+                if axes1 is None and axes2 is None:
+                    axes1 = fig.add_subplot(2,1,1)
+                    axes2 = fig.add_subplot(2,1,2)
+                else:
+                    raise ValueError("Please provide both axes for plotting")
+            axes1.plot(phi, meanbphi + amplitude)
+            axes2.contourf(rgrid, zgrid, deltacrit.T.v, [0.0, 1.0],
+                           colors="C0", alpha=0.5)
+            axes2.contourf(rgrid, zgrid, ripplewell.T.v, [0.0, 1.0],
+                           colors="C3",alpha=0.5)
+            cs = axes2.contour(rgrid, zgrid, delta.T*100, [0.1, 1.0, 5.0, 10.0],
+                               colors="black")
+
+            def fmt(x):
+                s = f"{x:.1f}"
+                if s.endswith("0"):
+                    s = f"{x:.0f}"
+                return rf"{s} %"
+            axes2.clabel(cs, cs.levels,fmt=fmt)
 
             axes2.set_aspect("equal", adjustable="box")
+
+            axes1.set_xlabel("Toroidal angle [deg]")
+            axes1.set_ylabel("Toroidal field [T]")
+
+            axes2.set_xlabel("R [m]")
+            axes2.set_ylabel("z [m]")
+
+            if newfig: plt.show()
 
         return phi, amplitude, delta, deltacrit, ripplewell
 

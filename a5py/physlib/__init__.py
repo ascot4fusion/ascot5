@@ -180,12 +180,6 @@ def vpar_momentum(m, p, b):
     bnorm = np.sqrt( np.sum(b**2, axis=0) )
     return np.sum( p * b, axis=0 ) / ( gamma * m * bnorm)
 
-def mu_velocity(m, v, b):
-    """TODO: Evaluate magnetic moment from velocity vector.
-    """
-    gamma = gamma_velocity(v=v)
-    return 0
-
 def pitch_momentum(p, b):
     """Evaluate pitch from momentum vector.
     """
@@ -288,9 +282,11 @@ def parseunits(strip=False, **units):
                 valdim = val.units.dimensions
             except AttributeError:
                 # Argument doesn't have units, assign and add warning
+                # except if the expected units were "dimensionless"
                 val = val*unit
                 valdim = dim
-                assignedunits[name] = unit
+                if dim != 1:
+                    assignedunits[name] = unit
 
             if valdim != dim:
                 raise ValueError(

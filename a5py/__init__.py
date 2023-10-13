@@ -4,23 +4,29 @@ import os
 import numpy as np
 import unyt
 
+# Define the unit system ascot uses and add our own unit types
+try:
+    unyt.define_unit("markers", 1*unyt.Dimensionless)
+    unyt.define_unit("particles", 1*unyt.Dimensionless)
+    unyt.define_unit("e", -unyt.electron_charge)
+    u=unyt.UnitSystem("ascot", "m", "atomic_mass_unit", "s", angle_unit="deg")
+    u["energy"] = "eV"
+    u["charge"] = "e"
+    u["magnetic_field"] = "T"
+except RuntimeError:
+    # We get exception when trying to define unit that is already defined.
+    # This can be ignored.
+    pass
+
 from .ascot5io import Ascot5IO
 from .ascotpy  import Ascotpy
 
-from .ascotpy.libascot  import _LIBASCOT
-from .exceptions        import *
-from .routines.biosaw5  import BioSaw
-from .routines.afsi5    import Afsi
-from .routines.plotting import openfigureifnoaxes, line2d
-
-# Define the unit system ascot uses and add our own unit types
-unyt.define_unit("markers", 1*unyt.Dimensionless)
-unyt.define_unit("particles", 1*unyt.Dimensionless)
-unyt.define_unit("e", -unyt.electron_charge)
-u=unyt.UnitSystem("ascot", "m", "atomic_mass_unit", "s", angle_unit="deg")
-u["energy"] = "eV"
-u["charge"] = "e"
-u["magnetic_field"] = "T"
+from .ascotpy.libascot   import _LIBASCOT
+from .exceptions         import *
+from .routines.biosaw5   import BioSaw
+from .routines.afsi5     import Afsi
+from .routines.markergen import MarkerGenerator
+from .routines.plotting  import openfigureifnoaxes, line2d
 
 class Ascot(Ascotpy):
     """Primary tool for processing ASCOT5 data.
@@ -46,9 +52,11 @@ class Ascot(Ascotpy):
         Container for the HDF5 data.
     biosaw : :class:`.BioSaw`
         Tool for calculating magnetic field from coils.
-    afsi : :class:`Afsi`
+    afsi : :class:`.Afsi`
         Tool for calculating fusion source from thermal plasma and fast ion
         distributions.
+    markergen : :class:`.MarkerGenerator`
+        Tool for generating markers from distributions.
     """
 
     def __init__(self, inputfile=None, create=False, mute="err"):
@@ -73,6 +81,7 @@ class Ascot(Ascotpy):
         self.data       = None
         self.biosaw     = BioSaw(self)
         self.afsi       = Afsi(self)
+        self.markergen  = MarkerGenerator(self)
         if mute not in ["yes", "no", "err"]:
             raise ValueError("mute must be either \"yes\", \"no\" or \"err\".")
 
@@ -148,7 +157,8 @@ class Ascot(Ascotpy):
         If the input is already initialized, nothing is done. In case there is
         already different input of same type initialized, an error is raised.
 
-        If the input argument is a dict, it is used instead of reading the data from hdf5.
+        If the input argument is a dict, it is used instead of reading the data
+        from hdf5.
 
         Parameters
         ----------

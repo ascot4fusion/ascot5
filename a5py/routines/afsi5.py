@@ -4,9 +4,12 @@ studies in fusion devices
 import ctypes
 import copy
 import numpy as np
+import unyt
 import numpy.ctypeslib as npctypes
 
-from a5py.ascotpy.libascot import _LIBASCOT
+from a5py.ascotpy.libascot import _LIBASCOT, STRUCT_DIST5DOFFLOAD, STRUCT_DIST5D, \
+    STRUCT_AFSIDATA, STRUCT_AFSITHERMAL
+from a5py.routines.distmixin import DistMixin
 
 class Afsi():
     """ASCOT Fusion Source Integrator AFSI.
@@ -107,6 +110,7 @@ class Afsi():
         prod2 : array_like
             Fusion product 2 distribution.
         """
+        self._ascot.input_init(bfield=True, plasma=True)
         time = 0
         r_edges   = np.linspace(minr, maxr, nr+1)
         phi_edges = np.linspace(minphi, maxphi, nphi+1)
@@ -156,9 +160,13 @@ class Afsi():
         prod2, prod2_data = self._init_product_dist(
             temp, q2, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
 
-        _LIBASCOT.afsi_run(reaction, nmc, react1, react2, mult, prod1, prod2,
+        _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
+                           react1, react2, mult, prod1, prod2,
                            prod1_data, prod2_data)
+        self._ascot.input_free(bfield=True, plasma=True)
 
+        # Reload Ascot
+        self._ascot.file_load(self._ascot.file_getpath())
         return prod1, prod2
 
     def beamthermal(self, reaction, beam, it=1, nmc=1000, mult=1.0, ispecies=1,
@@ -221,6 +229,7 @@ class Afsi():
         minz   = beam["z_edges"][0]
         maxz   = beam["z_edges"][-1]
 
+        self._ascot.input_init(bfield=True, plasma=True)
         temp = np.zeros((nr, nphi, nz))
         dens = np.zeros((nr, nphi, nz))
         for j in range(nphi):
@@ -252,6 +261,10 @@ class Afsi():
             _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
                                react2, react1, mult, prod1, prod2,
                                prod1_data, prod2_data)
+        self._ascot.input_free(bfield=True, plasma=True)
+
+        # Reload Ascot
+        self._ascot.file_load(self._ascot.file_getpath())
         return prod1, prod2
 
     def beambeam(self, reaction, beam1, beam2=None, it=0, nmc=1000, mult=1.0,
@@ -297,16 +310,11 @@ class Afsi():
         prod2 : array_like
             Fusion product 2 distribution.
         """
-        beam1["ntime"] = 1
-        beam1["time_edges"] = beam1["time_edges"][it:it+1]
-        beam1["histogram"]  = beam1["histogram"][:,:,:,:,:,[it],:]
+        self._ascot.input_init(bfield=True, plasma=True)
         dist1 = self._init_dist_5d(beam1)
 
         react1 = self._init_afsi_data(dist_5D=dist1)
         if beam2 is not None:
-            beam2["ntime"] = 1
-            beam2["time_edges"] = beam2["time_edges"][it:it+1]
-            beam2["histogram"]  = beam2["histogram"][:,:,:,:,:,[it],:]
             dist2  = self._init_dist_5d(beam2)
             react2 = self._init_afsi_data(dist_5D=dist2)
         else:
@@ -318,13 +326,18 @@ class Afsi():
         prod2, prod2_data = self._init_product_dist(
             dist1, q2, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
 
-        _LIBASCOT.afsi_run(reaction, nmc, react1, react2, mult, prod1, prod2,
+        _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
+                           react1, react2, mult, prod1, prod2,
                            prod1_data, prod2_data)
 
+        self._ascot.input_free(bfield=True, plasma=True)
+
+        # Reload Ascot
+        self._ascot.file_load(self._ascot.file_getpath())
         return prod1, prod2
 
     def _init_afsi_data(self, dist_5D=None, dist_thermal=None):
-        afsidata = ascot2py.afsi_data()
+        afsidata = STRUCT_AFSIDATA()
         if dist_5D is not None:
             afsidata.type = 1
             afsidata.dist_5D = ctypes.pointer(dist_5D)
@@ -337,7 +350,7 @@ class Afsi():
 
     def _init_thermal_data(self, minr, maxr, nr, minphi, maxphi, nphi, minz,
                            maxz, nz, temperature, density):
-        thermaldata         = ascot2py.afsi_thermal_data()
+        thermaldata         = STRUCT_AFSITHERMAL()
         thermaldata.n_r     = nr
         thermaldata.min_r   = minr
         thermaldata.max_r   = maxr
@@ -354,7 +367,7 @@ class Afsi():
         return thermaldata
 
     def _init_dist_5d(self, dist):
-        data           = ascot2py.struct_c__SA_dist_5D_data()
+        data           = STRUCT_DIST5D()
         data.n_r       = dist["nr"]
         data.min_r     = dist["r_edges"][0]
         data.max_r     = dist["r_edges"][-1]
@@ -382,28 +395,28 @@ class Afsi():
 
     def _init_product_dist(self, react, charge, minppara, maxppara, nppara,
                            minpperp, maxpperp, npperp):
-        prod            = ascot2py.struct_c__SA_dist_5D_offload_data()
-        prod.n_r        = react.n_r
-        prod.min_r      = react.min_r
-        prod.max_r      = react.max_r
-        prod.n_phi      = react.n_phi
-        prod.min_phi    = react.min_phi
-        prod.max_phi    = react.max_phi
-        prod.n_z        = react.n_z
-        prod.min_z      = react.min_z
-        prod.max_z      = react.max_z
-        prod.n_ppara    = nppara
-        prod.min_ppara  = minppara
-        prod.max_ppara  = maxppara
-        prod.n_pperp    = npperp
-        prod.min_pperp  = minpperp
-        prod.max_pperp  = maxpperp
-        prod.n_time     = react.n_time
-        prod.min_time   = react.min_time
-        prod.max_time   = react.max_time
-        prod.n_charge   = 1
-        prod.min_charge = charge - 1
-        prod.max_charge = charge + 1
+        prod           = STRUCT_DIST5DOFFLOAD()
+        prod.n_r       = react.n_r
+        prod.min_r     = react.min_r
+        prod.max_r     = react.max_r
+        prod.n_phi     = react.n_phi
+        prod.min_phi   = react.min_phi
+        prod.max_phi   = react.max_phi
+        prod.n_z       = react.n_z
+        prod.min_z     = react.min_z
+        prod.max_z     = react.max_z
+        prod.n_ppara   = nppara
+        prod.min_ppara = minppara
+        prod.max_ppara = maxppara
+        prod.n_pperp   = npperp
+        prod.min_pperp = minpperp
+        prod.max_pperp = maxpperp
+        prod.n_time    = react.n_time
+        prod.min_time  = react.min_time
+        prod.max_time  = react.max_time
+        prod.n_q       = 1
+        prod.min_q     = charge - 1
+        prod.max_q     = charge + 1
 
         distsize = prod.n_r * prod.n_phi * prod.n_z * prod.n_ppara \
             * prod.n_pperp
@@ -425,3 +438,49 @@ class Afsi():
             return 1, 1
         elif reaction == 4:
             return 2, 0
+
+class AfsiMixin(DistMixin):
+
+    def _require(self, *args):
+        """Check if required data is present and raise exception if not.
+
+        This is a helper function to quickly check that the data is available.
+
+        Parameters
+        ----------
+        *args : `str`
+            Name(s) of the required data.
+
+        Raises
+        ------
+        AscotNoDataException
+            Raised if the required data is not present.
+        """
+        for arg in args:
+            if not hasattr(self, arg):
+                raise AscotNoDataException(
+                    "Data for \"" +  arg + "\" is required but not present.")
+
+    def getdist(self, dist, exi=False, ekin_edges=None, pitch_edges=None,
+                plotexi=False):
+
+        if dist is None:
+            dists = ["prod1", "prod2"]
+            for d in dists:
+                try:
+                    self._require("_" + d + "dist5d")
+                except AscotNoDataException:
+                    dists.remove(d)
+            return dists
+
+        if dist == "prod1":
+            self._require("_prod1dist5d")
+            distout = self._prod1dist5d.get()
+        if dist == "prod2":
+            self._require("_prod2dist5d")
+            distout = self._prod2dist5d.get()
+
+        #mass = np.mean(self.getstate("mass"))
+        mass = 4.0 * unyt.amu
+        return self._getdist(distout, mass, exi=exi, ekin_edges=ekin_edges,
+                             pitch_edges=pitch_edges, plotexi=plotexi)

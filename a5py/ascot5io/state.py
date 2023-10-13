@@ -237,8 +237,8 @@ class State(DataContainer):
         evalgc  = lambda *q : _eval(_val("r"), _val("phi"), _val("z"),
                                     _val("time"), *q)
         bvecprt = lambda : unyt.unyt_array(evalprt("br", "bphi", "bz"))
-        bvecgc = lambda : unyt.unyt_array([_val("br"), _val("bphi"),
-                                _val("bz")])
+        bvecgc  = lambda : unyt.unyt_array([_val("br"), _val("bphi"),
+                                            _val("bz")])
         pvecprt = lambda : unyt.unyt_array([_val("prprt"), _val("pphiprt"),
                                 _val("pzprt")])
         def pvecgc():
@@ -322,9 +322,11 @@ class State(DataContainer):
             add("vpar", lambda : physlib.vpar_momentum(_val("mass"), pvecprt(),
                                               bvecprt()))
             if "vperp" in qnt:
-                vperp = physlib.vpar_momentum(
+                vpar = physlib.vpar_momentum(
                     _val("mass"), pvecprt(), bvecprt())
-                add("vperp", lambda : np.sum(pvecprt()**2, axis=0))
+                pnorm = np.sqrt(np.sum(pvecprt()**2, axis=0))
+                vnorm = physlib.velocity_momentum(_val("mass"), pnorm)
+                add("vperp", lambda : np.sqrt(vnorm**2 - vpar**2))
             if "vnorm" in qnt:
                 pnorm = np.sqrt(np.sum(pvecprt()**2, axis=0))
                 add("vnorm", lambda : physlib.velocity_momentum(_val("mass"),
