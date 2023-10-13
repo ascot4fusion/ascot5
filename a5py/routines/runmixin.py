@@ -1445,7 +1445,8 @@ class RunMixin(DistMixin):
         axes.set_xticks([0, 90, 180, 270, 360])
         axes.set_yticks([-180, -90, 0, 90, 180])
 
-    def plotwall_3dstill(self, wallmesh=None, points=None, data=None, log=False,
+    def plotwall_3dstill(self, wallmesh=None, points=None, orbit=None,
+                         data=None, log=False,
                          cpos=None, cfoc=None, cang=None, axes=None, cax=None):
         """Take a still shot of the mesh and display it using matplotlib
         backend.
@@ -1464,6 +1465,10 @@ class RunMixin(DistMixin):
             Array Npoint x 3 defining points (markers) to be shown. For each
             point [x, y, z] coordinates are given. If boolean True is given,
             then markers are read from the endstate.
+        orbit : int, optional
+            ID of a marker whose orbit is plotted.
+        data : str, optional
+            Name of the cell data in the wall mesh that is shown in color.
         cpos : array_like, optional
             Camera position coordinates [x, y, z].
         cfoc : array_like, optional
@@ -1479,18 +1484,21 @@ class RunMixin(DistMixin):
             wallmesh = self.getwall_3dmesh()
         if isinstance(points, bool) and points == True:
             points = self.getstate_pointcloud(endcond="wall")
+        if orbit is not None:
+            x,y,z = self.getorbit("x", "y", "z", ids=orbit)
+            orbit = np.array([x,y,z]).T
 
         (cpos0, cfoc0, cang0) = a5plt.defaultcamera(wallmesh)
         if cpos is None: cpos = cpos0
         if cfoc is None: cfoc = cfoc0
         if cang is None: cang = cang0
 
-        a5plt.still(wallmesh, points=points, data=data, log=log, cpos=cpos,
-                    cfoc=cfoc, cang=cang, axes=axes, cax=cax)
+        a5plt.still(wallmesh, points=points, data=data, orbit=orbit, log=log,
+                    cpos=cpos, cfoc=cfoc, cang=cang, axes=axes, cax=cax)
 
     def plotwall_3dinteractive(self, wallmesh=None, *args, points=None,
-                               data=None, log=False, cpos=None, cfoc=None,
-                               cang=None):
+                               orbit=None, data=None, log=False,
+                               cpos=None, cfoc=None, cang=None):
         """Open vtk window to display interactive view of the wall mesh.
 
         Parameters
@@ -1506,6 +1514,10 @@ class RunMixin(DistMixin):
             Array Npoint x 3 defining points (markers) to be shown. For
             each point [x, y, z] coordinates are given. If boolean True is
             given, then markers are read from the endstate.
+        orbit : int, optional
+            ID of a marker whose orbit is plotted.
+        data : str, optional
+            Name of the cell data in the wall mesh that is shown in color.
         cpos : array_like, optional
             Camera position coordinates [x, y, z].
         cfoc : array_like, optional
@@ -1517,11 +1529,15 @@ class RunMixin(DistMixin):
             wallmesh = self.getwall_3dmesh()
         if isinstance(points, bool) and points == True:
             points = self.getstate_pointcloud(endcond="wall")
+        if orbit is not None:
+            x,y,z = self.getorbit("x", "y", "z", ids=orbit)
+            orbit = np.array([x,y,z]).T
 
         (cpos0, cfoc0, cang0) = a5plt.defaultcamera(wallmesh)
         if cpos is None: cpos = cpos0
         if cfoc is None: cfoc = cfoc0
         if cang is None: cang = cang0
 
-        a5plt.interactive(wallmesh, *args, points=points, data=data, log=log,
+        a5plt.interactive(wallmesh, *args, points=points, data=data,
+                          orbit=orbit, log=log,
                           cpos=cpos, cfoc=cfoc, cang=cang)
