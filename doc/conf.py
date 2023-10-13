@@ -68,4 +68,5 @@ nbsphinx_thumbnails = {
     "tutorials/orbits"        : "_images/orbits.png",
     "tutorials/biosaw"        : "_images/biosaw.png",
     "tutorials/distributions" : "_images/distributions.png",
+    "tutorials/reversetime"   : "_images/reversetime.png",
 }
