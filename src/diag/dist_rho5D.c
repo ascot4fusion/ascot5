@@ -14,20 +14,19 @@
 /**
  * @brief Internal function calculating the index in the histogram array
  */
-#pragma omp declare target
-size_t dist_rho5D_index(int i_rho, int i_theta, int i_phi, int i_ppara,
-                        int i_pperp, int i_time, int i_q, size_t step_6,
-                        size_t step_5, size_t step_4, size_t step_3,
-                        size_t step_2, size_t step_1) {
-    return (size_t)(i_rho)   * step_6
-         + (size_t)(i_theta) * step_5
-         + (size_t)(i_phi)   * step_4
-         + (size_t)(i_ppara) * step_3
-         + (size_t)(i_pperp) * step_2
-         + (size_t)(i_time)  * step_1
-         + (size_t)(i_q);
+unsigned long dist_rho5D_index(int i_rho, int i_theta, int i_phi, int i_ppara,
+                               int i_pperp, int i_time, int i_q, int n_theta,
+                               int n_phi, int n_ppara, int n_pperp, int n_time,
+                               int n_q) {
+    return i_rho  * (n_theta * n_phi * n_ppara * n_pperp * n_time * n_q)
+        + i_theta * (n_phi * n_ppara * n_pperp * n_time * n_q)
+        + i_phi   * (n_ppara * n_pperp * n_time * n_q)
+        + i_ppara * (n_pperp * n_time * n_q)
+        + i_pperp * (n_time * n_q)
+        + i_time  * (n_q)
+        + i_q;
+
 }
-#pragma omp end declare target
 
 /**
  * @brief Frees the offload data
@@ -138,7 +137,7 @@ void dist_rho5D_update_fo(dist_rho5D_data* dist, particle_simd_fo* p_f,
     int* ok = p_loc->i_arr8;
     real* weight = p_loc->r_arr5;
 
-    #pragma omp simd
+    //#pragma omp simd
 #pragma acc data present(phi[0:NSIMD],theta[0:NSIMD],ppara[0:NSIMD],pperp[0:NSIMD],i_rho[0:NSIMD],i_theta[0:NSIMD],i_phi[0:NSIMD],i_ppara[0:NSIMD],i_pperp[0:NSIMD],i_time[0:NSIMD],i_q[0:NSIMD],ok[0:NSIMD],weight[0:NSIMD])
     {
 GPU_PARALLEL_LOOP_ALL_LEVELS

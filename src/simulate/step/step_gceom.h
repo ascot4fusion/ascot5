@@ -10,7 +10,6 @@
 #include "../../math.h"
 #include "../../physlib.h"
 
-#pragma omp declare target
 
 /**
  * @brief Calculate guiding center equations of motion for a single particle
@@ -84,6 +83,5 @@ inline static void step_gceom(real* ydot, real* y, real mass, real charge,
 
 }
 
-#pragma omp end declare target
 
 #endif

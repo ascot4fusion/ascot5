@@ -109,15 +109,20 @@
 /** @brief Convert radians to degrees */
 #define math_rad2deg(a) (a * math_raddeg)
 
-#pragma omp declare target
 #pragma omp declare simd
 void math_jac_rpz2xyz(real* rpz, real* xyz, real r, real phi);
+#ifndef GPU
 #pragma omp declare simd
+#else
 DECLARE_TARGET
+#endif
 void math_jac_xyz2rpz(real* xyz, real* rpz, real r, real phi);
 DECLARE_TARGET_END
+#ifndef GPU
 #pragma omp declare simd
+#else
 DECLARE_TARGET
+#endif
 void math_matmul(real* matA, real* matB, int d1, int d2, int d3, real* matC);
 DECLARE_TARGET_END
 #pragma omp declare simd
@@ -136,7 +141,6 @@ void math_uniquecount(int* in, int* unique, int* count, int n);
 real* math_rsearch(const real key, const real* base, int num);
 #pragma omp declare simd uniform(rv,zv,n)
 int math_point_in_polygon(real r, real z, real* rv, real* zv, int n);
-#pragma omp end declare target
 
 
 #endif

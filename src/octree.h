@@ -28,13 +28,11 @@ typedef struct octree_node {
     list_int_node* list;      /**< Linked list for storing triangle IDs */
 } octree_node;
 
-#pragma omp declare target
 void octree_create(octree_node** node, real x_min, real x_max,
                         real y_min, real y_max, real z_min, real z_max,
                         int depth);
 void octree_free(octree_node** node);
 void octree_add(octree_node* node, real t1[3], real t2[3], real t3[3], int id);
 list_int_node* octree_get(octree_node* node, real p[3]);
-#pragma omp end declare target
 
 #endif

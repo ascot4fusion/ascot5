@@ -196,7 +196,6 @@
         ( 0.5 * ( Dpara - Dperp ) * ( 1 - xi*xi ) + Dperp )      \
         / (gyrofreq*gyrofreq) )
 
-#pragma omp declare target
 
 /**
  * @brief Evaluate Coulomb logarithm.
@@ -285,6 +284,5 @@ inline static void mccc_coefs_mufun(real mufun[3], real x, mccc_data* mdata) {
 
 }
 
-#pragma omp end declare target
 
 #endif

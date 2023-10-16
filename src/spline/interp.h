@@ -133,7 +133,6 @@ int interp3Dexpl_init_coeff(real* c, real* f,
                             real y_min, real y_max,
                             real z_min, real z_max);
 
-#pragma omp declare target
 void interp1Dcomp_init_spline(interp1D_data* str, real* c,
                               int n_x, int bc_x,
                               real x_min, real x_max);
@@ -166,16 +165,25 @@ void interp3Dexpl_init_spline(interp3D_data* str, real* c,
                               real y_min, real y_max,
                               real z_min, real z_max);
 
+#ifndef GPU
 #pragma omp declare simd uniform(str)
+#else
 DECLARE_TARGET
+#endif
 a5err interp1Dcomp_eval_f(real* f, interp1D_data* str, real x);
 DECLARE_TARGET_END
+#ifndef GPU
 #pragma omp declare simd uniform(str)
+#else
 DECLARE_TARGET
+#endif
 a5err interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y);
 DECLARE_TARGET_END
+#ifndef GPU
 #pragma omp declare simd uniform(str)
+#else
 DECLARE_TARGET
+#endif
 a5err interp3Dcomp_eval_f(real* f, interp3D_data* str,
                          real x, real y, real z);
 DECLARE_TARGET_END
@@ -188,16 +196,25 @@ a5err interp2Dexpl_eval_f(real* f, interp2D_data* str, real x, real y);
 a5err interp3Dexpl_eval_f(real* f, interp3D_data* str,
                           real x, real y, real z);
 
+#ifndef GPU
 #pragma omp declare simd uniform(str)
+#else
 DECLARE_TARGET
+#endif
 a5err interp1Dcomp_eval_df(real* f_df, interp1D_data* str, real x);
 DECLARE_TARGET_END
+#ifndef GPU
 #pragma omp declare simd uniform(str)
+#else
 DECLARE_TARGET
+#endif
 a5err interp2Dcomp_eval_df(real* f_df, interp2D_data* str, real x, real y);
 DECLARE_TARGET_END
+#ifndef GPU
 #pragma omp declare simd uniform(str)
+#else
 DECLARE_TARGET
+#endif
 a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
                            real x, real y, real z);
 DECLARE_TARGET_END
@@ -209,5 +226,4 @@ a5err interp2Dexpl_eval_df(real* f_df, interp2D_data* str, real x, real y);
 #pragma omp declare simd uniform(str)
 a5err interp3Dexpl_eval_df(real* f_df, interp3D_data* str,
                            real x, real y, real z);
-#pragma omp end declare target
 #endif

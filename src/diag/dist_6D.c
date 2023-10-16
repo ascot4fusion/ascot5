@@ -14,21 +14,19 @@
 /**
  * @brief Internal function calculating the index in the histogram array
  */
-#pragma omp declare target
-size_t dist_6D_index(int i_r, int i_phi, int i_z, int i_pr, int i_pphi,
-                     int i_pz, int i_time, int i_q, size_t step_7,
-                     size_t step_6, size_t step_5, size_t step_4, size_t step_3,
-                     size_t step_2, size_t step_1) {
-    return (size_t)(i_r)    * step_7
-         + (size_t)(i_phi)  * step_6
-         + (size_t)(i_z)    * step_5
-         + (size_t)(i_pr)   * step_4
-         + (size_t)(i_pphi) * step_3
-         + (size_t)(i_pz)   * step_2
-         + (size_t)(i_time) * step_1
-         + (size_t)(i_q);
+unsigned long dist_6D_index(int i_r, int i_phi, int i_z, int i_pr, int i_pphi,
+                            int i_pz, int i_time, int i_q, int n_phi, int n_z,
+                            int n_pr, int n_pphi, int n_pz, int n_time,
+                            int n_q) {
+    return i_r    * (n_phi * n_z * n_pr * n_pphi * n_pz * n_time * n_q)
+        + i_phi  * (n_z * n_pr * n_pphi * n_pz * n_time * n_q)
+        + i_z    * (n_pr * n_pphi * n_pz * n_time * n_q)
+        + i_pr   * (n_pphi * n_pz * n_time * n_q)
+        + i_pphi * (n_pz * n_time * n_q)
+        + i_pz   * (n_time * n_q)
+        + i_time * (n_q)
+        + i_q;
 }
-#pragma omp end declare target
 
 /**
  * @brief Frees the offload data
@@ -139,7 +137,7 @@ void dist_6D_update_fo(dist_6D_data* dist, particle_simd_fo* p_f,
     int* ok = p_loc->i_arr9;
     real* weight = p_loc->r_arr2;
 
-    #pragma omp simd
+    //#pragma omp simd
 #pragma acc data present(phi[0:NSIMD],i_r[0:NSIMD],i_phi[0:NSIMD],i_z[0:NSIMD],i_pr[0:NSIMD],i_pphi[0:NSIMD],i_pz[0:NSIMD],i_time[0:NSIMD],i_q[0:NSIMD],ok[0:NSIMD],weight[0:NSIMD])
     {
     GPU_PARALLEL_LOOP_ALL_LEVELS

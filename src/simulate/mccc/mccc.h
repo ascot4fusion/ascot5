@@ -9,6 +9,7 @@
 #include "../../B_field.h"
 #include "../../plasma.h"
 #include "../../particle.h"
+#include "../../random.h"
 #include "mccc_wiener.h"
 
 /**
@@ -30,17 +31,15 @@ typedef struct {
     int include_gcdiff; /**< Let collisions change guiding center position */
 } mccc_data;
 
-#pragma omp declare target
 
 void mccc_init(mccc_data* mdata, int include_energy, int include_pitch,
                int include_gcdiff);
 void mccc_fo_euler(particle_simd_fo* p, real* h,  plasma_data* pdata,
-                   mccc_data* mdata, real rnd[3*NSIMD]);
+                   random_data* rdata, mccc_data* mdata);
 void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
-                   plasma_data* pdata, mccc_data* mdata, real rnd[5*NSIMD]);
+                   plasma_data* pdata, random_data* rdata, mccc_data* mdata);
 void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
-                      mccc_wienarr* w, B_field_data* Bdata, plasma_data* pdata,
-                      mccc_data* mdata, real rnd[5*NSIMD]);
-#pragma omp end declare target
+                      mccc_wienarr* wienarr, B_field_data* Bdata,
+                      plasma_data* pdata, random_data* rdata, mccc_data* mdata);
 
 #endif

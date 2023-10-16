@@ -65,7 +65,6 @@ int mhd_init_offload(mhd_offload_data* offload_data,
 void mhd_free_offload(mhd_offload_data* offload_data,
                       real** offload_array);
 
-#pragma omp declare target
 int mhd_init(mhd_data* data, mhd_offload_data* offload_data,
              real* offload_array);
 #pragma omp declare simd uniform(boozerdata, mhddata, Bdata, includemode)
@@ -90,5 +89,4 @@ const real* mhd_get_amplitude(mhd_data* mhddata);
 const real* mhd_get_frequency(mhd_data* mhddata);
 #pragma omp declare simd uniform(mhddata)
 const real*  mhd_get_phase(mhd_data* mhddata);
-#pragma omp end declare target
 #endif

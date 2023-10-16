@@ -28,9 +28,8 @@
 #include "gctransform.h"
 #include "asigma.h"
 
-#pragma omp declare target
+void sim_init(sim_data* sim, sim_offload_data* offload_data);
 void sim_monitor(char* filename, volatile int* n, volatile int* finished);
-#pragma omp end declare target
 
 /**
  * @brief Execute marker simulation
@@ -431,7 +430,7 @@ void sim_monitor(char* filename, volatile int* n, volatile int* finished) {
                     100*fracprog, timespent/3600, (1/fracprog-1)*timespent/3600);
         }
         fflush(f);
-        sleep(A5_PRINTPROGRESSINTERVAL);
+        //sleep(A5_PRINTPROGRESSINTERVAL);
     }
 
     fprintf(f, "Simulation finished.\n");

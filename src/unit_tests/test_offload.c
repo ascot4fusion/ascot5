@@ -1,9 +1,7 @@
 #include <omp.h>
 #include <stdio.h>
 
-#pragma omp declare target
 int go_do_something(void);
-#pragma omp end declare target
 
 int main ( void ){
 

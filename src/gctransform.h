@@ -7,7 +7,6 @@
 
 #include "ascot5.h"
 
-#pragma omp declare target
 
 void gctransform_setorder(int order);
 
@@ -27,6 +26,5 @@ void gctransform_guidingcenter2particle(
 void gctransform_pparmuzeta2prpphipz(real mass, real charge, real* B_dB,
                                      real phi, real ppar, real mu, real zeta,
                                      real* pr, real* pphi, real* pz);
-#pragma omp end declare target
 
 #endif

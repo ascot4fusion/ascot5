@@ -27,10 +27,8 @@
 #include "mccc/mccc.h"
 #include "atomic.h"
 
-#pragma omp declare target
 #pragma omp declare simd uniform(sim)
 real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i);
-#pragma omp end declare target
 
 real simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, B_field_data* Bdata, E_field_data* Edata, particle_loc*  p_loc, real* hin);
 
@@ -103,7 +101,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 #endif    
     while(n_running > 0) {
         /* Store marker states */
-        #pragma omp simd
+        //#pragma omp simd
 
         GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < NSIMD; i++) {
@@ -112,7 +110,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         /*************************** Physics **********************************/
 
         /* Set time-step negative if tracing backwards in time */
-        #pragma omp simd
+        //#pragma omp simd
         GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < NSIMD; i++) {
             if(sim->reverse_time) {
@@ -136,7 +134,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         }
 
         /* Switch sign of the time-step again if it was reverted earlier */
-        #pragma omp simd
+        //#pragma omp simd
         GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < NSIMD; i++) {
             if(sim->reverse_time) {
@@ -168,7 +166,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 
         /* Update simulation and cpu times */
         cputime = A5_WTIME;
-        #pragma omp simd
+        //#pragma omp simd
         GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < NSIMD; i++) {
             if(p.running[i]){
@@ -233,7 +231,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 #endif
 #ifndef GPU	
         /* Determine simulation time-step for new particles */
-        #pragma omp simd
+        //#pragma omp simd
 	GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < NSIMD; i++) {
 	  if(cycle[i] > 0)

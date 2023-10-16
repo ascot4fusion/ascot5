@@ -56,7 +56,6 @@ void random_gsl_normal_simd(random_data* rdata, int n, double* r);
 
 #include <stdint.h>
 
-#pragma omp declare target
 typedef struct {
     uint64_t r;
 } random_data;
@@ -74,7 +73,6 @@ void random_lcg_normal_simd(random_data* rdata, int n, double* r);
 #define random_uniform_simd(data, n, r) random_lcg_uniform_simd(data, n, r)
 #define random_normal_simd(data, n, r)  random_lcg_normal_simd(data, n, r)
 
-#pragma omp end declare target
 
 
 #else /* No RNG lib defined, use drand48 */

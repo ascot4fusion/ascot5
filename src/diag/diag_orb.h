@@ -23,12 +23,10 @@
 #define DIAG_ORB_GC 2 /**< Data stored in GC mode */
 #define DIAG_ORB_ML 3 /**< Data stored in ML mode */
 
-#pragma omp declare target
 #pragma omp declare simd uniform(ang0)
 real diag_orb_check_plane_crossing(real fang, real iang, real ang0);
 #pragma omp declare simd uniform(r0)
 real diag_orb_check_radial_crossing(real fr, real ir, real r0);
-#pragma omp end declare target
 
 
 /**
@@ -99,7 +97,6 @@ typedef struct{
     real radialdistances[DIAG_ORB_MAXPOINCARES];   /**< Radial plane angles */
 }diag_orb_data;
 
-#pragma omp declare target
 void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
                    real* offload_array);
 
@@ -113,6 +110,5 @@ void diag_orb_update_gc(diag_orb_data* data,
 
 void diag_orb_update_ml(diag_orb_data* data,
                         particle_simd_ml* p_f, particle_simd_ml* p_i);
-#pragma omp end declare target
 
 #endif

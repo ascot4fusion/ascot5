@@ -17,13 +17,14 @@
 #include "../../error.h"
 #include "mccc_wiener.h"
 
-const int MCCC_EMPTY = -1; /**< Indicates an empty slot in wiener array */
+/**< Indicates an empty slot in wiener array */
 #ifdef _OPENACC
+const int MCCC_EMPTY = -1;
 #pragma acc declare copyin(MCCC_EMPTY)
-#elif _OPENMP
-#pragma omp declare target
-MCCC_EMPTY
-#pragma omp end declare target
+#elif defined(_OPENMP)
+DECLARE_TARGET
+const int MCCC_EMPTY = -1;
+DECLARE_TARGET_END
 #endif
 
 /**

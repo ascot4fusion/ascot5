@@ -223,13 +223,10 @@ typedef struct {
 
 void simulate_init_offload(sim_offload_data* sim);
 
-#pragma omp declare target
-void sim_init(sim_data* sim, sim_offload_data* sim_offload);
 void simulate(int id, int n_particles, particle_state* p,
               sim_offload_data* sim_offload,
               offload_package* offload_data,
               real* offload_array, int* int_offload_array,
               real* diag_offload_array);
-#pragma omp end declare target
 
 #endif

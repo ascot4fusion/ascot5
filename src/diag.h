@@ -76,7 +76,6 @@ void diag_free_offload(diag_offload_data* data, real** offload_array);
 
 void diag_sum(diag_offload_data* data, real* array1, real* array2);
 
-#pragma omp declare target
 void diag_init(diag_data* data, diag_offload_data* offload_data,
                real* offload_array);
 
@@ -91,6 +90,5 @@ void diag_update_gc(diag_data* data, B_field_data* Bdata, particle_simd_gc* p_f,
 void diag_update_ml(diag_data* data, particle_simd_ml* p_f,
                     particle_simd_ml* p_i);
 
-#pragma omp end declare target
 
 #endif

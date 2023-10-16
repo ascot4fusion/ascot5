@@ -61,7 +61,6 @@ int neutral_init_offload(neutral_offload_data* offload_data,
 void neutral_free_offload(neutral_offload_data* offload_data,
                           real** offload_array);
 
-#pragma omp declare target
 int neutral_init(neutral_data* ndata, neutral_offload_data* offload_data,
                  real* offload_array);
 #pragma omp declare simd uniform(ndata)
@@ -72,5 +71,4 @@ a5err neutral_eval_t0(real* t0, real rho, real r, real phi, real z, real t,
                       neutral_data* ndata);
 #pragma omp declare simd uniform(ndata)
 int neutral_get_n_species(neutral_data* ndata);
-#pragma omp end declare target
 #endif

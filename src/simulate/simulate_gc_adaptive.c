@@ -30,10 +30,8 @@
 #include "mccc/mccc.h"
 #include "mccc/mccc_wiener.h"
 
-#pragma omp declare target
 #pragma omp declare simd uniform(sim)
 real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
-#pragma omp end declare target
 
 #define DUMMY_TIMESTEP_VAL 1.0 /**< Dummy time step value */
 

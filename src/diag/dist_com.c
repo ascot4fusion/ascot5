@@ -14,14 +14,12 @@
 /**
  * @brief Internal function calculating the index in the histogram array
  */
-#pragma omp declare target
-size_t dist_COM_index(int i_mu, int i_Ekin, int i_Ptor, size_t step_2,
-                      size_t step_1) {
-    return (size_t)(i_mu)   * step_2
-         + (size_t)(i_Ekin) * step_1
-         + (size_t)(i_Ptor);
+unsigned long dist_COM_index(int i_mu, int i_Ekin, int i_Ptor,
+                             int n_mu, int n_Ekin, int n_Ptor) {
+    return i_mu    * (n_Ekin * n_Ptor)
+        + i_Ekin   * (n_Ptor)
+        + i_Ptor;
 }
-#pragma omp end declare target
 
 /**
  * @brief Frees the offload data
@@ -92,7 +90,7 @@ void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
     int*  i_Ptor  = p_loc->i_arr3;
     int*  ok      = p_loc->i_arr4;
 
-    #pragma omp simd
+//    #pragma omp simd
 #pragma acc data present(weight[0:NSIMD],i_mu[0:NSIMD],i_Ekin[0:NSIMD],i_Ptor[0:NSIMD],ok[0:NSIMD] )
     {
     GPU_PARALLEL_LOOP_ALL_LEVELS  
