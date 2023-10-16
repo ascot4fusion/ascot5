@@ -735,8 +735,8 @@ class LibAscot:
         out["nspecies"] = fun(
             ctypes.byref(self._sim), self._plasma_offload_array)
 
-        out["mass"]   = np.zeros((out["nspecies"],), dtype="f8")
-        out["charge"] = np.zeros((out["nspecies"],), dtype="f8")
+        out["mass"]   = np.zeros((out["nspecies"],), dtype="f8")*unyt.kg
+        out["charge"] = np.zeros((out["nspecies"],), dtype="f8")*unyt.C
         out["anum"]   = np.zeros((out["nspecies"],), dtype="i4")
         out["znum"]   = np.zeros((out["nspecies"],), dtype="i4")
 
