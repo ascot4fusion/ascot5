@@ -324,8 +324,8 @@ void libascot_plasma_get_species_mass_and_charge(
     for(int i=1; i<n_species; i++) {
         mass[i]   = m[i];
         charge[i] = q[i];
-        anum[i]   = a[i];
-        znum[i]   = z[i];
+        anum[i]   = a[i-1];
+        znum[i]   = z[i-1];
     }
 }
 
