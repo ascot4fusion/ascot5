@@ -480,13 +480,8 @@ int offload_and_simulate(
     int* n_gather, particle_state** pout, real* diag_offload_array) {
 
     /* Divide markers among host and target */
-#ifdef TARGET
-    int n_mic = n_proc;
-    int n_host = 0;
-#else
     int n_mic = 0;
-    int n_host = n_proc;
-#endif
+    int n_host = nprts;
 
     double mic_start = 0, mic_end=0, host_start=0, host_end=0;
 
@@ -502,24 +497,7 @@ int offload_and_simulate(
      * at the target and completed within the simulate() function.*/
     #pragma omp parallel sections num_threads(3)
     {
-#if TARGET >= 1
         /* Run simulation on first target */
-        #pragma omp section
-        {
-            mic_start = omp_get_wtime();
-
-            #pragma omp target device(0) map( \
-                pin[0:n_mic], \
-                offload_array[0:offload_data.offload_array_length], \
-                int_offload_array[0:int_offload_array_length], \
-                diag_offload_array[0:sim.diag_offload_data.offload_array_length] \
-            )
-            simulate(1, n_mic, pin, sim, offload_data, offload_array,
-                     int_offload_array, *diag_offload_array);
-
-            mic_end = omp_get_wtime();
-        }
-#endif
 
 #ifndef TARGET
         /* No target, marker simulation happens where the code execution began.
@@ -531,7 +509,6 @@ int offload_and_simulate(
                 offload_array, int_offload_array, diag_offload_array);
             host_end = omp_get_wtime();
         }
-#endif
     }
 
     /* Code execution returns to host. */

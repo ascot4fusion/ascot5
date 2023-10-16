@@ -14,7 +14,6 @@ typedef struct list_int_node {
     int data;                   /**< Data that is stored in this node */
 } list_int_node;
 
-#pragma omp declare target
 DECLARE_TARGET
 void list_int_create(list_int_node** list);
 DECLARE_TARGET_END
@@ -30,6 +29,5 @@ DECLARE_TARGET_END
 DECLARE_TARGET
 int list_int_size(list_int_node* list);
 DECLARE_TARGET_END
-#pragma omp end declare target
 
 #endif

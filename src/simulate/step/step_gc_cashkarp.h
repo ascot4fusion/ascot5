@@ -11,12 +11,10 @@
 #include "../../mhd.h"
 #include "../../particle.h"
 
-#pragma omp declare target
 void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol,
                       B_field_data* Bdata, E_field_data* Edata);
 void step_gc_cashkarp_mhd(particle_simd_gc* p, real* h, real* hnext, real tol,
                           B_field_data* Bdata, E_field_data* Edata,
                           boozer_data* boozer, mhd_data* mhd);
-#pragma omp end declare target
 
 #endif

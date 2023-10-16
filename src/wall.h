@@ -62,14 +62,16 @@ int wall_init_offload(wall_offload_data* offload_data, real** offload_array,
 void wall_free_offload(wall_offload_data* offload_data, real** offload_array,
                        int** int_offload_array);
 
-#pragma omp declare target
 int wall_init(wall_data* w, wall_offload_data* offload_data,
               real* offload_array, int* int_offload_array);
+
+#ifndef GPU
 #pragma omp declare simd uniform(w)
+#else
 DECLARE_TARGET
+#endif
 int wall_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
                   wall_data* w, real* w_coll);
 DECLARE_TARGET_END
-#pragma omp end declare target
 
 #endif

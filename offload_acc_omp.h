@@ -3,13 +3,15 @@
 
 #define STRINGIFY(X) #X
 #define MY_PRAGMA(X) _Pragma(STRINGIFY(X))
-#define GPU_PARALLEL_LOOP_ALL_LEVELS 
+#define GPU_PARALLEL_LOOP_ALL_LEVELS MY_PRAGMA(omp simd) 
 #define DECLARE_TARGET     
 #define DECLARE_TARGET_END 
 #define DECLARE_TARGET_COPYIN
 #define GPU_MAP_TO_DEVICE
 //#define OMP_L1 MY_PRAGMA(omp distribute parallel for) 
 #ifdef _OPENMP
+#define GPU_PARALLEL_LOOP_ALL_LEVELS MY_PRAGMA(omp target teams distribute parallel for)
+//#define GPU_PARALLEL_LOOP_ALL_LEVELS 
 #define DECLARE_TARGET     MY_PRAGMA(omp declare target)
 #define DECLARE_TARGET_END MY_PRAGMA(omp end declare target)
 #endif

@@ -49,7 +49,6 @@ typedef struct{
 
 }diag_transcoef_data;
 
-#pragma omp declare target
 void diag_transcoef_init(diag_transcoef_data* data,
                          diag_transcoef_offload_data* offload_data,
                          real* offload_array);
@@ -65,5 +64,4 @@ void diag_transcoef_update_gc(diag_transcoef_data* data,
 void diag_transcoef_update_ml(diag_transcoef_data* data,
                               particle_simd_ml* p_f, particle_simd_ml* p_i);
 
-#pragma omp end declare target
 #endif

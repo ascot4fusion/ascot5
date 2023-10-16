@@ -46,45 +46,67 @@ int plasma_1Dt_init_offload(plasma_1Dt_offload_data* offload_data,
 void plasma_1Dt_free_offload(plasma_1Dt_offload_data* offload_data,
                             real** offload_array);
 
-#pragma omp declare target
 void plasma_1Dt_init(plasma_1Dt_data* pls_data,
                     plasma_1Dt_offload_data* offload_data,
                     real* offload_array);
+#ifndef GPU
 #pragma omp declare simd uniform(pls_data)
+#else
 DECLARE_TARGET
+#endif
 a5err plasma_1Dt_eval_temp(real* dens, real rho, real t, int species,
                           plasma_1Dt_data* pls_data);
 DECLARE_TARGET_END
+#ifndef GPU
 #pragma omp declare simd uniform(pls_data)
+#else
 DECLARE_TARGET
+#endif
 a5err plasma_1Dt_eval_dens(real* temp, real rho, real t, int species,
                           plasma_1Dt_data* pls_data);
 DECLARE_TARGET_END
+#ifndef GPU
 #pragma omp declare simd uniform(pls_data)
+#else
 DECLARE_TARGET
+#endif
 a5err plasma_1Dt_eval_densandtemp(real* dens, real* temp, real rho, real t,
                                  plasma_1Dt_data* pls_data);
 DECLARE_TARGET_END
+#ifndef GPU
 #pragma omp declare simd uniform(pls_data)
+#else
 DECLARE_TARGET
+#endif
 int plasma_1Dt_get_n_species(plasma_1Dt_data* pls_data);
 DECLARE_TARGET_END
+#ifndef GPU
 #pragma omp declare simd uniform(pls_data)
+#else
 DECLARE_TARGET
+#endif
 const real* plasma_1Dt_get_species_mass(plasma_1Dt_data* pls_data);
 DECLARE_TARGET_END
+#ifndef GPU
 #pragma omp declare simd uniform(pls_data)
+#else
 DECLARE_TARGET
+#endif
 const real* plasma_1Dt_get_species_charge(plasma_1Dt_data* pls_data);
 DECLARE_TARGET_END
+#ifndef GPU
 #pragma omp declare simd uniform(pls_data)
+#else
 DECLARE_TARGET
+#endif
 const int* plasma_1Dt_get_species_znum(plasma_1Dt_data* pls_data);
 DECLARE_TARGET_END
+#ifndef GPU
 #pragma omp declare simd uniform(pls_data)
+#else
 DECLARE_TARGET
+#endif
 const int* plasma_1Dt_get_species_anum(plasma_1Dt_data* pls_data);
 DECLARE_TARGET_END
-#pragma omp end declare target
 
 #endif

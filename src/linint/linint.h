@@ -66,7 +66,6 @@ typedef struct {
     real* c;     /**< pointer to array with interpolant values       */
 } linint3D_data;
 
-#pragma omp declare target
 void linint1D_init(linint1D_data* str, real* c,
                    int n_x, int bc_x,
                    real x_min, real x_max);
@@ -83,18 +82,26 @@ void linint3D_init(linint3D_data* str, real* c,
                    real y_min, real y_max,
                    real z_min, real z_max);
 
+#ifndef GPU
 #pragma omp declare simd uniform(str)
+#else
 DECLARE_TARGET
+#endif
 int linint1D_eval_f(real* f, linint1D_data* str, real x);
 DECLARE_TARGET_END
+#ifndef GPU
 #pragma omp declare simd uniform(str)
+#else
 DECLARE_TARGET
+#endif
 int linint2D_eval_f(real* f, linint2D_data* str, real x, real y);
 DECLARE_TARGET_END
+#ifndef GPU
 #pragma omp declare simd uniform(str)
+#else
 DECLARE_TARGET
+#endif
 int linint3D_eval_f(real* f, linint3D_data* str,
                     real x, real y, real z);
 DECLARE_TARGET_END
-#pragma omp end declare target
 #endif

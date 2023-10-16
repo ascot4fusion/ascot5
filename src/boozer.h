@@ -44,7 +44,6 @@ int boozer_init_offload(boozer_offload_data* offload_data,
 void boozer_free_offload(boozer_offload_data* offload_data,
                          real** offload_array);
 
-#pragma omp declare target
 void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
                  real* offload_array);
 
@@ -53,6 +52,5 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside, real r,
                                real phi, real z, B_field_data* Bdata,
                                boozer_data* boozerdata);
 
-#pragma omp end declare target
 
 #endif

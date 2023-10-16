@@ -31,14 +31,12 @@ enum ENDCOND_FLAG {
 
 };
 
-#pragma omp declare target
 void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
                       sim_data* sim);
 void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                       sim_data* sim);
 void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
                       sim_data* sim);
-#pragma omp end declare target
 
 void endcond_parse(int endcond, int* endconds);
 void endcond_parse2str(int endcond, char* str);

@@ -37,7 +37,7 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
 
     int i;
     /* Following loop will be executed simultaneously for all i */
-    #pragma omp simd  aligned(h : 64)
+    //#pragma omp simd  aligned(h : 64)
 #pragma acc data present(h[0:NSIMD])
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(i = 0; i < NSIMD; i++) {

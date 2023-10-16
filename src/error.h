@@ -70,7 +70,6 @@ typedef enum error_type {
     ERR_ATOMIC_EVALUATION =   8  /**< Failure when evaluating atomic reaction */
 }error_type;
 
-#pragma omp declare target
 /**
  * @brief Raise a new error
  *
@@ -90,7 +89,6 @@ static inline a5err error_raise(error_type type, int line, error_file file) {
     err += (a5err)(file*256*1024);
     return err;
 }
-#pragma omp end declare target
 
 void error_parse(a5err err, int* msg, int* line, int* file);
 

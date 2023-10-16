@@ -13,7 +13,6 @@
 #include "../particle.h"
 #include "diag_transcoef.h"
 
-#pragma omp declare target
 #pragma omp declare simd
 real diag_transcoef_check_omp_crossing(real fang, real iang);
 #pragma omp declare simd uniform(data)
@@ -22,7 +21,6 @@ void diag_transcoef_record(diag_transcoef_data* data, integer index,
                            real t_f, real t_i, real theta_f, real theta_i);
 void diag_transcoef_process_and_clean(diag_transcoef_data* data,
                                       integer index, integer id);
-#pragma omp end declare target
 
 /**
  * @brief Initializes orbit diagnostics offload data.
@@ -70,7 +68,7 @@ void diag_transcoef_free(diag_transcoef_data* data) {
  */
 void diag_transcoef_update_fo(diag_transcoef_data* data,
                               particle_simd_fo* p_f, particle_simd_fo* p_i) {
-    #pragma omp simd
+    //#pragma omp simd
     GPU_PARALLEL_LOOP_ALL_LEVELS  
     for(int i=0; i < NSIMD; i++) {
         real p[3] = {p_f->p_r[i], p_f->p_phi[i], p_f->p_z[i]};

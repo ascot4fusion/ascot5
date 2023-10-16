@@ -39,17 +39,18 @@
 #include "physlib.h"
 #include "gctransform.h"
 
-#pragma omp declare target
+
 /** Order to which guiding center transformation is done in momentum space. */
-static int GCTRANSFORM_ORDER = 1;
+//static int GCTRANSFORM_ORDER = 1;
 #ifdef _OPENACC
+static int GCTRANSFORM_ORDER = 1;
 #pragma acc declare copyin(GCTRANSFORM_ORDER)
-#elif _OPENMP
-#pragma omp declare target
-GCTRANSFORM_ORDER
-#pragma omp end declare target
+#elif defined(_OPENMP)
+DECLARE_TARGET
+static int GCTRANSFORM_ORDER = 1;
+DECLARE_TARGET_END
 #endif
-#pragma omp end declare target
+
 
 /**
  * @brief Set the order of the transformation.
