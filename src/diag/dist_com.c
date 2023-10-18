@@ -137,10 +137,10 @@ void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i] && ok[i]) {
-            size_t index = dist_COM_index(i_mu[i], i_Ekin[i], i_Ptor[i],
-                                          dist->step_2, dist->step_1);
-            #pragma omp atomic
-            #pragma acc atomic
+            unsigned long index = dist_COM_index(i_mu[i], i_Ekin[i], i_Ptor[i],
+                                                dist->n_mu,  dist->n_Ekin,
+                                                dist->n_Ptor);
+	    GPU_ATOMIC
             dist->histogram[index] += weight[i];
         }
     }

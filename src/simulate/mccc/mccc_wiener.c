@@ -25,6 +25,8 @@ const int MCCC_EMPTY = -1;
 DECLARE_TARGET
 const int MCCC_EMPTY = -1;
 DECLARE_TARGET_END
+#else
+const int MCCC_EMPTY = -1;
 #endif
 
 /**
