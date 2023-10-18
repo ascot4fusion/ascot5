@@ -102,7 +102,6 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
     while(n_running > 0) {
         /* Store marker states */
         //#pragma omp simd
-
         GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < NSIMD; i++) {
 	  particle_copy_fo(p_ptr, i, p0_ptr, i);
@@ -220,8 +219,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         /* Update running particles */
 #ifdef GPU
 	n_running = 0;
-#pragma omp simd reduction(+:n_running)
-#pragma acc parallel loop reduction(+:n_running)
+	GPU_PARALLEL_LOOP_ALL_LEVELS_REDUCTION(n_running)
 	for(int i = 0; i < NSIMD; i++)
 	  {
 	    if(p_ptr->running[i] > 0) n_running++;
@@ -285,8 +283,8 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
 
 real simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, B_field_data* Bdata, E_field_data* Edata, particle_loc*  p_loc, real* hin) {
 
-#pragma acc enter data copyin(	\
-		      p_loc->r_arr1[0:NSIMD],p_loc->r_arr2[0:NSIMD],p_loc->r_arr3[0:NSIMD],p_loc->r_arr4[0:NSIMD],p_loc->r_arr5[0:NSIMD],p_loc->i_arr1[0:NSIMD],p_loc->i_arr2[0:NSIMD],p_loc->i_arr3[0:NSIMD],p_loc->i_arr4[0:NSIMD],p_loc->i_arr5[0:NSIMD],p_loc->i_arr6[0:NSIMD],p_loc->i_arr7[0:NSIMD],p_loc->i_arr8[0:NSIMD],p_loc->i_arr9[0:NSIMD], \
+  GPU_MAP_TO_DEVICE(
+ p_loc->r_arr1[0:NSIMD],p_loc->r_arr2[0:NSIMD],p_loc->r_arr3[0:NSIMD],p_loc->r_arr4[0:NSIMD],p_loc->r_arr5[0:NSIMD],p_loc->i_arr1[0:NSIMD],p_loc->i_arr2[0:NSIMD],p_loc->i_arr3[0:NSIMD],p_loc->i_arr4[0:NSIMD],p_loc->i_arr5[0:NSIMD],p_loc->i_arr6[0:NSIMD],p_loc->i_arr7[0:NSIMD],p_loc->i_arr8[0:NSIMD],p_loc->i_arr9[0:NSIMD], \
        		      sim[0:1],		\
 		      sim->diag_data.dist5D.histogram[0:sim->diag_data.dist5D.n_r * sim->diag_data.dist5D.n_phi * sim->diag_data.dist5D.n_z * sim->diag_data.dist5D.n_ppara * sim->diag_data.dist5D.n_pperp * sim->diag_data.dist5D.n_time * sim->diag_data.dist5D.n_q], \
 		      sim->diag_data.dist6D.histogram[0:sim->diag_data.dist6D.n_r * sim->diag_data.dist6D.n_phi * sim->diag_data.dist6D.n_z * sim->diag_data.dist6D.n_pr * sim->diag_data.dist6D.n_pphi * sim->diag_data.dist6D.n_pz * sim->diag_data.dist6D.n_time * sim->diag_data.dist6D.n_q], \
@@ -315,19 +313,21 @@ real simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, parti
 		      Edata[0:1],Edata->type,Edata->ETC,Edata->E1DS,Edata->ETC.Exyz[0:1],Edata->E1DS.dV,Edata->E1DS.dV.c[0:1] \
 			)
     for (int i=0;i<MAX_SPECIES;i++) {
-#pragma acc enter data copyin(sim->plasma_data.plasma_1DS.dens[i].c[0:sim->plasma_data.plasma_1DS.dens[i].n_x*NSIZE_COMP1D])
+GPU_MAP_TO_DEVICE(
+				  sim->plasma_data.plasma_1DS.dens[i].c[0:sim->plasma_data.plasma_1DS.dens[i].n_x*NSIZE_COMP1D] )
     }
 
 }
 
 real simulate_fo_fixed_copy_from_gpu(sim_data* sim, particle_simd_fo *p_ptr){
 
-  #pragma acc update host( \
+  GPU_UPDATE_FROM_DEVICE(
       p_ptr[0:1],p_ptr->running[0:NSIMD],p_ptr->r[0:NSIMD],p_ptr->phi[0:NSIMD],p_ptr->p_r[0:NSIMD],p_ptr->p_phi[0:NSIMD],p_ptr->p_z[0:NSIMD],p_ptr->mileage[0:NSIMD], \
   p_ptr->z[0:NSIMD],p_ptr->charge[0:NSIMD],p_ptr->mass[0:NSIMD],p_ptr->B_r[0:NSIMD],p_ptr->B_r_dr[0:NSIMD],p_ptr->B_r_dphi[0:NSIMD],p_ptr->B_r_dz[0:NSIMD], \
   p_ptr->B_phi[0:NSIMD],p_ptr->B_phi_dr[0:NSIMD],p_ptr->B_phi_dphi[0:NSIMD],p_ptr->B_phi_dz[0:NSIMD],p_ptr->B_z[0:NSIMD],p_ptr->B_z_dr[0:NSIMD],p_ptr->B_z_dphi[0:NSIMD], \
   p_ptr->B_z_dz[0:NSIMD],p_ptr->rho[0:NSIMD],p_ptr->theta[0:NSIMD],p_ptr->err[0:NSIMD],p_ptr->time[0:NSIMD],p_ptr->weight[0:NSIMD],p_ptr->cputime[0:NSIMD], \
-  p_ptr->id[0:NSIMD],p_ptr->endcond[0:NSIMD],p_ptr->walltile[0:NSIMD],p_ptr->index[0:NSIMD],p_ptr->znum[0:NSIMD],p_ptr->anum[0:NSIMD],p_ptr->bounces[0:NSIMD] )
-#pragma acc exit data copyout(			\
+      p_ptr->id[0:NSIMD],p_ptr->endcond[0:NSIMD],p_ptr->walltile[0:NSIMD],p_ptr->index[0:NSIMD],p_ptr->znum[0:NSIMD],p_ptr->anum[0:NSIMD],p_ptr->bounces[0:NSIMD] )
+
+    GPU_MAP_FROM_DEVICE(
 			      sim[0:1]  )
 }

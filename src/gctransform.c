@@ -49,6 +49,8 @@ static int GCTRANSFORM_ORDER = 1;
 DECLARE_TARGET
 static int GCTRANSFORM_ORDER = 1;
 DECLARE_TARGET_END
+#else
+static int GCTRANSFORM_ORDER = 1;
 #endif
 
 

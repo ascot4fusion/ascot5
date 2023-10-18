@@ -195,12 +195,13 @@ void dist_5D_update_fo(dist_5D_data* dist, particle_simd_fo* p_f,
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i] && ok[i]) {
-            size_t index = dist_5D_index(
-                i_r[i], i_phi[i], i_z[i], i_ppara[i], i_pperp[i], i_time[i],
-                i_q[i], dist->step_6, dist->step_5, dist->step_4,
-                dist->step_3, dist->step_2, dist->step_1);
-            #pragma omp atomic
-            #pragma acc atomic
+            unsigned long index = dist_5D_index(i_r[i], i_phi[i], i_z[i],
+                                                i_ppara[i], i_pperp[i],
+                                                i_time[i], i_q[i],
+                                                dist->n_phi, dist->n_z,
+                                                dist->n_ppara, dist->n_pperp,
+                                                dist->n_time, dist->n_q);
+	    GPU_ATOMIC
             dist->histogram[index] += weight[i];
         }
     }
