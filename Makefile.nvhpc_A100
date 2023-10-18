@@ -48,14 +48,20 @@ ifneq ($(CC),h5cc)
 	endif
 endif
 
-ifeq ($(ACC), 1)
-	CFLAGS += -O3 -acc -Minfo=accel -gpu=managed # -gpu=deepcopy
-	#CFLAGS += -fopenacc
-endif
-
 ifeq ($(GPU),1)
         DEFINES+=-DGPU
 	CFLAGS+="-g"
+endif
+
+ifeq ($(GPU),1)
+        ifeq ($(ACC), 1)
+		CFLAGS += -O3 -acc -Minfo=accel -gpu=managed # -gpu=deepcopy
+        else ifeq ($(OMP), 1)
+		CFLAGS += -O3 -mp=gpu -gpu=managed # -gpu=deepcopy
+		DEFINES+=-D_OPENMP
+        endif
+else
+	CFLAGS += -O3
 endif
 
 CFLAGS+= $(DEFINES) $(FLAGS) -I$HOME/ascot5/. -lm -L/scratch/software/PEs/spack/opt/spack/linux-rhel8-neoverse_n1/nvhpc-23.3/hdf5-1.14.0-vpgo22etqjgfxboa766ppqnaif54rimw/lib
