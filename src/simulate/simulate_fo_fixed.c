@@ -284,7 +284,7 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
 real simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, B_field_data* Bdata, E_field_data* Edata, particle_loc*  p_loc, real* hin) {
 
   GPU_MAP_TO_DEVICE(
- p_loc->r_arr1[0:NSIMD],p_loc->r_arr2[0:NSIMD],p_loc->r_arr3[0:NSIMD],p_loc->r_arr4[0:NSIMD],p_loc->r_arr5[0:NSIMD],p_loc->i_arr1[0:NSIMD],p_loc->i_arr2[0:NSIMD],p_loc->i_arr3[0:NSIMD],p_loc->i_arr4[0:NSIMD],p_loc->i_arr5[0:NSIMD],p_loc->i_arr6[0:NSIMD],p_loc->i_arr7[0:NSIMD],p_loc->i_arr8[0:NSIMD],p_loc->i_arr9[0:NSIMD], \
+		    p_loc[0:1],p_loc->r_arr1[0:NSIMD],p_loc->r_arr2[0:NSIMD],p_loc->r_arr3[0:NSIMD],p_loc->r_arr4[0:NSIMD],p_loc->r_arr5[0:NSIMD],p_loc->i_arr1[0:NSIMD],p_loc->i_arr2[0:NSIMD],p_loc->i_arr3[0:NSIMD],p_loc->i_arr4[0:NSIMD],p_loc->i_arr5[0:NSIMD],p_loc->i_arr6[0:NSIMD],p_loc->i_arr7[0:NSIMD],p_loc->i_arr8[0:NSIMD],p_loc->i_arr9[0:NSIMD], \
        		      sim[0:1],		\
 		      sim->diag_data.dist5D.histogram[0:sim->diag_data.dist5D.n_r * sim->diag_data.dist5D.n_phi * sim->diag_data.dist5D.n_z * sim->diag_data.dist5D.n_ppara * sim->diag_data.dist5D.n_pperp * sim->diag_data.dist5D.n_time * sim->diag_data.dist5D.n_q], \
 		      sim->diag_data.dist6D.histogram[0:sim->diag_data.dist6D.n_r * sim->diag_data.dist6D.n_phi * sim->diag_data.dist6D.n_z * sim->diag_data.dist6D.n_pr * sim->diag_data.dist6D.n_pphi * sim->diag_data.dist6D.n_pz * sim->diag_data.dist6D.n_time * sim->diag_data.dist6D.n_q], \
