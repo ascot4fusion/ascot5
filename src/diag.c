@@ -251,6 +251,10 @@ void diag_update_fo(diag_data* data, B_field_data* Bdata, particle_simd_fo* p_f,
     }
     
     if(data->diagtrcof_collect){
+#ifdef GPU
+	  printf("diagtrcof NOT YET PORTED TO GPU");
+	  exit(1);
+#endif
       diag_transcoef_update_fo(&data->diagtrcof, p_f, p_i);
     }
 }
