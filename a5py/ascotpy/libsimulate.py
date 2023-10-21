@@ -210,11 +210,10 @@ class LibSimulate():
                 p.p_z     = pvec[2]
                 p.mass    = mrk["mass"][i]
                 p.charge  = mrk["charge"][i]
-                p.anum    = mrk["anum"][i][0]
+                p.anum    = mrk["anum"][i]
                 p.znum    = mrk["znum"][i]
                 p.weight  = mrk["weight"][i]
                 p.time    = mrk["time"][i]
-                p.mileage = mrk["mileage"][i]
                 p.id      = mrk["ids"][i]
 
         # particle gc
