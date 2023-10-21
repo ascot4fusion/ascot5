@@ -101,37 +101,9 @@ void afsi_run(sim_offload_data* sim, int reaction, int n, afsi_data* react1,
         abort();
     }
 
-    real m1=0, m2=0, mprod1=0, mprod2=0, Q=0;
-    switch(reaction) {
-        case 1: /* DT */
-            m1     = 3.344e-27; // D
-            m2     = 5.008e-27; // T
-            mprod1 = 6.645e-27; // He4
-            mprod2 = 1.675e-27; // n
-            Q      = 17.6e6*CONST_E;
-            break;
-        case 2: /* D-He3 */
-            m1     = 3.344e-27; // D
-            m2     = 5.008e-27; // He3
-            mprod1 = 6.645e-27; // He4
-            mprod2 = 1.673e-27; // p
-            Q      = 18.3e6*CONST_E;
-            break;
-        case 3: /* DDp */
-            m1     = 3.344e-27; // D
-            m2     = 3.344e-27; // D
-            mprod1 = 5.008e-27; // T
-            mprod2 = 1.673e-27; // p
-            Q      = 4.03e6*CONST_E;
-            break;
-        case 4: /* DDn */
-            m1     = 3.344e-27; // D
-            m2     = 3.344e-27; // D
-            mprod1 = 5.008e-27; // He3
-            mprod2 = 1.675e-27; // n
-            Q      = 3.27e6*CONST_E;
-            break;
-    }
+    real m1, q1, m2, q2, mprod1, qprod1, mprod2, qprod2, Q;
+    boschhale_reaction(
+        reaction, &m1, &q1, &m2, &q2, &mprod1, &qprod1, &mprod2, &qprod2, &Q);
 
     int n_r=0, n_phi=0, n_z=0;
     if(react1->type == 1) {
@@ -172,11 +144,10 @@ void afsi_run(sim_offload_data* sim, int reaction, int n, afsi_data* react1,
                                      + (v1y[i] - v2y[i]) * (v1y[i] - v2y[i])
                                      + (v1z[i] - v2z[i]) * (v1z[i] - v2z[i]);
 
-                        real E_keV = 0.5 * ( m1 * m2 ) / ( m1 + m2 ) * vcom2
-                            / (1.e3 * CONST_E);
+                        real E = 0.5 * ( m1 * m2 ) / ( m1 + m2 ) * vcom2;
 
                         real weight = density1 * density2 * sqrt(vcom2)
-                            * boschhale_sigma(reaction, E_keV)/n*vol;
+                            * boschhale_sigma(reaction, E)/n*vol;
 
                         afsi_compute_product_momenta(
                             i, m1, m2, mprod1, mprod2, Q,
@@ -223,6 +194,15 @@ void afsi_run(sim_offload_data* sim, int reaction, int n, afsi_data* react1,
         free(pperp2);
     }
 
+    m1     = m1 / CONST_U;
+    m2     = m2 / CONST_U;
+    mprod1 = mprod1 / CONST_U;
+    mprod2 = mprod2 / CONST_U;
+    int c1     = (int)rint(q1 / CONST_E);
+    int c2     = (int)rint(q2 / CONST_E);
+    int cprod1 = (int)rint(qprod1 / CONST_E);
+    int cprod2 = (int)rint(qprod2 / CONST_E);
+
     hid_t f = hdf5_open(sim->hdf5_out);
     if(f < 0) {
         print_err("Error: File not found.\n");
@@ -254,7 +234,23 @@ void afsi_run(sim_offload_data* sim, int reaction, int n, afsi_data* react1,
         print_err("Failed to write reaction data.\n");
         abort();
     }
-    if(H5LTmake_dataset_double(reactiondata, "q",      1, &size, &q)) {
+    if(H5LTmake_dataset_double(reactiondata, "q", 1, &size, &q)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    if(H5LTmake_dataset_int(reactiondata, "q1", 1, &size, &c1)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    if(H5LTmake_dataset_int(reactiondata, "q2", 1, &size, &c2)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    if(H5LTmake_dataset_int(reactiondata, "qprod1", 1, &size, &cprod1)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    if(H5LTmake_dataset_int(reactiondata, "qprod2", 1, &size, &cprod2)) {
         print_err("Failed to write reaction data.\n");
         abort();
     }
