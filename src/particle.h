@@ -98,7 +98,6 @@ typedef struct {
     int  znum;   /**< Charge number [1]                   */
     real weight; /**< Particle marker weight              */
     real time;   /**< Particle marker simulation time [s] */
-    real mileage; /**< Duration this marker has been simulated [s]     */
     integer id;  /**< Unique ID for the particle marker   */
 } particle;
 
