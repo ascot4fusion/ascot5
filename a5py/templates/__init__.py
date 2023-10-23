@@ -3,11 +3,11 @@
 from .analyticalinputs import AnalyticalInputs
 from .optiontemplates  import OptionTemplates
 from .poincare  import PoincareTemplates
-from .importdata import ImportAdas
+from .importdata import ImportData
 from. convertascot4 import Ascot4Templates
 
 class InputFactory(AnalyticalInputs, OptionTemplates, PoincareTemplates,
-                   ImportAdas, Ascot4Templates):
+                   ImportData, Ascot4Templates):
     """Class for creating input data from templates or imported data.
 
     The templates are constructed by calling :meth:`construct` and specifying
