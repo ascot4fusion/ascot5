@@ -7,8 +7,8 @@ import numpy as np
 import unyt
 import numpy.ctypeslib as npctypes
 
-from a5py.ascotpy.libascot import _LIBASCOT, STRUCT_DIST5DOFFLOAD, STRUCT_DIST5D, \
-    STRUCT_AFSIDATA, STRUCT_AFSITHERMAL
+from a5py.ascotpy.libascot import _LIBASCOT, STRUCT_DIST5DOFFLOAD, \
+    STRUCT_DIST5D, STRUCT_AFSIDATA, STRUCT_AFSITHERMAL, PTR_REAL
 from a5py.routines.distmixin import DistMixin
 
 class Afsi():
@@ -48,8 +48,7 @@ class Afsi():
         self._ascot = ascot
 
     def thermal(self, reaction, minr, maxr, nr, minz, maxz, nz,
-                minphi=0, maxphi=2*np.pi, nphi=1, nmc=1000, mult=1.0,
-                ispecies1=1, ispecies2=1,
+                minphi=0, maxphi=2*np.pi, nphi=1, nmc=1000,
                 minppara=-1.3e-19, maxppara=1.3e-19, nppara=80,
                 minpperp=0, maxpperp=1.3e-19, npperp=40):
         """Calculate thermonuclear fusion between two thermal (Maxwellian)
@@ -57,8 +56,8 @@ class Afsi():
 
         Parameters
         ----------
-        reaction : int
-            Fusion reaction index.
+        reaction : int or str
+            Fusion reaction index or name.
         minr : float
             Minimum R value in the output distribution.
         maxr : float
@@ -79,17 +78,6 @@ class Afsi():
             Number of phi bins in the output distribution.
         nmc : int, optional
             Number of MC samples used in each (R, phi, z) bin.
-        mult : float, optional
-            Multiplier for the fusion rate.
-
-            Use 0.5 if the population is interacting with itself to avoid double
-            counting.
-        ispecies1 : int, optional
-            Ion species index (as they are listed in the plasma input) for
-            the first reactant.
-        ispecies2 : int, optional
-            Ion species index (as they are listed in the plasma input) for
-            the second reactant.
         minppara : float, optional
             Minimum ppara value in the output distribution.
         maxppara : float, optional
@@ -110,18 +98,38 @@ class Afsi():
         prod2 : array_like
             Fusion product 2 distribution.
         """
-        self._ascot.input_init(bfield=True, plasma=True)
-        time = 0
+        m1, q1, m2, q2, _, qprod1, _, qprod2, _ = self.reactions(reaction)
+        anum1 = np.round(m1.to("amu").v)
+        anum2 = np.round(m2.to("amu").v)
+        znum1 = np.round(q1.to("e").v)
+        znum2 = np.round(q2.to("e").v)
+        q1 = np.round(qprod1.to("e").v)
+        q2 = np.round(qprod2.to("e").v)
+
+        time = 0*unyt.s
         r_edges   = np.linspace(minr, maxr, nr+1)
         phi_edges = np.linspace(minphi, maxphi, nphi+1)
         z_edges   = np.linspace(minz, maxz, nz+1)
-        r   = (r_edges[1:]   + r_edges[:-1])   / 2
-        phi = (phi_edges[1:] + phi_edges[:-1]) / 2
-        z   = (z_edges[1:]   + z_edges[:-1])   / 2
+        r   = 0.5 * (r_edges[1:]   + r_edges[:-1])*unyt.m
+        phi = 0.5 * (phi_edges[1:] + phi_edges[:-1])*unyt.deg
+        z   = 0.5 * (z_edges[1:]   + z_edges[:-1])*unyt.m
+
+        self._ascot.input_init(bfield=True, plasma=True)
+        nspec, _, _, anums, znums = self._ascot.input_getplasmaspecies()
+        ispecies1 = np.nan; ispecies2 = np.nan
+        for i in range(nspec):
+            if( anum1 == anums[i] and znum1 == znums[i] ):
+                ispecies1 = i
+            if( anum2 == anums[i] and znum2 == znums[i] ):
+                ispecies2 = i
+        if np.isnan(ispecies1) or np.isnan(ispecies2):
+            self._ascot.input_free(bfield=True, plasma=True)
+            raise ValueError("Reactant species not present in plasma input.")
+        if ispecies1 == ispecies2: mult = 0.5
+
         temp  = np.zeros((nr, nphi, nz))
         dens1 = np.zeros((nr, nphi, nz))
         dens2 = np.zeros((nr, nphi, nz))
-
         for j in range(nphi):
             for i in range(nr):
                 for k in range(nz):
@@ -140,25 +148,27 @@ class Afsi():
         react1 = self._init_afsi_data(dist_thermal=thermal1)
         react2 = self._init_afsi_data(dist_thermal=thermal2)
 
-        d = {
-            "nr" : nr, "nphi" : nphi, "nz" : nz, "nppar" : 1, "npperp" : 1,
-            "ntime" : 1, "ncharge" : 1,
-            "r_edges"      : r_edges,
-            "phi_edges"    : phi_edges,
-            "z_edges"      : z_edges,
-            "ppar_edges"   : np.linspace(0, 1, 2),
-            "pperp_edges"  : np.linspace(0, 1, 2),
-            "charge_edges" : np.linspace(0, 2, 2),
-            "time_edges"   : np.linspace(0, 1, 2),
-            "histogram"    : np.zeros((nr, nphi, nz, 1, 1, 1, 1))
-        }
-        temp = self._init_dist_5d(d)
+        class DummyDist(object):
+            pass
 
-        q1, q2 = self._product_charge(reaction)
+        react = DummyDist()
+        react.n_r      = nr
+        react.min_r    = r_edges[0]
+        react.max_r    = r_edges[-1]
+        react.n_phi    = nphi
+        react.min_phi  = phi_edges[0]
+        react.max_phi  = phi_edges[-1]
+        react.n_z      = nz
+        react.min_z    = z_edges[0]
+        react.max_z    = z_edges[-1]
+        react.n_time   = 1
+        react.min_time = 0.0
+        react.max_time = 1.0
+
         prod1, prod1_data = self._init_product_dist(
-            temp, q1, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
+            react, q1, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
         prod2, prod2_data = self._init_product_dist(
-            temp, q2, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
+            react, q2, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
 
         _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
                            react1, react2, mult, prod1, prod2,
@@ -169,8 +179,8 @@ class Afsi():
         self._ascot.file_load(self._ascot.file_getpath())
         return prod1, prod2
 
-    def beamthermal(self, reaction, beam, it=1, nmc=1000, mult=1.0, ispecies=1,
-                    swap=False, minppara=-1.3e-19, maxppara=1.3e-19, nppara=80,
+    def beamthermal(self, reaction, beam, swap=False, nmc=1000,
+                    minppara=-1.3e-19, maxppara=1.3e-19, nppara=80,
                     minpperp=0, maxpperp=1.3e-19, npperp=40):
         """Calculate beam-thermal fusion.
 
@@ -179,22 +189,12 @@ class Afsi():
         reaction : int
             Fusion reaction index
         beam1 : dict
-            Beam distribution that acts as reactant 1.
-        it : int, optional
-            Time index from 5D distribution
+            Beam distribution that acts as the first reactant.
+        swap : bool, optional
+            If True, beam distribution acts as the second reactant and
+            the first reactant is a background species.
         nmc : int, optional
             Number of MC samples used in each (R, phi, z) bin.
-        mult : float, optional
-            Multiplier for the fusion rate.
-
-            Use 0.5 if the population is interacting with itself to avoid double
-            counting.
-        ispecies : int, optional
-            Ion species index (as they are listed in the plasma input) for
-            thermal reactant.
-        swap : bool, optional
-            Swap reactants so that the beam becomes reactant 2 and thermal
-            species reactant 1.
         minppara : float, optional
             Minimum ppara value in the output distribution.
         maxppara : float, optional
@@ -215,21 +215,43 @@ class Afsi():
         prod2 : array_like
             Fusion product 2 distribution.
         """
-        time   = 0
-        nr     = beam["nr"]
-        nphi   = beam["nphi"]
-        nz     = beam["nz"]
-        r      = beam["r"]
-        phi    = beam["phi"]
-        z      = beam["z"]
-        minr   = beam["r_edges"][0]
-        maxr   = beam["r_edges"][-1]
-        minphi = beam["phi_edges"][0]
-        maxphi = beam["phi_edges"][-1]
-        minz   = beam["z_edges"][0]
-        maxz   = beam["z_edges"][-1]
+        m1, q1, m2, q2, _, qprod1, _, qprod2, _ = self.reactions(reaction)
+        anum1 = np.round(m1.to("amu").v)
+        anum2 = np.round(m2.to("amu").v)
+        znum1 = np.round(q1.to("e").v)
+        znum2 = np.round(q2.to("e").v)
+        q1 = np.round(qprod1.to("e").v)
+        q2 = np.round(qprod2.to("e").v)
+
+        time   = 0*unyt.s
+        nr     = beam.abscissa("r").size
+        nphi   = beam.abscissa("phi").size
+        nz     = beam.abscissa("z").size
+        r      = beam.abscissa("r")
+        phi    = beam.abscissa("phi")
+        z      = beam.abscissa("z")
+        minr   = beam.abscissa_edges("r")[0]
+        maxr   = beam.abscissa_edges("r")[-1]
+        minphi = beam.abscissa_edges("phi")[0]
+        maxphi = beam.abscissa_edges("phi")[-1]
+        minz   = beam.abscissa_edges("z")[0]
+        maxz   = beam.abscissa_edges("r")[-1]
 
         self._ascot.input_init(bfield=True, plasma=True)
+        nspec, _, _, anums, znums = self._ascot.input_getplasmaspecies()
+        ispecies = np.nan
+        for i in range(nspec):
+            if( swap and anum1 == anums[i] and znum1 == znums[i] ):
+                ispecies = i
+            if( not swap and anum2 == anums[i] and znum2 == znums[i] ):
+                ispecies = i
+        if np.isnan(ispecies):
+            self._ascot.input_free(bfield=True, plasma=True)
+            raise ValueError("Reactant species not present in plasma input.")
+
+        if not swap:
+            beam["charge"][0]
+
         temp = np.zeros((nr, nphi, nz))
         dens = np.zeros((nr, nphi, nz))
         for j in range(nphi):
@@ -247,12 +269,12 @@ class Afsi():
         react1 = self._init_afsi_data(dist_thermal=thermal)
         react2 = self._init_afsi_data(dist_5D=dist)
 
-        q1, q2 = self._product_charge(reaction)
         prod1, prod1_data = self._init_product_dist(
             dist, q1, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
         prod2, prod2_data = self._init_product_dist(
             dist, q2, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
 
+        mult = 1.0
         if swap:
             _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
                                react1, react2, mult, prod1, prod2,
@@ -267,7 +289,7 @@ class Afsi():
         self._ascot.file_load(self._ascot.file_getpath())
         return prod1, prod2
 
-    def beambeam(self, reaction, beam1, beam2=None, it=0, nmc=1000, mult=1.0,
+    def beambeam(self, reaction, beam1, beam2=None, nmc=1000,
                  minppara=-1.3e-19, maxppara=1.3e-19, nppara=80,
                  minpperp=0, maxpperp=1.3e-19, npperp=40):
         """Calculate beam-beam fusion.
@@ -281,15 +303,8 @@ class Afsi():
         beam2 : dict, optional
             Beam2 distribution or None to calculate fusion generation with
             beam1 itself.
-        it : int, optional
-            Time index from 5D distribution.
         nmc : int, optional
             Number of MC samples used in each (R, phi, z) bin.
-        mult : float, optional
-            Multiplier for the fusion rate.
-
-            Use 0.5 if the population is interacting with itself to avoid double
-            counting.
         minppara : float, optional
             Minimum ppara value in the output distribution.
         maxppara : float, optional
@@ -310,6 +325,10 @@ class Afsi():
         prod2 : array_like
             Fusion product 2 distribution.
         """
+        _, _, _, _, _, qprod1, _, qprod2, _ = self.reactions(reaction)
+        q1 = np.round(qprod1.to("e").v)
+        q2 = np.round(qprod2.to("e").v)
+
         self._ascot.input_init(bfield=True, plasma=True)
         dist1 = self._init_dist_5d(beam1)
 
@@ -319,8 +338,8 @@ class Afsi():
             react2 = self._init_afsi_data(dist_5D=dist2)
         else:
             react2 = react1
+            mult = 0.5
 
-        q1, q2 = self._product_charge(reaction)
         prod1, prod1_data = self._init_product_dist(
             dist1, q1, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
         prod2, prod2_data = self._init_product_dist(
@@ -368,29 +387,29 @@ class Afsi():
 
     def _init_dist_5d(self, dist):
         data           = STRUCT_DIST5D()
-        data.n_r       = dist["nr"]
-        data.min_r     = dist["r_edges"][0]
-        data.max_r     = dist["r_edges"][-1]
-        data.n_phi     = dist["nphi"]
-        data.min_phi   = dist["phi_edges"][0]
-        data.max_phi   = dist["phi_edges"][-1]
-        data.n_z       = dist["nz"]
-        data.min_z     = dist["z_edges"][0]
-        data.max_z     = dist["z_edges"][-1]
-        data.n_ppara   = dist["nppar"]
-        data.min_ppara = dist["ppar_edges"][0]
-        data.max_ppara = dist["ppar_edges"][-1]
-        data.n_pperp   = dist["npperp"]
-        data.min_pperp = dist["pperp_edges"][0]
-        data.max_pperp = dist["pperp_edges"][-1]
-        data.n_time    = dist["ntime"]
-        data.min_time  = dist["time_edges"][0]
-        data.max_time  = dist["time_edges"][-1]
-        data.n_q       = dist["ncharge"]
-        data.min_q     = dist["charge_edges"][0]
-        data.max_q     = dist["charge_edges"][-1]
+        data.n_r       = dist.abscissa("r").size
+        data.min_r     = dist.abscissa_edges("r")[0]
+        data.max_r     = dist.abscissa_edges("r")[-1]
+        data.n_phi     = dist.abscissa("phi").size
+        data.min_phi   = dist.abscissa_edges("phi")[0]
+        data.max_phi   = dist.abscissa_edges("phi")[-1]
+        data.n_z       = dist.abscissa("z").size
+        data.min_z     = dist.abscissa_edges("z")[0]
+        data.max_z     = dist.abscissa_edges("z")[-1]
+        data.n_ppara   = dist.abscissa("ppar").size
+        data.min_ppara = dist.abscissa_edges("ppar")[0]
+        data.max_ppara = dist.abscissa_edges("ppar")[-1]
+        data.n_pperp   = dist.abscissa("pperp").size
+        data.min_pperp = dist.abscissa_edges("pperp")[0]
+        data.max_pperp = dist.abscissa_edges("pperp")[-1]
+        data.n_time    = dist.abscissa("time").size
+        data.min_time  = dist.abscissa_edges("time")[0]
+        data.max_time  = dist.abscissa_edges("time")[-1]
+        data.n_q       = dist.abscissa("charge").size
+        data.min_q     = dist.abscissa_edges("charge")[0]
+        data.max_q     = dist.abscissa_edges("charge")[-1]
         data.histogram = npctypes.as_ctypes(np.ascontiguousarray(
-            dist["histogram"].ravel(), dtype="f8"))
+            dist.histogram().ravel(), dtype="f8"))
         return data
 
     def _init_product_dist(self, react, charge, minppara, maxppara, nppara,
@@ -420,24 +439,28 @@ class Afsi():
 
         distsize = prod.n_r * prod.n_phi * prod.n_z * prod.n_ppara \
             * prod.n_pperp
-        #prod.histogram  = npctypes.as_ctypes(
-        #    np.ascontiguousarray(np.zeros(distsize), dtype="f8") )
-        #shape = [prod.n_r, prod.n_phi, prod.n_z, prod.n_ppara, prod.n_pperp]
-        #prod.dist = npctypes.as_array(prod.histogram, shape=shape)
-        #offloadarray = libascot_allocate_reals()
         offload_array = npctypes.as_ctypes(
             np.ascontiguousarray(np.zeros(distsize), dtype="f8") )
         return prod, offload_array
 
-    def _product_charge(self, reaction):
-        if reaction == 1:
-            return 2, 0
-        elif reaction == 2:
-            return 2, 1
-        elif reaction == 3:
-            return 1, 1
-        elif reaction == 4:
-            return 2, 0
+    def reactions(self, reaction):
+        m1     = np.zeros((1,), dtype="f8")
+        q1     = np.zeros((1,), dtype="f8")
+        m2     = np.zeros((1,), dtype="f8")
+        q2     = np.zeros((1,), dtype="f8")
+        mprod1 = np.zeros((1,), dtype="f8")
+        qprod1 = np.zeros((1,), dtype="f8")
+        mprod2 = np.zeros((1,), dtype="f8")
+        qprod2 = np.zeros((1,), dtype="f8")
+        q      = np.zeros((1,), dtype="f8")
+        fun = _LIBASCOT.boschhale_reaction
+        fun.restype  = None
+        fun.argtypes = [ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                        PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL]
+        fun(reaction, m1, q1, m2, q2, mprod1, qprod1, mprod2, qprod2, q)
+
+        return m1*unyt.kg, q1*unyt.C, m2*unyt.kg, q2*unyt.C, mprod1*unyt.kg, \
+            qprod1*unyt.C, mprod2*unyt.kg, qprod2*unyt.C, q*unyt.eV
 
 class AfsiMixin(DistMixin):
 
