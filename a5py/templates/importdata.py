@@ -1,7 +1,12 @@
 import os
 import numpy as np
+import warnings
+from freeqdsk import geqdsk
+from scipy.interpolate import RectBivariateSpline
 
-class ImportAdas():
+from a5py.physlib import cocos as cocosmod
+
+class ImportData():
 
     def import_adas(self,
                     fn_CX_DD0   = "input.sigmavCX_DD0",
@@ -186,3 +191,81 @@ class ImportAdas():
             "temperaturemin" : T_min, "temperaturemax" : T_max, "sigma" : sigma
         }
         return ("asigma_loc", out)
+
+    def import_geqdsk(self, fn="input.eqdsk", cocos=None, phiclockwise=None,
+                      weberperrad=None):
+        """Import axisymmetric magnetic field from EQDSK.
+
+        Parameters
+        ----------
+        fn : str
+            Filename of the G-EQDSK to read.
+        cocos : int, optional
+            Expected COCOS or None to deduce from the data.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        with open(fn, "r") as f:
+            eqd = geqdsk.read(f)
+
+        cocos = cocosmod.assign(
+            eqd["qpsi"][0], eqd["cpasma"], eqd["bcentr"], eqd["simagx"],
+            eqd["sibdry"], phiclockwise, weberperrad)
+
+        if cocos != cocosmod.COCOS_ASCOT:
+            warnings.warn(
+                "EQDSK COCOS is %d while ASCOT5 expects 3. Transforming COCOS"
+                % cocos)
+            eqd = cocosmod.tococos3(eqd, cocos)
+
+        b2d = {
+            "nr" : eqd["nx"],
+            "rmin" : eqd["rleft"], "rmax" : eqd["rleft"]+eqd["rdim"],
+            "nz" : eqd["ny"],
+            "zmin" : eqd["zmid"] - 0.5*eqd["zdim"],
+            "zmax" : eqd["zmid"] + 0.5*eqd["zdim"],
+            "axisr" : eqd["rmagx"], "axisz" : eqd["zmagx"],
+            "psi" : eqd["psi"], "psi0" : eqd["simagx"], "psi1" : eqd["sibdry"],
+            "br" : eqd["psi"]*0, "bz" : eqd["psi"]*0
+        }
+
+        # Make sure the data grid does not extend to R=0
+        if b2d["rmin"] == 0:
+            b2d["nr"]  -= 1
+            b2d["rmin"] = b2d["rmax"] / (b2d["nr"]+1)
+            b2d["psi"]  = b2d["psi"][1:,:]
+            b2d["br"]   = b2d["br"][1:,:]
+            b2d["bz"]   = b2d["bz"][1:,:]
+
+        # Toroidal component is more complicated for it can be evaluated from
+        # Btor = F/R but we need to map F(psi) to F(R,z) first. However, F(psi)
+        # is given only inside the plasma.
+        psigrid = np.linspace(eqd["simagx"], eqd["sibdry"], eqd["nx"])
+        if eqd["simagx"] < eqd["sibdry"]:
+            fpolrz  = np.interp(eqd["psi"], psigrid, eqd["fpol"],
+                                right=eqd["fpol"][-1])
+        else:
+            fpolrz  = np.interp(eqd["psi"], psigrid[::-1], eqd["fpol"][::-1],
+                                right=eqd["fpol"][-1])
+        rvec   = np.linspace(b2d["rmin"], b2d["rmax"], b2d["nr"])
+        zvec   = np.linspace(b2d["zmin"], b2d["zmax"], b2d["nz"])
+        R, Z   = np.meshgrid(rvec, zvec, indexing="ij")
+
+        if eqd["nx"] != b2d["nr"]: fpolrz = fpolrz[1:,:] # If we had rmin=0
+        b2d["bphi"] = fpolrz/R
+
+        # Check psi value
+        fpsi = RectBivariateSpline(rvec, zvec, b2d["psi"])
+        psiaxis = fpsi(b2d["axisr"], b2d["axisz"])[0,0]
+        if np.abs( b2d["psi0"] - psiaxis ) > 1e-2:
+            warnings.warn(
+                ("psi_axis is %1.3f according to EQDSK but the interpolated " +
+                 "value is %1.3f") % (b2d["psi0"], psiaxis))
+
+        return ("B_2DS", b2d)
