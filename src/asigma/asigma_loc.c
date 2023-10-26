@@ -406,30 +406,27 @@ a5err asigma_loc_eval_sigma(real* sigma,
 
     /* We look for a match of the reaction identifiers in asgm_loc_data to
        determine if the reaction of interest has been initialized */
-    int reac_found = 0;
-    int i_reac;
+    int reac_found = -1, i_reac;
     for(i_reac = 0; i_reac < asgm_loc_data->N_reac; i_reac++) {
         if(z_1       == asgm_loc_data->z_1[i_reac] &&
            a_1       == asgm_loc_data->a_1[i_reac] &&
            z_2       == asgm_loc_data->z_2[i_reac] &&
            a_2       == asgm_loc_data->a_2[i_reac] &&
            reac_type == asgm_loc_data->reac_type[i_reac]) {
-            reac_found = 1;
-            break;
+            reac_found = i_reac;
         }
     }
+    i_reac = reac_found;
 
     /* The cross-section is evaluated if reaction data was found,
        is available, and its interpolation implemented. Otherwise,
        the cross-section is set to zero to avoid further problems. */
-    if(!reac_found) {
+    if(reac_found < 0) {
         /* Reaction not found. Raise error. */
-        err = error_raise( ERR_INPUT_EVALUATION, __LINE__,
-                           EF_ASIGMA_LOC );
+        err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_ASIGMA_LOC);
     } else if(!asgm_loc_data->reac_avail[i_reac]) {
         /* Reaction not available. Raise error. */
-        err = error_raise( ERR_INPUT_EVALUATION, __LINE__,
-                           EF_ASIGMA_LOC );
+        err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_ASIGMA_LOC);
     } else {
         if(asgm_loc_data->reac_type[i_reac] == reac_type_sigma_ion ||
            asgm_loc_data->reac_type[i_reac] == reac_type_sigma_rec ||
@@ -451,8 +448,7 @@ a5err asigma_loc_eval_sigma(real* sigma,
             }
         } else {
             /* Interpolation of cross-section not implemented. Raise error. */
-            err = error_raise( ERR_INPUT_EVALUATION, __LINE__,
-                               EF_ASIGMA_LOC );
+            err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_ASIGMA_LOC);
         }
     }
 
@@ -503,35 +499,31 @@ a5err asigma_loc_eval_sigmav(real* sigmav,
        for a certain element covers all of its different isotopes, as long
        as the energy parameter is given in units of energy/amu. Hence, for
        beam-stopping, the atomic mass numbers need not match below. */
-    int reac_found = 0;
-    int i_reac;
+    int reac_found = -1, i_reac;
     for(i_reac = 0; i_reac < asgm_loc_data->N_reac; i_reac++) {
         if(reac_type == reac_type_BMS_sigmav &&
            z_1       == asgm_loc_data->z_1[i_reac] &&
            z_2       == asgm_loc_data->z_2[i_reac] &&
            reac_type == asgm_loc_data->reac_type[i_reac]) {
-            reac_found = 1;
-            break;
+            reac_found = i_reac;
         } else if(z_1       == asgm_loc_data->z_1[i_reac] &&
                   a_1       == asgm_loc_data->a_1[i_reac] &&
                   z_2       == asgm_loc_data->z_2[i_reac] &&
                   a_2       == asgm_loc_data->a_2[i_reac] &&
                   reac_type == asgm_loc_data->reac_type[i_reac]) {
-            reac_found = 1;
-            break;
+            reac_found = i_reac;
         }
     }
+    i_reac = reac_found;
 
     /* The rate coefficient is evaluated if reaction data was found,
        is available, and its interpolation works. */
-    if(!reac_found) {
+    if(reac_found < 0) {
         /* Reaction not found. Raise error. */
-        err = error_raise( ERR_INPUT_EVALUATION, __LINE__,
-                           EF_ASIGMA_LOC );
+        err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_ASIGMA_LOC);
     } else if(!asgm_loc_data->reac_avail[i_reac]) {
         /* Reaction not available. Raise error. */
-        err = error_raise( ERR_INPUT_EVALUATION, __LINE__,
-                           EF_ASIGMA_LOC );
+        err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_ASIGMA_LOC);
     } else {
         if(reac_type == reac_type_sigmav_ion ||
            reac_type == reac_type_sigmav_rec ||
@@ -575,8 +567,7 @@ a5err asigma_loc_eval_sigmav(real* sigmav,
         } else {
             /* Interpolation of rate coefficient not implemented.
                Raise error. */
-            err = error_raise( ERR_INPUT_EVALUATION, __LINE__,
-                               EF_ASIGMA_LOC );
+            err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_ASIGMA_LOC);
         }
     }
 
