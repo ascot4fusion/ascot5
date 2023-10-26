@@ -1299,7 +1299,8 @@ class PhysTest():
 
         clog     = 15
         density  = np.power( 10, np.linspace(np.log10(ni[0]) - 1,
-                                             np.log10(ni[-1]) + 1, 50) ) / unyt.m**3
+                                             np.log10(ni[-1]) + 1, 50) )
+        density /= unyt.m**3
         collfreq = physlib.collfreq_ie(unyt.mp, unyt.e, density, Ti, clog) \
             * ( unyt.mp / unyt.me )
         veff = collfreq / omegat
@@ -1421,7 +1422,8 @@ class PhysTest():
             qid = init("B_2DS", **out, desc=PhysTest.tag_boozer+str(i))
             qid = self.ascot.data.bfield[qid].get_qid()
             self.ascot.input_init(bfield=qid)
-            qid = init("boozer_tokamak", desc=PhysTest.tag_boozer+str(i))
+            qid = init("boozer_tokamak", desc=PhysTest.tag_boozer+str(i),
+                       nint=100000)
             self.ascot.input_free(bfield=True)
 
             init("fl", **mrk, desc=PhysTest.tag_boozer+str(i))
@@ -1474,6 +1476,12 @@ class PhysTest():
         ax5.set_xlabel("Orbit parameter s")
 
         colors = ["C0", "C1", "C2", "C3"]
+        ip_out   = [None] * 4
+        bphi_out = [None] * 4
+        bpol_err = [None] * 4
+        bphi_err = [None] * 4
+        jac_err  = [None] * 4
+        q_err    = [None] * 4
         for i, run in enumerate([run1, run2, run3, run4]):
             self.ascot.input_init(run=run.get_qid(), bfield=True, boozer=True,
                                   mhd=True)
@@ -1487,7 +1495,7 @@ class PhysTest():
             theta = theta.v
             zeta  = zeta.v
 
-            # Numerical safety factor has some noise so evaluate the average
+            # Numerical safety factor from field lines and field data
             dz = np.diff(zeta)
             dz[dz > np.pi]  = dz[dz > np.pi]  - 2*np.pi
             dz[dz < -np.pi] = dz[dz < -np.pi] + 2*np.pi
@@ -1495,6 +1503,9 @@ class PhysTest():
             dt[dt > np.pi]  = dt[dt > np.pi]  - 2*np.pi
             dt[dt < -np.pi] = dt[dt < -np.pi] + 2*np.pi
             qfac = dz/dt
+
+            rho = run.getstate("rho", state="ini")
+            q, I, g = self.ascot.input_eval_safetyfactor(rho)
 
             # Evaluate gradients and field components so we can compare those
             a, b, c = self.ascot.input_eval(
@@ -1520,19 +1531,47 @@ class PhysTest():
             dbphi = bvec[:,1] - bphi.v
             bnorm = br**2 + bz**2 + bphi**2
 
+            # Jacobian times B^2
+            jacb2_bzr = I + g*q
+
+            ip_out[i]   = 1 - 2 * (bz[0] > 0)
+            bphi_out[i] = 1 - 2 * (bphi[0] < 0)
+            bpol_err[i] = np.amax(np.abs(dbpol[1:idx[-1]]))
+            bphi_err[i] = np.amax(np.abs(dbphi[1:idx[-1]]))
+            jac_err[i]  = np.amax(np.abs(jacb2-jacb2_bzr))
+            q_err[i]    = np.amax(np.abs(q-qfac))
+
             j0 = 1
-            for j in idx[1:]:
-                ax1.plot(theta[j0:j], dbpol[j0:j], color=colors[i])
-                ax2.plot(theta[j0:j], dbphi[j0:j], color=colors[i])
-                ax3.plot(theta[j0:j], jacb2[j0:j], color=colors[i])
-                j0 = j
+            j = idx[-1]
+            ax1.plot(theta[j0:j], dbpol[j0:j], color=colors[i])
+            ax2.plot(theta[j0:j], dbphi[j0:j], color=colors[i])
+            ax3.plot(theta[j0:j], np.abs(jacb2[j0:j]), color=colors[i])
+            ax3.plot(theta[np.array([j0,j])], np.abs([jacb2_bzr, jacb2_bzr]),
+                     color=colors[i], ls='--')
             if qfac[0] > 0:
                 ax4.plot(qfac, color=colors[i])
+                ax4.plot([0,qfac.size-1], [q,q], color=colors[i], ls='--')
             else:
                 ax5.plot(qfac, color=colors[i])
+                ax5.plot([0,qfac.size-1], [q,q], color=colors[i], ls='--')
+
+        passed = True
+        print("Test Boozer coordinate mapping:")
+        print("Bphi Ip | Delta Bpol  Delta Bphi  Delta Jacobian  Delta q")
+        for i in range(4):
+            fail = ""
+            if bpol_err[i] > 1e-15 or bphi_err[i] > 1e-3 or jac_err[i] > 5e-3\
+               or q_err[i] > 1e-4:
+                fail = "(FAILED)"
+                passed = False
+            print(" %2d  %2d    %.3e   %.3e   %.3e       %.3e %s" %
+                  (ip_out[i], bphi_out[i], bpol_err[i],
+                   bphi_err[i], jac_err[i], q_err[i], fail))
 
     def init_mhd(self):
         """Initialize data for the MHD test.
+
+        https://link.springer.com/article/10.1007/s41614-018-0022-9
         """
         if hasattr(self.ascot.data.options, PhysTest.tag_mhd_go):
             warnings.warn("Inputs already present: Test MHD")
@@ -1544,18 +1583,18 @@ class PhysTest():
         opt.update({
             "SIM_MODE" : 1, "FIXEDSTEP_USE_USERDEFINED" : 1,
             "FIXEDSTEP_USERDEFINED" : 1e-11, "ENDCOND_SIMTIMELIM" : 1,
-            "ENDCOND_LIM_SIMTIME" : 1e-3, "ENABLE_ORBIT_FOLLOWING" : 1,
+            "ENDCOND_LIM_SIMTIME" : 1e-5, "ENABLE_ORBIT_FOLLOWING" : 1,
             "ENABLE_MHD" : 1, "ENABLE_ORBITWRITE" : 1, "ORBITWRITE_MODE" : 1,
-            "ORBITWRITE_INTERVAL" : 1e-7, "ORBITWRITE_NPOINT" : 10000
+            "ORBITWRITE_INTERVAL" : 1e-9, "ORBITWRITE_NPOINT" : 10000
         })
         init("opt", **opt, desc=PhysTest.tag_mhd_go)
         opt.update({
-            "SIM_MODE" : 2, "FIXEDSTEP_USERDEFINED" : 1e-10
+            "SIM_MODE" : 2, "FIXEDSTEP_USERDEFINED" : 1e-12
         })
         init("opt", **opt, desc=PhysTest.tag_mhd_gcf)
         opt.update({
             "ENABLE_ADAPTIVE" : 1, "FIXEDSTEP_USERDEFINED" : 1e-11,
-            "ADAPTIVE_TOL_ORBIT" : 1e-10, "ADAPTIVE_MAX_DRHO" : 0.1,
+            "ADAPTIVE_TOL_ORBIT" : 1e-11, "ADAPTIVE_MAX_DRHO" : 0.1,
             "ADAPTIVE_MAX_DPHI" : 10
         })
         init("opt", **opt, desc=PhysTest.tag_mhd_gca)
@@ -1577,11 +1616,26 @@ class PhysTest():
 
         qid = self.ascot.data.bfield[qid].get_qid()
         self.ascot.input_init(bfield=qid)
-        bzr = init("boozer_tokamak", dryrun=True)
-        self.ascot.input_free(bfield=True)
+        bzr = init("boozer_tokamak", nint=100000, dryrun=True)
         for tag in [PhysTest.tag_mhd_go, PhysTest.tag_mhd_gcf,
                     PhysTest.tag_mhd_gca]:
             init("Boozer", **bzr, desc=tag)
+
+        mhd = {
+            "nmode":1, "nmodes":np.array([2]), "mmodes":np.array([3]),
+            "amplitude":np.array([1e-2]), "omega":np.array([1e6]),
+            "phase":np.array([np.pi/4]), "nrho":100, "rhomin":0.1, "rhomax":0.99
+        }
+
+        rhogrid = np.linspace(mhd["rhomin"], mhd["rhomax"], mhd["nrho"])
+        mhd["alpha"] = np.tile(
+            np.exp( -(rhogrid-0.85)**2/0.1 ), (mhd["nmode"],1)).T
+        mhd = self.ascot.data.create_input(
+            "mhd consistent potentials", which="Phi", mhd=mhd, dryrun=True)
+        self.ascot.input_free(bfield=True)
+        for tag in [PhysTest.tag_mhd_go, PhysTest.tag_mhd_gcf,
+                    PhysTest.tag_mhd_gca]:
+            self.ascot.data.create_input("MHD_STAT", **mhd, desc=tag)
 
     def run_mhd(self):
         """Run MHD test.
@@ -1601,6 +1655,94 @@ class PhysTest():
         run_gcf = self.ascot.data[PhysTest.tag_mhd_gcf]
         run_gca = self.ascot.data[PhysTest.tag_mhd_gca]
 
+        mhd = run_go.mhd.read()
+        self.ascot.input_init(run=run_go.get_qid(),
+                              bfield=True, boozer=True, mhd=True)
+
+        # Initialize plots
+        fig = a5plt.figuredoublecolumn(3/2)
+        ax1a = fig.add_subplot(3,1,1)
+        ax1b = ax1a.twinx()
+        ax2a = fig.add_subplot(3,1,2)
+        ax2b = ax2a.twinx()
+        ax3a = fig.add_subplot(3,1,3)
+        ax3b = ax3a.twinx()
+
+        ax3a.set_xlabel("Mileage [s]")
+        ax2a.set_ylabel("Relative error")
+
+        err1 = [None] * 3
+        err2 = [None] * 3
+        c = ["C0", "C1", "C2"]
+        for i, run in enumerate([run_go, run_gcf, run_gca]):
+            ekin, charge, ptor, bphi, r, phi, z, t, ids = run.getorbit(
+                "ekin", "charge", "ptor", "bphi", "r", "phi", "z",
+                "time", "ids")
+            Phi, alpha, br0, bphi0, bz0, er, ephi, ez = self.ascot.input_eval(
+                r, phi, z, t, "phieig", "alphaeig", "br", "bphi", "bz",
+                "mhd_er", "mhd_ephi", "mhd_ez")
+            epar  = ( er * br0 + ephi * bphi0 + ez * bz0 ) / \
+                np.sqrt(br0**2 + bphi0**2 + bz0**2)
+            enorm = np.sqrt(er**2 + ephi**2 + ez**2)
+
+            ctor = ptor + r * charge * alpha * bphi
+            H = ekin + Phi * charge
+            P = (mhd["omega"]/unyt.s) * ctor / mhd["nmodes"]
+            K = H - P
+
+            H.convert_to_mks()
+            P.convert_to_mks()
+            K.convert_to_mks()
+
+            idx = ids == 1
+            ax1a.plot(t[idx], epar[idx], color=c[i])
+            ax1b.plot(t[idx], enorm[idx], ls="--", color=c[i])
+            err_e1 = np.amax(np.abs((epar/enorm)[idx]))
+            err = K[ids==1]/K[ids==1][0] - 1
+            ax2b.plot(t[idx], H[idx] - H[idx][0], ls="--", color=c[i])
+            ax2b.plot(t[idx], -P[idx] + P[idx][0], ls=":", color=c[i])
+            ax2a.plot(t[idx], K[idx] - K[idx][0], color=c[i])
+            err1[i] = np.amax(np.abs(err))
+
+            idx = ids == 2
+            ax1a.plot(t[idx], epar[idx], color=c[i])
+            ax1b.plot(t[idx], enorm[idx], ls="--", color=c[i])
+            err_e2 = np.amax(np.abs((epar/enorm)[idx]))
+            err = K[idx]/K[idx][0] - 1
+            ax3b.plot(t[idx], H[idx] - H[idx][0], ls="--", color=c[i])
+            ax3b.plot(t[idx], -P[idx] + P[idx][0], ls=":", color=c[i])
+            ax3a.plot(t[idx], K[idx] - K[idx][0], color=c[i])
+            err2[i] = np.amax(np.abs(err))
+
+        self.ascot.input_free()
+        plt.show()
+
+        passed = True
+        print("Test MHD:")
+        fail = ""
+        if err_e1 > 2e-6 or err_e2 > 2e-5:
+            fail = "(FAILED)"
+            passed = False
+        print("Error in Epar: %e %e %s" % (err_e1, err_e2, fail))
+
+        fail = ""
+        if err1[0] > 1e-6 or err2[0] > 1e-3:
+            fail = "(FAILED)"
+            passed = False
+        print("Error in H - P (GO):  %e %e %s" % (err1[0], err2[0], fail))
+
+        fail = ""
+        if err1[1] > 1e-7 or err2[1] > 1e-3:
+            fail = "(FAILED)"
+            passed = False
+        print("Error in H - P (GCF): %e %e %s" % (err1[1], err2[1], fail))
+
+        fail = ""
+        if err1[2] > 1e-9 or err2[2] > 1e-6:
+            fail = "(FAILED)"
+            passed = False
+        print("Error in H - P (GCA): %e %e %s" % (err1[2], err2[2], fail))
+
     def init_atomic(self):
         """Initialize data for the atomic reaction test.
         """
@@ -1613,21 +1755,21 @@ class PhysTest():
         opt = Opt.get_default()
         opt.update({
             "SIM_MODE" : 1, "FIXEDSTEP_USE_USERDEFINED" : 1,
-            "ENDCOND_SIMTIMELIM" : 1, "ENDCOND_LIM_SIMTIME" : 1e-3, # 1e-3
+            "ENDCOND_SIMTIMELIM" : 1, "ENDCOND_LIM_SIMTIME" : 2e-2,
             "ENABLE_ORBIT_FOLLOWING" : 1, "ENABLE_ATOMIC" : 1
         })
         opt.update({
             "FIXEDSTEP_USERDEFINED" : 1e-9, "ENDCOND_NEUTRALIZED" : 1
         })
-        init("opt", **opt, desc=PhysTest.tag_atomic_ionz)
-        opt.update({
-            "FIXEDSTEP_USERDEFINED" : 1e-9, "ENDCOND_NEUTRALIZED" : 0,#1e-13
-            "ENDCOND_IONIZED" : 1
-        })
         init("opt", **opt, desc=PhysTest.tag_atomic_cx)
+        opt.update({
+            "FIXEDSTEP_USERDEFINED" : 1e-11, "ENDCOND_NEUTRALIZED" : 0,
+            "ENDCOND_IONIZED" : 1, "ENDCOND_LIM_SIMTIME" : 2e-6
+        })
+        init("opt", **opt, desc=PhysTest.tag_atomic_ionz)
 
-        mrk = Marker.generate("gc", n=100, species="deuterium")
-        mrk["r"][:]      = 7.0
+        mrk = Marker.generate("gc", n=1000, species="deuterium")
+        mrk["r"][:]      = 6.2
         mrk["phi"][:]    = 0.0
         mrk["z"][:]      = 0.0
         mrk["zeta"][:]   = 2 * np.pi * np.random.rand(mrk["n"],)
@@ -1635,19 +1777,21 @@ class PhysTest():
         mrk["pitch"][:]  = 1.0 - 2.0 * np.random.rand(mrk["n"],)
         init("gc", **mrk, desc=PhysTest.tag_atomic_cx)
 
-        mrk = Marker.generate("gc", n=100, species="deuterium")
+        mrk = Marker.generate("gc", n=1000, species="deuterium")
         mrk["charge"][:] = 0
-        mrk["r"][:]      = 7.0
+        mrk["r"][:]      = 6.2
         mrk["phi"][:]    = 0.0
         mrk["z"][:]      = 0.0
-        mrk["zeta"][:]   = 1.0 - 2.0 * np.random.rand(mrk["n"],)
+        mrk["zeta"][:]   = 2 * np.pi * np.random.rand(mrk["n"],)
         mrk["energy"][:] = 1e5
-        mrk["pitch"][:]  = 2 * np.pi * np.random.rand(mrk["n"],)
+        mrk["pitch"][:]  = 1.0 - 2.0 * np.random.rand(mrk["n"],)
         init("gc", **mrk, desc=PhysTest.tag_atomic_ionz)
 
         for tag in [PhysTest.tag_atomic_cx, PhysTest.tag_atomic_ionz]:
-            # Some tokamak magnetic field
-            init("bfield_analytical_iter_circular", desc=tag)
+            # Uniform magnetic field
+            btc = {"bxyz":np.array([0,1.0,0]), "jacobian":np.zeros((3,3)),
+                   "rhoval":0.5}
+            init("B_TC", **btc, desc=tag)
 
             # Plasma and neutral data
             init("plasma_flat", anum=2, znum=1, mass=2.0135532,
@@ -1673,6 +1817,46 @@ class PhysTest():
         """
         run_cx   = self.ascot.data[PhysTest.tag_atomic_cx]
         run_ionz = self.ascot.data[PhysTest.tag_atomic_ionz]
+
+        # Calculate mean free paths from the cross sections
+        ma, anum, znum, r, phi, z, t, va = run_cx.getstate(
+            "mass", "anum", "znum", "r", "phi", "z", "time", "vnorm",
+            state="ini", mode="prt", ids=1)
+        self.ascot.input_init(run=run_cx.get_qid(), bfield=True, plasma=True,
+                              neutral=True, asigma=True)
+        sigmacx  = self.ascot.input_eval_atomicsigma(
+            ma, anum[0], znum[0], r, phi, z, t, va, ion=0, reaction=6)
+        sigmabms = self.ascot.input_eval_atomicsigma(
+            ma, anum[0], znum[0], r, phi, z, t, va, ion=0, reaction=7)
+        self.ascot.input_free()
+        mfp_cx0  = va/(sigmacx * 1e16/unyt.m**3)
+        mfp_bms0 = va/(sigmabms * 1e20/unyt.m**3)
+
+        # Mean free paths from the simulation
+        vnorm1 = run_cx.getstate("vnorm", state="ini", mode="prt")
+        vnorm2, mil = run_cx.getstate("vnorm", "mileage", state="end",
+                                      mode="prt")
+        mfp_cx = np.mean(mil*vnorm2)
+
+        vnorm1 = run_ionz.getstate("vnorm", state="ini", mode="prt")
+        vnorm2, mil = run_ionz.getstate("vnorm", "mileage", state="end",
+                                        mode="prt")
+        mfp_bms = np.mean(mil*vnorm2)
+
+        passed = True
+        print("Test atomic:")
+        fail = ""
+        if np.abs(mfp_cx/mfp_cx0 - 1) > 0.1:
+            fail = "(FAILED)"
+            passed = False
+        print("Mean free path CX:  %.3e m (numerical) %.3e m (analytical) %s" %
+              (mfp_cx, mfp_cx0[0,0], fail))
+        fail = ""
+        if np.abs(mfp_bms/mfp_bms0 - 1) > 0.1:
+            fail = "(FAILED)"
+            passed = False
+        print("Mean free path BMS: %.3e m (numerical) %.3e m (analytical) %s" %
+              (mfp_bms, mfp_bms0[0,0], fail))
 
     def _activateinputs(self, tag):
         data = self.ascot.data
@@ -1705,6 +1889,5 @@ class PhysTest():
 
 if __name__ == '__main__':
     test = PhysTest()
-    #test.execute(init=True, run=True, check=False, tests=["classical"])
-    test.execute(init=False, run=False, check=True, tests=["neoclassical"])
+    test.execute(init=True, run=True, check=True, tests=["atomic"])
     plt.show()
