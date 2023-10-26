@@ -2,6 +2,7 @@
 """
 import numpy as np
 import unyt
+import copy
 
 from scipy.interpolate import interp1d
 from scipy.integrate import solve_ivp, cumtrapz
@@ -355,9 +356,15 @@ class PoincareTemplates():
 
         if mhd is None:
             mhd = self._ascot.data.mhd.active.read()
+        else:
+            mhd = copy.deepcopy(mhd)
 
-        nrho  = int(mhd["nrho"][0])
-        n     = int(mhd["nmode"][0])
+        try:
+            nrho = int(mhd["nrho"][0])
+            n    = int(mhd["nmode"][0])
+        except TypeError:
+            nrho = int(mhd["nrho"])
+            n    = int(mhd["nmode"])
         nmode = mhd["nmodes"]
         mmode = mhd["mmodes"]
         omega = mhd["omega"]
@@ -380,3 +387,5 @@ class PoincareTemplates():
                 alphanm_[i,:] = ( ( nmode[i] * q - mmode[i] ) / (g*q + I) ) \
                     * mhd["phi"][:,i].T / omega[i]
             mhd["alpha"] = alphanm_.T
+
+        return ("MHD_STAT", mhd)
