@@ -19,15 +19,16 @@ class State(DataContainer):
     _ABORTED = 0x2
     _TLIM    = 0x4
     _EMIN    = 0x8
-    _THERM   = 0x10
+    _THERMAL = 0x10
     _WALL    = 0x20
     _RHOMIN  = 0x40
     _RHOMAX  = 0x80
     _POLMAX  = 0x100
     _TORMAX  = 0x200
     _CPUMAX  = 0x400
-    _NEUTR   = 0x800
-    _IONIZ   = 0x1000
+    _HYBRID  = 0x800
+    _NEUTRAL = 0x1000
+    _IONIZED = 0x2000
 
     @property
     def ABORTED(self):
@@ -54,10 +55,10 @@ class State(DataContainer):
         return State._EMIN
 
     @property
-    def THERM(self):
+    def THERMAL(self):
         """Local thermal energy reached.
         """
-        return State._THERM
+        return State._THERMAL
 
     @property
     def WALL():
@@ -96,16 +97,23 @@ class State(DataContainer):
         return State._CPUMAX
 
     @property
-    def NEUTR(self):
-        """Ion marker neutralized.
+    def HYBRID(self):
+        """Marker guiding center simulation terminated and the simulation
+        continue in gyro-orbit.
         """
-        return State._NEUTR
+        return State._HYBRID
 
     @property
-    def IONIZ(self):
+    def NEUTRAL(self):
+        """Ion marker neutralized.
+        """
+        return State._NEUTRAL
+
+    @property
+    def IONIZED(self):
         """Neutral marker ionized.
         """
-        return State._IONIZ
+        return State._IONIZED
 
     def write_hdf5(self):
         """Write state data in HDF5 file.
@@ -481,8 +489,9 @@ class State(DataContainer):
         string : str
             End condition in a human readable format.
         """
-        endcond = ["NONE", "ABORTED", "TLIM", "EMIN", "THERM", "WALL", "RHOMIN",
-                   "RHOMAX", "POLMAX", "TORMAX", "CPUMAX"]
+        endcond = ["NONE", "ABORTED", "TLIM", "EMIN", "THERMAL", "WALL",
+                   "RHOMIN", "RHOMAX", "POLMAX", "TORMAX", "CPUMAX", "HYBRID",
+                   "NEUTRAL", "IONIZED"]
         string = ""
         for ec in endcond:
             if bitarr & getattr(State, "_" + ec):

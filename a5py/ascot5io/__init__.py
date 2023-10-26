@@ -217,6 +217,8 @@ class Ascot5IO(RootNode):
         dryrun : bool, optional
             If True, the data is not written to HDF5 but instead it is returned
             as a dictionary.
+
+            Only works for templates.
         **kwargs : dict
             The parameters that are needed to create the requested input type
             or template.
