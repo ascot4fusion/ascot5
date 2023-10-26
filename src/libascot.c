@@ -540,7 +540,7 @@ void libascot_boozer_eval_fun(
         qprof[k] = (veca[1] - bvec[1]) / vecb[1];
 
         math_cross(gradtheta, gradzeta, veca);
-        jac[k]   = 1/math_dot(veca, gradpsi);
+        jac[k]   = -1.0 / math_dot(veca, gradpsi);
         jacB2[k] = jac[k]*math_norm(bvec)*math_norm(bvec);
     }
 }
@@ -862,6 +862,8 @@ void libascot_eval_sigmav(
                 plasma_offload_array);
     neutral_init(&sim.neutral_data, &sim_offload_data->neutral_offload_data,
                  neutral_offload_array);
+    asigma_init(&sim.asigma_data, &sim_offload_data->asigma_offload_data,
+                asigma_offload_array);
 
     const int* Zb  = plasma_get_species_znum(&sim.plasma_data);
     const int* Ab  = plasma_get_species_anum(&sim.plasma_data);
@@ -886,9 +888,14 @@ void libascot_eval_sigmav(
         }
         for (int j=0; j < Nv; j++) {
             real E = (physlib_gamma_vnorm(va[j]) - 1.0) * ma * CONST_C*CONST_C;
-            asigma_eval_sigmav(
-                &sigmav[Nv*k + j], Za, Aa, ma, Zb[ib], Ab[ib], reac_type,
-                &sim.asigma_data, E, T[0], T0[0], n[ib+1], &enable_atomic);
+            real val;
+            if( asigma_eval_sigmav(
+                    &val, Za, Aa, ma, Zb[ib], Ab[ib],
+                    reac_type, &sim.asigma_data, E, T[0], T0[0], n[ib+1],
+                    &enable_atomic) ) {
+                continue;
+            }
+            sigmav[Nv*k + j] = val;
         }
     }
 
