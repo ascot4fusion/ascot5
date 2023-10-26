@@ -451,7 +451,7 @@ class LibAscot:
             out["mhd_phi"])
 
         if evalpot:
-            out["alphaeig"] = (np.copy(temp) + np.nan) * T*m
+            out["alphaeig"] = (np.copy(temp) + np.nan) * m
             out["phieig"]   = (np.copy(temp) + np.nan) * V
             out["dadt"]     = (np.copy(temp) + np.nan) * T*m/s
             out["dadr"]     = (np.copy(temp) + np.nan) * T
@@ -646,8 +646,6 @@ class LibAscot:
         """Evaluate atomic reaction rate cross-sections for a given test
         particle.
 
-        This function is a work in progress.
-
         Parameters
         ----------
         ma : float
@@ -694,14 +692,14 @@ class LibAscot:
         Nv    = va.size
 
         out = {}
-        out["sigmav"] = (np.zeros(r.shape, dtype="f8") + np.nan) / unyt.m**2
+        units = unyt.m**3 / unyt.s
+        out["sigmav"] = (np.zeros((Neval,Nv), dtype="f8") + np.nan) * units
         fun(ctypes.byref(self._sim), self._bfield_offload_array,
             self._plasma_offload_array, self._neutral_offload_array,
             self._asigma_offload_array, Neval, r, phi, z, t, Nv, va,
             anum, znum, ma, ion, reaction, out["sigmav"])
 
         return out["sigmav"]
-
 
     def input_getplasmaspecies(self):
         """Get species present in plasma input (electrons first).
