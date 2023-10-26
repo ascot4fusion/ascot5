@@ -7,10 +7,12 @@
  */
 #include "ascot5.h"
 #include <math.h>
+#include "consts.h"
 #include "boschhale.h"
 
 /**
- * @brief Estimate cross-section for a given fusion reaction.
+ * @brief Get masses and charges of particles participating in the reaction and
+ * the released energy.
  *
  * Reaction indices:
  *
@@ -19,14 +21,81 @@
  * 3 = D(d,p)T
  * 4 = D(d,n)^3He
  *
+ * @param reaction reaction index
+ * @param m1 mass of the first reactant [kg]
+ * @param q1 charge of the first reactant [C]
+ * @param m2 mass of the second reactant [kg]
+ * @param q2 charge of the second reactant [C]
+ * @param mprod1 mass of the first product [kg]
+ * @param qprod1 charge of the first product [C]
+ * @param mprod2 mass of the second product [kg]
+ * @param qprod2 charge of the second product [C]
+ * @param Q energy released [J]
+ */
+void boschhale_reaction(int reaction, real* m1, real* q1, real* m2, real* q2,
+                        real* mprod1, real* qprod1, real* mprod2, real* qprod2,
+                        real* Q) {
+    switch(reaction) {
+        case 1: /* DT */
+            *m1     = 3.344e-27; // D
+            *q1     = CONST_E;
+            *m2     = 5.008e-27; // T
+            *q2     = CONST_E;
+            *mprod1 = 6.645e-27; // He4
+            *qprod1 = 2*CONST_E;
+            *mprod2 = 1.675e-27; // n
+            *qprod2 = 0.0;
+            *Q      = 17.6e6*CONST_E;
+            break;
+        case 2: /* D-He3 */
+            *m1     = 3.344e-27; // D
+            *q1     = CONST_E;
+            *m2     = 5.008e-27; // He3
+            *q2     = 2*CONST_E;
+            *mprod1 = 6.645e-27; // He4
+            *qprod1 = 2*CONST_E;
+            *mprod2 = 1.673e-27; // p
+            *qprod2 = CONST_E;
+            *Q      = 18.3e6*CONST_E;
+            break;
+        case 3: /* DDp */
+            *m1     = 3.344e-27; // D
+            *q1     = CONST_E;
+            *m2     = 3.344e-27; // D
+            *q2     = CONST_E;
+            *mprod1 = 5.008e-27; // T
+            *qprod1 = CONST_E;
+            *mprod2 = 1.673e-27; // p
+            *qprod2 = CONST_E;
+            *Q      = 4.03e6*CONST_E;
+            break;
+        case 4: /* DDn */
+            *m1     = 3.344e-27; // D
+            *q1     = CONST_E;
+            *m2     = 3.344e-27; // D
+            *q2     = CONST_E;
+            *mprod1 = 5.008e-27; // He3
+            *qprod1 = 2*CONST_E;
+            *mprod2 = 1.675e-27; // n
+            *qprod2 = 0.0;
+            *Q      = 3.27e6*CONST_E;
+            break;
+    }
+}
+
+/**
+ * @brief Estimate cross-section for a given fusion reaction.
+ *
  * @param reaction reaction for which the cross-section is estimated.
- * @param E ion energy [keV].
+ * @param E ion energy [J].
+ *
  * @return cross-section [m^2].
  */
 real boschhale_sigma(int reaction, real E) {
 
     real BG, A[5], B[4];
     real E_min, E_max;
+    E = E / (1.e3 * CONST_E); // Convert to keV
 
     switch(reaction) {
 
@@ -126,7 +195,6 @@ real boschhale_sigma(int reaction, real E) {
         return 0;
     }
 
-
     /* Cap energy for astrophysical S-factor */
     real E2 = E;
     if(E2 > E_max) {
@@ -144,7 +212,6 @@ real boschhale_sigma(int reaction, real E) {
     real sigma = S / (E * exp(BG / sqrt(E))) * 1e-31;
 
     return sigma;
-
 }
 
 /**
@@ -159,6 +226,7 @@ real boschhale_sigma(int reaction, real E) {
  *
  * @param reaction reaction for which the reactivity is estimated.
  * @param Ti ion temperature [keV].
+ *
  * @return reactivity.
  */
 real boschhale_sigmav(int reaction, real Ti) {

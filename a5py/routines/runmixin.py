@@ -270,11 +270,12 @@ class RunMixin(DistMixin):
         # It would be better to import these via libascot, but then this
         # function would require libascot and we don't want that.
         modules = [
-            "mccc_wiener.c", "mccc_push.c", "mccc.c", "step_fo_vpa.c",
-            "step_gc_cashkarp.c", "step_gc_rk4", "N0_3D.c", "N0_ST.c",
-            "B_2DS.c", "B_2DS.c", "B_STS.c", "B_GS.c", "plasma_1D.c",
-            "plasma_1DS.c", "plasma.c", "E_field.c", "neutral.c",
-            "E_1DS.c", "B_field.c", "particle.c", "boozer.c", "mhd.c"
+            "mccc_wiener.c", "mccc_push.c", "mccc_coefs", "mccc.c",
+            "step_fo_vpa.c", "step_gc_cashkarp.c", "step_gc_rk4", "N0_1D.c",
+            "N0_3D.c", "N0_ST.c", "B_3DS.c", "B_2DS.c", "B_STS.c", "B_GS.c",
+            "plasma_1D.c", "plasma_1DS.c", "plasma.c", "E_field.c", "neutral.c",
+            "E_1DS.c", "B_field.c", "particle.c", "boozer.c", "mhd.c",
+            "atomic.c", "asigma.c", "asigma_loc.c",
         ]
         messages = [
             "Input evaluation failed", "Unknown input type",

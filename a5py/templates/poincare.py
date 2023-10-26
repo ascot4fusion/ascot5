@@ -2,6 +2,7 @@
 """
 import numpy as np
 import unyt
+import copy
 
 from scipy.interpolate import interp1d
 from scipy.integrate import solve_ivp, cumtrapz
@@ -177,7 +178,7 @@ class PoincareTemplates():
         return ("opt", out)
 
     def boozer_tokamak(self, npsi=100, nthgeo=200, nthbzr=200, tol=1e-5,
-                       nint=1000, rhomin=0.3, rhomax=0.9):
+                       nint=10000, rhomin=0.05, rhomax=0.95):
         """Build mapping from real-space to Boozer coordinates assuming
         axisymmetric tokamak field.
 
@@ -320,3 +321,71 @@ class PoincareTemplates():
             "r0":1, "z0":1, "psi0":psi0, "psi1":psi1,
             "psi_rz":np.zeros((2,2)), "theta_psithetageom":thtable,
             "nu_psitheta":nutable, "nrzs":int(cr.size), "rs":cr, "zs":cz} )
+
+    def mhd_consistent_potentials(self, which="Phi", mhd=None):
+        """Make MHD potentials consistent with E_par = 0 condition.
+
+        This function adjusts the other potential so that the relation between
+        the two is
+
+        alpha * omega = Phi * sign * (n*q - m) / (I + g*q),
+
+        which ensures that the parallel electric field is zero. The sign depends
+        on whether the coordinate system is right- or left-handed (which depends
+        on the orientation of psi).
+
+        Parameters
+        ----------
+        which : {"Phi", "alpha"}, optional
+            Which potential is modified while rest of the inputs are kept
+            same.
+        mhd : dict, optional
+            Use the MHD data in this dictionary instead of using the active
+            one in the HDF5 file.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        if which not in ["Phi", "alpha"]:
+            raise ValueError("'which' must be either 'Phi' or 'alpha'")
+
+        if mhd is None:
+            mhd = self._ascot.data.mhd.active.read()
+        else:
+            mhd = copy.deepcopy(mhd)
+
+        try:
+            nrho = int(mhd["nrho"][0])
+            n    = int(mhd["nmode"][0])
+        except TypeError:
+            nrho = int(mhd["nrho"])
+            n    = int(mhd["nmode"])
+        nmode = mhd["nmodes"]
+        mmode = mhd["mmodes"]
+        omega = mhd["omega"]
+        rho = np.linspace(mhd["rhomin"], mhd["rhomax"], nrho)
+
+        q, I, g = self._ascot.input_eval_safetyfactor(rho, nth=10000)
+        q = q.ravel()
+        I = I.ravel()
+        g = g.ravel()
+
+        if which == "Phi":
+            phinm_ = np.zeros((n, nrho))
+            for i in range(n):
+                phinm_[i,:] = ( (g*q + I) / ( nmode[i] * q - mmode[i] ) ) \
+                    * mhd["alpha"][:,i].T * omega[i]
+            mhd["phi"] = phinm_.T
+        elif which == "alpha":
+            alphanm_ = np.zeros((n, nrho))
+            for i in range(n):
+                alphanm_[i,:] = ( ( nmode[i] * q - mmode[i] ) / (g*q + I) ) \
+                    * mhd["phi"][:,i].T / omega[i]
+            mhd["alpha"] = alphanm_.T
+
+        return ("MHD_STAT", mhd)

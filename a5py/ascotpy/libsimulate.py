@@ -8,6 +8,7 @@ directly from Python.
 import unyt
 import ctypes
 import numpy as np
+import wurlitzer # For muting libascot.so
 
 from numpy.ctypeslib import ndpointer
 
@@ -209,11 +210,10 @@ class LibSimulate():
                 p.p_z     = pvec[2]
                 p.mass    = mrk["mass"][i]
                 p.charge  = mrk["charge"][i]
-                p.anum    = mrk["anum"][i][0]
+                p.anum    = mrk["anum"][i]
                 p.znum    = mrk["znum"][i]
                 p.weight  = mrk["weight"][i]
                 p.time    = mrk["time"][i]
-                p.mileage = mrk["mileage"][i]
                 p.id      = mrk["ids"][i]
 
         # particle gc
@@ -250,10 +250,19 @@ class LibSimulate():
                 p.time    = mrk["time"][i]
                 p.id      = mrk["ids"][i]
 
-        ascot2py.prepare_markers(
-            ctypes.byref(self._sim), self._mpi_size, self._mpi_rank, nmrk,
-            ctypes.byref(pin), ctypes.byref(self._inistate),
-            ctypes.byref(self._nmrk), self._bfield_offload_array)
+        def initmarkers():
+            ascot2py.prepare_markers(
+                ctypes.byref(self._sim), self._mpi_size, self._mpi_rank, nmrk,
+                ctypes.byref(pin), ctypes.byref(self._inistate),
+                ctypes.byref(self._nmrk), self._bfield_offload_array)
+
+        if self._mute == "no":
+            initmarkers()
+        else:
+            with wurlitzer.pipes() as (out, err):
+                initmarkers()
+            err = err.read()
+            if self._mute == "err" and len(err) > 1: print(err)
 
     def simulation_run(self, printsummary=True):
         """Run the interactive simulation using inputs, options and markers that
@@ -305,13 +314,22 @@ class LibSimulate():
                 setattr(self._endstate[j], name, val)
 
         n_gather = ctypes.c_int32(0) # Not really needed unless MPI is used
-        ascot2py.offload_and_simulate(
-            ctypes.byref(self._sim), self._mpi_size, self._mpi_rank,
-            self._mpi_root, self._nmrk, self._nmrk, self._endstate,
-            ctypes.byref(self._offload_data), self._offload_array,
-            self._int_offload_array, ctypes.byref(n_gather),
-            ctypes.byref(self._endstate),
-            ctypes.byref(self._diag_offload_array))
+        def runsim():
+            ascot2py.offload_and_simulate(
+                ctypes.byref(self._sim), self._mpi_size, self._mpi_rank,
+                self._mpi_root, self._nmrk, self._nmrk, self._endstate,
+                ctypes.byref(self._offload_data), self._offload_array,
+                self._int_offload_array, ctypes.byref(n_gather),
+                ctypes.byref(self._endstate),
+                ctypes.byref(self._diag_offload_array))
+
+        if self._mute == "no":
+            runsim()
+        else:
+            with wurlitzer.pipes() as (out, err):
+                runsim()
+            err = err.read()
+            if self._mute == "err" and len(err) > 1: print(err)
 
         self._diag_occupied = True
         if printsummary:
