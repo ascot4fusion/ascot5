@@ -237,9 +237,8 @@ a5err atomic_rates(
             *rate_eff_ion += sigmav*z_2[i_spec]*n[i_spec+1];
         }
     } else {
-        print_err("Warning: Test particle has a charge state for which "
-                  "determination of atomic reaction rates has not "
-                  "been implemented.\n");
+        /* Test particle has a charge state for which determination of atomic
+           reaction rates has not been implemented */
         err = error_raise( ERR_ATOMIC_EVALUATION, __LINE__, EF_ATOMIC );
     }
 
