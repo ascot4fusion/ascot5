@@ -50,15 +50,6 @@ jobs:
           sudo apt-get install -y doxygen
           sudo apt install pandoc
           pip install -e .[doc]
-      - name: Download artifacts
-      - uses: actions/download-artifact@v3
-        with:
-          name: ascot5_main
-          path: ./build/
-      - uses: actions/download-artifact@v3
-        with:
-          name: libascot.so
-          path: ./build/
       # Figures repo is stored as a subfolder since otherwise it would clean
       # ascot5 repo. The SSH key corresponds to deploy key in figures repo.
       - name: Clone figures repository
