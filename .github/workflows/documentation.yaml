@@ -3,39 +3,7 @@ on: [push, pull_request, workflow_dispatch]
 permissions:
     contents: write
 jobs:
-  compile:
-    runs-on: ubuntu-latest
-    name: Compile ascot5
-    steps:
-      # To use this repository's private action,
-      # you must check out the repository
-      - name: Checkout
-        uses: actions/checkout@v4
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned."
 
-      - name: Make ascot5_main
-        uses: ./.github/actions/compile/
-        id: makeascot5main
-        with:
-          makefile-parameters: 'ascot5_main FLAGS="-foffload=disable"'
-
-      - name: Make libascot.so
-        uses: ./.github/actions/compile/
-        id: makelibascot
-        with:
-          makefile-parameters: 'libascot FLAGS="-foffload=disable"'
-
-      - name: Upload ascot5_main as artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: ascot5_main
-          path: ./build/ascot5_main
-
-      - name: Upload libascot.so as artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: libascot.so
-          path: ./build/libascot.so
 
   build:
     runs-on: ubuntu-latest
@@ -54,7 +22,6 @@ jobs:
         with:
           name: ascot5_main
           path: ./build/
-      - name: Download artifacts
       - uses: actions/download-artifact@v3
         with:
           name: libascot.so
