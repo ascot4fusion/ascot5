@@ -54,6 +54,7 @@ jobs:
         with:
           name: ascot5_main
           path: ./build/
+      - name: Download artifacts
       - uses: actions/download-artifact@v3
         with:
           name: libascot.so
