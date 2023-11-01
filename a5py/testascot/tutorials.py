@@ -15,7 +15,7 @@ notebooks = glob.glob("*.ipynb")
 #preprocessor = ExecutePreprocessor(timeout=600, kernel="feature8")
 preprocessor = ExecutePreprocessor(timeout=600)
 errors = {}
-for nb in ["distributions.ipynb"]:
+for nb in ["wallload.ipynb"]:
     #if nb == "slowingdown.ipynb": continue
     subprocess.run(["rm", "-f", "ascot.h5"])
     with open(nb) as f:
