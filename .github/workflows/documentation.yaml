@@ -50,8 +50,9 @@ jobs:
           sudo apt-get install -y libhdf5-dev
           sudo apt-get install -y doxygen
           sudo apt install pandoc
-          pip install vtk-osmesa --extra-index-url https://wheels.vtk.org
           pip install -e .[doc]
+          pip uninstall vtk
+          pip install vtk-osmesa --extra-index-url https://wheels.vtk.org
       - uses: actions/download-artifact@v3
         with:
           name: ascot5_main
