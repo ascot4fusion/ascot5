@@ -17,13 +17,13 @@ jobs:
         uses: ./.github/actions/compile/
         id: makeascot5main
         with:
-          makefile-parameters: 'ascot5_main FLAGS="-foffload=disable MPI=0"'
+          makefile-parameters: 'ascot5_main MPI=0 FLAGS="-foffload=disable"'
 
       - name: Make libascot.so
         uses: ./.github/actions/compile/
         id: makelibascot
         with:
-          makefile-parameters: 'libascot FLAGS="-foffload=disable MPI=0"'
+          makefile-parameters: 'libascot MPI=0 FLAGS="-foffload=disable"'
 
       - name: Upload ascot5_main as artifact
         uses: actions/upload-artifact@v3
