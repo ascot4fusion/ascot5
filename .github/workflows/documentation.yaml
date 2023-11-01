@@ -48,21 +48,14 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get install -y libhdf5-dev
-          #sudo apt-get install -y doxygen
-          #sudo apt install pandoc
-          #pip install -e .[doc]
+          sudo apt-get install -y doxygen
+          sudo apt install pandoc
+          pip install -e .[doc]
       - uses: actions/download-artifact@v3
         with:
           name: ascot5_main
           path: ./build/
-      - run: |
-          ls
-          ls build
-      - run: |
-          chmod +x ./build/ascot5_main
-      - run: |
-          ls build
-          ./build/ascot5_main
+      - run: chmod +x ./build/ascot5_main
       - uses: actions/download-artifact@v3
         with:
           name: libascot.so
