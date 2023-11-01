@@ -17,13 +17,13 @@ jobs:
         uses: ./.github/actions/compile/
         id: makeascot5main
         with:
-          makefile-parameters: 'ascot5_main FLAGS="-foffload=disable"'
+          makefile-parameters: 'ascot5_main FLAGS="-foffload=disable MPI=0"'
 
       - name: Make libascot.so
         uses: ./.github/actions/compile/
         id: makelibascot
         with:
-          makefile-parameters: 'libascot FLAGS="-foffload=disable"'
+          makefile-parameters: 'libascot FLAGS="-foffload=disable MPI=0"'
 
       - name: Upload ascot5_main as artifact
         uses: actions/upload-artifact@v3
@@ -47,15 +47,17 @@ jobs:
       # Packages required to compile documentation, got pandoc working this way
       - name: Install dependencies
         run: |
-          sudo apt-get install -y doxygen
-          sudo apt install pandoc
-          pip install -e .[doc]
+          sudo apt-get install -y libhdf5-dev
+          #sudo apt-get install -y doxygen
+          #sudo apt install pandoc
+          #pip install -e .[doc]
       - uses: actions/download-artifact@v3
         with:
           name: ascot5_main
           path: ./build/
       - run: |
           chmod +x ./build/ascot5_main
+          ./build/ascot5_main
       - uses: actions/download-artifact@v3
         with:
           name: libascot.so
