@@ -6,6 +6,6 @@ sh -c "git config --global --add safe.directory $PWD"
 echo pwd
 pwd
 
-make $1
+#make $1
 
 echo Complete
