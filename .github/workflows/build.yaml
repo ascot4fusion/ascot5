@@ -1,26 +1,8 @@
-name: build
+name: Build
 on: [push, workflow_dispatch]
+
 jobs:
-  build-and-publish-docker-image:
-    permissions: write-all
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build the Docker image
-        run: |
-          docker build ./.github/actions/compile/ --tag ghcr.io/ascot4fusion/ascot5deps:latest
-          docker run ghcr.io/ascot4fusion/ascot5deps:latest
-          docker push ghcr.io/ascot4fusion/ascot5deps:latest
-
+  name: Compile All
   compile:
     runs-on: ubuntu-latest
     container:
@@ -28,11 +10,26 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
-    name: Compile ascot5
     steps:
       - uses: actions/checkout@v4
 
-      - name: Make ascot5_main MPI=0
-        id: makeascot5main
-        run: |
-          make ascot5_main MPI=0 FLAGS="-foffload=disable"
+      - name: Make ascot5_main with MPI
+        run: make ascot5_main MPI=0 FLAGS="-foffload=disable"
+
+      - name: Make ascot5_main without MPI
+        run: make ascot5_main MPI=1 FLAGS="-foffload=disable"
+
+      - name: Make libascot.so
+        run: make libascot.so MPI=0 FLAGS="-foffload=disable"
+
+      - name: Make BBNBI
+        run: make bbnbi5 MPI=0 FLAGS="-foffload=disable"
+
+      - name: Make ascot2py
+        run: make ascot2py.py FLAGS="-foffload=disable"
+
+      - name: Upload ascot2py.py as an artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ascot2py.py
+          path: ./a5py/ascotpy/ascot2py.py

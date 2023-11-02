@@ -1,0 +1,26 @@
+name: Build and Publish Docker Image
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-publish:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build the Docker image
+        run: |
+          docker build ./.github/docker/ --tag ghcr.io/ascot4fusion/ascot5deps:latest
+          docker run ghcr.io/ascot4fusion/ascot5deps:latest
+          docker push ghcr.io/ascot4fusion/ascot5deps:latest
