@@ -11,24 +11,28 @@ permissions:
 jobs:
   compile:
     runs-on: ubuntu-latest
-    name: Compile ascot5
+    container:
+      image: ghcr.io/ascot4fusion/ascot5deps:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
     steps:
       # To use this repository's private action,
       # you must check out the repository
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Make ascot5_main
-        uses: ./.github/actions/compile/
-        id: makeascot5main
-        with:
-          makefile-parameters: 'ascot5_main MPI=0 FLAGS="-foffload=disable"'
+      - name: Make ascot5_main with MPI
+        run: make ascot5_main MPI=0 FLAGS="-foffload=disable"
+
+      - name: Make ascot5_main without MPI
+        run: make ascot5_main MPI=1 FLAGS="-foffload=disable"
 
       - name: Make libascot.so
-        uses: ./.github/actions/compile/
-        id: makelibascot
-        with:
-          makefile-parameters: 'libascot MPI=0 FLAGS="-foffload=disable"'
+        run: make libascot MPI=0 FLAGS="-foffload=disable"
+
+      - name: Make BBNBI
+        run: make bbnbi5 MPI=0 FLAGS="-foffload=disable"
 
       - name: Upload ascot5_main as artifact
         uses: actions/upload-artifact@v3
@@ -46,10 +50,8 @@ jobs:
     needs: compile
     runs-on: ubuntu-latest
     steps:
-      # Checkout most recent version of this branch on ascot5 repo
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
-      # Packages required to compile documentation, got pandoc working this way
       - name: Install dependencies
         run: |
           pip install -e .[doc]
@@ -66,8 +68,6 @@ jobs:
         working-directory: ./a5py/testascot/
         run: |
           python tutorials.py
-      # Figures repo is stored as a subfolder since otherwise it would clean
-      # ascot5 repo. The SSH key corresponds to deploy key in figures repo.
       - name: Clone figures repository
         uses: actions/checkout@master
         with:
