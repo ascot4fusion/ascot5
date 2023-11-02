@@ -33,7 +33,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Make ascot5_main MPI=0
-        uses: ./.github/actions/compile/
         id: makeascot5main
-        with:
-          makefile-parameters: 'ascot5_main MPI=0 FLAGS="-foffload=disable"'
+        run: |
+          ascot5_main MPI=0 FLAGS="-foffload=disable"
