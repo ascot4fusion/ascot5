@@ -13,10 +13,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Make ascot5_main with MPI
-        run: make ascot5_main MPI=0 FLAGS="-foffload=disable"
+        run: make ascot5_main MPI=1 FLAGS="-foffload=disable"
+
+      - name: Make clean
+        run: make clean
 
       - name: Make ascot5_main without MPI
-        run: make ascot5_main MPI=1 FLAGS="-foffload=disable"
+        run: make ascot5_main MPI=0 FLAGS="-foffload=disable"
 
       - name: Make libascot.so
         run: make libascot MPI=0 FLAGS="-foffload=disable"
@@ -25,7 +28,7 @@ jobs:
         run: make bbnbi5 MPI=0 FLAGS="-foffload=disable"
 
       - name: Make ascot2py
-        run: make ascot2py.py FLAGS="-foffload=disable"
+        run: make ascot2py.py MPI=0 CC=clang FLAGS="-foffload=disable"
 
       - name: Upload ascot2py.py as an artifact
         uses: actions/upload-artifact@v3

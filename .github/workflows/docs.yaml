@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  packages: read
 
 jobs:
   compile:
@@ -46,15 +47,28 @@ jobs:
           name: libascot.so
           path: ./build/libascot.so
 
+      - name: Upload bbnbi as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: bbnbi
+          path: ./build/bbnbi
+
   build:
     needs: compile
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/ascot4fusion/ascot5deps:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      #- uses: actions/setup-python@v3
       - name: Install dependencies
         run: |
           pip install -e .[doc]
+          pip uninstall vtk -y
+          pip install vtk-osmesa --extra-index-url https://wheels.vtk.org
       - uses: actions/download-artifact@v3
         with:
           name: ascot5_main
