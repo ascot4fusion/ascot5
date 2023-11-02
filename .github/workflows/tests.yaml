@@ -87,7 +87,11 @@ jobs:
 
       - name: Test
         working-directory: ./a5py/testascot/
-        run: python3 unit_ascot5io.py
+        run: |
+          python3 unit_ascot5io.py
+          python3 unit_ascotpy.py
+          python3 unit_moments.py
+          python3 unit_plotting.py
 
   physics-tests:
     needs: compile

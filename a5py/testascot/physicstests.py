@@ -92,6 +92,7 @@ class PhysTest():
         elif isinstance(tests, str):
             tests = [tests]
 
+        failed = False
         for test in tests:
             if init:
                 getattr(self, "init_" + test)()
@@ -101,8 +102,10 @@ class PhysTest():
                 print("Test %s simulation complete" % test)
             if check:
                 a5plt.setpaperstyle()
-                getattr(self, "check_" + test)()
+                passed = getattr(self, "check_" + test)()
                 print("Test %s check finished" % test)
+                if not passed: failed = True
+        return failed
 
     def init_elementary(self):
         """Initialize data for the elementary test.
@@ -1567,6 +1570,7 @@ class PhysTest():
             print(" %2d  %2d    %.3e   %.3e   %.3e       %.3e %s" %
                   (ip_out[i], bphi_out[i], bpol_err[i],
                    bphi_err[i], jac_err[i], q_err[i], fail))
+        return passed
 
     def init_mhd(self):
         """Initialize data for the MHD test.
@@ -1715,7 +1719,6 @@ class PhysTest():
             err2[i] = np.amax(np.abs(err))
 
         self.ascot.input_free()
-        plt.show()
 
         passed = True
         print("Test MHD:")
@@ -1742,6 +1745,7 @@ class PhysTest():
             fail = "(FAILED)"
             passed = False
         print("Error in H - P (GCA): %e %e %s" % (err1[2], err2[2], fail))
+        return passed
 
     def init_atomic(self):
         """Initialize data for the atomic reaction test.
@@ -1857,6 +1861,7 @@ class PhysTest():
             passed = False
         print("Mean free path BMS: %.3e m (numerical) %.3e m (analytical) %s" %
               (mfp_bms, mfp_bms0[0,0], fail))
+        return passed
 
     def _activateinputs(self, tag):
         data = self.ascot.data
@@ -1889,5 +1894,8 @@ class PhysTest():
 
 if __name__ == '__main__':
     test = PhysTest()
-    test.execute(init=True, run=True, check=True, tests=["elementary"])
+    failed = test.execute(
+        init=True, run=True, check=True,
+        tests=["elementary", "orbfol", "gctransform", "boozer", "mhd"])
+    if failed: raise Exception("Verification failed")
     plt.show()
