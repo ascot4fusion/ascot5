@@ -2,6 +2,7 @@ name: build
 on: [push, workflow_dispatch]
 jobs:
   build-and-publish-docker-image:
+    permissions: write-all
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
