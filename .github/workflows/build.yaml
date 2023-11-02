@@ -35,4 +35,4 @@ jobs:
       - name: Make ascot5_main MPI=0
         id: makeascot5main
         run: |
-          ascot5_main MPI=0 FLAGS="-foffload=disable"
+          make ascot5_main MPI=0 FLAGS="-foffload=disable"
