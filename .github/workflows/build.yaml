@@ -28,11 +28,7 @@ jobs:
         run: make bbnbi5 MPI=0 FLAGS="-foffload=disable"
 
       - name: Make ascot2py
-        run: |
-          apt-get install locate
-          locate omp.h
-          echo $CC
-          make ascot2py.py MPI=0 FLAGS="-foffload=disable"
+        run: make ascot2py.py MPI=0 FLAGS="-foffload=disable"
 
       - name: Upload ascot2py.py as an artifact
         uses: actions/upload-artifact@v3

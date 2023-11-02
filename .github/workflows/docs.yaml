@@ -76,7 +76,7 @@ jobs:
           path: ./build/
       - uses: actions/download-artifact@v3
         with:
-          name: bbnbi5
+          name: bbnbi
           path: ./build/
       - uses: actions/download-artifact@v3
         with:
