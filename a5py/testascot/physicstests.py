@@ -1889,5 +1889,5 @@ class PhysTest():
 
 if __name__ == '__main__':
     test = PhysTest()
-    test.execute(init=True, run=True, check=True, tests=["atomic"])
+    test.execute(init=True, run=True, check=True, tests=["elementary"])
     plt.show()

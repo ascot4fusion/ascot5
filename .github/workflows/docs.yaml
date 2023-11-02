@@ -70,6 +70,8 @@ jobs:
         run: |
           apt-get install -y doxygen pandoc
           pip install -e .[doc]
+          pip uninstall vtk -y
+          pip install vtk-osmesa --extra-index-url https://wheels.vtk.org
 
       - uses: actions/download-artifact@v3
         with:
