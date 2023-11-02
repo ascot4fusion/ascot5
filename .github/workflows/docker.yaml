@@ -25,6 +25,6 @@ jobs:
 
       - name: Build the Docker image
         run: |
-          docker build ./.github/docker/ --tag ghcr.io/ascot4fusion/ascot5deps:latest
+          docker build ./ --tag ghcr.io/ascot4fusion/ascot5deps:latest
           docker run ghcr.io/ascot4fusion/ascot5deps:latest
           docker push ghcr.io/ascot4fusion/ascot5deps:latest
