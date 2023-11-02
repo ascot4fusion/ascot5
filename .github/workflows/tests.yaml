@@ -86,7 +86,8 @@ jobs:
           chmod +x ./build/bbnbi5
 
       - name: Test
-        run: python3 a5py/testascot/unit_ascot5io.py
+        working-directory: ./a5py/testascot/
+        run: python3 unit_ascot5io.py
 
   physics-tests:
     needs: compile
@@ -126,4 +127,5 @@ jobs:
           chmod +x ./build/bbnbi5
 
       - name: Test
-        run: python3 a5py/testascot/physicstests.py
+        working-directory: ./a5py/testascot/
+        run: python3 physicstests.py
