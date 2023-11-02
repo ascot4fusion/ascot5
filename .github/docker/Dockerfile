@@ -11,7 +11,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 #    git doxygen pandoc pip
 #RUN pip install ctypeslib2 clang==12.0.1 --no-cache-dir
 RUN apt-get update && apt-get install -y pip
-COPY requirements.txt .
+COPY ../../requirements.txt .
 RUN pip install -r requirements.txt
 RUN pip install ipykernel sphinx numpydoc nbsphinx breathe \
     sphinxcontrib-bibtex sphinx-rtd-theme sphinx-gallery --no-cache-dir
