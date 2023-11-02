@@ -4,6 +4,7 @@ jobs:
   build-and-publish-docker-image:
     permissions: write-all
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@v4
 
@@ -19,3 +20,20 @@ jobs:
           docker build ./.github/actions/compile/ --tag ghcr.io/ascot4fusion/ascot5deps:latest
           docker run ghcr.io/ascot4fusion/ascot5deps:latest
           docker push ghcr.io/ascot4fusion/ascot5deps:latest
+
+  compile:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/ascot4fusion/ascot5deps:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    name: Compile ascot5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Make ascot5_main MPI=0
+        uses: ./.github/actions/compile/
+        id: makeascot5main
+        with:
+          makefile-parameters: 'ascot5_main MPI=0 FLAGS="-foffload=disable"'
