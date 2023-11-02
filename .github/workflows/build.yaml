@@ -12,6 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
       - name: Make ascot5_main with MPI
         run: make ascot5_main MPI=1 FLAGS="-foffload=disable"
 
