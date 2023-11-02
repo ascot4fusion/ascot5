@@ -1,7 +1,13 @@
-name: Docs
-on: [workflow_dispatch]
+name: Generate Documentation
+on:
+  workflow_dispatch:
+  push:
+    branch:
+      - main, develop
+
 permissions:
-    contents: write
+  contents: write
+
 jobs:
   compile:
     runs-on: ubuntu-latest
@@ -11,7 +17,6 @@ jobs:
       # you must check out the repository
       - name: Checkout
         uses: actions/checkout@v4
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned."
 
       - name: Make ascot5_main
         uses: ./.github/actions/compile/
@@ -47,12 +52,7 @@ jobs:
       # Packages required to compile documentation, got pandoc working this way
       - name: Install dependencies
         run: |
-          sudo apt-get install -y libhdf5-dev
-          sudo apt-get install -y doxygen
-          sudo apt install pandoc
           pip install -e .[doc]
-          pip uninstall vtk -y
-          pip install vtk-osmesa --extra-index-url https://wheels.vtk.org
       - uses: actions/download-artifact@v3
         with:
           name: ascot5_main
