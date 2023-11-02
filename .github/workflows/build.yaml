@@ -15,10 +15,6 @@ jobs:
 
       - uses: actions/setup-python@v4
 
-      - run: |
-          which python3
-          which python
-
       - name: Make ascot5_main with MPI
         run: make ascot5_main MPI=1 FLAGS="-foffload=disable"
 
