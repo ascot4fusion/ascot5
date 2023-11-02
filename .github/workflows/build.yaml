@@ -19,7 +19,7 @@ jobs:
         run: make ascot5_main MPI=1 FLAGS="-foffload=disable"
 
       - name: Make libascot.so
-        run: make libascot.so MPI=0 FLAGS="-foffload=disable"
+        run: make libascot MPI=0 FLAGS="-foffload=disable"
 
       - name: Make BBNBI
         run: make bbnbi5 MPI=0 FLAGS="-foffload=disable"
