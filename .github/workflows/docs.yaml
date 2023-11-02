@@ -94,7 +94,7 @@ jobs:
       - name: Run tutorials
         working-directory: ./a5py/testascot/
         run: |
-          python tutorials.py
+          python3 tutorials.py
 
       - name: Clone figures repository
         uses: actions/checkout@master
