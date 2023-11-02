@@ -1,9 +1,8 @@
-name: Build
+name: Compile
 on: [push, workflow_dispatch]
 
 jobs:
-  name: Compile All
-  compile:
+  compile-all:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/ascot4fusion/ascot5deps:latest
