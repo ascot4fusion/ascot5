@@ -68,18 +68,24 @@ jobs:
           python-version: '3.12'
       - name: Install dependencies
         run: |
-          sudo apt-get install -y doxygen
-          sudo apt install pandoc
+          apt-get install -y doxygen pandoc
           pip install -e .[doc]
       - uses: actions/download-artifact@v3
         with:
           name: ascot5_main
           path: ./build/
-      - run: chmod +x ./build/ascot5_main
+      - uses: actions/download-artifact@v3
+        with:
+          name: bbnbi5
+          path: ./build/
       - uses: actions/download-artifact@v3
         with:
           name: libascot.so
           path: ./build/
+      - name: Set permissions
+        run: |
+          chmod +x ./build/ascot5_main
+          chmod +x ./build/bbnbi5
       - name: Run tutorials
         working-directory: ./a5py/testascot/
         run: |
