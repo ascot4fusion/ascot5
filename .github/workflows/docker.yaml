@@ -2,8 +2,9 @@ name: Build and Publish Docker Image
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    paths:
+      - 'Dockerfile'
+      - 'requirements.txt'
 
 jobs:
   build-and-publish:
