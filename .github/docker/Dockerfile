@@ -2,8 +2,6 @@
 # to compile and use ascot5. It can be used e.g. as the image for CI testing.
 FROM ubuntu:20.04
 
-COPY ../../requirements.txt requirements.txt
-
 RUN apt-get update && apt-get install -y \
     libhdf5-openmpi-dev libhdf5-dev h5utils emacs make gcc libclang-12-dev \
     git doxygen pandoc pip
