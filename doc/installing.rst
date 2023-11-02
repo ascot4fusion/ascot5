@@ -1,32 +1,68 @@
 .. _Installing:
 
-==========
-Installing
-==========
+Installation
+============
 
-1. Clone the repository.
+Clone the repository:
+
+.. code-block:: bash
+
+   git clone git@github.com:ascot4fusion/ascot5.git
+
+.. rubric:: Requirements
+
+- C compiler
+- HDF5
+- OpenMP
+- Python3 (pre- and postprocessing)
+- MPI (optional)
+- VTK (optional, for 3D wall visualization)
+
+See :ref:`here<Compiling>` for tips on how to compile the code on different platforms.
+
+Minimal Installation
+********************
+
+For running ASCOT5 on this platform and performing pre- and post-processing on another platform:
+
+.. code-block:: bash
+
+   cd ascot5
+   make ascot5_main
+
+The binary is located at ``build/ascot5_main``.
+
+Full Installation
+*****************
+
+For full installation both ascot5_main and libascot.so are needed:
+
+.. code-block:: bash
+
+   cd ascot5
+   make ascot5_main
+   make libascot
+
+Python Library (a5py)
+*********************
+
+Useful even for minimal installation; it provides command-line tools for updating simulation options.
+
+Create a virtual environment (optional but recommended), activate it, and install ``a5py``:
+
+.. code-block:: bash
+
+   cd ..
+   virtualenv -p python3 --system-site-packages ascotenv
+   source ascotenv/bin/activate
+   pip install -e ascot5/
+
+.. note::
+   Whenever there is a new release, you can update the code as:
 
    .. code-block:: bash
 
-      git clone git@github.com:ascot4fusion/ascot5.git ascot5
       cd ascot5
-
-2. Compile the main simulation program ``ascot5_main`` and the library ``libascot.so`` (which is needed for post-processing but not for executing simulations).
-
-   .. code-block:: bash
-
-      make ascot5_main
-      make libascot
-
-   Compiling requires **C compiler**, **HDF5**, **OpenMP** and **MPI** (optional).
-   For postprocessing one needs **Python 3** and **VTK** (optional for 3D walls).
-   See :ref:`here<Compiling>` for tips on how to compile the code on different platforms.
-   The binaries will be located in ``build`` folder.
-
-3. Whenever there is a new release, you can update the code as:
-
-   .. code-block:: bash
-
       git pull
       git checkout main
       make clean
@@ -35,74 +71,27 @@ Installing
 
    Always use the branch ``main`` when running simulations unless you specifically need something from a feature branch.
 
-4. Set up a virtual environment
+.. rubric:: (Optional)
 
-   .. code-block:: bash
+Add the following lines to your `.bashrc` and/or `.bash_profile`:
 
-      cd ..
+.. code-block::
 
-   You can use either ``virtualenv`` (3rd party tool)
+   <module loads and exports here>
+   export EDITOR=/usr/bin/emacs       # To use emacs when editing options
+   source activate /path/to/ascot5env
 
-   .. code-block:: bash
+This will automatically activate ASCOT5 environment each time you open a terminal or login.
 
-      virtualenv -p python3 --system-site-packages ascotenv
-      source ascotenv/bin/activate
-
-   or ``venv`` (packs with Python 3)
-
-   .. code-block:: bash
-
-      python3 -m venv --system-site-packages ascotenv
-      source ascotenv/bin/activate
-
-   or Conda
-
-   .. code-block:: bash
-
-      conda create --name ascotenv
-      conda activate ascotenv
-
-5. Install ``a5py`` Python package needed for input generation and post-processing.
-
-   .. code-block:: bash
-
-      pip install -e ascot5
-
-   For developers, the extra packages required for generating the documentation are installed with
-
-   .. code-block:: bash
-
-      pip install -e ascot5[doc]
-
-   In addition Doxygen is needed.
-
-6. (Optional) Edit your `.bashrc` and/or `.bash_profile`
-
-   .. code-block:: bash
-
-      emacs -nw ~/.bashrc
-
-   Add the following lines (along with any ``module load`` or ``export`` that was needed for the code to compile
-
-   .. code-block::
-
-      <module loads and exports here>
-      export EDITOR=/usr/bin/emacs # To use emacs when editing options
-      source activate /path/to/ascot5env # If using venv or virtualenv
-      conda activate ascot5env # If using Conda
-
-   This will automatically activate ASCOT5 environment each time you open a terminal or login.
-
-   Close the terminal (or log out) and the environment is set when you open a new one (or log in).
-
-7. Test that ASCOT5 is working by running the :ref:`tutorial<Tutorial>`.
+Test that ASCOT5 is working by running the :ref:`introduction<Tutorial>`.
 
 .. _Compiling:
 
 Compiling on different platforms
 ================================
 
-Add your platform here!
+ASCOT5 doesn't support CMake (yet) so it is up for the user to provide the required libraries.
+Here we have listed some platforms where ASCOT5 has been used and how it was compiled.
 
 Aalto desktops
 **************
@@ -296,29 +285,64 @@ Settings when compiling
 =======================
 
 Some of the ASCOT5 options require recompiling the code.
-Parameters that can be given arguments for ``make`` are
+Parameters that can be given arguments for ``make`` are (the default values are shown)
 
 .. code-block:: bash
 
-   make -j ascot5_main NSIMD=16 CC=icc TARGET=1 VERBOSE=1 MPI=1 NOGIT=1
+   make -j ascot5_main NSIMD=16 CC=icc TARGET=0 VERBOSE=1 MPI=1 NOGIT=0
 
 .. list-table::
    :widths: 10 50
 
    * - NSIMD
-     - Number of particles in a group. These are processed simultaneously by each thread and the optimal number depends on the platform. If unsure, keep the default value.
+     - Number of particles simulated in parallel in each SIMD vector.
+       These are processed simultaneously by each thread and the optimal number depends on the hardware.
+       If unsure, keep the default value.
    * - CC
-     - Compiler.
+     - The compiler.
    * - TARGET
-     - Offload computation to Xeon Phi accelerator.
+     - Offload computation to this many Xeon Phi accelerator(s).
+       If unsure, do not use this setting.
    * - VERBOSE
-     - Print increasing amounts of progress information. 0: No information except bare essentials. 1: Standard information; everything happening outside simulation loops is printed. 2: Extensive information; a record of simulation progress is written process-specific \*.stdout file(s).
+     - Print increasing amounts of progress information.
+
+       - 0: No information except bare essentials.
+       - 1: Standard information; everything happening outside simulation loops is printed.
+       - 2: Extensive information; a record of simulation progress is written to the process-specific \*.stdout file(s).
+
    * - MPI
      - Enable MPI.
+       The code can be run on multiple nodes without MPI, but doing so requires manual labor.
    * - NOGIT
      - Disable recording of repository status if Git is not available.
 
-Additional parameters can be found in ``ascot5.h``, but there is rarely a need to change these.
+Compiler flags can be provided with ``FLAGS`` parameter, e.g.
+
+.. code-block:: bash
+
+   make -j ascot5_main FLAGS="-qno-offload"
+
+Some parameters relevant for ASCOT5 are (these are compiler dependent):
+
+.. list-table::
+   :widths: 10 50
+
+   * - ``-qno-openmp-offload`` or ``-foffload=disable``
+     - Disables offload.
+       Recommended when not using Xeon Phi.
+   * - ``-diag-disable 3180``
+     - Disables Intel compiler warnings about unrecognized pragmas when the offloading is disabled.
+   * - ``-xcommon-avx512``, ``-xcore-avx512``, ``-xmic-avx512``
+     - Compile the code for Skylake or KNL processors, optimize for Skylake, optimize for KNL.
+   * - ``-vecabi=cmdtarget``
+     - Enables vector instructions for NSIMD > 2.
+   * - ``-ipo``
+     - "Interprocedural Optimization" which might increase the performance somewhat.
+   * - ``-qopt-report=5`` and ``-qopt-report-phase=vec``
+     - Generate vectorization reports in \*optrpt files.
+       Only useful for developers.
+
+Additional compile-time parameters can be found in ``ascot5.h``, but there is rarely a need to change these.
 
 .. doxygendefine:: MAX_SPECIES
 

@@ -16,6 +16,7 @@
    a5py.ascot5io.neutral
    a5py.ascot5io.boozer
    a5py.ascot5io.mhd
+   a5py.ascot5io.asigma
    a5py.ascot5io.nbi
    a5py.ascot5io.options
    a5py.ascot5io.coreio
@@ -30,6 +31,7 @@
    a5py.ascot5io.neutral
    a5py.ascot5io.boozer
    a5py.ascot5io.mhd
+   a5py.ascot5io.asigma
    a5py.ascot5io.nbi
    a5py.ascot5io.options
    a5py.ascot5io.coreio
@@ -45,8 +47,26 @@
    :members:
    :inherited-members:
    :undoc-members:
-   
+
+.. autoclass:: a5py.ascot5io.AfsiGroup
+   :show-inheritance:
+   :members:
+   :inherited-members:
+   :undoc-members:
+
 .. autoclass:: a5py.ascot5io.InputGroup
+   :show-inheritance:
+   :members:
+   :inherited-members:
+   :undoc-members:
+
+.. autoclass:: a5py.ascot5io.dist.DistData
+   :show-inheritance:
+   :members:
+   :inherited-members:
+   :undoc-members:
+
+.. autoclass:: a5py.ascot5io.dist.DistMoment
    :show-inheritance:
    :members:
    :inherited-members:
