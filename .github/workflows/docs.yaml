@@ -51,7 +51,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: bbnbi
-          path: ./build/bbnbi
+          path: ./build/bbnbi5
 
   build:
     needs: compile
@@ -63,12 +63,14 @@ jobs:
         password: ${{ secrets.github_token }}
     steps:
       - uses: actions/checkout@v3
-      #- uses: actions/setup-python@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
       - name: Install dependencies
         run: |
+          sudo apt-get install -y doxygen
+          sudo apt install pandoc
           pip install -e .[doc]
-          pip uninstall vtk -y
-          pip install vtk-osmesa --extra-index-url https://wheels.vtk.org
       - uses: actions/download-artifact@v3
         with:
           name: ascot5_main
