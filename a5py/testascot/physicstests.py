@@ -1896,6 +1896,6 @@ if __name__ == '__main__':
     test = PhysTest()
     failed = test.execute(
         init=True, run=True, check=True,
-        tests=["elementary", "orbfol", "gctransform", "boozer", "mhd"])
+        tests=["elementary", "orbitfollowing", "gctransform", "boozer", "mhd"])
     if failed: raise Exception("Verification failed")
     plt.show()
