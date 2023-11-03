@@ -1,0 +1,91 @@
+name: Generate Documentation
+on:
+  workflow_run:
+    workflows: [Compile]
+    types:
+      - completed
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  build:
+    needs: compile
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/ascot4fusion/ascot5deps:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get install -y doxygen pandoc
+          pip3 install -e .[doc]
+          pip3 uninstall vtk -y
+          pip3 install vtk-osmesa --extra-index-url https://wheels.vtk.org
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: ascot5_main
+          path: ./build/
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: bbnbi
+          path: ./build/
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: libascot.so
+          path: ./build/
+
+      - name: Set permissions
+        run: |
+          chmod +x ./build/ascot5_main
+          chmod +x ./build/bbnbi5
+
+      - name: Run tutorials
+        working-directory: ./a5py/testascot/
+        run: |
+          python3 tutorials.py
+
+      - name: Clone figures repository
+        uses: actions/checkout@master
+        with:
+          repository: ascot4fusion/figures
+          ssh-key: ${{ secrets.SSH_KEY_FIGURES }}
+          path: figures
+
+      - name: Sphinx build
+        run: |
+          make doc
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: ./build/doc
+
+  publish:
+    needs: build
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    # Change the ref to refs/heads/main once the code is merged
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/feature/8-merging-python-and-c-repositories' }}
+
+    steps:
+      - name: Publish
+        id: deployment
+        uses: actions/deploy-pages@v2

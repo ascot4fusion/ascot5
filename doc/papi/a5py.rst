@@ -2,8 +2,7 @@
 Python API
 ==========
 
-``a5py``
-========
+.. rubric:: ``a5py``
 
 .. automodule:: a5py
 
@@ -14,6 +13,7 @@ Python API
    a5py.ascotpy
    a5py.templates
    a5py.physlib
+   a5py.testascot
    a5py.routines
    a5py.gui
 
@@ -23,15 +23,29 @@ Python API
    a5py.ascotpy
    a5py.templates
    a5py.physlib
+   a5py.testascot
    a5py.routines
    a5py.gui
 
-.. automodule:: a5py.exceptions
-   :members:
+.. rubric:: Important classes
 
-``Ascot``
-=========
+.. autosummary::
+   :nosignatures:
+
+   ~a5py.Ascot
+   ~a5py.ascot5io.Ascot5IO
+   ~a5py.ascot5io.RunGroup
+   ~a5py.ascot5io.AfsiGroup
+   ~a5py.routines.afsi5.Afsi
+   ~a5py.routines.biosaw5.BioSaw
+
+.. rubric:: ``Ascot``
 
 .. autoclass:: a5py.Ascot
    :members:
    :inherited-members:
+
+.. rubric:: ``exceptions``
+
+.. automodule:: a5py.exceptions
+   :members:

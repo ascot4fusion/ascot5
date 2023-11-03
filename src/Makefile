@@ -235,8 +235,8 @@ ASCOT2PY_HEADERFILES=particle.h hdf5_interface.h ascot5.h mpi_interface.h \
 
 ascot2py.py : libascot.so
 	clang2py -l libascot.so -o $@  \
-		$(ASCOT2PY_HEADERFILES) \
-		--clang-args="-I/usr/include/hdf5/serial"
+		$(ASCOT2PY_HEADERFILES)  \
+		--clang-args="-I/usr/include/hdf5/serial -I/usr/lib/gcc/x86_64-linux-gnu/9/include/"
 # The above hdf5-include folder should not be hardcoded...
 
 clean:

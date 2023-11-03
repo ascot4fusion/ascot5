@@ -5,27 +5,28 @@ import subprocess
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor, CellExecutionError
 
-inplace = False
+# Stores results in existing notebook
+inplace = True
 
 os.chdir("../../doc/tutorials/")
 notebooks = glob.glob("*.ipynb")
 
-preprocessor = ExecutePreprocessor(timeout=600, kernel="feature9")
+# Kernel must be specified when using a virtual environment
+#preprocessor = ExecutePreprocessor(timeout=600, kernel="feature8")
+preprocessor = ExecutePreprocessor(timeout=600)
 errors = {}
 for nb in notebooks:
-    if nb != "slowingdown.ipynb": continue
+    if nb in ["slowingdown.ipynb", "atomic"]: continue
     subprocess.run(["rm", "-f", "ascot.h5"])
     with open(nb) as f:
         nbin = nbformat.read(f, nbformat.NO_CONVERT)
-
     try:
-        nbout = preprocessor.preprocess(nbin)
+        nbout,_ = preprocessor.preprocess(nbin)
+        if inplace:
+            with open(nb, "w", encoding="utf-8") as f:
+                nbformat.write(nbout, f)
     except CellExecutionError as err:
         errors[nb] = err
-
-    if inplace:
-        with open(nb, "w", encoding="utf-8") as f:
-            nbformat.write(nb, f)
 
 subprocess.run(["rm", "-f", "ascot.h5"])
 if len(errors) > 0:

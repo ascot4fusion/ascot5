@@ -479,7 +479,7 @@ class LibAscot:
 
         return out
 
-    def input_mhd_modes(self):
+    def _input_mhd_modes(self):
         """Return mode numbers, amplitudes and frequencies.
 
         Returns

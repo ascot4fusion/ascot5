@@ -17,7 +17,7 @@ bbnbi5:
 
 ascot2py.py:
 	$(MAKE) -C src ascot2py.py
-	python .setcdllascot2py.py
+	python3 .setcdllascot2py.py
 	mv src/ascot2py.py a5py/ascotpy/ascot2py.py
 
 doc:

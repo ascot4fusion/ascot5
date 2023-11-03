@@ -1,19 +1,61 @@
 """Input data representing NBI.
 
-Neutral beam injectors are used by BBNBI5 to generate NBI-ion source and
+Neutral beam injectors are used by BBNBI to generate NBI-ion source and
 calculate shinethrough.
 """
 import numpy as np
 import h5py
 import unyt
 
-import a5py.nbi.plot as plot
+from a5py.routines.plotting import openfigureifnoaxes
 
 from .coreio.fileapi import add_group
 from .coreio.treedata import DataGroup
 
 class Injector():
     """A single injector made up of beamlets
+
+    Attributes
+    ----------
+    ids : int
+        Numerical identifier for this injector which should be unique in
+        an input bundle.
+    anum : int
+        Mass number of injected species.
+    znum : int
+        Nuclear charge number of injected species.
+    mass : float
+        Mass of the injected species [kg].
+    energy : float
+        Full injection energy [J].
+    efrac : array_like (3,)
+        Particle fractions for full, 1/2 and 1/3 energies.
+    power : float
+        Injected power [W].
+    divh : float
+        Horizontal divergence [rad].
+    divv : float
+        Vertical divergence [rad].
+    divhalofrac : float
+        Fraction of particles with halo divergence.
+    divhaloh : float
+        Horizontal divergence in halo [rad].
+    divhalov : float
+        Vertical divergence in halo [rad].
+    nbeamlet : int
+        Number of beamlets.
+    beamletx : array_like, (nbeamlet,)
+        x coordinates of beamlets [m].
+    beamlety : array_like, (nbeamlet,)
+        y coordinates of beamlets [m].
+    beamletz : array_like, (nbeamlet,)
+        z coordinates of beamlets [m].
+    beamletdx : array_like, (nbeamlet,)
+        x components of the unit direction vector of beamlets.
+    beamletdy : array_like, (nbeamlet,)
+        y components of the unit direction vector of beamlets.
+    beamletdz : array_like, (nbeamlet,)
+        z components of the unit direction vector of beamlets.
     """
 
     def __init__(self, ids, anum, znum, mass, energy, efrac, power, divh, divv,
@@ -93,33 +135,76 @@ class Injector():
         self.beamletdy   = beamletdy
         self.beamletdz   = beamletdz
 
-    def plot_grid_3D(self, ax=None):
-        beams = self.read()
+    def plotbeamlets(self, view="3d", direction=True, axes=None):
+        """Plot the beamlets of this injector.
 
-        for beam in beams:
-            ax = plot.plot_scatter_3D(
-                beam["beamletx"], beam["beamlety"], beam["beamletz"],
-                equal=True, axes=ax, color="red", linewidth=0.75)
-        return ax
+        Parameters
+        ----------
+        view : {"rz", "xy", "3d"}, optional
+            Control whether the plot is shown in (R,z) or (x,y) plane or in 3D.
+        direction : bool, optional
+            Flag for showing the beam direction with arrows originating from
+            beamlets.
 
-    def plotbeamlets(self, direction=True, ax=None):
-        beams = self.read()
+            If False, only the beamlet locations are shown.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        """
+        if view == "3d":
+            x = self.beamletx
+            y = self.beamlety
+            z = self.beamletz
+            dx = self.beamletdx
+            dy = self.beamletdy
+            dz = self.beamletdz
 
-        for beam in beams:
-            ax = plot.plot_arrow_3D(beam["beamletx"], beam["beamlety"], beam["beamletz"],
-                                    beam["beamletdx"], beam["beamletdy"], beam["beamletdz"],
-                                    axes=ax, arrow_length_ratio=0,
-                                    color="green", linewidth=0.1, length=10)
-        return ax
+            @openfigureifnoaxes("3d")
+            def plot(axes=None):
+                axes.scatter(x, y, z)
+                axes.set_xlabel("x [m]")
+                axes.set_ylabel("y [m]")
+                axes.set_zlabel("z [m]")
+                if direction:
+                    axes.quiver3D(x, y, z, dx, dy, dz)
+            plot(axes=axes)
+        else:
+            if view == "xy":
+                x = self.beamletx
+                y = self.beamlety
+                dx = self.beamletdx
+                dy = self.beamletdy
+                xlabel = "x [m]"
+                ylabel = "y [m]"
+            elif view == "rz":
+                x = np.sqrt( self.beamletx**2 + self.beamlety**2 )
+                y = self.beamletz
+                dx = np.sqrt( ( self.beamletx + self.beamletdx )**2
+                            + ( self.beamlety + self.beamletdy )**2 ) - x
+                dy = self.beamletdz
+                xlabel = "R [m]"
+                ylabel = "z [m]"
+            else:
+                raise ValueError(
+                    "Argument 'view' must be one of the following:"\
+                    + " 'rz', 'xy', '3d'")
+
+            @openfigureifnoaxes()
+            def plot(axes=None):
+                axes.set_xlabel(xlabel)
+                axes.set_ylabel(ylabel)
+                axes.scatter(x, y)
+                if direction:
+                    axes.quiver(x, y, dx, dy)
+            plot(axes=axes)
 
 class NBI(DataGroup):
-    """Object representing a bundle of injectors used as an input in BBNBI5.
+    """Object representing a bundle of injectors used as an input in BBNBI.
 
     An injector bundle means that the particles generated from those with BBNBI
     are not separable. If your work requires that the different NBI sources are
     kept separate, then use different bundles for those (a bundle can consists
     of a single injector). Otherwise it is more convenient to combine injectors
-    in a single bundle since it then produces a single BBNBI5 output.
+    in a single bundle since it then produces a single BBNBI output.
     """
 
     def read(self):
