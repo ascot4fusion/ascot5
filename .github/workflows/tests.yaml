@@ -6,7 +6,7 @@ on:
       - completed
 
 permissions:
-  actions: read
+  checks: read
   contents: write
   packages: read
 
