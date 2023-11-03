@@ -5,6 +5,11 @@ on:
     types:
       - completed
 
+permissions:
+  checks: write
+  contents: write
+  packages: read
+
 jobs:
   unit-tests:
     needs: compile
