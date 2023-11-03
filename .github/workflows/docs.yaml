@@ -1,12 +1,11 @@
 name: Generate Documentation
 on:
   workflow_run:
-    workflows: ["Compile"]
+    workflows: [Compile]
     types:
       - completed
 
 permissions:
-  checks: write
   contents: write
   packages: read
 
