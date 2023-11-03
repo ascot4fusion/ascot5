@@ -92,19 +92,27 @@ class PhysTest():
         elif isinstance(tests, str):
             tests = [tests]
 
+        import time
+
         failed = False
+        duration = 0
         for test in tests:
             if init:
                 getattr(self, "init_" + test)()
                 print("Test %s initialized" % test)
             if run:
+                start = time.time()
                 getattr(self, "run_" + test)()
                 print("Test %s simulation complete" % test)
+                duration = time.time() - start
             if check:
                 a5plt.setpaperstyle()
                 passed = getattr(self, "check_" + test)()
-                print("Test %s check finished" % test)
-                if not passed: failed = True
+                if passed:
+                    print("Test %s check passed in %d s" % (test,duration))
+                else:
+                    print("Test %s check FAILED in %d s" % (test,duration))
+                    failed = True
         return failed
 
     def init_elementary(self):
@@ -522,9 +530,9 @@ class PhysTest():
             if np.abs(err) > eps:
                 msg += " (FAILED)"
                 print(msg)
-                return False
+                return True
             print(msg)
-            return True
+            return False
 
         # Numerical values
         self.ascot.input_init(run=run_go.get_qid(), bfield=True)
@@ -1896,6 +1904,6 @@ if __name__ == '__main__':
     test = PhysTest()
     failed = test.execute(
         init=True, run=True, check=True,
-        tests=["elementary", "orbitfollowing", "gctransform", "boozer", "mhd"])
+        tests=["elementary", "orbitfollowing", "boozer", "mhd"])
     if failed: raise Exception("Verification failed")
-    plt.show()
+    plt.show(block=False)

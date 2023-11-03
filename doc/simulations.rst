@@ -4,6 +4,42 @@
 Simulations
 ===========
 
+The simulation is started with:
+
+.. code-block:: bash
+
+   ./ascot5_main --in=in --out=out
+
+or when using ``mpirun`` (or ``srun``):
+
+.. code-block:: bash
+
+   mpirun ./ascot5_main
+
+The default file for reading inputs and storing outputs is ``ascot.h5`` but these can be given explicitly (storing output in the same file with the inputs is recommended):
+
+.. code-block:: bash
+
+   mpirun ./ascot5_main --in=in --out=out
+
+The simulation can be given a description but this can be done in post-processing as well:
+
+.. code-block:: bash
+
+   ascot5_main --d="TEST This is a test run"
+
+The default behavior is to use inputs that are marked as active in the file, but this can be overridden by providing the input QID explicitly:
+
+.. code-block:: bash
+
+   ascot5_main --bfield=0123456789
+
+When not using MPI, it is possible to divide the simulation into separate processes manually with:
+
+.. code-block:: bash
+
+   ascot5_main --mpi_size=size --mpi_rank=rank
+
 .. _Simulationoptions:
 
 Options
