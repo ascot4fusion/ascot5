@@ -92,17 +92,28 @@ class PhysTest():
         elif isinstance(tests, str):
             tests = [tests]
 
+        import time
+
+        failed = False
+        duration = 0
         for test in tests:
             if init:
                 getattr(self, "init_" + test)()
                 print("Test %s initialized" % test)
             if run:
+                start = time.time()
                 getattr(self, "run_" + test)()
                 print("Test %s simulation complete" % test)
+                duration = time.time() - start
             if check:
                 a5plt.setpaperstyle()
-                getattr(self, "check_" + test)()
-                print("Test %s check finished" % test)
+                passed = getattr(self, "check_" + test)()
+                if passed:
+                    print("Test %s check passed in %d s" % (test,duration))
+                else:
+                    print("Test %s check FAILED in %d s" % (test,duration))
+                    failed = True
+        return failed
 
     def init_elementary(self):
         """Initialize data for the elementary test.
@@ -519,9 +530,9 @@ class PhysTest():
             if np.abs(err) > eps:
                 msg += " (FAILED)"
                 print(msg)
-                return False
+                return True
             print(msg)
-            return True
+            return False
 
         # Numerical values
         self.ascot.input_init(run=run_go.get_qid(), bfield=True)
@@ -1567,6 +1578,7 @@ class PhysTest():
             print(" %2d  %2d    %.3e   %.3e   %.3e       %.3e %s" %
                   (ip_out[i], bphi_out[i], bpol_err[i],
                    bphi_err[i], jac_err[i], q_err[i], fail))
+        return passed
 
     def init_mhd(self):
         """Initialize data for the MHD test.
@@ -1715,7 +1727,6 @@ class PhysTest():
             err2[i] = np.amax(np.abs(err))
 
         self.ascot.input_free()
-        plt.show()
 
         passed = True
         print("Test MHD:")
@@ -1742,6 +1753,7 @@ class PhysTest():
             fail = "(FAILED)"
             passed = False
         print("Error in H - P (GCA): %e %e %s" % (err1[2], err2[2], fail))
+        return passed
 
     def init_atomic(self):
         """Initialize data for the atomic reaction test.
@@ -1857,6 +1869,7 @@ class PhysTest():
             passed = False
         print("Mean free path BMS: %.3e m (numerical) %.3e m (analytical) %s" %
               (mfp_bms, mfp_bms0[0,0], fail))
+        return passed
 
     def _activateinputs(self, tag):
         data = self.ascot.data
@@ -1889,5 +1902,8 @@ class PhysTest():
 
 if __name__ == '__main__':
     test = PhysTest()
-    test.execute(init=True, run=True, check=True, tests=["atomic"])
-    plt.show()
+    failed = test.execute(
+        init=True, run=True, check=True,
+        tests=["elementary", "orbitfollowing", "boozer", "mhd"])
+    if failed: raise Exception("Verification failed")
+    plt.show(block=False)

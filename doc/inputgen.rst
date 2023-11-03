@@ -4,35 +4,73 @@
 Input generation
 ================
 
-The inputs in ASCOT5 are all stored in ``ascot.h5`` and its structure reflects how the code operates.
-Each input belongs to one of the *parent groups* that in the code itself act like interfaces.
-For example, the magnetic field parent group ``bfield`` has a corresponding interface in the code that provides routines to evaluate magnetic field quantities at the queried coordinates etc.
-The exact implementation is left for the modules that correspond to the *data groups* located under the parent group in ``ascot.h5``.
-This allows ASCOT5 to have modular inputs so that we can have e.g. one implementation for an axisymmetric tokamak field, :class:`.B_2DS`, and one implementation for stellarators, :class:`.B_STS`.
-To run a simulation, all required input parent groups must have a data group of some type present even though the input would not actually be used in the simulation.
-For those cases one can supply dummy data.
+.. admonition:: Summary
+
+   - Inputs are modular: to simulate markers in a stellarator magnetic field, provide a stellarator magnetic field input.
+   - All required inputs must be present even though they would not be actually used: provide dummy atomic data even if you have atomic physics disabled.
+   - Inputs are created via :meth:`~.Ascot5IO.create_input`:
+
+     - Dummy input (provide input type but no data): ``create_input("B_2DS")``.
+     - Creating input explicitly (provide input type and data): ``create_input("B_2DS", **data)``.
+     - Creating input implicitly via templates (provide template name and arguments if needed): ``create_input("bfield analytical iter circular", spline=True)``.
+
+   - Input data can be read with ``read()`` method: ``a5.data.bfield.active.read()``.
+   - Information on what inputs there are, what data they need and what templates there are can be found at the end of this page.
+
+ASCOT5 is modular in terms of inputs.
+In the code, inputs are interpolated via interfaces so that the implementation can vary.
+For example, the magnetic field interface specifies methods to interpolate magnetic field vector at the given coordinates, but the implementation of those methods is different for axisymmetric tokamaks and stellarators.
+
+This modularity is reflected in the format of the HDF5 file, which can look like this for example:
+
+::
+
+    data
+    ├── bfield               # Magnetic field inputs
+    │   ├── B_2DS_7027705680 # Some axisymmetric tokamak magnetic field data
+    │   ├── B_STS_0890178582 # Some stellarator magnetic field data
+    │   └── ...              # Some other possible magnetic field data
+    │
+    ├── efield               # Electric field inputs
+    │   └── ...
+    │
+    └── ...                  # Other inputs (wall, plasma, etc.)
+
+Here ``bfield`` and ``efield`` are parent groups for which there are corresponding magnetic and electric field interfaces in the code.
+The actual data is contained in ``B_2DS`` and ``B_STS`` and the code recognizes that these are axisymmetric tokamak and stellarator magnetic field data, respectively, and uses the corresponding implementation in the simulation (depending on which of the inputs was active).
+
+.. note::
+   To run a simulation, all required parent groups must have an input of some type present even though the input would not actually be used in the simulation.
+   For those cases one can supply dummy data.
 
 Inputs are created with :meth:`~.Ascot5IO.create_input` method which can operate in three ways.
 To create *dummy* input, call the method without providing any data.
 
 .. code-block:: python
 
-   a5.data.create_input("E_TC", desc="Dummy data", activate=True)
+   # By default the created input is not activated if there are other inputs
+   # already present
+   a5.data.create_input("E_TC", activate=True)
 
 Here ``E_TC`` is the desired input type, which in this case is the *trivial Cartesian electric field*.
-Description is user-specified, where the first word acts as a *tag* when traversing the treeview (here the tag becomes DUMMY as covered in the last section).
-The last argument sets the input active.
 
-To generate proper input, one must provide all required data.
-**What data is required can be learned by inspecting the input specific** ``write_hdf5`` **function.**
+To generate proper input, one must provide all required data which is specified in that input's ``write_hdf5`` function.
 In this example, :meth:`.E_TC.write_hdf5` requires that an array with all electric field components is provided.
 
 .. code-block:: python
 
    a5.data.create_input("E_TC", exyz=np.array([0, 0, 0]))
 
-However, it can be laborous to e.g. extract magnetic field data from EQDSK and convert it to the format required by the axisymmetric tokamak field :meth:`.B_2DS.write_hdf5`.
-For this reason, we aim to implement conversion of common data formats to ASCOT5 inputs as *templates* that process the data into a suitable format and calls proper ``write_hdf5`` internally.
+Existing data can be read with ``read`` method to a dictionary that has the same format as what was passed to ``write_hdf5``:
+
+.. code-block:: python
+
+   data = a5.data.efield.active.read()                   # Read data to a dictionary
+   data["exyz"] = exyz=np.array([1, 0, 0])               # Modify
+   a5.data.create_input("E_TC", **data, desc="MODIFIED") # Write back to disk
+
+However, it can be laborous to e.g. extract magnetic field data from EQDSK and convert it to the format required by ASCOT5.
+For this reason, there are tools called *templates* that convert common data formats to ASCOT5 inputs.
 Templates provide a convenient way to import data to ASCOT5 and they also contain some premade inputs, e.g. options and markers for creating Poincaré plots.
 
 Templates are used by providing the name of the template and any required or optional parameters.
@@ -90,6 +128,7 @@ If electric field is not relevant for your simulation, use :class:`.E_TC` and se
    efield.E_1DS.write_hdf5
 
 ..
+   These are implemented but not yet merged
    a5py.ascot5io.efield.E_3D
    a5py.ascot5io.efield.E_3D.write_hdf5
    a5py.ascot5io.efield.E_3DS
@@ -168,10 +207,11 @@ MHD input is used to model particle response to MHD (feedback from particles to 
    mhd.MHD_NONSTAT
    mhd.MHD_NONSTAT.write_hdf5
 
-MHD eigenfunctions ``asigma``
-=============================
+Atomic reaction data ``asigma``
+===============================
 
-Atomic reaction data (e.g. from ADAS) for simulations where atomic reactions are enabled.
+Data for interpolating and computing reaction probabilities and cross sections for reactions where the test particle charge state changes.
+This data, typically sourced from ADAS, is required only for simulations where atomic reactions are enabled.
 
 .. autosummary::
    :nosignatures:
@@ -183,8 +223,8 @@ Atomic reaction data (e.g. from ADAS) for simulations where atomic reactions are
 Neutral beam injectors ``nbi``
 ==============================
 
-NBI input is used by BBNBI5 exclusively.
-The input consists of a bundle of injectors, which in ``a5py`` are represented by :class:`Injector`.
+NBI input is used by BBNBI exclusively.
+The input consists of a bundle of injectors, which in ``a5py`` are represented by :class:`~nbi.Injector`.
 
 .. autosummary::
    :nosignatures:
@@ -226,13 +266,43 @@ Templates
 
 .. currentmodule:: a5py.templates
 
+.. rubric:: Data import
+
+.. autosummary::
+   :nosignatures:
+
+   ~InputFactory.boozer_tokamak
+   ~InputFactory.import_geqdsk
+   ~InputFactory.import_adas
+   ~InputFactory.mhd_consistent_potentials
+   ~InputFactory.ascot4_particles
+   ~InputFactory.ascot4_wall2d
+   ~InputFactory.ascot4_wall3d
+   ~InputFactory.ascot4_tokamak
+   ~InputFactory.ascot4_stellarator
+   ~InputFactory.ascot4_plasma1d
+   ~InputFactory.ascot4_erad
+   ~InputFactory.ascot4_neutral1d
+   ~InputFactory.ascot4_alfven
+
+.. rubric:: Premade studies
+
+.. autosummary::
+   :nosignatures:
+
+   ~InputFactory.options_poincare
+   ~InputFactory.marker_poincare
+   ~InputFactory.options_tutorial
+
+.. rubric:: Analytic
+
+.. note::
+   These are mainly used for testing.
+
 .. autosummary::
    :nosignatures:
 
    ~InputFactory.bfield_analytical_iter_circular
-   ~InputFactory.boozer_tokamak
-   ~InputFactory.options_poincare
-   ~InputFactory.marker_poincare
    ~InputFactory.plasma_flat
+   ~InputFactory.neutral_flat
    ~InputFactory.wall_rectangular
-   ~InputFactory.options_tutorial

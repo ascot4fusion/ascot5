@@ -57,10 +57,10 @@ class TestAscot(unittest.TestCase):
 
     def test_moments(self):
         a5 = Ascot("unittest.h5")
-        #ordinates = ["density", "chargedensity", "energydensity", "pressure",
-        #             "toroidalcurrent", "parallelcurrent", "powerdep",
-        #             "electronpowerdep", "ionpowerdep"]
-        ordinates = ["jxbtorque"]
+        ordinates = ["density", "chargedensity", "energydensity", "pressure",
+                     "toroidalcurrent", "parallelcurrent", "powerdep",
+                     "electronpowerdep", "ionpowerdep"]
+        #ordinates = ["jxbtorque"]
 
         a5.input_init(bfield=True, plasma=True)
         dist    = a5.data.active.getdist("5d")

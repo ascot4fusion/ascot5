@@ -1,0 +1,97 @@
+name: Run Tests
+on:
+  workflow_run:
+    workflows: [Compile]
+    types:
+      - completed
+
+permissions:
+  checks: write
+  contents: write
+  packages: read
+
+jobs:
+  unit-tests:
+    needs: compile
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/ascot4fusion/ascot5deps:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+
+      - name: Install a5py
+        run: pip install -e .[doc]
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: ascot5_main
+          path: ./build/
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: bbnbi
+          path: ./build/
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: libascot.so
+          path: ./build/
+
+      - name: Set permissions
+        run: |
+          chmod +x ./build/ascot5_main
+          chmod +x ./build/bbnbi5
+
+      - name: Test
+        working-directory: ./a5py/testascot/
+        run: |
+          python3 unit_ascot5io.py
+          python3 unit_ascotpy.py
+          python3 unit_moments.py
+
+  physics-tests:
+    needs: compile
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/ascot4fusion/ascot5deps:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+
+      - name: Install a5py
+        run: pip install -e .[doc]
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: ascot5_main
+          path: ./build/
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: bbnbi
+          path: ./build/
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: libascot.so
+          path: ./build/
+
+      - name: Set permissions
+        run: |
+          chmod +x ./build/ascot5_main
+          chmod +x ./build/bbnbi5
+
+      - name: Test
+        working-directory: ./a5py/testascot/
+        run: python3 physicstests.py

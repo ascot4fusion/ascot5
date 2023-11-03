@@ -80,33 +80,35 @@ In addition the repository also contain several codes that supplement the orbit-
 
 The repository is maintained by `Aalto University <https://www.aalto.fi/en/department-of-applied-physics/particle-orbit-simulations-ascot>`_ and `VTT Technical Research Centre of Finland <https://www.vttresearch.com/en/ourservices/future-nuclear#fusion-reactor-research>`_.
 
-**ASCOT5:**
+.. rubric:: ASCOT5:
 
 - Can trace full gyro-orbits, guiding centers, field-lines, and neutrals.
 - Supports 3D tokamak and stellarator magnetic fields.
 - Supports 3D wall model and evaluation of particle loads on the wall.
 - Simulations assume test-particle approximation (no feedback from markers to backgrounds) but otherwise any type of particles can be traced.
+
   - Mainly used to study fast ions, impurities and runaway electrons.
-- Physics include Coulomb collisions and charge-exchange reactions.
+
+- Physics include Coulomb collisions and atomic reactions where particle charge state changes.
 - Simulations may include fast ion response to MHD.
 - Output consists of various distributions (1D-6D), marker orbits, wall loads/FILD signals, and transport coefficients.
 
-**BBNBI5**
+.. rubric:: BBNBI
 
 - Calculates beam birth profile and shinethrough from NBI geometry.
-- Can provides a NBI source for ASCOT5 slowing-down simulations.
+- Can provide a NBI source for ASCOT5 slowing-down simulations.
 
-**AFSI**
+.. rubric:: AFSI
 
 - Calculates fusion product source from thermal plasma and fast ion slowing-down distributions (as computed by ASCOT5).
-  For fusion neutronics, this can be combined with `Serpent <https://serpent.vtt.fi/serpent/>`_.
+- For fusion neutronics, AFSI can be combined with `Serpent <https://serpent.vtt.fi/serpent/>`_.
 
-**BioSaw**
+.. rubric:: BioSaw
 
 - Calculates magnetic field based on a coil geometry.
 - Can provide a 3D field for ASCOT5 simulations.
 
-**BMC**
+.. rubric:: BMC
 
 - Backward Monte-Carlo simulation tool that can be thought as a time-reversed ASCOT5.
 - Effective tool for estimating FILD signals and wall loads on small but critical components.
@@ -115,13 +117,13 @@ The repository is maintained by `Aalto University <https://www.aalto.fi/en/depar
 FAQ and Troubleshooting
 =======================
 
-**I'm receiving a fatal error when opening the input file in Python or in GUI**
+.. rubric:: I'm receiving a fatal error when opening the input file in Python or in GUI
 
 - There might be compatibility issues if the file was made with an older version of ASCOT5 that you are currently using.
   These can be solved by running the script ``a5update ascot.h5`` which generates a copy ``ascot_<current version>.h5`` where the data has been updated to new format.
   Note that it might not always be possible to enforce the backwards compatibility on results so rerunning the simulation might be necessary.
 
-**How long does it take to run a simulation and how many markers I need**
+.. rubric:: How long does it take to run a simulation and how many markers I need
 
 - See :ref:`this table<ExampleRuntimes>` for examples.
   Typically guiding-center simulations are faster than gyro-orbit because GC can use larger time-step.

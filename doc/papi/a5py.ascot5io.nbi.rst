@@ -12,3 +12,7 @@
 .. autoclass:: a5py.ascot5io.nbi.NBI
    :show-inheritance:
    :members:
+
+.. autoclass:: a5py.ascot5io.nbi.Injector
+   :show-inheritance:
+   :members:
