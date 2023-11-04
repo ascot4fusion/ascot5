@@ -1,0 +1,63 @@
+name: Rebase Develop and Docs to Main
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - closed
+
+jobs:
+
+  on_push:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.BOT_ACCESS_TOKEN }}
+
+      - name: Set up Git
+        run: |
+          git config user.email "ascotbot@gmail.com"
+          git config user.name "Reetta"
+          git fetch --all
+
+      - name: Rebase Docs on Main
+        run: |
+          git checkout develop
+          git rebase main
+          git push origin develop --force
+
+      - name: Rebase Develop on Main
+        run: |
+          git checkout develop
+          git rebase main
+          git push origin develop --force
+
+  on_pull_request:
+    if: github.event.pull_request.merged == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.BOT_ACCESS_TOKEN }}
+
+      - name: Set up Git
+        run: |
+          git config user.email "ascotbot@gmail.com"
+          git config user.name "Reetta"
+          git fetch --all
+
+      - name: Rebase Docs on Main
+        run: |
+          git checkout develop
+          git rebase main
+          git push origin develop --force
+
+      - name: Rebase Develop on Main
+        run: |
+          git checkout develop
+          git rebase main
+          git push origin develop --force
