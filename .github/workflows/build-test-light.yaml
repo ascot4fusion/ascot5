@@ -1,0 +1,13 @@
+name: Run Tests (light)
+on: [push, workflow_dispatch]
+
+jobs:
+
+  Prepare:
+    uses: ascot4fusion/ascot5/.github/workflows/build.yaml@main
+
+  Testing:
+    needs: Prepare
+    uses: ascot4fusion/ascot5/.github/workflows/tests.yaml@main
+    with:
+      run_unit_tests: true

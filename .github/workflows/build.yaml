@@ -1,8 +1,52 @@
-name: Compile
-on: [push, workflow_dispatch]
+name: (Reusable) Build
+on: [workflow_call]
 
 jobs:
-  compile-all:
+
+  check:
+    name: Image-Outdated
+    runs-on: ubuntu-latest
+    outputs:
+      docker: ${{ steps.filter.outputs.docker }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            docker:
+              - './Dockerfile'
+              - './requirements'
+
+  Build-Image:
+    needs: check
+    if: ${{ needs.check.outputs.docker == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push
+        run: |
+          docker build ./ --tag ghcr.io/ascot4fusion/ascot5deps:latest
+          docker run ghcr.io/ascot4fusion/ascot5deps:latest
+          docker push ghcr.io/ascot4fusion/ascot5deps:latest
+
+  Build-Code:
+    needs: Build-Image
+    if: always() || failure()
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/ascot4fusion/ascot5deps:latest
@@ -33,26 +77,21 @@ jobs:
       - name: Make ascot2py
         run: make ascot2py.py MPI=0 FLAGS="-foffload=disable"
 
-      - name: Upload ascot5_main as artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: ascot5_main
-          path: ./build/ascot5_main
+      - name: Set permissions and pack
+        run: |
+          cd ./build
+          chmod +x ascot5_main bbnbi5
+          tar -cf code.tar ascot5_main bbnbi5 libascot.so
+          cd ..
 
-      - name: Upload libascot.so as artifact
+      - name: Upload code
         uses: actions/upload-artifact@v3
         with:
-          name: libascot.so
-          path: ./build/libascot.so
+          name: code
+          path: ./build/code.tar
 
-      - name: Upload ascot2py.py as an artifact
+      - name: Upload ascot2py.py
         uses: actions/upload-artifact@v3
         with:
-          name: ascot2py.py
+          name: ascot2py
           path: ./a5py/ascotpy/ascot2py.py
-
-      - name: Upload bbnbi as artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: bbnbi
-          path: ./build/bbnbi5

@@ -1,23 +1,62 @@
-name: Run Tests
+name: (Reusable) Tests
 on:
-  workflow_run:
-    workflows: [Compile]
-    types:
-      - completed
+  workflow_call:
+    inputs:
+      run_unit_tests:
+        description: "Unit tests are run if 'yes' and skipped otherwise."
+        type: boolean
+        required: false
+        default: false
 
-permissions:
-  checks: read
-  packages: read
+      run_physics_tests:
+        description: "Physics tests are run if 'yes' and skipped otherwise."
+        type: boolean
+        required: false
+        default: false
+
+      run_tutorials:
+        description: "Tutorials are run if 'yes' and skipped otherwise."
+        type: boolean
+        required: false
+        default: false
 
 jobs:
-  unit-tests:
+
+  Unit-Tests:
+    if: ${{ inputs.run_unit_tests == true }}
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/ascot4fusion/ascot5deps:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
+    steps:
+      - uses: actions/checkout@v3
 
+      - uses: actions/setup-python@v4
+
+      - name: Install a5py
+        run: pip install -e .
+
+      - uses: actions/download-artifact@main
+        with:
+          name: code
+
+      - name: Unpack
+        run: tar -xf code.tar -C ./build/
+
+      - name: Run
+        working-directory: ./a5py/testascot/
+        run: python3 unit_ascot5io.py
+
+  Physics-Tests:
+    if: ${{ inputs.run_physics_tests == true }}
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/ascot4fusion/ascot5deps:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
     steps:
       - uses: actions/checkout@v3
 
@@ -26,42 +65,21 @@ jobs:
       - name: Install a5py
         run: pip install -e .[doc]
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@main
         with:
-          name: ascot5_main
-          path: ./build/
+          name: code
 
-      - uses: actions/download-artifact@v3
-        with:
-          name: bbnbi
-          path: ./build/
+      - name: Unpack
+        run: tar -xf code.tar -C ./build/
 
-      - uses: actions/download-artifact@v3
-        with:
-          name: libascot.so
-          path: ./build/
-
-      - name: Set permissions
-        run: |
-          chmod +x ./build/ascot5_main
-          chmod +x ./build/bbnbi5
-
-      - name: Test
-        working-directory: ./a5py/testascot/
-        run: |
-          python3 unit_ascot5io.py
-          python3 unit_ascotpy.py
-          python3 unit_moments.py
-
-  physics-tests:
-    needs: compile
+  Tutorials:
+    if: ${{ inputs.run_tutorials_tests == true }}
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/ascot4fusion/ascot5deps:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
-
     steps:
       - uses: actions/checkout@v3
 
@@ -70,26 +88,9 @@ jobs:
       - name: Install a5py
         run: pip install -e .[doc]
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@main
         with:
-          name: ascot5_main
-          path: ./build/
+          name: code
 
-      - uses: actions/download-artifact@v3
-        with:
-          name: bbnbi
-          path: ./build/
-
-      - uses: actions/download-artifact@v3
-        with:
-          name: libascot.so
-          path: ./build/
-
-      - name: Set permissions
-        run: |
-          chmod +x ./build/ascot5_main
-          chmod +x ./build/bbnbi5
-
-      - name: Test
-        working-directory: ./a5py/testascot/
-        run: python3 physicstests.py
+      - name: Unpack
+        run: tar -xf code.tar -C ./build/
