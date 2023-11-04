@@ -46,7 +46,7 @@ jobs:
 
       - name: Run
         working-directory: ./a5py/testascot/
-        run: python3 unit_ascot5io.py
+        run: python3 unittests.py
 
   Physics-Tests:
     if: ${{ inputs.run_physics_tests == true }}

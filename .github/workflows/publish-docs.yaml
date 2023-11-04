@@ -1,12 +1,8 @@
-name: Run Tests
+name: Publish Documentation
 on:
-  workflow_dispatch:
-  pull_request:
-    branches:
-      - main
   push:
     branches:
-      - develop
+      - docs
 
 jobs:
 
@@ -16,16 +12,6 @@ jobs:
       packages: write
     uses: ascot4fusion/ascot5/.github/workflows/build.yaml@main
 
-  Testing:
-    needs: Prepare
-    permissions:
-      contents: read
-      packages: read
-    uses: ascot4fusion/ascot5/.github/workflows/tests.yaml@main
-    with:
-      run_unit_tests: true
-      run_physics_tests: true
-
   Docs:
     needs: Prepare
     permissions:
@@ -34,4 +20,6 @@ jobs:
       pages: write
       id-token: write
     uses: ascot4fusion/ascot5/.github/workflows/docs.yaml@main
+    with:
+      publish: true
     secrets: inherit
