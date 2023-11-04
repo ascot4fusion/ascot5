@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           token: ${{ secrets.BOT_ACCESS_TOKEN }}
 
@@ -26,21 +26,21 @@ jobs:
 
       - name: Rebase Docs on Main
         run: |
-          git checkout develop
-          git rebase main
-          git push origin develop --force
+          git checkout docs
+          git rebase origin/main
+          git push --force origin docs
 
       - name: Rebase Develop on Main
         run: |
           git checkout develop
-          git rebase main
-          git push origin develop --force
+          git rebase origin/main
+          git push --force origin develop
 
   on_pull_request:
     if: github.event.pull_request.merged == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           token: ${{ secrets.BOT_ACCESS_TOKEN }}
 
@@ -52,12 +52,12 @@ jobs:
 
       - name: Rebase Docs on Main
         run: |
-          git checkout develop
-          git rebase main
-          git push origin develop --force
+          git checkout docs
+          git rebase origin/main
+          git push --force origin docs
 
       - name: Rebase Develop on Main
         run: |
           git checkout develop
-          git rebase main
-          git push origin develop --force
+          git rebase origin/main
+          git push --force origin develop
