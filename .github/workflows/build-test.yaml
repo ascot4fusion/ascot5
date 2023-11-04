@@ -17,6 +17,7 @@ jobs:
     needs: Prepare
     permissions:
       contents: read
+      packages: read
     uses: ascot4fusion/ascot5/.github/workflows/tests.yaml@main
     with:
       run_unit_tests: true
@@ -30,3 +31,4 @@ jobs:
       pages: write
       id-token: write
     uses: ascot4fusion/ascot5/.github/workflows/docs.yaml@main
+    secrets: inherit
