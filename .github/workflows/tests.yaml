@@ -43,7 +43,9 @@ jobs:
           name: code
 
       - name: Unpack
-        run: tar -xf code.tar -C ./build/
+        run: |
+          mkdir build
+          tar -xf code.tar -C ./build/
 
       - name: Run
         working-directory: ./a5py/testascot/
@@ -70,7 +72,9 @@ jobs:
           name: code
 
       - name: Unpack
-        run: tar -xf code.tar -C ./build/
+        run: |
+          mkdir build
+          tar -xf code.tar -C ./build/
 
   Tutorials:
     if: ${{ inputs.run_tutorials_tests == true }}
@@ -93,4 +97,6 @@ jobs:
           name: code
 
       - name: Unpack
-        run: tar -xf code.tar -C ./build/
+        run: |
+          mkdir build
+          tar -xf code.tar -C ./build/
