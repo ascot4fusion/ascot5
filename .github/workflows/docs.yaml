@@ -1,0 +1,81 @@
+name: (Reusable) Generate Documentation
+on:
+  workflow_call:
+    inputs:
+      publish:
+        description: "Publish generated docs"
+        type: boolean
+        required: false
+        default: false
+
+
+
+jobs:
+  Build-HTML:
+    permissions:
+      contents: read
+      packages: read
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/ascot4fusion/ascot5deps:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get install -y doxygen pandoc
+          pip3 install -e .[doc]
+          pip3 uninstall vtk -y
+          pip3 install vtk-osmesa --extra-index-url https://wheels.vtk.org
+
+      - uses: actions/download-artifact@main
+        with:
+          name: code
+
+      - name: Unpack
+        run: |
+          mkdir build
+          tar -xf code.tar -C ./build/
+
+      - name: Clone figures repository
+        uses: actions/checkout@master
+        with:
+          repository: ascot4fusion/figures
+          ssh-key: ${{ secrets.SSH_KEY_FIGURES }}
+          path: figures
+
+      - name: Tutorials
+        working-directory: ./a5py/testascot/
+        run: python3 tutorials.py
+
+      - name: Sphinx build
+        run: |
+          make doc
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: ./build/doc
+
+  Publish:
+    needs: Build-HTML
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+
+    steps:
+      - name: Publish
+        id: deployment
+        uses: actions/deploy-pages@v2

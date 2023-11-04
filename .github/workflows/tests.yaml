@@ -14,12 +14,6 @@ on:
         required: false
         default: false
 
-      run_tutorials:
-        description: "Tutorials are run if 'yes' and skipped otherwise."
-        type: boolean
-        required: false
-        default: false
-
 jobs:
 
   Unit-Tests:
@@ -65,7 +59,7 @@ jobs:
       - uses: actions/setup-python@v4
 
       - name: Install a5py
-        run: pip install -e .[doc]
+        run: pip install -e .
 
       - uses: actions/download-artifact@main
         with:
@@ -76,27 +70,6 @@ jobs:
           mkdir build
           tar -xf code.tar -C ./build/
 
-  Tutorials:
-    if: ${{ inputs.run_tutorials_tests == true }}
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/ascot4fusion/ascot5deps:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.github_token }}
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: actions/setup-python@v4
-
-      - name: Install a5py
-        run: pip install -e .[doc]
-
-      - uses: actions/download-artifact@main
-        with:
-          name: code
-
-      - name: Unpack
-        run: |
-          mkdir build
-          tar -xf code.tar -C ./build/
+      - name: Run
+        working-directory: ./a5py/testascot/
+        run: python3 physicstests.py

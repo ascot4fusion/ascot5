@@ -15,8 +15,8 @@ notebooks = glob.glob("*.ipynb")
 #preprocessor = ExecutePreprocessor(timeout=600, kernel="feature8")
 preprocessor = ExecutePreprocessor(timeout=600)
 errors = {}
-for nb in notebooks:
-    if nb in ["slowingdown.ipynb", "atomic"]: continue
+for nb in ["wallload.ipynb"]:#notebooks:
+    if nb in ["slowingdown.ipynb", "atomic.ipynb"]: continue
     subprocess.run(["rm", "-f", "ascot.h5"])
     with open(nb) as f:
         nbin = nbformat.read(f, nbformat.NO_CONVERT)

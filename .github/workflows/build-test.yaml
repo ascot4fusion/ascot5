@@ -2,10 +2,8 @@ name: Run Tests
 on:
   workflow_dispatch:
   push:
-    branches-ignore:
+    branches:
       - main
-      - develop
-      - docs
 
 jobs:
 
@@ -20,3 +18,8 @@ jobs:
     uses: ascot4fusion/ascot5/.github/workflows/tests.yaml@main
     with:
       run_unit_tests: true
+      run_physics_tests: true
+
+  Docs:
+    needs: Prepare
+    uses: ascot4fusion/ascot5/.github/workflows/docs.yaml@main
