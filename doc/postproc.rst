@@ -548,7 +548,6 @@ Begin by defining the coil geometry
 .. note::
    The coil geometry does not have to form a closed loop as BioSaw simply calculates the field arising from each line segment.
 
-   
 To run BioSaw, first open a file that has either :class:`.B_2DS` or :class:`.B_3DS` magnetic field present or set as active.
 The calculation is then simply done as follows using the ``biosaw`` attribure which is an instance of :class:`.BioSaw`:
 
