@@ -4,6 +4,9 @@ on: [push, workflow_dispatch]
 jobs:
 
   Prepare:
+    permissions:
+      contents: read
+      packages: write
     uses: ascot4fusion/ascot5/.github/workflows/build.yaml@main
 
   Testing:
