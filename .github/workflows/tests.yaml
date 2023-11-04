@@ -6,13 +6,11 @@ on:
       - completed
 
 permissions:
-  checks: write
-  contents: write
+  checks: read
   packages: read
 
 jobs:
   unit-tests:
-    needs: compile
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/ascot4fusion/ascot5deps:latest

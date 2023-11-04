@@ -11,7 +11,6 @@ permissions:
 
 jobs:
   build:
-    needs: compile
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/ascot4fusion/ascot5deps:latest
@@ -82,8 +81,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    # Change the ref to refs/heads/main once the code is merged
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/feature/8-merging-python-and-c-repositories' }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/docs' }}
 
     steps:
       - name: Publish
