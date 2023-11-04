@@ -11,4 +11,4 @@ RUN apt-get update && apt-get install -y \
     libgl1 python3-pip
 RUN pip3 install ctypeslib2 clang==12.0.1 --no-cache-dir
 COPY requirements.txt .
-RUN pip3 install -r  requirements.txt
+RUN pip3 install -r requirements.txt

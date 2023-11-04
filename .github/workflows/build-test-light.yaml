@@ -1,5 +1,11 @@
 name: Run Tests (light)
-on: [push, workflow_dispatch]
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore:
+      - main
+      - develop
+      - docs
 
 jobs:
 

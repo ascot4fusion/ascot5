@@ -4,7 +4,7 @@ on: [workflow_call]
 jobs:
 
   check:
-    name: Image-Outdated
+    name: Is-Image-Outdated
     runs-on: ubuntu-latest
     outputs:
       docker: ${{ steps.filter.outputs.docker }}
