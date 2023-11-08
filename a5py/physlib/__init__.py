@@ -293,7 +293,11 @@ def parseunits(strip=False, **units):
                     "\"%s\" has incorrect dimensions: expected %s but got %s" %
                     (name, dim, valdim))
             if strip:
+                val = val.astype("f8", copy=False)
                 return val.to(unit).v
+
+            # Integers are not converted properly otherwise
+            val = val.astype("f8", copy=False)
             return val.to(unit)
 
         @wraps(fun)
