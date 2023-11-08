@@ -887,7 +887,7 @@ def poincare(x, y, ids, connlen=None, xlim=None, ylim=None, xlabel=None,
 
 @openfigureifnoaxes(projection=None)
 def still(wallmesh, points=None, orbit=None, data=None, log=False,
-          cpos=None, cfoc=None, cang=None, axes=None, cax=None):
+          cpos=None, cfoc=None, cang=None, axes=None, cax=None, **kwargs):
     """Take a still shot of the mesh and display it using matplotlib backend.
 
     The rendering is done using vtk but the vtk (interactive) window is not
@@ -916,8 +916,10 @@ def still(wallmesh, points=None, orbit=None, data=None, log=False,
         The axes where figure is plotted or otherwise new figure is created.
     cax : :obj:`~matplotlib.axes.Axes`, optional
         The color bar axes or otherwise taken from the main axes.
+    **kwargs
+        Keyword arguments passed to :obj:`~pyvista.Plotter`.
     """
-    p = pv.Plotter(off_screen=True)
+    p = pv.Plotter(off_screen=True, **kwargs)
     if data is None:
         p.add_mesh(wallmesh, color=[0.9,0.9,0.9])
     else:
@@ -965,7 +967,7 @@ def still(wallmesh, points=None, orbit=None, data=None, log=False,
 
 
 def interactive(wallmesh, *args, points=None, orbit=None, data=None, log=False,
-                cpos=None, cfoc=None, cang=None):
+                cpos=None, cfoc=None, cang=None, **kwargs):
     """Open VTK window to display interactive view of the wall mesh.
 
     Parameters
@@ -989,8 +991,10 @@ def interactive(wallmesh, *args, points=None, orbit=None, data=None, log=False,
         Camera focal point coordinates [x, y, z].
     cang : array_like, optional
         Camera angle [azimuth, elevation, roll].
+    **kwargs
+        Keyword arguments passed to :obj:`~pyvista.Plotter`.
     """
-    p = pv.Plotter()
+    p = pv.Plotter(**kwargs)
 
     if data is None:
         p.add_mesh(wallmesh, color=[0.9,0.9,0.9], log_scale=log)

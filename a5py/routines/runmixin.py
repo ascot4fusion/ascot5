@@ -538,13 +538,13 @@ class RunMixin(DistMixin):
             - "eload" power/energy load in units of W/m^2 or J/m^2
         """
         wallmesh = pv.PolyData( *self.wall.noderepresentation() )
-        ids, _, eload, pload, iangle = self.getwall_loads()
+        ids, area, eload, pload, iangle = self.getwall_loads()
         ids = ids - 1 # Convert IDs to indices
         ntriangle = wallmesh.n_faces
         wallmesh.cell_data["pload"]       = np.zeros((ntriangle,)) + np.nan
-        wallmesh.cell_data["pload"][ids]  = pload
+        wallmesh.cell_data["pload"][ids]  = pload / area
         wallmesh.cell_data["eload"]       = np.zeros((ntriangle,)) + np.nan
-        wallmesh.cell_data["eload"][ids]  = pload
+        wallmesh.cell_data["eload"][ids]  = eload / area
 
         #- "iangle" angle of incidence in units of deg
         #wallmesh.cell_data["iangle"]      = np.zeros((ntriangle,)) + np.nan
@@ -1447,8 +1447,8 @@ class RunMixin(DistMixin):
         axes.set_yticks([-180, -90, 0, 90, 180])
 
     def plotwall_3dstill(self, wallmesh=None, points=None, orbit=None,
-                         data=None, log=False,
-                         cpos=None, cfoc=None, cang=None, axes=None, cax=None):
+                         data=None, log=False, cpos=None, cfoc=None, cang=None,
+                         axes=None, cax=None, **kwargs):
         """Take a still shot of the mesh and display it using matplotlib
         backend.
 
@@ -1480,6 +1480,8 @@ class RunMixin(DistMixin):
             The axes where figure is plotted or otherwise new figure is created.
         cax : :obj:`~matplotlib.axes.Axes`, optional
             The color bar axes or otherwise taken from the main axes.
+        **kwargs
+            Keyword arguments passed to :obj:`~pyvista.Plotter`.
         """
         if wallmesh is None:
             wallmesh = self.getwall_3dmesh()
@@ -1495,11 +1497,12 @@ class RunMixin(DistMixin):
         if cang is None: cang = cang0
 
         a5plt.still(wallmesh, points=points, data=data, orbit=orbit, log=log,
-                    cpos=cpos, cfoc=cfoc, cang=cang, axes=axes, cax=cax)
+                    cpos=cpos, cfoc=cfoc, cang=cang, axes=axes, cax=cax,
+                    **kwargs)
 
     def plotwall_3dinteractive(self, wallmesh=None, *args, points=None,
                                orbit=None, data=None, log=False,
-                               cpos=None, cfoc=None, cang=None):
+                               cpos=None, cfoc=None, cang=None, **kwargs):
         """Open vtk window to display interactive view of the wall mesh.
 
         Parameters
@@ -1525,6 +1528,8 @@ class RunMixin(DistMixin):
             Camera focal point coordinates [x, y, z].
         cang : array_like, optional
             Camera angle [azimuth, elevation, roll].
+        **kwargs
+            Keyword arguments passed to :obj:`~pyvista.Plotter`.
         """
         if wallmesh is None:
             wallmesh = self.getwall_3dmesh()
@@ -1541,4 +1546,4 @@ class RunMixin(DistMixin):
 
         a5plt.interactive(wallmesh, *args, points=points, data=data,
                           orbit=orbit, log=log,
-                          cpos=cpos, cfoc=cfoc, cang=cang)
+                          cpos=cpos, cfoc=cfoc, cang=cang, **kwargs)
