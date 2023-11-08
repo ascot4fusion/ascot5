@@ -79,91 +79,49 @@ int hdf5_asigma_read_loc(hid_t f,
     if (hdf5_read_int(ASGMPATH "nreac", &offload_data->N_reac,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
 
+    /* Read dimensionalities to allow memory alloction for offload array */
+    if (hdf5_read_int(ASGMPATH "nenergy", offload_data->N_E,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if (hdf5_read_int(ASGMPATH "ndensity", offload_data->N_n,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if (hdf5_read_int(ASGMPATH "ntemperature", offload_data->N_T,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+
     /* Helper variables for number of reactions and abscissa dimensions */
     int N_reac = offload_data->N_reac;
-    int N_E_arr[N_reac];
-    int N_n_arr[N_reac];
-    int N_T_arr[N_reac];
 
-    /* Read dimensionalities to allow memory alloction for offload array */
-    if (hdf5_read_int(ASGMPATH "nenergy", N_E_arr,
-                      f, qid, __FILE__, __LINE__) ) {return 1;}
-    if (hdf5_read_int(ASGMPATH "ndensity", N_n_arr,
-                      f, qid, __FILE__, __LINE__) ) {return 1;}
-    if (hdf5_read_int(ASGMPATH "ntemperature", N_T_arr,
-                      f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    /* Allocate space for reaction identifiers, abscissa parameters and
-       reaction data. The fixed number of needed memory space in the
-       beginning of the offload array is 14*N_reac, because there are
-       5 reaction identifiers, namely z_1, a_1, z_2, a_2 and reac_type, and
-       9 abscissa parameters, namely N_E, E_min, E_max, N_n, n_min, n_max,
-       N_T, T_min and T_max. */
-    offload_data->offload_array_length = 14*N_reac;
+    /* Allocate data for the abscissa limits [Emin,Emax,nmin,nmax,Tmin,Tmax]
+     * and then for the actual data */
+    offload_data->offload_array_length = 6*N_reac;
     for(int i_reac = 0; i_reac < N_reac; i_reac++) {
         offload_data->offload_array_length +=
-            N_E_arr[i_reac]*N_n_arr[i_reac]*N_T_arr[i_reac];
+              offload_data->N_E[i_reac] * offload_data->N_n[i_reac]
+            * offload_data->N_T[i_reac];
     }
     *offload_array = (real*) malloc(offload_data->offload_array_length
                                     *sizeof(real));
 
-    /* A temporary array for data type conversion, and pointers to the
-       beginning of different data series to make code more readable */
-    int temp_arr[N_reac];
-    real* z_1       = &(*offload_array)[ 0];
-    real* a_1       = &(*offload_array)[ 1*N_reac];
-    real* z_2       = &(*offload_array)[ 2*N_reac];
-    real* a_2       = &(*offload_array)[ 3*N_reac];
-    real* reac_type = &(*offload_array)[ 4*N_reac];
-    real* N_E       = &(*offload_array)[ 5*N_reac];
-    real* E_min     = &(*offload_array)[ 6*N_reac];
-    real* E_max     = &(*offload_array)[ 7*N_reac];
-    real* N_n       = &(*offload_array)[ 8*N_reac];
-    real* n_min     = &(*offload_array)[ 9*N_reac];
-    real* n_max     = &(*offload_array)[10*N_reac];
-    real* N_T       = &(*offload_array)[11*N_reac];
-    real* T_min     = &(*offload_array)[12*N_reac];
-    real* T_max     = &(*offload_array)[13*N_reac];
-    real* sigma     = &(*offload_array)[14*N_reac];
-
-    /* Write already above read abscissa dimensions to the offload array */
-    for(int i_reac = 0; i_reac < N_reac; i_reac++) {
-        N_E[i_reac] = (real) N_E_arr[i_reac];
-    }
-    for(int i_reac = 0; i_reac < N_reac; i_reac++) {
-        N_n[i_reac] = (real) N_n_arr[i_reac];
-    }
-    for(int i_reac = 0; i_reac < N_reac; i_reac++) {
-        N_T[i_reac] = (real) N_T_arr[i_reac];
-    }
+    real* E_min     = &(*offload_array)[0*N_reac];
+    real* E_max     = &(*offload_array)[1*N_reac];
+    real* n_min     = &(*offload_array)[2*N_reac];
+    real* n_max     = &(*offload_array)[3*N_reac];
+    real* T_min     = &(*offload_array)[4*N_reac];
+    real* T_max     = &(*offload_array)[5*N_reac];
+    real* sigma     = &(*offload_array)[6*N_reac];
 
     /* Read reaction identifiers, rest of abscissa parameters and
        reaction data into the offload array*/
-    if (hdf5_read_int(ASGMPATH "z1", temp_arr,
+    if (hdf5_read_int(ASGMPATH "z1", offload_data->z_1,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    for(int i_reac = 0; i_reac < N_reac; i_reac++) {
-        z_1[i_reac] = (real) temp_arr[i_reac];
-    }
-    if (hdf5_read_int(ASGMPATH "a1", temp_arr,
+    if (hdf5_read_int(ASGMPATH "a1", offload_data->a_1,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    for(int i_reac = 0; i_reac < N_reac; i_reac++) {
-        a_1[i_reac] = (real) temp_arr[i_reac];
-    }
-    if (hdf5_read_int(ASGMPATH "z2", temp_arr,
+    if (hdf5_read_int(ASGMPATH "z2", offload_data->z_2,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    for(int i_reac = 0; i_reac < N_reac; i_reac++) {
-        z_2[i_reac] = (real) temp_arr[i_reac];
-    }
-    if (hdf5_read_int(ASGMPATH "a2", temp_arr,
+    if (hdf5_read_int(ASGMPATH "a2", offload_data->a_2,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    for(int i_reac = 0; i_reac < N_reac; i_reac++) {
-        a_2[i_reac] = (real) temp_arr[i_reac];
-    }
-    if (hdf5_read_int(ASGMPATH "reactype", temp_arr,
+    if (hdf5_read_int(ASGMPATH "reactype", offload_data->reac_type,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    for(int i_reac = 0; i_reac < N_reac; i_reac++) {
-        reac_type[i_reac] = (real) temp_arr[i_reac];
-    }
+
     if (hdf5_read_double(ASGMPATH "energymin", E_min,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if (hdf5_read_double(ASGMPATH "energymax", E_max,
