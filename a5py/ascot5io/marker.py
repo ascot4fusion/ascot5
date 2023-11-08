@@ -142,23 +142,23 @@ class Marker(DataGroup):
             species = getspecies(species)
 
         if mrktype == "prt":
-            mrk["vr"]     = np.zeros((n,))
-            mrk["vz"]     = np.zeros((n,))
-            mrk["vphi"]   = np.zeros((n,))
+            mrk["vr"]     = np.zeros((n,)) * unyt.m/unyt.s
+            mrk["vz"]     = np.zeros((n,)) * unyt.m/unyt.s
+            mrk["vphi"]   = np.zeros((n,)) * unyt.m/unyt.s
             mrk["mass"]   = species["mass"] * np.ones((n,))
             mrk["charge"] = species["charge"] * np.ones((n,), dtype=np.int16)
             mrk["anum"]   = species["anum"]   * np.ones((n,), dtype=np.int16)
             mrk["znum"]   = species["znum"]   * np.ones((n,), dtype=np.int16)
         if mrktype == "gc":
-            mrk["pitch"]  = np.zeros((n,))
-            mrk["energy"] = np.zeros((n,))
-            mrk["zeta"]   = np.zeros((n,))
+            mrk["pitch"]  = np.zeros((n,)) * unyt.dimensionless
+            mrk["energy"] = np.zeros((n,)) * unyt.eV
+            mrk["zeta"]   = np.zeros((n,)) * unyt.rad
             mrk["mass"]   = species["mass"] * np.ones((n,))
             mrk["charge"] = species["charge"] * np.ones((n,), dtype=np.int16)
             mrk["anum"]   = species["anum"]   * np.ones((n,), dtype=np.int16)
             mrk["znum"]   = species["znum"]   * np.ones((n,), dtype=np.int16)
         if mrktype == "fl":
-            mrk["pitch"]  = np.zeros((n,))
+            mrk["pitch"]  = np.zeros((n,)) * unyt.dimensionless
 
         return mrk
 

@@ -12,7 +12,7 @@ import wurlitzer # For muting libascot.so
 
 from numpy.ctypeslib import ndpointer
 
-from a5py.physlib import momentum_velocity
+from a5py import physlib
 from a5py.routines.virtualrun import VirtualRun
 from a5py.exceptions import *
 
@@ -195,60 +195,93 @@ class LibSimulate():
 
         # particle
         if "vr" in mrk:
+            @physlib.parseunits(r="m", phi="deg", z="m", time="s", mass="amu",
+                                charge="e", vr="m/s", vphi="m/s", vz="m/s")
+            def parse(r, phi, z, time, mass, charge, vr, vphi, vz, weight, ids):
+                return r, phi.to("rad"), z, time, mass.to("kg"), \
+                    charge.to("C"), vr, vphi, vz, weight, ids
+
+            r, phi, z, t, m, q, vr, vphi, vz, anum, znum, w, ids = parse(
+                mrk["r"], mrk["phi"], mrk["z"], mrk["time"], mrk["mass"],
+                mrk["charge"], mrk["vr"], mrk["vphi"], mrk["vz"],
+                mrk["anum"], mrk["znum"], mrk["weight"], mrk["ids"])
+
             for i in range(nmrk):
                 pin[i].type = ascot2py.input_particle_type_p
                 p = pin[i].p
 
-                vvec = np.array([mrk["vr"][i], mrk["vphi"][i], mrk["vz"][i]]) * unyt.m/unyt.s
-                pvec = momentum_velocity(mrk["mass"][i], vvec)
+                vvec = np.array([vr[i], vphi[i], vz[i]])
+                pvec = physlib.momentum_velocity(mass[i], vvec)
 
-                p.r       = mrk["r"][i]
-                p.phi     = mrk["phi"][i] * np.pi / 180
-                p.z       = mrk["z"][i]
+                p.r       = r[i]
+                p.phi     = phi
+                p.z       = z[i]
                 p.p_r     = pvec[0]
                 p.p_phi   = pvec[1]
                 p.p_z     = pvec[2]
-                p.mass    = mrk["mass"][i]
-                p.charge  = mrk["charge"][i]
-                p.anum    = mrk["anum"][i]
-                p.znum    = mrk["znum"][i]
-                p.weight  = mrk["weight"][i]
-                p.time    = mrk["time"][i]
-                p.id      = mrk["ids"][i]
+                p.mass    = m[i]
+                p.charge  = q[i]
+                p.anum    = anum[i]
+                p.znum    = znum[i]
+                p.weight  = w[i]
+                p.time    = t[i]
+                p.id      = ids[i]
 
         # particle gc
         elif "energy" in mrk:
+            @physlib.parseunits(r="m", phi="deg", z="m", time="s", mass="amu",
+                                charge="e", energy="eV", zeta="rad")
+            def parse(r, phi, z, time, mass, charge, energy, pitch, zeta,
+                      anum, znum, weight, ids):
+                return r, phi.to("rad"), z, time, mass.to("kg"), \
+                    charge.to("C"), energy.to("J"), pitch, zeta, anum, znum, \
+                    weight, ids
+
+            r, phi, z, t, m, q, energy, pitch, zeta, anum, znum, w, ids = parse(
+                mrk["r"], mrk["phi"], mrk["z"], mrk["time"], mrk["mass"],
+                mrk["charge"], mrk["energy"], mrk["pitch"], mrk["zeta"],
+                mrk["anum"], mrk["znum"], mrk["weight"], mrk["ids"])
+
             for i in range(nmrk):
                 pin[i].type = ascot2py.input_particle_type_gc
                 p = pin[i].p_gc
 
-                p.r       = mrk["r"][i]
-                p.phi     = mrk["phi"][i] * np.pi / 180
-                p.z       = mrk["z"][i]
-                p.energy  = mrk["energy"][i] * unyt.elementary_charge.value
-                p.pitch   = mrk["pitch"][i]
-                p.zeta    = mrk["zeta"][i]
-                p.mass    = mrk["mass"][i] * unyt.atomic_mass_unit.value
-                p.charge  = mrk["charge"][i] * unyt.elementary_charge.value
-                p.anum    = mrk["anum"][i]
-                p.znum    = mrk["znum"][i]
-                p.weight  = mrk["weight"][i]
-                p.time    = mrk["time"][i]
-                p.id      = mrk["ids"][i]
+                p.r       = r[i]
+                p.phi     = phi[i]
+                p.z       = z[i]
+                p.energy  = energy[i]
+                p.pitch   = pitch[i]
+                p.zeta    = zeta[i]
+                p.mass    = m[i]
+                p.charge  = q[i]
+                p.anum    = anum[i]
+                p.znum    = znum[i]
+                p.weight  = w[i]
+                p.time    = t[i]
+                p.id      = ids[i]
 
         # particle fl
         else:
+            @physlib.parseunits(r="m", phi="deg", z="m", time="s",
+                                energy="eV", zeta="rad")
+            def parse(r, phi, z, time, pitch, weight, ids):
+                return r, phi.to("rad"), z, time, pitch, weight, ids
+
+            r, phi, z, t, pitch, w, ids = parse(
+                mrk["r"], mrk["phi"], mrk["z"], mrk["time"], mrk["pitch"],
+                mrk["weight"], mrk["ids"])
+
             for i in range(nmrk):
                 pin[i].type = ascot2py.input_particle_type_ml
                 p = pin[i].p_ml
 
-                p.r       = mrk["r"][i]
-                p.phi     = mrk["phi"][i] * np.pi / 180
-                p.z       = mrk["z"][i]
-                p.pitch   = mrk["pitch"][i]
-                p.weight  = mrk["weight"][i]
-                p.time    = mrk["time"][i]
-                p.id      = mrk["ids"][i]
+                p.r       = r[i]
+                p.phi     = phi[i]
+                p.z       = z[i]
+                p.pitch   = pitch[i]
+                p.weight  = w[i]
+                p.time    = t[i]
+                p.id      = ids[i]
 
         def initmarkers():
             ascot2py.prepare_markers(
