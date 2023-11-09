@@ -1,17 +1,20 @@
-"""Test Ascot5IO.
+"""Test functionality of a5py.
 """
 import numpy as np
 import h5py
 import time
+import unyt
 import unittest
 import datetime
 import subprocess
 import importlib
+import matplotlib.pyplot as plt
 
-from a5py import Ascot
-from a5py.exceptions import AscotIOException
+import a5py.routines.plotting as a5plt
+from a5py import Ascot, AscotInitException, AscotIOException
 from a5py.ascot5io.coreio import fileapi
 from a5py.ascot5io.state import State
+from a5py.ascot5io.marker import Marker
 
 class TestAscot5IO(unittest.TestCase):
     """Class to test `ascot5io` module.
@@ -339,6 +342,669 @@ class TestAscot5IO(unittest.TestCase):
         """Remove the file used in testing.
         """
         subprocess.run(["rm", "-f", self.testfilename])
+
+class TestAscot(unittest.TestCase):
+    """Class for testing :class:`Ascot` object.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """Create and run a test case.
+
+        Assumes ascot5_main is located in the same folder.
+        """
+        super(TestAscot, cls).setUpClass()
+        a5 = Ascot("unittest.h5", create=True)
+        a5.data.create_input("options tutorial")
+        a5.data.create_input("bfield analytical iter circular", splines=False)
+        a5.data.create_input("wall rectangular")
+        a5.data.create_input("plasma flat")
+
+        from a5py.ascot5io.marker import Marker
+        mrk = Marker.generate("gc", n=100, species="alpha")
+        mrk["energy"][:] = 3.5e6
+        #mrk["pitch"][:]  = 0.99 - 1.98 * np.random.rand(100,)
+        mrk["pitch"][:]  = -0.99 - 0 * np.random.rand(100,)
+        mrk["r"][:]      = np.linspace(6.2, 8.2, 100)
+        a5.data.create_input("gc", **mrk)
+        a5.data.create_input("E_TC", exyz=np.array([0,0,0]))
+        a5.data.create_input("E_TC", exyz=np.array([0,0,0]), desc="UNUSED")
+
+        a5.data.create_input("N0_3D")
+        a5.data.create_input("Boozer")
+        a5.data.create_input("MHD_STAT")
+        a5.data.create_input("asigma_loc")
+
+        name = a5.data.options.active.new(
+            ENDCOND_MAX_MILEAGE=0.5e-4, DIST_MIN_CHARGE=1.5,
+            DIST_MAX_CHARGE=2.5, DIST_NBIN_PPE=10, DIST_NBIN_PPA=20,
+            DIST_NBIN_PHI=3, DIST_NBIN_R=10, DIST_NBIN_Z=10, DIST_NBIN_RHO=10,
+            desc="Fast")
+        a5.data.options[name].activate()
+
+        subprocess.run(["./../../build/ascot5_main", "--in=unittest.h5"])
+
+    @classmethod
+    def tearDownClass(cls):
+        super(TestAscot, cls).tearDownClass()
+        subprocess.run(["rm", "-f", "unittest.h5"])
+
+    def test_initandsim(self):
+        """Test :class:`Ascotpy` initialization and simulation routines.
+        """
+        a5 = Ascot("unittest.h5")
+        a5.data.active.efield.activate()
+        allinps = ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
+                    "mhd", "asigma"]
+
+        # Test basic init and free
+        a5.input_init()
+        inps = a5.input_initialized()
+        self.assertCountEqual(inps.keys(), allinps,
+                              "Not all inputs were initialized.")
+        a5.input_free()
+        inps = a5.input_initialized()
+        self.assertTrue(len(inps) == 0,
+                        "Not all inputs were free'd.")
+
+        # Test explicit init and free
+        a5.input_init(efield=True)
+        inps = a5.input_initialized()
+        self.assertCountEqual(inps.keys(), ["efield"],
+                              "Explicit initialization failed.")
+        a5.input_free(bfield=True)
+        inps = a5.input_initialized()
+        self.assertCountEqual(inps.keys(), ["efield"],
+                              "Explicit free failed.")
+        a5.input_free(efield=True)
+        inps = a5.input_initialized()
+        self.assertTrue(len(inps) == 0,
+                        "Explicit free failed.")
+
+        # Test init and free with multiple inputs of same type
+        a5.input_init(efield=True)
+        inps = a5.input_initialized()
+        self.assertEqual(inps["efield"], a5.data.efield.active.get_qid(),
+                         "Initialized input was not the active one.")
+
+        try:
+            a5.input_init(efield=True)
+        except AscotInitException:
+            self.fail("Re-initializing same input failed.")
+
+        with self.assertRaises(
+                AscotInitException,
+                msg="Initializing occupied input did not raise exception."):
+            a5.input_init(efield=a5.data.efield["UNUSED"].get_qid())
+
+        with self.assertRaises(
+                AscotIOException,
+                msg="Initializing nonexistent input did not raise exception."):
+            a5.input_init(efield="0123456789")
+
+        try:
+            a5.input_init(efield=a5.data.efield["UNUSED"].get_qid(),
+                          switch=True)
+        except AscotInitException:
+            self.fail("Switch did not work.")
+
+        a5.input_free(efield=True)
+        inps = a5.input_initialized()
+        self.assertTrue(len(inps) == 0,
+                        "Not all inputs were free'd.")
+
+        # Double free should be ok
+        a5.input_free(bfield=True)
+        a5.input_free()
+
+        # Test init from run
+        a5.data.efield["UNUSED"].activate()
+        a5.input_init(run=True, efield=True)
+        inps = a5.input_initialized()
+        self.assertEqual(inps["efield"], a5.data.active.efield.get_qid(),
+                         "Initialized input was not the correct one.")
+        a5.input_free(efield=True)
+
+        # Give run QID, init all inputs
+        a5.input_init(run=a5.data.active.get_qid())
+        inps = a5.input_initialized()
+        self.assertEqual(inps["efield"], a5.data.active.efield.get_qid(),
+                         "Initialized input was not the correct one.")
+        a5.input_free()
+        a5.data.active.efield.activate()
+
+        # Test packing
+        a5.simulation_initinputs()
+        with self.assertRaises(
+                AscotInitException,
+                msg="Trying to init packed data should raise an exception."):
+            a5.input_init(efield=a5.data.efield["UNUSED"].get_qid())
+
+        # Test marker and options initialization
+        opt = a5.data.options.active.read()
+        opt.update({"ENDCOND_MAX_MILEAGE" : 1e-10})
+        a5.simulation_initoptions(**opt)
+
+        mrk = a5.data.marker.active.read()
+        a5.simulation_initmarkers(**mrk)
+
+        # Run simulation and test output initialization
+        a5.simulation_run(printsummary=False)
+
+        # Verify that simulations can't be run when data is occupied
+        with self.assertRaises(
+                AscotInitException,
+                msg="Trying to run with occupied output should cause an error"):
+            a5.simulation_run(printsummary=False)
+
+        # This should run
+        a5.simulation_free(diagnostics=True)
+        a5.simulation_run(printsummary=False)
+        a5.simulation_free(diagnostics=True)
+
+        # Can't run when input is missing
+        a5.simulation_free(markers=True, diagnostics=True)
+        with self.assertRaises(
+                AscotInitException,
+                msg="Trying to run without markers should cause an error"):
+            a5.simulation_run(printsummary=False)
+
+        # Init markers but free inputs
+        a5.simulation_initmarkers(**mrk)
+        a5.simulation_free(inputs=True)
+        with self.assertRaises(
+                AscotInitException,
+                msg="Trying to run without input should cause an error"):
+            a5.simulation_run(printsummary=False)
+
+        # Free everyting
+        a5.simulation_free()
+        with self.assertRaises(
+                AscotInitException,
+                msg="Trying to run without input should cause an error"):
+            a5.simulation_run(printsummary=False)
+
+    def test_eval(self):
+        """Test :class:`Ascotpy` evaluation routines.
+        """
+        a5 = Ascot("unittest.h5")
+
+        # Input evaluations
+        a5.input_init()
+        inputqnts = a5.input_eval_list(show=False)
+        r = 6.2 * unyt.m; phi = 0 * unyt.deg; z = 0 * unyt.m; t = 0 * unyt.s
+        br, bphi, bz = a5.input_eval(r, phi, z, t, "br", "bphi", "bz")
+        for q in inputqnts:
+            out = a5.input_eval(r, phi, z, t, q)
+        a5.input_free()
+
+        # State evaluations
+        a5.input_init(bfield=True)
+        e, v, m = a5.data.active.getstate(
+            "ekin", "vpar", "mu", endcond="tlim", ids=1)
+        self.assertTrue(
+            e.units == unyt.eV and v.units == unyt.m/unyt.s and \
+            m.units == unyt.eV/unyt.T and e.size==1 and v.size==1 and \
+            m.size==1,
+            "State evaluation failed")
+        outputqnts = a5.data.active.getstate_list()
+        for q in outputqnts:
+            out = a5.data.active.getstate(q)
+
+        # Orbit evaluations
+        e, v, m = a5.data.active.getorbit(
+            "ekin", "vpar", "mu", endcond="tlim", ids=1)
+        self.assertTrue(
+            e.units == unyt.eV and v.units == unyt.m/unyt.s and \
+            m.units == unyt.eV/unyt.T,
+            "Orbit evaluation failed")
+        outputqnts = a5.data.active.getorbit_list()
+        for q in outputqnts:
+            out = a5.data.active.getorbit(q)
+        a5.input_free()
+
+        # Packing should not prevent input evaluation
+        a5.simulation_initinputs()
+        out = a5.input_eval(r, phi, z, t, "bnorm")
+
+        # Prepare simulation data
+        opt = a5.data.options.active.read()
+        opt.update({"ENDCOND_MAX_MILEAGE" : 1e-7})
+        a5.simulation_initoptions(**opt)
+        mrk = a5.data.marker.active.read()
+        a5.simulation_initmarkers(**mrk)
+        vrun = a5.simulation_run(printsummary=False)
+
+        # Virtual state evaluations
+        e, v, m = vrun.getstate(
+            "ekin", "vpar", "mu", endcond="tlim", ids=1)
+        self.assertTrue(
+            e.units == unyt.eV and v.units == unyt.m/unyt.s and \
+            m.units == unyt.eV/unyt.T and e.size==1 and v.size==1 and \
+            m.size==1,
+            "Virtual state evaluation failed")
+        outputqnts = a5.data.active.getstate_list()
+        for q in outputqnts:
+            out = vrun.getstate(q)
+
+        # Virtual orbit evaluations
+        out = vrun.getorbit("r", "phi", "z")
+        e, v, m = vrun.getorbit(
+            "ekin", "vpar", "mu", endcond="tlim", ids=1)
+        self.assertTrue(
+            e.units == unyt.eV and v.units == unyt.m/unyt.s and \
+            m.units == unyt.eV/unyt.T,
+            "Virtual orbit evaluation failed")
+        outputqnts = vrun.getorbit_list()
+        for q in outputqnts:
+            out = a5.data.active.getorbit(q)
+        a5.simulation_free()
+
+    def test_dist(self):
+        """Test distribution postprocessing.
+        """
+        a5 = Ascot("unittest.h5")
+
+        # Test volume calculation
+        R,Z = np.meshgrid(np.linspace(3,7,101), np.linspace(-2,2,101))
+        psi = np.sqrt((R-5)**2 + (Z-0)**2)
+        bdata = {"rmin":3, "rmax":7, "nr":101, "zmin":-2, "zmax":2, "nz":101,
+                 "axisr":5, "axisz":0, "psi":psi, "psi0":0, "psi1":1,
+                 "br":psi*0, "bphi":psi*0, "bz":psi*0}
+        qid = a5.data.create_input("B_2DS", **bdata).split("_")[-1]
+
+        try:
+            a5.input_init(bfield=qid)
+            vol1, area1, r1, p1, z1 = a5.input_rhovolume(
+                method="prism", nrho=5, ntheta=4, nphi=3, return_area=True,
+                return_coords=True)
+            vol2, area2, r2, p2, z2 = a5.input_rhovolume(
+                method="mc", nrho=5, ntheta=4, nphi=3, return_area=True,
+                return_coords=True)
+            a5.input_free()
+        except:
+            a5.input_free()
+            raise
+
+        print(r1.shape, r2.shape)
+        print(p1.shape, p2.shape)
+        print(z1.shape, z2.shape)
+        delta = 1
+        vol0 = 2*np.pi*5*np.pi*1.0**2
+        print(
+            """
+            Volume calculation:
+            %3.3f %3.3f %3.3f
+            """ % (np.sum(vol1).v, np.sum(vol2).v, vol0)
+        )
+        self.assertAlmostEqual(
+            np.sum(vol1).v, vol0, None, "Volume calculation with prism failed",
+            delta)
+        self.assertAlmostEqual(
+            np.sum(vol2).v, vol0, None, "Volume calculation with MC failed",
+            delta)
+        area0 = np.pi*1.0**2
+        print(
+            """
+            Area calculation:
+            %3.3f %3.3f %3.3f
+            """ % (np.sum(area1[:,:,0]).v, np.sum(area2[:,:,0]).v, area0)
+        )
+        self.assertAlmostEqual(
+            np.sum(area1[:,:,0]).v, area0, None,
+            "Area calculation with prism failed", delta)
+        self.assertAlmostEqual(
+            np.sum(area2[:,:,0]).v, area0, None,
+            "Area calculation with MC failed", delta)
+
+        # Test distribution initializing
+        a5.data.active.getdist("5d")
+        a5.data.active.getdist("rho5d")
+        a5.data.active.getdist("6d")
+        a5.data.active.getdist("rho6d")
+        a5.data.active.getdist("com")
+
+        # Test slicing, interpolating, and integrating
+        dist = a5.data.active.getdist("5d")
+        dist.integrate(charge=np.s_[:], time=np.s_[:])
+        self.assertFalse("charge" in dist.abscissae, "Integration failed")
+        self.assertFalse("time"   in dist.abscissae, "Integration failed")
+
+        dist.slice(ppar=np.s_[0], pperp=np.s_[0])
+        self.assertTrue(dist.abscissa("ppar").size == 1, "Slicing failed")
+        self.assertTrue(dist.abscissa("pperp").size == 1, "Slicing failed")
+
+        out = dist.interpolate(phi=2*unyt.deg, r=6.2*unyt.m)
+        self.assertEqual(out.size, dist.abscissa("z").size,
+                         "Integration/slicing/interpolation failed")
+
+        # Get 5D distribution in both momentum spaces and verify the number of
+        # particles is same
+        dist    = a5.data.active.getdist("5d")
+        exidist = a5.data.active.getdist("5d", exi=True, ekin_edges=10,
+                                         pitch_edges=20, plotexi=False)
+        time, weight = a5.data.active.getstate("mileage", "weight", state="end")
+        self.assertAlmostEqual(np.sum(dist.histogram().v),
+                               np.sum(time*weight).v, None,
+                               "Distribution not valid",
+                               0.001)
+        self.assertAlmostEqual(np.sum(exidist.histogram().v),
+                               np.sum(time*weight).v, None,
+                               "Converting ppar-pperp to ekin-pitch failed",
+                               0.001)
+
+        a5.input_init(bfield=True)
+        rhodist    = a5.data.active.getdist("rho5d")
+        rhoexidist = a5.data.active.getdist("rho5d", exi=True)
+        mom1 = a5.data.active.getdist_moments(dist, "density")
+        mom2 = a5.data.active.getdist_moments(exidist, "density")
+        mom3 = a5.data.active.getdist_moments(rhodist, "density")
+        mom4 = a5.data.active.getdist_moments(rhoexidist, "density")
+        a5.input_free()
+        print(np.sum(mom1.ordinate("density") * mom1.volume),
+              np.sum(mom2.ordinate("density") * mom2.volume),
+              np.sum(mom3.ordinate("density") * mom3.volume),
+              np.sum(mom4.ordinate("density") * mom4.volume))
+
+        self.assertAlmostEqual(np.sum(mom1.ordinate("density") * mom1.volume).v,
+                               np.sum(time*weight).v, None,
+                               "Converting ppar-pperp to ekin-pitch failed",
+                               0.001)
+        self.assertAlmostEqual(np.sum(mom2.ordinate("density") * mom2.volume).v,
+                               np.sum(time*weight).v, None,
+                               "Converting ppar-pperp to ekin-pitch failed",
+                               0.001)
+        self.assertAlmostEqual(np.sum(mom3.ordinate("density") * mom3.volume).v,
+                               np.sum(time*weight).v, None,
+                               "Converting ppar-pperp to ekin-pitch failed",
+                               0.001)
+        self.assertAlmostEqual(np.sum(mom4.ordinate("density") * mom4.volume).v,
+                               np.sum(time*weight).v, None,
+                               "Converting ppar-pperp to ekin-pitch failed",
+                               0.001)
+
+class TestMoments(unittest.TestCase):
+    """Class for testing distribution moments.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """Create and run a test case.
+
+        Assumes ascot5_main is located in the same folder.
+        """
+        super(TestMoments, cls).setUpClass()
+        a5 = Ascot("unittest.h5", create=True)
+        a5.data.create_input("options tutorial")
+        a5.data.create_input("bfield analytical iter circular")
+        a5.data.create_input("wall rectangular")
+        a5.data.create_input("plasma flat")
+
+        from a5py.ascot5io.marker import Marker
+        mrk = Marker.generate("gc", n=1, species="alpha")
+        mrk["energy"][:] = 3.5e6
+        mrk["pitch"][:]  = 0.7
+        mrk["r"][:]      = 7.8
+        a5.data.create_input("gc", **mrk)
+        a5.data.create_input("E_TC", exyz=np.array([0,0,0]))
+
+        a5.data.create_input("N0_3D")
+        a5.data.create_input("Boozer")
+        a5.data.create_input("MHD_STAT")
+        a5.data.create_input("asigma_loc")
+
+        name = a5.data.options.active.new(
+            ENDCOND_MAX_MILEAGE=1.5e-3, DIST_NBIN_TIME=1, DIST_MIN_CHARGE=1.5,
+            DIST_MAX_CHARGE=2.5, DIST_NBIN_CHARGE=1, DIST_MIN_R=4, DIST_MAX_R=8,
+            DIST_MIN_Z=-2, DIST_MAX_Z=2,
+            ENABLE_DIST_6D=0, ENABLE_DIST_RHO6D=1, ENABLE_DIST_COM=0,
+            DIST_NBIN_PHI=1, DIST_NBIN_R=50, DIST_NBIN_Z=100,
+            DIST_NBIN_PPE=50, DIST_NBIN_PPA=50,
+            DIST_NBIN_THETA=2,  DIST_NBIN_RHO=10, ENABLE_COULOMB_COLLISIONS=1,
+            ORBITWRITE_NPOINT=60000)
+        a5.data.options[name].activate()
+
+        subprocess.run(["./../../build/ascot5_main", "--in=unittest.h5"])
+
+    @classmethod
+    def tearDownClass(cls):
+        super(TestMoments, cls).tearDownClass()
+        subprocess.run(["rm", "-f", "unittest.h5"])
+
+    def test_moments(self):
+        a5 = Ascot("unittest.h5")
+        ordinates = ["density", "chargedensity", "energydensity", "pressure",
+                     "toroidalcurrent", "parallelcurrent", "powerdep",
+                     "electronpowerdep", "ionpowerdep"]
+        #ordinates = ["jxbtorque"]
+
+        a5.input_init(bfield=True, plasma=True)
+        dist    = a5.data.active.getdist("5d")
+        mom     = a5.data.active.getdist_moments(dist, *ordinates)
+        rhodist = a5.data.active.getdist("rho5d")
+        rhomom  = a5.data.active.getdist_moments(rhodist, *ordinates)
+
+        re = dist.abscissa_edges("r")
+        ze = dist.abscissa_edges("z")
+        v1, v2 = np.meshgrid(re[1:]**2 - re[:-1]**2, ze[1:] - ze[:-1])
+        vol = np.pi * v1 * v2
+
+        rho, r, z, phi, psi, weight, time,  \
+        charge, energy, vphi, vnorm, vpar,  \
+        mass, p, pitch, bnorm, bphi, ppar = \
+            a5.data.active.getorbit("rho", "r", "z", "phi", "psi", "weight",
+                                    "mileage", "charge", "ekin", "vphi",
+                                    "vnorm", "vpar", "mass", "pnorm", "pitch",
+                                    "bnorm", "bphi", "ppar")
+        ei, psii, Pphii = a5.data.active.getstate("ekin", "psi", "pphi",
+                                                  state="ini")
+        ef, tf = a5.data.active.getstate("ekin", "mileage", state="end")
+        dt = np.diff(time, prepend=0)
+
+        k, nu = a5.input_eval_collcoefs(
+            mass[0], charge[0], r, phi, z, time, vnorm, "k", "nu",
+            grid=False)
+        dEtot_d = p * dt * np.sum(k, axis=0)
+        dEele_d = p * dt * k[0,:]
+        dEion_d = p * dt * np.sum(k[1:,:], axis=0)
+        dpsi    = np.zeros(psi.shape) * psi.units
+        dpsi[0] = psi[0] - psii
+        dpsi[1:] = psi[1:] - psi[:-1]
+        nu      = np.sum(nu, axis=0)
+        k       = np.sum(k, axis=0)
+        dppar   = mass * k * pitch - p * pitch * nu
+        Pphi    = ppar * r * (bphi/bnorm) + charge * psi
+        dPphi   = np.diff(Pphi, prepend=Pphi[0])
+
+        a5.input_free()
+
+        mrkdist = {}
+        mrkdist["density"]          = weight * dt
+        mrkdist["chargedensity"]    = weight * charge * dt
+        mrkdist["energydensity"]    = weight * ( energy * dt ).to("J")
+        mrkdist["pressure"]         = weight * (mass * vnorm**2 * dt).to("J")/3
+        mrkdist["toroidalcurrent"]  = weight * ( charge * vphi * dt ).to("A*m")
+        mrkdist["parallelcurrent"]  = weight * ( charge * vpar * dt ).to("A*m")
+        mrkdist["powerdep"]         = weight * dEtot_d.to("W")
+        mrkdist["electronpowerdep"] = weight * dEele_d.to("W")
+        mrkdist["ionpowerdep"]      = weight * dEion_d.to("W")
+        mrkdist["jxbtorque"]        = weight * (-charge * dpsi/unyt.s).to("N*m")
+        mrkdist["colltorque"]       = weight * (r*dppar*(bphi/bnorm)*dt).to("J")
+        mrkdist["canmomtorque"]     = weight * -charge * dPphi
+
+        print(weight[0]*tf)
+        print(((ef-ei)*weight[0]/unyt.s).to("W"))
+        for o in ordinates:
+            a1 = np.sum(rhomom.ordinate(o) * rhomom.volume)
+            a2 = np.sum(mom.ordinate(o) * mom.volume)
+            a3 = np.sum(mrkdist[o])
+            print(o, a1, a2, a3)
+
+class TestPlotting(unittest.TestCase):
+
+    def tearDown(self):
+        try:
+            a5 = Ascot("unittest.h5")
+            a5.simulation_free()
+        except:
+            pass
+        subprocess.run(["rm", "-f", "unittest.h5"])
+
+    def initandrunsim(self, simtime):
+        a5 = Ascot("unittest.h5", create=True)
+        a5.data.create_input("options tutorial")
+        a5.data.create_input("bfield analytical iter circular")
+        a5.data.create_input("wall rectangular")
+        a5.data.create_input("plasma flat")
+        a5.data.create_input("E_TC", exyz=np.array([0,0,0]))
+        a5.data.create_input("N0_3D")
+        a5.data.create_input("Boozer")
+        a5.data.create_input("MHD_STAT")
+        a5.data.create_input("asigma_loc")
+
+        a5.simulation_initinputs()
+
+        mrk = Marker.generate("gc", n=100, species="alpha")
+        mrk["weight"][:] = 10**(10 +10*np.random.rand(100,))
+        mrk["energy"][:] = 3.5e6
+        mrk["pitch"][:]  = 0.99 - 1.98 * np.random.rand(100,)
+        mrk["r"][:]      = np.linspace(6.2, 8.5, 100)
+        a5.simulation_initmarkers(**mrk)
+
+        opt = a5.data.options.active.read()
+        opt.update(ENDCOND_MAX_MILEAGE=simtime)
+        a5.simulation_initoptions(**opt)
+        return a5.simulation_run()
+
+    def test_input_plotrz(self):
+        a5 = Ascot("unittest.h5", create=True)
+        a5.data.create_input("bfield analytical iter circular", splines=True,
+                             axisymmetric=True)
+        a5.data.create_input("plasma flat")
+        a5.input_init(bfield=True, plasma=True)
+
+        fig = plt.figure(figsize=(30,40))
+
+        r = np.linspace( 3.0, 9.0,  50) * unyt.m
+        z = np.linspace(-2.0, 2.0, 100) * unyt.m
+
+        ax = fig.add_subplot(2,4,1)
+        a5.input_plotrz(r, z, "bnorm", clim=[None, None], cmap=None, axes=ax)
+
+        ax = fig.add_subplot(2,4,5)
+        a5.input_plotrz(r, z, "bnorm", clim=[0, 10], cmap="Greys", axes=ax)
+
+        ax = fig.add_subplot(2,4,2)
+        a5.input_plotrz(r, z, "br", clim=[None, None], cmap=None, axes=ax)
+
+        ax = fig.add_subplot(2,4,6)
+        a5.input_plotrz(r, z, "br", clim=[-1, 1], cmap="PuOr", axes=ax)
+
+        ax = fig.add_subplot(2,4,3)
+        a5.input_plotrz(r, z, "log ne", clim=[None, None], cmap=None, axes=ax)
+
+        ax = fig.add_subplot(2,4,7)
+        a5.input_plotrz(r, z, "log ne", clim=[1e10, 1e22],
+                        cmap="Greys", axes=ax)
+
+        ax = fig.add_subplot(2,4,4)
+        a5.input_plotrz(r, z, "log divb", clim=[None, None],
+                        cmap=None, axes=ax)
+
+        ax = fig.add_subplot(2,4,8)
+        a5.input_plotrz(r, z, "log divb",clim=[-1e-14, 1e-14],
+                        cmap="PuOr",axes=ax)
+
+        a5.input_free()
+        plt.show(block=False)
+
+    def test_plotstate_scatter(self):
+        vr = self.initandrunsim(1e-3)
+        fig = plt.figure(figsize=(30,40))
+
+        ax = fig.add_subplot(2,3,1)
+        vr.plotstate_scatter("end rho", "log end ekin",
+                             axesequal=False, axes=ax)
+
+        ax = fig.add_subplot(2,3,2)
+        vr.plotstate_scatter("ini rho", "log diff ekin",
+                             axesequal=False, axes=ax)
+
+        ax = fig.add_subplot(2,3,3)
+        vr.plotstate_scatter("log end x", "log end y", c="log diff phi",
+                             axesequal=True, axes=ax)
+
+        ax = fig.add_subplot(2,3,4, projection="3d")
+        vr.plotstate_scatter("end x", "end y", "end z",
+                             axesequal=True, axes=ax)
+
+        ax = fig.add_subplot(2,3,5, projection="3d")
+        vr.plotstate_scatter("end x", "end y", "end z", c="end rho",
+                             axesequal=True, axes=ax)
+
+        ax = fig.add_subplot(2,3,6, projection="3d")
+        vr.plotstate_scatter("log end x", "log end y", "log end z",
+                             c="log diff phi", axesequal=True, axes=ax)
+
+        plt.show(block=False)
+
+    def test_plotstate_histogram(self):
+        vr = self.initandrunsim(1e-4)
+        fig = plt.figure(figsize=(30,40))
+
+        ax = fig.add_subplot(2,3,1)
+        vr.plotstate_histogram("end phimod", axes=ax)
+
+        ax = fig.add_subplot(2,3,2)
+        vr.plotstate_histogram("log end phi", xbins=10, endcond="WALL", axes=ax)
+
+        ax = fig.add_subplot(2,3,3)
+        vr.plotstate_histogram("end ekin", xbins=np.linspace(0,4e6,100),
+                               logscale=True, weight=True, axes=ax)
+
+        ax = fig.add_subplot(2,3,4)
+        vr.plotstate_histogram("end phimod", "end thetamod", axes=ax)
+
+        ax = fig.add_subplot(2,3,5)
+        vr.plotstate_histogram("log end phi", "log end theta", endcond="WALL",
+                               axes=ax)
+
+        ax = fig.add_subplot(2,3,6)
+        vr.plotstate_histogram("end phimod", "end thetamod", logscale=True,
+                               weight=True, axes=ax)
+
+        plt.show(block=False)
+
+    def test_plotorbit_trajectory(self):
+        vr = self.initandrunsim(1e-4)
+        fig = plt.figure(figsize=(30,40))
+
+        ax = fig.add_subplot(2,3,1)
+        vr.plotorbit_trajectory("r", "z",
+                                axesequal=True, axes=ax)
+
+        ax = fig.add_subplot(2,3,2)
+        vr.plotorbit_trajectory("mileage", "reldiff ekin", c="rho",
+                                axesequal=False, axes=ax)
+
+        ax = fig.add_subplot(2,3,3)
+        vr.plotorbit_trajectory("log mileage", "log reldiff ekin",
+                                c="log rho",
+                                axesequal=False, axes=ax)
+
+        ax = fig.add_subplot(2,3,4, projection="3d")
+        vr.plotorbit_trajectory("x", "y", "z",
+                                axesequal=True, axes=ax)
+
+        ax = fig.add_subplot(2,3,5, projection="3d")
+        vr.plotorbit_trajectory("x", "y", "z", c="diff ekin",
+                                axesequal=True, axes=ax)
+
+        ax = fig.add_subplot(2,3,6, projection="3d")
+        vr.plotorbit_trajectory("log x", "log y", "log z", c="log diff ekin",
+                                axesequal=True, axes=ax)
+
+        plt.show(block=False)
 
 if __name__ == '__main__':
     unittest.main()
