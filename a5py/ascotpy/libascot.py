@@ -303,12 +303,12 @@ class LibAscot:
 
         fun = _LIBASCOT.libascot_neutral_eval_density
         fun.restype  = None
-        fun.argtypes = [PTR_SIM, PTR_ARR,
+        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
                         ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
                         PTR_REAL]
 
-        fun(ctypes.byref(self._sim), self._neutral_offload_array,
-            Neval, r, phi, z, t, out["n0"])
+        fun(ctypes.byref(self._sim), self._bfield_offload_array,
+            self._neutral_offload_array, Neval, r, phi, z, t, out["n0"])
 
         return out
 

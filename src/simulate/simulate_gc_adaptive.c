@@ -179,7 +179,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         cputime = A5_WTIME;
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
-            if(!p.err[i]) {
+            if(p.id[i] > 0 && !p.err[i]) {
                 /* Check other time step limitations */
                 if(hnext[i] > 0) {
                     real dphi = fabs(p0.phi[i]-p.phi[i]) / sim->ada_max_dphi;
@@ -209,7 +209,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                         hin[i] = -hnext[i];
                     }
                     else {
-                        p.time[i]    += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) ) * hin[i];
+                        p.time[i] += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) )
+                            * hin[i];
                         p.mileage[i] += hin[i];
 
                         if(hnext[i] > hout_orb[i]) {

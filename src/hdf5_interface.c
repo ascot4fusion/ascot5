@@ -391,9 +391,9 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid, char* run) {
 
     /* Create a run group for this specific run (and results group if one */
     /* doesn't exist already.                                             */
-    char path[256];
-    sprintf(path, "/results/%s_XXXXXXXXXX", run);
-    hdf5_gen_path(path, qid, path);
+    char runpath[200], path[256];
+    sprintf(runpath, "/results/%s_XXXXXXXXXX", run);
+    hdf5_gen_path(runpath, qid, path);
     hid_t newgroup = hdf5_create_group(fout, path);
 
     /* If a run with identical qid exists, abort. */
