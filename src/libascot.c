@@ -388,10 +388,13 @@ void libascot_plasma_eval_background(
  * @param dens output array [m^-3].
  */
 void libascot_neutral_eval_density(
-    sim_offload_data* sim_offload_data, real* neutral_offload_array, int Neval,
+    sim_offload_data* sim_offload_data, real* B_offload_array,
+    real* neutral_offload_array, int Neval,
     real* R, real* phi, real* z, real* t, real* dens) {
 
     sim_data sim;
+    B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
+                 B_offload_array);
     neutral_init(&sim.neutral_data, &sim_offload_data->neutral_offload_data,
                  neutral_offload_array);
 

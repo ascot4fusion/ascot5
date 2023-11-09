@@ -331,37 +331,33 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
 
         # Set pointers to correct locations (based on the order arrays are
         # packed) so that we can continue using evaluation routines.
-        def advance(prevptr, increment):
-            ptr = ctypes.addressof(prevptr) + 2 * increment
-            ptr = ctypes.cast(ctypes.c_void_p(ptr),
-                              ctypes.POINTER(ctypes.c_double))
-            return ptr
+        def setptr(pos):
+            """Create a pointer on the offload array on a given position
+            """
+            arr = ctypes.byref(self._offload_array.contents,
+                               ctypes.sizeof(ctypes.c_double) * pos)
+            return ctypes.cast(arr, ctypes.POINTER(ctypes.c_double))
 
-        self._bfield_offload_array = self._offload_array
-        self._efield_offload_array = advance(
-            self._bfield_offload_array.contents,
-            self._sim.B_offload_data.offload_array_length)
-        self._plasma_offload_array = advance(
-            self._efield_offload_array.contents,
-            self._sim.E_offload_data.offload_array_length)
-        self._neutral_offload_array = advance(
-            self._plasma_offload_array.contents,
-            self._sim.plasma_offload_data.offload_array_length)
-        self._wall_offload_array = advance(
-            self._neutral_offload_array.contents,
-            self._sim.neutral_offload_data.offload_array_length)
-        self._boozer_offload_array = advance(
-            self._wall_offload_array.contents,
-            self._sim.wall_offload_data.offload_array_length)
-        self._mhd_offload_array = advance(
-            self._boozer_offload_array.contents,
-            self._sim.boozer_offload_data.offload_array_length)
-        self._asigma_offload_array = advance(
-            self._mhd_offload_array.contents,
-            self._sim.mhd_offload_data.offload_array_length)
+        # These must be in the same order as they are packed in C
+        pos = 0
+        self._bfield_offload_array = setptr(pos)
+        pos += self._sim.B_offload_data.offload_array_length
+        self._efield_offload_array = setptr(pos)
+        pos += self._sim.E_offload_data.offload_array_length
+        self._plasma_offload_array = setptr(pos)
+        pos += self._sim.plasma_offload_data.offload_array_length
+        self._neutral_offload_array = setptr(pos)
+        pos += self._sim.neutral_offload_data.offload_array_length
+        self._wall_offload_array = setptr(pos)
+        pos += self._sim.wall_offload_data.offload_array_length
+        self._boozer_offload_array = setptr(pos)
+        pos += self._sim.boozer_offload_data.offload_array_length
+        self._mhd_offload_array = setptr(pos)
+        pos += self._sim.mhd_offload_data.offload_array_length
+        self._asigma_offload_array = setptr(pos)
+        pos += self._sim.asigma_offload_data.offload_array_length
 
         self._wall_int_offload_array = self._int_offload_array
-
 
     def _unpack(self, bfield=True, efield=True, plasma=True, wall=True,
                 neutral=True, boozer=True, mhd=True, asigma=True):
