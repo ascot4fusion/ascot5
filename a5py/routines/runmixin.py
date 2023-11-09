@@ -18,7 +18,6 @@ import unyt
 from a5py.exceptions import AscotNoDataException
 
 import a5py.routines.plotting as a5plt
-import a5py.wall as wall
 from a5py.ascot5io import Marker, State, Orbits, Dist
 from a5py.ascot5io.dist import DistMoment
 import a5py.physlib as physlib
