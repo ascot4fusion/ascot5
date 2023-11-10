@@ -12,16 +12,9 @@
 
 /**
  * @brief Get masses and charges of particles participating in the reaction and
- * the released energy.
+ * the released energy
  *
- * Reaction indices:
- *
- * 1 = T(d,n)^4He
- * 2 = ^3He(d,p)^4He
- * 3 = D(d,p)T
- * 4 = D(d,n)^3He
- *
- * @param reaction reaction index
+ * @param reaction reaction enum
  * @param m1 mass of the first reactant [kg]
  * @param q1 charge of the first reactant [C]
  * @param m2 mass of the second reactant [kg]
@@ -32,11 +25,11 @@
  * @param qprod2 charge of the second product [C]
  * @param Q energy released [J]
  */
-void boschhale_reaction(int reaction, real* m1, real* q1, real* m2, real* q2,
-                        real* mprod1, real* qprod1, real* mprod2, real* qprod2,
-                        real* Q) {
+void boschhale_reaction(
+    Reaction reaction, real* m1, real* q1, real* m2, real* q2,
+    real* mprod1, real* qprod1, real* mprod2, real* qprod2, real* Q) {
     switch(reaction) {
-        case 1: /* DT */
+        case DT_He4n:
             *m1     = 3.344e-27; // D
             *q1     = CONST_E;
             *m2     = 5.008e-27; // T
@@ -47,7 +40,7 @@ void boschhale_reaction(int reaction, real* m1, real* q1, real* m2, real* q2,
             *qprod2 = 0.0;
             *Q      = 17.6e6*CONST_E;
             break;
-        case 2: /* D-He3 */
+        case DHe3_He4p:
             *m1     = 3.344e-27; // D
             *q1     = CONST_E;
             *m2     = 5.008e-27; // He3
@@ -58,7 +51,7 @@ void boschhale_reaction(int reaction, real* m1, real* q1, real* m2, real* q2,
             *qprod2 = CONST_E;
             *Q      = 18.3e6*CONST_E;
             break;
-        case 3: /* DDp */
+        case DD_Tp:
             *m1     = 3.344e-27; // D
             *q1     = CONST_E;
             *m2     = 3.344e-27; // D
@@ -69,7 +62,7 @@ void boschhale_reaction(int reaction, real* m1, real* q1, real* m2, real* q2,
             *qprod2 = CONST_E;
             *Q      = 4.03e6*CONST_E;
             break;
-        case 4: /* DDn */
+        case DD_He3n:
             *m1     = 3.344e-27; // D
             *q1     = CONST_E;
             *m2     = 3.344e-27; // D
@@ -91,7 +84,7 @@ void boschhale_reaction(int reaction, real* m1, real* q1, real* m2, real* q2,
  *
  * @return cross-section [m^2].
  */
-real boschhale_sigma(int reaction, real E) {
+real boschhale_sigma(Reaction reaction, real E) {
 
     real BG, A[5], B[4];
     real E_min, E_max;
@@ -99,7 +92,7 @@ real boschhale_sigma(int reaction, real E) {
 
     switch(reaction) {
 
-    case 1:
+    case DT_He4n:
         if(E <= 530) {
             BG = 34.3827;
             A[0] = 6.927e4;
@@ -128,7 +121,7 @@ real boschhale_sigma(int reaction, real E) {
         E_max = 4700;
         break;
 
-    case 2:
+    case DHe3_He4p:
         if(E <= 900) {
             BG = 68.7508;
             A[0] = 5.7501e6;
@@ -157,7 +150,7 @@ real boschhale_sigma(int reaction, real E) {
         E_max = 4800;
         break;
 
-    case 3:
+    case DD_Tp:
         BG = 31.3970;
         A[0] = 5.5576e4;
         A[1] = 2.1054e2;
@@ -172,7 +165,7 @@ real boschhale_sigma(int reaction, real E) {
         E_max = 5000;
         break;
 
-    case 4:
+    case DD_He3n:
         BG = 31.3970;
         A[0] = 5.3701e4;
         A[1] = 3.3027e2;
@@ -217,25 +210,18 @@ real boschhale_sigma(int reaction, real E) {
 /**
  * @brief Estimate reactivity for a given fusion reaction.
  *
- * Reaction indices:
- *
- * 1 = T(d,n)^4He
- * 2 = ^3He(d,p)^4He
- * 3 = D(d,p)T
- * 4 = D(d,n)^3He
- *
  * @param reaction reaction for which the reactivity is estimated.
  * @param Ti ion temperature [keV].
  *
  * @return reactivity.
  */
-real boschhale_sigmav(int reaction, real Ti) {
+real boschhale_sigmav(Reaction reaction, real Ti) {
 
     real BG, MRC2, C1, C2, C3, C4, C5, C6, C7;
 
     switch(reaction) {
 
-    case 1:
+    case DT_He4n:
         BG = 34.3827;
         MRC2 = 1124656;
         C1 = 1.17302E-9;
@@ -247,7 +233,7 @@ real boschhale_sigmav(int reaction, real Ti) {
         C7 = 1.36600E-5;
         break;
 
-    case 2:
+    case DHe3_He4p:
         BG = 68.7508;
         MRC2 = 1124572;
         C1 = 5.51036E-10;
@@ -259,7 +245,7 @@ real boschhale_sigmav(int reaction, real Ti) {
         C7 = 0.0;
         break;
 
-    case 3:
+    case DD_Tp:
         BG = 31.3970;
         MRC2 = 937814;
         C1 = 5.65718E-12;
@@ -271,7 +257,7 @@ real boschhale_sigmav(int reaction, real Ti) {
         C7 = 0.0;
         break;
 
-    case 4:
+    case DD_He3n:
         BG = 31.3970;
         MRC2 = 937814;
         C1 = 5.43360E-12;

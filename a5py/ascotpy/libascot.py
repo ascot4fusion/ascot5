@@ -44,6 +44,7 @@ try:
     STRUCT_DIST5D        = ascot2py.struct_c__SA_dist_5D_data
     STRUCT_AFSITHERMAL   = ascot2py.struct_c__SA_afsi_thermal_data
     STRUCT_AFSIDATA      = ascot2py.struct_c__SA_afsi_data
+    AFSI_REACTIONS       = ascot2py.Reaction__enumvalues
     _LIBASCOT = ascot2py._libraries['libascot.so']
 
 except OSError as error:
@@ -56,6 +57,7 @@ except OSError as error:
     STRUCT_DIST5D        = None
     STRUCT_AFSITHERMAL   = None
     STRUCT_AFSIDATA      = None
+    AFSI_REACTIONS       = None
     msg = \
       "Failed to import libascot.so: verify that it has been compiled, it is "\
     + "located in the build folder, and all dependencies are available.\n"    \

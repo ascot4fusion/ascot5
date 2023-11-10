@@ -2428,6 +2428,28 @@ hdf5_wall_3d_to_offload.argtypes = [ctypes.POINTER(struct_c__SA_wall_3d_offload_
 hdf5_bfield_init_offload = _libraries['libascot.so'].hdf5_bfield_init_offload
 hdf5_bfield_init_offload.restype = ctypes.c_int32
 hdf5_bfield_init_offload.argtypes = [hid_t, ctypes.POINTER(struct_c__SA_B_field_offload_data), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.c_char)]
+
+# values for enumeration 'Reaction'
+Reaction__enumvalues = {
+    1: 'DT_He4n',
+    2: 'DHe3_He4p',
+    3: 'DD_Tp',
+    4: 'DD_He3n',
+}
+DT_He4n = 1
+DHe3_He4p = 2
+DD_Tp = 3
+DD_He3n = 4
+Reaction = ctypes.c_uint32 # enum
+boschhale_reaction = _libraries['libascot.so'].boschhale_reaction
+boschhale_reaction.restype = None
+boschhale_reaction.argtypes = [Reaction, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+boschhale_sigma = _libraries['libascot.so'].boschhale_sigma
+boschhale_sigma.restype = real
+boschhale_sigma.argtypes = [Reaction, real]
+boschhale_sigmav = _libraries['libascot.so'].boschhale_sigmav
+boschhale_sigmav.restype = real
+boschhale_sigmav.argtypes = [Reaction, real]
 class struct_c__SA_afsi_thermal_data(Structure):
     pass
 
@@ -2464,7 +2486,7 @@ struct_c__SA_afsi_data._fields_ = [
 afsi_data = struct_c__SA_afsi_data
 afsi_run = _libraries['libascot.so'].afsi_run
 afsi_run.restype = None
-afsi_run.argtypes = [ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_afsi_data), ctypes.POINTER(struct_c__SA_afsi_data), real, ctypes.POINTER(struct_c__SA_dist_5D_offload_data), ctypes.POINTER(struct_c__SA_dist_5D_offload_data), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+afsi_run.argtypes = [ctypes.POINTER(struct_c__SA_sim_offload_data), Reaction, ctypes.c_int32, ctypes.POINTER(struct_c__SA_afsi_data), ctypes.POINTER(struct_c__SA_afsi_data), real, ctypes.POINTER(struct_c__SA_dist_5D_offload_data), ctypes.POINTER(struct_c__SA_dist_5D_offload_data), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
 afsi_test_dist = _libraries['libascot.so'].afsi_test_dist
 afsi_test_dist.restype = None
 afsi_test_dist.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data)]
@@ -2474,15 +2496,6 @@ afsi_test_thermal.argtypes = []
 biosaw_calc_B = _libraries['libascot.so'].biosaw_calc_B
 biosaw_calc_B.restype = None
 biosaw_calc_B.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
-boschhale_reaction = _libraries['libascot.so'].boschhale_reaction
-boschhale_reaction.restype = None
-boschhale_reaction.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
-boschhale_sigma = _libraries['libascot.so'].boschhale_sigma
-boschhale_sigma.restype = real
-boschhale_sigma.argtypes = [ctypes.c_int32, real]
-boschhale_sigmav = _libraries['libascot.so'].boschhale_sigmav
-boschhale_sigmav.restype = real
-boschhale_sigmav.argtypes = [ctypes.c_int32, real]
 __all__ = \
     ['B_STS_data', 'B_STS_eval_B', 'B_STS_eval_B_dB',
     'B_STS_eval_psi', 'B_STS_eval_psi_dpsi', 'B_STS_eval_rho_drho',
@@ -2494,19 +2507,20 @@ __all__ = \
     'B_field_get_axis_rz', 'B_field_init', 'B_field_init_offload',
     'B_field_offload_data', 'B_field_type', 'B_field_type_2DS',
     'B_field_type_3DS', 'B_field_type_GS', 'B_field_type_STS',
-    'B_field_type_TC', 'E_field_type', 'E_field_type_1DS',
-    'E_field_type_TC', 'a5err', 'afsi_data', 'afsi_run',
-    'afsi_test_dist', 'afsi_test_thermal', 'afsi_thermal_data',
-    'asigma_type', 'asigma_type_loc', 'biosaw_calc_B',
-    'boschhale_reaction', 'boschhale_sigma', 'boschhale_sigmav',
-    'c__Ea_endcond_tlim', 'c__Ea_hdf5_input_options',
-    'c__Ea_simulate_mode_fo', 'diag_data', 'diag_free',
-    'diag_free_offload', 'diag_init', 'diag_init_offload',
-    'diag_offload_data', 'diag_orb_check_plane_crossing',
-    'diag_orb_check_radial_crossing', 'diag_orb_data',
-    'diag_orb_free', 'diag_orb_init', 'diag_orb_offload_data',
-    'diag_orb_update_fo', 'diag_orb_update_gc', 'diag_orb_update_ml',
-    'diag_sum', 'diag_update_fo', 'diag_update_gc', 'diag_update_ml',
+    'B_field_type_TC', 'DD_He3n', 'DD_Tp', 'DHe3_He4p', 'DT_He4n',
+    'E_field_type', 'E_field_type_1DS', 'E_field_type_TC', 'Reaction',
+    'a5err', 'afsi_data', 'afsi_run', 'afsi_test_dist',
+    'afsi_test_thermal', 'afsi_thermal_data', 'asigma_type',
+    'asigma_type_loc', 'biosaw_calc_B', 'boschhale_reaction',
+    'boschhale_sigma', 'boschhale_sigmav', 'c__Ea_endcond_tlim',
+    'c__Ea_hdf5_input_options', 'c__Ea_simulate_mode_fo', 'diag_data',
+    'diag_free', 'diag_free_offload', 'diag_init',
+    'diag_init_offload', 'diag_offload_data',
+    'diag_orb_check_plane_crossing', 'diag_orb_check_radial_crossing',
+    'diag_orb_data', 'diag_orb_free', 'diag_orb_init',
+    'diag_orb_offload_data', 'diag_orb_update_fo',
+    'diag_orb_update_gc', 'diag_orb_update_ml', 'diag_sum',
+    'diag_update_fo', 'diag_update_gc', 'diag_update_ml',
     'endcond_check_fo', 'endcond_check_gc', 'endcond_check_ml',
     'endcond_cpumax', 'endcond_emin', 'endcond_hybrid',
     'endcond_ioniz', 'endcond_neutr', 'endcond_parse',

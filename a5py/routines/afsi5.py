@@ -8,7 +8,8 @@ import unyt
 import numpy.ctypeslib as npctypes
 
 from a5py.ascotpy.libascot import _LIBASCOT, STRUCT_DIST5DOFFLOAD, \
-    STRUCT_DIST5D, STRUCT_AFSIDATA, STRUCT_AFSITHERMAL, PTR_REAL
+    STRUCT_DIST5D, STRUCT_AFSIDATA, STRUCT_AFSITHERMAL, PTR_REAL, \
+    AFSI_REACTIONS
 from a5py.routines.distmixin import DistMixin
 
 class Afsi():
@@ -26,14 +27,6 @@ class Afsi():
     - beam-thermal: Calculates fusion rates between a Maxwellian and arbitrary
       population e.g. beam ions as obtained from ASCOT5 simulation.
     - beam-beam: Calculates fusion rates between two arbitrary populations.
-
-    Possible fusion reactions are listed below in a format
-    reactant 1 + reactant 2 -> product1 + product2:
-
-    1. D + T   -> He4 + n
-    2. D + He3 -> He4 + p
-    3. D + D   -> T   + p
-    4. D + D   -> He3 + n
 
     Reference:
     https://iopscience.iop.org/article/10.1088/1741-4326/aa92e9
@@ -99,6 +92,8 @@ class Afsi():
             Fusion product 2 distribution.
         """
         m1, q1, m2, q2, _, qprod1, _, qprod2, _ = self.reactions(reaction)
+        reactions = {v: k for k, v in AFSI_REACTIONS.items()}
+        reaction = reactions[reaction]
         anum1 = np.round(m1.to("amu").v)
         anum2 = np.round(m2.to("amu").v)
         znum1 = np.round(q1.to("e").v)
@@ -125,7 +120,7 @@ class Afsi():
         if np.isnan(ispecies1) or np.isnan(ispecies2):
             self._ascot.input_free(bfield=True, plasma=True)
             raise ValueError("Reactant species not present in plasma input.")
-        if ispecies1 == ispecies2: mult = 0.5
+        mult = 0.5 if ispecies1 == ispecies2 else 1.0
 
         temp  = np.zeros((nr, nphi, nz))
         dens1 = np.zeros((nr, nphi, nz))
@@ -216,6 +211,8 @@ class Afsi():
             Fusion product 2 distribution.
         """
         m1, q1, m2, q2, _, qprod1, _, qprod2, _ = self.reactions(reaction)
+        reactions = {v: k for k, v in AFSI_REACTIONS.items()}
+        reaction = reactions[reaction]
         anum1 = np.round(m1.to("amu").v)
         anum2 = np.round(m2.to("amu").v)
         znum1 = np.round(q1.to("e").v)
@@ -326,6 +323,8 @@ class Afsi():
             Fusion product 2 distribution.
         """
         _, _, _, _, _, qprod1, _, qprod2, _ = self.reactions(reaction)
+        reactions = {v: k for k, v in AFSI_REACTIONS.items()}
+        reaction = reactions[reaction]
         q1 = np.round(qprod1.to("e").v)
         q2 = np.round(qprod2.to("e").v)
 
@@ -443,7 +442,43 @@ class Afsi():
             np.ascontiguousarray(np.zeros(distsize), dtype="f8") )
         return prod, offload_array
 
-    def reactions(self, reaction):
+    def reactions(self, reaction=None):
+        """Return reaction data for a given reaction.
+
+        Parameters
+        ----------
+        reaction : str, optional
+            Reaction or None to return list of available reactions.
+
+        Returns
+        -------
+        reactions : [str]
+            List of available reactions if ``reaction=None``.
+        m1 : float
+            Mass of reactant 1.
+        q1 : float
+            Charge of reactant 1.
+        m2 : float
+            Mass of reactant 2.
+        q2 : float
+            Charge of reactant 2.
+        mprod1 : float
+            Mass of product 1.
+        qprod1 : float
+            Charge of product 1.
+        mprod2 : float
+            Mass of product 2.
+        qprod2 : float
+            Charge of product 2.
+        q : float
+            Energy released in the reaction.
+        """
+        reactions = {v: k for k, v in AFSI_REACTIONS.items()}
+        if reaction is None:
+            return reactions.keys()
+        if not reaction in reactions:
+            raise ValueError("Unknown reaction")
+
         m1     = np.zeros((1,), dtype="f8")
         q1     = np.zeros((1,), dtype="f8")
         m2     = np.zeros((1,), dtype="f8")
@@ -457,12 +492,15 @@ class Afsi():
         fun.restype  = None
         fun.argtypes = [ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
                         PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL]
-        fun(reaction, m1, q1, m2, q2, mprod1, qprod1, mprod2, qprod2, q)
+        fun(reactions[reaction], m1, q1, m2, q2, mprod1, qprod1, mprod2,
+            qprod2, q)
 
         return m1*unyt.kg, q1*unyt.C, m2*unyt.kg, q2*unyt.C, mprod1*unyt.kg, \
             qprod1*unyt.C, mprod2*unyt.kg, qprod2*unyt.C, q*unyt.eV
 
 class AfsiMixin(DistMixin):
+    """Mixin class with post-processing results related to AFSI.
+    """
 
     def _require(self, *args):
         """Check if required data is present and raise exception if not.
@@ -486,24 +524,41 @@ class AfsiMixin(DistMixin):
 
     def getdist(self, dist, exi=False, ekin_edges=None, pitch_edges=None,
                 plotexi=False):
+        """Return 5D distribution function of one of the fusion products.
 
-        if dist is None:
-            dists = ["prod1", "prod2"]
-            for d in dists:
-                try:
-                    self._require("_" + d + "dist5d")
-                except AscotNoDataException:
-                    dists.remove(d)
-            return dists
+        Parameters
+        ----------
+        dist : {"prod1", "prod2"}
+            Which product to return.
+        exi : bool, optional
+            Convert the momentum space to energy-pitch.
 
+            The distribution is normalized to conserve the particle number.
+        ekin_edges : int or array_like, optional
+            Number of bins or bin edges in the energy abscissa if ``exi=True``.
+        pitch_edges : int or array_like, optional
+            Number of bins or bin edges in the pitch abscissa if ``exi=True``.
+        plotexi : bool, optional
+            Visualize the transformation from ppar-perp to energy-pitch if
+            if ``exi=True``.
+
+            Use this option to adjust energy and pitch abscissae to your liking.
+
+        Returns
+        -------
+        data : :class:`DistData`
+            The distribution data object.
+        """
         if dist == "prod1":
-            self._require("_prod1dist5d")
+            self._require("_prod1dist5d", "_reaction")
             distout = self._prod1dist5d.get()
-        if dist == "prod2":
-            self._require("_prod2dist5d")
+            mass = self._reaction.get()[2]
+        elif dist == "prod2":
+            self._require("_prod2dist5d", "_reaction")
             distout = self._prod2dist5d.get()
+            mass = self._reaction.get()[3]
+        else:
+            raise ValueError("dist must be either 'prod1' or 'prod2'")
 
-        #mass = np.mean(self.getstate("mass"))
-        mass = 4.0 * unyt.amu
         return self._getdist(distout, mass, exi=exi, ekin_edges=ekin_edges,
                              pitch_edges=pitch_edges, plotexi=plotexi)
