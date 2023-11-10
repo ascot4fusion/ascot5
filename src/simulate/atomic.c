@@ -26,12 +26,12 @@
 #include "atomic.h"
 
 #pragma omp declare target
-#pragma omp declare simd uniform(asgm_data)
+#pragma omp declare simd uniform(asigma)
 a5err atomic_rates(
     real* rate_eff_ion, real* rate_eff_rec, int z_1, int a_1, real m_1,
-    const int* z_2, const int* a_2, const real* m_2, asigma_data* asgm_data,
+    const int* z_2, const int* a_2, const real* m_2, asigma_data* asigma,
     int q, real E, int N_pls_spec, int N_ntl_spec, real* T, real* T_0,
-    real* n, real* n_0, int* enable_atomic);
+    real* n, real* n_0);
 #pragma omp declare simd
 a5err atomic_react(
     int* q, real dt, real rate_eff_ion, real rate_eff_rec, int z_1, real rnd);
@@ -50,12 +50,10 @@ a5err atomic_react(
  * @param n_data pointer to neutral data
  * @param r_data pointer to random-generator data
  * @param asigmadata pointer to atomic reaction data
- * @param enable_atomic pointer to atomic enable and functionality flag
  */
 void atomic_fo(particle_simd_fo* p, real* h,
                plasma_data* p_data, neutral_data* n_data,
-               random_data* r_data, asigma_data* asigmadata,
-               int* enable_atomic) {
+               random_data* r_data, asigma_data* asigmadata) {
 
     /* Generate random numbers and get plasma information before going to the *
      * SIMD loop                                                              */
@@ -110,8 +108,7 @@ void atomic_fo(particle_simd_fo* p, real* h,
                 errflag = atomic_rates(
                     &rate_eff_ion, &rate_eff_rec, p->znum[i], p->anum[i],
                     p->mass[i], z_2, a_2, m_2, asigmadata,
-                    q, E, N_pls_spec, N_ntl_spec, T_2, T_0, n_2, n_0,
-                    enable_atomic);
+                    q, E, N_pls_spec, N_ntl_spec, T_2, T_0, n_2, n_0);
             }
 
             /* Determine if an atomic reaction occurs */
@@ -162,7 +159,6 @@ void atomic_fo(particle_simd_fo* p, real* h,
  * @param T_0 temperature of bulk neutral species
  * @param n density of bulk plasma species
  * @param n_0 density of bulk neutral species
- * @param enable_atomic pointer to atomic enable and functionality flag
  *
  * @return zero if evaluation succeeded
  *
@@ -173,7 +169,7 @@ a5err atomic_rates(
     real* rate_eff_ion, real* rate_eff_rec, int z_1, int a_1, real m_1,
     const int* z_2, const int* a_2, const real* m_2, asigma_data* asigmadata,
     int q, real E, int N_pls_spec, int N_ntl_spec, real* T, real* T_0,
-    real* n, real* n_0, int* enable_atomic) {
+    real* n, real* n_0) {
     a5err err = 0;
 
     /* Define a helper variable for storing rate coefficients, and
@@ -200,8 +196,7 @@ a5err atomic_rates(
         for(int i_spec = 0; i_spec < N_ntl_spec; i_spec++) {
             err = asigma_eval_sigmav(
                 &sigmav, z_1, a_1, m_1, z_2[i_spec], a_2[i_spec],
-                sigmav_CX, asigmadata, E, T[0], T_0[i_spec], n[1],
-                enable_atomic);
+                E, T[0], T_0[i_spec], n[1], sigmav_CX, asigmadata);
             *rate_eff_rec += sigmav*n_0[i_spec];
         }
     } else if(q == 0) {
@@ -220,8 +215,7 @@ a5err atomic_rates(
         for(int i_spec = 0; i_spec < (N_pls_spec-1); i_spec++) {
             err = asigma_eval_sigmav(
                 &sigmav, z_1, a_1, m_1, z_2[i_spec], a_2[i_spec],
-                sigmav_BMS, asigmadata, E,T[0], T_0[0], n[i_spec+1],
-                enable_atomic);
+                E,T[0], T_0[0], n[i_spec+1], sigmav_BMS, asigmadata);
             *rate_eff_ion += sigmav*z_2[i_spec]*n[i_spec+1];
         }
     } else {

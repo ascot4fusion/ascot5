@@ -93,7 +93,7 @@ class Asigma_loc(DataGroup):
         n = np.zeros(nreac, dtype=int)
         ntot = 0
         for i in range(0, nreac):
-            n[i] = nenergy[i]*ndensity[i]*ntemperature[i]
+            n[i] = nenergy[i] * ndensity[i] * ntemperature[i]
             ntot += n[i]
         if sigma.shape != (1,ntot):
             raise ValueError("Invalid size for sigma.")
