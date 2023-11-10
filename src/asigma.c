@@ -149,19 +149,15 @@ int asigma_init(asigma_data* asgm_data,
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
 a5err asigma_eval_sigma(
-    real* sigma, int z_1, int a_1, int z_2, int a_2, int reac_type,
+    real* sigma, int z_1, int a_1, int z_2, int a_2, asigma_reac_type reac_type,
     asigma_data* asigma_data, real E_coll_per_amu, int* enable_atomic) {
     a5err err = 0;
 
     switch(asigma_data->type) {
         case asigma_type_loc:
-            err = asigma_loc_eval_sigma(sigma,
-                                        z_1, a_1,
-                                        z_2, a_2,
-                                        reac_type,
-                                        &(asigma_data->asigma_loc),
-                                        E_coll_per_amu,
-                                        enable_atomic);
+            err = asigma_loc_eval_sigma(
+                sigma, z_1, a_1, z_2, a_2, reac_type,
+                &(asigma_data->asigma_loc), E_coll_per_amu, enable_atomic);
             break;
 
         default:
@@ -204,17 +200,16 @@ a5err asigma_eval_sigma(
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
 a5err asigma_eval_sigmav(
-    real* sigmav, int z_1, int a_1, real m_1, int z_2, int a_2, int reac_type,
-    asigma_data* asigma_data, real E, real T_e, real T_0, real n_i,
-    int* enable_atomic) {
+    real* sigmav, int z_1, int a_1, real m_1, int z_2, int a_2,
+    asigma_reac_type reac_type, asigma_data* asigma_data, real E, real T_e,
+    real T_0, real n_i, int* enable_atomic) {
     a5err err = 0;
 
     switch(asigma_data->type) {
         case asigma_type_loc:
             err = asigma_loc_eval_sigmav(
-                sigmav, z_1, a_1, m_1, z_2, a_2,
-                reac_type, &(asigma_data->asigma_loc),
-                E, T_e, T_0, n_i, enable_atomic);
+                sigmav, z_1, a_1, m_1, z_2, a_2, reac_type,
+                &(asigma_data->asigma_loc), E, T_e, T_0, n_i, enable_atomic);
             break;
 
         default:

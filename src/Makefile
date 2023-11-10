@@ -1,6 +1,5 @@
 CC=h5cc
 
-
 ifdef TRAP_FPE
 	DEFINES+=-DTRAP_FPE=$(TRAP_FPE)
 	CFLAGS+= -fsignaling-nans -ftrapping-math
@@ -91,11 +90,11 @@ HDF5IOHEADERS = $(wildcard $(HDF5IODIR)hdf5*.h)
 HDF5IOOBJS = $(patsubst %.c,%.o,$(wildcard $(HDF5IODIR)hdf5*.c))
 
 N0DIR = neutral/
-N0HEADERS =  $(wildcard $(N0DIR)N0_*.h)
+N0HEADERS = $(wildcard $(N0DIR)N0_*.h)
 N0OBJS = $(patsubst %.c,%.o,$(wildcard $(N0DIR)N0_*.c))
 
 MHDDIR = mhd/
-MHDHEADERS =  $(wildcard $(MHDDIR)mhd_*.h)
+MHDHEADERS = $(wildcard $(MHDDIR)mhd_*.h)
 MHDOBJS = $(patsubst %.c,%.o,$(wildcard $(MHDDIR)mhd_*.c))
 
 ASIGMADIR = asigma/
@@ -103,13 +102,13 @@ ASIGMAHEADERS = $(wildcard $(ASIGMADIR)asigma_*.h)
 ASIGMAOBJS = $(patsubst %.c,%.o,$(wildcard $(ASIGMADIR)asigma_*.c))
 
 LINTDIR = linint/
-LINTHEADERS =  $(wildcard $(LINTDIR)linint*.h)
+LINTHEADERS = $(wildcard $(LINTDIR)linint*.h)
 LINTOBJS = $(patsubst %.c,%.o,$(wildcard $(LINTDIR)linint*.c))
 
 SPLINEDIR = spline/
-SPLINEHEADERS  = $(wildcard $(SPLINEDIR)spline.h $(SPLINEDIR)interp.h)
-SPLINEOBJS  = $(patsubst %.c,%.o,$(wildcard $(SPLINEDIR)spline*.c \
-						$(SPLINEDIR)interp*.c))
+SPLINEHEADERS = $(wildcard $(SPLINEDIR)spline.h $(SPLINEDIR)interp.h)
+SPLINEOBJS = $(patsubst %.c,%.o,$(wildcard $(SPLINEDIR)spline*.c \
+	$(SPLINEDIR)interp*.c))
 
 UTESTDIR = unit_tests/
 DOCDIR = doc/
@@ -229,7 +228,7 @@ test_asigma: $(UTESTDIR)test_asigma.o $(OBJS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 ASCOT2PY_HEADERFILES=particle.h hdf5_interface.h ascot5.h mpi_interface.h \
-	simulate.h ascot5_main.h offload.h diag.h libascot_mem.h \
+	simulate.h ascot5_main.h offload.h diag.h libascot_mem.h asigma.h \
 	wall.h Bfield/B_STS.h B_field.h endcond.h diag/diag_orb.h \
 	hdf5io/hdf5_wall.h hdf5io/hdf5_bfield.h afsi.h biosaw.h boschhale.h
 

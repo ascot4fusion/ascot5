@@ -304,13 +304,9 @@ void asigma_loc_init(
  *
  * @return zero if evaluation succeeded
  */
-a5err asigma_loc_eval_sigma(real* sigma,
-                            int z_1, int a_1,
-                            int z_2, int a_2,
-                            int reac_type,
-                            asigma_loc_data* asgm_loc_data,
-                            real E_coll_per_amu,
-                            int* enable_atomic) {
+a5err asigma_loc_eval_sigma(
+    real* sigma, int z_1, int a_1, int z_2, int a_2, int reac_type,
+    asigma_loc_data* asgm_loc_data, real E_coll_per_amu, int* enable_atomic) {
     a5err err = 0;
 
     /* We look for a match of the reaction identifiers in asgm_loc_data to
@@ -334,9 +330,9 @@ a5err asigma_loc_eval_sigma(real* sigma,
         /* Reaction not found. Raise error. */
         err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_ASIGMA_LOC);
     } else {
-        if(asgm_loc_data->reac_type[i_reac] == reac_type_sigma_ion ||
-           asgm_loc_data->reac_type[i_reac] == reac_type_sigma_rec ||
-           asgm_loc_data->reac_type[i_reac] == reac_type_sigma_CX) {
+        if(asgm_loc_data->reac_type[i_reac] == sigma_ioniz  ||
+           asgm_loc_data->reac_type[i_reac] == sigma_recomb ||
+           asgm_loc_data->reac_type[i_reac] == sigma_CX) {
             int interperr = 0;
             interperr += interp1Dcomp_eval_f(sigma,
                                              &asgm_loc_data->sigma[i_reac],
@@ -357,7 +353,6 @@ a5err asigma_loc_eval_sigma(real* sigma,
             err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_ASIGMA_LOC);
         }
     }
-
     return err;
 }
 
@@ -385,29 +380,18 @@ a5err asigma_loc_eval_sigma(real* sigma,
  * @param enable_atomic pointer to atomic enable and functionality flag
  *
  * @return zero if evaluation succeeded
- *
- * @todo Is there a cleaner and more general way to handle the
- *   isotopic invariance of beam-stopping data?
  */
-a5err asigma_loc_eval_sigmav(real* sigmav,
-                             int z_1, int a_1, real m_1,
-                             int z_2, int a_2,
-                             int reac_type,
-                             asigma_loc_data* asgm_loc_data,
-                             real E,
-                             real T_e, real T_0, real n_i,
-                             int* enable_atomic) {
+a5err asigma_loc_eval_sigmav(
+    real* sigmav, int z_1, int a_1, real m_1, int z_2, int a_2,
+    int reac_type, asigma_loc_data* asgm_loc_data, real E,
+    real T_e, real T_0, real n_i, int* enable_atomic) {
     a5err err = 0;
 
-    /* We look for a match of the reaction identifiers in asgm_loc_data to
-       determine if the reaction of interest has been initialized.
-       NOTE: Beam-stopping is a special case. The reaction data function
-       for a certain element covers all of its different isotopes, as long
-       as the energy parameter is given in units of energy/amu. Hence, for
-       beam-stopping, the atomic mass numbers need not match below. */
+    /* Find the matching reaction. Note that BMS data is same for all
+     * isotopes, so we don't compare anums */
     int reac_found = -1, i_reac;
     for(i_reac = 0; i_reac < asgm_loc_data->N_reac; i_reac++) {
-        if(reac_type == reac_type_BMS_sigmav &&
+        if(reac_type == sigmav_BMS &&
            z_1       == asgm_loc_data->z_1[i_reac] &&
            z_2       == asgm_loc_data->z_2[i_reac] &&
            reac_type == asgm_loc_data->reac_type[i_reac]) {
@@ -428,9 +412,9 @@ a5err asigma_loc_eval_sigmav(real* sigmav,
         /* Reaction not found. Raise error. */
         err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_ASIGMA_LOC);
     } else {
-        if(reac_type == reac_type_sigmav_ion ||
-           reac_type == reac_type_sigmav_rec ||
-           reac_type == reac_type_sigmav_CX) {
+        if(reac_type == sigmav_ioniz  ||
+           reac_type == sigmav_recomb ||
+           reac_type == sigmav_CX) {
             /* We remember unit conversions for parameters in the
                function call */
             int interperr = 0;
@@ -448,7 +432,7 @@ a5err asigma_loc_eval_sigmav(real* sigmav,
                                        EF_ASIGMA_LOC );
                 }
             }
-        } else if(reac_type == reac_type_BMS_sigmav) {
+        } else if(reac_type == sigmav_BMS) {
             /* Remember unit conversions for parameters as well as
                normalization of the fast particle energy with respect
                to mass (J --> eV/amu) in the function call. */
