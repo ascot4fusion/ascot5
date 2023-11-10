@@ -74,17 +74,18 @@ void asigma_free_offload(asigma_offload_data* offload_data,
                          real** offload_array);
 
 #pragma omp declare target
+void asigma_extrapolate(int extrapolate);
 int asigma_init(asigma_data* asigma_data, asigma_offload_data* offload_data,
                 real* offload_array);
 #pragma omp declare simd uniform(asigmadata)
 a5err asigma_eval_sigma(
-    real* sigma, int z_1, int a_1, int z_2, int a_2, asigma_reac_type reac_type,
-    asigma_data* asigmadata, real E_coll_per_amu, int* enable_atomic);
+    real* sigma, int z_1, int a_1, int z_2, int a_2, real E_coll_per_amu,
+    asigma_reac_type reac_type, asigma_data* asigmadata);
 #pragma omp declare simd uniform(asigmadata)
 a5err asigma_eval_sigmav(
     real* sigmav, int z_1, int a_1, real m_1, int z_2, int a_2,
-    asigma_reac_type reac_type, asigma_data* asigmadata, real E, real T_e,
-    real T_0, real n_i, int* enable_atomic);
+    real E, real T_e, real T_0, real n_i, asigma_reac_type reac_type,
+    asigma_data* asigmadata);
 #pragma omp end declare target
 
 #endif

@@ -29,6 +29,23 @@
 #include "asigma/asigma_loc.h"
 #include "consts.h"
 
+#pragma omp declare target
+/** Set values outside abscissae to zero instead of raising an error. */
+static int ASIGMA_EXTRAPOLATE = 0;
+#pragma omp end declare target
+
+/**
+ * @brief Toggle extrapolation when evaluating cross sections.
+ *
+ * In this context the extrapolation means values outside the abscissae
+ * are set to zero instead of raising an error.
+ *
+ * @param extrapolate flag whether to extrapolate
+ */
+void asigma_extrapolate(int extrapolate) {
+    ASIGMA_EXTRAPOLATE = extrapolate;
+}
+
 /**
  * @brief Load atomic reaction data and prepare parameters
  *
@@ -100,19 +117,18 @@ void asigma_free_offload(asigma_offload_data* offload_data,
  * struct to the struct on target and sets the atomic reaction data pointers
  * to correct offsets in the offload array.
  *
- * @param asgm_data pointer to data struct on target
+ * @param asigma_data pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
  *
  * @return zero if initialization succeeded
  */
-int asigma_init(asigma_data* asgm_data,
-                asigma_offload_data* offload_data,
+int asigma_init(asigma_data* asigma_data, asigma_offload_data* offload_data,
                 real* offload_array) {
     int err = 0;
     switch(offload_data->type) {
         case asigma_type_loc:
-            asigma_loc_init(&(asgm_data->asigma_loc),
+            asigma_loc_init(&(asigma_data->asigma_loc),
                             &(offload_data->asigma_loc), offload_array);
             break;
 
@@ -122,7 +138,7 @@ int asigma_init(asigma_data* asgm_data,
             err = 1;
             break;
     }
-    asgm_data->type = offload_data->type;
+    asigma_data->type = offload_data->type;
 
     return err;
 }
@@ -141,23 +157,22 @@ int asigma_init(asigma_data* asgm_data,
  * @param a_1 atomic mass number of fast particle
  * @param z_2 atomic number of bulk particle
  * @param a_2 atomic mass number of bulk particle
+ * @param E_coll_per_amu energy per amu corresponding to collision speed
  * @param reac_type reaction type
  * @param asigma_data pointer to atomic data struct
- * @param E_coll_per_amu energy per amu corresponding to collision speed
- * @param enable_atomic pointer to atomic enable and functionality flag
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
 a5err asigma_eval_sigma(
-    real* sigma, int z_1, int a_1, int z_2, int a_2, asigma_reac_type reac_type,
-    asigma_data* asigma_data, real E_coll_per_amu, int* enable_atomic) {
+    real* sigma, int z_1, int a_1, int z_2, int a_2, real E_coll_per_amu,
+    asigma_reac_type reac_type, asigma_data* asigma_data) {
     a5err err = 0;
 
     switch(asigma_data->type) {
         case asigma_type_loc:
             err = asigma_loc_eval_sigma(
-                sigma, z_1, a_1, z_2, a_2, reac_type,
-                &(asigma_data->asigma_loc), E_coll_per_amu, enable_atomic);
+                sigma, z_1, a_1, z_2, a_2, E_coll_per_amu, reac_type,
+                ASIGMA_EXTRAPOLATE, &(asigma_data->asigma_loc));
             break;
 
         default:
@@ -189,27 +204,26 @@ a5err asigma_eval_sigma(
  * @param m_1 mass of fast particle
  * @param z_2 atomic number of bulk particle
  * @param a_2 atomic mass number of bulk particle
- * @param reac_type reaction type
- * @param asigma_data pointer to atomic data struct
  * @param E energy of fast particle
  * @param T_e electron temperature of bulk plasma
  * @param T_0 temperature of bulk neutrals
  * @param n_i ion density of bulk plasma
- * @param enable_atomic pointer to atomic enable and functionality flag
+ * @param reac_type reaction type
+ * @param asigma_data pointer to atomic data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
 a5err asigma_eval_sigmav(
     real* sigmav, int z_1, int a_1, real m_1, int z_2, int a_2,
-    asigma_reac_type reac_type, asigma_data* asigma_data, real E, real T_e,
-    real T_0, real n_i, int* enable_atomic) {
+    real E, real T_e, real T_0, real n_i, asigma_reac_type reac_type,
+    asigma_data* asigma_data) {
     a5err err = 0;
 
     switch(asigma_data->type) {
         case asigma_type_loc:
             err = asigma_loc_eval_sigmav(
-                sigmav, z_1, a_1, m_1, z_2, a_2, reac_type,
-                &(asigma_data->asigma_loc), E, T_e, T_0, n_i, enable_atomic);
+                sigmav, z_1, a_1, m_1, z_2, a_2, E, T_e, T_0, n_i,
+                reac_type, ASIGMA_EXTRAPOLATE, &(asigma_data->asigma_loc));
             break;
 
         default:

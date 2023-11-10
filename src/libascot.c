@@ -871,7 +871,6 @@ void libascot_eval_sigmav(
     const int* Zb  = plasma_get_species_znum(&sim.plasma_data);
     const int* Ab  = plasma_get_species_anum(&sim.plasma_data);
 
-    int enable_atomic = 1;
     #pragma omp parallel for
     for (int k=0; k < Neval; k++) {
         real psi[1], rho[2], T0[1], n[MAX_SPECIES], T[MAX_SPECIES];
@@ -894,8 +893,7 @@ void libascot_eval_sigmav(
             real val;
             if( asigma_eval_sigmav(
                     &val, Za, Aa, ma, Zb[ib], Ab[ib],
-                    reac_type, &sim.asigma_data, E, T[0], T0[0], n[ib+1],
-                    &enable_atomic) ) {
+                    E, T[0], T0[0], n[ib+1], reac_type, &sim.asigma_data) ) {
                 continue;
             }
             sigmav[Nv*k + j] = val;
