@@ -8,6 +8,8 @@ from .coreio import fileapi
 from .coreio.treedata import DataContainer
 
 class Reaction(DataContainer):
+    """Class contining the stored fusion reaction data in AFSI run.
+    """
 
     def read(self):
         """Read raw reaction data to a dictionary.
@@ -36,10 +38,10 @@ class Reaction(DataContainer):
             Energy released.
         """
         with self as f:
-            m1     = f["m1"][:] * unyt.amu
-            m2     = f["m1"][:] * unyt.amu
-            mprod1 = f["m1"][:] * unyt.amu
-            mprod2 = f["m1"][:] * unyt.amu
-            q      = f["m1"][:] * unyt.eV
+            m1     = f["m1"][:][0] * unyt.amu
+            m2     = f["m2"][:][0] * unyt.amu
+            mprod1 = f["mprod1"][:][0] * unyt.amu
+            mprod2 = f["mprod2"][:][0] * unyt.amu
+            q      = f["q"][:][0] * unyt.eV
 
         return m1, m2, mprod1, mprod2, q

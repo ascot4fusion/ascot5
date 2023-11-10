@@ -39,15 +39,7 @@ real afsi_get_density(afsi_data* dist, int iR, int iphi, int iz);
 real afsi_get_volume(afsi_data* dist, int iR);
 
 /**
- * @brief Calculate fusion source from two arbitrary ion distributions.
- *
- * Possible fusion reactions are listed below in a format
- * reactant 1 + reactant 2 -> product1 + product2:
- *
- * 1: D + T   -> He4 + n
- * 2: D + He3 -> He4 + p
- * 3: D + D   -> T + p
- * 4: D + D   -> He3 + n
+ * @brief Calculate fusion source from two arbitrary ion distributions
  *
  * Inputs and outputs are expected to have same physical (R, phi, z)
  * dimensions.
@@ -63,8 +55,8 @@ real afsi_get_volume(afsi_data* dist, int iR);
  * @param prod1_offload_array array where product 1 distribution is stored
  * @param prod2_offload_array array where product 2 distribution is stored
  */
-void afsi_run(sim_offload_data* sim, int reaction, int n, afsi_data* react1,
-              afsi_data* react2, real mult,
+void afsi_run(sim_offload_data* sim, Reaction reaction, int n,
+              afsi_data* react1, afsi_data* react2, real mult,
               dist_5D_offload_data* prod1_offload_data,
               dist_5D_offload_data* prod2_offload_data,
               real* prod1_offload_array, real* prod2_offload_array) {
