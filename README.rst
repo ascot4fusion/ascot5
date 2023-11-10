@@ -64,10 +64,19 @@ Create a virtual environment (optional but recommended), activate it, and instal
    source ascotenv/bin/activate
    pip install -e ascot5/
 
-GIT Usage
-=========
+How to Contribute
+=================
 
-When working on issues:
+.. admonition:: As an User:
 
-- Create a branch named ``feature/<issuenumber>-branchname`` for feature requests
-- Create a branch named ``bugfix/<issuenumber>-branchname`` for bug fixes.
+   - Verify your results and report violations in issues.
+   - Add `compiling instructions <https://ascot4fusion.github.io/ascot5/installing.html#compiling-on-different-platforms>`_ for popular platforms and consider updating `the table with example simulation times <https://ascot4fusion.github.io/ascot5/simulations.html#examples>`_ for novel entries.
+   - When `benchmarking <https://ascot4fusion.github.io/ascot5/testing.html#benchmarks>`_ ASCOT5 against other codes or `validating <https://ascot4fusion.github.io/ascot5/testing.html#validation>`_ it against experiments, please contact the maintainers to archive the simulation for use as a regression test.
+
+.. admonition:: As a Developer:
+
+   - Don't let the code daunt you!
+     We're here to assist with any feature contributions, whether it's a small post-processing tool, a new plot, or an enhancement of an existing feature.
+   - Start by creating an issue, then (fork and) make a branch ``feature/<issuenumber>-issue`` from develop.
+   - When ready to merge, create a pull request running automated tests on your branch.
+   - Upon test completion and acceptance, your feature will be merged into develop for inclusion in the next release.
