@@ -130,11 +130,11 @@ class Marker(DataGroup):
         mrk = {
             "n"      : n,
             "ids"    : ( 1 + np.arange(n) ),
-            "r"      : np.zeros((n,)),
-            "z"      : np.zeros((n,)),
-            "phi"    : np.zeros((n,)),
+            "r"      : np.zeros((n,))*unyt.m,
+            "z"      : np.zeros((n,))*unyt.m,
+            "phi"    : np.zeros((n,))*unyt.deg,
             "weight" : np.ones((n,)),
-            "time"   : np.zeros((n,)),
+            "time"   : np.zeros((n,))*unyt.s,
         }
         if species is None:
             species = {"mass":1*unyt.amu, "charge":1*unyt.e, "anum":1, "znum":1}
