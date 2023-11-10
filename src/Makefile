@@ -1,4 +1,5 @@
 CC=h5cc
+LFLAGS=
 
 ifdef TRAP_FPE
 	DEFINES+=-DTRAP_FPE=$(TRAP_FPE)
@@ -162,7 +163,7 @@ libascot.so: CFLAGS+=-shlib
 endif
 
 libascot.so: libascot.o ascot5_main.o libascot_mem.o afsi.o $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
 ascot5_main: ascot5_main.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
