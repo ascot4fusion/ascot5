@@ -668,8 +668,9 @@ class LibAscot:
             Test particle velocities where data is evaluated in each grid point.
         ion : int
             Index number of the background ion species in plasma input.
-        reaction : int
-            Reaction.
+        reaction : {"ionization", "recombination", "charge-exchange",
+        "beamstopping"}
+            Reaction whose cross-section is computed.
 
         Returns
         -------
@@ -682,6 +683,18 @@ class LibAscot:
             If required data has not been initialized.
         """
         self._requireinit("bfield", "plasma", "neutral", "asigma")
+        reactions = \
+            {v: k for k, v in ascot2py.asigma_reac_type__enumvalues.items()}
+        if reaction == "ionization":
+            reaction = reactions["sigmav_recomb"]
+        elif reaction == "recombination":
+            reaction = reactions["sigmav_ioniz"]
+        elif reaction == "charge-exchange":
+            reaction = reactions["sigmav_CX"]
+        elif reaction == "beamstopping":
+            reaction = reactions["sigmav_BMS"]
+        else:
+            raise ValueError("Unknown reaction")
 
         fun = _LIBASCOT.libascot_eval_sigmav
         fun.restype  = ctypes.c_int

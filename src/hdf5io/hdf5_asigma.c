@@ -16,8 +16,7 @@
 #include "hdf5_helpers.h"
 #include "hdf5_asigma.h"
 
-int hdf5_asigma_read_loc(hid_t f,
-                         asigma_loc_offload_data* offload_data,
+int hdf5_asigma_read_loc(hid_t f, asigma_loc_offload_data* offload_data,
                          real** offload_array, char* qid);
 
 /**
@@ -34,8 +33,7 @@ int hdf5_asigma_read_loc(hid_t f,
  *
  * @return Zero if reading and initialization of data succeeded
  */
-int hdf5_asigma_init_offload(hid_t f,
-                             asigma_offload_data* offload_data,
+int hdf5_asigma_init_offload(hid_t f, asigma_offload_data* offload_data,
                              real** offload_array, char* qid) {
 
     char path[256];
@@ -67,8 +65,7 @@ int hdf5_asigma_init_offload(hid_t f,
  *
  * @return Zero if reading succeeded
  */
-int hdf5_asigma_read_loc(hid_t f,
-                         asigma_loc_offload_data* offload_data,
+int hdf5_asigma_read_loc(hid_t f, asigma_loc_offload_data* offload_data,
                          real** offload_array, char* qid) {
     /// @cond
     #undef ASGMPATH

@@ -107,15 +107,11 @@ void atomic_fo(particle_simd_fo* p, real* h,
             int q = (int)round(p->charge[i]/CONST_E);
             real rate_eff_ion, rate_eff_rec;
             if(!errflag) {
-                errflag = atomic_rates(&rate_eff_ion, &rate_eff_rec,
-                                       p->znum[i], p->anum[i], p->mass[i],
-                                       z_2, a_2, m_2,
-                                       asigmadata,
-                                       q, E,
-                                       N_pls_spec, N_ntl_spec,
-                                       T_2, T_0,
-                                       n_2, n_0,
-                                       enable_atomic);
+                errflag = atomic_rates(
+                    &rate_eff_ion, &rate_eff_rec, p->znum[i], p->anum[i],
+                    p->mass[i], z_2, a_2, m_2, asigmadata,
+                    q, E, N_pls_spec, N_ntl_spec, T_2, T_0, n_2, n_0,
+                    enable_atomic);
             }
 
             /* Determine if an atomic reaction occurs */
@@ -202,14 +198,10 @@ a5err atomic_rates(
            reac_type_sigmav_CX, so just pass density of main bulk ion species
            as the dummy parameter. */
         for(int i_spec = 0; i_spec < N_ntl_spec; i_spec++) {
-            err = asigma_eval_sigmav(&sigmav,
-                                     z_1, a_1, m_1,
-                                     z_2[i_spec], a_2[i_spec],
-                                     reac_type_sigmav_CX,
-                                     asigmadata,
-                                     E,
-                                     T[0], T_0[i_spec], n[1],
-                                     enable_atomic);
+            err = asigma_eval_sigmav(
+                &sigmav, z_1, a_1, m_1, z_2[i_spec], a_2[i_spec],
+                sigmav_CX, asigmadata, E, T[0], T_0[i_spec], n[1],
+                enable_atomic);
             *rate_eff_rec += sigmav*n_0[i_spec];
         }
     } else if(q == 0) {
@@ -226,14 +218,10 @@ a5err atomic_rates(
            reac_type_BMS_sigmav, so just pass temperature of main bulk neutral
            species as the dummy parameter. */
         for(int i_spec = 0; i_spec < (N_pls_spec-1); i_spec++) {
-            err = asigma_eval_sigmav(&sigmav,
-                                     z_1, a_1, m_1,
-                                     z_2[i_spec], a_2[i_spec],
-                                     reac_type_BMS_sigmav,
-                                     asigmadata,
-                                     E,
-                                     T[0], T_0[0], n[i_spec+1],
-                                     enable_atomic);
+            err = asigma_eval_sigmav(
+                &sigmav, z_1, a_1, m_1, z_2[i_spec], a_2[i_spec],
+                sigmav_BMS, asigmadata, E,T[0], T_0[0], n[i_spec+1],
+                enable_atomic);
             *rate_eff_ion += sigmav*z_2[i_spec]*n[i_spec+1];
         }
     } else {

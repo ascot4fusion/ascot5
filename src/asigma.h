@@ -32,16 +32,16 @@ typedef enum asigma_type {
  * reaction probability data.
  */
 typedef enum asigma_reac_type {
-    reac_type_sigma_ion  = 1, /* sigma(E), ionization (charge-increasing)     */
-    reac_type_sigma_rec  = 2, /* sigma(E), recombination (charge-decreasing)  */
-    reac_type_sigma_CX   = 3, /* sigma(E), charge exchange                    */
-    reac_type_sigmav_ion = 4, /* sigmav(E,T), ionization (charge-increasing)  */
-    reac_type_sigmav_rec = 5, /* sigmav(E,T), recombination (charge-decr.)    */
-    reac_type_sigmav_CX  = 6, /* sigmav(E,T), charge exchange                 */
-    reac_type_BMS_sigmav = 7, /* sigmav(E,Te,ne), beam-stopping coefficient   */
-    reac_type_eff_sigmav_ion = 8, /* sigmav(n,T), eff. ioniz. (charge-incr.)  */
-    reac_type_eff_sigmav_rec = 9, /* sigmav(n,T), eff. recomb. (charge-decr.) */
-    reac_type_eff_sigmav_CX = 10  /* sigmav(n,T), effective charge exchange   */
+    sigma_ioniz      = 1,  /* sigma(E), ionization (charge-increasing)    */
+    sigma_recomb     = 2,  /* sigma(E), recombination (charge-decreasing) */
+    sigma_CX         = 3,  /* sigma(E), charge exchange                   */
+    sigmav_ioniz     = 4,  /* sigmav(E,T), ionization (charge-increasing) */
+    sigmav_recomb    = 5,  /* sigmav(E,T), recombination (charge-decr.)   */
+    sigmav_CX        = 6,  /* sigmav(E,T), charge exchange                */
+    sigmav_BMS       = 7,  /* sigmav(E,Te,ne), beam-stopping coefficient  */
+    sigmaveff_ioniz  = 8,  /* sigmav(n,T), eff. ioniz. (charge-incr.)     */
+    sigmaveff_recomb = 9,  /* sigmav(n,T), eff. recomb. (charge-decr.)    */
+    sigmaveff_CX     = 10  /* sigmav(n,T), effective charge exchange      */
 } asigma_reac_type;
 
 /**
@@ -78,13 +78,13 @@ int asigma_init(asigma_data* asigma_data, asigma_offload_data* offload_data,
                 real* offload_array);
 #pragma omp declare simd uniform(asigmadata)
 a5err asigma_eval_sigma(
-    real* sigma, int z_1, int a_1, int z_2, int a_2, int reac_type,
+    real* sigma, int z_1, int a_1, int z_2, int a_2, asigma_reac_type reac_type,
     asigma_data* asigmadata, real E_coll_per_amu, int* enable_atomic);
 #pragma omp declare simd uniform(asigmadata)
 a5err asigma_eval_sigmav(
-    real* sigmav, int z_1, int a_1, real m_1, int z_2, int a_2, int reac_type,
-    asigma_data* asigmadata, real E, real T_e, real T_0, real n_i,
-    int* enable_atomic);
+    real* sigmav, int z_1, int a_1, real m_1, int z_2, int a_2,
+    asigma_reac_type reac_type, asigma_data* asigmadata, real E, real T_e,
+    real T_0, real n_i, int* enable_atomic);
 #pragma omp end declare target
 
 #endif
