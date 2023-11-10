@@ -27,6 +27,7 @@
 #include "simulate/simulate_fo_fixed.h"
 #include "simulate/mccc/mccc.h"
 #include "gctransform.h"
+#include "asigma.h"
 
 #pragma omp declare target
 void sim_monitor(char* filename, volatile int* n, volatile int* finished);
@@ -328,6 +329,7 @@ void simulate_init_offload(sim_offload_data* sim) {
     if(sim->disable_gctransform) {
         gctransform_setorder(0);
     }
+    asigma_extrapolate(sim->enable_atomic==2);
 }
 
 /**

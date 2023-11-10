@@ -207,16 +207,16 @@ void asigma_loc_free_offload(asigma_loc_offload_data* offload_data,
  * spline parameters of the reaction data in the spline structs within
  * the data struct on the target.
  *
- * @param asgm_loc_data pointer to data struct on target
+ * @param asigma_data pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
  */
 void asigma_loc_init(
-    asigma_loc_data* asgm_loc_data, asigma_loc_offload_data* offload_data,
+    asigma_loc_data* asigma_data, asigma_loc_offload_data* offload_data,
     real* offload_array) {
     /* Copy over number of reactions and store it in a helper variable */
     int N_reac =  offload_data->N_reac;
-    asgm_loc_data->N_reac = N_reac;
+    asigma_data->N_reac = N_reac;
 
     /* Helper pointer to keep track of position in offload array */
     real* offload_arr_pos = offload_array+5*N_reac;
@@ -226,11 +226,11 @@ void asigma_loc_init(
     for(int i_reac = 0; i_reac < N_reac; i_reac++) {
 
         /* Reaction identifiers */
-        asgm_loc_data->z_1[i_reac] = offload_data->z_1[i_reac];
-        asgm_loc_data->a_1[i_reac] = offload_data->a_1[i_reac];
-        asgm_loc_data->z_2[i_reac] = offload_data->z_2[i_reac];
-        asgm_loc_data->a_2[i_reac] = offload_data->a_2[i_reac];
-        asgm_loc_data->reac_type[i_reac] = offload_data->reac_type[i_reac];
+        asigma_data->z_1[i_reac] = offload_data->z_1[i_reac];
+        asigma_data->a_1[i_reac] = offload_data->a_1[i_reac];
+        asigma_data->z_2[i_reac] = offload_data->z_2[i_reac];
+        asigma_data->a_2[i_reac] = offload_data->a_2[i_reac];
+        asigma_data->reac_type[i_reac] = offload_data->reac_type[i_reac];
 
         /* Initialize spline struct according to dimensionality of
            reaction data (and mark reaction availability) */
@@ -247,7 +247,7 @@ void asigma_loc_init(
         switch(dim) {
             case 1:
                 interp1Dcomp_init_spline(
-                    &(asgm_loc_data->sigma[i_reac]), offload_arr_pos,
+                    &(asigma_data->sigma[i_reac]), offload_arr_pos,
                     N_E,
                     NATURALBC,
                     E_min, E_max);
@@ -256,7 +256,7 @@ void asigma_loc_init(
 
             case 2:
                 interp2Dcomp_init_spline(
-                    &(asgm_loc_data->sigmav[i_reac]), offload_arr_pos,
+                    &(asigma_data->sigmav[i_reac]), offload_arr_pos,
                     N_E, N_T,
                     NATURALBC, NATURALBC,
                     E_min, E_max,
@@ -266,7 +266,7 @@ void asigma_loc_init(
 
             case 3:
                 interp3Dcomp_init_spline(
-                    &(asgm_loc_data->BMSsigmav[i_reac]), offload_arr_pos,
+                    &(asigma_data->BMSsigmav[i_reac]), offload_arr_pos,
                     N_E, N_n, N_T,
                     NATURALBC, NATURALBC, NATURALBC,
                     E_min, E_max,
@@ -297,27 +297,27 @@ void asigma_loc_init(
  * @param a_1 atomic mass number of fast particle
  * @param z_2 atomic number of bulk particle
  * @param a_2 atomic mass number of bulk particle
- * @param reac_type reaction type
- * @param asgm_loc_data pointer to atomic data struct
  * @param E_coll_per_amu energy per amu corresponding to collision speed
- * @param enable_atomic pointer to atomic enable and functionality flag
+ * @param reac_type reaction type
+ * @param extrapolate don't raise error but set values outside abscissae to zero
+ * @param asigma_data pointer to atomic data struct
  *
  * @return zero if evaluation succeeded
  */
 a5err asigma_loc_eval_sigma(
-    real* sigma, int z_1, int a_1, int z_2, int a_2, int reac_type,
-    asigma_loc_data* asgm_loc_data, real E_coll_per_amu, int* enable_atomic) {
+    real* sigma, int z_1, int a_1, int z_2, int a_2, real E_coll_per_amu,
+    int reac_type, int extrapolate, asigma_loc_data* asigma_data) {
     a5err err = 0;
 
-    /* We look for a match of the reaction identifiers in asgm_loc_data to
+    /* We look for a match of the reaction identifiers in asigma_data to
        determine if the reaction of interest has been initialized */
     int reac_found = -1, i_reac;
-    for(i_reac = 0; i_reac < asgm_loc_data->N_reac; i_reac++) {
-        if(z_1       == asgm_loc_data->z_1[i_reac] &&
-           a_1       == asgm_loc_data->a_1[i_reac] &&
-           z_2       == asgm_loc_data->z_2[i_reac] &&
-           a_2       == asgm_loc_data->a_2[i_reac] &&
-           reac_type == asgm_loc_data->reac_type[i_reac]) {
+    for(i_reac = 0; i_reac < asigma_data->N_reac; i_reac++) {
+        if(z_1       == asigma_data->z_1[i_reac] &&
+           a_1       == asigma_data->a_1[i_reac] &&
+           z_2       == asigma_data->z_2[i_reac] &&
+           a_2       == asigma_data->a_2[i_reac] &&
+           reac_type == asigma_data->reac_type[i_reac]) {
             reac_found = i_reac;
         }
     }
@@ -330,20 +330,18 @@ a5err asigma_loc_eval_sigma(
         /* Reaction not found. Raise error. */
         err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_ASIGMA_LOC);
     } else {
-        if(asgm_loc_data->reac_type[i_reac] == sigma_ioniz  ||
-           asgm_loc_data->reac_type[i_reac] == sigma_recomb ||
-           asgm_loc_data->reac_type[i_reac] == sigma_CX) {
+        if(asigma_data->reac_type[i_reac] == sigma_ioniz  ||
+           asigma_data->reac_type[i_reac] == sigma_recomb ||
+           asigma_data->reac_type[i_reac] == sigma_CX) {
             int interperr = 0;
             interperr += interp1Dcomp_eval_f(sigma,
-                                             &asgm_loc_data->sigma[i_reac],
+                                             &asigma_data->sigma[i_reac],
                                              E_coll_per_amu);
             if(interperr) {
                 /* Energy is outside spline domain */
-                if(*enable_atomic == 2) {
-                    /* Set cross-section to 0 to avoid further problems */
+                if(extrapolate) {
                     *sigma = 0.0;
                 } else {
-                    /* Raise an error */
                     err = error_raise( ERR_INPUT_EVALUATION, __LINE__,
                                        EF_ASIGMA_LOC );
                 }
@@ -371,36 +369,36 @@ a5err asigma_loc_eval_sigma(
  * @param m_1 mass of fast particle
  * @param z_2 atomic number of bulk particle
  * @param a_2 atomic mass number of bulk particle
- * @param reac_type reaction type
- * @param asgm_loc_data pointer to atomic data struct
  * @param E energy of fast particle
  * @param T_e electron temperature of bulk plasma
  * @param T_0 temperature of bulk neutrals
  * @param n_i ion density of bulk plasma
- * @param enable_atomic pointer to atomic enable and functionality flag
+ * @param reac_type reaction type
+ * @param extrapolate don't raise error but set values outside abscissae to zero
+ * @param asigma_data pointer to atomic data struct
  *
  * @return zero if evaluation succeeded
  */
 a5err asigma_loc_eval_sigmav(
     real* sigmav, int z_1, int a_1, real m_1, int z_2, int a_2,
-    int reac_type, asigma_loc_data* asgm_loc_data, real E,
-    real T_e, real T_0, real n_i, int* enable_atomic) {
+    real E, real T_e, real T_0, real n_i, int reac_type, int extrapolate,
+    asigma_loc_data* asigma_data) {
     a5err err = 0;
 
     /* Find the matching reaction. Note that BMS data is same for all
      * isotopes, so we don't compare anums */
     int reac_found = -1, i_reac;
-    for(i_reac = 0; i_reac < asgm_loc_data->N_reac; i_reac++) {
+    for(i_reac = 0; i_reac < asigma_data->N_reac; i_reac++) {
         if(reac_type == sigmav_BMS &&
-           z_1       == asgm_loc_data->z_1[i_reac] &&
-           z_2       == asgm_loc_data->z_2[i_reac] &&
-           reac_type == asgm_loc_data->reac_type[i_reac]) {
+           z_1       == asigma_data->z_1[i_reac] &&
+           z_2       == asigma_data->z_2[i_reac] &&
+           reac_type == asigma_data->reac_type[i_reac]) {
             reac_found = i_reac;
-        } else if(z_1       == asgm_loc_data->z_1[i_reac] &&
-                  a_1       == asgm_loc_data->a_1[i_reac] &&
-                  z_2       == asgm_loc_data->z_2[i_reac] &&
-                  a_2       == asgm_loc_data->a_2[i_reac] &&
-                  reac_type == asgm_loc_data->reac_type[i_reac]) {
+        } else if(z_1       == asigma_data->z_1[i_reac] &&
+                  a_1       == asigma_data->a_1[i_reac] &&
+                  z_2       == asigma_data->z_2[i_reac] &&
+                  a_2       == asigma_data->a_2[i_reac] &&
+                  reac_type == asigma_data->reac_type[i_reac]) {
             reac_found = i_reac;
         }
     }
@@ -419,15 +417,12 @@ a5err asigma_loc_eval_sigmav(
                function call */
             int interperr = 0;
             interperr += interp2Dcomp_eval_f(sigmav,
-                                             &asgm_loc_data->sigmav[i_reac],
+                                             &asigma_data->sigmav[i_reac],
                                              E/CONST_E, T_0/CONST_E);
             if(interperr) {
-                /* An abscissa is outside spline domain */
-                if(*enable_atomic == 2) {
-                    /* Set rate coefficient to 0 to avoid further problems */
+                if(extrapolate) {
                     *sigmav = 0.0;
                 } else {
-                    /* Raise an error */
                     err = error_raise( ERR_INPUT_EVALUATION, __LINE__,
                                        EF_ASIGMA_LOC );
                 }
@@ -438,15 +433,12 @@ a5err asigma_loc_eval_sigmav(
                to mass (J --> eV/amu) in the function call. */
             int interperr = 0;
             interperr += interp3Dcomp_eval_f(
-                sigmav, &asgm_loc_data->BMSsigmav[i_reac],
+                sigmav, &asigma_data->BMSsigmav[i_reac],
                 E/CONST_E/(m_1/CONST_U), z_2*n_i, T_e/CONST_E);
             if(interperr) {
-                /* An abscissa is outside spline domain */
-                if(*enable_atomic == 2) {
-                    /* Set rate coefficient to 0 to avoid further problems */
+                if(extrapolate) {
                     *sigmav = 0.0;
                 } else {
-                    /* Raise an error */
                     err = error_raise( ERR_INPUT_EVALUATION, __LINE__,
                                        EF_ASIGMA_LOC );
                 }
