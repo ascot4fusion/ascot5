@@ -152,6 +152,7 @@ class RunMixin(DistMixin):
             mask = np.zeros(uecs.shape, dtype=bool)
             for i, uec in enumerate(uecs):
                 for ec in endcond:
+                    ec = ec.replace(" and ", " ")
                     accept  = State.endcond_check(uec, ec)
                     mask[i] = mask[i] or accept
 
@@ -594,18 +595,20 @@ class RunMixin(DistMixin):
         if dist == "5d":
             self._require("_dist5d")
             distout = self._dist5d.get()
-        if dist == "6d":
+        elif dist == "6d":
             self._require("_dist6d")
             distout = self._dist6d.get()
-        if dist == "rho5d":
+        elif dist == "rho5d":
             self._require("_distrho5d")
             distout = self._distrho5d.get()
-        if dist == "rho6d":
+        elif dist == "rho6d":
             self._require("_distrho6d")
             distout = self._distrho6d.get()
-        if dist == "com":
+        elif dist == "com":
             self._require("_distcom")
             distout = self._distcom.get()
+        else:
+            raise ValueError("Unknown distribution")
 
         mass = np.mean(self.getstate("mass"))
         return self._getdist(distout, mass, exi=exi, ekin_edges=ekin_edges,
@@ -745,90 +748,6 @@ class RunMixin(DistMixin):
             for d in moms:
                 print(d[0] + " : " + d[1])
         return dists, moms
-
-    def plotdist(self, dist, axes=None, cax=None):
-        """Plot distribution in 1D or 2D.
-
-        This method assumes that the input distribution has been integrated,
-        sliced, and interpolated so that only one or two dimensions have
-        a size above one.
-
-        Parameters
-        ----------
-        dist : :class:`DistData`
-            The distribution data object.
-        axes : :obj:`~matplotlib.axes.Axes`, optional
-            The axes where figure is plotted or otherwise new figure is created.
-        cax : :obj:`~matplotlib.axes.Axes`, optional
-            The color bar axes or otherwise taken from the main axes.
-        """
-        warnings.warn("Deprecated. Use the plot method in DistData instead",
-                      DeprecationWarning, stacklevel=2)
-        x = None; y = None;
-        for key in dist.abscissae:
-            val = dist.abscissa_edges(key)
-            if val.size > 2:
-                if x is None:
-                    x = val
-                    xlabel = key + " [" + str(x.units) + "]"
-                elif y is None:
-                    y = val
-                    ylabel = key + " [" + str(y.units) + "]"
-                else:
-                    raise ValueError(
-                        "The distribution has more than two dimensions with "
-                        + "size greater than one")
-        if x is None: raise ValueError("The distribution is zero dimensional")
-
-        ordinate = np.squeeze(dist.distribution())
-        if y is None:
-            ylabel = "f" + " [" + str(ordinate.units) + "]"
-            a5plt.mesh1d(x, ordinate, xlabel=xlabel, ylabel=ylabel, axes=axes)
-        else:
-            # Swap pitch and energy
-            if "ekin" in xlabel and "pitch" in ylabel:
-                temp = x; x = y; y = temp
-                temp = xlabel; xlabel = ylabel; ylabel = temp
-                ordinate = ordinate.T
-
-            axesequal = x.units == y.units
-            clabel = "f" + " [" + str(ordinate.units) + "]"
-            a5plt.mesh2d(x, y, ordinate, axesequal=axesequal, xlabel=xlabel,
-                         ylabel=ylabel, clabel=clabel, axes=axes, cax=cax)
-
-    def plotdist_moments(self, moment, ordinate, axes=None, cax=None):
-        """Plot radial or (R,z) profile of a distribution moment.
-
-        The plotted profile is the average of (theta, phi) or phi depending
-        on whether the input is calculated from a rho distribution or not.
-
-        Parameters
-        ----------
-        moment: class:`DistMoment`
-            Moments calculated from the distribution.
-        ordinate : str
-            Name of the moment to be plotted.
-        axes : :obj:`~matplotlib.axes.Axes`, optional
-            The axes where figure is plotted or otherwise new figure is created.
-        cax : :obj:`~matplotlib.axes.Axes`, optional
-            The color bar axes or otherwise taken from the main axes.
-        """
-        warnings.warn("Deprecated. Use the plot method in DistMoment instead",
-                      DeprecationWarning, stacklevel=2)
-        if moment.rhodist:
-            ylabel = ordinate
-            ordinate = moment.ordinate(ordinate, toravg=True, polavg=True)
-            ylabel += " [" + str(ordinate.units) + "]"
-            a5plt.mesh1d(moment.rho, ordinate,
-                         xlabel="Normalized poloidal flux",
-                         ylabel=ylabel, axes=axes)
-        else:
-            clabel = ordinate
-            ordinate = moment.ordinate(ordinate, toravg=True)
-            clabel += " [" + str(ordinate.units) + "]"
-            a5plt.mesh2d(moment.r, moment.z, ordinate, axesequal=True,
-                         xlabel="R [m]", ylabel="z [m]", clabel=clabel,
-                         axes=axes, cax=cax)
 
     def plotstate_scatter(self, x, y, z=None, c=None, xmode="gc", ymode="gc",
                           zmode="gc", cmode="gc", endcond=None, ids=None,
