@@ -9,13 +9,18 @@ from a5py import physlib
 
 class MarkerGenerator():
     """Tool for processing distributions into markers.
+
+    Attributes
+    ----------
+    _ascot : :class:`Ascot`
+        The Ascot object this instance belongs to.
     """
 
     def __init__(self, ascot):
         self._ascot = ascot
 
-    def generate(self, markerdist, particledist, mass, charge, anum, znum, nmrk,
-                 minweight=0):
+    def generate(self, nmrk, mass, charge, anum, znum, particledist,
+                 markerdist=None, minweight=0, return_dists=False):
         """Generate weighted markers from marker and particle distributions.
 
         This function takes two 5D distributions that must have identical grids.
@@ -26,24 +31,37 @@ class MarkerGenerator():
         cell is given same weight, so that those markers represent all
         the physical particles in that particular cell.
 
-        When markers are sampled from the marker distribution, their initial
+        As markers are sampled from the marker distribution, their initial
         coordinates are randomly chosen from the phase space region contained
         within the cell.
 
         Parameters
         ----------
-        markerdist : :class:`Dist`
-            5D distribution from which marker initial coordinates are sampled.
-        particledist : :class:`Dist`
-            5D distribution from which marker weight is sampled.
+        nmrk : int
+            Number of markers to be generated.
         mass : float
             Particle species` mass.
         charge : float
             Particle species` charge.
-        nmrk : int
-            Number of markers to be generated.
+        anum : int
+            Particle species` atomic mass number.
+        znum : int
+            Particle species` charge number.
+        particledist : :class:`Dist`
+            5D distribution from which marker weight is sampled.
+        markerdist : :class:`Dist`, optional
+            5D distribution from which marker initial coordinates are sampled.
+
+            If not given, the coordinates are sampled from ``particledist``.
         minweight : float, optional
             Minimum weight a marker must have or else it is rejected.
+        return_dists : bool, optional
+            Return ``markerdist`` and ``particledist`` calculated from
+            the generated markers.
+
+            These distributions hould converge to inputs as the marker number is
+            increased. The exception is ``particledist`` which will always get
+            zero values in regions where ``markerdist`` is zero.
 
         Returns
         -------
@@ -59,6 +77,8 @@ class MarkerGenerator():
             in ``markerdist`` were left intentionally empty even though they
             would contain physical particles.
         """
+        if markerdist is None:
+            markerdist = particledist
         # Number of markers successfully generated
         ngen      = 0
         # Cell indices of generated markers
@@ -117,11 +137,14 @@ class MarkerGenerator():
             ppe = randomize(markerdist.abscissa_edges("pperp"), ip2)
 
             pnorm = np.sqrt(ppa**2 + ppe**2)
-            mrk["energy"] = physlib.energy_momentum(mass, pnorm)
+            mrk["energy"] = physlib.energy_momentum(mass, pnorm).to("eV")
             mrk["pitch"]  = ppa / pnorm
         else:
             mrk["energy"] = randomize(markerdist.abscissa_edges("ekin"),  ip1)
             mrk["pitch"]  = randomize(markerdist.abscissa_edges("pitch"), ip2)
+
+        if not return_dists:
+            return mrk
 
         # Create output distributions
         vol = markerdist.phasespacevolume()
