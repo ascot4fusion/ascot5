@@ -137,9 +137,9 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                 if(tile > 0) {
                     real w = w_coll;
                     p_f->time[i] = p_i->time[i] + w*(p_f->time[i] - p_i->time[i]);
-                    p_f->r[i]    = p_i->r[i] + w*(p_f->r[i] - p_i->r[i]);
-                    p_f->phi[i]  = p_i->phi[i] + w*(p_f->phi[i] - p_i->phi[i]);
-                    p_f->z[i]    = p_i->z[i] + w*(p_f->z[i] - p_i->z[i]);
+                    p_f->r[i]    = p_i->r[i]    + w*(p_f->r[i] - p_i->r[i]);
+                    p_f->phi[i]  = p_i->phi[i]  + w*(p_f->phi[i] - p_i->phi[i]);
+                    p_f->z[i]    = p_i->z[i]    + w*(p_f->z[i] - p_i->z[i]);
 
                     p_f->walltile[i] = tile;
                     p_f->endcond[i] |= endcond_wall;
@@ -260,9 +260,6 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
  *        current time-step
  * @param sim pointer to simulation data struct
- *
- * @todo Hybrid condition checks whether marker is over maximum rho limit. More
- *       smarter check is required.
  */
 void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
                       sim_data* sim) {

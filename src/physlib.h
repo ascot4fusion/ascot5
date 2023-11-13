@@ -139,8 +139,7 @@
 * - \f$m\f$ is mass [kg]
 * - \f$v\f$ is velocity norm [m/s]
 */
-#define physlib_pnorm_vnorm(m, v) (                  \
-        m * v * physlib_gamma_vnorm(v) )
+#define physlib_pnorm_vnorm(m, v) ( m * v * physlib_gamma_vnorm(v) )
 
 /**
 * @brief Evaluate guiding center parallel momentum [kg m/s] from momentum norm and pitch
