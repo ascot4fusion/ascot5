@@ -7,11 +7,7 @@
 
 #include "ascot5.h"
 #include "particle.h"
-#include "B_field.h"
-#include "plasma.h"
-#include "wall.h"
 #include "random.h"
-#include "diag.h"
 
 /**
  * @brief Structure for describing an NBI injector
@@ -68,14 +64,9 @@ typedef struct {
 } nbi_data;
 
 int nbi_init_offload(nbi_offload_data* offload_data, real** offload_array);
-
 void nbi_init(nbi_data* nbi, nbi_offload_data* offload_data,
               real* offload_array);
-
 void nbi_free_offload(nbi_offload_data* offload_data, real** offload_array);
-
-void nbi_generate(particle* p, int nprt, real t0, real t1, nbi_injector* inj,
-                  B_field_data* Bdata, plasma_data* plsdata,
-                  wall_data* walldata, random_data* rng, diag_data* diag);
+void nbi_inject(real* xyz, real* vxyz, nbi_injector* inj, random_data* rng);
 
 #endif

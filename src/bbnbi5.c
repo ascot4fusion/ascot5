@@ -22,21 +22,28 @@
 #include "consts.h"
 #include "gitver.h"
 #include "math.h"
+#include "physlib.h"
 #include "hdf5_interface.h"
 #include "hdf5io/hdf5_helpers.h"
-#include "hdf5io/hdf5_marker.h"
 #include "print.h"
 #include "simulate.h"
+#include "endcond.h"
 #include "random.h"
 #include "particle.h"
+#include "suzuki.h"
 #include "B_field.h"
 #include "plasma.h"
+#include "neutral.h"
 #include "wall.h"
+#include "asigma.h"
 #include "nbi.h"
 #include "diag.h"
 
 int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt,
-                   real* t1, real* t2, int* writemarker);
+                   real* t1, real* t2);
+void bbnbi_simulate(particle_queue *pq, sim_data* sim);
+void bbnbi_inject(particle_state* p, int nprt, int ngenerated, real t0, real t1,
+                  nbi_injector* inj, sim_data* sim);
 
 /**
  * @brief Main function for BBNBI5
@@ -47,22 +54,17 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt,
  * @return Zero if simulation was completed
  */
 int main(int argc, char** argv) {
-    /* Read and parse command line arguments */
-    int nprt; /* Number of markers to be generated excluding shinetrough */
+    int nprt;    /* Number of markers to be generated in total */
     real t1, t2; /* Markers are initialized in this time-spawn */
-    int writemarker; /* Store and write marker input */
     sim_offload_data sim;
-    if(read_arguments(argc, argv, &sim, &nprt, &t1, &t2, &writemarker) != 0) {
+
+    /* Read and parse command line arguments */
+    if(read_arguments(argc, argv, &sim, &nprt, &t1, &t2) != 0) {
         abort();
         return 1;
     }
 
-    /* QID for this run */
-    char qid[11];
-    hdf5_generate_qid(qid);
-
-    int mpi_rank = 0; /* BBNBI 5 does not yet support MPI */
-    int mpi_root = 0;
+    int mpi_rank = 0, mpi_root = 0; /* BBNBI 5 does not yet support MPI */
     print_out0(VERBOSE_MINIMAL, mpi_rank, "BBNBI5\n");
 
 #ifdef GIT_VERSION
@@ -72,38 +74,40 @@ int main(int argc, char** argv) {
     print_out0(VERBOSE_MINIMAL, mpi_rank, "Not under version control\n\n");
 #endif
 
-    /* Read data needed for nbi simulation */
+    /* Read data needed for bbnbi simulation */
     real* nbi_offload_array;
     real* B_offload_array;
     real* plasma_offload_array;
+    real* neutral_offload_array;
     real* wall_offload_array;
     int*  wall_int_offload_array;
+    real* asigma_offload_array;
     real* diag_offload_array;
     if( hdf5_interface_read_input(&sim, hdf5_input_bfield | hdf5_input_plasma |
-                                  hdf5_input_wall | hdf5_input_nbi |
+                                  hdf5_input_neutral | hdf5_input_wall |
+                                  hdf5_input_asigma | hdf5_input_nbi |
                                   hdf5_input_options,
                                   &B_offload_array, NULL, &plasma_offload_array,
-                                  NULL, &wall_offload_array,
-                                  &wall_int_offload_array, NULL, NULL, NULL,
-                                  &nbi_offload_array, NULL, NULL) ) {
+                                  &neutral_offload_array, &wall_offload_array,
+                                  &wall_int_offload_array, NULL, NULL,
+                                  &asigma_offload_array, &nbi_offload_array,
+                                  NULL, NULL) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank, "Input initialization failed\n");
         abort();
         return 1;
     }
-    /* These should be taken from options but keeping them here for now */
-    sim.diag_offload_data.diagorb_collect   = 0;
-    sim.diag_offload_data.dist5D_collect    = 1;
-    sim.diag_offload_data.dist6D_collect    = 0;
-    sim.diag_offload_data.distrho5D_collect = 0;
-    sim.diag_offload_data.distrho6D_collect = 0;
-    sim.diag_offload_data.distCOM_collect   = 0;
-    sim.diag_offload_data.diagtrcof_collect = 0;
+
+    /* Initialize diagnostics */
     diag_init_offload(&sim.diag_offload_data, &diag_offload_array, 0);
     real diag_offload_array_size = sim.diag_offload_data.offload_array_length
         * sizeof(real) / (1024.0*1024.0);
     print_out0(VERBOSE_IO, mpi_rank,
                "Initialized diagnostics, %.1f MB.\n", diag_offload_array_size);
     simulate_init_offload(&sim);
+
+    /* QID for this run */
+    char qid[11];
+    hdf5_generate_qid(qid);
 
     /* Write bbnbi run group to HDF5 */
     if(mpi_rank == mpi_root) {
@@ -122,97 +126,345 @@ int main(int argc, char** argv) {
     /* Initialize input data */
     sim_data sim_data;
     sim_init(&sim_data, &sim);
+    random_init(&sim_data.random_data, time(NULL));
     B_field_init(&sim_data.B_data, &sim.B_offload_data, B_offload_array);
     plasma_init(&sim_data.plasma_data, &sim.plasma_offload_data,
                 plasma_offload_array);
+    neutral_init(&sim_data.neutral_data, &sim.neutral_offload_data,
+                 neutral_offload_array);
     wall_init(&sim_data.wall_data, &sim.wall_offload_data, wall_offload_array,
               wall_int_offload_array);
-    random_init(&sim_data.random_data, time(NULL));
+    asigma_init(&sim_data.asigma_data, &sim.asigma_offload_data,
+                asigma_offload_array);
     nbi_init(&sim_data.nbi_data, &sim.nbi_offload_data, nbi_offload_array);
     diag_init(&sim_data.diag_data, &sim.diag_offload_data, diag_offload_array);
 
-    /* The number of markers generated per injector is proportional to injector
-     * power */
+    /* Calculate total NBI power so that we can distribute markers along
+     * the injectors according to their power */
     real total_power = 0;
     for(int i=0; i < sim_data.nbi_data.ninj; i++) {
         total_power += sim_data.nbi_data.inj[i].power;
     }
 
-    /* Simulate requested number of markers into array of particle structs */
-    particle* p = NULL;
-    if(writemarker) {
-        (particle*) malloc(nprt*sizeof(particle));
-    }
-    int nprt_generated = 0;
+    /* Initialize particle struct */
+    particle_state *p = (particle_state*) malloc(nprt * sizeof(particle_state));
 
+    /* Generate markers at the injectors */
+    int nprt_generated = 0;
     for(int i = 0; i < sim_data.nbi_data.ninj; i++) {
-        int nprt_inj;
+
+        /* Number of markers generated is proportional to NBI power */
+        int nprt_inj = ( sim_data.nbi_data.inj[i].power / total_power ) * nprt;
         if(i == sim_data.nbi_data.ninj-1) {
+            /* All "remaining" markers goes to the last injector to avoid any
+             * rounding issues */
             nprt_inj = nprt - nprt_generated;
         }
-        else {
-            nprt_inj = sim_data.nbi_data.inj[i].power/total_power * nprt;
-        }
-        nbi_generate(&p[nprt_generated], nprt_inj, t1, t2,
-                     &(sim_data.nbi_data.inj[i]), &sim_data.B_data,
-                     &sim_data.plasma_data, &sim_data.wall_data,
-                     &sim_data.random_data, &sim_data.diag_data);
+
+        /* Generates markers at the injector location and traces them until
+         * they enter the region with magnetic field data */
+        bbnbi_inject(&p[nprt_generated], nprt_inj, nprt_generated, t1, t2,
+                     &(sim_data.nbi_data.inj[i]), &sim_data);
 
         nprt_generated += nprt_inj;
         print_out0(VERBOSE_NORMAL, mpi_rank,
-                   "Generated %d markers for injector %d.\n",
-                   nprt_inj, i+1);
+                   "Generated %d markers for injector %d.\n", nprt_inj, i+1);
     }
-    print_out0(VERBOSE_IO, mpi_rank, "\nWriting %d markers.\n",
-               nprt_generated);
 
+    /* Place markers in a queue */
+    particle_queue pq;
+    pq.n = 0;
+    for(int i = 0; i < nprt; i++) {
+        pq.n++;
+    }
+    pq.p = (particle_state**) malloc(pq.n * sizeof(particle_state*));
+    pq.finished = 0;
+
+    pq.next = 0;
+    for(int i = 0; i < nprt; i++) {
+        pq.p[pq.next++] = &p[i];
+
+    }
+    pq.next = 0;
+
+    /* Trace neutrals until they are ionized or lost to the wall */
+    #pragma omp parallel
+    bbnbi_simulate(&pq, &sim_data);
+
+    /* Write output and close the simulation */
     if(mpi_rank == mpi_root) {
+        if( hdf5_interface_write_state(sim.hdf5_out, "state",
+                                       nprt_generated, p) ) {
+            print_out0(VERBOSE_MINIMAL, mpi_rank,
+                       "\n"
+                       "Writing marker state failed.\n"
+                       "See stderr for details.\n"
+                       "\n");
+        }
+        free(p);
+        print_out0(VERBOSE_NORMAL, mpi_rank,
+                   "\nMarker state written.\n");
+
         hdf5_interface_write_diagnostics(
             &sim, diag_offload_array, sim.hdf5_out);
     }
-
-    /* Copy markers from particle structs into input_particle structs to be
-     * written into the h5 file */
-
-    input_particle* ip = (input_particle*) malloc(nprt*sizeof(input_particle));
-    for(int i=0; i < nprt; i++) {
-        ip[i].type = input_particle_type_p;
-        ip[i].p = p[i];
-        ip[i].p.id = i+1;
-    }
-
-    /* Write marker output */
-    if(writemarker) {
-        char qid[11];
-        hdf5_generate_qid(qid);
-
-        hid_t of = hdf5_create(sim.hdf5_out);
-        hdf5_close(of);
-        of = hdf5_open(sim.hdf5_out);
-        hdf5_marker_write_particle(of, nprt, ip, qid);
-
-        char path[256];
-        hdf5_gen_path("/marker/prt_XXXXXXXXXX", qid, path);
-
-        char desc[256];
-        sprintf(desc, "BBNBIRUN%s", sim.qid);
-        hdf5_write_string_attribute(of, path, "description", desc);
-
-        time_t t = time(NULL);
-        struct tm tm = *localtime(&t);
-        char date[21];
-        sprintf(date, "%04d-%02d-%02d %02d:%02d:%02d.", tm.tm_year + 1900,
-                tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-        hdf5_write_string_attribute(of, path, "date",  date);
-
-        /* Set this run as active. */
-        hdf5_write_string_attribute(of, "/marker", "active",  qid);
-        hdf5_close(of);
-    }
-
     print_out0(VERBOSE_MINIMAL, mpi_rank, "\nDone\n");
 
     return 0;
+}
+
+/**
+ * @brief Inject neutrals from an injector
+ *
+ * This function initializes neutral markers at the beamlet positions and
+ * launches them in a (random) direction based on the injector specs.
+ * The marker is traced until it enters the magnetic field, at which point
+ * the particle struct is filled with only the particle data, and the struct
+ * is returned.
+ *
+ * @param p pointer where generated markers are stored
+ * @param nprt number of markers to be injected or generated
+ * @param ngenerated number of markers that have already been generated
+ * @param t0 time when the injector is turned on
+ * @param t1 time when the injector is turned off
+ * @param inj pointer to injector data
+ */
+void bbnbi_inject(particle_state* p, int nprt, int ngenerated, real t0, real t1,
+                  nbi_injector* inj, sim_data* sim) {
+
+    /* Set marker weights assuming a large number is created so that the energy
+     * fractions of generated markers are close to the injector values */
+    real f  =     1.0 * inj->efrac[0] + (1.0/2) * inj->efrac[1]
+            + (1.0/3) * inj->efrac[2];
+    real weight = (inj->power / inj->energy ) / ( f * nprt );
+
+    /* Inject markers and trace their ballistic trajectories (without any
+     * other physics) until they enter the plasma for the first time.     */
+    #pragma omp parallel for
+    for(int i = 0; i < nprt; i++) {
+        real time = t0 + random_uniform(&sim->random_data) * (t1-t0);
+
+        /* Assign initial phase-space coordinates for this marker */
+        real xyz[3], vxyz[3], rpz[3], vhat[3];
+        nbi_inject(xyz, vxyz, inj, &sim->random_data);
+        math_xyz2rpz(xyz, rpz);
+        math_unit(vxyz, vhat);
+
+        /* Advance until the marker enters the magnetic field */
+        real psi;
+        real ds = 1e-3;
+        a5err err = B_field_eval_psi(&psi, rpz[0], rpz[1], rpz[2], time,
+                                     &sim->B_data);
+        while(err > 1) {
+            xyz[0] += ds * vhat[0];
+            xyz[1] += ds * vhat[1];
+            xyz[2] += ds * vhat[2];
+            math_xyz2rpz(xyz, rpz);
+            err = B_field_eval_psi(&psi, rpz[0], rpz[1], rpz[2], time,
+                                   &sim->B_data);
+        }
+
+        real vrpz[3];
+        math_vec_xyz2rpz(vxyz, vrpz, rpz[1]);
+        real gamma = physlib_gamma_vnorm(math_norm(vrpz));
+
+        /* Fill the particle state with particle coordinates */
+        p[i].rprt     = rpz[0];
+        p[i].phiprt   = rpz[1];
+        p[i].zprt     = rpz[2];
+        p[i].p_r      = vrpz[0] * gamma * inj->mass;
+        p[i].p_phi    = vrpz[1] * gamma * inj->mass;
+        p[i].p_z      = vrpz[2] * gamma * inj->mass;
+        p[i].mass     = inj->mass;
+        p[i].charge   = 0.0;
+        p[i].anum     = inj->anum;
+        p[i].znum     = inj->znum;
+        p[i].weight   = weight;
+        p[i].time     = time;
+        p[i].mileage  = 0.0;
+        p[i].cputime  = 0.0;
+        p[i].id       = ngenerated + i + 1;
+        p[i].endcond  = 0;
+        p[i].walltile = 0;
+        p[i].err      = 0;
+    }
+}
+
+/**
+ * @brief Trace a neutral marker until it has ionized or hit wall
+ *
+ * This function is for the most part identical to simulate_fo, with few
+ * exceptions relevant for BBNBI.
+ *
+ * @param p
+ * @param Bdata pointer to magnetic field data
+ * @param plsdata pointer to plasma data
+ * @param walldata pointer to wall data
+ * @param rng pointer to random number generator data
+ */
+void bbnbi_simulate(particle_queue *pq, sim_data* sim) {
+    int cycle[NSIMD]  __memalign__;
+    real hin[NSIMD]  __memalign__;
+    int shinethrough[NSIMD] __memalign__;
+    real remaining[NSIMD]  __memalign__;
+    real threshold[NSIMD]  __memalign__;
+    particle_simd_fo p, p0;
+
+    int n_species       = plasma_get_n_species(&sim->plasma_data);
+    const int* pls_anum = plasma_get_species_anum(&sim->plasma_data);
+    const int* pls_znum = plasma_get_species_znum(&sim->plasma_data);
+
+    /* Init dummy markers */
+    for(int i=0; i< NSIMD; i++) {
+        p.id[i] = -1;
+        p.running[i] = 0;
+        hin[i] = 1e-10;
+        threshold[i] = random_uniform(&sim->random_data);
+        remaining[i] = 1.0;
+        shinethrough[i] = 0;
+    }
+
+    /* Initialize running particles */
+    int n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
+    while(n_running > 0) {
+
+        #pragma omp simd
+        for(int i=0; i< NSIMD; i++) {
+            /* Store marker states */
+            particle_copy_fo(&p, i, &p0, i);
+
+            if(p.running[i]) {
+                a5err err = 0;
+
+                /* Advance ballistic trajectory */
+                real pnorm = math_normc(p.p_r[i], p.p_phi[i], p.p_z[i]);
+                real gamma = physlib_gamma_pnorm(p.mass[i], pnorm);
+                real ekin  = physlib_Ekin_pnorm(p.mass[i], pnorm);
+                p.r[i]   += hin[i] * p.p_r[i]   / (gamma * p.mass[i]);
+                p.phi[i] += hin[i] * p.p_phi[i] / (gamma * p.mass[i] * p.r[i]);
+                p.z[i]   += hin[i] * p.p_z[i]   / (gamma * p.mass[i]);
+                real ds = hin[i] * pnorm / (gamma * p.mass[i]);
+                p.mileage[i] += hin[i];
+
+                /* Update background values at the new position */
+                real psi, rho[2], pls_dens[MAX_SPECIES], pls_temp[MAX_SPECIES];
+                err = B_field_eval_psi(
+                    &psi, p.r[i], p.phi[i], p.z[i], p.time[i], &sim->B_data);
+                if(!err) {
+                    err = B_field_eval_rho(rho, psi, &sim->B_data);
+                }
+                if(!err && p.rho[i] <= 1.0 && rho[0] > 1.0) {
+                    shinethrough[i] = 1;
+                }
+                p.rho[i] = rho[0];
+
+                if(!err) {
+                    err = plasma_eval_densandtemp(
+                        pls_dens, pls_temp, rho[0], p.r[i], p.phi[i], p.z[i],
+                        p.time[i], &sim->plasma_data);
+                }
+
+                /* Calculate ionization rate */
+                real rate = 0.0;
+                if(!err) {
+                    real sigmav;
+                    if( suzuki_sigmav(
+                            &sigmav, ekin / p.anum[i], pls_dens[0], pls_temp[0],
+                            n_species-1, &(pls_dens[1]), pls_anum, pls_znum) ) {
+                        err = 1;
+                    }
+                    rate = pls_dens[0] * sigmav;
+                }
+                remaining[i] *= exp(-rate * ds);
+
+                /* Check for end conditions */
+                if(!err) {
+                    real w_coll = 0;
+                    int tile = 0;
+                    if(shinethrough[i]) {
+                        tile = wall_hit_wall(
+                            p0.r[i], p0.phi[i], p0.z[i],
+                            p.r[i], p.phi[i], p.z[i], &sim->wall_data, &w_coll);
+                    }
+                    if(tile > 0) {
+                        real w = w_coll;
+                        p.time[i] = p0.time[i] + w*(p.time[i] - p0.time[i]);
+                        p.r[i]    = p0.r[i]    + w*(p.r[i]    - p0.r[i]);
+                        p.phi[i]  = p0.phi[i]  + w*(p.phi[i]  - p0.phi[i]);
+                        p.z[i]    = p0.z[i]    + w*(p.z[i]    - p0.z[i]);
+
+                        p.walltile[i] = tile;
+                        p.endcond[i] |= endcond_wall;
+                        p.running[i] = 0;
+                    }
+                    if(p.mileage[i] > NBI_MAX_DISTANCE) {
+                        p.endcond[i] |= endcond_tlim;
+                        p.running[i] = 0;
+                    }
+                    if(remaining[i] < threshold[i]) {
+                        p.charge[i] = 1*CONST_E;
+                        p.endcond[i] |= endcond_ioniz;
+                        p.running[i] = 0;
+                    }
+                } else {
+                    p.err[i] = err;
+                    p.running[i] = 0;
+                }
+            }
+        }
+
+        /* Update markers that just finished */
+        particle_simd_fo pdiag;
+        #pragma omp simd
+        for(int i=0; i< NSIMD; i++) {
+            /* Use this as a flag for which markers to update in diagnostics */
+            pdiag.running[i] = 0;
+            if(!p.running[i] && p.id[i] >= 0) {
+                p.time[i] += p.mileage[i];
+
+                /* Reset these for the next marker */
+                threshold[i] = random_uniform(&sim->random_data);
+                remaining[i] = 1.0;
+                shinethrough[i] = 0;
+
+                /* Update the magnetic field at the marker position */
+                if(!p.err[i]) {
+                    real B_dB[15];
+                    B_field_eval_B_dB(B_dB, p.r[i], p.phi[i], p.z[i], p.time[i],
+                                      &sim->B_data);
+                    p.B_r[i]        = B_dB[0];
+                    p.B_r_dr[i]     = B_dB[1];
+                    p.B_r_dphi[i]   = B_dB[2];
+                    p.B_r_dz[i]     = B_dB[3];
+
+                    p.B_phi[i]      = B_dB[4];
+                    p.B_phi_dr[i]   = B_dB[5];
+                    p.B_phi_dphi[i] = B_dB[6];
+                    p.B_phi_dz[i]   = B_dB[7];
+
+                    p.B_z[i]        = B_dB[8];
+                    p.B_z_dr[i]     = B_dB[9];
+                    p.B_z_dphi[i]   = B_dB[10];
+                    p.B_z_dz[i]     = B_dB[11];
+                }
+            }
+            particle_copy_fo(&p, i, &pdiag, i);
+            if(!p.running[i] && p.id[i] >= 0) {
+                pdiag.running[i] = 1;
+            }
+
+            /* Normalize weight with time and add hin so that we don't divide
+             * with zero when updating distributions */
+            pdiag.time[i]   += hin[i];
+            pdiag.weight[i] /= p.mileage[i] + hin[i];
+        }
+
+        /* Update distributions for markers that finished */
+        diag_update_fo(&sim->diag_data, &sim->B_data, &pdiag, &p);
+
+        /* Update running particles */
+        n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
+    }
 }
 
 /**
@@ -237,7 +489,7 @@ int main(int argc, char** argv) {
  * @return Zero if success
  */
 int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt,
-                   real* t1, real* t2, int* writemarker) {
+                   real* t1, real* t2) {
     struct option longopts[] = {
         {"in",       required_argument, 0,  1},
         {"out",      required_argument, 0,  2},
@@ -251,7 +503,6 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt,
         {"n",        required_argument, 0, 10},
         {"t1",       required_argument, 0, 11},
         {"t2",       required_argument, 0, 12},
-        {"markers",  required_argument, 0, 13},
         {0, 0, 0, 0}
     };
 
@@ -274,7 +525,6 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt,
     *nprt               = 10000;
     *t1                 = 0.0;
     *t2                 = 0.0;
-    *writemarker        = 1;
     strcpy(sim->description, "TAG");
 
     /* Read user input */
@@ -336,9 +586,6 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt,
             case 12:
                 *t2 = atof(optarg);
                 break;
-            case 13:
-                *writemarker = atof(optarg);
-                break;
             default:
                 // Unregonizable argument(s). Tell user how to run ascot5_main
                 print_out(VERBOSE_MINIMAL,
@@ -359,8 +606,6 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt,
                           "--t1 time when injectors are turned on (default: 0.0 s)\n");
                 print_out(VERBOSE_MINIMAL,
                           "--t2 time when injectors are turned off (default: 0.0 s)\n");
-                print_out(VERBOSE_MINIMAL,
-                          "--marker flag indicating whether a marker input is written (default: 1)\n");
                 return 1;
         }
     }
