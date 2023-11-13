@@ -76,11 +76,11 @@ class DistMixin():
             ax2 = fig.add_subplot(3,1,2, projection='polar')
             ax3 = fig.add_subplot(3,1,3)
 
-            self.plotdist(dist0, axes=ax1)
+            dist0.plot(axes=ax1)
             a5plt.momentumpolargrid(pnorm_edges, pitch_edges, axes=ax1)
             a5plt.momentumpolarplot(pnorm_edges, pitch_edges,
                                     dist1.distribution(), axes=ax2)
-            self.plotdist(dist1, axes=ax3)
+            dist1.plot(axes=ax3)
             a5plt.plt.show()
 
         return distout
