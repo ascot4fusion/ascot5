@@ -153,6 +153,7 @@ void simulate(
     /* 2. Meta data (e.g. random number generator) is initialized.            */
     /*                                                                        */
     /**************************************************************************/
+    random_init(&sim.random_data, 0);
 
     /**************************************************************************/
     /* 3. Markers are put into simulation queue.                              */
@@ -162,7 +163,7 @@ void simulate(
 
     pq.n = 0;
     for(int i = 0; i < n_particles; i++) {
-            pq.n++;
+        pq.n++;
     }
 
     pq.p = (particle_state**) malloc(pq.n * sizeof(particle_state*));
@@ -175,9 +176,8 @@ void simulate(
     }
     pq.next = 0;
 
-    random_init(&sim.random_data, 0);
-
-    print_out(VERBOSE_NORMAL,"%s: All fields initialized. Simulation begins, %d threads.\n",
+    print_out(VERBOSE_NORMAL,
+              "%s: All fields initialized. Simulation begins, %d threads.\n",
               targetname, omp_get_max_threads());
 
     /**************************************************************************/
@@ -409,7 +409,7 @@ void sim_monitor(char* filename, volatile int* n, volatile int* finished) {
     }
 
     real time_sim_started = A5_WTIME;
-    int stopflag = 1; /* Flag ensures progress is written one last time at 100% */
+    int stopflag = 1; /* Ensures progress is written one last time at 100% */
     int n_temp, finished_temp; /* Use these to store volatile variables so that
                                   their value does not change during one loop */
     while(stopflag) {

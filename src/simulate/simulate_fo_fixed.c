@@ -49,7 +49,7 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i);
  * @param sim simulation data struct
  */
 void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
-    int cycle[NSIMD]  __memalign__; // Flag indigating whether a new marker was initialized
+    int cycle[NSIMD]  __memalign__; // Indicates if a new marker was initialized
     real hin[NSIMD]  __memalign__;  // Time step
 
     real cputime, cputime_last; // Global cpu time: recent and previous record
