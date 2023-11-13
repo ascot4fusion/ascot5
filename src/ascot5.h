@@ -97,8 +97,8 @@ typedef double real;  /**< Double precision float   */
 /** @brief Maximum number of atomic reactions */
 #define MAX_ATOMIC 32
 
-/** @brief Maximum distance BBNBI traces markers in meters */
-#define NBI_MAX_DISTANCE 100
+/** @brief Maximum distance BBNBI traces markers in seconds */
+#define NBI_MAX_DISTANCE 1e-3
 
 /** @brief Maximum number of NBI injectors */
 #define NBI_MAX_INJ 16
