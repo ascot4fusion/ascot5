@@ -940,7 +940,6 @@ class PhysTest():
         ts    = ( 3 * np.sqrt( (2*np.pi * Te)**3 / m_e ) * eps_0**2
                   * m_a / ( alphaZ**2 * unyt.e**4 * ne * clog ) ).to("s")
 
-        #egridsd   = run_sgo.getdist("5d", exi=True).abscissa_edges("ekin")
         egridsd   = np.linspace(Te, 1.1*E0, 100)
         heaviside = np.logical_and(egridsd <= E0, egridsd >= Emin)
         slowing   = heaviside * ts / ( ( 1 + np.power(Ecrit/egridsd, 3.0/2) )
@@ -960,8 +959,8 @@ class PhysTest():
             xdist = dist.integrate(
                 r=np.s_[:], phi=np.s_[:], z=np.s_[:], time=np.s_[1:],
                 charge=np.s_[:], ekin=np.s_[:], copy=True)
-            run.plotdist(edist, axes=h1)
-            run.plotdist(xdist, axes=h2)
+            edist.plot(axes=h1)
+            xdist.plot(axes=h2)
             th_pitch[i] = np.mean(run.getstate("pitch", state="end"))
             th_ekin[i]  = np.mean(run.getstate("ekin",  state="end"))
 
@@ -975,8 +974,8 @@ class PhysTest():
             xdist = dist.integrate(
                 r=np.s_[:], phi=np.s_[:], z=np.s_[:], time=np.s_[:],
                 charge=np.s_[:], ekin=np.s_[:], copy=True)
-            run.plotdist(edist, axes=h3)
-            run.plotdist(xdist, axes=h4)
+            edist.plot(axes=h3)
+            xdist.plot(axes=h4)
             sd_pitch[i] = np.mean(run.getstate("pitch", state="end"))
             sd_time[i]  = np.mean(run.getstate("time",  state="end"))
 
