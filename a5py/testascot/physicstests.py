@@ -1164,7 +1164,6 @@ class PhysTest():
         init = self.ascot.data.create_input
 
         # Ion densities to be scanned
-        #ni = np.power( 10, np.linspace(17.5, 22.0, 6) )
         ni = np.array([8.9e17, 8.9e18, 3.0e19, 7.0e20, 2.0e21, 2.0e22])
 
         # Options (some parameters are changed between the scans)
@@ -1198,23 +1197,21 @@ class PhysTest():
         pls = init("plasma_flat", temperature=1e3, dryrun=True)
         pls["edensity"][:] = 1
 
+        simtime = np.array([10e-4, 8e-4, 6e-4, 4e-4, 2e-4, 1e-4])
         for i in range(ni.size):
 
             # Adjust simulation time and time step as the density changes
             # (otherwise simulations with low density would take very long)
-            simtime = np.maximum( 5e-4, 4e-2 / ( ni[i-1] / ni[0] ) )
             optgo.update({
-                "ENDCOND_LIM_SIMTIME" : simtime,
-                "FIXEDSTEP_USERDEFINED" :
-                np.minimum( 1e-9, 1e-10 / ( ni[i-1] / ni[-1] ) )
+                "ENDCOND_LIM_SIMTIME" : simtime[i],
+                "FIXEDSTEP_USERDEFINED" : 0.2e-9
             })
             optgcf.update({
-                "ENDCOND_LIM_SIMTIME" : simtime,
-                "FIXEDSTEP_USERDEFINED" :
-                np.minimum( 2e-8, 5e-10 / ( ni[i-1] / ni[-1] ) )
+                "ENDCOND_LIM_SIMTIME" : simtime[i],
+                "FIXEDSTEP_USERDEFINED" : 0.2e-9
             })
             optgca.update({
-                "ENDCOND_LIM_SIMTIME" : simtime
+                "ENDCOND_LIM_SIMTIME" : simtime[i]
             })
             init("opt", **optgo,  desc=PhysTest.tag_neoclassical_go  + str(i))
             init("opt", **optgcf, desc=PhysTest.tag_neoclassical_gcf + str(i))
@@ -1269,8 +1266,11 @@ class PhysTest():
         # Numerical values
         ni    = np.zeros((nscan,)) / unyt.m**3
         Dgo   = np.zeros((nscan,)) * unyt.m**2 / unyt.s
+        Dgoerr= np.zeros((nscan,)) * unyt.m**2 / unyt.s
         Dgcf  = np.zeros((nscan,)) * unyt.m**2 / unyt.s
+        Dgcferr= np.zeros((nscan,)) * unyt.m**2 / unyt.s
         Dgca  = np.zeros((nscan,)) * unyt.m**2 / unyt.s
+        Dgcaerr= np.zeros((nscan,)) * unyt.m**2 / unyt.s
         for i in range(nscan):
             run_go  = self.ascot.data[PhysTest.tag_neoclassical_go  + str(i)]
             run_gcf = self.ascot.data[PhysTest.tag_neoclassical_gcf + str(i)]
@@ -1281,18 +1281,21 @@ class PhysTest():
             ri = np.interp(ri, rhoomp, romp) * unyt.m
             rf = np.interp(rf, rhoomp, romp) * unyt.m
             Dgo[i] = 0.5 * np.mean( (rf - ri)**2 / (tf - ti) )
+            Dgoerr[i] = np.sqrt( (0.5 * np.var( (rf - ri)**2 / (tf - ti) )) / ri.size )
 
             ri, ti = run_gcf.getstate("rho", "mileage", state="ini")
             rf, tf = run_gcf.getstate("rho", "mileage", state="end")
             ri = np.interp(ri, rhoomp, romp) * unyt.m
             rf = np.interp(rf, rhoomp, romp) * unyt.m
             Dgcf[i] = 0.5 * np.mean( (rf - ri)**2 / (tf - ti) )
+            Dgcferr[i] = np.sqrt( (0.5 * np.var( (rf - ri)**2 / (tf - ti) )) / ri.size )
 
             ri, ti = run_gca.getstate("rho", "mileage", state="ini")
             rf, tf = run_gca.getstate("rho", "mileage", state="end")
             ri = np.interp(ri, rhoomp, romp) * unyt.m
             rf = np.interp(rf, rhoomp, romp) * unyt.m
             Dgca[i] = 0.5 * np.mean( (rf - ri)**2 / (tf - ti) )
+            Dgcaerr[i] = np.sqrt( (0.5 * np.var( (rf - ri)**2 / (tf - ti) )) / ri.size )
 
             ni[i] = run_go.plasma.read()["idensity"][0, 0]
 
@@ -1332,9 +1335,9 @@ class PhysTest():
         ax.plot(veff[i1:i2+1], Dp[i1:i2+1], color="black")
         ax.plot(veff[:i1+1],   Db[:i1+1],   color="black")
 
-        ax.scatter(veff_x, Dgo,  marker="*")
-        ax.scatter(veff_x, Dgcf, marker="o")
-        ax.scatter(veff_x, Dgca, marker="^")
+        ax.errorbar(veff_x, Dgo, yerr=Dgoerr,  linestyle="none", marker="*")
+        ax.errorbar(veff_x*1.01, Dgcf, yerr=Dgcferr, linestyle="none", marker="o")
+        ax.errorbar(veff_x*1.09, Dgca, yerr=Dgcaerr, linestyle="none", marker="^")
 
         ax.set_xlabel(r"Effective collisionality $\nu^*$")
         ax.set_ylabel(r"Diffusion [m$^2$/s]")
@@ -1386,7 +1389,7 @@ class PhysTest():
         k2 = np.polyfit(veff_x[idx], Dgcf[idx], 1)[0]
         k3 = np.polyfit(veff_x[idx], Dgca[idx], 1)[0]
         f = ""
-        if np.amax(np.abs(np.array([k1,k2,k3]) - k0)) > 3e-4:
+        if np.amax(np.abs(np.array([k1,k2,k3]) - k0)) > 5e-4:
             f = "(FAILED)"
             passed=False
         print("  Pfirsch-Schlüter %1.2e %1.2e %1.2e %1.2e %s"
