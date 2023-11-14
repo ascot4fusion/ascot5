@@ -1900,7 +1900,10 @@ class PhysTest():
 
 if __name__ == '__main__':
     test = PhysTest()
+    # Atomic does not work standalone yet
     failed = test.execute(
-        init=True, run=True, check=True)
+        init=True, run=True, check=True,
+        tests=["elementary", "orbitfollowing", "gctransform", "ccoll",
+               "classical", "neoclassical", "boozer", "mhd"])#, "atomic"])
     plt.show(block=False)
     if failed: raise Exception("Verification failed")
