@@ -836,7 +836,7 @@ class PhysTest():
             "DIST_MIN_R" : 4, "DIST_MAX_R" : 10, "DIST_NBIN_R" : 1,
             "DIST_MIN_PHI" : 0, "DIST_MAX_PHI" : 360, "DIST_NBIN_PHI" : 1,
             "DIST_MIN_Z" : -5, "DIST_MAX_Z" : 5, "DIST_NBIN_Z" : 1,
-            "DIST_MIN_TIME" : 0, "DIST_MAX_TIME" : 2e-2, "DIST_NBIN_TIME" : 2,
+            "DIST_MIN_TIME" : 0, "DIST_MAX_TIME" : 1e0, "DIST_NBIN_TIME" : 1,
             "DIST_MIN_PPA" : -1.3e-19, "DIST_MAX_PPA" : 1.3e-19,
             "DIST_NBIN_PPA" : 200, "DIST_MIN_PPE" : 0, "DIST_MAX_PPE" : 1.3e-19,
             "DIST_NBIN_PPE" : 100
@@ -1014,8 +1014,7 @@ class PhysTest():
     def init_classical(self):
         """Initialize data for the classical transport test.
         """
-        if hasattr(self.ascot.data.options,
-                   PhysTest.tag_classical_go + "0"):
+        if hasattr(self.ascot.data.options, PhysTest.tag_classical_go + "0"):
             warnings.warn("Inputs already present: Test classical transport")
             return
         init = self.ascot.data.create_input
@@ -1025,7 +1024,7 @@ class PhysTest():
         optgo.update({
             "SIM_MODE" : 1, "FIXEDSTEP_USE_USERDEFINED" : 1,
             "FIXEDSTEP_USERDEFINED" : 1e-10, "ENDCOND_SIMTIMELIM" : 1,
-            "ENDCOND_LIM_SIMTIME" : 5e-6, "ENABLE_ORBIT_FOLLOWING" : 1,
+            "ENDCOND_LIM_SIMTIME" : 1e-5, "ENABLE_ORBIT_FOLLOWING" : 1,
             "ENABLE_COULOMB_COLLISIONS" : 1
         })
         optgcf = copy.deepcopy(optgo)
@@ -1040,7 +1039,7 @@ class PhysTest():
         })
 
         # Marker input consists of protons
-        mrk = Marker.generate("gc", n=200, species="proton")
+        mrk = Marker.generate("gc", n=1000, species="proton")
         mrk["r"][:]      = 5.0
         mrk["phi"][:]    = 0.0
         mrk["z"][:]      = 0.0
@@ -1069,7 +1068,7 @@ class PhysTest():
     def run_classical(self):
         """Run classical transport test.
         """
-        if hasattr(self.ascot.data, PhysTest.tag_classical_go):
+        if hasattr(self.ascot.data, PhysTest.tag_classical_go+"0"):
             warnings.warn("Results already present: Test classical transport")
             return
         for tag in [PhysTest.tag_classical_go, PhysTest.tag_classical_gcf,
@@ -1166,14 +1165,15 @@ class PhysTest():
         init = self.ascot.data.create_input
 
         # Ion densities to be scanned
-        ni = np.power( 10, np.linspace(17.5, 22.0, 20) )
+        #ni = np.power( 10, np.linspace(17.5, 22.0, 6) )
+        ni = np.array([8.9e17, 8.9e18, 3.0e19, 7.0e20, 2.0e21, 2.0e22])
 
         # Options (some parameters are changed between the scans)
         optgo = Opt.get_default()
         optgo.update({
             "SIM_MODE" : 1, "FIXEDSTEP_USE_USERDEFINED" : 1,
-            "FIXEDSTEP_USERDEFINED" : 3e-10, "ENDCOND_SIMTIMELIM" : 1,
-            "ENABLE_ORBIT_FOLLOWING" : 1, "ENABLE_COULOMB_COLLISIONS" : 1
+            "ENDCOND_SIMTIMELIM" : 1, "ENABLE_ORBIT_FOLLOWING" : 1,
+            "ENABLE_COULOMB_COLLISIONS" : 1
         })
         optgcf = copy.deepcopy(optgo)
         optgcf.update({
@@ -1207,7 +1207,7 @@ class PhysTest():
             optgo.update({
                 "ENDCOND_LIM_SIMTIME" : simtime,
                 "FIXEDSTEP_USERDEFINED" :
-                np.minimum( 2e-9, 3e-10 / ( ni[i-1] / ni[-1] ) )
+                np.minimum( 1e-9, 1e-10 / ( ni[i-1] / ni[-1] ) )
             })
             optgcf.update({
                 "ENDCOND_LIM_SIMTIME" : simtime,
@@ -1232,14 +1232,13 @@ class PhysTest():
     def run_neoclassical(self):
         """Run neoclassical transport test.
         """
-        if hasattr(self.ascot.data, PhysTest.tag_neoclassical_go):
+        if hasattr(self.ascot.data, PhysTest.tag_neoclassical_go+"0"):
             warnings.warn("Results already present: Test neoclass. transport")
             return
         for tag in [PhysTest.tag_neoclassical_go, PhysTest.tag_neoclassical_gcf,
                     PhysTest.tag_neoclassical_gca]:
             i = 0
             while tag + str(i) in self.ascot.data.bfield.ls(show=False):
-                print(i)
                 self._activateinputs(tag+str(i))
                 self._runascot(tag+str(i))
                 i += 1
@@ -1903,7 +1902,6 @@ class PhysTest():
 if __name__ == '__main__':
     test = PhysTest()
     failed = test.execute(
-        init=True, run=True, check=True,
-        tests=["elementary", "orbitfollowing", "boozer", "mhd"])
-    if failed: raise Exception("Verification failed")
+        init=True, run=True, check=True)
     plt.show(block=False)
+    if failed: raise Exception("Verification failed")
