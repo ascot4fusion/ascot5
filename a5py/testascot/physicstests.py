@@ -766,13 +766,13 @@ class PhysTest():
         t = np.linspace(0, 1e-6, 1000)
         mugo    = np.interp(t, tgo,    mugo)
         mugc    = np.interp(t, tgc,    mugc)
-        mugo2gc = np.interp(t, tgo2gc, mugo2gc)
+        mugo2gc = np.interp(t, tgo2gc[1:], mugo2gc[1:])
         ego     = np.interp(t, tgo,    ego)
         egc     = np.interp(t, tgc,    egc)
-        ego2gc  = np.interp(t, tgo2gc, ego2gc)
+        ego2gc  = np.interp(t, tgo2gc[1:], ego2gc[1:])
         pgo     = np.interp(t, tgo,    pgo)
         pgc     = np.interp(t, tgc,    pgc)
-        pgo2gc  = np.interp(t, tgo2gc, pgo2gc)
+        pgo2gc  = np.interp(t, tgo2gc[1:], pgo2gc[1:])
 
         print("Test GC transformation:")
         passed = True
