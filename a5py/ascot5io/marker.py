@@ -509,8 +509,6 @@ class Prt(Marker):
         pitch = ( vr * br + vz * bz + vphi * bphi ) / ( b * v )
         return pitch
 
-
-    @staticmethod
     @staticmethod
     @parseunits(strip=True, mass="amu", charge="e", r="m", phi="deg", z="m",
                 vr="m/s", vphi="m/s", vz="m/s", anum="1", znum="1",
