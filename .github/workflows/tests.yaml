@@ -79,3 +79,11 @@ jobs:
       - name: Run
         working-directory: ./a5py/testascot/
         run: python3 physicstests.py
+
+      - name: Upload test file
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: testascot
+          path: ./a5py/ascotpy/testascot/testascot.h5
+          retention-days: 1
