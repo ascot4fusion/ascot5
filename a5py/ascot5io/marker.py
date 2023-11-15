@@ -511,6 +511,10 @@ class Prt(Marker):
 
 
     @staticmethod
+    @staticmethod
+    @parseunits(strip=True, mass="amu", charge="e", r="m", phi="deg", z="m",
+                vr="m/s", vphi="m/s", vz="m/s", anum="1", znum="1",
+                time="s", weight="1")
     def write_hdf5(fn, n, ids, mass, charge, r, phi, z, vr, vphi, vz,
                    anum, znum, weight, time, desc=None):
         """Write input data to the HDF5 file.
