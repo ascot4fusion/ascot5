@@ -2,7 +2,7 @@ numpy
 scipy
 h5py
 prompt_toolkit
-unyt
+unyt==2.9.5
 scikit-image
 matplotlib
 pyvista
