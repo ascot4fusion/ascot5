@@ -168,14 +168,17 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
             #pragma omp simd
             for(int i=0; i<NSIMD; i++) {
                 if(p.running[i]) {
-                    particle_fo_to_gc( &p, i, &gc_f, &sim->B_data);
-                    particle_fo_to_gc(&p0, i, &gc_i, &sim->B_data);
+                    particle_fo_to_gc(&p, i, &gc_f, &sim->B_data);
                 }
                 else {
                     gc_f.id[i] = p.id[i];
-                    gc_i.id[i] = p.id[i];
-
                     gc_f.running[i] = 0;
+                }
+                if(p0.running[i]) {
+                    particle_fo_to_gc(&p0, i, &gc_i, &sim->B_data);
+                }
+                else {
+                    gc_i.id[i] = p0.id[i];
                     gc_i.running[i] = 0;
                 }
             }
