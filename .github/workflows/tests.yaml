@@ -30,12 +30,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-
       - name: Install a5py
-        run: pip install -e .
+        run: python3 -m pip install -e .
 
       - uses: actions/download-artifact@main
         with:
@@ -45,15 +41,10 @@ jobs:
         run: |
           mkdir build
           tar -xf code.tar -C ./build/
-          echo PIP3
-          pip3 list
-          echo PIP
-          pip list
-          python3 -V
 
       - name: Run
         working-directory: ./a5py/testascot/
-        run: python3.10 unittests.py
+        run: python3 unittests.py
 
   Physics-Tests:
     if: ${{ inputs.run_physics_tests == true }}
@@ -69,12 +60,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      #- uses: actions/setup-python@v4
-      #  with:
-      #    python-version: "3.10"
-
       - name: Install a5py
-        run: pip install -e .
+        run: python3 -m pip install -e .
 
       - uses: actions/download-artifact@main
         with:
@@ -87,7 +74,7 @@ jobs:
 
       - name: Run
         working-directory: ./a5py/testascot/
-        run: python3.10 physicstests.py
+        run: python3 physicstests.py
 
       - name: Upload failed test file
         if: failure()

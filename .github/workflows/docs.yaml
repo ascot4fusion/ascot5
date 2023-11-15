@@ -23,16 +23,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-
       - name: Install dependencies
         run: |
           apt-get install -y doxygen pandoc
-          pip3 install -e .[doc]
-          pip3 uninstall vtk -y
-          pip3 install vtk-osmesa --extra-index-url https://wheels.vtk.org
+          python3 -m pip install -e .[doc]
+          python3 -m pip uninstall vtk -y
+          python3 -m pip install vtk-osmesa --extra-index-url https://wheels.vtk.org
 
       - uses: actions/download-artifact@main
         with:
@@ -52,7 +48,7 @@ jobs:
 
       - name: Tutorials
         working-directory: ./a5py/testascot/
-        run: python tutorials.py
+        run: python3 tutorials.py
 
       - name: Sphinx build
         run: |
