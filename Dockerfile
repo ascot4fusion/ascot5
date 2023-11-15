@@ -7,7 +7,7 @@ ENV TZ=Europe/Helsinki
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 RUN apt-get update && \
-    apt-get install -y
+    apt-get install -y \
     software-properties-common libhdf5-openmpi-dev libhdf5-dev h5utils emacs \
     make gcc libclang-12-dev git libgl1 && \
     add-apt-repository ppa:deadsnakes/ppa && \
