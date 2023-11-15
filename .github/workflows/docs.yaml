@@ -52,7 +52,7 @@ jobs:
 
       - name: Tutorials
         working-directory: ./a5py/testascot/
-        run: python3 tutorials.py
+        run: python tutorials.py
 
       - name: Sphinx build
         run: |
