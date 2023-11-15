@@ -341,7 +341,8 @@ class TestAscot5IO(unittest.TestCase):
     def tearDown(self):
         """Remove the file used in testing.
         """
-        subprocess.run(["rm", "-f", self.testfilename])
+        subprocess.run(["rm", "-f", self.testfilename],
+                       stdout=subprocess.DEVNULL)
 
 class TestAscot(unittest.TestCase):
     """Class for testing :class:`Ascot` object.
@@ -382,7 +383,8 @@ class TestAscot(unittest.TestCase):
             desc="Fast")
         a5.data.options[name].activate()
 
-        subprocess.run(["./../../build/ascot5_main", "--in=unittest.h5"])
+        subprocess.run(["./../../build/ascot5_main", "--in=unittest.h5"],
+                       stdout=subprocess.DEVNULL)
 
     @classmethod
     def tearDownClass(cls):
@@ -764,7 +766,8 @@ class TestMoments(unittest.TestCase):
             ORBITWRITE_NPOINT=60000)
         a5.data.options[name].activate()
 
-        subprocess.run(["./../../build/ascot5_main", "--in=unittest.h5"])
+        subprocess.run(["./../../build/ascot5_main", "--in=unittest.h5"],
+                       stdout=subprocess.DEVNULL)
 
     @classmethod
     def tearDownClass(cls):
@@ -874,7 +877,7 @@ class TestPlotting(unittest.TestCase):
         opt = a5.data.options.active.read()
         opt.update(ENDCOND_MAX_MILEAGE=simtime)
         a5.simulation_initoptions(**opt)
-        return a5.simulation_run()
+        return a5.simulation_run(printsummary=False)
 
     def test_input_plotrz(self):
         a5 = Ascot("unittest.h5", create=True)
