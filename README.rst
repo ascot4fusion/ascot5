@@ -23,7 +23,7 @@ Clone the repository:
 - C compiler
 - HDF5
 - OpenMP
-- Python3 (pre- and postprocessing)
+- Python >= 3.10 (pre- and postprocessing)
 - MPI (optional)
 - VTK (optional, for 3D wall visualization)
 
