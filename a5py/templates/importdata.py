@@ -1,30 +1,71 @@
+# Example call:
+# a5.data.create_input(
+#     "import adas",
+#     mltpresekinbms=1, mltpresdensbms=4, mltprestempbms=128,
+#     input_CX_H1H0='/home/adas/adas/adf24/scx#h0/scx#h0_ornl#h1.dat',
+#     input_BMS_H0H1='/home/adas/adas/adf21/bms10#h/bms10#h_h1.dat')
+
 import os
 import numpy as np
 import warnings
-from freeqdsk import geqdsk
-from scipy.interpolate import RectBivariateSpline
+#from freeqdsk import geqdsk
+import re
 
 from a5py.physlib import cocos as cocosmod
+import unyt
+
+import adas
 
 class ImportData():
 
     def import_adas(self,
-                    fn_CX_DD0   = "input.sigmavCX_DD0",
-                    fn_BMS_H0H  = "input.BMSsigmav_H0H",
-                    fn_BMS_H0He = "input.BMSsigmav_H0He",
-                    fn_BMS_H0C  = "input.BMSsigmav_H0C"):
+                    z1cx=1, a1cx=2, m1cx=2.0135, z2cx=1, a2cx=2, m2cx=2.0135,
+                    ekinmincx=5e1, ekinmaxcx=1e5, nekincx=1000,
+                    tempmincx=1e0, tempmaxcx=2e4, ntempcx=100,
+                    mltpresekinbms=1, mltpresdensbms=1, mltprestempbms=1,
+                    show_progress=False, **kwargs):
         """Import data from ADAS files.
 
-        Note: this method should be redone completely as right now it is just
-        the script asigma_loc_read2hdf5.py. The problem with that script
-        (and this method) is that the input files are expected to have in-house
-        format. Instead, what we would like to have is that this script would
-        take the ADAS files directly.
+        This function may take several minutes.
 
         Parameters
         ----------
-        files : str or list [str]
-            Folder where input files are located or a list of input files.
+        z1cx : int
+            Atomic number (znum) of fast ion (receiver) in CX reaction.
+        a1cx : int
+            Atomic mass number (anum) of fast ion in CX reaction.
+        m1cx : float
+            Mass in amu of fast ion in CX reaction.
+        z2cx : int
+            Atomic number of background neutral (donor) in CX reaction.
+        a2cx : int
+            Atomic mass number of background neutral in CX reaction.
+        m2cx : float
+            Mass in amu of background neutral in CX reaction.
+        ekinmincx : float
+            Minimum of energy abscissa for CX rate coefficients.
+        ekinmaxcx : float
+            Maximum of energy abscissa for CX rate coefficients.
+        nekincx : float
+            Number of points in energy abscissa for CX rate coefficients.
+        tempmincx : float
+            Minimum of temperature abscissa for CX rate coefficients.
+        tempmaxcx : float
+            Maximum of temperature abscissa for CX rate coefficients.
+        ntempcx : float
+            Number of points in temperature abscissa for CX rate coefficients.
+        mltpresekin : int
+            Resolution multiplier for energy abscissa for BMS coefficients.
+        mltpresdens : int
+            Resolution multiplier for density abscissa for BMS coefficients.
+        mltprestemp : int
+            Resolution multiplier for temperature abscissa for
+            BMS coefficients.
+        show_progress : boolean
+            Flag to determine if progress in converting cross-sections into
+            rate coefficients should be printed to terminal.
+        **kwargs
+            Parameters passed to the template.
 
         Returns
         -------
@@ -34,161 +75,200 @@ class ImportData():
             Input data that can be passed to ``write_hdf5`` method of
             a corresponding type.
         """
-        # Count the number of reactions for which data files can be found,
-        # and account for possible multiples due to isotope combinations
-        N_reac = 0
-        CX_DD0_found = 0
-        # Name HH0 instead of DD0 since we may, in the future, use this variable
-        # for the total number of hydrogen-hydrogen CX reactions when different
-        # isotope combinations are included.
-        N_CX_HH0 = 0
-        # NOTE: This list of BMS data filenames must be up to date with the
-        # function parameter list.
-        fn_BMSs = [fn_BMS_H0H,fn_BMS_H0He,fn_BMS_H0C]
-        N_fn_BMS = len(fn_BMSs)
-        BMS_founds = [0]*N_fn_BMS
-        N_BMS = 0
-        if(os.path.isfile(fn_CX_DD0)):
-            CX_DD0_found = 1
-            N_CX_HH0 = 1
-        for i_BMS in range(0,N_fn_BMS):
-            if(os.path.isfile(fn_BMSs[i_BMS])):
-                BMS_founds[i_BMS] = 1
-                N_BMS += 1
-        N_reac = N_CX_HH0 + N_BMS
+        # Define relevant reaction types
+        reac_type_sigma_cx   = 3
+        reac_type_sigmav_cx  = 6
+        reac_type_sigmav_bms = 7
+
+        # Count number of reactions based on kwargs and initialize data list
+        nreac = len(kwargs)
+        sigmalist = [None]*nreac
 
         # Initialize arrays for reaction identifiers and abscissae
-        z_1       = np.zeros(N_reac, dtype=int)
-        a_1       = np.zeros(N_reac, dtype=int)
-        z_2       = np.zeros(N_reac, dtype=int)
-        a_2       = np.zeros(N_reac, dtype=int)
-        reac_type = np.zeros(N_reac, dtype=int)
-        N_E       = np.zeros(N_reac, dtype=int)
-        E_min     = np.zeros(N_reac, dtype=float)
-        E_max     = np.zeros(N_reac, dtype=float)
-        N_n       = np.zeros(N_reac, dtype=int)
-        n_min     = np.zeros(N_reac, dtype=float)
-        n_max     = np.zeros(N_reac, dtype=float)
-        N_T       = np.zeros(N_reac, dtype=int)
-        T_min     = np.zeros(N_reac, dtype=float)
-        T_max     = np.zeros(N_reac, dtype=float)
-        N         = np.zeros(N_reac, dtype=int)
+        z1       = np.zeros(nreac, dtype=int)
+        a1       = np.zeros(nreac, dtype=int)
+        z2       = np.zeros(nreac, dtype=int)
+        a2       = np.zeros(nreac, dtype=int)
+        reactype = np.zeros(nreac, dtype=int)
+        nekin    = np.zeros(nreac, dtype=int)
+        ekinmin  = np.zeros(nreac, dtype=float)
+        ekinmax  = np.zeros(nreac, dtype=float)
+        ndens    = np.zeros(nreac, dtype=int)
+        densmin  = np.zeros(nreac, dtype=float)
+        densmax  = np.zeros(nreac, dtype=float)
+        ntemp    = np.zeros(nreac, dtype=int)
+        tempmin  = np.zeros(nreac, dtype=float)
+        tempmax  = np.zeros(nreac, dtype=float)
+        n        = np.zeros(nreac, dtype=int)
 
-        # Read atomic reaction data from local files
-        #print("Reading atomic reaction data from local files")
-        i_reac = 0
-        # Read CX reaction data of the form sigmav(E,T)
-        #print("  Trying to read D-D0 CX rate coefficient data")
-        if(CX_DD0_found):
-            f = open(fn_CX_DD0, "r")
-            if f.mode == 'r':
-                print("    Reading file " + fn_CX_DD0)
-                lines = f.readlines()
-                metadata = lines[0].split(' ')
-                data_format = int(metadata[0]) # Not used
-                z_1[i_reac]       = int(metadata[1])
-                a_1[i_reac]       = int(metadata[2])
-                z_2[i_reac]       = int(metadata[3])
-                a_2[i_reac]       = int(metadata[4])
-                reac_type[i_reac] = int(metadata[5])
-                N_E[i_reac]       = int(metadata[6])
-                N_n[i_reac]       = 1
-                N_T[i_reac]       = int(metadata[7])
-                N[i_reac]         = N_E[i_reac]*N_n[i_reac]*N_T[i_reac]
-                abscissa1 = lines[1].split(' ')
-                abscissa2 = lines[2].split(' ')
-                ordinate  = lines[3].split(' ')
-                # Currently, the ASCOT5 spline interpolation module only
-                # supports uniform grid spacing. Hence, only min, max and N
-                # is needed to reconstruct the abscissa on the ASCOT5 side.
-                E_min[i_reac] = float(abscissa1[0])
-                E_max[i_reac] = float(abscissa1[N_E[i_reac]-1])
-                T_min[i_reac] = float(abscissa2[0])
-                T_max[i_reac] = float(abscissa2[N_T[i_reac]-1])
-                # Read the rate coefficient data
-                sigmavCX_DD0 = np.zeros(N[i_reac])
-                for i in range(0, N[i_reac]):
-                    sigmavCX_DD0[i] = float(ordinate[i])
-                # Increment the reaction index
-                i_reac += 1
-        else:
-            print("    File not found: " + fn_CX_DD0)
-        # Read BMS reaction data of the form BMSsigmav(E, n, T)
-        #print("  Trying to read BMS data")
-        # Initialize a list that can be filled with lists of unknown length below
-        BMS_sigmavs = []
-        i_BMS = 0
-        for i_fn_BMS in range(0,N_fn_BMS):
-            if(BMS_founds[i_fn_BMS]):
-                f = open(fn_BMSs[i_fn_BMS], "r")
-                if f.mode == 'r':
-                    #print("    Reading file " + fn_BMSs[i_fn_BMS])
-                    lines = f.readlines()
-                    metadata = lines[0].split(' ')
-                    data_format = int(metadata[0]) # Overwritten, because not used
-                    z_1[i_reac]       = int(metadata[1])
-                    a_1[i_reac]       = int(metadata[2])
-                    z_2[i_reac]       = int(metadata[3])
-                    a_2[i_reac]       = int(metadata[4])
-                    reac_type[i_reac] = int(metadata[5])
-                    N_E[i_reac]       = int(metadata[6])
-                    N_n[i_reac]       = int(metadata[7])
-                    N_T[i_reac]       = int(metadata[8])
-                    N[i_reac]         = N_E[i_reac]*N_n[i_reac]*N_T[i_reac]
-                    abscissa1 = lines[1].split(' ')
-                    abscissa2 = lines[2].split(' ')
-                    abscissa3 = lines[3].split(' ')
-                    ordinate  = lines[4].split(' ')
-                    # Currently, the ASCOT5 spline interpolation module only
-                    # supports uniform grid spacing. Hence, only min, max and N is
-                    # needed to reconstruct the abscissa on the ASCOT5 side.
-                    # The density unit is converted (cm^-3 --> m^-3).
-                    E_min[i_reac] =     float(abscissa1[0])
-                    E_max[i_reac] =     float(abscissa1[N_E[i_reac]-1])
-                    n_min[i_reac] = 1e6*float(abscissa2[0])
-                    n_max[i_reac] = 1e6*float(abscissa2[N_n[i_reac]-1])
-                    T_min[i_reac] =     float(abscissa3[0])
-                    T_max[i_reac] =     float(abscissa3[N_T[i_reac]-1])
-                    # Read the BMS coefficients and convert
-                    # the unit (cm^3s^-1 --> m^3s^-1)
-                    BMS_sigmavs.append(ordinate[0:N[i_reac]])
-                    for i in range(0, N[i_reac]):
-                        BMS_sigmavs[i_BMS][i] = 1e-6*float(BMS_sigmavs[i_BMS][i])
-                    # Increment the BMS reaction index
-                    i_BMS += 1
-                    # Increment the reaction index
-                    i_reac += 1
+        # Loop through kwargs
+        ireac = 0
+        for key,val in kwargs.items():
+
+            if "CX" in key:
+                # Reaction type for CX cross-section data is 3
+                reactype[ireac] = reac_type_sigma_cx
+                # Determine znum and anum values based on key
+                match = re.match(r"([a-z]+)([0-9]+)([a-z]+)([0-9]+)",
+                                 key.split('_')[-1],re.I)
+                items = match.groups()
+                if(items[0] == 'H'):
+                    z1[ireac] = 1
+                    a1[ireac] = 1
+                else:
+                    raise(Exception(
+                        "ERROR: Unsupported receiver species in CX."))
+                if(items[2] == 'H'):
+                    z2[ireac] = 1
+                    a2[ireac] = 1
+                else:
+                    raise(Exception(
+                        "ERROR: Unsupported donor species in CX."))
+                # Read data using ADAS function
+                dat = adas.xxdata_24(val)
+                ecol = dat['eea'][:,0]
+                sigma = dat['scx'][:,0]
+
+                ## Convert CX reaction data from cross-sections (sigma) to
+                ## rate coefficients (sigmav).
+                # Construct abscissae for rate coefficients.
+                # First, check that wanted fast-ion energy range is possible
+                # with given collision energy range of cross-section data.
+                if((ekinmincx/m1cx >= ecol[0]) &
+                   (ekinmaxcx/m1cx <= ecol[-1])):
+                    ekin = np.linspace(ekinmincx,ekinmaxcx,nekincx)
+                    ekinmin[ireac] = ekin[0]
+                    ekinmax[ireac] = ekin[-1]
+                    nekin[ireac] = nekincx
+                else:
+                    raise(Exception(
+                        "ERROR: Energy span goes outside input data domain."))
+                # No density abscissa for this data so density dimension is 1
+                ndens[ireac] = 1
+                temp = np.linspace(tempmincx,tempmaxcx,ntempcx)
+                tempmin[ireac] = temp[0]
+                tempmax[ireac] = temp[-1]
+                ntemp[ireac] = ntempcx
+                n[ireac] = ntemp[ireac]*ndens[ireac]*nekin[ireac]
+                # Initialize an array for the rate coefficient data, which is
+                # a function of fast-ion energy and neutral temperature.
+                sigmav = np.zeros(ntemp[ireac]*nekin[ireac])
+                # Temporarily convert to 2D array to take advantage of
+                # vectorization in ADAS function ceevth, which, at a given
+                # energy, allows evaluation for several temperatures at once.
+                sigmav2d = sigmav.reshape(ntemp[ireac],nekin[ireac])
+                # Convert cross-sections into rate coefficients using
+                # ADAS function ceevth.
+                if(show_progress):
+                    print('Converting cross-sections into rate coefficients:')
+                for iekin in range(nekin[ireac]):
+                    sigmav2d[:,iekin] = adas.ceevth(amdon=m2cx,amrec=m1cx,
+                                                    catyp='td',
+                                                    dren=ekin[iekin],iextyp=1,
+                                                    log=False,
+                                                    enin=ecol,sgin=sigma,
+                                                    enout=temp)
+                    if(show_progress):
+                        quot,rem = np.divmod(iekin,int(nekin[ireac]/10))
+                        if(rem == 0):
+                            print('%d%%' % int(quot*10))
+                if(show_progress):
+                    print('Completed.')
+                # Convert back to long 1D array where energy abscissa
+                # runs fastest.
+                sigmav = sigmav2d.flatten()
+                sigmalist[ireac] = sigmav
+                # Cross-section data (sigma(collision energy)) was converted
+                # into rate coefficient data (sigmav(fast-ion energy,
+                # background neutral temperature)). Hence, we update the
+                # reaction type and znum and anum values accordingly.
+                # Reaction type for CX rate coefficient data is 6
+                reactype[ireac] = 6
+                z1[ireac] = z1cx
+                a1[ireac] = a1cx
+                z2[ireac] = z2cx
+                a2[ireac] = a2cx
+                # Increment reaction index
+                ireac += 1
+
+            elif "BMS" in key:
+                # Reaction type for BMS coefficient data is 7
+                reactype[ireac] = 7
+                # Determine znum and anum values based on key
+                match = re.match(r"([a-z]+)([0-9]+)([a-z]+)([0-9]+)",
+                                 key.split('_')[-1],re.I)
+                items = match.groups()
+                if(items[0] == 'H'):
+                    z1[ireac] = 1
+                    a1[ireac] = 1
+                else:
+                    raise(Exception(
+                        "ERROR: Unsupported beam species in BMS."))
+                if(items[2] == 'H'):
+                    z2[ireac] = 1
+                    a2[ireac] = 1
+                else:
+                    raise(Exception(
+                        "ERROR: Unsupported target species in BMS."))
+                # Read abscissa data using ADAS function
+                dat = adas.xxdata_21(val)
+                ekinmin[ireac] = dat['be'][0]
+                ekinmax[ireac] = dat['be'][-1]
+                nekin[ireac] = len(dat['be'])
+                densmin[ireac] = dat['tdens'][0]
+                densmax[ireac] = dat['tdens'][-1]
+                ndens[ireac] = len(dat['tdens'])
+                tempmin[ireac] = dat['ttemp'][0]
+                tempmax[ireac] = dat['ttemp'][-1]
+                ntemp[ireac] = len(dat['ttemp'])
+                # Apply resolution multipliers for abscissa linearization
+                nekin[ireac] = (nekin[ireac]-1)*mltpresekinbms + 1;
+                ndens[ireac] = (ndens[ireac]-1)*mltpresdensbms + 1;
+                ntemp[ireac] = (ntemp[ireac]-1)*mltprestempbms + 1;
+                # Construct new, uniformly spaced (linear) abscissae
+                ekin = np.linspace(ekinmin[ireac],ekinmax[ireac],nekin[ireac])
+                dens = np.linspace(densmin[ireac],densmax[ireac],ndens[ireac])
+                temp = np.linspace(tempmin[ireac],tempmax[ireac],ntemp[ireac])
+                n[ireac] = ntemp[ireac]*ndens[ireac]*nekin[ireac]
+                # Organize abscissae into a series of 3D points
+                # for ADAS function read_adf21.
+                pts = np.zeros((ntemp[ireac]*ndens[ireac]*nekin[ireac],3))
+                for itemp in range(ntemp[ireac]):
+                    for idens in range(ndens[ireac]):
+                        for iekin in range(nekin[ireac]):
+                            pts[itemp*ndens[ireac]*nekin[ireac] +
+                                idens*nekin[ireac] + iekin,:] \
+                                = np.array([temp[itemp],
+                                            dens[idens],ekin[iekin]])
+                # BMS effective rate coefficients
+                sigmav = adas.read_adf21(files=val,fraction=[1.0],
+                                         energy=pts[:,2],te=pts[:,0],
+                                         dens=pts[:,1])
+                sigmalist[ireac] = sigmav
+                # Increment reaction index
+                ireac += 1
             else:
-                print("    File not found: " + fn_BMSs[i_fn_BMS])
+                raise(Exception("Unsupported kwarg. Exiting."))
 
-        # Move reaction data to one long array
-        N_tot = 0
-        for i_reac in range(0, N_reac):
-            N_tot += N[i_reac]
-        sigma = np.zeros((1,N_tot))
-        i_reac  = 0
-        i_sigma = 0
-        if(CX_DD0_found):
-            for i in range(0, N[i_reac]):
-                sigma[0,i_sigma+i] = sigmavCX_DD0[i]
-            i_sigma += N[i_reac]
-            i_reac  += 1
-        # We write no 'else' for this 'if' here because we already did above
-        i_BMS = 0
-        for i_fn_BMS in range(0,N_fn_BMS):
-            if(BMS_founds[i_fn_BMS]):
-                for i in range(0, N[i_reac]):
-                    sigma[0,i_sigma+i] = BMS_sigmavs[i_BMS][i]
-                i_sigma += N[i_reac]
-                i_BMS   += 1
-                i_reac  += 1
+        ## Write data to HDF5
+        # Place reaction data for all reactions in one long array
+        ntot = 0
+        for ireac in range(nreac):
+            ntot += n[ireac]
+        sigma = np.zeros((1,ntot))
+        isigma0 = 0
+        for ireac in range(nreac):
+            sigma[0,isigma0:isigma0+n[ireac]] = sigmalist[ireac]
+            isigma0 += n[ireac]
 
         out = {
-            "nreac" : N_reac, "z1" : z_1, "a1" : a_1, "z2" : z_2, "a2" : a_2,
-            "reactype" : reac_type, "nenergy" : N_E, "energymin" : E_min,
-            "energymax" : E_max, "ndensity" : N_n, "densitymin" : n_min,
-            "densitymax" : n_max, "ntemperature" : N_T,
-            "temperaturemin" : T_min, "temperaturemax" : T_max, "sigma" : sigma
+            "nreac" : nreac,
+            "z1" : z1, "a1" : a1, "z2" : z2, "a2" : a2, "reactype" : reactype,
+            "nenergy" : nekin, "energymin" : ekinmin, "energymax" : ekinmax,
+            "ndensity" : ndens, "densitymin" : densmin, "densitymax" : densmax,
+            "ntemperature" : ntemp,
+            "temperaturemin" : tempmin, "temperaturemax" : tempmax,
+            "sigma" : sigma
         }
         return ("asigma_loc", out)
 
@@ -252,7 +332,7 @@ class ImportData():
                                 right=eqd["fpol"][-1])
         else:
             fpolrz  = np.interp(eqd["psi"], psigrid[::-1], eqd["fpol"][::-1],
-                                right=eqd["fpol"][-1])
+                                riOAght=eqd["fpol"][-1])
         rvec   = np.linspace(b2d["rmin"], b2d["rmax"], b2d["nr"])
         zvec   = np.linspace(b2d["zmin"], b2d["zmax"], b2d["nz"])
         R, Z   = np.meshgrid(rvec, zvec, indexing="ij")
