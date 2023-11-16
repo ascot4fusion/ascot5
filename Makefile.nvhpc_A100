@@ -55,7 +55,7 @@ endif
 
 ifeq ($(GPU),1)
         ifeq ($(ACC), 1)
-		CFLAGS += -O3 -acc -Minfo=accel -gpu=managed # -gpu=deepcopy
+		CFLAGS += -O3 -acc -Minfo=accel # -gpu=deepcopy
         else ifeq ($(OMP), 1)
 		CFLAGS += -O3 -mp=gpu # -gpu=managed # -gpu=deepcopy
 		DEFINES+=-D_OPENMP
