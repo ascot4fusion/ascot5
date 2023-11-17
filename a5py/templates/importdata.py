@@ -1,10 +1,3 @@
-# Example call:
-# a5.data.create_input(
-#     "import adas",
-#     mltpresekinbms=1, mltpresdensbms=4, mltprestempbms=128,
-#     input_CX_H1H0='/home/adas/adas/adf24/scx#h0/scx#h0_ornl#h1.dat',
-#     input_BMS_H0H1='/home/adas/adas/adf21/bms10#h/bms10#h_h1.dat')
-
 import os
 import numpy as np
 import warnings
@@ -14,7 +7,10 @@ import re
 from a5py.physlib import cocos as cocosmod
 import unyt
 
-import adas
+try:
+    import adas
+except ImportError:
+   adas = None
 
 class ImportData():
 
@@ -30,42 +26,49 @@ class ImportData():
 
         Parameters
         ----------
-        z1cx : int
+        z1cx : int, optional
             Atomic number (znum) of fast ion (receiver) in CX reaction.
-        a1cx : int
+        a1cx : int, optional
             Atomic mass number (anum) of fast ion in CX reaction.
-        m1cx : float
+        m1cx : float, optional
             Mass in amu of fast ion in CX reaction.
-        z2cx : int
+        z2cx : int, optional
             Atomic number of background neutral (donor) in CX reaction.
-        a2cx : int
+        a2cx : int, optional
             Atomic mass number of background neutral in CX reaction.
-        m2cx : float
+        m2cx : float, optional
             Mass in amu of background neutral in CX reaction.
-        ekinmincx : float
+        ekinmincx : float, optional
             Minimum of energy abscissa for CX rate coefficients.
-        ekinmaxcx : float
+        ekinmaxcx : float, optional
             Maximum of energy abscissa for CX rate coefficients.
-        nekincx : float
+        nekincx : float, optional
             Number of points in energy abscissa for CX rate coefficients.
-        tempmincx : float
+        tempmincx : float, optional
             Minimum of temperature abscissa for CX rate coefficients.
-        tempmaxcx : float
+        tempmaxcx : float, optional
             Maximum of temperature abscissa for CX rate coefficients.
-        ntempcx : float
+        ntempcx : float, optional
             Number of points in temperature abscissa for CX rate coefficients.
-        mltpresekin : int
+        mltpresekin : int, optional
             Resolution multiplier for energy abscissa for BMS coefficients.
-        mltpresdens : int
+        mltpresdens : int, optional
             Resolution multiplier for density abscissa for BMS coefficients.
-        mltprestemp : int
+        mltprestemp : int, optional
             Resolution multiplier for temperature abscissa for
             BMS coefficients.
-        show_progress : boolean
+        show_progress : bool, optional
             Flag to determine if progress in converting cross-sections into
             rate coefficients should be printed to terminal.
         **kwargs
-            Parameters passed to the template.
+            Parameters in the form of key-value pairs passed to the template.
+            The key names, e.g. input_CX_H1H0 or input_BMS_H0H1, must follow a
+            specific format where the reaction type (CX or BMS), the reactant
+            species (H and H or H and H) and charge states (1 and 0 or
+            0 and 1) are specified. For the species and charge, the order is:
+            fast particle first, bulk particle second. The values of the
+            key-value pairs are the full paths to the relevant ADAS reaction
+            data files in the form of strings.
 
         Returns
         -------
@@ -75,6 +78,9 @@ class ImportData():
             Input data that can be passed to ``write_hdf5`` method of
             a corresponding type.
         """
+        if adas is None:
+            raise Exception("Could not import adas package.")
+
         # Define relevant reaction types
         reac_type_sigma_cx   = 3
         reac_type_sigmav_cx  = 6
@@ -116,14 +122,12 @@ class ImportData():
                     z1[ireac] = 1
                     a1[ireac] = 1
                 else:
-                    raise(Exception(
-                        "ERROR: Unsupported receiver species in CX."))
+                    raise(Exception("Unsupported receiver species in CX."))
                 if(items[2] == 'H'):
                     z2[ireac] = 1
                     a2[ireac] = 1
                 else:
-                    raise(Exception(
-                        "ERROR: Unsupported donor species in CX."))
+                    raise(Exception("Unsupported donor species in CX."))
                 # Read data using ADAS function
                 dat = adas.xxdata_24(val)
                 ecol = dat['eea'][:,0]
@@ -142,7 +146,7 @@ class ImportData():
                     nekin[ireac] = nekincx
                 else:
                     raise(Exception(
-                        "ERROR: Energy span goes outside input data domain."))
+                        "Energy span goes outside input data domain."))
                 # No density abscissa for this data so density dimension is 1
                 ndens[ireac] = 1
                 temp = np.linspace(tempmincx,tempmaxcx,ntempcx)
@@ -202,14 +206,12 @@ class ImportData():
                     z1[ireac] = 1
                     a1[ireac] = 1
                 else:
-                    raise(Exception(
-                        "ERROR: Unsupported beam species in BMS."))
+                    raise(Exception("Unsupported beam species in BMS."))
                 if(items[2] == 'H'):
                     z2[ireac] = 1
                     a2[ireac] = 1
                 else:
-                    raise(Exception(
-                        "ERROR: Unsupported target species in BMS."))
+                    raise(Exception("Unsupported target species in BMS."))
                 # Read abscissa data using ADAS function
                 dat = adas.xxdata_21(val)
                 ekinmin[ireac] = dat['be'][0]
@@ -248,7 +250,7 @@ class ImportData():
                 # Increment reaction index
                 ireac += 1
             else:
-                raise(Exception("Unsupported kwarg. Exiting."))
+                raise(Exception("Unsupported kwarg."))
 
         ## Write data to HDF5
         # Place reaction data for all reactions in one long array
@@ -332,7 +334,7 @@ class ImportData():
                                 right=eqd["fpol"][-1])
         else:
             fpolrz  = np.interp(eqd["psi"], psigrid[::-1], eqd["fpol"][::-1],
-                                riOAght=eqd["fpol"][-1])
+                                right=eqd["fpol"][-1])
         rvec   = np.linspace(b2d["rmin"], b2d["rmax"], b2d["nr"])
         zvec   = np.linspace(b2d["zmin"], b2d["zmax"], b2d["nz"])
         R, Z   = np.meshgrid(rvec, zvec, indexing="ij")
