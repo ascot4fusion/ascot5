@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import warnings
-#from freeqdsk import geqdsk
+from freeqdsk import geqdsk
 import re
 
 from a5py.physlib import cocos as cocosmod
