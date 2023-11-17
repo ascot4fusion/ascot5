@@ -61,14 +61,16 @@ class ImportData():
             Flag to determine if progress in converting cross-sections into
             rate coefficients should be printed to terminal.
         **kwargs
-            Parameters in the form of key-value pairs passed to the template.
-            The key names, e.g. input_CX_H1H0 or input_BMS_H0H1, must follow a
-            specific format where the reaction type (CX or BMS), the reactant
-            species (H and H or H and H) and charge states (1 and 0 or
-            0 and 1) are specified. For the species and charge, the order is:
-            fast particle first, bulk particle second. The values of the
-            key-value pairs are the full paths to the relevant ADAS reaction
-            data files in the form of strings.
+            ADAS data files in format: ``reaction``="/path/to/reaction/data".
+
+            The key ``reaction`` is used to interpret the specific reaction
+            and reactant species (charge state included) the data corresponds
+            to, and it must follow the format ``"input_"<reaction>_<fast
+            particle species><bulk particle species>``. Examples of valid
+            key-value pairs are
+            ``input_CX_H1H0="/home/adas/adas/adf24/scx#h0/scx#h0_ornl#h1.dat"``
+            and
+            ``input_BMS_H0H1="/home/adas/adas/adf21/bms10#h/bms10#h_h1.dat"``.
 
         Returns
         -------
