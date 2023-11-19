@@ -31,23 +31,23 @@ class ImportData():
         a1cx : int, optional
             Atomic mass number (anum) of fast ion in CX reaction.
         m1cx : float, optional
-            Mass in amu of fast ion in CX reaction.
+            Mass (amu) of fast ion in CX reaction.
         z2cx : int, optional
             Atomic number of background neutral (donor) in CX reaction.
         a2cx : int, optional
             Atomic mass number of background neutral in CX reaction.
         m2cx : float, optional
-            Mass in amu of background neutral in CX reaction.
+            Mass (amu) of background neutral in CX reaction.
         ekinmincx : float, optional
-            Minimum of energy abscissa for CX rate coefficients.
+            Minimum of energy (eV) abscissa for CX rate coefficients.
         ekinmaxcx : float, optional
-            Maximum of energy abscissa for CX rate coefficients.
+            Maximum of energy (eV) abscissa for CX rate coefficients.
         nekincx : float, optional
             Number of points in energy abscissa for CX rate coefficients.
         tempmincx : float, optional
-            Minimum of temperature abscissa for CX rate coefficients.
+            Minimum of temperature (eV) abscissa for CX rate coefficients.
         tempmaxcx : float, optional
-            Maximum of temperature abscissa for CX rate coefficients.
+            Maximum of temperature (eV) abscissa for CX rate coefficients.
         ntempcx : float, optional
             Number of points in temperature abscissa for CX rate coefficients.
         mltpresekin : int, optional
@@ -183,6 +183,9 @@ class ImportData():
                 # Convert back to long 1D array where energy abscissa
                 # runs fastest.
                 sigmav = sigmav2d.flatten()
+                # Convert units from cm3/s to m3/s
+                sigmav = 1e-6*sigmav
+                # Store data in data list
                 sigmalist[ireac] = sigmav
                 # Cross-section data (sigma(collision energy)) was converted
                 # into rate coefficient data (sigmav(fast-ion energy,
@@ -248,6 +251,12 @@ class ImportData():
                 sigmav = adas.read_adf21(files=val,fraction=[1.0],
                                          energy=pts[:,2],te=pts[:,0],
                                          dens=pts[:,1])
+                # Convert units 1/cm3 to 1/m3
+                densmin[ireac] = 1e6*densmin[ireac]
+                densmax[ireac] = 1e6*densmax[ireac]
+                # Convert units cm3/s to m3/s
+                sigmav = 1e-6*sigmav
+                # Store data in data list
                 sigmalist[ireac] = sigmav
                 # Increment reaction index
                 ireac += 1
