@@ -281,6 +281,31 @@ Compiling libascot.so requires that you change Makefile as
 
 .. _Compilerflags:
 
+EUROfusion gateway
+******************
+
+Serial version
+--------------
+For the serail version (without MPI, such as python GUI)
+
+`module purge ; module load cineca intel/pe-xe-2017--binary intelmpi/2017--binary gnu/6.1.0 zlib/1.2.8--gnu--6.1.0 szip/2.1--gnu--6.1.0 hdf5/1.8.17--gnu--6.1.0 itm-python/3.10`
+
+.. code-block::
+
+   MPI=0 FLAGS="-I${HDF5_INCLUDE}"
+
+Parallel version
+----------------
+For the parallel version (e.g. to be run on the worker nodes)
+
+`module purge ; module load cineca intel/pe-xe-2017--binary intelmpi/2017--binary gnu/6.1.0 zlib/1.2.8--gnu--6.1.0 szip/2.1--gnu--6.1.0 hdf5/1.8.17--intelmpi--2017--binary itm-python/3.10`
+
+.. code-block::
+
+   MPI=1 FLAGS="-I${HDF5_INCLUDE}"
+
+(this hasn't been really tested, but it is a starting point)
+
 Settings when compiling
 =======================
 
