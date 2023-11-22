@@ -2,7 +2,7 @@
 """
 Created on Tue Oct 24 18:52:15 2023
 
-@author: hvkg84
+@author: Ian Dolby
 
 
 WIP: ADD A DOCSTRING IN EACH FUNCTION

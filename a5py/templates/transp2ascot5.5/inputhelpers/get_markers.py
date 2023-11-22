@@ -2,7 +2,7 @@
 """
 Created on Wed Oct 25 18:15:26 2023
 
-@author: hvkg84
+@author: Ian Dolby
 
 The purpose of this script is to load a NUBEAM FI birth marker set and copy the data
 to an ASCOT5 hdf5 file.

@@ -2,7 +2,7 @@
 """
 Created on Wed Oct 25 18:15:45 2023
 
-@author: hvkg84
+@author: Ian Dolby
 
 """
 import netCDF4 as nc

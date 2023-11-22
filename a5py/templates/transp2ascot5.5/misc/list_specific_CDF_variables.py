@@ -2,7 +2,7 @@
 """
 Created on Tue Nov  7 15:44:26 2023
 
-@author: hvkg84
+@author: Ian Dolby
 
 This script generates a list of variables, whose names or descriptions contain certain key phrases, from the TRANSP CDF files,
  and outputs the list to a csv file.

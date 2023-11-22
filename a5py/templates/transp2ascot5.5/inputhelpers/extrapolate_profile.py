@@ -2,7 +2,7 @@ max# -*- coding: utf-8 -*-
 """
 Created on Wed Oct 25 18:16:12 2023
 
-@author: hvkg84
+@author: Ian Dolby
 
 WIP: THE exponential extrapolation method currently assumes that rho_pol(R) is roughly linear at the outer midplane. 
         This is so that less information has to be passed from the plasma and neutrals scripts, but it is of course possible to map them properly.

@@ -2,7 +2,7 @@
 """
 Created on Tue Nov  7 15:31:12 2023
 
-@author: hvkg84
+@author: Ian Dolby
 
 This script sanity checks the neutrals in the ASCOT5 input file.
 Checks:
