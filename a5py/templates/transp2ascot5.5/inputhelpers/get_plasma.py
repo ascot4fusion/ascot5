@@ -13,7 +13,7 @@ import numpy as np
 import netCDF4 as nc
 import scipy.interpolate
 import matplotlib.pyplot as plt
-from extrapolate_profile import extrapolate_profile
+from .extrapolate_profile import extrapolate_profile
 
 from scipy.constants import physical_constants as const
 

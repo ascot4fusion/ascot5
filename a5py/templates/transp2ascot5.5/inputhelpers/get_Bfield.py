@@ -12,7 +12,8 @@ It also modifies psi0 very slightly to prevent an interpolation error I was gett
 import numpy as np
 import netCDF4 as nc
 import scipy.interpolate
-import cocos
+
+from . import cocos
 
 
 def bfield_from_plasma_state_dataset(TRANSP_plasma_state_dataset, COCOS_in=5, COCOS_out=3, quiet=False):

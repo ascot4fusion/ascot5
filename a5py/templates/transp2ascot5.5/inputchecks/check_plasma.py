@@ -109,7 +109,7 @@ def compare_plasma(ASCOT5_dataset, TRANSP_plasma_state_dataset, TRANSP_full_CDF_
         plt.plot(PS_rho_pol, PS_Ne, label='Plasma state', marker='+', markersize=10, markeredgewidth=2, fillstyle='none')
         plt.plot(CDF_rho_pol, CDF_Ne, label='CDF', marker='x', markersize=10, markeredgewidth=1, fillstyle='none')
         plt.xlabel('rho_pol')
-        plt.ylabel('Electron density [eV]')
+        plt.ylabel('Electron density [m$^{-3}$]')
         plt.legend()
         
         
@@ -118,7 +118,7 @@ def compare_plasma(ASCOT5_dataset, TRANSP_plasma_state_dataset, TRANSP_full_CDF_
         plt.plot(PS_rho_pol, PS_Ni[:,0], label='Plasma state, species 1', marker='+', markersize=10, markeredgewidth=2, fillstyle='none')
         plt.plot(CDF_rho_pol, CDF_Ni[:,0], label='CDF, species 1', marker='x', markersize=10, markeredgewidth=1, fillstyle='none')
         plt.xlabel('rho_pol')
-        plt.ylabel('Ion density [eV]')
+        plt.ylabel('Ion density [m$^{-3}$]')
         plt.legend()
         
         
@@ -127,7 +127,7 @@ def compare_plasma(ASCOT5_dataset, TRANSP_plasma_state_dataset, TRANSP_full_CDF_
         plt.plot(PS_rho_pol, PS_Ni[:,1], label='Plasma state, species 2', marker='+', markersize=10, markeredgewidth=2, fillstyle='none')
         plt.plot(CDF_rho_pol, CDF_Ni[:,1], label='CDF, species 2', marker='x', markersize=10, markeredgewidth=1, fillstyle='none')
         plt.xlabel('rho_pol')
-        plt.ylabel('Ion density [eV]')
+        plt.ylabel('Ion density [m$^{-3}$]')
         plt.legend()
         
         
@@ -136,7 +136,7 @@ def compare_plasma(ASCOT5_dataset, TRANSP_plasma_state_dataset, TRANSP_full_CDF_
         plt.plot(PS_rho_pol, PS_Ni[:,2], label='Plasma state, species 3', marker='+', markersize=10, markeredgewidth=2, fillstyle='none')
         plt.plot(CDF_rho_pol, CDF_Ni[:,2], label='CDF, species 3', marker='x', markersize=10, markeredgewidth=1, fillstyle='none')
         plt.xlabel('rho_pol')
-        plt.ylabel('Ion density [eV]')
+        plt.ylabel('Ion density [m$^{-3}$]')
         plt.legend()
         
         

@@ -11,7 +11,6 @@ It requires:
 
 """
 import sys
-#sys.path.append('/home/hvkg84/ASCOT/ASCOT_files/TRANSP2ASCOT5.5/inputhelpers')
 
 import numpy as np
 import netCDF4 as nc
@@ -51,39 +50,30 @@ def make_ascot5_slowingdownrun(a5, TRANSP_marker_directory=None, TRANSP_plasma_s
     ### Efield
     Efield_dict = get_Efield.efield_from_plasma_state_dataset(TRANSP_plasma_state_dataset=TPSD)
     a5.data.create_input("E_1DS", **Efield_dict)
-    # E_1DS.write_hdf5(fn, **Efield_dict)
     ### Plasma
     plasma_dict = get_plasma.plasma_from_plasma_state_dataset(TRANSP_plasma_state_dataset=TPSD, extrapolate=True, extrapolation_type='dummy', dummy_value=1)
     a5.data.create_input("plasma_1D", **plasma_dict)
-    # plasma_1D.write_hdf5(fn, **plasma_dict)
     ### Neutrals
     neutrals_dict = get_neutrals.neutrals_from_plasma_state_dataset(TRANSP_plasma_state_dataset=TPSD, maxwellian=[1,1], extrapolate=True, \
                                                                     extrapolation_type='constant')
     a5.data.create_input("N0_1D", **neutrals_dict)
-    # n1d.write_hdf5(fn, **neutrals_dict)
     ### Wall 
     wall_dict = get_wall.wall_from_plasma_state_dataset(TRANSP_plasma_state_dataset=TPSD)
     a5.data.create_input("wall_2D", **wall_dict)
-    # wall_2D.write_hdf5(fn, **wall_dict)
     ### Markers, given the directory containing the birth files and the possibility of selecting a specific outtim.
     marker_dict = get_markers.GC_markers_from_multiple_birth_datasets(directory=TRANSP_marker_directory, sigma_I_times_sigma_B0 = -1, \
                                                                       outtim_indices=marker_outtim, plotyn=plotyn)
     a5.data.create_input("gc", **marker_dict, desc='GC from NUBEAM birth file ' + str(marker_outtim))
-    # mrk_gc.write_hdf5(fn, **marker_dict, desc='GC from NUBEAM birth file ' + str(marker_outtim)) 
     
     ### Dummy input
     a5.data.create_input("Boozer")
     a5.data.create_input("MHD_STAT")
     a5.data.create_input("asigma_loc")
-    # boozer.write_hdf5_dummy(fn)
-    # mhd.write_hdf5_dummy(fn)
-    # asigma_loc.write_hdf5_empty(fn)
     
     """======================================== CHECK INPUT MATCHES CONTENT OF TRANSP FILES ==========================================
     """
     if check_input == True:
         checking_plotyn = checking_plotyn
-        # a5 = Ascot(fn)
         ## Bfield_check
         print("Checking Bfield.")
         check_Bfield.compare_bfield(ASCOT5_dataset=a5, TRANSP_plasma_state_dataset=TPSD, TRANSP_full_CDF_dataset=TFCD, plotyn=checking_plotyn)
@@ -129,9 +119,6 @@ def make_ascot5_slowingdownrun(a5, TRANSP_marker_directory=None, TRANSP_plasma_s
     # - Axisymmetric or 3D
     settings["bfield_make_3D"] = False
     # Set options to null state
-    # o = options.generateopt()
-    # o = flagsToZero(o,"ENABLE")
-    # o = flagsToZero(o,"ENDCOND")
     o = {}
     o["SIM_MODE"]               = 2
     o["FIXEDSTEP_USERDEFINED"]  = 1e-9
@@ -237,24 +224,16 @@ def make_ascot5_slowingdownrun(a5, TRANSP_marker_directory=None, TRANSP_plasma_s
     o["ORBITWRITE_NPOINT"]    = 1e3
     o["ORBITWRITE_INTERVAL"]  = 0
     
-    # opt.write_hdf5(a5, desc=None, **o)
-    # a5.data.create_input("OPT", **o)
     opt = Opt.get_default()
     opt.update(**o)
     a5.data.create_input("opt", **opt)
     
-def flagsToZero(options,flags):
-    for i in options:
-        if i.startswith(flags):
-            options[i] = np.array([0],dtype='i4')
-    return options
-
 
 
 
 if __name__ == '__main__':
     run_ID = '134020D30'
-    TRANSP_CDF_directory = '../134020D30/'
+    TRANSP_CDF_directory = '../../../../ASCOT_files/134020D30/'
     
     TRANSP_plasma_state_filename = TRANSP_CDF_directory + run_ID + "_ps_ts1_state.cdf"
     TRANSP_data = nc.Dataset(TRANSP_plasma_state_filename)
@@ -263,7 +242,7 @@ if __name__ == '__main__':
     TRANSP_full_CDF_data = nc.Dataset(TRANSP_full_CDF_filename)
     
     
-    filename_to_create = "./runs/NSTX_134020_GC_new_tests_12.h5"
+    filename_to_create = "./runs/NSTX_134020_GC_new_tests_1.h5"
     
     ASCOT5_object = Ascot("./" + filename_to_create, create=False)
     
