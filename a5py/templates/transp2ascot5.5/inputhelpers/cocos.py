@@ -8,7 +8,7 @@ Below are functions which take the TRANSP plasma state output file (FI_OUTTIM mu
  and deduce the COCOS convention used, and then transform it to whatever COCOS convention is required by the user.
 
 TRANSP appears to use COCOS5, but it may be that someday the COCOS used in its output files can be changed by the user,
- so these functions are based entirely on variables contained in the plasma state output file.
+ so this is deduced from variables contained in the plasma state output file.
 
 Much of this code is based on the eqdsk2input.py script written by Matteo Vallar, which can be found 
  in the ASCOT5 GitLab repository in python/a5py/a5py/preprocessing/eqdsk2input.py .
@@ -32,6 +32,8 @@ def cocos_check(TRANSP_plasma_state_dataset, COCOS, quiet=False):
     This function does not trust the user and calculates the COCOS of the input from the variable values.
     
     The COCOS variable is the COCOS integer for the input.
+    
+    If quiet==True, all printing to the console other than warnings is suppressed.
     """
     cocos_dict = fill_cocosdict(COCOS) # Get the signs corresponding to the input COCOS.
     TPSD = TRANSP_plasma_state_dataset
@@ -90,16 +92,6 @@ def cocos_check(TRANSP_plasma_state_dataset, COCOS, quiet=False):
     if np.abs(mean_abs_B_R_diff_2pi) < np.abs(mean_abs_B_R_diff_no2pi):
         cocos_gt_10 = True
     
-    
-    # print('Bphi_ccw', Bphi_ccw)
-    # print('Jphi_ccw', Jphi_ccw)
-    # print('sign_q', sign_q)
-    # print('sign_b0', sign_b0)
-    # print('sigma_Ip', sigma_Ip)
-    # print('psi_increase', psi_increase)
-    # print('sigma_Bp', sigma_Bp)
-    # print('sigma_RphiZ', sigma_RphiZ)
-    # print('sigma_rhothetaphi', sigma_rhothetaphi)
     
     
     cocos_read = _sign_to_cocos(sigma_Bp, sigma_RphiZ, sigma_rhothetaphi, cocos_gt_10=False)

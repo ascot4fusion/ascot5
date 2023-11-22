@@ -34,11 +34,7 @@ from scipy.constants import physical_constants as const
 
 
 def extrapolate_profile(variable_array, rho_array, rho_to_append=2, rho_nsteps=10, dummy_value=5, extrapolation_type='dummy', R_LCFS=None, Bpol_LCFS=None, T_LCFS=None, plotyn=0, **kwargs):
-    """ SHOULD this function automatically detect 2D variable arrays and extrapolate intelligently, or is it clearer to just extrapolate e.g the ion density
-         individually? (The ion density has shape (nrho, nion)).
-    
-    Below we ensure that the extrapolation_type string is not case-sensitive.
-    
+    """
     The keyword args are intended for the variables needed by the SOL model in the exponential extrapolation section.
     """
     f = 1e-4

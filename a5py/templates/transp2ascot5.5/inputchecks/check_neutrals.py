@@ -14,7 +14,6 @@ The comparisons for checking are:
     1) 1D density(rho_pol), A5 vs PS vs CDF
     2) 1D temperature(rho_pol), A5 vs PS vs CDF
 
-NOTE: Maybe in the future, there should be a simple numerical check for each variable.
 """
 import numpy as np
 import netCDF4 as nc

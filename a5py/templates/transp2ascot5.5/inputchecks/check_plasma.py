@@ -14,7 +14,6 @@ The comparisons for checking are:
     3) 1D Ne(rho_pol), A5 vs PS vs CDF
     4) 1D Ni(rho_pol), A5 vs PS vs CDF
 
-NOTE: Maybe in the future, there should be a simple numerical check for each variable.
 """
 import numpy as np
 import netCDF4 as nc

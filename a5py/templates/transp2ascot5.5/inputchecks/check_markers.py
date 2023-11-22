@@ -31,7 +31,6 @@ def compare_markers(ASCOT5_dataset, directory_with_TRANSP_birth_files, sigma_I_t
                          'pitch':pitch, 'r':r_GC_vals, 'time':time, 'weight':weight, 'z':z_GC_vals, \
                          'zeta':zeta, 'znum':znum, 'ids':ids}
     """
-    # A5_data = ASCOT5_dataset.marker.active.read()
     A5_data = ASCOT5_dataset.data.marker.active.read()
     birth_data = get_markers.GC_markers_from_multiple_birth_datasets(directory=directory_with_TRANSP_birth_files, \
                                                                      sigma_I_times_sigma_B0 = sigma_I_times_sigma_B0, \
