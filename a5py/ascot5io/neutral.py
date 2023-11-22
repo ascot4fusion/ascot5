@@ -81,7 +81,9 @@ class N0_1D(DataGroup):
             raise ValueError("Temperature has invalid shape.")
         if anum.size != nspecies or znum.size != nspecies:
             raise ValueError("Anum or Znum has invalid shape.")
-        if maxwellian != 1 and maxwellian.size != nspecies:
+        if np.atleast_1d(maxwellian).size != nspecies and maxwellian != 1:
+            ## The 'if' statement conditions should be in this order so that it only tries to check "maxwellian == 1" if it has already verified that
+            ## it is a scalar.
             raise ValueError("Failed to interpret maxwellian parameter.")
 
         parent = "neutral"
@@ -92,7 +94,9 @@ class N0_1D(DataGroup):
         density     = np.transpose(density)
         temperature = np.transpose(temperature)
 
-        if maxwellian == 1:
+        if np.atleast_1d(maxwellian).size == 1 and maxwellian == 1: 
+            ## The 'if' statement conditions should be in this order so that it only tries to check "maxwellian == 1" if it has already verified that
+            ## it is a scalar.
             maxwellian = np.ones( (int(nspecies),1) )
 
         with h5py.File(fn, "a") as f:
