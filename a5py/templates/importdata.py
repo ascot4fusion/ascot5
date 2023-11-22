@@ -193,7 +193,7 @@ class ImportData():
         return ("asigma_loc", out)
 
     def import_geqdsk(self, fn="input.eqdsk", cocos=None, phiclockwise=None,
-                      weberperrad=None):
+                      weberperrad=None, verbose=True):
         """Import axisymmetric magnetic field from EQDSK.
 
         Parameters
@@ -217,12 +217,15 @@ class ImportData():
         cocos = cocosmod.assign(
             eqd["qpsi"][0], eqd["cpasma"], eqd["bcentr"], eqd["simagx"],
             eqd["sibdry"], phiclockwise, weberperrad)
+        
+        verbose and print("Eqdsk cocos: "+str(cocos))
+        verbose and print("ASCOT cocos: "+str(cocosmod.COCOS_ASCOT))
 
         if cocos != cocosmod.COCOS_ASCOT:
             warnings.warn(
                 "EQDSK COCOS is %d while ASCOT5 expects 3. Transforming COCOS"
                 % cocos)
-            eqd = cocosmod.tococos3(eqd, cocos)
+            eqd = cocosmod.fromCocosNtoCocosM(eqd, cocosmod.COCOS_ASCOT)
 
         b2d = {
             "nr" : eqd["nx"],
