@@ -37,7 +37,7 @@ from scipy.constants import physical_constants as const
 
 
 
-def make_ascot5_slowingdownrun(a5, TRANSP_marker_directory=None, TRANSP_plasma_state_dataset=None, TRANSP_full_CDF_dataset=None, marker_outtim=1, check_input=False, plotyn=0, checking_plotyn=1):
+def make_ascot5_slowingdownrun(a5, TRANSP_marker_directory=None, TRANSP_plasma_state_dataset=None, TRANSP_full_CDF_dataset=None, marker_outtim=1, check_input=True, plotyn=0, checking_plotyn=1):
     """==================================== GET INPUT FROM TRANSP FILES AND WRITE TO ASCOT5 FILE ============================================
     """
     
@@ -138,7 +138,7 @@ def make_ascot5_slowingdownrun(a5, TRANSP_marker_directory=None, TRANSP_plasma_s
     if settings["sim_recordGCasGO"]:
         o["RECORD_MODE"] = 0
 
-    o["FIXEDSTEP_USE_USERDEFINED"] = 1
+    o["FIXEDSTEP_USE_USERDEFINED"] = 0
     o["ADAPTIVE_TOL_ORBIT"]        = 1.0e-9
     o["ADAPTIVE_TOL_CCOL"]         = 1.0e-4
     o["ADAPTIVE_MAX_DRHO"]         = 1.0
@@ -232,8 +232,8 @@ def make_ascot5_slowingdownrun(a5, TRANSP_marker_directory=None, TRANSP_plasma_s
 
 
 if __name__ == '__main__':
-    run_ID = '134020D30'
-    TRANSP_CDF_directory = '../../../../ASCOT_files/134020D30/'
+    run_ID = '134020D31'
+    TRANSP_CDF_directory = '../../../../ASCOT_files/134020D31/'
     
     TRANSP_plasma_state_filename = TRANSP_CDF_directory + run_ID + "_ps_ts1_state.cdf"
     TRANSP_data = nc.Dataset(TRANSP_plasma_state_filename)
@@ -242,10 +242,10 @@ if __name__ == '__main__':
     TRANSP_full_CDF_data = nc.Dataset(TRANSP_full_CDF_filename)
     
     
-    filename_to_create = "./runs/NSTX_134020_GC_new_tests_1.h5"
+    filename_to_create = "./runs/NSTX_134020_D31_GC_test.h5"
     
-    ASCOT5_object = Ascot("./" + filename_to_create, create=False)
+    ASCOT5_object = Ascot("./" + filename_to_create, create=True)
     
     make_ascot5_slowingdownrun(a5 = ASCOT5_object, TRANSP_marker_directory=TRANSP_CDF_directory, TRANSP_plasma_state_dataset=TRANSP_data, \
-                               TRANSP_full_CDF_dataset=TRANSP_full_CDF_data, check_input=False, checking_plotyn=1)
+                               TRANSP_full_CDF_dataset=TRANSP_full_CDF_data, check_input=True, checking_plotyn=1)
     print("** SUCCESS**: File " + filename_to_create + " generated successfully.")
