@@ -8,16 +8,17 @@ import copy
 COCOS_ASCOT = 3
 
 class COCOS:
-    """
-    COCOS class
+    """ A class to model COCOS case
 
-    `cocos::Int`           = COCOS ID number\\
-    `exp_Bp::Int`          = 0 or 1, depending if psi is already divided by 2pi or not, respectively\\
-    `sigma_Bp::Int`        = +1 or -1, depending if psi is increasing or decreasing with Ip and B0 positive\\
-    `sigma_RpZ::Int`       = +1 or -1, depending if (R,phi,Z) is right-handed or (R,Z,phi), respectively\\
-    `sigma_rhotp::Int`     = +1 or -1, depending if (rho, theta, phi) is right-handed or (rho,phi,theta), repectively\\
-    `sign_q_pos::Int`      = +1 or -1, depending if q is positive or negative with Ip and B0 positive\\
-    `sign_pprime_pos::Int` = +1 or -1, depending if dp/dpsi is positive or negative with Ip and B0 positive
+    Attributes
+    ----------
+        cocos :           Int    COCOS ID number
+        exp_Bp :          Int    0 or 1, depending if psi is already divided by 2pi or not, respectively
+        sigma_Bp :        Int    +1 or -1, depending if psi is increasing or decreasing with Ip and B0 positive
+        sigma_RpZ :       Int    +1 or -1, depending if (R,phi,Z) is right-handed or (R,Z,phi), respectively
+        sigma_rhotp :     Int    +1 or -1, depending if (rho, theta, phi) is right-handed or (rho,phi,theta), repectively
+        sign_q_pos :      Int    +1 or -1, depending if q is positive or negative with Ip and B0 positive
+        sign_pprime_pos : Int    +1 or -1, depending if dp/dpsi is positive or negative with Ip and B0 positive
     """
     def __init__(self, cocos, exp_Bp, sigma_Bp, sigma_RpZ, sigma_rhotp, sign_q_pos, sign_pprime_pos):
         self.cocos = cocos
@@ -29,6 +30,23 @@ class COCOS:
         self.sign_pprime_pos = sign_pprime_pos
 
 def cocos(cocos_in):
+    """Create correct COCOS variables for the given COCOS cocos_in.
+
+    Parameters
+    ----------
+    cocos_in : int
+        The COCOS identification number (1-18)
+
+    Returns
+    -------
+    COCOS() : COCOS
+        The COCOS class for the cocos_in input.
+
+    Raises
+    ------
+    ValueError
+        If cocos_in was ouside of accepted range (1-18)
+    """
     exp_Bp = 1 if cocos_in >= 11 else 0
 
     if cocos_in in (1, 11):
@@ -120,7 +138,7 @@ def assign(q, ip, b0, psiaxis, psibndr, phiclockwise, weberperrad):
     return cocos
 
 def tococos3(eqd, cocos):
-    """Transform equilibrium to COCOS3.
+    """Transform equilibrium to COCOS3. PLEASE NOTE, this function is deprecated!!! Please use fromCocosNtoCocosM() instead (cocos.py/fromCocosNtoCocosM()).
 
     Parameters
     ----------
@@ -256,25 +274,22 @@ def tococos3(eqd, cocos):
     eqdout["cpasma"] = ip
     return eqdout
 
-def transform_cocos(cc_in: COCOS, cc_out: COCOS,
-                    sigma_Ip = None,
-                    sigma_B0 = None,
-                    ld = (1, 1),
-                    lB = (1, 1),
-                    exp_mu0 = (0, 0)):
+def transform_cocos(cc_in: COCOS, cc_out: COCOS, sigma_Ip = None, sigma_B0 = None, ld = (1, 1), lB = (1, 1), exp_mu0 = (0, 0)):
     """
-    Returns a dictionary of the multiplicative factors to transform COCOS from `cc_in` to `cc_out`
+    Returns a dictionary of the multiplicative factors to transform COCOS from `cc_in` to `cc_out`.
+    These equations are based on the equations in O. Sauter et al, Comp. Phys. Comm., 2023.
 
     Parameters
     ----------
     sigma_Ip : Union[Tuple[int, int], None]
         A tuple of the (Input, Output) current sign or nothing
-    sigma_B0 : Union{NTuple{2,Int},Nothing}` - A tuple of the (Input, Output) toroidal field sign or nothing
-    ld : NTuple{2,<:Real}
+    sigma_B0 : Union[NTuple[2,Int],Nothing]
+        A tuple of the (Input, Output) toroidal field sign or nothing
+    ld : NTuple[2,Real]
         A tuple of the (Input, Output) length scale factor. Default = (1,1)
-    lB : NTuple{2,<:Real}
+    lB : NTuple[2,Real]
         A tuple of the (Input, Output) magnetic field scale factor. Default = (1,1)
-    exp_mu0 : NTuple{2,<:Real}
+    exp_mu0 : NTuple[2,Real]
         A tuple of the (Input, Output) mu0 exponent (0, 1). Default = (0,0)
 
     Returns
