@@ -116,7 +116,7 @@ class MarkerGenerator():
         mrk["znum"][:]   = znum
         mrk["mass"][:]   = mass
         mrk["charge"][:] = charge
-        mrk["weight"]    = weight
+        mrk["weight"][:] = weight
 
         # Randomize initial coordinates
         ir, ip, iz, ip1, ip2 = \
@@ -155,7 +155,7 @@ class MarkerGenerator():
 
         prtdist = particledist._copy()
         d = prtdist._distribution.ravel().v * 0
-        np.add.at(d, icell, mrk["weight"].v)
+        np.add.at(d, icell, mrk["weight"])
         prtdist._distribution = d.reshape(vol.shape) / vol
 
         return mrk, mrkdist, prtdist
