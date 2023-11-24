@@ -186,6 +186,7 @@ class wall_3D(DataGroup):
                     out[key] = int(out[key])
 
             nTriangles = out['x1x2x3'].shape[0]
+            self.number_of_elements = nTriangles
 
             if path+'/flag' in f:
                 flagAttrs = ['flagIdStrings','flagIdList']
@@ -220,9 +221,13 @@ class wall_3D(DataGroup):
         return self.number_of_elements
 
 
-    def noderepresentation(self):
+    def noderepresentation(self, filter_wall = None):
         """
         Return an array of vertices and indices that define this wall.
+        Inputs:
+            filter_wall : list[int], optional
+                list of of triangle indices for which the node
+                representation is done. [ind1, ind2, ..., indn]
 
         Returns:
             vertices : float, array_like <br>
@@ -235,7 +240,17 @@ class wall_3D(DataGroup):
                 define the indices of the vertices in the vertices array.
         """
         with self as h5:
-            ntriangle = int(h5["nelements"][:])
+            if filter_wall is None:
+                ntriangle = int(h5["nelements"][:])
+                x1x2x3 = h5["x1x2x3"]
+                y1y2y3 = h5["y1y2y3"]
+                z1z2z3 = h5["z1z2z3"]
+            else:
+                x1x2x3 = h5["x1x2x3"][filter_wall, :]
+                y1y2y3 = h5["y1y2y3"][filter_wall, :]
+                z1z2z3 = h5["z1z2z3"][filter_wall, :]
+                ntriangle = x1x2x3.shape[0]
+
             faces     = np.zeros((ntriangle,4), dtype="i8")
             vertices  = np.zeros((ntriangle*3,3), dtype="f8")
 
@@ -244,15 +259,15 @@ class wall_3D(DataGroup):
             faces[:, 2] = np.arange(ntriangle) * 3 + 1
             faces[:, 3] = np.arange(ntriangle) * 3 + 2
 
-            vertices[0::3,0] = h5["x1x2x3"][:,0]
-            vertices[0::3,1] = h5["y1y2y3"][:,0]
-            vertices[0::3,2] = h5["z1z2z3"][:,0]
-            vertices[1::3,0] = h5["x1x2x3"][:,1]
-            vertices[1::3,1] = h5["y1y2y3"][:,1]
-            vertices[1::3,2] = h5["z1z2z3"][:,1]
-            vertices[2::3,0] = h5["x1x2x3"][:,2]
-            vertices[2::3,1] = h5["y1y2y3"][:,2]
-            vertices[2::3,2] = h5["z1z2z3"][:,2]
+            vertices[0::3,0] = x1x2x3[:,0]
+            vertices[0::3,1] = y1y2y3[:,0]
+            vertices[0::3,2] = z1z2z3[:,0]
+            vertices[1::3,0] = x1x2x3[:,1]
+            vertices[1::3,1] = y1y2y3[:,1]
+            vertices[1::3,2] = z1z2z3[:,1]
+            vertices[2::3,0] = x1x2x3[:,2]
+            vertices[2::3,1] = y1y2y3[:,2]
+            vertices[2::3,2] = z1z2z3[:,2]
 
         return (vertices, faces)
 
@@ -437,7 +452,7 @@ class wall_3D(DataGroup):
         movement    How much the component is moved in metres
         direction    Which direction the component is moved [x, y, z]
         component     Bool array of the points of a component
-        wall         Wall object where the wall is copied from, if left empty active 
+        wall         Wall object where the wall is copied from, if left empty active
         wall from filename will be used
 
         @return the new wall data
@@ -445,7 +460,7 @@ class wall_3D(DataGroup):
         rwall = self.read()
 
         #Movement in metres
-        t = movement/np.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2) 
+        t = movement/np.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2)
 
         rwall['x1x2x3'][component,:] += t*direction[0]
         rwall['y1y2y3'][component,:] += t*direction[1]
