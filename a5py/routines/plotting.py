@@ -1027,6 +1027,7 @@ def interactive(wallmesh, *args, points=None, orbit=None, data=None, log=False,
 
     p.show()
 
+
 @openfigureifnoaxes(projection=None)
 def loadvsarea(wetted, loads, axes=None):
     """Plot histogram showing minimum load vs area.
