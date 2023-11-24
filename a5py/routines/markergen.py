@@ -116,7 +116,7 @@ class MarkerGenerator():
         mrk["znum"][:]   = znum
         mrk["mass"][:]   = mass
         mrk["charge"][:] = charge
-        mrk["weight"]    = weight
+        mrk["weight"][:] = weight
 
         # Randomize initial coordinates
         ir, ip, iz, ip1, ip2 = \
