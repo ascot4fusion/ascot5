@@ -338,7 +338,7 @@ class GC(Marker):
     @staticmethod
     @parseunits(strip=True, mass="amu", charge="e", r="m", phi="deg", z="m",
                 energy="eV", pitch="1", zeta="rad", anum="1", znum="1",
-                time="s", weight="1")
+                time="s", weight="1/s")
     def write_hdf5(fn, n, ids, mass, charge, r, phi, z, energy, pitch, zeta,
                    anum, znum, weight, time, desc=None):
         """Write input data to the HDF5 file.
@@ -514,7 +514,7 @@ class Prt(Marker):
     @staticmethod
     @parseunits(strip=True, mass="amu", charge="e", r="m", phi="deg", z="m",
                 vr="m/s", vphi="m/s", vz="m/s", anum="1", znum="1",
-                time="s", weight="1")
+                time="s", weight="1/s")
     def write_hdf5(fn, n, ids, mass, charge, r, phi, z, vr, vphi, vz,
                    anum, znum, weight, time, desc=None):
         """Write input data to the HDF5 file.
