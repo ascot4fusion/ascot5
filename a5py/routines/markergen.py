@@ -155,7 +155,7 @@ class MarkerGenerator():
 
         prtdist = particledist._copy()
         d = prtdist._distribution.ravel().v * 0
-        np.add.at(d, icell, mrk["weight"].v)
+        np.add.at(d, icell, mrk["weight"])
         prtdist._distribution = d.reshape(vol.shape) / vol
 
         return mrk, mrkdist, prtdist
