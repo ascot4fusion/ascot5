@@ -15,18 +15,18 @@
  * @brief Internal function calculating the index in the histogram array
  */
 #pragma omp declare target
-unsigned long dist_rho6D_index(int i_rho, int i_theta, int i_phi, int i_pr,
-                               int i_pphi, int i_pz, int i_time, int i_q,
-                               int n_theta, int n_phi, int n_pr, int n_pphi,
-                               int n_pz, int n_time, int n_q) {
-    return i_rho  * (n_theta * n_phi * n_pr * n_pphi * n_pz * n_time * n_q)
-        + i_theta * (n_phi * n_pr * n_pphi * n_pz * n_time * n_q)
-        + i_phi  * (n_pr * n_pphi * n_pz * n_time * n_q)
-        + i_pr   * (n_pphi * n_pz * n_time * n_q)
-        + i_pphi * (n_pz * n_time * n_q)
-        + i_pz   * (n_time * n_q)
-        + i_time * (n_q)
-        + i_q;
+size_t dist_rho6D_index(int i_rho, int i_theta, int i_phi, int i_pr, int i_pphi,
+                        int i_pz, int i_time, int i_q, size_t step_7,
+                        size_t step_6, size_t step_5, size_t step_4,
+                        size_t step_3, size_t step_2, size_t step_1) {
+    return (size_t)(i_rho)   * step_7
+         + (size_t)(i_theta) * step_6
+         + (size_t)(i_phi)   * step_5
+         + (size_t)(i_pr)    * step_4
+         + (size_t)(i_pphi)  * step_3
+         + (size_t)(i_pz)    * step_2
+         + (size_t)(i_time)  * step_1
+         + (size_t)(i_q);
 }
 #pragma omp end declare target
 
@@ -91,6 +91,21 @@ void dist_rho6D_init(dist_rho6D_data* dist_data,
     dist_data->n_q       = offload_data->n_q;
     dist_data->min_q     = offload_data->min_q;
     dist_data->max_q     = offload_data->max_q;
+
+    size_t n_q     = (size_t)(dist_data->n_q);
+    size_t n_time  = (size_t)(dist_data->n_time);
+    size_t n_pz    = (size_t)(dist_data->n_pz);
+    size_t n_pphi  = (size_t)(dist_data->n_pphi);
+    size_t n_pr    = (size_t)(dist_data->n_pr);
+    size_t n_phi   = (size_t)(dist_data->n_phi);
+    size_t n_theta = (size_t)(dist_data->n_theta);
+    dist_data->step_7 = n_q * n_time * n_pz * n_pphi * n_pr * n_phi * n_theta;
+    dist_data->step_6 = n_q * n_time * n_pz * n_pphi * n_pr * n_phi;
+    dist_data->step_5 = n_q * n_time * n_pz * n_pphi * n_pr;
+    dist_data->step_4 = n_q * n_time * n_pz * n_pphi;
+    dist_data->step_3 = n_q * n_time * n_pz;
+    dist_data->step_2 = n_q * n_time;
+    dist_data->step_1 = n_q;
 
     dist_data->histogram = &offload_array[0];
 }
@@ -180,14 +195,10 @@ void dist_rho6D_update_fo(dist_rho6D_data* dist, particle_simd_fo* p_f,
 
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i] && ok[i]) {
-            unsigned long index = dist_rho6D_index(
-                i_rho[i], i_theta[i], i_phi[i],
-                i_pr[i], i_pphi[i], i_pz[i],
-                i_time[i], i_q[i],
-                dist->n_theta, dist->n_phi,
-                dist->n_pr, dist->n_pphi,
-                dist->n_pz, dist->n_time,
-                dist->n_q);
+            size_t index = dist_rho6D_index(
+                i_rho[i], i_theta[i], i_phi[i], i_pr[i], i_pphi[i], i_pz[i],
+                i_time[i], i_q[i], dist->step_7, dist->step_6, dist->step_5,
+                dist->step_4, dist->step_3, dist->step_2, dist->step_1);
             #pragma omp atomic
             dist->histogram[index] += weight[i];
         }
@@ -297,13 +308,10 @@ void dist_rho6D_update_gc(dist_rho6D_data* dist, particle_simd_gc* p_f,
 
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i] && ok[i]) {
-            unsigned long index = dist_rho6D_index(i_rho[i], i_theta[i], i_phi[i],
-                                                   i_pr[i], i_pphi[i], i_pz[i],
-                                                   i_time[i], i_q[i],
-                                                   dist->n_theta, dist->n_phi,
-                                                   dist->n_pr, dist->n_pphi,
-                                                   dist->n_pz, dist->n_time,
-                                                   dist->n_q);
+            size_t index = dist_rho6D_index(
+                i_rho[i], i_theta[i], i_phi[i], i_pr[i], i_pphi[i], i_pz[i],
+                i_time[i], i_q[i], dist->step_7, dist->step_6, dist->step_5,
+                dist->step_4, dist->step_3, dist->step_2, dist->step_1);
             #pragma omp atomic
             dist->histogram[index] += weight[i];
         }

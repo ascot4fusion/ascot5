@@ -5,6 +5,7 @@
 #ifndef DIST_RHO6D_H
 #define DIST_RHO6D_H
 
+#include <stdlib.h>
 #include "../ascot5.h"
 #include "../particle.h"
 
@@ -80,6 +81,14 @@ typedef struct {
     int n_q;          /**< number of charge bins         */
     real min_q;       /**< value of lowest charge bin    */
     real max_q;       /**< value of highest charge bin   */
+
+    size_t step_1;    /**< step for 2nd fastest running index   */
+    size_t step_2;    /**< step for 3rd fastest running index   */
+    size_t step_3;    /**< step for 4th fastest running index   */
+    size_t step_4;    /**< step for 5th fastest running index   */
+    size_t step_5;    /**< step for 6th fastest running index   */
+    size_t step_6;    /**< step for 7th fastest running index   */
+    size_t step_7;    /**< step for 8th fastest running index   */
 
     real* histogram;  /**< pointer to start of histogram array */
 } dist_rho6D_data;
