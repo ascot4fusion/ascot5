@@ -471,8 +471,6 @@ class RunMixin(DistMixin):
 
         Parameters
         ----------
-        qnt : str
-            Name of the averaged quantity.
         weights : bool, optional
             Include marker weights to get physical results (otherwise particle
             deposition would be just the number of markers that hit the tile).
