@@ -246,7 +246,7 @@ class wall_3D(DataGroup):
         """
         with self as h5:
             if w_indices is None:
-                w_indices = np.s_[:] 
+                w_indices = np.s_[:]
 
             x1x2x3 = h5["x1x2x3"][w_indices, :]
             y1y2y3 = h5["y1y2y3"][w_indices, :]
@@ -462,7 +462,7 @@ class wall_3D(DataGroup):
         rwall = self.read()
 
         #Movement in metres
-        t = movement/np.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2)
+        t = movement/np.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2) 
 
         rwall['x1x2x3'][component,:] += t*direction[0]
         rwall['y1y2y3'][component,:] += t*direction[1]
