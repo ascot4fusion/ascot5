@@ -462,7 +462,7 @@ class RunMixin(DistMixin):
         energy_peak  = np.amax(edepo/area)
         return wetted_total, energy_peak
 
-    def getwall_loads(self, weights=True, particle_filter = None):
+    def getwall_loads(self, weights=True, p_ids=None):
         """Get wall loads and associated quantities.
 
         This method does not return loads on all wall elements (as usually most
@@ -471,6 +471,8 @@ class RunMixin(DistMixin):
 
         Parameters
         ----------
+        qnt : str
+            Name of the averaged quantity.
         weights : bool, optional
             Include marker weights to get physical results (otherwise particle
             deposition would be just the number of markers that hit the tile).
@@ -478,8 +480,8 @@ class RunMixin(DistMixin):
             Dropping weights is useful to check how many markers hit a tile
             which tells us how good the statistics are.
 
-        particle_filter : list[int], optional
-            Calculate wall loads only for the particles with the given indices
+        p_ids : array_like, optional
+            Calculate wall loads only for the particles with the given indices.
 
         Returns
         -------
@@ -495,13 +497,9 @@ class RunMixin(DistMixin):
             Angle of incidence (TODO).
         """
         self._require("_endstate")
-        if particle_filter is None:
-            ids, energy, weight = self.getstate("walltile", "ekin", "weight",
-                                            state="end", endcond="wall")
-        else:
-            ids, energy, weight = self.getstate("walltile", "ekin", "weight",
+        ids, energy, weight = self.getstate("walltile", "ekin", "weight",
                                             state="end", endcond="wall",
-                                            ids = particle_filter)
+                                            ids=p_ids)
         energy.convert_to_units("J")
         eunit = (energy.units * weight.units)
         try:
@@ -541,15 +539,16 @@ class RunMixin(DistMixin):
 
         return wetted, area, edepo, pdepo, iangle
 
-    def getwall_3dmesh(self, wall_filter = None, particle_filter = None):
-        """Return 3D mesh representation of 3D wall and associated loads.
-        Inputs
-        -------
-            wall_filter : list[int], optional
-                List of triangle indecies for which the 3D mesh is made
+    def getwall_3dmesh(self, w_indices=None, p_ids=None):
+        """Return 3D mesh representation of 3D wall and associated loads
 
-            particle_filter : list[int], optional
-                List of particle ids for which the wall loads are calculated
+        Parameters
+        ----------
+            w_indices : array_like, optional
+                List of triangle indecies for which the 3D mesh is made.
+
+            p_ids : list[int], optional
+                List of particle ids for which the wall loads are calculated.
 
 
         Returns
@@ -564,10 +563,10 @@ class RunMixin(DistMixin):
             - "mload" marker load in units of markers
         """
 
-        wallmesh = pv.PolyData( *self.wall.noderepresentation(filter_wall=wall_filter) )
-        ids, area, eload, pload, iangle = self.getwall_loads(particle_filter=particle_filter)
+        wallmesh = pv.PolyData( *self.wall.noderepresentation(w_indices=w_indices) )
+        ids, area, eload, pload, iangle = self.getwall_loads(p_ids=p_ids)
         # get the marker load at each tile
-        _, _, _, mload, _ = self.getwall_loads(weights = False, particle_filter=particle_filter)
+        _, _, _, mload, _ = self.getwall_loads(weights=False, p_ids=p_ids)
         ids = ids - 1 # Convert IDs to indices
 
         #here possible area filter to ids, TBI
@@ -575,8 +574,8 @@ class RunMixin(DistMixin):
         n_tri = self.wall.getNumberOfElements()
 
         wall_f = np.arange(n_tri, dtype=int)
-        if wall_filter is not None:
-            wall_f = wall_f[wall_filter]
+        if w_indices is not None:
+            wall_f = wall_f[w_indices]
 
         eload_tot = np.zeros((n_tri, )) + np.nan
         eload_tot[ids] = eload/area
@@ -1410,8 +1409,8 @@ class RunMixin(DistMixin):
 
     def plotwall_3dstill(self, wallmesh=None, points=None, orbit=None,
                          data=None, log=False, cpos=None, cfoc=None, cang=None,
-                         particle_filter = None, wall_filter = None,
-                         axes=None, cax=None, **kwargs):
+                         p_ids=None, w_indices=None, axes=None, cax=None,
+                         **kwargs):
         """Take a still shot of the mesh and display it using matplotlib
         backend.
 
@@ -1439,10 +1438,10 @@ class RunMixin(DistMixin):
             Camera focal point coordinates [x, y, z].
         cang : array_like, optional
             Camera angle [azimuth, elevation, roll].
-        particle_filter : array_like, optional
-            List of ids of the particles for which the heat load is shown
-        wall filter : array_like, optional
-            List of wall ids which are included in the wall mesh
+        p_ids : array_like, optional
+            List of ids of the particles for which the heat load is shown.
+        w_indices : array_like, optional
+            List of wall indices which are included in the wall mesh.
         axes : :obj:`~matplotlib.axes.Axes`, optional
             The axes where figure is plotted or otherwise new figure is created.
         cax : :obj:`~matplotlib.axes.Axes`, optional
@@ -1451,8 +1450,7 @@ class RunMixin(DistMixin):
             Keyword arguments passed to :obj:`~pyvista.Plotter`.
         """
         if wallmesh is None:
-            wallmesh = self.getwall_3dmesh(wall_filter = wall_filter,
-                                            particle_filter = particle_filter)
+            wallmesh = self.getwall_3dmesh(p_ids=p_ids, w_indices=w_indices)
         if isinstance(points, bool) and points == True:
             points = self.getstate_pointcloud(endcond="wall")
         if orbit is not None:
@@ -1471,8 +1469,7 @@ class RunMixin(DistMixin):
     def plotwall_3dinteractive(self, wallmesh=None, *args, points=None,
                                orbit=None, data=None, log=False,
                                cpos=None, cfoc=None, cang=None,
-                               particle_filter = None, wall_filter = None,
-                               **kwargs):
+                               p_ids=None, w_indices=None, **kwargs):
         """Open vtk window to display interactive view of the wall mesh.
 
         Parameters
@@ -1498,16 +1495,15 @@ class RunMixin(DistMixin):
             Camera focal point coordinates [x, y, z].
         cang : array_like, optional
             Camera angle [azimuth, elevation, roll].
-        particle_filter : array_like, optional
-            List of ids of the particles for which the heat load is shown
-        wall filter : array_like, optional
-            List of wall ids which are included in the wall mesh
+        p_ids : array_like, optional
+            List of ids of the particles for which the heat load is shown.
+        w_indices : array_like, optional
+            List of wall indices which are included in the wall mesh.
         **kwargs
             Keyword arguments passed to :obj:`~pyvista.Plotter`.
         """
         if wallmesh is None:
-            wallmesh = self.getwall_3dmesh(wall_filter = wall_filter,
-                                            particle_filter = particle_filter)
+            wallmesh = self.getwall_3dmesh(p_ids=p_ids, w_indices=w_indices)
         if isinstance(points, bool) and points == True:
             points = self.getstate_pointcloud(endcond="wall")
         if orbit is not None:
