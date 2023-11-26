@@ -35,16 +35,16 @@ typedef struct {
     dist_COM_offload_data distCOM;     /**< COM distribution offload data    */
     diag_transcoef_offload_data diagtrcof; /**< Transp. Coef. offload data   */
 
-    int offload_dist5D_index;    /**< Index for 5D dist in offload array     */
-    int offload_dist6D_index;    /**< Index for 5D dist in offload array     */
-    int offload_distrho5D_index; /**< Index for 5D dist in offload array     */
-    int offload_distrho6D_index; /**< Index for 6D rho dist in offload array */
-    int offload_distCOM_index;   /**< Index for COM dist in offload array    */
-    int offload_diagorb_index;   /**< Index for orbit data in offload array  */
-    int offload_diagtrcof_index; /**< Index for trcoef data in offload array */
+    size_t offload_dist5D_index;   /**< Index for 5D dist in offload array    */
+    size_t offload_dist6D_index;   /**< Index for 5D dist in offload array    */
+    size_t offload_distrho5D_index;/**< Index for 5D dist in offload array    */
+    size_t offload_distrho6D_index;/**< Index for 6D rho dist in offload array*/
+    size_t offload_distCOM_index;  /**< Index for COM dist in offload array   */
+    size_t offload_diagorb_index;  /**< Index for orbit data in offload array */
+    size_t offload_diagtrcof_index;/**< Index for trcoef data in offload array*/
 
-    int offload_dist_length;     /**< Number of elements in distributions    */
-    int offload_array_length;    /**< Number of elements in offload_array    */
+    size_t offload_dist_length;    /**< Number of elements in distributions   */
+    size_t offload_array_length;   /**< Number of elements in offload_array   */
 
 } diag_offload_data;
 

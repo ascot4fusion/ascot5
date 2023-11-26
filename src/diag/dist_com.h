@@ -5,6 +5,7 @@
 #ifndef DIST_COM_H
 #define DIST_COM_H
 
+#include <stdlib.h>
 #include "../ascot5.h"
 #include "../particle.h"
 #include "../B_field.h"
@@ -41,6 +42,9 @@ typedef struct {
     int n_Ptor;          /**< number of Ptor bins                   */
     real min_Ptor;       /**< value of lowest Ptor bin              */
     real max_Ptor;       /**< value of highest Ptor bin             */
+
+    size_t step_1;       /**< step for 2nd fastest running index    */
+    size_t step_2;       /**< step for 3rd fastest running index    */
 
     real* histogram;  /**< pointer to start of histogram array */
 } dist_COM_data;

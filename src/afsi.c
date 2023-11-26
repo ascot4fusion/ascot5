@@ -154,8 +154,9 @@ void afsi_run(sim_offload_data* sim, Reaction reaction, int n,
                             / ( prod1.max_pperp - prod1.min_pperp ) );
                         prod1.histogram[dist_5D_index(
                                 iR, iphi, iz, ippara, ipperp, 0, 0,
-                                prod1.n_phi, prod1.n_z, prod1.n_ppara,
-                                prod1.n_pperp, 1, 1)] += weight * mult;
+                                prod1.step_6, prod1.step_5, prod1.step_4,
+                                prod1.step_3, prod1.step_2, prod1.step_1)]
+                            += weight * mult;
 
                         ippara = floor(
                             (ppara2[i] - prod2.min_ppara) * prod2.n_ppara
@@ -165,8 +166,9 @@ void afsi_run(sim_offload_data* sim, Reaction reaction, int n,
                             / ( prod2.max_pperp - prod2.min_pperp ) );
                         prod2.histogram[dist_5D_index(
                                 iR, iphi, iz, ippara, ipperp, 0, 0,
-                                prod2.n_phi, prod2.n_z, prod2.n_ppara,
-                                prod2.n_pperp, 1, 1)] += weight * mult;
+                                prod2.step_6, prod2.step_5, prod2.step_4,
+                                prod2.step_3, prod2.step_2, prod2.step_1)]
+                            += weight * mult;
                     }
                 }
                 else {
@@ -416,15 +418,17 @@ void afsi_sample_5D(dist_5D_data* dist, int n, int iR, int iphi, int iz,
     for(int ippara = 0; ippara < dist->n_ppara; ippara++) {
         for(int ipperp = 0; ipperp < dist->n_pperp; ipperp++) {
             if(ippara == 0 && ipperp == 0) {
-                cumdist[0] = dist->histogram[dist_5D_index(iR, iphi, iz,
-                    0, 0, 0, 0, dist->n_phi, dist->n_z, dist->n_ppara,
-                    dist->n_pperp, 1, 1)];
+                cumdist[0] = dist->histogram[dist_5D_index(
+                        iR, iphi, iz, 0, 0, 0, 0, dist->step_6, dist->step_5,
+                        dist->step_4, dist->step_3, dist->step_2,
+                        dist->step_1)];
             } else {
                 cumdist[ippara*dist->n_pperp+ipperp] =
                     cumdist[ippara*dist->n_pperp+ipperp-1]
-                    + dist->histogram[dist_5D_index(iR, iphi, iz,
-                        ippara, ipperp, 0, 0, dist->n_phi, dist->n_z,
-                        dist->n_ppara, dist->n_pperp, 1, 1)];
+                    + dist->histogram[dist_5D_index(
+                        iR, iphi, iz, ippara, ipperp, 0, 0, dist->step_6,
+                        dist->step_5, dist->step_4, dist->step_3, dist->step_2,
+                        dist->step_1)];
             }
         }
     }
@@ -514,10 +518,11 @@ real afsi_get_density(afsi_data* dist, int iR, int iphi, int iz) {
         real density = 0.0;
         for(int ippara = 0; ippara < dist->dist_5D->n_ppara; ippara++) {
             for(int ipperp = 0; ipperp < dist->dist_5D->n_pperp; ipperp++) {
-                density += dist->dist_5D->histogram[dist_5D_index(iR, iphi, iz,
-                           ippara, ipperp, 0, 0, dist->dist_5D->n_phi,
-                           dist->dist_5D->n_z, dist->dist_5D->n_ppara,
-                           dist->dist_5D->n_pperp, 1, 1)] / vol;
+                density += dist->dist_5D->histogram[dist_5D_index(
+                        iR, iphi, iz, ippara, ipperp, 0, 0,
+                        dist->dist_5D->step_6, dist->dist_5D->step_5,
+                        dist->dist_5D->step_4, dist->dist_5D->step_3,
+                        dist->dist_5D->step_2, dist->dist_5D->step_1)] / vol;
             }
         }
         return density;

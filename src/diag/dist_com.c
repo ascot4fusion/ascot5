@@ -15,11 +15,11 @@
  * @brief Internal function calculating the index in the histogram array
  */
 #pragma omp declare target
-unsigned long dist_COM_index(int i_mu, int i_Ekin, int i_Ptor,
-                             int n_mu, int n_Ekin, int n_Ptor) {
-    return i_mu    * (n_Ekin * n_Ptor)
-        + i_Ekin   * (n_Ptor)
-        + i_Ptor;
+size_t dist_COM_index(int i_mu, int i_Ekin, int i_Ptor, size_t step_2,
+                      size_t step_1) {
+    return (size_t)(i_mu)   * step_2
+         + (size_t)(i_Ekin) * step_1
+         + (size_t)(i_Ptor);
 }
 #pragma omp end declare target
 
@@ -61,6 +61,11 @@ void dist_COM_init(dist_COM_data* dist_data,
     dist_data->min_Ptor   = offload_data->min_Ptor;
     dist_data->max_Ptor   = offload_data->max_Ptor;
 
+    size_t n_Ptor = (size_t)(dist_data->n_Ptor);
+    size_t n_Ekin = (size_t)(dist_data->n_Ekin);
+    dist_data->step_2 = n_Ptor * n_Ekin;
+    dist_data->step_1 = n_Ptor;
+
     dist_data->histogram = &offload_array[0];
 }
 
@@ -74,15 +79,6 @@ void dist_COM_init(dist_COM_data* dist_data,
  */
 void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
                         particle_simd_fo* p_f, particle_simd_fo* p_i) {
-    real Ekin;
-    real Ptor;
-    real Bnorm;
-    real psi;
-    real mu;
-    real xi;
-    real pnorm;
-    real ppar;
-
     int i_mu[NSIMD];
     int i_Ekin[NSIMD];
     int i_Ptor[NSIMD];
@@ -93,6 +89,7 @@ void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
+            real Ekin, Ptor, Bnorm, psi, mu, xi, pnorm, ppar;
 
             B_field_eval_psi(&psi, p_f->r[i], p_f->phi[i], p_f->z[i],
                              p_f->time[i], Bdata);
@@ -132,10 +129,8 @@ void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
 
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i] && ok[i]) {
-            unsigned long index = dist_COM_index(i_mu[i], i_Ekin[i], i_Ptor[i],
-                                                dist->n_mu,  dist->n_Ekin,
-                                                dist->n_Ptor);
-
+            size_t index = dist_COM_index(i_mu[i], i_Ekin[i], i_Ptor[i],
+                                          dist->step_2, dist->step_1);
             #pragma omp atomic
             dist->histogram[index] += weight[i];
         }
@@ -156,11 +151,6 @@ void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
  */
 void dist_COM_update_gc(dist_COM_data* dist, B_field_data* Bdata,
                         particle_simd_gc* p_f, particle_simd_gc* p_i) {
-    real Ekin;
-    real Ptor;
-    real B;
-    real psi;
-
     int i_mu[NSIMD];
     int i_Ekin[NSIMD];
     int i_Ptor[NSIMD];
@@ -171,6 +161,7 @@ void dist_COM_update_gc(dist_COM_data* dist, B_field_data* Bdata,
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
+            real Ekin, Ptor, B, psi;
 
             B_field_eval_psi(&psi, p_f->r[i], p_f->phi[i], p_f->z[i],
                              p_f->time[i], Bdata);
@@ -203,10 +194,8 @@ void dist_COM_update_gc(dist_COM_data* dist, B_field_data* Bdata,
 
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i] && ok[i]) {
-            unsigned long index = dist_COM_index(i_mu[i], i_Ekin[i], i_Ptor[i],
-                                                dist->n_mu,  dist->n_Ekin,
-                                                dist->n_Ptor);
-
+            size_t index = dist_COM_index(i_mu[i], i_Ekin[i], i_Ptor[i],
+                                          dist->step_2, dist->step_1);
             #pragma omp atomic
             dist->histogram[index] += weight[i];
         }

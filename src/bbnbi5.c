@@ -98,7 +98,13 @@ int main(int argc, char** argv) {
     }
 
     /* Initialize diagnostics */
-    diag_init_offload(&sim.diag_offload_data, &diag_offload_array, 0);
+    if( diag_init_offload(&sim.diag_offload_data, &diag_offload_array, 0) ) {
+        print_out0(VERBOSE_MINIMAL, mpi_rank,
+                       "\nFailed to initialize diagnostics.\n"
+                       "See stderr for details.\n");
+            abort();
+            return 1;
+    }
     real diag_offload_array_size = sim.diag_offload_data.offload_array_length
         * sizeof(real) / (1024.0*1024.0);
     print_out0(VERBOSE_IO, mpi_rank,
@@ -228,6 +234,7 @@ int main(int argc, char** argv) {
  * @param t0 time when the injector is turned on
  * @param t1 time when the injector is turned off
  * @param inj pointer to injector data
+ * @param sim pointer to the sim struct with initialized data
  */
 void bbnbi_inject(particle_state* p, int nprt, int ngenerated, real t0, real t1,
                   nbi_injector* inj, sim_data* sim) {
@@ -293,14 +300,11 @@ void bbnbi_inject(particle_state* p, int nprt, int ngenerated, real t0, real t1,
 /**
  * @brief Trace a neutral marker until it has ionized or hit wall
  *
- * This function is for the most part identical to simulate_fo, with few
+ * This function is for the most part identical to simulate_fo with few
  * exceptions relevant for BBNBI.
  *
- * @param p
- * @param Bdata pointer to magnetic field data
- * @param plsdata pointer to plasma data
- * @param walldata pointer to wall data
- * @param rng pointer to random number generator data
+ * @param pq pointer to the marker queue containing the initial neutrals
+ * @param sim pointer to the simu struct with initialized data
  */
 void bbnbi_simulate(particle_queue *pq, sim_data* sim) {
     int cycle[NSIMD]  __memalign__;
