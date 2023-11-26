@@ -221,35 +221,37 @@ class wall_3D(DataGroup):
         return self.number_of_elements
 
 
-    def noderepresentation(self, filter_wall = None):
+    def noderepresentation(self, w_indices=None):
         """
         Return an array of vertices and indices that define this wall.
-        Inputs:
-            filter_wall : list[int], optional
-                list of of triangle indices for which the node
-                representation is done. [ind1, ind2, ..., indn]
+
+        Parameters
+        ----------
+        w_indices : array_like, optional
+            list of of triangle indices for which the node
+            representation is done i.e. [ind1, ind2, ..., indn].
+
+            Can also be a Boolean array with the same size as the number of
+            wall triangles.
 
         Returns:
-            vertices : float, array_like <br>
-                Triangle vertices in a format [[x1, y1, z1], ..., [xn, yn, zn]]
-                where n is 3 x number of triangles.
-            faces : int, array_like <br>
-                Array of dimension (number of triangles, 4) where each four
-                length array defines a wall elemenet as [number of vertices, i1,
-                i2, i3] where number of vertices is always 3 and i1, i2, and i3
-                define the indices of the vertices in the vertices array.
+        vertices : float, array_like <br>
+            Triangle vertices in a format [[x1, y1, z1], ..., [xn, yn, zn]]
+            where n is 3 x number of triangles.
+        faces : int, array_like <br>
+            Array of dimension (number of triangles, 4) where each four
+            length array defines a wall elemenet as [number of vertices, i1,
+            i2, i3] where number of vertices is always 3 and i1, i2, and i3
+            define the indices of the vertices in the vertices array.
         """
         with self as h5:
-            if filter_wall is None:
-                ntriangle = int(h5["nelements"][:])
-                x1x2x3 = h5["x1x2x3"]
-                y1y2y3 = h5["y1y2y3"]
-                z1z2z3 = h5["z1z2z3"]
-            else:
-                x1x2x3 = h5["x1x2x3"][filter_wall, :]
-                y1y2y3 = h5["y1y2y3"][filter_wall, :]
-                z1z2z3 = h5["z1z2z3"][filter_wall, :]
-                ntriangle = x1x2x3.shape[0]
+            if w_indices is None:
+                w_indices = np.s_[:] 
+
+            x1x2x3 = h5["x1x2x3"][w_indices, :]
+            y1y2y3 = h5["y1y2y3"][w_indices, :]
+            z1z2z3 = h5["z1z2z3"][w_indices, :]
+            ntriangle = x1x2x3.shape[0]
 
             faces     = np.zeros((ntriangle,4), dtype="i8")
             vertices  = np.zeros((ntriangle*3,3), dtype="f8")
