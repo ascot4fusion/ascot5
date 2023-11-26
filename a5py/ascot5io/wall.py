@@ -454,7 +454,7 @@ class wall_3D(DataGroup):
         movement    How much the component is moved in metres
         direction    Which direction the component is moved [x, y, z]
         component     Bool array of the points of a component
-        wall         Wall object where the wall is copied from, if left empty active 
+        wall         Wall object where the wall is copied from, if left empty active
         wall from filename will be used
 
         @return the new wall data
@@ -462,7 +462,7 @@ class wall_3D(DataGroup):
         rwall = self.read()
 
         #Movement in metres
-        t = movement/np.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2)
+        t = movement/np.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2) 
 
         rwall['x1x2x3'][component,:] += t*direction[0]
         rwall['y1y2y3'][component,:] += t*direction[1]
