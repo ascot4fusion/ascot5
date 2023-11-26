@@ -545,7 +545,7 @@ class RunMixin(DistMixin):
             w_indices : array_like, optional
                 List of triangle indecies for which the 3D mesh is made.
 
-            p_ids : list[int], optional
+            p_ids : array_like, optional
                 List of particle ids for which the wall loads are calculated.
 
 
