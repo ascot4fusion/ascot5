@@ -335,6 +335,7 @@ class Afsi():
         if beam2 is not None:
             dist2  = self._init_dist_5d(beam2)
             react2 = self._init_afsi_data(dist_5D=dist2)
+            mult = 1.0
         else:
             react2 = react1
             mult = 0.5
