@@ -172,7 +172,7 @@ These scripts modify or disbplay the contents of the HDF5 file and they are list
      - Open GUI where you can manage your data and view results and inputs.
    * - ``a5combine``
      - Combine simulation results if: a run was split into several processes without MPI (this creates multiple output files), several simulations were run in parallel and stored in different files, an existing simulation was continued.
-   * - ``a5upgrade``
+   * - ``a5update``
      - Makes a copy "<originalname>_<currentversion>.h5" of the file if it was made with an older version of ASCOT5.
        The aim is to maintain backwards compatibility with this script.
        However, it is not always possible to convert the results into a new format and in those cases rerunning the simulation with updated inputs is unfortunately necessary.

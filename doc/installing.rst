@@ -101,7 +101,7 @@ Aalto desktops
    pkcon install hdf5-helpers
    pkcon install libhdf5-dev
    pkcon install hdf5-tools
-   make -j ascot5_main VERBOSE=1 FLAGS="-foffload=disable"
+   make -j ascot5_main FLAGS="-foffload=disable"
 
 CSC.fi puhti
 ************
@@ -110,26 +110,26 @@ CSC.fi puhti
 
    module load StdEnv intel/19.0.4  hpcx-mpi/2.4.0  intel-mkl/2019.0.4  hdf5/1.10.4-mpi python-data
 
-   make -j ascot5_main MPI=1 VERBOSE=1
+   make -j ascot5_main MPI=1
 
 Alternatively:
 
 .. code-block:: bash
 
-   make ascot5_main VERBOSE=2 MPI=1 FLAGS="-qno-openmp-offload -diag-disable 3180 -vecabi=cmdtarget"
+   make ascot5_main MPI=1 FLAGS="-qno-openmp-offload -diag-disable 3180 -vecabi=cmdtarget"
 
 Freia (UKAEA) (work in progress)
 ********************************
 
 .. code-block:: bash
 
-   make ascot5_main MPI=0 VERBOSE=1 CC=gcc
+   make ascot5_main MPI=0 CC=gcc
 
 For libascot, one user needed to revert to python/3.5.1 and command
 
 .. code-block:: bash
 
-   make libascot MPI=0 VERBOSE=1
+   make libascot MPI=0
 
 ITER sdcc
 *********
@@ -147,7 +147,7 @@ Lac8 at TCV
 
 .. code-block:: bash
 
-   make ascot5_main CC=h5cc MPI=0 VERBOSE=2
+   make ascot5_main CC=h5cc MPI=0
 
 Marenostrum (WIP)
 *****************
@@ -156,7 +156,7 @@ Marenostrum (WIP)
 
    module load hdf5/1.8.19 intel/2018.4 impi/2018.4 zlib szip/2.1.1
 
-   make ascot5_main VERBOSE=2 MPI=1 FLAGS="-qno-openmp-offload -diag-disable 3180 -xcommon-avx512 -vecabi=cmdtarget"
+   make ascot5_main MPI=1 FLAGS="-qno-openmp-offload -diag-disable 3180 -xcommon-avx512 -vecabi=cmdtarget"
 
 Marconi KNL
 ***********
@@ -164,7 +164,7 @@ Marconi KNL
 .. code-block:: bash
 
    module load intel/pe-xe-2018--binary intelmpi/2018--binary szip/2.1--gnu--6.1.0 zlib/1.2.8--gnu--6.1.0 hdf5/1.8.18--intelmpi--2018--binary python/3.5.2
-   make ascot5_main VERBOSE=2 MPI=1 FLAGS="-qno-openmp-offload -diag-disable 3180 -xmic-avx512 -vecabi=cmdtarget"
+   make ascot5_main MPI=1 FLAGS="-qno-openmp-offload -diag-disable 3180 -xmic-avx512 -vecabi=cmdtarget"
 
 Marconi M100 (GPU)
 ******************
@@ -176,10 +176,20 @@ Marconi M100 (GPU)
 Marconi SKL
 ***********
 
+With MPI:
+
 .. code-block:: bash
 
-   module load intel/pe-xe-2020--binary intelmpi/2020--binary gnu/8.3.0 zlib/1.2.11--gnu--8.3.0 szip/2.1.1--gnu--8.3.0  hdf5/1.12.2--intelmpi--2020--binary python/3.5.2
-   make ascot5_main VERBOSE=2 MPI=1 FLAGS="-qno-openmp-offload -diag-disable 3180 -xcommon-avx512 -vecabi=cmdtarget"
+   module load intel/pe-xe-2020--binary intelmpi/2020--binary gnu/8.3.0 zlib/1.2.11--gnu--8.3.0 szip/2.1.1--gnu--8.3.0 hdf5/1.12.2--intelmpi--2020--binary
+   make ascot5_main MPI=1 FLAGS="-qno-openmp-offload -diag-disable 3180 -xcommon-avx512 -vecabi=cmdtarget"
+
+Without MPI (for working on the login node):
+
+.. code-block:: bash
+
+   module load load intel/pe-xe-2020--binary gnu/8.3.0 zlib/1.2.11--gnu--8.3.0 szip/2.1.1--gnu--8.3.0 hdf5/1.12.2--intel--pe-xe-2020--binary
+   make ascot5_main MPI=0 FLAGS="-qno-openmp-offload -diag-disable 3180"
+   make libascot MPI=0 FLAGS="-qno-openmp-offload -diag-disable 3180"
 
 MPCDF Cobra
 ***********
@@ -187,7 +197,7 @@ MPCDF Cobra
 .. code-block:: bash
 
    module load intel/19.1.3 impi/2019.9 git hdf5-mpi
-   make ascot5_main MPI=1 VERBOSE=1 FLAGS="-qno-openmp-offload -diag-disable 3180" CC=h5pcc
+   make ascot5_main MPI=1 FLAGS="-qno-openmp-offload -diag-disable 3180" CC=h5pcc
 
 MPCDF Raven
 ***********
@@ -195,7 +205,7 @@ MPCDF Raven
 .. code-block:: bash
 
    module load intel/19.1.2 impi/2019.8 git hdf5-mpi anaconda/3/2020.02
-   make ascot5_main MPI=1 VERBOSE=1 FLAGS="-qno-openmp-offload -diag-disable 3180"
+   make ascot5_main MPI=1 FLAGS="-qno-openmp-offload -diag-disable 3180"
 
 NERSC Cori
 **********
@@ -206,7 +216,7 @@ NERSC Cori
    export PMI_NO_FORK=1
    export PMI_NO_PREINITIALIZE=1
    export HDF5_USE_FILE_LOCKING=FALSE
-   make ascot5_main CC=h5cc VERBOSE=0 MPI=1 FLAGS="-qno-openmp-offload –diag-disable 3180"
+   make ascot5_main CC=h5cc MPI=1 FLAGS="-qno-openmp-offload –diag-disable 3180"
 
 OSX (Macports)
 **************
@@ -217,13 +227,21 @@ OSX (Macports)
    port install openmpi-gcc10
    port install hdf5 +gcc10 +openmpi +hl
 
+Portal at PPPL
+**************
+
+.. code-block:: bash
+
+   make ascot5_main MPI=1 FLAGS="-qno-openmp-offload -diag-disable 3180 -vecabi=cmdtarget"
+   make libascot MPI=1 FLAGS="-qno-openmp-offload -diag-disable 3180 -vecabi=cmdtarget"
+
 RAT at RFX
 **********
 
 .. code-block:: bash
 
    module load anaconda
-   make ascot5_main MPI=0 VERBOSE=1 CC=h5cc
+   make ascot5_main MPI=0 CC=h5cc
 
 TOK-cluster at AUG
 ******************
@@ -231,19 +249,19 @@ TOK-cluster at AUG
 .. code-block:: bash
 
    module load intel/18.0.5 impi/2018.4 hdf5-mpi/1.8.21
-   make -j ascot5_main MPI=0 VERBOSE=1 FLAGS="-qno-openmp-offload -diag-disable 3180"
+   make -j ascot5_main MPI=0 FLAGS="-qno-openmp-offload -diag-disable 3180"
 
 Triton.aalto.fi
 ***************
 
-For GCC:
+For GCC (outdated):
 
 .. code-block:: bash
 
    module load hdf5/1.10.7-openmpi
-   make -j ascot5_main MPI=1 VERBOSE=1
+   make -j ascot5_main MPI=1
 
-Makefile:
+And in the Makefile:
 
 .. code-block::
 
@@ -256,11 +274,18 @@ For Intel:
 
 .. code-block:: bash
 
+   module purge
    module load intel-parallel-studio hdf5/1.10.2-openmpi
    export OMPI_MPICC=icc
-   make ascot5_main VERBOSE=2 MPI=1 FLAGS="-qno-openmp-offload -diag-disable 3180 -vecabi=cmdtarget"
+   make ascot5_main MPI=1 FLAGS="-qno-openmp-offload -diag-disable 3180 -vecabi=cmdtarget"
 
-(add -xcommon-avx512 to optimize for skl/csl nodes)
+   # Copy binary somewhere safe and use it in batch jobs. These are for the login node
+   make clean
+   make -j ascot5_main MPI=0 CC=icc FLAGS="-qno-openmp-offload -diag-disable 3180 -vecabi=cmdtarget"
+   make -j libascot MPI=0 CC=icc FLAGS="-qno-openmp-offload -diag-disable 3180 -vecabi=cmdtarget"
+   module load anaconda
+
+(Add -xcommon-avx512 to optimize for skl/csl nodes)
 
 Vdiubuntu.aalto.fi
 ******************
@@ -277,7 +302,7 @@ Compiling libascot.so requires that you change Makefile as
 .. code-block:: bash
 
    module load hdf5
-   make VERBOSE=2 MPI=0 libascot.so CC=gcc FLAGS="-foffload=disable" -j
+   make MPI=0 libascot.so CC=gcc FLAGS="-foffload=disable" -j
 
 .. _Compilerflags:
 
@@ -341,7 +366,7 @@ Parameters that can be given arguments for ``make`` are (the default values are 
    * - NOGIT
      - Disable recording of repository status if Git is not available.
 
-Compiler flags can be provided with ``FLAGS`` parameter, e.g.
+Compiler flags can be provided with ``FLAGS`` (and linker flags with ``LFLAGS``) parameter, e.g.
 
 .. code-block:: bash
 
