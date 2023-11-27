@@ -25,9 +25,9 @@ class Injector():
     znum : int
         Nuclear charge number of injected species.
     mass : float
-        Mass of the injected species [kg].
+        Mass of the injected species [amu].
     energy : float
-        Full injection energy [J].
+        Full injection energy [eV].
     efrac : array_like (3,)
         Particle fractions for full, 1/2 and 1/3 energies.
     power : float

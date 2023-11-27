@@ -8,6 +8,9 @@ Input generation
 
    - Inputs are modular: to simulate markers in a stellarator magnetic field, provide a stellarator magnetic field input.
    - All required inputs must be present even though they would not be actually used: provide dummy atomic data even if you have atomic physics disabled.
+
+     - Information on when input is used can be found at the end of this documentation below each input type's description.
+
    - Inputs are created via :meth:`~.Ascot5IO.create_input`:
 
      - Dummy input (provide input type but no data): ``create_input("B_2DS")``.
@@ -91,6 +94,8 @@ When beginning a new study, look through inputs to see what input types you will
 Magnetic field ``bfield``
 =========================
 
+Magnetic field input is used always in every simulation and it is required to evaluate data via libascot.
+
 A good quality magnetic field is essential for any orbit-following study.
 Always check the field quality by generating Poincaré plots and plotting the divergence.
 If you don't specifically require some other input, use the axisymmetric field since that is fast to interpolate and divergence free.
@@ -114,6 +119,8 @@ Note that MHD eigenmodes can be included via dedicated input.
 
 Electric field ``efield``
 =========================
+
+Electric field data is used always in every simulation.
 
 Note that electric field cannot be disabled manually in simulations.
 If electric field is not relevant for your simulation, use :class:`.E_TC` and set it to zero to effectively disable electric field.
@@ -139,7 +146,7 @@ If electric field is not relevant for your simulation, use :class:`.E_TC` and se
 Plasma ``plasma``
 =================
 
-Plasma data is required if collisions are included.
+Plasma input is used whenever you have ``ENABLE_CCOLL=1``, ``ENABLE_ATOMIC=1``, ``ENDCOND_EMIN=1`` or when you use AFSI.
 
 .. autosummary::
    :nosignatures:
@@ -153,7 +160,8 @@ Plasma data is required if collisions are included.
 Wall mesh ``wall``
 ==================
 
-Wall input is need when modelling losses accurately.
+Wall input is used when you have ``ENDCOND_WALLHIT=1``.
+
 If losses are of no interest it is advised to use some wall to prevent markers from escaping the computational domain.
 Alternatively, one can use the ``RHOMAX`` end condition to stop markers at the separatrix.
 
@@ -183,6 +191,8 @@ Neutral particle profiles required when atomic (CX, etc.) reactions are included
 Boozer data ``boozer``
 ======================
 
+Boozer input is used when ``ENABLE_MHD=1``.
+
 Boozer data is required for simulations with MHD eigenfunctions.
 One can create it automatically from :class:`.B_2DS` or :class:`.B_3DS` with a template :meth:`.InputFactory.boozer_tokamak`.
 
@@ -195,6 +205,8 @@ One can create it automatically from :class:`.B_2DS` or :class:`.B_3DS` with a t
 
 MHD eigenfunctions ``mhd``
 ==========================
+
+MHD input is used when ``ENABLE_MHD=1``.
 
 MHD input is used to model particle response to MHD (feedback from particles to modes is not implemented).
 
@@ -209,6 +221,8 @@ MHD input is used to model particle response to MHD (feedback from particles to 
 
 Atomic reaction data ``asigma``
 ===============================
+
+Atomic input is used when ``ENABLE_ATOMIC=1``.
 
 Data for interpolating and computing reaction probabilities and cross sections for reactions where the test particle charge state changes.
 This data, typically sourced from ADAS, is required only for simulations where atomic reactions are enabled.
@@ -236,7 +250,7 @@ The input consists of a bundle of injectors, which in ``a5py`` are represented b
 Markers ``marker``
 ==================
 
-Simulation markers.
+Simulation markers are always used except for BBNBI.
 
 .. autosummary::
    :nosignatures:
@@ -251,6 +265,8 @@ Simulation markers.
 
 Options ``opt``
 ===============
+
+Options are used in every simulation.
 
 There is only one type of options :class:`.Opt` and it is treated like any other input.
 The options are documented in :ref:`Running Simulations<Simulationoptions>`.
