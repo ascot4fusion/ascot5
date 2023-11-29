@@ -340,13 +340,37 @@ void bbnbi_simulate(particle_queue *pq, sim_data* sim) {
             if(p.running[i]) {
                 a5err err = 0;
 
-                /* Advance ballistic trajectory */
+                /* These are needed later */
                 real pnorm = math_normc(p.p_r[i], p.p_phi[i], p.p_z[i]);
                 real gamma = physlib_gamma_pnorm(p.mass[i], pnorm);
                 real ekin  = physlib_Ekin_pnorm(p.mass[i], pnorm);
-                p.r[i]   += hin[i] * p.p_r[i]   / (gamma * p.mass[i]);
-                p.phi[i] += hin[i] * p.p_phi[i] / (gamma * p.mass[i] * p.r[i]);
-                p.z[i]   += hin[i] * p.p_z[i]   / (gamma * p.mass[i]);
+
+                /* Advance ballistic trajectory by converting momentum to
+                 * cartesian coordinates */
+                real prpz[3] = {p.p_r[i], p.p_phi[i], p.p_z[i]};
+                real pxyz[3];
+                math_vec_rpz2xyz(prpz, pxyz, p.phi[i]);
+
+                real posrpz[3] = {p.r[i], p.phi[i], p.z[i]};
+                real posxyz[3], fposxyz[3];
+                math_rpz2xyz(posrpz, posxyz);
+                fposxyz[0] = posxyz[0] + pxyz[0] * hin[i] / (gamma * p.mass[i]);
+                fposxyz[1] = posxyz[1] + pxyz[1] * hin[i] / (gamma * p.mass[i]);
+                fposxyz[2] = posxyz[2] + pxyz[2] * hin[i] / (gamma * p.mass[i]);
+
+                /* Back to cylindrical coordinates (note phi is cumulative) */
+                p.r[i] = sqrt(fposxyz[0]*fposxyz[0] + fposxyz[1]*fposxyz[1]);
+                p.phi[i] += atan2(
+                    posxyz[0] * fposxyz[1] - posxyz[1] * fposxyz[0],
+                    posxyz[0] * fposxyz[0] + posxyz[1] * fposxyz[1] );
+                p.z[i] = fposxyz[2];
+
+                real cosp = cos(p.phi[i]);
+                real sinp = sin(p.phi[i]);
+                p.p_r[i]   =  pxyz[0] * cosp + pxyz[1] * sinp;
+                p.p_phi[i] = -pxyz[0] * sinp + pxyz[1] * cosp;
+                p.p_z[i]   =  pxyz[2];
+
                 real ds = hin[i] * pnorm / (gamma * p.mass[i]);
                 p.mileage[i] += hin[i];
 

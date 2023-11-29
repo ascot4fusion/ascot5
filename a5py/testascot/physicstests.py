@@ -28,6 +28,7 @@ from a5py.routines import plotting as a5plt
 from a5py.ascot5io.options import Opt
 from a5py.ascot5io.marker import Marker
 from a5py.ascot5io.bfield import B_2DS
+from a5py.ascot5io.nbi import Injector
 
 class PhysTest():
 
@@ -65,6 +66,7 @@ class PhysTest():
     tag_afsi_thermal       = "TESTAFSITHERMAL"
     tag_afsi_beamthermal   = "TESTAFSIBEAMTHERMAL"
     tag_afsi_beambeam      = "TESTAFSIBEAMBEAM"
+    tag_bbnbi              = "TESTBBNBI"
     tag_biosaw             = "TESTBIOSAW"
 
     def __init__(self, fn="testascot.h5"):
@@ -93,7 +95,7 @@ class PhysTest():
         if tests is None:
             tests = ["elementary", "orbitfollowing", "gctransform", "ccoll",
                      "classical", "neoclassical", "boozer", "mhd", "atomic",
-                     "afsi", "biosaw"]
+                     "afsi", "bbnbi", "biosaw"]
         elif isinstance(tests, str):
             tests = [tests]
 
@@ -2063,6 +2065,123 @@ class PhysTest():
 
         return passed
 
+    def init_bbnbi(self):
+        """Initialize data for the BBNBI deposition test.
+        """
+        if hasattr(self.ascot.data.options, PhysTest.tag_bbnbi):
+            warnings.warn("Inputs already present: Test BBNBI")
+            return
+        init = self.ascot.data.create_input
+        bdata = {"bxyz":np.array([0.0,1.0,0.0]), "jacobian":1.0*np.zeros((3,3)),
+                 "rhoval":0.5}
+        init("B_TC", **bdata, desc=PhysTest.tag_bbnbi)
+
+        # Hydrogen plasma
+        nrho  = 4
+        rho   = np.array([0, 1, 1+1e-8, 10])
+        edens = 1e19 * np.ones((nrho, 1))
+        etemp = 2e3  * np.ones((nrho, 1))
+        idens = 1e19 * np.ones((nrho, 1))
+        itemp = 2e3  * np.ones((nrho, 1))
+        edens[rho>=1]   = 1
+        idens[rho>=1,:] = 1
+
+        pls = {
+            "nrho" : nrho, "nion" : 1, "rho" : rho,
+            "anum" : np.array([1]), "znum" : np.array([1]),
+            "mass" : np.array([1.014]), "charge" : np.array([1]),
+            "edensity" : edens, "etemperature" : etemp,
+            "idensity" : idens, "itemperature" : itemp}
+        init("plasma_1D", **pls, desc=PhysTest.tag_bbnbi)
+
+        opt = Opt.get_default()
+        opt.update({
+            "ENABLE_DIST_5D":0,
+            "DIST_MIN_R":4.3,       "DIST_MAX_R":8.3,      "DIST_NBIN_R":50,
+            "DIST_MIN_PHI":0,       "DIST_MAX_PHI":360,    "DIST_NBIN_PHI":1,
+            "DIST_MIN_Z":-2.0,      "DIST_MAX_Z":2.0,      "DIST_NBIN_Z":50,
+            "DIST_MIN_PPA":-1.e-19, "DIST_MAX_PPA":1.e-19, "DIST_NBIN_PPA":100,
+            "DIST_MIN_PPE":0,       "DIST_MAX_PPE":1.e-19, "DIST_NBIN_PPE":50,
+            "DIST_MIN_TIME":0,      "DIST_MAX_TIME":1.0,   "DIST_NBIN_TIME":1,
+            "DIST_MIN_CHARGE":0.5,  "DIST_MAX_CHARGE":1.5, "DIST_NBIN_CHARGE":1,
+        })
+        init("opt", **opt, desc=PhysTest.tag_bbnbi)
+
+        halo_f = 0.15
+        div_v  = 10e-3
+        div_h  =  5e-3
+        halo_v = 30e-3
+        halo_h = 20e-3
+        inj = Injector(
+            ids=1, anum=1, znum=1, mass=1.0,
+            energy=4e4, efrac=np.array([1.0,0.0,0.0]), power=1.0,
+            divh=div_h, divv=div_v, divhalofrac=halo_f,
+            divhaloh=halo_h, divhalov=halo_v, nbeamlet=1,
+            beamletx=np.array([10.0]), beamlety=np.array([0.0]),
+            beamletz=np.array([0.0]),
+            beamletdx=np.array([-1.0]), beamletdy=np.array([0.0]),
+            beamletdz=np.array([0.0]))
+        init("nbi", **{"ninj":1, "injectors":[inj]}, desc=PhysTest.tag_bbnbi)
+
+    def run_bbnbi(self):
+        """Initialize data for the BBNBI deposition test.
+        """
+        self._activateinputs(PhysTest.tag_bbnbi)
+        self.ascot.data.nbi[PhysTest.tag_bbnbi].activate()
+        subprocess.call(
+            ["./../../build/bbnbi5", "--in=testascot.h5",
+             "--d="+PhysTest.tag_bbnbi],
+            stdout=subprocess.DEVNULL)
+        self.ascot = Ascot(self.ascot.file_getpath())
+
+    def check_bbnbi(self):
+        """Initialize data for the BBNBI deposition test.
+        """
+        run  = self.ascot.data[PhysTest.tag_bbnbi]
+        r, z, x, y, s = run.getstate("r", "z", "x", "y", "mileage", mode="prt")
+        vnorm = run.getstate("vnorm", mode="prt")
+        print(1.0/(1e19*1.1e-13))
+
+        omega_x = np.mod(np.arctan2(z.v, r.v-10) + 2*np.pi, 2*np.pi)
+        omega_y = np.mod(np.arctan2(y.v, x.v-10) + 2*np.pi, 2*np.pi)
+
+        def gaussian(omega, omegadiv):
+            return np.exp( -0.5 * (omega/omegadiv)**2 ) / omegadiv
+
+        def profile(omega, div, halo_div, halo_f):
+            return halo_f * gaussian(omega, halo_div) / np.sqrt(2 * np.pi) \
+                + (1.0 - halo_f) * gaussian(omega, div) / np.sqrt(2 * np.pi)
+
+        inj = run.nbi.read()["injectors"][0]
+        div_h  = inj.divh
+        div_v  = inj.divv
+        halo_h = inj.divhaloh
+        halo_v = inj.divhalov
+        halo_f = inj.divhalofrac
+        mfp = 1.0/(1e19*1.1e-13)
+
+        omega = np.linspace(-0.04*np.pi/2, 0.04*np.pi/2, 1800)
+        omega_h = omega
+        omega_v = omega
+
+        fig = plt.figure()
+        ax1 = fig.add_subplot(3,1,1)
+        ax1.hist(omega_y, omega+np.pi, density=True)
+        ax1.plot(omega_h + np.pi, profile(omega_h, div_h, halo_h, halo_f))
+
+        ax2 = fig.add_subplot(3,1,2)
+        ax2.hist(omega_x, omega+np.pi, density=True)
+        ax2.plot(omega_v + np.pi, profile(omega_v, div_v, halo_v, halo_f))
+
+        ax3 = fig.add_subplot(3,1,3)
+        ax3.hist(s.v, 100, density=True)
+        ax3.plot(np.linspace(0,7e-6,100), np.exp(-np.linspace(0,7e-6,100)/mfp)/mfp)
+
+        passed = True
+        print("Test BBNBI:")
+
+        return passed
+
     def init_biosaw(self):
         """Dummy function as BioSaw test requires no initialization.
         """
@@ -2166,8 +2285,6 @@ class PhysTest():
         ax4.set_xlabel("$\phi$ [rad]")
         ax4.set_ylabel("$B_phi$ [m]")
 
-        return passed
-
     def _activateinputs(self, tag):
         data = self.ascot.data
         tag0 = tag if hasattr(data.bfield, tag) else "DUMMY"
@@ -2203,7 +2320,12 @@ if __name__ == '__main__':
     failed = test.execute(
         init=True, run=True, check=True,
         tests=["elementary", "orbitfollowing", "gctransform", "ccoll",
+<<<<<<< HEAD
                "classical", "neoclassical", "boozer", "mhd", "afsi",
                "biosaw"])#, "atomic"])
+=======
+               "classical", "neoclassical", "boozer", "mhd", "bbnbi"])
+    #, "atomic"])
+>>>>>>> b562fa8a (Implemented bbnbi tests, divergence and fixed the bending issue which was due to momentum not updated. Requires polishing)
     plt.show(block=False)
     if failed: raise Exception("Verification failed")
