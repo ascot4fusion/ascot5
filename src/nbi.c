@@ -145,16 +145,29 @@ void nbi_inject(real* xyz, real* vxyz, nbi_injector* inj, random_data* rng) {
     math_cross(dir, normalv, tmp);
     math_unit(tmp, normalh);
 
-    /* Assuming isotropic divergence using horizontal value,
-       ignoring halo divergence for now */
-    r = random_uniform(rng);
-    real div = inj->div_h * sqrt(log(1/(1-r)));
+    /* Generate a random number on interval [0,1]. If the number is smaller
+     * than the halo fraction, this marker will be considered as part
+     * of the halo. The divergences are different for the core and halo.
+     * Additionally, two normally distributed random variables are generated:
+     * the divergences in horizontal and the vertical directions. */
+    real div_h, div_v;
+    if(random_uniform(rng) < inj->div_halo_frac) {
+        // Use halo divergences instead
+        div_h = inj->div_halo_h * random_normal(rng);
+        div_v = inj->div_halo_v * random_normal(rng);
+    } else {
+        div_h = inj->div_h * random_normal(rng);
+        div_v = inj->div_v * random_normal(rng);
+    }
 
-    real angle = random_uniform(rng) * 2 * CONST_PI;
-    tmp[0] = dir[0] + div * ( cos(angle)*normalh[0] + sin(angle)*normalv[0] );
-    tmp[1] = dir[1] + div * ( cos(angle)*normalh[1] + sin(angle)*normalv[1] );
-    tmp[2] = dir[2] + div * ( cos(angle)*normalh[2] + sin(angle)*normalv[2] );
-
+    /* Convert the divergence angle to an unit vector. The marker velocity
+     * vector points in the direction of v_beam + v_divergence. */
+    tmp[0] = cos(div_h) * ( cos(div_v) * dir[0] + sin(div_v) * normalv[0] )
+        + sin(div_h) * normalh[0];
+    tmp[1] = cos(div_h) * ( cos(div_v) * dir[1] + sin(div_v) * normalv[1] )
+        + sin(div_h) * normalh[1];
+    tmp[2] = cos(div_h) * ( cos(div_v) * dir[2] + sin(div_v) * normalv[2] )
+        + sin(div_h) * normalh[2];
     math_unit(tmp, dir);
 
     real gamma = physlib_gamma_Ekin(inj->mass, energy);
