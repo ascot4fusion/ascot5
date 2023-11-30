@@ -5,35 +5,8 @@ import h5py
 
 from .coreio.treedata import DataContainer
 
-def read_hdf5(fn, qid):
-    """
-    Read transport coefficient data from HDF5 file to dictionary.
-
-    Args:
-        fn : str <br>
-            Full path to HDF5 file.
-        qid : str <br>
-            QID of the run whose transport coefficient data is read.
-
-    Returns:
-        Dictionary storing the coefficients and ids (unsorted).
-    """
-
-    with h5py.File(fn,"r") as f:
-        data = f["/results/run_"+qid+"/transcoef"]
-
-        out = {}
-
-        # Read data from file.
-        for field in data:
-            out[field] = data[field][:]
-
-    return out
-
-
 class Transcoef(DataContainer):
-    """
-    Object representing transport coefficient data.
+    """Object representing transport coefficient data.
     """
 
     def __init__(self, root, hdf5):
@@ -42,13 +15,15 @@ class Transcoef(DataContainer):
         """
         super().__init__(root, hdf5)
 
-
     def read(self):
+        """Read raw coefficient data to dictionary.
         """
-        Read coefficient data to dictionary.
-        """
-        return read_hdf5(self._file, self.get_qid())
+        out = {}
+        with self as f:
+            for field in f:
+                out[field] = f[field][:]
 
+        return out
 
     def __getitem__(self, key):
         with self as h5:
@@ -61,11 +36,10 @@ class Transcoef(DataContainer):
             idx  = h5["ids"][:].argsort()
             return item[idx]
 
-
     def get_matrix(self, dim=(1,), lossfrac=1.1, method="radindep",
                    userho=0):
-        """
-        Sort the data into a histogram and return the mean values in each bin.
+        """Sort the data into a histogram and return the mean values in each
+        bin.
 
         This function assumes markers were sorted during the creation.
         """
