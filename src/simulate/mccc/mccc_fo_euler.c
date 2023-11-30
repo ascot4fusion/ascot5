@@ -33,6 +33,8 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
     const real* mb = plasma_get_species_mass(pdata);
 
     //    #pragma omp simd
+    GPU_MAP_TO_DEVICE(rnd[0:3*NSIMD])
+    GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
             a5err errflag = 0;
@@ -126,4 +128,5 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
             }
         }
     }
+    GPU_MAP_DELETE_DEVICE(rnd[0:3*NSIMD])
 }
