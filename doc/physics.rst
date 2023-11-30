@@ -9,7 +9,7 @@ Coordinate system
 
 .. default-role:: math
 
-The coordinate system ASCOT5 uses is `COCOS5 <https://www.sciencedirect.com/science/article/abs/pii/S0010465512002962>`_ which is elaborated here.
+The coordinate system ASCOT5 uses is `COCOS3 <https://www.sciencedirect.com/science/article/abs/pii/S0010465512002962>`_ which is elaborated here.
 
 The cylindrical coordinates that are used are right-handed meaning:
 
