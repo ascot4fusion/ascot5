@@ -52,9 +52,13 @@ void random_gsl_normal_simd(random_data* rdata, int n, double* r);
 #define random_normal_simd(data, n, r)  random_gsl_normal_simd(data, n, r)
 
 
+
 #elif defined(RANDOM_LCG)
 
 #include <stdint.h>
+#ifdef GPU
+#include "offload_acc_omp.h"
+#endif
 
 typedef struct {
     uint64_t r;
@@ -62,9 +66,13 @@ typedef struct {
 
 void random_lcg_init(random_data* rdata, uint64_t seed);
 uint64_t random_lcg_integer(random_data* rdata);
+DECLARE_TARGET
 double random_lcg_uniform(random_data* rdata);
+DECLARE_TARGET_END
 double random_lcg_normal(random_data* rdata);
+DECLARE_TARGET
 void random_lcg_uniform_simd(random_data* rdata, int n, double* r);
+DECLARE_TARGET_END
 void random_lcg_normal_simd(random_data* rdata, int n, double* r);
 
 #define random_init(data, seed)         random_lcg_init(data, seed)
@@ -72,8 +80,6 @@ void random_lcg_normal_simd(random_data* rdata, int n, double* r);
 #define random_normal(data)             random_lcg_normal(data)
 #define random_uniform_simd(data, n, r) random_lcg_uniform_simd(data, n, r)
 #define random_normal_simd(data, n, r)  random_lcg_normal_simd(data, n, r)
-
-
 
 #else /* No RNG lib defined, use drand48 */
 
@@ -99,5 +105,6 @@ void random_drand48_normal_simd(int n, double* r);
 #define random_normal_simd(data, n, r) random_drand48_normal_simd(n, r)
 
 #endif
+
 
 #endif
