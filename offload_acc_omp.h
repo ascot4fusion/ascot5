@@ -11,6 +11,7 @@
 #define GPU_MAP_TO_DEVICE(x ...) 
 #define GPU_UPDATE_FROM_DEVICE(x ...) 
 #define GPU_MAP_FROM_DEVICE(x ...)
+#define GPU_MAP_DELETE_DEVICE(x ...) 
 #define GPU_ATOMIC MY_PRAGMA(omp atomic)
 //#define OMP_L1 MY_PRAGMA(omp distribute parallel for) 
 #ifdef _OPENMP
@@ -22,6 +23,7 @@
 #define GPU_MAP_TO_DEVICE(x ...) MY_PRAGMA(omp target enter data map (to: x))
 #define GPU_UPDATE_FROM_DEVICE(x ...) MY_PRAGMA(omp target update from ( x))
 #define GPU_MAP_FROM_DEVICE(x ...) MY_PRAGMA(omp target exit data map (from: x))
+#define GPU_MAP_DELETE_DEVICE(x ...)  MY_PRAGMA(omp target exit data (delete: x))
 #define GPU_ATOMIC MY_PRAGMA(acc atomic)
 #endif
 #ifdef _OPENACC
@@ -38,6 +40,7 @@
 #define GPU_MAP_TO_DEVICE(x ...)  MY_PRAGMA(acc enter data copyin ( x))
 #define GPU_UPDATE_FROM_DEVICE(x ...) MY_PRAGMA(acc update host ( x))
 #define GPU_MAP_FROM_DEVICE(x ...)  MY_PRAGMA(acc exit data copyout ( x))
+#define GPU_MAP_DELETE_DEVICE(x ...)  MY_PRAGMA(acc exit data delete ( x))
 #define GPU_ATOMIC MY_PRAGMA(omp atomic)
 #endif
 
