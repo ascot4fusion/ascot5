@@ -30,7 +30,7 @@
 #pragma omp declare simd uniform(sim)
 real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i);
 
-real simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, B_field_data* Bdata, E_field_data* Edata, particle_loc*  p_loc, real* hin);
+real simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, B_field_data* Bdata, E_field_data* Edata, particle_loc*  p_loc, real* hin, real* rnd);
 
 real simulate_fo_fixed_copy_from_gpu(sim_data* sim, particle_simd_fo *p_ptr);
 
@@ -95,9 +95,10 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
     B_field_data* Bdata = &sim->B_data;
     E_field_data* Edata = &sim->E_data;
     particle_loc  p_loc;
+    real rnd[3*NSIMD];
 
 #ifdef GPU
-    simulate_fo_fixed_copy_to_gpu(sim, p_ptr, p0_ptr, Bdata, Edata, &p_loc, hin);
+    simulate_fo_fixed_copy_to_gpu(sim, p_ptr, p0_ptr, Bdata, Edata, &p_loc, hin, rnd);
 #endif    
     while(n_running > 0) {
         /* Store marker states */
@@ -143,12 +144,8 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 
         /* Euler-Maruyama for Coulomb collisions */
         if(sim->enable_clmbcol) {
-	  //#ifdef GPU
-	  //	  printf("mccc_fo_euler NOT YET PORTED TO GPU");
-	  //	  exit(1);
-	  //#endif
-            mccc_fo_euler(p_ptr, hin, &sim->plasma_data, sim->random_data,
-                          &sim->mccc_data);
+            mccc_fo_euler(p_ptr, hin, &sim->plasma_data, &sim->random_data,
+                          &sim->mccc_data, rnd);
         }
         /* Atomic reactions */
         if(sim->enable_atomic) {
@@ -281,7 +278,7 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
 }
 
 
-real simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, B_field_data* Bdata, E_field_data* Edata, particle_loc*  p_loc, real* hin) {
+real simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, B_field_data* Bdata, E_field_data* Edata, particle_loc*  p_loc, real* hin, real* rnd) {
 
   GPU_MAP_TO_DEVICE(
 		      p_loc[0:1],\
@@ -418,13 +415,14 @@ real simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, parti
 		      Bdata->B2DS.B_phi,  Bdata->B2DS.B_phi.c  [0:Bdata->B2DS.B_phi.n_x *Bdata->B2DS.B_phi.n_y                        *NSIZE_COMP2D],\
 		      Bdata->B2DS.B_z,    Bdata->B2DS.B_z.c    [0:Bdata->B2DS.B_z.n_x   *Bdata->B2DS.B_z.n_y                          *NSIZE_COMP2D],\
 		      Bdata->BGS.psi_coeff[0:13],				\
-		      Edata[0:1],Edata->type,Edata->ETC,Edata->E1DS,Edata->ETC.Exyz[0:1],Edata->E1DS.dV,Edata->E1DS.dV.c[0:Edata->E1DS.dV.n_x*NSIZE_COMP1D] \
+		      Edata[0:1],Edata->type,Edata->ETC,Edata->E1DS,Edata->ETC.Exyz[0:1],Edata->E1DS.dV,Edata->E1DS.dV.c[0:Edata->E1DS.dV.n_x*NSIZE_COMP1D], \
+		      sim->random_data[0:1], \
+		      rnd[0:3*NSIMD] \
 			)
     for (int i=0;i<MAX_SPECIES;i++) {
 GPU_MAP_TO_DEVICE(
 				  sim->plasma_data.plasma_1DS.dens[i].c[0:sim->plasma_data.plasma_1DS.dens[i].n_x*NSIZE_COMP1D] )
     }
-
 }
 
 real simulate_fo_fixed_copy_from_gpu(sim_data* sim, particle_simd_fo *p_ptr){

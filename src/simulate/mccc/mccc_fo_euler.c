@@ -25,7 +25,11 @@
  *        collisions. Values for marker i are rnd[i*NSIMD + j]
  */
 void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
-                   mccc_data* mdata, real rnd[3*NSIMD]) {
+                   random_data* rdata, mccc_data* mdata, real* rnd) {
+
+    /* Generate random numbers and get plasma information before going to the *
+     * SIMD loop                                                              */
+    random_normal_simd(rdata, 3*NSIMD, rnd);
 
     /* Get plasma information before going to the  SIMD loop */
     int n_species  = plasma_get_n_species(pdata);
@@ -33,7 +37,7 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
     const real* mb = plasma_get_species_mass(pdata);
 
     //    #pragma omp simd
-    GPU_MAP_TO_DEVICE(rnd[0:3*NSIMD])
+    //    GPU_MAP_TO_DEVICE(rnd[0:3*NSIMD])
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
@@ -128,5 +132,5 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
             }
         }
     }
-    GPU_MAP_DELETE_DEVICE(rnd[0:3*NSIMD])
+    //    GPU_MAP_DELETE_DEVICE(rnd[0:3*NSIMD])
 }
