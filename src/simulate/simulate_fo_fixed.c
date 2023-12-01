@@ -145,8 +145,14 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         /* Euler-Maruyama for Coulomb collisions */
         if(sim->enable_clmbcol) {
 #if !defined(GPU) || defined(RANDOM_LCG)
-	  mccc_fo_euler(p_ptr, hin, &sim->plasma_data, &sim->random_data,
-                          &sim->mccc_data, rnd);
+	  mccc_fo_euler(p_ptr, hin, &sim->plasma_data,
+#if defined(RANDOM_LCG)
+			&sim->random_data,
+#else
+			sim->random_data,
+#endif			
+			&sim->mccc_data,
+			rnd);
 #else
 	  printf("mccc_fo_euler ported on GPU only for RANDOM_LCG");
 	  exit(1);	  
