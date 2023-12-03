@@ -299,7 +299,27 @@ class wall_3D(DataGroup):
 
         return w
 
-    def area(self, data=None):
+    def area(self, normal=False, data=None):
+        """Calculate wall element area.
+
+        Parameters
+        ----------
+        normal : bool, optional
+            If True, calculate and return the surface normal vectors as well.
+        data : dict, optional
+            Dictionary with the wall data. If ``None``, the data is read from
+            the file.
+
+        Returns
+        -------
+        area : array_like, (nelement,)
+            Surface areas of the wall elements.
+        nvec : array_like, (nelement,3)
+            Normal vectors of the wall elements in cartesian basis.
+
+            Note that the direction of the normal vector is not specifiec (it
+            can vary between elements and point either inside or outside).
+        """
         if data is None:
             w = self.read()
         else:
@@ -313,11 +333,18 @@ class wall_3D(DataGroup):
         ac_y = w["y1y2y3"][:,2] - w["y1y2y3"][:,0]
         ac_z = w["z1z2z3"][:,2] - w["z1z2z3"][:,0]
 
-        A = 0.5 * np.sqrt(   (ab_y * ac_z - ab_z * ac_y)**2
-                           + (ab_z * ac_x - ab_x * ac_z)**2
-                           + (ab_x * ac_y - ab_y * ac_x)**2 ) * unyt.m**2
+        area = 0.5 * np.sqrt(   (ab_y * ac_z - ab_z * ac_y)**2
+                              + (ab_z * ac_x - ab_x * ac_z)**2
+                              + (ab_x * ac_y - ab_y * ac_x)**2 ) * unyt.m**2
+        if not normal: return area
 
-        return A
+        nvec = np.array([
+            ab_y * ac_z - ab_z * ac_y,
+            ab_z * ac_x - ab_x * ac_z,
+            ab_x * ac_y - ab_y * ac_x
+        ])
+        nvec /= np.sqrt(np.sum(nvec**2, axis=0))
+        return area, nvec
 
     def getAspointsAndVertices(self, removeDuplcatePoints=True):
         a5wall = self.read()

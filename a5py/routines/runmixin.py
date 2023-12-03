@@ -492,12 +492,18 @@ class RunMixin(DistMixin):
         pdepo : array_like
             Particle/flux deposition per tile.
         iangle : array_like
-            Angle of incidence (TODO).
+            Angle of incidence i.e. the angle between particle velocity and
+            the surface normal.
+
+            When weights are included, the angle of incidence is the average of
+            all markers that hit the tile weighted by the marker energy and
+            weight. Otherwise it is the mean value of all markers without any
+            weights.
         """
         self._require("_endstate")
-        ids, energy, weight = self.getstate("walltile", "ekin", "weight",
-                                            state="end", endcond="wall",
-                                            ids=p_ids)
+        ids, energy, weight, pr, pphi, pz, pnorm, phi = self.getstate(
+            "walltile", "ekin", "weight", "pr", "pphi", "pz", "pnorm", "phi",
+            state="end", mode="prt", endcond="wall", ids=p_ids)
         energy.convert_to_units("J")
         eunit = (energy.units * weight.units)
         try:
@@ -505,34 +511,51 @@ class RunMixin(DistMixin):
         except unyt.exceptions.UnitConversionError:
             pass
         wetted = np.unique(ids)
-        area   = self.wall.area()[wetted-1]
         edepo  = np.zeros(wetted.shape)
         pdepo  = np.zeros(wetted.shape)
+        iangle = np.zeros(wetted.shape)
         if weights:
             edepo = edepo * eunit
             pdepo = pdepo * weight.units
         else:
             edepo = edepo * energy.units
-        iangle = np.zeros(wetted.shape)
+
+        area, nvec = self.wall.area(normal=True)
+        area = area[wetted-1]
+        punit = np.array([pr, pphi, pz]) / pnorm
 
         # Sort markers by wall tile ID to make processing faster
         idx    = np.argsort(ids)
         ids    = ids[idx]
         energy = energy[idx]
         weight = weight[idx]
-
+        punit  = punit[:,idx].v
         idx = np.append(np.argwhere(ids[1:] - ids[:-1]).ravel(), ids.size-1)
+
+        # Convert unit vectors to cartesian basis
+        punit = np.array([
+            punit[0,:] * np.cos(phi) - punit[1,:] * np.sin(phi),
+            punit[0,:] * np.sin(phi) + punit[1,:] * np.cos(phi),
+            punit[2,:]])
 
         i0 = 0
         for i in range(wetted.size):
             i1 = idx[i] + 1
+            vec = nvec[:,wetted[i]-1]
+            dotprod = punit[0,i0:i1] * vec[0] + punit[1,i0:i1] * vec[1] \
+                               + punit[2,i0:i1] * vec[2]
+            angles = np.arccos(dotprod) * (180 / np.pi) * unyt.deg
+            angles[angles.v > 90] = 180 * unyt.deg - angles[angles.v > 90]
+
             if weights: #include weights in the deposition
                 pdepo[i]  = np.sum(weight[i0:i1])
                 edepo[i]  = np.sum(energy[i0:i1]*weight[i0:i1])
+                iangle[i] = np.sum(angles * energy[i0:i1] * weight[i0:i1]) \
+                    / edepo[i]
             else:
                 pdepo[i]  = i1 - i0
                 edepo[i]  = np.sum(energy[i0:i1])
-            iangle[i] = 0 #TBD
+                iangle[i] = np.mean(angles)
             i0 = i1
 
         return wetted, area, edepo, pdepo, iangle
@@ -559,9 +582,12 @@ class RunMixin(DistMixin):
             - "pload" particle load in units of prt/m^2 or prt/m^2s,
             - "eload" power/energy load in units of W/m^2 or J/m^2
             - "mload" marker load in units of markers
+            - "iangle" angle of incidence (the angle between power flux and
+              the surface normal) in deg
         """
 
-        wallmesh = pv.PolyData( *self.wall.noderepresentation(w_indices=w_indices) )
+        wallmesh = pv.PolyData(
+            *self.wall.noderepresentation(w_indices=w_indices))
         ids, area, eload, pload, iangle = self.getwall_loads(p_ids=p_ids)
         # get the marker load at each tile
         _, _, _, mload, _ = self.getwall_loads(weights=False, p_ids=p_ids)
@@ -581,15 +607,14 @@ class RunMixin(DistMixin):
         pload_tot[ids] = pload/area
         mload_tot = np.zeros((n_tri, )) + np.nan
         mload_tot[ids] = mload
+        iangle_tot = np.zeros((n_tri, )) + np.nan
+        iangle_tot[ids] = iangle
 
         ntriangle = wallmesh.n_faces
-        wallmesh.cell_data["pload"]       = pload_tot[wall_f]
-        wallmesh.cell_data["eload"]       = eload_tot[wall_f]
-        wallmesh.cell_data["mload"]       = mload_tot[wall_f]
-
-        #- "iangle" angle of incidence in units of deg
-        #wallmesh.cell_data["iangle"]      = np.zeros((ntriangle,)) + np.nan
-        #wallmesh.cell_data["iangle"][ids] = iangle
+        wallmesh.cell_data["pload"]  = pload_tot[wall_f]
+        wallmesh.cell_data["eload"]  = eload_tot[wall_f]
+        wallmesh.cell_data["mload"]  = mload_tot[wall_f]
+        wallmesh.cell_data["iangle"] = iangle_tot[wall_f]
         return wallmesh
 
     def getdist(self, dist, exi=False, ekin_edges=None, pitch_edges=None,
