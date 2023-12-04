@@ -240,6 +240,73 @@ void libascot_B_field_rhotheta2rz(
 }
 
 /**
+ * @brief Find psi on axis using the gradient descent method
+ *
+ * Note that the psi value is not returned in case this algorithm fails.
+ *
+ * @param sim_offload_data initialized simulation offload data struct
+ * @param B_offload_array initialized magnetic field offload data
+ * @param psi value of psi on axis if this function did not fail
+ * @param rz initial (R,z) position where also the result is stored
+ * @param step the step size
+ * @param tol the current position is accepted if the distance (in meters)
+ * between this and the previous point is below this value
+ * @param maxiter maximum number of iterations before failure
+ * @param ascent if true the algorithm instead ascends to find psi0 (> psi1)
+ */
+void libascot_B_field_gradient_descent(
+    sim_offload_data* sim_offload_data, real* B_offload_array, real psi[1],
+    real rz[2], real step, real tol, int maxiter, int ascent) {
+    sim_data sim;
+    B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
+                 B_offload_array);
+
+    if(ascent) {
+        step = -1 * step;
+    }
+
+    real phi = 0.0, time = 0.0;
+    real psidpsi[4], nextrz[2];
+    B_field_eval_psi_dpsi(psidpsi, rz[0], phi, rz[1], time, &sim.B_data);
+
+    int iter = 0;
+    while (1) {
+        if( B_field_eval_psi_dpsi(psidpsi, rz[0], phi, rz[1], time,
+                                  &sim.B_data) ) {
+            break;
+        }
+        nextrz[0] = rz[0] - step * psidpsi[1];
+        nextrz[1] = rz[1] - step * psidpsi[3];
+
+        // Check convergence
+        if(sqrt( (nextrz[0] - rz[0]) * (nextrz[0] - rz[0])
+                + (nextrz[1] - rz[1]) * (nextrz[1] - rz[1]) ) < tol) {
+            psi[0] = psidpsi[0];
+            rz[0] = nextrz[0];
+            rz[1] = nextrz[1];
+
+            // Add a bit of padding
+            B_field_eval_psi_dpsi(
+                psidpsi, rz[0], phi, rz[1], time, &sim.B_data);
+            if(ascent) {
+                psi[0] = psi[0] + (tol * psidpsi[1] + tol * psidpsi[3]);
+            } else {
+                psi[0] = psi[0] - (tol * psidpsi[1] + tol * psidpsi[3]);
+            }
+            break;
+        }
+
+        rz[0] = nextrz[0];
+        rz[1] = nextrz[1];
+        iter++;
+
+        if(iter == maxiter) {
+            break;
+        }
+    }
+}
+
+/**
  * @brief Evaluate electric field vector at given coordinates.
  *
  * @param sim_offload_data initialized simulation offload data struct

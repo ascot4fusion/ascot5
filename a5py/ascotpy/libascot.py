@@ -808,3 +808,67 @@ class LibAscot:
             Neval, rho, theta, phi, time, maxiter, tol, r, z)
 
         return (r, z)
+
+    @parseunits(rho="1", theta="rad", phi="rad", time="s")
+    def input_findpsi0(self, psi1):
+        """Find poloidal flux on axis value numerically.
+
+        Before this function is called, the magnetic field data should contain
+        initial guess for the position of the magnetic axis. The algorithm then
+        uses the gradient descent method to find psi0. The interpolation is done
+        using Ascot's magnetic field interpolation and a little bit of padding
+        is added to psi0 so the value can be used as an input parameter for
+        the magnetic field without any errors.
+
+        Parameters
+        ----------
+        psi1 : float
+            Poloidal flux at the separatrix.
+
+            This value is used to deduce whether the algorithm searches minimum
+            or maximum value when finding psi0.
+
+        Returns
+        -------
+        r : float
+            Axis R-coordinate.
+        z : float
+            Axis z-coordinate.
+        psi0 : float
+            Poloidal flux on axis.
+
+        Raises
+        ------
+        AssertionError
+            If required data has not been initialized.
+        RuntimeError
+            If evaluation in libascot.so failed.
+        """
+        self._requireinit("bfield")
+        ax = self._eval_bfield(
+            1.0*unyt.m, 0.0*unyt.rad, 0.0*unyt.m, 0.0*unyt.s, evalaxis=True)
+        psi0 = self._eval_bfield(
+            ax["axisr"], 0.0*unyt.rad, ax["axisz"], 0.0*unyt.s, evalrho=True)
+
+        psi = np.NaN * np.zeros((1,), dtype="f8") * unyt.Wb
+        rz  = np.zeros((2,), dtype="f8") * unyt.m
+        rz[0] = ax["axisr"]
+        rz[1] = ax["axisz"]
+
+        tol  = 1e-8
+        step = 1e-3
+        maxiter = 10**6
+        ascent  = int(psi1 < psi0["psi"])
+
+        fun = _LIBASCOT.libascot_B_field_gradient_descent
+        fun.restype  = None
+        fun.argtypes = [PTR_SIM, PTR_ARR,
+                        PTR_REAL, PTR_REAL, ctypes.c_double, ctypes.c_double,
+                        ctypes.c_int, ctypes.c_int]
+        fun(ctypes.byref(self._sim), self._bfield_offload_array,
+            psi, rz, step, tol, maxiter, ascent)
+
+        if np.isnan(psi[0]):
+            raise RuntimeError("Failed to converge.")
+
+        return (rz[0], rz[1], psi)
