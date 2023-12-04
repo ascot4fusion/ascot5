@@ -230,7 +230,7 @@ test_asigma: $(UTESTDIR)test_asigma.o $(OBJS)
 
 ASCOT2PY_HEADERFILES=particle.h hdf5_interface.h ascot5.h mpi_interface.h \
 	simulate.h ascot5_main.h offload.h diag.h libascot_mem.h asigma.h \
-	wall.h Bfield/B_STS.h B_field.h endcond.h diag/diag_orb.h \
+	wall.h B_field.h $(BFHEADERS) endcond.h diag/diag_orb.h \
 	hdf5io/hdf5_wall.h hdf5io/hdf5_bfield.h afsi.h biosaw.h boschhale.h
 
 ascot2py.py : libascot.so
