@@ -177,18 +177,28 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
                     "mhd", "asigma"]:
             if args[inp] is None:
-                # This input is not initialized
+                # This input is not going to be initialized
                 continue
+
+            currentqid = getattr(self._sim, "qid_" + inp)
 
             # Inject/provide this input
             if isinstance(args[inp],dict):
+                if currentqid != Ascotpy.DUMMY_QID:
+                    # Other input of same type is initialized. Raise error or
+                    # free the old input.
+                    if not switch:
+                        raise AscotInitException(
+                            "Cannot initialize " + inp
+                            + ": other input is already initialized.\n"
+                            "Either use \"switch=True\" or free("+inp+"=True)")
+
+                    self._free(**{inp : True})
                 to_be_provided.append(inp)
                 continue
 
             # Convert QID strings to bytes
             args[inp] = args[inp].encode("UTF-8")
-
-            currentqid = getattr(self._sim, "qid_" + inp)
             if args[inp] == currentqid:
                 # This input is already initialized
                 continue
@@ -245,30 +255,19 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             if self._mute == "err" and len(err) > 1: print(err)
 
         for inp in to_be_provided:
-            if inp == "wall":
+            if inp == "bfield":
+                self._provide_bfield(**args[inp])
+            elif inp == "wall":
                 if 'x1x2x3' in args[inp]:
-                    self.provide_wall_3d(  args[inp]['x1x2x3'],  args[inp]['y1y2y3'],  args[inp]['z1z2z3']  )
+                    self.provide_wall_3d(**args[inp])
                 elif 'r' in args[inp]:
-                    self.provide_wall_2d(  args[inp]['r'],  args[inp]['z']  )
+                    self.provide_wall_2d(**args[inp])
                 else:
-                    raise AscotInitException("Unsupported dict for input '{}' passed for injection.".format(inp))                    
-            elif inp == "bfield":
-                if 'b_rmin' in args[inp]:
-                    self.provide_BSTS( b_rmin=args[inp]['b_rmin'], b_rmax=args[inp]['b_rmax'], b_nr=args[inp]['b_nr'],
-                                       b_zmin=args[inp]['b_zmin'], b_zmax=args[inp]['b_zmax'], b_nz=args[inp]['b_nz'],
-                                       b_phimin=args[inp]['b_phimin'], b_phimax=args[inp]['b_phimax'], b_nphi=args[inp]['b_nphi'],
-                                       psi0=args[inp]['psi0'], psi1=args[inp]['psi1'],
-                                       br=args[inp]['br'], bphi=args[inp]['bphi'], bz=args[inp]['bz'], psi=args[inp]['psi'],
-                                       axis_phimin=args[inp]['axis_phimin'], axis_phimax=args[inp]['axis_phimax'],
-                                       axis_nphi=args[inp]['axis_nphi'],
-                                       axisr=args[inp]['axisr'], axisz=args[inp]['axisz'],
-                                       psi_rmin=args[inp]['psi_rmin'],     psi_rmax=args[inp]['psi_rmax'], psi_nr=args[inp]['psi_nr'],
-                                       psi_zmin=args[inp]['psi_zmin'],     psi_zmax=args[inp]['psi_zmax'], psi_nz=args[inp]['psi_nz'],
-                                       psi_phimin=args[inp]['psi_phimin'], psi_phimax=args[inp]['psi_phimax'], psi_nphi=args[inp]['psi_nphi'] )
-                else:
-                    raise AscotInitException("Unsupported dict for input '{}' passed for injection.".format(inp))
+                    raise AscotInitException(
+                        "Unsupported dict for input '{}' passed for injection.".format(inp))
             else:
-                raise AscotInitException("Unsupported input to inject: '{}'".format(inp))
+                raise AscotInitException(
+                    "Unsupported input to inject: '{}'".format(inp))
 
     def _free(self, bfield=False, efield=False, plasma=False, wall=False,
               neutral=False, boozer=False, mhd=False, asigma=False):

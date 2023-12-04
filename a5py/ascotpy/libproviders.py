@@ -3,8 +3,12 @@ from python.
 
 This is in contrast to reading inputs from HDF5 files.
 """
+import copy
+import inspect
 import ctypes
-from math import pi
+import numpy as np
+import numpy.ctypeslib as npctypes
+from a5py.ascot5io.coreio import fileapi
 from .libascot import _LIBASCOT
 if _LIBASCOT:
     from a5py.ascotpy import ascot2py
@@ -13,7 +17,106 @@ class LibProviders():
     """Mixin class to provide dependency injectors/providers.
     """
 
-    def provide_wall_2d(self,r,z):
+    def _find_input_based_on_kwargs(self, inputs, **kwargs):
+        """Find the input type that corresponds to the given parameters.
+
+        This function looks through all ``inputs`` ``write_hdf5`` methods and
+        tries to find the one that takes the provided ``**kwargs`` as input
+        parameters.
+
+        Parameters
+        ----------
+        inputs : [str]
+            List of possible input types e.g. all bfield inputs.
+        **kwargs
+            Parameters provided to the input's ``write_hdf5`` function excluding
+            ``fn`` and ``desc``.
+
+        Returns
+        -------
+        inp : str
+            Name of the input type that matched.
+        data : dict
+            Same as ``**kwargs`` but with all the optional arguments included
+            with default values if those were not present.
+
+        Raises
+        ------
+        ValueError
+            If no match was found.
+        """
+        from a5py.ascot5io import HDF5TOOBJ
+        leastmissing = [None] * 100
+        leastunknown = [None] * 100
+        bestmatch = None
+
+        # Loop to determine what magnetic field input is provided
+        for inp in inputs:
+
+            # Get names of all arguments and which of those are optional
+            argspec = inspect.getfullargspec(HDF5TOOBJ[inp].write_hdf5)
+            args = list(argspec.args)
+
+            args.remove("fn")   # Remove filename argument
+            args.remove("desc") # Remove description which is optional argument
+
+            # In args, the last len(defaults) ar the optional arguments. Note -1
+            # here since we have removed one optional argument (desc)
+            required = args[:len(args)-(len(argspec.defaults) - 1)]
+
+            # Check that kwargs contain all required arguments. It may also
+            # contain optional arguments but nothing else
+            missing = []; unknown = []
+            for k in required:
+                if k not in kwargs:
+                    missing.append(k)
+            for k in kwargs:
+                if k not in args:
+                    unknown.append(k)
+            if len(missing) > 0:
+                if len(missing) < len(leastmissing):
+                    leastmissing = missing
+                    bestmatch = inp
+                continue
+            leastmissing = []
+            bestmatch = inp
+            if len(unknown) > 0:
+                if len(unknown) < len(leastunknown):
+                    leastunknown = unknown
+                    bestmatch = inp
+                continue
+
+            # Everything checks out; this is our input type. Add possible
+            # missing optional arguments
+            i = 0
+            data = copy.copy(kwargs)
+            for k in args:
+                if k in required: continue
+                if k not in kwargs.keys():
+                    data[k] = argspec.defaults[i]
+                i += 1
+            return inp, data
+
+        # Matching input was not found. Produce error message that shows
+        # what input was the best match
+        if len(leastmissing) > 0:
+            missing = ""
+            for k in leastmissing:
+                missing += "'%s', " % k
+            raise ValueError(
+                ("Input was not recognized. Best match was %s " +
+                 "but you did not provide parameters %s")
+                % (bestmatch, missing[:-2]))
+        else:
+            unknown = ""
+            for k in leastunknown:
+                unknown += "'%s', " % k
+            raise ValueError(
+                ("Input was not recognized. Best match was %s " +
+                 "but you provided unknown parameters %s") %
+                (bestmatch, unknown[:-2]))
+
+    def _provide_wall_2d(self,r,z):
 
         if( len(r) != len(z) ):
             raise ValueError("R and z must be of equal length.")
@@ -43,7 +146,7 @@ class LibProviders():
             self._wall_int_offload_array
             )
 
-    def provide_wall_3d(self,x1x2x3,y1y2y3,z1z2z3):
+    def _provide_wall_3d(self,x1x2x3,y1y2y3,z1z2z3):
 
         nelements = int(x1x2x3.shape[0])
 
@@ -73,7 +176,50 @@ class LibProviders():
             self._wall_int_offload_array
             )
 
-    def provide_BSTS(self,
+    def _provide_bfield(self, **kwargs):
+        """Use the provided input parameters to initialize a magnetic field
+        input.
+
+        Parameters
+        ----------
+        **kwargs
+            Dictionary with the magnetic field data.
+        """
+        inp, data = self._find_input_based_on_kwargs(
+            ["B_TC", "B_GS", "B_2DS", "B_3DS", "B_STS"], **kwargs)
+        getattr(self, "_provide_" + inp)(**data)
+
+        ascot2py.B_field_init_offload(
+            ctypes.byref(self._sim.B_offload_data),
+            self._bfield_offload_array
+        )
+
+        qid, _, _, _ = fileapi._generate_meta()
+        self._sim.qid_bfield = bytes(qid, "utf-8")
+
+    def _provide_B_GS(self, **kwargs):
+        """Initialize :class:`B_GS` straight from dictionary bypassing HDF5.
+        """
+        BGS = self._sim.B_offload_data.BGS
+        BGS.R0        = kwargs["r0"]
+        BGS.z0        = kwargs["z0"]
+        BGS.raxis     = kwargs["raxis"]
+        BGS.zaxis     = kwargs["zaxis"]
+        BGS.B_phi0    = kwargs["bphi0"]
+        BGS.psi0      = kwargs["psi0"]
+        BGS.psi1      = kwargs["psi1"]
+        BGS.psi_mult  = kwargs["psimult"]
+        BGS.Nripple   = int(kwargs["nripple"])
+        BGS.a0        = kwargs["a0"]
+        BGS.alpha0    = kwargs["alpha0"]
+        BGS.delta0    = kwargs["delta0"]
+        BGS.psi_coeff = npctypes.as_ctypes(
+            np.ascontiguousarray(kwargs["coefficients"].flatten(), dtype="f8") )
+        BGS.offload_array_length = 0
+
+        self._sim.B_offload_data.type = ascot2py.B_field_type_GS
+
+    def _provide_BSTS(self,
                      b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
                      b_phimin, b_phimax, b_nphi, psi0, psi1,
                      br, bphi, bz, psi,
