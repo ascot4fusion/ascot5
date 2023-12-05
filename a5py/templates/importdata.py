@@ -193,7 +193,7 @@ class ImportData():
         return ("asigma_loc", out)
 
     def import_geqdsk(self, fn="input.eqdsk", cocos=None, phiclockwise=None,
-                      weberperrad=None, verbose=True):
+                      weberperrad=None, verbose=True, interpolate_psi0=False):
         """Import axisymmetric magnetic field from EQDSK.
 
         Parameters
@@ -202,6 +202,13 @@ class ImportData():
             Filename of the G-EQDSK to read.
         cocos : int, optional
             Expected COCOS or None to deduce from the data.
+        interpolate_psi0 : bool, optional
+            Instead of using the psi on-axis value in EQDSK, interpolate it
+            using libascot.
+
+            Enabling this setting is recommended since having an incorrect value
+            for psi0 could make rho imaginary near the axis, which leads to all
+            kinds of trouble.
 
         Returns
         -------
@@ -217,7 +224,7 @@ class ImportData():
         cocos = cocosmod.assign(
             eqd["qpsi"][0], eqd["cpasma"], eqd["bcentr"], eqd["simagx"],
             eqd["sibdry"], phiclockwise, weberperrad)
-        
+
         verbose and print("Eqdsk cocos: "+str(cocos))
         verbose and print("ASCOT cocos: "+str(cocosmod.COCOS_ASCOT))
 
@@ -263,12 +270,11 @@ class ImportData():
         if eqd["nx"] != b2d["nr"]: fpolrz = fpolrz[1:,:] # If we had rmin=0
         b2d["bphi"] = fpolrz/R
 
-        # Check psi value
-        fpsi = RectBivariateSpline(rvec, zvec, b2d["psi"])
-        psiaxis = fpsi(b2d["axisr"], b2d["axisz"])[0,0]
-        if np.abs( b2d["psi0"] - psiaxis ) > 1e-2:
-            warnings.warn(
-                ("psi_axis is %1.3f according to EQDSK but the interpolated " +
-                 "value is %1.3f") % (b2d["psi0"], psiaxis))
+        # Interpolate psi if needed
+        if interpolate_psi0:
+            self._ascot.input_init(bfield=b2d)
+            b2d["axisr"], b2d["axisz"], b2d["psi0"] = \
+                self._ascot.input_findpsi0(b2d["psi0"])
+            self._ascot.input_free()
 
         return ("B_2DS", b2d)
