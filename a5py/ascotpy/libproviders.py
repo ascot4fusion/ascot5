@@ -191,11 +191,27 @@ class LibProviders():
 
         ascot2py.B_field_init_offload(
             ctypes.byref(self._sim.B_offload_data),
-            self._bfield_offload_array
+            ctypes.byref(self._bfield_offload_array)
         )
 
         qid, _, _, _ = fileapi._generate_meta()
         self._sim.qid_bfield = bytes(qid, "utf-8")
+
+    def _provide_B_TC(self, **kwargs):
+        """Initialize :class:`B_TC` straight from dictionary bypassing HDF5.
+        """
+        BTC = self._sim.B_offload_data.BTC
+        BTC.axisr  = kwargs["axisr"]
+        BTC.axisz  = kwargs["axisz"]
+        BTC.psival = kwargs["psival"]
+        BTC.rhoval = kwargs["rhoval"]
+        BTC.B      = npctypes.as_ctypes(
+            np.ascontiguousarray(kwargs["bxyz"].flatten(), dtype="f8") )
+        BTC.dB     = npctypes.as_ctypes(
+            np.ascontiguousarray(kwargs["jacobian"].flatten(), dtype="f8") )
+        BTC.offload_array_length = 0
+
+        self._sim.B_offload_data.type = ascot2py.B_field_type_TC
 
     def _provide_B_GS(self, **kwargs):
         """Initialize :class:`B_GS` straight from dictionary bypassing HDF5.
@@ -218,6 +234,92 @@ class LibProviders():
         BGS.offload_array_length = 0
 
         self._sim.B_offload_data.type = ascot2py.B_field_type_GS
+
+    def _provide_B_2DS(self, **kwargs):
+        """Initialize :class:`B_2DS` from dictionary.
+        """
+        B2DS = self._sim.B_offload_data.B2DS
+        B2DS.n_r    = int(kwargs["nr"])
+        B2DS.n_z    = int(kwargs["nz"])
+        B2DS.r_min  = kwargs["rmin"]
+        B2DS.r_max  = kwargs["rmax"]
+        B2DS.z_min  = kwargs["zmin"]
+        B2DS.z_max  = kwargs["zmax"]
+        B2DS.psi0   = kwargs["psi0"]
+        B2DS.psi1   = kwargs["psi1"]
+        B2DS.axis_r = kwargs["axisr"]
+        B2DS.axis_z = kwargs["axisz"]
+
+        size = kwargs["nr"] * kwargs["nz"]
+        offload_size = 4*size
+        B2DS.offload_array_length = offload_size;
+
+        self._bfield_offload_array = \
+            ascot2py.libascot_allocate_reals(offload_size)
+        array = ctypes.cast(
+            self._bfield_offload_array,
+            ctypes.POINTER(ctypes.c_double * offload_size) )[0]
+
+        pos = 0
+        order = "F"
+        array[pos:pos+size] = kwargs["psi"].flatten(order=order)
+        pos += size
+        array[pos:pos+size] = kwargs["br"].flatten(order=order)
+        pos += size
+        array[pos:pos+size] = kwargs["bphi"].flatten(order=order)
+        pos += size
+        array[pos:pos+size] = kwargs["bz"].flatten(order=order)
+        pos += size
+
+        self._sim.B_offload_data.type = ascot2py.B_field_type_2DS
+
+    def _provide_B_3DS(self, **kwargs):
+        """Initialize :class:`B_3DS` from dictionary.
+        """
+        B3DS = self._sim.B_offload_data.B3DS
+        B3DS.psigrid_n_r   = int(kwargs["psi_nr"])
+        B3DS.psigrid_n_z   = int(kwargs["psi_nz"])
+        B3DS.psigrid_r_min = kwargs["psi_rmin"]
+        B3DS.psigrid_r_max = kwargs["psi_rmax"]
+        B3DS.psigrid_z_min = kwargs["psi_zmin"]
+        B3DS.psigrid_z_max = kwargs["psi_zmax"]
+        B3DS.Bgrid_n_r     = int(kwargs["b_nr"])
+        B3DS.Bgrid_n_z     = int(kwargs["b_nz"])
+        B3DS.Bgrid_r_min   = kwargs["b_rmin"]
+        B3DS.Bgrid_r_max   = kwargs["b_rmax"]
+        B3DS.Bgrid_z_min   = kwargs["b_zmin"]
+        B3DS.Bgrid_z_max   = kwargs["b_zmax"]
+        B3DS.Bgrid_n_phi   = int(kwargs["b_nphi"])
+        B3DS.Bgrid_phi_min = kwargs["b_phimin"] * np.pi / 180
+        B3DS.Bgrid_phi_max = kwargs["b_phimax"] * np.pi / 180
+        B3DS.psi0          = kwargs["psi0"]
+        B3DS.psi1          = kwargs["psi1"]
+        B3DS.axis_r        = kwargs["axisr"]
+        B3DS.axis_z        = kwargs["axisz"]
+
+        psisize = int(kwargs["psi_nr"] * kwargs["psi_nz"])
+        bsize   = int(kwargs["b_nr"] * kwargs["b_nz"] * kwargs["b_nphi"])
+        offload_size = psisize + 3*bsize
+        B3DS.offload_array_length = offload_size;
+
+        self._bfield_offload_array = \
+            ascot2py.libascot_allocate_reals(offload_size)
+        array = ctypes.cast(
+            self._bfield_offload_array,
+            ctypes.POINTER(ctypes.c_double * offload_size) )[0]
+
+        pos = 0
+        order = "F"
+        array[pos:pos+bsize]   = kwargs["br"].flatten(order=order)
+        pos += bsize
+        array[pos:pos+bsize]   = kwargs["bphi"].flatten(order=order)
+        pos += bsize
+        array[pos:pos+bsize]   = kwargs["bz"].flatten(order=order)
+        pos += bsize
+        array[pos:pos+psisize] = kwargs["psi"].flatten(order=order)
+        pos += psisize
+
+        self._sim.B_offload_data.type = ascot2py.B_field_type_3DS
 
     def _provide_BSTS(self,
                      b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
