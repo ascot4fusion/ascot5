@@ -391,7 +391,7 @@ real simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, parti
 		      sim->plasma_data.plasma_1D.charge     [0:MAX_SPECIES],\
 		      sim->plasma_data.plasma_1D.anum       [0:MAX_SPECIES],\
 		      sim->plasma_data.plasma_1D.znum       [0:MAX_SPECIES],\
-		      sim->plasma_data.plasma_1D.rho        [0:sim->plasma_data.plasma_1D.n_rho],
+		      sim->plasma_data.plasma_1D.rho        [0:sim->plasma_data.plasma_1D.n_rho],\
 		      sim->plasma_data.plasma_1D.temp       [0:sim->plasma_data.plasma_1D.n_rho*sim->plasma_data.plasma_1D.n_species], \
   		      sim->plasma_data.plasma_1D.dens       [0:sim->plasma_data.plasma_1D.n_rho*sim->plasma_data.plasma_1D.n_species], \
 		      sim->plasma_data.plasma_1Dt.mass      [0:MAX_SPECIES],\
@@ -427,7 +427,6 @@ real simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, parti
 		      Bdata->B2DS.B_z,    Bdata->B2DS.B_z.c    [0:Bdata->B2DS.B_z.n_x   *Bdata->B2DS.B_z.n_y                          *NSIZE_COMP2D],\
 		      Bdata->BGS.psi_coeff[0:13],				\
 		      Edata[0:1],Edata->type,Edata->ETC,Edata->E1DS,Edata->ETC.Exyz[0:1],Edata->E1DS.dV,Edata->E1DS.dV.c[0:Edata->E1DS.dV.n_x*NSIZE_COMP1D], \
-		      sim->random_data[0:1], \
 		      rnd[0:3*NSIMD] \
 			)
     for (int i=0;i<MAX_SPECIES;i++) {
