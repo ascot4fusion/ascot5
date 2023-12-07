@@ -153,11 +153,11 @@ void nbi_inject(real* xyz, real* vxyz, nbi_injector* inj, random_data* rng) {
     real div_h, div_v;
     if(random_uniform(rng) < inj->div_halo_frac) {
         // Use halo divergences instead
-        div_h = inj->div_halo_h * random_normal(rng);
-        div_v = inj->div_halo_v * random_normal(rng);
+        div_h = inj->div_halo_h * random_normal(rng) / sqrt(2.0);
+        div_v = inj->div_halo_v * random_normal(rng) / sqrt(2.0);
     } else {
-        div_h = inj->div_h * random_normal(rng);
-        div_v = inj->div_v * random_normal(rng);
+        div_h = inj->div_h * random_normal(rng) / sqrt(2.0);
+        div_v = inj->div_v * random_normal(rng) / sqrt(2.0);
     }
 
     /* Convert the divergence angle to an unit vector. The marker velocity
