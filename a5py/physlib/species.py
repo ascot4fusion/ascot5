@@ -3,6 +3,9 @@
 import numpy as np
 import unyt
 
+# 
+import scipy.constants as constants
+
 speciesdict = {
     "e"     : [  0,  0, -1*unyt.e,   0.0005486*unyt.amu],
     "n"     : [  1,  0,  0*unyt.e,   1.009*unyt.amu],
@@ -46,11 +49,11 @@ def species(name, charge=None):
         data = speciesdict["n"]
     elif name in checkadd(["H", "p", "proton", "H1"]):
         data = speciesdict["H"]
-    elif name in checkadd(["D","deuterium", "H2"]):
+    elif name in checkadd(["D", "deuterium", "H2"]):
         data = speciesdict["D"]
     elif name in checkadd(["T", "tritium", "H3"]):
         data = speciesdict["T"]
-    elif name in checkadd(["He3"]):
+    elif name in checkadd(["He3", "helion"]):
         data = speciesdict["He3"]
     elif name in checkadd(["He4", "alpha"]):
         data = speciesdict["He4"]
@@ -73,6 +76,29 @@ def species(name, charge=None):
 
     data = {"anum":data[0], "znum":data[1], "charge":data[2], "mass":data[3]}
     if charge is not None:
-        data["charge"] = charge*unyt.e
+        data["charge"] = charge
 
     return data
+
+def autodetect(anum, znum, charge=None):
+    """Return species based on given anum and znum.
+
+    Parameters
+    ----------
+    anum : int
+        Atomic mass number.
+    znum : int
+        Charge number.
+    charge : int, optional
+        Charge state of the returned species or fully ionized if None.
+
+    Returns
+    -------
+    data : dict
+        Contains "anum", "znum", "charge", and "mass".
+    """
+    for k, v in speciesdict.items():
+        if anum == v[0] and znum == v[1]:
+            return v
+
+    raise ValueError("Unknown species anum={} znum={}".format(anum,znum))
