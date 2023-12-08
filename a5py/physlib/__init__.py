@@ -25,6 +25,23 @@ def pol2cart(r, phi, z=None):
     """
     return r * np.cos(phi), r * np.sin(phi), z
 
+def pol2cart_vec(vr,r,vphi,phi,vz=None,z=None):
+    vx = vr * np.cos(phi) - vphi * np.sin(phi)
+    vy = vr * np.sin(phi) + vphi * np.cos(phi)
+    mps = unyt.m / unyt.s
+    if vz is not None:
+        return vx*mps,vy*mps,vz*mps
+    return vx*mps,vy*mps,vz
+
+def cart2pol_vec(vx,x,vy,y,vz=None,z=None):
+    phi = np.arctan2( y, x )
+    vr  =  vx * np.cos(phi) + vy * np.sin(phi)
+    vphi= -vx * np.sin(phi) + vy * np.cos(phi)
+    mps = unyt.m / unyt.s
+    if vz is not None:
+        return vr*mps,vphi*mps,vz*mps
+    return vr*mps,vphi*mps,vz
+
 def anglemod(angle):
     """Transfer arbitrary angle to between interval [0, 2pi].
     """
