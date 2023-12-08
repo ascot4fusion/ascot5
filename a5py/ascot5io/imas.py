@@ -1,4 +1,6 @@
 import numpy as np
+import scipy.constants as constants
+from a5py.physlib import species, pol2cart, cart2pol_vec
 
 class a5imas:
 
@@ -484,9 +486,230 @@ class B_STS(a5imas):
         
         self.write_data_entry()
                                  
+class marker(a5imas):
 
-        
-    
+    def __init__(self):
+        super().__init__()
+        self.ids_name = "distribution_sources"
+
+
+    def read(self, user, tokamak, version, shot, run, occurrence=0 ):
+        """
+        Read an IMAS 2D-wall into a dictionary, that is a drop-in replacement for a dict read from hdf5.
+
+        The data is read from
+              wall.description_2d[0].limiter.unit[0].outline.r
+        and
+              wall.description_2d[0].limiter.unit[0].outline.z
+
+        """
+
+        # Put this inside the function, not to disturb usage where imas is not available
+        import imas
+
+
+        timeIndex = 0
+        unit      = 0
+
+        itm = self.open( user, tokamak, version, shot, run, occurrence )
+
+        prts = []
+
+        print("Found {} sources.".format(len(self.ids.distribution_sources.source) ) )
+        for isrc,source in enumerate(self.ids.distribution_sources.source):
+            prts.append(self.read_source(source))
+
+
+        # Combine prts into a single dict
+        out = self.combine_sources(prts)
+
+
+        return out
+
+    def combine_sources(self, srcs):
+        n = 0
+        gyro_types = []
+        for s in srcs:
+            if s is None:
+                continue
+            n += s['n']
+            if 'energy' in s:
+                gyro_types.append(1)
+            elif 'vr'   in s:
+                gyro_types.append(2)
+            else:
+                gyro_types.append(0)
+        print("Total number of markers read: {}".format(n))
+
+        gyro_types=np.array(gyro_types)
+        if   np.all( gyro_types == 1):
+            gyro_type=1
+            fields = ['r', 'phi', 'z', 'energy', 'pitch']
+        elif np.all( gyro_types == 2):
+            gyro_type=2
+            fields = ['r', 'phi', 'z','vz','vr','vphi']
+        else:
+            raise(ValueError('Unknown gyro type'))
+
+        fields += ['weight','anum','znum','ids','charge','mass','time']
+
+        out={'n':n}
+        for f in fields:
+            out[f] = np.array([],dtype=srcs[0][f].dtype)
+            for s in srcs:
+                if s is None:
+                    continue
+                out[f] = np.concatenate( (out[f],s[f]) )
+
+        out['ids']   = np.arange(1,n+1,dtype=np.int)
+
+        print(srcs[0]['anum'])
+        print(out['anum'])
+
+
+        return out
+
+
+    def read_source(self,source,time=0.0):
+        """
+        Read one source to a dictionary
+        """
+
+        # We support only ions
+        if not ( source.species.type.index == 2 or
+                 source.species.type.index == 3 ):
+            return None
+
+        if len(source.markers) <= 0:
+            return None
+
+        timeIndex = 0
+
+        out = {}
+
+        # number of markers
+        n = len( source.markers[timeIndex].weights )
+        if n <= 0:
+            return None
+
+        gyro_type = source.gyro_type  #1=actual, 2=gyrocentre
+
+        indexes = np.array([x.index for x in source.markers[timeIndex].coordinate_identifier ])
+
+        if gyro_type == 2:
+             # GUIDING CENTRE
+
+
+             # From coordinates:
+             #------------------
+
+             # for fortran: use imas_coordinate_identifier, only: IDcoord => coordinate_identifier
+             # what about python?
+             imasinds = [ 4,    5,    3,    301,      403,  ]
+             a5fields = ['r', 'phi', 'z', 'energy', 'pitch']
+
+             for i,iind in enumerate(imasinds):
+                 out[a5fields[i]] = source.markers[timeIndex].positions[:,np.argwhere(indexes==iind)[0][0]]
+
+        elif gyro_type == 1:
+            # PARTICLE LOCATION
+
+            # From coordinates:
+             #------------------
+
+             # for fortran: use imas_coordinate_identifier, only: IDcoord => coordinate_identifier
+             # what about python?
+             imasinds = [ 4,    5,    3,  103 ] #,    -1,     -1,  -1 ]  # no vr available!
+             a5fields = ['r', 'phi', 'z','vz'] #, 'vr', 'vphi', 'vz']
+             for i,iind in enumerate(imasinds):
+                 out[a5fields[i]] = source.markers[timeIndex].positions[:,np.argwhere(indexes==iind)[0][0]]
+             i_velocity_x, i_velocity_y, i_velocity_z = 101, 102, 103
+             vx = source.markers[timeIndex].positions[:,np.argwhere(indexes==i_velocity_x)[0][0]]
+             vy = source.markers[timeIndex].positions[:,np.argwhere(indexes==i_velocity_y)[0][0]]
+             #vz = source.markers[timeIndex].positions[:,np.argwhere(indexes==i_velocity_z)[0][0]]
+
+             #print("adding vr,vz")
+             (x,y,z) = pol2cart(out['r'], out['phi'], out['z'])
+             (out['vr'],out['vphi'],_vz) = cart2pol_vec(vx,x,vy,y)
+             #out['vr']   = vr
+             #out['vphi'] = vphi
+             #print("added vr,vz")
+        else:
+            raise ValueError("Unknown gyrotype='{}'".format(gyro_type))
+
+        # Weight:
+        #--------
+
+        out['weight'] = np.array(source.markers[timeIndex].weights)
+
+
+        # From species:
+        #--------------
+        out['anum']  = np.ones_like(out['weight'],dtype=np.int) * np.int(np.rint(source.species.ion.element[0].a))
+        out['znum']  = np.ones_like(out['weight'],dtype=np.int) * np.int(np.rint(source.species.ion.element[0].z_n))
+
+        # Generated:
+        #-----------
+        out['ids']   = np.arange(1,n+1,dtype=np.int)
+        out['charge']= np.ones_like(out['weight'],dtype=np.float) * constants.elementary_charge * source.species.ion.z_ion
+        out['mass']  = np.ones_like(out['weight'],dtype=np.float) * species.autodetect_species(
+            int(source.species.ion.element[0].a),
+            int(source.species.ion.element[0].z_n) )['mass']
+
+        # From parameters (outside the source)
+        #-------------------------------------
+        out['time'] = np.ones_like(out['weight'],dtype=int) * time
+
+        out['n'] = n
+
+        return out
+
+    def display(self):
+
+        timeIndex=0
+
+        #print(self.ids.distribution_sources)
+        print("Found {} sources.".format(len(self.ids.distribution_sources.source) ) )
+        for isrc,source in enumerate(self.ids.distribution_sources.source):
+            print("Source {}:".format(isrc))
+
+            # ion = 2,3 neutral = 4,5, 6=neutron
+            print("  Species type {}".format(source.species.type.index) )
+            if source.species.type.index == 2 or source.species.type.index == 3:
+                if len(source.species.ion.element) > 1:
+                    print("  molecule")
+                    continue
+                print("  a  {} z_ion  {}".format(
+                    source.species.ion.element[0].a,
+                      source.species.ion.z_ion)    )
+            if source.species.type.index == 4 or source.species.type.index == 5:
+                if len(source.species.neutral.element) > 1:
+                    print("  molecule")
+                    continue
+                print("  a  {} z_ion  {}".format(
+                    source.species.neutral.element[0].a,
+                    0.0 ) )
+            print("  gyro_type {}".format(source.gyro_type) ) #1=actual, 2=gyro
+
+            if len(source.markers) == 0:
+                print("  No markers in source.")
+                continue
+            indexes = np.array([x.index for x in source.markers[timeIndex].coordinate_identifier ])
+            print("  ",end="")
+            for ident in source.markers[timeIndex].coordinate_identifier:
+                #print("  {}: {}".format(ident.index, ident.name))
+                print("{}".format(ident.name),end=', ')
+            print("\n  {} markers, summed weight {} particles".format(
+                len( source.markers[timeIndex].weights),
+                sum( source.markers[timeIndex].weights) ) )
+            #print("  Total weight {}".format() ))
+
+            r,phi,z,priv = 4,5,3,-1
+            print("  R ranging from {}m to {}m.".format(
+                np.amin(source.markers[timeIndex].positions[:,np.argwhere(indexes==r)[0][0]]),
+                np.amax(source.markers[timeIndex].positions[:,np.argwhere(indexes==r)[0][0]])
+            ))
+
 class wall_2d(a5imas):
 
     def __init__(self):
