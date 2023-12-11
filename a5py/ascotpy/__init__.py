@@ -337,6 +337,13 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                                ctypes.sizeof(ctypes.c_double) * pos)
             return ctypes.cast(arr, ctypes.POINTER(ctypes.c_double))
 
+        def setintptr(pos):
+            """Create a pointer on the int offload array on a given position
+            """
+            arr = ctypes.byref(self._int_offload_array.contents,
+                               ctypes.sizeof(ctypes.c_int) * pos)
+            return ctypes.cast(arr, ctypes.POINTER(ctypes.c_int))
+
         # These must be in the same order as they are packed in C
         pos = 0
         self._bfield_offload_array = setptr(pos)
@@ -356,7 +363,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         self._asigma_offload_array = setptr(pos)
         pos += self._sim.asigma_offload_data.offload_array_length
 
-        self._wall_int_offload_array = self._int_offload_array
+        self._wall_int_offload_array = setintptr(0)
 
     def _unpack(self, bfield=True, efield=True, plasma=True, wall=True,
                 neutral=True, boozer=True, mhd=True, asigma=True):
