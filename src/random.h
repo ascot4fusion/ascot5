@@ -94,7 +94,7 @@ void random_drand48_normal_simd(int n, double* r);
 /** Sample random number [0.0,1.0) from from uniform distribution */
 #define random_uniform(data) drand48()
 /** Sample from Normal distribution                               */
-#define random_normal(data) random_drand_normal()
+#define random_normal(data) random_drand48_normal()
 /** Same as random_uniform but vectorised                         */
 #define random_uniform_simd(data, n, r) random_drand48_uniform_simd(n, r)
 /** Same as random_normal but vectorised                          */
