@@ -129,7 +129,7 @@ class Afsi():
             for i in range(nr):
                 for k in range(nz):
                     temp[i,j,k]  = self._ascot.input_eval(
-                        r[i], phi[j], z[k], time, "ti1")
+                        r[i], phi[j], z[k], time, "ti1").to("J")
                     dens1[i,j,k] = self._ascot.input_eval(
                         r[i], phi[j], z[k], time, "ni"+str(ispecies1))
                     dens2[i,j,k] = self._ascot.input_eval(
@@ -183,7 +183,7 @@ class Afsi():
         ----------
         reaction : int
             Fusion reaction index
-        beam1 : dict
+        beam : dict
             Beam distribution that acts as the first reactant.
         swap : bool, optional
             If True, beam distribution acts as the second reactant and
@@ -246,16 +246,13 @@ class Afsi():
             self._ascot.input_free(bfield=True, plasma=True)
             raise ValueError("Reactant species not present in plasma input.")
 
-        if not swap:
-            beam["charge"][0]
-
         temp = np.zeros((nr, nphi, nz))
         dens = np.zeros((nr, nphi, nz))
         for j in range(nphi):
             for i in range(nr):
                 for k in range(nz):
                     temp[i,j,k] = self._ascot.input_eval(
-                        r[i], phi[j], z[k], time, "ti1")
+                        r[i], phi[j], z[k], time, "ti1").to("J")
                     dens[i,j,k] = self._ascot.input_eval(
                         r[i], phi[j], z[k], time, "ni"+str(ispecies))
 
@@ -335,6 +332,7 @@ class Afsi():
         if beam2 is not None:
             dist2  = self._init_dist_5d(beam2)
             react2 = self._init_afsi_data(dist_5D=dist2)
+            mult = 1.0
         else:
             react2 = react1
             mult = 0.5
@@ -373,8 +371,8 @@ class Afsi():
         thermaldata.min_r   = minr
         thermaldata.max_r   = maxr
         thermaldata.n_phi   = nphi
-        thermaldata.min_phi = minphi
-        thermaldata.max_phi = maxphi
+        thermaldata.min_phi = minphi * np.pi/180
+        thermaldata.max_phi = maxphi * np.pi/180
         thermaldata.n_z     = nz
         thermaldata.min_z   = minz
         thermaldata.max_z   = maxz
@@ -390,8 +388,8 @@ class Afsi():
         data.min_r     = dist.abscissa_edges("r")[0]
         data.max_r     = dist.abscissa_edges("r")[-1]
         data.n_phi     = dist.abscissa("phi").size
-        data.min_phi   = dist.abscissa_edges("phi")[0]
-        data.max_phi   = dist.abscissa_edges("phi")[-1]
+        data.min_phi   = dist.abscissa_edges("phi")[0] * np.pi/180
+        data.max_phi   = dist.abscissa_edges("phi")[-1] * np.pi/180
         data.n_z       = dist.abscissa("z").size
         data.min_z     = dist.abscissa_edges("z")[0]
         data.max_z     = dist.abscissa_edges("z")[-1]
@@ -407,6 +405,15 @@ class Afsi():
         data.n_q       = dist.abscissa("charge").size
         data.min_q     = dist.abscissa_edges("charge")[0]
         data.max_q     = dist.abscissa_edges("charge")[-1]
+
+        data.step_6 = 1 * 1 * data.n_pperp * data.n_ppara * data.n_z \
+            * data.n_phi;
+        data.step_5 = 1 * 1 * data.n_pperp * data.n_ppara * data.n_z;
+        data.step_4 = 1 * 1 * data.n_pperp * data.n_ppara;
+        data.step_3 = 1 * 1 * data.n_pperp;
+        data.step_2 = 1 * 1;
+        data.step_1 = 1;
+
         data.histogram = npctypes.as_ctypes(np.ascontiguousarray(
             dist.histogram().ravel(), dtype="f8"))
         return data
