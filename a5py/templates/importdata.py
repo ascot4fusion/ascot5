@@ -314,9 +314,12 @@ class ImportData():
         with open(fn, "r") as f:
             eqd = geqdsk.read(f)
 
-        cocos = cocosmod.assign(
-            eqd["qpsi"][0], eqd["cpasma"], eqd["bcentr"], eqd["simagx"],
-            eqd["sibdry"], phiclockwise, weberperrad)
+        if cocos:
+            verbose and print("Ignoring COCOS check and using the give value")
+        else:
+            cocos = cocosmod.assign(
+                eqd["qpsi"][0], eqd["cpasma"], eqd["bcentr"], eqd["simagx"],
+                eqd["sibdry"], phiclockwise, weberperrad)
 
         verbose and print("Eqdsk cocos: "+str(cocos))
         verbose and print("ASCOT cocos: "+str(cocosmod.COCOS_ASCOT))
@@ -325,7 +328,8 @@ class ImportData():
             warnings.warn(
                 "EQDSK COCOS is %d while ASCOT5 expects 3. Transforming COCOS"
                 % cocos)
-            eqd = cocosmod.fromCocosNtoCocosM(eqd, cocosmod.COCOS_ASCOT)
+            eqd = cocosmod.fromCocosNtoCocosM(eqd, cocosmod.COCOS_ASCOT,
+                                              cocos_n=cocos)
 
         b2d = {
             "nr" : eqd["nx"],
