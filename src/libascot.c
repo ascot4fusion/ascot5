@@ -270,7 +270,7 @@ void libascot_B_field_gradient_descent(
     B_field_eval_psi_dpsi(psidpsi, rz[0], phi, rz[1], time, &sim.B_data);
 
     int iter = 0;
-    while (1) {
+    while(1) {
         if( B_field_eval_psi_dpsi(psidpsi, rz[0], phi, rz[1], time,
                                   &sim.B_data) ) {
             break;
@@ -288,11 +288,7 @@ void libascot_B_field_gradient_descent(
             // Add a bit of padding
             B_field_eval_psi_dpsi(
                 psidpsi, rz[0], phi, rz[1], time, &sim.B_data);
-            if(ascent) {
-                psi[0] = psi[0] + (tol * psidpsi[1] + tol * psidpsi[3]);
-            } else {
-                psi[0] = psi[0] - (tol * psidpsi[1] + tol * psidpsi[3]);
-            }
+            psi[0] = psi[0] + (tol * psidpsi[1] + tol * psidpsi[3]);
             break;
         }
 
