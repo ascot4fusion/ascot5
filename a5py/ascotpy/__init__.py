@@ -340,9 +340,12 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         def setintptr(pos):
             """Create a pointer on the int offload array on a given position
             """
-            arr = ctypes.byref(self._int_offload_array.contents,
-                               ctypes.sizeof(ctypes.c_int) * pos)
-            return ctypes.cast(arr, ctypes.POINTER(ctypes.c_int))
+            if self._int_offload_array:
+                arr = ctypes.byref(self._int_offload_array.contents,
+                                   ctypes.sizeof(ctypes.c_int) * pos)
+                return ctypes.cast(arr, ctypes.POINTER(ctypes.c_int))
+            else:
+                return self._int_offload_array
 
         # These must be in the same order as they are packed in C
         pos = 0
