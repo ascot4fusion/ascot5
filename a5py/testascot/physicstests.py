@@ -2384,12 +2384,7 @@ if __name__ == '__main__':
     failed = test.execute(
         init=True, run=True, check=True,
         tests=["elementary", "orbitfollowing", "gctransform", "ccoll",
-<<<<<<< HEAD
                "classical", "neoclassical", "boozer", "mhd", "afsi",
-               "biosaw"])#, "atomic"])
-=======
-               "classical", "neoclassical", "boozer", "mhd", "bbnbi"])
-    #, "atomic"])
->>>>>>> b562fa8a (Implemented bbnbi tests, divergence and fixed the bending issue which was due to momentum not updated. Requires polishing)
+               "bbnbi", "biosaw"])#, "atomic"])
     plt.show(block=False)
     if failed: raise Exception("Verification failed")
