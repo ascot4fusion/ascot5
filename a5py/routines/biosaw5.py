@@ -91,9 +91,10 @@ class BioSaw():
             if any(  np.diff(xyz[:,0])**2 + np.diff(xyz[:,1])**2
                    + np.diff(xyz[:,2])**2 == 0):
                 raise ValueError("A coil has zero-length elements")
-            _LIBASCOT.biosaw_calc_B(n, X.ravel(), Y.ravel(), Z.ravel(),
-                                    coiln, xyz[:,0], xyz[:,1], xyz[:,2],
-                                    bx0, by0, bz0)
+            _LIBASCOT.biosaw_calc_B(
+                n, X.ravel(), Y.ravel(), Z.ravel(), coiln,
+                xyz[:,0].ravel(), xyz[:,1].ravel(), xyz[:,2].ravel(),
+                bx0, by0, bz0)
             bx += bx0 * I
             by += by0 * I
             bz += bz0 * I
