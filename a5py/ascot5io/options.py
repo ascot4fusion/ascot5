@@ -109,8 +109,8 @@ class Opt(DataGroup):
         self._OPT_DIST_MIN_TIME              = 0.0
         self._OPT_DIST_MAX_TIME              = 10.0
         self._OPT_DIST_NBIN_TIME             = 1
-        self._OPT_DIST_MIN_CHARGE            = -100
-        self._OPT_DIST_MAX_CHARGE            = 100
+        self._OPT_DIST_MIN_CHARGE            = -1.5
+        self._OPT_DIST_MAX_CHARGE            = 100.0
         self._OPT_DIST_NBIN_CHARGE           = 1
         self._OPT_ENABLE_DIST_COM            = 0
         self._OPT_DIST_MIN_MU                = 0
