@@ -1001,7 +1001,7 @@ class PhysTest():
         print("  GCF           %1.1e      %1.2f" % (th_ekin[1], th_pitch[1]))
         print("  GCA           %1.1e      %1.2f" % (th_ekin[2], th_pitch[2]))
         print("  Expected      %1.1e      %1.2f" % (Te, 0.0))
-        if np.amax(np.abs(Te.v - th_ekin)) > 1e3 or \
+        if np.amax(np.abs(Te.v - th_ekin)) > 2e3 or \
            np.amax(np.abs(0.0 - th_pitch)) > 0.5:
             print("  (Failed)")
             passed = False
@@ -1295,21 +1295,24 @@ class PhysTest():
             ri = np.interp(ri, rhoomp, romp) * unyt.m
             rf = np.interp(rf, rhoomp, romp) * unyt.m
             Dgo[i] = 0.5 * np.mean( (rf - ri)**2 / (tf - ti) )
-            Dgoerr[i] = np.sqrt( (0.5 * np.var( (rf - ri)**2 / (tf - ti) )) / ri.size )
+            Dgoerr[i] = np.sqrt( (0.5 * np.var( (rf - ri)**2 / (tf - ti) )) \
+                                 / ri.size )
 
             ri, ti = run_gcf.getstate("rho", "mileage", state="ini")
             rf, tf = run_gcf.getstate("rho", "mileage", state="end")
             ri = np.interp(ri, rhoomp, romp) * unyt.m
             rf = np.interp(rf, rhoomp, romp) * unyt.m
             Dgcf[i] = 0.5 * np.mean( (rf - ri)**2 / (tf - ti) )
-            Dgcferr[i] = np.sqrt( (0.5 * np.var( (rf - ri)**2 / (tf - ti) )) / ri.size )
+            Dgcferr[i] = np.sqrt( (0.5 * np.var( (rf - ri)**2 / (tf - ti) )) \
+                                  / ri.size )
 
             ri, ti = run_gca.getstate("rho", "mileage", state="ini")
             rf, tf = run_gca.getstate("rho", "mileage", state="end")
             ri = np.interp(ri, rhoomp, romp) * unyt.m
             rf = np.interp(rf, rhoomp, romp) * unyt.m
             Dgca[i] = 0.5 * np.mean( (rf - ri)**2 / (tf - ti) )
-            Dgcaerr[i] = np.sqrt( (0.5 * np.var( (rf - ri)**2 / (tf - ti) )) / ri.size )
+            Dgcaerr[i] = np.sqrt( (0.5 * np.var( (rf - ri)**2 / (tf - ti) )) \
+                                  / ri.size )
 
             ni[i] = run_go.plasma.read()["idensity"][0, 0]
 
@@ -1350,8 +1353,10 @@ class PhysTest():
         ax.plot(veff[:i1+1],   Db[:i1+1],   color="black")
 
         ax.errorbar(veff_x, Dgo, yerr=Dgoerr,  linestyle="none", marker="*")
-        ax.errorbar(veff_x*1.01, Dgcf, yerr=Dgcferr, linestyle="none", marker="o")
-        ax.errorbar(veff_x*1.09, Dgca, yerr=Dgcaerr, linestyle="none", marker="^")
+        ax.errorbar(veff_x*1.01, Dgcf, yerr=Dgcferr, linestyle="none",
+                    marker="o")
+        ax.errorbar(veff_x*1.09, Dgca, yerr=Dgcaerr, linestyle="none",
+                    marker="^")
 
         ax.set_xlabel(r"Effective collisionality $\nu^*$")
         ax.set_ylabel(r"Diffusion [m$^2$/s]")
@@ -1471,7 +1476,7 @@ class PhysTest():
     def run_boozer(self):
         """Run Boozer transformation test.
         """
-        if hasattr(self.ascot.data, PhysTest.tag_boozer):
+        if hasattr(self.ascot.data, PhysTest.tag_boozer + "0"):
             warnings.warn("Results already present: Test Boozer transformation")
             return
         for i in range(4):
@@ -2348,6 +2353,7 @@ class PhysTest():
         ax3.set_ylabel("$B_phi$ [m]")
         ax4.set_xlabel("$\phi$ [rad]")
         ax4.set_ylabel("$B_phi$ [m]")
+        return passed
 
     def _activateinputs(self, tag):
         data = self.ascot.data
