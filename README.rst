@@ -80,3 +80,11 @@ How to Contribute
    - Start by creating an issue, then (fork and) make a branch ``feature/<issuenumber>-issue`` from develop.
    - When ready to merge, create a pull request running automated tests on your branch.
    - Upon test completion and acceptance, your feature will be merged into develop for inclusion in the next release.
+
+Licence
+=======
+
+The ASCOT5 and associated programs are distributed under the terms of the GNU Lesser General Public License (LGPL).
+Please see the files COPYING and COPYING.LESSER for more information.
+
+This has been done after the code was released to the original authors by the Dean of School of Science of Aalto University and discussion between the key contributors, including Jari Varje, Konsta Särkimäki, Antti Snicker and Simppa Äkäslompolo.
