@@ -54,6 +54,12 @@
    :inherited-members:
    :undoc-members:
 
+.. autoclass:: a5py.ascot5io.BBNBIGroup
+   :show-inheritance:
+   :members:
+   :inherited-members:
+   :undoc-members:
+
 .. autoclass:: a5py.ascot5io.InputGroup
    :show-inheritance:
    :members:
