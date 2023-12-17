@@ -446,28 +446,96 @@ Note that the virtual run object cannot be used once its results have been free'
 Marker generation
 =================
 
-The marker generation serves two purposes.
-First, the generated population must represent the particle population it models.
-Second, the marker generation should aim to gain best possible signal-to-noise ratio so that one can use as few markers as possible to obtain the results.
-For example, alpha particles are mostly born at the core but simulating the markers at the core makes little sense if we are only interested in losses which mostly originate at the edge.
+Markers can be generated in three ways.
+The first way is to create markers explicitly by manually filling the marker dictionary.
+Here :meth:`~a5py.ascot5io.marker.Marker.generate` can be used to create an dictionary prefilled with the data of a given marker species:
 
-For testing purposes one can just manually initialize markers at the desired position.
-Here is a helpful tool as it initializes arrays of dummy markers of given particle species:
+.. code-block:: python
 
+   from a5py.ascot5io.marker import Marker
 
-Another helpful tool for testing and debugging purposes is which converts marker end states to new marker input:
+   # Returns a dictionary where charge, mass, anum and znum are pre-filled (other
+   # quantities are initialized as zeros)
+   mrk = Marker.generate("gc", n=100, species="alpha")
+   mrk["energy"][:] = 3.5e6
+   mrk["pitch"][:]  = 0.99 - 1.98 * np.random.rand(100,)
+   mrk["r"][:]      = np.linspace(6.2, 8.2, 100)
 
+The second way is to initialize markers from the end state of an existing simulation.
+This is usually done if the markers hit CPU time limit or if the initial simulation traced markers to separatrix in guiding center mode and the follow-up simulation uses gyro-orbit mode to trace markers until they hit the wall.
+Use method :meth:`~a5py.ascot5io.RunGroup.getstate_markers` to create marker input from the endstate:
 
-To generate markers for actual simulation, one can use AFSI to generate fusion alphas and BBNBI to generate beam ions.
-These tools create 5D distributions which can then be given as an input for the marker generator :class:`` that samples markers from the distribution.
-The marker generator takes two distributions as an input: one that represents the physical particle population and from which the weights are assigned, and one probability distribution from which markers are sampled.
+.. code-block:: python
 
-.. currentmodule:: a5py.ascot5io
+   a5 = Ascot("ascot.h5")
+   # Get IDs of markers to be used in the input
+   ids = a5.data.MYRUN.getstate("ids", endcond="RHOMAX")
+   mrk = a5.data.MYRUN.getstate_markers("gc", ids=ids)
+
+In actual simulations markers are usually sampled from a source distribution e.g. fusion birth profile provided by AFSI.
+For this purpose :class:`~a5py.routines.markergen.MarkerGenerator` can be used to sample markers from any 5D distribution represented by :class:`~a5py.ascot5io.dist.DistData` object.
+Instance of this class can be found in ``markergen`` attribute in :class:`.Ascot`:
+
+.. code-block:: python
+
+   alphadist = a5.data.AFSIRUN.getdist("prod1")
+
+   # "Extra" dimensions (time and charge) must be removed first
+   alphadist.integrate(time=np.s_[:], charge=np.s_[:])
+
+   # Generate markers
+   nmrk   = 10**6
+   anum   = 4
+   znum   = 2
+   mass   = 4.014*unyt.amu
+   charge = 2.0*unyt.e
+   mrk = a5.markergen.generate(nmrk, mass, charge, anum, znum, alphadist)
+
+However, generating markers like this means that all markers have same weights.
+Marker re-weighting and importance sampling should be considered always to increase the computational efficiency in simulation.
+For example, when simulating alpha particle losses there is little point in simulating well-confined alpha particles in the core.
+Instead, one should initialize more markers on the edge and re-weight them so that they still accurately represent the total alpha particle distribution.
+:class:`~a5py.routines.markergen.MarkerGenerator` can do this for you if one provides it with and additional 5D distribution that represents the (probability) distribution from which markers are sampled.
+
+.. code-block:: python
+
+   # Construct a 5D distribution that is uniform
+   markerdist = alphadist._copy()
+   markerdist._distribution[:] = 1
+
+   # Generate markers
+   nmrk   = 10**6
+   anum   = 4
+   znum   = 2
+   mass   = 4.014*unyt.amu
+   charge = 2.0*unyt.e
+   mrk, mrkdist, prtdist = a5.markergen.generate(
+       nmrk, mass, charge, anum, znum, alphadist, markerdist=markerdist,
+      return_dists=True, minweight=1)
+
+Finally, :class:`~a5py.routines.markergen.MarkerGenerator` has tools to create the marker distribution e.g. from a given :math:`\rho` profile.
+
+.. code-block:: python
+
+   rho  = np.linspace(0, 1, 100)
+   prob = np.ones((100,))
+   prob = (1.0+rho)**3
+
+   a5.input_init(bfield=True)
+   markerdist = a5.markergen.rhoto5d(
+       rho, prob, alphadist.abscissa_edges("r"),
+      alphadist.abscissa_edges("phi"), alphadist.abscissa_edges("z"),
+      alphadist.abscissa_edges("ekin"), alphadist.abscissa_edges("pitch"))
+   a5.input_free()
+
+.. currentmodule:: a5py.routines.markergen
 
 .. autosummary::
    :nosignatures:
 
-   RunGroup.getstate_markers
+   MarkerGenerator
+   MarkerGenerator.generate
+   MarkerGenerator.rhoto5d
 
 AFSI
 ====
@@ -478,49 +546,86 @@ AFSI has three modes of operation: *thermal* where two Maxwellian populations ar
 The distributions must have the format of a 5D distribution.
 
 AFSI uses ``libascot.so`` to perform the calculations efficiently, but the interface is completely in Python.
-Each AFSI5 run is also stored in HDF5, and in Python it can read and access the data in same fashion as the ASCOT5 runs.
-Assuming that we have a file with magnetic field data and DT plasma input present, and also a run tagged "BEAMS" which contains beam slowing-down distribution in 5D, then AFSI5 is run as
+Each AFSI5 run is stored in HDF5 and its Python counterpart, , operates similarly to .
+The main difference is that the group contains only distribution data: ``prod1`` and ``prod2`` which are :class:`~a5py.ascot5io.dist.DistData` objects representing the fusion products.
+
+Running AFSI requires that the inputs contain magnetic field and plasma data.
+AFSI can automatically detect the reactants from the plasma input when running thermal or beam-thermal simulations.
+
+.. currentmodule:: a5py.routines.afsi5
+
+To run AFSI, use :class:`.Ascot` attribute ``afsi`` which is an instance of :class:`Afsi`.
+Here's a demonstration of running AFSI withh different modes:
 
 .. code-block:: python
 
    a5 = Ascot("ascot.h5")
-   a5.input_init(bfield=True, plasma=True)
-   a5.afsi.
-   a5.input_free()
+   # Lists all available reactions
+   a5.afsi.reactions()
 
-   # The output is stored in HDF5 as a results group (and set as active):
-   a5.ls()
-   a5.data.active.plot_dist("r", "z", "product1")
+   # Thermal mode requires defining the abscissae for the product distributions.
+   # For the other modes the output distributions have the same size and dimensions
+   # as the beam input distribution.
+   a5.afsi.thermal(
+      "DT_He4n",
+      rmin, rmax, nr, zmin, zmax, nz,
+      minphi=0, maxphi=2*np.pi, nphi=1, nmc=1000,
+      minppara=-1.3e-19, maxppara=1.3e-19, nppara=80,
+      minpperp=0, maxpperp=1.3e-19, npperp=40)
+
+   # In beam-thermal, the beam is the first reactant unless swap=True
+   a5.afsi.beamthermal("DD_Tp", beamdist, swap=False)
+
+   # Beam-beam can either be two separate beams or the beam interacting with itself
+   a5.afsi.beambeam("DD_Tp", beamdist, beam2=None)
+
+   # Results are accessed as usual
+   dist = a5.data.active.getdist("prod1")
+
+.. autosummary::
+   :nosignatures:
+
+   Afsi
+   Afsi.thermal
+   Afsi.beamthermal
+   Afsi.beambeam
+   Afsi.reactions
 
 BBNBI
 =====
 
-BBNBI5 implements a beamlet based model for generating neutrals from an injector geometry.
-Neutrals are then followed until they are ionized or they hit the wall (shinethrough).
+BBNBI implements a beamlet based model for generating neutrals from an injector geometry.
+The code follows generated neutrals until they are either ionized or they hit the wall (and become shinethrough).
 
-BBNBI5 uses :class:`.NBI` input which consists of a single or a bundle of injectors represented by :class:`.Injector`.
-It is important to note that there are now way to separate results by injector if the injectors were bundled.
-Only bundle injectors if they have identical geometries or otherwise there is no reason to separate the results.
-
-BBNBI5 is a separate program that has to be compiled separately: ``make bbnbi5`` in the main folder.
+BBNBI is a separate program that has to be compiled separately: ``make bbnbi5`` in the main folder.
 This creates binary ``./build/bbnbi5`` that uses the same input file and shares some inputs with the main program.
 A ``bbnbi5`` run requires following inputs: ``nbi``, ``bfield``, ``plasma``, ``wall``, and ``options``.
-The only options that are used from the input are settings for the distributions: if a distribution is toggled on, BBNBI5 gathers ionized markers on that distribution.
-When these are present, the code is run with
+Options are only used partially as only the distribution options are used to bin ionized markers to create particle source distribution.
+The ``nbi`` input refers to :class:`.NBI` which consists of a single or a bundle of injectors represented by :class:`.Injector`.
 
-.. code-block::
+.. note::
+   It is important to note that there are now way to separate results by injector if the injectors were bundled.
+   Only bundle injectors if they have identical geometries or otherwise there is no reason to separate the results.
 
-   # n is the number of markers to be used in simulation
-   # writemarkers creates marker input from ionized markers (on by default)
-   # [t0, t1] is the time interval when the beam is on. This affects the time
-   # assigned to generated markers and the output distributions are weighted
-   # with (t1-t0). Default is t0=t1=0.0 where all markers have t=0.0 and the
-   # the distribution is weighted with 1.0 s
-   ./bbnbi5 --in=ascot.h5 --d="MYTAG My description" --n=1000 --writemarkers=1 --t0=0.0 --t1=1.0
+For testing purposes one can use to create a simple injector and there are scripts to generate injectors for various machines, so generating the injector data explicitly is rarely necessary.
+To generate injectors explicitly, refer to :class:`.Injector` for the required data.
+In short, one has to provide the location of the beamlets, their direction and beam divergence, injected species, the energy fractions and the beam power.
 
-If the option was set to generate marker input, there is a new instance of ``marker`` present in the file.
-Each BBNBI5 run is also stored in HDF5, and in Python it can read and access the data in same fashion as the ASCOT5 runs.
-Open Python terminal to access the data
+.. note::
+   Scripts to generate injector geometries exist for ITER, JET, ASDEX Upgrade, MAST-U, JT-60SA, NSTX, and TCV.
+   These are stored in a private repository so contact the ASCOT team in order to gain access.
+
+Once all the required inputs are present, BBNBI is run in a same way as ASCOT5 with the exception that BBNBI is not MPI parallelized:
+
+.. code-block:: bash
+
+   ./bbnbi5 --in=ascot.h5 --d="MYTAG My description" --n=100000 --t0=0.0 --t1=1.0
+
+Here the command line arguments specify the number of markers to be injected, ``n``, and the time-interval ``[t0,t1]`` when the beam is enabled.
+The time interval is only relevant for time-dependent simulations and all it does is to randomly pick a birth time for an injected marker from the interval.
+
+Each BBNBI run is stored in HDF5 and the data is accessed via :class:`.BBNBIGroup` which in many ways is similar to :class:`.RunGroup`.
+Instead of storing separate ini- and endstates, only the final state of the markers is stored and it can be used to evaluate wall loads in post-processing or to initialize markers for the follow-up ASCOT5 simulation.
 
 .. code-block:: python
 
@@ -528,11 +633,36 @@ Open Python terminal to access the data
    a5 = Ascot("ascot.h5")
    # List all inputs and outputs
    a5.data.BBNBI.ls()
+   # Marker summary and data (note that there is only one "state")
+   a5.data.BBNBI.getstate_markersummary()
+   r, z = a5.data.BBNBI.getstate("r", "z")
+   # Shinethrough
+   a5.input_init(bfield=True)
+   a5.data.active.plotwall_torpol()
+   a5.input_free()
+   # Create marker input from ionized markers
+   ids = a5.data.active.getstate("ids", endcond="IONIZED")
+   mrk = a5.data.active.getstate_markers("gc", ids=ids)
+   a5.data.create_input("gc", **mrk)
+   # Read the particle source distribution
+   dist = a5.data.getdist("5d")
+
+.. currentmodule:: a5py.ascot5io
 
 .. autosummary::
    :nosignatures:
 
-   a5py.Ascot.simulation_initinputs
+   BBNBIGroup
+   BBNBIGroup.getstate
+   BBNBIGroup.getstate_markers
+   BBNBIGroup.getstate_markersummary
+   BBNBIGroup.getdist
+   BBNBIGroup.getwall_figuresofmerit
+   BBNBIGroup.getwall_loads
+   BBNBIGroup.getwall_3dmesh
+   BBNBIGroup.plotwall_3dstill
+   BBNBIGroup.plotwall_3dinteractive
+   BBNBIGroup.plotwall_torpol
 
 BioSaw
 ======
@@ -542,32 +672,56 @@ It computes the magnetic field from a coil geometry and turns it into a :class:`
 The produced data is divergence-free although the level of divergence in simulation, when the data is interpolated with splines, depends on the grid resolution.
 BioSaw uses ``libascot.so`` to perform the calculations efficiently, but the interface is completely in Python.
 
-A common use of BioSaw is to incorporate the ripple from TF coils into an axisymmetric field.
-Begin by defining the coil geometry
+To run BioSaw, you need a file that has either :class:`.B_2DS` or :class:`.B_3DS` magnetic field present or set as active.
+One starts by defining the coil geometry:
+
+.. code-block:: python
+
+   rad   = 3.0
+   ang   = np.linspace(0, 2*np.pi, 40)
+   coilx = rad * np.cos(ang) + 6.2
+   coily = np.zeros(ang.shape)
+   coilz = rad * np.sin(ang)
+   coilxyz = np.array([coilx, coily, coilz])
 
 .. note::
    The coil geometry does not have to form a closed loop as BioSaw simply calculates the field arising from each line segment.
 
-To run BioSaw, first open a file that has either :class:`.B_2DS` or :class:`.B_3DS` magnetic field present or set as active.
-The calculation is then simply done as follows using the ``biosaw`` attribure which is an instance of :class:`.BioSaw`:
+.. currentmodule:: a5py.routines.biosaw5
+
+BioSaw is represented by class :class:`~a5py.routines.biosaw5.BioSaw` whose instance exists as an attribute named ``biosaw`` in :class:`.Ascot`.
+The method :meth:`BioSaw.calculate` can be used to calculate the magnetic field explicitly, but the methods :meth:`BioSaw.addto2d` and :meth:`BioSaw.addto3d` are more convenient to use when one wants to include the perturbation to an existing 2D or 3D field.
+
+To include perturbation from a coil to field that is already 3D:
 
 .. code-block:: python
 
-   # Define a simple coil which does not have to form a closed loop
+   # Current is in Ampéres
+   b3d = a5.biosaw.addto3d(coilxyz.T, current=30e4, revolve=None)
 
+   # Multiple coils can be given as lists
+   b3d = a5.biosaw.addto3d([coilxyz.T, ...], current=[30e4, ...], revolve=None)
 
-   # Open a file that has B_2DS input "B2D" and B_3DS input "B3D"
-   # BioSaw is operated via "biosaw" attribute.
-   a5 = Ascot("ascot.h5")
+In 2D, the most common application is the inclusion of TF ripple (which overrides the 2D toroidal field already present in the data).
+Here it is not necessary to know the coil current, as the current in TF coils can be scaled so that the average toroidal magnetic field on axis has the given value.
+Furthermore when multiple identical coils has a toroidally symmetrical arrangement, the field can be calculated with just a single coil and the total field computed by revolving and summing this result.
+This is achieved with ``revolve`` which defines the number of toroidal grid points (not the toroidal angle) the field is revolved in each rotation until we have gone whole turn.
+So if there are e.g. 18 TF coils, the number of grid points must be divisible by 18 and revolve is the number of grid points divided by the number of coils.
 
+.. code-block:: python
+
+   # Since the original field is 2D, one can now define the toroidal resolution for the 3D field
    b3d = a5.biosaw.addto2d(
-             coilxyz.T, phimin=0, phimax=360, nphi=180,
-             revolve=10, b0=5.3)
+         coilxyz.T, phimin=0, phimax=360, nphi=180,
+         revolve=10, b0=5.3)
+
+   # Write the data to HDF5
+   a5.data.create_input("B_3DS", **b3d, desc="TFRIPPLE")
 
 .. autosummary::
    :nosignatures:
 
-   a5py.routines.biosaw5.BioSaw
-   a5py.routines.biosaw5.BioSaw.addto2d
-   a5py.routines.biosaw5.BioSaw.addto3d
-   a5py.routines.biosaw5.BioSaw.calculate
+   BioSaw
+   BioSaw.addto2d
+   BioSaw.addto3d
+   BioSaw.calculate

@@ -36,12 +36,26 @@ Python API
    ~a5py.ascot5io.Ascot5IO
    ~a5py.ascot5io.RunGroup
    ~a5py.ascot5io.AfsiGroup
+   ~a5py.ascot5io.BBNBIGroup
    ~a5py.routines.afsi5.Afsi
    ~a5py.routines.biosaw5.BioSaw
+   ~a5py.routines.markergen.MarkerGenerator
 
 .. rubric:: ``Ascot``
 
 .. autoclass:: a5py.Ascot
+   :members:
+   :inherited-members:
+
+.. autoclass:: a5py.routines.afsi5.Afsi
+   :members:
+   :inherited-members:
+
+.. autoclass:: a5py.routines.biosaw5.BioSaw
+   :members:
+   :inherited-members:
+
+.. autoclass:: a5py.routines.markergen.MarkerGenerator
    :members:
    :inherited-members:
 

@@ -7,14 +7,14 @@ Clone the repository:
 
 .. code-block:: bash
 
-   git clone git@github.com:ascot4fusion/ascot5.git
+   git clone https://github.com/ascot4fusion/ascot5.git
 
 .. rubric:: Requirements
 
 - C compiler
 - HDF5
 - OpenMP
-- Python3 (pre- and postprocessing)
+- Python3.10 (pre- and postprocessing)
 - MPI (optional)
 - VTK (optional, for 3D wall visualization)
 
