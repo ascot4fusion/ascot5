@@ -52,6 +52,7 @@ import unyt
 import random
 import datetime
 
+from importlib.metadata import version as importlib_version
 from collections import OrderedDict
 from a5py.exceptions import AscotNoDataException, AscotIOException
 
@@ -65,7 +66,7 @@ OUTPUTGROUPS = ["inistate", "endstate", "dist5d", "distrho5d", "dist6d",
 """Names of the output data containers in runs.
 """
 
-VERSION = "5.5"
+VERSION = importlib_version("a5py")
 """Current version of the code."""
 
 def set_active(f, group):
