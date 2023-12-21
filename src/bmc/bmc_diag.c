@@ -415,6 +415,8 @@ void bmc_5D_to_particle_state(
     real mu = 0.5 * pperp * pperp / m / Bnorm;
     if(!err && mu < 0)          {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
+    real rz[2];
+    B_field_get_axis_rz(rz, Bdata, phi);
     if(!err) {
         ps->n_t_subcycles = rk4_subcycles;
         ps->r        = r;
@@ -430,8 +432,7 @@ void bmc_5D_to_particle_state(
         ps->weight   = 1;
         ps->time     = t;
         ps->mileage  = 0;
-        ps->theta    = atan2(ps->z-B_field_get_axis_z(Bdata, ps->phi),
-                                ps->r-B_field_get_axis_r(Bdata, ps->phi));
+        ps->theta    = atan2(ps->z - rz[1], ps->r - rz[0]);
         ps->id       = id;
         ps->endcond  = 0;
         ps->walltile = 0;

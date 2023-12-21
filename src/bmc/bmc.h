@@ -27,6 +27,7 @@ int forward_monte_carlo_from_source_particles(
         sim_offload_data* sim_offload,
         offload_package* offload_data,
         real* offload_array,
+        int* int_offload_array,
         double* mic1_start, double* mic1_end,
         double* mic0_start, double* mic0_end,
         double* host_start, double* host_end,
@@ -48,6 +49,7 @@ int backward_monte_carlo(
         sim_offload_data* sim_offload,
         offload_package* offload_data,
         real* offload_array,
+        int* int_offload_array,
         int mpi_rank,
         real t1,
         real t0,
@@ -67,6 +69,7 @@ void backward_monte_carlo_gc_time_indep(
         sim_data* sim,
         offload_package* offload_data,
         real* offload_array,
+        int* int_offload_array,
         diag_data* distr0,
         diag_data* distr1,
         B_field_data* Bdata,
@@ -87,6 +90,7 @@ void backward_monte_carlo_gc(
         sim_data* sim,
         offload_package* offload_data,
         real* offload_array,
+        int* int_offload_array,
         diag_data* distr0,
         diag_data* distr1,
         B_field_data* Bdata,
@@ -95,6 +99,7 @@ void backward_monte_carlo_gc(
         real h,
         int rk4_subcycles
     );
+
 int forward_monte_carlo_mesh(
         int n_particles,
         particle_state* ps1,
@@ -105,6 +110,7 @@ int forward_monte_carlo_mesh(
         sim_offload_data* sim_offload,
         offload_package* offload_data,
         real* offload_array,
+        int* int_offload_array,
         double* mic1_start, double* mic1_end,
         double* mic0_start, double* mic0_end,
         double* host_start, double* host_end,

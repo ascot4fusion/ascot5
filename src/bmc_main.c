@@ -146,20 +146,24 @@ int main(int argc, char** argv) {
     real* plasma_offload_array;
     real* neutral_offload_array;
     real* wall_offload_array;
+    int* wall_int_offload_array;
     real* boozer_offload_array;
     real* mhd_offload_array;
+    real* asigma_offload_array;
 
     /* Read input from the HDF5 file */
     if( hdf5_interface_read_input(&sim,
                                   hdf5_input_options | hdf5_input_bfield |
                                   hdf5_input_efield  | hdf5_input_plasma |
-                                  hdf5_input_neutral | hdf5_input_wall |
-                                  hdf5_input_marker | hdf5_input_boozer |
-                                  hdf5_input_mhd,
+                                  hdf5_input_neutral | hdf5_input_wall   |
+                                  hdf5_input_marker  | hdf5_input_boozer |
+                                  hdf5_input_mhd     | hdf5_input_asigma,
                                   &B_offload_array, &E_offload_array,
                                   &plasma_offload_array, &neutral_offload_array,
-                                  &wall_offload_array, &boozer_offload_array,
-                                  &mhd_offload_array, &input_p, &input_n) ) {
+                                  &wall_offload_array,  &wall_int_offload_array,
+                                  &boozer_offload_array, &mhd_offload_array,
+                                  &asigma_offload_array, NULL,
+                                  &input_p, &input_n) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
                    "\nInput reading or initializing failed.\n"
                    "See stderr for details.\n");
@@ -171,27 +175,36 @@ int main(int argc, char** argv) {
     /* Pack offload data into single array and free individual offload arrays */
     /* B_offload_array is needed for marker evaluation and is freed later */
     real* offload_array;
+    int* int_offload_array;
     offload_package offload_data;
-    offload_init_offload(&offload_data, &offload_array);
-    offload_data.unpack_pos = 0;
+    offload_init_offload(&offload_data, &offload_array, &int_offload_array);
+
     offload_pack(&offload_data, &offload_array, B_offload_array,
-                 sim.B_offload_data.offload_array_length);
+                 sim.B_offload_data.offload_array_length,
+		 &int_offload_array, NULL, 0);
+    B_field_free_offload(&sim.B_offload_data, &B_offload_array);
 
     offload_pack(&offload_data, &offload_array, E_offload_array,
-                 sim.E_offload_data.offload_array_length);
+                 sim.E_offload_data.offload_array_length,
+		 &int_offload_array, NULL, 0);
     E_field_free_offload(&sim.E_offload_data, &E_offload_array);
 
     offload_pack(&offload_data, &offload_array, plasma_offload_array,
-                 sim.plasma_offload_data.offload_array_length);
+                 sim.plasma_offload_data.offload_array_length,
+		 &int_offload_array, NULL, 0);
     plasma_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
 
     offload_pack(&offload_data, &offload_array, neutral_offload_array,
-                 sim.neutral_offload_data.offload_array_length);
+                 sim.neutral_offload_data.offload_array_length,
+		 &int_offload_array, NULL, 0);
     neutral_free_offload(&sim.neutral_offload_data, &neutral_offload_array);
 
     offload_pack(&offload_data, &offload_array, wall_offload_array,
-                 sim.wall_offload_data.offload_array_length);
-    wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
+                 sim.wall_offload_data.offload_array_length,
+		 &int_offload_array, wall_int_offload_array,
+                 sim.wall_offload_data.int_offload_array_length);
+    wall_free_offload(&sim.wall_offload_data, &wall_offload_array,
+		      &wall_int_offload_array);
 
     // setup endpoint conditions, total time=1, wall collision enabled
     bmc_setup_endconds(&sim, TIMESTEP);
@@ -211,14 +224,14 @@ int main(int argc, char** argv) {
                "\nInitializing marker states.\n");
     int n, n_tot;
     particle_state* ps;
-    if (bmc_init_particles(mpi_rank, mpi_size, &n, &n_tot, &ps, &ps_indexes, 1, &sim, &Bdata, offload_array, T1, MASS, CHARGE, RK4_SUBCYCLES)) {
+    if (bmc_init_particles(mpi_rank, mpi_size, &n, &n_tot, &ps, &ps_indexes, 1, &sim, &Bdata, offload_array, int_offload_array, T1, MASS, CHARGE, RK4_SUBCYCLES)) {
         goto CLEANUP_FAILURE;
     }
 
     /* Initialize results group in the output file */
     if (mpi_rank == mpi_root) {
         print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n")
-        if( hdf5_interface_init_results(&sim, qid) ) {
+	  if( hdf5_interface_init_results(&sim, qid, "bmc") ) {
             print_out0(VERBOSE_MINIMAL, mpi_rank,
                     "\nInitializing output failed.\n"
                     "See stderr for details.\n");
@@ -261,7 +274,7 @@ int main(int argc, char** argv) {
 
     // SIMULATE HERE
     if (backward_monte_carlo(n, HERMITE_KNOTS, ps, ps_indexes,
-                            &Bdata, &sim, &offload_data, offload_array, mpi_rank, T1, T0, TIMESTEP, RK4_SUBCYCLES, TIME_INDEPENDENT, DEBUG_EXIT_VELOCITY, &distr)) {
+                            &Bdata, &sim, &offload_data, offload_array, int_offload_array, mpi_rank, T1, T0, TIMESTEP, RK4_SUBCYCLES, TIME_INDEPENDENT, DEBUG_EXIT_VELOCITY, &distr)) {
         goto CLEANUP_FAILURE;
     }
 
@@ -298,9 +311,9 @@ int main(int argc, char** argv) {
     print_out0(VERBOSE_NORMAL, mpi_rank, "Computing Importance sampling weighted markers for FMC\n");
     if (mpi_rank == 0 && IMPORTANCE_SAMPLING) {
         if (IMPORTANCE_SAMPLING_METROPOLIS) {
-            fmcInitImportanceSamplingMetropolis(&nOut, &psOut, &distr, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, &sim, &Bdata, offload_array, &offload_data, 1, RK4_SUBCYCLES, input_ps, input_n, T0, MASS, CHARGE, IMPORTANCE_SAMPLING_METROPOLIS_D);
+            fmcInitImportanceSamplingMetropolis(&nOut, &psOut, &distr, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, &sim, &Bdata, offload_array, int_offload_array, &offload_data, 1, RK4_SUBCYCLES, input_ps, input_n, T0, MASS, CHARGE, IMPORTANCE_SAMPLING_METROPOLIS_D);
         } else {
-            fmc_init_importance_sampling_from_source_distribution(&nOut, &psOut, &distr, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, &sim, &Bdata, offload_array, &offload_data, 1, RK4_SUBCYCLES, input_ps, input_n);
+            fmc_init_importance_sampling_from_source_distribution(&nOut, &psOut, &distr, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, &sim, &Bdata, offload_array, int_offload_array, &offload_data, 1, RK4_SUBCYCLES, input_ps, input_n);
         }
 
         // convert Importance sampling marker
@@ -331,7 +344,7 @@ CLEANUP_FAILURE:
 
     mpi_interface_finalize();
 
-    offload_free_offload(&offload_data, &offload_array);
+    offload_free_offload(&offload_data, &offload_array, &int_offload_array);
 
     abort();
     return 1;

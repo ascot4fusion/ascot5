@@ -27,6 +27,7 @@ void bmc_simulate_timestep_gc(int n_simd_particles, int n_coll_simd_particles, p
         sim_offload_data* sim_offload,
         offload_package* offload_data,
         real* offload_array,
+        int* int_offload_array,
         real h, int n_rk4_subcycles
     );
 
@@ -35,6 +36,7 @@ void fmc_simulation(
         sim_offload_data* sim,
         offload_package* offload_data,
         real* offload_array,
+        int* int_offload_array,
         double* mic1_start, double* mic1_end,
         double* mic0_start, double* mic0_end,
         double* host_start, double* host_end,

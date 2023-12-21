@@ -23,7 +23,7 @@ void bmc_simulate_timestep_gc(int n_simd_particles, int n_coll_simd_particles, p
         int n_hermite_knots,
         sim_offload_data* sim_offload,
         offload_package* offload_data,
-        real* offload_array,
+        real* offload_array, int* int_offload_array,
         real h, int n_rk4_subcycles
     ) {
 
@@ -35,27 +35,33 @@ void bmc_simulate_timestep_gc(int n_simd_particles, int n_coll_simd_particles, p
     sim_data sim;
     sim_init(&sim, sim_offload);
 
-    real* ptr;
-    offload_data->unpack_pos = 0;
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->B_offload_data.offload_array_length);
+    real* ptr; int* ptrint;
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->B_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     B_field_init(&sim.B_data, &sim_offload->B_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->E_offload_data.offload_array_length);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->E_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     E_field_init(&sim.E_data, &sim_offload->E_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->plasma_offload_data.offload_array_length);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->plasma_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     plasma_init(&sim.plasma_data, &sim_offload->plasma_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->neutral_offload_data.offload_array_length);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->neutral_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     neutral_init(&sim.neutral_data, &sim_offload->neutral_offload_data, ptr);
-    
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->wall_offload_data.offload_array_length);
-    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
+
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->wall_offload_data.offload_array_length,
+                   int_offload_array,
+                   sim_offload->wall_offload_data.int_offload_array_length,
+                   &ptr, &ptrint);
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr, ptrint);
 
     random_init(&sim.random_data, time(NULL));
 
@@ -181,6 +187,7 @@ void fmc_simulation(
         sim_offload_data* sim,
         offload_package* offload_data,
         real* offload_array,
+        int* int_offload_array,
         double* mic1_start, double* mic1_end,
         double* mic0_start, double* mic0_end,
         double* host_start, double* host_end,
@@ -241,7 +248,7 @@ void fmc_simulation(
             {
                 *host_start = omp_get_wtime();
                 simulate(0, n_host, ps+2*n_mic, sim, offload_data,
-                    offload_array, diag_offload_array_host);
+                    offload_array, int_offload_array, diag_offload_array_host);
                 *host_end = omp_get_wtime();
             }
         #endif
@@ -456,10 +463,10 @@ void bmc_step_deterministic(particle_simd_gc *p, real *h, B_field_data *Bdata,
                 p->mu[i] = physlib_gc_mu(p->mass[i], pout, xiout, Bnorm);
 
                 /* Evaluate phi and theta angles so that they are cumulative */
-                real axis_r = B_field_get_axis_r(Bdata, p->phi[i]);
-                real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
-                p->theta[i] += atan2((R0 - axis_r) * (p->z[i] - axis_z) - (z0 - axis_z) * (p->r[i] - axis_r),
-                                     (R0 - axis_r) * (p->r[i] - axis_r) + (z0 - axis_z) * (p->z[i] - axis_z));
+                real rz[2];
+                B_field_get_axis_rz(rz, Bdata, p->phi[i]);
+                p->theta[i] += atan2((R0 - rz[0]) * (p->z[i] - rz[1]) - (z0 - rz[1]) * (p->r[i] - rz[0]),
+                                     (R0 - rz[0]) * (p->r[i] - rz[0]) + (z0 - rz[1]) * (p->z[i] - rz[1]));
                 p->phi[i] += atan2(Xin_xyz[0] * Xout_xyz[1] - Xin_xyz[1] * Xout_xyz[0],
                                    Xin_xyz[0] * Xout_xyz[0] + Xin_xyz[1] * Xout_xyz[1]);
             }
@@ -680,10 +687,10 @@ void bmc_step_stochastic(particle_simd_gc *p, real *h, B_field_data *Bdata,
                 p->mu[i] = physlib_gc_mu(p->mass[i], pout, xiout, Bnorm);
 
                 /* Evaluate phi and theta angles so that they are cumulative */
-                real axis_r = B_field_get_axis_r(Bdata, p->phi[i]);
-                real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
-                p->theta[i] += atan2((R0 - axis_r) * (p->z[i] - axis_z) - (z0 - axis_z) * (p->r[i] - axis_r),
-                                     (R0 - axis_r) * (p->r[i] - axis_r) + (z0 - axis_z) * (p->z[i] - axis_z));
+                real rz[2];
+                B_field_get_axis_rz(rz, Bdata, p->phi[i]);
+                p->theta[i] += atan2((R0 - rz[0]) * (p->z[i] - rz[1]) - (z0 - rz[1]) * (p->r[i] - rz[0]),
+                                     (R0 - rz[0]) * (p->r[i] - rz[0]) + (z0 - rz[1]) * (p->z[i] - rz[1]));
                 p->phi[i] += atan2(Xin_xyz[0] * Xout_xyz[1] - Xin_xyz[1] * Xout_xyz[0],
                                    Xin_xyz[0] * Xout_xyz[0] + Xin_xyz[1] * Xout_xyz[1]);
             }

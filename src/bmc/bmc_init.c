@@ -13,6 +13,7 @@ void fmcInitImportanceSamplingMetropolis(
     sim_offload_data* sim_offload,
     B_field_data* Bdata,
     real* offload_array,
+    int* int_offload_array,
     offload_package* offload_data,
     int importanceSamplingProbability,
     int rk4_subcycles,
@@ -27,25 +28,33 @@ void fmcInitImportanceSamplingMetropolis(
     sim_data sim;
     sim_init(&sim, sim_offload);
     offload_data->unpack_pos = 0;
-    real* ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->B_offload_data.offload_array_length);
+    real* ptr; int* ptrint;
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->B_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     B_field_init(&sim.B_data, &sim_offload->B_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->E_offload_data.offload_array_length);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->E_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     E_field_init(&sim.E_data, &sim_offload->E_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->plasma_offload_data.offload_array_length);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->plasma_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     plasma_init(&sim.plasma_data, &sim_offload->plasma_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->neutral_offload_data.offload_array_length);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->neutral_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     neutral_init(&sim.neutral_data, &sim_offload->neutral_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->wall_offload_data.offload_array_length);
-    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->wall_offload_data.offload_array_length,
+                   int_offload_array,
+                   sim_offload->wall_offload_data.int_offload_array_length,
+                   &ptr, &ptrint);
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr, ptrint);
 
     real* distr_array;
     diag_init_offload(&sim_offload->diag_offload_data, &distr_array, 1);
@@ -285,6 +294,7 @@ int fmc_init_importance_sampling_from_source_distribution(
         sim_offload_data* sim_offload,
         B_field_data* Bdata,
         real* offload_array,
+        int* int_offload_array,
         offload_package* offload_data,
         int importanceSamplingProbability,
         int rk4_subcycles,
@@ -298,26 +308,33 @@ int fmc_init_importance_sampling_from_source_distribution(
     sim_data sim;
     sim_init(&sim, sim_offload);
 
-    offload_data->unpack_pos = 0;
-    real* ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->B_offload_data.offload_array_length);
+    real* ptr; int* ptrint;
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->B_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     B_field_init(&sim.B_data, &sim_offload->B_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->E_offload_data.offload_array_length);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->E_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     E_field_init(&sim.E_data, &sim_offload->E_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->plasma_offload_data.offload_array_length);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->plasma_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     plasma_init(&sim.plasma_data, &sim_offload->plasma_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->neutral_offload_data.offload_array_length);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->neutral_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     neutral_init(&sim.neutral_data, &sim_offload->neutral_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->wall_offload_data.offload_array_length);
-    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->wall_offload_data.offload_array_length,
+                   int_offload_array,
+                   sim_offload->wall_offload_data.int_offload_array_length,
+                   &ptr, &ptrint);
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr, ptrint);
 
     real* distr_array;
     diag_init_offload(&sim_offload->diag_offload_data, &distr_array, 1);
@@ -375,6 +392,7 @@ int fmc_init_importance_sampling_mesh(
         sim_offload_data* sim_offload,
         B_field_data* Bdata,
         real* offload_array,
+        int* int_offload_array,
         offload_package* offload_data,
         int importanceSamplingProbability,
         int importanceSamplingdensity,
@@ -392,25 +410,33 @@ int fmc_init_importance_sampling_mesh(
     // init sim data
     sim_data sim;
     sim_init(&sim, sim_offload);
-    real* ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->B_offload_data.offload_array_length);
+    real* ptr; int* ptrint;
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->B_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     B_field_init(&sim.B_data, &sim_offload->B_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->E_offload_data.offload_array_length);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->E_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     E_field_init(&sim.E_data, &sim_offload->E_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->plasma_offload_data.offload_array_length);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->plasma_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     plasma_init(&sim.plasma_data, &sim_offload->plasma_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->neutral_offload_data.offload_array_length);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->neutral_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     neutral_init(&sim.neutral_data, &sim_offload->neutral_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->wall_offload_data.offload_array_length);
-    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->wall_offload_data.offload_array_length,
+                   int_offload_array,
+                   sim_offload->wall_offload_data.int_offload_array_length,
+                   &ptr, &ptrint);
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr, ptrint);
 
 
     real* distr0_array;
@@ -642,6 +668,7 @@ int bmc_init_particles(
         sim_offload_data* sim_offload,
         B_field_data* Bdata,
         real* offload_array,
+        int* int_offload_array,
         real t,
         real m,
         real q,
@@ -659,7 +686,7 @@ int bmc_init_particles(
             sim_offload->E_offload_data.offload_array_length +
             sim_offload->plasma_offload_data.offload_array_length +
             sim_offload->neutral_offload_data.offload_array_length;
-    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr, int_offload_array);
 
     real r;
     real phi;
@@ -769,6 +796,7 @@ int fmc_init_importance_sampling(
         sim_offload_data* sim_offload,
         B_field_data* Bdata,
         real* offload_array,
+        int* int_offload_array,
         real t,
         real m,
         real q,
@@ -786,7 +814,7 @@ int fmc_init_importance_sampling(
             sim_offload->E_offload_data.offload_array_length +
             sim_offload->plasma_offload_data.offload_array_length +
             sim_offload->neutral_offload_data.offload_array_length;
-    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr, int_offload_array);
 
     real* distr0_array;
     diag_init_offload(&sim_offload->diag_offload_data, &distr0_array, 1);
