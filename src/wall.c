@@ -165,7 +165,8 @@ int wall_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
     int ret = 0;
     switch(w->type) {
         case wall_type_2D:
-            ret = wall_2d_hit_wall(r1, phi1, z1, r2, phi2, z2, &(w->w2d));
+            ret = wall_2d_hit_wall(r1, phi1, z1, r2, phi2, z2, &(w->w2d),
+                                   w_coll);
             break;
 
         case wall_type_3D:
