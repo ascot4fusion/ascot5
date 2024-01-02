@@ -26,13 +26,9 @@
  * @param mdata pointer to collision data struct
  */
 void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
-                   plasma_data* pdata, random_data* rdata, mccc_data* mdata) {
+                   plasma_data* pdata, mccc_data* mdata, real rnd[5*NSIMD]) {
 
-    /* Generate random numbers and get plasma information before going to the *
-     * SIMD loop                                                              */
-    real rnd[5*NSIMD];
-    random_normal_simd(rdata, 5*NSIMD, rnd);
-
+    /* Get plasma information before going to the  SIMD loop */
     int n_species  = plasma_get_n_species(pdata);
     const real* qb = plasma_get_species_charge(pdata);
     const real* mb = plasma_get_species_mass(pdata);
@@ -81,7 +77,7 @@ void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
                 real vb = sqrt( 2 * Tb[j] / mb[j] );
                 real x  = vin / vb;
                 real mufun[3];
-                mccc_coefs_mufun(mufun, x, mdata);
+                mccc_coefs_mufun(mufun, x, mdata); // eq. 2.83 PhD Hirvijoki
 
                 real Qb      = mccc_coefs_Q(p->mass[i], p->charge[i], mb[j],
                                             qb[j], nb[j], vb, clogab[j],
@@ -98,7 +94,7 @@ void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
 
                 K     += mccc_coefs_K(vin, Dparab, dDparab, Qb);
                 Dpara += Dparab;
-                nu    += mccc_coefs_nu(vin, Dperpb);
+                nu    += mccc_coefs_nu(vin, Dperpb); // eq.41
                 DX    += mccc_coefs_DX(xiin, Dparab, Dperpb, gyrofreq);
             }
 
