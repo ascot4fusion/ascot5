@@ -218,9 +218,9 @@
  * @param Tb plasma species temperatures [J]
  */
 #pragma omp declare simd uniform(nspec, mb, qb, nb, Tb)
-static void mccc_coefs_clog(real* clogab, real ma, real qa, real va, int nspec,
-                            const real* mb, const real* qb, const real* nb,
-                            const real* Tb) {
+inline static void mccc_coefs_clog(real* clogab, real ma, real qa, real va,
+                                   int nspec, const real* mb, const real* qb,
+                                   const real* nb, const real* Tb) {
 
     /* Evaluate Debye length */
     real sum = 0;
@@ -264,7 +264,7 @@ static void mccc_coefs_clog(real* clogab, real ma, real qa, real va, int nspec,
  * @param mdata pointer to mccc data
  */
 #pragma omp declare simd uniform(mdata)
-static void mccc_coefs_mufun(real mufun[3], real x, mccc_data* mdata) {
+inline static void mccc_coefs_mufun(real mufun[3], real x, mccc_data* mdata) {
 
     if(!mdata->usetabulated && x!= 0) {
         real expm2x = exp(-x*x);
