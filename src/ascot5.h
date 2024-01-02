@@ -130,4 +130,12 @@ typedef double real;  /**< Double precision float   */
 /** @brief Default depth of octree struct */
 #define WALL_OCTREE_DEPTH 7
 
+/** @brief Number of knots (per node) in backward Monte Carlo scheme */
+#define HERMITE_KNOTS 5
+
+/** @brief Number of orbit steps in a single (collisional) time-step in
+ *  backward Monte Carlo scheme
+ */
+#define BMC_ORBIT_SUBCYCLES 10
+
 #endif
