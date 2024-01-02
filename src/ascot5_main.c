@@ -128,8 +128,7 @@ int main(int argc, char** argv) {
     int mpi_rank, mpi_size, mpi_root;
     mpi_interface_init(argc, argv, &sim, &mpi_rank, &mpi_size, &mpi_root);
 
-    print_out0(VERBOSE_MINIMAL, mpi_rank,
-               "ASCOT5_MAIN\n");
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "ASCOT5_MAIN\n");
 
 #ifdef GIT_VERSION
     print_out0(VERBOSE_MINIMAL, mpi_rank,
