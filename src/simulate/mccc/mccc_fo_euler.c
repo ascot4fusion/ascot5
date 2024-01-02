@@ -24,13 +24,9 @@
  * @param mdata pointer collision data struct
  */
 void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
-                   random_data* rdata, mccc_data* mdata) {
+                   mccc_data* mdata, real rnd[3*NSIMD]) {
 
-    /* Generate random numbers and get plasma information before going to the *
-     * SIMD loop                                                              */
-    real rnd[3*NSIMD];
-    random_normal_simd(rdata, 3*NSIMD, rnd);
-
+    /* Get plasma information before going to the  SIMD loop */
     int n_species  = plasma_get_n_species(pdata);
     const real* qb = plasma_get_species_charge(pdata);
     const real* mb = plasma_get_species_mass(pdata);

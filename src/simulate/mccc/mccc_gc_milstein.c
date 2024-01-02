@@ -31,15 +31,10 @@
  * @param mdata pointer to collision data struct
  */
 void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
-                      mccc_wienarr* w, B_field_data* Bdata,
-                      plasma_data* pdata, random_data* rdata,
-                      mccc_data* mdata) {
+                      mccc_wienarr* w, B_field_data* Bdata, plasma_data* pdata,
+                      mccc_data* mdata, real rnd[5*NSIMD]) {
 
-    /* Generate random numbers and get plasma information before going to the *
-     * SIMD loop                                                              */
-    real rnd[5*NSIMD];
-    random_normal_simd(rdata, 5*NSIMD, rnd);
-
+    /* Get plasma information before going to the  SIMD loop */
     int n_species  = plasma_get_n_species(pdata);
     const real* qb = plasma_get_species_charge(pdata);
     const real* mb = plasma_get_species_mass(pdata);
