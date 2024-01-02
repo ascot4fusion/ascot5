@@ -85,24 +85,22 @@ void wall_2d_init(wall_2d_data* w, wall_2d_offload_data* offload_data,
 /**
  * @brief Check if coordinates are within 2D polygon wall
  *
- * This function checks if the given coordinates are within the walls defind
+ * This function checks if the given coordinates are within the walls defined
  * by a 2D polygon using a modified axis crossing method [1]. Origin is moved
  * to the coordinates and the number of wall segments crossing the positive
  * r-axis are calculated. If this is odd, the point is inside the polygon.
  *
  * [1] D.G. Alciatore, R. Miranda. A Winding Number and Point-in-Polygon
  *     Algorithm. Technical report, Colorado State University, 1995.
- *     http://www.engr.colostate.edu/~dga/dga/papers/point_in_polygon.pdf
+ *     https://www.engr.colostate.edu/~dga/documents/papers/point_in_polygon.pdf
  *
- * @param r r coordinate
- * @param z z coordinate
+ * @param r r coordinate [m]
+ * @param z z coordinate [m]
  * @param w 2D wall data structure
  */
 int wall_2d_inside(real r, real z, wall_2d_data* w) {
     int hits = 0;
-
-    int i;
-    for(i = 0; i < w->n - 1; i++) {
+    for(int i = 0; i < w->n - 1; i++) {
         real wz1 = w->wall_z[i] - z;
         real wz2 = w->wall_z[i+1] - z;
         real wr1 = w->wall_r[i] - r;
@@ -123,20 +121,57 @@ int wall_2d_inside(real r, real z, wall_2d_data* w) {
  *
  * @param r1 start point R coordinate [m]
  * @param phi1 start point phi coordinate [rad]
- * @param z1 start point z coordinate [rad]
+ * @param z1 start point z coordinate [m]
  * @param r2 end point R coordinate [m]
  * @param phi2 end point phi coordinate [rad]
- * @param z2 end point z coordinate [rad]
+ * @param z2 end point z coordinate [m]
  * @param w pointer to data struct on target
  *
  * @return wall element ID if hit, zero otherwise
- *
- * @todo Right now this returns only a boolean wall for hit but not the wall ID
  */
 int wall_2d_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
-                     wall_2d_data* w) {
-    if(!wall_2d_inside(r2, z2, w))
-        return 1;
-    else
-        return 0;
+                     wall_2d_data* w, real* w_coll) {
+    int tile = 0;
+    if(!wall_2d_inside(r2, z2, w)) {
+        tile = wall_2d_find_intersection(r1, z1, r2, z2, w, w_coll);
+    }
+    return tile;
+}
+
+/**
+ * @brief Find intersection between the wall element and line segment
+ *
+ * If there are multiple intersections, the one that is closest to P1
+ * is returned.
+ *
+ * @param r1 R1 coordinate of the line segment [P1,P2] [m]
+ * @param z1 z1 coordinate of the line segment [P1,P2] [m]
+ * @param r2 R2 coordinate of the line segment [P1,P2] [m]
+ * @param z2 z2 coordinate of the line segment [P1,P2] [m]
+ * @param w pointer to the wall data
+ * @param w_coll pointer for storing the parameter in P = P1 + w_coll * (P2-P1),
+ *        where P is the point where the collision occurred.
+ *
+ * @return int wall element id if hit, zero otherwise
+ */
+int wall_2d_find_intersection(real r1, real z1, real r2, real z2,
+                              wall_2d_data* w, real* w_coll) {
+    int tile = 0;
+    real t0 = 2.0; // Helper variable to pick the closest intersection
+    for(int i=0; i<w->n-1; i++) {
+        real r3 = w->wall_r[i];
+        real r4 = w->wall_r[i+1];
+        real z3 = w->wall_z[i];
+        real z4 = w->wall_z[i+1];
+
+        real div = (r1 - r2) * (z3 - z4) - (z1 - z2) * (r3 - r4);
+        real t = ( (r1 - r3) * (z3 - z4) - (z1 - z3) * (r3 - r4) );
+        real u = ( (r1 - r3) * (z1 - z2) - (z1 - z3) * (r1 - r2) );
+        if(0 <= t && t <= div && 0 <= u && u <= div && t < t0*div) {
+            t0 = t / div;
+            tile = i + 1;
+        }
+    }
+    *w_coll = t0;
+    return tile;
 }
