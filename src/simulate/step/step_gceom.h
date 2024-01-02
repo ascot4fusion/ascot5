@@ -24,8 +24,8 @@
  * @param E electric field at the guiding center location
  */
 #pragma omp declare simd
-static void step_gceom(real* ydot, real* y, real mass, real charge,
-                       real* B_dB, real* E) {
+inline static void step_gceom(real* ydot, real* y, real mass, real charge,
+                              real* B_dB, real* E) {
 
     real B[3];
     B[0] = B_dB[0];
