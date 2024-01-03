@@ -174,6 +174,8 @@ class Ascot5IO(RootNode):
             return AfsiGroup(self, path, h5, inputqids)
         elif path.split("/")[-1].split("_")[0] == "bbnbi":
             return BBNBIGroup(self, path, h5, inputqids)
+        elif path.split("/")[-1].split("_")[0] == "bmc":
+            return BMCGroup(self, path, h5, inputqids)
         else:
             raise ValueError("Unknown")
 
@@ -289,5 +291,10 @@ class AfsiGroup(ResultNode, AfsiMixin):
 
 class BBNBIGroup(ResultNode, BBNBIMixin):
     """Node containing BBNBI results and methods to process them.
+    """
+    pass
+
+class BMCGroup(ResultNode):
+    """Node containing BMC results and methods to process them.
     """
     pass

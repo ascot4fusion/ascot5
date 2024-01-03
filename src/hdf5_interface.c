@@ -615,6 +615,13 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
         }
     }
     if(run[0] == '\0') {
+        /* Check if this an afsi5 run */
+        sprintf(run, "/results/bmc_%s/", qid);
+        if( hdf5_find_group(f, run) < 0 ) {
+            run[0] = '\0';
+        }
+    }
+    if(run[0] == '\0') {
         print_err("Error: Run group not found.\n");
     }
 
