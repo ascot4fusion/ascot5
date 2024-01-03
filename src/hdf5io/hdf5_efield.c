@@ -60,7 +60,6 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data,
     int err = 1;
 
     /* Read data the QID corresponds to */
-
     hdf5_gen_path("/efield/E_TC_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
         offload_data->type = E_field_type_TC;

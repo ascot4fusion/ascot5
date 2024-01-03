@@ -124,31 +124,27 @@ UTESTDIR = unit_tests/
 DOCDIR = doc/
 
 HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
-	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) \
-	$(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) $(HDF5IOHEADERS) \
-	$(PLSHEADERS) $(N0HEADERS) $(MHDHEADERS) $(ASIGMAHEADERS) \
-	$(LINTHEADERS) $(SPLINEHEADERS) \
-	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
-	E_field.h wall.h simulate.h diag.h offload.h boozer.h mhd.h \
-	random.h print.h hdf5_interface.h suzuki.h nbi.h biosaw.h \
-	asigma.h boschhale.h mpi_interface.h libascot_mem.h bmc_mesh.h
+	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) $(MCCCHEADERS) \
+	$(STEPHEADERS) $(SIMHEADERS) $(HDF5IOHEADERS) $(PLSHEADERS) $(N0HEADERS) \
+	$(MHDHEADERS) $(ASIGMAHEADERS) $(LINTHEADERS) $(SPLINEHEADERS) \
+	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h E_field.h \
+	wall.h simulate.h diag.h offload.h boozer.h mhd.h random.h print.h \
+	hdf5_interface.h suzuki.h nbi.h biosaw.h asigma.h boschhale.h \
+	mpi_interface.h libascot_mem.h bmc_mesh.h
 
-OBJS= math.o list.o octree.o error.c \
-	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
-	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS) $(HDF5IOOBJS) \
-	$(PLSOBJS) $(N0OBJS) $(MHDOBJS) $(ASIGMAOBJS) $(LINTOBJS) \
-	$(SPLINEOBJS) \
-	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
-	E_field.o wall.o simulate.o diag.o offload.o boozer.o mhd.o \
-	random.o print.o hdf5_interface.o suzuki.o nbi.o biosaw.o \
-	asigma.o mpi_interface.o boschhale.o bmc_mesh.o
+OBJS=math.o list.o octree.o error.c \
+	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) $(MCCCOBJS) $(STEPOBJS) \
+	$(SIMOBJS) $(HDF5IOOBJS) $(PLSOBJS) $(N0OBJS) $(MHDOBJS) $(ASIGMAOBJS) \
+	$(LINTOBJS) $(SPLINEOBJS) \
+	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o E_field.o \
+	wall.o simulate.o diag.o offload.o boozer.o mhd.o random.o print.c \
+	hdf5_interface.o suzuki.o nbi.o biosaw.o asigma.o mpi_interface.o \
+	boschhale.o bmc_mesh.o
 
-BINS=test_math test_nbi test_bsearch \
-	test_wall_2d test_plasma test_random \
-	test_wall_3d test_B test_offload test_E \
-	test_interp1Dcomp test_linint3D test_N0 test_N0_1D \
-	test_spline ascot5_main bbnbi5 test_diag_orb test_asigma \
-	test_afsi
+BINS=test_math test_nbi test_bsearch test_wall_2d test_plasma test_random \
+	test_wall_3d test_B test_offload test_E test_interp1Dcomp test_linint3D \
+	test_N0 test_N0_1D test_spline  test_diag_orb test_asigma test_afsi \
+	ascot5_main bbnbi5 bmc_main
 
 all: $(BINS)
 
