@@ -138,6 +138,15 @@ class Opt(DataGroup):
         self._OPT_TRANSCOEF_INTERVAL         = 0.0
         self._OPT_TRANSCOEF_NAVG             = 5
         self._OPT_TRANSCOEF_RECORDRHO        = 0
+        self._OPT_BMC_TIMEDEPENDENT          = 0
+        self._OPT_BMC_ORBIT_SUBCYCLES        = 10
+        self._OPT_BMC_TIMESTEP               = 1.0e-6
+        self._OPT_BMC_TSTART                 = 0.0
+        self._OPT_BMC_TSTOP                  = 1.0e-4
+        self._OPT_BMC_MASS                   = 4.002
+        self._OPT_BMC_CHARGE                 = 2
+        self._OPT_BMC_ANUM                   = 4
+        self._OPT_BMC_ZNUM                   = 2
 
     @property
     def _SIM_MODE(self):
@@ -856,6 +865,76 @@ class Opt(DataGroup):
         """
         return self._OPT_TRANSCOEF_RECORDRHO
 
+    @property
+    def _BMC_TIMEDEPENDENT(self):
+        """Run BMC in time-dependent mode where the background quantities can
+        evolve in time and the push-matrix is re-calculated in every time-step.
+
+        Note that the time-independent simulation is much faster as the
+        push-matrix is evaluated only once at the beginning of the simulation.
+        """
+        return self._OPT_BMC_TIMEDEPENDENT
+
+    @property
+    def _BMC_ORBIT_SUBCYCLES(self):
+        """Number of orbit-following steps taken per one collisional time-step.
+
+        The collisional time-step corresponds to BMC_TIMESTEP meaning that the
+        orbit-integration time-step is BMC_TIMESTEP / BMC_ORBIT_SUBCYCLES.
+        This parameter enables one to reduce numerical diffusion in BMC while
+        maintaining numerical accuracy in the orbit-following part.
+        """
+        return self._OPT_BMC_ORBIT_SUBCYCLES
+
+    @property
+    def _BMC_TIMESTEP(self):
+        """Time-step in the BMC simulation.
+
+        This step defines how often collisions are calculated and
+        the probability matrix updated.
+        """
+        return self._OPT_BMC_TIMESTEP
+
+    @property
+    def _BMC_TSTART(self):
+        """Time instant when the simulation starts.
+        """
+        return self._OPT_BMC_TSTART
+
+    @property
+    def _BMC_TSTOP(self):
+        """Time instant when the simulation stops.
+
+        Note that while the BMC simulation runs backwards in time, this quantity
+        is expected to have a positive value. In other words, the BMC simulation
+        covers the interval [BMC_TSTART, -BMC_TSTOP].
+        """
+        return self._OPT_BMC_TSTOP
+
+    @property
+    def _BMC_MASS(self):
+        """Mass of the test particle species in BMC simulation [amu].
+        """
+        return self._OPT_BMC_MASS
+
+    @property
+    def _BMC_CHARGE(self):
+        """Charge of the test particle species in BMC simulation [e].
+        """
+        return self._OPT_BMC_CHARGE
+
+    @property
+    def _BMC_ANUM(self):
+        """Atomic mass number of the test particle species in BMC simulation.
+        """
+        return self._OPT_BMC_ANUM
+
+    @property
+    def _BMC_ZNUM(self):
+        """Charge number of the test particle species in BMC simulation.
+        """
+        return self._OPT_BMC_ZNUM
+
     def read(self):
         """Read data from HDF5 file.
 
@@ -976,6 +1055,8 @@ class Opt(DataGroup):
                     out.extend(makebanner("ORBIT WRITE"))
                 elif name == "ENABLE_TRANSCOEF":
                     out.extend(makebanner("TRANSPORT COEFFICIENT"))
+                elif name == "BMC_TIMEDEPENDENT":
+                    out.extend(makebanner("BACKWARD MONTE CARLO SIMULATION"))
 
                 # Clean docstrings a little bit by removing extra whispace and
                 # empty lines.

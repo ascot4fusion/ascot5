@@ -162,7 +162,6 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
         sim->endcond_torandpol = 1;
     }
 
-
     if( hdf5_read_double(OPTPATH "ENDCOND_LIM_SIMTIME",
                          &sim->endcond_lim_simtime,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
@@ -184,7 +183,7 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     if( hdf5_read_double(OPTPATH "ENDCOND_MIN_THERMAL",
                          &sim->endcond_min_thermal,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    sim->endcond_min_ekin    *= CONST_E; // eV -> J
+    sim->endcond_min_ekin *= CONST_E; // eV -> J
 
     int temp;
     if( hdf5_read_double(OPTPATH "ENDCOND_MAX_POLOIDALORBS", &tempfloat,
@@ -197,6 +196,31 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     temp = (int)tempfloat;
     sim->endcond_max_tororb = temp * 2 *CONST_PI;
 
+    /* BMC options */
+    if( hdf5_read_double(OPTPATH "BMC_TIMEDEPENDENT", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->bmc_timedependent = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "BMC_ORBIT_SUBCYCLES", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->bmc_orbit_subcycles = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "BMC_TIMESTEP", &sim->bmc_timestep,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "BMC_TSTART", &sim->bmc_tstart,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "BMC_TSTOP", &sim->bmc_tstop,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "BMC_MASS", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->bmc_mass = tempfloat * CONST_U;
+    if( hdf5_read_double(OPTPATH "BMC_CHARGE", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->bmc_charge = tempfloat * CONST_E;
+    if( hdf5_read_double(OPTPATH "BMC_ANUM", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->bmc_znum = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "BMC_ZNUM", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->bmc_znum = (int)tempfloat;
 
     /* See which diagnostics are active */
     diag_offload_data* diag = &sim->diag_offload_data;

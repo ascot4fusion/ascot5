@@ -116,6 +116,18 @@ typedef struct {
     real endcond_max_polorb;   /**< Maximum limit for poloidal distance [rad] */
     int endcond_torandpol;     /**< Flag whether both tor and pol must be met */
 
+    /* Backward Monte Carlo options */
+    int bmc_timedependent;     /**< Recalculate push-matrix at every timestep */
+    int bmc_orbit_subcycles;   /**< Number of orbit-following steps taken
+                                    per one collisional (i.e. BMC) step       */
+    real bmc_timestep;         /**< BMC time step [s]                         */
+    real bmc_tstart;           /**< Time instant when BMC starts [s]          */
+    real bmc_tstop;            /**< Time instant when BMC stops [s]           */
+    real bmc_mass;             /**< BMC test particle mass [kg]               */
+    real bmc_charge;           /**< BMC test particle charge [C]              */
+    int bmc_anum;              /**< BMC test particle atomic mass number      */
+    int bmc_znum;              /**< BMC test particle charge number           */
+
     /* Metadata */
     char hdf5_in[256];     /**< Name of the input HDF5 file  */
     char hdf5_out[256];    /**< Name of the output HDF5 file */
@@ -218,6 +230,18 @@ typedef struct {
     real endcond_max_tororb;  /**< Maximum limit for toroidal distance [rad] */
     real endcond_max_polorb;  /**< Maximum limit for poloidal distance [rad] */
     int endcond_torandpol;    /**< Flag whether both tor and pol must be met */
+
+    /* Backward Monte Carlo options */
+    int bmc_timedependent;     /**< Recalculate push-matrix at every timestep */
+    int bmc_orbit_subcycles;   /**< Number of orbit-following steps taken
+                                    per one collisional (i.e. BMC) step       */
+    real bmc_timestep;         /**< BMC time step [s]                         */
+    real bmc_tstart;           /**< Time instant when BMC starts [s]          */
+    real bmc_tstop;            /**< Time instant when BMC stops [s]           */
+    real bmc_mass;             /**< BMC test particle mass [kg]               */
+    real bmc_charge;           /**< BMC test particle charge [C]              */
+    int bmc_anum;              /**< BMC test particle atomic mass number      */
+    int bmc_znum;              /**< BMC test particle charge number           */
 
 } sim_data;
 

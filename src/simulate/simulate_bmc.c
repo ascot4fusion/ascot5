@@ -39,10 +39,6 @@
  * @param sim pointer to simulation data struct
  * @param mesh pointer to mesh struct
  * @param h time step for how long this push-matrix pushes particles [s]
- * @param mass test particle species mass [kg]
- * @param charge test particle species charge [C]
- * @param anum test particle species atomic mass number
- * @param znum test particle species charge number
  * @param time current time instant (for evaluating background quantities) [s]
  * @param start the first mesh index
  * @param stop the final mesh index
@@ -55,8 +51,7 @@
  *        hit wall [1], hit FILD [2], or finished normally [0]
  */
 void simulate_bmc_gc(
-    sim_data* sim, bmc_mesh* mesh, real h, real mass, real charge,
-    int anum, int znum, real time, size_t start, size_t stop,
+    sim_data* sim, bmc_mesh* mesh, real h, real time, size_t start, size_t stop,
     real* r, real* phi, real* z, real* ppara, real* pperp, int* fate) {
 
     real h_orb[NSIMD];
@@ -64,7 +59,7 @@ void simulate_bmc_gc(
     real hermite_k[HERMITE_KNOTS] = HERMITE_K;
     real hermite_k_nsimd[5 * NSIMD * HERMITE_KNOTS];
     for(int i=0; i<NSIMD; i++) {
-        h_orb[i]  = h / BMC_ORBIT_SUBCYCLES;
+        h_orb[i]  = h / sim->bmc_orbit_subcycles;
         h_coll[i] = h;
         for(int k=0; k<HERMITE_KNOTS; k++) {
             hermite_k_nsimd[k*5*NSIMD + 0*NSIMD + i] = 0.0;
@@ -76,10 +71,13 @@ void simulate_bmc_gc(
     }
 
     /* Go through the mesh in chunks of NSIMD */
-    particle_simd_gc p;
-    while(start < stop) {
+    #pragma omp parallel for \
+        shared(sim, mesh, h_orb, h_coll, hermite_k_nsimd, start, stop, \
+        r, phi, z, ppara, pperp, fate)
+    for(size_t iprt=start; iprt < stop; iprt += NSIMD) {
         /* Initialize markers from mesh */
         int lost[NSIMD];
+        particle_simd_gc p;
         for(int i=0; i<NSIMD; i++) {
 
             /* Find the position of the node (i.e. initial marker position) */
@@ -90,16 +88,16 @@ void simulate_bmc_gc(
             real pperp = origin[4];
             real pnorm = sqrt(ppara * ppara + pperp * pperp);
             real xi    = ppara / pnorm;
-            real ekin  = physlib_Ekin_pnorm(mass, pnorm);
+            real ekin  = physlib_Ekin_pnorm(sim->bmc_mass, pnorm);
 
             particle_gc gc;
             gc.r      = origin[0];
             gc.phi    = origin[1];
             gc.z      = origin[2];
-            gc.anum   = anum;
-            gc.znum   = znum;
-            gc.mass   = mass;
-            gc.charge = charge;
+            gc.anum   = sim->bmc_anum;
+            gc.znum   = sim->bmc_znum;
+            gc.mass   = sim->bmc_mass;
+            gc.charge = sim->bmc_charge;
             gc.time   = time;
             gc.weight = 1.0;
             gc.id     = 1;
@@ -126,7 +124,7 @@ void simulate_bmc_gc(
         /* Take a number of orbit-following steps. This is then followed by
          * a single collisional step but with a larger time-step that
          * corresponds to the whole orbit-following part */
-        for(int j=0; j<BMC_ORBIT_SUBCYCLES; j++) {
+        for(int j=0; j<sim->bmc_orbit_subcycles; j++) {
             real r0[NSIMD], phi0[NSIMD], z0[NSIMD];
             for(int i=0; i<NSIMD; i++) {
                 if(!lost[i]) {
@@ -182,8 +180,8 @@ void simulate_bmc_gc(
                 real Bnorm = sqrt( p_knot.B_r[i]   * p_knot.B_r[i]
                                  + p_knot.B_phi[i] * p_knot.B_phi[i]
                                  + p_knot.B_z[i]   * p_knot.B_z[i]);
-                real pnorm = physlib_gc_p(mass, p_knot.mu[i], p_knot.ppar[i],
-                                          Bnorm);
+                real pnorm = physlib_gc_p(p_knot.mass[i], p_knot.mu[i],
+                                          p_knot.ppar[i], Bnorm);
                 real pperp2 = pnorm * pnorm - p_knot.ppar[i] * p_knot.ppar[i];
                 pperp[(start+i) * HERMITE_KNOTS + i_knot] = sqrt(pperp2);
 

@@ -376,6 +376,16 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->endcond_max_polorb   = offload_data->endcond_max_polorb;
     sim->endcond_torandpol    = offload_data->endcond_torandpol;
 
+    sim->bmc_timedependent   = offload_data->bmc_timedependent;
+    sim->bmc_orbit_subcycles = offload_data->bmc_orbit_subcycles;
+    sim->bmc_timestep        = offload_data->bmc_timestep;
+    sim->bmc_tstart          = offload_data->bmc_tstart;
+    sim->bmc_tstop           = offload_data->bmc_tstop;
+    sim->bmc_mass            = offload_data->bmc_mass;
+    sim->bmc_charge          = offload_data->bmc_charge;
+    sim->bmc_anum            = offload_data->bmc_anum;
+    sim->bmc_znum            = offload_data->bmc_znum;
+
     mccc_init(&sim->mccc_data, !sim->disable_energyccoll,
               !sim->disable_pitchccoll, !sim->disable_gcdiffccoll);
 

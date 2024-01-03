@@ -2,20 +2,6 @@
  * @file bmc_main.c
  * @brief Backward Monte Carlo simulation program
  */
-
-// TODO move to options
-#define TIMESTEP 1E-6
-#define T0 0
-//#define T1 11E-6
-#define T1 499E-6
-#define MASS 3.3452438E-27
-#define CHARGE 1.60217662E-19
-#define ANUM 3
-#define ZNUM 1
-
-#define BMC_TIMEINDEPENDENT 0
-#define BMC_TIMEDEPENDENT 1
-
 #define _XOPEN_SOURCE 500 /**< drand48 requires POSIX 1995 standard */
 #include <getopt.h>
 #include <math.h>
@@ -143,8 +129,7 @@ int main(int argc, char** argv) {
     }
 
     /* Run simulation in either time-dependent or -independent mode */
-    int bmc_mode = BMC_TIMEINDEPENDENT;
-    if(bmc_mode == BMC_TIMEINDEPENDENT) {
+    if(!sim_data.bmc_timedependent) {
         /* Evaluate the push matrix once */
         size_t start = 0, stop = mesh.size;
         real* r     = (real*) malloc( mesh.size * HERMITE_KNOTS * sizeof(real));
@@ -154,9 +139,11 @@ int main(int argc, char** argv) {
         real* pperp = (real*) malloc( mesh.size * HERMITE_KNOTS * sizeof(real));
         int* fate = (int*) malloc( mesh.size * HERMITE_KNOTS * sizeof(int));
 
-        simulate_bmc_gc(&sim_data, &mesh, TIMESTEP, MASS, CHARGE, ANUM, ZNUM,
-                        T0, start, stop, r, phi, z, ppara, pperp, fate);
-        for(real t=T0; t <= T1; t += TIMESTEP) {
+        simulate_bmc_gc(&sim_data, &mesh, sim_data.bmc_timestep,
+                        sim_data.bmc_tstart, start, stop,
+                        r, phi, z, ppara, pperp, fate);
+        for(real t=sim_data.bmc_tstart; t <= sim_data.bmc_tstop;
+            t += sim_data.bmc_timestep) {
             /* Update the probability repeatedly until the simulation is
              * complete */
             bmc_mesh_update(&mesh, start, stop, r, phi, z, ppara, pperp, fate);
@@ -175,7 +162,7 @@ int main(int argc, char** argv) {
         free(pperp);
         free(fate);
     }
-    else if(bmc_mode == BMC_TIMEDEPENDENT) {
+    else {
         for(size_t i = 0; i < 10; i++) {
             /* Evaluate the push matrix */
 
