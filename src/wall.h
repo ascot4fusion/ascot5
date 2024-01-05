@@ -70,6 +70,8 @@ int wall_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
                   wall_data* w, real* w_coll);
 #pragma omp declare simd uniform(w)
 int wall_get_n_elements(wall_data* w);
+#pragma omp declare simd uniform(w)
+int wall_get_flag(wall_data* w, int idx);
 #pragma omp end declare target
 
 #endif

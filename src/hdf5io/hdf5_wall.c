@@ -20,9 +20,9 @@
 #define WPATH /**< Macro that is used to store paths to data groups */
 
 int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
-                      real** offload_array, char* qid);
+                      real** offload_array, int** int_offload_array, char* qid);
 int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
-                      real** offload_array, char* qid);
+                      real** offload_array, int** int_offload_array, char* qid);
 
 /**
  * @brief Read wall data from HDF5 file
@@ -47,19 +47,17 @@ int hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data,
     int err = 1;
 
     /* Read data the QID corresponds to */
-
     hdf5_gen_path("/wall/wall_2D_XXXXXXXXXX", qid, path);
     if(hdf5_find_group(f, path) == 0) {
         offload_data->type = wall_type_2D;
         err = hdf5_wall_read_2D(f, &(offload_data->w2d),
-                                offload_array, qid);
+                                offload_array, int_offload_array, qid);
     }
-
     hdf5_gen_path("/wall/wall_3D_XXXXXXXXXX", qid, path);
     if(hdf5_find_group(f, path) == 0) {
         offload_data->type = wall_type_3D;
         err = hdf5_wall_read_3D(f, &(offload_data->w3d),
-                                offload_array, qid);
+                                offload_array, int_offload_array, qid);
     }
 
     /* Initialize if data was read succesfully */
@@ -81,7 +79,8 @@ int hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data,
  * @return Zero if reading succeeded
  */
 int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
-                      real** offload_array, char* qid) {
+                      real** offload_array, int** int_offload_array,
+                      char* qid) {
     #undef WPATH
     #define WPATH "/wall/wall_2D_XXXXXXXXXX/"
 
@@ -104,8 +103,17 @@ int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
     if( hdf5_read_double(WPATH "z", z,
         f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    ret=hdf5_wall_2d_to_offload(offload_data, offload_array,
-                                nelements, r, z );
+    /* Read flags */
+    short* flag = (short*) malloc(nelements * sizeof(short));
+    if( hdf5_read_short(WPATH "flag", flag,
+                        f, qid, __FILE__, __LINE__) ) {return 1;}
+    *int_offload_array = (int*) malloc(nelements * sizeof(int));
+    for(int i=0; i<nelements; i++) {
+        (*int_offload_array)[i] = (int)flag[i];
+    }
+    free(flag);
+
+    ret=hdf5_wall_2d_to_offload(offload_data, offload_array, nelements, r, z);
     free(tmp);
 
     return ret;
@@ -124,8 +132,7 @@ int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
  */
 int hdf5_wall_2d_to_offload(
     wall_2d_offload_data *offload_data, real **offload_array,
-    int nelements, real *r, real *z ) {
-
+    int nelements, real *r, real *z) {
 
     offload_data->n = nelements;
     offload_data->offload_array_length = 2 * offload_data->n;
@@ -157,7 +164,8 @@ int hdf5_wall_2d_to_offload(
  * @return Zero if reading succeeded
  */
 int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
-                      real** offload_array, char* qid) {
+                      real** offload_array, int** int_offload_array,
+                      char* qid) {
     #undef WPATH
     #define WPATH "/wall/wall_3D_XXXXXXXXXX/"
 
@@ -180,6 +188,16 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
     if( hdf5_read_double(WPATH "z1z2z3", z1z2z3,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
+    /* Read flags */
+    short* flag = (short*) malloc(nelements * sizeof(short));
+    if( hdf5_read_short(WPATH "flag", flag,
+                        f, qid, __FILE__, __LINE__) ) {return 1;}
+    *int_offload_array = (int*) malloc(nelements * sizeof(int));
+    for(int i=0; i<nelements; i++) {
+        (*int_offload_array)[i] = (int)flag[i];
+    }
+    free(flag);
+
     int retval;
     retval = hdf5_wall_3d_to_offload(offload_data, offload_array,
                                      nelements, x1x2x3, y1y2y3, z1z2z3);
@@ -187,6 +205,7 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
     free(x1x2x3);
     free(y1y2y3);
     free(z1z2z3);
+    free(flag);
 
     return retval;
 }

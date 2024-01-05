@@ -10,8 +10,9 @@
  * @brief 2D wall offload data
  */
 typedef struct {
-    int n;                    /**< Number of points in the wall polygon */
-    int offload_array_length; /**< Length of the offload array          */
+    int n;                        /**< Number of points in the wall polygon */
+    int offload_array_length;     /**< Length of the offload array          */
+    int int_offload_array_length; /**< Length of the int offload array      */
 } wall_2d_offload_data;
 
 /**
@@ -20,19 +21,20 @@ typedef struct {
  * Note: The start and end point of wall polygon does not have to concide.
  */
 typedef struct {
-    int n;          /**< Number of points in the wall polygon           */
-    real* wall_r;   /**< R coordinates for the wall polygon points      */
-    real* wall_z;   /**< z coordinates for the wall polygon points      */
+    int n;        /**< Number of points in the wall polygon      */
+    real* wall_r; /**< R coordinates for the wall polygon points */
+    real* wall_z; /**< z coordinates for the wall polygon points */
+    int* flag;    /**< Array of wall element flags               */
 } wall_2d_data;
 
 int wall_2d_init_offload(wall_2d_offload_data* offload_data,
-                         real** offload_array);
+                         real** offload_array, int** int_offload_array);
 void wall_2d_free_offload(wall_2d_offload_data* offload_data,
-                          real** offload_array);
+                          real** offload_array, int** int_offload_array);
 
 #pragma omp declare target
 void wall_2d_init(wall_2d_data* w, wall_2d_offload_data* offload_data,
-                  real* offload_array);
+                  real* offload_array, int* int_offload_array);
 #pragma omp declare simd uniform(w)
 int wall_2d_inside(real r, real z, wall_2d_data* w);
 #pragma omp declare simd uniform(w)
