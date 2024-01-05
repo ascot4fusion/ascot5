@@ -22,6 +22,7 @@
 #include "offload.h"
 #include "mpi_interface.h"
 #include "bmc_mesh.h"
+#include "diag/dist_5D.h"
 #include "simulate/simulate_bmc.h"
 
 int read_arguments(int argc, char** argv, sim_offload_data* sim);
@@ -91,6 +92,7 @@ int main(int argc, char** argv) {
     wall_init(&sim_data.wall_data, &sim.wall_offload_data, wall_offload_array,
               wall_int_offload_array);
     diag_init_offload(&sim.diag_offload_data, &diag_offload_array, 0);
+    diag_init(&sim_data.diag_data, &sim.diag_offload_data, diag_offload_array);
 
     print_out0(VERBOSE_NORMAL, mpi_rank, "\nInitializing probability mesh.\n");
 
@@ -169,8 +171,21 @@ int main(int argc, char** argv) {
             /* Update the probability */
         }
     }
-    for(size_t i=0; i<mesh.size; i++) {
-        diag_offload_array[i] = mesh.val_prev[i];
+    dist_5D_data* d = &sim_data.diag_data.dist5D;
+    for(size_t i5=0; i5<d->n_r; i5++)
+    for(size_t i4=0; i4<d->n_phi; i4++)
+    for(size_t i3=0; i3<d->n_z; i3++)
+    for(size_t i2=0; i2<d->n_ppara; i2++)
+    for(size_t i1=0; i1<d->n_pperp; i1++) {
+        real val = bmc_mesh_interpolate(&mesh,
+        d->min_r     + ((float)i5+0.5)*(d->max_r - d->min_r) / (d->n_r - 1),
+        d->min_phi   + (i4+0.5)*(d->max_phi - d->min_phi) / (d->n_phi),
+        d->min_z     + ((float)i3+0.5)*(d->max_z - d->min_z) / (d->n_z - 1),
+        d->min_ppara + ((float)i2+0.5)*(d->max_ppara - d->min_ppara) / (d->n_ppara - 1),
+        d->min_pperp + ((float)i1+0.5)*(d->max_pperp - d->min_pperp) / (d->n_pperp - 1));
+        size_t i0 = dist_5D_index(i5, i4, i3, i2, i1, 0, 0,
+        d->step_6, d->step_5, d->step_4, d->step_3, d->step_2, d->step_1);
+        diag_offload_array[i0] = val;
     }
 
     mpi_interface_finalize();

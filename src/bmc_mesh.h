@@ -34,6 +34,8 @@ int bmc_mesh_init();
 void bmc_mesh_free(bmc_mesh* mesh);
 #pragma omp declare simd uniform(mesh)
 void bmc_mesh_index2pos(bmc_mesh* mesh, size_t idx, real coords[5]);
+real bmc_mesh_interpolate(bmc_mesh* mesh, real r, real phi, real z, real ppara,
+                          real pperp);
 void bmc_mesh_finishstep(bmc_mesh* mesh);
 void bmc_mesh_update(bmc_mesh* mesh, size_t start, size_t stop,
                      real* r, real* phi, real* z, real* ppara, real* pperp,
