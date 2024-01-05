@@ -53,6 +53,18 @@ def _convert5to6(fn):
                     g.create_dataset("flag", (nelements,1), data=flag,
                                      dtype="i4")
 
+        for opt in _loopchild(h5, "options"):
+            grp = h5["options"][opt]
+            params = {
+                "BMC_TIMEDEPENDENT":0, "BMC_ORBIT_SUBCYCLES":10,
+                "BMC_TIMESTEP":1.e-6, "BMC_TSTART":0.0, "BMC_TSTOP":1.e-4,
+                "BMC_MASS":4.002, "BMC_CHARGE":2, "BMC_ANUM":4, "BMC_ZNUM":2
+                }
+            for p, k in params.items():
+                if not p in grp:
+                    print("Adding %s to %s" % (p, opt))
+                    grp.create_dataset(p, (1,), data=k, dtype='f8')
+
 def _convert4to5(fn):
     """Update version 4 HDF5 to version 5.
 
