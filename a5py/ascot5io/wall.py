@@ -262,6 +262,87 @@ class wall_2D(DataGroup):
         return gname
 
     @staticmethod
+    def write_hdf5(fn, nelements, r, z, flag=None, flagIdList=None,
+                   flagIdStrings=None, desc=None):
+        """Write input data to the HDF5 file.
+
+        First vertex shouldn't correspond to the last vertex, i.e., don't give
+        (R,z) coordinates that make a closed loop.
+
+        Parameters
+        ----------
+        fn : str
+            Full path to the HDF5 file.
+        nelements : int
+            Number of wall segments.
+        r : array_like (nelements,1)
+            R coordinates of wall segment vertices [m].
+        z : array_like (nelements,1)
+            z coordinates of wall segment vertices [m].
+        flag : array_like (nelements,1), optional
+            Integer array depicting the wall component of each triangle.
+        flagIdList : array_like (nUniqueFlags), optional
+            List of keys (int) of the flagIdStrings.
+        flagIdStrings : array_like (nUniqueFlags), optional
+            List of values (str) of the flagIdStrings.
+        desc : str, optional
+            Input description.
+
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
+
+        Raises
+        ------
+        ValueError
+            If the input is inconsistent.
+        """
+        if r.size != nelements:
+            raise ValueError("Size of r does not match the number of elements.")
+        if z.size != nelements:
+            raise ValueError("Size of z does not match the number of elements.")
+        if flag is None:
+            flag = np.zeros(shape=(nelements,),dtype=int)
+        elif flag.shape != (nelements,1):
+            raise ValueError(
+                "Shape of flag was " + str(flag.shape) + " but expected ("
+                + str(nelements) + ",1)")
+
+        parent = "wall"
+        group  = "wall_2D"
+        gname  = ""
+
+        # Convert strings to the correct format
+        if flagIdStrings is not None:
+            strlen = 0
+            for s in flagIdStrings:
+                if len(s) >  strlen:
+                    strlen = len(s)
+            fids = np.empty( shape=(len(flagIdStrings),),
+                             dtype='|S{}'.format(strlen) )
+            for istr,s in enumerate(flagIdStrings):
+                fids[istr]=s
+
+        with h5py.File(fn, "a") as f:
+            g = add_group(f, parent, group, desc=desc)
+            gname = g.name.split("/")[-1]
+
+            g.create_dataset("r",         (nelements,1), data=r, dtype='f8')
+            g.create_dataset("z",         (nelements,1), data=z, dtype='f8')
+            g.create_dataset("nelements", (1,1),         data=nelements,
+                             dtype='i4')
+            fl = g.create_dataset('flag', (nelements,1), data=flag, dtype='i4')
+            if flagIdList is not None and flagIdStrings is not None:
+                flagIdList = np.array(flagIdList)
+                fl.attrs.create(name='flagIdList', data=flagIdList, dtype='i4')
+                fl.attrs.create(name='flagIdStrings', data=fids,
+                                dtype=h5py.string_dtype(encoding='utf-8',
+                                                        length=None))
+
+        return gname
+
+    @staticmethod
     def create_dummy():
         """Create dummy data that has correct format and is valid, but can be
         non-sensical.
