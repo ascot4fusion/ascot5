@@ -19,7 +19,8 @@
  *
  * @return zero to indicate success
  */
-int wall_2d_init(wall_2d_data* data, int nelements, real* r, real* z) {
+int wall_2d_init(wall_2d_data* data, int nelements, real* r, real* z,
+                 int* flag) {
 
     data->n = nelements;
     data->wall_r = (real*) malloc( nelements * sizeof(real) );
@@ -33,6 +34,7 @@ int wall_2d_init(wall_2d_data* data, int nelements, real* r, real* z) {
         zmax = fmax(zmax, z[i]);
         data->wall_r[i] = r[i];
         data->wall_z[i] = z[i];
+        data->flag[i] = flag[i];
     }
 
     print_out(VERBOSE_IO, "\n2D wall model (wall_2D)\n");
@@ -60,7 +62,8 @@ void wall_2d_free(wall_2d_data* data) {
 void wall_2d_offload(wall_2d_data* data) {
     GPU_MAP_TO_DEVICE(
         data->wall_r[0:data->n],
-        data->wall_z[0:data->n]
+        data->wall_z[0:data->n],
+        data->flag[0:data->n]
     )
 }
 
@@ -123,11 +126,7 @@ int wall_2d_inside(real r, real z, wall_2d_data* w) {
  */
 int wall_2d_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
                      wall_2d_data* w, real* w_coll) {
-    int tile = 0;
-    if(!wall_2d_inside(r2, z2, w)) {
-        tile = wall_2d_find_intersection(r1, z1, r2, z2, w, w_coll);
-    }
-    return tile;
+    return wall_2d_find_intersection(r1, z1, r2, z2, w, w_coll);
 }
 
 /**
