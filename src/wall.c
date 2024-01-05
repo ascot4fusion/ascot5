@@ -41,16 +41,16 @@
  */
 int wall_init_offload(wall_offload_data* offload_data, real** offload_array,
                       int** int_offload_array) {
-
     int err = 0;
-
     switch(offload_data->type) {
 
         case wall_type_2D:
-            err = wall_2d_init_offload(&(offload_data->w2d), offload_array);
+            err = wall_2d_init_offload(&(offload_data->w2d), offload_array,
+                                       int_offload_array);
             offload_data->offload_array_length =
                 offload_data->w2d.offload_array_length;
-            offload_data->int_offload_array_length = 0;
+            offload_data->int_offload_array_length =
+                offload_data->w2d.int_offload_array_length;
             break;
 
         case wall_type_3D:
@@ -92,7 +92,8 @@ void wall_free_offload(wall_offload_data* offload_data, real** offload_array,
                        int** int_offload_array) {
     switch(offload_data->type) {
         case wall_type_2D:
-            wall_2d_free_offload(&(offload_data->w2d), offload_array);
+            wall_2d_free_offload(&(offload_data->w2d), offload_array,
+                                 int_offload_array);
             break;
 
         case wall_type_3D:
@@ -121,7 +122,8 @@ int wall_init(wall_data* w, wall_offload_data* offload_data,
     int err = 0;
     switch(offload_data->type) {
         case wall_type_2D:
-            wall_2d_init(&(w->w2d), &(offload_data->w2d), offload_array);
+            wall_2d_init(&(w->w2d), &(offload_data->w2d), offload_array,
+                         int_offload_array);
             break;
 
         case wall_type_3D:
@@ -196,4 +198,26 @@ int wall_get_n_elements(wall_data* w) {
             break;
     }
     return ret;
+}
+
+/**
+ * @brief Return the flag of a wall element.
+ *
+ * @param w pointer to wall data struct on target
+ * @param idx wall element index
+ *
+ * @return Flag of the wall element.
+ */
+int wall_get_flag(wall_data* w, int idx) {
+    int flag = 0;
+    switch(w->type) {
+        case wall_type_2D:
+            flag = w->w2d.flag[idx];
+            break;
+
+        case wall_type_3D:
+            flag = w->w3d.flag[idx];
+            break;
+    }
+    return flag;
 }

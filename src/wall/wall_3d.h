@@ -48,8 +48,9 @@ typedef struct {
     int depth;           /**< Depth of the octree                             */
     int ngrid;           /**< Number of cells computational volume is divided
                               to in each direction. ngrid = 2^(depth-1)       */
-    real* wall_tris;     /**< Array of wall triangle coordinates */
-    int tree_array_size; /**< Number of elements in tree_array */
+    real* wall_tris;     /**< Array of wall triangle coordinates              */
+    int* flag;           /**< Array of wall triangle flags                    */
+    int tree_array_size; /**< Number of elements in tree_array                */
 
     /**@brief Array storing information what triangles given octree cell stores
      *
