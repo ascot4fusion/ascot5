@@ -11,6 +11,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include "../ascot5.h"
 #include "wall_3d.h"
@@ -91,7 +92,18 @@ int wall_3d_init_offload(wall_3d_offload_data* offload_data,
               offload_data->xmin, offload_data->xmax, offload_data->ymin,
               offload_data->ymax, offload_data->zmin, offload_data->zmax);
 
+    /* Store flags temporarily */
+    int* flag = (int*) malloc(offload_data->n * sizeof(int));
+    memcpy(flag, *int_offload_array, offload_data->n * sizeof(int));
+    free(*int_offload_array);
+
+    /* Initialize octree. Note that this function reserves space for flags */
     wall_3d_init_octree(offload_data, *offload_array, int_offload_array);
+
+    /* Copy flags to offload array */
+    int idx = offload_data->offload_array_length - offload_data->n;
+    memcpy(&(*int_offload_array)[idx], flag, offload_data->n * sizeof(int));
+    free(flag);
 
     return 0;
 }
@@ -131,21 +143,22 @@ void wall_3d_free_offload(wall_3d_offload_data* offload_data,
 void wall_3d_init(wall_3d_data* w, wall_3d_offload_data* offload_data,
                   real* offload_array, int* int_offload_array) {
     w->n = offload_data->n;
-    w->xmin = offload_data->xmin;
-    w->xmax = offload_data->xmax;
+    w->xmin  = offload_data->xmin;
+    w->xmax  = offload_data->xmax;
     w->xgrid = offload_data->xgrid;
-    w->ymin = offload_data->ymin;
-    w->ymax = offload_data->ymax;
+    w->ymin  = offload_data->ymin;
+    w->ymax  = offload_data->ymax;
     w->ygrid = offload_data->ygrid;
-    w->zmin = offload_data->zmin;
-    w->zmax = offload_data->zmax;
+    w->zmin  = offload_data->zmin;
+    w->zmax  = offload_data->zmax;
     w->zgrid = offload_data->zgrid;
     w->depth = offload_data->depth;
     w->ngrid = offload_data->ngrid;
     w->wall_tris = &offload_array[0];
 
-    w->tree_array_size = offload_data->int_offload_array_length;
+    w->tree_array_size = offload_data->int_offload_array_length - w->n;
     w->tree_array = &int_offload_array[0];
+    w->flag       = &int_offload_array[w->tree_array_size];
 }
 
 /**
@@ -234,6 +247,9 @@ void wall_3d_init_tree(wall_3d_data* w, real* offload_array) {
  * Constructs the octree array by iterating through all wall triangles and
  * placing them into an octree structure
  *
+ * Note that this function allocates extra space at the end of the tree_array
+ * to store wall element flags.
+ *
  * @param w pointer to wall data
  * @param offload_array the offload array
  * @param tree_array pointer to array storing what octree cells contain
@@ -241,9 +257,7 @@ void wall_3d_init_tree(wall_3d_data* w, real* offload_array) {
  */
 void wall_3d_init_octree(wall_3d_offload_data* w, real* offload_array,
                          int** tree_array) {
-
-
-    if (w->n > 1000000){
+    if(w->n > 1000000){
         print_out(VERBOSE_NORMAL,
                   "Starting to initialize 3D-wall octree with %d triangles.\n",
                   w->n);
@@ -297,7 +311,7 @@ void wall_3d_init_octree(wall_3d_offload_data* w, real* offload_array,
         list_size += list_int_size(tri_list[i]);
     }
 
-    w->int_offload_array_length = 2*ncell + list_size;
+    w->int_offload_array_length = 2*ncell + list_size + w->n;
     *tree_array = (int*) malloc((w->int_offload_array_length)*sizeof(int));
 
     int next_empty_list = ncell;

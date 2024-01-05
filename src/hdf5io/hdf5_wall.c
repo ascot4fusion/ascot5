@@ -20,9 +20,9 @@
 #define WPATH /**< Macro that is used to store paths to data groups */
 
 int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
-                      real** offload_array, char* qid);
+                      real** offload_array, int** int_offload_array, char* qid);
 int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
-                      real** offload_array, char* qid);
+                      real** offload_array, int** int_offload_array, char* qid);
 
 /**
  * @brief Read wall data from HDF5 file
@@ -47,19 +47,17 @@ int hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data,
     int err = 1;
 
     /* Read data the QID corresponds to */
-
     hdf5_gen_path("/wall/wall_2D_XXXXXXXXXX", qid, path);
     if(hdf5_find_group(f, path) == 0) {
         offload_data->type = wall_type_2D;
         err = hdf5_wall_read_2D(f, &(offload_data->w2d),
-                                offload_array, qid);
+                                offload_array, int_offload_array, qid);
     }
-
     hdf5_gen_path("/wall/wall_3D_XXXXXXXXXX", qid, path);
     if(hdf5_find_group(f, path) == 0) {
         offload_data->type = wall_type_3D;
         err = hdf5_wall_read_3D(f, &(offload_data->w3d),
-                                offload_array, qid);
+                                offload_array, int_offload_array, qid);
     }
 
     /* Initialize if data was read succesfully */
@@ -81,7 +79,8 @@ int hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data,
  * @return Zero if reading succeeded
  */
 int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
-                      real** offload_array, char* qid) {
+                      real** offload_array, int** int_offload_array,
+                      char* qid) {
     #undef WPATH
     #define WPATH "/wall/wall_2D_XXXXXXXXXX/"
 
@@ -101,6 +100,16 @@ int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
     if( hdf5_read_double(WPATH "z", &((*offload_array)[nelements]),
         f, qid, __FILE__, __LINE__) ) {return 1;}
 
+    /* Read flags */
+    short* flag = (short*) malloc(nelements * sizeof(short));
+    if( hdf5_read_short(WPATH "flag", flag,
+                        f, qid, __FILE__, __LINE__) ) {return 1;}
+    *int_offload_array = (int*) malloc(nelements * sizeof(int));
+    for(int i=0; i<nelements; i++) {
+        (*int_offload_array)[i] = (int)flag[i];
+    }
+    free(flag);
+
     return 0;
 }
 
@@ -115,7 +124,8 @@ int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
  * @return Zero if reading succeeded
  */
 int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
-                      real** offload_array, char* qid) {
+                      real** offload_array, int** int_offload_array,
+                      char* qid) {
     #undef WPATH
     #define WPATH "/wall/wall_3D_XXXXXXXXXX/"
 
@@ -154,5 +164,16 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
     free(x1x2x3);
     free(y1y2y3);
     free(z1z2z3);
+
+    /* Read flags */
+    short* flag = (short*) malloc(nelements * sizeof(short));
+    if( hdf5_read_short(WPATH "flag", flag,
+                        f, qid, __FILE__, __LINE__) ) {return 1;}
+    *int_offload_array = (int*) malloc(nelements * sizeof(int));
+    for(int i=0; i<nelements; i++) {
+        (*int_offload_array)[i] = (int)flag[i];
+    }
+    free(flag);
+
     return 0;
 }
