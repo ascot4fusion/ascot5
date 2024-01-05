@@ -12,7 +12,7 @@ import unyt
 import numpy as np
 import subprocess
 
-from .fileapi             import get_qid
+from .fileapi             import get_qid, VERSION
 from a5py.ascot5io.boozer import Boozer
 from a5py.ascot5io.mhd    import MHD_STAT
 from a5py.ascot5io.asigma import Asigma_loc
@@ -28,17 +28,14 @@ def convert(fn):
     fn : str
         Name of the input file.
     """
-    fnout = fn[:-3] + "_" + "5" + ".h5"
+    ver = VERSION.split(".")[1]
+    fnout = fn[:-3] + "_" + ver + ".h5"
     subprocess.call(["cp", fn, fnout])
 
-    print("\nUpdating file to version 5.2 (if necessary)\n")
-    _convert1to2(fnout)
-    print("\nUpdating file to version 5.3 (if necessary)\n")
-    _convert2to3(fnout)
-    print("\nUpdating file to version 5.4 (if necessary)\n")
-    _convert3to4(fnout)
-    print("\nUpdating file to version 5.5 (if necessary)\n")
-    _convert4to5(fnout)
+    for i in range(1,int(ver)):
+        print("\nUpdating file to version %s.%d (if necessary)\n" % (ver,i+1))
+        fun = "_convert%dto%d" % (i,i+1)
+        globals()[fun](fnout)
 
 def _convert4to5(fn):
     """Update version 4 HDF5 to version 5.
@@ -259,7 +256,12 @@ def _convert1to2(fn):
     (Later it was decided not to include NBI input to existing runs
     so this does nothing.)
     """
-    pass
+    with h5py.File(fn, "a") as h5:
+        for opt in _loopchild(h5, "options"):
+            grp = h5["options"][opt]
+            if "ORBITWRITE_RADIALDISTANCES" not in grp:
+                grp.create_dataset("ORBITWRITE_RADIALDISTANCES", (1,),
+                                   data=[1.0], dtype='f8')
 
 def _loopchild(h5, parent):
     """Return all children or empty list if parent doesn't exist.
