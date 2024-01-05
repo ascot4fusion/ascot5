@@ -37,6 +37,22 @@ def convert(fn):
         fun = "_convert%dto%d" % (i,i+1)
         globals()[fun](fnout)
 
+def _convert5to6(fn):
+    """Update version 5 HDF5 to version 6.
+
+    - Adds flags to 2D wall
+    """
+    with h5py.File(fn, "a") as h5:
+        for wall in _loopchild(h5, "wall"):
+            if "wall_2D" in wall:
+                g = h5["wall"][wall]
+                if not "flag" in g:
+                    print("Adding flags to %s" % wall)
+                    nelements = int(g["nelements"][:])
+                    flag = np.zeros(shape=(nelements,1), dtype=int)
+                    g.create_dataset("flag", (nelements,1), data=flag,
+                                     dtype="i4")
+
 def _convert4to5(fn):
     """Update version 4 HDF5 to version 5.
 
