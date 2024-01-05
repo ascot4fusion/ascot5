@@ -74,7 +74,7 @@ void simulate_bmc_gc(
     #pragma omp parallel for \
         shared(sim, mesh, h_orb, h_coll, hermite_k_nsimd, start, stop, \
         r, phi, z, ppara, pperp, fate)
-    for(size_t iprt=start; iprt < stop; iprt += NSIMD) {
+    for(size_t iprt=start; iprt < stop + NSIMD; iprt += NSIMD) {
         /* Initialize markers from mesh */
         int lost[NSIMD];
         particle_simd_gc p;
@@ -82,13 +82,15 @@ void simulate_bmc_gc(
 
             /* Find the position of the node (i.e. initial marker position) */
             real origin[5];
-            bmc_mesh_index2pos(mesh, start+i, origin);
+            bmc_mesh_index2pos(mesh, iprt+i, origin);
 
-            real ppara = origin[3];
-            real pperp = origin[4];
-            real pnorm = sqrt(ppara * ppara + pperp * pperp);
-            real xi    = ppara / pnorm;
+            real ppara0 = origin[3];
+            real pperp0 = origin[4];
+            real pnorm = sqrt(ppara0 * ppara0 + pperp0 * pperp0);
+            real xi    = ppara0 / pnorm;
             real ekin  = physlib_Ekin_pnorm(sim->bmc_mass, pnorm);
+            //if(xi == -1) xi = -0.9999; //Not sure if these are needed
+            //if(xi == 1) xi = 0.9999;
 
             particle_gc gc;
             gc.r      = origin[0];
@@ -110,10 +112,10 @@ void simulate_bmc_gc(
             particle_state_to_gc(&ps, 0, &p, i, &sim->B_data);
             lost[i] = 0;
             if(!wall_2d_inside(origin[0], origin[2], &sim->wall_data.w2d)) {
-                lost[i] = -1.0;
+                lost[i] = -1;
             }
 
-            if(start + i >= stop || p.err[i]) {
+            if(iprt + i >= stop || p.err[i]) {
                 /* No more mesh points to initialize; fill rest of the array
                  * with dummy markers */
                 p.id[i] = -1;
@@ -142,9 +144,9 @@ void simulate_bmc_gc(
                         &sim->wall_data, &w_coll);
                     if(tile > 0) {
                         lost[i] = 1.0;
-                    }
-                    if(tile == 142) {
-                        lost[i] = 2.0;
+                        if( wall_get_flag(&sim->wall_data, tile-1) == 1 ) {
+                            lost[i] = 2.0;
+                        }
                     }
                 }
                 else if(!p.err[i] && lost[i]) {
@@ -170,26 +172,25 @@ void simulate_bmc_gc(
                           &sim->mccc_data, &(hermite_k_nsimd[i_knot*5*NSIMD]));
             /* Store the final locations*/
             for(int i=0; i<NSIMD; i++) {
-                if(start + i >= stop) break;
-                r[(start+i) * HERMITE_KNOTS + i_knot]     = p_knot.r[i];
-                phi[(start+i) * HERMITE_KNOTS + i_knot]   =
+                if(iprt + i >= stop) break;
+                r[(iprt+i) * HERMITE_KNOTS + i_knot]     = p_knot.r[i];
+                phi[(iprt+i) * HERMITE_KNOTS + i_knot]   =
                     fmod(fmod(p_knot.phi[i], CONST_2PI) + CONST_2PI, CONST_2PI);
-                z[(start+i) * HERMITE_KNOTS + i_knot]     = p_knot.z[i];
-                ppara[(start+i) * HERMITE_KNOTS + i_knot] = p_knot.ppar[i];
+                z[(iprt+i) * HERMITE_KNOTS + i_knot]     = p_knot.z[i];
+                ppara[(iprt+i) * HERMITE_KNOTS + i_knot] = p_knot.ppar[i];
 
                 real Bnorm = sqrt( p_knot.B_r[i]   * p_knot.B_r[i]
                                  + p_knot.B_phi[i] * p_knot.B_phi[i]
                                  + p_knot.B_z[i]   * p_knot.B_z[i]);
                 real pnorm = physlib_gc_p(p_knot.mass[i], p_knot.mu[i],
                                           p_knot.ppar[i], Bnorm);
-                real pperp2 = pnorm * pnorm - p_knot.ppar[i] * p_knot.ppar[i];
-                pperp[(start+i) * HERMITE_KNOTS + i_knot] = sqrt(pperp2);
+                real pperp2 = fabs(pnorm * pnorm - p_knot.ppar[i] * p_knot.ppar[i]);
+                pperp[(iprt+i) * HERMITE_KNOTS + i_knot] = sqrt(pperp2);
 
                 if(lost[i] != 0) {
-                    fate[(start+i) * HERMITE_KNOTS + i_knot] = lost[i];
+                    fate[(iprt+i) * HERMITE_KNOTS + i_knot] = lost[i];
                 }
             }
         }
-        start += NSIMD;
     }
 }

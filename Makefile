@@ -15,6 +15,11 @@ bbnbi5:
 	mkdir -p build
 	mv src/bbnbi5 build/bbnbi5
 
+bmc_main:
+	$(MAKE) -C src bmc_main
+	mkdir -p build
+	mv src/bmc_main build/bmc_main
+
 ascot2py.py:
 	$(MAKE) -C src ascot2py.py
 	python3 .setcdllascot2py.py

@@ -40,12 +40,12 @@ int bmc_mesh_init(real min_r,     real max_r,     int n_r,
                   real min_pperp, real max_pperp, int n_pperp,
                   bmc_mesh* mesh) {
     mesh->n_r     = n_r + 1;
-    mesh->n_phi   = n_phi + 1;
+    mesh->n_phi   = n_phi;
     mesh->n_z     = n_z + 1;
     mesh->n_ppara = n_ppara + 1;
     mesh->n_pperp = n_pperp + 1;
-    mesh->size = ((size_t) n_r) * ((size_t) n_phi) * ((size_t) n_z)
-               * ((size_t) n_ppara) * ((size_t) n_pperp);
+    mesh->size = ((size_t) mesh->n_r) * ((size_t) mesh->n_phi) * ((size_t) mesh->n_z)
+               * ((size_t) mesh->n_ppara) * ((size_t) mesh->n_pperp);
     mesh->r        = (real*) malloc(mesh->n_r     * sizeof(real));
     mesh->phi      = (real*) malloc(mesh->n_phi   * sizeof(real));
     mesh->z        = (real*) malloc(mesh->n_z     * sizeof(real));
@@ -56,15 +56,15 @@ int bmc_mesh_init(real min_r,     real max_r,     int n_r,
 
     /* Store abscissae */
     for(int i=0; i<=n_r; i++)
-        mesh->r[i] = min_r + (max_r - min_r) / n_r * i;
+        mesh->r[i] = min_r + i * (max_r - min_r) / n_r ;
     for(int i=0; i<n_z; i++)
-        mesh->z[i] = min_z + (max_z - min_z) / n_z * i;
-    for(int i=0; i<=n_phi; i++)
-        mesh->phi[i] = min_phi + (max_phi - min_phi) / n_phi * i;
+        mesh->z[i] = min_z + i * (max_z - min_z) / n_z;
+    for(int i=0; i<n_phi; i++)
+        mesh->phi[i] = min_phi + i * (max_phi - min_phi) / (n_phi+1);
     for(int i=0; i<=n_ppara; i++)
-        mesh->ppara[i] = min_ppara + (max_ppara - min_ppara) / n_ppara * i;
+        mesh->ppara[i] = min_ppara + i * (max_ppara - min_ppara) / n_ppara;
     for(int i=0; i<=n_pperp; i++)
-        mesh->pperp[i] = min_pperp + (max_pperp - min_pperp) / n_pperp * i;
+        mesh->pperp[i] = min_pperp + i * (max_pperp - min_pperp) / n_pperp;
 
     /* Set initial probability to zero */
     memset(mesh->val_prev, 0.0, mesh->size * sizeof(real));
@@ -98,23 +98,87 @@ void bmc_mesh_free(bmc_mesh* mesh) {
  * @param coords array where coordinates (R,phi,z,ppara,pperp) will be stored
  */
 void bmc_mesh_index2pos(bmc_mesh* mesh, size_t idx, real coords[5]) {
-    int pperp = idx / (  (mesh->n_ppara-1) * (mesh->n_z-1) * (mesh->n_phi-1)
-                       * (mesh->n_r-1) );
-    idx -= pperp * (mesh->n_ppara-1) * (mesh->n_z-1) * (mesh->n_phi-1)
-                 * (mesh->n_r-1);
-    int ppara = idx / (  (mesh->n_z-1) * (mesh->n_phi-1) * (mesh->n_r-1) );
-    idx -= ppara * (mesh->n_z-1) * (mesh->n_phi-1) * (mesh->n_r-1);
-    int phi = idx / ( (mesh->n_z-1) * (mesh->n_r-1) );
-    idx -= phi * (mesh->n_z-1) * (mesh->n_r-1);
-    int z = idx / (mesh->n_r-1);
-    idx -= z * (mesh->n_r-1);
-    int r = idx;
+    int pperp = round( idx /
+        ( mesh->n_r * mesh->n_z * mesh->n_phi * mesh->n_ppara ) );
+    idx -= pperp * mesh->n_r * mesh->n_z * mesh->n_phi * mesh->n_ppara;
+    int ppara = round( idx / ( mesh->n_r * mesh->n_z * mesh->n_phi ) );
+    idx -= ppara * mesh->n_r * mesh->n_z * mesh->n_phi;
+    int phi   = round( idx / ( mesh->n_r * mesh->n_z ) );
+    idx -= phi * mesh->n_r * mesh->n_z;
+    int z     = round( idx / mesh->n_r );
+    idx -=     z * mesh->n_r;
+    int r     = idx;
 
     coords[0] = mesh->r[r];
     coords[1] = mesh->phi[phi];
     coords[2] = mesh->z[z];
     coords[3] = mesh->ppara[ppara];
     coords[4] = mesh->pperp[pperp];
+}
+
+real bmc_mesh_interpolate(bmc_mesh* mesh, real r, real phi, real z, real ppara,
+                          real pperp) {
+    /* Find the matrix indices where this pseudo-particle belongs to */
+    size_t i_r = ((r - mesh->r[0])
+        / (mesh->r[1] - mesh->r[0]));
+    size_t i_z = ((z - mesh->z[0])
+        / (mesh->z[1] - mesh->z[0]));
+    size_t i_phi = ((phi - mesh->phi[0])
+        / (mesh->phi[1] - mesh->phi[0]));
+    size_t i_ppara = ((ppara - mesh->ppara[0])
+    / (mesh->ppara[1] - mesh->ppara[0]));
+    size_t i_pperp = ((pperp - mesh->pperp[0])
+        / (mesh->pperp[1] - mesh->pperp[0]));
+
+    /* Periodic variable */
+    size_t i_phi1 = i_phi + 1;
+    if(i_phi == mesh->n_phi-1) i_phi1 = 0;
+
+    /* Zero outside */
+    real val = 0;
+    if(i_ppara >= 0 && i_ppara < mesh->n_ppara-2 &&
+       i_pperp >= 0 && i_pperp < mesh->n_pperp-2 &&
+       i_r >= 0 && i_r < mesh->n_r-2 && i_z >= 0 && i_z < mesh->n_z-2) {
+
+        /* Interpolate the probability value at the particle location
+        *  using the nearby nodes (for linear interpolation) */
+        real dr[2]   = {mesh->r[i_r+1] - r, r - mesh->r[i_r]};
+        real dphi[2] = {mesh->phi[i_phi1] - phi, phi - mesh->phi[i_phi]};
+        real dz[2]   = {mesh->z[i_z+1] - z, z - mesh->z[i_z]};
+        real dppa[2] = {mesh->ppara[i_ppara+1] - ppara,
+                        ppara - mesh->ppara[i_ppara]};
+        real dppe[2] = {mesh->pperp[i_pperp+1] - pperp,
+                        pperp - mesh->pperp[i_pperp]};
+        real vol = (mesh->r[i_r+1]         - mesh->r[i_r])
+                * fmax(fabs(mesh->phi[i_phi1] - mesh->phi[i_phi]), 1.0)
+                * (mesh->z[i_z+1]         - mesh->z[i_z])
+                * (mesh->ppara[i_ppara+1] - mesh->ppara[i_ppara])
+                * (mesh->pperp[i_pperp+1] - mesh->pperp[i_pperp]);
+
+        if(mesh->n_phi == 1) {
+            dphi[0] = 0.5;
+            dphi[1] = 0.5;
+        }
+
+        /* 5D linear interpolation */
+        for(int i1=0; i1<2; i1++)
+        for(int i2=0; i2<2; i2++)
+        for(int i3=0; i3<2; i3++)
+        for(int i4=0; i4<2; i4++)
+        for(int i5=0; i5<2; i5++) {
+            size_t idx0 =
+                  (i_pperp + i5) * (mesh->n_r) * (mesh->n_z) * (mesh->n_phi)
+                                 * (mesh->n_ppara)
+                + (i_ppara + i4) * (mesh->n_r) * (mesh->n_z) * (mesh->n_phi)
+                + (i_phi   + i3 * (i_phi1 - i_phi) ) * (mesh->n_r) * (mesh->n_z)
+                + (i_z     + i2) * (mesh->n_r)
+                + i_r      + i1;
+            val += mesh->val_prev[idx0] * dr[i1] * dz[i2] * dphi[i3]
+                * dppa[i4] * dppe[i5];
+        }
+        val /= vol;
+    }
+    return val;
 }
 
 /**
@@ -168,81 +232,22 @@ void bmc_mesh_update(bmc_mesh* mesh, size_t start, size_t stop,
 
         size_t idx = (iprt-start)*HERMITE_KNOTS;
         for(int i_knot=0; i_knot<HERMITE_KNOTS; i_knot++) {
-            /* Find the matrix indices where this pseudo-particle belongs to */
+
             real ri = r[idx + i_knot];
-            size_t i_r = (ri - mesh->r[0])
-                / (mesh->r[1] - mesh->r[0]);
             real zi = z[idx + i_knot];
-            size_t i_z = (zi - mesh->z[0])
-                / (mesh->z[1] - mesh->z[0]);
             real phii = phi[idx + i_knot];
-            size_t i_phi = (phii - mesh->phi[0])
-                / (mesh->phi[1] - mesh->phi[0]);
             real pparai = ppara[idx + i_knot];
-            size_t i_ppara = (pparai - mesh->ppara[0])
-                / (mesh->ppara[1] - mesh->ppara[0]);
             real pperpi = pperp[idx + i_knot];
-            size_t i_pperp = (pperpi - mesh->pperp[0])
-                / (mesh->pperp[1] - mesh->pperp[0]);
 
-            if(i_ppara < 0 || i_ppara >= mesh->n_ppara) continue;
-            if(i_pperp < 0 || i_pperp >= mesh->n_pperp) continue;
-
-            /* See if there was a wall collision and whether it was with the
-             * target */
             real val = 0;
-            if(fate[idx + i_knot] == 2.0) {
+            if(fate[idx + i_knot] == 2) {
                 val = 1.0;
             }
-            else if (fabs(fate[idx + i_knot]) == 1.0) {
-                continue;
+            else if (fabs(fate[idx + i_knot]) == 1) {
+                val = 0;
             }
             else {
-                /* Zero outside */
-                if(i_r < 0 || i_r >= mesh->n_r) continue;
-                if(i_z < 0 || i_z >= mesh->n_z) continue;
-            }
-
-            /* Periodic variable */
-            size_t i_phi1 = i_phi + 1;
-            if(i_phi == mesh->n_phi-1) i_phi1 = 0;
-
-            if(val == 0.0) {
-                /* Interpolate the probability value at the particle location
-                 *  using the nearby nodes (for linear interpolation) */
-                real dr[2]     = {mesh->r[i_r+1] - ri, ri - mesh->r[i_r]};
-                real dphi[2]   = {mesh->phi[i_phi1] - phii,
-                                  phii - mesh->phi[i_phi]};
-                real dz[2]     = {mesh->z[i_z+1] - zi, zi - mesh->z[i_z]};
-                real dppara[2] = {mesh->ppara[i_ppara+1] - pparai,
-                                  pparai - mesh->ppara[i_ppara]};
-                real dpperp[2] = {mesh->pperp[i_pperp+1] - pperpi,
-                                  pperpi - mesh->pperp[i_pperp]};
-                real vol = (mesh->r[i_r+1]         - mesh->r[i_r])
-                         * fabs(mesh->phi[i_phi1]  - mesh->phi[i_phi])
-                         * (mesh->z[i_z+1]         - mesh->z[i_z])
-                         * (mesh->ppara[i_ppara+1] - mesh->ppara[i_ppara])
-                         * (mesh->pperp[i_pperp+1] - mesh->pperp[i_pperp]);
-
-                /* 5D linear interpolation */
-                for(int i1=0; i1<2; i1++)
-                for(int i2=0; i2<2; i2++)
-                for(int i3=0; i3<2; i3++)
-                for(int i4=0; i4<2; i4++)
-                for(int i5=0; i5<2; i5++) {
-                    size_t idx =
-                        (i_pperp + i5) * (mesh->n_ppara-1) * (mesh->n_z-1)
-                                       * (mesh->n_phi-1) * (mesh->n_r-1)
-                      + (i_ppara + i4) * (mesh->n_z-1) * (mesh->n_phi-1)
-                                       * (mesh->n_r-1)
-                      + (i_phi + i3 * (i_phi1 - i_phi) ) * (mesh->n_z-1)
-                                                         * (mesh->n_r-1)
-                      + (i_z + i2) * (mesh->n_r-1)
-                      + i_r + i1;
-                    val += mesh->val_prev[idx] * dr[i1] * dz[i2] * dphi[i3]
-                        * dppara[i4] * dpperp[i5];
-                }
-                val /= vol;
+                val = bmc_mesh_interpolate(mesh, ri, phii, zi, pparai, pperpi);
             }
             mesh->val_next[iprt] += val * hermite_w[i_knot];
         }
