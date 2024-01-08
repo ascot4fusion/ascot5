@@ -24,6 +24,7 @@ from .coreio.treedata import DataGroup
 from a5py.routines.runmixin import RunMixin
 from a5py.routines.afsi5 import AfsiMixin
 from a5py.routines.bbnbi5 import BBNBIMixin
+from a5py.routines.bmc import BMCMixin
 from a5py.templates import InputFactory
 
 HDF5TOOBJ = {
@@ -278,7 +279,7 @@ class BBNBIGroup(ResultNode, BBNBIMixin):
     """
     pass
 
-class BMCGroup(ResultNode):
+class BMCGroup(ResultNode, BMCMixin):
     """Node containing BMC results and methods to process them.
     """
     pass

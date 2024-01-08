@@ -79,47 +79,53 @@ void simulate_bmc_gc(
         int lost[NSIMD];
         particle_simd_gc p;
         for(int i=0; i<NSIMD; i++) {
-
-            /* Find the position of the node (i.e. initial marker position) */
-            real origin[5];
-            bmc_mesh_index2pos(mesh, iprt+i, origin);
-
-            real ppara0 = origin[3];
-            real pperp0 = origin[4];
-            real pnorm = sqrt(ppara0 * ppara0 + pperp0 * pperp0);
-            real xi    = ppara0 / pnorm;
-            real ekin  = physlib_Ekin_pnorm(sim->bmc_mass, pnorm);
-            //if(xi == -1) xi = -0.9999; //Not sure if these are needed
-            //if(xi == 1) xi = 0.9999;
-
-            particle_gc gc;
-            gc.r      = origin[0];
-            gc.phi    = origin[1];
-            gc.z      = origin[2];
-            gc.anum   = sim->bmc_anum;
-            gc.znum   = sim->bmc_znum;
-            gc.mass   = sim->bmc_mass;
-            gc.charge = sim->bmc_charge;
-            gc.time   = time;
-            gc.weight = 1.0;
-            gc.id     = 1;
-            gc.zeta   = 0.0;
-            gc.pitch  = xi;
-            gc.energy = ekin;
-
-            particle_state ps;
-            particle_input_gc_to_state(&gc, &ps, &sim->B_data);
-            particle_state_to_gc(&ps, 0, &p, i, &sim->B_data);
-            lost[i] = 0;
-            if(!wall_2d_inside(origin[0], origin[2], &sim->wall_data.w2d)) {
-                lost[i] = -1;
-            }
-
-            if(iprt + i >= stop || p.err[i]) {
+            if(iprt + i >= stop) {
                 /* No more mesh points to initialize; fill rest of the array
                  * with dummy markers */
                 p.id[i] = -1;
-                p.running[i] = 0;
+                lost[i] = -1;
+            }
+            else {
+                /* Find position of the node (i.e. initial marker position) */
+                real origin[5];
+                bmc_mesh_index2pos(mesh, iprt+i, origin);
+
+                real ppara0 = origin[3];
+                real pperp0 = origin[4];
+                real pnorm = sqrt(ppara0 * ppara0 + pperp0 * pperp0);
+                real xi    = ppara0 / pnorm;
+                real ekin  = physlib_Ekin_pnorm(sim->bmc_mass, pnorm);
+                if(xi >= -1) xi = -0.9999; //Not sure if these are needed
+                if(xi >= 1) xi = 0.9999;
+
+                particle_gc gc;
+                gc.r      = origin[0];
+                gc.phi    = origin[1];
+                gc.z      = origin[2];
+                gc.anum   = sim->bmc_anum;
+                gc.znum   = sim->bmc_znum;
+                gc.mass   = sim->bmc_mass;
+                gc.charge = sim->bmc_charge;
+                gc.time   = time;
+                gc.weight = 1.0;
+                gc.id     = 1;
+                gc.zeta   = 0.0;
+                gc.pitch  = xi;
+                gc.energy = ekin;
+
+                particle_state ps;
+                particle_input_gc_to_state(&gc, &ps, &sim->B_data);
+                particle_state_to_gc(&ps, 0, &p, i, &sim->B_data);
+                lost[i] = 0;
+                /* Marker initialization failed or the grid node is at pnorm = 0
+                 * which is currently not supported in GC mode */
+                if(p.err[i] || pnorm == 0) {
+                    lost[i] = -1;
+                }
+                else if(!wall_2d_inside(origin[0], origin[2],
+                        &sim->wall_data.w2d)) {
+                    lost[i] = -1;
+                }
             }
         }
 
@@ -134,10 +140,14 @@ void simulate_bmc_gc(
                     phi0[i] = p.phi[i];
                     z0[i]   = p.z[i];
                 }
+                else {
+                    p.running[i] = 0;
+                }
             }
             step_gc_rk4(&p, h_orb, &sim->B_data, &sim->E_data);
             for(int i=0; i<NSIMD; i++) {
                 if(!p.err[i] && !lost[i]) {
+                    /* Normal step: check for wall collisions */
                     real w_coll;
                     int tile = wall_hit_wall(
                         r0[i], phi0[i], z0[i], p.r[i], p.phi[i], p.z[i],
@@ -149,10 +159,8 @@ void simulate_bmc_gc(
                         }
                     }
                 }
-                else if(!p.err[i] && lost[i]) {
-
-                }
-                else {
+                else if(p.err[i] && !lost[i]) {
+                    /* Marker probably outside the plasma data - set it lost */
                     lost[i] = -1.0;
                 }
             }
@@ -167,28 +175,39 @@ void simulate_bmc_gc(
                  * since p_knot is computed several times from the same
                  * initial p */
                 particle_copy_gc(&p, i, &p_knot, i);
+                if(lost[i]) {
+                    p_knot.running[i] = 0;
+                }
             }
             mccc_gc_euler(&p_knot, h_coll, &sim->B_data, &sim->plasma_data,
                           &sim->mccc_data, &(hermite_k_nsimd[i_knot*5*NSIMD]));
             /* Store the final locations*/
             for(int i=0; i<NSIMD; i++) {
-                if(iprt + i >= stop) break;
-                r[(iprt+i) * HERMITE_KNOTS + i_knot]     = p_knot.r[i];
-                phi[(iprt+i) * HERMITE_KNOTS + i_knot]   =
-                    fmod(fmod(p_knot.phi[i], CONST_2PI) + CONST_2PI, CONST_2PI);
-                z[(iprt+i) * HERMITE_KNOTS + i_knot]     = p_knot.z[i];
-                ppara[(iprt+i) * HERMITE_KNOTS + i_knot] = p_knot.ppar[i];
+                size_t idx = (iprt+i) * HERMITE_KNOTS + i_knot;
+                if(!lost[i]) {
+                    r[idx]     = p_knot.r[i];
+                    phi[idx]   = fmod(fmod(p_knot.phi[i], CONST_2PI)
+                                      + CONST_2PI, CONST_2PI);
+                    z[idx]     = p_knot.z[i];
+                    ppara[idx] = p_knot.ppar[i];
 
-                real Bnorm = sqrt( p_knot.B_r[i]   * p_knot.B_r[i]
-                                 + p_knot.B_phi[i] * p_knot.B_phi[i]
-                                 + p_knot.B_z[i]   * p_knot.B_z[i]);
-                real pnorm = physlib_gc_p(p_knot.mass[i], p_knot.mu[i],
-                                          p_knot.ppar[i], Bnorm);
-                real pperp2 = fabs(pnorm * pnorm - p_knot.ppar[i] * p_knot.ppar[i]);
-                pperp[(iprt+i) * HERMITE_KNOTS + i_knot] = sqrt(pperp2);
-
-                if(lost[i] != 0) {
-                    fate[(iprt+i) * HERMITE_KNOTS + i_knot] = lost[i];
+                    real Bnorm = sqrt(  p_knot.B_r[i]   * p_knot.B_r[i]
+                                      + p_knot.B_phi[i] * p_knot.B_phi[i]
+                                      + p_knot.B_z[i]   * p_knot.B_z[i]);
+                    real pnorm = physlib_gc_p(p_knot.mass[i], p_knot.mu[i],
+                                              p_knot.ppar[i], Bnorm);
+                    real pperp2 = fabs(  pnorm * pnorm
+                                       - p_knot.ppar[i] * p_knot.ppar[i]);
+                    pperp[idx] = sqrt(pperp2);
+                    fate[idx] = 0;
+                }
+                else if(iprt + i < stop) {
+                    r[idx]     = 0;
+                    phi[idx]   = 0;
+                    z[idx]     = 0;
+                    ppara[idx] = 0;
+                    pperp[idx] = 0;
+                    fate[idx]  = lost[i];
                 }
             }
         }
