@@ -187,12 +187,20 @@ int main(int argc, char** argv) {
         d->step_6, d->step_5, d->step_4, d->step_3, d->step_2, d->step_1);
         diag_offload_array[i0] = val;
     }
+    B_field_free_offload(&sim.B_offload_data, &B_offload_array);
+    E_field_free_offload(&sim.E_offload_data, &E_offload_array);
+    plasma_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
+    wall_free_offload(&sim.wall_offload_data, &wall_offload_array,
+                      &wall_int_offload_array);
+    bmc_mesh_free(&mesh);
 
     mpi_interface_finalize();
 
     /* Write output */
     hdf5_interface_write_diagnostics(
             &sim, diag_offload_array, sim.hdf5_out);
+
+    diag_free_offload(&sim.diag_offload_data, &diag_offload_array);
 
     print_out0(VERBOSE_MINIMAL, mpi_rank, "\nDone.\n");
 
@@ -267,6 +275,8 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     sim->qid_neutral[0] = '\0';
     sim->qid_boozer[0]  = '\0';
     sim->qid_mhd[0]     = '\0';
+    sim->qid_asigma[0]  = '\0';
+    sim->qid_nbi[0]     = '\0';
 
     // Read user input
     int c;

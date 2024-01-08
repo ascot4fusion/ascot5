@@ -57,7 +57,7 @@ int bmc_mesh_init(real min_r,     real max_r,     int n_r,
     /* Store abscissae */
     for(int i=0; i<=n_r; i++)
         mesh->r[i] = min_r + i * (max_r - min_r) / n_r ;
-    for(int i=0; i<n_z; i++)
+    for(int i=0; i<=n_z; i++)
         mesh->z[i] = min_z + i * (max_z - min_z) / n_z;
     for(int i=0; i<n_phi; i++)
         mesh->phi[i] = min_phi + i * (max_phi - min_phi) / (n_phi+1);
@@ -123,15 +123,20 @@ real bmc_mesh_interpolate(bmc_mesh* mesh, real r, real phi, real z, real ppara,
         / (mesh->r[1] - mesh->r[0]));
     size_t i_z = ((z - mesh->z[0])
         / (mesh->z[1] - mesh->z[0]));
-    size_t i_phi = ((phi - mesh->phi[0])
-        / (mesh->phi[1] - mesh->phi[0]));
     size_t i_ppara = ((ppara - mesh->ppara[0])
     / (mesh->ppara[1] - mesh->ppara[0]));
     size_t i_pperp = ((pperp - mesh->pperp[0])
         / (mesh->pperp[1] - mesh->pperp[0]));
 
     /* Periodic variable */
-    size_t i_phi1 = i_phi + 1;
+    size_t i_phi, i_phi1;
+    if(mesh->n_phi == 1) {
+        i_phi = 0;
+    }
+    else {
+        i_phi = ((phi - mesh->phi[0]) / (mesh->phi[1] - mesh->phi[0]));
+    }
+    i_phi1 = i_phi + 1;
     if(i_phi == mesh->n_phi-1) i_phi1 = 0;
 
     /* Zero outside */

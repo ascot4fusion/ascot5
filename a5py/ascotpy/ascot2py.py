@@ -2183,6 +2183,7 @@ struct_c__SA_wall_2d_offload_data._pack_ = 1 # source:False
 struct_c__SA_wall_2d_offload_data._fields_ = [
     ('n', ctypes.c_int32),
     ('offload_array_length', ctypes.c_int32),
+    ('int_offload_array_length', ctypes.c_int32),
 ]
 
 wall_2d_offload_data = struct_c__SA_wall_2d_offload_data
@@ -2195,18 +2196,19 @@ struct_c__SA_wall_2d_data._fields_ = [
     ('PADDING_0', ctypes.c_ubyte * 4),
     ('wall_r', ctypes.POINTER(ctypes.c_double)),
     ('wall_z', ctypes.POINTER(ctypes.c_double)),
+    ('flag', ctypes.POINTER(ctypes.c_int32)),
 ]
 
 wall_2d_data = struct_c__SA_wall_2d_data
 wall_2d_init_offload = _libraries['libascot.so'].wall_2d_init_offload
 wall_2d_init_offload.restype = ctypes.c_int32
-wall_2d_init_offload.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_offload_data), ctypes.POINTER(ctypes.POINTER(ctypes.c_double))]
+wall_2d_init_offload.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_offload_data), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_int32))]
 wall_2d_free_offload = _libraries['libascot.so'].wall_2d_free_offload
 wall_2d_free_offload.restype = None
-wall_2d_free_offload.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_offload_data), ctypes.POINTER(ctypes.POINTER(ctypes.c_double))]
+wall_2d_free_offload.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_offload_data), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_int32))]
 wall_2d_init = _libraries['libascot.so'].wall_2d_init
 wall_2d_init.restype = None
-wall_2d_init.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_data), ctypes.POINTER(struct_c__SA_wall_2d_offload_data), ctypes.POINTER(ctypes.c_double)]
+wall_2d_init.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_data), ctypes.POINTER(struct_c__SA_wall_2d_offload_data), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32)]
 wall_2d_inside = _libraries['libascot.so'].wall_2d_inside
 wall_2d_inside.restype = ctypes.c_int32
 wall_2d_inside.argtypes = [real, real, ctypes.POINTER(struct_c__SA_wall_2d_data)]
@@ -2258,6 +2260,7 @@ struct_c__SA_wall_3d_data._fields_ = [
     ('depth', ctypes.c_int32),
     ('ngrid', ctypes.c_int32),
     ('wall_tris', ctypes.POINTER(ctypes.c_double)),
+    ('flag', ctypes.POINTER(ctypes.c_int32)),
     ('tree_array_size', ctypes.c_int32),
     ('PADDING_1', ctypes.c_ubyte * 4),
     ('tree_array', ctypes.POINTER(ctypes.c_int32)),
@@ -2310,7 +2313,6 @@ struct_c__SA_wall_offload_data._pack_ = 1 # source:False
 struct_c__SA_wall_offload_data._fields_ = [
     ('type', wall_type),
     ('w2d', wall_2d_offload_data),
-    ('PADDING_0', ctypes.c_ubyte * 4),
     ('w3d', wall_3d_offload_data),
     ('offload_array_length', ctypes.c_int32),
     ('int_offload_array_length', ctypes.c_int32),
@@ -2344,6 +2346,9 @@ wall_hit_wall.argtypes = [real, real, real, real, real, real, ctypes.POINTER(str
 wall_get_n_elements = _libraries['libascot.so'].wall_get_n_elements
 wall_get_n_elements.restype = ctypes.c_int32
 wall_get_n_elements.argtypes = [ctypes.POINTER(struct_c__SA_wall_data)]
+wall_get_flag = _libraries['libascot.so'].wall_get_flag
+wall_get_flag.restype = ctypes.c_int32
+wall_get_flag.argtypes = [ctypes.POINTER(struct_c__SA_wall_data), ctypes.c_int32]
 class struct_c__SA_boozer_offload_data(Structure):
     pass
 
@@ -2833,6 +2838,16 @@ struct_c__SA_sim_offload_data._fields_ = [
     ('endcond_max_tororb', ctypes.c_double),
     ('endcond_max_polorb', ctypes.c_double),
     ('endcond_torandpol', ctypes.c_int32),
+    ('bmc_timedependent', ctypes.c_int32),
+    ('bmc_orbit_subcycles', ctypes.c_int32),
+    ('PADDING_1', ctypes.c_ubyte * 4),
+    ('bmc_timestep', ctypes.c_double),
+    ('bmc_tstart', ctypes.c_double),
+    ('bmc_tstop', ctypes.c_double),
+    ('bmc_mass', ctypes.c_double),
+    ('bmc_charge', ctypes.c_double),
+    ('bmc_anum', ctypes.c_int32),
+    ('bmc_znum', ctypes.c_int32),
     ('hdf5_in', ctypes.c_char * 256),
     ('hdf5_out', ctypes.c_char * 256),
     ('qid', ctypes.c_char * 256),
@@ -2851,6 +2866,7 @@ struct_c__SA_sim_offload_data._fields_ = [
     ('qid_mhd', ctypes.c_char * 256),
     ('qid_asigma', ctypes.c_char * 256),
     ('qid_nbi', ctypes.c_char * 256),
+    ('PADDING_2', ctypes.c_ubyte * 4),
 ]
 
 sim_offload_data = struct_c__SA_sim_offload_data
@@ -2913,7 +2929,16 @@ struct_c__SA_sim_data._fields_ = [
     ('endcond_max_tororb', ctypes.c_double),
     ('endcond_max_polorb', ctypes.c_double),
     ('endcond_torandpol', ctypes.c_int32),
+    ('bmc_timedependent', ctypes.c_int32),
+    ('bmc_orbit_subcycles', ctypes.c_int32),
     ('PADDING_1', ctypes.c_ubyte * 4),
+    ('bmc_timestep', ctypes.c_double),
+    ('bmc_tstart', ctypes.c_double),
+    ('bmc_tstop', ctypes.c_double),
+    ('bmc_mass', ctypes.c_double),
+    ('bmc_charge', ctypes.c_double),
+    ('bmc_anum', ctypes.c_int32),
+    ('bmc_znum', ctypes.c_int32),
 ]
 
 sim_data = struct_c__SA_sim_data
@@ -3330,7 +3355,7 @@ __all__ = \
     'wall_3d_init_offload', 'wall_3d_init_tree',
     'wall_3d_offload_data', 'wall_3d_quad_collision',
     'wall_3d_tri_collision', 'wall_3d_tri_in_cube', 'wall_data',
-    'wall_free_offload', 'wall_get_n_elements', 'wall_hit_wall',
-    'wall_init', 'wall_init_offload', 'wall_offload_data',
-    'wall_type', 'wall_type_2D', 'wall_type_3D', 'write_output',
-    'write_rungroup']
+    'wall_free_offload', 'wall_get_flag', 'wall_get_n_elements',
+    'wall_hit_wall', 'wall_init', 'wall_init_offload',
+    'wall_offload_data', 'wall_type', 'wall_type_2D', 'wall_type_3D',
+    'write_output', 'write_rungroup']
