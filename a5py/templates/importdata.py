@@ -1,16 +1,23 @@
-import os
 import numpy as np
 import warnings
-from freeqdsk import geqdsk
 import re
+import unyt
+import copy
+
+from scipy.interpolate import RegularGridInterpolator
 
 from a5py.physlib import cocos as cocosmod
-import unyt
+from a5py.physlib import species as physlibspecies
 
 try:
     import adas
 except ImportError:
    adas = None
+
+try:
+    from freeqdsk import geqdsk
+except ImportError:
+    geqdsk = None
 
 class ImportData():
 
@@ -311,6 +318,7 @@ class ImportData():
             Input data that can be passed to ``write_hdf5`` method of
             a corresponding type.
         """
+        if not geqdsk: raise ImportError("Package freeqdsk not found")
         with open(fn, "r") as f:
             eqd = geqdsk.read(f)
 
@@ -375,3 +383,382 @@ class ImportData():
             self._ascot.input_free()
 
         return ("B_2DS", b2d)
+
+    def import_wall_vtk(self, fn=None):
+        """Import 3D wall from VTK file.
+
+        Parameters
+        ----------
+        fn : str
+            Path to the VTK file.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        import pyvista as pv
+        mesh = pv.read(fn).extract_surface()
+        cell_indices = mesh.faces
+
+        # Ensure all elements are triangles
+        if not ( not cell_indices.size % 4 and \
+                np.all(cell_indices.reshape((-1, 4))[:,0] == 3) ):
+            raise ValueError("Mesh contains non-triangular elements.")
+
+        # cell_indices has format [Nvertices, v1_idx, v2_idx, v3_idx]
+        cell_node_ids = cell_indices.reshape((-1, 4))[:,1:]
+        cell_nodes = mesh.points[cell_node_ids]
+
+        # cell_nodes has now format N x 3 x 3 but it is in millimeters
+        x1x2x3 = cell_nodes[:,:,0] / 1000
+        y1y2y3 = cell_nodes[:,:,1] / 1000
+        z1z2z3 = cell_nodes[:,:,2] / 1000
+        wall = {"nelements":x1x2x3.shape[0], "x1x2x3":x1x2x3, "y1y2y3":y1y2y3,
+                "z1z2z3":z1z2z3}
+        return ("wall_3D", wall)
+
+    def import_plasma_profiles(self, fn=None, ne=None, ni=None, Te=None,
+        Ti=None, anum=None, znum=None, charge=None, mass=None, species=None,
+        pls=None, nrho=100, ionfrac=None, inputgrid="rho", extrapolate=None,
+        extrapolate_len=0.1, **kwargs):
+        """Import 1D plasma profiles.
+
+        This function interpolates and extrapolates plasma profiles on a given
+        grid. The input data can be in one of the three formats:
+
+        1. Plasma profiles are in separate files:
+
+           Specify the filenames containing the corresponding data in ``ne``,
+           ``ni``, ``Te``, and ``Te``. The data is assumed to have a format
+           where the first column is the radial coordinate and the second column
+           is the value.
+
+        2. Plasma profiles are in a single file:
+
+           The data is assumed to be in a format where the first column is the
+           radial coordinate and the following columns contain the values. Use
+           ``ne``, ``ni``, ``Te``, and ``Te`` to specify the number of the
+           column where the corresponding data is located (indexing starts from
+           zero which corresponds to the first column with the radial
+           coordinate).
+
+        3. Plasma profiles are already read in a dictionary and they are only
+           extrapolated here.
+
+           Use this if the data you have doesn't conform with 1 or 2 and you
+           have to read it separately. The dictionary ``pls`` must be in format
+           conforming to :class:`~a5py.ascot5io.plasma.plasma_1D`.
+
+        Parameters
+        ----------
+        fn : str, optional
+            Filename if all plasma profiles are in a single file.
+        ne : str or int, optional
+            Filename containing electron density if profiles are in separate
+            files, or column index if the profiles are in a single file.
+        ni : str or int or list, optional
+            Filename containing ion density if profiles are in separate
+            files, or column index if the profiles are in a single file.
+
+            If there are several ion species with separate profiles, this
+            argument can be a list.
+        Te : str or int, optional
+            Filename containing electron temperature if profiles are in separate
+            files, or column index if the profiles are in a single file.
+        Ti : str or int, optional
+            Filename containing ion temperature if profiles are in separate
+            files, or column index if the profiles are in a single file.
+        species : [str], (nion,), optional
+            Names of the ion species if anum, znum, charge, and mass are not
+            explicitly given.
+        anum : [int]
+            Ion species' atomic mass number if ``species`` is not given.
+        znum : [int]
+            Ion species' charge number if ``species`` is not given.
+        mass : [int]
+            Ion species' mass number if ``species`` is not given.
+        charge : [int]
+            Ion species' charge if ``species`` is not given.
+        pls : dict, optional
+            Dictionary containing the data in
+            :class:`~a5py.ascot5io.plasma.plasma_1D` format.
+        nrho : int, optional
+            Number of radial grid points where the data is interpolated or
+            extrapolated.
+
+            The range is [0,1] by default and [0,``extrapolate``] if the data
+            is to be extrapolated beyond rho=1.
+
+            Interpolation is done linearly but if the data doesn't span the
+            whole interval [0,1], nearest neighbour is used to extrapolate. Note
+            that this is separate from the extrapolation done at rho > 1.
+        ionfrac : list[float], (nion-i,), optional
+            In case ion densities are not given independently, this list of
+            fractions is used to divide ``ni`` in to individual densities.
+
+            The order of the species should be same as in ``species``. Note that
+            the fraction for the last species is not given. Instead, it is
+            chosen so that the plasma is quasi-neutral.
+        inputgrid : {"rho", "rhosquared"}, optional
+            Specifies the format of the radial grid where the input values are
+            given.
+
+            - "rho": Square root of the normalized poloidal flux.
+            - "rhosquared": Normalized poloidal flux.
+        extrapolate : float, optional
+            Extrapolate profiles up to this rho value.
+
+            The extrapolated profiles are in form :math:`exp[-(\rho-1)/\lambda]`
+            where :math:`\lambda` is ``extrapolate_len``.
+        extrapolate_len : float, optional
+            The ``e``-fold length (in rho) for the extrapolated profiles.
+        **kwargs
+            Arguments passed to :obj:`numpy.loadtxt` when reading data from
+            file(s).
+
+            For example, use ``skiprows`` if the input file(s) contain headers.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        # Check that inputs are valid
+        if pls is None and species is None:
+            if anum is None:   raise ValueError("species or anum is required")
+            if znum is None:   raise ValueError("species or znum is required")
+            if mass is None:   raise ValueError("species or mass is required")
+            if charge is None: raise ValueError("species or charge is required")
+            if np.ndim(anum)   == 0: anum   = [anum]
+            if np.ndim(znum)   == 0: znum   = [znum]
+            if np.ndim(mass)   == 0: mass   = [mass]
+            if np.ndim(charge) == 0: charge = [charge]
+        if pls is None and species:
+            if not isinstance(species, list): species = [species]
+            anum   = [None] * len(species)
+            znum   = [None] * len(species)
+            charge = [None] * len(species)
+            mass   = [None] * len(species)
+            for i in range(len(species)):
+                d = physlibspecies.species(species[i])
+                anum[i]   = d["anum"]
+                znum[i]   = d["znum"]
+                mass[i]   = d["mass"]
+                charge[i] = d["charge"]
+
+        # Set rho grid (include extrapolation)
+        rho = np.linspace(0.0, 1.0, nrho)
+        if extrapolate:
+            rho = np.linspace(0.0, extrapolate, nrho)
+
+        def interp(rad, val):
+            """Function to interpolate and extrapolate values to rho grid"""
+            # Mapping to rho from different radial coordinates
+            if inputgrid == "rho":
+                radgrid = rad
+            elif inputgrid == "rhosquared":
+                radgrid = np.sqrt(rad)
+
+            # Extrapolate & interpolate (nearest-neighbour) in interval [0,1]
+            val = np.interp(rho, radgrid, val, left=val[0], right=val[-1])
+            if not extrapolate: return val
+
+            # Exponential extrapolation at rho > 1
+            extrp = rho >= 1.0
+            val[extrp] = val[extrp][0] * np.exp( -( rho[extrp] - 1.0 ) /
+                                                    extrapolate_len)
+            return val
+
+        # Read the data if dictionary was not provided
+        if not pls:
+            if not isinstance(ni, list): ni = [ni]
+            if fn:
+                # Single file containing all the data
+                ints = [isinstance(x, int) for x in ni]
+                if not (isinstance(ne, int) and isinstance(Te, int) and
+                        isinstance(Ti, int) and all(ints)):
+                    raise ValueError(
+                        "ni, ne, Te, and Ti should contain the column numbers "
+                        + "where the data is located.")
+                data = np.loadtxt(fn, **kwargs)
+                rad = data[:,0]
+                ne  = interp(rad, data[:,ne])
+                Te  = interp(rad, data[:,Te])
+                Ti  = interp(rad, data[:,Ti])
+                idx = ni
+                ni  = np.zeros((nrho, len(idx)), dtype="f8")
+                for i, j in enumerate(idx):
+                    ni[:,i] = interp(rad, data[:,j])
+            else:
+                # Data is in separate files
+                strs = [isinstance(x, str) for x in ni]
+                if not (isinstance(ne, str) and isinstance(Te, str) and
+                        isinstance(Ti, str) and all(strs)):
+                    raise ValueError(
+                        "ni, ne, Te, and Ti should contain the filenames "
+                        "where the data is located.")
+                data = np.loadtxt(ne, **kwargs)
+                ne = interp(data[:,0], data[:,1])
+                data = np.loadtxt(Te, **kwargs)
+                Te = interp(data[:,0], data[:,1])
+                data = np.loadtxt(Ti, **kwargs)
+                Ti = interp(data[:,0], data[:,1])
+                fns = ni
+                ni  = np.zeros((nrho, len(fns)), dtype="f8")
+                for i, fnin in enumerate(fns):
+                    data = np.loadtxt(fnin, **kwargs)
+                    ni[:,i] = interp(data[:,0], data[:,1])
+
+            # Make the plasma input
+            nion = ni.shape[1]
+            if ionfrac:
+                if nion > 1:
+                    raise ValueError("Cannot use 'ionfrac' when input data "
+                                     "already has multiple ion species")
+                nion = len(ionfrac)+1
+                if nion != len(anum) or nion != len(anum) or \
+                   nion != len(mass) or nion != len(charge):
+                    raise ValueError("Sizes of ionfrac and anum/znum/charge/"
+                                     "mass are not consistent")
+                ni_new = np.zeros((rho.size,nion))
+                qdens  = np.zeros((rho.size,1)) * unyt.e
+                for i in range(nion-1):
+                    ni_new[:,i] = ni[:,0] * ionfrac[i]
+                    qdens[:,0] += ni_new[:,i] * charge[i]
+
+                ni_new[:,-1] = (ne[:] * unyt.e - qdens[:,0]) / charge[-1]
+                if (ne[:] * unyt.e - qdens[:,0] < 0).any():
+                    raise ValueError("Given ionfrac does not yield quasineutral"
+                                     "plasma")
+                ni = ni_new
+
+            pls = {"nrho":rho.size, "rho":rho, "mass":mass, "charge":charge,
+                   "anum":anum, "znum":znum, "nion":nion,
+                   "etemperature":Te, "itemperature":Ti,
+                   "edensity":ne, "idensity":ni}
+        else:
+            # Data is read already and only needs to be extrapolated
+            pls["ne"] = interp(pls["rho"], pls["ne"])
+            interp(pls["rho"], pls["Te"])
+            interp(pls["rho"], pls["Ti"])
+            interp(pls["rho"], pls["ni"])
+            pls["rho"]  = rho
+            pls["nrho"] = rho.size
+
+        return ("plasma_1D", pls)
+
+    def import_marsf(self, fn=None, n=None, b2d=None, b3d=None, phigrid=None):
+        """Import toroidal harmonics calculated with MARS-F.
+
+        This function converts the toroidal harmonics given in (R,z) grid to
+        magnetic field components in (R,phi,z).
+
+        The output consists of the input field (either 2D or 3D) with the 3D
+        perurbation added. If the input is 2D, the toroidal grid must be
+        specified in ``phigrid``.
+
+        Parameters
+        ----------
+        fn : str
+            Name of the MARS-F file.
+
+            The file should contain the data in ASCII format organized in eight
+            columns: R, z, Re(Br), Im(Br), Re(Bz), Im(Bz), Re(Bphi), Im(Bphi)
+        n : int
+            The toroidal harmonic the data corresponds to.
+        b2d : dict, optional
+            Dictionary containing 2D magnetic field data.
+
+            If given, ``phigrid`` must also be specified.
+        b3d : dict, optional
+            Dictionary containing the 3D magnetic field data if ``b2d`` is not
+            used.
+        phigrid : array_like, optional
+            Toroidal grid where the output field will be given if ``b2d`` is
+            used [rad].
+
+            Note that this grid must not contain the last point if it is the
+            duplicate of the first point due to periodicity. In other words,
+            if the data has 2pi periodicity then this argument should be
+            ``np.linspace(0, 2pi, nphi+1)[:-1]``.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        if (b2d is None and b3d is None) or \
+           (b2d is not None and b3d is not None):
+            raise ValueError("Provide either 'b2d' or 'b3d'")
+        if b2d is not None and phigrid is None:
+            raise ValueError("'b2d' requires that 'phigrid' is also given")
+
+        if b2d is not None:
+            rgrid = np.linspace(b2d["rmin"], b2d["rmax"], b2d["nr"][0]).ravel()
+            zgrid = np.linspace(b2d["zmin"], b2d["zmax"], b2d["nz"][0]).ravel()
+        if b3d is not None:
+            rgrid = np.linspace(b3d["b_rmin"], b3d["b_rmax"],
+                                b3d["b_nr"][0]).ravel()
+            zgrid = np.linspace(b3d["b_zmin"], b3d["b_zmax"],
+                                b3d["b_nz"][0]).ravel()
+            phigrid = np.linspace(b3d["b_phimin"], b3d["b_phimax"],
+                                  b3d["b_nphi"][0]+1)[:-1].ravel()
+
+        d = np.loadtxt(fn)
+        marsf_rgrid = np.unique(d[:,0])
+        marsf_zgrid = np.unique(d[:,1])
+        nr = marsf_rgrid.size
+        nz = marsf_zgrid.size
+
+        def ifft(real, imag):
+            """Inverse Fourier transform"""
+            # Reshape the input 1D arrays to 2D (R,z) and then interpolate them
+            # on given Rz grid.
+            r,z = np.meshgrid(rgrid, zgrid, indexing='ij')
+            real = RegularGridInterpolator(
+                (marsf_rgrid, marsf_zgrid), np.reshape(real, (nr,nz)),
+                method="cubic", bounds_error=False, fill_value=0)((r,z))
+            imag = RegularGridInterpolator(
+                (marsf_rgrid, marsf_zgrid), np.reshape(imag, (nr,nz)),
+                method="cubic", bounds_error=False, fill_value=0)((r,z))
+
+            # Calculate the inverse Fourier transform as
+            # B(phi) = Re(B)*cos(phi) + Im(B)*sin(phi)
+            return np.multiply.outer(real, np.cos(phigrid/n)) \
+                 + np.multiply.outer(imag, np.sin(phigrid/n))
+
+        br   = np.transpose(ifft(d[:,2], d[:,3]), (0,2,1))
+        bz   = np.transpose(ifft(d[:,4], d[:,5]), (0,2,1))
+        bphi = np.transpose(ifft(d[:,6], d[:,7]), (0,2,1))
+
+        # Construct the magnetic field input
+        if b3d is None:
+            bphi += np.transpose(np.tile(b2d["bphi"], (phigrid.size,1,1)),
+                                 (1,0,2))
+            b3d = {
+                "b_rmin":b2d["rmin"], "b_rmax":b2d["rmax"], "b_nr":b2d["nr"],
+                "b_zmin":b2d["zmin"], "b_zmax":b2d["zmax"], "b_nz":b2d["nz"],
+                "b_phimin":phigrid[0],
+                "b_phimax":phigrid[-1]+phigrid[1]-phigrid[1],
+                "b_nphi":phigrid.size,
+                "axisr":b2d["axisr"], "axisz":b2d["axisz"], "psi":b2d["psi"],
+                "psi0":b2d["psi0"], "psi1":b2d["psi1"],
+                "br":br, "bphi":bphi, "bz":bz
+            }
+        else:
+            b3d = copy.deepcopy(b3d)
+            b3d["br"]   += br
+            b3d["bphi"] += bphi
+            b3d["bz"]   += bz
+
+        return ("B_3DS", b3d)
