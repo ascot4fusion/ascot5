@@ -289,7 +289,10 @@ Templates
 
    ~InputFactory.boozer_tokamak
    ~InputFactory.import_geqdsk
+   ~InputFactory.import_plasma_profiles
    ~InputFactory.import_adas
+   ~InputFactory.import_wall_vtk
+   ~InputFactory.import_marsf
    ~InputFactory.mhd_consistent_potentials
    ~InputFactory.ascot4_particles
    ~InputFactory.ascot4_wall2d
