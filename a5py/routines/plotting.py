@@ -15,7 +15,6 @@ try:
     import matplotlib.pyplot as plt
     import mpl_toolkits
     from mpl_toolkits.axes_grid1 import make_axes_locatable
-
 except ImportError:
     warnings.warn("Could not import matplotlib. Plotting disabled.")
     plt = None
@@ -25,17 +24,25 @@ try:
     import pyvista as pv
 except ImportError:
     warnings.warn("Could not import pyvista. 3D wall plotting disabled.")
+    pv = None
 
 from functools import wraps
 
-def setpaperstyle(height=5, halfpage=False):
-    """TODO make this style suitable for publications
+def setpaperstyle(latex=True):
+    """Set default figure settings (label sizes etc.) so that the figure is
+    suitable for publications (looks nice on A4).
+
+    This function modifies the matplotlib style settings so one call is changes
+    the style for the entire session.
+
+    Parameters
+    ----------
+    latex : bool, optional
+        Use LaTex interpreter.
     """
     mpl.style.use({
         "figure.autolayout":False,
         "font.family":"serif",
-        "font.serif":"ComputerModern",
-        "text.usetex":True,
         "pdf.fonttype":42,
         "ps.fonttype":42,
         "axes.labelsize":14,
@@ -60,15 +67,27 @@ def setpaperstyle(height=5, halfpage=False):
         "ytick.major.pad":5.6,
         "axes.formatter.limits":[-1,1]
     })
+    if latex:
+        mpl.style.use({
+            "font.serif":"ComputerModern",
+            "text.usetex":True,
+        })
 
-def setguistyle():
-    """Style used in GUI.
+def setguistyle(latex=True):
+    """Set default figure settings (label sizes etc.) so that the figure is
+    suitable for GUI and presentations (large labels).
+
+    This function modifies the matplotlib style settings so one call is changes
+    the style for the entire session.
+
+    Parameters
+    ----------
+    latex : bool, optional
+        Use LaTex interpreter.
     """
     mpl.style.use({
         "figure.autolayout":False,
         "font.family":"serif",
-        "font.serif":"ComputerModern",
-        "text.usetex":True,
         "axes.labelsize":18,
         "axes.titlesize":18,
         "axes.titlepad":12,
@@ -90,6 +109,11 @@ def setguistyle():
         "xtick.major.pad":5.6,
         "ytick.major.pad":5.6,
     })
+    if latex:
+        mpl.style.use({
+            "font.serif":"ComputerModern",
+            "text.usetex":True,
+        })
 
 def figuresinglecolumn(aspectratio=3/2):
     """Return figure that has a size suitable for printing in A4 single-column
