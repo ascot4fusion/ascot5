@@ -411,55 +411,78 @@ class Ascot(Ascotpy):
 
     @openfigureifnoaxes(projection=None)
     def preflight_plottopview(self, axes=None):
-        """Plot top view of the machine showing Ip, Bphi, and markers.
+        """Plot top view of the machine showing Ip, Bphi, and possibly markers
+        and wall if present.
 
         Assumes bfield is initialized in ascotpy.
         """
-        r0, z0 = self.input_eval(1, 0, 0, 0, "axisr", "axisz")
-        #z0 = axis["axisz"]
-        #r0 = axis["axisr"]
+        r0, z0 = self.input_eval(1*unyt.m, 0*unyt.deg, 0*unyt.m, 0*unyt.s,
+                                 "axisr", "axisz")
+        rmin = r0-r0/10
+        rmax = r0+r0/10
+        dphi = 10 * np.pi/180 * unyt.rad # So that b and j quivers dont overlap
 
-        rmin = r0-r0/2
-        rmax = r0+r0/2
-        dphi = 10 * np.pi/180 # So that b and j quivers dont overlap
-
-        r   = np.linspace(rmin, rmax, 10)
+        r   = np.linspace(rmin, rmax, 2)
         phi = np.linspace(0, 360, 18, endpoint=False) * np.pi/180
-        phi, r = np.meshgrid(phi, r)
-        r   = r.ravel()
-        phi = phi.ravel()
+        phi = phi.ravel() * unyt.rad
+        t   = 0 * unyt.s
 
-        br   = np.squeeze(self.input_eval(r, phi, z0, 0, "br"))
-        bphi = np.squeeze(self.input_eval(r, phi, z0, 0, "bphi"))
-        jr   = np.squeeze(self.input_eval(r, phi + dphi, z0, 0, "jr"))
-        jphi = np.squeeze(self.input_eval(r, phi + dphi, z0, 0, "jphi"))
+        br   = np.squeeze(self.input_eval(r[0], phi, z0, t, "br"))
+        bphi = np.squeeze(self.input_eval(r[0], phi, z0, t, "bphi"))
+        jr   = np.squeeze(self.input_eval(r[1], phi + dphi, z0, t, "jr"))
+        jphi = np.squeeze(self.input_eval(r[1], phi + dphi, z0, t, "jphi"))
 
-        x  = np.cos(phi) * r
-        y  = np.sin(phi) * r
+        x  = np.cos(phi) * r[0]
+        y  = np.sin(phi) * r[0]
         bx = np.cos(phi) * br - np.sin(phi) * bphi
         by = np.sin(phi) * br + np.cos(phi) * bphi
         bnorm = np.sqrt(bx**2 + by**2)
 
-        xj = np.cos(phi+dphi) * r
-        yj = np.sin(phi+dphi) * r
+        xj = np.cos(phi+dphi) * r[1]
+        yj = np.sin(phi+dphi) * r[1]
         jx = np.cos(phi+dphi) * jr - np.sin(phi+dphi) * jphi
         jy = np.sin(phi+dphi) * jr + np.cos(phi+dphi) * jphi
         jnorm = np.sqrt(jx**2 + jy**2)
 
         axes.quiver(x,y, bx/bnorm, by/bnorm,
-                    color="blue", scale=40)
+                    color="C0", scale=20)
         axes.quiver(xj,yj, jx/jnorm, jy/jnorm,
-                    color="red", scale=40)
+                    color="C1", scale=20)
 
         axes.set_aspect("equal", adjustable="box")
+        from matplotlib.lines import Line2D
+        legend_elements = [
+            Line2D([0], [0], marker=r'$\leftarrow$', color='C0',
+                   linestyle="none", label=r"$\mathbf{B}_\mathrm{pol}$",
+                   markerfacecolor='C0', markersize=14),
+            Line2D([0], [0], marker=r'$\leftarrow$', color='C1',
+                   linestyle="none", label=r"$\mathbf{I}_p$",
+                   markerfacecolor='C1', markersize=14) ]
 
-        marker = self.data.marker.active.read()
-        x  = np.cos(marker["phi"] * np.pi/180) * marker["r"]
-        y  = np.sin(marker["phi"] * np.pi/180) * marker["r"]
+        if "marker" in self.data:
+            marker = self.data.marker.active.read()
+            x = np.cos(marker["phi"] * np.pi/180) * marker["r"]
+            y = np.sin(marker["phi"] * np.pi/180) * marker["r"]
 
-        axes.scatter(x,y, s=1, c="black", zorder=-2)
+            axes.scatter(x,y, s=1, c="black", zorder=-2)
 
-        axes.legend(("Magnetic field", "Plasma current", "Markers"))
+            legend_elements.append(
+                Line2D([0], [0], marker='o', color='black', linestyle="none",
+                       label="Marker", markerfacecolor='black', markersize=2))
+
+        if "wall" in self.data:
+            ls = self.data.wall.active.getwalloutline(z=0)
+            line2d(ls[:,:,0], ls[:,:,1], c="black", axes=axes)
+
+        axes.legend(handles=legend_elements, ncol=1, frameon=False,
+                    loc='center left', bbox_to_anchor=(1, 0.5))
+        axes.spines["left"].set_position(('outward', 10))
+        axes.spines["bottom"].set_position(('outward', 10))
+        axes.spines["right"].set_visible(False)
+        axes.spines["top"].set_visible(False)
+        axes.set_xlabel("x [m]")
+        axes.set_ylabel("y [m]")
+        axes.set_title("View from above")
 
     def input_plotwallcontour(self, phi=0*unyt.deg, axes=None):
         """Plot intersection of the wall and the poloidal plane at the given
@@ -473,4 +496,5 @@ class Ascot(Ascotpy):
             The axes where figure is plotted or otherwise new figure is created.
         """
         ls = self.data.wall.active.getwallcontour(phi=phi)
-        line2d(ls[:,:,0], ls[:,:,1], c="black", axesequal=True, axes=axes)
+        line2d(ls[:,:,0], ls[:,:,1], c="black", axesequal=True, axes=axes,
+               xlabel="R [m]", ylabel="z [m]")
