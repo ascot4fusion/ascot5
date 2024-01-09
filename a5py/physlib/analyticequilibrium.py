@@ -1,11 +1,8 @@
-"""
-Analytic tokamak equilibrium.
+"""Analytic tokamak equilibrium.
 
 Solution is based on this article:  http://dx.doi.org/10.1063/1.3328818
 
-Note that the x and y coordinates here does not correspond to R and z directly!
-
-File analyticequilibrium.py
+Note that the x and y coordinates here does not correspond to R and z directly.
 """
 import math as m
 import numpy as np
@@ -13,10 +10,8 @@ import scipy.optimize
 from numpy import log as log
 from numpy import power as p
 
-
 def psi(x,y,i):
-    """
-    Evaluate basis functions Eqs. (8) and (27).
+    """Evaluate basis functions Eqs. (8) and (27).
     """
     return {
         0 : 1.0,
@@ -37,10 +32,8 @@ def psi(x,y,i):
         11: 8*p(y,5)-45*y*p(x,4)-80*p(y,3)*p(x,2)*log(x)+60*y*p(x,4)*log(x),
         }[i]
 
-
 def psix(x,y,i):
-    """
-    Evaluate x-derivative of the basis functions.
+    """Evaluate x-derivative of the basis functions.
     """
     return {
         0 : 0.0,
@@ -60,8 +53,7 @@ def psix(x,y,i):
 
 
 def psixx(x,y,i):
-    """
-    Evaluate x^2-derivative of the basis functions.
+    """Evaluate x^2-derivative of the basis functions.
     """
     return {
         0 : 0,
@@ -79,10 +71,8 @@ def psixx(x,y,i):
         11: -120*y*x**2-160*y**3*log(x)-240*y**3+720*y*x**2*log(x),
         }[i]
 
-
 def psiy(x,y,i):
-    """
-    Evaluate y-derivative of the basis functions.
+    """Evaluate y-derivative of the basis functions.
     """
     return {
         0 : 0,
@@ -100,10 +90,8 @@ def psiy(x,y,i):
         11: 40*y**4-45*x**4-240*y**2*x**2*log(x)+60*x**4*log(x) ,
         }[i]
 
-
 def psiyy(x,y,i):
-    """
-    Evaluate y^2-derivative of the basis functions.
+    """Evaluate y^2-derivative of the basis functions.
     """
     return {
         0 : 0,
@@ -121,52 +109,43 @@ def psiyy(x,y,i):
         11: 160*y**3-480*y*x**2*log(x),
         }[i]
 
-
 def psipart(x,y,i):
-    """
-    This is the (first) part in Eq. (8) that the basis functions don't cover.
+    """This is the (first) part in Eq. (8) that the basis functions don't cover.
     """
     return {
         0 : 1.0/2*p(x,2)*log(x),
         1 : 1.0/8*p(x,4),
         }[i]
 
-
 def psipartx(x,y,i):
-    """
-    Evaluate x-derivative of the first part in Eq. (8).
+    """Evaluate x-derivative of the first part in Eq. (8).
     """
     return {
         0 : x*log(x)+1.0/2*x,
         1 :  1.0/2*x**3
         }[i]
 
-
 def psipartxx(x,y,i):
-    """
-    Evaluate x^2-derivative of the first part in Eq. (8).
+    """Evaluate x^2-derivative of the first part in Eq. (8).
     """
     return {
         0 : log(x)+3.0/2,
         1 : 3.0/2*x**2,
         }[i]
 
-
 def psiparty(x,y,i):
-    """
-    Evaluate y-derivative of the first part in Eq. (8).
+    """Evaluate y-derivative of the first part in Eq. (8).
     """
     return 0
-
 
 def psipartyy(x,y,i):
-    """
-    Evaluate y^2-derivative of the first part in Eq. (8).
+    """Evaluate y^2-derivative of the first part in Eq. (8).
     """
     return 0
 
-
-def psiX(x,y,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,A):
+def psiX(x, y, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, A):
+    """Evaluate the d(total) psi function/dx at the given position.
+    """
     return   c0*psix(x,y,0)     \
         +    c1*psix(x,y,1)     \
         +    c2*psix(x,y,2)     \
@@ -182,8 +161,9 @@ def psiX(x,y,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,A):
         +     A*psipartx(x,y,0) \
         + (1-A)*psipartx(x,y,1)
 
-
-def psiXX(x,y,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,zeta):
+def psiXX(x, y, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, zeta):
+    """Evaluate the d^2(total) psi function/dxdx at the given position.
+    """
     return c1*2                                                      \
          + c2*(2*log(x) + 3)                                         \
          + c3*(12*x**2 - 8*y**2)                                     \
@@ -193,8 +173,9 @@ def psiXX(x,y,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,zeta):
                + 2160*x**2*y**2 - 450*x**4*log(x) - 165*x**4)        \
          + cos(zeta)*log(x) + 3.0/2*cos(zeta) + 3.0/2*sin(zeta)*x**2
 
-
-def psiY(x,y,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,A):
+def psiY(x, y, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, A):
+    """Evaluate the d(total) psi function/dy at the given position.
+    """
     return     c0*psiy(x,y,0)    \
          +     c1*psiy(x,y,1)    \
          +     c2*psiy(x,y,2)    \
@@ -210,8 +191,9 @@ def psiY(x,y,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,A):
          +     A*psiparty(x,y,0) \
          + (1-A)*psiparty(x,y,1)
 
-
-def psiYY(x,y,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,zeta):
+def psiYY(x, y, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, zeta):
+    """Evaluate the d^2(total) psi function/dydy at the given position.
+    """
     return -c2*2                                                     \
           - c3*8*x**2                                                \
           + c4*( -18*x**2 - 24*x**2*log(x) + 24*y**2)                \
@@ -219,10 +201,8 @@ def psiYY(x,y,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,zeta):
           + c6*(  240*y**4 - 1680*x**2*y**2 - 1440*x**2*log(x)*y**2
                 + 360*x**4*log(x) + 150*x**4)
 
-
-def psi0(x,y,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,A):
-    """
-    Evaluate the (total) psi function at the given position.
+def psi0(x, y, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, A):
+    """Evaluate the (total) psi function at the given position.
     """
     return   c0*psi(x,y,0)     \
         +    c1*psi(x,y,1)     \
@@ -239,47 +219,60 @@ def psi0(x,y,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,A):
         +     A*psipart(x,y,0) \
         + (1-A)*psipart(x,y,1) \
 
+def find_axis(R0, z0, *args):
+    """Find axis position (i.e. where we have psi minimum).
 
-def find_axis(R0, z0, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, A):
+    Parameters
+    ----------
+    R0 : float
+        Initial guess for the axis R coordinate [m].
+    z0 : float
+        Initial guess for the axis z coordinate [m].
+    *args
+        The coefficients c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11,
+        and A.
+
+    Returns
+    -------
+    R : float
+        Axis R coordinate [m].
+    z : float
+        Axis z coordinate [m].
     """
-    Find minimum of psi (corresponding to magnetic axis)
-    """
-    pfun = lambda x : psi0(x[0], x[1],
-                           c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, A)
+    pfun = lambda x : psi0(x[0], x[1], *args)
     return scipy.optimize.minimize(pfun, np.array([R0/R0, z0/R0]).ravel(),
                                    tol=1e-8).x
 
-
 def analyticGS(A, R0, epsilon, kappa, delta, Xpointx, Xpointy, sym):
-    """
-    Solve the eqquilibrium coefficients based in simple input.
+    """Solve the equilibrium coefficients based in simple input.
 
     This function accepts intuitive tokamak parameters to solve for
     the coefficients.
 
-    Args:
-        A : float <br>
-            The free parameter in the paper.
-        R0 : float <br>
-            Major axis R coordinate (not the same as the magnetic axis) [m].
-        epsilon : float <br>
-            Inverse aspect ratio.
-        kappa : float <br>
-            Elongation.
-        delta : float <br>
-            Triangularity.
-        Xpointx : float <br>
-            Separatrix x-coordinate [m] (if non-symmetric Eq.).
-        Xpointy : float <br>
-            Separatrix y-coordinate [m] (if non-symmetric Eq.).
-        sym : bool <br>
-            Make up-down symmetric background.
+    Parameters
+    ----------
+    A : float
+        The free parameter in the paper.
+    R0 : float
+        Major axis R coordinate (not the same as the magnetic axis) [m].
+    epsilon : float
+        Inverse aspect ratio.
+    kappa : float
+        Elongation.
+    delta : float
+        Triangularity.
+    Xpointx : float
+        Separatrix x-coordinate [m] (if non-symmetric Eq.).
+    Xpointy : float
+        Separatrix y-coordinate [m] (if non-symmetric Eq.).
+    sym : bool
+        Make up-down symmetric background.
 
-    Returns:
+    Returns
+    -------
+    c : array_like
         The c coefficients.
     """
-
-    # alpha as defined in the article @onko alpha radiaaneissa?
     alpha = m.asin(delta)
 
     C = aGS_allInputs(
@@ -297,36 +290,37 @@ def analyticGS(A, R0, epsilon, kappa, delta, Xpointx, Xpointy, sym):
 
     return C
 
-
 def aGS_allInputs(A, outerEqPoint, innerEqPoint, upperHighpoint, lowerXPoint,
                   outerSlope, innerSlope, curvatureOuterEq, curvatureInnerEq,
                   curvatureHighpointEq, sym):
-    """
-    Solve the equilibrium coefficients from the given boundary conditions.
+    """Solve the equilibrium coefficients from the given boundary conditions.
 
-    Args:
-        outerEqPoint : float <br>
-            xy-coordinates of the outer equatorial point at separatrix.
-        innerEqPoint : float <br>
-            xy-coordinates of the inner equatorial point at separatrix.
-        upperHighPoint : float <br>
-            xy-coordinates of the highest separatrix point.
-        lowerXpoint : float <br>
-            Outer equatorial point slope.
-        outerSlope : float <br>
-            Outer equatorial point slope.
-        innerSlope : float <br>
-            Inner equatorial point slope.
-        curvatureOuterEq : float <br>
-            Curvature at the outboard equatorial plane.
-        curvatureInnerEq : float <br>
-            Curvature at the inboard equatorial plane.
-        curvatureHighPointEq : float <br>
-            Curvature at the top point.
-        sym : float <br>
-            Make up-down symmetric background.
+    Parameters
+    ----------
+    outerEqPoint : float
+        xy-coordinates of the outer equatorial point at separatrix.
+    innerEqPoint : float
+        xy-coordinates of the inner equatorial point at separatrix.
+    upperHighPoint : float
+        xy-coordinates of the highest separatrix point.
+    lowerXpoint : float
+        Outer equatorial point slope.
+    outerSlope : float
+        Outer equatorial point slope.
+    innerSlope : float
+        Inner equatorial point slope.
+    curvatureOuterEq : float
+        Curvature at the outboard equatorial plane.
+    curvatureInnerEq : float
+        Curvature at the inboard equatorial plane.
+    curvatureHighPointEq : float
+        Curvature at the top point.
+    sym : float
+        Make up-down symmetric background.
 
-    Returns:
+    Returns
+    -------
+    c : array_like
         The c coefficients.
     """
 
@@ -449,38 +443,33 @@ def aGS_allInputs(A, outerEqPoint, innerEqPoint, upperHighpoint, lowerXPoint,
                 + psipartxx(upperHighpoint[0], upperHighpoint[1], ipart) )
 
     B = np.negative(B)
-
     ###########################################################################
     #                                                                         #
     #   Solve the linear system for the coefficients C of the general         #
     #   solution to the equation                                              #
     #                                                                         #
     ###########################################################################
-
-
     C = np.linalg.lstsq(A, B, rcond=None)[0].flatten()
 
-    if sym:
-        C = np.append(C,[0,0,0,0,0])
+    if sym: C = np.append(C,[0,0,0,0,0])
 
     return C
 
-
 def plot_equilibrium(C, A, R0, epsilon, kappa):
-    """
-    Plot the analytical equilibrium.
+    """Plot the analytical equilibrium.
 
-    Args:
-        C : float, array_like <br>
-            The c coefficients.
-        A : float <br>
-            The free parameter in the paper.
-        R0 : float <br>
-            Major axis R coordinate (not the same as the magnetic axis) [m].
-        epsilon : float <br>
-            Inverse aspect ratio.
-        kappa : float <br>
-            Elongation.
+    Parameters
+    ----------
+    C : float, array_like
+        The c coefficients.
+    A : float
+        The free parameter in the paper.
+    R0 : float
+        Major axis R coordinate (not the same as the magnetic axis) [m].
+    epsilon : float
+        Inverse aspect ratio.
+    kappa : float
+        Elongation.
     """
     import matplotlib.pyplot  as plt
 
@@ -500,71 +489,3 @@ def plot_equilibrium(C, A, R0, epsilon, kappa):
     plt.show(block=False)
 
     return C
-
-
-if __name__ == "__main__":
-
-    # Write and plot?
-    write = False
-    plot  = True
-
-    # Choose a machine
-    method  = "circular"
-
-    # Free parameter from the paper
-    # A = 1 # Force-free equilibrium
-    # A = 0 # Vacuum toroidal field ("low-beta" equilibrium)
-    A       = 0
-
-    R0      = 0 # Major axis
-    epsilon = 0 # Inverse aspect ratio
-    kappa   = 0 # Elongation
-    delta   = 0 # Triangularity
-    xsep    = 0 # x-location of the separatrix
-    ysep    = 0 # y-location of the separatrix
-    D       = 0 # Values of the contours for plotting
-    sym     = 0 # Make symmetric equilibrium
-
-    if method == "itertok":
-        A       = -0.155
-        R0      = 6.2
-        epsilon = 2/6.2
-        kappa   = 1.7
-        delta   = 0.33
-        xsep    = 1-1.1*delta*epsilon
-        ysep    = -1.1*kappa*epsilon
-        sym     = False
-    elif method == "nstx":
-        A       = -0.155
-        R0      = 0.86
-        epsilon = 0.67/0.86
-        kappa   = 2
-        delta   = 0.35
-        xsep    = 1-1.1*delta*epsilon
-        ysep    = -1.1*kappa*epsilon
-        sym     = False
-    elif method == "aug":
-        A       = -0.155
-        R0      = 1.65
-        epsilon = 0.5/R0
-        kappa   = 1.6
-        delta   = 0.2
-        ysep    = -0.9041 /R0
-        xsep    = 1.4528 /R0
-        sym     = False
-    elif method == "circular":
-        A       = -0.155
-        R0      = 6.2
-        epsilon = 1/R0
-        kappa   = 1
-        delta   = 0
-        sym     = True
-
-    C = analyticGS(A, R0, epsilon, kappa, delta, xsep, ysep, sym)
-    C = np.append(C, A)
-
-    if write:
-        np.savetxt("analyticBKG.txt", C)
-
-    if plot:
-        plot_equilibrium(C[:-1], A, R0, epsilon, kappa)
