@@ -64,3 +64,4 @@ or you can convert these examples to ordinary Python scripts and execute them (e
 
    tutorials/poincare.ipynb
    tutorials/biosaw.ipynb
+   tutorials/backwardmc.ipynb
