@@ -86,7 +86,7 @@ class plasma_1D(DataGroup):
         a5plt.radialprofile(
             pls['rho'], ndens, y2=[pls['etemperature'], pls['itemperature']],
             xlim=rholim, y1lim=densitylim, y2lim=temperaturelim,
-            xlabel=r"$\rho$", y1label=r"Density [m$^{-3}$]"
+            xlabel=r"$\rho$", y1label=r"Density [m$^{-3}$]",
             y1legends=y1legends, y2label=r"Temperature [eV]",
             y2legends=[r"$T_e$", r"$T_i$"], axes=axes)
 
@@ -280,7 +280,7 @@ class plasma_1DS(DataGroup):
         a5plt.radialprofile(
             rho, ndens, y2=[pls['etemperature'], pls['itemperature']],
             xlim=rholim, y1lim=densitylim, y2lim=temperaturelim,
-            xlabel=r"$\rho$", y1label=r"Density [m$^{-3}$]"
+            xlabel=r"$\rho$", y1label=r"Density [m$^{-3}$]",
             y1legends=y1legends, y2label=r"Temperature [eV]",
             y2legends=[r"$T_e$", r"$T_i$"], axes=axes)
 
