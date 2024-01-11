@@ -9,6 +9,9 @@ import numpy as np
 from .coreio.fileapi import add_group
 from .coreio.treedata import DataGroup
 
+import a5py.routines.plotting as a5plt
+from a5py.physlib.species import speciesdict
+
 class plasma_1D(DataGroup):
     """Plasma profiles that have only radial dependency.
     """
@@ -35,55 +38,57 @@ class plasma_1D(DataGroup):
         out["idensity"] = np.transpose(out["idensity"])
         return out
 
-    def plot(self, pls=None):
-        import matplotlib.pyplot as plt
+    def plot_radial(self, rholim=None, densitylim=None, temperaturelim=None,
+                    axes=None):
+        """Plot plasma profiles as a function of rho.
 
-        if pls is None:
-            pls = self.read()
+        Parameters
+        ----------
+        rholim : [float, float], optional
+            Limits on x-axis.
+        densitylim : [float, float, float], optional
+            Limits on the first y axis where the middle value is when the scale
+            changes from logarithmic to linear [m^-3].
+        temperaturelim : [float, float, float], optional
+            Limits on the second y axis where the middle value is when the scale
+            changes from logarithmic to linear [eV].
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        """
+        def formatspec(s, a, z, q):
+            """Get species name in '^anum_znum A^charge' format"""
+            return "$_{{{:d}}}^{{{:d}}}{}^{{{}}}$".format(a,z,s,"+" + str(q))
 
-        plotyy=False # This didn't come out nice, but keep it just in case.
+        pls = self.read()
+        ndens = [pls['edensity']]
+        y1legends = ["$n_e$"]
+        for i in range(pls["nion"]):
+            ndens.append(pls["idensity"][:,i])
 
-        if plotyy:
-            fig, ax1 = plt.subplots()
+            a = int(pls["anum"][i])
+            z = int(pls["znum"][i])
+            q = int(pls["charge"][i])
+            y1legends.append(formatspec("A", a, z, q))
+            for s, d in speciesdict.items():
+                if d[0] == a and d[1] == z:
+                    s = ''.join(c for c in s if not c.isnumeric())
+                    y1legends[i+1] = formatspec(s, a, z, int(d[2].v))
+                    break
 
-            color = 'tab:red'
-            ax1.set_xlabel('$\\rho $')
-            ax1.set_ylabel('Density (10$^{19}$/m$^3$)', color=color)
-            ax1.plot(pls['rho'],pls['edensity']*1e-19,'-' ,color=color,label='n$_e$')
-            ax1.plot(pls['rho'],pls['idensity']*1e-19,'--',label='n$_i$')
-            ax1.tick_params(axis='y', labelcolor=color)
+        if rholim is None: rholim = [pls['rho'][0], pls['rho'][-1]]
+        if densitylim is None:
+            densitylim = [np.amin(pls["idensity"]), 1e19,
+                          np.amax(pls["edensity"])]
+        if temperaturelim is None:
+            temperaturelim = [np.amin(pls["itemperature"]), 1e3,
+                              np.amax(pls["itemperature"])]
 
-            ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-            color = 'tab:blue'
-            ax2.set_ylabel('Temperature(eV)', color=color)  # we already handled the x-label with ax1
-            ax2.plot(pls['rho'],pls['itemperature'],'-' ,color=color,label='T$_i$')
-            ax2.plot(pls['rho'],pls['etemperature'],'--',label='T$_e$')
-            ax2.tick_params(axis='y', labelcolor=color)
-
-            ax1.legend()
-            ax2.legend()
-
-            fig.tight_layout()  # otherwise the right y-label is slightly clipped
-
-            plt.show()
-
-        else:
-
-            plt.subplot(2,1,1)
-            plt.plot(pls['rho'],pls['edensity']*1e-19,'-',label='n$_e$')
-            plt.plot(pls['rho'],pls['idensity']*1e-19,'--',label='n$_i$')
-            plt.legend()
-            plt.ylabel('Density (10$^{19}$/m$^3$)')
-
-            plt.subplot(2,1,2)
-            plt.plot(pls['rho'],pls['etemperature'],'-',label='T$_e$')
-            plt.plot(pls['rho'],pls['itemperature'],'--',label='T$_i$')
-            plt.legend()
-            plt.ylabel('Temperature (eV)')
-
-            plt.xlabel('$\\rho $')
-
-            plt.show()
+        a5plt.radialprofile(
+            pls['rho'], ndens, y2=[pls['etemperature'], pls['itemperature']],
+            xlim=rholim, y1lim=densitylim, y2lim=temperaturelim,
+            xlabel=r"$\rho$", y1label=r"Density [m$^{-3}$]"
+            y1legends=y1legends, y2label=r"Temperature [eV]",
+            y2legends=[r"$T_e$", r"$T_i$"], axes=axes)
 
     @staticmethod
     def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rho,
@@ -225,6 +230,59 @@ class plasma_1DS(DataGroup):
 
         out["idensity"] = np.transpose(out["idensity"])
         return out
+
+    def plot_radial(self, rholim=None, densitylim=None, temperaturelim=None,
+                    axes=None):
+        """Plot plasma profiles as a function of rho.
+
+        Parameters
+        ----------
+        rholim : [float, float], optional
+            Limits on x-axis.
+        densitylim : [float, float, float], optional
+            Limits on the first y axis where the middle value is when the scale
+            changes from logarithmic to linear [m^-3].
+        temperaturelim : [float, float, float], optional
+            Limits on the second y axis where the middle value is when the scale
+            changes from logarithmic to linear [eV].
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        """
+        def formatspec(s, a, z, q):
+            """Get species name in '^anum_znum A^charge' format"""
+            return "$_{{{:d}}}^{{{:d}}}{}^{{{}}}$".format(a,z,s,"+" + str(q))
+
+        pls = self.read()
+        ndens = [pls['edensity']]
+        y1legends = ["$n_e$"]
+        for i in range(pls["nion"]):
+            ndens.append(pls["idensity"][:,i])
+
+            a = int(pls["anum"][i])
+            z = int(pls["znum"][i])
+            q = int(pls["charge"][i])
+            y1legends.append(formatspec("A", a, z, q))
+            for s, d in speciesdict.items():
+                if d[0] == a and d[1] == z:
+                    s = ''.join(c for c in s if not c.isnumeric())
+                    y1legends[i+1] = formatspec(s, a, z, int(d[2].v))
+                    break
+
+        if rholim is None: rholim = [pls['rhomin'][0], pls['rhomax'][0]]
+        if densitylim is None:
+            densitylim = [np.amin(pls["idensity"]), 1e19,
+                          np.amax(pls["edensity"])]
+        if temperaturelim is None:
+            temperaturelim = [np.amin(pls["itemperature"]), 1e3,
+                              np.amax(pls["itemperature"])]
+
+        rho = np.linspace(pls['rhomin'], pls['rhomax'], pls['nrho'])
+        a5plt.radialprofile(
+            rho, ndens, y2=[pls['etemperature'], pls['itemperature']],
+            xlim=rholim, y1lim=densitylim, y2lim=temperaturelim,
+            xlabel=r"$\rho$", y1label=r"Density [m$^{-3}$]"
+            y1legends=y1legends, y2label=r"Temperature [eV]",
+            y2legends=[r"$T_e$", r"$T_i$"], axes=axes)
 
     @staticmethod
     def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rhomin, rhomax,

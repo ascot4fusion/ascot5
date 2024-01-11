@@ -108,6 +108,7 @@ def setguistyle(latex=True):
         "ytick.minor.width":0.4,
         "xtick.major.pad":5.6,
         "ytick.major.pad":5.6,
+        "axes.formatter.limits":[-1,1]
     })
     if latex:
         mpl.style.use({
@@ -168,6 +169,38 @@ def openfigureifnoaxes(projection="rectilinear"):
         return wrapper
 
     return actualdecorator
+
+def getmathtextsciformatter(format):
+    """Returns a label tick formatter that shows numbers in format "a x 10^b".
+
+    Credit: https://stackoverflow.com/a/49330649
+
+    Examples
+    --------
+    >>> plt.gca().yaxis.set_major_formatter(getmathtextsciformatter("%1.2e"))
+    """
+    class MathTextSciFormatter(mpl.ticker.Formatter):
+
+        def __init__(self, format="%1.2e"):
+            self.fmt = format
+
+        def __call__(self, x, pos=None):
+            s = self.fmt % x
+            decimal_point = '.'
+            positive_sign = '+'
+            tup = s.split('e')
+            significand = tup[0].rstrip(decimal_point)
+            sign = tup[1][0].replace(positive_sign, '')
+            exponent = tup[1][1:].lstrip('0')
+            if exponent:
+                exponent = '10^{%s%s}' % (sign, exponent)
+            if significand and exponent:
+                s =  r'%s{\times}%s' % (significand, exponent)
+            else:
+                s =  r'%s%s' % (significand, exponent)
+            return "${}$".format(s)
+
+    return MathTextSciFormatter(format)
 
 @openfigureifnoaxes(projection=None)
 def scatter2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
@@ -252,7 +285,7 @@ def scatter2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
     norm = mpl.colors.BoundaryNorm(cint, nc)
     smap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
     cbar = plt.colorbar(smap, ax=axes, cax=cax)
-    ticks = [];
+    ticks = []
     for b in cint.v:
         log = np.floor(np.log10(np.abs(b)))
         mul = b / 10**log
@@ -355,7 +388,7 @@ def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
     smap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
     cbar = plt.colorbar(smap, ax=axes, cax=cax)
 
-    ticks = [];
+    ticks = []
     for b in cint.v:
         log = np.floor(np.log10(np.abs(b)))
         mul = b / 10**log
@@ -1136,6 +1169,136 @@ def momentumpolargrid(pnorm_edges, pitch_edges, axes=None):
     p = pnorm_edges[-1]
     for v in pitch_edges:
         axes.plot([0, v*p], [0, np.sqrt(1.0 - v**2)*p], color="black")
+
+@openfigureifnoaxes(projection=None)
+def radialprofile(x, y1, y2=None, xlim=None, y1lim=None, y2lim=None,
+                  xlabel=None, y1label=None, y2label=None, y1legends=None,
+                  y2legends=None, axes=None):
+    """Plot 1D profiles on axes that can have two y-axes and the y-axis combines
+    both linear and logarithmic scale.
+
+    Parameters
+    ----------
+    x : array_like, (n,)
+        The x grid where ``y1`` (and ``y2``) values are provided.
+    y1 : array_like or [array_like]
+        The values (or a list of values in which case they are separated by
+        colour) plotted on the left y-axis.
+    y2 : array_like or [array_like], optional
+        The values (or a list of values) plotted on the right y-axis.
+    xlim : [float, float], optional
+        Limits on x-axis.
+    y1lim : [float, float, float], optional
+        Limits on the first y axis where the middle value is when the scale
+        changes from logarithmic to linear.
+    y2lim : [float, float, float], optional
+        Limits on the second y axis where the middle value is when the scale
+        changes from logarithmic to linear.
+    xlabel : str, optional
+        Label on the x-axis.
+    y1label : str, optional
+        Label on the first y-axis.
+    y2label : str, optional
+        Label on the second y-axis.
+    y1legends: [str], optional
+        Legends for the values plotted on the first y-axis.
+
+        Number of legend values must be the same as the number of ``y1``.
+    y2legends: [str], optional
+        Legends for the values plotted on the second y-axis.
+
+        Number of legend values must be the same as the number of ``y2``.
+    axes : :obj:`~matplotlib.axes.Axes`, optional
+        The axes where figure is plotted or otherwise new figure is created.
+    """
+    if y1lim is None: raise ValueError("y1lim must be provided")
+    if xlim is not None: axes.set_xlim(xlim)
+
+    # Create linear left axis
+    axleftlin = axes
+    axleftlin.set_yscale('linear')
+    axleftlin.spines['right'].set_visible(False)
+    axleftlin.spines['bottom'].set_visible(False)
+    # Create log left axis
+    divider = make_axes_locatable(axes)
+    axleftlog = divider.append_axes('bottom', size=1.0, pad=0, sharex=axes)
+    axleftlog.set_yscale('log')
+    axleftlog.spines['right'].set_visible(False)
+    axleftlog.spines['top'].set_visible(False)
+    axleftlog.yaxis.set_ticks_position('left')
+
+    axleftlog.tick_params(axis='y', which='minor', left=False)
+    axleftlin.yaxis.set_major_formatter(getmathtextsciformatter("%1.0e"))
+
+    axleftlog.set_xlabel(xlabel)
+    plt.setp(axleftlin.get_xticklabels(), visible=False)
+
+    if y2 is not None:
+        # Create linear right axis
+        axrightlin = axes.twinx()
+        axrightlin.set_yscale('linear')
+        axrightlin.spines['left'].set_visible(False)
+        axrightlin.spines['bottom'].set_visible(False)
+
+        # Create log right axis
+        divider = make_axes_locatable(axrightlin)
+        axrightlog = divider.append_axes("bottom", size=1.0, pad=0, sharex=axes)
+        axrightlog.set_yscale('log')
+        axrightlog.spines['left'].set_visible(False)
+        axrightlog.spines['top'].set_visible(False)
+        axrightlog.yaxis.set_ticks_position('right')
+        axrightlog.xaxis.set_visible(False)
+        axrightlog.set_facecolor('none')
+        axrightlog.yaxis.set_label_position("right")
+
+        axrightlog.tick_params(axis='y', which='minor', right=False)
+        axrightlin.yaxis.set_major_formatter(getmathtextsciformatter("%1.0e"))
+
+        axlin      = axrightlin
+        axrightlin = axleftlin
+        axleftlin  = axlin
+        axlog      = axrightlog
+        axrightlog = axleftlog
+        axleftlog  = axlog
+
+        axrightlin.set_ylim((y2lim[1], y2lim[2]))
+        axrightlog.set_ylim((y2lim[0], y2lim[1]))
+        axrightlin.set_ylabel(y2label, loc='bottom')
+
+        axrightlin.spines['right'].set_color('C3')
+        axrightlog.spines['right'].set_color('C3')
+        axrightlin.tick_params(axis='y', colors='C3')
+        axrightlog.tick_params(axis='y', colors='C3')
+        axrightlin.yaxis.label.set_color('C3')
+
+        if not isinstance(y2, list): y2 = [y2]
+        handles2 = []
+        for i, y in enumerate(y2):
+            ls = '-' if i == 0 else '--'
+            h, = axrightlin.plot(x, y, color='C3', ls=ls)
+            axrightlog.plot(x, y, color='C3', ls=ls)
+            handles2.append(h)
+        axrightlog.set_xlim(xlim)
+
+        legend2 = plt.legend(handles2, y2legends, loc='upper left',
+                             bbox_to_anchor=(0.0,1.0), frameon=False)
+        axleftlog.add_artist(legend2)
+
+    axleftlin.set_ylabel(y1label, loc='bottom')
+    axleftlin.set_ylim((y1lim[1], y1lim[2]))
+    axleftlog.set_ylim((y1lim[0], y1lim[1]))
+
+    if not isinstance(y1, list): y1 = [y1]
+    handles1 = []
+    for i, y in enumerate(y1):
+        ls = '-' if i == 0 else '--'
+        c = 'C'+str(i) if i < 3 else 'C'+str(i+1)
+        axleftlin.plot(x, y, ls=ls, color=c)
+        h, = axleftlog.plot(x, y, ls=ls, color=c)
+        handles1.append(h)
+    legend1 = plt.legend(handles1, y1legends, loc='upper left',
+                         bbox_to_anchor=(0.6,3.1), frameon=False)
+    axleftlog.add_artist(legend1)
 
 def defaultcamera(wallmesh):
     """Get default camera (helper function for the 3D plots).
