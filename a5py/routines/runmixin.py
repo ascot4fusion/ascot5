@@ -1247,7 +1247,8 @@ class RunMixin(DistMixin):
                          clabel=clabel, bbox=bbox, cmap=cmap,
                          axesequal=axesequal, axes=axes, cax=cax)
 
-    def plotorbit_poincare(self, plane, connlen=True, axes=None, cax=None):
+    def plotorbit_poincare(self, plane, connlen=True, markersize=2,
+                           axes=None, cax=None):
         """Create a Poincaré plot where the color separates different markers
         or shows the connection length.
 
@@ -1270,6 +1271,8 @@ class RunMixin(DistMixin):
             position. Confined (or all if conlen=False) markers are shown
             with shades of red where color separates subsequent
             trajectories.
+        markersize : int, optional
+            Marker size on plot.
         axes : :obj:`~matplotlib.axes.Axes`, optional
             The axes where figure is plotted or otherwise new figure is created.
         cax : :obj:`~matplotlib.axes.Axes`, optional
@@ -1348,7 +1351,8 @@ class RunMixin(DistMixin):
 
         a5plt.poincare(x, y, ids, connlen=connlen, xlim=xlim, ylim=ylim,
                        xlabel=xlabel, ylabel=ylabel, clabel=clabel,
-                       axesequal=axesequal, axes=axes, cax=cax)
+                       markersize=markersize, axesequal=axesequal, axes=axes,
+                       cax=cax)
 
     def plotwall_loadvsarea(self, axes=None):
         """Plot histogram showing area affected by at least a given load.
