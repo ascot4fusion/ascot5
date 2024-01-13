@@ -733,9 +733,9 @@ class ImportData():
                 method="cubic", bounds_error=False, fill_value=0)((r,z))
 
             # Calculate the inverse Fourier transform as
-            # B(phi) = Re(B)*cos(phi) + Im(B)*sin(phi)
-            return np.multiply.outer(real, np.cos(phigrid/n)) \
-                 + np.multiply.outer(imag, np.sin(phigrid/n))
+            # B(phi) = Re(B)*cos(phi) - Im(B)*sin(phi)
+            return np.multiply.outer(real, np.cos(phigrid*n)) \
+                 - np.multiply.outer(imag, np.sin(phigrid*n))
 
         br   = np.transpose(ifft(d[:,2], d[:,3]), (0,2,1))
         bz   = np.transpose(ifft(d[:,4], d[:,5]), (0,2,1))
@@ -748,8 +748,8 @@ class ImportData():
             b3d = {
                 "b_rmin":b2d["rmin"], "b_rmax":b2d["rmax"], "b_nr":b2d["nr"],
                 "b_zmin":b2d["zmin"], "b_zmax":b2d["zmax"], "b_nz":b2d["nz"],
-                "b_phimin":phigrid[0],
-                "b_phimax":phigrid[-1]+phigrid[1]-phigrid[1],
+                "b_phimin":phigrid[0]*180/np.pi,
+                "b_phimax":(phigrid[-1]+phigrid[1]-phigrid[1])*180/np.pi,
                 "b_nphi":phigrid.size,
                 "axisr":b2d["axisr"], "axisz":b2d["axisz"], "psi":b2d["psi"],
                 "psi0":b2d["psi0"], "psi1":b2d["psi1"],
