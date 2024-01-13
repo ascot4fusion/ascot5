@@ -65,7 +65,8 @@ def setpaperstyle(latex=True):
         "ytick.minor.width":0.4,
         "xtick.major.pad":5.6,
         "ytick.major.pad":5.6,
-        "axes.formatter.limits":[-1,1]
+        "savefig.dpi":300,
+        "axes.formatter.limits":[-2,2]
     })
     if latex:
         mpl.style.use({
@@ -108,7 +109,8 @@ def setguistyle(latex=True):
         "ytick.minor.width":0.4,
         "xtick.major.pad":5.6,
         "ytick.major.pad":5.6,
-        "axes.formatter.limits":[-1,1]
+        "savefig.dpi":300,
+        "axes.formatter.limits":[-2,2]
     })
     if latex:
         mpl.style.use({
@@ -795,7 +797,8 @@ def line3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
 
 @openfigureifnoaxes(projection=None)
 def poincare(x, y, ids, connlen=None, xlim=None, ylim=None, xlabel=None,
-             ylabel=None, clabel=None, axesequal=False, axes=None, cax=None):
+             ylabel=None, clabel=None, axesequal=False, markersize=2,
+             axes=None, cax=None):
     """Poincaré plot where color separates markers or shows the connection
     length.
 
@@ -828,6 +831,10 @@ def poincare(x, y, ids, connlen=None, xlim=None, ylim=None, xlabel=None,
         Label for the y-axis.
     clabel : str, optional
         Label for the color axis.
+    axesequal : bool, optional
+        If True, x and y axis have equal aspect ratio.
+    markersize : int, optional
+        Marker size on plot.
     axes : :obj:`~matplotlib.axes.Axes`, optional
         The axes where figure is plotted or otherwise new figure is created.
     cax : :obj:`~matplotlib.axes.Axes`, optional
@@ -849,7 +856,7 @@ def poincare(x, y, ids, connlen=None, xlim=None, ylim=None, xlabel=None,
         for i in range(nc):
             idx = np.in1d(ids, uids[i::nc])
             axes.plot(x[idx], y[idx], color=cmap(cpick[i]/nc),
-                      linestyle="None", marker=".", markersize=1)
+                      linestyle="None", marker=".", markersize=markersize)
 
     else:
         # Sort by connection length (confined markers are indicated with a
@@ -922,7 +929,7 @@ def poincare(x, y, ids, connlen=None, xlim=None, ylim=None, xlabel=None,
         for i in range(nc_b):
             i2 = idx[i+1]
             axes.plot(x[i1:i2], y[i1:i2], color=colours[i],
-                      linestyle="None", marker="o", markersize=1)
+                      linestyle="None", marker="o", markersize=markersize)
             i1 = i2
 
         # Plot confined
@@ -932,7 +939,7 @@ def poincare(x, y, ids, connlen=None, xlim=None, ylim=None, xlabel=None,
         for i in range(nc):
             idx = np.in1d(ids, uids[i::nc])
             axes.plot(x[idx], y[idx], color=colours[nc_b+cpick[i]],
-                      linestyle="None", marker=".", markersize=1)
+                      linestyle="None", marker=".", markersize=markersize)
 
     axes.set_xlabel(xlabel)
     axes.set_ylabel(ylabel)
