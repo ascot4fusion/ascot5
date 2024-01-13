@@ -1060,14 +1060,14 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         qprof : array_like, (n,)
             Safety factor.
         Iprof : array_like, (n,)
-            Toroidal current term which, when multiplied with mu0/2, gives the
+            Toroidal current term which, when multiplied with 2pi/mu0, gives the
             enclosed toroidal current.
         gprof : array_like, (n,)
             This is just R * Bphi which is constant since Bphi ~ 1/R.
         """
         qprof = np.zeros(rho.shape)
-        Iprof = np.zeros(rho.shape)
-        gprof = np.zeros(rho.shape)
+        Iprof = np.zeros(rho.shape) * unyt.m*unyt.T
+        gprof = np.zeros(rho.shape) * unyt.m*unyt.T
         thgrid = np.linspace(0, 2*np.pi, nth)
         for i in range(rho.size):
             # Interpolate the contour points on the fixed theta grid
