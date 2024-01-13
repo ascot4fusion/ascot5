@@ -410,11 +410,21 @@ class Ascot(Ascotpy):
         return []
 
     @openfigureifnoaxes(projection=None)
-    def preflight_plottopview(self, axes=None):
+    def preflight_plottopview(self, hidewall=False, hidemarkers=False,
+                              axes=None):
         """Plot top view of the machine showing Ip, Bphi, and possibly markers
         and wall if present.
 
         Assumes bfield is initialized in ascotpy.
+
+        Parameters
+        ----------
+        hidewall : bool, optional
+            Don't show wall even if present.
+        hidemarkers : bool, optional
+            Don't show markers even if present.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
         """
         r0, z0 = self.input_eval(1*unyt.m, 0*unyt.deg, 0*unyt.m, 0*unyt.s,
                                  "axisr", "axisz")
@@ -459,7 +469,7 @@ class Ascot(Ascotpy):
                    linestyle="none", label=r"$\mathbf{I}_p$",
                    markerfacecolor='C1', markersize=14) ]
 
-        if "marker" in self.data:
+        if "marker" in self.data and not hidemarkers:
             marker = self.data.marker.active.read()
             x = np.cos(marker["phi"] * np.pi/180) * marker["r"]
             y = np.sin(marker["phi"] * np.pi/180) * marker["r"]
@@ -470,7 +480,7 @@ class Ascot(Ascotpy):
                 Line2D([0], [0], marker='o', color='black', linestyle="none",
                        label="Marker", markerfacecolor='black', markersize=2))
 
-        if "wall" in self.data:
+        if "wall" in self.data and not hidewall:
             ls = self.data.wall.active.getwalloutline(z=0)
             line2d(ls[:,:,0], ls[:,:,1], c="black", axes=axes)
 
