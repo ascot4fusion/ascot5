@@ -121,7 +121,7 @@ _libraries = {}
 from pathlib import Path
 libpath = str(Path(__file__).absolute().parent.parent.parent) \
 + "/build/libascot.so"
-_libraries['libascot.so'] = ctypes.CDLL(libpath)
+_libraries['libascot.so'] = ctypes.CDLL('libascot.so')
 c_int128 = ctypes.c_ubyte*16
 c_uint128 = c_int128
 void = None

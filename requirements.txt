@@ -5,6 +5,4 @@ prompt_toolkit
 unyt==2.9.5
 scikit-image
 matplotlib
-pyvista
 wurlitzer
-freeqdsk

@@ -1,0 +1,32 @@
+package:
+  name: ascot5
+  version: 5.6
+
+source:
+  path: .
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - make
+    - hdf5
+    - mpi
+
+  host:
+    - hdf5
+    - python>=3.10
+    - setuptools
+    - pip
+    - mpi
+
+  run:
+    - mpi
+    - python>=3.10
+    - numpy
+    - scipy
+    - h5py
+    - prompt_toolkit
+    - unyt==2.9.5
+    - scikit-image
+    - matplotlib
+    - wurlitzer

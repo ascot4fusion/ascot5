@@ -70,11 +70,11 @@ class Info(ContentTab):
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
-            logo = os.path.join(
-                os.path.dirname(__file__), "../../doc/_static/logo.png")
-            logo = tk.PhotoImage(file=logo)
-            self.logo = logo # Otherwise garbage collector eats this
-            self.create_image(150, 50, image=logo)
+            #logo = os.path.join(
+            #    os.path.dirname(__file__), "../../doc/_static/logo.png")
+            #logo = tk.PhotoImage(file=logo)
+            #self.logo = logo # Otherwise garbage collector eats this
+            #self.create_image(150, 50, image=logo)
 
     class Desc(ttk.Frame):
 

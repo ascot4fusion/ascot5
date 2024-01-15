@@ -16,6 +16,7 @@ setup(name='a5py',
       packages=find_packages(),
       zip_safe=False,
       install_requires=requirements,
+      include_package_data=True,
       extras_require={
         "doc": ["ipykernel",
                 "sphinx",
