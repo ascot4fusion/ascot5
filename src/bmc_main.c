@@ -134,21 +134,21 @@ int main(int argc, char** argv) {
     if(!sim_data.bmc_timedependent) {
         /* Evaluate the push matrix once */
         size_t start = 0, stop = mesh.size;
-        real* r     = (real*) malloc( mesh.size * HERMITE_KNOTS * sizeof(real));
-        real* phi   = (real*) malloc( mesh.size * HERMITE_KNOTS * sizeof(real));
-        real* z     = (real*) malloc( mesh.size * HERMITE_KNOTS * sizeof(real));
-        real* ppara = (real*) malloc( mesh.size * HERMITE_KNOTS * sizeof(real));
-        real* pperp = (real*) malloc( mesh.size * HERMITE_KNOTS * sizeof(real));
+        real* r    = (real*) malloc( mesh.size * HERMITE_KNOTS * sizeof(real));
+        real* phi  = (real*) malloc( mesh.size * HERMITE_KNOTS * sizeof(real));
+        real* z    = (real*) malloc( mesh.size * HERMITE_KNOTS * sizeof(real));
+        real* mom1 = (real*) malloc( mesh.size * HERMITE_KNOTS * sizeof(real));
+        real* mom2 = (real*) malloc( mesh.size * HERMITE_KNOTS * sizeof(real));
         int* fate = (int*) malloc( mesh.size * HERMITE_KNOTS * sizeof(int));
 
         simulate_bmc_gc(&sim_data, &mesh, sim_data.bmc_timestep,
                         sim_data.bmc_tstart, start, stop,
-                        r, phi, z, ppara, pperp, fate);
+                        r, phi, z, mom1, mom2, fate);
         for(real t=sim_data.bmc_tstart; t <= sim_data.bmc_tstop;
             t += sim_data.bmc_timestep) {
             /* Update the probability repeatedly until the simulation is
              * complete */
-            bmc_mesh_update(&mesh, start, stop, r, phi, z, ppara, pperp, fate);
+            bmc_mesh_update(&mesh, start, stop, r, phi, z, mom1, mom2, fate);
             bmc_mesh_finishstep(&mesh);
             real tot = 0;
             for(int i=0; i<mesh.size; i++) {
@@ -160,8 +160,8 @@ int main(int argc, char** argv) {
         free(r);
         free(phi);
         free(z);
-        free(ppara);
-        free(pperp);
+        free(mom1);
+        free(mom2);
         free(fate);
     }
     else {

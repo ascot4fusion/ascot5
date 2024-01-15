@@ -31,6 +31,6 @@
 
 void simulate_bmc_gc(
     sim_data* sim, bmc_mesh* mesh, real h, real time, size_t start, size_t stop,
-    real* r, real* phi, real* z, real* ppara, real* pperp, int* fate);
+    real* r, real* phi, real* z, real* mom1, real* mom2, int* fate);
 
 #endif
