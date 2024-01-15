@@ -18,13 +18,13 @@ typedef struct {
     int n_r;        /**< Number of R grid points                       */
     int n_phi;      /**< Number of phi grid points                     */
     int n_z;        /**< Number of z grid points                       */
-    int n_ppara;    /**< Number of parallel momentum grid points       */
-    int n_pperp;    /**< Number of perpendicular momentum grid points  */
+    int n_mom1;    /**< Number of parallel momentum grid points       */
+    int n_mom2;    /**< Number of perpendicular momentum grid points  */
     real* r;        /**< Mesh R-abscissa [m]                           */
     real* phi;      /**< Mesh phi-abscissa [rad]                       */
     real* z;        /**< Mesh z-abscissa [m]                           */
-    real* ppara;    /**< Mesh parallel momentum abscissa [kg*m/s]      */
-    real* pperp;    /**< Mesh perpendicular momentum abscissa [kg*m/s] */
+    real* mom1;    /**< Mesh parallel momentum abscissa [kg*m/s]      */
+    real* mom2;    /**< Mesh perpendicular momentum abscissa [kg*m/s] */
     real* val_prev; /**< Probability evaluated in the previous step    */
     real* val_next; /**< Probability currently being evaluated         */
     size_t size;    /**< Size of the mesh (i.e. the two arrays above)  */
@@ -34,11 +34,11 @@ int bmc_mesh_init();
 void bmc_mesh_free(bmc_mesh* mesh);
 #pragma omp declare simd uniform(mesh)
 void bmc_mesh_index2pos(bmc_mesh* mesh, size_t idx, real coords[5]);
-real bmc_mesh_interpolate(bmc_mesh* mesh, real r, real phi, real z, real ppara,
-                          real pperp);
+real bmc_mesh_interpolate(bmc_mesh* mesh, real r, real phi, real z, real mom1,
+                          real mom2);
 void bmc_mesh_finishstep(bmc_mesh* mesh);
 void bmc_mesh_update(bmc_mesh* mesh, size_t start, size_t stop,
-                     real* r, real* phi, real* z, real* ppara, real* pperp,
+                     real* r, real* phi, real* z, real* mom1, real* mom2,
                      int* fate);
 
 #endif

@@ -45,14 +45,14 @@
  * @param r marker final R-coordinates [m]
  * @param phi marker final (periodic, not cumulative) phi-coordinates [rad]
  * @param z marker final z-coordinates [m]
- * @param ppara marker final parallel momentum coordinate [kg*m/s]
- * @param pperp marker final perpendicular momentum coordinate [kg*m/s]
+ * @param mom1 marker final parallel momentum coordinate [kg*m/s]
+ * @param mom2 marker final perpendicular momentum coordinate [kg*m/s]
  * @param fate flag indicating whether the marker terminated with error [-1],
  *        hit wall [1], hit FILD [2], or finished normally [0]
  */
 void simulate_bmc_gc(
     sim_data* sim, bmc_mesh* mesh, real h, real time, size_t start, size_t stop,
-    real* r, real* phi, real* z, real* ppara, real* pperp, int* fate) {
+    real* r, real* phi, real* z, real* mom1, real* mom2, int* fate) {
 
     real h_orb[NSIMD];
     real h_coll[NSIMD];
@@ -73,7 +73,7 @@ void simulate_bmc_gc(
     /* Go through the mesh in chunks of NSIMD */
     #pragma omp parallel for \
         shared(sim, mesh, h_orb, h_coll, hermite_k_nsimd, start, stop, \
-        r, phi, z, ppara, pperp, fate)
+        r, phi, z, mom1, mom2, fate)
     for(size_t iprt=start; iprt < stop + NSIMD; iprt += NSIMD) {
         /* Initialize markers from mesh */
         int lost[NSIMD];
@@ -90,11 +90,13 @@ void simulate_bmc_gc(
                 real origin[5];
                 bmc_mesh_index2pos(mesh, iprt+i, origin);
 
-                real ppara0 = origin[3];
-                real pperp0 = origin[4];
-                real pnorm = sqrt(ppara0 * ppara0 + pperp0 * pperp0);
-                real xi    = ppara0 / pnorm;
-                real ekin  = physlib_Ekin_pnorm(sim->bmc_mass, pnorm);
+                //real ppara0 = origin[3];
+                //real pperp0 = origin[4];
+                //real pnorm = sqrt(ppara0 * ppara0 + pperp0 * pperp0);
+                //real xi    = ppara0 / pnorm;
+                //real ekin  = physlib_Ekin_pnorm(sim->bmc_mass, pnorm);
+                real ekin = origin[3];
+                real xi = origin[4];
                 if(xi >= -1) xi = -0.9999; //Not sure if these are needed
                 if(xi >= 1) xi = 0.9999;
 
@@ -119,7 +121,8 @@ void simulate_bmc_gc(
                 lost[i] = 0;
                 /* Marker initialization failed or the grid node is at pnorm = 0
                  * which is currently not supported in GC mode */
-                if(p.err[i] || pnorm == 0) {
+                //if(p.err[i] || pnorm == 0) {
+                if(p.err[i] || ekin == 0) {
                     lost[i] = -1;
                 }
                 else if(!wall_2d_inside(origin[0], origin[2],
@@ -189,7 +192,7 @@ void simulate_bmc_gc(
                     phi[idx]   = fmod(fmod(p_knot.phi[i], CONST_2PI)
                                       + CONST_2PI, CONST_2PI);
                     z[idx]     = p_knot.z[i];
-                    ppara[idx] = p_knot.ppar[i];
+                    //mom1[idx] = p_knot.ppar[i];
 
                     real Bnorm = sqrt(  p_knot.B_r[i]   * p_knot.B_r[i]
                                       + p_knot.B_phi[i] * p_knot.B_phi[i]
@@ -198,15 +201,17 @@ void simulate_bmc_gc(
                                               p_knot.ppar[i], Bnorm);
                     real pperp2 = fabs(  pnorm * pnorm
                                        - p_knot.ppar[i] * p_knot.ppar[i]);
-                    pperp[idx] = sqrt(pperp2);
+                    //mom2[idx] = sqrt(pperp2);
+                    mom1[idx] = physlib_Ekin_pnorm(p_knot.mass[i], pnorm);
+                    mom2[idx] = p_knot.ppar[i] / pnorm;
                     fate[idx] = 0;
                 }
                 else if(iprt + i < stop) {
                     r[idx]     = 0;
                     phi[idx]   = 0;
                     z[idx]     = 0;
-                    ppara[idx] = 0;
-                    pperp[idx] = 0;
+                    mom1[idx] = 0;
+                    mom2[idx] = 0;
                     fate[idx]  = lost[i];
                 }
             }
