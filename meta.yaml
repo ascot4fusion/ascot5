@@ -1,32 +1,41 @@
+{% set version = "5.5" %}
+
 package:
-  name: ascot5
-  version: 5.6
+  name: ascot
+  version: {{ version }}
 
 source:
-  path: .
+  url: https://github.com/ascot4fusion/ascot5/archive/ascot{{ version }}.tar.gz
+  sha256: b7139cb8370b12e738e221460f926dba6bdaae2a32e7680dfd8e58a16d82efe6
+
+build:
+  skip: True # [not linux]
+  number: 0
 
 requirements:
   build:
     - {{ compiler('c') }}
     - make
-    - hdf5
-    - mpi
+    - libgomp # [linux]
 
   host:
-    - hdf5
     - python>=3.10
+    - hdf5
+    - zlib
     - setuptools
     - pip
-    - mpi
+    - {{ mpi }} # [mpi != 'nompi']
 
   run:
-    - mpi
-    - python>=3.10
     - numpy
     - scipy
     - h5py
-    - prompt_toolkit
     - unyt==2.9.5
-    - scikit-image
-    - matplotlib
     - wurlitzer
+    - matplotlib
+    - pyvista
+    - freeqdsk
+
+test:
+  commands:
+    - echo "Not implemented yet"

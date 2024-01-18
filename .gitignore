@@ -2,6 +2,7 @@
 *.optrpt
 *.pyc
 *.so
+*.h5
 *~
 /build
 /doc/_static/doxygen
@@ -13,7 +14,6 @@
 /.env
 gitver.h
 compiler_flags.h
-ascot.h5
 test_offload
 test_B
 test_E
@@ -29,3 +29,4 @@ test_wall_2d
 test_wall_3d
 ascot5_main
 bbnbi5
+bmc_main

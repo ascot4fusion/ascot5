@@ -5,7 +5,7 @@
  * This module handles IO operations to HDF5 file. Accessing HDF5 files
  * from the main program should be done using this module.
  */
-#define _XOPEN_SOURCE
+#define _XOPEN_SOURCE 700
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -733,7 +733,7 @@ void hdf5_generate_qid(char* qid) {
 #ifdef __MACH__
     clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
 #else
-    timespec_get(&ts, TIME_UTC);
+    clock_gettime(CLOCK_REALTIME, &ts);
 #endif
     srand48( ts.tv_nsec );
 

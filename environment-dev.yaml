@@ -1,0 +1,38 @@
+name: ascot-dev
+channels:
+  - conda-forge
+dependencies:
+  - c-compiler
+  - make
+  - libgomp
+  - python>=3.10
+  - hdf5
+  - zlib
+  - setuptools
+  - pip
+  - ipython
+  - numpy
+  - scipy
+  - h5py
+  - unyt==2.9.5
+  - wurlitzer
+  - matplotlib
+  - pyvista
+  - freeqdsk
+  - doxygen
+  - ipykernel
+  - pandoc
+  - sphinx
+  - numpydoc
+  - nbsphinx
+  - nbformat
+  - breathe
+  - sphinxcontrib-bibtex
+  - sphinx-rtd-theme
+  - sphinx-gallery
+  - clang==14
+  - libclang==14
+  - llvm-openmp==14
+  - pip:
+    - clang==14
+    - ctypeslib2
