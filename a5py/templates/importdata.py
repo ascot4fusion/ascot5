@@ -8,6 +8,7 @@ from scipy.interpolate import RegularGridInterpolator
 
 from a5py.physlib import cocos as cocosmod
 from a5py.physlib import species as physlibspecies
+from a5py.ascot5io.wall import wall_3D
 
 try:
     import adas
@@ -293,7 +294,7 @@ class ImportData():
         return ("asigma_loc", out)
 
     def import_geqdsk(self, fn="input.eqdsk", cocos=None, phiclockwise=None,
-                      weberperrad=None, verbose=True, interpolate_psi0=False):
+                      weberperrad=True, verbose=True, interpolate_psi0=False):
         """Import axisymmetric magnetic field from EQDSK.
 
         Parameters
@@ -302,6 +303,12 @@ class ImportData():
             Filename of the G-EQDSK to read.
         cocos : int, optional
             Expected COCOS or None to deduce from the data.
+        phiclockwise : Boolean
+            If true, the phi-coordinate direction of the G-EQDSK file is assumed clockwise from above
+        weberperrad : Boolean
+            If true, the flux function is assumed to have been divided by 2*pi (COCOS ID 1-8)(default)
+        verbose : Boolean
+            If true, the function will talk a lot!
         interpolate_psi0 : bool, optional
             Instead of using the psi on-axis value in EQDSK, interpolate it
             using libascot.
@@ -329,13 +336,13 @@ class ImportData():
                 eqd["qpsi"][0], eqd["cpasma"], eqd["bcentr"], eqd["simagx"],
                 eqd["sibdry"], phiclockwise, weberperrad)
 
-        verbose and print("Eqdsk cocos: "+str(cocos))
-        verbose and print("ASCOT cocos: "+str(cocosmod.COCOS_ASCOT))
+        verbose and print("G-EQDSK COCOS ID: "+str(cocos))
+        verbose and print("ASCOT COCOS ID: "+str(cocosmod.COCOS_ASCOT))
 
         if cocos != cocosmod.COCOS_ASCOT:
             warnings.warn(
-                "EQDSK COCOS is %d while ASCOT5 expects 3. Transforming COCOS"
-                % cocos)
+                "G-EQDSK HAS COCOS ID "+str(cocos)+" while ASCOT5 expects "+str(cocosmod.COCOS_ASCOT)+". Transforming COCOS... "
+            )
             eqd = cocosmod.fromCocosNtoCocosM(eqd, cocosmod.COCOS_ASCOT,
                                               cocos_n=cocos)
 
@@ -420,6 +427,56 @@ class ImportData():
         wall = {"nelements":x1x2x3.shape[0], "x1x2x3":x1x2x3, "y1y2y3":y1y2y3,
                 "z1z2z3":z1z2z3}
         return ("wall_3D", wall)
+
+    def wall_geqdsk(self, fn="input.eqdsk", phiclockwise=None, weberperrad=True, return3Dwall=True, verbose=False):
+        """Import wall data from EQDSK.
+
+        Parameters
+        ----------
+        fn : str
+            Filename of the G-EQDSK to read.
+        phiclockwise : Boolean
+            If true, the phi-coordinate direction of the G-EQDSK file is assumed clockwise from above
+        weberperrad : Boolean
+            If true, the flux function is assumed to have been divided by 2*pi (COCOS ID 1-8)(default)
+        return3Dwall : Boolean
+            If true, the function will return a 3D wall object to be used by ASCOT5. If false, a 2D wall object is returned
+        verbose : Boolean
+            If true, the function will talk a lot!
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        verbose and print("Loading wall data from G-EQDSK file... ")
+        with open(fn, "r") as f:
+            eqd = geqdsk.read(f)
+        nwall = eqd["nlim"] # Number of (R,z) points making up the G-EQDSK wall data
+        wall_r = eqd["rlim"]
+        wall_z = eqd["zlim"]
+
+        verbose and print("Determining COCOS ID from G-EQDSK file data, phiclockwise and weberperrad keyword arguments... ")
+        cocos_n = cocosmod.assign(eqd["qpsi"][0], eqd["cpasma"], eqd["bcentr"], eqd["simagx"], eqd["sibdry"], phiclockwise, weberperrad)
+
+        if cocos_n!=cocosmod.COCOS_ASCOT:
+            warnings.warn("G-EQDSK file has COCOS ID "+str(cocos_n)+" while ASCOT5 expects "+str(cocosmod.COCOS_ASCOT)+". Transforming wall data... ")
+            transform_dict = cocosmod.transform_cocos(cocosmod.cocos(cocos_n), cocosmod.cocos(cocosmod.COCOS_ASCOT))
+            wall_r = wall_r*transform_dict["R"]
+            wall_z = wall_z*transform_dict["Z"]
+
+        wall_r = wall_r[:-1] # Remove last element, since wall data from G-EQDSK files are closed loops, and we want an open loop
+        wall_z = wall_z[:-1] # Remove last element, since wall data from G-EQDSK files are closed loops, and we want an open loop
+        nwall = int(nwall-1)
+        w2d = {"nelements":nwall, "r":wall_r, "z":wall_z}
+        if return3Dwall:
+            w3d = wall_3D.convert_wall_2D(180, **w2d)
+            return ("wall_3D", w3d)
+        # else, return 2D wall object
+        return ("wall_2D", w2d)
 
     def import_plasma_profiles(self, fn=None, ne=None, ni=None, Te=None,
         Ti=None, anum=None, znum=None, charge=None, mass=None, species=None,
