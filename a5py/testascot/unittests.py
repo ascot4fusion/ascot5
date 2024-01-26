@@ -309,13 +309,13 @@ class TestAscot5IO(unittest.TestCase):
 
     def test_inputs(self):
         inputs = {
-            "bfield"  : ["B_TC", "B_GS", "B_2DS", "B_3DS", "B_3DST", "B_STS",],
+            "bfield"  : ["B_TC", "B_GS", "B_2DS", "B_3DS", "B_STS",],
             "efield"  : ["E_TC", "E_1DS"],
                          #"E_3D", "E_3DS", "E_3DST",],
             "marker"  : ["Prt", "GC", "FL",],
             "wall"    : ["wall_2D", "wall_3D",],
             "plasma"  : ["plasma_1D", "plasma_1DS", "plasma_1Dt"],
-            "neutral" : ["N0_3D",],
+            "neutral" : ["N0_1D", "N0_3D",],
             "boozer"  : ["Boozer",],
             "mhd"     : ["MHD_STAT", "MHD_NONSTAT",],
             "asigma"  : ["Asigma_loc"],
@@ -338,6 +338,10 @@ class TestAscot5IO(unittest.TestCase):
                 data = a5.data[parent].DUMMY2.read()
                 a5.data[parent].DUMMY.destroy()
                 a5.data[parent].DUMMY2.destroy()
+
+                if parent not in ["marker", "options"]:
+                    a5.input_init(**{parent:data})
+                    a5.input_free()
 
     def tearDown(self):
         """Remove the file used in testing.

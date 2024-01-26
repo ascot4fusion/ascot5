@@ -134,9 +134,16 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         """Read, offload, and initialize input data so it can be accessed
         by libascot.
 
-        Assumes data is present in the hdf5 file and the provided QIDs are
-        valid. If the parameter is given as a dict in same format as it is
-        written, it is used directly instead of reading the from the file.
+        The input is initialized by reading the data from the HDF5 file
+        if a boolean value or QID is provided as an argument. The whole reading
+        and initialization happens on the C-side.
+
+        If the argument is a dictionary containing the input data (i.e. what
+        would be provided to a corresponding write_hdf5 function) then the HDF5
+        file is completely ignored and the input is initialized from
+        the dictionary completely on the Python side, using ctypes, and only
+        the init_offload is done in C. See :mod:`a5py.ascotpy.libproviders` for
+        details.
 
         Parameters
         ----------
@@ -171,15 +178,12 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         # Iterate through all inputs and mark those that are initialized
         inputs2read = ctypes.c_int32()
         args = locals() # Contains function arguments and values in a dictionary
-
-        # List here dependencies to be directly injected (provided)
-        to_be_provided = []
+        to_be_provided = [] # Inputs to be directly injected (provided)
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
                     "mhd", "asigma"]:
             if args[inp] is None:
                 # This input is not going to be initialized
                 continue
-
             currentqid = getattr(self._sim, "qid_" + inp)
 
             # Inject/provide this input
@@ -255,19 +259,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             if self._mute == "err" and len(err) > 1: print(err)
 
         for inp in to_be_provided:
-            if inp == "bfield":
-                self._provide_bfield(**args[inp])
-            elif inp == "wall":
-                if 'x1x2x3' in args[inp]:
-                    self.provide_wall_3d(**args[inp])
-                elif 'r' in args[inp]:
-                    self.provide_wall_2d(**args[inp])
-                else:
-                    raise AscotInitException(
-                        "Unsupported dict for input '{}' passed for injection.".format(inp))
-            else:
-                raise AscotInitException(
-                    "Unsupported input to inject: '{}'".format(inp))
+            # Initialize data from dictionaries here
+            getattr(self, "_provide_" + inp)(**args[inp])
 
     def _free(self, bfield=False, efield=False, plasma=False, wall=False,
               neutral=False, boozer=False, mhd=False, asigma=False):
