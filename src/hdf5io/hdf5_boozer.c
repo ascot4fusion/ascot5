@@ -41,19 +41,17 @@ int hdf5_boozer_init_offload(hid_t f, boozer_offload_data* offload_data,
     }
 
     /* Read parameters. */
-    if( hdf5_read_int(   BOOZERPATH "npsi",       &(offload_data->npsi),
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(BOOZERPATH "ntheta", &(offload_data->ntheta),
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(BOOZERPATH "nthetag", &(offload_data->nthetag),
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(BOOZERPATH "nrzs", &(offload_data->nrzs),
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(BOOZERPATH "npsi",       &(offload_data->npsi),
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(BOOZERPATH "psimin",    &(offload_data->psi_min),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(BOOZERPATH "psimax",    &(offload_data->psi_max),
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    if( hdf5_read_int(   BOOZERPATH "ntheta", &(offload_data->ntheta),
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(   BOOZERPATH "nthetag", &(offload_data->nthetag),
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    if( hdf5_read_int(   BOOZERPATH "nrzs", &(offload_data->nrzs),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Size of 1D and 2D input data arrays */
@@ -62,8 +60,8 @@ int hdf5_boozer_init_offload(hid_t f, boozer_offload_data* offload_data,
     int contoursize = offload_data->nrzs;
 
     /* Allocate offload array */
-    *offload_array = (real*) malloc( (nusize + thetasize
-                                      + 2 * contoursize) * sizeof(real) );
+    *offload_array = (real*) malloc(
+        (nusize + thetasize + 2 * contoursize) * sizeof(real) );
 
     /* Read data to offload array */
     if( hdf5_read_double(BOOZERPATH "nu_psitheta",

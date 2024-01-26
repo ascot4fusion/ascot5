@@ -185,9 +185,8 @@ int hdf5_neutral_read_3D(hid_t f, N0_3D_offload_data* offload_data,
     int N0_size = offload_data->n_r * offload_data->n_phi * offload_data->n_z;
     int T0_size = offload_data->n_r * offload_data->n_phi * offload_data->n_z;
 
-    *offload_array = (real*) malloc(offload_data->n_species
-                                    * (N0_size + T0_size)
-                                    * sizeof(real));
+    *offload_array = (real*) malloc(
+        offload_data->n_species * (N0_size + T0_size) * sizeof(real));
 
     /* Pointers to beginning of different data series to make code more
      * readable */
