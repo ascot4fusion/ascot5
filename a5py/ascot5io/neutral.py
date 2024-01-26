@@ -12,7 +12,7 @@ class N0_1D(DataGroup):
     """Constant-on-flux-surfaces neutral profile.
     """
 
-    def read_hdf5(self):
+    def read(self):
         """Read data from HDF5 file.
 
         Returns
@@ -264,10 +264,8 @@ class N0_3D(DataGroup):
             g.create_dataset("zmax",     (1,), data=zmax,     dtype="f8")
             g.create_dataset("nz",       (1,), data=nz,       dtype="i4")
             g.create_dataset("nspecies", (1,), data=nspecies, dtype="i4")
-            g.create_dataset("anum",        (nspecies,),
-                             data=anum, dtype="i4")
-            g.create_dataset("znum",        (nspecies,),
-                             data=znum, dtype="i4")
+            g.create_dataset("anum", (nspecies,), data=anum,  dtype="i4")
+            g.create_dataset("znum", (nspecies,), data=znum,  dtype="i4")
             g.create_dataset("maxwellian",  (nspecies,),
                              data=maxwellian, dtype="i4")
             g.create_dataset("density",     (nspecies,nphi,nz,nr),
