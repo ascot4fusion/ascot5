@@ -29,8 +29,8 @@ from a5py.templates import InputFactory
 HDF5TOOBJ = {
     "B_TC" : B_TC, "B_GS" : B_GS, "B_2DS" : B_2DS, "B_3DS" : B_3DS,
     "B_3DST" : B_3DST, "B_STS" : B_STS,
-    "E_TC" : E_TC, "E_1DS" : E_1DS, "E_3D" : E_3D, "E_3DS" : E_3DS,
-    "E_3DST" : E_3DST,
+    "E_TC" : E_TC, "E_1DS" : E_1DS,
+    #"E_3D" : E_3D, "E_3DS" : E_3DS, "E_3DST" : E_3DST,
     "prt" : Prt, "gc" : GC, "fl" : FL,
     "wall_2D" : wall_2D, "wall_3D" : wall_3D,
     "plasma_1D" : plasma_1D, "plasma_1DS" : plasma_1DS,
