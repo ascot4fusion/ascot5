@@ -674,14 +674,10 @@ class wall_3D(DataGroup):
             g = add_group(f, parent, group, desc=desc)
             gname = g.name.split("/")[-1]
 
-            g.create_dataset('x1x2x3',    (nelements,3), data=x1x2x3,
-                             dtype='f8')
-            g.create_dataset('y1y2y3',    (nelements,3), data=y1y2y3,
-                             dtype='f8')
-            g.create_dataset('z1z2z3',    (nelements,3), data=z1z2z3,
-                             dtype='f8')
-            g.create_dataset('nelements', (1,1),         data=nelements,
-                             dtype='i4')
+            g.create_dataset('nelements', (1,1), data=nelements, dtype='i4')
+            g.create_dataset('x1x2x3', (nelements,3), data=x1x2x3, dtype='f8')
+            g.create_dataset('y1y2y3', (nelements,3), data=y1y2y3, dtype='f8')
+            g.create_dataset('z1z2z3', (nelements,3), data=z1z2z3, dtype='f8')
 
             fl = g.create_dataset('flag', (nelements,1), data=flag, dtype='i4')
             if flagIdList is not None and flagIdStrings is not None:
@@ -768,7 +764,7 @@ class wall_3D(DataGroup):
                 p1p2p3[(i-1)*2*n + 2*(j-1) + 1,:] = [ pv[i-1], pv[i-1], pv[i] ]
                 z1z2z3[(i-1)*2*n + 2*(j-1) + 1,:] = [ z[j],    z[j-1],  z[j-1] ]
 
-        x1x2x3,y1y2y3 = pol2cart(r1r2r3, p1p2p3)
+        x1x2x3, y1y2y3 = pol2cart(r1r2r3, p1p2p3)
 
         return {"nelements" : 2*n*nphi, "x1x2x3" : x1x2x3,
                 "y1y2y3" : y1y2y3, "z1z2z3" : z1z2z3}

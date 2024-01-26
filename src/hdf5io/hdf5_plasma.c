@@ -189,7 +189,7 @@ int hdf5_plasma_read_1Dt(hid_t f, plasma_1Dt_offload_data* offload_data,
     n_species = n_ions + 1; /* Include electrons */
     offload_data->n_species = n_species;
     offload_data->n_rho     = n_rho;
-    offload_data->n_time     = n_time;
+    offload_data->n_time    = n_time;
 
     /* Electron charge and mass */
     offload_data->charge[0] = -1 * CONST_E;
@@ -224,7 +224,7 @@ int hdf5_plasma_read_1Dt(hid_t f, plasma_1Dt_offload_data* offload_data,
 
     /* Pointers to beginning of different data series to make code more
      * readable */
-    real* rho = &(*offload_array)[0];
+    real* rho  = &(*offload_array)[0];
     real* time = &(*offload_array)[n_rho];
     real* temp = &(*offload_array)[n_rho+n_time];
     real* dens = &(*offload_array)[n_rho+n_time+n_time*n_rho*2];
@@ -257,6 +257,9 @@ int hdf5_plasma_read_1Dt(hid_t f, plasma_1Dt_offload_data* offload_data,
         }
     }
 
+    free(temp_e_in);
+    free(temp_i_in);
+
     /* read electron and ion densities into temporary arrays and rearrange
      * data into offload array */
     real* dens_e_in = (real*) malloc(n_time*n_rho*sizeof(real));
@@ -284,6 +287,8 @@ int hdf5_plasma_read_1Dt(hid_t f, plasma_1Dt_offload_data* offload_data,
             }
         }
     }
+    free(dens_e_in);
+    free(dens_i_in);
 
     return 0;
 }

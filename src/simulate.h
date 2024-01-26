@@ -28,7 +28,7 @@
  *
  * These enums are used to determine which simulation mode will be executed.
  */
-enum {
+enum SIMULATION_MODE {
     /** Models markers as particles using particle_simd_fo struct and
         simulate_fo_fixed.c simulation loop                                 */
     simulate_mode_fo = 1,

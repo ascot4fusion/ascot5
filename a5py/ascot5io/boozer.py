@@ -213,8 +213,8 @@ class Boozer(DataGroup):
         name : str
             Name, i.e. "<type>_<qid>", of the new input that was written.
         """
-        rs = np.cos(np.linspace(0, 2*np.math.pi, 10))
-        zs = np.sin(np.linspace(0, 2*np.math.pi, 10))
+        rs = np.cos(np.linspace(0, 2*np.pi, 10))
+        zs = np.sin(np.linspace(0, 2*np.pi, 10))
 
         return Boozer.write_hdf5(
             fn=fn, psimin=0, psimax=1, npsi=6, ntheta=10, nthetag=10,
