@@ -13,20 +13,20 @@
 
 
 /**
- * @brief Initialize 1D plasma data and check inputs
+ * @brief Initialize 1Dt plasma data and check inputs
  *
  * Before calling this function, the offload struct is expected to be fully
  * initialized.
  *
  * The offload array is expected to hold plasma data as
- *   -                              [0] = rho grid
  *   -                          [n_rho] = electron temperature [J]
  *   -                        [n_rho*2] = ion temperature [J]
  *   -         [n_rho*2 + n_rho*n_ions] = electron density [m^-3]
  *   - [n_rho*2 + n_rho*n_ions + n_rho] = ion density [m^-3]
+ *   - [i_time*n_species*n_rho+i_species*n_rho] =
  *
- * Since this data requires no initialization, the only thing this function does
- * is that it prints some values as sanity check.
+ * This function initializes splines to plasma profiles and prints some values
+ * as sanity checks.
  *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
@@ -61,26 +61,28 @@ int plasma_1Dt_init_offload(plasma_1Dt_offload_data* offload_data,
                   offload_data->znum[i], offload_data->anum[i],
                   (int)round(offload_data->charge[i+1]/CONST_E),
                   offload_data->mass[i+1]/CONST_U,
-                  (*offload_array)[n_rho*(4+i)],
-                  (*offload_array)[n_rho*(5+i) - 1],
-                  (*offload_array)[n_rho*2] / CONST_E,
-                  (*offload_array)[n_rho*3-1] / CONST_E);
+                  (*offload_array)[2*n_rho*n_time + n_time + n_rho*(3+i)],
+                  (*offload_array)[2*n_rho*n_time + n_time + n_rho*(4+i) - 1],
+                  (*offload_array)[n_time + n_rho*2] / CONST_E,
+                  (*offload_array)[n_time + n_rho*3-1] / CONST_E);
     }
     print_out(VERBOSE_IO,
               "[electrons]  %3d  /%7.3f             %1.2le/%1.2le          "
               "%1.2le/%1.2le       \n",
               -1, CONST_M_E/CONST_U,
-              (*offload_array)[n_rho*3],
-              (*offload_array)[n_rho*4 - 1],
-              (*offload_array)[n_rho] / CONST_E,
-              (*offload_array)[n_rho*2-1] / CONST_E);
+              (*offload_array)[2*n_rho*n_time + n_time + n_rho*1],
+              (*offload_array)[2*n_rho*n_time + n_time + n_rho*2 - 1],
+              (*offload_array)[n_time + n_rho*1] / CONST_E,
+              (*offload_array)[n_time + n_rho*2 - 1] / CONST_E);
     real quasineutrality = 0;
     for(int k = 0; k <n_rho; k++) {
-        real ele_qdens = (*offload_array)[n_rho*3 + k] * CONST_E;
+        real ele_qdens =
+            (*offload_array)[2*n_rho*n_time + n_time + n_rho + k] * CONST_E;
         real ion_qdens = 0;
         for(int i=0; i < n_ions; i++) {
+            int idx = 2*n_rho*n_time + n_time + n_rho * (2+1) + k;
             ion_qdens +=
-                (*offload_array)[n_rho*(4+i) + k] * offload_data->charge[i+1];
+                (*offload_array)[idx] * offload_data->charge[i+1];
         }
         quasineutrality = fmax( quasineutrality,
                                 fabs( 1 - ion_qdens / ele_qdens ) );
