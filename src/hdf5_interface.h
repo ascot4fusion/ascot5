@@ -11,7 +11,7 @@
 #include "simulate.h"
 #include "particle.h"
 
-enum {
+enum input_group {
     hdf5_input_options = 0x1,
     hdf5_input_bfield  = 0x2,
     hdf5_input_efield  = 0x4,
@@ -47,8 +47,6 @@ int hdf5_interface_write_state(char* fn, char* state, integer n,
 
 int hdf5_interface_write_diagnostics(sim_offload_data* sim,
                                      real* diag_offload_array, char* out);
-
-int hdf5_get_active_qid(hid_t f, const char* group, char qid[11]);
 
 void hdf5_generate_qid(char* qid);
 #endif

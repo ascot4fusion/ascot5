@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 
-enum {
+enum VERBOSE_RANK {
     VERBOSE_DEBUG   = 2,
     VERBOSE_NORMAL  = 1,
     VERBOSE_MINIMAL = 0,

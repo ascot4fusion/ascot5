@@ -22,9 +22,9 @@
  * must have a corresponding type.
  */
 typedef enum plasma_type {
-    plasma_type_1D, /**< Linear-interpolated 1D plasma data */
+    plasma_type_1D,  /**< Linear-interpolated 1D plasma data                */
     plasma_type_1Dt, /**< Linear-interpolated time-dependent 1D plasma data */
-    plasma_type_1DS /**< Spline-interpolated 1D plasma data */
+    plasma_type_1DS  /**< Spline-interpolated 1D plasma data                */
 } plasma_type;
 
 
