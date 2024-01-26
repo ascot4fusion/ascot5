@@ -394,7 +394,7 @@ class plasma_1DS(DataGroup):
             mass=np.array([1]), charge=np.array([1]),
             rhomin=0, rhomax=100, edensity=1e20*np.ones((3,1)),
             etemperature=1e3*np.ones((3,1)), idensity=1e20*np.ones((3,1)),
-            itemperature=1e20*np.ones((3,1)), desc="DUMMY")
+            itemperature=1e3*np.ones((3,1)), desc="DUMMY")
 
 class plasma_1Dt(DataGroup):
     """Time-dependent 1D plasma profiles.
@@ -532,5 +532,5 @@ class plasma_1Dt(DataGroup):
             anum=np.array([1]), mass=np.array([1]), charge=np.array([1]),
             rho=np.array([0, 0.5, 100]), time=np.array([0, 0.2, 0.4, 0.6]),
             edensity=1e20*np.ones((4,3)), etemperature=1e3*np.ones((4,3)),
-            idensity=1e20*np.ones((4,1,3)), itemperature=1e20*np.ones((4,3)),
+            idensity=1e20*np.ones((4,1,3)), itemperature=1e3*np.ones((4,3)),
             desc="DUMMY")
