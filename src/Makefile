@@ -229,7 +229,7 @@ ASCOT2PY_HEADERFILES=ascot5.h particle.h mpi_interface.h endcond.h simulate.h  \
 	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) $(ASIGMAHEADERS)   \
 	$(PLSHEADERS) $(N0HEADERS) $(MHDHEADERS) hdf5_interface.h libascot_mem.h   \
 	diag.h B_field.h E_field.h wall.h plasma.h neutral.h boozer.h mhd.h nbi.h  \
-	asigma.h afsi.h biosaw.h boschhale.h
+	asigma.h afsi.h ascot5_main.h biosaw.h boschhale.h
 
 ascot2py.py : libascot.so
 	$(eval CLANGOMP=$(shell clang --print-resource-dir)) \
