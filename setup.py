@@ -9,7 +9,7 @@ with open(path.join(here, 'requirements.txt')) as requirements_file:
                     if not line.startswith('#')]
 
 setup(name='a5py',
-      version='5.5',
+      version='5.5.1',
       description='ASCOT5',
       url='https://github.com/ascot4fusion/ascot5',
       license='LGPL',
