@@ -304,9 +304,11 @@ class ImportData():
         cocos : int, optional
             Expected COCOS or None to deduce from the data.
         phiclockwise : Boolean
-            If true, the phi-coordinate direction of the G-EQDSK file is assumed clockwise from above
+            If true, the phi-coordinate direction of the G-EQDSK file is assumed
+            clockwise from above
         weberperrad : Boolean
-            If true, the flux function is assumed to have been divided by 2*pi (COCOS ID 1-8)(default)
+            If true, the flux function is assumed to have been divided
+            by 2*pi (COCOS ID 1-8)(default)
         verbose : Boolean
             If true, the function will talk a lot!
         interpolate_psi0 : bool, optional
@@ -341,7 +343,8 @@ class ImportData():
 
         if cocos != cocosmod.COCOS_ASCOT:
             warnings.warn(
-                "G-EQDSK HAS COCOS ID "+str(cocos)+" while ASCOT5 expects "+str(cocosmod.COCOS_ASCOT)+". Transforming COCOS... "
+                "G-EQDSK HAS COCOS ID "+str(cocos) + " while ASCOT5 expects "
+                + str(cocosmod.COCOS_ASCOT) + ". Transforming COCOS... "
             )
             eqd = cocosmod.fromCocosNtoCocosM(eqd, cocosmod.COCOS_ASCOT,
                                               cocos_n=cocos)
