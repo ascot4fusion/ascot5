@@ -1012,7 +1012,7 @@ class PhysTest():
         print("  GCA           %1.1e      %1.2f" % (sd_time[2], sd_pitch[2]))
         print("  Expected      %1.1e      %1.2f" % (slowingdowntime, 0.0))
         if np.amax(np.abs(slowingdowntime.v  - sd_time))  > 2e-3 or \
-           np.amax(np.abs(0.0 - th_pitch)) > 0.2:
+           np.amax(np.abs(0.0 - sd_pitch)) > 0.2:
             print("  (Failed)")
             passed = False
 
@@ -1570,7 +1570,7 @@ class PhysTest():
             bphi_out[i] = 1 - 2 * (bphi[0] < 0)
             bpol_err[i] = np.amax(np.abs(dbpol[1:idx[-1]]))
             bphi_err[i] = np.amax(np.abs(dbphi[1:idx[-1]]))
-            jac_err[i]  = np.amax(np.abs(jacb2-jacb2_bzr))
+            jac_err[i]  = np.amax(np.abs(jacb2-jacb2_bzr.v))
             q_err[i]    = np.amax(np.abs(q-qfac))
 
             j0 = 1
