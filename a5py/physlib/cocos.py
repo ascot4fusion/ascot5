@@ -98,7 +98,9 @@ def assign(q, ip, b0, psiaxis, psibndr, phiclockwise, weberperrad):
     phiclockwise : bool
         If True, the toroidal angle increases clockwise when viewed from above.
     weberperrad : bool
-        If True, the poloidal flux is not in Webers but Wb/rad (divided by 2pi). True for COCOS ID 1-8. False for COCOS ID 11-18.
+        If True, the poloidal flux is not in Webers but Wb/rad (divided by 2pi).
+
+        True for COCOS ID 1-8. False for COCOS ID 11-18.
 
     Returns
     -------
