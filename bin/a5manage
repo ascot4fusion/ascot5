@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Manage contents of a HDF5 file.
 """
+import h5py
 import argparse
 import subprocess
 import a5py.ascot5io.coreio.tools as a5tools
+from a5py.ascot5io.coreio.fileapi import INPUTGROUPS
 
 notesandexamples = """
 notes:
@@ -15,6 +17,7 @@ notes:
 
 examples:
 
+  a5manage -s ascot.h5 results
   a5manage -a ascot.h5 0123456789
   a5manage -r backedup.h5 bfield
   a5manage -c copyhere.h5 B_2DS_0123456789 fromhere.h5
@@ -28,6 +31,8 @@ parser.add_argument("FILE", help="Target file whose contents are managed")
 parser.add_argument("GROUP", help="Name or QID of a data group or a parent "
                     + "group name")
 parser.add_argument("FILE2", help="Source file when copying a group", nargs="?")
+parser.add_argument("-s", "--show", action="store_true", dest="show",
+                    default=False, help="Show parent GROUP in FILE")
 parser.add_argument("-a", "--activate", action="store_true", dest="activate",
                     default=False, help="Activate GROUP in FILE")
 parser.add_argument("-r", "--remove", action="store_true", dest="remove",
@@ -36,17 +41,42 @@ parser.add_argument("-c", "--copy", action="store_true", dest="copy",
                     default=False, help="Copy GROUP from FILE2 to FILE")
 
 args = parser.parse_args()
-opt = sum([args.activate, args.remove, args.copy])
+opt = sum([args.activate, args.remove, args.copy, args.show])
 if opt == 0:
-    print("a5manage: error: provide one of the -a, -r, -c options")
+    print("a5manage: error: provide one of the -s, -a, -r, -c options")
     exit()
 if opt > 1:
-    print("a5manage: error: only one of the -a, -r, -c options can be used at "
+    print("a5manage: error: only one of the -s, -a, -r, -c options can be used at "
           + "a time")
     exit()
 if args.copy and args.FILE2 is None:
     print("a5manage: error: provide FILE2 where the data is copied from.")
     exit()
+
+if args.show:
+    print("a5manage: showing contents")
+    if args.GROUP == "results":
+        try:
+            from a5py import Ascot
+            Ascot(args.FILE).data.ls()
+        except:
+            with h5py.File(args.FILE, 'r') as f:
+                print(f.keys())
+                if "results" in f:
+                    print(f['results'].keys())
+    elif args.GROUP in INPUTGROUPS:
+        try:
+            from a5py import Ascot
+            Ascot(args.FILE).data[args.GROUP].ls()
+        except:
+            with h5py.File(args.FILE, 'r') as f:
+                print(f[args.GROUP].keys())
+    else:
+        groups = ["results"] + INPUTGROUPS
+        print("a5manage: error: shown GROUP must be one of "
+              + str(groups) + ".")
+        exit()
+    print("a5manage: done")
 
 if args.activate:
     print("a5manage: setting group as active")
