@@ -2183,7 +2183,10 @@ wall_2d_inside.restype = ctypes.c_int32
 wall_2d_inside.argtypes = [real, real, ctypes.POINTER(struct_c__SA_wall_2d_data)]
 wall_2d_hit_wall = _libraries['libascot.so'].wall_2d_hit_wall
 wall_2d_hit_wall.restype = ctypes.c_int32
-wall_2d_hit_wall.argtypes = [real, real, real, real, real, real, ctypes.POINTER(struct_c__SA_wall_2d_data)]
+wall_2d_hit_wall.argtypes = [real, real, real, real, real, real, ctypes.POINTER(struct_c__SA_wall_2d_data), ctypes.POINTER(ctypes.c_double)]
+wall_2d_find_intersection = _libraries['libascot.so'].wall_2d_find_intersection
+wall_2d_find_intersection.restype = ctypes.c_int32
+wall_2d_find_intersection.argtypes = [real, real, real, real, ctypes.POINTER(struct_c__SA_wall_2d_data), ctypes.POINTER(ctypes.c_double)]
 class struct_c__SA_wall_3d_offload_data(Structure):
     pass
 
@@ -3071,6 +3074,24 @@ afsi_test_dist.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data)]
 afsi_test_thermal = _libraries['libascot.so'].afsi_test_thermal
 afsi_test_thermal.restype = None
 afsi_test_thermal.argtypes = []
+pack_offload_array = _libraries['libascot.so'].pack_offload_array
+pack_offload_array.restype = ctypes.c_int32
+pack_offload_array.argtypes = [ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.POINTER(struct_c__SA_offload_package), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_int32)), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_int32))]
+prepare_markers = _libraries['libascot.so'].prepare_markers
+prepare_markers.restype = ctypes.c_int32
+prepare_markers.argtypes = [ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(ctypes.POINTER(struct_c__SA_input_particle)), ctypes.POINTER(ctypes.POINTER(struct_c__SA_particle_state)), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double)]
+write_rungroup = _libraries['libascot.so'].write_rungroup
+write_rungroup.restype = ctypes.c_int32
+write_rungroup.argtypes = [ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(ctypes.c_char)]
+offload_and_simulate = _libraries['libascot.so'].offload_and_simulate
+offload_and_simulate.restype = ctypes.c_int32
+offload_and_simulate.argtypes = [ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_offload_package), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.POINTER(struct_c__SA_particle_state)), ctypes.POINTER(ctypes.POINTER(ctypes.c_double))]
+write_output = _libraries['libascot.so'].write_output
+write_output.restype = ctypes.c_int32
+write_output.argtypes = [ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32, ctypes.POINTER(ctypes.c_double)]
+print_marker_summary = _libraries['libascot.so'].print_marker_summary
+print_marker_summary.restype = None
+print_marker_summary.argtypes = [ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32]
 biosaw_calc_B = _libraries['libascot.so'].biosaw_calc_B
 biosaw_calc_B.restype = None
 biosaw_calc_B.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
@@ -3180,10 +3201,11 @@ __all__ = \
     'neutral_eval_n0', 'neutral_eval_t0', 'neutral_free_offload',
     'neutral_get_n_species', 'neutral_init', 'neutral_init_offload',
     'neutral_offload_data', 'neutral_type', 'neutral_type_1D',
-    'neutral_type_3D', 'particle', 'particle_copy_fo',
-    'particle_copy_gc', 'particle_copy_ml', 'particle_cycle_fo',
-    'particle_cycle_gc', 'particle_cycle_ml', 'particle_fo_to_gc',
-    'particle_fo_to_state', 'particle_gc', 'particle_gc_to_state',
+    'neutral_type_3D', 'offload_and_simulate', 'pack_offload_array',
+    'particle', 'particle_copy_fo', 'particle_copy_gc',
+    'particle_copy_ml', 'particle_cycle_fo', 'particle_cycle_gc',
+    'particle_cycle_ml', 'particle_fo_to_gc', 'particle_fo_to_state',
+    'particle_gc', 'particle_gc_to_state',
     'particle_input_gc_to_state', 'particle_input_ml_to_state',
     'particle_input_p_to_state', 'particle_input_to_state',
     'particle_ml', 'particle_ml_to_state', 'particle_queue',
@@ -3208,13 +3230,13 @@ __all__ = \
     'plasma_get_species_mass', 'plasma_get_species_znum',
     'plasma_init', 'plasma_init_offload', 'plasma_offload_data',
     'plasma_type', 'plasma_type_1D', 'plasma_type_1DS',
-    'plasma_type_1Dt', 'real', 'sigma_CX', 'sigma_ioniz',
-    'sigma_recomb', 'sigmav_BMS', 'sigmav_CX', 'sigmav_ioniz',
-    'sigmav_recomb', 'sigmaveff_CX', 'sigmaveff_ioniz',
-    'sigmaveff_recomb', 'sim_data', 'sim_init', 'sim_offload_data',
-    'simulate', 'simulate_init_offload', 'simulate_mode_fo',
-    'simulate_mode_gc', 'simulate_mode_hybrid', 'simulate_mode_ml',
-    'size_t', 'struct_c__SA_B_2DS_data',
+    'plasma_type_1Dt', 'prepare_markers', 'print_marker_summary',
+    'real', 'sigma_CX', 'sigma_ioniz', 'sigma_recomb', 'sigmav_BMS',
+    'sigmav_CX', 'sigmav_ioniz', 'sigmav_recomb', 'sigmaveff_CX',
+    'sigmaveff_ioniz', 'sigmaveff_recomb', 'sim_data', 'sim_init',
+    'sim_offload_data', 'simulate', 'simulate_init_offload',
+    'simulate_mode_fo', 'simulate_mode_gc', 'simulate_mode_hybrid',
+    'simulate_mode_ml', 'size_t', 'struct_c__SA_B_2DS_data',
     'struct_c__SA_B_2DS_offload_data', 'struct_c__SA_B_3DS_data',
     'struct_c__SA_B_3DS_offload_data', 'struct_c__SA_B_GS_data',
     'struct_c__SA_B_GS_offload_data', 'struct_c__SA_B_STS_data',
@@ -3269,14 +3291,15 @@ __all__ = \
     'struct_c__SA_wall_3d_data', 'struct_c__SA_wall_3d_offload_data',
     'struct_c__SA_wall_data', 'struct_c__SA_wall_offload_data',
     'struct_diag_transcoef_link', 'union_c__SA_input_particle_0',
-    'wall_2d_data', 'wall_2d_free_offload', 'wall_2d_hit_wall',
-    'wall_2d_init', 'wall_2d_init_offload', 'wall_2d_inside',
-    'wall_2d_offload_data', 'wall_3d_data', 'wall_3d_free_offload',
-    'wall_3d_hit_wall', 'wall_3d_hit_wall_full', 'wall_3d_init',
-    'wall_3d_init_octree', 'wall_3d_init_offload',
-    'wall_3d_init_tree', 'wall_3d_offload_data',
-    'wall_3d_quad_collision', 'wall_3d_tri_collision',
-    'wall_3d_tri_in_cube', 'wall_data', 'wall_free_offload',
-    'wall_get_n_elements', 'wall_hit_wall', 'wall_init',
-    'wall_init_offload', 'wall_offload_data', 'wall_type',
-    'wall_type_2D', 'wall_type_3D']
+    'wall_2d_data', 'wall_2d_find_intersection',
+    'wall_2d_free_offload', 'wall_2d_hit_wall', 'wall_2d_init',
+    'wall_2d_init_offload', 'wall_2d_inside', 'wall_2d_offload_data',
+    'wall_3d_data', 'wall_3d_free_offload', 'wall_3d_hit_wall',
+    'wall_3d_hit_wall_full', 'wall_3d_init', 'wall_3d_init_octree',
+    'wall_3d_init_offload', 'wall_3d_init_tree',
+    'wall_3d_offload_data', 'wall_3d_quad_collision',
+    'wall_3d_tri_collision', 'wall_3d_tri_in_cube', 'wall_data',
+    'wall_free_offload', 'wall_get_n_elements', 'wall_hit_wall',
+    'wall_init', 'wall_init_offload', 'wall_offload_data',
+    'wall_type', 'wall_type_2D', 'wall_type_3D', 'write_output',
+    'write_rungroup']
