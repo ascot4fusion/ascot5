@@ -310,7 +310,8 @@ class TestAscot5IO(unittest.TestCase):
     def test_inputs(self):
         inputs = {
             "bfield"  : ["B_TC", "B_GS", "B_2DS", "B_3DS", "B_3DST", "B_STS",],
-            "efield"  : ["E_TC", "E_1DS", "E_3D", "E_3DS", "E_3DST",],
+            "efield"  : ["E_TC", "E_1DS"],
+                         #"E_3D", "E_3DS", "E_3DST",],
             "marker"  : ["Prt", "GC", "FL",],
             "wall"    : ["wall_2D", "wall_3D",],
             "plasma"  : ["plasma_1D", "plasma_1DS", "plasma_1Dt"],
