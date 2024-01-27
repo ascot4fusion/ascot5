@@ -428,21 +428,24 @@ class ImportData():
                 "z1z2z3":z1z2z3}
         return ("wall_3D", wall)
 
-    def wall_geqdsk(self, fn="input.eqdsk", phiclockwise=None, weberperrad=True, return3Dwall=True, verbose=False):
+    def wall_geqdsk(self, fn="input.eqdsk", phiclockwise=None, weberperrad=True,
+                    return3Dwall=True, verbose=False):
         """Import wall data from EQDSK.
 
         Parameters
         ----------
         fn : str
             Filename of the G-EQDSK to read.
-        phiclockwise : Boolean
-            If true, the phi-coordinate direction of the G-EQDSK file is assumed clockwise from above
-        weberperrad : Boolean
-            If true, the flux function is assumed to have been divided by 2*pi (COCOS ID 1-8)(default)
-        return3Dwall : Boolean
-            If true, the function will return a 3D wall object to be used by ASCOT5. If false, a 2D wall object is returned
-        verbose : Boolean
-            If true, the function will talk a lot!
+        phiclockwise : bool
+            If True, the phi-coordinate direction of the G-EQDSK file is
+            assumed clockwise from above.
+        weberperrad : bool, optional
+            If True, the flux function is assumed to have been divided by 2*pi
+            (COCOS ID 1-8).
+        return3Dwall : bool, optional
+            Returns 3D wall object instead of 2D.
+        verbose : bool, optional
+            If True, make the function verbose.
 
         Returns
         -------
@@ -455,27 +458,34 @@ class ImportData():
         verbose and print("Loading wall data from G-EQDSK file... ")
         with open(fn, "r") as f:
             eqd = geqdsk.read(f)
-        nwall = eqd["nlim"] # Number of (R,z) points making up the G-EQDSK wall data
+        nwall  = eqd["nlim"] # Number of (R,z) points in the G-EQDSK wall data
         wall_r = eqd["rlim"]
         wall_z = eqd["zlim"]
 
-        verbose and print("Determining COCOS ID from G-EQDSK file data, phiclockwise and weberperrad keyword arguments... ")
-        cocos_n = cocosmod.assign(eqd["qpsi"][0], eqd["cpasma"], eqd["bcentr"], eqd["simagx"], eqd["sibdry"], phiclockwise, weberperrad)
+        verbose and print(
+            "Determining COCOS ID from G-EQDSK file data, phiclockwise and "
+            "weberperrad keyword arguments... ")
+        cocos_n = cocosmod.assign(eqd["qpsi"][0], eqd["cpasma"], eqd["bcentr"],
+                                  eqd["simagx"], eqd["sibdry"], phiclockwise,
+                                  weberperrad)
 
         if cocos_n!=cocosmod.COCOS_ASCOT:
-            warnings.warn("G-EQDSK file has COCOS ID "+str(cocos_n)+" while ASCOT5 expects "+str(cocosmod.COCOS_ASCOT)+". Transforming wall data... ")
-            transform_dict = cocosmod.transform_cocos(cocosmod.cocos(cocos_n), cocosmod.cocos(cocosmod.COCOS_ASCOT))
+            warnings.warn("G-EQDSK file has COCOS ID "+str(cocos_n)+
+                          " while ASCOT5 expects "+str(cocosmod.COCOS_ASCOT)+
+                          ". Transforming wall data... ")
+            transform_dict = cocosmod.transform_cocos(
+                cocosmod.cocos(cocos_n), cocosmod.cocos(cocosmod.COCOS_ASCOT))
             wall_r = wall_r*transform_dict["R"]
             wall_z = wall_z*transform_dict["Z"]
 
-        wall_r = wall_r[:-1] # Remove last element, since wall data from G-EQDSK files are closed loops, and we want an open loop
-        wall_z = wall_z[:-1] # Remove last element, since wall data from G-EQDSK files are closed loops, and we want an open loop
+        # Remove last element since wall data from G-EQDSK are closed loops
+        wall_r = wall_r[:-1]
+        wall_z = wall_z[:-1]
         nwall = int(nwall-1)
         w2d = {"nelements":nwall, "r":wall_r, "z":wall_z}
         if return3Dwall:
             w3d = wall_3D.convert_wall_2D(180, **w2d)
             return ("wall_3D", w3d)
-        # else, return 2D wall object
         return ("wall_2D", w2d)
 
     def import_plasma_profiles(self, fn=None, ne=None, ni=None, Te=None,
