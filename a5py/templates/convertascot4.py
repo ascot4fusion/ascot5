@@ -161,7 +161,7 @@ class Ascot4Templates():
         """
         if hdf5:
             data = {}
-            with h5py.File(fname, 'r') as f: # Open for reading
+            with h5py.File(fn, 'r') as f: # Open for reading
                 data["x1x2x3"] = f["/wall/3d/triangles_x1x2x3"][:]
                 data["y1y2y3"] = f["/wall/3d/triangles_y1y2y3"][:]
                 data["z1z2z3"] = f["/wall/3d/triangles_z1z2z3"][:]
