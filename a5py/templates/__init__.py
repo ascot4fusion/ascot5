@@ -4,7 +4,7 @@ from .analyticalinputs import AnalyticalInputs
 from .optiontemplates  import OptionTemplates
 from .poincare  import PoincareTemplates
 from .importdata import ImportData
-from. convertascot4 import Ascot4Templates
+from .convertascot4 import Ascot4Templates
 
 class InputFactory(AnalyticalInputs, OptionTemplates, PoincareTemplates,
                    ImportData, Ascot4Templates):
