@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "a5py"
+version = "5.5"
+description = "ASCOT5 is a high-performance orbit-following code for fusion plasma physics and engineering"
+authors = [
+  {name = "Konsta Särkimäki", email = "konsta.sarkimaki@gmail.com"},
+]
+readme = "README.rst"
+license = {text = "LGPL-3.0-or-later"}
+requires-python = ">=3.10"
+dependencies = [
+  "numpy",
+  "scipy",
+  "h5py",
+  "unyt",
+  "wurlitzer",
+]
+
+[tool.setuptools.packages.find]
+include = [
+    'a5py',
+    'a5py.*',
+]
+
+[project.urls]
+Homepage      = "https://github.com/ascot4fusion/ascot5"
+Documentation = "https://ascot4fusion.github.io/ascot5/"
+Repository    = "https://github.com/ascot4fusion/ascot5.git"
+"Bug Tracker" = "https://github.com/ascot4fusion/ascot5/issues"
+Changelog     = "https://github.com/ascot4fusion/ascot5/releases"
+
+[tool.setuptools]
+script-files=[
+  'bin/a5manage',
+  'bin/a5editoptions',
+  'bin/a5combine',
+  'bin/a5gui',
+  'bin/a5update',
+]

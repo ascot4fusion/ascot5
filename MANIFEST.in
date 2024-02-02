@@ -1,2 +1,2 @@
-include doc/_static/logo.png
-include doc/_static/icon.png
+include a5py/gui/logo.png
+include a5py/gui/icon.png

@@ -1,6 +1,7 @@
 import os
 import tkinter as tk
 import tkinter.ttk as ttk
+from importlib.resources import files as imfiles
 
 import numpy as np
 
@@ -70,8 +71,7 @@ class Info(ContentTab):
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
-            logo = os.path.join(
-                os.path.dirname(__file__), "../../doc/_static/logo.png")
+            logo = imfiles('a5py.gui').joinpath('logo.png')
             logo = tk.PhotoImage(file=logo)
             self.logo = logo # Otherwise garbage collector eats this
             self.create_image(150, 50, image=logo)

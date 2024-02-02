@@ -6,6 +6,7 @@ import subprocess
 import threading
 import tkinter as tk
 from tkinter import ttk
+from importlib.resources import files as imfiles
 
 from tkinter.filedialog import askopenfilename, askdirectory
 from tkinter import messagebox, simpledialog
@@ -78,8 +79,7 @@ class GUI(tk.Tk):
 
         ## Add decorations: title and icons ##
         self.title("ASCOT5 GUI")
-        icon = os.path.join(os.path.dirname(__file__),
-                            "../../doc/_static/icon.png")
+        icon = imfiles('a5py.gui').joinpath('icon.png')
         self.tk.call("wm", "iconphoto", self._w, tk.PhotoImage(file=icon))
 
         ## Set window size and minimum size ##
