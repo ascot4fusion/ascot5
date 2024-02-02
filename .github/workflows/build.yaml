@@ -23,7 +23,7 @@ jobs:
       - name: Make ascot5_main with MPI
         run: |
           conda install mpich-mpicc
-          make ascot5_main MPI=1 -j
+          make ascot5_main MPI=1 CC=mpicc -j
 
       - name: Make clean
         run: make clean
