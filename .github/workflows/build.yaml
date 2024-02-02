@@ -6,35 +6,39 @@ jobs:
   Build-Code:
     if: always() || failure()
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/ascot4fusion/ascot5deps:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.github_token }}
+    defaults:
+      run:
+        shell: bash -el {0}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: conda-incubator/setup-miniconda@v3
         with:
+          auto-update-conda: true
           python-version: "3.10"
+          environment-file: environment-dev.yaml
+          activate-environment: ascot-dev
+          auto-activate-base: false
 
       - name: Make ascot5_main with MPI
-        run: make ascot5_main MPI=1 FLAGS="-foffload=disable"
+        run: |
+          conda install mpich-mpicc
+          make ascot5_main MPI=1 -j
 
       - name: Make clean
         run: make clean
 
       - name: Make ascot5_main without MPI
-        run: make ascot5_main MPI=0 FLAGS="-foffload=disable"
+        run: make ascot5_main -j
 
       - name: Make libascot.so
-        run: make libascot MPI=0 FLAGS="-foffload=disable"
+        run: make libascot
 
       - name: Make BBNBI
-        run: make bbnbi5 MPI=0 FLAGS="-foffload=disable"
+        run: make bbnbi5
 
       - name: Make ascot2py
-        run: make ascot2py.py MPI=0 FLAGS="-foffload=disable"
+        run: make ascot2py.py
 
       - name: Set permissions and pack
         run: |
