@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "a5py"
-version = "5.5"
+version = "5.5.1"
 description = "ASCOT5 is a high-performance orbit-following code for fusion plasma physics and engineering"
 authors = [
   {name = "Konsta Särkimäki", email = "konsta.sarkimaki@gmail.com"},
