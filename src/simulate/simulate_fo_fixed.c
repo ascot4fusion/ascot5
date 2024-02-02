@@ -30,9 +30,9 @@
 #pragma omp declare simd uniform(sim)
 real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i);
 
-real simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, B_field_data* Bdata, E_field_data* Edata, particle_loc*  p_loc, real* hin, real* rnd);
+void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, B_field_data* Bdata, E_field_data* Edata, particle_loc*  p_loc, real* hin, real* rnd);
 
-real simulate_fo_fixed_copy_from_gpu(sim_data* sim, particle_simd_fo *p_ptr);
+void simulate_fo_fixed_copy_from_gpu(sim_data* sim, particle_simd_fo *p_ptr);
 
 /**
  * @brief Simulates particles using fixed time-step
@@ -289,7 +289,7 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
 }
 
 
-real simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, B_field_data* Bdata, E_field_data* Edata, particle_loc*  p_loc, real* hin, real* rnd) {
+void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, B_field_data* Bdata, E_field_data* Edata, particle_loc*  p_loc, real* hin, real* rnd) {
 
   GPU_MAP_TO_DEVICE(
 		      p_loc[0:1],\
@@ -435,7 +435,7 @@ GPU_MAP_TO_DEVICE(
     }
 }
 
-real simulate_fo_fixed_copy_from_gpu(sim_data* sim, particle_simd_fo *p_ptr){
+void simulate_fo_fixed_copy_from_gpu(sim_data* sim, particle_simd_fo *p_ptr){
 
   GPU_UPDATE_FROM_DEVICE(
       p_ptr[0:1],p_ptr->running[0:NSIMD],p_ptr->r[0:NSIMD],p_ptr->phi[0:NSIMD],p_ptr->p_r[0:NSIMD],p_ptr->p_phi[0:NSIMD],p_ptr->p_z[0:NSIMD],p_ptr->mileage[0:NSIMD], \
