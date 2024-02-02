@@ -217,7 +217,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                 p_f->endcond[i] |= maxorb;
                 p_f->running[i] = 0;
             }
-
+#ifndef GPU
             /* Check if the time spent simulating this marker exceeds the
              * given limit*/
             if(active_cpumax) {
@@ -226,7 +226,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                     p_f->running[i] = 0;
                 }
             }
-
+#endif
             /* Check if the particle has been neutralized */
             if(active_neutr) {
                 if(p_i->charge[i] != 0.0 && p_f->charge[i] == 0.0) {
