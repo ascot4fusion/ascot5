@@ -61,50 +61,6 @@ class Injector():
     def __init__(self, ids, anum, znum, mass, energy, efrac, power, divh, divv,
                  divhalofrac, divhaloh, divhalov, nbeamlet, beamletx, beamlety,
                  beamletz, beamletdx, beamletdy, beamletdz):
-        """Create a single injector.
-
-        Parameters
-        ----------
-        ids : int
-            Numerical identifier for this injector which should be unique in
-            an input bundle.
-        anum : int
-            Mass number of injected species.
-        znum : int
-            Nuclear charge number of injected species.
-        mass : float
-            Mass of the injected species [kg].
-        energy : float
-            Full injection energy [J].
-        efrac : array_like (3,)
-            Particle fractions for full, 1/2 and 1/3 energies.
-        power : float
-            Injected power [W].
-        divh : float
-            Horizontal divergence [rad].
-        divv : float
-            Vertical divergence [rad].
-        divhalofrac : float
-            Fraction of particles with halo divergence.
-        divhaloh : float
-            Horizontal divergence in halo [rad].
-        divhalov : float
-            Vertical divergence in halo [rad].
-        nbeamlet : int
-            Number of beamlets.
-        beamletx : array_like, (nbeamlet,)
-            x coordinates of beamlets [m].
-        beamlety : array_like, (nbeamlet,)
-            y coordinates of beamlets [m].
-        beamletz : array_like, (nbeamlet,)
-            z coordinates of beamlets [m].
-        beamletdx : array_like, (nbeamlet,)
-            x components of the unit direction vector of beamlets.
-        beamletdy : array_like, (nbeamlet,)
-            y components of the unit direction vector of beamlets.
-        beamletdz : array_like, (nbeamlet,)
-            z components of the unit direction vector of beamlets.
-        """
         if efrac.shape != (3,):
             raise ValueError("efrac must have shape (3,) but was "
                              + str(efrac.shape))
@@ -373,7 +329,7 @@ class NBI(DataGroup):
         mass : float
             Mass of the injected species [amu]
         energy : float
-            Full injection energy [keV]
+            Full injection energy [eV]
         efrac : array_like (3,)
             Particle fractions for full, 1/2 and 1/3 energies
         power : float
