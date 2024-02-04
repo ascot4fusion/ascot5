@@ -1434,10 +1434,10 @@ class RunMixin(DistMixin):
         axes.set_xticks([0, 90, 180, 270, 360])
         axes.set_yticks([-180, -90, 0, 90, 180])
 
-    def plotwall_3dstill(self, wallmesh=None, points=None, orbit=None,
-                         data=None, log=False, cpos=None, cfoc=None, cang=None,
-                         p_ids=None, w_indices=None, axes=None, cax=None,
-                         **kwargs):
+    def plotwall_3dstill(
+            self, wallmesh=None, points=None, orbit=None, data=None, log=False,
+            clim=None, cpos=None, cfoc=None, cang=None, p_ids=None,
+            w_indices=None, axes=None, cax=None, **kwargs):
         """Take a still shot of the mesh and display it using matplotlib
         backend.
 
@@ -1459,6 +1459,10 @@ class RunMixin(DistMixin):
             ID of a marker whose orbit is plotted.
         data : str, optional
             Name of the cell data in the wall mesh that is shown in color.
+        log : bool, optional
+            Color range is logarithmic if True.
+        clim : [float, float], optional
+            Color [min, max] limits.
         cpos : array_like, optional
             Camera position coordinates [x, y, z].
         cfoc : array_like, optional
@@ -1490,11 +1494,11 @@ class RunMixin(DistMixin):
         if cang is None: cang = cang0
 
         a5plt.still(wallmesh, points=points, data=data, orbit=orbit, log=log,
-                    cpos=cpos, cfoc=cfoc, cang=cang, axes=axes, cax=cax,
-                    **kwargs)
+                    clim=clim, cpos=cpos, cfoc=cfoc, cang=cang, axes=axes,
+                    cax=cax, **kwargs)
 
     def plotwall_3dinteractive(self, wallmesh=None, *args, points=None,
-                               orbit=None, data=None, log=False,
+                               orbit=None, data=None, log=False, clim=None,
                                cpos=None, cfoc=None, cang=None,
                                p_ids=None, w_indices=None, **kwargs):
         """Open vtk window to display interactive view of the wall mesh.
@@ -1516,6 +1520,10 @@ class RunMixin(DistMixin):
             ID of a marker whose orbit is plotted.
         data : str, optional
             Name of the cell data in the wall mesh that is shown in color.
+        log : bool, optional
+            Color range is logarithmic if True.
+        clim : [float, float], optional
+            Color [min, max] limits.
         cpos : array_like, optional
             Camera position coordinates [x, y, z].
         cfoc : array_like, optional
@@ -1543,5 +1551,5 @@ class RunMixin(DistMixin):
         if cang is None: cang = cang0
 
         a5plt.interactive(wallmesh, *args, points=points, data=data,
-                          orbit=orbit, log=log,
+                          orbit=orbit, log=log, clim=clim,
                           cpos=cpos, cfoc=cfoc, cang=cang, **kwargs)

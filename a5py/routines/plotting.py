@@ -950,7 +950,7 @@ def poincare(x, y, ids, connlen=None, xlim=None, ylim=None, xlabel=None,
         axes.set_aspect("equal", adjustable="box")
 
 @openfigureifnoaxes(projection=None)
-def still(wallmesh, points=None, orbit=None, data=None, log=False,
+def still(wallmesh, points=None, orbit=None, data=None, log=False, clim=None,
           cpos=None, cfoc=None, cang=None, axes=None, cax=None, **kwargs):
     """Take a still shot of the mesh and display it using matplotlib backend.
 
@@ -970,6 +970,10 @@ def still(wallmesh, points=None, orbit=None, data=None, log=False,
         Cartesian coordinates for an orbit to be plotted.
     data : str, optional
         Name of the cell data in the wall mesh that is shown in color.
+    log : bool, optional
+        Color range is logarithmic if True.
+    clim : [float, float], optional
+        Color [min, max] limits.
     cpos : array_like, optional
         Camera position coordinates [x, y, z].
     cfoc : array_like, optional
@@ -986,14 +990,18 @@ def still(wallmesh, points=None, orbit=None, data=None, log=False,
     p = pv.Plotter(off_screen=True, **kwargs)
     if data is None:
         p.add_mesh(wallmesh, color=[0.9,0.9,0.9])
+        clim = None
     else:
         cmap = mpl.colormaps["Reds"].copy()
         cmap.set_bad(color=[0.9,0.9,0.9])
-        p.add_mesh(wallmesh, scalars=data, cmap=cmap, log_scale=log)
-        p.remove_scalar_bar()
-
         maxval = np.nanmax(wallmesh.cell_data[data])
         minval = np.nanmin(wallmesh.cell_data[data])
+        if clim is None: clim = [minval, maxval]
+        if clim[0] is None: clim[0] = minval
+        if clim[1] is None: clim[1] = maxval
+
+        p.add_mesh(wallmesh, scalars=data, cmap=cmap, clim=clim, log_scale=log)
+        p.remove_scalar_bar()
 
     if points is not None:
         p.theme.color = 'black'
@@ -1020,9 +1028,9 @@ def still(wallmesh, points=None, orbit=None, data=None, log=False,
 
     if data is not None:
         if log:
-            norm = mpl.colors.LogNorm(vmin=minval, vmax=maxval)
+            norm = mpl.colors.LogNorm(vmin=clim[0], vmax=clim[1])
         else:
-            norm = mpl.colors.Normalize(vmin=0, vmax=maxval)
+            norm = mpl.colors.Normalize(vmin=clim[0], vmax=clim[1])
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         cbar = plt.colorbar(sm, ax=axes, cax=cax)
 
@@ -1031,7 +1039,7 @@ def still(wallmesh, points=None, orbit=None, data=None, log=False,
 
 
 def interactive(wallmesh, *args, points=None, orbit=None, data=None, log=False,
-                cpos=None, cfoc=None, cang=None, **kwargs):
+                clim=None, cpos=None, cfoc=None, cang=None, **kwargs):
     """Open VTK window to display interactive view of the wall mesh.
 
     Parameters
@@ -1049,6 +1057,10 @@ def interactive(wallmesh, *args, points=None, orbit=None, data=None, log=False,
         Cartesian coordinates for an orbit to be plotted.
     data : str, optional
         Name of the cell data in the wall mesh that is shown in color.
+    log : bool, optional
+        Color range is logarithmic if True.
+    clim : [float, float], optional
+        Color [min, max] limits.
     cpos : array_like, optional
         Camera position coordinates [x, y, z].
     cfoc : array_like, optional
@@ -1065,7 +1077,12 @@ def interactive(wallmesh, *args, points=None, orbit=None, data=None, log=False,
     else:
         cmap = mpl.colormaps["Reds"].copy()
         cmap.set_bad(color=[0.9,0.9,0.9])
-        p.add_mesh(wallmesh, scalars=data, cmap=cmap, log_scale=log)
+        maxval = np.nanmax(wallmesh.cell_data[data])
+        minval = np.nanmin(wallmesh.cell_data[data])
+        if clim is None: clim = [minval, maxval]
+        if clim[0] is None: clim[0] = minval
+        if clim[1] is None: clim[1] = maxval
+        p.add_mesh(wallmesh, scalars=data, cmap=cmap, clim=clim, log_scale=log)
 
     if points is not None:
         p.theme.color = 'black'
