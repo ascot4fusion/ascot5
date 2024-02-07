@@ -724,7 +724,8 @@ class ImportData():
 
         return ("plasma_1D", pls)
 
-    def import_marsf(self, fn=None, n=None, b2d=None, b3d=None, phigrid=None):
+    def import_marsf(self, fn=None, n=None, scale=1.0, b2d=None, b3d=None,
+                     phigrid=None):
         """Import toroidal harmonics calculated with MARS-F.
 
         This function converts the toroidal harmonics given in (R,z) grid to
@@ -743,6 +744,13 @@ class ImportData():
             columns: R, z, Re(Br), Im(Br), Re(Bz), Im(Bz), Re(Bphi), Im(Bphi)
         n : int
             The toroidal harmonic the data corresponds to.
+        scale : float
+            The value used to scale the MARS-F perturbation.
+
+            Usually MARS-F data contains the perturbation caused by external
+            coils. If the coil current used in the MARS-F simulation was 1 kAt,
+            then the correct value for the coil current (e.g. 100 kAt) can be
+            used here to obtain properly scaled fields.
         b2d : dict, optional
             Dictionary containing 2D magnetic field data.
 
@@ -803,13 +811,13 @@ class ImportData():
                 method="cubic", bounds_error=False, fill_value=0)((r,z))
 
             # Calculate the inverse Fourier transform as
-            # B(phi) = Re(B)*cos(phi) - Im(B)*sin(phi)
+            # B(phi) = Re(B)*cos(n*phi) - Im(B)*sin(n*phi)
             return np.multiply.outer(real, np.cos(phigrid*n)) \
                  - np.multiply.outer(imag, np.sin(phigrid*n))
 
-        br   = np.transpose(ifft(d[:,2], d[:,3]), (0,2,1))
-        bz   = np.transpose(ifft(d[:,4], d[:,5]), (0,2,1))
-        bphi = np.transpose(ifft(d[:,6], d[:,7]), (0,2,1))
+        br   = np.transpose(ifft(d[:,2], d[:,3]), (0,2,1)) * scale
+        bz   = np.transpose(ifft(d[:,4], d[:,5]), (0,2,1)) * scale
+        bphi = np.transpose(ifft(d[:,6], d[:,7]), (0,2,1)) * scale
 
         # Construct the magnetic field input
         if b3d is None:
@@ -819,7 +827,7 @@ class ImportData():
                 "b_rmin":b2d["rmin"], "b_rmax":b2d["rmax"], "b_nr":b2d["nr"],
                 "b_zmin":b2d["zmin"], "b_zmax":b2d["zmax"], "b_nz":b2d["nz"],
                 "b_phimin":phigrid[0]*180/np.pi,
-                "b_phimax":(phigrid[-1]+phigrid[1]-phigrid[1])*180/np.pi,
+                "b_phimax":(phigrid[-1] + phigrid[1] - phigrid[0])*180/np.pi,
                 "b_nphi":phigrid.size,
                 "axisr":b2d["axisr"], "axisz":b2d["axisz"], "psi":b2d["psi"],
                 "psi0":b2d["psi0"], "psi1":b2d["psi1"],
