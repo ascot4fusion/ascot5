@@ -1,10 +1,13 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>59", "setuptools-git-versioning"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools-git-versioning]
+enabled = true
 
 [project]
 name = "a5py"
-version = "5.5.1"
+dynamic = ["version"]
 description = "ASCOT5 is a high-performance orbit-following code for fusion plasma physics and engineering"
 authors = [
   {name = "Konsta Särkimäki", email = "konsta.sarkimaki@gmail.com"},
@@ -34,6 +37,7 @@ Repository    = "https://github.com/ascot4fusion/ascot5.git"
 Changelog     = "https://github.com/ascot4fusion/ascot5/releases"
 
 [tool.setuptools]
+zip-safe = false
 script-files=[
   'bin/a5manage',
   'bin/a5editoptions',
