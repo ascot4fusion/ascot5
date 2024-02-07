@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <time.h>
 #include <omp.h>
-#include <immintrin.h>
 #include <math.h>
 #include "../ascot5.h"
 #include "../physlib.h"
