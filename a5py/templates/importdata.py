@@ -494,7 +494,7 @@ class ImportData():
     def import_plasma_profiles(self, fn=None, ne=None, ni=None, Te=None,
         Ti=None, anum=None, znum=None, charge=None, mass=None, species=None,
         pls=None, nrho=100, ionfrac=None, inputgrid="rho", extrapolate=None,
-        extrapolate_len=0.1, **kwargs):
+        extrapolate_len=0.1, Tmin=10, nmin=1.0e0, **kwargs):
         """Import 1D plasma profiles.
 
         This function interpolates and extrapolates plasma profiles on a given
@@ -582,10 +582,18 @@ class ImportData():
         extrapolate : float, optional
             Extrapolate profiles up to this rho value.
 
-            The extrapolated profiles are in form :math:`exp[-(\rho-1)/\lambda]`
-            where :math:`\lambda` is ``extrapolate_len``.
+            The extrapolated profiles are in form
+            :math:`exp[-(\\rho-1)/\\lambda]` where
+            :math:`\\lambda` is ``extrapolate_len``.
+
+            If the extrapolated values were to fall below ```Tlim`` or ``nlim``,
+            these constant values are to be used instead.
         extrapolate_len : float, optional
             The ``e``-fold length (in rho) for the extrapolated profiles.
+        Tmin : float, optional
+            Minimum temperature in the extrapolated profile.
+        nmin : float, optional
+            Minimum density in the extrapolated profile.
         **kwargs
             Arguments passed to :obj:`numpy.loadtxt` when reading data from
             file(s).
@@ -628,7 +636,7 @@ class ImportData():
         if extrapolate:
             rho = np.linspace(0.0, extrapolate, nrho)
 
-        def interp(rad, val):
+        def interp(rad, val, lim):
             """Function to interpolate and extrapolate values to rho grid"""
             # Mapping to rho from different radial coordinates
             if inputgrid == "rho":
@@ -644,6 +652,9 @@ class ImportData():
             extrp = rho >= 1.0
             val[extrp] = val[extrp][0] * np.exp( -( rho[extrp] - 1.0 ) /
                                                     extrapolate_len)
+
+            # Make sure extrapolated values are not below the limits
+            val[extrp] = np.maximum(val[extrp], lim)
             return val
 
         # Read the data if dictionary was not provided
@@ -659,13 +670,13 @@ class ImportData():
                         + "where the data is located.")
                 data = np.loadtxt(fn, **kwargs)
                 rad = data[:,0]
-                ne  = interp(rad, data[:,ne])
-                Te  = interp(rad, data[:,Te])
-                Ti  = interp(rad, data[:,Ti])
+                ne  = interp(rad, data[:,ne], nmin)
+                Te  = interp(rad, data[:,Te], Tmin)
+                Ti  = interp(rad, data[:,Ti], Tmin)
                 idx = ni
                 ni  = np.zeros((nrho, len(idx)), dtype="f8")
                 for i, j in enumerate(idx):
-                    ni[:,i] = interp(rad, data[:,j])
+                    ni[:,i] = interp(rad, data[:,j], nmin)
             else:
                 # Data is in separate files
                 strs = [isinstance(x, str) for x in ni]
@@ -675,16 +686,16 @@ class ImportData():
                         "ni, ne, Te, and Ti should contain the filenames "
                         "where the data is located.")
                 data = np.loadtxt(ne, **kwargs)
-                ne = interp(data[:,0], data[:,1])
+                ne = interp(data[:,0], data[:,1], nmin)
                 data = np.loadtxt(Te, **kwargs)
-                Te = interp(data[:,0], data[:,1])
+                Te = interp(data[:,0], data[:,1], Tmin)
                 data = np.loadtxt(Ti, **kwargs)
-                Ti = interp(data[:,0], data[:,1])
+                Ti = interp(data[:,0], data[:,1], Tmin)
                 fns = ni
                 ni  = np.zeros((nrho, len(fns)), dtype="f8")
                 for i, fnin in enumerate(fns):
                     data = np.loadtxt(fnin, **kwargs)
-                    ni[:,i] = interp(data[:,0], data[:,1])
+                    ni[:,i] = interp(data[:,0], data[:,1], nmin)
 
             # Make the plasma input
             nion = ni.shape[1]
@@ -715,10 +726,10 @@ class ImportData():
                    "edensity":ne, "idensity":ni}
         else:
             # Data is read already and only needs to be extrapolated
-            pls["ne"] = interp(pls["rho"], pls["ne"])
-            interp(pls["rho"], pls["Te"])
-            interp(pls["rho"], pls["Ti"])
-            interp(pls["rho"], pls["ni"])
+            pls["ne"] = interp(pls["rho"], pls["ne"], nmin)
+            interp(pls["rho"], pls["Te"], Tmin)
+            interp(pls["rho"], pls["Ti"], Tmin)
+            interp(pls["rho"], pls["ni"], nmin)
             pls["rho"]  = rho
             pls["nrho"] = rho.size
 
