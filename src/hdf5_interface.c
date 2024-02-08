@@ -35,6 +35,8 @@
 #include "hdf5io/hdf5_asigma.h"
 #include "hdf5io/hdf5_nbi.h"
 
+int hdf5_get_active_qid(hid_t f, const char* group, char qid[11]);
+
 /**
  * @brief Read and initialize input data
  *
