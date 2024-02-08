@@ -54,6 +54,9 @@ CFLAGS+=-O2 -lm -Wall -fopenmp -fPIC -std=c11 $(DEFINES) $(FLAGS)
 $(shell echo "#define CFLAGS " $(CFLAGS) > compiler_flags.h)
 $(shell echo "#define CC " $(CC) >> compiler_flags.h)
 
+# Also store the version from current git tag or from VERSION file
+$(shell bash gitver.sh)
+
 SIMDIR = simulate/
 SIMHEADERS = $(wildcard $(SIMDIR)simulate*.h $(SIMDIR)atomic.h)
 SIMOBJS = $(patsubst %.c,%.o,$(wildcard $(SIMDIR)simulate*.c) $(SIMDIR)atomic.c)
@@ -140,12 +143,6 @@ BINS=test_math test_nbi test_bsearch \
 	test_interp1Dcomp test_linint3D test_N0 test_N0_1D \
 	test_spline ascot5_main bbnbi5 test_diag_orb test_asigma \
 	test_afsi
-
-ifdef NOGIT
-	DUMMY_GIT_INFO := $(shell touch gitver.h)
-else
-	GET_GIT_INFO := $(shell bash gitver.sh)
-endif
 
 all: $(BINS)
 
