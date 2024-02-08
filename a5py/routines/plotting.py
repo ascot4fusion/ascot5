@@ -1071,6 +1071,8 @@ def interactive(wallmesh, *args, points=None, orbit=None, data=None, log=False,
         Keyword arguments passed to :obj:`~pyvista.Plotter`.
     """
     p = pv.Plotter(**kwargs)
+    p.disable()
+    cameracontrols(p)
 
     if data is None:
         p.add_mesh(wallmesh, color=[0.9,0.9,0.9], log_scale=log)
@@ -1355,7 +1357,7 @@ def defaultcamera(wallmesh):
     # Camera position in (R,phi,z)
     cpos = np.array([( Rmax + Rmin ) / 2,  0, ( zmax + zmin ) / 2])
     cfoc = np.array([( Rmax + Rmin ) / 2, 10, ( zmax + zmin ) / 2])
-    cang = np.array([0, 0, 0])
+    cang = np.array([0, 0, -90])
 
     # Coordinate transformation (R,phi,z) -> (x,y,z)
     cpos = np.array([cpos[0] * np.cos( np.pi * cpos[1] / 180 ),
@@ -1366,3 +1368,77 @@ def defaultcamera(wallmesh):
                      cfoc[2]])
 
     return (cpos, cfoc, cang)
+
+def cameracontrols(plotter):
+    """Set FPS camera controls vor interactive plotting.
+
+    Parameters
+    ----------
+    plotter : :obj:`~pyvista.Plotter`
+        The active plotter.
+    """
+    def control_camera(action):
+        cpos = np.array(plotter.camera.position)
+        cfoc = np.array(plotter.camera.focal_point)
+        cup  = np.array(plotter.camera.up)
+        dir = np.array(plotter.camera.direction)
+        if action == 'move_forward':
+            cpos += dir * 0.2
+            cfoc += dir * 0.2
+        elif action == 'move_backward':
+            cpos -= dir * 0.2
+            cfoc -= dir * 0.2
+        elif action == 'move_left':
+            cpos -= np.cross(dir, cup) * 0.2
+            cfoc -= np.cross(dir, cup) * 0.2
+        elif action == 'move_right':
+            cpos += np.cross(dir, cup) * 0.2
+            cfoc += np.cross(dir, cup) * 0.2
+        elif action == 'move_up':
+            cpos += cup * 0.2
+            cfoc += cup * 0.2
+        elif action == 'move_down':
+            cpos -= cup * 0.2
+            cfoc -= cup * 0.2
+        elif action == 'rotate_cw':
+            cup += np.cross(dir, cup) * 0.05
+            cup /= np.sqrt(np.sum(cup**2))
+        elif action == 'rotate_ccw':
+            cup -= np.cross(dir, cup) * 0.05
+            cup /= np.sqrt(np.sum(cup**2))
+        elif action == 'look_up':
+            vec   = np.cross(dir, cup)
+            cfoc += cup * 0.05
+            cup   = np.cross(vec, cfoc - cpos)
+            cup  /= np.sqrt(np.sum(cup**2))
+        elif action == 'look_down':
+            vec   = np.cross(dir, cup)
+            cfoc -= cup * 0.05
+            cup   = np.cross(vec, cfoc - cpos)
+            cup  /= np.sqrt(np.sum(cup**2))
+        elif action == 'look_left':
+            vec   = np.cross(dir, cup)
+            cfoc -= vec * 0.05
+        elif action == 'look_right':
+            vec   = np.cross(dir, cup)
+            cfoc += vec * 0.05
+
+        plotter.camera.position    = cpos
+        plotter.camera.focal_point = cfoc
+        plotter.camera.up = cup
+        plotter.update()
+        plotter.disable() # This disables some default keys
+
+    # Not all keys are available for us so we make do
+    plotter.add_key_event('w', lambda : control_camera('move_forward'))
+    plotter.add_key_event('s', lambda : control_camera('move_backward'))
+    plotter.add_key_event('a', lambda : control_camera('move_left'))
+    plotter.add_key_event('d', lambda : control_camera('move_right'))
+    plotter.add_key_event('n', lambda : control_camera('move_up'))
+    plotter.add_key_event('m', lambda : control_camera('move_down'))
+    plotter.add_key_event('r', lambda : control_camera('rotate_cw'))
+    plotter.add_key_event('y', lambda : control_camera('rotate_ccw'))
+    plotter.add_key_event('t', lambda : control_camera('look_up'))
+    plotter.add_key_event('g', lambda : control_camera('look_down'))
+    plotter.add_key_event('f', lambda : control_camera('look_left'))
+    plotter.add_key_event('h', lambda : control_camera('look_right'))
