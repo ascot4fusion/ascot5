@@ -1354,6 +1354,49 @@ class RunMixin(DistMixin):
                        markersize=markersize, axesequal=axesequal, axes=axes,
                        cax=cax)
 
+    @a5plt.openfigureifnoaxes(projection=None)
+    def plotwall_convergence(self, qnt, nmin=1000, nsample=10, axes=None):
+        """Plot convergence of losses by subsampling the results.
+
+        This function works by picking randomly a subset of
+        n (< Total number of markers) from the results, and reweighting those so
+        that the total weight of the subset is equal to the original. The subset
+        is then used to calculate the figure of merit. Several samples are taken
+        with n = np.logspace(nmin, ntotal, nsample) to show how the results
+        converge.
+
+        Parameters
+        ----------
+        qnt : {"lostpower", "peakload"}
+            The name of the quantity for which the converge is plotted.
+        nmin : int, optional
+            Number of markers in the smallest sample.
+        nsample : int, optional
+            Number of samples.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        """
+        self._require("_endstate")
+        ids, weight, ekin = self.getstate("ids", "weight", "ekin", state="end")
+        ntotal = ids.size
+        nsubset = np.logspace(np.log10(nmin), np.log10(ntotal), nsample)
+        nsubset = nsubset.astype('i8')
+        wtotal = np.sum(weight)
+
+        val = np.zeros((nsample,))
+        rng = np.random.default_rng()
+        for i, n in enumerate(nsubset):
+            idx = rng.choice(ntotal, replace=False, size=n)
+
+            if qnt == 'lostpower':
+                val[i] = np.sum((weight*ekin)[idx]) \
+                    * wtotal / np.sum(weight[idx])
+            elif qnt == 'peakload':
+                loads = self.getwall_loads(weights=True, p_ids=ids[idx])[2]
+                val[i] = np.amax(loads) * wtotal / np.sum(weight[idx])
+
+        axes.plot(np.log10(nsubset), val)
+
     def plotwall_loadvsarea(self, axes=None):
         """Plot histogram showing area affected by at least a given load.
 
