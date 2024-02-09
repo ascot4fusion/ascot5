@@ -3,87 +3,146 @@
 Installation
 ============
 
-Clone the repository:
+Full installation
+*****************
+
+The most convenient way to install ASCOT5 is to use Conda:
 
 .. code-block:: bash
 
    git clone https://github.com/ascot4fusion/ascot5.git
-
-.. rubric:: Requirements
-
-- C compiler
-- HDF5
-- OpenMP
-- Python3.10 (pre- and postprocessing)
-- MPI (optional)
-- VTK (optional, for 3D wall visualization)
-
-See :ref:`here<Compiling>` for tips on how to compile the code on different platforms.
-
-Minimal Installation
-********************
-
-For running ASCOT5 on this platform and performing pre- and post-processing on another platform:
-
-.. code-block:: bash
-
    cd ascot5
-   make ascot5_main
+   conda env create -f environment.yaml
+   conda activate ascot-env
+   make libascot -j
+   make ascot5_main -j # Also bbnbi5 if needed
+   pip install -e .
 
-The binary is located at ``build/ascot5_main``.
-
-Full Installation
-*****************
-
-For full installation both ascot5_main and libascot.so are needed:
-
-.. code-block:: bash
-
-   cd ascot5
-   make ascot5_main
-   make libascot
-
-Python Library (a5py)
-*********************
-
-Useful even for minimal installation; it provides command-line tools for updating simulation options.
-
-Create a virtual environment (optional but recommended), activate it, and install ``a5py``:
+To use the Conda environment in your batch script, add the following lines:
 
 .. code-block:: bash
 
-   cd ..
-   virtualenv -p python3 --system-site-packages ascotenv
-   source ascotenv/bin/activate
-   pip install -e ascot5/
+   eval "$(conda shell.bash hook)"
+   conda activate ascot-env
+
+The simulation options are edited with the local text editor, which usually happens to be ``vim``.
+Consider adding the following line to your ``.bashrc`` (or ``.bash_profile`` if working locally):
+
+.. code-block:: bash
+
+   export EDITOR=/usr/bin/emacs
 
 .. note::
    Whenever there is a new release, you can update the code as:
 
    .. code-block:: bash
 
-      cd ascot5
       git pull
-      git checkout main
       make clean
-      make ascot5_main
-      make libascot
+      make ascot5_main -j
+      make libascot -j
 
-   Always use the branch ``main`` when running simulations unless you specifically need something from a feature branch.
+   Always use the ``main`` branch when running simulations unless you specifically need something from a feature branch.
 
-.. rubric:: (Optional)
+Test that ASCOT5 was properly installed by running the :ref:`introduction<Tutorial>`.
 
-Add the following lines to your `.bashrc` and/or `.bash_profile`:
+.. note::
+   The default instructions install ASCOT5 without MPI, but MPI is recommended for running simulations on multiple nodes.
+
+   You can use either MPI packaged with Conda (``openmpi`` or ``mpich``):
+
+   .. code-block:: bash
+
+      conda install hdf5=*=*openmpi* mpi=*=*openmpi*
+
+   or the native MPI library:
+
+   .. code-block:: bash
+
+      module load <local-mpi-library>
+      mpirun -V # Prints the version of the MPI library to be used in the next line
+      conda install "<local-mpi-library>=x.y.z=external_*"
+      which mpicc # Copy this path to the following commands
+      export HDF5_CC=path_to_mpicc
+      export HDF5_CLINKER=path_to_mpicc
+
+   Conda does not have all versions of MPI libraries available, so one might have to use asterix in minor version number, e.g.
+
+   .. code-block:: bash
+
+      conda install "openmpi=4.*=external_*"
+
+.. admonition:: Troubleshooting
+
+   Conda complains that ``freeqdsk`` was not found or could not be installed.
+
+   - Remove ``freeqdsk`` from ``environment.yaml`` and install it with ``pip`` once the environment is activated.
+     The cause of this error is unknown.
+
+   Make stops since ``libhdf5*.a`` could not be located.
+
+   - The compiler should be using shared libraries, not static.
+     Add the following flag for the compiler: ``make ascot5_main FLAGS="-shlib"``
+
+Minimal installation (for HPC usage)
+************************************
+
+A typical way to use ASCOT5 is to run simulations on a computing cluster and carry out pre- and postprocessing on a home cluster or a workstation.
+Building the code from the source (without Conda) provides a light installation with the capability to run simulations using native libraries and perform limited pre- and post-processing.
+
+.. rubric:: Requirements
+
+- C compiler
+- HDF5
+- OpenMP
+- MPI
+- Python3.10
+
+1. Install the requirements or use the module system.
+
+2. Download the source and set up the virtual environment:
+
+   .. code-block:: bash
+
+      git clone https://github.com/ascot4fusion/ascot5.git
+      python -m venv ascot-env
+      source activate ascot-env/bin/activate
+
+3. Install ``a5py`` and compile the executables which will be located at ``build/``:
+
+   .. code-block:: bash
+
+      cd ascot5
+      pip install -e .
+      make ascot5_main -j # Also bbnbi5 if needed
+
+See :ref:`here<Compiling>` for tips on how to compile the code on different platforms.
+
+(**Optional**) Add the following lines to your `.bashrc`:
 
 .. code-block::
 
    <module loads and exports here>
-   export EDITOR=/usr/bin/emacs       # To use emacs when editing options
    source activate /path/to/ascot5env
 
 This will automatically activate ASCOT5 environment each time you open a terminal or login.
 
-Test that ASCOT5 is working by running the :ref:`introduction<Tutorial>`.
+
+For Developers
+**************
+
+This is a full installation from the source (using Conda) and with the optional packages present that are required to build ``ascot2py.py`` and the documentation.
+Note that the first step requires you to add SSH keys on GitHub whenever on a new machine.
+
+.. code-block:: bash
+
+   git clone git@github.com:ascot4fusion/ascot5.git
+   cd ascot5
+   conda env create -f environment-dev.yaml
+   conda activate ascot-dev
+   make libascot -j
+   make ascot5_main -j
+   pip install -e .
 
 .. _Compiling:
 
@@ -92,16 +151,6 @@ Compiling on different platforms
 
 ASCOT5 doesn't support CMake (yet) so it is up for the user to provide the required libraries.
 Here we have listed some platforms where ASCOT5 has been used and how it was compiled.
-
-Aalto desktops
-**************
-
-.. code-block:: bash
-
-   pkcon install hdf5-helpers
-   pkcon install libhdf5-dev
-   pkcon install hdf5-tools
-   make -j ascot5_main FLAGS="-foffload=disable"
 
 CSC.fi puhti
 ************
@@ -286,23 +335,6 @@ For Intel:
    module load anaconda
 
 (Add -xcommon-avx512 to optimize for skl/csl nodes)
-
-Vdiubuntu.aalto.fi
-******************
-
-Compiling libascot.so requires that you change Makefile as
-
-.. code-block::
-
-   libascot.so: libascot.o $(OBJS)
-   - $(CC) $(CFLAGS) -o $@ $^
-   + $(CC) $(CFLAGS) -o $@ $^ -lhdf5_hl -lhdf5
-
-
-.. code-block:: bash
-
-   module load hdf5
-   make MPI=0 libascot.so CC=gcc FLAGS="-foffload=disable" -j
 
 .. _Compilerflags:
 

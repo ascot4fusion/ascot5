@@ -12,64 +12,27 @@ This repository is maintained by ASCOT team in Aalto University and VTT Technica
 Installation
 ============
 
-Clone the repository:
+Most convenient way to install ASCOT5 is to use the Conda environment that comes with the source code.
+Compile the main program and the library, and install the associated Python package with ``pip``.
+Note that this installation is suitable mostly for pre- and postprocessing since it does not use MPI.
+See the `documentation <https://ascot4fusion.github.io/ascot5/installing.html>`_ for more detailed instructions.
 
 .. code-block:: bash
 
    git clone https://github.com/ascot4fusion/ascot5.git
-
-.. rubric:: Requirements
-
-- C compiler
-- HDF5
-- OpenMP
-- Python >= 3.10 (pre- and postprocessing)
-- MPI (optional)
-- VTK (optional, for 3D wall visualization)
-
-Minimal Installation
-********************
-
-For running ASCOT5 on this platform and performing pre- and post-processing on another platform:
-
-.. code-block:: bash
-
    cd ascot5
-   make ascot5_main
-
-The binary is located at ``build/ascot5_main``.
-
-Full Installation
-*****************
-
-For full installation both ascot5_main and libascot.so are needed:
-
-.. code-block:: bash
-
-   cd ascot5
-   make ascot5_main
-   make libascot
-
-Python Library (a5py)
-*********************
-
-Useful even for minimal installation; it provides command-line tools for updating simulation options.
-
-Create a virtual environment (optional but recommended), activate it, and install ``a5py``:
-
-.. code-block:: bash
-
-   cd ..
-   virtualenv -p python3 --system-site-packages ascotenv
-   source ascotenv/bin/activate
-   pip install -e ascot5/
+   conda env create -f environment.yaml
+   conda activate ascot-env
+   make libascot -j
+   make ascot5_main -j
+   pip install -e .
 
 How to Contribute
 =================
 
 .. admonition:: As an User:
 
-   - Verify your results and report violations in issues.
+   - Verify your results and report problems or physics violations in issues.
    - Add `compiling instructions <https://ascot4fusion.github.io/ascot5/installing.html#compiling-on-different-platforms>`_ for popular platforms and consider updating `the table with example simulation times <https://ascot4fusion.github.io/ascot5/simulations.html#examples>`_ for novel entries.
    - When `benchmarking <https://ascot4fusion.github.io/ascot5/testing.html#benchmarks>`_ ASCOT5 against other codes or `validating <https://ascot4fusion.github.io/ascot5/testing.html#validation>`_ it against experiments, please contact the maintainers to archive the simulation for use as a regression test.
 
