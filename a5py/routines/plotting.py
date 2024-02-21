@@ -504,10 +504,11 @@ def hist2d(x, y, xbins=None, ybins=None, weights=None, xlog="linear",
         ymax = np.amax(y)
         ybins = np.logspace(np.log10(ymin), np.log10(ymax), ybins)
 
-    h,_,_,m = axes.hist2d(x, y, bins=[xbins, ybins], weights=weights)
-
     norm = None
-    if logscale: norm = mpl.colors.LogNorm(np.amin(h), np.amax(h))
+    if logscale: norm = mpl.colors.LogNorm()
+
+    h,_,_,m = axes.hist2d(x, y, bins=[xbins, ybins], weights=weights, norm=norm)
+
     cbar = plt.colorbar(m, norm=norm, ax=axes, cax=cax)
     cbar.set_label(clabel)
 
