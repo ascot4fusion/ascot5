@@ -509,7 +509,7 @@ def hist2d(x, y, xbins=None, ybins=None, weights=None, xlog="linear",
 
     h,_,_,m = axes.hist2d(x, y, bins=[xbins, ybins], weights=weights, norm=norm)
 
-    cbar = plt.colorbar(m, norm=norm, ax=axes, cax=cax)
+    cbar = plt.colorbar(m, ax=axes, cax=cax)
     cbar.set_label(clabel)
 
 @openfigureifnoaxes(projection=None)
