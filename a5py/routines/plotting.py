@@ -513,7 +513,8 @@ def hist2d(x, y, xbins=None, ybins=None, weights=None, xlog="linear",
     cbar.set_label(clabel)
 
 @openfigureifnoaxes(projection=None)
-def mesh1d(x, y, log=False, xlabel=None, ylabel=None, axes=False):
+def mesh1d(x, y, log=False, xlabel=None, ylabel=None, axes=False,
+           logscale=False):
     """Plot 1D distribution.
 
     Parameters
@@ -528,6 +529,8 @@ def mesh1d(x, y, log=False, xlabel=None, ylabel=None, axes=False):
         Label for the y-axis.
     axes : :obj:`~matplotlib.axes.Axes`, optional
         The axes where figure is plotted or otherwise new figure is created.
+    logscale: bool, optional
+        Whether the plot is in logarithmic scale.
     """
     xc = np.zeros((y.size*2,))
     xc[1:-1:2] = x[1:-1]
@@ -541,10 +544,12 @@ def mesh1d(x, y, log=False, xlabel=None, ylabel=None, axes=False):
     axes.set_xlabel(xlabel)
     axes.set_ylabel(ylabel)
     axes.set_xlim(x[0], x[-1])
+    if logscale:
+        axes.set_yscale('log')
     axes.plot(xc, yc)
 
 @openfigureifnoaxes(projection=None)
-def mesh2d(x, y, z, log=False, diverging=False, xlabel=None, ylabel=None,
+def mesh2d(x, y, z, logscale=False, diverging=False, xlabel=None, ylabel=None,
            clabel=None, clim=None, cmap=None, axesequal=False,
            axes=None, cax=None):
     """Make a mesh (surface) plot in 2D.
@@ -557,7 +562,7 @@ def mesh2d(x, y, z, log=False, diverging=False, xlabel=None, ylabel=None,
         Abscissa or abscissa edges for the y-axis.
     z : array_like (nx,ny)
         Data to be plotted.
-    log : bool, optional
+    logscale : bool, optional
         Make color axis logarithmic.
     diverging : bool, optional
         Use diverging colormapping which is centered at zero.
@@ -587,13 +592,16 @@ def mesh2d(x, y, z, log=False, diverging=False, xlabel=None, ylabel=None,
         clim[1] = np.nanmax(z)
     z = np.ma.masked_invalid(z)
 
-    if log:
+    if logscale:
         if diverging:
             if cmap == None: cmap = "bwr"
             norm = mpl.colors.SymLogNorm(linthresh=10, linscale=1.0,
                                  vmin=clim[0], vmax=clim[1], base=10)
         else:
             if cmap == None: cmap = "viridis"
+            temp = z[~np.isnan(z)]
+            temp = temp[temp>0] #only positive values
+            clim[0] = np.min(temp)
             norm = mpl.colors.LogNorm(vmin=clim[0], vmax=clim[1])
     else:
         if diverging:
