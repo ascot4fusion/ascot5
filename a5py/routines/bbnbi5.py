@@ -242,8 +242,8 @@ class BBNBIMixin(DistMixin):
             qnt = ["r", "phi", "z", "weight", "time", "vr", "vphi", "vz",
                    "mass", "charge", "anum", "znum"]
             state = self.getstate(*qnt, mode="prt", ids=ids)
-            for i in qnt:
-                mrk[i] = qnt[i]
+            for i, q in enumerate(qnt):
+                mrk[q] = state[i]
         elif mrktype == "gc":
             qnt = ["r", "phi", "z", "weight", "time", "ekin", "pitch", "zeta",
                    "mass", "charge", "anum", "znum"]
