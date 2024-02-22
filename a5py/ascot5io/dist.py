@@ -305,7 +305,7 @@ class DistData():
             vol   = np.multiply.outer(vol, dV)
         return vol
 
-    def plot(self, axes=None, cax=None):
+    def plot(self, axes=None, cax=None, logscale=False):
         """Plot distribution in 1D or 2D.
 
         This method assumes that the input distribution has been integrated,
@@ -318,6 +318,8 @@ class DistData():
             The axes where figure is plotted or otherwise new figure is created.
         cax : :obj:`~matplotlib.axes.Axes`, optional
             The color bar axes or otherwise taken from the main axes.
+        logscale: bool, optional
+            Whether the plot is in logarithmic scale.
         """
         x = None; y = None;
         for key in self.abscissae:
@@ -338,7 +340,8 @@ class DistData():
         ordinate = np.squeeze(self.distribution())
         if y is None:
             ylabel = "f" + " [" + str(ordinate.units) + "]"
-            a5plt.mesh1d(x, ordinate, xlabel=xlabel, ylabel=ylabel, axes=axes)
+            a5plt.mesh1d(x, ordinate, xlabel=xlabel, ylabel=ylabel, axes=axes,
+                         logscale=logscale)
         else:
             # Swap pitch and energy
             if "ekin" in xlabel and "pitch" in ylabel:
@@ -349,7 +352,8 @@ class DistData():
             axesequal = x.units == y.units
             clabel = "f" + " [" + str(ordinate.units) + "]"
             a5plt.mesh2d(x, y, ordinate, axesequal=axesequal, xlabel=xlabel,
-                         ylabel=ylabel, clabel=clabel, axes=axes, cax=cax)
+                         ylabel=ylabel, clabel=clabel, axes=axes, cax=cax,
+                         logscale=logscale)
 
 class DistMoment:
     """Class that stores moments calculated from a distribution.
@@ -464,7 +468,7 @@ class DistMoment:
                 ordinates.append(k[10:])
         return ordinates
 
-    def plot(self, ordinate, axes=None, cax=None):
+    def plot(self, ordinate, axes=None, cax=None, logscale=False):
         """Plot radial or (R,z) profile of a distribution moment.
 
         The plotted profile is the average of (theta, phi) or phi depending
@@ -478,6 +482,8 @@ class DistMoment:
             The axes where figure is plotted or otherwise new figure is created.
         cax : :obj:`~matplotlib.axes.Axes`, optional
             The color bar axes or otherwise taken from the main axes.
+        logscale: bool, optional
+            Whether the plot is in logarithmic scale.
         """
         if self.rhodist:
             ylabel = ordinate
@@ -485,14 +491,14 @@ class DistMoment:
             ylabel += " [" + str(ordinate.units) + "]"
             a5plt.mesh1d(self.rho, ordinate,
                          xlabel="Normalized poloidal flux",
-                         ylabel=ylabel, axes=axes)
+                         ylabel=ylabel, axes=axes, logscale=logscale)
         else:
             clabel = ordinate
             ordinate = self.ordinate(ordinate, toravg=True)
             clabel += " [" + str(ordinate.units) + "]"
             a5plt.mesh2d(self.r, self.z, ordinate, axesequal=True,
                          xlabel="R [m]", ylabel="z [m]", clabel=clabel,
-                         axes=axes, cax=cax)
+                         axes=axes, cax=cax, logscale=logscale)
 
 class Dist(DataContainer):
 

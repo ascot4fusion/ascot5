@@ -772,10 +772,10 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         cax : :obj:`~matplotlib.axes.Axes`, optional
             The color bar axes or otherwise taken from the main axes.
         """
-        log = False
+        logscale = False
         if "log" in qnt:
             qnt = qnt.replace("log", "").strip()
-            log = True
+            logscale = True
 
         out = np.squeeze(self.input_eval(r, phi, z, t, qnt, grid=True)[:,0,:,0])
         diverging = np.nanmin(out)*np.nanmax(out) < 0 # If data has both -+ vals
@@ -787,7 +787,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             z = z.v
         except AttributeError:
             pass
-        a5plt.mesh2d(r, z, out.v, diverging=diverging, log=log,
+        a5plt.mesh2d(r, z, out.v, diverging=diverging, logscale=logscale,
                      axesequal=True, xlabel="R [m]", ylabel="z [m]",
                      clabel=qnt + " [" + str(out.units) + "]", clim=clim,
                      cmap=cmap, axes=axes, cax=cax)
