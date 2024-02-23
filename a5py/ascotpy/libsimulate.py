@@ -197,9 +197,10 @@ class LibSimulate():
         if "vr" in mrk:
             @physlib.parseunits(r="m", phi="deg", z="m", time="s", mass="amu",
                                 charge="e", vr="m/s", vphi="m/s", vz="m/s")
-            def parse(r, phi, z, time, mass, charge, vr, vphi, vz, weight, ids):
+            def parse(r, phi, z, time, mass, charge, vr, vphi, vz, anum, znum,
+                      weight, ids):
                 return r, phi.to("rad"), z, time, mass.to("kg"), \
-                    charge.to("C"), vr, vphi, vz, weight, ids
+                    charge.to("C"), vr, vphi, vz, anum, znum, weight, ids
 
             r, phi, z, t, m, q, vr, vphi, vz, anum, znum, w, ids = parse(
                 mrk["r"], mrk["phi"], mrk["z"], mrk["time"], mrk["mass"],
@@ -211,10 +212,10 @@ class LibSimulate():
                 p = pin[i].p
 
                 vvec = np.array([vr[i], vphi[i], vz[i]])
-                pvec = physlib.momentum_velocity(mass[i], vvec)
+                pvec = physlib.momentum_velocity(mrk["mass"][i], vvec)
 
                 p.r       = r[i]
-                p.phi     = phi
+                p.phi     = phi[i]
                 p.z       = z[i]
                 p.p_r     = pvec[0]
                 p.p_phi   = pvec[1]
