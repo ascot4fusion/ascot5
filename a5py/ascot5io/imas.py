@@ -652,7 +652,7 @@ class marker(a5imas):
         #-----------
         out['ids']   = np.arange(1,n+1,dtype=int)
         out['charge']= np.ones_like(out['weight'],dtype=float) * constants.elementary_charge * source.species.ion.z_ion
-        out['mass']  = np.ones_like(out['weight'],dtype=float) * species.autodetect_species(
+        out['mass']  = np.ones_like(out['weight'],dtype=float) * species.autodetect(
             int(source.species.ion.element[0].a),
             int(source.species.ion.element[0].z_n) )['mass']
 
