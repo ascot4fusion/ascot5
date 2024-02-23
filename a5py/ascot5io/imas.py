@@ -561,7 +561,7 @@ class marker(a5imas):
                     continue
                 out[f] = np.concatenate( (out[f],s[f]) )
 
-        out['ids']   = np.arange(1,n+1,dtype=np.int)
+        out['ids']   = np.arange(1,n+1,dtype=int)
 
         print(srcs[0]['anum'])
         print(out['anum'])
@@ -645,14 +645,14 @@ class marker(a5imas):
 
         # From species:
         #--------------
-        out['anum']  = np.ones_like(out['weight'],dtype=np.int) * np.int(np.rint(source.species.ion.element[0].a))
-        out['znum']  = np.ones_like(out['weight'],dtype=np.int) * np.int(np.rint(source.species.ion.element[0].z_n))
+        out['anum']  = np.ones_like(out['weight'],dtype=int) * int(np.rint(source.species.ion.element[0].a))
+        out['znum']  = np.ones_like(out['weight'],dtype=int) * int(np.rint(source.species.ion.element[0].z_n))
 
         # Generated:
         #-----------
-        out['ids']   = np.arange(1,n+1,dtype=np.int)
-        out['charge']= np.ones_like(out['weight'],dtype=np.float) * constants.elementary_charge * source.species.ion.z_ion
-        out['mass']  = np.ones_like(out['weight'],dtype=np.float) * species.autodetect_species(
+        out['ids']   = np.arange(1,n+1,dtype=int)
+        out['charge']= np.ones_like(out['weight'],dtype=float) * constants.elementary_charge * source.species.ion.z_ion
+        out['mass']  = np.ones_like(out['weight'],dtype=float) * species.autodetect_species(
             int(source.species.ion.element[0].a),
             int(source.species.ion.element[0].z_n) )['mass']
 
