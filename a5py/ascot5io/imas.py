@@ -654,7 +654,7 @@ class marker(a5imas):
         out['charge']= np.ones_like(out['weight'],dtype=float) * constants.elementary_charge * source.species.ion.z_ion
         out['mass']  = np.ones_like(out['weight'],dtype=float) * species.autodetect(
             int(source.species.ion.element[0].a),
-            int(source.species.ion.element[0].z_n) )['mass']
+            int(source.species.ion.element[0].z_n) )[3]
 
         # From parameters (outside the source)
         #-------------------------------------
