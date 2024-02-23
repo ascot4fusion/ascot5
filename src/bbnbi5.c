@@ -474,6 +474,10 @@ void bbnbi_simulate(particle_queue *pq, sim_data* sim) {
                     p.B_z_dr[i]     = B_dB[9];
                     p.B_z_dphi[i]   = B_dB[10];
                     p.B_z_dz[i]     = B_dB[11];
+
+                    real axisrz[2];
+                    B_field_get_axis_rz(axisrz, &sim->B_data, p.phi[i]);
+                    p.theta[i] = atan2(p.z[i]-axisrz[1], p.r[i]-axisrz[0]);
                 }
             }
             particle_copy_fo(&p, i, &pdiag, i);
