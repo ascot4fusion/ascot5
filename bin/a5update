@@ -2,7 +2,13 @@
 """Update ASCOT5 file from an old version to current version.
 """
 import argparse
-import a5py.ascot5io.coreio.compatibility as comp
+import warnings
+
+with warnings.catch_warnings():
+    warnings.filterwarnings('ignore', message=".*libascot.so.*")
+    warnings.filterwarnings('ignore', message=".*pyvista.*")
+    warnings.filterwarnings('ignore', message=".*matplotlib.*")
+    import a5py.ascot5io.coreio.compatibility as comp
 
 parser = argparse.ArgumentParser(
     description="Update an outdated Ascot5 HDF5 file to current version."

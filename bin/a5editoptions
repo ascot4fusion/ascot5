@@ -5,9 +5,14 @@ import os
 import subprocess
 import tempfile
 import argparse
+import warnings
 
-from a5py import Ascot, AscotIOException
-from a5py.ascot5io.options import Opt
+with warnings.catch_warnings():
+    warnings.filterwarnings('ignore', message=".*libascot.so.*")
+    warnings.filterwarnings('ignore', message=".*pyvista.*")
+    warnings.filterwarnings('ignore', message=".*matplotlib.*")
+    from a5py import Ascot, AscotIOException
+    from a5py.ascot5io.options import Opt
 
 notes = """
 notes:

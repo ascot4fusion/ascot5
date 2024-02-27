@@ -23,10 +23,11 @@ except RuntimeError:
     # This can be ignored.
     pass
 
+from .ascotpy.libascot   import _LIBASCOT
+
 from .ascot5io import Ascot5IO
 from .ascotpy  import Ascotpy
 
-from .ascotpy.libascot   import _LIBASCOT
 from .exceptions         import *
 from .routines.biosaw5   import BioSaw
 from .routines.afsi5     import Afsi
