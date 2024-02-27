@@ -4,8 +4,14 @@
 import h5py
 import argparse
 import subprocess
-import a5py.ascot5io.coreio.tools as a5tools
-from a5py.ascot5io.coreio.fileapi import INPUTGROUPS
+import warnings
+
+with warnings.catch_warnings():
+    warnings.filterwarnings('ignore', message=".*libascot.so.*")
+    warnings.filterwarnings('ignore', message=".*pyvista.*")
+    warnings.filterwarnings('ignore', message=".*matplotlib.*")
+    import a5py.ascot5io.coreio.tools as a5tools
+    from a5py.ascot5io.coreio.fileapi import INPUTGROUPS
 
 notesandexamples = """
 notes:

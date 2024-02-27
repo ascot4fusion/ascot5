@@ -47,7 +47,7 @@ try:
     AFSI_REACTIONS       = ascot2py.Reaction__enumvalues
     _LIBASCOT = ascot2py._libraries['libascot.so']
 
-except OSError as error:
+except ImportError as error:
     _LIBASCOT = None
     PTR_REAL  = None
     PTR_INT   = None
@@ -59,10 +59,9 @@ except OSError as error:
     STRUCT_AFSIDATA      = None
     AFSI_REACTIONS       = None
     msg = \
-      "Failed to import libascot.so: verify that it has been compiled, it is "\
-    + "located in the build folder, and all dependencies are available.\n"    \
-    + "Some functionalities of Ascot are not available."
-    warnings.warn(msg)
+        "Failed to load libascot.so: " + str(error) + "\n" \
+        "Some functionalities of Ascot are not available"
+    warnings.warn(msg, stacklevel=4)
 
 class LibAscot:
     """Python wrapper of libascot.so.

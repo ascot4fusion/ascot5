@@ -117,11 +117,25 @@ class Union(ctypes.Union, AsDictMixin):
 
 
 _libraries = {}
-# Ugly solution to find libascot.so
+# Try to locate libascot.so from ../../build/ or LD_LIBRARY_PATH
 from pathlib import Path
+err = 0
 libpath = str(Path(__file__).absolute().parent.parent.parent) \
-+ "/build/libascot.so"
-_libraries['libascot.so'] = ctypes.CDLL(libpath)
+    + "/build/libascot.so"
+try:
+    _libraries['libascot.so'] = ctypes.CDLL(libpath)
+except OSError as error:
+    err = error
+if err:
+    if not 'libascot.so' in str(err): raise ImportError(str(err))
+if 'libascot.so' not in _libraries:
+    try:
+        _libraries['libascot.so'] = ctypes.CDLL('libascot.so')
+    except OSError as error:
+        err = error
+    if err: raise ImportError(str(err))
+
+
 c_int128 = ctypes.c_ubyte*16
 c_uint128 = c_int128
 void = None
