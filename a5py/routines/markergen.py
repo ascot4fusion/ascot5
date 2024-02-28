@@ -119,7 +119,7 @@ class MarkerGenerator():
         mrk["weight"][:] = weight
 
         # Randomize initial coordinates
-        ir, ip, iz, ip1, ip2 = \
+        ic1, ic2, ic3, ip1, ip2 = \
             np.unravel_index(icell, markerdist.distribution().shape)
         def randomize(edges, idx):
             """Picks a random value between [edges[idx+1], edges[idx]]
@@ -127,9 +127,20 @@ class MarkerGenerator():
             return edges[idx] \
                 + (edges[idx+1] - edges[idx]) * np.random.rand(idx.size,)
 
-        mrk["r"]   = randomize(markerdist.abscissa_edges("r"),   ir)
-        mrk["phi"] = randomize(markerdist.abscissa_edges("phi"), ip)
-        mrk["z"]   = randomize(markerdist.abscissa_edges("z"),   iz)
+        if set(['r', 'phi', 'z']).issubset(markerdist.abscissae):
+            mrk["r"]   = randomize(markerdist.abscissa_edges("r"),   ic2)
+            mrk["phi"] = randomize(markerdist.abscissa_edges("phi"), ic2)
+            mrk["z"]   = randomize(markerdist.abscissa_edges("z"),   ic3)
+        elif set(['rho', 'theta', 'phi']).issubset(markerdist.abscissae):
+            rhos       = randomize(markerdist.abscissa_edges("rho"),   ic1)
+            thetas     = randomize(markerdist.abscissa_edges("theta"), ic2)
+            mrk["phi"] = randomize(markerdist.abscissa_edges("phi"),   ic3)
+
+            mrk["r"], mrk["z"] = self._ascot.input_rhotheta2rz(rhos, thetas, \
+                                        mrk["phi"], 0*unyt.s)
+        else:
+            raise ValueError("Spatial abscissae basis not found form the "\
+                        "distribution.")
 
         # Both (ppar, pperp) and (ekin, pitch) are accepted
         if "ppar" in markerdist.abscissae:
