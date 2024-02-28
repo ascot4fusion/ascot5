@@ -170,10 +170,11 @@ class DistData():
             endpoints = dist.abscissa_edges(k)[[0,-1]]
             midpoints = dist.abscissa(k)[s]
             edges = np.zeros((midpoints.size+1,)) * midpoints.units
-            edges[0]  = endpoints[0]
-            edges[-1] = endpoints[-1]
+            edges[0]  = dist.abscissa_edges(k)[s.start]
             if edges.size > 2:
                 edges[1:-1] = ( midpoints[1:] + midpoints[:-1] ) / 2
+            edges[-1] = 2 * midpoints[-1] - edges[-2]
+
             setattr(dist, "_" + k, edges)
 
             dist._distribution = dist._distribution.take(indices=idx, axis=dim)
