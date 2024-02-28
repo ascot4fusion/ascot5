@@ -267,7 +267,8 @@ class Ascot4Templates():
         #data["flag"] = np.reshape(data["flag"], (data["flag"].size, 1))
         return ("wall_3D", data)
 
-    def ascot4_tokamak(self, fn="input.magn_bkg", fnheader="input.magn_header"):
+    def ascot4_tokamak(self, fn="input.magn_bkg", fnheader="input.magn_header",
+                       interpolate_psi0=False):
         """Convert tokamak magnetic field data from ASCOT4 to ASCOT5.
 
         Parameters
@@ -276,6 +277,13 @@ class Ascot4Templates():
             Filename of the ASCOT4 magnetic field data.
         fnheader : str, optional
             Filename of the ASCOT4 magnetic field header.
+        interpolate_psi0 : bool, optional
+            Instead of using the psi on-axis value in EQDSK, interpolate it
+            using libascot.
+
+            Enabling this setting is recommended since having an incorrect value
+            for psi0 could make rho imaginary near the axis, which leads to all
+            kinds of trouble.
 
         Returns
         -------
@@ -344,6 +352,15 @@ class Ascot4Templates():
         data["b_nphi"]   = nPhi
         data["b_phimin"] = phi[0]
         data["b_phimax"] = phi[-1]
+
+        if interpolate_psi0:
+            from scipy.interpolate import RegularGridInterpolator
+            psi0 = RegularGridInterpolator((r, z), data['psi'])(
+                (data['axisr'], data['axisz']))
+            self._ascot.input_init(bfield=data)
+            data["axisr"], data["axisz"], data["psi0"] = \
+                self._ascot.input_findpsi0(data["psi0"])
+            self._ascot.input_free()
         return ("B_3DS", data)
 
     def ascot4_stellarator(self, fn="ascot4.h5", psi0=None, psi1=None):
@@ -710,7 +727,7 @@ class Ascot4Templates():
                 new_rho = np.linspace(np.amin(rho), np.amax(rho), nrho)
                 ne = np.interp(new_rho, rho, ne)
                 te = np.interp(new_rho, rho, te)
-                for i in range(1, nion+1):
+                for i in range(nion):
                     ni[i,:] = np.interp(new_rho, rho, ni[i,:])
                 ti  = np.interp(new_rho, rho, ti)
                 rho = new_rho
