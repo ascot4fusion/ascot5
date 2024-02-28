@@ -276,6 +276,16 @@ class LibProviders():
     def _provide_B_3DS(self, **kwargs):
         """Initialize :class:`B_3DS` from dictionary.
         """
+        if(kwargs["psi_rmin"] is None or kwargs["psi_rmax"] is None or
+           kwargs["psi_nr"] is None or kwargs["psi_zmin"] is None or
+           kwargs["psi_zmax"] is None or kwargs["psi_nz"] is None):
+            kwargs["psi_rmin"] = kwargs["b_rmin"]
+            kwargs["psi_rmax"] = kwargs["b_rmax"]
+            kwargs["psi_nr"]   = kwargs["b_nr"]
+            kwargs["psi_zmin"] = kwargs["b_zmin"]
+            kwargs["psi_zmax"] = kwargs["b_zmax"]
+            kwargs["psi_nz"]   = kwargs["b_nz"]
+
         B3DS = self._sim.B_offload_data.B3DS
         B3DS.psigrid_n_r   = int(kwargs["psi_nr"])
         B3DS.psigrid_n_z   = int(kwargs["psi_nz"])
