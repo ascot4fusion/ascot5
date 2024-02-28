@@ -100,11 +100,19 @@ void wall_2d_init(wall_2d_data* w, wall_2d_offload_data* offload_data,
  */
 int wall_2d_inside(real r, real z, wall_2d_data* w) {
     int hits = 0;
-    for(int i = 0; i < w->n - 1; i++) {
-        real wz1 = w->wall_z[i] - z;
-        real wz2 = w->wall_z[i+1] - z;
-        real wr1 = w->wall_r[i] - r;
-        real wr2 = w->wall_r[i+1] - r;
+    for(int i = 0; i < w->n; i++) {
+        real wr1, wr2, wz1, wz2;
+        if(i == w->n - 1) {
+            wz1 = w->wall_z[i] - z;
+            wz2 = w->wall_z[0]   - z;
+            wr1 = w->wall_r[i] - r;
+            wr2 = w->wall_r[0]   - r;
+        } else {
+            wz1 = w->wall_z[i]   - z;
+            wz2 = w->wall_z[i+1] - z;
+            wr1 = w->wall_r[i]   - r;
+            wr2 = w->wall_r[i+1] - r;
+        }
         if(wz1 * wz2 < 0) {
             real ri = wr1 + (wz1*(wr2-wr1)) / (wz1-wz2);
             if(ri > 0) {
@@ -158,11 +166,19 @@ int wall_2d_find_intersection(real r1, real z1, real r2, real z2,
                               wall_2d_data* w, real* w_coll) {
     int tile = 0;
     real t0 = 2.0; // Helper variable to pick the closest intersection
-    for(int i=0; i<w->n-1; i++) {
-        real r3 = w->wall_r[i];
-        real r4 = w->wall_r[i+1];
-        real z3 = w->wall_z[i];
-        real z4 = w->wall_z[i+1];
+    for(int i=0; i<w->n; i++) {
+        real r3, z3, r4, z4;
+        if(i == w->n-1) {
+            r3 = w->wall_r[i];
+            z3 = w->wall_z[i];
+            r4 = w->wall_r[0];
+            z4 = w->wall_z[0];
+        } else {
+            r3 = w->wall_r[i];
+            z3 = w->wall_z[i];
+            r4 = w->wall_r[i+1];
+            z4 = w->wall_z[i+1];
+        }
 
         real div = (r1 - r2) * (z3 - z4) - (z1 - z2) * (r3 - r4);
         real t = ( (r1 - r3) * (z3 - z4) - (z1 - z3) * (r3 - r4) );
