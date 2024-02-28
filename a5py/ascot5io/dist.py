@@ -167,13 +167,29 @@ class DistData():
             idx = np.histogram(dist.abscissa(k)[s], dist.abscissa_edges(k))[0]
             idx = np.nonzero(idx)[0]
 
-            endpoints = dist.abscissa_edges(k)[[0,-1]]
-            midpoints = dist.abscissa(k)[s]
-            edges = np.zeros((midpoints.size+1,)) * midpoints.units
-            edges[0]  = dist.abscissa_edges(k)[s.start]
-            if edges.size > 2:
-                edges[1:-1] = ( midpoints[1:] + midpoints[:-1] ) / 2
-            edges[-1] = 2 * midpoints[-1] - edges[-2]
+            if isinstance(s, int):
+                if s < 0:
+                    N_len = len(dist.abscissa(k))
+                    ns = np.s_[N_len+s:N_len+s+2]
+                else:
+                    ns = np.s_[s:s+2]
+            elif isinstance(s, slice):
+                N_len = len(dist.abscissa(k))
+                if s.stop is None:
+                    stop = N_len+1
+                elif s.stop < 0:
+                    stop = N_len+s.stop+1
+                else:
+                    stop = s.stop+1
+                if s.start is None:
+                    start = 0
+                elif s.start < 0:
+                    start = N_len+s.start
+                else:
+                    start = s.start
+                ns = np.s_[start:stop]
+
+            edges = dist.abscissa_edges(k)[ns]
 
             setattr(dist, "_" + k, edges)
 
