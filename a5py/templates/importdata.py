@@ -791,6 +791,8 @@ class ImportData():
             raise ValueError("Provide either 'b2d' or 'b3d'")
         if b2d is not None and phigrid is None:
             raise ValueError("'b2d' requires that 'phigrid' is also given")
+        if n is None:
+            raise ValueError("Toroidal number 'n' is required")
 
         if b2d is not None:
             rgrid = np.linspace(b2d["rmin"], b2d["rmax"], b2d["nr"][0]).ravel()
@@ -801,7 +803,7 @@ class ImportData():
             zgrid = np.linspace(b3d["b_zmin"], b3d["b_zmax"],
                                 b3d["b_nz"][0]).ravel()
             phigrid = np.linspace(b3d["b_phimin"], b3d["b_phimax"],
-                                  b3d["b_nphi"][0]+1)[:-1].ravel()
+                                  b3d["b_nphi"][0]+1)[:-1].ravel() * np.pi/180
 
         d = np.loadtxt(fn)
         marsf_rgrid = np.unique(d[:,0])
@@ -809,16 +811,22 @@ class ImportData():
         nr = marsf_rgrid.size
         nz = marsf_zgrid.size
 
+        # Check if the data is F ordered (R is incremented first) or C ordered
+        # (z is incremented first). The first column is R so we can sniff that
+        order = 'F' if d[0,0] < d[1,0] else 'C'
+
         def ifft(real, imag):
             """Inverse Fourier transform"""
             # Reshape the input 1D arrays to 2D (R,z) and then interpolate them
             # on given Rz grid.
             r,z = np.meshgrid(rgrid, zgrid, indexing='ij')
             real = RegularGridInterpolator(
-                (marsf_rgrid, marsf_zgrid), np.reshape(real, (nr,nz)),
+                (marsf_rgrid, marsf_zgrid),
+                np.reshape(real, (nr,nz), order=order),
                 method="cubic", bounds_error=False, fill_value=0)((r,z))
             imag = RegularGridInterpolator(
-                (marsf_rgrid, marsf_zgrid), np.reshape(imag, (nr,nz)),
+                (marsf_rgrid, marsf_zgrid),
+                np.reshape(imag, (nr,nz), order=order),
                 method="cubic", bounds_error=False, fill_value=0)((r,z))
 
             # Calculate the inverse Fourier transform as
