@@ -181,10 +181,10 @@ int wall_2d_find_intersection(real r1, real z1, real r2, real z2,
         }
 
         real div = (r1 - r2) * (z3 - z4) - (z1 - z2) * (r3 - r4);
-        real t = ( (r1 - r3) * (z3 - z4) - (z1 - z3) * (r3 - r4) );
-        real u = ( (r1 - r3) * (z1 - z2) - (z1 - z3) * (r1 - r2) );
-        if(0 <= t && t <= div && 0 <= u && u <= div && t < t0*div) {
-            t0 = t / div;
+        real t   = ( (r1 - r3) * (z3 - z4) - (z1 - z3) * (r3 - r4) ) / div;
+        real u   = ( (r1 - r3) * (z1 - z2) - (z1 - z3) * (r1 - r2) ) / div;
+        if(0 <= t && t <= 1.0 && 0 <= u && u <= 1.0 && t < t0) {
+            t0   = t;
             tile = i + 1;
         }
     }
