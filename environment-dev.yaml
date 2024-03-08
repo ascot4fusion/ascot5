@@ -32,7 +32,7 @@ dependencies:
   - sphinx-rtd-theme
   - sphinx-gallery
   - sphinx-design
-  - sphinx-mermaid
+  - sphinxcontrib-mermaid
   - clang==15.*
   - clang-tools==15.*
   - libclang==15.*
