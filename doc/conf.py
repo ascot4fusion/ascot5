@@ -17,17 +17,21 @@ author    = 'Ascot Group'
 release   = a5py.ascot5io.coreio.fileapi.VERSION
 
 # -- General configuration -----------------------------------------------------
-extensions = ['sphinx.ext.autodoc',      # For generating doc from Python source
-              'numpydoc',                # Source docs are done in numpy style
-              'nbsphinx',                # Embed Jupyter notebooks
-              'breathe',                 # Sphinx can access Doxygen output
-              'sphinxcontrib.bibtex',    # Can use bibtex
-              'sphinx.ext.autosummary',  # Creating summary tables
-              'sphinx.ext.intersphinx',  # Link to external libraries
-              "sphinx_gallery.load_style",] # Examples thumbnails
+extensions = [
+    'sphinx.ext.autodoc',        # For generating doc from Python source
+    'numpydoc',                  # Source docs are done in numpy style
+    'nbsphinx',                  # Embed Jupyter notebooks
+    'breathe',                   # Sphinx can access Doxygen output
+    'sphinxcontrib.bibtex',      # Can use bibtex
+    'sphinx.ext.autosummary',    # Creating summary tables
+    'sphinx.ext.intersphinx',    # Link to external libraries
+    'sphinx_gallery.load_style', # Examples thumbnails
+    'sphinx_design',             # Tabs and other nice widgets
+    'sphinxcontrib.mermaid',     # Graphs and diagrams
+    ]
 
 exclude_patterns = []
-numpydoc_xref_param_type = True # Automatically link str, array_like, etc.
+numpydoc_xref_param_type    = True  # Automatically link str, array_like, etc.
 numpydoc_show_class_members = False # Removes table summarizing class methods
 
 # -- Where Doxygen generated xml files are located -----------------------------
@@ -56,9 +60,12 @@ html_css_files = [
 # Bibtex
 bibtex_bibfiles = ['ascotwork.bib']
 nbsphinx_execute = 'never'
+nbsphinx_requirejs_path = ''
+
+mermaid_version = '10.9.0'
 
 # Thumbnails (also link images somewhere as otherwise they are not copied to
-# _images)
+# _images) (deprecated, now possible to display from the notebook)
 nbsphinx_thumbnails = {
     "tutorials/introduction"  : "_images/iconlarge.png",
     "tutorials/poincare"      : "_images/poincare.png",
