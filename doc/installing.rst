@@ -157,7 +157,7 @@ CSC.fi puhti
 
 .. code-block:: bash
 
-   module load StdEnv intel/19.0.4  hpcx-mpi/2.4.0  intel-mkl/2019.0.4  hdf5/1.10.4-mpi python-data
+   module load StdEnv intel/19.0.4 hpcx-mpi/2.4.0 intel-mkl/2019.0.4 hdf5/1.10.4-mpi python-data
 
    make -j ascot5_main MPI=1
 
@@ -166,6 +166,15 @@ Alternatively:
 .. code-block:: bash
 
    make ascot5_main MPI=1 FLAGS="-qno-openmp-offload -diag-disable 3180 -vecabi=cmdtarget"
+
+CSD3
+****
+
+.. code-block:: bash
+
+   module load hdf5/mpi/intel/2019.3/1.10.5
+   make ascot5_main MPI=1 CC=mpicc FLAGS="-no-multibyte-chars -qno-openmp-offload -diag-disable 3180 -xmic-avx512 -vecabi=cmdtarget" LFLAGS="-lhdf5_hl -lhdf5" -j
+   make libascot MPI=1 CC=mpicc FLAGS="-no-multibyte-chars -qno-openmp-offload -diag-disable 3180" LFLAGS="-lhdf5_hl -lhdf5" -j
 
 Freia (UKAEA) (work in progress)
 ********************************
@@ -203,7 +212,7 @@ Marenostrum (WIP)
 
 .. code-block:: bash
 
-   module load hdf5/1.8.19 intel/2018.4 impi/2018.4 zlib szip/2.1.1
+   module load hdf5/1.8.19 intel/2018.4 impi/2018.4 zlib szip/2.1.1
 
    make ascot5_main MPI=1 FLAGS="-qno-openmp-offload -diag-disable 3180 -xcommon-avx512 -vecabi=cmdtarget"
 
@@ -265,7 +274,7 @@ NERSC Cori
    export PMI_NO_FORK=1
    export PMI_NO_PREINITIALIZE=1
    export HDF5_USE_FILE_LOCKING=FALSE
-   make ascot5_main CC=h5cc MPI=1 FLAGS="-qno-openmp-offload –diag-disable 3180"
+   make ascot5_main CC=h5cc MPI=1 FLAGS="-qno-openmp-offload -diag-disable 3180"
 
 OSX (Macports)
 **************

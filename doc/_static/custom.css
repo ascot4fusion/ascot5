@@ -5,3 +5,22 @@ white-space: normal;
 .wy-side-nav-search, .wy-nav-top {
     background: #ffeeaa;
 }
+
+code.literal {
+    color: #404040 !important;
+}
+
+.mermaidTooltip {
+      position: absolute;
+      text-align: left;
+      max-width: 320px;
+      padding: 2px;
+      font-family: 'trebuchet ms', verdana, arial;
+      font-size: 12px;
+      background: #ffffde;
+      border: 1px solid #aaaa33;
+      border-radius: 2px;
+      pointer-events: none;
+      z-index: 100;
+      white-space: pre;
+}

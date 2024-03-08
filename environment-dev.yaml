@@ -31,6 +31,8 @@ dependencies:
   - sphinxcontrib-bibtex
   - sphinx-rtd-theme
   - sphinx-gallery
+  - sphinx-design
+  - sphinx-mermaid
   - clang==15.*
   - clang-tools==15.*
   - libclang==15.*
