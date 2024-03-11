@@ -599,9 +599,7 @@ def mesh2d(x, y, z, logscale=False, diverging=False, xlabel=None, ylabel=None,
                                  vmin=clim[0], vmax=clim[1], base=10)
         else:
             if cmap == None: cmap = "viridis"
-            temp = z[~np.isnan(z)]
-            temp = temp[temp>0] #only positive values
-            clim[0] = np.min(temp)
+            if clim[0] <=0: clim[0] = np.min(z[z>0])
             norm = mpl.colors.LogNorm(vmin=clim[0], vmax=clim[1])
     else:
         if diverging:
