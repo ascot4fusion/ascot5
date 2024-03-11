@@ -1378,6 +1378,8 @@ class RunMixin(DistMixin):
         """
         self._require("_endstate")
         ids, weight, ekin = self.getstate("ids", "weight", "ekin", state="end")
+        lost = self.getstate("ids", endcond='WALL')
+        lost = np.in1d(ids, lost)
         ntotal = ids.size
         nsubset = np.logspace(np.log10(nmin), np.log10(ntotal), nsample)
         nsubset = nsubset.astype('i8')
@@ -1389,13 +1391,19 @@ class RunMixin(DistMixin):
             idx = rng.choice(ntotal, replace=False, size=n)
 
             if qnt == 'lostpower':
-                val[i] = np.sum((weight*ekin)[idx]) \
+                val[i] = np.sum((lost*weight*ekin.to('J'))[idx]) \
                     * wtotal / np.sum(weight[idx])
+                axes.set_ylabel('Lost power [W]')
             elif qnt == 'peakload':
-                loads = self.getwall_loads(weights=True, p_ids=ids[idx])[2]
-                val[i] = np.amax(loads) * wtotal / np.sum(weight[idx])
+                ids0  = ids[idx]
+                lost0 = lost[idx]
+                _, area, loads, _, _ = self.getwall_loads(weights=True, p_ids=ids0[lost0])
+                val[i] = np.amax(loads/area) * wtotal / np.sum(weight[idx])
+                axes.set_ylabel(r'Peak load [W/m$^2$]')
 
-        axes.plot(np.log10(nsubset), val)
+        axes.set_xscale('log')
+        axes.set_xlabel('Number of markers')
+        axes.plot(nsubset, val)
 
     def plotwall_loadvsarea(self, axes=None):
         """Plot histogram showing area affected by at least a given load.
