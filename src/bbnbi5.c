@@ -490,7 +490,7 @@ void bbnbi_simulate(particle_queue *pq, sim_data* sim) {
             /* Normalize weight with time and add hin so that we don't divide
              * with zero when updating distributions */
             pdiag.time[i]   += hin[i];
-            pdiag.weight[i] /= hin[i];//p.mileage[i] + hin[i];
+            pdiag.weight[i] /= hin[i];
         }
 
         /* Update distributions for markers that finished */
