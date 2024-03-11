@@ -20,7 +20,7 @@ class MarkerGenerator():
         self._ascot = ascot
 
     def generate(self, nmrk, mass, charge, anum, znum, particledist,
-                 markerdist=None, minweight=0, return_dists=False):
+                 markerdist=None, mode='gc', minweight=0, return_dists=False):
         """Generate weighted markers from marker and particle distributions.
 
         This function takes two 5D distributions that must have identical grids.
@@ -53,6 +53,9 @@ class MarkerGenerator():
             5D distribution from which marker initial coordinates are sampled.
 
             If not given, the coordinates are sampled from ``particledist``.
+        mode : {'prt', 'gc'}, optional
+            Decides whether the distributions (and returned markeres) are in
+            particle or guiding center phase-space.
         minweight : float, optional
             Minimum weight a marker must have or else it is rejected.
         return_dists : bool, optional
@@ -111,7 +114,7 @@ class MarkerGenerator():
         weight = weight[idx].ravel()
 
         # Init marker species
-        mrk = Marker.generate("gc", n=nmrk)
+        mrk = Marker.generate("prt", n=nmrk)
         mrk["anum"][:]   = anum
         mrk["znum"][:]   = znum
         mrk["mass"][:]   = mass
@@ -147,12 +150,61 @@ class MarkerGenerator():
             ppa = randomize(markerdist.abscissa_edges("ppar"),  ip1)
             ppe = randomize(markerdist.abscissa_edges("pperp"), ip2)
 
-            pnorm = np.sqrt(ppa**2 + ppe**2)
-            mrk["energy"] = physlib.energy_momentum(mass, pnorm).to("eV")
-            mrk["pitch"]  = ppa / pnorm
+            if mode == 'gc':
+                pnorm = np.sqrt(ppa**2 + ppe**2)
+                mrk["energy"] = physlib.energy_momentum(mass, pnorm).to("eV")
+                mrk["pitch"]  = ppa / pnorm
+                mrk['zeta']   = 2 * np.pi * np.random.rand(mrk['n'])
+            elif mode == 'prt':
+                br, bphi, bz = self._ascot.input_eval(
+                    mrk['r'], mrk['phi'], mrk['z'], mrk['time'],
+                    'br', 'bphi', 'bz')
+                bhat = np.array([br, bphi, bz]) \
+                    / np.sqrt(br**2 + bphi**2 + bz**2).v
+                e1 = np.zeros(bhat.shape)
+                e1[2,:] = 1
+                e2 = np.cross(bhat.T, e1.T).T
+                e1 = e2 / np.sqrt(np.sum(e2**2, axis=0))
+                e2 = np.cross(bhat.T, e1.T).T
+
+                zeta = 2 * np.pi * np.random.rand(mrk['n'])
+                perphat = -np.sin(zeta)*e1-np.cos(zeta)*e2
+                pvec = bhat * ppa + perphat * ppe
+                mrk['vr']   = pvec[0,:] / mrk['mass']
+                mrk['vphi'] = pvec[1,:] / mrk['mass']
+                mrk['vz']   = pvec[2,:] / mrk['mass']
+
         else:
-            mrk["energy"] = randomize(markerdist.abscissa_edges("ekin"),  ip1)
-            mrk["pitch"]  = randomize(markerdist.abscissa_edges("pitch"), ip2)
+            if mode == 'gc':
+                mrk["energy"] = \
+                    randomize(markerdist.abscissa_edges("ekin"), ip1)
+                mrk["pitch"]  = \
+                    randomize(markerdist.abscissa_edges("pitch"), ip2)
+                mrk['zeta']   = 2 * np.pi * np.random.rand(mrk['n'])
+            elif mode == 'prt':
+                energy = randomize(markerdist.abscissa_edges("ekin"), ip1)
+                pitch  = randomize(markerdist.abscissa_edges("pitch"), ip2)
+                gamma = physlib.gamma_energy(mass, energy)
+                pnorm = physlib.pnorm_gamma(mass, gamma)
+                ppa = pitch * pnorm
+                ppe = np.sqrt(1.0 - pitch**2) * pnorm
+                br, bphi, bz = self._ascot.input_eval(
+                    mrk['r'], mrk['phi'], mrk['z'], mrk['time'],
+                    'br', 'bphi', 'bz')
+                bhat = np.array([br, bphi, bz]) \
+                    / np.sqrt(br**2 + bphi**2 + bz**2).v
+                e1 = np.zeros(bhat.shape)
+                e1[2,:] = 1
+                e2 = np.cross(bhat.T, e1.T).T
+                e1 = e2 / np.sqrt(np.sum(e2**2, axis=0))
+                e2 = np.cross(bhat.T, e1.T).T
+
+                zeta = 2 * np.pi * np.random.rand(mrk['n'])
+                perphat = -np.sin(zeta)*e1-np.cos(zeta)*e2
+                pvec = bhat * ppa + perphat * ppe
+                mrk['vr']   = pvec[0,:] / mrk['mass']
+                mrk['vphi'] = pvec[1,:] / mrk['mass']
+                mrk['vz']   = pvec[2,:] / mrk['mass']
 
         if not return_dists:
             return mrk
