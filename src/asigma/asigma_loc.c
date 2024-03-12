@@ -385,6 +385,11 @@ a5err asigma_loc_eval_sigmav(
     asigma_loc_data* asigma_data) {
     a5err err = 0;
 
+    /* Convert Joule to eV */
+    E   /= CONST_E;
+    T_e /= CONST_E;
+    T_0 /= CONST_E;
+
     /* Find the matching reaction. Note that BMS data is same for all
      * isotopes, so we don't compare anums */
     int reac_found = -1, i_reac;
@@ -404,21 +409,16 @@ a5err asigma_loc_eval_sigmav(
     }
     i_reac = reac_found;
 
-    /* The rate coefficient is evaluated if reaction data was found,
-       is available, and its interpolation works. */
     if(reac_found < 0) {
         /* Reaction not found. Raise error. */
         err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_ASIGMA_LOC);
     } else {
+        /* Interpolation error means the data has to be extrapolated */
         if(reac_type == sigmav_ioniz  ||
            reac_type == sigmav_recomb ||
            reac_type == sigmav_CX) {
-            /* We remember unit conversions for parameters in the
-               function call */
-            int interperr = 0;
-            interperr += interp2Dcomp_eval_f(sigmav,
-                                             &asigma_data->sigmav[i_reac],
-                                             E/CONST_E, T_0/CONST_E);
+            int interperr = interp2Dcomp_eval_f(
+                                sigmav, &asigma_data->sigmav[i_reac], E, T_0);
             if(interperr) {
                 if(extrapolate) {
                     *sigmav = 0.0;
@@ -428,13 +428,9 @@ a5err asigma_loc_eval_sigmav(
                 }
             }
         } else if(reac_type == sigmav_BMS) {
-            /* Remember unit conversions for parameters as well as
-               normalization of the fast particle energy with respect
-               to mass (J --> eV/amu) in the function call. */
-            int interperr = 0;
-            interperr += interp3Dcomp_eval_f(
-                sigmav, &asigma_data->BMSsigmav[i_reac],
-                E/CONST_E/(m_1/CONST_U), z_2*n_i, T_e/CONST_E);
+            int interperr = interp3Dcomp_eval_f(
+                                sigmav, &asigma_data->BMSsigmav[i_reac], E/a_2,
+                                z_2*n_i, T_e);
             if(interperr) {
                 if(extrapolate) {
                     *sigmav = 0.0;
