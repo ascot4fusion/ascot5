@@ -114,7 +114,7 @@ class MarkerGenerator():
         weight = weight[idx].ravel()
 
         # Init marker species
-        mrk = Marker.generate("prt", n=nmrk)
+        mrk = Marker.generate(mode, n=nmrk)
         mrk["anum"][:]   = anum
         mrk["znum"][:]   = znum
         mrk["mass"][:]   = mass
