@@ -130,13 +130,13 @@ real B_lowE[9][12] = {
  * @param nion number of ion species present in the plasma
  * @param ni densities of the ion species with at least single hydrogen
  *           species
- * @param Anum ion species' atomic mass number
- * @param Znum ion species' charge number
+ * @param anum background ion species' atomic mass number
+ * @param znum background ion species' charge number
  *
  * @return zero if evaluation was succesfull
  */
 a5err suzuki_sigmav(real* sigmav, real EperAmu, real ne, real te, integer nion,
-                    real* ni, const int* Anum, const int* Znum) {
+                    real* ni, const int* anum, const int* znum) {
     a5err err = 0;
     /* Convert eperamu to keV and te to eV */
     EperAmu /= (1e3*CONST_E);
@@ -152,7 +152,7 @@ a5err suzuki_sigmav(real* sigmav, real EperAmu, real ne, real te, integer nion,
     real dens_H = 0.0, dens_Z = 0.0;
     real Zeff_sum1 = 0.0, Zeff_sum2 = 0.0;
     for(int i = 0; i < nion; i++) {
-        if(Znum[i] == 1) {
+        if(znum[i] == 1) {
             ind_H[n_H] = i;
             dens_H += ni[i];
             n_H++;
@@ -162,8 +162,8 @@ a5err suzuki_sigmav(real* sigmav, real EperAmu, real ne, real te, integer nion,
             n_Z++;
         }
 
-        Zeff_sum1 += ni[i] * Znum[i] * Znum[i];
-        Zeff_sum2 += ni[i] * Znum[i];
+        Zeff_sum1 += ni[i] * znum[i] * znum[i];
+        Zeff_sum2 += ni[i] * znum[i];
     }
     real Zeff = Zeff_sum1 / Zeff_sum2;
 
@@ -196,7 +196,7 @@ a5err suzuki_sigmav(real* sigmav, real EperAmu, real ne, real te, integer nion,
     /* Equation 28 for sigma_H */
     real sigma_H = 0.0;
     for(int i = 0; i < n_H; i++) {
-        real* Aijk = A[Anum[ind_H[i]]-1];
+        real* Aijk = A[anum[ind_H[i]]-1];
         /* Weight with density in case we have multiple hydrogen species */
         sigma_H += ni[ind_H[i]]
             * ( Aijk[0] * 1.e-16 / EperAmu )
@@ -212,7 +212,7 @@ a5err suzuki_sigmav(real* sigmav, real EperAmu, real ne, real te, integer nion,
     for(int i = 0; i < n_Z; i++) {
         int ind_B = -1;
         for(int j = 0; j < 9; j++) {
-            if(Z_imp[j] == Znum[ind_Z[i]] && Zeff > Zeffmin_imp[j]
+            if(Z_imp[j] == znum[ind_Z[i]] && Zeff > Zeffmin_imp[j]
                && Zeff < Zeffmax_imp[j]) {
                 ind_B = j;
             }
@@ -221,7 +221,7 @@ a5err suzuki_sigmav(real* sigmav, real EperAmu, real ne, real te, integer nion,
             /* Data for the input species not tabulated */
             err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_SUZUKI );
         }
-        sigma_Z += ni[ind_Z[i]] / ne * Znum[ind_Z[i]]
+        sigma_Z += ni[ind_Z[i]] / ne * znum[ind_Z[i]]
             * (B[ind_B][0]
                + B[ind_B][1]  * U
                + B[ind_B][2]  * logN
