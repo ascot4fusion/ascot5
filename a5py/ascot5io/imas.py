@@ -1,6 +1,8 @@
 import numpy as np
 import scipy.constants as constants
 from a5py.physlib import species, pol2cart, cart2pol_vec
+import unyt
+
 
 class a5imas:
 
@@ -560,7 +562,9 @@ class marker(a5imas):
                 if s is None:
                     continue
                 out[f] = np.concatenate( (out[f],s[f]) )
-
+            #if f!='vr':
+            print(f)
+            out[f]*=s[f].units
         out['ids']   = np.arange(1,n+1,dtype=int)
 
         print(srcs[0]['anum'])
@@ -607,9 +611,9 @@ class marker(a5imas):
              # what about python?
              imasinds = [ 4,    5,    3,    301,      403,  ]
              a5fields = ['r', 'phi', 'z', 'energy', 'pitch']
-
+             units=[unyt.m, unyt.deg,unyt.m,unyt.J,unyt.dimensionless ]
              for i,iind in enumerate(imasinds):
-                 out[a5fields[i]] = source.markers[timeIndex].positions[:,np.argwhere(indexes==iind)[0][0]]
+                 out[a5fields[i]] = source.markers[timeIndex].positions[:,np.argwhere(indexes==iind)[0][0]]*units[i]
 
         elif gyro_type == 1:
             # PARTICLE LOCATION
@@ -621,8 +625,9 @@ class marker(a5imas):
              # what about python?
              imasinds = [ 4,    5,    3,  103 ] #,    -1,     -1,  -1 ]  # no vr available!
              a5fields = ['r', 'phi', 'z','vz'] #, 'vr', 'vphi', 'vz']
+             units=[unyt.m, unyt.deg,unyt.m,unyt.m/unyt.s ]
              for i,iind in enumerate(imasinds):
-                 out[a5fields[i]] = source.markers[timeIndex].positions[:,np.argwhere(indexes==iind)[0][0]]
+                 out[a5fields[i]] = source.markers[timeIndex].positions[:,np.argwhere(indexes==iind)[0][0]]*units[i]
              i_velocity_x, i_velocity_y, i_velocity_z = 101, 102, 103
              vx = source.markers[timeIndex].positions[:,np.argwhere(indexes==i_velocity_x)[0][0]]
              vy = source.markers[timeIndex].positions[:,np.argwhere(indexes==i_velocity_y)[0][0]]
@@ -640,25 +645,25 @@ class marker(a5imas):
         # Weight:
         #--------
 
-        out['weight'] = np.array(source.markers[timeIndex].weights)
-
+        out['weight'] = np.array(source.markers[timeIndex].weights)/unyt.s
 
         # From species:
         #--------------
-        out['anum']  = np.ones_like(out['weight'],dtype=int) * int(np.rint(source.species.ion.element[0].a))
-        out['znum']  = np.ones_like(out['weight'],dtype=int) * int(np.rint(source.species.ion.element[0].z_n))
+        out['anum']  = np.ones_like(out['weight'].v,dtype=int) * int(np.rint(source.species.ion.element[0].a))*unyt.dimensionless
+        out['znum']  = np.ones_like(out['weight'].v,dtype=int) * int(np.rint(source.species.ion.element[0].z_n))*unyt.dimensionless
 
         # Generated:
         #-----------
-        out['ids']   = np.arange(1,n+1,dtype=int)
-        out['charge']= np.ones_like(out['weight'],dtype=float) * constants.elementary_charge * source.species.ion.z_ion
-        out['mass']  = np.ones_like(out['weight'],dtype=float) * species.autodetect(
+        out['ids']   = np.arange(1,n+1,dtype=int)*unyt.dimensionless
+        out['charge']= np.ones_like(out['weight'].v,dtype=float) * unyt.e* source.species.ion.z_ion
+        out['mass']  = np.ones_like(out['weight'].v,dtype=float) * species.autodetect(
             int(source.species.ion.element[0].a),
-            int(source.species.ion.element[0].z_n) )[3]
+            int(source.species.ion.element[0].z_n) )[3]#/unyt.kg
+
 
         # From parameters (outside the source)
         #-------------------------------------
-        out['time'] = np.ones_like(out['weight'],dtype=int) * time
+        out['time'] = np.ones_like(out['weight'].v,dtype=int) * time*unyt.s
 
         out['n'] = n
 
