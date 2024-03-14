@@ -239,3 +239,47 @@ a5err asigma_eval_sigmav(
 
     return err;
 }
+
+/**
+ * @brief Evaluate beam stopping rate coefficient
+ *
+ * This is a SIMD function.
+ *
+ * @param sigmav pointer to evaluated rate coefficient
+ * @param z_1 atomic number of fast particle
+ * @param a_1 atomic mass number of fast particle
+ * @param E energy of fast particle
+ * @param nion number of bulk ion species
+ * @param znum atomic numbers of bulk particles
+ * @param anum atomic mass numbers of bulk particles
+ * @param T_e electron temperature of bulk plasma
+ * @param n_i densities of bulk ions
+ * @param asigma_data pointer to atomic data struct
+ *
+ * @return Non-zero a5err value if evaluation failed, zero otherwise
+ */
+a5err asigma_eval_bms(
+    real* sigmav, int z_1, int a_1, real E, int nion, const int* znum,
+    const int* anum, real T_e, real* n_i, asigma_data* asigma_data) {
+    a5err err = 0;
+
+    switch(asigma_data->type) {
+        case asigma_type_loc:
+            err = asigma_loc_eval_bms(
+                    sigmav, z_1, a_1, E, nion, znum, anum, T_e, n_i,
+                    ASIGMA_EXTRAPOLATE, &(asigma_data->asigma_loc));
+            break;
+
+        default:
+            /* Unrecognized input. Produce error. */
+            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_ASIGMA );
+            break;
+    }
+    if(err || sigmav[0] < 0.0) {
+        /* In case of error or unphysical negative value, return zero value
+           to avoid further complications */
+        sigmav[0] = 0.0;
+    }
+
+    return err;
+}
