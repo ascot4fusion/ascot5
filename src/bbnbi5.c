@@ -402,9 +402,10 @@ void bbnbi_simulate(particle_queue *pq, sim_data* sim) {
                 real rate = 0.0;
                 if(!err) {
                     real sigmav;
-                    if( suzuki_sigmav(
-                            &sigmav, ekin / p.anum[i], pls_dens[0], pls_temp[0],
-                            n_species-1, &(pls_dens[1]), pls_anum, pls_znum) ) {
+                    if( asigma_eval_bms(
+                            &sigmav, p.znum[i], p.anum[i], ekin, n_species-1,
+                            pls_znum, pls_anum, pls_temp[0], &(pls_dens[1]),
+                            &sim->asigma_data) ) {
                         err = 1;
                     }
                     rate = pls_dens[0] * sigmav;
