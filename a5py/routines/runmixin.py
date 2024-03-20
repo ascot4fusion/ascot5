@@ -1417,7 +1417,8 @@ class RunMixin(DistMixin):
         a5plt.loadvsarea(area, eload/area, axes=axes)
 
     @a5plt.openfigureifnoaxes(projection=None)
-    def plotwall_torpol(self, log=True, clim=None, axes=None, cax=None):
+    def plotwall_torpol(self, qnt='eload', getaxis=None,log=True, clim=None,
+                        cmap=None, axes=None, cax=None):
         """Plot the toroidal-poloidal projection of the wall loads.
 
         Note that the resulting doesn't present the areas accurately and even
@@ -1426,10 +1427,32 @@ class RunMixin(DistMixin):
 
         Parameters
         ----------
+        qnt : {'eload', 'pload', 'iangle'}, optional
+            Quantity to plot.
+        getaxis : (float, float) or callable
+            Location of the magnetic or geometrical axis which is used to
+            determine the poloidal angle.
+
+            If this parameter is None (default), the magnetic axis evaluated via
+            libascot is used (requires that bfield is initialized).
+
+            For tokamaks, a tuple of two floats corresponding to the axis (R,z)
+            coordinates can be given explicitly.
+
+            For stellarators, one can provide a function that takes one
+            positional argument ``phi`` (`float`), which is the toroidal angle
+            in degress, and returns a tuple of axis (R,z) coordinates at that
+            toroidal angle.
+
         log : bool, optional
             Make the color scale logarithmic.
         clim : [float, float], optional
             Minimum and maximum values in the color scale.
+        cmap : str, optional
+            Colormap to be used.
+
+            Defaults to 'Reds' for 'eload' and 'pload' and 'viridis' for
+            'iangle'.
         axes : :obj:`~matplotlib.axes.Axes`, optional
             The axes where figure is plotted or otherwise new figure is created.
         cax : :obj:`~matplotlib.axes.Axes`, optional
@@ -1438,7 +1461,19 @@ class RunMixin(DistMixin):
         wetted, area, edepo, pdepo, iangle = self.getwall_loads()
         d = self.wall.read()
         nelement = wetted.size
-        color    = edepo/area
+        if qnt == 'eload':
+            color = edepo/area
+            clabel = r"Wall load [W/m$^2$]"
+            if cmap is None: cmap = 'Reds'
+        if qnt == 'pload':
+            color = pdepo/area
+            clabel = r"Particle flux [prt s$^{-1}$m$^{-2}$]"
+            if cmap is None: cmap = 'Reds'
+        elif qnt == 'iangle':
+            color = iangle
+            clabel = r"Angle of incidence [deg]"
+            if cmap is None: cmap = 'viridis'
+
         x1x2x3   = d["x1x2x3"][wetted-1]
         y1y2y3   = d["y1y2y3"][wetted-1]
         z1z2z3   = d["z1z2z3"][wetted-1]
@@ -1447,10 +1482,17 @@ class RunMixin(DistMixin):
         tor = np.rad2deg( np.arctan2( y1y2y3, x1x2x3 ))
 
         # Poloidal angle for each vertex
-        out = self._root._ascot._eval_bfield(
-            1*unyt.m, tor*unyt.deg, 1*unyt.m, 0*unyt.s, evalaxis=True)
-        axisr  = out["axisr"].v
-        axisz  = out["axisz"].v
+        if getaxis is None:
+            out = self._root._ascot._eval_bfield(
+                1*unyt.m, tor*unyt.deg, 1*unyt.m, 0*unyt.s, evalaxis=True)
+            axisr  = out["axisr"].v
+            axisz  = out["axisz"].v
+        elif getaxis is tuple and len(getaxis) == 2:
+            axisr = getaxis[0]
+            axisz = getaxis[1]
+        elif getaxis is callable:
+            axisr, axisz = getaxis(tor*unyt.deg)
+
         rmajor = np.sqrt( x1x2x3**2 + y1y2y3**2 )
         pol    = np.rad2deg( np.arctan2(z1z2z3 - axisz, rmajor - axisr) )
 
@@ -1479,8 +1521,8 @@ class RunMixin(DistMixin):
         patches[:,:,1] = pol[:,:]
         a5plt.triangularpatch(
             patches, color, xlim=[-2, 362], ylim=[-182, 182], clim=clim,
-            log=log, axes=axes, cax=cax, clabel=r"Wall load [W/m$^2$]",
-            cmap="Reds",
+            log=log, axes=axes, cax=cax, clabel=clabel,
+            cmap=cmap,
             xlabel="Toroidal angle [deg]", ylabel="Poloidal angle [deg]")
         axes.set_xticks([0, 90, 180, 270, 360])
         axes.set_yticks([-180, -90, 0, 90, 180])
