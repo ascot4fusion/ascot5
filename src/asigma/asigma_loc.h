@@ -62,8 +62,8 @@ a5err asigma_loc_eval_sigmav(
     asigma_loc_data* asigma_data);
 #pragma omp declare simd uniform(asigma_data, znum, anum, nion, extrapolate)
 a5err asigma_loc_eval_bms(
-    real* sigmav, int z_1, int a_1, real E, int nion, const int* znum,
-    const int* anum, real T_e, real* n_i, int extrapolate,
+    real* sigmav, int z_1, int a_1, real E, real mass, int nion,
+    const int* znum, const int* anum, real T_e, real* n_i, int extrapolate,
     asigma_loc_data* asigma_data);
 #pragma omp end declare target
 

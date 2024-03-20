@@ -123,8 +123,9 @@ real B_lowE[9][12] = {
 /**
  * @brief Calculate beam-stopping cross-section according to Suzuki model
  *
- * @param sigmav evaluated beam stopping cross section [cm^2]
+ * @param sigmav evaluated beam stopping cross section [m^2]
  * @param EperAmu test particle energy divided by its atomic mass number [J]
+ * @param vnorm test particle velocity [m/s]
  * @param ne electron particle density [m^-3]
  * @param te electron temperature [J]
  * @param nion number of ion species present in the plasma
@@ -135,8 +136,8 @@ real B_lowE[9][12] = {
  *
  * @return zero if evaluation was succesfull
  */
-a5err suzuki_sigmav(real* sigmav, real EperAmu, real ne, real te, integer nion,
-                    real* ni, const int* anum, const int* znum) {
+a5err suzuki_sigmav(real* sigmav, real EperAmu, real vnorm, real ne, real te,
+                    integer nion, real* ni, const int* anum, const int* znum) {
     a5err err = 0;
     /* Convert eperamu to keV and te to eV */
     EperAmu /= (1e3*CONST_E);
@@ -238,6 +239,9 @@ a5err suzuki_sigmav(real* sigmav, real EperAmu, real ne, real te, integer nion,
 
     /* Equation 24 and convert cm^2 to m^2*/
     *sigmav = sigma_H * (1 + (Zeff - 1) * sigma_Z) * 1e-4;
+    /* Multiply with velocity to get correct units */
+    *sigmav *= vnorm;
+
     if(err) { *sigmav = 0.0; }
     return err;
 }
