@@ -54,7 +54,7 @@ int asigma_loc_init_offload(asigma_loc_offload_data* offload_data,
     int N_reac = offload_data->N_reac;
 
     /* Find how much space is needed for the output array */
-    int temp_arr_length = 6*N_reac;
+    int temp_arr_length =  6 * N_reac;
     for(int i_reac = 0; i_reac < N_reac; i_reac++) {
         int N_E = offload_data->N_E[i_reac];
         int N_n = offload_data->N_n[i_reac];
@@ -84,8 +84,8 @@ int asigma_loc_init_offload(asigma_loc_offload_data* offload_data,
 
     /* Helper pointers to keep track of the current memory positions in the
        reaction data parts of the arrays */
-    real * temp_arr_pos    = temp_array + 5 * N_reac;
-    real * offload_arr_pos = *offload_array + 5 * N_reac;
+    real * temp_arr_pos    = temp_array + 6 * N_reac;
+    real * offload_arr_pos = *offload_array + 6 * N_reac;
 
     /* Copy over reaction identifiers and abscissae parameters, and evaluate
        spline coefficients according to dimensionality of reaction data */
@@ -139,7 +139,7 @@ int asigma_loc_init_offload(asigma_loc_offload_data* offload_data,
                     T_min, T_max);
                 temp_arr_pos    += N_E * N_n * N_T * NSIZE_COMP3D;
                 offload_arr_pos += N_E * N_n * N_T;
-            break;
+                break;
 
             default:
                 /* Unrecognized dimensionality. Produce error. */
@@ -220,7 +220,7 @@ void asigma_loc_init(
     asigma_data->N_reac = N_reac;
 
     /* Helper pointer to keep track of position in offload array */
-    real* offload_arr_pos = offload_array+5*N_reac;
+    real* offload_arr_pos = offload_array + 6 * N_reac;
 
     /* Copy data from offload array to atomic sigma struct,
        initialize spline structs and determine reaction availability */
