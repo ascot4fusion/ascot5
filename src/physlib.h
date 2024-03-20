@@ -22,6 +22,18 @@
         sqrt( 1.0 / ( (1.0 - v / CONST_C) * (1.0 + v / CONST_C) ) ) )
 
 /**
+ * @brief Evaluate velocity norm from Lorentz factor
+ *
+ * \f$ v = \sqrt{1 - \frac{1}{\gamma^2}} c
+ *
+ * where
+ *
+ * - \f$v\f$ is velocity norm [m/s]
+*/
+#define physlib_vnorm_gamma(gamma) (                                   \
+        sqrt( 1.0 - 1.0 / ( gamma * gamma ) ) * CONST_C )
+
+/**
 * @brief Evaluate Lorentz factor from momentum norm
 *
 * \f$\gamma = \sqrt{1 + \left(\frac{p}{mc}\right)^2}\f$
