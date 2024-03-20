@@ -1858,9 +1858,11 @@ class PhysTest():
         self.ascot.input_init(run=run_cx.get_qid(), bfield=True, plasma=True,
                               neutral=True, asigma=True)
         sigmacx  = self.ascot.input_eval_atomicsigma(
-            ma, anum[0], znum[0], r, phi, z, t, va, ion=0, reaction=6)
+            ma, anum[0], znum[0], r, phi, z, t, va, ion=0,
+            reaction="charge-exchange")
         sigmabms = self.ascot.input_eval_atomicsigma(
-            ma, anum[0], znum[0], r, phi, z, t, va, ion=0, reaction=7)
+            ma, anum[0], znum[0], r, phi, z, t, va, ion=0,
+            reaction="beamstopping")
         self.ascot.input_free()
         mfp_cx0  = va/(sigmacx * 1e16/unyt.m**3)
         mfp_bms0 = va/(sigmabms * 1e20/unyt.m**3)
