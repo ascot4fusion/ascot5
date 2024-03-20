@@ -101,7 +101,7 @@ typedef double real;  /**< Double precision float   */
 #define NBI_MAX_DISTANCE 1e-3
 
 /** @brief Maximum number of NBI injectors */
-#define NBI_MAX_INJ 16
+#define NBI_MAX_INJ 32
 
 /** @brief Maximum number of Wiener processes stored (effectively number
  *  of time step reductions) */
