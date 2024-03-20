@@ -11,12 +11,13 @@
 #include "../ascot5.h"
 #include "../print.h"
 #include "../error.h"
-#include "asigma_loc.h"
-#include "../asigma.h"
 #include "../spline/interp.h"
 #include "../consts.h"
 #include "../math.h"
+#include "../physlib.h"
 #include "../suzuki.h"
+#include "../asigma.h"
+#include "asigma_loc.h"
 
 /**
  * @brief Initialize local file atomic data and check inputs
@@ -462,6 +463,7 @@ a5err asigma_loc_eval_sigmav(
  * @param z_1 atomic number of fast particle
  * @param a_1 atomic mass number of fast particle
  * @param E energy of fast particle
+ * @param mass mass of fast particle
  * @param nion number of bulk ion species
  * @param znum atomic numbers of bulk particles
  * @param anum atomic mass numbers of bulk particles
@@ -473,8 +475,8 @@ a5err asigma_loc_eval_sigmav(
  * @return zero if evaluation succeeded
  */
 a5err asigma_loc_eval_bms(
-    real* sigmav, int z_1, int a_1, real E, int nion, const int* znum,
-    const int* anum, real T_e, real* n_i, int extrapolate,
+    real* sigmav, int z_1, int a_1, real E, real mass, int nion,
+    const int* znum, const int* anum, real T_e, real* n_i, int extrapolate,
     asigma_loc_data* asigma_data) {
     a5err err = 0;
 
@@ -488,23 +490,24 @@ a5err asigma_loc_eval_bms(
     for(int i_spec = 0; i_spec < nion; i_spec++) {
         n_e += znum[i_spec] * n_i[i_spec];
         for(int i_reac = 0; i_reac < asigma_data->N_reac; i_reac++) {
-            if(asigma_data->z_1[i_reac] == z_1 &&
-            asigma_data->z_2[i_reac] == znum[i_spec] &&
-            asigma_data->reac_type[i_reac] == sigmav_BMS) {
+            if(asigma_data->z_1[i_reac]       == z_1 &&
+               asigma_data->z_2[i_reac]       == znum[i_spec] &&
+               asigma_data->reac_type[i_reac] == sigmav_BMS) {
                 reac_found = i_reac;
                 real sigmatemp;
-                int interperr = interp3Dcomp_eval_f(
-                                    &sigmatemp, &asigma_data->BMSsigmav[i_reac],
-                                    E_eV/a_1, znum[i_spec] * n_i[i_spec], T_e);
-                *sigmav += sigmatemp * znum[i_spec] * n_i[i_spec];
+                int interperr = \
+                        interp3Dcomp_eval_f(
+                            &sigmatemp, &asigma_data->BMSsigmav[i_reac],
+                            E_eV/anum[i_spec], znum[i_spec] * n_i[i_spec], T_e);
                 if(interperr) {
                     if(extrapolate) {
-                        *sigmav = 0.0;
+                        sigmatemp = 0.0;
                     } else {
                         err = error_raise( ERR_INPUT_EVALUATION, __LINE__,
-                                        EF_ASIGMA_LOC );
+                                           EF_ASIGMA_LOC );
                     }
                 }
+                *sigmav += sigmatemp * ( znum[i_spec] * n_i[i_spec]);
             }
         }
     }
@@ -513,7 +516,10 @@ a5err asigma_loc_eval_bms(
     if(reac_found < 0) {
         /* Reaction not found. Try Suzuki before throwing error. */
         T_e *= CONST_E;
-        if(suzuki_sigmav(sigmav, E/a_1, n_e, T_e, nion, n_i, anum, znum)) {
+        real gamma = physlib_gamma_Ekin(mass, E);
+        real vnorm = physlib_vnorm_gamma(gamma);
+        if(suzuki_sigmav(sigmav, E/a_1, vnorm, n_e, T_e, nion, n_i, anum,
+                         znum)) {
             err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_ASIGMA_LOC);
         }
     }
