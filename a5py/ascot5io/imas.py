@@ -563,12 +563,12 @@ class marker(a5imas):
                     continue
                 out[f] = np.concatenate( (out[f],s[f]) )
             #if f!='vr':
-            print(f)
+            #print(f)
             out[f]*=s[f].units
         out['ids']   = np.arange(1,n+1,dtype=int)
 
-        print(srcs[0]['anum'])
-        print(out['anum'])
+        #print(srcs[0]['vr'])
+        #print(out['vr'])
 
 
         return out
@@ -632,13 +632,11 @@ class marker(a5imas):
              vx = source.markers[timeIndex].positions[:,np.argwhere(indexes==i_velocity_x)[0][0]]
              vy = source.markers[timeIndex].positions[:,np.argwhere(indexes==i_velocity_y)[0][0]]
              #vz = source.markers[timeIndex].positions[:,np.argwhere(indexes==i_velocity_z)[0][0]]
+             #print('in imas', vx.shape)
 
              #print("adding vr,vz")
              (x,y,z) = pol2cart(out['r'], out['phi'], out['z'])
              (out['vr'],out['vphi'],_vz) = cart2pol_vec(vx,x,vy,y)
-             #out['vr']   = vr
-             #out['vphi'] = vphi
-             #print("added vr,vz")
         else:
             raise ValueError("Unknown gyrotype='{}'".format(gyro_type))
 

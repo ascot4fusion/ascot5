@@ -16,6 +16,9 @@ from   a5py.ascot5io.marker import Marker
 from a5py.templates.optiontemplates import OptionTemplates
 import numpy as np
 
+np.int = int
+np.float=float
+
 # Read from IMAS
 
 
@@ -24,13 +27,21 @@ print('Reading distsource')
 mrkr=a5py.ascot5io.imas.marker()
 #wdict2=w2d.read("g2jvarje","test","3",92436,272)
 #mrkrdict2=mrkr.read("akaslos","test","3",92436,272)
-mrkrdict2=mrkr.read("sipilas","test","3",92436,306)
+#mrkrdict2=mrkr.read("sipilas","test","3",92436,306)
+mrkrdict2=mrkr.read("g2diy","test","3",92436,306)
 #mrkr.display()
 
 #a5py.ascot5io.wall_2D.write_hdf5('from_imas.h5',**wdict2)
 
 #print(mrkrdict2)
-print(mrkrdict2.keys())
+#print(mrkrdict2.keys())
+
+#print((mrkrdict2['r']))
+
+#print((mrkrdict2['vr']))
+#print((mrkrdict2['vphi']))
+#print((mrkrdict2['vz']))
+#print((mrkrdict2['mass']))
 
 print("writing markers to 'from_imas.h5'.")
 if 'energy' in mrkrdict2:
@@ -50,27 +61,29 @@ else:
 print('Reading 2D wall')
 # 2D wall
 w2d=a5py.ascot5io.imas.wall_2d()
-#wdict2=w2d.read("g2jvarje","test","3",92436,272)
-wdict2=w2d.read("akaslos","test","3",92436,272)
+wdict2=w2d.read("g2jvarje","test","3",92436,272)
+#wdict2=w2d.read("akaslos","test","3",92436,272)
 a5py.ascot5io.wall_2D.write_hdf5('from_imas.h5',**wdict2)
 
 print('Reading 3D wall')
 # 3D wall
 w3d=a5py.ascot5io.imas.wall_3d()
-wdict3=w3d.read("akaslos","mywall","3",201,101)
+#wdict3=w3d.read("akaslos","mywall","3",201,101)
+wdict3=w3d.read("g2diy","mywall","3",201,101)
 #print(wdict3['x1x2x3'].shape, wdict3['y1y2y3'].shape, wdict3['z1z2z3'].shape, )
 a5py.ascot5io.wall_3D.write_hdf5('from_imas.h5',**wdict3)
 
 print('Reading Bfield (stellarator)')
 # 3D Bfield in Stellarator format
 bsts=a5py.ascot5io.imas.B_STS()
-bdict=bsts.read("akaslos","ggdtest","3",32,3)
+#bdict=bsts.read("akaslos","ggdtest","3",32,3)
+bdict=bsts.read("g2diy","ggdtest","3",32,3)
 a5py.ascot5io.B_STS.write_hdf5('from_imas.h5',**bdict)
-
+del bdict['desc']
 
 print('Initializing ascot5')
 
-
+#a5=Ascot("helloworld.h5", create=True)
 a5 = Ascot('helloworld.h5')
 #M=a5py.ascotpy.ascot5_main.ascot5_main(input_filename=b'helloworld.h5',output_filename=b'helloworld_out.h5')
 
@@ -97,8 +110,21 @@ print('Initializing inputs')
 
 bfield=bdict # True
 wall=wdict3  # wdict2, True
-a5.simulation_initinputs(bfield=bdict, efield=True, plasma=True, neutral=True,
-                         wall=wdict3, boozer=True, mhd=True, switch=True)
+edict = a5.data.create_input("E_TC", dryrun=True)
+pdict   = a5.data.create_input("plasma_1D", dryrun=True)
+ndict   = a5.data.create_input("N0_1D", dryrun=True)
+bzrdict = a5.data.create_input("Boozer", dryrun=True)
+mhddict = a5.data.create_input("MHD_STAT", dryrun=True)
+asigmadict = a5.data.create_input("asigma_loc", dryrun=True)
+edict = a5.data.efield.active.read()
+pdict = a5.data.plasma.active.read()
+ndict = a5.data.neutral.active.read()
+bzrdict =a5.data.boozer.active.read()
+mhddict =a5.data.mhd.active.read()
+asigmadict =a5.data.asigma.active.read()
+a5.simulation_initinputs(bfield=bdict, efield=edict, plasma=pdict, neutral=ndict,
+                         wall=wdict3, boozer=bzrdict, mhd=mhddict, asigma=asigmadict)
+
 
 generate_markers = False
 
