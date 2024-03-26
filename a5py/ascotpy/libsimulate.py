@@ -161,8 +161,11 @@ class LibSimulate():
         does. Inputs cannot be changed while the they are packed. The unpacking
         is done with :meth:`simulation_free`.
 
+
         This method must be called before running the simulation.
         """
+
+
         self.input_init(
             bfield=bfield, efield=efield, plasma=plasma, neutral=neutral,
             wall=wall, boozer=boozer, mhd=mhd, asigma=asigma, switch=switch)
@@ -211,7 +214,7 @@ class LibSimulate():
                 pin[i].type = ascot2py.input_particle_type_p
                 p = pin[i].p
 
-                vvec = np.array([vr[i], vphi[i], vz[i]])
+                vvec = np.array([vr[i], vphi[i], vz[i]])*unyt.m/unyt.s
                 pvec = physlib.momentum_velocity(mrk["mass"][i], vvec)
 
                 p.r       = r[i]
