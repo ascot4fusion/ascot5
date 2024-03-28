@@ -129,16 +129,10 @@ int main(int argc, char** argv) {
     mpi_interface_init(argc, argv, &sim, &mpi_rank, &mpi_size, &mpi_root);
 
     print_out0(VERBOSE_MINIMAL, mpi_rank, "ASCOT5_MAIN\n");
-
-#ifdef GIT_VERSION
     print_out0(VERBOSE_MINIMAL, mpi_rank,
                "Tag %s\nBranch %s\n\n", GIT_VERSION, GIT_BRANCH);
-#else
-    print_out0(VERBOSE_MINIMAL, mpi_rank,
-               "Not under version control\n\n");
-#endif
-    print_out0(VERBOSE_NORMAL, mpi_rank,
-               "Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
+    print_out(VERBOSE_NORMAL,
+              "Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
 
     /* Total number of markers to be simulated */
     int n_tot;
@@ -173,6 +167,7 @@ int main(int argc, char** argv) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
                    "\nInput reading or initializing failed.\n"
                    "See stderr for details.\n");
+        mpi_interface_finalize();
         abort();
         return 1;
     };
@@ -533,8 +528,8 @@ int offload_and_simulate(
     }
 
     /* Code execution returns to host. */
-    print_out0(VERBOSE_NORMAL, mpi_rank, "gpu %lf s, host %lf s\n",
-               mic_end-mic_start, host_end-host_start);
+    print_out(VERBOSE_NORMAL, "process %d finished: gpu %lf s, host %lf s\n",
+              mpi_rank, mic_end-mic_start, host_end-host_start);
 
     /* Gather output data */
     mpi_gather_particlestate(pin, pout, n_gathered, n_tot,
