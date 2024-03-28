@@ -817,7 +817,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         """
         if not isinstance(rho, list): rho = [rho]
         for rhoval in rho:
-            v  = 1.0 * np.ones((ntheta,))
+            v  = rhoval * np.ones((ntheta,))
             th = np.linspace(0,2*np.pi,ntheta)*unyt.rad
             r, z = self.input_rhotheta2rz(v, th, phi, t)
             axes.plot(r, z, **kwargs)
