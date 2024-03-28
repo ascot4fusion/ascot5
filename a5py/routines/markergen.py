@@ -131,7 +131,7 @@ class MarkerGenerator():
                 + (edges[idx+1] - edges[idx]) * np.random.rand(idx.size,)
 
         if set(['r', 'phi', 'z']).issubset(markerdist.abscissae):
-            mrk["r"]   = randomize(markerdist.abscissa_edges("r"),   ic2)
+            mrk["r"]   = randomize(markerdist.abscissa_edges("r"),   ic1)
             mrk["phi"] = randomize(markerdist.abscissa_edges("phi"), ic2)
             mrk["z"]   = randomize(markerdist.abscissa_edges("z"),   ic3)
         elif set(['rho', 'theta', 'phi']).issubset(markerdist.abscissae):
