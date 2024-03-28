@@ -204,6 +204,9 @@ void dist_6D_update_fo(dist_6D_data* dist, particle_simd_fo* p_f,
  * calculated as vector op and histogram is updates as an atomic operation to
  * avoid race conditions.
  *
+ * Since GC simulations support adaptive stepping, this function deposits half
+ * of the weight to the initial cell and the remaining half to the final cell.
+ *
  * @param dist pointer to distribution parameter struct
  * @param p_i pointer to SIMD GC struct at the beginning of time step
  * @param p_f pointer to SIMD GC struct at the end of time step
@@ -212,14 +215,10 @@ void dist_6D_update_gc(dist_6D_data* dist, particle_simd_gc* p_f,
                        particle_simd_gc* p_i) {
     real phi[NSIMD];
 
-    int i_r[NSIMD];
-    int i_phi[NSIMD];
-    int i_z[NSIMD];
-    int i_pr[NSIMD];
-    int i_pphi[NSIMD];
-    int i_pz[NSIMD];
-    int i_time[NSIMD];
-    int i_q[NSIMD];
+    int i_r[NSIMD], i_phi[NSIMD], i_z[NSIMD], i_pr[NSIMD], i_pphi[NSIMD],
+        i_pz[NSIMD], i_time[NSIMD], i_q[NSIMD];
+    int f_r[NSIMD], f_phi[NSIMD], f_z[NSIMD], f_pr[NSIMD], f_pphi[NSIMD],
+        f_pz[NSIMD], f_time[NSIMD], f_q[NSIMD];
 
     int ok[NSIMD];
     real weight[NSIMD];
@@ -228,29 +227,39 @@ void dist_6D_update_gc(dist_6D_data* dist, particle_simd_gc* p_f,
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
 
-            real pr, pphi, pz;
-            real B_dB[12] = {
-                p_f->B_r[i], p_f->B_r_dr[i], p_f->B_r_dphi[i], p_f->B_r_dz[i],
-                p_f->B_phi[i], p_f->B_phi_dr[i], p_f->B_phi_dphi[i],
-                p_f->B_phi_dz[i],
-                p_f->B_z[i], p_f->B_z_dr[i], p_f->B_z_dphi[i], p_f->B_z_dz[i]};
-            gctransform_pparmuzeta2prpphipz(p_f->mass[i], p_f->charge[i], B_dB,
-                                            p_f->phi[i], p_f->ppar[i],
-                                            p_f->mu[i], p_f->zeta[i],
-                                            &pr, &pphi, &pz);
-
-            i_r[i] = floor((p_f->r[i] - dist->min_r)
+            i_r[i] = floor((p_i->r[i] - dist->min_r)
+                     / ((dist->max_r - dist->min_r)/dist->n_r));
+            f_r[i] = floor((p_f->r[i] - dist->min_r)
                      / ((dist->max_r - dist->min_r)/dist->n_r));
 
-            phi[i] = fmod(p_f->phi[i], 2*CONST_PI);
+            phi[i] = fmod(p_i->phi[i], 2*CONST_PI);
             if(phi[i] < 0) {
                 phi[i] = phi[i] + 2*CONST_PI;
             }
             i_phi[i] = floor((phi[i] - dist->min_phi)
                        / ((dist->max_phi - dist->min_phi)/dist->n_phi));
+            phi[i] = fmod(p_f->phi[i], 2*CONST_PI);
+            if(phi[i] < 0) {
+                phi[i] = phi[i] + 2*CONST_PI;
+            }
+            f_phi[i] = floor((phi[i] - dist->min_phi)
+                       / ((dist->max_phi - dist->min_phi)/dist->n_phi));
 
-            i_z[i] = floor((p_f->z[i] - dist->min_z)
-                     / ((dist->max_z - dist->min_z) / dist->n_z));
+            i_z[i] = floor((p_i->z[i] - dist->min_z)
+                    / ((dist->max_z - dist->min_z) / dist->n_z));
+            f_z[i] = floor((p_f->z[i] - dist->min_z)
+                    / ((dist->max_z - dist->min_z) / dist->n_z));
+
+            real pr, pphi, pz;
+            real B_dBi[12] = {
+                p_i->B_r[i], p_i->B_r_dr[i], p_i->B_r_dphi[i], p_i->B_r_dz[i],
+                p_i->B_phi[i], p_i->B_phi_dr[i], p_i->B_phi_dphi[i],
+                p_i->B_phi_dz[i],
+                p_i->B_z[i], p_i->B_z_dr[i], p_i->B_z_dphi[i], p_i->B_z_dz[i]};
+            gctransform_pparmuzeta2prpphipz(p_i->mass[i], p_i->charge[i], B_dBi,
+                                            p_i->phi[i], p_i->ppar[i],
+                                            p_i->mu[i], p_i->zeta[i],
+                                            &pr, &pphi, &pz);
 
             i_pr[i] = floor((pr - dist->min_pr)
                       / ((dist->max_pr - dist->min_pr) / dist->n_pr));
@@ -261,10 +270,33 @@ void dist_6D_update_gc(dist_6D_data* dist, particle_simd_gc* p_f,
             i_pz[i] = floor((pz - dist->min_pz)
                       / ((dist->max_pz - dist->min_pz) / dist->n_pz));
 
-            i_time[i] = floor((p_f->time[i] - dist->min_time)
+            real B_dBf[12] = {
+                p_f->B_r[i], p_f->B_r_dr[i], p_f->B_r_dphi[i], p_f->B_r_dz[i],
+                p_f->B_phi[i], p_f->B_phi_dr[i], p_f->B_phi_dphi[i],
+                p_f->B_phi_dz[i],
+                p_f->B_z[i], p_f->B_z_dr[i], p_f->B_z_dphi[i], p_f->B_z_dz[i]};
+            gctransform_pparmuzeta2prpphipz(p_f->mass[i], p_f->charge[i], B_dBf,
+                                            p_f->phi[i], p_f->ppar[i],
+                                            p_f->mu[i], p_f->zeta[i],
+                                            &pr, &pphi, &pz);
+
+            f_pr[i] = floor((pr - dist->min_pr)
+                      / ((dist->max_pr - dist->min_pr) / dist->n_pr));
+
+            f_pphi[i] = floor((pphi - dist->min_pphi)
+                        / ((dist->max_pphi - dist->min_pphi) / dist->n_pphi));
+
+            f_pz[i] = floor((pz - dist->min_pz)
+                      / ((dist->max_pz - dist->min_pz) / dist->n_pz));
+
+            i_time[i] = floor((p_i->time[i] - dist->min_time)
+                          / ((dist->max_time - dist->min_time) / dist->n_time));
+            f_time[i] = floor((p_f->time[i] - dist->min_time)
                           / ((dist->max_time - dist->min_time) / dist->n_time));
 
-            i_q[i] = floor((p_f->charge[i]/CONST_E - dist->min_q)
+            i_q[i] = floor((p_i->charge[i]/CONST_E - dist->min_q)
+                           / ((dist->max_q - dist->min_q) / dist->n_q));
+            f_q[i] = floor((p_f->charge[i]/CONST_E - dist->min_q)
                            / ((dist->max_q - dist->min_q) / dist->n_q));
 
             if(i_r[i]    >= 0 && i_r[i]    <= dist->n_r - 1    &&
@@ -274,7 +306,15 @@ void dist_6D_update_gc(dist_6D_data* dist, particle_simd_gc* p_f,
                i_pphi[i] >= 0 && i_pphi[i] <= dist->n_pphi - 1 &&
                i_pz[i]   >= 0 && i_pz[i]   <= dist->n_pz - 1   &&
                i_time[i] >= 0 && i_time[i] <= dist->n_time - 1 &&
-               i_q[i]    >= 0 && i_q[i]    <= dist->n_q - 1      ) {
+               i_q[i]    >= 0 && i_q[i]    <= dist->n_q - 1    &&
+               f_r[i]    >= 0 && f_r[i]    <= dist->n_r - 1    &&
+               f_phi[i]  >= 0 && f_phi[i]  <= dist->n_phi - 1  &&
+               f_z[i]    >= 0 && f_z[i]    <= dist->n_z - 1    &&
+               f_pr[i]   >= 0 && f_pr[i]   <= dist->n_pr - 1   &&
+               f_pphi[i] >= 0 && f_pphi[i] <= dist->n_pphi - 1 &&
+               f_pz[i]   >= 0 && f_pz[i]   <= dist->n_pz - 1   &&
+               f_time[i] >= 0 && f_time[i] <= dist->n_time - 1 &&
+               f_q[i]    >= 0 && f_q[i]    <= dist->n_q - 1       ) {
                 ok[i] = 1;
                 weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
             }
@@ -286,12 +326,18 @@ void dist_6D_update_gc(dist_6D_data* dist, particle_simd_gc* p_f,
 
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i] && ok[i]) {
-            size_t index = dist_6D_index(
+            size_t idx_i = dist_6D_index(
                 i_r[i], i_phi[i], i_z[i], i_pr[i], i_pphi[i], i_pz[i],
                 i_time[i], i_q[i], dist->step_7, dist->step_6, dist->step_5,
                 dist->step_4, dist->step_3, dist->step_2, dist->step_1);
+            size_t idx_f = dist_6D_index(
+                f_r[i], f_phi[i], f_z[i], f_pr[i], f_pphi[i], f_pz[i],
+                f_time[i], f_q[i], dist->step_7, dist->step_6, dist->step_5,
+                dist->step_4, dist->step_3, dist->step_2, dist->step_1);
             #pragma omp atomic
-            dist->histogram[index] += weight[i];
+            dist->histogram[idx_i] += weight[i] / 2;
+            #pragma omp atomic
+            dist->histogram[idx_f] += weight[i] / 2;
         }
     }
 }
