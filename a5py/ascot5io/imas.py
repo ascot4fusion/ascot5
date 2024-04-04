@@ -56,6 +56,24 @@ class a5imas:
 
         return self.ids
 
+    def setIds(self,ids):
+        '''
+        This setter function is intended to be used when the IDS data is received as a python object, not read from file.
+        '''
+        self.ids = ids
+
+
+    def read(self, user, tokamak, version, shot, run, occurrence=0 ):
+        """
+        Open the IDS database and parse the data and then close it.
+        """
+        self.open( user, tokamak, version, shot, run, occurrence )
+        result = self.parse()
+        self.close()
+
+        return result
+
+
     def create(self, user, tokamak, version, shot, run, occurrence=0):
 
         # Put this inside the function, not to disturb usage where imas is not available
@@ -68,11 +86,11 @@ class a5imas:
         self.data_entry = imas.DBEntry(backend_id=backend,
                                   db_name=tokamak, shot=shot, run=run,
                                   user_name=user, data_version=version )
-        
+
 
         #data_entry.open()
         self.data_entry.create()
-                                  
+
         if self.ids_name == 'wall':
             #ids = data_entry.get(ids_name,occurrence)
             self.ids = imas.wall()
@@ -84,12 +102,12 @@ class a5imas:
             # "ids = imas.newids()"
 
     def write_data_entry(self):
-                                       
+
         self.data_entry.put(self.ids,self.occurrence)
 
         self.data_entry.close()
 
-    
+
     def close(self):
         self.ids.close()
 
@@ -112,13 +130,9 @@ class B_STS(a5imas):
         self.ids_name = "equilibrium"
 
 
-    def read(self, user, tokamak, version, shot, run, occurrence=0 ):
 
+    def parse(self):
 
-        # Put this inside the function, not to disturb usage where imas is not available
-        import imas
-
-        itm = self.open( user, tokamak, version, shot, run, occurrence )
 
 
 
@@ -495,7 +509,7 @@ class marker(a5imas):
         self.ids_name = "distribution_sources"
 
 
-    def read(self, user, tokamak, version, shot, run, occurrence=0 ):
+    def parse(self):
         """
         Read an IMAS 2D-wall into a dictionary, that is a drop-in replacement for a dict read from hdf5.
 
@@ -506,14 +520,10 @@ class marker(a5imas):
 
         """
 
-        # Put this inside the function, not to disturb usage where imas is not available
-        import imas
 
 
         timeIndex = 0
         unit      = 0
-
-        itm = self.open( user, tokamak, version, shot, run, occurrence )
 
         prts = []
 
@@ -720,7 +730,7 @@ class wall_2d(a5imas):
         self.ids_name = "wall"
 
 
-    def read(self, user, tokamak, version, shot, run, occurrence=0 ):
+    def parse(self):
         """
         Read an IMAS 2D-wall into a dictionary, that is a drop-in replacement for a dict read from hdf5.
 
@@ -731,20 +741,15 @@ class wall_2d(a5imas):
 
         """
 
-        # Put this inside the function, not to disturb usage where imas is not available
-        import imas
 
 
         timeIndex = 0
         unit      = 0
 
-        itm = self.open( user, tokamak, version, shot, run, occurrence )
-
         #itm.wall.get()
         r = self.ids.wall.description_2d[timeIndex].limiter.unit[unit].outline.r
         z = self.ids.wall.description_2d[timeIndex].limiter.unit[unit].outline.z
 
-        self.close()
 
         w = {
             "r"         : r,
@@ -763,7 +768,7 @@ class wall_3d(a5imas):
         self.ids_name = "wall"
 
 
-    def read(self, user, tokamak, version, shot, run, occurrence=0 ):
+    def parse(self):
         """
         Read an IMAS 3D-wall into a dictionary, that is a drop-in replacement for a dict read from hdf5.
 
@@ -773,7 +778,6 @@ class wall_3d(a5imas):
 
         """
 
-        itm = self.open( user, tokamak, version, shot, run, occurrence )
 
         description_ggd_index = 0
         grid_ggd_index        = 0
@@ -791,7 +795,6 @@ class wall_3d(a5imas):
 
         node_coordinates,edge_indexes,tria_indexes = self.get_nodes_edges_polygons(space)
 
-        self.close()
 
 
         # Convert 3D wall data to ASCOT5 format
@@ -809,7 +812,13 @@ class wall_3d(a5imas):
             "flag"           : flag,
             "flagIdList"     : flag,
             "flagIdStrings"  : ["IMAS 3D-wall ids u:{} db:{} v:{} s:{} r:{} o:{} desc:{} grid:{} sp:{}".format(
-                user,tokamak,version,shot,run,occurrence,description_ggd_index,grid_ggd_index,space_index )],
+                self.ids_coordinates['user'],
+                self.ids_coordinates['tokamak'],
+                self.ids_coordinates['version'],
+                self.ids_coordinates['shot'],
+                self.ids_coordinates['run'],
+                self.ids_coordinates['occurrence'],
+                description_ggd_index,grid_ggd_index,space_index )],
 
         }
 
