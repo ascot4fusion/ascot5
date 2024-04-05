@@ -56,12 +56,24 @@ class a5imas:
 
         return self.ids
 
-    def setIds(self,ids):
+    def setIds(self,ids,ids_coordinates=None):
         '''
-        This setter function is intended to be used when the IDS data is received as a python object, not read from file.
+        This setter function is intended to be used when the IDS data is
+        received as a python object, not read from file.
+
+        ids_coordinates could be e.g. {'user' : "username", 'tokamak' : 'test',
+                                       'version': "1.2.3", 'shot': '444',
+                                       'run' : "66", 'occurrence' : "0",
+                                       'ids_name': "equilibrium" }
         '''
         self.ids = ids
-
+        if ids_coordinates is not None:
+            self.ids_coordinates = ids_coordinates
+        else:
+            self.ids_coordinates = { 'user' : "undefined", 'tokamak' : 'undefined',
+                                     'version': "undefined", 'shot': 'undefined',
+                                     'run' : "undefined", 'occurrence' : "undefined",
+                                     'ids_name': self.ids_name }
 
     def read(self, user, tokamak, version, shot, run, occurrence=0 ):
         """
