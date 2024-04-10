@@ -119,11 +119,11 @@ int main(int argc, char** argv) {
 
     /* Initialize results group in the output file */
     if(mpi_rank == mpi_root) {
-        print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n")
-	  if( hdf5_interface_init_results(&sim, qid, "bmc") ) {
+        print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n");
+        if( hdf5_interface_init_results(&sim, qid, "bmc") ) {
             print_out0(VERBOSE_MINIMAL, mpi_rank,
-                    "\nInitializing output failed.\n"
-                    "See stderr for details.\n");
+                       "\nInitializing output failed.\n"
+                       "See stderr for details.\n");
             /* Free offload data and terminate */
             goto CLEANUP_FAILURE;
         };
@@ -139,7 +139,7 @@ int main(int argc, char** argv) {
         real* z    = (real*) malloc( mesh.size * HERMITE_KNOTS * sizeof(real));
         real* mom1 = (real*) malloc( mesh.size * HERMITE_KNOTS * sizeof(real));
         real* mom2 = (real*) malloc( mesh.size * HERMITE_KNOTS * sizeof(real));
-        int* fate = (int*) malloc( mesh.size * HERMITE_KNOTS * sizeof(int));
+        int* fate  = (int*)  malloc( mesh.size * HERMITE_KNOTS * sizeof(int));
 
         simulate_bmc_gc(&sim_data, &mesh, sim_data.bmc_timestep,
                         sim_data.bmc_tstart, start, stop,
@@ -177,14 +177,16 @@ int main(int argc, char** argv) {
     for(size_t i3=0; i3<d->n_z; i3++)
     for(size_t i2=0; i2<d->n_ppara; i2++)
     for(size_t i1=0; i1<d->n_pperp; i1++) {
-        real val = bmc_mesh_interpolate(&mesh,
-        d->min_r     + ((float)i5+0.5)*(d->max_r - d->min_r) / (d->n_r - 1),
-        d->min_phi   + (i4+0.5)*(d->max_phi - d->min_phi) / (d->n_phi),
-        d->min_z     + ((float)i3+0.5)*(d->max_z - d->min_z) / (d->n_z - 1),
-        d->min_ppara + ((float)i2+0.5)*(d->max_ppara - d->min_ppara) / (d->n_ppara - 1),
-        d->min_pperp + ((float)i1+0.5)*(d->max_pperp - d->min_pperp) / (d->n_pperp - 1));
+        real val = bmc_mesh_interpolate(
+            &mesh,
+            d->min_r     + ((float)i5+0.5)*(d->max_r - d->min_r) / (d->n_r - 1),
+            d->min_phi   + ((float)i4+0.5)*(d->max_phi - d->min_phi) / (d->n_phi),
+            d->min_z     + ((float)i3+0.5)*(d->max_z - d->min_z) / (d->n_z - 1),
+            d->min_ppara + ((float)i2+0.5)*(d->max_ppara - d->min_ppara) / (d->n_ppara - 1),
+            d->min_pperp + ((float)i1+0.5)*(d->max_pperp - d->min_pperp) / (d->n_pperp - 1));
         size_t i0 = dist_5D_index(i5, i4, i3, i2, i1, 0, 0,
-        d->step_6, d->step_5, d->step_4, d->step_3, d->step_2, d->step_1);
+                                  d->step_6, d->step_5, d->step_4, d->step_3,
+                                  d->step_2, d->step_1);
         diag_offload_array[i0] = val;
     }
     B_field_free_offload(&sim.B_offload_data, &B_offload_array);

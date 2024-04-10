@@ -71,7 +71,7 @@ void simulate_bmc_gc(
     }
 
     /* Go through the mesh in chunks of NSIMD */
-    #pragma omp parallel for \
+    #pragma omp parallel for                                         \
         shared(sim, mesh, h_orb, h_coll, hermite_k_nsimd, start, stop, \
         r, phi, z, mom1, mom2, fate)
     for(size_t iprt=start; iprt < stop + NSIMD; iprt += NSIMD) {
@@ -97,7 +97,7 @@ void simulate_bmc_gc(
                 //real ekin  = physlib_Ekin_pnorm(sim->bmc_mass, pnorm);
                 real ekin = origin[3];
                 real xi = origin[4];
-                if(xi >= -1) xi = -0.9999; //Not sure if these are needed
+                if(xi <= -1) xi = -0.9999; //Not sure if these are needed
                 if(xi >= 1) xi = 0.9999;
 
                 particle_gc gc;
@@ -182,8 +182,11 @@ void simulate_bmc_gc(
                     p_knot.running[i] = 0;
                 }
             }
-            mccc_gc_euler(&p_knot, h_coll, &sim->B_data, &sim->plasma_data,
-                          &sim->mccc_data, &(hermite_k_nsimd[i_knot*5*NSIMD]));
+            if(sim->enable_clmbcol) {
+                mccc_gc_euler(
+                    &p_knot, h_coll, &sim->B_data, &sim->plasma_data,
+                    &sim->mccc_data, &(hermite_k_nsimd[i_knot*5*NSIMD]));
+            }
             /* Store the final locations*/
             for(int i=0; i<NSIMD; i++) {
                 size_t idx = (iprt+i) * HERMITE_KNOTS + i_knot;
@@ -199,20 +202,20 @@ void simulate_bmc_gc(
                                       + p_knot.B_z[i]   * p_knot.B_z[i]);
                     real pnorm = physlib_gc_p(p_knot.mass[i], p_knot.mu[i],
                                               p_knot.ppar[i], Bnorm);
-                    real pperp2 = fabs(  pnorm * pnorm
-                                       - p_knot.ppar[i] * p_knot.ppar[i]);
+                    //real pperp2 = fabs(  pnorm * pnorm
+                    //                   - p_knot.ppar[i] * p_knot.ppar[i]);
                     //mom2[idx] = sqrt(pperp2);
                     mom1[idx] = physlib_Ekin_pnorm(p_knot.mass[i], pnorm);
                     mom2[idx] = p_knot.ppar[i] / pnorm;
                     fate[idx] = 0;
                 }
                 else if(iprt + i < stop) {
-                    r[idx]     = 0;
-                    phi[idx]   = 0;
-                    z[idx]     = 0;
+                    r[idx]    = 0;
+                    phi[idx]  = 0;
+                    z[idx]    = 0;
                     mom1[idx] = 0;
                     mom2[idx] = 0;
-                    fate[idx]  = lost[i];
+                    fate[idx] = lost[i];
                 }
             }
         }
