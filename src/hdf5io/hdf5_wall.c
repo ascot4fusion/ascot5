@@ -173,7 +173,6 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
     for(int i=0; i<nelements; i++) {
         (*int_offload_array)[i] = (int)flag[i];
     }
-    free(flag);
 
     return 0;
 }

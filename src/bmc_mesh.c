@@ -39,20 +39,21 @@ int bmc_mesh_init(real min_r,     real max_r,     int n_r,
                   real min_mom1, real max_mom1, int n_mom1,
                   real min_mom2, real max_mom2, int n_mom2,
                   bmc_mesh* mesh) {
-    mesh->n_r     = n_r + 1;
-    mesh->n_phi   = n_phi;
-    mesh->n_z     = n_z + 1;
+    mesh->n_r    = n_r + 1;
+    mesh->n_phi  = n_phi;
+    mesh->n_z    = n_z + 1;
     mesh->n_mom1 = n_mom1 + 1;
     mesh->n_mom2 = n_mom2 + 1;
-    mesh->size = ((size_t) mesh->n_r) * ((size_t) mesh->n_phi) * ((size_t) mesh->n_z)
-               * ((size_t) mesh->n_mom1) * ((size_t) mesh->n_mom2);
-    mesh->r        = (real*) malloc(mesh->n_r     * sizeof(real));
-    mesh->phi      = (real*) malloc(mesh->n_phi   * sizeof(real));
-    mesh->z        = (real*) malloc(mesh->n_z     * sizeof(real));
-    mesh->mom1    = (real*) malloc(mesh->n_mom1 * sizeof(real));
-    mesh->mom2    = (real*) malloc(mesh->n_mom2 * sizeof(real));
-    mesh->val_next = (real*) malloc(mesh->size    * sizeof(real));
-    mesh->val_prev = (real*) malloc(mesh->size    * sizeof(real));
+    mesh->size = ((size_t) mesh->n_r) * ((size_t) mesh->n_phi)
+        * ((size_t) mesh->n_z) * ((size_t) mesh->n_mom1)
+        * ((size_t) mesh->n_mom2);
+    mesh->r        = (real*) malloc(mesh->n_r    * sizeof(real));
+    mesh->phi      = (real*) malloc(mesh->n_phi  * sizeof(real));
+    mesh->z        = (real*) malloc(mesh->n_z    * sizeof(real));
+    mesh->mom1     = (real*) malloc(mesh->n_mom1 * sizeof(real));
+    mesh->mom2     = (real*) malloc(mesh->n_mom2 * sizeof(real));
+    mesh->val_next = (real*) malloc(mesh->size   * sizeof(real));
+    mesh->val_prev = (real*) malloc(mesh->size   * sizeof(real));
 
     /* Store abscissae */
     for(int i=0; i<=n_r; i++)
@@ -98,9 +99,11 @@ void bmc_mesh_free(bmc_mesh* mesh) {
  * @param coords array where coordinates (R,phi,z,mom1,mom2) will be stored
  */
 void bmc_mesh_index2pos(bmc_mesh* mesh, size_t idx, real coords[5]) {
-    int mom2 = round( idx /
-        ( mesh->n_r * mesh->n_z * mesh->n_phi * mesh->n_mom1 ) );
-    idx -= mom2 * mesh->n_r * mesh->n_z * mesh->n_phi * mesh->n_mom1;
+
+    int mom2 = round( idx / (   mesh->n_r * mesh->n_z
+                              * mesh->n_phi * mesh->n_mom1 ) );
+    idx -= mom2 * mesh->n_r * mesh->n_z * mesh->n_phi
+                * mesh->n_mom1;
     int mom1 = round( idx / ( mesh->n_r * mesh->n_z * mesh->n_phi ) );
     idx -= mom1 * mesh->n_r * mesh->n_z * mesh->n_phi;
     int phi   = round( idx / ( mesh->n_r * mesh->n_z ) );
@@ -119,14 +122,10 @@ void bmc_mesh_index2pos(bmc_mesh* mesh, size_t idx, real coords[5]) {
 real bmc_mesh_interpolate(bmc_mesh* mesh, real r, real phi, real z, real mom1,
                           real mom2) {
     /* Find the matrix indices where this pseudo-particle belongs to */
-    size_t i_r = ((r - mesh->r[0])
-        / (mesh->r[1] - mesh->r[0]));
-    size_t i_z = ((z - mesh->z[0])
-        / (mesh->z[1] - mesh->z[0]));
-    size_t i_mom1 = ((mom1 - mesh->mom1[0])
-    / (mesh->mom1[1] - mesh->mom1[0]));
-    size_t i_mom2 = ((mom2 - mesh->mom2[0])
-        / (mesh->mom2[1] - mesh->mom2[0]));
+    size_t i_r = ((r - mesh->r[0]) / (mesh->r[1] - mesh->r[0]));
+    size_t i_z = ((z - mesh->z[0]) / (mesh->z[1] - mesh->z[0]));
+    size_t i_mom1 = ((mom1 - mesh->mom1[0]) / (mesh->mom1[1] - mesh->mom1[0]));
+    size_t i_mom2 = ((mom2 - mesh->mom2[0]) / (mesh->mom2[1] - mesh->mom2[0]));
 
     /* Periodic variable */
     size_t i_phi, i_phi1;
@@ -141,9 +140,9 @@ real bmc_mesh_interpolate(bmc_mesh* mesh, real r, real phi, real z, real mom1,
 
     /* Zero outside */
     real val = 0;
-    if(i_mom1 >= 0 && i_mom1 < mesh->n_mom1-2 &&
-       i_mom2 >= 0 && i_mom2 < mesh->n_mom2-2 &&
-       i_r >= 0 && i_r < mesh->n_r-2 && i_z >= 0 && i_z < mesh->n_z-2) {
+    if(i_mom1 >= 0 && i_mom1 < mesh->n_mom1 &&
+       i_mom2 >= 0 && i_mom2 < mesh->n_mom2 &&
+       i_r >= 0 && i_r < mesh->n_r && i_z >= 0 && i_z < mesh->n_z) {
 
         /* Interpolate the probability value at the particle location
         *  using the nearby nodes (for linear interpolation) */
@@ -231,16 +230,16 @@ void bmc_mesh_update(bmc_mesh* mesh, size_t start, size_t stop,
                      int* fate) {
 
     real hermite_w[HERMITE_KNOTS] = HERMITE_W;
-    #pragma omp parallel for \
+    #pragma omp parallel for                                  \
         shared(start, stop, mesh, r, phi, z, mom1, mom2, fate)
     for(size_t iprt=start; iprt < stop; iprt++) {
 
         size_t idx = (iprt-start)*HERMITE_KNOTS;
         for(int i_knot=0; i_knot<HERMITE_KNOTS; i_knot++) {
 
-            real ri = r[idx + i_knot];
-            real zi = z[idx + i_knot];
-            real phii = phi[idx + i_knot];
+            real ri    = r[idx + i_knot];
+            real zi    = z[idx + i_knot];
+            real phii  = phi[idx + i_knot];
             real mom1i = mom1[idx + i_knot];
             real mom2i = mom2[idx + i_knot];
 
