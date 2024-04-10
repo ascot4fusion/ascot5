@@ -226,20 +226,21 @@ def combineoutput(fnt, fns, add=True):
                     tdata[field].resize((tsize+ssize, ))
                     tdata[field][tsize:] = sdata[field][:]
         else:
-            # Sort target inistate by id.
-            if "inistate" in target:
-                tdata = target["inistate"]
-                idx = np.argsort(tdata["ids"][:])
-                for field in tdata:
-                    tdata[field][:] = tdata[field][:][idx]
-
-            # Replace target endstate with sorted by id source endstate.
+            # Sort both target and source data by id and replace
             if "endstate" in target and "endstate" in source:
                 tdata = target["endstate"]
                 sdata = source["endstate"]
-                idx = np.argsort(sdata["ids"][:])
+                t_sorted = np.argsort(tdata["ids"][:])
+                s_sorted = np.argsort(sdata["ids"][:])
+                idx = np.argwhere(np.in1d(tdata['ids'][t_sorted],
+                                          sdata['ids'][s_sorted])).ravel()
                 for field in tdata:
-                    tdata[field][:] = sdata[field][:][idx]
+                    data = tdata[field][:][t_sorted]
+                    if field in ['time', 'mileage', 'cputime']:
+                        data[idx] += sdata[field][:][s_sorted]
+                    else:
+                        data[idx] = sdata[field][:][s_sorted]
+                    tdata[field][:] = data
 
         # Combine dists
         for d in ["5d", "6d", "rho5d", "rho6d", "com"]:
