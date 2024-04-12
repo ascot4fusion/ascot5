@@ -129,6 +129,7 @@ except OSError as error:
 if err:
     if not 'libascot.so' in str(err): raise ImportError(str(err))
 if 'libascot.so' not in _libraries:
+    err = 0
     try:
         _libraries['libascot.so'] = ctypes.CDLL('libascot.so')
     except OSError as error:
