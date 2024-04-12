@@ -19,6 +19,7 @@ for line in fileinput.input("src/ascot2py.py", inplace=True):
             "if err:\n"
             "    if not 'libascot.so' in str(err): raise ImportError(str(err))\n"
             "if 'libascot.so' not in _libraries:\n"
+            "    err = 0\n"
             "    try:\n"
             "        _libraries['libascot.so'] = ctypes.CDLL('libascot.so')\n"
             "    except OSError as error:\n"
