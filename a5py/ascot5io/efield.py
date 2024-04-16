@@ -79,8 +79,8 @@ class E_TC(DataGroup):
 
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
@@ -88,17 +88,13 @@ class E_TC(DataGroup):
 
         This dummy input sets electric field to zero everywhere.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        return E_TC.write_hdf5(fn=fn, exyz=np.array([0,0,0]), desc="DUMMY")
+        return {"exyz":np.array([0,0,0])}
 
 class E_3D(DataGroup):
     """3D electric field that is linearly interpolated.
@@ -217,8 +213,8 @@ class E_3D(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
@@ -226,20 +222,16 @@ class E_3D(DataGroup):
 
         This dummy input sets electric field to zero everywhere.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        return E_3D.write_hdf5(fn=fn, rmin=1, rmax=10, nr=3, zmin=-10, zmax=10,
-                               nz=3, phimin=0, phimax=360, nphi=3,
-                               er=np.zeros((3,3,3)), ephi=np.zeros((3,3,3)),
-                               ez=np.zeros((3,3,3)), desc="DUMMY")
+        return {"rmin":1, "rmax":10, "nr":3, "zmin":-10, "zmax":10,
+                "nz":3, "phimin":0, "phimax":360, "nphi":3,
+                "er":np.zeros((3,3,3)), "ephi":np.zeros((3,3,3)),
+                "ez":np.zeros((3,3,3))}
 
 class E_3DS(DataGroup):
     """3D electric field interpolated with cubic splines.
@@ -359,8 +351,8 @@ class E_3DS(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
@@ -368,20 +360,16 @@ class E_3DS(DataGroup):
 
         This dummy input sets electric field to zero everywhere.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        return E_3DS.write_hdf5(fn=fn, rmin=1, rmax=10, nr=3, zmin=-10, zmax=10,
-                                nz=3, phimin=0, phimax=360, nphi=3,
-                                er=np.zeros((3,3,3)), ephi=np.zeros((3,3,3)),
-                                ez=np.zeros((3,3,3)), desc="DUMMY")
+        return {"rmin":1, "rmax":10, "nr":3, "zmin":-10, "zmax":10,
+                "nz":3, "phimin":0, "phimax":360, "nphi":3,
+                "er":np.zeros((3,3,3)), "ephi":np.zeros((3,3,3)),
+                "ez":np.zeros((3,3,3))}
 
 class E_3DST(DataGroup):
     """Time-dependent 3D electric field interpolated with cubic splines.
@@ -509,8 +497,8 @@ class E_3DST(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
@@ -518,22 +506,16 @@ class E_3DST(DataGroup):
 
         This dummy input sets electric field to zero everywhere.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        return E_3DST.write_hdf5(
-            fn=fn, rmin=1, rmax=10, nr=3, zmin=-10, zmax=10,
-            nz=3, phimin=0, phimax=360, nphi=3, tmin=0, tmax=1,
-            nt=3, er=np.zeros((3,3,3,3)),
-            ephi=np.zeros((3,3,3,3)), ez=np.zeros((3,3,3,3)),
-            desc="DUMMY")
+        return {"rmin":1, "rmax":10, "nr":3, "zmin":-10, "zmax":10,
+                "nz":3, "phimin":0, "phimax":360, "nphi":3, "tmin":0, "tmax":1,
+                "nt":3, "er":np.zeros((3,3,3,3)), "ephi":np.zeros((3,3,3,3)),
+                "ez":np.zeros((3,3,3,3))}
 
 class E_1DS(DataGroup):
     """One-dimensional electric field interpolated with cubic splines.
@@ -617,8 +599,8 @@ class E_1DS(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
@@ -626,15 +608,11 @@ class E_1DS(DataGroup):
 
         This dummy input sets electric field to zero everywhere.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        return E_1DS.write_hdf5(fn=fn, nrho=3, rhomin=0, rhomax=1,
-                                dvdrho=np.zeros((3,)), reff=1, desc="DUMMY")
+        return {"nrho":3, "rhomin":0, "rhomax":1, "dvdrho":np.zeros((3,)),
+                "reff":1}

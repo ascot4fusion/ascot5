@@ -103,27 +103,23 @@ class B_TC(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
         presence is needed but which is not actually used in simulation.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
         bxyz = np.array([1,0,3])
         jac  = np.array([ [0,0,0.01], [0,0,0], [0,0,0] ])
-        return B_TC.write_hdf5(fn=fn, bxyz=bxyz, jacobian=jac, rhoval=0.5,
-                               psival=1.5, axisr=6, axisz=0, desc="DUMMY")
+        return {"bxyz":bxyz, "jacobian":jac, "rhoval":0.5,
+                "psival":1.5, "axisr":6, "axisz":0}
 
 class B_GS(DataGroup):
     """Analytical tokamak field.
@@ -255,30 +251,26 @@ class B_GS(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
         presence is needed but which is not actually used in simulation.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
         coefficients = np.array([ 2.218e-02, -1.288e-01, -4.177e-02, -6.227e-02,
                                   6.200e-03, -1.205e-03, -3.701e-05,  0,
                                   0,          0,          0,          0,
                                   -0.155])
-        return B_GS.write_hdf5(fn, r0=6.2, z0=0, bphi0=5.3, psimult=200,
-                               coefficients=coefficients, nripple=1, a0=2,
-                               alpha0=2, delta0=0.05, desc="DUMMY")
+        return {"r0":6.2, "z0":0, "bphi0":5.3, "psimult":200,
+                "coefficients":coefficients, "nripple":1, "a0":2, "alpha0":2,
+                "delta0":0.05}
 
 
 class B_2DS(DataGroup):
@@ -417,8 +409,8 @@ class B_2DS(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
@@ -426,15 +418,11 @@ class B_2DS(DataGroup):
 
         The dummy output is an ITER-like but circular equilibrium.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
         # ITER-like but circular equilibrium
         coefficients = np.array([ 2.218e-02, -1.288e-01, -4.177e-02, -6.227e-02,
@@ -444,7 +432,7 @@ class B_2DS(DataGroup):
         gs = {"rmin":1, "rmax":6, "nr":50, "zmin":-4, "zmax":4, "nz":100,
               "r0":6.2, "z0":0, "bphi0":5.3, "psimult":200,
               "coefficients":coefficients}
-        return B_2DS.write_hdf5(fn=fn, desc="DUMMY", **B_2DS.convert_B_GS(**gs))
+        return B_2DS.convert_B_GS(**gs)
 
     @staticmethod
     def convert_B_GS(rmin, rmax, nr, zmin, zmax, nz, **kwargs):
@@ -714,22 +702,18 @@ class B_3DS(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
         presence is needed but which is not actually used in simulation.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
         coefficients = np.array([ 2.218e-02, -1.288e-01, -4.177e-02, -6.227e-02,
                                   6.200e-03, -1.205e-03, -3.701e-05,  0,
@@ -740,7 +724,7 @@ class B_3DS(DataGroup):
               "r0":6.2, "z0":0, "bphi0":5.3, "psimult":200,
               "coefficients":coefficients, "nripple":18, "a0":2, "alpha0":2,
               "delta0":0.05}
-        return B_3DS.write_hdf5(fn=fn, desc="DUMMY", **B_3DS.convert_B_GS(**gs))
+        return B_3DS.convert_B_GS(**gs)
 
     @staticmethod
     def convert_B_GS(rmin, rmax, nr, zmin, zmax, nz, phimin, phimax, nphi,
@@ -1003,31 +987,26 @@ class B_3DST(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
         presence is needed but which is not actually used in simulation.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        B_3DST.write_hdf5(
-            fn=fn, b_rmin=4, b_rmax=8, b_nr=3, b_zmin=-2, b_zmax=2,
-            b_nz=3, b_phimin=0, b_phimax=360, b_nphi=3, b_tmin=1,
-            b_tmax=1, b_nt=3, axisr=4, axisz=0, psi0=0,
-            psi1=1, br=np.zeros((3,3,3,3)), bphi=np.ones((3,3,3,3)),
-            bz=np.zeros((3,3,3,3)), psi=0.5*np.ones((3,3)),
-            psi_rmin=4, psi_rmax=8, psi_nr=3,
-            psi_zmin=-2, psi_zmax=2, psi_nz=3, desc="DUMMY")
+        return {"b_rmin":4, "b_rmax":8, "b_nr":3, "b_zmin":-2, "b_zmax":2,
+                "b_nz":3, "b_phimin":0, "b_phimax":360, "b_nphi":3, "b_tmin":1,
+                "b_tmax":1, "b_nt":3, "axisr":4, "axisz":0, "psi0":0,
+                "psi1":1, "br":np.zeros((3,3,3,3)), "bphi":np.ones((3,3,3,3)),
+                "bz":np.zeros((3,3,3,3)), "psi":0.5*np.ones((3,3)),
+                "psi_rmin":4, "psi_rmax":8, "psi_nr":3,
+                "psi_zmin":-2, "psi_zmax":2, "psi_nz":3}
 
 class B_STS(DataGroup):
     """Stellarator magnetic field.
@@ -1224,33 +1203,28 @@ class B_STS(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
         presence is needed but which is not actually used in simulation.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        B_STS.write_hdf5(fn=fn, b_rmin=4, b_rmax=8, b_nr=3, b_zmin=-2, b_zmax=2,
-                         b_nz=3, b_phimin=0, b_phimax=360, b_nphi=3, psi0=0,
-                         psi1=1, br=np.zeros((3,3,3)), bphi=np.ones((3,3,3)),
-                         bz=np.zeros((3,3,3)), psi=0.5*np.ones((3,3,3)),
-                         axis_phimin=0, axis_phimax=360, axis_nphi=3,
-                         axisr=np.array([6,6,6]), axisz=np.array([0,0,0]),
-                         psi_rmin=4, psi_rmax=8, psi_nr=3,
-                         psi_zmin=-2, psi_zmax=2, psi_nz=3,
-                         psi_phimin=0, psi_phimax=360, psi_nphi=3,
-                         desc="DUMMY")
+        return {"b_rmin":4, "b_rmax":8, "b_nr":3, "b_zmin":-2, "b_zmax":2,
+                "b_nz":3, "b_phimin":0, "b_phimax":360, "b_nphi":3, "psi0":0,
+                "psi1":1, "br":np.zeros((3,3,3)), "bphi":np.ones((3,3,3)),
+                "bz":np.zeros((3,3,3)), "psi":0.5*np.ones((3,3,3)),
+                "axis_phimin":0, "axis_phimax":360, "axis_nphi":3,
+                "axisr":np.array([6,6,6]), "axisz":np.array([0,0,0]),
+                "psi_rmin":4, "psi_rmax":8, "psi_nr":3,
+                "psi_zmin":-2, "psi_zmax":2, "psi_nz":3,
+                "psi_phimin":0, "psi_phimax":360, "psi_nphi":3}
 
     @staticmethod
     def convert_B_GS(R0, z0, B_phi0, psi_mult, psi_coeff,
@@ -1296,7 +1270,7 @@ class B_STS(DataGroup):
         rgrid = np.linspace(Rmin, Rmax, nR)
         zgrid = np.linspace(zmin, zmax, nz)
 
-        zg, Rg = np.meshgrid(zgrid, rgrid);
+        zg, Rg = np.meshgrid(zgrid, rgrid)
 
         c = psi_coeff # For shorter notation.
         psiRz = psi_mult*psifun.psi0(Rg/R0,zg/R0,c[0],c[1],c[2],c[3],c[4],c[5],c[6],

@@ -262,8 +262,8 @@ class NBI(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
@@ -271,28 +271,21 @@ class NBI(DataGroup):
 
         The dummy output is a very large rectangular wall.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        nbi = {
-            "id" : 1, "nbeamlet" : 1,
-            "beamletx"  : np.array([1.0]), "beamlety"  : np.array([0.0]),
-            "beamletz"  : np.array([0.0]),
-            "beamletdx" : np.array([1.0]), "beamletdy" : np.array([0.0]),
-            "beamletdz" : np.array([0.0]),
-            "div_h" : 0.0, "div_v" : 0.0, "div_halo_frac" : 0.0,
-            "div_halo_h" : 0.0, "div_halo_v" : 0.0,
-            "anum" : 1.0,  "znum" : 1.0, "mass" : 1.0, "energy" : 1.0,
-            "efrac" : [1,0,0], "power" : 1
-        }
-        return NBI.write_hdf5(fn, 1, [nbi], desc="DUMMY")
+        return {"id":1, "nbeamlet":1,
+                "beamletx":np.array([1.0]), "beamlety":np.array([0.0]),
+                "beamletz":np.array([0.0]),
+                "beamletdx":np.array([1.0]), "beamletdy":np.array([0.0]),
+                "beamletdz":np.array([0.0]),
+                "div_h":0.0, "div_v":0.0, "div_halo_frac":0.0,
+                "div_halo_h":0.0, "div_halo_v":0.0,
+                "anum":1.0, "znum":1.0, "mass":1.0, "energy":1.0,
+                "efrac":[1,0,0], "power":1}
 
     @staticmethod
     def generate(r, phi, z, tanrad, focallen, dgrid, nbeamlet,
@@ -370,7 +363,7 @@ class NBI(DataGroup):
         focus = center + focallen * unitd + focallen * np.tan(tilt) * unitz
 
         n = {}
-        n["ids"]       = 1
+        n["ids"]       = ids
         n["nbeamlet"]  = nbeamlet
         n["beamletx"]  = np.zeros(nbeamlet)
         n["beamlety"]  = np.zeros(nbeamlet)

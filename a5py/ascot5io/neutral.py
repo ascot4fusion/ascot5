@@ -119,27 +119,22 @@ class N0_1D(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
         presence is needed but which is not actually used in simulation.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        return N0_1D.write_hdf5(
-            fn=fn, rhomin=0, rhomax=2, nrho=3, nspecies=1,
-            anum=np.array([1]), znum=np.array([1]),
-            density=np.ones((3, 1)), temperature=np.ones((3, 1)), desc="DUMMY")
+        return {"rhomin":0, "rhomax":2, "nrho":3, "nspecies":1,
+                "anum":np.array([1]), "znum":np.array([1]),
+                "density":np.ones((3, 1)), "temperature":np.ones((3, 1))}
 
 class N0_3D(DataGroup):
     """Non-axisymmetric neutral data.
@@ -276,25 +271,20 @@ class N0_3D(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
         presence is needed but which is not actually used in simulation.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        return N0_3D.write_hdf5(
-            fn=fn, rmin=0, rmax=100, nr=3, zmin=-100, zmax=100, nz=3, phimin=0,
-            phimax=360, nphi=3, nspecies=1, anum=np.array([1]),
-            znum=np.array([1]), density=np.ones((3,3,3,1)),
-            temperature=np.ones((3,3,3,1)), desc="DUMMY")
+        return {"rmin":0, "rmax":100, "nr":3, "zmin":-100, "zmax":100, "nz":3,
+                "phimin":0, "phimax":360, "nphi":3, "nspecies":1,
+                "anum":np.array([1]), "znum":np.array([1]),
+                "density":np.ones((3,3,3,1)), "temperature":np.ones((3,3,3,1))}
