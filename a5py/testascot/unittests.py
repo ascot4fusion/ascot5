@@ -312,14 +312,14 @@ class TestAscot5IO(unittest.TestCase):
             "bfield"  : ["B_TC", "B_GS", "B_2DS", "B_3DS", "B_STS",],
             "efield"  : ["E_TC", "E_1DS"],
                          #"E_3D", "E_3DS", "E_3DST",],
-            "marker"  : ["Prt", "GC", "FL",],
+            "marker"  : ["prt", "gc", "fl",],
             "wall"    : ["wall_2D", "wall_3D",],
             "plasma"  : ["plasma_1D", "plasma_1DS", "plasma_1Dt"],
             "neutral" : ["N0_1D", "N0_3D",],
             "boozer"  : ["Boozer",],
             "mhd"     : ["MHD_STAT", "MHD_NONSTAT",],
-            "asigma"  : ["Asigma_loc"],
-            "options" : ["Opt",],
+            "asigma"  : ["asigma_loc"],
+            "options" : ["opt",],
             #"nbi"     : ["NBI",],
             }
         a5 = Ascot(self.testfilename, create=True)
@@ -327,14 +327,9 @@ class TestAscot5IO(unittest.TestCase):
             mod = importlib.import_module("a5py.ascot5io." + parent)
 
             for grp in inp:
-                fun = getattr(getattr(mod, grp), "write_hdf5_dummy")
-                fun(self.testfilename)
-                a5 = Ascot(self.testfilename)
-                data = a5.data[parent].DUMMY.read()
+                a5.data.create_input(grp, desc="DUMMY")
 
-                fun = getattr(getattr(mod, grp), "write_hdf5")
-                fun(fn=self.testfilename, desc="DUMMY2", **data)
-                a5 = Ascot(self.testfilename)
+                a5.data.create_input(grp, desc="DUMMY2")
                 data = a5.data[parent].DUMMY2.read()
                 a5.data[parent].DUMMY.destroy()
                 a5.data[parent].DUMMY2.destroy()

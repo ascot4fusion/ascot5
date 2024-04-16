@@ -1076,26 +1076,22 @@ class Opt(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
         presence is needed but which is not actually used in simulation.
 
-        The default options are written.
-
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
+        The default options are created.
 
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        return Opt.write_hdf5(fn=fn, desc="DUMMY", **Opt.get_default())
+        return Opt.get_default()
 
     @staticmethod
     def get_default():

@@ -128,22 +128,18 @@ class Asigma_loc(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
         presence is needed but which is not actually used in simulation.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
         N_reac    = 1
         z_1       = 1 + np.zeros(N_reac, dtype=int)
@@ -161,6 +157,8 @@ class Asigma_loc(DataGroup):
         T_min     = 1e3  + np.zeros(N_reac, dtype=float)
         T_max     = 1e4  + np.zeros(N_reac, dtype=float)
         sigma = np.zeros((1,3*4*5))
-        return Asigma_loc.write_hdf5(fn, N_reac, z_1, a_1, z_2, a_2, reac_type,
-                                     N_E, E_min, E_max, N_n, n_min, n_max,
-                                     N_T, T_min, T_max, sigma, desc="DUMMY")
+        return {"nreac":N_reac, "z1":z_1, "a1":a_1, "z2":z_2, "a2":a_2,
+                "reactype":reac_type, "nenergy":N_E, "energymin":E_min,
+                "energymax":E_max, "ndensity":N_n, "densitymin":n_min,
+                "densitymax":n_max, "ntemperature":N_T, "temperaturemin":T_min,
+                "temperaturemax":T_max, "sigma":sigma}
