@@ -145,8 +145,8 @@ class wall_2D(DataGroup):
         return rmin, rmax
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
@@ -154,19 +154,15 @@ class wall_2D(DataGroup):
 
         The dummy output is a very large rectangular wall.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
         r = np.array([0.01, 100, 100, 0.01])
         z = np.array([-100, -100, 100, 100])
-        return wall_2D.write_hdf5(fn=fn, nelements=4, r=r, z=z, desc="DUMMY")
+        return {"nelements":4, "r":r, "z":z,}
 
 
 class wall_3D(DataGroup):
@@ -690,8 +686,8 @@ class wall_3D(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
@@ -699,20 +695,15 @@ class wall_3D(DataGroup):
 
         The dummy output consists of a single triangle on a poloidal plane.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        return wall_3D.write_hdf5(
-            fn=fn, nelements=1, x1x2x3=np.array([[4],[8],[8]]).T,
-            y1y2y3=np.array([[0],[0],[0]]).T,
-            z1z2z3=np.array([[-4],[-4],[4]]).T, desc="DUMMY")
+        return {"nelements":1, "x1x2x3":np.array([[4],[8],[8]]).T,
+                "y1y2y3":np.array([[0],[0],[0]]).T,
+                "z1z2z3":np.array([[-4],[-4],[4]]).T}
 
     @staticmethod
     def convert_wall_2D(nphi, **kwargs):

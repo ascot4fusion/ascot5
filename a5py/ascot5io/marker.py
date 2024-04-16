@@ -268,8 +268,8 @@ class FL(Marker):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
@@ -277,18 +277,13 @@ class FL(Marker):
 
         This dummy input sets electric field to zero everywhere.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        mrk = Marker.generate(n=1, mrktype="fl", species=None)
-        return FL.write_hdf5(fn=fn, desc="DUMMY", **mrk)
+        return Marker.generate(n=1, mrktype="fl", species=None)
 
 class GC(Marker):
     """Particle input in guiding-center coordinates.
@@ -428,8 +423,8 @@ class GC(Marker):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
@@ -437,18 +432,13 @@ class GC(Marker):
 
         This dummy input sets electric field to zero everywhere.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        mrk = Marker.generate(n=1, mrktype="gc", species="alpha")
-        return GC.write_hdf5(fn=fn, desc="DUMMY", **mrk)
+        return Marker.generate(n=1, mrktype="gc", species="alpha")
 
 class Prt(Marker):
     """Marker input representing physical particles.
@@ -602,8 +592,8 @@ class Prt(Marker):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
@@ -611,15 +601,10 @@ class Prt(Marker):
 
         This dummy input sets electric field to zero everywhere.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        mrk = Marker.generate(n=1, mrktype="prt", species="alpha")
-        return Prt.write_hdf5(fn=fn, desc="DUMMY", **mrk)
+        return Marker.generate(n=1, mrktype="prt", species="alpha")

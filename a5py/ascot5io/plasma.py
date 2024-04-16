@@ -173,8 +173,8 @@ class plasma_1D(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
@@ -182,22 +182,19 @@ class plasma_1D(DataGroup):
 
         The dummy output is an uniform hydrogen plasma.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        return plasma_1D.write_hdf5(
-            fn=fn, nrho=3, nion=1, znum=np.array([1]), anum=np.array([1]),
-            mass=np.array([1]), charge=np.array([1]),
-            rho=np.array([0, 0.5, 100]), edensity=1e20*np.ones((3,1)),
-            etemperature=1e3*np.ones((3,1)), idensity=1e20*np.ones((3,1)),
-            itemperature=1e20*np.ones((3,1)), desc="DUMMY")
+        return {"nrho":3, "nion":1, "znum":np.array([1]), "anum":np.array([1]),
+                "mass":np.array([1]), "charge":np.array([1]),
+                "rho":np.array([0, 0.5, 100]),
+                "edensity":1e20*np.ones((3,1)),
+                "etemperature":1e3*np.ones((3,1)),
+                "idensity":1e20*np.ones((3,1)),
+                "itemperature":1e20*np.ones((3,1))}
 
 class plasma_1DS(DataGroup):
     """Same input as :class:`plasma_1D` but interpolated with splines.
@@ -370,8 +367,8 @@ class plasma_1DS(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
@@ -379,22 +376,18 @@ class plasma_1DS(DataGroup):
 
         The dummy output is an uniform hydrogen plasma.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        return plasma_1DS.write_hdf5(
-            fn=fn, nrho=3, nion=1, znum=np.array([1]), anum=np.array([1]),
-            mass=np.array([1]), charge=np.array([1]),
-            rhomin=0, rhomax=100, edensity=1e20*np.ones((3,1)),
-            etemperature=1e3*np.ones((3,1)), idensity=1e20*np.ones((3,1)),
-            itemperature=1e3*np.ones((3,1)), desc="DUMMY")
+        return {"nrho":3, "nion":1, "znum":np.array([1]), "anum":np.array([1]),
+                "mass":np.array([1]), "charge":np.array([1]),
+                "rhomin":0, "rhomax":100, "edensity":1e20*np.ones((3,1)),
+                "etemperature":1e3*np.ones((3,1)),
+                "idensity":1e20*np.ones((3,1)),
+                "itemperature":1e3*np.ones((3,1))}
 
 class plasma_1Dt(DataGroup):
     """Time-dependent 1D plasma profiles.
@@ -508,8 +501,8 @@ class plasma_1Dt(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
@@ -517,20 +510,17 @@ class plasma_1Dt(DataGroup):
 
         The dummy output is an uniform hydrogen plasma.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        return plasma_1Dt.write_hdf5(
-            fn=fn, nrho=3, ntime=4, nion=1, znum=np.array([1]),
-            anum=np.array([1]), mass=np.array([1]), charge=np.array([1]),
-            rho=np.array([0, 0.5, 100]), time=np.array([0, 0.2, 0.4, 0.6]),
-            edensity=1e20*np.ones((4,3)), etemperature=1e3*np.ones((4,3)),
-            idensity=1e20*np.ones((4,1,3)), itemperature=1e3*np.ones((4,3)),
-            desc="DUMMY")
+        return {"nrho":3, "ntime":4, "nion":1, "znum":np.array([1]),
+                "anum":np.array([1]), "mass":np.array([1]),
+                "charge":np.array([1]), "rho":np.array([0, 0.5, 100]),
+                "time":np.array([0, 0.2, 0.4, 0.6]),
+                "edensity":1e20*np.ones((4,3)),
+                "etemperature":1e3*np.ones((4,3)),
+                "idensity":1e20*np.ones((4,1,3)),
+                "itemperature":1e3*np.ones((4,3))}

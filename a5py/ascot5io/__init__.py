@@ -236,8 +236,12 @@ class Ascot5IO(RootNode):
         """
         if inp in HDF5TOOBJ.keys():
             if len(kwargs) == 0:
-                name = HDF5TOOBJ[inp].write_hdf5_dummy(
-                self._ascot.file_getpath())
+                data = HDF5TOOBJ[inp].create_dummy()
+                if dryrun:
+                    return data
+                else:
+                    name = HDF5TOOBJ[inp].write_hdf5(
+                        self._ascot.file_getpath(), **data)
             else:
                 name = HDF5TOOBJ[inp].write_hdf5(
                     self._ascot.file_getpath(), **kwargs)

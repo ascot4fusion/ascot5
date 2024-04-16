@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# TARGET arch is: ['-I/usr/include/hdf5/serial', '-I/usr/lib/gcc/x86_64-linux-gnu/11/include/']
+# TARGET arch is: ['-I/home/sarkimk1/miniconda3/envs/clang/lib/clang/14.0.6/include/', '-I/home/sarkimk1/miniconda3/envs/clang/lib/', '-I/home/sarkimk1/miniconda3/envs/clang/include/', '-I/home/sarkimk1/miniconda3/envs/clang/x86_64-conda-linux-gnu/sysroot/usr/include/']
 # WORD_SIZE is: 8
 # POINTER_SIZE is: 8
 # LONGDOUBLE_SIZE is: 16
@@ -117,11 +117,25 @@ class Union(ctypes.Union, AsDictMixin):
 
 
 _libraries = {}
-# Ugly solution to find libascot.so
+# Try to locate libascot.so from ../../build/ or LD_LIBRARY_PATH
 from pathlib import Path
+err = 0
 libpath = str(Path(__file__).absolute().parent.parent.parent) \
-+ "/build/libascot.so"
-_libraries['libascot.so'] = ctypes.CDLL(libpath)
+    + "/build/libascot.so"
+try:
+    _libraries['libascot.so'] = ctypes.CDLL(libpath)
+except OSError as error:
+    err = error
+if err:
+    if not 'libascot.so' in str(err): raise ImportError(str(err))
+if 'libascot.so' not in _libraries:
+    err = 0
+    try:
+        _libraries['libascot.so'] = ctypes.CDLL('libascot.so')
+    except OSError as error:
+        err = error
+    if err: raise ImportError(str(err))
+
 c_int128 = ctypes.c_ubyte*16
 c_uint128 = c_int128
 void = None
@@ -2586,6 +2600,9 @@ asigma_loc_eval_sigma.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int3
 asigma_loc_eval_sigmav = _libraries['libascot.so'].asigma_loc_eval_sigmav
 asigma_loc_eval_sigmav.restype = a5err
 asigma_loc_eval_sigmav.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, ctypes.c_int32, ctypes.c_int32, real, real, real, real, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
+asigma_loc_eval_bms = _libraries['libascot.so'].asigma_loc_eval_bms
+asigma_loc_eval_bms.restype = a5err
+asigma_loc_eval_bms.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
 
 # values for enumeration 'asigma_type'
 asigma_type__enumvalues = {
@@ -2658,6 +2675,9 @@ asigma_eval_sigma.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, c
 asigma_eval_sigmav = _libraries['libascot.so'].asigma_eval_sigmav
 asigma_eval_sigmav.restype = a5err
 asigma_eval_sigmav.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, ctypes.c_int32, ctypes.c_int32, real, real, real, real, asigma_reac_type, ctypes.POINTER(struct_c__SA_asigma_data)]
+asigma_eval_bms = _libraries['libascot.so'].asigma_eval_bms
+asigma_eval_bms.restype = a5err
+asigma_eval_bms.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(struct_c__SA_asigma_data)]
 class struct_c__SA_nbi_injector(Structure):
     pass
 
@@ -2691,20 +2711,20 @@ class struct_c__SA_nbi_offload_data(Structure):
 struct_c__SA_nbi_offload_data._pack_ = 1 # source:False
 struct_c__SA_nbi_offload_data._fields_ = [
     ('ninj', ctypes.c_int32),
-    ('id', ctypes.c_int32 * 16),
-    ('n_beamlet', ctypes.c_int32 * 16),
+    ('id', ctypes.c_int32 * 32),
+    ('n_beamlet', ctypes.c_int32 * 32),
     ('PADDING_0', ctypes.c_ubyte * 4),
-    ('power', ctypes.c_double * 16),
-    ('energy', ctypes.c_double * 16),
-    ('efrac', ctypes.c_double * 48),
-    ('div_h', ctypes.c_double * 16),
-    ('div_v', ctypes.c_double * 16),
-    ('div_halo_frac', ctypes.c_double * 16),
-    ('div_halo_h', ctypes.c_double * 16),
-    ('div_halo_v', ctypes.c_double * 16),
-    ('anum', ctypes.c_int32 * 16),
-    ('znum', ctypes.c_int32 * 16),
-    ('mass', ctypes.c_double * 16),
+    ('power', ctypes.c_double * 32),
+    ('energy', ctypes.c_double * 32),
+    ('efrac', ctypes.c_double * 96),
+    ('div_h', ctypes.c_double * 32),
+    ('div_v', ctypes.c_double * 32),
+    ('div_halo_frac', ctypes.c_double * 32),
+    ('div_halo_h', ctypes.c_double * 32),
+    ('div_halo_v', ctypes.c_double * 32),
+    ('anum', ctypes.c_int32 * 32),
+    ('znum', ctypes.c_int32 * 32),
+    ('mass', ctypes.c_double * 32),
     ('offload_array_length', ctypes.c_int32),
     ('PADDING_1', ctypes.c_ubyte * 4),
 ]
@@ -2717,7 +2737,7 @@ struct_c__SA_nbi_data._pack_ = 1 # source:False
 struct_c__SA_nbi_data._fields_ = [
     ('ninj', ctypes.c_int32),
     ('PADDING_0', ctypes.c_ubyte * 4),
-    ('inj', struct_c__SA_nbi_injector * 16),
+    ('inj', struct_c__SA_nbi_injector * 32),
 ]
 
 nbi_data = struct_c__SA_nbi_data
@@ -3136,9 +3156,10 @@ __all__ = \
     'N0_3D_init', 'N0_3D_init_offload', 'N0_3D_offload_data',
     'Reaction', 'SIMULATION_MODE', 'a5err', 'afsi_data', 'afsi_run',
     'afsi_test_dist', 'afsi_test_thermal', 'afsi_thermal_data',
-    'asigma_data', 'asigma_eval_sigma', 'asigma_eval_sigmav',
-    'asigma_extrapolate', 'asigma_free_offload', 'asigma_init',
-    'asigma_init_offload', 'asigma_loc_data', 'asigma_loc_eval_sigma',
+    'asigma_data', 'asigma_eval_bms', 'asigma_eval_sigma',
+    'asigma_eval_sigmav', 'asigma_extrapolate', 'asigma_free_offload',
+    'asigma_init', 'asigma_init_offload', 'asigma_loc_data',
+    'asigma_loc_eval_bms', 'asigma_loc_eval_sigma',
     'asigma_loc_eval_sigmav', 'asigma_loc_free_offload',
     'asigma_loc_init', 'asigma_loc_init_offload',
     'asigma_loc_offload_data', 'asigma_offload_data',

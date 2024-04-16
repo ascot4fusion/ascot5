@@ -508,8 +508,10 @@ class LibProviders():
         """Initialize :class:`wall_3D` from dictionary.
         """
         W3D = self._sim.wall_offload_data.w3d
-        #print(kwargs["nelements"])
-        W3D.n = int(kwargs["nelements"][0][0])
+        try:
+            W3D.n = int(kwargs["nelements"].ravel()[0])
+        except:
+            W3D.n = int(kwargs["nelements"])
 
         # The data in the offload array is to be in the format
         #  [x1 y1 z1 x2 y2 z2 x3 y3 z3; ... ]

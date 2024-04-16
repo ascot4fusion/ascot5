@@ -171,30 +171,25 @@ class MHD_STAT(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
         presence is needed but which is not actually used in simulation.
 
-        This method writes two modes with constant eigenfunctions.
-
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
+        This method creates two modes with constant eigenfunctions.
 
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        return MHD_STAT.write_hdf5(
-            fn=fn, nmode=2, nmodes=np.array([1, 2]), mmodes=np.array([3, 4]),
-            amplitude=np.array([0.1, 2]), omega=np.array([1, 1.5]),
-            phase=np.array([0, 3.141/4]), alpha=np.ones((6,2)),
-            phi=np.ones((6,2)), nrho=6, rhomin=0, rhomax=1, desc="DUMMY")
+        return {"nmode":2, "nmodes":np.array([1, 2]), "mmodes":np.array([3, 4]),
+                "amplitude":np.array([0.1, 2]), "omega":np.array([1, 1.5]),
+                "phase":np.array([0, 3.141/4]), "alpha":np.ones((6,2)),
+                "phi":np.ones((6,2)), "nrho":6, "rhomin":0, "rhomax":1}
 
 class MHD_NONSTAT(DataGroup):
     """Time-dependent MHD eigenfunctions.
@@ -360,28 +355,23 @@ class MHD_NONSTAT(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
         presence is needed but which is not actually used in simulation.
 
-        This method writes two modes with constant eigenfunctions.
-
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
+        This method creates two modes with constant eigenfunctions.
 
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
-        return MHD_NONSTAT.write_hdf5(
-            fn=fn, nmode=2, nmodes=np.array([1, 2]), mmodes=np.array([3, 4]),
-            amplitude=np.array([0.1, 2]), omega=np.array([1, 1.5]),
-            phase=np.array([0, 3.141/4]), alpha=np.ones((6,3,2)),
-            phi=np.ones((6,3,2)), nrho=6, rhomin=0, rhomax=1, ntime=3,
-            tmin=0, tmax=1, desc="DUMMY")
+        return {"nmode":2, "nmodes":np.array([1, 2]), "mmodes":np.array([3, 4]),
+                "amplitude":np.array([0.1, 2]), "omega":np.array([1, 1.5]),
+                "phase":np.array([0, 3.141/4]), "alpha":np.ones((6,3,2)),
+                "phi":np.ones((6,3,2)), "nrho":6, "rhomin":0, "rhomax":1,
+                "ntime":3, "tmin":0, "tmax":1}

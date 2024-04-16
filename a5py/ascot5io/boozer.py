@@ -50,8 +50,8 @@ class Boozer(DataGroup):
 
     @staticmethod
     def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
-               zmin, zmax, nz, r0, z0, psi0, psi1, psi_rz, theta_psithetageom,
-               nu_psitheta, nrzs, rs, zs, desc=None):
+                   zmin, zmax, nz, r0, z0, psi0, psi1, psi_rz,
+                   theta_psithetageom, nu_psitheta, nrzs, rs, zs, desc=None):
         """Write input data to the HDF5 file.
 
         Note: the data in theta_psithetageom is assummed to span the whole
@@ -194,8 +194,8 @@ class Boozer(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
@@ -203,22 +203,17 @@ class Boozer(DataGroup):
 
         The dummy output is a very large rectangular wall.
 
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
         rs = np.cos(np.linspace(0, 2*np.pi, 10))
         zs = np.sin(np.linspace(0, 2*np.pi, 10))
 
-        return Boozer.write_hdf5(
-            fn=fn, psimin=0, psimax=1, npsi=6, ntheta=10, nthetag=10,
-            rmin=0.1, rmax=10.0, nr=5, zmin=-10, zmax=10, nz=10, r0=5, z0=0,
-            psi0=0, psi1=1, psi_rz=np.ones((5,10)),
-            theta_psithetageom=np.ones((6,10)), nu_psitheta=np.ones((6,10)),
-            nrzs=10, rs=rs, zs=zs, desc="DUMMY")
+        return {"psimin":0, "psimax":1, "npsi":6, "ntheta":10, "nthetag":10,
+                "rmin":0.1, "rmax":10.0, "nr":5, "zmin":-10, "zmax":10, "nz":10,
+                "r0":5, "z0":0, "psi0":0, "psi1":1, "psi_rz":np.ones((5,10)),
+                "theta_psithetageom":np.ones((6,10)),
+                "nu_psitheta":np.ones((6,10)), "nrzs":10, "rs":rs, "zs":zs}
