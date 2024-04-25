@@ -226,15 +226,15 @@ test_asigma: $(UTESTDIR)test_asigma.o $(OBJS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 ASCOT2PY_HEADERFILES=ascot5.h particle.h mpi_interface.h endcond.h simulate.h  \
-	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) $(ASIGMAHEADERS)   \
-	$(PLSHEADERS) $(N0HEADERS) $(MHDHEADERS) hdf5_interface.h libascot_mem.h   \
-	diag.h B_field.h E_field.h wall.h plasma.h neutral.h boozer.h mhd.h nbi.h  \
-	asigma.h afsi.h ascot5_main.h biosaw.h boschhale.h
+	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) $(PLSHEADERS)  \
+	$(ASIGMAHEADERS) $(N0HEADERS) $(MHDHEADERS) hdf5_interface.h           \
+	libascot_mem.h diag.h B_field.h E_field.h wall.h plasma.h neutral.h    \
+	boozer.h mhd.h nbi.h asigma.h afsi.h ascot5_main.h biosaw.h boschhale.h
 
 ascot2py.py : libascot.so
 	$(eval CLANGOMP=$(shell clang --print-resource-dir)) \
 	clang2py -l libascot.so -o $@ $(ASCOT2PY_HEADERFILES) \
-		--clang-args="-I$(CLANGOMP)/include/ -I$(CONDA_PREFIX)/include/ \
+		--clang-args="-I$(CLANGOMP)/include/ -I$(CONDA_PREFIX)/include/\
 		  -I$(CONDA_PREFIX)/x86_64-conda-linux-gnu/sysroot/usr/include/"
 
 clean:
