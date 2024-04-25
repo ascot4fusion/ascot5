@@ -9,6 +9,9 @@ import ctypes
 import unyt
 import numpy as np
 import numpy.ctypeslib as npctypes
+
+import a5py.physlib.analyticequilibrium as psifun
+
 from a5py.ascot5io.coreio import fileapi
 from .libascot import _LIBASCOT
 if _LIBASCOT:
@@ -96,6 +99,15 @@ class LibProviders():
                 if k not in kwargs.keys():
                     data[k] = argspec.defaults[i]
                 i += 1
+
+            # Make sure all data is given as numpy arrays
+            for k in data.keys():
+                if not isinstance(data[k], np.ndarray):
+                    if isinstance(data[k], list):
+                        data[k] = np.array(data[k])
+                    else:
+                        data[k] = np.array([data[k]])
+
             return inp, data
 
         # Matching input was not found. Produce error message that shows
@@ -197,6 +209,24 @@ class LibProviders():
     def _provide_B_GS(self, **kwargs):
         """Initialize :class:`B_GS` straight from dictionary bypassing HDF5.
         """
+        # Search for magnetic axis psi
+        if kwargs["psi0"][0] is None:
+            r0 = kwargs["r0"][0]
+            z0 = kwargs["z0"][0]
+            c = kwargs["coefficients"]
+            x = psifun.find_axis(r0, z0, c[0], c[1], c[2], c[3], c[4], c[5],
+                                 c[6], c[7], c[8], c[9], c[10], c[11], c[12])
+            psi0 = psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
+                               c[5], c[6], c[7], c[8], c[9], c[10], c[11],
+                               c[12]) * kwargs["psimult"][0]
+            kwargs["psi1"]  = np.array([0])
+            kwargs["raxis"] = np.array([x[0]*r0])
+            kwargs["zaxis"] = np.array([x[1]*r0])
+            if psi0 < kwargs["psi1"][0]:
+                kwargs["psi0"] = np.array([psi0 - 1e-8])
+            else:
+                kwargs["psi0"] = np.array([psi0 + 1e-8])
+
         BGS = self._sim.B_offload_data.BGS
         BGS.R0        = kwargs["r0"][0]
         BGS.z0        = kwargs["z0"][0]
@@ -389,10 +419,10 @@ class LibProviders():
         P1D.mass[0]   =  1.0 * unyt.electron_mass
         P1D.charge[0] = -1.0 * unyt.elementary_charge
         for i in range(nion):
-            P1D.mass[i+1]   = kwargs["mass"][i,0] * unyt.atomic_mass_unit
-            P1D.charge[i+1] = 1.0 * kwargs["charge"][i,0] * unyt.elementary_charge
-            P1D.anum[i]     = int(kwargs["anum"][i,0])
-            P1D.znum[i]     = int(kwargs["znum"][i,0])
+            P1D.mass[i+1]   = kwargs["mass"][i] * unyt.atomic_mass_unit
+            P1D.charge[i+1] = 1.0 * kwargs["charge"][i] * unyt.elementary_charge
+            P1D.anum[i]     = int(kwargs["anum"][i])
+            P1D.znum[i]     = int(kwargs["znum"][i])
 
         Te = kwargs["etemperature"] * unyt.elementary_charge
         Ti = kwargs["itemperature"] * unyt.elementary_charge
@@ -497,7 +527,7 @@ class LibProviders():
         """Initialize :class:`wall_2D` from dictionary.
         """
         W2D = self._sim.wall_offload_data.w2d
-        W2D.n = kwargs["nelements"]
+        W2D.n = int(kwargs["nelements"][0])
 
         W2D.offload_array_length, self._wall_offload_array = \
             self._init_offload_array(kwargs["r"], kwargs["z"])
