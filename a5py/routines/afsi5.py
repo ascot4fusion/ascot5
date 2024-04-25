@@ -407,12 +407,12 @@ class Afsi():
         data.max_q     = dist.abscissa_edges("charge")[-1]
 
         data.step_6 = 1 * 1 * data.n_pperp * data.n_ppara * data.n_z \
-            * data.n_phi;
-        data.step_5 = 1 * 1 * data.n_pperp * data.n_ppara * data.n_z;
-        data.step_4 = 1 * 1 * data.n_pperp * data.n_ppara;
-        data.step_3 = 1 * 1 * data.n_pperp;
-        data.step_2 = 1 * 1;
-        data.step_1 = 1;
+            * data.n_phi
+        data.step_5 = 1 * 1 * data.n_pperp * data.n_ppara * data.n_z
+        data.step_4 = 1 * 1 * data.n_pperp * data.n_ppara
+        data.step_3 = 1 * 1 * data.n_pperp
+        data.step_2 = 1 * 1
+        data.step_1 = 1
 
         data.histogram = npctypes.as_ctypes(np.ascontiguousarray(
             dist.histogram().ravel(), dtype="f8"))
