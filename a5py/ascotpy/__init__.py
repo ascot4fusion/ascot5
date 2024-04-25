@@ -233,6 +233,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         def hdf5init():
             """Simple wrapper.
             """
+            if(inputs2read.value == 0): return
             ascot2py.hdf5_interface_read_input(
                 ctypes.byref(self._sim),
                 inputs2read,

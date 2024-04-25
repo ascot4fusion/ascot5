@@ -109,12 +109,13 @@ class LibSimulate():
         self._sim.endcond_max_polorb  = 2*np.pi*opt["ENDCOND_MAX_POLOIDALORBS"]
         self._sim.endcond_max_tororb  = 2*np.pi*opt["ENDCOND_MAX_TOROIDALORBS"]
 
+        # Setting options
         diag = self._sim.diag_offload_data
-        diag.dist5D_collect    = int(opt["ENABLE_DIST_5D"]) * 0    # Not impl.
+        diag.dist5D_collect    = int(opt["ENABLE_DIST_5D"])
         diag.dist6D_collect    = int(opt["ENABLE_DIST_6D"]) * 0    # Not impl.
-        diag.distrho5D_collect = int(opt["ENABLE_DIST_RHO5D"]) * 0 # Not impl.
+        diag.distrho5D_collect = int(opt["ENABLE_DIST_RHO5D"])*0
         diag.distrho6D_collect = int(opt["ENABLE_DIST_RHO6D"]) * 0 # Not impl.
-        diag.dist5D_collect    = int(opt["ENABLE_DIST_COM"]) * 0   # Not impl.
+        diag.distCOM_collect   = int(opt["ENABLE_DIST_COM"]) * 0   # Not impl.
         diag.diagtrcof_collect = int(opt["ENABLE_TRANSCOEF"]) * 0  # Not impl.
         diag.diagorb_collect   = int(opt["ENABLE_ORBITWRITE"])
 
@@ -147,6 +148,29 @@ class LibSimulate():
         diagorb.nradialplots = len(radials)
         for i in range(diagorb.nradialplots):
             diagorb.radialdistances[i] = radials[i]
+
+        dist = diag.dist5D
+        dist.min_r     = opt["DIST_MIN_R"]
+        dist.max_r     = opt["DIST_MAX_R"]
+        dist.n_r       = opt["DIST_NBIN_R"]
+        dist.min_phi   = opt["DIST_MIN_PHI"] * np.pi / 180
+        dist.max_phi   = opt["DIST_MAX_PHI"] * np.pi / 180
+        dist.n_phi     = opt["DIST_NBIN_PHI"]
+        dist.min_z     = opt["DIST_MIN_Z"]
+        dist.max_z     = opt["DIST_MAX_Z"]
+        dist.n_z       = opt["DIST_NBIN_Z"]
+        dist.min_ppara = opt["DIST_MIN_PPA"]
+        dist.max_ppara = opt["DIST_MAX_PPA"]
+        dist.n_ppara   = opt["DIST_NBIN_PPA"]
+        dist.min_pperp = opt["DIST_MIN_PPE"]
+        dist.max_pperp = opt["DIST_MAX_PPE"]
+        dist.n_pperp   = opt["DIST_NBIN_PPE"]
+        dist.min_time  = opt["DIST_MIN_TIME"]
+        dist.max_time  = opt["DIST_MAX_TIME"]
+        dist.n_time    = opt["DIST_NBIN_TIME"]
+        dist.min_q     = opt["DIST_MIN_CHARGE"]
+        dist.max_q     = opt["DIST_MAX_CHARGE"]
+        dist.n_q       = opt["DIST_NBIN_CHARGE"]
 
     def simulation_initinputs(self, bfield=True, efield=True, plasma=True,
                               neutral=True, wall=True, boozer=True, mhd=True,
@@ -350,6 +374,13 @@ class LibSimulate():
                 val  = getattr(self._inistate[j], name)
                 setattr(self._endstate[j], name, val)
 
+        ## Initialize diagnostics array ##
+        ascot2py.diag_init_offload(ctypes.byref(self._sim.diag_offload_data),
+                                   ctypes.byref(self._diag_offload_array),
+                                   self._nmrk)
+
+        ## Init MPI and simulate ##
+
         n_gather = ctypes.c_int32(0) # Not really needed unless MPI is used
         def runsim():
             ascot2py.offload_and_simulate(
@@ -358,7 +389,7 @@ class LibSimulate():
                 ctypes.byref(self._offload_data), self._offload_array,
                 self._int_offload_array, ctypes.byref(n_gather),
                 ctypes.byref(self._endstate),
-                ctypes.byref(self._diag_offload_array))
+                self._diag_offload_array)
 
         if self._mute == "no":
             runsim()
@@ -382,17 +413,18 @@ class LibSimulate():
             def read(self):
                 return self.inp
 
-        orbits = None
+        diagorb = None
         if self._sim.diag_offload_data.diagorb_collect:
-            orbits = self._diag_offload_array
+            diagorb = self._sim.diag_offload_data.diagorb
+        dist5d = None
+        if self._sim.diag_offload_data.dist5D_collect:
+            dist5d = self._sim.diag_offload_data.dist5D
         return VirtualRun(self, self._nmrk.value,
                           self._inistate, self._endstate,
-                          self._sim.diag_offload_data.diagorb.Npnt,
-                          self._sim.diag_offload_data.diagorb.record_mode,
-                          self._sim.diag_offload_data.diagorb.mode,
                           VirtualInput(self._virtualoptions),
                           VirtualInput(self._virtualmarkers),
-                          orbits)
+                          self._diag_offload_array,
+                          diagorb=diagorb, dist5d=dist5d)
 
     def simulation_free(self, inputs=False, markers=False, diagnostics=False):
         """Free resources used by the interactive simulation.

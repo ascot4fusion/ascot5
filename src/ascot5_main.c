@@ -193,6 +193,15 @@ int main(int argc, char** argv) {
         goto CLEANUP_FAILURE;
     }
 
+    /* Initialize diagnostics offload data */
+    real* diag_offload_array;
+    diag_init_offload(&sim.diag_offload_data, &diag_offload_array, n_tot);
+
+    real diag_offload_array_size = sim.diag_offload_data.offload_array_length
+        * sizeof(real) / (1024.0*1024.0);
+    print_out0(VERBOSE_NORMAL, mpi_rank,
+               "Initialized diagnostics, %.1f MB.\n", diag_offload_array_size);
+
     /* Write run group and inistate */
     if( write_rungroup(&sim, mpi_size, mpi_rank, mpi_root, n_tot, ps, qid) ) {
         goto CLEANUP_FAILURE;
@@ -203,13 +212,13 @@ int main(int argc, char** argv) {
      * n_gathered is the number of simulated markers, which can differ from
      * n_tot if this process is run in a MPI-like manner without MPI and the
      * output will contain only 1/mpi_size of the results. */
-    real* diag_offload_array;
     particle_state* pout;
     int n_gathered;
+
     offload_and_simulate(
         &sim, mpi_size, mpi_rank, mpi_root, n_tot, nprts, ps, &offload_data,
         offload_array, int_offload_array, &n_gathered, &pout,
-        &diag_offload_array);
+        diag_offload_array);
 
     /* Free input data */
     offload_free_offload(&offload_data, &offload_array, &int_offload_array);
@@ -454,7 +463,7 @@ int write_rungroup(
  * @param int_offload_array packed offload integer array containg the input data
  * @param n_gathered pointer for storing number of simulated markers
  * @param pout pointer to array containing all marker endstates
- * @param diag_offload_array allocated array to return output data from target
+ * @param diag_offload_array array to store output data
  *
  * @return zero on success
  */
@@ -462,15 +471,7 @@ int offload_and_simulate(
     sim_offload_data* sim, int mpi_size, int mpi_rank, int mpi_root, int n_tot,
     int nprts, particle_state* pin, offload_package* offload_data,
     real* offload_array, int* int_offload_array, int* n_gathered,
-    particle_state** pout, real** diag_offload_array) {
-
-    /* Initialize diagnostics offload data */
-    diag_init_offload(&sim->diag_offload_data, diag_offload_array, n_tot);
-
-    real diag_offload_array_size = sim->diag_offload_data.offload_array_length
-        * sizeof(real) / (1024.0*1024.0);
-    print_out0(VERBOSE_NORMAL, mpi_rank,
-               "Initialized diagnostics, %.1f MB.\n", diag_offload_array_size);
+    particle_state** pout, real* diag_offload_array) {
 
     /* Divide markers among host and target */
 #ifdef TARGET
@@ -521,7 +522,7 @@ int offload_and_simulate(
         {
             host_start = omp_get_wtime();
             simulate(0, n_host, pin+2*n_mic, sim, offload_data,
-                offload_array, int_offload_array, *diag_offload_array);
+                offload_array, int_offload_array, diag_offload_array);
             host_end = omp_get_wtime();
         }
 #endif
@@ -536,7 +537,7 @@ int offload_and_simulate(
                              mpi_rank, mpi_size, mpi_root);
     free(pin);
 
-    mpi_gather_diag(&sim->diag_offload_data, *diag_offload_array, n_tot,
+    mpi_gather_diag(&sim->diag_offload_data, diag_offload_array, n_tot,
                     mpi_rank, mpi_size, mpi_root);
 
     return 0;
