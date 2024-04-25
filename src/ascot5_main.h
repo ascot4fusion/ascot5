@@ -34,7 +34,7 @@ int offload_and_simulate(
     sim_offload_data* sim, int mpi_size, int mpi_rank, int mpi_root, int n_tot,
     int nprts, particle_state* pin, offload_package* offload_data,
     real* offload_array, int* int_offload_array, int* n_gathered,
-    particle_state** pout, real** diag_offload_array);
+    particle_state** pout, real* diag_offload_array);
 
 int write_output(
     sim_offload_data* sim, int mpi_rank, int mpi_root,

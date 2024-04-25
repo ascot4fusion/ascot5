@@ -2,8 +2,10 @@
 """
 import numpy as np
 import unyt
+import ctypes
 
-from a5py.ascot5io import State, Orbits
+from a5py.ascot5io import State, Orbits, Dist
+from a5py.ascot5io.dist import DistData
 from .runmixin import RunMixin
 
 from a5py.ascotpy.libascot import _LIBASCOT
@@ -14,12 +16,12 @@ class VirtualRun(RunMixin):
     """Virtual :class:`RunGroup` whose data exists solely in the memory.
     """
 
-    def __init__(self, ascot, nmrk, inistate, endstate, npoint, mode, orbmode,
-                 options, markers, orbits=None):
+    def __init__(self, ascot, nmrk, inistate, endstate, options, markers,
+                 diag_offload_array, diagorb=None, dist5d=None, dist5drho=None):
         """Initialize fields that allow this instance to replicate
         :class:`RunGroup` behavior.
 
-        Sets state and orbit attributes which are the used by the methods in
+        Sets state and orbit attributes which are used by the methods in
         :class:`RunMixin`.
 
         Parameters
@@ -39,19 +41,43 @@ class VirtualRun(RunMixin):
         orbmode : int
             What orbit collection mode was active.
         orbits : array_like, optional
-            The diagnostics array containing the orbit data if present.
+            The diagnostics array containing the orbit data, if present.
+        dist5d : array_like, optional
+            The 5d dist data struct if present.
+        dist5drho : array_like, optional
+            The diagnostics array containing the 5D rhodist data, if present.
         """
         self.options = options
         self.markers = markers
-        for inp in ["bfield", "efield", "plasma", "neutral", "wall", "boozer",
-                    "mhd", "asigma"]:
-            grp = ascot.data[inp].active
-            setattr(self, inp, grp)
-        self._inistate = VirtualState(ascot, nmrk, inistate)
-        self._endstate = VirtualState(ascot, nmrk, endstate)
-        if orbits is not None:
+        # There's a need for better solution here in case inputs are provided
+        #for inp in ["bfield", "efield", "plasma", "neutral", "wall", "boozer",
+        #            "mhd", "asigma"]:
+        #    grp = ascot.data[inp].active
+        #    setattr(self, inp, grp)
+        self._inistate = VirtualState(ascot, ascot._nmrk, inistate)
+        self._endstate = VirtualState(ascot, ascot._nmrk, endstate)
+
+        def pointer_increment(idx):
+            """Returns pointer to the diagnostics array on index idx.
+            """
+            array_at_idx = ctypes.cast(diag_offload_array,
+                                       ctypes.POINTER(ctypes.c_double))
+            ptr  = ctypes.cast(ctypes.pointer(array_at_idx),
+                               ctypes.POINTER(ctypes.c_void_p))
+            ptr.contents.value += idx*ctypes.sizeof(ctypes.c_double)
+            return array_at_idx
+
+        if diagorb is not None:
+            data = pointer_increment(
+                ascot._sim.diag_offload_data.offload_diagorb_index)
+
             self._orbit = VirtualOrbits(
-                ascot, nmrk, npoint, mode, orbmode, orbits)
+                ascot, ascot._nmrk, diagorb, data)
+        if dist5d is not None:
+            data = pointer_increment(
+                ascot._sim.diag_offload_data.offload_dist5D_index)
+
+            self._dist5d = VirtualDist("5d", dist5d, diag_offload_array)
 
 class VirtualState():
     """Like :class:`State` but the data is in C array.
@@ -72,7 +98,7 @@ class VirtualState():
         """
         self.ascot = ascot
         self.state = state
-        self.nmrk  = nmrk
+        self.nmrk  = nmrk.value
 
     def get(self, *qnt, mode="gc"):
 
@@ -129,7 +155,7 @@ class VirtualOrbits():
     """Like :class:`Orbits` but the data is in C array.
     """
 
-    def __init__(self, ascot, nmrk, npoint, mode, orbmode, orbits):
+    def __init__(self, ascot, nmrk, diagorb, diag_offload_array):
         """Initialize fields that allow this instance to replicate
         :class:`Orbits` behavior.
 
@@ -139,21 +165,17 @@ class VirtualOrbits():
             Ascot instance for input interpolation.
         nmrk : int
             Number of markers in the simulation.
-        npoint : int
-            Number of data points reserved per marker.
-        mode : int
-            What simulation mode was active.
-        orbmode : int
-            What orbit collection mode was active.
-        orbits : array_like
-            The diagnostics array containing the orbit data.
+        diagorb :
+            Diag_orb offload struct.
+        diag_offload_array : array_like
+            The offload array where the orbit data begins at the first index.
         """
         self.ascot   = ascot
-        self.nmrk    = nmrk
-        self.npnt    = npoint
-        self.mode    = mode
-        self.orbmode = orbmode
-        self.arr     = orbits
+        self.nmrk    = nmrk.value
+        self.npnt    = diagorb.Npnt
+        self.mode    = diagorb.record_mode
+        self.orbmode = diagorb.mode
+        self.arr     = diag_offload_array
 
     def get(self, inistate, endstate, *qnt):
         """Return marker quantity.
@@ -325,3 +347,62 @@ class VirtualOrbits():
                 _val("z", mask=mask), time[mask], *[q])
 
         return Orbits._getactual(mass, time, connlen, mode, _val, _eval, *qnt)
+
+class VirtualDist(Dist):
+    """Distribution shared by C and Python.
+    """
+
+    def __init__(self, disttype, dist, data):
+        self._histogram = data
+        if disttype == "5d":
+            names = ["r", "phi", "z", "ppar", "pperp", "time", "charge"]
+
+        self._abscissa_edges = {}
+        for n in names:
+            match n:
+                case "r":
+                    self._abscissa_edges[n] = \
+                        np.linspace(dist.min_r, dist.max_r, dist.n_r+1) * unyt.m
+                case "phi":
+                    self._abscissa_edges[n] = \
+                        np.linspace(dist.min_phi, dist.max_phi, dist.n_phi+1) \
+                            * unyt.rad
+                    self._abscissa_edges[n].convert_to_units('deg')
+                case "z":
+                    self._abscissa_edges[n] = \
+                        np.linspace(dist.min_z, dist.max_z, dist.n_z+1) * unyt.m
+                case "ppar":
+                    self._abscissa_edges[n] = \
+                        np.linspace(dist.min_ppara, dist.max_ppara,
+                                    dist.n_ppara+1) * unyt.kg*unyt.m**2/unyt.s
+                case "pperp":
+                    self._abscissa_edges[n] = \
+                        np.linspace(dist.min_pperp, dist.max_pperp,
+                                    dist.n_pperp+1) * unyt.kg*unyt.m**2/unyt.s
+                case "time":
+                    self._abscissa_edges[n] = \
+                        np.linspace(dist.min_time, dist.max_time,
+                                    dist.n_time+1) * unyt.s
+                case "charge":
+                    self._abscissa_edges[n] = \
+                        np.linspace(dist.min_q, dist.max_q, dist.n_q+1) * unyt.e
+
+    def get(self):
+        """Return the distribution data.
+
+        Returns
+        -------
+        dist : class:`DistData`
+            Distribution data.
+        """
+        arrlen = 1
+        dim = np.array([], dtype='i8')
+        for d in self._abscissa_edges.values():
+            dim = np.append(dim, d.size-1)
+            arrlen *= d.size-1
+
+        histogram = np.ctypeslib.as_array(
+            (ctypes.c_double * arrlen).from_address(ctypes.addressof(self._histogram.contents)))
+        histogram = np.reshape(histogram, dim) * unyt.particles
+
+        return DistData(histogram, **self._abscissa_edges)
