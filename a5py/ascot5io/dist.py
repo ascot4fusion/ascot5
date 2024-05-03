@@ -738,7 +738,7 @@ class Dist(DataContainer):
 
         dist._distribution *= k.units * mass
         dist.integrate(charge=np.s_[:], time=np.s_[:])
-        dist._multiply(vnorm.reshape(ppa.shape), "ppar", "pperp")
+        dist._multiply(vnorm.reshape(ppa.shape).T, "ppar", "pperp")
         dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
         moment.add_ordinates(
             powerdep=(dist.histogram() / moment.volume ).to("W/m**3"))
@@ -774,7 +774,7 @@ class Dist(DataContainer):
 
         dist._distribution *= k.units * mass
         dist.integrate(charge=np.s_[:], time=np.s_[:])
-        dist._multiply(vnorm.reshape(ppa.shape), "ppar", "pperp")
+        dist._multiply(vnorm.reshape(ppa.shape).T, "ppar", "pperp")
         dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
         moment.add_ordinates(
             electronpowerdep=(dist.histogram() / moment.volume ).to("W/m**3"))
@@ -806,7 +806,7 @@ class Dist(DataContainer):
 
         dist._distribution *= k.units * mass
         dist.integrate(charge=np.s_[:], time=np.s_[:])
-        dist._multiply(vnorm.reshape(ppa.shape), "ppar", "pperp")
+        dist._multiply(vnorm.reshape(ppa.shape).T, "ppar", "pperp")
         dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
         moment.add_ordinates(
             ionpowerdep=(dist.histogram() / moment.volume ).to("W/m**3"))
