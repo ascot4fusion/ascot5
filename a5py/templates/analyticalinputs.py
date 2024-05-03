@@ -3,6 +3,8 @@
 import numpy as np
 import unyt
 
+from scipy.interpolate import interpn
+
 import a5py.ascot5io.marker as marker
 import a5py.ascot5io.options as options
 
@@ -60,6 +62,78 @@ class AnalyticalInputs():
             return ("B_3DS", B_3DS.convert_B_GS(**out))
 
         return ("B_GS", out)
+
+    def bfield_analytical_step_ripple(self, b2d=None, ncoil=12, rcoil=8.0,
+                                      nphi=180, nperiod=1):
+        """Create magnetic field ripple assuming rectangular TF-coils as in STEP.
+
+        Parameters
+        ----------
+        b2d : dict
+            Dictionary containing B2DS data.
+        ncoil : int, optional
+            Number of TF-coils.
+        rcoil : float, optional
+            Coil width [m].
+        nphi : int, optional
+            Number of toroidal grid points in the output field.
+        nperiod : int, optional
+            Assume that the field has 360 deg / nperiod periodicity.
+
+            This value is used to generate output data that covers only a single
+            toroidal period and which has `nphi` grid points.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        out = {}
+        if b2d is None:
+            raise ValueError("Provide dictionary for 'b2d' containg B2DS data")
+
+        r0  = b2d['axisr']
+        z0  = b2d['axisz']
+        r   = np.linspace(b2d['rmin'], b2d['rmax'], int(b2d['nr'][0])).ravel()
+        z   = np.linspace(b2d['zmin'], b2d['zmax'], int(b2d['nz'][0])).ravel()
+        phi = np.linspace(0, 2*np.pi/nperiod, nphi+1)[:-1]
+        b0  = interpn((r,z), b2d['bphi'], (r0,z0))
+
+        R, P, Z = np.meshgrid(r, phi, z, indexing='ij')
+
+        dbr   = ( b0 * r0 / R ) * np.power(R/rcoil, ncoil) * np.sin(ncoil * P)
+        dbphi = ( b0 * r0 / R ) * np.power(R/rcoil, ncoil) * np.cos(ncoil * P)
+        dbz   = 0 * P
+
+        # Add the 2D components
+        def to3d(comp):
+            return np.transpose(
+                np.multiply.outer(comp, np.ones(phi.shape)), (0,2,1))
+
+        out['br']   = to3d(b2d['br'])   + dbr
+        out['bphi'] = to3d(b2d['bphi']) + dbphi
+        out['bz']   = to3d(b2d['bz'])   + dbz
+
+        # Populate remaining data
+        out['axisr']    = r0
+        out['axisz']    = z0
+        out['psi0']     = b2d['psi0']
+        out['psi1']     = b2d['psi1']
+        out['psi']      = b2d['psi']
+        out['b_rmin']   = r[0]
+        out['b_rmax']   = r[-1]
+        out['b_nr']     = r.size
+        out['b_phimin'] = 0.0
+        out['b_phimax'] = 360.0 / nperiod
+        out['b_nphi']   = phi.size
+        out['b_zmin']   = z[0]
+        out['b_zmax']   = z[-1]
+        out['b_nz']     = z.size
+
+        return ("B_3DS", out)
 
     def plasma_flat(self, density=10e20, temperature=10e3, anum=1, znum=1,
                     charge=1, mass=1):
