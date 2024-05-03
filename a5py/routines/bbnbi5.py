@@ -350,6 +350,7 @@ class BBNBIMixin(DistMixin):
             - "pload" particle load in units of prt/m^2 or prt/m^2s,
             - "eload" power/energy load in units of W/m^2 or J/m^2
         """
+        import pyvista as pv
         wallmesh = pv.PolyData( *self.wall.noderepresentation() )
         ids, area, eload, pload, iangle = self.getwall_loads()
         ids = ids - 1 # Convert IDs to indices
