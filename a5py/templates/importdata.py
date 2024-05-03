@@ -388,6 +388,7 @@ class ImportData():
         # Interpolate psi if needed
         if interpolate_psi0:
             self._ascot.input_init(bfield=b2d)
+            print(b2d["psi0"])
             b2d["axisr"], b2d["axisz"], b2d["psi0"] = \
                 self._ascot.input_findpsi0(b2d["psi0"])
             self._ascot.input_free()
@@ -498,14 +499,16 @@ class ImportData():
         """Import 1D plasma profiles.
 
         This function interpolates and extrapolates plasma profiles on a given
-        grid. The input data can be in one of the three formats:
+        grid. Density is assumed to be in units of m^-3 and temperature in eV.
+
+        The input data can be in one of the three formats:
 
         1. Plasma profiles are in separate files:
 
-           Specify the filenames containing the corresponding data in ``ne``,
-           ``ni``, ``Te``, and ``Te``. The data is assumed to have a format
-           where the first column is the radial coordinate and the second column
-           is the value.
+           Specify the filenames containing the corresponding data in arguments
+           ``ne``, ``ni``, ``Te``, and ``Te``. The data is assumed to have
+           a format where the first column is the radial coordinate and
+           the second column is the value.
 
         2. Plasma profiles are in a single file:
 
@@ -628,7 +631,7 @@ class ImportData():
                 d = physlibspecies.species(species[i])
                 anum[i]   = d["anum"]
                 znum[i]   = d["znum"]
-                mass[i]   = d["mass"]
+                mass[i]   = d["mass"].to("amu")
                 charge[i] = d["charge"]
 
         # Set rho grid (include extrapolation)
@@ -670,13 +673,16 @@ class ImportData():
                         + "where the data is located.")
                 data = np.loadtxt(fn, **kwargs)
                 rad = data[:,0]
+                ne0 = data[-1,ne]
                 ne  = interp(rad, data[:,ne], nmin)
                 Te  = interp(rad, data[:,Te], Tmin)
                 Ti  = interp(rad, data[:,Ti], Tmin)
                 idx = ni
                 ni  = np.zeros((nrho, len(idx)), dtype="f8")
                 for i, j in enumerate(idx):
-                    ni[:,i] = interp(rad, data[:,j], nmin)
+                    # The limit value is nmin for electrons, and the modified
+                    # species-wise for ions to maintain quasi-neutrality
+                    ni[:,i] = interp(rad, data[:,j], nmin * data[-1,j] / ne0)
             else:
                 # Data is in separate files
                 strs = [isinstance(x, str) for x in ni]
@@ -686,6 +692,7 @@ class ImportData():
                         "ni, ne, Te, and Ti should contain the filenames "
                         "where the data is located.")
                 data = np.loadtxt(ne, **kwargs)
+                ne0 = data[-1,1]
                 ne = interp(data[:,0], data[:,1], nmin)
                 data = np.loadtxt(Te, **kwargs)
                 Te = interp(data[:,0], data[:,1], Tmin)
@@ -695,7 +702,10 @@ class ImportData():
                 ni  = np.zeros((nrho, len(fns)), dtype="f8")
                 for i, fnin in enumerate(fns):
                     data = np.loadtxt(fnin, **kwargs)
-                    ni[:,i] = interp(data[:,0], data[:,1], nmin)
+                    # The limit value is nmin for electrons, and the modified
+                    # species-wise for ions to maintain quasi-neutrality
+                    ni[:,i] = interp(data[:,0], data[:,1],
+                                     nmin * data[-1,1] / ne0)
 
             # Make the plasma input
             nion = ni.shape[1]
