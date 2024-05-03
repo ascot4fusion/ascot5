@@ -262,7 +262,7 @@ void bbnbi_inject(particle_state* p, int nprt, int ngenerated, real t0, real t1,
         real ds = 1e-3;
         a5err err = B_field_eval_psi(&psi, rpz[0], rpz[1], rpz[2], time,
                                      &sim->B_data);
-        while(err > 1) {
+        while(err) {
             xyz[0] += ds * vhat[0];
             xyz[1] += ds * vhat[1];
             xyz[2] += ds * vhat[2];
