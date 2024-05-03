@@ -1251,8 +1251,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                            colors="C0", alpha=0.5)
             axes2.contourf(rgrid, zgrid, ripplewell.T.v, [0.0, 1.0],
                            colors="C3",alpha=0.5)
-            cs = axes2.contour(rgrid, zgrid, delta.T*100, [0.1, 1.0, 5.0, 10.0],
-                               colors="black")
+            cs = axes2.contour(rgrid, zgrid, delta.T*100,
+                               [0.1, 0.3, 0.5, 1.0, 5.0, 10.0], colors="black")
 
             def fmt(x):
                 s = f"{x:.1f}"
