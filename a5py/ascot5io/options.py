@@ -3,7 +3,12 @@
 import h5py
 import numpy as np
 import ast
+import textwrap
+import json
 import warnings
+import xmlschema
+
+from xml.etree.ElementTree import ElementTree
 
 from .coreio.fileapi import add_group
 from .coreio.treedata import DataGroup
@@ -109,14 +114,14 @@ class Opt(DataGroup):
         self._OPT_DIST_MIN_TIME              = 0.0
         self._OPT_DIST_MAX_TIME              = 10.0
         self._OPT_DIST_NBIN_TIME             = 1
-        self._OPT_DIST_MIN_CHARGE            = -1.5
-        self._OPT_DIST_MAX_CHARGE            = 100.0
+        self._OPT_DIST_MIN_CHARGE            = -2
+        self._OPT_DIST_MAX_CHARGE            = 3
         self._OPT_DIST_NBIN_CHARGE           = 1
         self._OPT_ENABLE_DIST_COM            = 0
-        self._OPT_DIST_MIN_MU                = 0
+        self._OPT_DIST_MIN_MU                = 0.0
         self._OPT_DIST_MAX_MU                = 2.5e-13
         self._OPT_DIST_NBIN_MU               = 100
-        self._OPT_DIST_MIN_EKIN              = 0
+        self._OPT_DIST_MIN_EKIN              = 0.0
         self._OPT_DIST_MAX_EKIN              = 1.0e-12
         self._OPT_DIST_NBIN_EKIN             = 50
         self._OPT_DIST_MIN_PTOR              = -1.0e-18
@@ -130,7 +135,7 @@ class Opt(DataGroup):
         self._OPT_ORBITWRITE_RADIALDISTANCES = [1.0]
         self._OPT_ORBITWRITE_INTERVAL        = 0.0
         self._OPT_ENABLE_TRANSCOEF           = 0
-        self._OPT_TRANSCOEF_INTERVAL         = 0
+        self._OPT_TRANSCOEF_INTERVAL         = 0.0
         self._OPT_TRANSCOEF_NAVG             = 5
         self._OPT_TRANSCOEF_RECORDRHO        = 0
 
@@ -241,7 +246,7 @@ class Opt(DataGroup):
     def _ENDCOND_RHOLIM(self):
         """Terminate if marker goes outside given rho boundaries
 
-        The boundaries are defined by ENDCOND_MAX_RHO and ENDCOND_MAX_RHO.
+        The boundaries are defined by ENDCOND_MIN_RHO and ENDCOND_MAX_RHO.
         """
         return self._OPT_ENDCOND_RHOLIM
 
@@ -282,7 +287,7 @@ class Opt(DataGroup):
 
     @property
     def _ENDCOND_IONIZED(self):
-        """Terminate when the marker becomes ionized.
+        """Terminate when the marker becomes ionized
         """
         return self._OPT_ENDCOND_IONIZED
 
@@ -1191,3 +1196,442 @@ class Opt(DataGroup):
                 opt[param] = type(defopt[param])(val)
 
         return opt
+
+    @staticmethod
+    def convert_xml(xml):
+        tree = ElementTree().parse(xml)
+        opt = Opt.get_default()
+        for tag in opt.keys():
+            val = tree.findall("*"+tag)
+            if len(val) == 0:
+                warnings.warn(
+                    f"Using default value for {tag} as it was not found in xml")
+                continue
+            opt[tag] = val[0].text
+        return opt
+
+    @staticmethod
+    def schema(opt=None, fnxsd=None, fnxml=None):
+        """Produce a schema and an XML file containing ASCOT5 option parameters.
+
+        Parameters
+        ----------
+        opt : dict, optional
+            Options used to fill the XML with parameter values.
+
+            If None, the default options are used.
+        fnxsd : str, optional
+            None or filename to write XSD data.
+        fnxml : str, optional
+            None or filename to write XML data.
+
+        Returns
+        -------
+        schema :
+            Schema that contains parameter descriptions and which can validate
+            XML files containing ASCOT5 options.
+        xml :
+            XML file containing the options parameters and their values.
+        """
+        if xmlschema is None:
+            raise ImportError(
+                "This feature requires package xmlschema:\n"
+                "pip install xmlschema")
+
+        def doc(name, stype):
+            """Helper function to add parameters with docstrings, types, and
+            proper indentation.
+
+            Paramaters
+            ----------
+            name : str
+                Name of the parameter as it appears in option attributes
+                (without preceding underscore).
+            stype : str
+                This parameters simple type.
+
+            Returns
+            -------
+            fstr
+                Formatted string that specifies XML element.
+            """
+            attr = Opt.__dict__["_" + name]
+            docstring = attr.__doc__.replace('<', '&lt;').replace('>', '&gt;')
+            text = f"""
+                <xs:element name="{name}" type="{stype}">
+                    <xs:annotation>
+                    <xs:documentation>
+        {textwrap.indent(docstring, "            ")}
+                    </xs:documentation>
+                    </xs:annotation>
+                </xs:element>"""
+            return text
+
+        xsd = textwrap.dedent(f"""\
+            <?xml version="1.0"?>
+            <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+                <xs:simpleType name="IntegerPositive">
+                    <xs:restriction base="xs:integer">
+                    <xs:minInclusive value="1"/>
+                    </xs:restriction>
+                </xs:simpleType>
+
+                <xs:simpleType name="IntegerBinary">
+                    <xs:restriction base="xs:integer">
+                    <xs:minInclusive value="0"/>
+                    <xs:maxInclusive value="1"/>
+                    </xs:restriction>
+                </xs:simpleType>
+
+                <xs:simpleType name="Integer012">
+                    <xs:restriction base="xs:integer">
+                    <xs:minInclusive value="0"/>
+                    <xs:maxInclusive value="2"/>
+                    </xs:restriction>
+                </xs:simpleType>
+
+                <xs:simpleType name="Integer1234">
+                    <xs:restriction base="xs:integer">
+                    <xs:minInclusive value="1"/>
+                    <xs:maxInclusive value="4"/>
+                    </xs:restriction>
+                </xs:simpleType>
+
+                <xs:simpleType name="FloatPositive">
+                    <xs:restriction base="xs:float">
+                    <xs:minExclusive value="0.0"/>
+                    </xs:restriction>
+                </xs:simpleType>
+
+                <xs:simpleType name="FloatNonNegative">
+                    <xs:restriction base="xs:float">
+                    <xs:minInclusive value="0.0"/>
+                    </xs:restriction>
+                </xs:simpleType>
+
+                <xs:simpleType name="Float0to360">
+                    <xs:restriction base="xs:float">
+                    <xs:minInclusive value="0.0"/>
+                    <xs:maxInclusive value="360.0"/>
+                    </xs:restriction>
+                </xs:simpleType>
+
+                <xs:simpleType name="FloatNNList">
+                    <xs:list itemType="FloatNonNegative"/>
+                </xs:simpleType>
+
+                <xs:simpleType name="FloatOrFloatNNList">
+                    <xs:union memberTypes="xs:float FloatNNList"/>
+                </xs:simpleType>
+
+                <xs:element name="parameters">
+                    <xs:complexType>
+                    <xs:all>
+                        <xs:element ref="SIMULATION_MODE_AND_TIMESTEP"/>
+                        <xs:element ref="END_CONDITIONS"/>
+                        <xs:element ref="PHYSICS"/>
+                        <xs:element ref="DISTRIBUTIONS"/>
+                        <xs:element ref="ORBIT_WRITE"/>
+                        <xs:element ref="TRANSPORT_COEFFICIENT"/>
+                    </xs:all>
+                    </xs:complexType>
+                </xs:element>
+
+                <xs:element name="SIMULATION_MODE_AND_TIMESTEP">
+                    <xs:annotation>
+                    <xs:documentation>
+                    Simulation mode and time-step
+                    </xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                    <xs:all>
+                        <xs:element ref="SIM_MODE"/>
+                        <xs:element ref="ENABLE_ADAPTIVE"/>
+                        <xs:element ref="FIXEDSTEP_USE_USERDEFINED"/>
+                        <xs:element ref="FIXEDSTEP_USERDEFINED"/>
+                        <xs:element ref="FIXEDSTEP_GYRODEFINED"/>
+                        <xs:element ref="ADAPTIVE_TOL_ORBIT"/>
+                        <xs:element ref="ADAPTIVE_TOL_CCOL"/>
+                        <xs:element ref="ADAPTIVE_MAX_DRHO"/>
+                        <xs:element ref="ADAPTIVE_MAX_DPHI"/>
+                        <xs:element ref="RECORD_MODE"/>
+                    </xs:all>
+                    </xs:complexType>
+                </xs:element>
+            {doc('SIM_MODE',                  'Integer1234')}
+            {doc('ENABLE_ADAPTIVE',           'IntegerBinary')}
+            {doc('FIXEDSTEP_USE_USERDEFINED', 'IntegerBinary')}
+            {doc('FIXEDSTEP_USERDEFINED',     'FloatPositive')}
+            {doc('FIXEDSTEP_GYRODEFINED',     'IntegerPositive')}
+            {doc('ADAPTIVE_TOL_ORBIT',        'FloatPositive')}
+            {doc('ADAPTIVE_TOL_CCOL',         'FloatPositive')}
+            {doc('ADAPTIVE_MAX_DRHO',         'FloatPositive')}
+            {doc('ADAPTIVE_MAX_DPHI',         'FloatPositive')}
+            {doc('RECORD_MODE',               'IntegerBinary')}
+
+                <xs:element name="END_CONDITIONS">
+                    <xs:annotation>
+                    <xs:documentation>
+                    End conditions
+                    </xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                    <xs:all>
+                        <xs:element ref="ENDCOND_SIMTIMELIM"/>
+                        <xs:element ref="ENDCOND_CPUTIMELIM"/>
+                        <xs:element ref="ENDCOND_RHOLIM"/>
+                        <xs:element ref="ENDCOND_ENERGYLIM"/>
+                        <xs:element ref="ENDCOND_WALLHIT"/>
+                        <xs:element ref="ENDCOND_MAXORBS"/>
+                        <xs:element ref="ENDCOND_NEUTRALIZED"/>
+                        <xs:element ref="ENDCOND_IONIZED"/>
+                        <xs:element ref="ENDCOND_LIM_SIMTIME"/>
+                        <xs:element ref="ENDCOND_MAX_MILEAGE"/>
+                        <xs:element ref="ENDCOND_MAX_CPUTIME"/>
+                        <xs:element ref="ENDCOND_MAX_RHO"/>
+                        <xs:element ref="ENDCOND_MIN_RHO"/>
+                        <xs:element ref="ENDCOND_MIN_ENERGY"/>
+                        <xs:element ref="ENDCOND_MIN_THERMAL"/>
+                        <xs:element ref="ENDCOND_MAX_TOROIDALORBS"/>
+                        <xs:element ref="ENDCOND_MAX_POLOIDALORBS"/>
+                    </xs:all>
+                    </xs:complexType>
+                </xs:element>
+            {doc('ENDCOND_SIMTIMELIM',       'IntegerBinary')}
+            {doc('ENDCOND_CPUTIMELIM',       'IntegerBinary')}
+            {doc('ENDCOND_RHOLIM',           'IntegerBinary')}
+            {doc('ENDCOND_ENERGYLIM',        'IntegerBinary')}
+            {doc('ENDCOND_WALLHIT',          'IntegerBinary')}
+            {doc('ENDCOND_MAXORBS',          'IntegerBinary')}
+            {doc('ENDCOND_NEUTRALIZED',      'IntegerBinary')}
+            {doc('ENDCOND_IONIZED',          'IntegerBinary')}
+            {doc('ENDCOND_LIM_SIMTIME',      'FloatNonNegative')}
+            {doc('ENDCOND_MAX_MILEAGE',      'FloatNonNegative')}
+            {doc('ENDCOND_MAX_CPUTIME',      'FloatNonNegative')}
+            {doc('ENDCOND_MAX_RHO',          'FloatNonNegative')}
+            {doc('ENDCOND_MIN_RHO',          'FloatNonNegative')}
+            {doc('ENDCOND_MIN_ENERGY',       'FloatPositive')}
+            {doc('ENDCOND_MIN_THERMAL',      'FloatPositive')}
+            {doc('ENDCOND_MAX_TOROIDALORBS', 'IntegerPositive')}
+            {doc('ENDCOND_MAX_POLOIDALORBS', 'IntegerPositive')}
+
+                <xs:element name="PHYSICS">
+                    <xs:annotation>
+                    <xs:documentation>
+                    Physics
+                    </xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                    <xs:all>
+                        <xs:element ref="ENABLE_ORBIT_FOLLOWING"/>
+                        <xs:element ref="ENABLE_COULOMB_COLLISIONS"/>
+                        <xs:element ref="ENABLE_MHD"/>
+                        <xs:element ref="ENABLE_ATOMIC"/>
+                        <xs:element ref="DISABLE_FIRSTORDER_GCTRANS"/>
+                        <xs:element ref="DISABLE_ENERGY_CCOLL"/>
+                        <xs:element ref="DISABLE_PITCH_CCOLL"/>
+                        <xs:element ref="DISABLE_GCDIFF_CCOLL"/>
+                        <xs:element ref="REVERSE_TIME"/>
+                    </xs:all>
+                    </xs:complexType>
+                </xs:element>
+            {doc('ENABLE_ORBIT_FOLLOWING',     'IntegerBinary')}
+            {doc('ENABLE_COULOMB_COLLISIONS',  'IntegerBinary')}
+            {doc('ENABLE_MHD',                 'IntegerBinary')}
+            {doc('ENABLE_ATOMIC',              'Integer012')}
+            {doc('DISABLE_FIRSTORDER_GCTRANS', 'IntegerBinary')}
+            {doc('DISABLE_ENERGY_CCOLL',       'IntegerBinary')}
+            {doc('DISABLE_PITCH_CCOLL',        'IntegerBinary')}
+            {doc('DISABLE_GCDIFF_CCOLL',       'IntegerBinary')}
+            {doc('REVERSE_TIME',               'IntegerBinary')}
+
+                <xs:element name="DISTRIBUTIONS">
+                    <xs:annotation>
+                    <xs:documentation>
+                    Distribution output
+                    </xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                    <xs:all>
+                        <xs:element ref="ENABLE_DIST_5D"/>
+                        <xs:element ref="ENABLE_DIST_RHO5D"/>
+                        <xs:element ref="ENABLE_DIST_6D"/>
+                        <xs:element ref="ENABLE_DIST_RHO6D"/>
+                        <xs:element ref="DIST_MIN_R"/>
+                        <xs:element ref="DIST_MAX_R"/>
+                        <xs:element ref="DIST_NBIN_R"/>
+                        <xs:element ref="DIST_MIN_PHI"/>
+                        <xs:element ref="DIST_MAX_PHI"/>
+                        <xs:element ref="DIST_NBIN_PHI"/>
+                        <xs:element ref="DIST_MIN_Z"/>
+                        <xs:element ref="DIST_MAX_Z"/>
+                        <xs:element ref="DIST_NBIN_Z"/>
+                        <xs:element ref="DIST_MIN_RHO"/>
+                        <xs:element ref="DIST_MAX_RHO"/>
+                        <xs:element ref="DIST_NBIN_RHO"/>
+                        <xs:element ref="DIST_MIN_THETA"/>
+                        <xs:element ref="DIST_MAX_THETA"/>
+                        <xs:element ref="DIST_NBIN_THETA"/>
+                        <xs:element ref="DIST_MIN_PPA"/>
+                        <xs:element ref="DIST_MAX_PPA"/>
+                        <xs:element ref="DIST_NBIN_PPA"/>
+                        <xs:element ref="DIST_MIN_PPE"/>
+                        <xs:element ref="DIST_MAX_PPE"/>
+                        <xs:element ref="DIST_NBIN_PPE"/>
+                        <xs:element ref="DIST_MIN_PR"/>
+                        <xs:element ref="DIST_MAX_PR"/>
+                        <xs:element ref="DIST_NBIN_PR"/>
+                        <xs:element ref="DIST_MIN_PPHI"/>
+                        <xs:element ref="DIST_MAX_PPHI"/>
+                        <xs:element ref="DIST_NBIN_PPHI"/>
+                        <xs:element ref="DIST_MIN_PZ"/>
+                        <xs:element ref="DIST_MAX_PZ"/>
+                        <xs:element ref="DIST_NBIN_PZ"/>
+                        <xs:element ref="DIST_MIN_TIME"/>
+                        <xs:element ref="DIST_MAX_TIME"/>
+                        <xs:element ref="DIST_NBIN_TIME"/>
+                        <xs:element ref="DIST_MIN_CHARGE"/>
+                        <xs:element ref="DIST_MAX_CHARGE"/>
+                        <xs:element ref="DIST_NBIN_CHARGE"/>
+                        <xs:element ref="ENABLE_DIST_COM"/>
+                        <xs:element ref="DIST_MIN_MU"/>
+                        <xs:element ref="DIST_MAX_MU"/>
+                        <xs:element ref="DIST_NBIN_MU"/>
+                        <xs:element ref="DIST_MIN_EKIN"/>
+                        <xs:element ref="DIST_MAX_EKIN"/>
+                        <xs:element ref="DIST_NBIN_EKIN"/>
+                        <xs:element ref="DIST_MIN_PTOR"/>
+                        <xs:element ref="DIST_MAX_PTOR"/>
+                        <xs:element ref="DIST_NBIN_PTOR"/>
+                    </xs:all>
+                    </xs:complexType>
+                </xs:element>
+            {doc('ENABLE_DIST_5D',    'IntegerBinary')}
+            {doc('ENABLE_DIST_RHO5D', 'IntegerBinary')}
+            {doc('ENABLE_DIST_6D',    'IntegerBinary')}
+            {doc('ENABLE_DIST_RHO6D', 'IntegerBinary')}
+            {doc('DIST_MIN_R',        'FloatPositive')}
+            {doc('DIST_MAX_R',        'FloatPositive')}
+            {doc('DIST_NBIN_R',       'IntegerPositive')}
+            {doc('DIST_MIN_PHI',      'Float0to360')}
+            {doc('DIST_MAX_PHI',      'Float0to360')}
+            {doc('DIST_NBIN_PHI',     'IntegerPositive')}
+            {doc('DIST_MIN_Z',        'xs:float')}
+            {doc('DIST_MAX_Z',        'xs:float')}
+            {doc('DIST_NBIN_Z',       'IntegerPositive')}
+            {doc('DIST_MIN_RHO',      'FloatNonNegative')}
+            {doc('DIST_MAX_RHO',      'FloatNonNegative')}
+            {doc('DIST_NBIN_RHO',     'IntegerPositive')}
+            {doc('DIST_MIN_THETA',    'Float0to360')}
+            {doc('DIST_MAX_THETA',    'Float0to360')}
+            {doc('DIST_NBIN_THETA',   'IntegerPositive')}
+            {doc('DIST_MIN_PPA',      'xs:float')}
+            {doc('DIST_MAX_PPA',      'xs:float')}
+            {doc('DIST_NBIN_PPA',     'IntegerPositive')}
+            {doc('DIST_MIN_PPE',      'FloatNonNegative')}
+            {doc('DIST_MAX_PPE',      'FloatNonNegative')}
+            {doc('DIST_NBIN_PPE',     'IntegerPositive')}
+            {doc('DIST_MIN_PR',       'xs:float')}
+            {doc('DIST_MAX_PR',       'xs:float')}
+            {doc('DIST_NBIN_PR',      'IntegerPositive')}
+            {doc('DIST_MIN_PPHI',     'xs:float')}
+            {doc('DIST_MAX_PPHI',     'xs:float')}
+            {doc('DIST_NBIN_PPHI',    'IntegerPositive')}
+            {doc('DIST_MIN_PZ',       'xs:float')}
+            {doc('DIST_MAX_PZ',       'xs:float')}
+            {doc('DIST_NBIN_PZ',      'IntegerPositive')}
+            {doc('DIST_MIN_TIME',     'xs:float')}
+            {doc('DIST_MAX_TIME',     'xs:float')}
+            {doc('DIST_NBIN_TIME',    'IntegerPositive')}
+            {doc('DIST_MIN_CHARGE',   'xs:integer')}
+            {doc('DIST_MAX_CHARGE',   'xs:integer')}
+            {doc('DIST_NBIN_CHARGE',  'IntegerPositive')}
+            {doc('ENABLE_DIST_COM',   'IntegerBinary')}
+            {doc('DIST_MIN_MU',       'FloatNonNegative')}
+            {doc('DIST_MAX_MU',       'FloatNonNegative')}
+            {doc('DIST_NBIN_MU',      'IntegerPositive')}
+            {doc('DIST_MIN_EKIN',     'FloatNonNegative')}
+            {doc('DIST_MAX_EKIN',     'FloatNonNegative')}
+            {doc('DIST_NBIN_EKIN',    'IntegerPositive')}
+            {doc('DIST_MIN_PTOR',     'xs:float')}
+            {doc('DIST_MAX_PTOR',     'xs:float')}
+            {doc('DIST_NBIN_PTOR',    'IntegerPositive')}
+
+                <xs:element name="ORBIT_WRITE">
+                    <xs:annotation>
+                    <xs:documentation>
+                    Orbit output
+                    </xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                    <xs:all>
+                        <xs:element ref="ENABLE_ORBITWRITE"/>
+                        <xs:element ref="ORBITWRITE_MODE"/>
+                        <xs:element ref="ORBITWRITE_NPOINT"/>
+                        <xs:element ref="ORBITWRITE_POLOIDALANGLES"/>
+                        <xs:element ref="ORBITWRITE_TOROIDALANGLES"/>
+                        <xs:element ref="ORBITWRITE_RADIALDISTANCES"/>
+                        <xs:element ref="ORBITWRITE_INTERVAL"/>
+                    </xs:all>
+                    </xs:complexType>
+                </xs:element>
+            {doc('ENABLE_ORBITWRITE',          'IntegerBinary')}
+            {doc('ORBITWRITE_MODE',            'IntegerBinary')}
+            {doc('ORBITWRITE_NPOINT',          'IntegerPositive')}
+            {doc('ORBITWRITE_POLOIDALANGLES',  'FloatOrFloatNNList')}
+            {doc('ORBITWRITE_TOROIDALANGLES',  'FloatOrFloatNNList')}
+            {doc('ORBITWRITE_RADIALDISTANCES', 'FloatOrFloatNNList')}
+            {doc('ORBITWRITE_INTERVAL',        'FloatNonNegative')}
+
+            <xs:element name="TRANSPORT_COEFFICIENT">
+                    <xs:annotation>
+                    <xs:documentation>
+                    Transport coefficient output
+                    </xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                    <xs:all>
+                        <xs:element ref="ENABLE_TRANSCOEF"/>
+                        <xs:element ref="TRANSCOEF_INTERVAL"/>
+                        <xs:element ref="TRANSCOEF_NAVG"/>
+                        <xs:element ref="TRANSCOEF_RECORDRHO"/>
+                    </xs:all>
+                    </xs:complexType>
+                </xs:element>
+            {doc('ENABLE_TRANSCOEF',    'IntegerBinary')}
+            {doc('TRANSCOEF_INTERVAL',  'FloatNonNegative')}
+            {doc('TRANSCOEF_NAVG',      'IntegerPositive')}
+            {doc('TRANSCOEF_RECORDRHO', 'IntegerBinary')}
+            </xs:schema>""")
+        schema = xmlschema.XMLSchema(xsd)
+        if opt is None: opt = Opt.get_default()
+        opt_hierarchy = {
+            "SIMULATION_MODE_AND_TIMESTEP":{}, "END_CONDITIONS":{},
+            "PHYSICS":{}, "DISTRIBUTIONS":{}, "ORBIT_WRITE":{},
+            "TRANSPORT_COEFFICIENT":{}}
+        for k, v in opt.items():
+            if k == "SIM_MODE":
+                grp = "SIMULATION_MODE_AND_TIMESTEP"
+            elif k == "ENDCOND_SIMTIMELIM":
+                grp = "END_CONDITIONS"
+            elif k == "ENABLE_ORBIT_FOLLOWING":
+                grp = "PHYSICS"
+            elif k == "ENABLE_DIST_5D":
+                grp = "DISTRIBUTIONS"
+            elif k == "ENABLE_ORBITWRITE":
+                grp = "ORBIT_WRITE"
+            elif k == "ENABLE_TRANSCOEF":
+                grp = "TRANSPORT_COEFFICIENT"
+            opt_hierarchy[grp][k] = v
+
+        data = json.dumps({"parameters":opt_hierarchy})
+        xml = xmlschema.from_json(data, schema=schema, preserve_root=True)
+
+        if fnxsd is not None:
+            with open(fnxsd, 'w') as f:
+                f.writelines(xsd)
+        if fnxml is not None:
+            ElementTree(xml).write(fnxml)
+
+        return schema, xml
