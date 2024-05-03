@@ -97,6 +97,10 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    /* Disable diagnostics that are not supported */
+    sim.diag_offload_data.diagorb_collect   = 0;
+    sim.diag_offload_data.diagtrcof_collect = 0;
+
     /* Initialize diagnostics */
     if( diag_init_offload(&sim.diag_offload_data, &diag_offload_array, 0) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
