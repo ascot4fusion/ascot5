@@ -435,7 +435,7 @@ class PhysTest():
         init("opt", **opt, desc=PhysTest.tag_orbfol_gcf)
         opt.update({
             "ENABLE_ADAPTIVE" : 1, "ADAPTIVE_MAX_DRHO" : 0.1,
-            "ADAPTIVE_MAX_DPHI" : 10, "ADAPTIVE_TOL_ORBIT" : 1e-11,
+            "ADAPTIVE_MAX_DPHI" : 10, "ADAPTIVE_TOL_ORBIT" : 1e-14,
             "FIXEDSTEP_USERDEFINED" : 1e-8
         })
         init("opt", **opt, desc=PhysTest.tag_orbfol_gca)
@@ -1622,12 +1622,13 @@ class PhysTest():
         })
         init("opt", **opt, desc=PhysTest.tag_mhd_go)
         opt.update({
-            "SIM_MODE" : 2, "FIXEDSTEP_USERDEFINED" : 1e-12
+            "SIM_MODE" : 2, "ENABLE_ADAPTIVE": 0,
+            "FIXEDSTEP_USERDEFINED" : 1e-11
         })
         init("opt", **opt, desc=PhysTest.tag_mhd_gcf)
         opt.update({
             "ENABLE_ADAPTIVE" : 1, "FIXEDSTEP_USERDEFINED" : 1e-11,
-            "ADAPTIVE_TOL_ORBIT" : 1e-11, "ADAPTIVE_MAX_DRHO" : 0.1,
+            "ADAPTIVE_TOL_ORBIT" : 1e-14, "ADAPTIVE_MAX_DRHO" : 0.1,
             "ADAPTIVE_MAX_DPHI" : 10
         })
         init("opt", **opt, desc=PhysTest.tag_mhd_gca)
