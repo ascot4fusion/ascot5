@@ -23,7 +23,7 @@ dependencies:
   - doxygen
   - ipykernel
   - pandoc
-  - sphinx
+  - sphinx==6.*
   - numpydoc
   - nbsphinx
   - nbformat
