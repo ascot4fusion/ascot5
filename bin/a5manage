@@ -52,8 +52,8 @@ if opt == 0:
     print("a5manage: error: provide one of the -s, -a, -r, -c options")
     exit()
 if opt > 1:
-    print("a5manage: error: only one of the -s, -a, -r, -c options can be used at "
-          + "a time")
+    print("a5manage: error: only one of the -s, -a, -r, -c options can be used "
+          + "at a time")
     exit()
 if args.copy and args.FILE2 is None:
     print("a5manage: error: provide FILE2 where the data is copied from.")
