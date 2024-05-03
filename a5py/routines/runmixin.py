@@ -1248,7 +1248,7 @@ class RunMixin(DistMixin):
                          axesequal=axesequal, axes=axes, cax=cax)
 
     def plotorbit_poincare(self, plane, connlen=True, markersize=2,
-                           axes=None, cax=None):
+                           alternative_coords=False, axes=None, cax=None):
         """Create a Poincaré plot where the color separates different markers
         or shows the connection length.
 
@@ -1273,6 +1273,12 @@ class RunMixin(DistMixin):
             trajectories.
         markersize : int, optional
             Marker size on plot.
+        alternative_coords : bool, optional
+            Use alternative coordinate axes to visualize the plot.
+
+            The default axes are (R,z) for the poloidal plot and (rho,phi) for
+            the toroidal plot. If `alternative_coords`=True, these are changed
+            to (rho,theta) and (R,phi), respectively.
         axes : :obj:`~matplotlib.axes.Axes`, optional
             The axes where figure is plotted or otherwise new figure is created.
         cax : :obj:`~matplotlib.axes.Axes`, optional
@@ -1283,30 +1289,36 @@ class RunMixin(DistMixin):
         ValueError
             Raised when the plane is unknown.
         """
+        def choose(default, alternative):
+            """Helper function to avoid repetitive if else statements when
+            choosing coordinates.
+            """
+            return alternative if alternative_coords else default
+
         # Set quantities corresponding to the planetype
         pol, tor, rad = self.getorbit_poincareplanes()
         if "pol" in plane:
             plane = int(plane.split()[1]) - 1
             if plane < len(pol) and plane >= 0:
                 plane = pol[plane][1]
-                x = "r"
-                y = "z"
-                xlabel = "R [m]"
-                ylabel = "z [m]"
-                xlim = None # Determined spearately
-                ylim = None # Determined separately
-                axesequal = True
+                x = choose("r", "rho")
+                y = choose("z", "polmod")
+                xlabel = choose("R [m]", "Normalized poloidal flux")
+                ylabel = choose("z [m]", "Poloidal angle [deg]")
+                xlim = choose(None, [0, 1.1]) # None is determined separately
+                ylim = choose(None, [0, 360]) # None is determined separately
+                axesequal = choose(True, False)
             else:
                 raise ValueError("Unknown plane.")
         elif "tor" in plane:
             plane = int(plane.split()[1]) - 1
             if plane < len(tor) and plane >= 0:
                 plane = tor[plane][1]
-                x = "rho"
+                x = choose("rho", "r")
                 y = "phimod"
-                xlabel = "Normalized poloidal flux"
+                xlabel = choose("Normalized poloidal flux", "R [m]")
                 ylabel = "Toroidal angle [deg]"
-                xlim = [0, 1.1]
+                xlim = choose([0, 1.1], None) # None is determined separately
                 ylim = [0, 360]
                 axesequal = False
             else:
@@ -1330,10 +1342,11 @@ class RunMixin(DistMixin):
         plotconnlen = connlen
         ids, x, y, connlen = self.getorbit("ids", x, y, "connlen", pncrid=plane)
 
+        # Determine (R,z) limits for poloidal plane by making sure the data
+        # fits nicely and then rounding to nearest decimal.
         if xlim == None:
-            # Determine (R,z) limits for poloidal plane by making sure the data
-            # fits nicely and then rounding to nearest decimal.
             xlim = [np.floor(np.amin(x)*9) / 10, np.ceil(np.amax(x)*11) / 10]
+        if ylim == None:
             ylim = [np.floor(np.amin(y)*11) / 10, np.ceil(np.amax(y)*11) / 10]
 
         if plotconnlen:
