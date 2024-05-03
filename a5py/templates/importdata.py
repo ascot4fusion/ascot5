@@ -869,3 +869,49 @@ class ImportData():
             b3d["bz"]   += bz
 
         return ("B_3DS", b3d)
+
+    def import_marker_locust(self, fn=None, power=None):
+        """Convert LOCUST marker input to ASCOT5 markers.
+
+        Parameters
+        ----------
+        fn : str
+            Name of the input file.
+        power : float
+            The total power this marker population represents.
+
+            The marker weight in LOCUST input is power/volume, so the easiest
+            way to convert them to ASCOT5 weight (particles/s) is to just
+            renormalize the weights.
+        """
+        if fn is None:
+            raise ValueError("Input filename 'fn' is required")
+        if power is None:
+            raise ValueError("Total power 'power' is required")
+        species = np.loadtxt(fn, max_rows=2)
+        anum   = 4#int(species[0])
+        znum   = 2#int(species[1])
+        mass   = anum * unyt.amu
+        charge = znum * unyt.e
+
+        data = np.loadtxt(fn, skiprows=2)
+        r    = data[:,0] * unyt.m
+        phi  = data[:,1] * unyt.rad
+        z    = data[:,2] * unyt.m
+        vr   = data[:,3] * unyt.m/unyt.s
+        vphi = data[:,4] * unyt.m/unyt.s
+        vz   = data[:,5] * unyt.m/unyt.s
+        w    = data[:,6]
+
+        ekin = (0.5 * mass * (vr**2 + vphi**2 + vz**2)).to("J")
+        rate = (power / ekin).v * unyt.particles / unyt.s
+        weight = rate * w / np.sum(w)
+
+        nmrk = r.size
+        prt = {"n":nmrk, "ids":np.arange(nmrk)+1,
+               "anum":anum*np.ones((nmrk,)), "znum":znum*np.ones((nmrk,)),
+               "mass":mass*np.ones((nmrk,)), "charge":charge*np.ones((nmrk,)),
+               "r":r, "phi":phi, "z":z, "vr":vr, "vphi":vphi, "vz":vz,
+               "weight":weight, "time":np.zeros((nmrk,))}
+
+        return ("prt", prt)
