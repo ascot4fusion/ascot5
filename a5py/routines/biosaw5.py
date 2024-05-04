@@ -123,7 +123,8 @@ class BioSaw():
 
     def addto2d(self, coilxyz, phimin=0, phimax=360, nphi=360,
                 rmin=None, rmax=None, nr=None, zmin=None, zmax=None, nz=None,
-                current=1.0, revolve=None, b0=None, b2d=None):
+                current=1.0, revolve=None, exclude_bphi_from_eqdsk=False,
+                b0=None, b2d=None):
         """Generate 3D tokamak magnetic field input from coil geometry and
            2D input.
 
@@ -177,10 +178,21 @@ class BioSaw():
             + B_coil(phi0 at phi[2*revolve]) + ...,
 
             where the field is rotated through the whole ``phi`` array.
-        b0 : float, optional
+        exclude_bphi_from_eqdsk : bool, optional
+            Exclude diamagnetic contribution to Bphi that comes from the
+            equilibrium.
+
+            If this flag is set to `True`, the toroidal magnetic field is
+            perfectly 1/R, but for realistic simulations this flag should be
+            `False`.
+        b0 : {"axis"} or float, optional
             If given, the current in the coils is scaled (after revolving them
-            if requested) so that the toroidal field on axis has this value on
-            average.
+            if requested) so that the toroidal field on axis has requested value
+            on average.
+
+            If this parameter is float, the toroidal field will have this value
+            on axis on average. If this parameter is "axis", the average value
+            is the same as what EQDSK has.
         b2d : dict, optional
             :class:`.B_2DS` data to be used or otherwise read from active bfield
             input.
@@ -215,13 +227,27 @@ class BioSaw():
 
         # Scale axis Bphi to given value if requested
         scaling = 1.0
-        if b0 is not None:
+        if b0 == "axis":
+            f3d = interpolate.interp2d(r, z, np.mean(bphi, axis=1).T,
+                                       kind='cubic')
+            f2d = interpolate.interp2d(r, z, b2d["bphi"].T, kind='cubic')
+            scaling = f2d(b2d["axisr"], b2d["axisz"]) \
+                / f3d(b2d["axisr"], b2d["axisz"])
+        elif b0 is not None:
             f = interpolate.interp2d(r, z, np.mean(bphi, axis=1).T,
                                      kind='cubic')
             scaling = b0 / f(b2d["axisr"], b2d["axisz"])
 
+        if not exclude_bphi_from_eqdsk:
+            bphi *=  scaling
+            bphi += np.transpose(
+                np.tile(b2d["bphi"] - np.mean(bphi, axis=1), (nphi,1,1)),
+                (1,0,2))
+            b3d["bphi"] = bphi
+        else:
+            b3d["bphi"] = scaling * bphi
+
         b3d["br"]   = scaling * br
-        b3d["bphi"] = scaling * bphi
         b3d["bz"]   = scaling * bz
         b3d.update(
             {"axisr":b2d["axisr"], "axisz":b2d["axisz"], "psi":b2d["psi"],
