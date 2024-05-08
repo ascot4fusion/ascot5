@@ -9,7 +9,6 @@ import unyt
 import ctypes
 import numpy as np
 import wurlitzer # For muting libascot.so
-from mpi4py import MPI
 
 from numpy.ctypeslib import ndpointer
 

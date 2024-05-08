@@ -109,7 +109,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
 
         self._mute = "no"
 
-    def _initmpi(self, mpirank, mpisize):
+    def _initmpi(self, mpirank, mpisize, mpiroot=0):
         """Initialize MPI data.
 
         Parameters
@@ -118,10 +118,14 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             MPI rank.
         mpisize : int
             MPI size.
+        mpiroot : int, optional
+            Rank of the root process.
+
+            Only changed when running pseudo-MPI simulation.
         """
         self._sim.mpi_rank = ctypes.c_int32(mpirank)
         self._sim.mpi_size = ctypes.c_int32(mpisize)
-        self._sim.mpi_root = ctypes.c_int32(0)
+        self._sim.mpi_root = ctypes.c_int32(mpiroot)
 
     def _init(self, data, bfield=None, efield=None, plasma=None,
               wall=None, neutral=None, boozer=None, mhd=None, asigma=None,
