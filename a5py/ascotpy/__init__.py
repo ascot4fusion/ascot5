@@ -26,8 +26,6 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
     implementation of the libascot.so interface in private methods and
     attributes so that the Ascot front is clean for the users.
 
-    MPI parallelism has not been tested.
-
     Attributes
     ----------
     _sim
@@ -69,12 +67,6 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         Offload data for the atomic data input.
     _nbi_offload_array
         Offload data for the neutral beam injector data input.
-    _mpi_root
-        Rank of the root MPI process.
-    _mpi_rank
-        Rank of this MPI process.
-    _mpi_size
-        Number of MPI processes.
     _mute
         Mute output from libascot.so: "yes" - stdout and stderr both muted,
         "no" - output is not muted, "err" - stderr is printed.
@@ -92,9 +84,9 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             return
 
         # Initialize attributes
-        self._offload_ready    = False
-        self._nmrk             = ctypes.c_int32()
-        self._diag_occupied    = False
+        self._offload_ready     = False
+        self._nmrk              = ctypes.c_int32()
+        self._diag_occupied     = False
         self._offload_data      = ascot2py.struct_c__SA_offload_package()
         self._offload_array     = ctypes.POINTER(ctypes.c_double)()
         self._int_offload_array = ctypes.POINTER(ctypes.c_int   )()
@@ -115,18 +107,21 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
 
         self._wall_int_offload_array = ctypes.POINTER(ctypes.c_int)()
 
-        # MPI init needs to be called (only) once so that we can run simulations
-        argc       = ctypes.c_int32()
-        argc.value = 0
-        argv       = ctypes.POINTER(ctypes.c_char)()
-        self._mpi_rank = ctypes.c_int32()
-        self._mpi_root = ctypes.c_int32()
-        self._mpi_size = ctypes.c_int32()
-        ascot2py.mpi_interface_init(
-            argc, ctypes.byref(argv), ctypes.byref(self._sim),
-            ctypes.byref(self._mpi_rank), ctypes.byref(self._mpi_size),
-            ctypes.byref(self._mpi_root))
         self._mute = "no"
+
+    def _initmpi(self, mpirank, mpisize):
+        """Initialize MPI data.
+
+        Parameters
+        ----------
+        mpirank : int
+            MPI rank.
+        mpisize : int
+            MPI size.
+        """
+        self._sim.mpi_rank = ctypes.c_int32(mpirank)
+        self._sim.mpi_size = ctypes.c_int32(mpisize)
+        self._sim.mpi_root = ctypes.c_int32(0)
 
     def _init(self, data, bfield=None, efield=None, plasma=None,
               wall=None, neutral=None, boozer=None, mhd=None, asigma=None,

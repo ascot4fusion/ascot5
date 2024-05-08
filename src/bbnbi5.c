@@ -65,14 +65,9 @@ int main(int argc, char** argv) {
     }
 
     int mpi_rank = 0, mpi_root = 0; /* BBNBI 5 does not yet support MPI */
-    print_out0(VERBOSE_MINIMAL, mpi_rank, "BBNBI5\n");
-
-#ifdef GIT_VERSION
-    print_out0(VERBOSE_MINIMAL, mpi_rank,
+    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "BBNBI5\n");
+    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
                "Tag %s\nBranch %s\n\n", GIT_VERSION, GIT_BRANCH);
-#else
-    print_out0(VERBOSE_MINIMAL, mpi_rank, "Not under version control\n\n");
-#endif
 
     /* Read data needed for bbnbi simulation */
     real* nbi_offload_array;
@@ -92,14 +87,15 @@ int main(int argc, char** argv) {
                                   &wall_int_offload_array, NULL, NULL,
                                   &asigma_offload_array, &nbi_offload_array,
                                   NULL, NULL) ) {
-        print_out0(VERBOSE_MINIMAL, mpi_rank, "Input initialization failed\n");
+        print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
+                   "Input initialization failed\n");
         abort();
         return 1;
     }
 
     /* Initialize diagnostics */
     if( diag_init_offload(&sim.diag_offload_data, &diag_offload_array, 0) ) {
-        print_out0(VERBOSE_MINIMAL, mpi_rank,
+        print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
                        "\nFailed to initialize diagnostics.\n"
                        "See stderr for details.\n");
             abort();
@@ -107,7 +103,7 @@ int main(int argc, char** argv) {
     }
     real diag_offload_array_size = sim.diag_offload_data.offload_array_length
         * sizeof(real) / (1024.0*1024.0);
-    print_out0(VERBOSE_IO, mpi_rank,
+    print_out0(VERBOSE_IO, mpi_rank, mpi_root,
                "Initialized diagnostics, %.1f MB.\n", diag_offload_array_size);
     simulate_init_offload(&sim);
 
@@ -117,9 +113,9 @@ int main(int argc, char** argv) {
 
     /* Write bbnbi run group to HDF5 */
     if(mpi_rank == mpi_root) {
-        print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n");
+        print_out0(VERBOSE_IO, mpi_rank, mpi_root, "\nPreparing output.\n");
         if( hdf5_interface_init_results(&sim, qid, "bbnbi") ) {
-            print_out0(VERBOSE_MINIMAL, mpi_rank,
+            print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
                        "\nInitializing output failed.\n"
                        "See stderr for details.\n");
             /* Free offload data and terminate */
@@ -173,7 +169,7 @@ int main(int argc, char** argv) {
                      &(sim_data.nbi_data.inj[i]), &sim_data);
 
         nprt_generated += nprt_inj;
-        print_out0(VERBOSE_NORMAL, mpi_rank,
+        print_out0(VERBOSE_NORMAL, mpi_rank, mpi_root,
                    "Generated %d markers for injector %d.\n", nprt_inj, i+1);
     }
 
@@ -201,20 +197,20 @@ int main(int argc, char** argv) {
     if(mpi_rank == mpi_root) {
         if( hdf5_interface_write_state(sim.hdf5_out, "state",
                                        nprt_generated, p) ) {
-            print_out0(VERBOSE_MINIMAL, mpi_rank,
+            print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
                        "\n"
                        "Writing marker state failed.\n"
                        "See stderr for details.\n"
                        "\n");
         }
         free(p);
-        print_out0(VERBOSE_NORMAL, mpi_rank,
+        print_out0(VERBOSE_NORMAL, mpi_rank, mpi_root,
                    "\nMarker state written.\n");
 
         hdf5_interface_write_diagnostics(
             &sim, diag_offload_array, sim.hdf5_out);
     }
-    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nDone\n");
+    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "\nDone\n");
 
     return 0;
 }

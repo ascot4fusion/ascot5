@@ -122,6 +122,7 @@ typedef struct {
     char qid[256];         /**< QID of current run           */
     char description[256]; /**< Current run's description    */
 
+    int mpi_root; /**< Rank of the root process      */
     int mpi_rank; /**< Rank of this MPI process      */
     int mpi_size; /**< Total number of MPI processes */
 

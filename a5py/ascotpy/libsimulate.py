@@ -9,6 +9,7 @@ import unyt
 import ctypes
 import numpy as np
 import wurlitzer # For muting libascot.so
+from mpi4py import MPI
 
 from numpy.ctypeslib import ndpointer
 
@@ -33,11 +34,18 @@ class LibSimulate():
         ----------
         **opt :
             Options in same format as accepted by :meth:`Opt.write_hdf5`.
+
+            If not given, the options are read from the HDF5 file.
         """
         self._virtualoptions = opt
         if not _LIBASCOT:
+            # Raise exception if libascot.so is not found
             raise AscotInitException(
                 "Python interface disabled as libascot.so is not found")
+        if not opt:
+            # Read options from HDF5 file
+            opt = self.data.options.active.read()
+
         # Simulation mode options
         self._sim.sim_mode    = int(opt["SIM_MODE"]);
         self._sim.enable_ada  = int(opt["ENABLE_ADAPTIVE"])
@@ -188,8 +196,6 @@ class LibSimulate():
 
         This method must be called before running the simulation.
         """
-
-
         self.input_init(
             bfield=bfield, efield=efield, plasma=plasma, neutral=neutral,
             wall=wall, boozer=boozer, mhd=mhd, asigma=asigma, switch=switch)
@@ -207,14 +213,22 @@ class LibSimulate():
             Marker input (all marker types are supported) as accepted by
             :meth:`Prt.write_hdf5`, :meth:`GC.write_hdf5`, or
             :meth:`FL.write_hdf5`.
+
+            If not given, markers are read from the HDF5 file.
         """
         if not _LIBASCOT:
+            # If libascot.so is not found, raise exception
             raise AscotInitException(
                 "Python interface disabled as libascot.so is not found")
         if self._nmrk.value > 0:
+            # Deallocate previous markers
             ascot2py.libascot_deallocate(self._inistate)
             self._nmrk.value = 0
             self._virtualmarkers = None
+        if not mrk:
+            # Read markers from HDF5 file
+            mrk = self.data.marker.active.read()
+
         self._virtualmarkers = mrk
         nmrk = mrk["n"]
         pin = ascot2py.libascot_allocate_input_particles(nmrk)
@@ -313,7 +327,7 @@ class LibSimulate():
 
         def initmarkers():
             ascot2py.prepare_markers(
-                ctypes.byref(self._sim), self._mpi_size, self._mpi_rank, nmrk,
+                ctypes.byref(self._sim), nmrk,
                 ctypes.byref(pin), ctypes.byref(self._inistate),
                 ctypes.byref(self._nmrk), self._bfield_offload_array)
 
@@ -364,31 +378,35 @@ class LibSimulate():
             raise AscotInitException(
                 "Free previous results before running the simulation")
 
-        # Copy inistate to "endstate" and give endstate to ASCOT5 as an input.
-        # Otherwise the inistate would get overwritten as the code updates
-        # the marker positions in the input array.
-        self._endstate = ascot2py.libascot_allocate_particle_states(self._nmrk)
-        for j in range(self._nmrk.value):
-            for i in range(len(ascot2py.particle_state._fields_)):
-                name = self._inistate[j]._fields_[i][0]
-                val  = getattr(self._inistate[j], name)
-                setattr(self._endstate[j], name, val)
+        # Make an inistate from markers belonging to this process
+        n_proc = ctypes.c_int32(0)
+        idx = ctypes.c_int32(0)
+        ascot2py.mpi_my_particles(
+            ctypes.byref(idx), ctypes.byref(n_proc), self._nmrk,
+            self._sim.mpi_rank, self._sim.mpi_size)
+        inistate = ascot2py.libascot_allocate_particle_states(n_proc.value)
 
-        ## Initialize diagnostics array ##
+        # Copy values from inistate to _inistate. Latter contains all markers
+        for i in range(len(ascot2py.particle_state._fields_)):
+            name = self._inistate[0]._fields_[i][0]
+            for j in range(n_proc.value):
+                val  = getattr(self._inistate[j+idx.value], name)
+                setattr(inistate[j], name, val)
+
+        # Initialize diagnostics array and endstate
+        self._endstate = ascot2py.libascot_allocate_particle_states(self._nmrk)
         ascot2py.diag_init_offload(ctypes.byref(self._sim.diag_offload_data),
                                    ctypes.byref(self._diag_offload_array),
                                    self._nmrk)
+        self._diag_occupied = True
 
-        ## Init MPI and simulate ##
-
-        n_gather = ctypes.c_int32(0) # Not really needed unless MPI is used
+        # Simulate and print stdout/stderr if requested
         def runsim():
             ascot2py.offload_and_simulate(
-                ctypes.byref(self._sim), self._mpi_size, self._mpi_rank,
-                self._mpi_root, self._nmrk, self._nmrk, self._endstate,
-                ctypes.byref(self._offload_data), self._offload_array,
-                self._int_offload_array, ctypes.byref(n_gather),
-                ctypes.byref(self._endstate),
+                ctypes.byref(self._sim), self._nmrk,
+                n_proc.value, inistate, ctypes.byref(self._offload_data),
+                self._offload_array, self._int_offload_array,
+                ctypes.byref(n_proc), ctypes.byref(self._endstate),
                 self._diag_offload_array)
 
         if self._mute == "no":
@@ -399,8 +417,8 @@ class LibSimulate():
             err = err.read()
             if self._mute == "err" and len(err) > 1: print(err)
 
-        self._diag_occupied = True
-        if printsummary:
+        # Print summary
+        if self._sim.mpi_rank == self._sim.mpi_root and printsummary:
             ascot2py.print_marker_summary(self._endstate, self._nmrk)
 
         class VirtualInput():

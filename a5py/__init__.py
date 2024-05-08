@@ -65,7 +65,8 @@ class Ascot(Ascotpy):
         Tool for generating markers from distributions.
     """
 
-    def __init__(self, inputfile=None, create=False, mute="err"):
+    def __init__(self, inputfile=None, create=False, mute="err",
+                 mpirank=0, mpisize=1):
         """Initialize Ascot instance.
 
         Parameters
@@ -80,6 +81,10 @@ class Ascot(Ascotpy):
 
             Possible values are: "yes" - both stdout and stderr are muted,
             "no" - nothing is muted, "err" - stderr is shown.
+        mpirank : int, optional
+            Rank of the MPI process.
+        mpisize : int, optional
+            Number of MPI processes.
         """
         super().__init__()
 
@@ -98,6 +103,7 @@ class Ascot(Ascotpy):
 
         self.file_load(inputfile)
         self._mute = mute
+        self._initmpi(mpirank, mpisize)
 
     def file_getpath(self):
         """Return name of the HDF5 file from which this instance reads the data.
