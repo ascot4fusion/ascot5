@@ -22,10 +22,10 @@ extern const char VERBOSE_LEVEL;
 #define print_out(v,...) { if(VERBOSE_LEVEL >= (v)) printf(__VA_ARGS__); }
 
 /**
- * @brief Print to standard output only for rank 0
+ * @brief Print to standard output only for root process
  */
-#define print_out0(v,rank,...) { \
-    if(VERBOSE_LEVEL >= (v) &&(rank)==0) printf(__VA_ARGS__); }
+#define print_out0(v,rank,root,...) { \
+    if(VERBOSE_LEVEL >= (v) &&(rank)==(root)) printf(__VA_ARGS__); }
 
 /**
  * @brief Print to standard error

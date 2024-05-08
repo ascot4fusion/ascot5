@@ -121,18 +121,18 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    /* Get MPI rank and set qid for the run*/
-    char qid[11];
-    hdf5_generate_qid(qid);
+    /* Determine if MPI is used or if this is a serial run and set MPI rank,
+     * size, and root accordingly in sim */
+    int mpi_rank_from_user = sim.mpi_rank;
+    int mpi_size_from_user = sim.mpi_size;
+    mpi_interface_init(
+        argc, argv, &sim, mpi_rank_from_user, mpi_size_from_user);
 
-    int mpi_rank, mpi_size, mpi_root;
-    mpi_interface_init(argc, argv, &sim, &mpi_rank, &mpi_size, &mpi_root);
-
-    print_out0(VERBOSE_MINIMAL, mpi_rank, "ASCOT5_MAIN\n");
-    print_out0(VERBOSE_MINIMAL, mpi_rank,
+    print_out0(VERBOSE_MINIMAL, sim.mpi_rank, sim.mpi_root, "ASCOT5_MAIN\n");
+    print_out0(VERBOSE_MINIMAL, sim.mpi_rank, sim.mpi_root,
                "Tag %s\nBranch %s\n\n", GIT_VERSION, GIT_BRANCH);
-    print_out(VERBOSE_NORMAL,
-              "Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
+    print_out(VERBOSE_NORMAL, "Initialized MPI, rank %d, size %d.\n",
+              sim.mpi_rank, sim.mpi_size);
 
     /* Total number of markers to be simulated */
     int n_tot;
@@ -164,7 +164,7 @@ int main(int argc, char** argv) {
                                   &boozer_offload_array, &mhd_offload_array,
                                   &asigma_offload_array, NULL,
                                   &p, &n_tot) ) {
-        print_out0(VERBOSE_MINIMAL, mpi_rank,
+        print_out0(VERBOSE_MINIMAL, sim.mpi_rank, sim.mpi_root,
                    "\nInput reading or initializing failed.\n"
                    "See stderr for details.\n");
         mpi_interface_finalize();
@@ -173,11 +173,9 @@ int main(int argc, char** argv) {
     };
 
     /* Initialize marker states array ps and free marker input p */
-    int nprts; /* Number of markers allocated for this MPI process */
+    int n_proc; /* Number of markers allocated for this MPI process */
     particle_state* ps;
-    if( prepare_markers(
-            &sim, mpi_size, mpi_rank, n_tot, &p, &ps, &nprts,
-            B_offload_array) ) {
+    if( prepare_markers(&sim, n_tot, &p, &ps, &n_proc, B_offload_array) ) {
         goto CLEANUP_FAILURE;
     }
 
@@ -199,44 +197,43 @@ int main(int argc, char** argv) {
 
     real diag_offload_array_size = sim.diag_offload_data.offload_array_length
         * sizeof(real) / (1024.0*1024.0);
-    print_out0(VERBOSE_NORMAL, mpi_rank,
+    print_out0(VERBOSE_NORMAL, sim.mpi_rank, sim.mpi_root,
                "Initialized diagnostics, %.1f MB.\n", diag_offload_array_size);
 
     /* Write run group and inistate */
-    if( write_rungroup(&sim, mpi_size, mpi_rank, mpi_root, n_tot, ps, qid) ) {
+    char qid[11];
+    hdf5_generate_qid(qid);
+    if( write_rungroup(&sim, ps, n_tot, qid) ) {
         goto CLEANUP_FAILURE;
     }
 
     /* Actual simulation is done here; the results are stored in
      * diag_offload_array and pout contains end states from all processes.
-     * n_gathered is the number of simulated markers, which can differ from
-     * n_tot if this process is run in a MPI-like manner without MPI and the
-     * output will contain only 1/mpi_size of the results. */
-    particle_state* pout;
+     * n_gathered is the number of markers in the output array, which is n_tot
+     * for most cases except when the simulation is run in condor-like manner,
+     * in which case it is equal to n_proc. */
     int n_gathered;
-
+    particle_state* pout;
     offload_and_simulate(
-        &sim, mpi_size, mpi_rank, mpi_root, n_tot, nprts, ps, &offload_data,
-        offload_array, int_offload_array, &n_gathered, &pout,
-        diag_offload_array);
+        &sim, n_tot, n_proc, ps, &offload_data, offload_array,
+        int_offload_array, &n_gathered, &pout, diag_offload_array);
 
     /* Free input data */
     offload_free_offload(&offload_data, &offload_array, &int_offload_array);
 
     /* Write output and clean */
-    if( write_output(&sim, mpi_rank, mpi_root, pout, n_gathered,
-                     diag_offload_array) ) {
+    if( write_output(&sim, pout, n_gathered, diag_offload_array) ) {
         goto CLEANUP_FAILURE;
     }
     diag_free_offload(&sim.diag_offload_data, &diag_offload_array);
 
     /* Display marker summary and free marker arrays */
-    if(mpi_rank == mpi_root) {
+    if(sim.mpi_rank == sim.mpi_root) {
         print_marker_summary(pout, n_tot);
     }
     free(pout);
 
-    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nDone.\n");
+    print_out0(VERBOSE_MINIMAL, sim.mpi_rank, sim.mpi_root, "\nDone.\n");
     mpi_interface_finalize();
     return 0;
 
@@ -256,24 +253,26 @@ CLEANUP_FAILURE:
 /**
  * @brief Prepare markers for offload
  *
- * Marker states are initialized here and stored in a single array, which
- * then can be offloaded to the target.
+ * This function initializes the marker states and allocates memory for the
+ * particle states. The input markers are read from the HDF5 file and
+ * stored in the input_particle_states array. The initial marker states
+ * are then calculated and stored in the particle_states array.
+ *
+ * When MPI is used, the marker states are initialized only for those markers
+ * that are used in this MPI process.
  *
  * @param sim simulation offload data struct
- * @param mpi_size number of MPI processes
- * @param mpi_rank rank of this MPI process
  * @param n_tot total number of markers
  * @param pin pointer to marker input array which is deallocated here
  * @param pout pointer to marker state array created here
- * @param nprts pointer to variable for number of markers for this process
+ * @param n_proc pointer to variable for number of markers for this process
  * @param B_offload_array pointer to magnetic field data needed for marker init
  *
  * @returns zero on success
  */
 int prepare_markers(
-    sim_offload_data* sim, int mpi_size, int mpi_rank, int n_tot,
-    input_particle** pin, particle_state** pout, int* nprts,
-    real* B_offload_array) {
+    sim_offload_data* sim, int n_tot, input_particle** pin,
+    particle_state** pout, int* n_proc, real* B_offload_array) {
 
     /* This sets up GC transformation order etc. so it must be called before
      * initializing markers. */
@@ -283,24 +282,24 @@ int prepare_markers(
      * are divided into mpi_size sequential blocks and the mpi_rank:th block
      * is chosen for this simulation. */
     int start_index;
-    mpi_my_particles(&start_index, nprts, n_tot, mpi_rank, mpi_size);
+    mpi_my_particles(&start_index, n_proc, n_tot, sim->mpi_rank, sim->mpi_size);
     (*pin) += start_index;
 
     /* Set up particlestates on host, needs magnetic field evaluation */
-    print_out0(VERBOSE_NORMAL, mpi_rank,
+    print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,
                "\nInitializing marker states.\n");
     B_field_data Bdata;
     B_field_init(&Bdata, &sim->B_offload_data, B_offload_array);
 
-    *pout = (particle_state*) malloc(*nprts * sizeof(particle_state));
-    for(int i = 0; i < *nprts; i++) {
+    *pout = (particle_state*) malloc(*n_proc * sizeof(particle_state));
+    for(int i = 0; i < *n_proc; i++) {
         particle_input_to_state(&(*pin)[i], &(*pout)[i], &Bdata);
     }
 
-    print_out0(VERBOSE_NORMAL, mpi_rank,
+    print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,
                "Estimated memory usage %.1f MB.\n",
-               (sizeof(real) * (*nprts)) / (1024.0*1024.0));
-    print_out0(VERBOSE_NORMAL, mpi_rank,
+               (sizeof(real) * (*n_proc)) / (1024.0*1024.0));
+    print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,
                "Marker states initialized.\n");
 
     /* We can now free the input markers */
@@ -395,24 +394,21 @@ int pack_offload_array(
  * @brief Create and store run group and marker inistate.
  *
  * @param sim simulation offload data struct
- * @param mpi_size number of MPI processes
- * @param mpi_rank rank of this MPI process
- * @param mpi_root rank of the root process
- * @param n_tot total number of markers
  * @param ps marker state array for this process
+ * @param n_tot total number of markers in this simulation
  * @param qid unique identifier for this run group
  *
  * @returns zero on success
  */
-int write_rungroup(
-    sim_offload_data* sim, int mpi_size, int mpi_rank, int mpi_root, int n_tot,
-    particle_state* ps, char* qid) {
+int write_rungroup(sim_offload_data* sim, particle_state* ps, int n_tot,
+                   char* qid) {
 
-    if(mpi_rank == mpi_root) {
+    if(sim->mpi_rank == sim->mpi_root) {
         /* Initialize results group in the output file */
-        print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n");
+        print_out0(VERBOSE_IO, sim->mpi_rank, sim->mpi_root,
+                   "\nPreparing output.\n");
         if( hdf5_interface_init_results(sim, qid, "run") ) {
-            print_out0(VERBOSE_MINIMAL, mpi_rank,
+            print_out0(VERBOSE_MINIMAL, sim->mpi_rank, sim->mpi_root,
                        "\nInitializing output failed.\n"
                        "See stderr for details.\n");
             /* Free offload data and terminate */
@@ -422,16 +418,16 @@ int write_rungroup(
     }
 
     /* Gather particle states so that we can write inistate */
-    int n_gathered;
-    particle_state* ps_gathered;
-    mpi_gather_particlestate(ps, &ps_gathered, &n_gathered, n_tot,
-                             mpi_rank, mpi_size, mpi_root);
+    int n_gather;
+    particle_state* ps_gather;
+    mpi_gather_particlestate(ps, &ps_gather, &n_gather, n_tot,
+                             sim->mpi_rank, sim->mpi_size, sim->mpi_root);
 
-    if(mpi_rank == mpi_root) {
+    if(sim->mpi_rank == sim->mpi_root) {
         /* Write inistate */
-        if(hdf5_interface_write_state(sim->hdf5_out, "inistate", n_gathered,
-                                      ps_gathered)) {
-            print_out0(VERBOSE_MINIMAL, mpi_rank,
+        if(hdf5_interface_write_state(
+            sim->hdf5_out, "inistate", n_gather, ps_gather)) {
+            print_out0(VERBOSE_MINIMAL, sim->mpi_rank, sim->mpi_root,
                        "\n"
                        "Writing inistate failed.\n"
                        "See stderr for details.\n"
@@ -439,10 +435,10 @@ int write_rungroup(
             /* Free offload data and terminate */
             return 1;
         }
-        print_out0(VERBOSE_NORMAL, mpi_rank,
+        print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,
                    "\nInistate written.\n");
     }
-    free(ps_gathered);
+    free(ps_gather);
 
     return 0;
 }
@@ -452,34 +448,31 @@ int write_rungroup(
  * @brief Offload data to target, carry out the simulation, and return to host.
  *
  * @param sim simulation offload data struct
- * @param mpi_size number of MPI processes
- * @param mpi_rank rank of this MPI process
- * @param mpi_root rank of the root process
  * @param n_tot total number of markers
- * @param nprts number of markers in this process
+ * @param n_proc number of markers in this process
  * @param pin marker state array for this process (deallocated here)
  * @param offload_data packed offload data struct
  * @param offload_array packed offload array containing the input data
  * @param int_offload_array packed offload integer array containg the input data
- * @param n_gathered pointer for storing number of simulated markers
- * @param pout pointer to array containing all marker endstates
+ * @param n_gather pointer for storing the number of markers in pout (either
+ *        n_tot or n_proc)
+ * @param pout pointer to array containing all endstates in the simulation
  * @param diag_offload_array array to store output data
  *
  * @return zero on success
  */
 int offload_and_simulate(
-    sim_offload_data* sim, int mpi_size, int mpi_rank, int mpi_root, int n_tot,
-    int nprts, particle_state* pin, offload_package* offload_data,
-    real* offload_array, int* int_offload_array, int* n_gathered,
-    particle_state** pout, real* diag_offload_array) {
+    sim_offload_data* sim, int n_tot, int n_proc, particle_state* pin,
+    offload_package* offload_data, real* offload_array, int* int_offload_array,
+    int* n_gather, particle_state** pout, real* diag_offload_array) {
 
     /* Divide markers among host and target */
 #ifdef TARGET
-    int n_mic = nprts;
+    int n_mic = n_proc;
     int n_host = 0;
 #else
     int n_mic = 0;
-    int n_host = nprts;
+    int n_host = n_proc;
 #endif
 
     double mic_start = 0, mic_end=0, host_start=0, host_end=0;
@@ -496,8 +489,8 @@ int offload_and_simulate(
      * at the target and completed within the simulate() function.*/
     #pragma omp parallel sections num_threads(3)
     {
-        /* Run simulation on first target */
 #if TARGET >= 1
+        /* Run simulation on first target */
         #pragma omp section
         {
             mic_start = omp_get_wtime();
@@ -515,9 +508,9 @@ int offload_and_simulate(
         }
 #endif
 
+#ifndef TARGET
         /* No target, marker simulation happens where the code execution began.
          * Offloading is only emulated. */
-#ifndef TARGET
         #pragma omp section
         {
             host_start = omp_get_wtime();
@@ -530,15 +523,15 @@ int offload_and_simulate(
 
     /* Code execution returns to host. */
     print_out(VERBOSE_NORMAL, "process %d finished: gpu %lf s, host %lf s\n",
-              mpi_rank, mic_end-mic_start, host_end-host_start);
+              sim->mpi_rank, mic_end-mic_start, host_end-host_start);
 
     /* Gather output data */
-    mpi_gather_particlestate(pin, pout, n_gathered, n_tot,
-                             mpi_rank, mpi_size, mpi_root);
+    mpi_gather_particlestate(pin, pout, n_gather, n_tot, sim->mpi_rank,
+                             sim->mpi_size, sim->mpi_root);
     free(pin);
 
     mpi_gather_diag(&sim->diag_offload_data, diag_offload_array, n_tot,
-                    mpi_rank, mpi_size, mpi_root);
+                    sim->mpi_rank, sim->mpi_size, sim->mpi_root);
 
     return 0;
 }
@@ -548,50 +541,45 @@ int offload_and_simulate(
  * @brief Store simulation output data.
  *
  * @param sim simulation offload data
- * @param mpi_rank rank of this MPI process
- * @param mpi_root rank of the root process (which does the writing)
- * @param ps_gathered marker state array containing the end states
- * @param n_gathered number of simulated markers
+ * @param ps marker endstate array to be written
+ * @param n_tot number of markers
  * @param diag_offload_array diagnostics offload data array
  *
  * @return zero on success
  */
-int write_output(
-    sim_offload_data* sim, int mpi_rank, int mpi_root,
-    particle_state* ps_gathered, int n_gathered,
-    real* diag_offload_array){
+int write_output(sim_offload_data* sim, particle_state* ps, int n_tot,
+                 real* diag_offload_array){
 
-    if(mpi_rank == mpi_root) {
-
+    if(sim->mpi_rank == sim->mpi_root) {
         /* Write endstate */
         if( hdf5_interface_write_state(
-                sim->hdf5_out, "endstate", n_gathered, ps_gathered)) {
-            print_out0(VERBOSE_MINIMAL, mpi_rank,
+                sim->hdf5_out, "endstate", n_tot, ps)) {
+            print_out0(VERBOSE_MINIMAL, sim->mpi_rank, sim->mpi_root,
                    "\nWriting endstate failed.\n"
                    "See stderr for details.\n");
             return 1;
         }
-        print_out0(VERBOSE_NORMAL, mpi_rank,
+        print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,
                    "Endstate written.\n");
     }
 
     /* Combine diagnostic data and write it to HDF5 file */
-    print_out0(VERBOSE_MINIMAL, mpi_rank,
+    print_out0(VERBOSE_MINIMAL, sim->mpi_rank, sim->mpi_root,
                    "\nCombining and writing diagnostics.\n");
     int err_writediag = 0;
 
-    if(mpi_rank == mpi_root) {
+    if(sim->mpi_rank == sim->mpi_root) {
         err_writediag = hdf5_interface_write_diagnostics(sim,
             diag_offload_array, sim->hdf5_out);
     }
     if(err_writediag) {
-        print_out0(VERBOSE_MINIMAL, mpi_rank,
+        print_out0(VERBOSE_MINIMAL, sim->mpi_rank, sim->mpi_root,
                    "\nWriting diagnostics failed.\n"
                    "See stderr for details.\n");
         return 1;
     }
     else {
-        print_out0(VERBOSE_MINIMAL, mpi_rank,
+        print_out0(VERBOSE_MINIMAL, sim->mpi_rank, sim->mpi_root,
                    "Diagnostics written.\n");
     }
 
@@ -781,6 +769,8 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
  * markers, we only show how many markers had specific error or end condition.
  *
  * End conditions and errors are printed in human-readable format.
+ *
+ * This function is called by the root MPI process only.
  *
  * @param ps array of marker states after simulation has finished
  * @param n_tot number of markers in the array
