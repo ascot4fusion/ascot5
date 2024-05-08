@@ -10,7 +10,6 @@
 #endif
 #include "diag.h"
 #include "particle.h"
-#include "simulate.h"
 
 /** @brief ASCOT integer in MPI standard */
 #define mpi_type_integer MPI_LONG
@@ -19,8 +18,8 @@
 /** @brief ASCOT error in MPI standard   */
 #define mpi_type_a5err   MPI_UNSIGNED_LONG_LONG
 
-void mpi_interface_init(int argc, char** argv, sim_offload_data* sim,
-                        int mpi_rank, int mpi_size);
+void mpi_interface_init(int argc, char** argv, int* mpi_rank, int* mpi_size,
+                        int* mpi_root);
 void mpi_interface_finalize();
 
 void mpi_my_particles(int* start_index, int* n, int ntotal, int mpi_rank,

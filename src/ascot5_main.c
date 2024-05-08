@@ -121,12 +121,20 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    /* Determine if MPI is used or if this is a serial run and set MPI rank,
-     * size, and root accordingly in sim */
-    int mpi_rank_from_user = sim.mpi_rank;
-    int mpi_size_from_user = sim.mpi_size;
-    mpi_interface_init(
-        argc, argv, &sim, mpi_rank_from_user, mpi_size_from_user);
+    if(sim.mpi_size > 0) {
+        /* This is a pseudo-mpi run, where rank and size were set on the command
+         * line. Only set root equal to rank since there are no other processes
+         */
+        sim.mpi_root = sim.mpi_rank;
+    }
+    else {
+        /* Init MPI if used, or run serial */
+        int mpi_rank, mpi_size, mpi_root;
+        mpi_interface_init(argc, argv, &mpi_rank, &mpi_size, &mpi_root);
+        sim.mpi_rank = mpi_rank;
+        sim.mpi_size = mpi_size;
+        sim.mpi_root = mpi_root;
+    }
 
     print_out0(VERBOSE_MINIMAL, sim.mpi_rank, sim.mpi_root, "ASCOT5_MAIN\n");
     print_out0(VERBOSE_MINIMAL, sim.mpi_rank, sim.mpi_root,
