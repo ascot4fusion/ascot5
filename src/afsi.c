@@ -64,15 +64,10 @@ void afsi_run(sim_offload_data* sim, Reaction reaction, int n,
     hdf5_generate_qid(qid);
     strcpy(sim->qid, qid);
 
-    int mpi_rank = 0; /* AFSI does not support MPI */
-    print_out0(VERBOSE_MINIMAL, mpi_rank, "AFSI5\n");
-
-#ifdef GIT_VERSION
-    print_out0(VERBOSE_MINIMAL, mpi_rank,
+    int mpi_rank = 0, mpi_root = 0; /* AFSI does not support MPI */
+    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "AFSI5\n");
+    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
                "Tag %s\nBranch %s\n\n", GIT_VERSION, GIT_BRANCH);
-#else
-    print_out0(VERBOSE_MINIMAL, mpi_rank, "Not under version control\n\n");
-#endif
 
     dist_5D_data prod1, prod2;
     dist_5D_init(&prod1, prod1_offload_data, prod1_offload_array);
@@ -85,7 +80,7 @@ void afsi_run(sim_offload_data* sim, Reaction reaction, int n,
     sim_init(&sim_data, sim);
 
     if( hdf5_interface_init_results(sim, qid, "afsi") ) {
-        print_out0(VERBOSE_MINIMAL, mpi_rank,
+        print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
                    "\nInitializing output failed.\n"
                    "See stderr for details.\n");
         /* Free offload data and terminate */
@@ -263,7 +258,7 @@ void afsi_run(sim_offload_data* sim, Reaction reaction, int n,
         abort();
     }
 
-    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nDone\n");
+    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "\nDone\n");
 }
 
 /**

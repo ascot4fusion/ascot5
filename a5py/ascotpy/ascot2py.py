@@ -2816,6 +2816,7 @@ struct_c__SA_sim_offload_data._fields_ = [
     ('hdf5_out', ctypes.c_char * 256),
     ('qid', ctypes.c_char * 256),
     ('description', ctypes.c_char * 256),
+    ('mpi_root', ctypes.c_int32),
     ('mpi_rank', ctypes.c_int32),
     ('mpi_size', ctypes.c_int32),
     ('qid_options', ctypes.c_char * 256),
@@ -2829,7 +2830,6 @@ struct_c__SA_sim_offload_data._fields_ = [
     ('qid_mhd', ctypes.c_char * 256),
     ('qid_asigma', ctypes.c_char * 256),
     ('qid_nbi', ctypes.c_char * 256),
-    ('PADDING_1', ctypes.c_ubyte * 4),
 ]
 
 sim_offload_data = struct_c__SA_sim_offload_data
@@ -2918,7 +2918,7 @@ simulate.restype = None
 simulate.argtypes = [ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.POINTER(struct_c__SA_offload_package), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double)]
 mpi_interface_init = _libraries['libascot.so'].mpi_interface_init
 mpi_interface_init.restype = None
-mpi_interface_init.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.POINTER(ctypes.c_char)), ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32)]
+mpi_interface_init.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.POINTER(ctypes.c_char)), ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.c_int32, ctypes.c_int32]
 mpi_interface_finalize = _libraries['libascot.so'].mpi_interface_finalize
 mpi_interface_finalize.restype = None
 mpi_interface_finalize.argtypes = []
@@ -3099,16 +3099,16 @@ pack_offload_array.restype = ctypes.c_int32
 pack_offload_array.argtypes = [ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.POINTER(struct_c__SA_offload_package), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_int32)), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_int32))]
 prepare_markers = _libraries['libascot.so'].prepare_markers
 prepare_markers.restype = ctypes.c_int32
-prepare_markers.argtypes = [ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(ctypes.POINTER(struct_c__SA_input_particle)), ctypes.POINTER(ctypes.POINTER(struct_c__SA_particle_state)), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double)]
+prepare_markers.argtypes = [ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.c_int32, ctypes.POINTER(ctypes.POINTER(struct_c__SA_input_particle)), ctypes.POINTER(ctypes.POINTER(struct_c__SA_particle_state)), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double)]
 write_rungroup = _libraries['libascot.so'].write_rungroup
 write_rungroup.restype = ctypes.c_int32
-write_rungroup.argtypes = [ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(ctypes.c_char)]
+write_rungroup.argtypes = [ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32, ctypes.POINTER(ctypes.c_char)]
 offload_and_simulate = _libraries['libascot.so'].offload_and_simulate
 offload_and_simulate.restype = ctypes.c_int32
-offload_and_simulate.argtypes = [ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_offload_package), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.POINTER(struct_c__SA_particle_state)), ctypes.POINTER(ctypes.c_double)]
+offload_and_simulate.argtypes = [ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_offload_package), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.POINTER(struct_c__SA_particle_state)), ctypes.POINTER(ctypes.c_double)]
 write_output = _libraries['libascot.so'].write_output
 write_output.restype = ctypes.c_int32
-write_output.argtypes = [ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32, ctypes.POINTER(ctypes.c_double)]
+write_output.argtypes = [ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32, ctypes.POINTER(ctypes.c_double)]
 print_marker_summary = _libraries['libascot.so'].print_marker_summary
 print_marker_summary.restype = None
 print_marker_summary.argtypes = [ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32]
