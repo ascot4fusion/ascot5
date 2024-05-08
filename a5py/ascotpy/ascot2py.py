@@ -1746,6 +1746,21 @@ diag_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.POINTE
 diag_update_ml = _libraries['libascot.so'].diag_update_ml
 diag_update_ml.restype = None
 diag_update_ml.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.POINTER(struct_c__SA_particle_simd_ml)]
+mpi_interface_init = _libraries['libascot.so'].mpi_interface_init
+mpi_interface_init.restype = None
+mpi_interface_init.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.POINTER(ctypes.c_char)), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32)]
+mpi_interface_finalize = _libraries['libascot.so'].mpi_interface_finalize
+mpi_interface_finalize.restype = None
+mpi_interface_finalize.argtypes = []
+mpi_my_particles = _libraries['libascot.so'].mpi_my_particles
+mpi_my_particles.restype = None
+mpi_my_particles.argtypes = [ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32]
+mpi_gather_particlestate = _libraries['libascot.so'].mpi_gather_particlestate
+mpi_gather_particlestate.restype = None
+mpi_gather_particlestate.argtypes = [ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(ctypes.POINTER(struct_c__SA_particle_state)), ctypes.POINTER(ctypes.c_int32), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32]
+mpi_gather_diag = _libraries['libascot.so'].mpi_gather_diag
+mpi_gather_diag.restype = None
+mpi_gather_diag.argtypes = [ctypes.POINTER(struct_c__SA_diag_offload_data), ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32]
 class struct_c__SA_plasma_1D_offload_data(Structure):
     pass
 
@@ -2916,21 +2931,6 @@ struct_c__SA_offload_package._fields_ = [
 simulate = _libraries['libascot.so'].simulate
 simulate.restype = None
 simulate.argtypes = [ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.POINTER(struct_c__SA_offload_package), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double)]
-mpi_interface_init = _libraries['libascot.so'].mpi_interface_init
-mpi_interface_init.restype = None
-mpi_interface_init.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.POINTER(ctypes.c_char)), ctypes.POINTER(struct_c__SA_sim_offload_data), ctypes.c_int32, ctypes.c_int32]
-mpi_interface_finalize = _libraries['libascot.so'].mpi_interface_finalize
-mpi_interface_finalize.restype = None
-mpi_interface_finalize.argtypes = []
-mpi_my_particles = _libraries['libascot.so'].mpi_my_particles
-mpi_my_particles.restype = None
-mpi_my_particles.argtypes = [ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32]
-mpi_gather_particlestate = _libraries['libascot.so'].mpi_gather_particlestate
-mpi_gather_particlestate.restype = None
-mpi_gather_particlestate.argtypes = [ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(ctypes.POINTER(struct_c__SA_particle_state)), ctypes.POINTER(ctypes.c_int32), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32]
-mpi_gather_diag = _libraries['libascot.so'].mpi_gather_diag
-mpi_gather_diag.restype = None
-mpi_gather_diag.argtypes = [ctypes.POINTER(struct_c__SA_diag_offload_data), ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32]
 
 # values for enumeration 'ENDCOND_FLAG'
 ENDCOND_FLAG__enumvalues = {

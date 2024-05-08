@@ -21,18 +21,15 @@
  * This function initializes MPI and sets the mpi_rank and mpi_size accordingly.
  * If compiled without MPI, mpirank is set to zero and mpi_size is set to one.
  *
- * However, if compiled without MPI while providing mpi_rank and mpi_size as
- * command line arguments, they are used to run this simulation as an
- * independent "MPI" process. In this case, mpi_root is set to mpi_rank.
- *
  * @param argc count of the command line arguments
  * @param argv pointers to the command line arguments
  * @param sim pointer to simulation offload struct
  * @param mpi_rank pointer to the determined rank of this MPI process
  * @param mpi_size pointer to the determined number of MPI processes
+ * @param mpi_root pointer to the determined rank of the root MPI process
  */
-void mpi_interface_init(int argc, char** argv, sim_offload_data* sim,
-                        int mpi_rank, int mpi_size) {
+void mpi_interface_init(int argc, char** argv, int* mpi_rank, int* mpi_size,
+                        int* mpi_root) {
 #ifdef MPI
     /* MPI is used. Init MPI and set rank and size as determined by MPI.
      * Rank of the root process is zero */
@@ -41,25 +38,15 @@ void mpi_interface_init(int argc, char** argv, sim_offload_data* sim,
     MPI_Initialized(&initialized);
     if(initialized == 0)
         MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
-    sim->mpi_rank = mpi_rank;
-    sim->mpi_size = mpi_size;
-    sim->mpi_root = 0;
+    MPI_Comm_rank(MPI_COMM_WORLD, mpi_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, mpi_size);
+    *mpi_root = 0;
 #else
-    if(mpi_size == 0) {
-        /* MPI is not used and no command line arguments are given. Assume that
-         * the entire simulation is a single process. */
-        sim->mpi_rank = 0;
-        sim->mpi_size = 1;
-        sim->mpi_root = 0;
-    } else {
-        /* MPI is not used and command line arguments are given. Assume that
-         * the simulation is divided to separated processes. */
-        sim->mpi_rank = mpi_rank;
-        sim->mpi_size = mpi_size;
-        sim->mpi_root = mpi_rank;
-    }
+    /* MPI is not used and no command line arguments are given. Assume that
+     * the entire simulation is a single process. */
+    *mpi_rank = 0;
+    *mpi_size = 1;
+    *mpi_root = 0;
 #endif
 }
 
