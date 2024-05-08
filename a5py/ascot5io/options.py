@@ -8,7 +8,7 @@ import json
 import warnings
 import xmlschema
 
-from xml.etree.ElementTree import ElementTree
+import xml.etree.ElementTree as ET
 
 from .coreio.fileapi import add_group
 from .coreio.treedata import DataGroup
@@ -1199,7 +1199,31 @@ class Opt(DataGroup):
 
     @staticmethod
     def convert_xml(xml):
-        tree = ElementTree().parse(xml)
+        """Convert XML file to :class:`Opt` input.
+
+        Parameters
+        ----------
+        xml : str
+            Path to XML file or contents of the file as a string.
+
+        Returns
+        -------
+        out : dict
+            XML converted to :class:`Opt` input.
+        """
+        # Is input file a string
+        tree = None
+        try:
+            tree = ET.ElementTree().parse(xml)
+        except:
+            pass
+        try:
+            if tree is None: tree = ET.fromstring(xml)
+        except:
+            pass
+        if tree is None:
+            raise ValueError("Could not parse XML file or string.")
+
         opt = Opt.get_default()
         for tag in opt.keys():
             val = tree.findall("*"+tag)
@@ -1632,6 +1656,6 @@ class Opt(DataGroup):
             with open(fnxsd, 'w') as f:
                 f.writelines(xsd)
         if fnxml is not None:
-            ElementTree(xml).write(fnxml)
+            ET.ElementTree(xml).write(fnxml)
 
         return schema, xml
