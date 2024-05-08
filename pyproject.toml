@@ -22,6 +22,7 @@ dependencies = [
   "h5py",
   "unyt==2.9.5",
   "wurlitzer",
+  "xmlschema",
 ]
 
 [tool.setuptools.packages.find]
