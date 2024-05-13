@@ -66,7 +66,7 @@ class Ascot(Ascotpy):
     """
 
     def __init__(self, inputfile=None, create=False, mute="err",
-                 mpirank=0, mpisize=1):
+                 mpirank=0, mpisize=1, condor=False):
         """Initialize Ascot instance.
 
         Parameters
@@ -85,6 +85,12 @@ class Ascot(Ascotpy):
             Rank of the MPI process.
         mpisize : int, optional
             Number of MPI processes.
+        condor : bool, optional
+            If True, run this simulation as if it were a single MPI process but
+            without using MPI.
+
+            The code must be compiled with MPI=0. The rank and size are given
+            as arguments.
         """
         super().__init__()
 
@@ -103,7 +109,8 @@ class Ascot(Ascotpy):
 
         self.file_load(inputfile)
         self._mute = mute
-        self._initmpi(mpirank, mpisize)
+        mpiroot = mpisize if condor else 0
+        self._initmpi(mpirank, mpisize, mpiroot=mpiroot)
 
     def file_getpath(self):
         """Return name of the HDF5 file from which this instance reads the data.
