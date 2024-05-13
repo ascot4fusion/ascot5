@@ -325,10 +325,22 @@ class LibSimulate():
                 p.id      = ids[i]
 
         def initmarkers():
+            ps = ctypes.pointer(ascot2py.struct_c__SA_particle_state())
+            self._nmrk.value = nmrk
+            n_proc = ctypes.c_int32(0)
             ascot2py.prepare_markers(
-                ctypes.byref(self._sim), nmrk,
-                ctypes.byref(pin), ctypes.byref(self._inistate),
-                ctypes.byref(self._nmrk), self._bfield_offload_array)
+                ctypes.byref(self._sim), nmrk, ctypes.byref(pin), ps,
+                ctypes.byref(n_proc), self._bfield_offload_array)
+
+            ascot2py.mpi_gather_particlestate(
+                ps, ctypes.byref(self._inistate), ctypes.byref(n_proc), nmrk,
+                self._sim.mpi_rank, self._sim.mpi_size, self._sim.mpi_root)
+
+            if self._sim.mpi_rank == self._sim.mpi_root:
+                ascot2py.libascot_deallocate(ps)
+            else:
+                ascot2py.libascot_deallocate(self._inistate)
+                self._inistate = ps
 
         if self._mute == "no":
             initmarkers()
@@ -389,11 +401,11 @@ class LibSimulate():
         for i in range(len(ascot2py.particle_state._fields_)):
             name = self._inistate[0]._fields_[i][0]
             for j in range(n_proc.value):
-                val  = getattr(self._inistate[j+idx.value], name)
+                val  = getattr(self._inistate[j], name)
                 setattr(inistate[j], name, val)
 
         # Initialize diagnostics array and endstate
-        self._endstate = ascot2py.libascot_allocate_particle_states(self._nmrk)
+        self._endstate = ctypes.pointer(ascot2py.struct_c__SA_particle_state())
         ascot2py.diag_init_offload(ctypes.byref(self._sim.diag_offload_data),
                                    ctypes.byref(self._diag_offload_array),
                                    self._nmrk)
@@ -405,7 +417,7 @@ class LibSimulate():
                 ctypes.byref(self._sim), self._nmrk,
                 n_proc.value, inistate, ctypes.byref(self._offload_data),
                 self._offload_array, self._int_offload_array,
-                ctypes.byref(n_proc), ctypes.byref(self._endstate),
+                ctypes.byref(self._nmrk), ctypes.byref(self._endstate),
                 self._diag_offload_array)
 
         if self._mute == "no":
