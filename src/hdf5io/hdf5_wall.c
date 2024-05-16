@@ -142,7 +142,7 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
     /* The data in the offload array is to be in the format
      *  [x1 y1 z1 x2 y2 z2 x3 y3 z3; ... ]
      */
-    *offload_array = (real*)malloc(3 * nelements * sizeof(real));
+    *offload_array = (real*)malloc(9 * nelements * sizeof(real));
     for(int i = 0; i < nelements; i++) {
         for(int j = 0; j < 3; j++) {
             (*offload_array)[i*9 + j*3 + 0] = x1x2x3[3*i+j];
@@ -153,6 +153,5 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
     free(x1x2x3);
     free(y1y2y3);
     free(z1z2z3);
-
     return 0;
 }
