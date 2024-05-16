@@ -76,16 +76,16 @@ class PhysTest():
         except FileNotFoundError:
             self.ascot = Ascot(fn, create=True)
             init = self.ascot.data.create_input
-            init("opt")
-            init("gc")
-            init("B_TC")
-            init("E_TC")
-            init("wall_2D")
-            init("plasma_1D")
-            init("N0_1D")
-            init("Boozer")
-            init("MHD_STAT")
-            init("asigma_loc")
+            init("opt",        desc="DUMMY")
+            init("gc",         desc="DUMMY")
+            init("B_TC",       desc="DUMMY")
+            init("E_TC",       desc="DUMMY")
+            init("wall_2D",    desc="DUMMY")
+            init("plasma_1D",  desc="DUMMY")
+            init("N0_1D",      desc="DUMMY")
+            init("Boozer",     desc="DUMMY")
+            init("MHD_STAT",   desc="DUMMY")
+            init("asigma_loc", desc="DUMMY")
 
     def execute(self, init=True, run=True, check=True, tests=None):
         """Execute test(s).
