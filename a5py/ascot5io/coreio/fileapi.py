@@ -66,8 +66,7 @@ OUTPUTGROUPS = ["inistate", "endstate", "dist5d", "distrho5d", "dist6d",
 """Names of the output data containers in runs.
 """
 
-#VERSION = importlib_version("a5py")
-VERSION=5.5
+VERSION = importlib_version("a5py")
 """Current version of the code."""
 
 def set_active(f, group):
