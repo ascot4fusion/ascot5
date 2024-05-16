@@ -31,28 +31,39 @@ class a5imas:
                                 'occurrence' : occurrence,
                                 'ids_name'   : self.ids_name }
 
-        self.ids = imas.ids(shot, run)
-        self.ids.open_env(user, tokamak, version)
+        if hasattr(imas, 'ids'):
+            # The "old" interface
+            self.ids = imas.ids(shot, run)
+            self.ids.open_env(user, tokamak, version)
 
-        #ids = ids.split('/')
-        #if len(ids) == 1:
-        #    occurrence = 0
-        #else:
-        #    occurrence = int(ids[1])
-        #ids = ids[0]
+            #ids = ids.split('/')
+            #if len(ids) == 1:
+            #    occurrence = 0
+            #else:
+            #    occurrence = int(ids[1])
+            #ids = ids[0]
 
-        ids = self.ids_name
 
-        idsdata = self.ids.__dict__[self.ids_name]
-        if 'get' not in dir(idsdata):
-            idsdata = self.ids.__dict__[self.ids_name + 'Array']
-            idsdata.get(occurrence)
-            #if idsdata.array:
-            #    for slice in idsdata.array:
-            #        print(slice)
+            idsdata = self.ids.__dict__[self.ids_name]
+            if 'get' not in dir(idsdata):
+                idsdata = self.ids.__dict__[self.ids_name + 'Array']
+                idsdata.get(occurrence)
+                #if idsdata.array:
+                #    for slice in idsdata.array:
+                #        print(slice)
+            else:
+                idsdata.get(occurrence)
+                #print(idsdata)
         else:
-            idsdata.get(occurrence)
-            #print(idsdata)
+            # The "new" interface
+
+            time=0.0
+
+            from imas.imasdef import MDSPLUS_BACKEND
+            from imas.imasdef import CLOSEST_SAMPLE
+            self.DB = imas.DBEntry(MDSPLUS_BACKEND, tokamak, shot, run, user_name=user)
+            self.DB.open()
+            self.ids = self.DB.get_slice(self.ids_name, time, CLOSEST_SAMPLE)
 
         return self.ids
 
@@ -121,7 +132,12 @@ class a5imas:
 
 
     def close(self):
-        self.ids.close()
+        import imas
+        if hasattr(imas, 'ids'):
+            self.ids.close()
+        else:
+            self.DB.close()
+
 
 
     def description_string(self):
