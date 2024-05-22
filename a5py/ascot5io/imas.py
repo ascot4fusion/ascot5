@@ -2,7 +2,7 @@ import numpy as np
 import scipy.constants as constants
 from a5py.physlib import species, pol2cart, cart2pol_vec
 import unyt
-
+from types import SimpleNamespace
 
 class a5imas:
 
@@ -32,7 +32,7 @@ class a5imas:
                                 'ids_name'   : self.ids_name }
 
         if hasattr(imas, 'ids'):
-            # The "old" interface
+            # The "old" 3/4 AL
             self.ids = imas.ids(shot, run)
             self.ids.open_env(user, tokamak, version)
 
@@ -55,7 +55,7 @@ class a5imas:
                 idsdata.get(occurrence)
                 #print(idsdata)
         else:
-            # The "new" interface
+            # The "new" AL 5
 
             time=0.0
 
@@ -63,7 +63,8 @@ class a5imas:
             from imas.imasdef import CLOSEST_SAMPLE
             self.DB = imas.DBEntry(MDSPLUS_BACKEND, tokamak, shot, run, user_name=user)
             self.DB.open()
-            self.ids = self.DB.get_slice(self.ids_name, time, CLOSEST_SAMPLE)
+            self.ids = SimpleNamespace()
+            setattr(self.ids,self.ids_name, self.DB.get_slice(self.ids_name, time, CLOSEST_SAMPLE))
 
         return self.ids
 
