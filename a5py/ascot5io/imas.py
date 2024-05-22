@@ -1122,11 +1122,11 @@ class wall_3d(a5imas):
         return nodes+1,edges+1,faces+1
 
 
-class b_2d(a5imas):
+class B_2DS(a5imas):
 
     def __init__(self):
         super().__init__()
-        self.ids_name = "wall"
+        self.ids_name = "equilibrium"
 
 
     def parse(self):
@@ -1157,7 +1157,7 @@ class b_2d(a5imas):
 
         # Identify a Rectangular (R,z) grid, index 1
         p2dindex = -1
-        for i,profile in self.ids.equilibrium[timeIndex].profiles_2d:
+        for i,profile in enumerate(self.ids.equilibrium.time_slice[timeIndex].profiles_2d):
             if  profile.grid_type.index == 1:
                 p2dindex = i
                 break
@@ -1168,28 +1168,28 @@ class b_2d(a5imas):
             return None
 
 
-        nr   = len(self.ids.equilibrium[timeIndex].profiles_2d[p2dindex].grid.dim1)
-        rmin =     self.ids.equilibrium[timeIndex].profiles_2d[p2dindex].grid.dim1[0]
-        rmax =     self.ids.equilibrium[timeIndex].profiles_2d[p2dindex].grid.dim1[nr-1]
+        nr   = len(self.ids.equilibrium.time_slice[timeIndex].profiles_2d[p2dindex].grid.dim1)
+        rmin =     self.ids.equilibrium.time_slice[timeIndex].profiles_2d[p2dindex].grid.dim1[0]
+        rmax =     self.ids.equilibrium.time_slice[timeIndex].profiles_2d[p2dindex].grid.dim1[nr-1]
 
-        nz   = len(self.ids.equilibrium[timeIndex].profiles_2d[p2dindex].grid.dim2)
-        zmin =     self.ids.equilibrium[timeIndex].profiles_2d[p2dindex].grid.dim2[0]
-        zmax =     self.ids.equilibrium[timeIndex].profiles_2d[p2dindex].grid.dim2[nz-1]
+        nz   = len(self.ids.equilibrium.time_slice[timeIndex].profiles_2d[p2dindex].grid.dim2)
+        zmin =     self.ids.equilibrium.time_slice[timeIndex].profiles_2d[p2dindex].grid.dim2[0]
+        zmax =     self.ids.equilibrium.time_slice[timeIndex].profiles_2d[p2dindex].grid.dim2[nz-1]
 
-        psi  =     self.ids.equilibrium[timeIndex].profiles_2d[p2dindex].psi      * psiscale
-        bphi =     self.ids.equilibrium[timeIndex].profiles_2d[p2dindex].b_field_tor
+        psi  =     self.ids.equilibrium.time_slice[timeIndex].profiles_2d[p2dindex].psi      * psiscale
+        bphi =     self.ids.equilibrium.time_slice[timeIndex].profiles_2d[p2dindex].b_field_tor
 
         # These can usually be zero
         br   = np.zeros_like(bphi)
         bz   = np.zeros_like(bphi)
 
         # values at axis
-        axisr=     self.ids.equilibrium[timeIndex].global_quantities.magnetic_axis.r
-        axisz=     self.ids.equilibrium[timeIndex].global_quantities.magnetic_axis.z
-        psi0 =     self.ids.equilibrium[timeIndex].global_quantities.psi_axis     * psiscale
+        axisr=     self.ids.equilibrium.time_slice[timeIndex].global_quantities.magnetic_axis.r
+        axisz=     self.ids.equilibrium.time_slice[timeIndex].global_quantities.magnetic_axis.z
+        psi0 =     self.ids.equilibrium.time_slice[timeIndex].global_quantities.psi_axis     * psiscale
 
         # values at separatrix
-        psi1  =    self.ids.equilibrium[timeIndex].global_quantities.psi_boundary * psiscale
+        psi1  =    self.ids.equilibrium.time_slice[timeIndex].global_quantities.psi_boundary * psiscale
 
 
         b = {
