@@ -1309,7 +1309,6 @@ class B_2DS(a5imas):
         # values at separatrix
         psi1  =    self.ids.equilibrium.time_slice[timeIndex].global_quantities.psi_boundary * psiscale
 
-
         # for rho_tor -- rho_pol interpolation
         # https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/ids/ids2plasmaEqWallSimu.F90#L281
 
