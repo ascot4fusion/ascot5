@@ -40,6 +40,17 @@ a5py.ascot5io.B_2DS.write_hdf5('from_imas.h5',**eqdict)
 
 #exit()
 
+print('Reading 2D equilibrium')
+eq=a5py.ascot5io.imas.B_2DS()
+eqdict=eq.read("akaslos","test","3",92436,306)
+
+#print(eqdict)
+
+print("writing 2d equilibriuem to 'from_imas.h5'.")
+a5py.ascot5io.B_2DS.write_hdf5('from_imas.h5',**eqdict)
+
+#exit()
+
 print('Reading distsource')
 # markers from distsource
 mrkr=a5py.ascot5io.imas.marker()
