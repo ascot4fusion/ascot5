@@ -792,10 +792,15 @@ class LibAscot:
             If evaluation in libascot.so failed.
         """
         self._requireinit("bfield")
-        #rho = np.asarray(rho).ravel().astype(dtype="f8")
+        rho = np.asarray(rho).ravel().astype(dtype="f8")
         Neval = rho.size
         r   = np.NaN * np.zeros((Neval,), dtype="f8") * unyt.m
         z   = np.NaN * np.zeros((Neval,), dtype="f8") * unyt.m
+
+        if theta.size == 1:
+            theta = theta * np.ones(rho.shape).astype(dtype="f8")
+        if phi.size == 1:
+            phi = phi * np.ones(rho.shape).astype(dtype="f8")
 
         fun = _LIBASCOT.libascot_B_field_rhotheta2rz
         fun.restype  = None
