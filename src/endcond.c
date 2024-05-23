@@ -212,7 +212,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                 p_f->endcond[i] |= maxorb;
                 p_f->running[i] = 0;
             }
-            else if(maxorb) {
+            else if(!sim->endcond_torandpol && maxorb) {
                 p_f->endcond[i] |= maxorb;
                 p_f->running[i] = 0;
             }
@@ -392,7 +392,7 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
                 p_f->endcond[i] |= maxorb;
                 p_f->running[i] = 0;
             }
-            else if(maxorb) {
+            else if(!sim->endcond_torandpol && maxorb) {
                 p_f->endcond[i] |= maxorb;
                 p_f->running[i] = 0;
             }
@@ -510,7 +510,7 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
                 p_f->endcond[i] |= maxorb;
                 p_f->running[i] = 0;
             }
-            else if(maxorb) {
+            else if(!sim->endcond_torandpol && maxorb) {
                 p_f->endcond[i] |= maxorb;
                 p_f->running[i] = 0;
             }
