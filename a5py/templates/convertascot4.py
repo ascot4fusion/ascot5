@@ -439,10 +439,10 @@ class Ascot4Templates():
             data["psi"]  = np.concatenate((t, t_sym),1)
         elif (phi[0] == np.mod(phi[-1], philim)):
             warnings.warn("Removing duplicate field data point")
-            out["br"]   = data["br"][:, :-1, :]
-            out["bphi"] = data["bphi"][:, :-1, :]
-            out["bz"]   = data["bz"][:, :-1, :]
-            out["psi"]  = data["psi"][:, :-1, :]
+            data["br"]   = data["br"][:, :-1, :]
+            data["bphi"] = data["bphi"][:, :-1, :]
+            data["bz"]   = data["bz"][:, :-1, :]
+            data["psi"]  = data["psi"][:, :-1, :]
         if (axis_phi[0] == np.mod(axis_phi[-1], philim)):
             warnings.warn("Removing duplicate axis data point")
             axis_r = axis_r[:-1]
