@@ -183,7 +183,7 @@ int main(int argc, char** argv) {
     /* Initialize marker states array ps and free marker input p */
     int n_proc; /* Number of markers allocated for this MPI process */
     particle_state* ps;
-    if( prepare_markers(&sim, n_tot, &p, &ps, &n_proc, B_offload_array) ) {
+    if( prepare_markers(&sim, n_tot, p, &ps, &n_proc, B_offload_array) ) {
         goto CLEANUP_FAILURE;
     }
 
@@ -279,7 +279,7 @@ CLEANUP_FAILURE:
  * @returns zero on success
  */
 int prepare_markers(
-    sim_offload_data* sim, int n_tot, input_particle** pin,
+    sim_offload_data* sim, int n_tot, input_particle* pin,
     particle_state** pout, int* n_proc, real* B_offload_array) {
 
     /* This sets up GC transformation order etc. so it must be called before
@@ -291,7 +291,7 @@ int prepare_markers(
      * is chosen for this simulation. */
     int start_index;
     mpi_my_particles(&start_index, n_proc, n_tot, sim->mpi_rank, sim->mpi_size);
-    (*pin) += start_index;
+    pin += start_index;
 
     /* Set up particlestates on host, needs magnetic field evaluation */
     print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,
@@ -301,7 +301,7 @@ int prepare_markers(
 
     *pout = (particle_state*) malloc(*n_proc * sizeof(particle_state));
     for(int i = 0; i < *n_proc; i++) {
-        particle_input_to_state(&(*pin)[i], &(*pout)[i], &Bdata);
+        particle_input_to_state(&(pin[i]), &((*pout)[i]), &Bdata);
     }
 
     print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,
@@ -311,7 +311,7 @@ int prepare_markers(
                "Marker states initialized.\n");
 
     /* We can now free the input markers */
-    free((*pin)-start_index);
+    free(pin-start_index);
 
     return 0;
 }

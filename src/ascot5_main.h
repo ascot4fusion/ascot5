@@ -22,7 +22,7 @@ int pack_offload_array(
     int** int_offload_array);
 
 int prepare_markers(
-    sim_offload_data* sim, int n_tot, input_particle** pin,
+    sim_offload_data* sim, int n_tot, input_particle* pin,
     particle_state** pout, int* nprts, real* B_offload_array);
 
 int write_rungroup(

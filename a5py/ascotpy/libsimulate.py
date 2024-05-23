@@ -328,11 +328,11 @@ class LibSimulate():
             self._nmrk.value = nmrk
             n_proc = ctypes.c_int32(0)
             ascot2py.prepare_markers(
-                ctypes.byref(self._sim), nmrk, ctypes.byref(pin), ps,
+                ctypes.byref(self._sim), self._nmrk, pin, ctypes.byref(ps),
                 ctypes.byref(n_proc), self._bfield_offload_array)
 
             ascot2py.mpi_gather_particlestate(
-                ps, ctypes.byref(self._inistate), ctypes.byref(n_proc), nmrk,
+                ps, ctypes.byref(self._inistate), ctypes.byref(n_proc), self._nmrk,
                 self._sim.mpi_rank, self._sim.mpi_size, self._sim.mpi_root)
 
             if self._sim.mpi_rank == self._sim.mpi_root:
