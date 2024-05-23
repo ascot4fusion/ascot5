@@ -179,7 +179,7 @@ class Orbits(DataContainer):
         add("pncrdir", lambda : _val("pncdir"))
         add("connlen", lambda : totmil)
 
-        firstmask = 0; lastmask=0
+        mask = mode > 0
         if Orbits.GYROORBIT in mode:
             mask = mode == Orbits.GYROORBIT
             add("pr", lambda : _val("pr", mask))
