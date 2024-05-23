@@ -151,8 +151,7 @@ asigmadict = a5.data.create_input("asigma_loc", dryrun=True)
 #bzrdict =a5.data.boozer.active.read()
 #mhddict =a5.data.mhd.active.read()
 #asigmadict =a5.data.asigma.active.read()
-a5.simulation_initinputs(bfield=eq, efield=edict, plasma=p1d_dict, neutral=ndict,
-                         wall=wdict3, boozer=bzrdict, mhd=mhddict, asigma=asigmadict)
+a5.simulation_initinputs(bfield=eq, efield=edict, plasma=pdict, neutral=ndict,
 
 
 generate_markers = False
