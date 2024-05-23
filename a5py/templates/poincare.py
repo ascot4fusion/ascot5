@@ -389,3 +389,112 @@ class PoincareTemplates():
             mhd["alpha"] = alphanm_.T
 
         return ("MHD_STAT", mhd)
+
+    def marker_resonance(self, species=None, energy=None,
+                         rhomin=0.1, rhomax=1.0, nrho=10,
+                         ximin=-1.0, ximax=1.0, nxi=10, time=0*unyt.s):
+        """Generate markers for estimating orbit resonances.
+
+        All markers are generated at the outer mid plane at phi=0. They are
+        distributed uniformly in rho and pitch with a fixed energy.
+
+        Parameters
+        ----------
+        species : str
+            Marker species to be simulated.
+        energy : float
+            Marker energy.
+        rhomin : float, optional
+            Minimum marker initial rho coordinate.
+        rhomax : float, optional
+            Maximum marker initial rho coordinate.
+        nrho : int, optional
+            Number of rho grid points.
+        ximin : float, optional
+            Minimum pitch coordinate.
+        ximax : float, optional
+            Maximum pitch coordinate.
+        nxi : int, optional
+            Number of pitch grid points.
+        time : float, optional
+            The time-instant at when the simulation begins.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        if ximin > ximax:
+            raise ValueError("'ximin' must be smaller than 'ximax'")
+        if rhomin < 0.0:
+            raise ValueError("'rhomin' must be larger than 0.0")
+        if rhomax > 1.0:
+            raise ValueError("'rhomax' must be smaller than 1.0")
+        if ximin < -1.0:
+            raise ValueError("'ximin' must be larger than -1.0")
+        if ximax > 1.0:
+            raise ValueError("'ximax' must be smaller than 1.0")
+
+        # Having pitch equal to +-1 in ASCOT causes trouble so we pad the values
+        # a little bit
+        if ximin == -1.0: ximin += 0.01 * (ximax - ximin) / nxi
+        if ximax ==  1.0: ximax -= 0.01 * (ximax - ximin) / nxi
+
+        rhogrid = np.linspace(rhomin, rhomax, nrho)
+        rgrid, zomp = self._ascot.input_rhotheta2rz(
+            rhogrid, 0.0*unyt.deg, 0.0*unyt.deg, time)
+        pitchgrid = np.linspace(ximin, ximax, nxi)
+        r, pitch = np.meshgrid(rgrid, pitchgrid)
+
+        nmrk = nxi * nrho
+        mrk = Marker.generate("gc", nmrk, species=species)
+        mrk["r"][:]      = r.ravel()
+        mrk["z"][:]      = zomp[0] # Same for all markers
+        mrk["phi"][:]    = 0.0*unyt.deg
+        mrk["pitch"][:]  = pitch.ravel()
+        mrk["time"][:]   = time
+        mrk["energy"][:] = energy
+
+        return ("gc", mrk)
+
+    def options_singleorbit(self, npol, ntor):
+        """Generate options to trace markers for a fixed number of orbits.
+
+        Collisionless orbits are traced for a fixed number of toroidal and
+        poloidal transits. The points, where the given poloidal and toroidal
+        planes were crossed, are recorded.
+
+        Parameters
+        ----------
+        ntorb : int, optional
+            Number of full toroidal orbits before simulation is terminated.
+        nporb : int, optional
+            Number of full poloidal orbits before simulation is terminated.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        out = Opt.get_default()
+        out.update({
+            "SIM_MODE":2,
+            "ENABLE_ADAPTIVE":1,
+            "ENABLE_ORBIT_FOLLOWING":1,
+            "ENABLE_ORBITWRITE":1,
+            "ORBITWRITE_MODE":0,
+            "ORBITWRITE_TOROIDALANGLES":0.0,
+            "ORBITWRITE_POLOIDALANGLES":0.0,
+            "ORBITWRITE_NPOINT":200,
+            "ENDCOND_MAX_POLOIDALORBS":npol,
+            "ENDCOND_MAX_TOROIDALORBS":ntor,
+            "ENDCOND_MAXORBS":1,
+            "ENDCOND_MAXORBS":1,
+        })
+        return ("opt", out)
