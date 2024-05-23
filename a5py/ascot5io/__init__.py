@@ -24,7 +24,7 @@ from .coreio.treedata import DataGroup
 from a5py.routines.runmixin import RunMixin
 from a5py.routines.afsi5 import AfsiMixin
 from a5py.routines.bbnbi5 import BBNBIMixin
-from a5py.templates import InputFactory
+from a5py.templates import Template
 
 HDF5TOOBJ = {
     "B_TC" : B_TC, "B_GS" : B_GS, "B_2DS" : B_2DS, "B_3DS" : B_3DS,
@@ -246,7 +246,7 @@ class Ascot5IO(RootNode):
                 name = HDF5TOOBJ[inp].write_hdf5(
                     self._ascot.file_getpath(), **kwargs)
         else:
-            gtype, data = InputFactory(self._ascot).construct(inp, **kwargs)
+            gtype, data = Template(self._ascot).usetemplate(inp, **kwargs)
             if dryrun:
                 return data
             else:
@@ -259,6 +259,18 @@ class Ascot5IO(RootNode):
         if desc is not None:
             self._get_group(name).set_desc(desc)
         return name
+
+    def templates(self, template):
+        """Show information about a template.
+
+        Parameters
+        ----------
+        template : str
+            Name of the template.
+
+            If not given, all templates are listed.
+        """
+        Template(self._ascot).showtemplate(template)
 
 class InputGroup(InputNode):
     """Node containing input data groups.

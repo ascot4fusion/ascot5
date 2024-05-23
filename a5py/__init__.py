@@ -95,8 +95,8 @@ class Ascot(Ascotpy):
         super().__init__()
 
         self._inputfile = None
-        self.data       = None
-        self.biosaw     = BioSaw(self)
+        self.data: Ascot5IO = None
+        self.biosaw: BioSaw = BioSaw(self)
         self.afsi       = Afsi(self)
         self.markergen  = MarkerGenerator(self)
         if mute not in ["yes", "no", "err"]:
