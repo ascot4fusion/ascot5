@@ -127,13 +127,13 @@ ndict   = a5.data.create_input("N0_1D", dryrun=True)
 bzrdict = a5.data.create_input("Boozer", dryrun=True)
 mhddict = a5.data.create_input("MHD_STAT", dryrun=True)
 asigmadict = a5.data.create_input("asigma_loc", dryrun=True)
-edict = a5.data.efield.active.read()
-pdict = a5.data.plasma.active.read()
-ndict = a5.data.neutral.active.read()
-bzrdict =a5.data.boozer.active.read()
-mhddict =a5.data.mhd.active.read()
-asigmadict =a5.data.asigma.active.read()
-a5.simulation_initinputs(bfield=bdict, efield=edict, plasma=pdict, neutral=ndict,
+#edict = a5.data.efield.active.read()
+#pdict = a5.data.plasma.active.read()
+#ndict = a5.data.neutral.active.read()
+#bzrdict =a5.data.boozer.active.read()
+#mhddict =a5.data.mhd.active.read()
+#asigmadict =a5.data.asigma.active.read()
+a5.simulation_initinputs(bfield=eq, efield=edict, plasma=pdict, neutral=ndict,
                          wall=wdict3, boozer=bzrdict, mhd=mhddict, asigma=asigmadict)
 
 
