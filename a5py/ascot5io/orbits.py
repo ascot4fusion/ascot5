@@ -265,8 +265,8 @@ class Orbits(DataContainer):
                 raise ValueError("Unknown quantity in " + qnt[i])
 
         # Sort first by IDs and then by mileage
-        ids  = _val("ids").v
-        mile = _val("mileage").v
+        ids  = _val("ids", mask=mask).v
+        mile = _val("mileage", mask=mask).v
         idx  = np.lexsort((mile, ids))
         for i in range(len(items)):
             items[i] = items[i][idx]
