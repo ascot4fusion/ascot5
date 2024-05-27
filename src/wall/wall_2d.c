@@ -134,6 +134,8 @@ int wall_2d_inside(real r, real z, wall_2d_data* w) {
  * @param phi2 end point phi coordinate [rad]
  * @param z2 end point z coordinate [m]
  * @param w pointer to data struct on target
+ * @param w_coll pointer for storing the parameter in P = P1 + w_coll * (P2-P1),
+ *        where P is the point where the collision occurred.
  *
  * @return wall element ID if hit, zero otherwise
  */

@@ -27,8 +27,9 @@
  * @param w array holding wiener structs for NSIMD markers
  * @param Bdata pointer to magnetic field data
  * @param pdata pointer to plasma data
- * @param rdata pointer to random-generator data
  * @param mdata pointer to collision data struct
+ * @param rnd array of normally distributed random numbers used to resolve
+ *        collisions. Values for marker i are rnd[i*NSIMD + j]
  */
 void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
                       mccc_wienarr* w, B_field_data* Bdata, plasma_data* pdata,

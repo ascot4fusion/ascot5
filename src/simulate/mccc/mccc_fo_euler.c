@@ -20,8 +20,9 @@
  * @param p fo struct
  * @param h time-steps for NSIMD markers
  * @param pdata pointer to plasma data
- * @param rdata pointer to random-generator data
  * @param mdata pointer collision data struct
+ * @param rnd array of normally distributed random numbers used to resolve
+ *        collisions. Values for marker i are rnd[i*NSIMD + j]
  */
 void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
                    mccc_data* mdata, real rnd[3*NSIMD]) {

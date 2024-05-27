@@ -69,6 +69,7 @@ void random_gsl_normal_simd(random_data* rdata, int n, double* r) {
 
 #include <stdint.h>
 #include <math.h>
+#include "ascot5.h"
 #include "consts.h"
 #include "random.h"
 
@@ -156,10 +157,9 @@ void random_lcg_normal_simd(random_data* rdata, int n, double* r) {
 
 #else /* No RNG lib defined, use drand48 */
 
-#define _XOPEN_SOURCE 500 /**< rand48 requires POSIX 1995 standard */
-
 #include <stdlib.h>
 #include <math.h>
+#include "ascot5.h"
 #include "consts.h"
 #include "random.h"
 

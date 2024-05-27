@@ -8,7 +8,6 @@
  * modelled simultaneously keeping in mind that in this case the output
  * the injector from which a particle originated is lost.
  */
-#define _XOPEN_SOURCE 500 /**< drand48 requires POSIX 1995 standard */
 #include <getopt.h>
 #include <math.h>
 #ifdef MPI
@@ -518,8 +517,6 @@ void bbnbi_simulate(particle_queue *pq, sim_data* sim) {
  * @param nprt pointer to integer where number of markers is stored
  * @param t1 pointer to store beginning of time interval
  * @param t2 pointer to store end of the time interval
- * @param writemarker pointer to flag indicating whether a marker input
- *        is created
  *
  * @return Zero if success
  */

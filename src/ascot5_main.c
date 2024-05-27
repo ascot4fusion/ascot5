@@ -51,7 +51,6 @@
  * *.stdout files with each MPI process having dedicated file. See ascot5.h for
  * details.
  */
-#define _XOPEN_SOURCE 500 /**< drand48 requires POSIX 1995 standard */
 #include <getopt.h>
 #include <math.h>
 #include <omp.h>

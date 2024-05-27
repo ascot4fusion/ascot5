@@ -101,8 +101,6 @@ int B_field_init_offload(B_field_offload_data* offload_data,
  *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
- *
- * @return Zero if initialization succeeded
  */
 void B_field_free_offload(B_field_offload_data* offload_data,
                           real** offload_array) {

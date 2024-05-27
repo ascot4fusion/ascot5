@@ -2,7 +2,6 @@
  * @file math.c
  * @brief Mathematical utility functions
  */
-#define _XOPEN_SOURCE 500 /**< drand48 requires POSIX 1995 standard */
 #include <math.h>
 #include <stdlib.h>
 #include "ascot5.h"

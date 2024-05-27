@@ -2,8 +2,6 @@
  * @file afsi.c
  * @brief ASCOT Fusion Source Integrator AFSI
  */
-#define _XOPEN_SOURCE 500 /**< rand48 requires POSIX 1995 standard */
-
 #include <string.h>
 #include <math.h>
 #include <hdf5_hl.h>

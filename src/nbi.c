@@ -2,7 +2,6 @@
  * @file nbi.c
  * @brief Functions for NBI simulation and particle generation
  */
-#define _XOPEN_SOURCE 500 /**< drand48 requires POSIX 1995 standard */
 #include <math.h>
 #include "print.h"
 #include "ascot5.h"
