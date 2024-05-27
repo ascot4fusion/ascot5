@@ -6,7 +6,6 @@
  * steps are rejected), Wiener processes are generated using the so-called
  * Brownian bridge. This module contains associated helper routines.
  */
-#define _XOPEN_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>

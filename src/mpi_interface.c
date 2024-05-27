@@ -23,7 +23,6 @@
  *
  * @param argc count of the command line arguments
  * @param argv pointers to the command line arguments
- * @param sim pointer to simulation offload struct
  * @param mpi_rank pointer to the determined rank of this MPI process
  * @param mpi_size pointer to the determined number of MPI processes
  * @param mpi_root pointer to the determined rank of the root MPI process

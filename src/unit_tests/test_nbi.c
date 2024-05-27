@@ -2,7 +2,6 @@
  * @file test_nbi.c
  * @brief Test program for NBI functions
  */
-#define _XOPEN_SOURCE 500 /**< drand48 requires POSIX 1995 standard */
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

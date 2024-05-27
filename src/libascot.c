@@ -442,6 +442,7 @@ void libascot_plasma_eval_background(
  * @brief Evaluate neutral density at given coordinates.
  *
  * @param sim_offload_data initialized simulation offload data struct
+ * @param B_offload_array initialized mangetic field offload data
  * @param neutral_offload_array initialized neutral offload data
  * @param Neval number of evaluation points.
  * @param R R coordinates of the evaluation points [m].

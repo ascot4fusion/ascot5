@@ -5,7 +5,6 @@
  * This module handles IO operations to HDF5 file. Accessing HDF5 files
  * from the main program should be done using this module.
  */
-#define _XOPEN_SOURCE 700
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
