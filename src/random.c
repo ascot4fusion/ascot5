@@ -115,9 +115,6 @@ void random_lcg_normal_simd(random_data* rdata, int n, double* r) {
 
 #if A5_CCOL_USE_GEOBM == 1
     /* The geometric form */
-    //#ifdef SIMD
-    //    #pragma omp simd
-    //#endif
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < n; i=i+2) {
         w = 2.0;
@@ -136,10 +133,7 @@ void random_lcg_normal_simd(random_data* rdata, int n, double* r) {
 #else
     /* The common form */
     double s;
-    //#ifdef SIMD
-    //    #pragma omp simd
-    //#endif
-  GPU_PARALLEL_LOOP_ALL_LEVELS
+    GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < n; i=i+2) {
         x1 = random_lcg_uniform(rdata);
         x2 = random_lcg_uniform(rdata);
