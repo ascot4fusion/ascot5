@@ -81,40 +81,41 @@ int diag_init_offload(diag_offload_data* data, real** offload_array, int Nmrk){
 
     data->offload_dist_length = n;
 
-    /* if(data->diagorb_collect) { */
-    /*     data->offload_diagorb_index = n; */
-    /*     data->diagorb.Nmrk = Nmrk; */
+#ifndef  GPU
+    if(data->diagorb_collect) {
+        data->offload_diagorb_index = n;
+        data->diagorb.Nmrk = Nmrk;
 
-    /*     switch(data->diagorb.record_mode) { */
+        switch(data->diagorb.record_mode) {
 
-    /*         case simulate_mode_fo: */
-    /*             data->diagorb.Nfld = DIAG_ORB_FOFIELDS; */
-    /*             break; */
+            case simulate_mode_fo:
+                data->diagorb.Nfld = DIAG_ORB_FOFIELDS;
+                break;
 
-    /*         case simulate_mode_gc: */
-    /*             data->diagorb.Nfld = DIAG_ORB_GCFIELDS; */
-    /*             break; */
+            case simulate_mode_gc:
+                data->diagorb.Nfld = DIAG_ORB_GCFIELDS;
+                break;
 
-    /*         case simulate_mode_ml: */
-    /*             data->diagorb.Nfld = DIAG_ORB_MLFIELDS; */
-    /*             break; */
+            case simulate_mode_ml:
+                data->diagorb.Nfld = DIAG_ORB_MLFIELDS;
+                break;
 
-    /*         case simulate_mode_hybrid: */
-    /*             data->diagorb.Nfld = DIAG_ORB_HYBRIDFIELDS; */
-    /*             break; */
+            case simulate_mode_hybrid:
+                data->diagorb.Nfld = DIAG_ORB_HYBRIDFIELDS;
+                break;
 
-    /*     } */
+        }
 
-    /*     if(data->diagorb.mode == DIAG_ORB_POINCARE) { */
-    /*         n += (data->diagorb.Nfld+2) */
-    /*             * data->diagorb.Nmrk * data->diagorb.Npnt; */
-    /*     } */
-    /*     else if(data->diagorb.mode == DIAG_ORB_INTERVAL) { */
-    /*         n += data->diagorb.Nfld */
-    /*             * data->diagorb.Nmrk * data->diagorb.Npnt; */
-    /*     } */
-    /* } */
-
+        if(data->diagorb.mode == DIAG_ORB_POINCARE) {
+            n += (data->diagorb.Nfld+2)
+                * data->diagorb.Nmrk * data->diagorb.Npnt;
+        }
+        else if(data->diagorb.mode == DIAG_ORB_INTERVAL) {
+            n += data->diagorb.Nfld
+                * data->diagorb.Nmrk * data->diagorb.Npnt;
+        }
+    }
+#endif
     if(data->diagtrcof_collect) {
         data->offload_diagtrcof_index = n;
         data->diagtrcof.Nmrk = Nmrk;

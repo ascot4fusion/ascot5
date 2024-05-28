@@ -90,7 +90,6 @@ void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
     int*  i_Ptor  = p_loc->i_arr3;
     int*  ok      = p_loc->i_arr4;
 
-//    #pragma omp simd
 #pragma acc data present(weight[0:NSIMD],i_mu[0:NSIMD],i_Ekin[0:NSIMD],i_Ptor[0:NSIMD],ok[0:NSIMD] )
     {
     GPU_PARALLEL_LOOP_ALL_LEVELS  
