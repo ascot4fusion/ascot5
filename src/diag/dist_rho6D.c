@@ -123,7 +123,7 @@ void dist_rho6D_init(dist_rho6D_data* dist_data,
  */
 void dist_rho6D_update_fo(dist_rho6D_data* dist, particle_simd_fo* p_f,
 
-                          particle_simd_fo* p_i, particle_loc* p_loc) {
+                          particle_simd_fo* p_i, particle_loc* p_loc, int n_queue_size) {
 
     real* phi = p_loc->r_arr1;
     real* theta = p_loc->r_arr2;
@@ -140,10 +140,10 @@ void dist_rho6D_update_fo(dist_rho6D_data* dist, particle_simd_fo* p_f,
     int* ok = p_loc->i_arr9;
     real* weight = p_loc->r_arr3;
 
-#pragma acc data present(phi[0:NSIMD],theta[0:NSIMD],i_rho[0:NSIMD],i_theta[0:NSIMD],i_phi[0:NSIMD],i_pr[0:NSIMD],i_pphi[0:NSIMD],i_pz[0:NSIMD],i_time[0:NSIMD],i_q[0:NSIMD],ok[0:NSIMD],weight[0:NSIMD])
+#pragma acc data present(phi[0:n_queue_size],theta[0:n_queue_size],i_rho[0:n_queue_size],i_theta[0:n_queue_size],i_phi[0:n_queue_size],i_pr[0:n_queue_size],i_pphi[0:n_queue_size],i_pz[0:n_queue_size],i_time[0:n_queue_size],i_q[0:n_queue_size],ok[0:n_queue_size],weight[0:n_queue_size])
     {
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for(int i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < n_queue_size; i++) {
         if(p_f->running[i]) {
 
             i_rho[i] = floor((p_f->rho[i] - dist->min_rho)
@@ -198,7 +198,7 @@ void dist_rho6D_update_fo(dist_rho6D_data* dist, particle_simd_fo* p_f,
     }
 
 GPU_PARALLEL_LOOP_ALL_LEVELS
-    for(int i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < n_queue_size; i++) {
         if(p_f->running[i] && ok[i]) {
             unsigned long index = dist_rho6D_index(
                 i_rho[i], i_theta[i], i_phi[i],

@@ -56,7 +56,7 @@ void diag_transcoef_init(diag_transcoef_data* data,
 void diag_transcoef_free(diag_transcoef_data* data);
 
 void diag_transcoef_update_fo(diag_transcoef_data* data,
-                              particle_simd_fo* p_f, particle_simd_fo* p_i);
+                              particle_simd_fo* p_f, particle_simd_fo* p_i, int n_queue_size);
 
 void diag_transcoef_update_gc(diag_transcoef_data* data,
                               particle_simd_gc* p_f, particle_simd_gc* p_i);

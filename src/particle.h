@@ -211,55 +211,55 @@ typedef struct {
  */
 typedef struct {
     /* Physical coordinates and parameters */
-    real r[NSIMD] __memalign__;       /**< Particle R coordinate [m]          */
-    real phi[NSIMD] __memalign__;     /**< Particle phi coordinate [phi]      */
-    real z[NSIMD] __memalign__;       /**< Particle z coordinate [m]          */
-    real p_r[NSIMD] __memalign__;     /**< Momentum r coordinate [kg m/s]     */
-    real p_phi[NSIMD] __memalign__;   /**< Momentum phi coordinate [kg m/s]   */
-    real p_z[NSIMD] __memalign__;     /**< Momentum z coordinate [kg m/s]     */
-    real mass[NSIMD] __memalign__;    /**< Mass [kg]                          */
-    real charge[NSIMD] __memalign__;  /**< Charge [C]                         */
-    real time[NSIMD] __memalign__;    /**< Marker simulation time [s]         */
-    int znum[NSIMD] __memalign__;     /**< Particle atomic number             */
-    int anum[NSIMD] __memalign__;     /**< Particle mass number               */
+    real* r;       /**< Particle R coordinate [m]          */
+    real* phi;     /**< Particle phi coordinate [phi]      */
+    real* z;       /**< Particle z coordinate [m]          */
+    real* p_r;     /**< Momentum r coordinate [kg m/s]     */
+    real* p_phi;   /**< Momentum phi coordinate [kg m/s]   */
+    real* p_z;     /**< Momentum z coordinate [kg m/s]     */
+    real* mass;    /**< Mass [kg]                          */
+    real* charge;  /**< Charge [C]                         */
+    real* time;    /**< Marker simulation time [s]         */
+    int* znum;     /**< Particle atomic number             */
+    int* anum;     /**< Particle mass number               */
 
     /* Magnetic field data */
-    real B_r[NSIMD] __memalign__;        /**< Magnetic field R component at
+    real* B_r;        /**< Magnetic field R component at
                                               marker position [T]             */
-    real B_phi[NSIMD] __memalign__;      /**< Magnetic field phi component at
+    real* B_phi;      /**< Magnetic field phi component at
                                               marker position [T]             */
-    real B_z[NSIMD] __memalign__;        /**< Magnetic field z component at
+    real* B_z;        /**< Magnetic field z component at
                                               marker position [T]             */
 
-    real B_r_dr[NSIMD] __memalign__;     /**< dB_R/dR at marker pos. [T/m]    */
-    real B_phi_dr[NSIMD] __memalign__;   /**< dB_phi/dR at marker pos. [T/m]  */
-    real B_z_dr[NSIMD] __memalign__;     /**< dB_z/dR at marker pos. [T/m]    */
-    real B_r_dphi[NSIMD] __memalign__;   /**< dB_R/dphi at marker pos. [T/m]  */
-    real B_phi_dphi[NSIMD] __memalign__; /**< dB_phi/dphi at marker pos. [T/m]*/
-    real B_z_dphi[NSIMD] __memalign__;   /**< dB_z/dphi at marker pos. [T/m]  */
-    real B_r_dz[NSIMD] __memalign__;     /**< dB_R/dz at marker pos. [T/m]    */
-    real B_phi_dz[NSIMD] __memalign__;   /**< dB_phi/dz at marker pos. [T/m]  */
-    real B_z_dz[NSIMD] __memalign__;     /**< dB_z/dz at marker pos. [T/m]    */
+    real* B_r_dr;     /**< dB_R/dR at marker position [T/m]     */
+    real* B_phi_dr;   /**< dB_phi/dR at marker position [T/m]   */
+    real* B_z_dr;     /**< dB_z/dR at marker position [T/m]     */
+    real* B_r_dphi;   /**< dB_R/dphi at marker position [T/m]   */
+    real* B_phi_dphi; /**< dB_phi/dphi at marker position [T/m] */
+    real* B_z_dphi;   /**< dB_z/dphi at marker position [T/m]   */
+    real* B_r_dz;     /**< dB_R/dz at marker position [T/m]     */
+    real* B_phi_dz;   /**< dB_phi/dz at marker position [T/m]   */
+    real* B_z_dz;     /**< dB_z/dz at marker position [T/m]     */
 
     /* Quantities used in diagnostics */
-    int bounces[NSIMD] __memalign__;  /**< Number of times pitch sign changed */
-    real weight[NSIMD] __memalign__;  /**< Marker weight                      */
-    real cputime[NSIMD] __memalign__; /**< Marker wall-clock time [s]         */
-    real rho[NSIMD] __memalign__;     /**< Marker rho coordinate              */
-    real theta[NSIMD] __memalign__;   /**< Marker poloidal coordinate [rad]   */
+    int* bounces;  /**< Number of times pitch sign changed */
+    real* weight;  /**< Marker weight                      */
+    real* cputime; /**< Marker wall-clock time [s]         */
+    real* rho;     /**< Marker rho coordinate              */
+    real* theta;   /**< Marker poloidal coordinate [rad]   */
 
-    integer id[NSIMD] __memalign__;       /**< Unique ID for the marker       */
-    integer endcond[NSIMD] __memalign__;  /**< Marker end condition           */
-    integer walltile[NSIMD] __memalign__; /**< ID of walltile if marker has
+    integer* id;       /**< Unique ID for the marker       */
+    integer* endcond;  /**< Marker end condition           */
+    integer* walltile; /**< ID of walltile if marker has
                                                hit the wall                   */
 
     /* Meta data */
-    real mileage[NSIMD] __memalign__;    /**< Duration this marker has been
+    real* mileage;    /**< Duration this marker has been
                                               simulated [s]                   */
-    integer running[NSIMD] __memalign__; /**< Indicates whether this marker is
+    integer* running; /**< Indicates whether this marker is
                                               currently simulated (1) or not  */
-    a5err err[NSIMD] __memalign__;       /**< Error flag, zero if no error    */
-    integer index[NSIMD] __memalign__;   /**< Marker index at marker queue    */
+    a5err* err;       /**< Error flag, zero if no error    */
+    integer* index;   /**< Marker index at marker queue    */
 } particle_simd_fo;
 
 /**
@@ -398,24 +398,28 @@ typedef struct {
  *
  */
 typedef struct {
-    real r_arr1[NSIMD];
-    real r_arr2[NSIMD];
-    real r_arr3[NSIMD];
-    real r_arr4[NSIMD];
-    real r_arr5[NSIMD];
+    real* r_arr1;
+    real* r_arr2;
+    real* r_arr3;
+    real* r_arr4;
+    real* r_arr5;
 
-    int i_arr1[NSIMD];
-    int i_arr2[NSIMD];
-    int i_arr3[NSIMD];
-    int i_arr4[NSIMD];
-    int i_arr5[NSIMD];
-    int i_arr6[NSIMD];
-    int i_arr7[NSIMD];
-    int i_arr8[NSIMD];
-    int i_arr9[NSIMD];
+    int* i_arr1;
+    int* i_arr2;
+    int* i_arr3;
+    int* i_arr4;
+    int* i_arr5;
+    int* i_arr6;
+    int* i_arr7;
+    int* i_arr8;
+    int* i_arr9;
 } particle_loc;
 
 
+void particle_to_fo_alloc(particle_simd_fo* p_fo, int nsize);
+void particle_loc_alloc(particle_loc* p_loc, int nsize);
+void particle_to_fo_dummy(particle_simd_fo* p_fo, int j);
+void particle_to_gc_dummy(particle_simd_gc* p_gc, int j);
 void particle_to_fo_dummy(particle_simd_fo* p_fo, int j);
 void particle_to_gc_dummy(particle_simd_gc* p_gc, int j);
 void particle_to_ml_dummy(particle_simd_ml* p_ml, int j);

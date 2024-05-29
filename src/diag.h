@@ -82,7 +82,7 @@ void diag_init(diag_data* data, diag_offload_data* offload_data,
 void diag_free(diag_data* data);
 
 void diag_update_fo(diag_data* data, B_field_data* Bdata, particle_simd_fo* p_f,
-                    particle_simd_fo* p_i, particle_loc* p_loc);
+                    particle_simd_fo* p_i, particle_loc* p_loc, int n_queue_size);
 
 void diag_update_gc(diag_data* data, B_field_data* Bdata, particle_simd_gc* p_f,
                     particle_simd_gc* p_i);

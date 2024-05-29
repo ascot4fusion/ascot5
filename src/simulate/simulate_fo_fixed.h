@@ -9,6 +9,6 @@
 #include "../simulate.h"
 #include "../particle.h"
 
-void simulate_fo_fixed(particle_queue* pq, sim_data* sim);
+void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int n_queue_size);
 
 #endif
