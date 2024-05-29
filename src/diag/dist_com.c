@@ -73,7 +73,7 @@ void dist_COM_init(dist_COM_data* dist_data,
  *        to avoid dynamical allocation
  */
 void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
-                        particle_simd_fo* p_f, particle_simd_fo* p_i, particle_loc* p_loc) {
+                        particle_simd_fo* p_f, particle_simd_fo* p_i, particle_loc* p_loc, int n_queue_size) {
 
     real Ekin;
     real Ptor;
@@ -90,10 +90,10 @@ void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
     int*  i_Ptor  = p_loc->i_arr3;
     int*  ok      = p_loc->i_arr4;
 
-#pragma acc data present(weight[0:NSIMD],i_mu[0:NSIMD],i_Ekin[0:NSIMD],i_Ptor[0:NSIMD],ok[0:NSIMD] )
+#pragma acc data present(weight[0:n_queue_size],i_mu[0:n_queue_size],i_Ekin[0:n_queue_size],i_Ptor[0:n_queue_size],ok[0:n_queue_size] )
     {
     GPU_PARALLEL_LOOP_ALL_LEVELS  
-    for(int i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < n_queue_size; i++) {
         if(p_f->running[i]) {
             real Ekin, Ptor, Bnorm, psi, mu, xi, pnorm, ppar;
 
@@ -134,7 +134,7 @@ void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
     }
 
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for(int i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < n_queue_size; i++) {
         if(p_f->running[i] && ok[i]) {
             unsigned long index = dist_COM_index(i_mu[i], i_Ekin[i], i_Ptor[i],
                                                 dist->n_mu,  dist->n_Ekin,

@@ -119,7 +119,7 @@ void dist_rho5D_init(dist_rho5D_data* dist_data,
  *        to avoid dynamical allocation
  */
 void dist_rho5D_update_fo(dist_rho5D_data* dist, particle_simd_fo* p_f,
-                          particle_simd_fo* p_i, particle_loc* p_loc) {
+                          particle_simd_fo* p_i, particle_loc* p_loc, int n_queue_size) {
 
     real* phi = p_loc->r_arr1;
     real* theta = p_loc->r_arr2;
@@ -137,10 +137,10 @@ void dist_rho5D_update_fo(dist_rho5D_data* dist, particle_simd_fo* p_f,
     int* ok = p_loc->i_arr8;
     real* weight = p_loc->r_arr5;
 
-#pragma acc data present(phi[0:NSIMD],theta[0:NSIMD],ppara[0:NSIMD],pperp[0:NSIMD],i_rho[0:NSIMD],i_theta[0:NSIMD],i_phi[0:NSIMD],i_ppara[0:NSIMD],i_pperp[0:NSIMD],i_time[0:NSIMD],i_q[0:NSIMD],ok[0:NSIMD],weight[0:NSIMD])
+#pragma acc data present(phi[0:n_queue_size],theta[0:n_queue_size],ppara[0:n_queue_size],pperp[0:n_queue_size],i_rho[0:n_queue_size],i_theta[0:n_queue_size],i_phi[0:n_queue_size],i_ppara[0:n_queue_size],i_pperp[0:n_queue_size],i_time[0:n_queue_size],i_q[0:n_queue_size],ok[0:n_queue_size],weight[0:n_queue_size])
     {
 GPU_PARALLEL_LOOP_ALL_LEVELS
-    for(int i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < n_queue_size; i++) {
         if(p_f->running[i]) {
 
             i_rho[i] = floor((p_f->rho[i] - dist->min_rho)
@@ -204,7 +204,7 @@ GPU_PARALLEL_LOOP_ALL_LEVELS
     }
 
 GPU_PARALLEL_LOOP_ALL_LEVELS
-    for(int i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < n_queue_size; i++) {
         if(p_f->running[i] && ok[i]) {
             unsigned long index = dist_rho5D_index(i_rho[i], i_theta[i],
                                                    i_phi[i], i_ppara[i],

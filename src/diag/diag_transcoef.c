@@ -67,10 +67,10 @@ void diag_transcoef_free(diag_transcoef_data* data) {
  *        current time-step
  */
 void diag_transcoef_update_fo(diag_transcoef_data* data,
-                              particle_simd_fo* p_f, particle_simd_fo* p_i) {
+                              particle_simd_fo* p_f, particle_simd_fo* p_i, int n_queue_size) {
 
   GPU_PARALLEL_LOOP_ALL_LEVELS  
-    for(int i=0; i < NSIMD; i++) {
+    for(int i=0; i < n_queue_size; i++) {
         real p[3] = {p_f->p_r[i], p_f->p_phi[i], p_f->p_z[i]};
         real B[3] = {p_f->B_r[i], p_f->B_phi[i], p_f->B_z[i]};
         real pitchsign = 1 - 2*(math_dot(p, B) < 0);
@@ -81,7 +81,7 @@ void diag_transcoef_update_fo(diag_transcoef_data* data,
 
     /* If marker simulation was ended, process and clean the data */
     GPU_PARALLEL_LOOP_ALL_LEVELS  
-    for(int i=0; i < NSIMD; i++) {
+    for(int i=0; i < n_queue_size; i++) {
 
         /* Mask dummy markers and those which are running */
         if( p_f->id[i] < 1 || p_f->running[i] > 0 ) {

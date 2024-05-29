@@ -88,6 +88,13 @@ void simulate(
     else {
         sprintf(targetname, "mic%hu", (unsigned short)(id-1));
     }
+    // Size = NSIMD on CPU and Size = Total number of particles on GPU
+    int n_queue_size;
+#ifdef GPU
+    n_queue_size = n_particles;
+#else
+    n_queue_size = NSIMD;      
+#endif      
     /**************************************************************************/
     /* 1. Input offload data is unpacked and initialized by calling           */
     /*    respective init functions.                                          */
@@ -205,7 +212,7 @@ void simulate(
             else if(pq.n > 0 && sim.sim_mode == simulate_mode_fo) {
 
                 #pragma omp parallel
-                simulate_fo_fixed(&pq, &sim);
+	      simulate_fo_fixed(&pq, &sim, n_queue_size);
             }
             else if(pq.n > 0 && sim.sim_mode == simulate_mode_ml) {
 
@@ -279,7 +286,7 @@ void simulate(
             #pragma omp section
             {
                 #pragma omp parallel
-                simulate_fo_fixed(&pq, &sim);
+	      simulate_fo_fixed(&pq, &sim, n_queue_size);
             }
 
             #pragma omp section

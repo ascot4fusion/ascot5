@@ -69,9 +69,10 @@
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
  *        current time-step
  * @param sim pointer to simulation data struct
+ * @param n_queue_size size of particle arrays 
  */
 void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
-                      sim_data* sim) {
+                      sim_data* sim, int n_queue_size) {
 
     /* Note which end conditions are set as active.
        Only these ones are checked */
@@ -88,7 +89,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
     int active_ioniz     = sim->endcond_active & endcond_ioniz;
 
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for(int i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < n_queue_size; i++) {
         if(p_f->running[i]) {
 
             /* Update bounces if pitch changed sign */

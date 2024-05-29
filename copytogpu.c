@@ -11,97 +11,97 @@
 /**
  * @brief Copy data from CPU to GPU
 */
-void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, B_field_data* Bdata, E_field_data* Edata, particle_loc*  p_loc, real* hin, real* rnd) {
+void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, B_field_data* Bdata, E_field_data* Edata, particle_loc*  p_loc, real* hin, real* rnd, int n_queue_size) {
 
   GPU_MAP_TO_DEVICE(
 		      p_loc[0:1],\
-		      p_loc->r_arr1[0:NSIMD],\
-		      p_loc->r_arr2[0:NSIMD],\
-		      p_loc->r_arr3[0:NSIMD],\
-		      p_loc->r_arr4[0:NSIMD],\
-		      p_loc->r_arr5[0:NSIMD],\
-		      p_loc->i_arr1[0:NSIMD],\
-		      p_loc->i_arr2[0:NSIMD],\
-		      p_loc->i_arr3[0:NSIMD],\
-		      p_loc->i_arr4[0:NSIMD],\
-		      p_loc->i_arr5[0:NSIMD],\
-		      p_loc->i_arr6[0:NSIMD],\
-		      p_loc->i_arr7[0:NSIMD],\
-		      p_loc->i_arr8[0:NSIMD],\
-		      p_loc->i_arr9[0:NSIMD],\
+		      p_loc->r_arr1[0:n_queue_size],\
+		      p_loc->r_arr2[0:n_queue_size],\
+		      p_loc->r_arr3[0:n_queue_size],\
+		      p_loc->r_arr4[0:n_queue_size],\
+		      p_loc->r_arr5[0:n_queue_size],\
+		      p_loc->i_arr1[0:n_queue_size],\
+		      p_loc->i_arr2[0:n_queue_size],\
+		      p_loc->i_arr3[0:n_queue_size],\
+		      p_loc->i_arr4[0:n_queue_size],\
+		      p_loc->i_arr5[0:n_queue_size],\
+		      p_loc->i_arr6[0:n_queue_size],\
+		      p_loc->i_arr7[0:n_queue_size],\
+		      p_loc->i_arr8[0:n_queue_size],\
+		      p_loc->i_arr9[0:n_queue_size],\
   		      p_ptr[0:1],\
-		      p_ptr->running        [0:NSIMD],\
-		      p_ptr->r              [0:NSIMD],\
-		      p_ptr->phi            [0:NSIMD],\
-		      p_ptr->p_r            [0:NSIMD],\
-		      p_ptr->p_phi          [0:NSIMD],\
-		      p_ptr->p_z            [0:NSIMD],\
-		      p_ptr->mileage        [0:NSIMD],\
-		      p_ptr->z              [0:NSIMD],\
-		      p_ptr->charge         [0:NSIMD],\
-		      p_ptr->mass           [0:NSIMD],\
-		      p_ptr->B_r            [0:NSIMD],\
-		      p_ptr->B_r_dr         [0:NSIMD],\
-		      p_ptr->B_r_dphi       [0:NSIMD],\
-		      p_ptr->B_r_dz         [0:NSIMD],\
-		      p_ptr->B_phi          [0:NSIMD],\
-		      p_ptr->B_phi_dr       [0:NSIMD],\
-		      p_ptr->B_phi_dphi     [0:NSIMD],\
-		      p_ptr->B_phi_dz       [0:NSIMD],\
-		      p_ptr->B_z            [0:NSIMD],\
-		      p_ptr->B_z_dr         [0:NSIMD],\
-		      p_ptr->B_z_dphi       [0:NSIMD],\
-		      p_ptr->B_z_dz         [0:NSIMD],\
-		      p_ptr->rho            [0:NSIMD],\
-		      p_ptr->theta          [0:NSIMD],\
-		      p_ptr->err            [0:NSIMD],\
-		      p_ptr->time           [0:NSIMD],\
-		      p_ptr->weight         [0:NSIMD],\
-		      p_ptr->cputime        [0:NSIMD],\
-		      p_ptr->id             [0:NSIMD],\
-		      p_ptr->endcond        [0:NSIMD],\
-		      p_ptr->walltile       [0:NSIMD],\
-		      p_ptr->index          [0:NSIMD],\
-		      p_ptr->znum           [0:NSIMD],\
-		      p_ptr->anum           [0:NSIMD],\
-		      p_ptr->bounces        [0:NSIMD],\
+		      p_ptr->running        [0:n_queue_size],\
+		      p_ptr->r              [0:n_queue_size],\
+		      p_ptr->phi            [0:n_queue_size],\
+		      p_ptr->p_r            [0:n_queue_size],\
+		      p_ptr->p_phi          [0:n_queue_size],\
+		      p_ptr->p_z            [0:n_queue_size],\
+		      p_ptr->mileage        [0:n_queue_size],\
+		      p_ptr->z              [0:n_queue_size],\
+		      p_ptr->charge         [0:n_queue_size],\
+		      p_ptr->mass           [0:n_queue_size],\
+		      p_ptr->B_r            [0:n_queue_size],\
+		      p_ptr->B_r_dr         [0:n_queue_size],\
+		      p_ptr->B_r_dphi       [0:n_queue_size],\
+		      p_ptr->B_r_dz         [0:n_queue_size],\
+		      p_ptr->B_phi          [0:n_queue_size],\
+		      p_ptr->B_phi_dr       [0:n_queue_size],\
+		      p_ptr->B_phi_dphi     [0:n_queue_size],\
+		      p_ptr->B_phi_dz       [0:n_queue_size],\
+		      p_ptr->B_z            [0:n_queue_size],\
+		      p_ptr->B_z_dr         [0:n_queue_size],\
+		      p_ptr->B_z_dphi       [0:n_queue_size],\
+		      p_ptr->B_z_dz         [0:n_queue_size],\
+		      p_ptr->rho            [0:n_queue_size],\
+		      p_ptr->theta          [0:n_queue_size],\
+		      p_ptr->err            [0:n_queue_size],\
+		      p_ptr->time           [0:n_queue_size],\
+		      p_ptr->weight         [0:n_queue_size],\
+		      p_ptr->cputime        [0:n_queue_size],\
+		      p_ptr->id             [0:n_queue_size],\
+		      p_ptr->endcond        [0:n_queue_size],\
+		      p_ptr->walltile       [0:n_queue_size],\
+		      p_ptr->index          [0:n_queue_size],\
+		      p_ptr->znum           [0:n_queue_size],\
+		      p_ptr->anum           [0:n_queue_size],\
+		      p_ptr->bounces        [0:n_queue_size],\
   		      p0_ptr[0:1],\
-		      p0_ptr->running       [0:NSIMD],\
-		      p0_ptr->r             [0:NSIMD],\
-		      p0_ptr->phi           [0:NSIMD],\
-		      p0_ptr->p_r           [0:NSIMD],\
-		      p0_ptr->p_phi         [0:NSIMD],\
-		      p0_ptr->p_z           [0:NSIMD],\
-		      p0_ptr->mileage       [0:NSIMD],\
-		      p0_ptr->z             [0:NSIMD],\
-		      p0_ptr->charge        [0:NSIMD],\
-		      p0_ptr->mass          [0:NSIMD],\
-		      p0_ptr->B_r           [0:NSIMD],\
-		      p0_ptr->B_r_dr        [0:NSIMD],\
-		      p0_ptr->B_r_dphi      [0:NSIMD],\
-		      p0_ptr->B_r_dz        [0:NSIMD],\
-		      p0_ptr->B_phi         [0:NSIMD],\
-		      p0_ptr->B_phi_dr      [0:NSIMD],\
-		      p0_ptr->B_phi_dphi    [0:NSIMD],\
-		      p0_ptr->B_phi_dz      [0:NSIMD],\
-		      p0_ptr->B_z           [0:NSIMD],\
-		      p0_ptr->B_z_dr        [0:NSIMD],\
-		      p0_ptr->B_z_dphi      [0:NSIMD],\
-		      p0_ptr->B_z_dz        [0:NSIMD],\
-		      p0_ptr->rho           [0:NSIMD],\
-		      p0_ptr->theta         [0:NSIMD],\
-		      p0_ptr->err           [0:NSIMD],\
-		      p0_ptr->time          [0:NSIMD],\
-		      p0_ptr->weight        [0:NSIMD],\
-		      p0_ptr->cputime       [0:NSIMD],\
-		      p0_ptr->id            [0:NSIMD],\
-		      p0_ptr->endcond       [0:NSIMD],\
-		      p0_ptr->walltile      [0:NSIMD],\
-		      p0_ptr->index         [0:NSIMD],\
-		      p0_ptr->znum          [0:NSIMD],\
-		      p0_ptr->anum          [0:NSIMD],\
-		      p0_ptr->bounces       [0:NSIMD],\
-		      hin[0:NSIMD],\
+		      p0_ptr->running       [0:n_queue_size],\
+		      p0_ptr->r             [0:n_queue_size],\
+		      p0_ptr->phi           [0:n_queue_size],\
+		      p0_ptr->p_r           [0:n_queue_size],\
+		      p0_ptr->p_phi         [0:n_queue_size],\
+		      p0_ptr->p_z           [0:n_queue_size],\
+		      p0_ptr->mileage       [0:n_queue_size],\
+		      p0_ptr->z             [0:n_queue_size],\
+		      p0_ptr->charge        [0:n_queue_size],\
+		      p0_ptr->mass          [0:n_queue_size],\
+		      p0_ptr->B_r           [0:n_queue_size],\
+		      p0_ptr->B_r_dr        [0:n_queue_size],\
+		      p0_ptr->B_r_dphi      [0:n_queue_size],\
+		      p0_ptr->B_r_dz        [0:n_queue_size],\
+		      p0_ptr->B_phi         [0:n_queue_size],\
+		      p0_ptr->B_phi_dr      [0:n_queue_size],\
+		      p0_ptr->B_phi_dphi    [0:n_queue_size],\
+		      p0_ptr->B_phi_dz      [0:n_queue_size],\
+		      p0_ptr->B_z           [0:n_queue_size],\
+		      p0_ptr->B_z_dr        [0:n_queue_size],\
+		      p0_ptr->B_z_dphi      [0:n_queue_size],\
+		      p0_ptr->B_z_dz        [0:n_queue_size],\
+		      p0_ptr->rho           [0:n_queue_size],\
+		      p0_ptr->theta         [0:n_queue_size],\
+		      p0_ptr->err           [0:n_queue_size],\
+		      p0_ptr->time          [0:n_queue_size],\
+		      p0_ptr->weight        [0:n_queue_size],\
+		      p0_ptr->cputime       [0:n_queue_size],\
+		      p0_ptr->id            [0:n_queue_size],\
+		      p0_ptr->endcond       [0:n_queue_size],\
+		      p0_ptr->walltile      [0:n_queue_size],\
+		      p0_ptr->index         [0:n_queue_size],\
+		      p0_ptr->znum          [0:n_queue_size],\
+		      p0_ptr->anum          [0:n_queue_size],\
+		      p0_ptr->bounces       [0:n_queue_size],\
+		      hin[0:n_queue_size],\
        		      sim[0:1],		\
 		      sim->diag_data.dist5D.histogram[0:sim->diag_data.dist5D.n_r * sim->diag_data.dist5D.n_phi * sim->diag_data.dist5D.n_z * sim->diag_data.dist5D.n_ppara * sim->diag_data.dist5D.n_pperp * sim->diag_data.dist5D.n_time * sim->diag_data.dist5D.n_q], \
 		      sim->diag_data.dist6D.histogram[0:sim->diag_data.dist6D.n_r * sim->diag_data.dist6D.n_phi * sim->diag_data.dist6D.n_z * sim->diag_data.dist6D.n_pr * sim->diag_data.dist6D.n_pphi * sim->diag_data.dist6D.n_pz * sim->diag_data.dist6D.n_time * sim->diag_data.dist6D.n_q], \
@@ -149,7 +149,7 @@ void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, parti
 		      Bdata->B2DS.B_z,    Bdata->B2DS.B_z.c    [0:Bdata->B2DS.B_z.n_x   *Bdata->B2DS.B_z.n_y                          *NSIZE_COMP2D],\
 		      Bdata->BGS.psi_coeff[0:13],				\
 		      Edata[0:1],Edata->type,Edata->ETC,Edata->E1DS,Edata->ETC.Exyz[0:1],Edata->E1DS.dV,Edata->E1DS.dV.c[0:Edata->E1DS.dV.n_x*NSIZE_COMP1D], \
-		      rnd[0:3*NSIMD] \
+		      rnd[0:3*n_queue_size] \
 			)
     for (int i=0;i<MAX_SPECIES;i++) {
 GPU_MAP_TO_DEVICE(
@@ -161,14 +161,14 @@ GPU_MAP_TO_DEVICE(
  * @brief Copy data from GPU to CPU
 */
 
-void simulate_fo_fixed_copy_from_gpu(sim_data* sim, particle_simd_fo *p_ptr){
+void simulate_fo_fixed_copy_from_gpu(sim_data* sim, particle_simd_fo *p_ptr, int n_queue_size){
 
   GPU_UPDATE_FROM_DEVICE(
-      p_ptr[0:1],p_ptr->running[0:NSIMD],p_ptr->r[0:NSIMD],p_ptr->phi[0:NSIMD],p_ptr->p_r[0:NSIMD],p_ptr->p_phi[0:NSIMD],p_ptr->p_z[0:NSIMD],p_ptr->mileage[0:NSIMD], \
-  p_ptr->z[0:NSIMD],p_ptr->charge[0:NSIMD],p_ptr->mass[0:NSIMD],p_ptr->B_r[0:NSIMD],p_ptr->B_r_dr[0:NSIMD],p_ptr->B_r_dphi[0:NSIMD],p_ptr->B_r_dz[0:NSIMD], \
-  p_ptr->B_phi[0:NSIMD],p_ptr->B_phi_dr[0:NSIMD],p_ptr->B_phi_dphi[0:NSIMD],p_ptr->B_phi_dz[0:NSIMD],p_ptr->B_z[0:NSIMD],p_ptr->B_z_dr[0:NSIMD],p_ptr->B_z_dphi[0:NSIMD], \
-  p_ptr->B_z_dz[0:NSIMD],p_ptr->rho[0:NSIMD],p_ptr->theta[0:NSIMD],p_ptr->err[0:NSIMD],p_ptr->time[0:NSIMD],p_ptr->weight[0:NSIMD],p_ptr->cputime[0:NSIMD], \
-      p_ptr->id[0:NSIMD],p_ptr->endcond[0:NSIMD],p_ptr->walltile[0:NSIMD],p_ptr->index[0:NSIMD],p_ptr->znum[0:NSIMD],p_ptr->anum[0:NSIMD],p_ptr->bounces[0:NSIMD] )
+      p_ptr[0:1],p_ptr->running[0:n_queue_size],p_ptr->r[0:n_queue_size],p_ptr->phi[0:n_queue_size],p_ptr->p_r[0:n_queue_size],p_ptr->p_phi[0:n_queue_size],p_ptr->p_z[0:n_queue_size],p_ptr->mileage[0:n_queue_size], \
+  p_ptr->z[0:n_queue_size],p_ptr->charge[0:n_queue_size],p_ptr->mass[0:n_queue_size],p_ptr->B_r[0:n_queue_size],p_ptr->B_r_dr[0:n_queue_size],p_ptr->B_r_dphi[0:n_queue_size],p_ptr->B_r_dz[0:n_queue_size], \
+  p_ptr->B_phi[0:n_queue_size],p_ptr->B_phi_dr[0:n_queue_size],p_ptr->B_phi_dphi[0:n_queue_size],p_ptr->B_phi_dz[0:n_queue_size],p_ptr->B_z[0:n_queue_size],p_ptr->B_z_dr[0:n_queue_size],p_ptr->B_z_dphi[0:n_queue_size], \
+  p_ptr->B_z_dz[0:n_queue_size],p_ptr->rho[0:n_queue_size],p_ptr->theta[0:n_queue_size],p_ptr->err[0:n_queue_size],p_ptr->time[0:n_queue_size],p_ptr->weight[0:n_queue_size],p_ptr->cputime[0:n_queue_size], \
+      p_ptr->id[0:n_queue_size],p_ptr->endcond[0:n_queue_size],p_ptr->walltile[0:n_queue_size],p_ptr->index[0:n_queue_size],p_ptr->znum[0:n_queue_size],p_ptr->anum[0:n_queue_size],p_ptr->bounces[0:n_queue_size] )
 
     GPU_MAP_FROM_DEVICE(
 			      sim[0:1]  )
