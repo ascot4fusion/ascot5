@@ -776,7 +776,6 @@ class plasma_1d(a5imas):
 
 
         timeIndex = 0
-        unit      = 0
         iElement  = 0
         iIonTemp  = 0
 
@@ -789,9 +788,9 @@ class plasma_1d(a5imas):
         znum = np.zeros_like(anum)
         iondensity = p.zeros(shape=(nion,nrho))
         for i in range(nion):
-            znum[i] = p1d.ion[i].element[iElement].z_n
-            anum[i] = p1d.ion[i].element[iElement].a
-            idensity[:,i] = ion(i)%density_thermal(:)
+            znum[i]       = p1d.ion[i].element[iElement].z_n
+            anum[i]       = p1d.ion[i].element[iElement].a
+            idensity[:,i] = p1d.ion[i].density_thermal
 
         # Try species-averaged T_i
         if len(p1d.t_i_average) > 0 :
