@@ -779,9 +779,6 @@ class plasma_1d(a5imas):
         Rho-tor --> Rho-pol translation is done with values from equilibrium_ids; read that first, e.g.:
            eq=a5py.ascot5io.imas.B_2DS()
            eqdict=eq.read("akaslos","test","3",92436,306)
-
-
-
         """
 
 
@@ -807,9 +804,6 @@ class plasma_1d(a5imas):
             mass[i]       = species.autodetect( int( anum[i] ), int( znum[i]) )["mass"] / unyt.amu # Mass should be in AMU
             idensity[:,i] = p1d.ion[i].density_thermal
 
-
-
-
         # Try species-averaged T_i
         if len(p1d.t_i_average) > 0 :
             itemperature = p1d.t_i_average
@@ -819,7 +813,6 @@ class plasma_1d(a5imas):
 
         edensity     = p1d.electrons.density
         etemperature = p1d.electrons.temperature
-
         warnings.warn("Reading plasma rotation not yet implemented and is assumed to be zero")
         vtor = edensity * 0
 
@@ -849,7 +842,6 @@ class plasma_1d(a5imas):
 
 
         rho = equilibrium_ids.tor2pol(rho_tor)
-
         p = {
             "nrho"         : nrho,
             "nion"         : nion,
@@ -866,7 +858,6 @@ class plasma_1d(a5imas):
         }
 
         return p
-
 
 class wall_2d(a5imas):
 
