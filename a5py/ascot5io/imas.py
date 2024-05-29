@@ -752,6 +752,79 @@ class marker(a5imas):
                 np.amax(source.markers[timeIndex].positions[:,np.argwhere(indexes==r)[0][0]])
             ))
 
+class plasma_1d(a5imas):
+
+    def __init__(self):
+        super().__init__()
+        self.ids_name = "coreprof"
+
+
+    def parse(self):
+        """
+        Read an IMAS 1D-plasma profiles into a dictionary, that is a drop-in replacement for a dict read from hdf5.
+
+        The data is read from coreprof.profiles_1d[0]
+
+        The following keys are looked for:
+                   nrho, nion, anum, znum, mass, charge, rho,
+                   edensity, etemperature, idensity, itemperature
+
+        Ion temperature is read from species-averaged T_i or if that is not available, from the first ion species.
+
+        """
+
+
+
+        timeIndex = 0
+        unit      = 0
+        iElement  = 0
+        iIonTemp  = 0
+
+        p1d = self.ids.coreprof.profiles_1d[timeIndex]
+
+        nrho = len(p1d.grid.rho_tor)
+        nion = len(p1d.ion)
+
+        anum = np.zeros(shape=(nion,))
+        znum = np.zeros_like(anum)
+        iondensity = p.zeros(shape=(nion,nrho))
+        for i in range(nion):
+            znum[i] = p1d.ion[i].element[iElement].z_n
+            anum[i] = p1d.ion[i].element[iElement].a
+            idensity[:,i] = ion(i)%density_thermal(:)
+
+        # Try species-averaged T_i
+        if len(p1d.t_i_average) > 0 :
+            itemperature = p1d.t_i_average
+        else
+            # As a backup solution, use T_i of species 0 (iIonTemp)
+            itemperature = p1d.ion[iIonTemp].temperature
+
+        edensity     = p1d.electrons.density
+        etemperature = p1d.electrons.temperature
+
+        rho_tor = p1d.grid.rho_tor
+
+        # TODO
+        #  - mass, charge
+        #  - rho-tor --> rho pol transformation
+        #
+        # https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/ids/ids2plasmabkg.F90
+
+
+        p = {
+            "nrho"         : nrho,
+            "nion"         : nion,
+            "anum"         : anum,
+            "znum"         : znum,
+            "itemperature" : itemperature,
+            "idensity"     : idensity,
+            "etemperature" : etemperature,
+            "edensity"     : edensity,
+        }
+
+        return p
+
 class wall_2d(a5imas):
 
     def __init__(self):
