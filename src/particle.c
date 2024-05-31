@@ -285,11 +285,11 @@ void particle_to_ml_dummy(particle_simd_ml* p_ml, int j){
  * @return Number of markers within the SIMD structure that are still running
  */
 int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
-                      B_field_data* Bdata, int* cycle) {
+                      B_field_data* Bdata, int* cycle, int n_queue_size) {
 
     /* Loop over markers.
      * A SIMD loop is not possible as we modify the queue. */
-    for(int i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < n_queue_size; i++) {
 
         /* First check whether we should pick a new marker */
         int newmarker = 0;
@@ -351,7 +351,7 @@ int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
 
     int n_running = 0;
     #pragma omp simd reduction(+:n_running)
-    for(int i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < n_queue_size; i++) {
         n_running += p->running[i];
     }
 

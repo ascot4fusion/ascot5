@@ -68,7 +68,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int n_queue_size) {
     }
 
     /* Initialize running particles */
-    int n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
+    int n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle, n_queue_size);
 
     /* Determine simulation time-step */
     #pragma omp simd
@@ -230,7 +230,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int n_queue_size) {
 	    if(p_ptr->running[i] > 0) n_running++;
 	  }
 #else
-	n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
+	n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle, n_queue_size);
 #endif
 #ifndef GPU	
         /* Determine simulation time-step for new particles */
@@ -247,7 +247,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int n_queue_size) {
 
 #ifdef GPU
     simulate_fo_fixed_copy_from_gpu(sim, p_ptr, n_queue_size);
-    n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
+    n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle, n_queue_size);
 #endif    
 }
 
