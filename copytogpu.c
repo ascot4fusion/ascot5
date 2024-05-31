@@ -164,7 +164,7 @@ GPU_MAP_TO_DEVICE(
 void simulate_fo_fixed_copy_from_gpu(sim_data* sim, particle_simd_fo *p_ptr, int n_queue_size){
 
   GPU_UPDATE_FROM_DEVICE(
-      p_ptr[0:1],p_ptr->running[0:n_queue_size],p_ptr->r[0:n_queue_size],p_ptr->phi[0:n_queue_size],p_ptr->p_r[0:n_queue_size],p_ptr->p_phi[0:n_queue_size],p_ptr->p_z[0:n_queue_size],p_ptr->mileage[0:n_queue_size], \
+      p_ptr->running[0:n_queue_size],p_ptr->r[0:n_queue_size],p_ptr->phi[0:n_queue_size],p_ptr->p_r[0:n_queue_size],p_ptr->p_phi[0:n_queue_size],p_ptr->p_z[0:n_queue_size],p_ptr->mileage[0:n_queue_size], \
   p_ptr->z[0:n_queue_size],p_ptr->charge[0:n_queue_size],p_ptr->mass[0:n_queue_size],p_ptr->B_r[0:n_queue_size],p_ptr->B_r_dr[0:n_queue_size],p_ptr->B_r_dphi[0:n_queue_size],p_ptr->B_r_dz[0:n_queue_size], \
   p_ptr->B_phi[0:n_queue_size],p_ptr->B_phi_dr[0:n_queue_size],p_ptr->B_phi_dphi[0:n_queue_size],p_ptr->B_phi_dz[0:n_queue_size],p_ptr->B_z[0:n_queue_size],p_ptr->B_z_dr[0:n_queue_size],p_ptr->B_z_dphi[0:n_queue_size], \
   p_ptr->B_z_dz[0:n_queue_size],p_ptr->rho[0:n_queue_size],p_ptr->theta[0:n_queue_size],p_ptr->err[0:n_queue_size],p_ptr->time[0:n_queue_size],p_ptr->weight[0:n_queue_size],p_ptr->cputime[0:n_queue_size], \

@@ -425,7 +425,7 @@ void particle_to_gc_dummy(particle_simd_gc* p_gc, int j);
 void particle_to_ml_dummy(particle_simd_ml* p_ml, int j);
 
 int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
-                      B_field_data* Bdata, int* cycle);
+                      B_field_data* Bdata, int* cycle, int n_queue_size);
 int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
                       B_field_data* Bdata, int* cycle);
 int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
