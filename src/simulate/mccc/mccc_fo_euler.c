@@ -74,6 +74,7 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
             /* Evaluate collision coefficients and sum them for each *
              * species                                               */
             real F = 0, Dpara = 0, Dperp = 0;
+#pragma acc loop seq
             for(int j = 0; j < n_species; j++) {
                 real vb = sqrt( 2 * Tb[j] / mb[j] );
                 real x  = vin / vb;
