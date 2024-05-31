@@ -44,7 +44,7 @@ endif
 
 ifneq ($(CC),h5cc)
 	ifneq ($(CC),h5pcc)
-		CFLAGS+=-lhdf5 -lhdf5_hl -c++libs -cuda -I/scratch/software/PEs/spack/opt/spack/linux-rhel8-neoverse_n1/nvhpc-23.3/hdf5-1.14.0-vpgo22etqjgfxboa766ppqnaif54rimw/include
+		CFLAGS+=-lhdf5 -lhdf5_hl -c++libs -cuda -I$(HDF5_ROOT)/include
 	endif
 endif
 
@@ -64,7 +64,7 @@ else
 	CFLAGS += -O3
 endif
 
-CFLAGS+= $(DEFINES) $(FLAGS) -I$HOME/ascot5/. -lm -L/scratch/software/PEs/spack/opt/spack/linux-rhel8-neoverse_n1/nvhpc-23.3/hdf5-1.14.0-vpgo22etqjgfxboa766ppqnaif54rimw/lib
+CFLAGS+= $(DEFINES) $(FLAGS) -I$HOME/ascot5/. -lm -L$(HDF5_ROOT)/lib
 
 # Write CFLAGS and CC to a file to be included into output
 $(shell echo "#define CFLAGS " $(CFLAGS) > compiler_flags.h)
