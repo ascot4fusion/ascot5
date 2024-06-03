@@ -48,13 +48,7 @@ ifneq ($(CC),h5cc)
 	endif
 endif
 
-ifeq ($(DEBUG),1)
-	CFLAGS+=-g -fsanitize=address
-else
-	CFLAGS+=-O2
-endif
-CFLAGS+=-lm -Wall -fopenmp -fPIC -std=c11 -D_XOPEN_SOURCE=700 \
-	$(DEFINES) $(FLAGS)
+CFLAGS+=-O2 -lm -Wall -fopenmp -fPIC -std=c11 $(DEFINES) $(FLAGS)
 
 # Write CFLAGS and CC to a file to be included into output
 $(shell echo "#define CFLAGS " $(CFLAGS) > compiler_flags.h)
@@ -131,7 +125,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
 	E_field.h wall.h simulate.h diag.h offload.h boozer.h mhd.h \
 	random.h print.h hdf5_interface.h suzuki.h nbi.h biosaw.h \
-	asigma.h boschhale.h mpi_interface.h bbnbi5.h
+	asigma.h boschhale.h mpi_interface.h libascot_mem.h
 
 OBJS= math.o list.o octree.o error.c \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
@@ -140,8 +134,8 @@ OBJS= math.o list.o octree.o error.c \
 	$(SPLINEOBJS) \
 	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
 	E_field.o wall.o simulate.o diag.o offload.o boozer.o mhd.o \
-	random.o print.o hdf5_interface.o suzuki.o nbi.o biosaw.o \
-	asigma.o mpi_interface.o boschhale.o bbnbi5.o
+	random.o print.c hdf5_interface.o suzuki.o nbi.o biosaw.o \
+	asigma.o mpi_interface.o boschhale.o
 
 BINS=test_math test_nbi test_bsearch \
 	test_wall_2d test_plasma test_random \
