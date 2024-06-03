@@ -28,7 +28,6 @@
 #include "gctransform.h"
 #include "asigma.h"
 
-void sim_init(sim_data* sim, sim_offload_data* offload_data);
 void sim_monitor(char* filename, volatile int* n, volatile int* finished);
 
 /**
