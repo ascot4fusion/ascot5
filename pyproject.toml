@@ -20,10 +20,14 @@ dependencies = [
   "numpy",
   "scipy",
   "h5py",
-  "mpi4py",
   "unyt==2.9.5",
   "wurlitzer",
   "xmlschema",
+]
+
+[project.optional-dependencies]
+mpi = [
+    "mpi4py",
 ]
 
 [tool.setuptools.packages.find]
