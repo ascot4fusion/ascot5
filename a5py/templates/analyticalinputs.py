@@ -4,12 +4,10 @@ import numpy as np
 import unyt
 
 from scipy.interpolate import interpn
+from scipy.integrate   import quad
 
-import a5py.ascot5io.marker as marker
-import a5py.ascot5io.options as options
-
-from a5py.ascot5io.bfield import B_GS, B_2DS, B_3DS
-from a5py.ascot5io.wall import wall_2D, wall_3D
+from a5py.ascot5io.bfield import B_GS
+from a5py.ascot5io.wall import wall_2D
 
 class AnalyticalInputs():
     """Inputs that can be constructed analytically or otherwise from scratch.
@@ -224,3 +222,99 @@ class AnalyticalInputs():
             out.update({"nphi" : nphi})
             return ("wall_3D", wall_3D.convert_wall_2D(**out))
         return ("wall_2D", out)
+
+    def asigma_chebyshev_cx_hh0(
+            self, z1=1, a1=2, m1=3.34358377e-27*unyt.kg, z2=1, a2=2,
+            m2=3.34449439e-27*unyt.kg, emin=5e1*unyt.eV, emax=1.5e5*unyt.eV,
+            nekin=200, tmin=1e2*unyt.eV, tmax=1e4*unyt.eV, ntemp=20):
+        """Create CX data based on cross-sections from Chebyshev fit for H-H CX
+        reaction.
+
+        Calculate a set of cross-section data based on an analytical Chebyshev
+        fit to data for the hydrogen-hydrogen charge-exchange reaction as
+        described in the report ORNL-6086 by Barnett. In the report, this
+        reaction is called, Electron Capture Cross Sections for
+        H+ + H --> H + H+, and is found on page A-22.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        # Check that wanted energy span is possible and construct abscissae
+        E_min = 1.2E-01 # eV/amu
+        E_max = 6.3E+05
+        if emin / a1 < E_min or emax / a1 > E_max:
+            raise ValueError(
+                f"Energy span must be between {E_min} and {E_max} eV/amu")
+
+        # Prepare for integration
+        def sigma(ekin):
+            """Calculates sigma(eperamu) [m^2]"""
+            if ekin < E_min or ekin > E_max:
+                return 0.0
+            X = ( 2*np.log(ekin)  - np.log(E_min) - np.log(E_max) ) \
+                / ( np.log(E_max) - np.log(E_min) )
+            T = np.array([
+                -5.49142   * (     X ),
+                -3.42948   * (   2*X**2 -   1 ),
+                -1.98377   * (   4*X**3 -   3*X ),
+                -0.878009  * (   8*X**4 -   8*X**2 +   1 ),
+                -0.198932  * (  16*X**5 -  20*X**3 +   5*X ),
+                0.0837431 * (  32*X**6 -  48*X**4 +  18*X**2 -  1 ),
+                0.121252  * (  64*X**7 - 112*X**5 +  56*X**3 -  7*X ),
+                0.0827182 * ( 128*X**8 - 256*X**6 + 160*X**4 - 32*X**2 + 1 )
+                ])
+            # Convert cm^2 to m^2
+            return 1e-4*np.exp(-72.6656 / 2 + np.sum(T)) * unyt.m**2
+
+        def integrand(u, ekin, temperature):
+            """Calculates the integrand as a function of u.
+
+            Before using this, ekin and temperature should be parameterized.
+            """
+            u *= unyt.m / unyt.s
+
+            v1 = np.sqrt(2*ekin/m1).to('m/s')
+            energycollperamu = (0.5 * m1 * u**2 / a1).to('eV')
+            sigmaval = sigma(energycollperamu)
+            if sigmaval == 0:
+                return 0.0
+
+            # Calculate the value of the integrand
+            e1 = -m2 * v1**2 / ( 2*temperature )
+            e2 = -m2 * u**2 / ( 2*temperature )
+            hyperbolicsinarg =  m2 * u * v1 / temperature
+            val = sigmaval * u**2 * np.sqrt( m2 / ( 2 * np.pi * temperature ) )\
+                 / v1
+            if(hyperbolicsinarg >= 10.0):
+                # For x >= 10, the relative difference between sinh(x) and 1/2*exp(x)
+                # is less than 2e-9, allowing us to use the approximation
+                return np.exp(hyperbolicsinarg + e1 + e2) * val.to('m**2')
+            else:
+                return (2 * np.sinh(hyperbolicsinarg)* np.exp(e1 + e2) * val).to('m**2')
+
+        egrid = np.linspace(emin, emax, nekin)
+        tgrid = np.linspace(tmin,tmax,ntemp)
+        sigmav = np.zeros((ntemp*nekin,1))
+
+        # Loop through all (energy,temperature) grid points and calculate
+        # the corresponding rate coefficient value
+        for itemp in range(ntemp):
+            for iekin in range(nekin):
+                sigmav[itemp*nekin+iekin] = \
+                    quad(lambda u: integrand(u, egrid[iekin], tgrid[itemp]),
+                         0, 2e7, points=(4800,1e7))[0]
+
+        data = {
+            "nreac":1, "z1":np.array([z1]), "a1":np.array([a1]),
+            "z2":np.array([z2]), "a2":np.array([a2]), "reactype":np.array([6]),
+            "nenergy":np.array([nekin]), "energymin":np.array([emin]),
+            "energymax":np.array([emax]), "ndensity":np.array([1]),
+            "densitymin":np.array([1]), "densitymax":np.array([1e30]),
+            "ntemperature":np.array([ntemp]), "temperaturemin":np.array([tmin]),
+            "temperaturemax":np.array([tmax]), "sigma":sigmav.T}
+        return ("asigma_loc", data)

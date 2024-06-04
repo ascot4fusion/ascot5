@@ -1833,8 +1833,13 @@ class PhysTest():
             init("neutral_flat", anum=2, znum=1, density=1e16, temperature=1e3,
                  desc=tag)
 
-            # ADAS data
-            init("import_adas", desc=tag)
+            # Atomic data
+            try:
+                init("import_adas")
+            except Exception as err:
+                print(err)
+                print("Using analytical model instead.")
+                init("asigma_chebyshev_cx_hh0", desc=tag)
 
     def run_atomic(self):
         """Run atomic reaction test.
@@ -1858,15 +1863,15 @@ class PhysTest():
             state="ini", mode="prt", ids=1)
         self.ascot.input_init(run=run_cx.get_qid(), bfield=True, plasma=True,
                               neutral=True, asigma=True)
-        sigmacx  = self.ascot.input_eval_atomicsigma(
-            ma, anum[0], znum[0], r, phi, z, t, va, ion=0,
+        sigmacx  = self.ascot.input_eval_atomiccoefs(
+            ma, anum[0], znum[0], r, phi, z, t, va,
             reaction="charge-exchange")
-        sigmabms = self.ascot.input_eval_atomicsigma(
-            ma, anum[0], znum[0], r, phi, z, t, va, ion=0,
+        sigmabms = self.ascot.input_eval_atomiccoefs(
+            ma, anum[0], znum[0], r, phi, z, t, va,
             reaction="beamstopping")
         self.ascot.input_free()
-        mfp_cx0  = va/(sigmacx * 1e16/unyt.m**3)
-        mfp_bms0 = va/(sigmabms * 1e20/unyt.m**3)
+        mfp_cx0  = va / sigmacx
+        mfp_bms0 = va / sigmabms
 
         # Mean free paths from the simulation
         vnorm1 = run_cx.getstate("vnorm", state="ini", mode="prt")
@@ -2354,7 +2359,7 @@ class PhysTest():
 
         ax3.set_xlabel("$r$ [m]")
         ax3.set_ylabel("$B_phi$ [m]")
-        ax4.set_xlabel("$\phi$ [rad]")
+        ax4.set_xlabel("$phi$ [rad]")
         ax4.set_ylabel("$B_phi$ [m]")
         return passed
 
@@ -2394,6 +2399,6 @@ if __name__ == '__main__':
         init=True, run=True, check=True,
         tests=["elementary", "orbitfollowing", "gctransform", "ccoll",
                "classical", "neoclassical", "boozer", "mhd", "afsi",
-               "bbnbi", "biosaw"])#, "atomic"])
+               "bbnbi", "biosaw", "atomic"])
     plt.show(block=False)
     if failed: raise Exception("Verification failed")
