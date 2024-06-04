@@ -6,8 +6,8 @@ import unyt
 from scipy.interpolate import interpn
 from scipy.integrate   import quad
 
-from a5py.ascot5io.bfield import B_GS
-from a5py.ascot5io.wall import wall_2D
+from a5py.ascot5io.bfield import B_2DS, B_3DS
+from a5py.ascot5io.wall import wall_3D
 
 class AnalyticalInputs():
     """Inputs that can be constructed analytically or otherwise from scratch.
