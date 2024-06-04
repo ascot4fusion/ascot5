@@ -822,6 +822,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         """Return species present in plasma input.
         """
         spec = self.get_plasmaspecies()
+        quantities = []
         for i in range(1,spec["nspecies"]):
             quantities.append("ni" + str(i))
             quantities.append("ti" + str(i))
@@ -1265,3 +1266,147 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             if newfig: plt.show()
 
         return phi, amplitude, delta, deltacrit, ripplewell
+
+    @openfigureifnoaxes()
+    def input_eval_orbitresonance(
+            self, rhogrid, xigrid, egrid, species, plot=False, n=1, p=0,
+            axes=None, cax=None):
+        """Evaluate the resonance condition between particles and perturbations.
+
+        Orbit resonance refers to the phenomenon where the frequency of
+        a particle's orbit in a magnetic field matches the frequency of
+        a perturbation, such as a wave or an external perturbation. This
+        resonance can lead to increased particle transport.
+
+        The resonance condition for orbit resonance is given by:
+
+        f_{tor} / f_{pol} = m / n
+
+        where:
+        - f_{tor} is the toroidal orbit frequency of the particle,
+        - f_{pol} is the poloidal orbit frequency of the particle,
+        - n is the toroidal mode number of the perturbation.
+        - m is an arbitrary integer.
+
+        This function can evaluate and plot the resonance in 1D or 2D space.
+        Note that one of the ('rhogrid', 'xigrid', 'egrid') must be a scalar.
+
+        Parameters
+        ----------
+        rhogrid : array_like, (nrho)
+            Value of the radial coordinate of radial grid for which
+            the resonance is evaluated.
+        xigrid : float or array_like, (nxi)
+            Value of the pitch of pitch grid for which the resonance is
+            evaluated.
+        egrid : float or array_like, (ne)
+            Value of the energy of energy grid for which the resonance is
+            evaluated.
+        species : str
+            Name of the particle species.
+        plot : bool, optional
+            If True, the results are not returned but visualized instead.
+        resonance : float or array_like, optional
+            Resonance(s) to be indicated on the plot e.g. m/n=2/1.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        cax : :obj:`~matplotlib.axes.Axes`, optional
+            The color bar axes or otherwise taken from the main axes.
+
+        Returns
+        -------
+        torfreq : array_like (nrho, nxi) or (nrho, ne) or (nxi, ne)
+            Evaluated toroidal orbit frequencies if 'plot' = False.
+        polfreq : array_like (nrho, nxi) or (nrho, ne) or (nxi, ne)
+            Evaluated poloidal orbit frequencies if 'plot' = False.
+        qeff : array_like (nrho, nxi) or (nrho, ne) or (nxi, ne)
+            Evaluated effective qfactor = torfreq / polfreq if 'plot' = False.
+        """
+        rhogrid = np.atleast_1d(rhogrid)
+        xigrid  = np.atleast_1d(xigrid)
+        egrid   = np.atleast_1d(egrid)
+
+        if rhogrid.size > 1 and xigrid.size > 1 and egrid.size > 1:
+            raise ValueError("One of the input grids must be a scalar")
+
+        mrk = self.data.create_input(
+            "marker resonance", species=species, rhogrid=rhogrid, xigrid=xigrid,
+            egrid=egrid, dryrun=True)
+        opt = self.data.create_input(
+            "options singleorbit", ntor=12, npol=6, dryrun=True)
+
+        self.simulation_initmarkers(**mrk)
+        self.simulation_initoptions(**opt)
+        vrun = self.simulation_run(printsummary=False)
+
+        t_phi0, z_phi0, pitch_phi0, ids_phi0 = vrun.getorbit(
+            'mileage', 'z', 'pitch', 'ids', pncrid=0)
+        t_omp,  z_omp,  pitch_omp, ids_omp, phi_omp  = vrun.getorbit(
+            'mileage', 'z', 'pitch', 'ids', 'phi', pncrid=1)
+        self.simulation_free(markers=True, diagnostics=True)
+
+        if rhogrid.size == 1:
+            n1 = xigrid.size
+            n2 = egrid.size
+        elif xigrid.size == 1:
+            n1 = rhogrid.size
+            n2 = egrid.size
+        elif egrid.size == 1:
+            n1 = rhogrid.size
+            n2 = xigrid.size
+
+        nmrk = mrk['n']
+        passing = np.zeros((n1, n2))
+        torfreq = np.zeros((n1, n2)) + np.NaN
+        polfreq = np.zeros((n1, n2)) + np.NaN
+        for i in range(nmrk):
+            ixi  = int(i / n1)
+            irho = i % n1
+            idx_omp  = ids_omp  == i+1
+            idx_phi0 = ids_phi0 == i+1
+
+            # Is this particle passing or trapped? (Does omp crossings have
+            # different sign of pitch)
+            passing[irho, ixi] = np.all(pitch_omp[idx_omp] < 0) or \
+                                 np.all(pitch_omp[idx_omp] > 0)
+
+            if passing[irho, ixi]:
+                # Passing
+                torfreq[irho, ixi] = 1.0 / np.mean(np.diff(t_phi0[idx_phi0]))
+                polfreq[irho, ixi] = 1.0 / np.mean(np.diff(t_omp[idx_omp]))
+            else:
+                #Trapped
+                deltat = np.diff(t_omp[idx_omp][::2])
+                polfreq[irho, ixi] = 1.0 / np.mean(deltat)
+                deltaphi = np.abs(np.diff(phi_omp[idx_omp][::2]))
+                torfreq[irho, ixi] = 1.0 / np.mean(deltat * 360 / deltaphi)
+
+        if not plot: return torfreq, polfreq, torfreq/polfreq
+
+        # The rest is plotting
+        omega = np.abs(torfreq * n - p * polfreq)
+        def plot2d(x, y, title, xlabel, ylabel):
+            #im   = axes.pcolormesh(x, y, (torfreq / polfreq).T)
+            #axes.contour(x, y, (torfreq / polfreq).T, resonance, colors='white')
+            im   = axes.pcolormesh(x, y, np.log10(1.0/omega).T)
+            axes.set_title(title)
+            axes.set_xlabel(xlabel)
+            axes.set_ylabel(ylabel)
+
+            cbar = plt.colorbar(im, ax=axes, orientation='horizontal')
+            cbar.set_label(r"$log_{10} | \omega_{tor} n - p \omega_{pol} |$")
+
+        axes.set_xlabel(r"$\rho$")
+        x = None; y = None; xlabel = None; ylabel = None
+        if rhogrid.size > 1 and xigrid.size > 1:
+            plot2d(rhogrid, xigrid, r"$E=%g$ MeV" % (egrid/1e6),
+                   r"$\rho$", r"$v_\parallel/v$")
+        elif rhogrid.size > 1 and egrid.size > 1:
+            plot2d(rhogrid, egrid, r"$v_\parallel/v=%f$" % (xigrid),
+                   r"$\rho$", r"$E_{kin}$ [eV]")
+        elif xigrid.size > 1 and egrid.size > 1:
+            plot2d(xigrid, egrid, r"$\rho=%f$" % (rhogrid),
+                   r"$v_\parallel/v$", r"$E$ [MeV]")
+        elif rhogrid.size > 1:
+            axes.plot(rhogrid, torfreq / polfreq)
+            axes.set_ylabel(r"$f_{tor} / f_{pol}$")

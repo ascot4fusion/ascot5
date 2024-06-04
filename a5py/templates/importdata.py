@@ -271,7 +271,6 @@ class ImportData():
             else:
                 raise(Exception("Unsupported kwarg."))
 
-        ## Write data to HDF5
         # Place reaction data for all reactions in one long array
         ntot = 0
         for ireac in range(nreac):
