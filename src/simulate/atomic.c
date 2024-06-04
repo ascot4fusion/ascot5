@@ -40,10 +40,6 @@ a5err atomic_react(
 /**
  * @brief Determine if atomic reactions occur during time-step and change charge
  *
- * The terms ionization and recombination are used loosely in variable names.
- * Ionization (ion) stands for all charge-increasing reactions, and
- * recombination (rec) for all charge-decreasing reactions.
- *
  * @param p fo struct
  * @param h time-steps from NSIMD markers
  * @param p_data pointer to plasma data
@@ -114,9 +110,8 @@ void atomic_fo(particle_simd_fo* p, real* h,
             /* Determine if an atomic reaction occurs */
             if(!errflag) {
                 int q_prev = q;
-                errflag = atomic_react(&q, h[i],
-                                       rate_eff_ion, rate_eff_rec,
-                                       p->znum[i], rnd[i]);
+                errflag = atomic_react(
+                    &q, h[i], rate_eff_ion, rate_eff_rec, p->znum[i], rnd[i]);
                 if(q != q_prev) {
                     /* A reaction has occured, change particle charge */
                     p->charge[i] = q*CONST_E;
@@ -135,12 +130,10 @@ void atomic_fo(particle_simd_fo* p, real* h,
 /**
  * @brief Determines atomic reaction rates
  *
- * This function checks the particle charge state, and determines the
- * reaction rates for the different possible atomic reactions.
- *
- * The terms ionization and recombination are used loosely in variable names.
- * Ionization (ion) stands for all charge-increasing reactions, and
- * recombination (rec) for all charge-decreasing reactions.
+ * The reaction rates are determined based on the charge state. The terms
+ * "ionization" and "recombination" are used loosely, where "ionization" refers
+ * to all charge-increasing reactions, and "recombination" to all
+ * charge-decreasing reactions.
  *
  * @param rate_eff_ion pointer to evaluated reaction rate for ionization
  * @param rate_eff_rec pointer to evaluated reaction rate for recombination
@@ -161,9 +154,6 @@ void atomic_fo(particle_simd_fo* p, real* h,
  * @param n_0 density of bulk neutral species
  *
  * @return zero if evaluation succeeded
- *
- * @todo Implement a more general algorithm for the determination of reaction
- *   rates based on charge state!
  */
 a5err atomic_rates(
     real* rate_eff_ion, real* rate_eff_rec, int z_1, int a_1, real m_1,
@@ -174,53 +164,26 @@ a5err atomic_rates(
 
     /* Define a helper variable for storing rate coefficients, and
        initialize the reaction rate variables */
-    real sigmav;
+    real coeff;
     *rate_eff_rec = 0;
     *rate_eff_ion = 0;
 
-    /* Based on particle charge state, reaction rates are calculated for
-       possible reactions using the asigma helper module. Typically, asigma
-       does not return a reaction rate. Instead, it might for example return
-       a rate coefficient. A rate coefficient must be multiplied by the
-       density of the reaction counterpart to obtain the reaction rate.
-       NOTE: Currently, only two charge states and a limited range of
-       reaction types are implemented. */
+    /* Calculate ionization and recombination probabilities based on charge
+     * state*/
     if(q == 1) {
-        /* Test particle has charge state +1. Evaluate the rate coefficient
-           and multiply it by the reaction counterpart density to find the
-           reaction rate for a recombining (charge-decreasing) reaction. */
-        /* Charge exchange (CX)
-           NOTE: Ion density is not used in asigma_eval_sigmav() for
-           reac_type_sigmav_CX, so just pass density of main bulk ion species
-           as the dummy parameter. */
-        for(int i_spec = 0; i_spec < N_ntl_spec; i_spec++) {
-            err = asigma_eval_sigmav(
-                &sigmav, z_1, a_1, m_1, z_2[i_spec], a_2[i_spec],
-                E, T[0], T_0[i_spec], n[1], sigmav_CX, asigmadata);
-            *rate_eff_rec += sigmav*n_0[i_spec];
-        }
+        /* Only CX is implemented */
+        err = asigma_eval_cx(
+            &coeff, z_1, a_1, E, m_1, N_ntl_spec, z_2, a_2,
+            T_0[0], n_0, asigmadata);
+        *rate_eff_rec += coeff;
     } else if(q == 0) {
-        /* Test particle is neutral. Evaluate the beam-stopping (BMS)
-           coefficient. Because of how BMS coefficients are defined, to
-           determine the reaction rate, the BMS coefficient returned by
-           asigma_eval_sigmav() is multiplied by the electron density
-           corresponding to the ionic reaction counterpart density. The
-           species index maximum excludes electrons.
-           NOTE: Fully ionized ions are assumed when multiplying the effective
-           rate coefficient by the electron density corresponding to the ionic
-           reaction counterpart density.
-           NOTE: Neutral temperature is not used in asigma_eval_sigmav() for
-           reac_type_BMS_sigmav, so just pass temperature of main bulk neutral
-           species as the dummy parameter. */
-        for(int i_spec = 0; i_spec < (N_pls_spec-1); i_spec++) {
-            err = asigma_eval_sigmav(
-                &sigmav, z_1, a_1, m_1, z_2[i_spec], a_2[i_spec],
-                E,T[0], T_0[0], n[i_spec+1], sigmav_BMS, asigmadata);
-            *rate_eff_ion += sigmav*z_2[i_spec]*n[i_spec+1];
-        }
+        /* Only BMS is implemented */
+        err = asigma_eval_bms(
+            &coeff, z_1, a_1, E, m_1, (N_pls_spec-1),
+            z_2, a_2, T[0], &n[1], asigmadata);
+        *rate_eff_ion += coeff * n[0];
     } else {
-        /* Test particle has a charge state for which determination of atomic
-           reaction rates has not been implemented */
+        /* q > 1 not yet implemented */
         err = error_raise( ERR_ATOMIC_EVALUATION, __LINE__, EF_ATOMIC );
     }
 

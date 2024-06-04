@@ -452,6 +452,78 @@ a5err asigma_loc_eval_sigmav(
 }
 
 /**
+ * @brief Evaluate atomic reaction rate coefficient
+ *
+ * This function evaluates the rate coefficient (<sigma*v>) for the atomic
+ * reaction corresponding to the reaction identifiers given as parameters
+ * at the given fast particle energy and bulk plasma conditions.
+ *
+ * This is a SIMD function.
+ *
+ * @param ratecoeff pointer to evaluated rate coefficient
+ * @param z_1 atomic number of fast particle
+ * @param a_1 atomic mass number of fast particle
+ * @param E energy of fast particle
+ * @param mass mass of fast particle
+ * @param znum atomic numbers of bulk neutrals
+ * @param anum atomic mass numbers of bulk neutrals
+ * @param T_0 temperature of bulk neutrals
+ * @param n_0 neutral densities
+ * @param extrapolate don't raise error but set values outside abscissae to zero
+ * @param asigma_data pointer to atomic data struct
+ *
+ * @return zero if evaluation succeeded
+ */
+a5err asigma_loc_eval_cx(
+    real* ratecoeff, int z_1, int a_1, real E, real mass, int nspec,
+    const int* znum, const int* anum, real T_0, real* n_0, int extrapolate,
+    asigma_loc_data* asigma_data) {
+    a5err err = 0;
+
+    /* Convert Joule to eV */
+    E   /= CONST_E;
+    T_0 /= CONST_E;
+    *ratecoeff = 0;
+    for(int i_spec = 0; i_spec < nspec; i_spec++) {
+
+        /* Find the matching reaction */
+        int reac_found = -1, i_reac;
+        for(i_reac = 0; i_reac < asigma_data->N_reac; i_reac++) {
+            if(asigma_data->z_1[i_reac] == z_1 &&
+               asigma_data->a_1[i_reac] == a_1 &&
+               asigma_data->z_2[i_reac] == znum[i_spec] &&
+               asigma_data->a_2[i_reac] == anum[i_spec] &&
+               asigma_data->reac_type[i_reac] == sigmav_CX) {
+                reac_found = i_reac;
+            }
+        }
+        i_reac = reac_found;
+
+        if(reac_found < 0) {
+            /* Reaction not found. Raise error. */
+            err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_ASIGMA_LOC);
+        } else {
+            real sigmav;
+            int interperr = interp2Dcomp_eval_f(
+                                &sigmav, &asigma_data->sigmav[i_reac], E, T_0);
+
+            /* Interpolation error means the data has to be extrapolated */
+            if(interperr) {
+                if(extrapolate) {
+                    sigmav = 0.0;
+                } else {
+                    err = error_raise( ERR_INPUT_EVALUATION, __LINE__,
+                                        EF_ASIGMA_LOC );
+                }
+            }
+            *ratecoeff += sigmav*n_0[i_spec];
+        }
+    }
+
+    return err;
+}
+
+/**
  * @brief Evaluate beam stopping rate coefficient
  *
  * This function first tries to evaluate BMS with ADAS data. If not present,
@@ -459,7 +531,7 @@ a5err asigma_loc_eval_sigmav(
  *
  * This is a SIMD function.
  *
- * @param sigmav pointer to evaluated rate coefficient
+ * @param ratecoeff pointer to evaluated rate coefficient
  * @param z_1 atomic number of fast particle
  * @param a_1 atomic mass number of fast particle
  * @param E energy of fast particle
@@ -475,7 +547,7 @@ a5err asigma_loc_eval_sigmav(
  * @return zero if evaluation succeeded
  */
 a5err asigma_loc_eval_bms(
-    real* sigmav, int z_1, int a_1, real E, real mass, int nion,
+    real* ratecoeff, int z_1, int a_1, real E, real mass, int nion,
     const int* znum, const int* anum, real T_e, real* n_i, int extrapolate,
     asigma_loc_data* asigma_data) {
     a5err err = 0;
@@ -486,7 +558,7 @@ a5err asigma_loc_eval_bms(
 
     /* Find the matching reaction. Note that BMS data is same for all
      * isotopes, so we don't compare anums */
-    int reac_found = -1; real n_e = 0; *sigmav = 0;
+    int reac_found = -1; real n_e = 0; *ratecoeff = 0;
     for(int i_spec = 0; i_spec < nion; i_spec++) {
         n_e += znum[i_spec] * n_i[i_spec];
         for(int i_reac = 0; i_reac < asigma_data->N_reac; i_reac++) {
@@ -494,31 +566,33 @@ a5err asigma_loc_eval_bms(
                asigma_data->z_2[i_reac]       == znum[i_spec] &&
                asigma_data->reac_type[i_reac] == sigmav_BMS) {
                 reac_found = i_reac;
-                real sigmatemp;
+                real sigmav;
                 int interperr = \
                         interp3Dcomp_eval_f(
-                            &sigmatemp, &asigma_data->BMSsigmav[i_reac],
+                            &sigmav, &asigma_data->BMSsigmav[i_reac],
                             E_eV/anum[i_spec], znum[i_spec] * n_i[i_spec], T_e);
+
+                /* Interpolation error means the data has to be extrapolated */
                 if(interperr) {
                     if(extrapolate) {
-                        sigmatemp = 0.0;
+                        sigmav = 0.0;
                     } else {
                         err = error_raise( ERR_INPUT_EVALUATION, __LINE__,
                                            EF_ASIGMA_LOC );
                     }
                 }
-                *sigmav += sigmatemp * ( znum[i_spec] * n_i[i_spec]);
+                *ratecoeff += sigmav * ( znum[i_spec] * n_i[i_spec]);
             }
         }
     }
-    *sigmav /= n_e;
+    *ratecoeff /= n_e;
 
     if(reac_found < 0) {
         /* Reaction not found. Try Suzuki before throwing error. */
         T_e *= CONST_E;
         real gamma = physlib_gamma_Ekin(mass, E);
         real vnorm = physlib_vnorm_gamma(gamma);
-        if(suzuki_sigmav(sigmav, E/a_1, vnorm, n_e, T_e, nion, n_i, anum,
+        if(suzuki_sigmav(ratecoeff, E/a_1, vnorm, n_e, T_e, nion, n_i, anum,
                          znum)) {
             err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_ASIGMA_LOC);
         }

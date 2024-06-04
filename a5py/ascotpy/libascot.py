@@ -641,11 +641,18 @@ class LibAscot:
         if len(out) == 1: out = out[0]
         return out
 
-    @parseunits(ma="kg", r="m", phi="rad", z="m", t="s", va="m/s")
     def input_eval_atomicsigma(self, ma, anum, znum, r, phi, z, t, va, ion,
                                reaction):
-        """Evaluate atomic reaction rate cross-sections for a given test
-        particle.
+        """Deprecated.
+        """
+        warnings.warn("input_eval_atomicsigma is deprecated. Use "
+                      "input_eval_atomiccoefs instead.", DeprecationWarning)
+        return
+
+    @parseunits(ma="kg", r="m", phi="rad", z="m", t="s", va="m/s")
+    def input_eval_atomiccoefs(self, ma, anum, znum, r, phi, z, t, va,
+                                reaction):
+        """Evaluate atomic reaction rates for a given test particle.
 
         Parameters
         ----------
@@ -665,8 +672,6 @@ class LibAscot:
             Time coordinates where data is evaluated [s].
         va : array_like (n,)
             Test particle velocities where data is evaluated in each grid point.
-        ion : int
-            Index number of the background ion species in plasma input.
         reaction : {"ionization", "recombination", "charge-exchange",
         "beamstopping"}
             Reaction whose cross-section is computed.
@@ -684,6 +689,10 @@ class LibAscot:
         self._requireinit("bfield", "plasma", "neutral", "asigma")
         reactions = \
             {v: k for k, v in ascot2py.asigma_reac_type__enumvalues.items()}
+        Neval = r.size
+        Nv    = va.size
+        out   = (np.zeros((Neval,Nv), dtype="f8") + np.nan) / unyt.s
+
         if reaction == "ionization":
             reaction = reactions["sigmav_recomb"]
         elif reaction == "recombination":
@@ -695,25 +704,19 @@ class LibAscot:
         else:
             raise ValueError("Unknown reaction")
 
-        fun = _LIBASCOT.libascot_eval_sigmav
+        fun = _LIBASCOT.libascot_eval_ratecoeff
         fun.restype  = ctypes.c_int
         fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR, PTR_ARR, PTR_ARR,
                         ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
                         ctypes.c_int, PTR_REAL, ctypes.c_int, ctypes.c_int,
-                        ctypes.c_double, ctypes.c_int, ctypes.c_int, PTR_REAL]
+                        ctypes.c_double, ctypes.c_int, PTR_REAL]
 
-        Neval = r.size
-        Nv    = va.size
-
-        out = {}
-        units = unyt.m**3 / unyt.s
-        out["sigmav"] = (np.zeros((Neval,Nv), dtype="f8") + np.nan) * units
         fun(ctypes.byref(self._sim), self._bfield_offload_array,
             self._plasma_offload_array, self._neutral_offload_array,
             self._asigma_offload_array, Neval, r, phi, z, t, Nv, va,
-            anum, znum, ma, ion, reaction, out["sigmav"])
+            anum, znum, ma, reaction, out)
 
-        return out["sigmav"]
+        return out
 
     def input_getplasmaspecies(self):
         """Get species present in plasma input (electrons first).
