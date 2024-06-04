@@ -390,9 +390,8 @@ class PoincareTemplates():
 
         return ("MHD_STAT", mhd)
 
-    def marker_resonance(self, species=None, energy=None,
-                         rhomin=0.1, rhomax=1.0, nrho=10,
-                         ximin=-1.0, ximax=1.0, nxi=10, time=0*unyt.s):
+    def marker_resonance(self, species=None, rhogrid=None, xigrid=None,
+                         egrid=None, time=0*unyt.s):
         """Generate markers for estimating orbit resonances.
 
         All markers are generated at the outer mid plane at phi=0. They are
@@ -402,20 +401,6 @@ class PoincareTemplates():
         ----------
         species : str
             Marker species to be simulated.
-        energy : float
-            Marker energy.
-        rhomin : float, optional
-            Minimum marker initial rho coordinate.
-        rhomax : float, optional
-            Maximum marker initial rho coordinate.
-        nrho : int, optional
-            Number of rho grid points.
-        ximin : float, optional
-            Minimum pitch coordinate.
-        ximax : float, optional
-            Maximum pitch coordinate.
-        nxi : int, optional
-            Number of pitch grid points.
         time : float, optional
             The time-instant at when the simulation begins.
 
@@ -427,43 +412,44 @@ class PoincareTemplates():
             Input data that can be passed to ``write_hdf5`` method of
             a corresponding type.
         """
-        if ximin > ximax:
-            raise ValueError("'ximin' must be smaller than 'ximax'")
-        if rhomin < 0.0:
-            raise ValueError("'rhomin' must be larger than 0.0")
-        if rhomax > 1.0:
-            raise ValueError("'rhomax' must be smaller than 1.0")
-        if ximin < -1.0:
-            raise ValueError("'ximin' must be larger than -1.0")
-        if ximax > 1.0:
-            raise ValueError("'ximax' must be smaller than 1.0")
+        if rhogrid[0] < 0.0:
+            raise ValueError("Minimum rho value must be larger than 0.0")
+        if rhogrid[-1] > 1.0:
+            raise ValueError("Maximum rho value must be smaller than 1.0")
+        if xigrid[0] < -1.0:
+            raise ValueError("Minimum pitch must be larger than -1.0")
+        if xigrid[-1] > 1.0:
+            raise ValueError("Maximum pitch must be smaller than 1.0")
+        if egrid[0] < 0:
+            raise ValueError("Minimum energy must be larger than 0.0")
 
         # Having pitch equal to +-1 in ASCOT causes trouble so we pad the values
         # a little bit
-        if ximin == -1.0: ximin += 0.01 * (ximax - ximin) / nxi
-        if ximax ==  1.0: ximax -= 0.01 * (ximax - ximin) / nxi
+        if xigrid[0] == -1.0:
+            xigrid[0] += 0.01 * (xigrid[-1] - xigrid[0]) / xigrid.size
+        if xigrid[-1] ==  1.0:
+            xigrid[-1] -= 0.01 * (xigrid[-1] - xigrid[0]) / xigrid.size
 
-        rhogrid = np.linspace(rhomin, rhomax, nrho)
         rgrid, zomp = self._ascot.input_rhotheta2rz(
             rhogrid, 0.0*unyt.deg, 0.0*unyt.deg, time)
-        pitchgrid = np.linspace(ximin, ximax, nxi)
-        r, pitch = np.meshgrid(rgrid, pitchgrid)
 
-        nmrk = nxi * nrho
+        nmrk = rhogrid.size * xigrid.size * egrid.size
+        ekin, pitch, r = np.meshgrid(egrid, xigrid, rgrid, indexing='ij')
+
         mrk = Marker.generate("gc", nmrk, species=species)
         mrk["r"][:]      = r.ravel()
         mrk["z"][:]      = zomp[0] # Same for all markers
         mrk["phi"][:]    = 0.0*unyt.deg
         mrk["pitch"][:]  = pitch.ravel()
         mrk["time"][:]   = time
-        mrk["energy"][:] = energy
+        mrk["energy"][:] = ekin.ravel()
 
         return ("gc", mrk)
 
     def options_singleorbit(self, npol, ntor):
         """Generate options to trace markers for a fixed number of orbits.
 
-        Collisionless orbits are traced for a fixed number of toroidal and
+        Collisionless orbits are traced for a fixed number of toroidal or
         poloidal transits. The points, where the given poloidal and toroidal
         planes were crossed, are recorded.
 
