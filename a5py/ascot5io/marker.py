@@ -133,7 +133,7 @@ class Marker(DataGroup):
             "r"      : np.zeros((n,))*unyt.m,
             "z"      : np.zeros((n,))*unyt.m,
             "phi"    : np.zeros((n,))*unyt.deg,
-            "weight" : np.ones((n,)),
+            "weight" : np.ones((n,))*unyt.particles/unyt.s,
             "time"   : np.zeros((n,))*unyt.s,
         }
         if species is None:
