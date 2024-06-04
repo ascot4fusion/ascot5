@@ -894,7 +894,7 @@ void libascot_eval_collcoefs(
 }
 
 /**
- * @brief Evaluate cross-section for atomic reactions.
+ * @brief Evaluate atomic reaction rate coefficient.
  *
  * @param sim_offload_data initialized simulation offload data struct
  * @param B_offload_array initialized magnetic field offload data
@@ -911,16 +911,15 @@ void libascot_eval_collcoefs(
  * @param Aa test particle atomic mass number.
  * @param Za test particle charge number.
  * @param ma test particle mass.
- * @param ib target ion index nuber in plasma input.
  * @param reac_type reaction type
- * @param sigmav output array where evaluated values are stored [1/m^2].
+ * @param ratecoeff output array where evaluated values are stored [1/m^2].
  */
-void libascot_eval_sigmav(
+void libascot_eval_ratecoeff(
     sim_offload_data* sim_offload_data, real* B_offload_array,
     real* plasma_offload_array, real* neutral_offload_array,
     real* asigma_offload_array,
     int Neval, real* R, real* phi, real* z, real* t, int Nv, real* va,
-    int Aa, int Za, real ma, int ib, int reac_type, real* sigmav) {
+    int Aa, int Za, real ma, int reac_type, real* ratecoeff) {
 
     sim_data sim;
     B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
@@ -932,12 +931,15 @@ void libascot_eval_sigmav(
     asigma_init(&sim.asigma_data, &sim_offload_data->asigma_offload_data,
                 asigma_offload_array);
 
-    const int* Zb  = plasma_get_species_znum(&sim.plasma_data);
-    const int* Ab  = plasma_get_species_anum(&sim.plasma_data);
+    const int* Zb = plasma_get_species_znum(&sim.plasma_data);
+    const int* Ab = plasma_get_species_anum(&sim.plasma_data);
+    int nion  = plasma_get_n_species(&sim.plasma_data) - 1;
+    int nspec = neutral_get_n_species(&sim.neutral_data);
 
     #pragma omp parallel for
     for (int k=0; k < Neval; k++) {
-        real psi[1], rho[2], T0[1], n[MAX_SPECIES], T[MAX_SPECIES];
+        real psi[1], rho[2], T0[1], n[MAX_SPECIES], T[MAX_SPECIES],
+            n0[MAX_SPECIES];
         if( B_field_eval_psi(psi, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
             continue;
         }
@@ -952,15 +954,33 @@ void libascot_eval_sigmav(
                             &sim.neutral_data) ) {
             continue;
         }
+        if( neutral_eval_n0(n0, rho[0], R[k], phi[k], z[k], t[k],
+                            &sim.neutral_data) ) {
+            continue;
+        }
         for (int j=0; j < Nv; j++) {
             real E = (physlib_gamma_vnorm(va[j]) - 1.0) * ma * CONST_C*CONST_C;
             real val;
-            if( asigma_eval_sigmav(
-                    &val, Za, Aa, ma, Zb[ib], Ab[ib],
-                    E, T[0], T0[0], n[ib+1], reac_type, &sim.asigma_data) ) {
-                continue;
+            switch (reac_type) {
+            case sigmav_CX:
+                if( asigma_eval_cx(
+                        &val, Za, Aa, E, ma, nspec, Zb, Ab, T0[0], n0,
+                        &sim.asigma_data) ) {
+                    continue;
+                }
+                ratecoeff[Nv*k + j] = val;
+                break;
+            case sigmav_BMS:
+                if( asigma_eval_bms(
+                        &val, Za, Aa, E, ma, nion, Zb, Ab, T[0], n,
+                        &sim.asigma_data) ) {
+                    continue;
+                }
+                ratecoeff[Nv*k + j] = val * n[0];
+                break;
+            default:
+                break;
             }
-            sigmav[Nv*k + j] = val;
         }
     }
 

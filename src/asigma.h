@@ -86,9 +86,14 @@ a5err asigma_eval_sigmav(
     real* sigmav, int z_1, int a_1, real m_1, int z_2, int a_2,
     real E, real T_e, real T_0, real n_i, asigma_reac_type reac_type,
     asigma_data* asigmadata);
+#pragma omp declare simd uniform(asigmadata, znum, anum, nspec)
+a5err asigma_eval_cx(
+    real* ratecoeff, int z_1, int a_1, real E, real mass, int nspec,
+    const int* znum, const int* anum, real T_0, real* n_0,
+    asigma_data* asigmadata);
 #pragma omp declare simd uniform(asigmadata, znum, anum, nion)
 a5err asigma_eval_bms(
-    real* sigmav, int z_1, int a_1, real E, real mass, int nion,
+    real* ratecoeff, int z_1, int a_1, real E, real mass, int nion,
     const int* znum, const int* anum, real T_e, real* n_i,
     asigma_data* asigmadata);
 #pragma omp end declare target
