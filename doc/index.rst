@@ -1,11 +1,11 @@
 ..
   Main page of the ASCOT5 documentation
 
-======
-ASCOT5
-======
+.. image:: _static/promo.svg
+  :target: https://github.com/ascot4fusion/ascot5
+  :alt: repository
 
-https://github.com/ascot4fusion/ascot5
+----------------------------------
 
 `ASCOT5 <https://arxiv.org/abs/1908.02482/>`_ is a test-particle orbit-following code for solving minority species' distribution functions, transport, and losses in tokamaks and stellarators.
 For questions related to the code or physics, please join our `Slack channel <http://ascot-workspace.slack.com/>`_.

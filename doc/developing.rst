@@ -15,14 +15,14 @@ How to contribute
 
          Fork the repository and submit your code changes for review via a pull request.
 
-	 Forking can be conveniently done through `GitHub <https://github.com/ascot4fusion/ascot5/fork>`_.
-	 A forked repository is an independent copy of the original, allowing you to freely push your changes without affecting the original code.
-   
-	 Pull requests (PRs) are special requests that include the modifications you wish to incorporate into the main repository.
-	 They are reviewed by the maintainers, who may request modifications before accepting them.
-	 You can even submit a PR when your work is not yet complete to ask for help.
+	      Forking can be conveniently done through `GitHub <https://github.com/ascot4fusion/ascot5/fork>`_.
+	      A forked repository is an independent copy of the original, allowing you to freely push your changes without affecting the original code.
 
-	 To submit a PR for a forked repository, simply click *Contribute* on the main page of your fork.
+	      Pull requests (PRs) are special requests that include the modifications you wish to incorporate into the main repository.
+	      They are reviewed by the maintainers, who may request modifications before accepting them.
+	      You can even submit a PR when your work is not yet complete to ask for help.
+
+	      To submit a PR for a forked repository, simply click *Contribute* on the main page of your fork.
 
    .. tab-item:: Developers
 
@@ -44,7 +44,7 @@ How to contribute
          The data will be hosted on `Zenodo <https://zenodo.org/communities/ascot4fusion/records>`_ (with closed access if necessary) and will be used for regression testing during code development.
 
 ASCOT5 is being actively developed, so we welcome new contributions.
-If you have a post-processing script or plot that you believe could benefit others, please submit it via a pull request, even as a standalone script!
+If you have a post-processing script or plot that you believe could benefit others, please submit it via a pull request, even as a standalone script.
 We can then collaborate to integrate it into the code.
 In particular, we're missing many tools that serve as interfaces between ASCOT5 and other codes and data formats.
 
@@ -159,7 +159,6 @@ Testing consists of several layers:
       cd a5py/testascot
       python unittest.py
 
-   
    .. note::
 
       There are also unit tests for the C kernel but those are not up to date and thus are not currently included in testing.
@@ -402,7 +401,6 @@ For Windows machines you can use the VScode from Windows while ASCOT5 is being r
    Even GUI is built so that it only provides a canvas and plotting is done by the :class:`~.Ascot` object.
 
    Data is passed between ``a5py`` and the C-kernel either passively via the HDF5 file or actively via ``ascotpy`` + ``libascot.so``.
-   
 
    .. mermaid::
 
@@ -458,13 +456,13 @@ For Windows machines you can use the VScode from Windows while ASCOT5 is being r
       subgraph common1[" "]
       CI1
       common1name["AscotIO\ncreate_input"]:::routine
-      CI2      
+      CI2
       end
 
       subgraph common2[" "]
       A5PYINI1
       common2name("ascotpy\ninit_input"):::routine
-      A5PYINI2     
+      A5PYINI2
       end
 
       subgraph RunGroup
@@ -485,7 +483,7 @@ For Windows machines you can use the VScode from Windows while ASCOT5 is being r
 
       ID1---CI1---->IG1-->HDF5
       IP1---CI2-->Template-->ID2-->IG1
-      SIM1-->HI-->HDF5  
+      SIM1-->HI-->HDF5
       HDF5-->INIH5-->INIOFF-->INI
 
       %% Tooltips

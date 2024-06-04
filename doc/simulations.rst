@@ -8,21 +8,21 @@ The simulation is started with:
 
 .. code-block:: bash
 
-   ./ascot5_main --in=in --out=out
+   ./ascot5_main
 
-or when using ``mpirun`` (or ``srun``):
+or when using ``mpirun`` (or ``mpiexec``):
 
 .. code-block:: bash
 
    mpirun ./ascot5_main
 
-The default file for reading inputs and storing outputs is ``ascot.h5`` but these can be given explicitly (storing output in the same file with the inputs is recommended):
+The default file for reading inputs and storing outputs is ``ascot.h5`` but these can be given explicitly (storing output in the same file with the inputs is strongly recommended):
 
 .. code-block:: bash
 
-   mpirun ./ascot5_main --in=in --out=out
+   ./ascot5_main --in=in --out=out
 
-The simulation can be given a description but this can be done in post-processing as well:
+The simulation can be given a description (but this can be done in post-processing as well):
 
 .. code-block:: bash
 
@@ -51,136 +51,138 @@ Note that the first underscore does not belong in a parameter name and only appe
 
 .. currentmodule:: a5py.ascot5io.options
 
-.. rubric:: Simulation mode and time step
+.. tab-set::
 
-.. autosummary::
+   .. tab-item:: Simulation mode and time step
 
-   ~Opt._SIM_MODE
-   ~Opt._ENABLE_ADAPTIVE
-   ~Opt._RECORD_MODE
-   ~Opt._FIXEDSTEP_USE_USERDEFINED
-   ~Opt._FIXEDSTEP_USERDEFINED
-   ~Opt._FIXEDSTEP_GYRODEFINED
-   ~Opt._ADAPTIVE_TOL_ORBIT
-   ~Opt._ADAPTIVE_TOL_CCOL
-   ~Opt._ADAPTIVE_MAX_DRHO
-   ~Opt._ADAPTIVE_MAX_DPHI
+      .. autosummary::
 
-.. rubric:: Simulation end conditions
+         ~Opt._SIM_MODE
+         ~Opt._ENABLE_ADAPTIVE
+         ~Opt._RECORD_MODE
+         ~Opt._FIXEDSTEP_USE_USERDEFINED
+         ~Opt._FIXEDSTEP_USERDEFINED
+         ~Opt._FIXEDSTEP_GYRODEFINED
+         ~Opt._ADAPTIVE_TOL_ORBIT
+         ~Opt._ADAPTIVE_TOL_CCOL
+         ~Opt._ADAPTIVE_MAX_DRHO
+         ~Opt._ADAPTIVE_MAX_DPHI
 
-.. autosummary::
+   .. tab-item:: Simulation end conditions
 
-   ~Opt._ENDCOND_SIMTIMELIM
-   ~Opt._ENDCOND_CPUTIMELIM
-   ~Opt._ENDCOND_RHOLIM
-   ~Opt._ENDCOND_ENERGYLIM
-   ~Opt._ENDCOND_WALLHIT
-   ~Opt._ENDCOND_MAXORBS
-   ~Opt._ENDCOND_NEUTRALIZED
-   ~Opt._ENDCOND_IONIZED
-   ~Opt._ENDCOND_LIM_SIMTIME
-   ~Opt._ENDCOND_MAX_MILEAGE
-   ~Opt._ENDCOND_MAX_CPUTIME
-   ~Opt._ENDCOND_MAX_RHO
-   ~Opt._ENDCOND_MIN_RHO
-   ~Opt._ENDCOND_MIN_ENERGY
-   ~Opt._ENDCOND_MIN_THERMAL
-   ~Opt._ENDCOND_MAX_TOROIDALORBS
-   ~Opt._ENDCOND_MAX_POLOIDALORBS
+      .. autosummary::
 
-.. rubric:: Active physics
+         ~Opt._ENDCOND_SIMTIMELIM
+         ~Opt._ENDCOND_CPUTIMELIM
+         ~Opt._ENDCOND_RHOLIM
+         ~Opt._ENDCOND_ENERGYLIM
+         ~Opt._ENDCOND_WALLHIT
+         ~Opt._ENDCOND_MAXORBS
+         ~Opt._ENDCOND_NEUTRALIZED
+         ~Opt._ENDCOND_IONIZED
+         ~Opt._ENDCOND_LIM_SIMTIME
+         ~Opt._ENDCOND_MAX_MILEAGE
+         ~Opt._ENDCOND_MAX_CPUTIME
+         ~Opt._ENDCOND_MAX_RHO
+         ~Opt._ENDCOND_MIN_RHO
+         ~Opt._ENDCOND_MIN_ENERGY
+         ~Opt._ENDCOND_MIN_THERMAL
+         ~Opt._ENDCOND_MAX_TOROIDALORBS
+         ~Opt._ENDCOND_MAX_POLOIDALORBS
 
-.. autosummary::
+   .. tab-item:: Active physics
 
-   ~Opt._ENABLE_ORBIT_FOLLOWING
-   ~Opt._ENABLE_COULOMB_COLLISIONS
-   ~Opt._ENABLE_MHD
-   ~Opt._ENABLE_ATOMIC
-   ~Opt._DISABLE_FIRSTORDER_GCTRANS
-   ~Opt._DISABLE_ENERGY_CCOLL
-   ~Opt._DISABLE_PITCH_CCOLL
-   ~Opt._DISABLE_GCDIFF_CCOLL
+      .. autosummary::
 
-.. rubric:: Distributions
+         ~Opt._ENABLE_ORBIT_FOLLOWING
+         ~Opt._ENABLE_COULOMB_COLLISIONS
+         ~Opt._ENABLE_MHD
+         ~Opt._ENABLE_ATOMIC
+         ~Opt._DISABLE_FIRSTORDER_GCTRANS
+         ~Opt._DISABLE_ENERGY_CCOLL
+         ~Opt._DISABLE_PITCH_CCOLL
+         ~Opt._DISABLE_GCDIFF_CCOLL
 
-.. autosummary::
+   .. tab-item:: Distributions
 
-   ~Opt._ENABLE_DIST_5D
-   ~Opt._ENABLE_DIST_6D
-   ~Opt._ENABLE_DIST_RHO5D
-   ~Opt._ENABLE_DIST_RHO6D
-   ~Opt._DIST_MIN_R
-   ~Opt._DIST_MAX_R
-   ~Opt._DIST_NBIN_R
-   ~Opt._DIST_MIN_PHI
-   ~Opt._DIST_MAX_PHI
-   ~Opt._DIST_NBIN_PHI
-   ~Opt._DIST_MIN_Z
-   ~Opt._DIST_MAX_Z
-   ~Opt._DIST_NBIN_Z
-   ~Opt._DIST_MIN_RHO
-   ~Opt._DIST_MAX_RHO
-   ~Opt._DIST_NBIN_RHO
-   ~Opt._DIST_MIN_THETA
-   ~Opt._DIST_MAX_THETA
-   ~Opt._DIST_NBIN_THETA
-   ~Opt._DIST_MIN_PPA
-   ~Opt._DIST_MAX_PPA
-   ~Opt._DIST_NBIN_PPA
-   ~Opt._DIST_MIN_PPE
-   ~Opt._DIST_MAX_PPE
-   ~Opt._DIST_NBIN_PPE
-   ~Opt._DIST_MIN_PR
-   ~Opt._DIST_MAX_PR
-   ~Opt._DIST_NBIN_PR
-   ~Opt._DIST_MIN_PPHI
-   ~Opt._DIST_MAX_PPHI
-   ~Opt._DIST_NBIN_PPHI
-   ~Opt._DIST_MIN_PZ
-   ~Opt._DIST_MAX_PZ
-   ~Opt._DIST_NBIN_PZ
-   ~Opt._DIST_MIN_TIME
-   ~Opt._DIST_MAX_TIME
-   ~Opt._DIST_NBIN_TIME
-   ~Opt._DIST_MIN_CHARGE
-   ~Opt._DIST_MAX_CHARGE
-   ~Opt._DIST_NBIN_CHARGE
+      .. autosummary::
 
-.. rubric:: Constant of motion distribution
+         ~Opt._ENABLE_DIST_5D
+         ~Opt._ENABLE_DIST_6D
+         ~Opt._ENABLE_DIST_RHO5D
+         ~Opt._ENABLE_DIST_RHO6D
+         ~Opt._DIST_MIN_R
+         ~Opt._DIST_MAX_R
+         ~Opt._DIST_NBIN_R
+         ~Opt._DIST_MIN_PHI
+         ~Opt._DIST_MAX_PHI
+         ~Opt._DIST_NBIN_PHI
+         ~Opt._DIST_MIN_Z
+         ~Opt._DIST_MAX_Z
+         ~Opt._DIST_NBIN_Z
+         ~Opt._DIST_MIN_RHO
+         ~Opt._DIST_MAX_RHO
+         ~Opt._DIST_NBIN_RHO
+         ~Opt._DIST_MIN_THETA
+         ~Opt._DIST_MAX_THETA
+         ~Opt._DIST_NBIN_THETA
+         ~Opt._DIST_MIN_PPA
+         ~Opt._DIST_MAX_PPA
+         ~Opt._DIST_NBIN_PPA
+         ~Opt._DIST_MIN_PPE
+         ~Opt._DIST_MAX_PPE
+         ~Opt._DIST_NBIN_PPE
+         ~Opt._DIST_MIN_PR
+         ~Opt._DIST_MAX_PR
+         ~Opt._DIST_NBIN_PR
+         ~Opt._DIST_MIN_PPHI
+         ~Opt._DIST_MAX_PPHI
+         ~Opt._DIST_NBIN_PPHI
+         ~Opt._DIST_MIN_PZ
+         ~Opt._DIST_MAX_PZ
+         ~Opt._DIST_NBIN_PZ
+         ~Opt._DIST_MIN_TIME
+         ~Opt._DIST_MAX_TIME
+         ~Opt._DIST_NBIN_TIME
+         ~Opt._DIST_MIN_CHARGE
+         ~Opt._DIST_MAX_CHARGE
+         ~Opt._DIST_NBIN_CHARGE
 
-.. autosummary::
+   .. tab-item:: Constant of motion distribution
 
-   ~Opt._ENABLE_DIST_COM
-   ~Opt._DIST_MIN_MU
-   ~Opt._DIST_MAX_MU
-   ~Opt._DIST_NBIN_MU
-   ~Opt._DIST_MIN_EKIN
-   ~Opt._DIST_MAX_EKIN
-   ~Opt._DIST_NBIN_EKIN
-   ~Opt._DIST_MIN_PTOR
-   ~Opt._DIST_MAX_PTOR
-   ~Opt._DIST_NBIN_PTOR
+      .. autosummary::
 
-.. rubric:: Recording marker trajectories
+         ~Opt._ENABLE_DIST_COM
+         ~Opt._DIST_MIN_MU
+         ~Opt._DIST_MAX_MU
+         ~Opt._DIST_NBIN_MU
+         ~Opt._DIST_MIN_EKIN
+         ~Opt._DIST_MAX_EKIN
+         ~Opt._DIST_NBIN_EKIN
+         ~Opt._DIST_MIN_PTOR
+         ~Opt._DIST_MAX_PTOR
+         ~Opt._DIST_NBIN_PTOR
 
-.. autosummary::
+   .. tab-item:: Recording marker trajectories
 
-   ~Opt._ENABLE_ORBITWRITE
-   ~Opt._ORBITWRITE_MODE
-   ~Opt._ORBITWRITE_NPOINT
-   ~Opt._ORBITWRITE_POLOIDALANGLES
-   ~Opt._ORBITWRITE_TOROIDALANGLES
-   ~Opt._ORBITWRITE_RADIALDISTANCES
-   ~Opt._ORBITWRITE_INTERVAL
+      .. autosummary::
 
-.. rubric:: Transport coefficients
+         ~Opt._ENABLE_ORBITWRITE
+         ~Opt._ORBITWRITE_MODE
+         ~Opt._ORBITWRITE_NPOINT
+         ~Opt._ORBITWRITE_POLOIDALANGLES
+         ~Opt._ORBITWRITE_TOROIDALANGLES
+         ~Opt._ORBITWRITE_RADIALDISTANCES
+         ~Opt._ORBITWRITE_INTERVAL
 
-.. autosummary::
+   .. tab-item:: Transport coefficients
 
-   ~Opt._ENABLE_TRANSCOEF
-   ~Opt._TRANSCOEF_INTERVAL
-   ~Opt._TRANSCOEF_NAVG
-   ~Opt._TRANSCOEF_RECORDRHO
+      .. autosummary::
+
+         ~Opt._ENABLE_TRANSCOEF
+         ~Opt._TRANSCOEF_INTERVAL
+         ~Opt._TRANSCOEF_NAVG
+         ~Opt._TRANSCOEF_RECORDRHO
 
 .. currentmodule:: a5py
 
@@ -189,90 +191,91 @@ Note that the first underscore does not belong in a parameter name and only appe
 Batch jobs
 ==========
 
-Use this script to run ASCOT5 in multiple nodes using MPI (MPI=1 when the code was compiled).
+.. dropdown:: With MPI
 
-.. code-block::
+   .. code-block::
 
-   #!/bin/bash
+      #!/bin/bash
 
-   ## Set required nodes and CPUs (number of processes == number of nodes)
-   #SBATCH -N10 -n10 -c48
+      ## Set required nodes and CPUs (number of processes == number of nodes)
+      #SBATCH -N10 -n10 -c48
 
-   #SBATCH -t 24:00:00
-   #SBATCH -J ascot5
+      #SBATCH -t 24:00:00
+      #SBATCH -J ascot5
 
-   #SBATCH -e %x.e%j
-   #SBATCH -o %x.o%j
+      #SBATCH -e %x.e%j
+      #SBATCH -o %x.o%j
 
-   export <your exports>
-   module load <your modules>
+      export <your exports>
+      module load <your modules>
 
-   echo Job name $SLURM_JOB_NAME
-   echo Job id $SLURM_JOB_ID
+      echo Job name $SLURM_JOB_NAME
+      echo Job id $SLURM_JOB_ID
 
-   # Some platforms require that the number of threads must be given explicitly
-   # In those cases use (1-2) x number of CPUs (check which is faster)
-   export OMP_NUM_THREADS=48
+      # Some platforms require that the number of threads must be given explicitly
+      # In those cases use (1-2) x number of CPUs (check which is faster)
+      export OMP_NUM_THREADS=48
 
-   INPUTFILE=ascot
+      INPUTFILE=ascot
 
-   date
-   export FOR_PRINT=$SLURM_JOB_ID.stdout
-   mpirun ./ascot5_main --in=$INPUTFILE --d="YOURTAG Your description"
-   date
+      date
+      export FOR_PRINT=$SLURM_JOB_ID.stdout
+      mpirun ./ascot5_main --in=$INPUTFILE --d="YOURTAG Your description"
+      date
 
-Use this script to run ASCOT5 in multiple nodes without MPI (MPI=0 when the code was compiled).
-This results in multiple output files that you have to combine using the python tool ``a5combine``.
+.. dropdown:: Without MPI
 
-.. code-block::
+   This results in multiple output files that you have to combine using the python tool ``a5combine``.
 
-   #!/bin/bash
+   .. code-block::
 
-   ## How many jobs this run is divided into
-   NJOBS=100
+      #!/bin/bash
 
-   ## Name of the input file. Each output file begins with this name followed by
-   ## its "mpi_rank"
-   INPUTFILE=ascot
+      ## How many jobs this run is divided into
+      NJOBS=100
 
-   for i in $(seq 0 $(($NJOBS-1)))
-   do
-   filename=${RANDOM}
-   cat > $filename << EOF
-   #!/bin/bash
+      ## Name of the input file. Each output file begins with this name followed by
+      ## its "mpi_rank"
+      INPUTFILE=ascot
 
-   ## Use only single node and single process
-   #SBATCH -N1 -n1 -c48
+      for i in $(seq 0 $(($NJOBS-1)))
+      do
+      filename=${RANDOM}
+      cat > $filename << EOF
+      #!/bin/bash
 
-   #SBATCH -t 24:00:00
-   #SBATCH -J ascot5
+      ## Use only single node and single process
+      #SBATCH -N1 -n1 -c48
 
-   #SBATCH -e ${i}.e%j
-   #SBATCH -o ${i}.o%j
+      #SBATCH -t 24:00:00
+      #SBATCH -J ascot5
 
-   export <your exports>
-   module load <your modules>
+      #SBATCH -e ${i}.e%j
+      #SBATCH -o ${i}.o%j
 
-   # Some platforms require that the number of threads must be given explicitly
-   # In those cases use (1-2) x number of CPUs (check which is faster)
-   export OMP_NUM_THREADS=96
+      export <your exports>
+      module load <your modules>
 
-   echo Job name $SLURM_JOB_NAME
-   echo Job id $SLURM_JOB_ID
+      # Some platforms require that the number of threads must be given explicitly
+      # In those cases use (1-2) x number of CPUs (check which is faster)
+      export OMP_NUM_THREADS=96
 
-   date
-   ./ascot5_main --mpi_rank=$i --mpi_size=$NJOBS --in=$INPUTFILE --d="YOURTAG Your description"
-   date
+      echo Job name $SLURM_JOB_NAME
+      echo Job id $SLURM_JOB_ID
 
-   EOF
+      date
+      ./ascot5_main --mpi_rank=$i --mpi_size=$NJOBS --in=$INPUTFILE --d="YOURTAG Your description"
+      date
 
-   sbatch $filename
-   rm $filename
-   echo $i
-   ## If multiple jobs are reading from the same file at the same time this can
-   ## cause problems in the system, so give system some time to breathe
-   sleep 5s
-   done
+      EOF
+
+      sbatch $filename
+      rm $filename
+      echo $i
+      ## If multiple jobs are reading from the same file at the same time this can
+      ## cause problems in the system, so give system some time to breathe
+      sleep 5s
+      done
 
 .. _ExampleRuntimes:
 
