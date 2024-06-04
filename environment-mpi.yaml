@@ -1,0 +1,24 @@
+name: ascot-env
+channels:
+  - conda-forge
+dependencies:
+  - c-compiler
+  - make
+  - libgomp
+  - python>=3.10
+  - hdf5
+  - zlib
+  - setuptools
+  - pip
+  - ipython
+  - numpy
+  - scipy
+  - mpi=*=*openmpi*
+  - h5py=*=*openmpi*
+  - mpi4py
+  - xmlschema
+  - unyt==2.9.5
+  - wurlitzer
+  - matplotlib
+  - pyvista
+  - freeqdsk
