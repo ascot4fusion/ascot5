@@ -13,33 +13,58 @@ The coordinate system ASCOT5 uses is `COCOS3 <https://www.sciencedirect.com/scie
 
 The cylindrical coordinates that are used are right-handed meaning:
 
-  - Looking down from above the machine (i.e. from the direction of positive `z`), the toroidal angle phi, `\phi`, increases anti-clockwise.
+  - The vertical z-axis runs through the geometrical center of the torus and the conventional azimuthal angle, here called the toroidal angle `\phi`, increases counter-clockwise. The radial coordinate corresponds to the major radius of the device, R 
   - Toroidal field and plasma current are positive when they point in the same direction as `\hat{\phi}`.
-  - `\phi=0` is on the positive `x`-axis at `y=0`.
+  - In the azimuthal plane, the Cartesian coordinate axes `(x,y)` are aligned so that the toroidal angle is measured from the `x`-axis, i.e., the x-axis is chosen so that `\phi=0` corresponds to `y=0`.
 
-This means that in the usual `(R,z)` cutoff picture where the doughnut is sliced at the right-hand side:
+If we slice the torus vertically, two cross sections become visible in the `(R,z)` plane. These are called poloidal cross sections and, according to our coordinate system, looking at the cross section on the right:
 
-  - One is looking at the direction of (positive) `\hat{\phi}`.
-  - Poloidal field points clockwise if the plasma current is positive.
+  - we are looking at the direction of (positive) `\hat{\phi}`.
+  - for a positive plasma current, the poloidal field points clockwise.
 
-For reference, in the following machines we have:
+.. list-table:: Sign of toroidal field, plasma current, and poloidal field direction in various machines in ASCOT5 convention
+   :widths: 10 5 5 5
+   :header-rows: 1
 
-  - ITER: `B_\mathrm{phi}` is negative; `I_p` is positive and `B_\mathrm{pol}` points clockwise; NBIs are in same direction as `I_p`.
+   * - Machine
+     - `B_\mathrm{phi}`
+     - `I_p`
+     - `B_\mathrm{pol}`
+   * - ITER
+     - `-`
+     - `+`
+     - CW
+   * - ASDEX Upgrade (AUG)
+     - `-`
+     - `+`
+     - CW
+   * - JET (RIP)
+     - `-`
+     - `-`
+     - CCW
+   * - JT60-SA
+     - `-`
+     - `-`
+     - CCW
 
-In flux coordinates:
+An observant reader notices that all tokamaks have negative toroidal field. The underlying reason is that they all have their X-point below the device and, empirically, the L-H transition is easier to achieve with the gradient drift pointing towards the X-point.
+
+Another fact related to the directions is that the default direction of the beam injection is the direction of the plasma current. It is only with this configuration that the beam ions are generated on well-confined orbits even at the edge.
+
+To describe the features inside the plasma, instead of the cylindrical coordinate system, the flux coordinate system is adopted:
 
   - The radial coordinate is rho, `\rho = \sqrt{(\Psi-\Psi_0) / (\Psi_1 - \Psi0)}`, where `\Psi` is the poloidal magnetic flux and `\Psi_0` and `\Psi_1` are the values on the axis and at the separatrix, respectively.
-  - In other words, `\rho=0` is the magnetic axis and `\rho=1` is the separatrix.
-  - The poloidal angle `\theta` is the geometrical one and positive `\hat{\theta}` points anti-clockwise when looking at the direction of positive `\hat{\phi}`.
-  - In other words, if `I_p` is positive then `\hat{\theta}` and `\hat{B}_\mathrm{pol}` point in opposite directions.
+  - Therefore, \rho=0 corresponds to the magnetic axis and \rho=1 to the separatrix.
+  - The poloidal angle `\theta` is the geometrical one, with positive `\hat{\theta}` pointing counter-clockwise when looking at the direction of positive `\hat{\phi}`.
+  - Therefore, for positive `I_p`, `\hat{\theta}` and `\hat{B}_\mathrm{pol}` point in opposite directions.
   - `\theta = 0` at the outer mid-plane.
   - Note that in the code *theta* refers to the Boozer poloidal angle and *pol* refers to the geometrical angle.
   - For stellarators the poloidal angle we use is ill-defined since the magnetic axis is not a straight loop.
 
-For particle pitch there are different conventions, but we use `\xi=v_\parallel/v`.
+In the velocity space, the dynamic state of the particle is defined by its energy, `E`, and its pitch, `\xi`. For the particle pitch there are different conventions, but we use `\xi=v_\parallel/v`.
 This means that `\xi=(-)1` corresponds to strongly (counter-)passing particle and `\xi=0` is a deeply trapped particle.
 
-Although not related to coordinate system, one of the conventions is that a "marker" refers to object that is simulated, "particle" to a physical particle (a marker multiplied by its weight), and "test particle" to an approximation where the particle under consideration does not affect the surrounding system.
+A note on the nomenclature: “marker” refers to an object that is simulated, “particle” to a physical particle (a marker with a  weight factor assigned to it), and “test particle” to an approximation where the particle under consideration does not affect the surrounding system.
 
 The Big Picture
 ===============
