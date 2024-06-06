@@ -32,6 +32,7 @@
 #include "simulate/mccc/mccc.h"
 #include "gctransform.h"
 #include "asigma.h"
+#include "rfof_interface.h"
 
 void sim_monitor(char* filename, volatile int* n, volatile int* finished);
 
@@ -294,7 +295,6 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     /* 7. Simulation data is deallocated.                                     */
     /**************************************************************************/
     free(pq.p);
-
     print_out(VERBOSE_NORMAL, "Simulation complete.\n");
 }
 
