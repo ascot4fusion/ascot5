@@ -169,6 +169,8 @@ typedef struct {
     mccc_data mccc_data;       /**< Tabulated special functions and collision
                                     operator parameters                       */
 
+    //TODO: RFOF_data
+
     /* Options - general */
     int sim_mode;        /**< Which simulation mode is used                   */
     int enable_ada;      /**< Is adaptive time-step used                      */

@@ -20,7 +20,7 @@
 #include "../E_field.h"
 #include "../boozer.h"
 #include "../mhd.h"
-
+#include "../rfof_interface.h"
 #include "../plasma.h"
 #include "simulate_gc_adaptive.h"
 #include "step/step_gc_cashkarp.h"
@@ -173,6 +173,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                 }
             }
         }
+
+        //TODO implement RFOF_kick
 
         /**********************************************************************/
 

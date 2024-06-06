@@ -27,6 +27,7 @@
 #include "simulate/mccc/mccc.h"
 #include "gctransform.h"
 #include "asigma.h"
+#include "rfof_interface.h"
 
 #pragma omp declare target
 void sim_monitor(char* filename, volatile int* n, volatile int* finished);
@@ -97,6 +98,8 @@ void simulate(
     /**************************************************************************/
     sim_data sim;
     sim_init(&sim, sim_offload);
+
+    //TODO: initialize RFOF
 
     real* ptr; int* ptrint;
     offload_unpack(offload_data, offload_array,
@@ -307,6 +310,8 @@ void simulate(
     /**************************************************************************/
     free(pq.p);
     diag_free(&sim.diag_data);
+
+    //TODO free RFOF stuff
 
     /**************************************************************************/
     /* 8. Execution returns to host where this function was called.           */
