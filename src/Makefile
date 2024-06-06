@@ -24,6 +24,11 @@ ifeq ($(SINGLEPRECISION),1)
 	DEFINES+=-DSINGLEPRECISION
 endif
 
+ifeq ($(RFOF),1)
+	DEFINES+=-DRFOF
+	CFLAGS+=-lgfortran -lquadmath -lxml2 -lrfof
+endif
+
 ifeq ($(MPI),1)
 	DEFINES+=-DMPI
 	CC=h5pcc
@@ -167,7 +172,8 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
 	E_field.h wall.h simulate.h diag.h offload.h boozer.h mhd.h \
 	random.h print.h hdf5_interface.h suzuki.h nbi.h biosaw.h \
-	asigma.h boschhale.h mpi_interface.h libascot_mem.h bbnbi5.h
+	asigma.h boschhale.h mpi_interface.h libascot_mem.h rfof_interface.h \
+	bbnbi5.h
 
 OBJS= math.o list.o octree.o error.o \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
@@ -177,7 +183,7 @@ OBJS= math.o list.o octree.o error.o \
 	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
 	E_field.o wall.o simulate.o diag.o boozer.o mhd.o \
 	random.o print.o hdf5_interface.o suzuki.o nbi.o biosaw.o \
-	asigma.o mpi_interface.o boschhale.o bbnbi5.o
+	asigma.o mpi_interface.o boschhale.o bbnbi5.o rfof_interface.o
 
 BINS=test_math test_nbi test_bsearch \
 	test_wall_2d test_plasma test_random \
