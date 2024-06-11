@@ -10,6 +10,7 @@ import numpy.ctypeslib as npctypes
 from a5py.ascotpy.libascot import _LIBASCOT, STRUCT_DIST5DOFFLOAD, \
     STRUCT_DIST5D, STRUCT_AFSIDATA, STRUCT_AFSITHERMAL, PTR_REAL, \
     AFSI_REACTIONS
+from a5py.exceptions import AscotNoDataException
 from a5py.routines.distmixin import DistMixin
 
 class Afsi():
@@ -41,7 +42,7 @@ class Afsi():
         self._ascot = ascot
 
     def thermal(self, reaction, minr, maxr, nr, minz, maxz, nz,
-                minphi=0, maxphi=2*np.pi, nphi=1, nmc=1000,
+                minphi=0, maxphi=360, nphi=1, nmc=1000,
                 minppara=-1.3e-19, maxppara=1.3e-19, nppara=80,
                 minpperp=0, maxpperp=1.3e-19, npperp=40):
         """Calculate thermonuclear fusion between two thermal (Maxwellian)
@@ -102,12 +103,12 @@ class Afsi():
         q2 = np.round(qprod2.to("e").v)
 
         time = 0*unyt.s
-        r_edges   = np.linspace(minr, maxr, nr+1)
-        phi_edges = np.linspace(minphi, maxphi, nphi+1)
-        z_edges   = np.linspace(minz, maxz, nz+1)
-        r   = 0.5 * (r_edges[1:]   + r_edges[:-1])*unyt.m
-        phi = 0.5 * (phi_edges[1:] + phi_edges[:-1])*unyt.deg
-        z   = 0.5 * (z_edges[1:]   + z_edges[:-1])*unyt.m
+        r_edges   = np.linspace(minr, maxr, nr+1)*unyt.m
+        phi_edges = np.linspace(minphi, maxphi, nphi+1)*unyt.deg
+        z_edges   = np.linspace(minz, maxz, nz+1)*unyt.m
+        r   = 0.5 * (r_edges[1:]   + r_edges[:-1])
+        phi = 0.5 * (phi_edges[1:] + phi_edges[:-1])
+        z   = 0.5 * (z_edges[1:]   + z_edges[:-1])
 
         self._ascot.input_init(bfield=True, plasma=True)
         nspec, _, _, anums, znums = self._ascot.input_getplasmaspecies()
@@ -151,8 +152,8 @@ class Afsi():
         react.min_r    = r_edges[0]
         react.max_r    = r_edges[-1]
         react.n_phi    = nphi
-        react.min_phi  = phi_edges[0]
-        react.max_phi  = phi_edges[-1]
+        react.min_phi  = phi_edges.to('rad')[0]
+        react.max_phi  = phi_edges.to('rad')[-1]
         react.n_z      = nz
         react.min_z    = z_edges[0]
         react.max_z    = z_edges[-1]
