@@ -490,8 +490,8 @@ real afsi_get_density(afsi_data* dist, int iR, int iphi, int iz) {
 
     else if(dist->type == 2) {
         return dist->dist_thermal->density[
-            iR*(  dist->dist_thermal->n_phi*dist->dist_thermal->n_z
-                + iphi*dist->dist_thermal->n_z)+iz];
+              iR * dist->dist_thermal->n_phi * dist->dist_thermal->n_z
+            + iphi * dist->dist_thermal->n_z + iz];
     }
 
     else {
