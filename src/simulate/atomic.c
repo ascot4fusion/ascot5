@@ -31,6 +31,10 @@ a5err atomic_rates(
     const int* z_2, const int* a_2, const real* m_2, asigma_data* asigma,
     int q, real E, int N_pls_spec, int N_ntl_spec, real* T, real* T_0,
     real* n, real* n_0);
+#ifndef GPU
+#pragma omp end declare target
+#endif
+#ifndef	GPU
 #pragma omp declare simd
 a5err atomic_react(
     int* q, real dt, real rate_eff_ion, real rate_eff_rec, int z_1, real rnd);

@@ -74,4 +74,11 @@ int wall_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
                   wall_data* w, real* w_coll);
 DECLARE_TARGET_END
 
+#ifndef GPU
+#pragma omp declare simd uniform(w)
+#else
+DECLARE_TARGET
+#endif
+int wall_get_n_elements(wall_data* w);
+DECLARE_TARGET_END
 #endif
