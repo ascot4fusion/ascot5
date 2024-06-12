@@ -147,7 +147,7 @@ OBJS= math.o list.o octree.o error.c \
 	$(SPLINEOBJS) \
 	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
 	E_field.o wall.o simulate.o diag.o offload.o boozer.o mhd.o \
-	random.o print.c hdf5_interface.o suzuki.o nbi.o biosaw.o \
+	random.o print.o hdf5_interface.o suzuki.o nbi.o biosaw.o \
 	asigma.o mpi_interface.o boschhale.o copytogpu.o
 
 #BINS=test_math test_nbi test_bsearch \
