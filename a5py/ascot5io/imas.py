@@ -816,11 +816,11 @@ class plasma_1d(a5imas):
         warnings.warn("Reading plasma rotation not yet implemented and is assumed to be zero")
         vtor = edensity * 0
 
+
         rho_tor = p1d.grid.rho_tor
 
         # https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/ids/ids2plasmabkg.F90
         # https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/ids/ids2plasmaEqWallSimu.F90#L281
-
         if equilibrium_ids is None:
             warnings.warn("Cannot convert rho_pol to rho_tor as no equilibrium ids provided as a parameter")
             p = {
@@ -840,6 +840,25 @@ class plasma_1d(a5imas):
 
             return p
 
+        if equilibrium_ids is None:
+            import warnings
+            warnings.warn("Cannot convert rho_pol to rho_tor as no equilibrium ids provided as a parameter")
+            p = {
+                "nrho"         : nrho,
+                "nion"         : nion,
+                "anum"         : anum,
+                "znum"         : znum,
+                "itemperature" : itemperature,
+                "idensity"     : idensity,
+                "etemperature" : etemperature,
+                "edensity"     : edensity,
+                "rho_tor"      : rho_tor,
+            }
+
+            return p
+
+
+        rho = equilibrium_ids.tor2pol(rho_tor)
 
         rho = equilibrium_ids.tor2pol(rho_tor)
         p = {
@@ -858,6 +877,7 @@ class plasma_1d(a5imas):
         }
 
         return p
+
 
 class wall_2d(a5imas):
 
@@ -1299,6 +1319,23 @@ class B_2DS(a5imas):
 
         # values at separatrix
         psi1  =    self.ids.equilibrium.time_slice[timeIndex].global_quantities.psi_boundary * psiscale
+
+        # for rho_tor -- rho_pol interpolation
+        # https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/ids/ids2plasmaEqWallSimu.F90#L281
+
+        if   len( self.ids.equilibrium.time_slice[timeIndex].profiles_1d.rho_tor      ) > 0 :
+            rho_tor  = self.ids.equilibrium.time_slice[timeIndex].profiles_1d.rho_tor
+#        elif len( self.ids.equilibrium.time_slice[timeIndex].profiles_1d.rho_tor_norm ) > 0 :
+#            import warnings
+#            warnings.warn("Using equilibrium.timeslice[].profiles1d.rho_tor_norm (instead of unnormalized)")
+#            rho_tor  = self.ids.equilibrium.time_slice[timeIndex].profiles_1d.rho_tor_norm
+        else:
+            rho_tor = None
+
+        psi_prof = self.ids.equilibrium.time_slice[timeIndex].profiles_1d.psi
+        self._init_interpolator_functions(rho_tor,psi_prof)
+
+
 
         # for rho_tor -- rho_pol interpolation
         # https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/ids/ids2plasmaEqWallSimu.F90#L281
