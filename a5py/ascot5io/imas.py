@@ -759,7 +759,7 @@ class plasma_1d(a5imas):
         self.ids_name = "coreprof"
 
 
-    def parse(self):
+    def parse(self,equilibrium_ids=None):
         """
         Read an IMAS 1D-plasma profiles into a dictionary, that is a drop-in replacement for a dict read from hdf5.
 
@@ -770,6 +770,12 @@ class plasma_1d(a5imas):
                    edensity, etemperature, idensity, itemperature
 
         Ion temperature is read from species-averaged T_i or if that is not available, from the first ion species.
+
+        Rho-tor --> Rho-pol translation is done with values from equilibrium_ids; read that first, e.g.:
+           eq=a5py.ascot5io.imas.B_2DS()
+           eqdict=eq.read("akaslos","test","3",92436,306)
+
+
 
         """
 
@@ -784,23 +790,30 @@ class plasma_1d(a5imas):
         nrho = len(p1d.grid.rho_tor)
         nion = len(p1d.ion)
 
-        anum = np.zeros(shape=(nion,))
-        znum = np.zeros_like(anum)
+        anum   = np.zeros(shape=(nion,))
+        znum   = np.zeros_like(anum)
+        charge = np.zeros_like(anum)
+        mass   = np.zeros_like(anum)
         iondensity = p.zeros(shape=(nion,nrho))
         for i in range(nion):
             znum[i]       = p1d.ion[i].element[iElement].z_n
             anum[i]       = p1d.ion[i].element[iElement].a
+            charge[i]     = znum[i] * unyt.e
+      #      mass[i]       = #species.autodetect(
+      #            int(source.species.ion.element[0].a),
+      #            int(source.species.ion.element[0].z_n) )[3]
             idensity[:,i] = p1d.ion[i].density_thermal
 
         # Try species-averaged T_i
         if len(p1d.t_i_average) > 0 :
             itemperature = p1d.t_i_average
-        else
+        else:
             # As a backup solution, use T_i of species 0 (iIonTemp)
             itemperature = p1d.ion[iIonTemp].temperature
 
         edensity     = p1d.electrons.density
         etemperature = p1d.electrons.temperature
+
 
         rho_tor = p1d.grid.rho_tor
 
@@ -809,7 +822,27 @@ class plasma_1d(a5imas):
         #  - rho-tor --> rho pol transformation
         #
         # https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/ids/ids2plasmabkg.F90
+        # https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/ids/ids2plasmaEqWallSimu.F90#L281
 
+        if equilibrium_ids is None:
+            import warnings
+            warnings.warn("Cannot convert rho_pol to rho_tor as no equilibrium ids provided as a parameter")
+            p = {
+                "nrho"         : nrho,
+                "nion"         : nion,
+                "anum"         : anum,
+                "znum"         : znum,
+                "itemperature" : itemperature,
+                "idensity"     : idensity,
+                "etemperature" : etemperature,
+                "edensity"     : edensity,
+                "rho_tor"      : rho_tor,
+            }
+
+            return p
+
+
+        rho = equilibrium_ids.tor2pol(rho_tor)
 
         p = {
             "nrho"         : nrho,
@@ -820,9 +853,11 @@ class plasma_1d(a5imas):
             "idensity"     : idensity,
             "etemperature" : etemperature,
             "edensity"     : edensity,
+            "rho"          : rho,
         }
 
         return p
+
 
 class wall_2d(a5imas):
 
@@ -1218,6 +1253,8 @@ class B_2DS(a5imas):
 
         The data is read from ids.equilibrium
 
+        After parsing, the Object will contain routines to interpolate between rho_pol and rho_tor
+
         """
 
 
@@ -1264,6 +1301,23 @@ class B_2DS(a5imas):
         psi1  =    self.ids.equilibrium.time_slice[timeIndex].global_quantities.psi_boundary * psiscale
 
 
+        # for rho_tor -- rho_pol interpolation
+        # https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/ids/ids2plasmaEqWallSimu.F90#L281
+
+        if   len( self.ids.equilibrium.time_slice[timeIndex].profiles_1d.rho_tor      ) > 0 :
+            rho_tor  = self.ids.equilibrium.time_slice[timeIndex].profiles_1d.rho_tor
+#        elif len( self.ids.equilibrium.time_slice[timeIndex].profiles_1d.rho_tor_norm ) > 0 :
+#            import warnings
+#            warnings.warn("Using equilibrium.timeslice[].profiles1d.rho_tor_norm (instead of unnormalized)")
+#            rho_tor  = self.ids.equilibrium.time_slice[timeIndex].profiles_1d.rho_tor_norm
+        else:
+            rho_tor = None
+
+        psi_prof = self.ids.equilibrium.time_slice[timeIndex].profiles_1d.psi
+        self._init_interpolator_functions(rho_tor,psi_prof)
+
+
+
         b = {
              'rmin' : rmin,
              'rmax' : rmax,
@@ -1282,3 +1336,36 @@ class B_2DS(a5imas):
         }
 
         return b
+
+    def _init_interpolator_functions(self,rho_tor,psi_prof):
+        """
+        We try to do similar work as this routine:
+        https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/rhotorpol.F90
+        """
+
+
+        #TODO, ! If rho_tor doesn't start from 0.000, extrapolate
+        if rho_tor[0] > 0:
+            import warnings
+            warnings.warn("Rho tor-profile does not start from 0.0000, this may be a problem. It was extrapolated in ASCOT4, but has not been implemented in ASCOT5.")
+
+
+        # Rho_pol as normalized psi:
+        rho_pol = np.sqrt(
+            (psi_prof     - psi_prof[0] )/
+            (psi_prof[-1] - psi_prof[0] ) )
+
+        self.poltor_rho_tor = rho_tor
+        self.poltor_rho_tor = rho_pol
+
+        # Add "public" names for the methods as they have been initialized
+        self.tor2pol = self._tor2pol
+        self.pol2tor = self._pol2tor
+
+    def _tor2pol(self,rho_tor):
+
+        return np.interp( rho_tor, self.poltor_rho_tor, self.poltor_rho_pol)
+
+    def _pol2tor(self,rho_pol):
+
+        return np.interp( rho_pol, self.poltor_rho_pol, self.poltor_rho_tor)
