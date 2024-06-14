@@ -21,10 +21,17 @@ np.float=float
 
 # Read from IMAS
 
-
 print('Reading 2D equilibrium')
 eq=a5py.ascot5io.imas.B_2DS()
 eqdict=eq.read("akaslos","test","3",92436,306)
+
+
+print('Reading plasma1d')
+p1d=a5py.ascot5io.imas.plasma_1d()
+# We need to give .parse() the equilibrium for the rho_tor --> rho_pol transformation
+p1d.open("akaslos","test","3",92436,306)
+p1d_dict=p1d.parse(equilibrium_ids=eq)
+
 
 #print(eqdict)
 
@@ -133,7 +140,7 @@ asigmadict = a5.data.create_input("asigma_loc", dryrun=True)
 #bzrdict =a5.data.boozer.active.read()
 #mhddict =a5.data.mhd.active.read()
 #asigmadict =a5.data.asigma.active.read()
-a5.simulation_initinputs(bfield=eq, efield=edict, plasma=pdict, neutral=ndict,
+a5.simulation_initinputs(bfield=eq, efield=edict, plasma=p1d_dict, neutral=ndict,
                          wall=wdict3, boozer=bzrdict, mhd=mhddict, asigma=asigmadict)
 
 

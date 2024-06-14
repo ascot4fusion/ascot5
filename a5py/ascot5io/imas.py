@@ -756,14 +756,14 @@ class plasma_1d(a5imas):
 
     def __init__(self):
         super().__init__()
-        self.ids_name = "coreprof"
+        self.ids_name = "core_profiles"
 
 
     def parse(self,equilibrium_ids=None):
         """
         Read an IMAS 1D-plasma profiles into a dictionary, that is a drop-in replacement for a dict read from hdf5.
 
-        The data is read from coreprof.profiles_1d[0]
+        The data is read from core_profiles.profiles_1d[0]
 
         The following keys are looked for:
                    nrho, nion, anum, znum, mass, charge, rho,
@@ -785,7 +785,7 @@ class plasma_1d(a5imas):
         iElement  = 0
         iIonTemp  = 0
 
-        p1d = self.ids.coreprof.profiles_1d[timeIndex]
+        p1d = self.ids.core_profiles.profiles_1d[timeIndex]
 
         nrho = len(p1d.grid.rho_tor)
         nion = len(p1d.ion)
@@ -794,15 +794,16 @@ class plasma_1d(a5imas):
         znum   = np.zeros_like(anum)
         charge = np.zeros_like(anum)
         mass   = np.zeros_like(anum)
-        iondensity = p.zeros(shape=(nion,nrho))
+        idensity = np.zeros(shape=(nion,nrho))
         for i in range(nion):
             znum[i]       = p1d.ion[i].element[iElement].z_n
             anum[i]       = p1d.ion[i].element[iElement].a
             charge[i]     = znum[i] * unyt.e
-      #      mass[i]       = #species.autodetect(
-      #            int(source.species.ion.element[0].a),
-      #            int(source.species.ion.element[0].z_n) )[3]
-            idensity[:,i] = p1d.ion[i].density_thermal
+            mass[i]       = species.autodetect( int( anum[i] ), int( znum[i]) )[3]
+            idensity[i,:] = p1d.ion[i].density_thermal
+
+
+
 
         # Try species-averaged T_i
         if len(p1d.t_i_average) > 0 :
@@ -817,10 +818,6 @@ class plasma_1d(a5imas):
 
         rho_tor = p1d.grid.rho_tor
 
-        # TODO
-        #  - mass, charge
-        #  - rho-tor --> rho pol transformation
-        #
         # https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/ids/ids2plasmabkg.F90
         # https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/ids/ids2plasmaEqWallSimu.F90#L281
 
@@ -832,6 +829,8 @@ class plasma_1d(a5imas):
                 "nion"         : nion,
                 "anum"         : anum,
                 "znum"         : znum,
+                "mass"         : mass,
+                "charge"       : charge,
                 "itemperature" : itemperature,
                 "idensity"     : idensity,
                 "etemperature" : etemperature,
@@ -849,6 +848,8 @@ class plasma_1d(a5imas):
             "nion"         : nion,
             "anum"         : anum,
             "znum"         : znum,
+            "mass"         : mass,
+            "charge"       : charge,
             "itemperature" : itemperature,
             "idensity"     : idensity,
             "etemperature" : etemperature,
@@ -1356,7 +1357,7 @@ class B_2DS(a5imas):
             (psi_prof[-1] - psi_prof[0] ) )
 
         self.poltor_rho_tor = rho_tor
-        self.poltor_rho_tor = rho_pol
+        self.poltor_rho_pol = rho_pol
 
         # Add "public" names for the methods as they have been initialized
         self.tor2pol = self._tor2pol
