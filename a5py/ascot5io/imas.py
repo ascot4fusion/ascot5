@@ -848,6 +848,8 @@ class plasma_1d(a5imas):
                 "nion"         : nion,
                 "anum"         : anum,
                 "znum"         : znum,
+                "mass"         : mass,
+                "charge"       : charge,
                 "itemperature" : itemperature,
                 "idensity"     : idensity,
                 "etemperature" : etemperature,
