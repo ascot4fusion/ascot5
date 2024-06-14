@@ -99,7 +99,12 @@ void simulate(
     sim_data sim;
     sim_init(&sim, sim_offload);
 
-    //TODO: initialize RFOF
+    /* TODO: initialize RFOF wave field */
+    char *xml_filename = "rfof_codeparam.xml";
+    int xml_filename_len = strlen(xml_filename);
+    int*xml_filename_len_ptr = &xml_filename_len;
+    rfof_interface_initev_excl_marker_stuff(xml_filename, &xml_filename_len_ptr,
+        &(sim.rfof_data.cptr_rfglobal), &(sim.rfof_data.cptr_rfof_input_params));
 
     real* ptr; int* ptrint;
     offload_unpack(offload_data, offload_array,
@@ -311,7 +316,12 @@ void simulate(
     free(pq.p);
     diag_free(&sim.diag_data);
 
-    //TODO free RFOF stuff
+    /* TODO free RFOF stuff (only wave field and rfof_input_param. the markers, 
+    res_memory and diagnostics needs to be deallocated e.g. inside the 
+    simulate_gc_adaptive) */
+    rfof_interface_deallocate_rfof_input_param(
+        &(sim.rfof_data.cptr_rfof_input_params));
+    rfof_interface_deallocate_rfglobal(&(sim.rfof_data.cptr_rfglobal));
 
     /**************************************************************************/
     /* 8. Execution returns to host where this function was called.           */

@@ -287,4 +287,13 @@
 #define phys_ptoroid_gc(q, R, ppar, psi, B, Bphi) (             \
         ppar * R * (Bphi / B)  +  q * psi )
 
+/**
+ * @brief Evaluate perpendicular speed from velocity norm and parallel component of velocity for guiding centre.
+ */
+#define phys_vperp_gc(v,vpar) sqrt(pow(v,2) - pow(vpar,2))
+
+/**
+ * @brief Evaluate perpendicular momentum from momentum norm and parallel component of momentum for guiding centre.
+ */
+#define phys_pperp_gc(p,ppar) sqrt(pow(p,2) - pow(ppar,2))
 #endif
