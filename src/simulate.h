@@ -21,6 +21,7 @@
 #include "diag.h"
 #include "random.h"
 #include "simulate/mccc/mccc.h"
+#include "rfof_interface.h"
 
 /**
  * @brief Simulaton modes
@@ -72,7 +73,9 @@ typedef struct {
     mccc_data mccc_data;       /**< Tabulated special functions and collision
                                     operator parameters                       */
 
-    //TODO: RFOF_data
+    /* TODO: rfof_data */
+    rfof_data rfof_data;       /**< void pointers to ICRH wave field and input 
+                                    parameters Fortran structs.               */
 
     /* Options - general */
     int sim_mode;        /**< Which simulation mode is used                   */
@@ -100,6 +103,7 @@ typedef struct {
     int enable_clmbcol;        /**< Are Coulomb collisions enabled            */
     int enable_mhd;            /**< Are MHD modes enabled                     */
     int enable_atomic;         /**< Are atomic reactions enabled              */
+    int enable_icrh; /**< Is RFOF enabled. */
     int disable_gctransform;   /**< Disables first order velocity terms in
                                     guiding center transformation             */
     int disable_energyccoll;   /**< Disables energy component from Coulomb
