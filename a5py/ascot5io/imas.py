@@ -794,13 +794,13 @@ class plasma_1d(a5imas):
         znum   = np.zeros_like(anum)
         charge = np.zeros_like(anum)
         mass   = np.zeros_like(anum)
-        idensity = np.zeros(shape=(nion,nrho))
+        idensity = np.zeros(shape=(nrho,nion))
         for i in range(nion):
             znum[i]       = p1d.ion[i].element[iElement].z_n
             anum[i]       = p1d.ion[i].element[iElement].a
             charge[i]     = znum[i] * unyt.e
-            mass[i]       = species.autodetect( int( anum[i] ), int( znum[i]) )[3]
-            idensity[i,:] = p1d.ion[i].density_thermal
+            mass[i]       = species.autodetect( int( anum[i] ), int( znum[i]) )[3] / unyt.amu # Mass should be in AMU
+            idensity[:,i] = p1d.ion[i].density_thermal
 
 
 
