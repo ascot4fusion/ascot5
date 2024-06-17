@@ -482,20 +482,20 @@ int offload_and_simulate(
     fflush(stdout);
 
     /* Allow threads to spawn threads */
-    omp_set_nested(1);
+    //omp_set_nested(1);
 
     /* Actual marker simulation happens here. Threads are spawned which
      * distribute the execution between target(s) and host. Both input and
      * diagnostic offload arrays are mapped to target. Simulation is initialized
      * at the target and completed within the simulate() function.*/
-    #pragma omp parallel sections num_threads(3)
+    //#pragma omp parallel sections num_threads(3)
     {
         /* Run simulation on first target */
 
 #ifndef TARGET
         /* No target, marker simulation happens where the code execution began.
          * Offloading is only emulated. */
-        #pragma omp section
+        //#pragma omp section
         {
             host_start = omp_get_wtime();
             simulate(0, n_host, pin+2*n_mic, sim, offload_data,
