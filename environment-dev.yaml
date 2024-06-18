@@ -39,6 +39,8 @@ dependencies:
   - clang-tools==15.*
   - libclang==15.*
   - llvm-openmp==15.*
+  - libasan
+  - pylint
   - pip:
     - clang==15.*
     - ctypeslib2

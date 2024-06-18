@@ -392,6 +392,23 @@ For IDE, we recommend VScode which is free and with extensions work well with a 
 Furthermore it can be used to run the Jupyter notebook tutorials more conveniently than managing the notebook server yourself.
 For Windows machines you can use the VScode from Windows while ASCOT5 is being run in WSL (Windows Subsystem for Linux).
 
+.. rubric:: Compiling in debug mode
+
+The debug mode makes it easier to catch segmentation faults, memory leaks and similar that are usually caught with valgrind.
+To run the code in debug mode:
+
+.. code-block:: bash
+
+   conda activate ascot-dev
+   make clean
+   make libascot DEBUG=1
+   export LD_PRELOAD=$(gcc -print-file-name=libasan.so)
+   python runascot.py
+   export LD_PRELOAD= # Once you are done debugging
+
+The debug mode uses AddressSanitizer which is more convenient than valgrind in hybrid Python-C codes such as ASCOT5.
+Change ``gcc`` in this example to a different compiler depending on what you are using.
+
 .. rubric:: How the code is structured
 
 .. card:: General layout
