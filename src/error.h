@@ -9,6 +9,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include "offload_acc_omp.h"
 
 /**
  * @brief Simulation error flag
