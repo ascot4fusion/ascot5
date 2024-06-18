@@ -11,7 +11,7 @@ ifdef NSIMD
 endif
 
 ifdef TARGET
-    DEFINES+=-DTARGET=$(TARGET)
+	DEFINES+=-DTARGET=$(TARGET)
 endif
 
 ifdef VERBOSE
@@ -48,7 +48,12 @@ ifneq ($(CC),h5cc)
 	endif
 endif
 
-CFLAGS+=-O2 -lm -Wall -fopenmp -fPIC -std=c11 -D_XOPEN_SOURCE=700 \
+ifeq ($(DEBUG),1)
+	CFLAGS+=-g -fsanitize=address
+else
+	CFLAGS+=-O2
+endif
+CFLAGS+=-lm -Wall -fopenmp -fPIC -std=c11 -D_XOPEN_SOURCE=700 \
 	$(DEFINES) $(FLAGS)
 
 # Write CFLAGS and CC to a file to be included into output
