@@ -49,12 +49,12 @@ void asigma_loc_free_offload(asigma_loc_offload_data* offload_data,
 void asigma_loc_init(
     asigma_loc_data* asigma_data,
     asigma_loc_offload_data* offload_data, real* offload_array);
-#pragma omp declare simd uniform(asigma_data, reac_type, z_2, a_2,\
+DECLARE_TARGET_SIMD_UNIFORM(asigma_data, reac_type, z_2, a_2,\
     extrapolate)
 a5err asigma_loc_eval_sigma(
     real* sigma, int z_1, int a_1, int z_2, int a_2, real E_coll_per_amu,
     int reac_type, int extrapolate, asigma_loc_data* asigma_data);
-#pragma omp declare simd uniform(asigma_data, reac_type, z_2, a_2,\
+DECLARE_TARGET_SIMD_UNIFORM(asigma_data, reac_type, z_2, a_2,\
     extrapolate)
 a5err asigma_loc_eval_sigmav(
     real* sigmav, int z_1, int a_1, real m_1, int z_2, int a_2,

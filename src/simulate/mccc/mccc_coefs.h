@@ -217,7 +217,7 @@
  * @param Tb plasma species temperatures [J]
  */
 #ifndef GPU
-#pragma omp declare simd uniform(nspec, mb, qb, nb, Tb)
+DECLARE_TARGET_SIMD_UNIFORM(nspec, mb, qb, nb, Tb)
 #else
 DECLARE_TARGET
 #endif
@@ -274,7 +274,7 @@ static void mccc_coefs_clog(real* clogab, real ma, real qa, real va, int nspec,
  * @param mdata pointer to mccc data
  */
 #ifndef GPU
-#pragma omp declare simd uniform(mdata)
+DECLARE_TARGET_SIMD_UNIFORM(mdata)
 #else
 DECLARE_TARGET
 #endif

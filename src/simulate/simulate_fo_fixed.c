@@ -28,7 +28,7 @@
 #include "mccc/mccc.h"
 #include "atomic.h"
 
-#pragma omp declare simd uniform(sim)
+DECLARE_TARGET_SIMD_UNIFORM(sim)
 real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i);
 
 /**

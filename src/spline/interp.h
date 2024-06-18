@@ -166,21 +166,21 @@ void interp3Dexpl_init_spline(interp3D_data* str, real* c,
                               real z_min, real z_max);
 
 #ifndef GPU
-#pragma omp declare simd uniform(str)
+DECLARE_TARGET_SIMD_UNIFORM(str)
 #else
 DECLARE_TARGET
 #endif
 a5err interp1Dcomp_eval_f(real* f, interp1D_data* str, real x);
 DECLARE_TARGET_END
 #ifndef GPU
-#pragma omp declare simd uniform(str)
+DECLARE_TARGET_SIMD_UNIFORM(str)
 #else
 DECLARE_TARGET
 #endif
 a5err interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y);
 DECLARE_TARGET_END
 #ifndef GPU
-#pragma omp declare simd uniform(str)
+DECLARE_TARGET_SIMD_UNIFORM(str)
 #else
 DECLARE_TARGET
 #endif
@@ -188,30 +188,30 @@ a5err interp3Dcomp_eval_f(real* f, interp3D_data* str,
                          real x, real y, real z);
 DECLARE_TARGET_END
 
-#pragma omp declare simd uniform(str)
+DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp1Dexpl_eval_f(real* f, interp1D_data* str, real x);
-#pragma omp declare simd uniform(str)
+DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp2Dexpl_eval_f(real* f, interp2D_data* str, real x, real y);
-#pragma omp declare simd uniform(str)
+DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp3Dexpl_eval_f(real* f, interp3D_data* str,
                           real x, real y, real z);
 
 #ifndef GPU
-#pragma omp declare simd uniform(str)
+DECLARE_TARGET_SIMD_UNIFORM(str)
 #else
 DECLARE_TARGET
 #endif
 a5err interp1Dcomp_eval_df(real* f_df, interp1D_data* str, real x);
 DECLARE_TARGET_END
 #ifndef GPU
-#pragma omp declare simd uniform(str)
+DECLARE_TARGET_SIMD_UNIFORM(str)
 #else
 DECLARE_TARGET
 #endif
 a5err interp2Dcomp_eval_df(real* f_df, interp2D_data* str, real x, real y);
 DECLARE_TARGET_END
 #ifndef GPU
-#pragma omp declare simd uniform(str)
+DECLARE_TARGET_SIMD_UNIFORM(str)
 #else
 DECLARE_TARGET
 #endif
@@ -219,11 +219,11 @@ a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
                            real x, real y, real z);
 DECLARE_TARGET_END
 
-#pragma omp declare simd uniform(str)
+DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp1Dexpl_eval_df(real* f_df, interp1D_data* str, real x);
-#pragma omp declare simd uniform(str)
+DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp2Dexpl_eval_df(real* f_df, interp2D_data* str, real x, real y);
-#pragma omp declare simd uniform(str)
+DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp3Dexpl_eval_df(real* f_df, interp3D_data* str,
                            real x, real y, real z);
 #endif

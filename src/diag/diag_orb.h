@@ -23,9 +23,9 @@
 #define DIAG_ORB_GC 2 /**< Data stored in GC mode */
 #define DIAG_ORB_ML 3 /**< Data stored in ML mode */
 
-#pragma omp declare simd uniform(ang0)
+DECLARE_TARGET_SIMD_UNIFORM(ang0)
 real diag_orb_check_plane_crossing(real fang, real iang, real ang0);
-#pragma omp declare simd uniform(r0)
+DECLARE_TARGET_SIMD_UNIFORM(r0)
 real diag_orb_check_radial_crossing(real fr, real ir, real r0);
 
 

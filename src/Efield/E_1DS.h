@@ -37,7 +37,7 @@ void E_1DS_free_offload(E_1DS_offload_data* offload_data, real** offload_array);
 void E_1DS_init(E_1DS_data* Edata, E_1DS_offload_data* offload_data,
                 real* offload_array);
 #ifndef GPU
-#pragma omp declare simd uniform(Edata,Bdata)
+DECLARE_TARGET_SIMD_UNIFORM(Edata,Bdata)
 #else
 DECLARE_TARGET
 #endif

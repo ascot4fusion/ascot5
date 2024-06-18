@@ -66,7 +66,7 @@ int wall_init(wall_data* w, wall_offload_data* offload_data,
               real* offload_array, int* int_offload_array);
 
 #ifndef GPU
-#pragma omp declare simd uniform(w)
+DECLARE_TARGET_SIMD_UNIFORM(w)
 #else
 DECLARE_TARGET
 #endif
@@ -75,7 +75,7 @@ int wall_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
 DECLARE_TARGET_END
 
 #ifndef GPU
-#pragma omp declare simd uniform(w)
+DECLARE_TARGET_SIMD_UNIFORM(w)
 #else
 DECLARE_TARGET
 #endif

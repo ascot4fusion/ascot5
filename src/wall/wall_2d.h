@@ -33,14 +33,14 @@ void wall_2d_free_offload(wall_2d_offload_data* offload_data,
 void wall_2d_init(wall_2d_data* w, wall_2d_offload_data* offload_data,
                   real* offload_array);
 #ifndef GPU
-#pragma omp declare simd uniform(w)
+DECLARE_TARGET_SIMD_UNIFORM(w)
 #else
 DECLARE_TARGET
 #endif
 int wall_2d_inside(real r, real z, wall_2d_data* w);
 DECLARE_TARGET_END
 #ifndef GPU
-#pragma omp declare simd uniform(w)
+DECLARE_TARGET_SIMD_UNIFORM(w)
 #else
 DECLARE_TARGET
 #endif

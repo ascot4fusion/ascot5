@@ -13,9 +13,9 @@
 #include "../particle.h"
 #include "diag_transcoef.h"
 
-#pragma omp declare simd
+DECLARE_TARGET_SIMD
 real diag_transcoef_check_omp_crossing(real fang, real iang);
-#pragma omp declare simd uniform(data)
+DECLARE_TARGET_SIMD_UNIFORM(data)
 void diag_transcoef_record(diag_transcoef_data* data, integer index,
                            integer id, real rho, real r, real pitchsign,
                            real t_f, real t_i, real theta_f, real theta_i);
