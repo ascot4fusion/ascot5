@@ -195,7 +195,7 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol,
             real rk5[6], rk4[6];
             if(!errflag) {
                 real err = 0.0;
-                for(int j = 0; j < 5; j++) {
+                for(int j = 0; j < 6; j++) {
                     rk5[j] = yprev[j]
                         + h[i]*(
                               ( 37.0/378 ) * k1[j]
