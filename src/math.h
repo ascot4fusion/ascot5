@@ -109,37 +109,37 @@
 /** @brief Convert radians to degrees */
 #define math_rad2deg(a) (a * math_raddeg)
 
-#pragma omp declare simd
+DECLARE_TARGET_SIMD
 void math_jac_rpz2xyz(real* rpz, real* xyz, real r, real phi);
 #ifndef GPU
-#pragma omp declare simd
+DECLARE_TARGET_SIMD
 #else
 DECLARE_TARGET
 #endif
 void math_jac_xyz2rpz(real* xyz, real* rpz, real r, real phi);
 DECLARE_TARGET_END
 #ifndef GPU
-#pragma omp declare simd
+DECLARE_TARGET_SIMD
 #else
 DECLARE_TARGET
 #endif
 void math_matmul(real* matA, real* matB, int d1, int d2, int d3, real* matC);
 DECLARE_TARGET_END
-#pragma omp declare simd
+DECLARE_TARGET_SIMD
 real math_normal_rand();
-#pragma omp declare simd
+DECLARE_TARGET_SIMD
 int math_ipow(int a, int p);
 double math_simpson(double (*f)(double), double a, double b, double epsilon);
 void math_linspace(real* vec, real a, real b, int n);
-#pragma omp declare simd
+DECLARE_TARGET_SIMD
 int math_point_on_plane(real q[3], real t1[3], real t2[3], real t3[3]);
-#pragma omp declare simd
+DECLARE_TARGET_SIMD
 void math_barycentric_coords_triangle(
     real AP[3], real AB[3], real AC[3], real n[3], real *s, real *t);
 void math_uniquecount(int* in, int* unique, int* count, int n);
-#pragma omp declare simd
+DECLARE_TARGET_SIMD
 real* math_rsearch(const real key, const real* base, int num);
-#pragma omp declare simd uniform(rv,zv,n)
+DECLARE_TARGET_SIMD_UNIFORM(rv,zv,n)
 int math_point_in_polygon(real r, real z, real* rv, real* zv, int n);
 
 

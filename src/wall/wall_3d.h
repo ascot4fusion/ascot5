@@ -72,7 +72,7 @@ void wall_3d_init_octree(wall_3d_offload_data* w, real* offload_array,
 void wall_3d_init(wall_3d_data* w, wall_3d_offload_data* offload_data,
                   real* offload_array, int* int_offload_array);
 #ifndef GPU
-#pragma omp declare simd uniform(w)
+DECLARE_TARGET_SIMD_UNIFORM(w)
 #else
 DECLARE_TARGET
 #endif
@@ -80,7 +80,7 @@ int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
                      real z2, wall_3d_data* w, real* w_coll);
 DECLARE_TARGET_END
 #ifndef GPU
-#pragma omp declare simd uniform(w)
+DECLARE_TARGET_SIMD_UNIFORM(w)
 #else
 DECLARE_TARGET
 #endif
@@ -88,7 +88,7 @@ int wall_3d_hit_wall_full(real r1, real phi1, real z1, real r2, real phi2,
                           real z2, wall_3d_data* w, real* w_coll);
 DECLARE_TARGET_END
 #ifndef GPU
-#pragma omp declare simd
+DECLARE_TARGET_SIMD
 #else
 DECLARE_TARGET
 #endif

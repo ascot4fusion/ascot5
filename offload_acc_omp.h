@@ -16,6 +16,14 @@
 #define GPU_MAP_FROM_DEVICE(x ...)
 #define GPU_MAP_DELETE_DEVICE(x ...)
 #define GPU_ATOMIC MY_PRAGMA(omp atomic)
+//#define DECLARE_TARGET_SIMD_UNIFORM(x ...) MY_PRAGMA(omp declare simd uniform (x) )
+//#define DECLARE_TARGET_SIMD_UNIFORM_END
+//#define DECLARE_TARGET_SIMD MY_PRAGMA(omp declare simd )
+//#define DECLARE_TARGET_SIMD_UNIFORM_END
+#define DECLARE_TARGET_SIMD_UNIFORM(x ...) 
+#define DECLARE_TARGET_SIMD_UNIFORM_END
+#define DECLARE_TARGET_SIMD
+#define DECLARE_TARGET_SIMD_UNIFORM_END
 
 #else
 
@@ -30,6 +38,10 @@
 #define GPU_MAP_FROM_DEVICE(x ...) MY_PRAGMA(omp target exit data map (from: x))
 #define GPU_MAP_DELETE_DEVICE(x ...)  MY_PRAGMA(omp target exit data (delete: x))
 #define GPU_ATOMIC MY_PRAGMA(acc atomic)
+#define DECLARE_TARGET_SIMD_UNIFORM(x ...) 
+#define DECLARE_TARGET_SIMD_UNIFORM_END
+#define DECLARE_TARGET_SIMD
+#define DECLARE_TARGET_SIMD_UNIFORM_END
 #endif
 #ifdef _OPENACC
 //#warning "OpenACC"
@@ -47,6 +59,10 @@
 #define GPU_MAP_FROM_DEVICE(x ...)  MY_PRAGMA(acc exit data copyout ( x))
 #define GPU_MAP_DELETE_DEVICE(x ...)  MY_PRAGMA(acc exit data delete ( x))
 #define GPU_ATOMIC MY_PRAGMA(omp atomic)
+#define DECLARE_TARGET_SIMD_UNIFORM(x ...) 
+#define DECLARE_TARGET_SIMD_UNIFORM_END
+#define DECLARE_TARGET_SIMD
+#define DECLARE_TARGET_SIMD_UNIFORM_END
 #endif
 
 #endif

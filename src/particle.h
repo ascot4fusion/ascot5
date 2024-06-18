@@ -440,37 +440,37 @@ a5err particle_input_gc_to_state(particle_gc* p, particle_state* ps,
 a5err particle_input_ml_to_state(particle_ml* p, particle_state* ps,
                                  B_field_data* Bdata);
 
-#pragma omp declare simd uniform(Bdata)
+DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo,
                            int j, B_field_data* Bdata);
-#pragma omp declare simd uniform(Bdata)
+DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
                           B_field_data* Bdata);
-#pragma omp declare simd uniform(Bdata)
+DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc,
                            int j, B_field_data* Bdata);
-#pragma omp declare simd uniform(Bdata)
+DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
                           B_field_data* Bdata);
-#pragma omp declare simd uniform(Bdata)
+DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml,
                            int j, B_field_data* Bdata);
-#pragma omp declare simd uniform(Bdata)
+DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
                           B_field_data* Bdata);
-#pragma omp declare simd uniform(p_fo,Bdata)
+DECLARE_TARGET_SIMD_UNIFORM(p_fo,Bdata)
 int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
                       B_field_data* Bdata);
 #ifndef GPU
-#pragma omp declare simd
+DECLARE_TARGET_SIMD
 #else
 DECLARE_TARGET
 #endif
 void particle_copy_fo(particle_simd_fo* p1, int i, particle_simd_fo* p2, int j);
 DECLARE_TARGET_END
-#pragma omp declare simd
+DECLARE_TARGET_SIMD
 void particle_copy_gc(particle_simd_gc* p1, int i, particle_simd_gc* p2, int j);
-#pragma omp declare simd
+DECLARE_TARGET_SIMD
 void particle_copy_ml(particle_simd_ml* p1, int i, particle_simd_ml* p2, int j);
 
 #endif

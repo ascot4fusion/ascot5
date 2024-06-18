@@ -47,7 +47,7 @@ void plasma_1D_init(plasma_1D_data* pls_data,
                     plasma_1D_offload_data* offload_data,
                     real* offload_array);
 #ifndef GPU
-#pragma omp declare simd uniform(pls_data)
+DECLARE_TARGET_SIMD_UNIFORM(pls_data)
 #else
 DECLARE_TARGET
 #endif
@@ -55,7 +55,7 @@ a5err plasma_1D_eval_temp(real* dens, real rho, int species,
                           plasma_1D_data* pls_data);
 DECLARE_TARGET_END
 #ifndef GPU
-#pragma omp declare simd uniform(pls_data)
+DECLARE_TARGET_SIMD_UNIFORM(pls_data)
 #else
 DECLARE_TARGET
 #endif
@@ -63,7 +63,7 @@ a5err plasma_1D_eval_dens(real* temp, real rho, int species,
                           plasma_1D_data* pls_data);
 DECLARE_TARGET_END
 #ifndef GPU
-#pragma omp declare simd uniform(pls_data)
+DECLARE_TARGET_SIMD_UNIFORM(pls_data)
 #else
 DECLARE_TARGET
 #endif

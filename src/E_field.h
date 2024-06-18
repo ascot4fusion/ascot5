@@ -66,7 +66,7 @@ void E_field_free_offload(E_field_offload_data* offload_data,
 int E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
                  real* offload_array);
 #ifndef GPU
-#pragma omp declare simd uniform(Edata, Bdata)
+DECLARE_TARGET_SIMD_UNIFORM(Edata, Bdata)
 #else
 DECLARE_TARGET
 #endif

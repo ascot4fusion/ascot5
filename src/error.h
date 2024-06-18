@@ -81,7 +81,7 @@ typedef enum error_type {
  *
  * @return error containing info on error type and line and file error happened
  */
-#pragma omp declare simd
+DECLARE_TARGET_SIMD
 static inline a5err error_raise(error_type type, int line, error_file file) {
     a5err err = 0;
     err += (a5err)(type);

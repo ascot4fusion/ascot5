@@ -83,21 +83,21 @@ void linint3D_init(linint3D_data* str, real* c,
                    real z_min, real z_max);
 
 #ifndef GPU
-#pragma omp declare simd uniform(str)
+DECLARE_TARGET_SIMD_UNIFORM(str)
 #else
 DECLARE_TARGET
 #endif
 int linint1D_eval_f(real* f, linint1D_data* str, real x);
 DECLARE_TARGET_END
 #ifndef GPU
-#pragma omp declare simd uniform(str)
+DECLARE_TARGET_SIMD_UNIFORM(str)
 #else
 DECLARE_TARGET
 #endif
 int linint2D_eval_f(real* f, linint2D_data* str, real x, real y);
 DECLARE_TARGET_END
 #ifndef GPU
-#pragma omp declare simd uniform(str)
+DECLARE_TARGET_SIMD_UNIFORM(str)
 #else
 DECLARE_TARGET
 #endif
