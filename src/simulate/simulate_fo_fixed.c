@@ -51,8 +51,8 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i);
  * @param n_queue_size size of particle arrays
  */
 void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int n_queue_size) {
-    int cycle[n_queue_size]  __memalign__; // Flag indigating whether a new marker was initialized
-    real hin[n_queue_size]  __memalign__;  // Time step
+    int cycle[n_queue_size];//  __memalign__; // Flag indigating whether a new marker was initialized
+    real hin[n_queue_size];//  __memalign__;  // Time step
 
     real cputime, cputime_last; // Global cpu time: recent and previous record
 
