@@ -201,27 +201,27 @@ void simulate(
             if(pq.n > 0 && (sim.sim_mode == simulate_mode_gc
                         || sim.sim_mode == simulate_mode_hybrid)) {
                 if(sim.enable_ada) {
-#ifdef GPU
+#ifndef GPU
                     #pragma omp parallel
 #endif		  
                     simulate_gc_adaptive(&pq, &sim);
                 }
                 else {
-#ifdef GPU
+#ifndef GPU
                     #pragma omp parallel
 #endif		  
                     simulate_gc_fixed(&pq, &sim);
                 }
             }
             else if(pq.n > 0 && sim.sim_mode == simulate_mode_fo) {
-#ifdef GPU
+#ifndef GPU
               #pragma omp parallel
 #endif	      
 	      simulate_fo_fixed(&pq, &sim, n_queue_size);
             }
             else if(pq.n > 0 && sim.sim_mode == simulate_mode_ml) {
 
-#ifdef GPU
+#ifndef GPU
                 #pragma omp parallel
 #endif	      
                 simulate_ml_adaptive(&pq, &sim);
@@ -292,7 +292,7 @@ void simulate(
         {
 	  //#pragma omp section
             {
-#ifdef GPU	      
+#ifndef GPU	      
                 #pragma omp parallel
 #endif	      
 	      simulate_fo_fixed(&pq, &sim, n_queue_size);
