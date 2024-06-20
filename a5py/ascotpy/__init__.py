@@ -1270,7 +1270,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
     @openfigureifnoaxes()
     def input_eval_orbitresonance(
             self, rhogrid, xigrid, egrid, species, plot=False, n=1, p=0,
-            axes=None, cax=None):
+            omega=0.0, axes=None, cax=None):
         """Evaluate the resonance condition between particles and perturbations.
 
         Orbit resonance refers to the phenomenon where the frequency of
@@ -1308,6 +1308,10 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             If True, the results are not returned but visualized instead.
         resonance : float or array_like, optional
             Resonance(s) to be indicated on the plot e.g. m/n=2/1.
+        omega : float, optional
+            Perturbation mode frequency.
+
+            The default value assumes stationary perturbation.
         axes : :obj:`~matplotlib.axes.Axes`, optional
             The axes where figure is plotted or otherwise new figure is created.
         cax : :obj:`~matplotlib.axes.Axes`, optional
@@ -1381,20 +1385,20 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                 deltaphi = np.abs(np.diff(phi_omp[idx_omp][::2]))
                 torfreq[irho, ixi] = 1.0 / np.mean(deltat * 360 / deltaphi)
 
-        if not plot: return torfreq, polfreq, torfreq/polfreq
+        if not plot:
+            return torfreq, polfreq, torfreq/polfreq
 
         # The rest is plotting
         omega = np.abs(torfreq * n - p * polfreq)
         def plot2d(x, y, title, xlabel, ylabel):
-            #im   = axes.pcolormesh(x, y, (torfreq / polfreq).T)
-            #axes.contour(x, y, (torfreq / polfreq).T, resonance, colors='white')
             im   = axes.pcolormesh(x, y, np.log10(1.0/omega).T)
             axes.set_title(title)
             axes.set_xlabel(xlabel)
             axes.set_ylabel(ylabel)
 
             cbar = plt.colorbar(im, ax=axes, orientation='horizontal')
-            cbar.set_label(r"$log_{10} | \omega_{tor} n - p \omega_{pol} |$")
+            cbar.set_label(
+                r"$log_{10} | \omega_{tor} n - p \omega_{pol} -\omega |$")
 
         axes.set_xlabel(r"$\rho$")
         x = None; y = None; xlabel = None; ylabel = None
