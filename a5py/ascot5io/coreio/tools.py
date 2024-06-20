@@ -4,10 +4,10 @@ The purpose of these tools is to work on files that are possibly corrupted,
 so they can't necessarily be processed with a5py. Therefore, the methods
 here use the low-level API only (with the exception for the combine tool).
 """
+import warnings
 import numpy as np
 import h5py
-import warnings
-from a5py import Ascot, AscotNoDataException
+from a5py.exceptions import AscotNoDataException
 from . import fileapi
 
 def call_fileapi(fn, method, *args):
@@ -34,12 +34,12 @@ def call_fileapi(fn, method, *args):
     ValueError
         If the method does not exist.
     """
-    if hasattr(fileapi, method):
-        method_to_call = getattr(fileapi, method)
-        with h5py.File(fn, "a") as f:
-            return method_to_call(f, *args)
-    else:
+    if not hasattr(fileapi, method):
         raise ValueError(method + " is not a valid method.")
+
+    method_to_call = getattr(fileapi, method)
+    with h5py.File(fn, "a") as f:
+        return method_to_call(f, *args)
 
 def removegroup(fn, group, force=False):
     """Remove a group or a parent.
@@ -87,9 +87,9 @@ def removegroup(fn, group, force=False):
                 rungroup = fileapi.get_group(f, runqid)
                 inqids   = fileapi.get_inputqids(f, rungroup)
                 if qid in inqids:
-                    raise RuntimeError("Run " + runqid
-                                       + " has used group " + qid
-                                       + " as an input. Removal aborted.")
+                    raise RuntimeError(
+                        f"Cannot remove group {qid} as run {runqid} has "
+                        "used it as an input. Remove the run first.")
 
             # No references, the group can be removed.
             fileapi.remove_group(f, group)
@@ -120,8 +120,8 @@ def removegroup(fn, group, force=False):
                         inqids   = fileapi.get_inputqids(f, rungroup)
                         if dataqid in inqids:
                             raise RuntimeError(
-                                "Run %s has used group %s as an input. Removal"\
-                                + " aborted." % (runqid, dataqid))
+                                f"Run {runqid} has used group {dataqid} as an"
+                                " input. Removal aborted.")
 
             # No references, the group can be removed.
             fileapi.remove_group(f, group)
@@ -155,7 +155,7 @@ def copygroup(fns, fnt, group, newgroup=False):
         with h5py.File(fnt, "r") as ft:
             pass
     except FileNotFoundError:
-        warnings.warn("Creating file %s" % fnt)
+        warnings.warn(f"Creating file {fnt}")
         ft = h5py.File(fnt, "w")
         ft.close()
 

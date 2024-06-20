@@ -38,22 +38,21 @@ manually changed). Run groups also store QIDs of all input fields used in that
 particular run.
 
 All groups also store date and time at which they where created and also a
-description field that user can modify at will (see ascot5.py).
+description field that user can modify at will.
 
 The groups should be created, removed, and their metadata accessed via this
 module. The actual datasets are accessed via corresponding modules. This module
 assumes the HDF5 file is open when these routines are called, and closed
 afterwards.
 """
-
-import numpy as np
-import h5py
-import unyt
 import random
 import datetime
-
 from importlib.metadata import version as importlib_version
 from collections import OrderedDict
+
+import numpy as np
+import unyt
+
 from a5py.exceptions import AscotNoDataException, AscotIOException
 
 INPUTGROUPS = ["options", "bfield", "efield", "marker", "plasma", "neutral",
@@ -84,17 +83,9 @@ def set_active(f, group):
     AscotNoDataException
         Raised if the group or its parent does not exist.
     """
-
-    if(str(group) == group):
-        qid = get_qid(group)
-        grp = get_group(f, qid)
-        if grp is None:
-            raise AscotNoDataException("Could not find group " + group)
-        else:
-            group = grp
-
     qid = get_qid(group)
-    group.parent.attrs["active"] = np.string_(qid)
+    grp = get_group(f, qid)
+    grp.parent.attrs["active"] = np.string_(qid)
 
 def get_active(f, parent):
     """Get active group.
@@ -116,21 +107,18 @@ def get_active(f, parent):
     AscotNoDataException
         Raised if the parent or the active group does not exist.
     """
-
     if str(parent) == parent:
-        if parent in f:
-            parent = f[parent]
-        else:
+        if parent not in f:
             raise AscotNoDataException(
             "Parent " + parent + " does not exist.")
+        parent = f[parent]
 
     qid = parent.attrs["active"].decode('utf-8')
     group = get_group(f, qid)
 
-    if group == None:
+    if group is None:
         raise AscotNoDataException("Active group does not exist.")
-    else:
-        return group
+    return group
 
 def set_activeqid(f, qid):
     """Set a group with the given QID as the active one.
@@ -163,7 +151,6 @@ def get_activeqid(f, parent):
     group = get_active(f, parent)
     return group.parent.attrs["active"].decode('utf-8')
 
-
 def set_desc(f, group, desc):
     """Set group description.
 
@@ -181,16 +168,9 @@ def set_desc(f, group, desc):
     AscotNoDataException
         Raised if group does not exist.
     """
-    # Check the group exists and access it.
-    if(str(group) == group):
-        qid = get_qid(group)
-        grp = get_group(f, qid)
-        if grp is None:
-            raise AscotNoDataException("Could not find group " + group)
-        else:
-            group = grp
-
-    group.attrs["description"] = np.string_(desc)
+    qid = get_qid(group)
+    grp = get_group(f, qid)
+    grp.attrs["description"] = np.string_(desc)
 
 def get_desc(f, group):
     """Get group description.
@@ -212,17 +192,9 @@ def get_desc(f, group):
     AscotNoDataException
         Raised if group does not exist.
     """
-
-    # Check the group exists and access it.
-    if(str(group) == group):
-        qid = get_qid(group)
-        grp = get_group(f, qid)
-        if grp is None:
-            raise AscotNoDataException("Could not find group " + group)
-        else:
-            group = grp
-
-    return group.attrs["description"].decode('utf-8')
+    qid = get_qid(group)
+    grp = get_group(f, qid)
+    return grp.attrs["description"].decode('utf-8')
 
 def _set_date(f, group, date):
     """Set group date.
@@ -241,19 +213,11 @@ def _set_date(f, group, date):
     Raises
     ------
     AscotNoDataException
-        Raised if group does not exist.
+        Raised if the group does not exist.
     """
-
-    # Check the group exists and access it.
-    if(str(group) == group):
-        qid = get_qid(group)
-        grp = get_group(f, qid)
-        if grp is None:
-            raise AscotNoDataException("Could not find group " + group)
-        else:
-            group = grp
-
-    group.attrs["date"] = np.string_(date)
+    qid = get_qid(group)
+    grp = get_group(f, qid)
+    grp.attrs["date"] = np.string_(date)
 
 def get_date(f, group):
     """Get date.
@@ -273,80 +237,11 @@ def get_date(f, group):
     Raises
     ------
     AscotNoDataException
-        Raised if group does not exist.
+        Raised if the group does not exist.
     """
-
-    # Check the group exists and access it.
-    if(str(group) == group):
-        qid = get_qid(group)
-        grp = get_group(f, qid)
-        if grp is None:
-            raise AscotNoDataException("Could not find group " + group)
-        else:
-            group = grp
-
-    return group.attrs["date"].decode('utf-8')
-
-def _set_version(f, group):
-    """Set group version.
-
-    Note that this function should only be called when the group is created.
-
-    Parameters
-    ----------
-    f : `h5py.File`
-        Open HDF5 file.
-    group : str or `h5py.Group`
-        Group object or its name.
-
-    Raises
-    ------
-    AscotNoDataException
-        Raised if group does not exist.
-    """
-
-    # Check the group exists and access it.
-    if(str(group) == group):
-        qid = get_qid(group)
-        grp = get_group(f, qid)
-        if grp is None:
-            raise AscotNoDataException("Could not find group " + group)
-        else:
-            group = grp
-
-    group.attrs["version"] = np.string_(vers)
-
-def get_version(f, group):
-    """Get input version.
-
-    Parameters
-    ----------
-    f : `h5py.File`
-        Open HDF5 file.
-    group : str or `h5py.Group`
-        Group object or its name.
-
-    Returns
-    -------
-    version : str
-        Version as a string.
-
-    Raises
-    ------
-    AscotNoDataException
-        Raised if group does not exist.
-    """
-
-    # Check the group exists and access it.
-    if(str(group) == group):
-        qid = get_qid(group)
-        grp = get_group(f, qid)
-        if grp is None:
-            raise AscotNoDataException("Could not find group " + group)
-        else:
-            group = grp
-
-    return group.attrs["version"].decode('utf-8')
+    qid = get_qid(group)
+    grp = get_group(f, qid)
+    return grp.attrs["date"].decode('utf-8')
 
 def get_qid(group):
     """Get QID from a given group.
@@ -366,7 +261,7 @@ def get_qid(group):
     AscotNoDataException
         Raised if group does not have a valid QID.
     """
-    if(str(group) != group):
+    if str(group) != group:
         group = group.name
 
     if len(group) >= 10:
@@ -375,7 +270,6 @@ def get_qid(group):
             # Seems like a valid QID
             return qid
 
-    # Not a valid QID
     raise AscotNoDataException(group + " is not a valid QID.")
 
 def get_type(group):
@@ -396,7 +290,7 @@ def get_type(group):
     AscotNoDataException
         Raised if group does not have a valid type.
     """
-    if(str(group) != group):
+    if str(group) != group:
         group = group.name
 
     group = group.split("/")[-1]
@@ -453,8 +347,7 @@ def get_qids(f, parent):
     AscotNoDataException
         Raised if parent group does not exist.
     """
-    # Check the parent exists and access it
-    if(str(parent) == parent):
+    if str(parent) == parent:
         if not parent in f:
             raise AscotNoDataException("Could not find parent " + parent)
         parent = f[parent]
@@ -486,20 +379,18 @@ def get_inputqids(f, rungroup):
     AscotNoDataException
         Raised if run group does not exist.
     """
-    # Check the group exists and access it.
-    if(str(rungroup) == rungroup):
+    if str(rungroup) == rungroup:
         qid = get_qid(rungroup)
         grp = get_group(f, qid)
         if grp is None:
             raise AscotNoDataException("Could not find group " + rungroup)
-        else:
-            rungroup = grp
+        rungroup = grp
 
-    qids = OrderedDict();
+    qids = OrderedDict()
     for inp in INPUTGROUPS:
         try:
             qids[inp] = rungroup.attrs["qid_" + inp].decode("utf-8")
-        except KeyError as err:
+        except KeyError:
             pass
 
     return qids
@@ -530,9 +421,9 @@ def add_group(f, parent, group, desc=None):
         parent = f.require_group(parent)
 
     # Generate metadata and include qid in group's name.
-    qid, date, defdesc, vers = _generate_meta()
+    qid, date, defdesc = _generate_meta()
     group = group + "_" + qid
-    if desc == None:
+    if desc is None:
         desc = defdesc
 
     # Create group and set it as the active group if it is the only group.
@@ -545,7 +436,6 @@ def add_group(f, parent, group, desc=None):
         set_active(f, group)
 
     return get_group(f, qid)
-
 
 def remove_group(f, group):
     """Remove a group.
@@ -573,18 +463,17 @@ def remove_group(f, group):
         Raised if the group is input used by a run.
     """
     # Check the group exists and access it.
-    if(str(group) == group):
+    if str(group) == group:
         if group in f.keys():
             # Group is a parent group
             group = f[group]
         else:
-            # assume group is data group
+            # Assume group is a data group
             qid = get_qid(group)
             grp = get_group(f, qid)
             if grp is None:
                 raise AscotNoDataException("Could not find group " + group)
-            else:
-                group = grp
+            group = grp
 
     # Check if this is an input group and whether it has been used in run.
     parent = group.parent
@@ -606,27 +495,22 @@ def remove_group(f, group):
 
     # Remove the group
     if parent.name!='/':
-        was_active = get_active(f, parent) == group
+        the_group_was_active = get_active(f, parent) == group
         del f[group.name]
+        if the_group_was_active:
+            if len(parent.keys()) == 0:
+                del f[parent.name]
+            else:
+                date = "0"
+                for grp in parent:
+                    grpdate = get_date(f, grp)
+                    if grpdate > date:
+                        date  = grpdate
+                        group = grp
+
+                set_active(f, group)
     else:
-        was_active=False
         del f[group.name]
-
-    # Set next group active (if removed group was) or remove the parent if no
-    # other groups exist
-    if was_active:
-        if len(parent.keys()) == 0:
-            del f[parent.name]
-        else:
-            date = "0"
-            for grp in parent:
-                grpdate = get_date(f, grp)
-                if grpdate > date:
-                    date  = grpdate
-                    group = grp
-
-            set_active(f, group)
-
 
 def copy_group(fs, ft, group, newgroup=False):
     """Copy group from one file to another. A parent is also created if need be.
@@ -658,13 +542,12 @@ def copy_group(fs, ft, group, newgroup=False):
         Raised if the group already exists on the target file.
     """
     # Check the group exists and access it.
-    if(str(group) == group):
+    if str(group) == group:
         qid = get_qid(group)
         grp = get_group(fs, qid)
         if grp is None:
             raise AscotNoDataException("Could not find group " + group)
-        else:
-            group = grp
+        group = grp
 
     # Create target parent if none exists.
     parentname = group.parent.name
@@ -675,7 +558,7 @@ def copy_group(fs, ft, group, newgroup=False):
 
     # Copy
     if newgroup:
-        qid, date, defdesc, vers = _generate_meta()
+        qid, date, _ = _generate_meta()
         newname = group.name[:-11] + "_" + qid
         fs.copy(group, newparent, name=newname)
         _set_date(ft, newname, date)
@@ -684,11 +567,10 @@ def copy_group(fs, ft, group, newgroup=False):
         fs.copy(group, newparent)
         newgroupobj = ft[parentname][group.name]
 
-    if(len(newparent)) == 1:
+    if len(newparent) == 1:
         set_active(ft, newgroupobj)
 
     return newgroupobj
-
 
 def write_data(group, name, data, shape, dtype, unit=None, compress=False):
     """Write a dataset.
@@ -728,9 +610,8 @@ def write_data(group, name, data, shape, dtype, unit=None, compress=False):
     if unit is not None:
         g.attrs.create("unit", np.string_(unit))
 
-
 def read_data(group, name):
-    """Read a dataset and add units if present.
+    """Read a dataset including its units if present.
 
     Parameters
     ----------
@@ -746,15 +627,12 @@ def read_data(group, name):
 
         If dataset has no "unit" attribute, ordinary `np.array` is returned.
     """
+    unit = 1
     if "unit" in group[name].attrs.keys():
         unit_str = group[name].attrs["unit"]
         unit     = unyt.Unit(unit_str)
 
-        return group[name][:].ravel() * unit
-    else:
-        return group[name][:].ravel()
-
-
+    return group[name][:].ravel() * unit
 
 def _generate_meta():
     """Generate QID, date and default description/tag.
@@ -764,8 +642,12 @@ def _generate_meta():
 
     Returns
     -------
-    meta : `tuple` [str, str, str, str]
-        QID, date, description, and version number.
+    qid : str
+        QID.
+    data : str
+        Date.
+    desc : str
+        Description.
     """
     # Generate random unsigned 32 bit integer and convert it to string.
     qid = str(np.uint32(random.getrandbits(32)))
@@ -774,14 +656,10 @@ def _generate_meta():
     while len(qid) < 10:
         qid = "0" + qid
 
-    # Get date
-    date = str(datetime.datetime.now())
+    # Get date but remove last digits which are milliseconds which we don't need
+    date = str(datetime.datetime.now())[0:19]
 
-    # Last digits are milliseconds which we don't need
-    date = date[0:19]
-
+    # Default value for the description
     desc = "TAG"
 
-    vers = VERSION
-
-    return (qid, date, desc, vers)
+    return qid, date, desc

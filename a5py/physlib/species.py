@@ -1,25 +1,21 @@
 """List of commonly encountered marker species and their properties.
 """
-import numpy as np
 import unyt
 
-# 
-import scipy.constants as constants
-
 speciesdict = {
-    "e"     : [  0,  0, -1*unyt.e,   0.0005486*unyt.amu],
-    "n"     : [  1,  0,  0*unyt.e,   1.009*unyt.amu],
-    "H"     : [  1,  1,  1*unyt.e,   1.007*unyt.amu],
-    "D"     : [  2,  1,  1*unyt.e,   2.014*unyt.amu],
-    "T"     : [  3,  1,  1*unyt.e,   3.016*unyt.amu],
-    "He3"   : [  3,  2,  2*unyt.e,   3.016*unyt.amu],
-    "He4"   : [  4,  2,  2*unyt.e,   4.003*unyt.amu],
-    "Be9"   : [  9,  4,  4*unyt.e,   9.012*unyt.amu],
-    "C12"   : [ 12,  6,  6*unyt.e,  12.011*unyt.amu],
-    "Ne20"  : [ 20, 10, 10*unyt.e,  19.992*unyt.amu],
-    "Ar40"  : [ 40, 18, 18*unyt.e,  39.962*unyt.amu],
-    "Xe132" : [132, 54, 54*unyt.e, 131.904*unyt.amu],
-    "W184"  : [184, 74, 74*unyt.e, 183.950*unyt.amu],
+    "e"     : (  0,  0, -1*unyt.e,   0.0005486*unyt.amu),
+    "n"     : (  1,  0,  0*unyt.e,   1.009*unyt.amu),
+    "H"     : (  1,  1,  1*unyt.e,   1.007*unyt.amu),
+    "D"     : (  2,  1,  1*unyt.e,   2.014*unyt.amu),
+    "T"     : (  3,  1,  1*unyt.e,   3.016*unyt.amu),
+    "He3"   : (  3,  2,  2*unyt.e,   3.016*unyt.amu),
+    "He4"   : (  4,  2,  2*unyt.e,   4.003*unyt.amu),
+    "Be9"   : (  9,  4,  4*unyt.e,   9.012*unyt.amu),
+    "C12"   : ( 12,  6,  6*unyt.e,  12.011*unyt.amu),
+    "Ne20"  : ( 20, 10, 10*unyt.e,  19.992*unyt.amu),
+    "Ar40"  : ( 40, 18, 18*unyt.e,  39.962*unyt.amu),
+    "Xe132" : (132, 54, 54*unyt.e, 131.904*unyt.amu),
+    "W184"  : (184, 74, 74*unyt.e, 183.950*unyt.amu),
 }
 
 def species(name, charge=None):
@@ -70,9 +66,10 @@ def species(name, charge=None):
     elif name in checkadd(["W184"]):
         data = speciesdict["W184"]
     else:
-        species = ", ".join(valid_options)
+        spec = ", ".join(valid_options)
         raise ValueError(
-            "Unknown species %s. Known species are: %s" % (name, species))
+            f"Unknown species {name}. Known species are: {spec}"
+        )
 
     data = {"anum":data[0], "znum":data[1], "charge":data[2], "mass":data[3]}
     if charge is not None:
@@ -97,8 +94,10 @@ def autodetect(anum, znum, charge=None):
     data : dict
         Contains "anum", "znum", "charge", and "mass".
     """
-    for k, v in speciesdict.items():
+    for v in speciesdict.values():
         if anum == v[0] and znum == v[1]:
-            return v
+            if charge is None:
+                charge = v[2]
+            return {"anum":v[0], "znum":v[1], "charge":charge, "mass":v[3]}
 
-    raise ValueError("Unknown species anum={} znum={}".format(anum,znum))
+    raise ValueError(f"Unknown species anum={anum} znum={znum}")
