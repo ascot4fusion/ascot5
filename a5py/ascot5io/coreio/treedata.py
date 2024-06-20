@@ -4,6 +4,7 @@ import h5py
 
 from a5py.exceptions import AscotIOException
 from . import fileapi
+from . import tools
 
 class DataContainer():
     """Interface for providing access to underlying HDF5 data.
@@ -112,10 +113,9 @@ class DataGroup(DataContainer):
             Short description for the user to document this group.
         """
         f = self._open("a")
-        val = fileapi.set_desc(f.file, self._path, desc)
+        fileapi.set_desc(f.file, self._path, desc)
         self._close()
         self._root._build(self._root._ascot.file_getpath())
-        return val
 
     def get_desc(self):
         """Get this group's description.
@@ -199,11 +199,16 @@ class DataGroup(DataContainer):
         """
         self._root._destroy_group(self.get_qid(), repack)
 
-    def export(self,target_file,newgroup=False):
-        """
-        """
+    def export(self, target_file, newgroup=False):
+        """Copy this group with its contents to another HDF5 file.
 
-        import a5py.ascot5io.ascot5tools as tools
+        Parameters
+        ----------
+        target_file : str
+            Path to the file where the data is copied to.
+        newgroup : bool, optional
+            If True, a new QID and date is generated for the copied group.
+        """
         group = tools.copygroup(self._root.file_getpath(), target_file,
                                 self._path, newgroup=newgroup)
         return group

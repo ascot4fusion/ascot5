@@ -3,13 +3,13 @@
 Treeview consists of nodes acting as containers for other nodes and data. The
 tree is spanned by the `RootNode`.
 """
-import h5py
 import subprocess
+import h5py
+
+from a5py.exceptions import AscotIOException
 
 from . import fileapi
 from .treedata import DataGroup
-
-from a5py.exceptions import AscotIOException
 
 class _FancyText():
     """Helper class to decorate output of `ls` commands so it is easier to read.
@@ -147,8 +147,7 @@ class _Node():
         if key != "_frozen" and self._frozen:
             raise AscotIOException(
                 "Node is frozen and attributes cannot be set")
-        else:
-            super().__setattr__(key, value)
+        super().__setattr__(key, value)
 
     def __contains__(self, key):
         """Check whether this node contains the attribute.
@@ -302,7 +301,8 @@ class _ParentNode(_Node):
                     self[tag + "_0"] = self[tag]
 
                 # Find next available index and create "tag_i".
-                tag0 = tag; i = 0
+                i = 0
+                tag0 = tag
                 while tag in self:
                     tag = tag0 + "_" + str(i)
                     i += 1
@@ -403,7 +403,7 @@ class InputNode(_ParentNode):
             all data groups within this node.
         """
         out = ""
-        for i, q in enumerate(self._qids):
+        for q in self._qids:
             date  = self["q"+q].get_date()
             desc  = self["q"+q].get_desc()
             gtype = self["q"+q].get_type()
@@ -414,7 +414,8 @@ class InputNode(_ParentNode):
 
             out += "\n" + desc + "\n"
 
-        if show: print(out)
+        if show:
+            print(out)
         return out
 
 class ResultNode(_Node, DataGroup):
@@ -467,7 +468,8 @@ class ResultNode(_Node, DataGroup):
         """
         out = []
         for i in fileapi.OUTPUTGROUPS:
-            if i in self: out.append(i)
+            if i in self:
+                out.append(i)
 
         return out
 
@@ -512,7 +514,8 @@ class ResultNode(_Node, DataGroup):
             out += " " + date
             out += "\n" + desc + "\n"
 
-        if show: print(out)
+        if show:
+            print(out)
         return out
 
 class RootNode(_ParentNode):
@@ -788,7 +791,7 @@ class RootNode(_ParentNode):
             out += "+ " + str(ngrp-1) + " other(s)\n"
 
         out += _FancyText.title("Results:\n")
-        for i, q in enumerate(self._qids):
+        for q in self._qids:
             date  = self["q"+q].get_date()
             desc  = self["q"+q].get_desc()
             gtype = self["q"+q].get_type()
@@ -799,5 +802,6 @@ class RootNode(_ParentNode):
 
             out += "\n" + desc + "\n"
 
-        if show: print(out)
+        if show:
+            print(out)
         return out

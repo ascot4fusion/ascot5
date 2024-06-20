@@ -28,8 +28,6 @@ class TestAscot5IO(unittest.TestCase):
     def test_io_operations(self):
         """Test Ascot5IO operations that affect the contents of the HDF5 file.
         """
-
-        # Start with an empty object.
         a5 = Ascot(self.testfilename, create=True)
         ETC = {"exyz" : np.array([0,0,0])}
 
