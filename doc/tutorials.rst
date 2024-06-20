@@ -63,4 +63,5 @@ or you can convert these examples to ordinary Python scripts and execute them (e
    :hidden:
 
    tutorials/poincare.ipynb
+   tutorials/orbitanalysis.ipynb
    tutorials/biosaw.ipynb
