@@ -394,13 +394,19 @@ class PoincareTemplates():
                          egrid=None, time=0*unyt.s):
         """Generate markers for estimating orbit resonances.
 
-        All markers are generated at the outer mid plane at phi=0. They are
-        distributed uniformly in rho and pitch with a fixed energy.
+        All markers are generated at the outer mid plane at phi=0 at the nodes
+        specified by the (rho, pitch, ekin) grid.
 
         Parameters
         ----------
         species : str
             Marker species to be simulated.
+        rhogrid : array_like
+            Grid of rho values where markers are initialized.
+        xigrid : array_like
+            Grid of pitch values where markers are initialized.
+        egrid : array_like
+            Grid of ekin values where markers are initialized.
         time : float, optional
             The time-instant at when the simulation begins.
 
@@ -446,7 +452,7 @@ class PoincareTemplates():
 
         return ("gc", mrk)
 
-    def options_singleorbit(self, npol, ntor):
+    def options_singleorbit(self, npol=1, ntor=1, mode='gc'):
         """Generate options to trace markers for a fixed number of orbits.
 
         Collisionless orbits are traced for a fixed number of toroidal or
@@ -455,10 +461,12 @@ class PoincareTemplates():
 
         Parameters
         ----------
-        ntorb : int, optional
+        ntor : int
             Number of full toroidal orbits before simulation is terminated.
-        nporb : int, optional
+        npol : int
             Number of full poloidal orbits before simulation is terminated.
+        mode : {'prt', 'gc'}
+            Simulation mode.
 
         Returns
         -------
@@ -470,8 +478,6 @@ class PoincareTemplates():
         """
         out = Opt.get_default()
         out.update({
-            "SIM_MODE":2,
-            "ENABLE_ADAPTIVE":1,
             "ENABLE_ORBIT_FOLLOWING":1,
             "ENABLE_ORBITWRITE":1,
             "ORBITWRITE_MODE":0,
@@ -481,6 +487,14 @@ class PoincareTemplates():
             "ENDCOND_MAX_POLOIDALORBS":npol,
             "ENDCOND_MAX_TOROIDALORBS":ntor,
             "ENDCOND_MAXORBS":1,
-            "ENDCOND_MAXORBS":1,
         })
+        if mode == "gc":
+            out.update({
+                "SIM_MODE":2,
+                "ENABLE_ADAPTIVE":1,
+            })
+        elif mode == "prt":
+            out.update({
+                "SIM_MODE":1,
+            })
         return ("opt", out)

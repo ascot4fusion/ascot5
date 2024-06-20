@@ -416,11 +416,26 @@ class RunMixin(DistMixin):
 
         Parameters
         ----------
-        qnt : str
-            Name of the averaged quantity.
+        qnt : array_like
+            The quantity to be averaged evaluated along the orbit.
+        ids : int
+            ID of the marker whose orbit is used to compute the average.
+
+        Returns
+        -------
+        mileage : array_like
+            Time along the orbit trajectory starting from zero.
+        r : array_like
+            Marker R-coordinate along the orbit trajectory.
+        z : array_like
+            Marker z-coordinate along the orbit trajectory.
+        val : array_like
+            Value of ```qnt```along the orbit trajectory.
+        avg : array_like
+            Evaluated orbit average.
         """
-        qnt, mileage, r, z, p, pitch, pol = \
-            self.getorbit(qnt, "mileage", "r", "z", "phi", "pitch", "theta",
+        mileage, r, z, p, pitch, pol = \
+            self.getorbit("mileage", "r", "z", "phi", "pitch", "theta",
                           ids=ids)
         if any(pitch < 0) and any(pitch > 0):
             if pitch[0] < 0 or pitch[1] < 0:
@@ -437,15 +452,15 @@ class RunMixin(DistMixin):
                 i2 = np.argmax(pol > (pol[0] + 360*unyt.deg))
             else:
                 i2 = np.argmax(pol < (pol[0] - 360*unyt.deg))
-        qnt = qnt[i1:i2]
+        val = qnt[i1-1:i2]
         mileage = mileage[i1-1:i2]
         r = r[i1-1:i2]
         z = z[i1-1:i2]
         p = p[i1-1:i2]
         x, y, _ = physlib.pol2cart(r, p)
         ds = np.sqrt(np.diff(x)**2 + np.diff(y)**2 + np.diff(z)**2)
-        qnt = np.sum(qnt*ds) / np.sum(ds)
-        return mileage[1:], r, z, qnt
+        avg = np.sum(val[1:]*ds) / np.sum(ds)
+        return mileage-mileage[0], r, z, val, avg
 
     def getwall_figuresofmerit(self):
         """Get peak power load and other 0D quantities related to wall loads.

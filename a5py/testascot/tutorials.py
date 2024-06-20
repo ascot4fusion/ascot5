@@ -15,7 +15,7 @@ preprocessor = ExecutePreprocessor(timeout=600)
 errors = {}
 for nb in notebooks:
     # Skip notebooks that are not standalone
-    if nb in ["atomic.ipynb"]: continue
+    if nb in []: continue
     subprocess.run(["rm", "-f", "ascot.h5"])
     with open(nb) as f:
         nbin = nbformat.read(f, nbformat.NO_CONVERT)
