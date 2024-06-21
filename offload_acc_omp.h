@@ -37,7 +37,7 @@
 #define GPU_UPDATE_FROM_DEVICE(x ...) MY_PRAGMA(omp target update from ( x))
 #define GPU_MAP_FROM_DEVICE(x ...) MY_PRAGMA(omp target exit data map (from: x))
 #define GPU_MAP_DELETE_DEVICE(x ...)  MY_PRAGMA(omp target exit data (delete: x))
-#define GPU_ATOMIC MY_PRAGMA(acc atomic)
+#define GPU_ATOMIC MY_PRAGMA(omp atomic)
 #define DECLARE_TARGET_SIMD_UNIFORM(x ...) 
 #define DECLARE_TARGET_SIMD_UNIFORM_END
 #define DECLARE_TARGET_SIMD
