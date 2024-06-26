@@ -144,6 +144,46 @@ class wall_2D(DataGroup):
 
         return rmin, rmax
 
+    def getwallarea(self):
+        """Return the corresponsing area for revolving each strip of the 2D
+        wall around the z-axis.
+
+        Returns
+        -------
+        data : array_like, (N-1)
+            Areas of each revolving strip
+        """
+        w = self.read()
+        r = w['r']
+        z = w['z']
+        if r[0] != r[-1]:
+            r = np.append(r, r[0])
+            print('r was not closed')
+        if z[0] != z[-1]:
+            z = np.append(z, z[0])
+            print('z was not closed')
+
+        return np.pi*(r[1:]+r[:-1])*np.sqrt(np.square(r[1:]-r[:-1])+\
+                        np.square(z[1:]-z[:-1]))
+    def getnormedline(self):
+        """Return the length of each strip of the 2D wall.
+
+        Returns
+        -------
+        data : array_like, (N-1)
+            lenghts of each strip
+        """
+        w = self.read()
+        r = w['r']
+        z = w['z']
+        if r[0] != r[-1]:
+            r = np.append(r, r[0])
+            print('r was not closed')
+        if z[0] != z[-1]:
+            z = np.append(z, z[0])
+            print('z was not closed')
+        return np.sqrt(np.square(r[1:]-r[:-1])+np.square(z[1:]-z[:-1]))
+
     @staticmethod
     def create_dummy():
         """Create dummy data that has correct format and is valid, but can be
@@ -544,7 +584,7 @@ class wall_3D(DataGroup):
         rwall = self.read()
 
         #Movement in metres
-        t = movement/np.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2) 
+        t = movement/np.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2)
 
         rwall['x1x2x3'][component,:] += t*direction[0]
         rwall['y1y2y3'][component,:] += t*direction[1]
