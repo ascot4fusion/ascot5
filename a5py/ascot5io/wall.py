@@ -144,27 +144,44 @@ class wall_2D(DataGroup):
 
         return rmin, rmax
 
-    def getwallarea(self):
-        """Return the corresponsing area for revolving each strip of the 2D
+    def area(self, normal=False, data=None):
+        """Calculate the corresponsing area for revolving each strip of the 2D
         wall around the z-axis.
+
+        Parameters
+        ----------
+        normal : bool, optional
+            If True, calculate and return the surface normal vectors as well.
+        data : dict, optional
+            Dictionary with the wall data. If ``None``, the data is read from
+            the file.
 
         Returns
         -------
-        data : array_like, (N-1)
-            Areas of each revolving strip
+        area : array_like, (nelement,)
+            Surface areas of the wall elements.
+        nvec : array_like, (nelement,3)
+            Normal vectors of the wall elements in (R, z, 0)
+
+            Note that the direction of the normal vector is not specified (it
+            can point either inside or outside).
+
         """
-        w = self.read()
+        if data is None:
+            w = self.read()
+        else:
+            w = data
         r = w['r']
         z = w['z']
-        if r[0] != r[-1]:
-            r = np.append(r, r[0])
-            print('r was not closed')
-        if z[0] != z[-1]:
-            z = np.append(z, z[0])
-            print('z was not closed')
+        norm = np.sqrt(np.square(r[1:]-r[:-1])+np.square(z[1:]-z[:-1]))
+        area = np.pi*(r[1:]+r[:-1])*norm*unyt.m**2
+        if not normal:
+            return area
+        else:
+            n_vec = np.c_[(z[1:]-z[:-1])/norm, -(r[1:]-r[:-1])/norm, norm*0]
+            return area, n_vec.T
 
-        return np.pi*(r[1:]+r[:-1])*np.sqrt(np.square(r[1:]-r[:-1])+\
-                        np.square(z[1:]-z[:-1]))
+
     def getnormedline(self):
         """Return the length of each strip of the 2D wall.
 
