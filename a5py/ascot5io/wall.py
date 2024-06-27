@@ -193,12 +193,6 @@ class wall_2D(DataGroup):
         w = self.read()
         r = w['r']
         z = w['z']
-        if r[0] != r[-1]:
-            r = np.append(r, r[0])
-            print('r was not closed')
-        if z[0] != z[-1]:
-            z = np.append(z, z[0])
-            print('z was not closed')
         return np.sqrt(np.square(r[1:]-r[:-1])+np.square(z[1:]-z[:-1]))
 
     @staticmethod
