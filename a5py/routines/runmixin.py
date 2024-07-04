@@ -1434,7 +1434,7 @@ class RunMixin(DistMixin):
     @a5plt.openfigureifnoaxes(projection=None)
     def plotwall_2D_parametrized(self, axes=None, particle_load=False,
                                  ref_indices=None, colors=None, xlabel=None,
-                                 ylabel=None):
+                                 ylabel=None, ref_cmap='jet'):
         """Plot heat loads as a function of the parametrized wall contour.
 
         Parameters
@@ -1451,6 +1451,8 @@ class RunMixin(DistMixin):
             Label for the x-axis.
         ylabel : str, optional
             Label for the y-axis.
+        ref_cmap : str, optional
+            Name of the colormap for ref_indices.
         """
 
         wetted, area, edepo, pdepo, iangle = self.getwall_loads()
@@ -1473,7 +1475,7 @@ class RunMixin(DistMixin):
             xlabel = 's ['+str(xdif.units)+']'
         if ylabel is None:
             if particle_load:
-                ylabel = 'Heatload ['+str(pdepo.units/area.units)+']'
+                ylabel = 'Particleload ['+str(pdepo.units/area.units)+']'
             else:
                 ylabel = 'Heatload ['+str(edepo.units/area.units)+']'
         axes.set_xlabel(xlabel)
@@ -1507,7 +1509,7 @@ class RunMixin(DistMixin):
             if colors is None:
                 N_ref = len(ref_indices)
                 import matplotlib as mp
-                colors = mp.cm.jet(np.linspace(0,1,N_ref))
+                colors = mp.cm.get_cmap(ref_cmap)(np.linspace(0,1,N_ref))
             else:
                 if colors.shape[0] != len(ref_indices):
                     raise ValueError('ref_indices and colors len do not match')
@@ -1517,14 +1519,14 @@ class RunMixin(DistMixin):
                 xp     = np.append(xp, xmax)
                 yp     = np.append(yp, yp[ind])
                 colors = np.append(colors, colors[ind, :][np.newaxis, :], axis=0)
-                print(colors.shape)
 
             axes.scatter(xp, yp, s=70, c=colors)
 
     @a5plt.openfigureifnoaxes(projection=None)
     def plotwall_2D_contour(self, axes=None, particle_load=False,
                             ref_indices=None, colors=None, clog="linear",
-                            cmap=None, xlabel=None, ylabel=None, clabel=None):
+                            cmap=None, ref_cmap='jet', xlabel=None, ylabel=None,
+                            clabel=None):
         """Plot heat loads as in the 2D wall contour with a colorbar.
 
         Parameters
@@ -1541,6 +1543,8 @@ class RunMixin(DistMixin):
             color-axis scaling.
         cmap : str, optional
             Name of the colormap.
+        ref_cmap : str, optional
+            Name of the colormap for ref_indices.
         xlabel : str, optional
             Label for the x-axis.
         ylabel : str, optional
@@ -1560,7 +1564,11 @@ class RunMixin(DistMixin):
             xlabel = 'R [m]'
         if ylabel is None:
             ylabel = 'z [m]'
-
+        if clabel is None:
+            if particle_load:
+                clabel = 'Particleload ['+str(pdepo.units/area.units)+']'
+            else:
+                clabel = 'Heatload ['+str(edepo.units/area.units)+']'
         bbox = [np.min(lines[:, :, 0]), np.max(lines[:, :, 0]),\
                 np.min(lines[:, :, 1]), np.max(lines[:, :, 1]),\
                 np.min(y),              np.max(y)]
@@ -1584,8 +1592,7 @@ class RunMixin(DistMixin):
 
             if colors is None:
                 N_ref = len(ref_indices)
-                import matplotlib as mp
-                colors = mp.cm.jet(np.linspace(0,1,N_ref))
+                colors = mp.cm.get_cmap(ref_cmap)(np.linspace(0,1,N_ref))
             else:
                 if colors.shape[0] != len(ref_indices):
                     raise ValueError('ref_indices and colors len do not match')
