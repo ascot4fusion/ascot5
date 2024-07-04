@@ -113,8 +113,11 @@ class wall_2D(DataGroup):
             Line segments [[[r1,z1], [r2,z2]], ...] that form the cross section.
         """
         w = self.read()
-        r = np.append(w["r"], w["r"][0])
-        z = np.append(w["z"], w["z"][0])
+        r = w["r"] #np.append(w["r"], w["r"][0])
+        z = w["z"] #np.append(w["z"], w["z"][0])
+        if (r[0] != r[-1]) or (z[0] != z[-1]):
+            r = np.append(r, r[0])
+            z = np.append(z, z[0])
         lines = np.zeros((r.size-1, 2, 2))
         for i in range(r.size-1):
             lines[i, 0, 0] = r[i]
@@ -146,7 +149,8 @@ class wall_2D(DataGroup):
 
     def area(self, normal=False, data=None):
         """Calculate the corresponsing area for revolving each strip of the 2D
-        wall around the z-axis.
+        wall around the z-axis. Note: the normal vector is returned with only
+        R and z components.
 
         Parameters
         ----------
@@ -173,6 +177,9 @@ class wall_2D(DataGroup):
             w = data
         r = w['r']
         z = w['z']
+        if (r[0] != r[-1]) or (z[0] != z[-1]):
+            r = np.append(r, r[0])
+            z = np.append(z, z[0])
         norm = np.sqrt(np.square(r[1:]-r[:-1])+np.square(z[1:]-z[:-1]))
         area = np.pi*(r[1:]+r[:-1])*norm*unyt.m**2
         if not normal:
@@ -193,7 +200,10 @@ class wall_2D(DataGroup):
         w = self.read()
         r = w['r']
         z = w['z']
-        return np.sqrt(np.square(r[1:]-r[:-1])+np.square(z[1:]-z[:-1]))
+        if (r[0] != r[-1]) or (z[0] != z[-1]):
+            r = np.append(r, r[0])
+            z = np.append(z, z[0])
+        return np.sqrt(np.square(r[1:]-r[:-1])+np.square(z[1:]-z[:-1]))*unyt.m
 
     @staticmethod
     def create_dummy():

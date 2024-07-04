@@ -484,6 +484,8 @@ class RunMixin(DistMixin):
         of them receive no loads) but only those that are affected and their
         IDs.
 
+        For 2D walls, iangle, angle of incidence is not calculated.
+
         Parameters
         ----------
         weights : bool, optional
@@ -1443,6 +1445,167 @@ class RunMixin(DistMixin):
         """
         _, area, eload, _, _ = self.getwall_loads()
         a5plt.loadvsarea(area, eload/area, axes=axes)
+
+    @a5plt.openfigureifnoaxes(projection=None)
+    def plotwall_2D_parametrized(self, axes=None, particle_load=False,
+                                 ref_indices=None, colors=None, xlabel=None,
+                                 ylabel=None):
+        """Plot heat loads as a function of the parametrized wall contour.
+
+        Parameters
+        ----------
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        particle_load : bool, optional
+            Plot particle fluxes instead of powerloads.
+        ref_indices : {array_like, int}, optional
+            Plot 2D wall points given by ref_indices.
+        colors : arraylike, optional
+            Colors of all drawn indices. Must be same length as ref_indices.
+        xlabel : str, optional
+            Label for the x-axis.
+        ylabel : str, optional
+            Label for the y-axis.
+        """
+
+        wetted, area, edepo, pdepo, iangle = self.getwall_loads()
+        xdif = self.wall.getnormedline().flatten()
+        x_orig = np.cumsum(xdif)
+        x = x_orig - xdif/2 #initialize loads at half point
+        #x = x.flatten()
+        y = np.zeros(x.shape)
+        if particle_load:
+            y[wetted] = pdepo / area
+        else:
+            y[wetted] = edepo / area
+
+
+        # wrap x and y values
+        x = np.r_[-xdif[-1]/2, x, x_orig[-1]+xdif[0]/2]
+        y = np.r_[y[-1],       y, y[0]]
+
+        if xlabel is None:
+            xlabel = 's ['+str(xdif.units)+']'
+        if ylabel is None:
+            if particle_load:
+                ylabel = 'Heatload ['+str(pdepo.units/area.units)+']'
+            else:
+                ylabel = 'Heatload ['+str(edepo.units/area.units)+']'
+        axes.set_xlabel(xlabel)
+        axes.set_ylabel(ylabel)
+
+        axes.plot(x, y)
+
+        #set axes limits
+        xmax = x_orig[-1] #for limiting axes
+        xmin = 0
+        ymax = np.max(y)
+        ymin = 0
+
+        axes.set_xlim(xmin, xmax)
+        axes.set_ylim(ymin, ymax*1.1) #10% padding before top
+
+
+        if ref_indices is not None:
+
+            x_ori = np.r_[0, x_orig.flatten()]
+            dx    = np.r_[xdif.flatten()/2, xdif.flatten()[-1]/2]
+            dx2   = x[1:]-x[:-1]
+            dy   = y[1:]-y[:-1]
+            y_ori = y[1:]- dy*(dx/dx2)
+
+            xp = x_ori[ref_indices]
+            yp = y_ori[ref_indices]
+
+            x_max = x_ori[-1]
+
+            if colors is None:
+                N_ref = len(ref_indices)
+                import matplotlib as mp
+                colors = mp.cm.jet(np.linspace(0,1,N_ref))
+            else:
+                if colors.shape[0] != len(ref_indices):
+                    raise ValueError('ref_indices and colors len do not match')
+
+            if 0 in ref_indices:
+                ind = ref_indices.index(0)
+                xp     = np.append(xp, xmax)
+                yp     = np.append(yp, yp[ind])
+                colors = np.append(colors, colors[ind, :][np.newaxis, :], axis=0)
+                print(colors.shape)
+
+            axes.scatter(xp, yp, s=70, c=colors)
+
+    @a5plt.openfigureifnoaxes(projection=None)
+    def plotwall_2D_contour(self, axes=None, particle_load=False,
+                            ref_indices=None, colors=None, clog="linear",
+                            cmap=None, xlabel=None, ylabel=None, clabel=None):
+        """Plot heat loads as in the 2D wall contour with a colorbar.
+
+        Parameters
+        ----------
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        particle_load : bool, optional
+            Plot particle fluxes instead of powerloads.
+        ref_indices : {array_like, int}, optional
+            Plot 2D wall points given by ref_indices.
+        colors : arraylike, optional
+            Colors of all drawn indices. Must be same length as ref_indices.
+        clog : {"linear", "log", "symlog"}, optional
+            color-axis scaling.
+        cmap : str, optional
+            Name of the colormap.
+        xlabel : str, optional
+            Label for the x-axis.
+        ylabel : str, optional
+            Label for the y-axis.
+        clabel : str, optional
+            Label for the color axis.
+        """
+        wetted, area, edepo, pdepo, iangle = self.getwall_loads()
+        lines = self.wall.getwallcontour()
+        y = np.zeros((lines.shape[0], ))
+        if particle_load:
+            y[wetted] = pdepo / area
+        else:
+            y[wetted] = edepo / area
+
+        if xlabel is None:
+            xlabel = 'R [m]'
+        if ylabel is None:
+            ylabel = 'z [m]'
+
+        bbox = [np.min(lines[:, :, 0]), np.max(lines[:, :, 0]),\
+                np.min(lines[:, :, 1]), np.max(lines[:, :, 1]),\
+                np.min(y),              np.max(y)]
+
+        import matplotlib as mp
+        if cmap is None:
+            cmap ='viridis'
+        cols = mp.cm.get_cmap(cmap)((y - bbox[-2])/(bbox[-1] - bbox[-2]))
+        a5plt.line2d(x=lines[:, :, 0], y=lines[:, :, 1], c=cols, clog=clog,\
+                   xlabel=xlabel, ylabel=ylabel, clabel=clabel, bbox=bbox,\
+                   cmap=cmap, axesequal=True, axes=axes)
+
+        if ref_indices is not None:
+
+            w =self.wall.read()
+            x_ori = w['r']
+            y_ori = w['z']
+
+            xp = x_ori[ref_indices]
+            yp = y_ori[ref_indices]
+
+            if colors is None:
+                N_ref = len(ref_indices)
+                import matplotlib as mp
+                colors = mp.cm.jet(np.linspace(0,1,N_ref))
+            else:
+                if colors.shape[0] != len(ref_indices):
+                    raise ValueError('ref_indices and colors len do not match')
+
+            axes.scatter(xp, yp, s=70, c=colors)
 
     @a5plt.openfigureifnoaxes(projection=None)
     def plotwall_torpol(self, qnt='eload', getaxis=None,log=True, clim=None,
