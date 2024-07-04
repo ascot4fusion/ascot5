@@ -715,7 +715,8 @@ def line2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
         lc.set_array(c[i][1:])
         line = axes.add_collection(lc)
     smap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
-    plt.colorbar(smap, ax=axes, cax=cax)
+    cax = plt.colorbar(smap, ax=axes, cax=cax)
+    cax.ax.set_ylabel(clabel, rotation=90, labelpad=10)
 
 @openfigureifnoaxes(projection="3d")
 def line3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
