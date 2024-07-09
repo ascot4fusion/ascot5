@@ -7,7 +7,8 @@ dependencies:
   - glib
   - libgomp
   - python>=3.10
-  - hdf5 #=*=*mpich*
+  - hdf5=*=*openmp*
+  - mpi=*=*openmp*
   - zlib
   - setuptools
   - pip
@@ -15,6 +16,7 @@ dependencies:
   - numpy
   - scipy
   - h5py
+  - mpi4py
   - xmlschema
   - unyt==2.9.5
   - wurlitzer
