@@ -166,7 +166,7 @@ def openfigureifnoaxes(projection="rectilinear"):
                     raise ValueError(
                         "Invalid projection \"%s\" on axes: expected \"%s\"" %
                         (axes.name, projection))
-                plotfun(*args, axes=axes, **kwargs)
+                return plotfun(*args, axes=axes, **kwargs)
 
         return wrapper
 
@@ -1285,7 +1285,7 @@ def radialprofile(x, y1, y2=None, xlim=None, y1lim=None, y2lim=None,
         axrightlog.yaxis.set_label_position("right")
 
         axrightlog.tick_params(axis='y', which='minor', right=False)
-        axrightlin.yaxis.set_major_formatter(getmathtextsciformatter("%1.0e"))
+        axrightlin.yaxis.set_major_formatter(getmathtextsciformatter("%1.1e"))
 
         axlin      = axrightlin
         axrightlin = axleftlin
@@ -1332,6 +1332,8 @@ def radialprofile(x, y1, y2=None, xlim=None, y1lim=None, y2lim=None,
     legend1 = plt.legend(handles1, y1legends, loc='upper left',
                          bbox_to_anchor=(0.6,3.1), frameon=False)
     axleftlog.add_artist(legend1)
+
+    return axleftlin, axrightlin, axleftlog, axrightlog
 
 def defaultcamera(wallmesh):
     """Get default camera (helper function for the 3D plots).
