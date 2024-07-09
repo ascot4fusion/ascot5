@@ -209,8 +209,8 @@ class LibAscot:
         fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
                         ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
                         PTR_REAL, PTR_REAL, PTR_REAL]
-        fun(ctypes.byref(self._sim), self._efield_offload_array,
-            self._bfield_offload_array,
+        fun(ctypes.byref(self._sim), self._bfield_offload_array,
+            self._efield_offload_array,
             Neval, r, phi, z, t, out["er"], out["ephi"], out["ez"])
 
         return out
