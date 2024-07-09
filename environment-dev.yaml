@@ -39,7 +39,7 @@ dependencies:
   - clang-tools==15.*
   - libclang==15.*
   - llvm-openmp==15.*
-  - libasan
+  - libsanitizer
   - pylint
   - pip:
     - clang==15.*
