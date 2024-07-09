@@ -435,6 +435,10 @@ void afsi_sample_5D(dist_5D_data* dist, int n, int iR, int iphi, int iz,
 /**
  * @brief Sample ppara and pperp from a thermal (Maxwellian) population.
  *
+ * Sampling from Maxwellian distribution is done using Eq. (7) in
+ * "Efficient Algorithm for Generating Maxwell Random Variables", N. Mohamed,
+ * DOI 10.1007/s10955-011-0364-y
+ *
  * @param data pointer to the thermal data.
  * @param mass mass of the particle species.
  * @param n number of values to be sampled.
@@ -450,15 +454,16 @@ void afsi_sample_thermal(afsi_thermal_data* data, real mass, int n, int iR,
     real temp = data->temperature[ind];
 
     for(int i = 0; i < n; i++) {
-        real r1, r2, r3, E;
+        real r1, r2, r3, r4, E;
 
         r1 = random_uniform(rdata);
         r2 = random_uniform(rdata);
-        r3 = random_uniform(rdata);
-        E  = -temp * (log(r1) - log(r2) * cos(CONST_PI/2)*cos(CONST_PI/2) * r3);
+        r3 = cos( 0.5 * random_uniform(rdata) * CONST_PI );
+        E  = -temp * ( log(r1) + log(r2) * r3 * r3 );
 
-        ppara[i] = random_normal(rdata) * sqrt(mass * temp);
-        pperp[i] = sqrt(2 * E * mass);
+        r4 = 1.0 - 2 * random_uniform(rdata);
+        pperp[i] = sqrt( ( 1 - r4*r4 ) * 2 * E * mass);
+        ppara[i] = r4 * sqrt(2 * E * mass);
     }
 }
 
