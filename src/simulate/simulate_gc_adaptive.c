@@ -84,29 +84,40 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     /* Initialize running particles */
     int n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 
-    /* TODO: Initialise rfof markers and their resonance memory*/
-    void* rfof_marker_pointer_array[NSIMD];
-    void* rfof_mem_pointer_array[NSIMD]; /** < C equivalents of fortran pointers
-    to resonance memoryso of rfof markers */
-    void* rfof_diag_pointer_array[NSIMD]; /** < C equivalents of fortran 
-    diagnostics pointers. These are not really used but they must be allocated 
-    nevertheless if one does not want a segmentation fault. */
-    int mem_shape_i[NSIMD];
-    int mem_shape_j[NSIMD];
+    /* TODO Initialise rfof markers and their resonance memory*/
+
+    /** @brief C equivalents of fortran pointers to RFOF (ICRH) markers.      */ 
+    void* rfof_marker_pointer_array[NSIMD]    __memalign__;
+
+    /** @brief C equivalents of fortran pointers to resonance memorys of rfof 
+               markers                                                        */
+    void* rfof_mem_pointer_array[NSIMD]    __memalign__; 
+
+    /** @brief C equivalents of fortran diagnostics pointers. These are not 
+     *         really used but they must be allocated nevertheless if one does 
+     *         not want a segmentation fault.                                 */
+    void* rfof_diag_pointer_array[NSIMD]    __memalign__; 
+    
+    /** @brief First indices of RFOF resonance memory matrices (number of rows)*/
+    int mem_shape_i[NSIMD]    __memalign__; 
+
+    /** @brief First indices of RFOF resonance memory matrices (number of rows)*/
+    int mem_shape_j[NSIMD]    __memalign__;
+
     if(sim->enable_icrh) {
         for(int i=0; i< NSIMD; i++) {
-            //Allocate memory for the rfof markers on the fortran side.
+            /* Allocate memory for the rfof markers on the fortran side.      */
             rfof_interface_allocate_rfof_marker(
                 &(rfof_marker_pointer_array[i]));
-
+            
             /* Allocate memory for the rfof resonance memory on the fortran 
-            side. */
+               side. */
             rfof_interface_initialise_res_mem(&(rfof_mem_pointer_array[i]), 
             &(mem_shape_i[i]), &(mem_shape_j[i]), 
             &(sim->rfof_data.cptr_rfglobal), 
             &(sim->rfof_data.cptr_rfof_input_params));
-            
-            /* Initialise rfof diagnostics (dummy argument for ICRH kick)*/
+
+            /* Initialise rfof diagnostics (dummy argument for ICRH kick)     */
             rfof_interface_initialise_diagnostics(
                 &(sim->rfof_data.cptr_rfglobal), &(rfof_diag_pointer_array[i]));
         }
@@ -211,6 +222,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                 mem_shape_j);
 
             /* Check whether time step was rejected */
+            #pragma omp simd
             for(int i = 0; i < NSIMD; i++) {
                 if(p.running[i] && hout_rfof[i] < 0){
                     p.running[i] = 0;
@@ -320,18 +332,20 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     /* All markers simulated! */
 
     /* TODO: deallocate rfof structs (excl. wave field and input param which are
-    read in only once) */
+    read in only once)                                                        */
     /* Deallocate rfof structs */
-    for(int i=0; i< NSIMD; i++) {
-        /* Deallocate rfof markers*/
-        rfof_interface_deallocate_marker(&(rfof_marker_pointer_array[i]));
+    if(sim->enable_icrh) {
+        for(int i=0; i< NSIMD; i++) {
+            /* Deallocate rfof markers                                        */
+            rfof_interface_deallocate_marker(&(rfof_marker_pointer_array[i]));
 
-        /* Deallocate rfof marker resonance memory matrix. */
-        rfof_interface_deallocate_res_mem(&(rfof_mem_pointer_array[i]), 
-        &(mem_shape_i[i]), &(mem_shape_j[i]));
+            /* Deallocate rfof marker resonance memory matrix.                */
+            rfof_interface_deallocate_res_mem(&(rfof_mem_pointer_array[i]), 
+            &(mem_shape_i[i]), &(mem_shape_j[i]));
 
-        /* Deallocate dummy diagnostics of rfof markers. */
-        rfof_interface_deallocate_diagnostics(&(rfof_diag_pointer_array[i]));
+            /* Deallocate dummy diagnostics of rfof markers.                  */
+            rfof_interface_deallocate_diagnostics(&(rfof_diag_pointer_array[i]));
+        }
     }
 }
 

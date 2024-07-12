@@ -381,12 +381,367 @@ void libascot_E_field_eval_E(
         real E[3];
         if( E_field_eval_E(E, R[k], phi[k], z[k], t[k],
                            &sim->E_data, &sim->B_data) ) {
+
+    //Initialise RFOF
+    
+    if(sim.rfof_data.icrh_initialised != 1) {
+        printf("ASCOT: WENT TO INIITALISE WAVE FIELD FROM INPUT FILES \n");
+        int xml_filename_len = strlen(xml_filename);
+        int*xml_filename_len_ptr = &xml_filename_len;
+        //printf("xml_filename_len = %d\n", xml_filename_len);
+        rfof_interface_initev_excl_marker_stuff(xml_filename, &xml_filename_len_ptr,
+            &(sim.rfof_data.cptr_rfglobal), &(sim.rfof_data.cptr_rfof_input_params));
+        sim.rfof_data.icrh_initialised = 1;
+    }
+    
+    
+
+    real dummy_coordinate = 0.42;
+    real* dummy_ptr = &dummy_coordinate;
+
+
+    //separate loop
+    void* marker_pointer;
+    rfof_interface_allocate_rfof_marker(&marker_pointer);
+    printf("MARKER POINTER ALLOCATION OK\n");
+    
+    //__valipalikka_MOD_print_marker_stuff(&marker_pointer); //debugging
+    
+    real gyrof;
+    int nharm;    // +-20 or just 1 and 2 ?
+    real omega_res;
+    int dummy_int = 1;
+    real dummy_real = 0;
+    real* vpar = (real*)malloc(sizeof(real));  //TODO free
+    *vpar = 0.0;
+    real q = CONST_E;    //assume singly charged
+    real mass = 1.6726219e-27;    //proton mass
+    for(int k = 0; k < Neval; k++) {     // < Neval
+        printf("k = %d\n", k);
+        //evaluate resonance function
+        
+
+        //set R and vpar and gyrof to marker
+        
+        real B[3];
+        real B_magn;
+        if((1.20111 < R[k]) && (R[k] < 2.1097) && (-0.787 < z[k]) && (z[k] < 0.7897)){
+            if( B_field_eval_B(B, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
+                printf("ERROR IN B_field_eval_B");
+                B_magn = 0.0;
+                continue;
+            }else{
+                B_magn = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+            }
+        }        
+        
+        
+        if(B_magn != 0){
+            gyrof = q*B_magn/mass;
+            printf("OK 4, gyrof = %e\n", gyrof);
+        }else{
+            printf("B_magn was zero, setting gyrof = 0\n");
+            gyrof = 0.0;
             continue;
         }
-        ER[k]   = E[0];
-        Ephi[k] = E[1];
-        Ez[k]   = E[2];
+        
+        //printf("B_magn = %f\n", B_magn);
+        
+
+        //At this the values might be those dummies that were set in the allocation but they could have changed too beacuse those dummies were from stack and thus free'd after the allocation routine in C was done. 
+        //__valipalikka_MOD_print_marker_stuff(&marker_pointer); //debugging
+
+        printf("Calling  set marker pointers from c with inputs\n");
+        printf("R[k] = %f\n", R[k]);
+        printf("vpar = %f\n", *vpar);
+        printf("gyrof = %f\n", gyrof);
+
+        //Jostain syystä vpar laittaa koko homman mankeliin
+
+        rfof_interface_set_marker_pointers(&marker_pointer, &dummy_int,
+            &dummy_real, &(R[k]), &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real, vpar, &dummy_real, &gyrof, &dummy_real, &dummy_real,
+            &dummy_int, &dummy_int);
+        
+        //tässä kohtaa omega_gyron ja vparin printtaaminen antaa segfaulttia. Huom. R ei!
+
+        //__valipalikka_MOD_print_marker_stuff(&marker_pointer); //debugging
+
+        rfof_interface_eval_resonance_function(&marker_pointer, &(sim.rfof_data.cptr_rfglobal), &omega_res, &nharm);
+        Ephi[k] = omega_res;
+        
+        printf("nharm = %d\n", nharm);
+
+        //Ephi[k] = 0.0;
     }
+    
+   
+    //Manually update the marker location and resonance memory to check what the code does
+
+    void* rfof_mem_pointer;
+    void* rfof_diag_pointer;
+    int mem_shape_i;
+    int mem_shape_j;
+    //First, allocate one resonance memory
+    rfof_interface_initialise_res_mem(&(rfof_mem_pointer), 
+            &(mem_shape_i), &(mem_shape_j), 
+            &(sim.rfof_data.cptr_rfglobal), 
+            &(sim.rfof_data.cptr_rfof_input_params));
+    printf("res mem initialised\n");
+
+    //initialize one diagnostics (dummy)
+    rfof_interface_initialise_diagnostics(
+                &(sim.rfof_data.cptr_rfglobal), &(rfof_diag_pointer));
+    printf("diagnostics initialised\n");
+
+    real time  = 1.e-8;
+    real hin = 1e-8;
+    int mpiprocid = 0;
+    prt_rfof rfof_data_pack = {
+                .dmu = 0.0,
+                .dvpar = 0.0,
+                .de = 0.0,
+                .deCumulative = 0.0,
+                .dpitch = 0.0,
+                .maxAcc = 0.0,
+                .RFdt = 0.0,
+            };
+
+    //set the marker location
+    int err = 0; int* err_ptr = &err;
+    real R2 = 12345; real* R_ptr = &R2;
+    real phi2 = 0.0; real* phi_ptr = &phi2;
+    real z2 = 0.0; real* z_ptr = &z2;
+    real charge = CONST_E; real* charge_ptr = &charge;
+    real mass2 = 3.3436e-27; real* mass_ptr = &mass2;
+    real psi; real* psi_ptr = &psi;
+    real gyrof2; real* gyrof_ptr = &gyrof2;
+    real mu2; real* mu_ptr = &mu2;
+    real vperppi; real* vperppi_ptr = &vperppi;
+    real time_acc = 1.0; real* time_acc_ptr = &time_acc;
+    B_field_eval_psi(psi_ptr, *R_ptr, *phi_ptr, *z_ptr, time, &sim.B_data);
+
+    real B[3];
+    B_field_eval_B(B, *R_ptr, *phi_ptr, *z_ptr, time, &sim.B_data);
+    real B_magn = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+    *gyrof_ptr = (*charge_ptr)*B_magn/(*mass_ptr);
+
+    //assume xi is constant 0.9 and energy approx 100 keV. Then 0.5mv_perp**2 is (1-xi**2)*Ekin, leading to
+    mu2 = 0.19*100000*CONST_E/B_magn;
+    //lets assume this stays approximately constant and not update it
+
+    vperppi = sqrt(0.19*100000*CONST_E*2/mass2);
+
+    rfof_interface_set_marker_pointers(&marker_pointer, &dummy_int,
+            &dummy_real, R_ptr, phi_ptr, z_ptr, psi_ptr, charge_ptr, mass_ptr, &dummy_real, &dummy_real, mu_ptr, &dummy_real, vpar, vperppi_ptr, gyrof_ptr, &dummy_real, time_acc_ptr,
+            &dummy_int, &dummy_int);
+
+
+    //set the first position
+    *R_ptr = 2.0;
+
+    printf("\n===============================================\n");
+    printf("Ready to kick\n");
+
+    //////////////////////////////////////////////
+    // call kick 1
+    printf("\n***********************************************\n");
+    printf("\nBefore first kick,\n\tgyrof = %f\n\tR = %f\n", *gyrof_ptr, *R_ptr);
+    __valipalikka_MOD_call_rf_kick(&(time), &(hin),
+                &mpiprocid, &rfof_data_pack, &(marker_pointer),
+                &(rfof_mem_pointer), &(sim.rfof_data.cptr_rfglobal),
+                &(rfof_diag_pointer), err_ptr, &(mem_shape_i),
+                &(mem_shape_j));
+
+    printf("After first kick,\n\tRFdt = %e\n\t.de = %e\n",rfof_data_pack.RFdt,rfof_data_pack.de);
+    
+    //update position and time
+    *R_ptr = 1.9; 
+    time = time + hin;
+    //update psi
+    B_field_eval_psi(psi_ptr, *R_ptr, *phi_ptr, *z_ptr, time, &sim.B_data);
+    //update gyrof
+    B_field_eval_B(B, *R_ptr, *phi_ptr, *z_ptr, time, &sim.B_data);
+    B_magn = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+    *gyrof_ptr = gyrof = (*charge_ptr)*B_magn/(*mass_ptr);
+    //updating pointers should be useless so it's not done
+
+    //////////////////////////////////////////////
+    //call kick 2
+    printf("\n***********************************************\n");
+    printf("\nBefore second kick,\n\tgyrof = %f\n\tR = %f\n", *gyrof_ptr, *R_ptr);
+    __valipalikka_MOD_call_rf_kick(&(time), &(hin),
+                &mpiprocid, &rfof_data_pack, &(marker_pointer),
+                &(rfof_mem_pointer), &(sim.rfof_data.cptr_rfglobal),
+                &(rfof_diag_pointer), err_ptr, &(mem_shape_i),
+                &(mem_shape_j));
+
+    printf("After second kick,\n\tRFdt = %e\n\t.de = %e\n",rfof_data_pack.RFdt,rfof_data_pack.de);
+    
+    //update position and time
+    *R_ptr = 1.8; time = time + hin;
+    //update psi
+    B_field_eval_psi(psi_ptr, *R_ptr, *phi_ptr, *z_ptr, time, &sim.B_data);
+    //update gyrof
+    B_field_eval_B(B, *R_ptr, *phi_ptr, *z_ptr, time, &sim.B_data);
+    B_magn = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+    *gyrof_ptr = gyrof = (*charge_ptr)*B_magn/(*mass_ptr);
+    //updating pointers should be useless so it's not done
+
+    //////////////////////////////////////////////
+    //call kick 3
+    printf("\n***********************************************\n");
+    printf("\nBefore third kick,\n\tgyrof = %f\n\tR = %f\n", *gyrof_ptr, *R_ptr);
+    __valipalikka_MOD_call_rf_kick(&(time), &(hin),
+                &mpiprocid, &rfof_data_pack, &(marker_pointer),
+                &(rfof_mem_pointer), &(sim.rfof_data.cptr_rfglobal),
+                &(rfof_diag_pointer), err_ptr, &(mem_shape_i),
+                &(mem_shape_j));
+
+    printf("After third kick,\n\tRFdt = %e\n\t.de = %e\n",rfof_data_pack.RFdt,rfof_data_pack.de);
+    
+    //update position and time
+    *R_ptr = 1.736; time = time + hin;
+    //update psi
+    B_field_eval_psi(psi_ptr, *R_ptr, *phi_ptr, *z_ptr, time, &sim.B_data);
+    //update gyrof
+    B_field_eval_B(B, *R_ptr, *phi_ptr, *z_ptr, time, &sim.B_data);
+    B_magn = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+    *gyrof_ptr = gyrof = (*charge_ptr)*B_magn/(*mass_ptr);
+
+
+    //////////////////////////////////////////////
+    //call kick 4
+    printf("\n***********************************************\n");
+    printf("\nBefore 4th kick,\n\tgyrof = %f\n\tR = %f\n", *gyrof_ptr, *R_ptr);
+    __valipalikka_MOD_call_rf_kick(&(time), &(hin),
+                &mpiprocid, &rfof_data_pack, &(marker_pointer),
+                &(rfof_mem_pointer), &(sim.rfof_data.cptr_rfglobal),
+                &(rfof_diag_pointer), err_ptr, &(mem_shape_i),
+                &(mem_shape_j));
+
+    printf("After 4th kick,\n\tRFdt = %e\n\t.de = %e\n",rfof_data_pack.RFdt,rfof_data_pack.de);
+    
+    
+    //update position and time
+    *R_ptr = 1.719; time = time + hin;
+    //update psi
+    B_field_eval_psi(psi_ptr, *R_ptr, *phi_ptr, *z_ptr, time, &sim.B_data);
+    //update gyrof
+    B_field_eval_B(B, *R_ptr, *phi_ptr, *z_ptr, time, &sim.B_data);
+    B_magn = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+    *gyrof_ptr = gyrof = (*charge_ptr)*B_magn/(*mass_ptr);
+
+
+    //////////////////////////////////////////////
+    //call kick 5
+    printf("\n***********************************************\n");
+    printf("\nBefore 5th kick,\n\tgyrof = %f\n\tR = %f\n", *gyrof_ptr, *R_ptr);
+    __valipalikka_MOD_call_rf_kick(&(time), &(hin),
+                &mpiprocid, &rfof_data_pack, &(marker_pointer),
+                &(rfof_mem_pointer), &(sim.rfof_data.cptr_rfglobal),
+                &(rfof_diag_pointer), err_ptr, &(mem_shape_i),
+                &(mem_shape_j));
+
+    printf("After 5th kick,\n\tRFdt = %e\n\t.de = %e\n",rfof_data_pack.RFdt,rfof_data_pack.de);
+
+
+
+
+
+
+
+
+
+
+
+
+    rfof_interface_deallocate_marker(&marker_pointer);
+
+    
+    /*
+    //#pragma omp parallel for
+    for(int k = 0; k < Neval; k++) {
+        real E[3];
+        //if( E_field_eval_E(E, R[k], phi[k], z[k], t[k],
+        //                   &sim.E_data, &sim.B_data) ) {
+        //    continue;
+        //}
+
+        
+        
+        //void** marker_pointer;
+        
+        //allocate marker pointer
+        //rfof_interface_allocate_rfof_marker(marker_pointer);
+        
+
+
+
+        
+        
+
+        // TODO: change the bounding box values to something more genreal!!
+        //Check if inside the defined RF field
+        if((1.20111 < R[k]) && (R[k] < 2.1097) && (-0.787 < z[k]) && (z[k] < 0.7897)){
+            rfof_interface_get_rf_wave_local(&(R[k]), &(z[k]), dummy_ptr, dummy_ptr ,&(sim.rfof_data.cptr_rfglobal), &(E[0]), &(E[2]));
+            ER[k]   = fabs(E[0]);   //E+
+            Ez[k]   = fabs(E[2]);   //E-
+
+
+            
+            //evaluate resonance function
+            int nharm = 1;    // +-20 or just 1 and 2 ?
+            real omega_res;
+            
+            
+            
+            //set R and vpar and gyrof to marker
+            int dummy_int = 1;
+            real dummy_real = 4.2;
+            real vpar = 0;
+            real q = CONST_E;    //assume singly charged
+            real mass = 1.6726219e-27;    //proton mass
+            real B[15];
+            if( B_field_eval_B_dB(B, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
+                continue;
+            }
+
+            
+
+            //BR[k]        = B[0];
+            //Bphi[k]      = B[4];
+            //Bz[k]        = B[8];
+            real B_magn = sqrt(B[0]*B[0] + B[4]*B[4] + B[8]*B[8]);
+            real gyrof = q*mass/B_magn;
+
+            printf("OK 4, gyrof = %e\n", gyrof);
+
+            rfof_interface_set_marker_pointers(marker_pointer, &dummy_int,
+                &dummy_real, &(R[k]), &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real, &vpar, &dummy_real, &gyrof, &dummy_real, &dummy_real,
+                &dummy_int, &dummy_int);
+            printf("OK 5\n");
+            rfof_interface_eval_resonance_function(marker_pointer, &(sim.rfof_data.cptr_rfglobal), &omega_res, &nharm);
+            printf("OK 6\n");
+            Ephi[k] = omega_res;
+        }else {
+            ER[k]   = 0.0;
+            Ephi[k] = 0.0;
+            Ez[k]   = 0.0;
+            
+        }
+        //deallocate marker
+        rfof_interface_deallocate_marker(marker_pointer);
+        
+        
+    }
+    */
+
+
+    /*
+    rfof_interface_deallocate_rfof_input_param(
+            &(sim.rfof_data.cptr_rfof_input_params));
+    rfof_interface_deallocate_rfglobal(&(sim.rfof_data.cptr_rfglobal));
+    */
 }
 
 /**
