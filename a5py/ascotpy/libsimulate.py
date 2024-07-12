@@ -13,7 +13,7 @@ import wurlitzer # For muting libascot.so
 from numpy.ctypeslib import ndpointer
 
 from a5py import physlib
-from a5py.routines.virtualrun import VirtualRun
+from a5py.routines.virtualrun import VirtualRun, VirtualBBNBIRun
 from a5py.exceptions import *
 
 from .libascot import _LIBASCOT
@@ -199,6 +199,23 @@ class LibSimulate():
             wall=wall, boozer=boozer, mhd=mhd, asigma=asigma, switch=switch)
         self._pack()
 
+    def simulation_initbbnbi(
+            self,
+            bfield=True,
+            plasma=True,
+            neutral=True,
+            wall=True,
+            asigma=True,
+            nbi=True,
+            switch=True):
+        """Initialize inputs for BBNBI simulation.
+
+        This method must be called before running BBNBI simulation.
+        """
+        self.input_init(
+            bfield=bfield, plasma=plasma, neutral=neutral,
+            wall=wall, asigma=asigma, switch=switch)
+        self._init(self.data, nbi=getattr(self.data, "nbi").active.get_qid())
 
     def simulation_initmarkers(self, **mrk):
         """Create markers for the interactive simulations.
@@ -453,6 +470,110 @@ class LibSimulate():
                           VirtualInput(self._virtualmarkers),
                           self._diag_offload_array,
                           diagorb=diagorb, dist5d=dist5d)
+
+    def simulation_bbnbi(self, nprt, t1=0, t2=0, printsummary=True):
+        """Run BBNBI simulation.
+
+        Parameters
+        ----------
+        nprt : Number of markers to be launched in total.
+
+            This number is the combined total for all injectors which are then
+            distributed among the injectors in proportion to the injector power.
+            For example, suppose there are 3 injectors with P_1 = 10 MW and
+            P_2 = 5 MW and P_3 = 5 MW. If `nprt` = 10000, then 5000 markers are
+            generated for injector 1 and 2500 markers for both injectors 2
+            and 3.
+
+            The number of ionized markers is either equal or smaller than `nprt`
+            as some of the markers are lost as shinethrough.
+        t1 : float, optional
+            The time instant at which the injector is turned on.
+
+            In the usual case where the background is time independent,
+            the parameters `t1` and `t2` only affect the marker initial time
+            which will be uniformly distributed in `[t1, t2]`.
+        printsummary : bool, optional
+            If True, summary of marker endstates is printed after the simulation
+            completes.
+
+        Returns
+        -------
+        run : :class:`VirtualBBNBI`
+            An object that acts almost exactly as :class:`BBNBIGroup` except that
+            the data is read from C arrays in the memory instead of HDF5 file.
+
+            The run can be used until the output is freed with
+            :meth:`simulation_free`. Previous data must be freed before
+            rerunning the simulation.
+
+        Raises
+        ------
+        AscotInitException
+            If inputs are not packed, markers are not initialized or previous
+            results have not been freed.
+        """
+        if not _LIBASCOT:
+            raise AscotInitException(
+                "Python interface disabled as libascot.so is not found")
+        if self._nmrk.value != 0:
+            raise AscotInitException(
+                "Free markers before rerunning the simulation")
+        if self._diag_occupied:
+            raise AscotInitException(
+                "Free previous results before running the simulation")
+        # Initialize diagnostics array and endstate
+        self._endstate = ctypes.pointer(ascot2py.struct_c__SA_particle_state())
+        ascot2py.diag_init_offload(ctypes.byref(self._sim.diag_offload_data),
+                                   ctypes.byref(self._diag_offload_array),
+                                   nprt)
+        self._diag_occupied = True
+
+        # Simulate and print stdout/stderr if requested
+        def runsim():
+            ascot2py.bbnbi_simulate(
+                ctypes.byref(self._sim), nprt, t1, t2,
+                self._bfield_offload_array,
+                self._plasma_offload_array,
+                self._neutral_offload_array,
+                self._wall_offload_array, self._wall_int_offload_array,
+                self._asigma_offload_array,
+                self._nbi_offload_array,
+                ctypes.byref(self._endstate),
+                self._diag_offload_array)
+
+        if self._mute == "no":
+            runsim()
+        else:
+            with wurlitzer.pipes() as (out, err):
+                runsim()
+            err = err.read()
+            if self._mute == "err" and len(err) > 1: print(err)
+
+        # Print summary
+        self._nmrk.value = nprt
+        if self._sim.mpi_rank == self._sim.mpi_root and printsummary:
+            ascot2py.print_marker_summary(self._endstate, self._nmrk)
+
+        class VirtualInput():
+            """Wrapper for marker and options inputs.
+            """
+
+            def __init__(self, inp):
+                self.inp = inp
+
+            def read(self):
+                return self.inp
+
+        diagorb = None
+        if self._sim.diag_offload_data.diagorb_collect:
+            diagorb = self._sim.diag_offload_data.diagorb
+        dist5d = None
+        if self._sim.diag_offload_data.dist5D_collect:
+            dist5d = self._sim.diag_offload_data.dist5D
+        return VirtualBBNBIRun(
+            self, nprt, self._endstate, VirtualInput(self._virtualoptions),
+            self._diag_offload_array, dist5d=dist5d)
 
     def simulation_free(self, inputs=False, markers=False, diagnostics=False):
         """Free resources used by the interactive simulation.

@@ -7,6 +7,7 @@ import ctypes
 from a5py.ascot5io import State, Orbits, Dist
 from a5py.ascot5io.dist import DistData
 from .runmixin import RunMixin
+from .bbnbi5 import BBNBIMixin
 
 from a5py.ascotpy.libascot import _LIBASCOT
 if _LIBASCOT:
@@ -30,16 +31,10 @@ class VirtualRun(RunMixin):
             Ascot instance for input interpolation.
         nmrk : int
             Number of markers in the simulation.
-        npoint : int
-            Number of data points reserved per marker.
         inistate :
             Pointer to marker inistate array.
         endstate :
             Pointer to marker endstate array.
-        mode : int
-            What simulation mode was active.
-        orbmode : int
-            What orbit collection mode was active.
         orbits : array_like, optional
             The diagnostics array containing the orbit data, if present.
         dist5d : array_like, optional
@@ -73,6 +68,55 @@ class VirtualRun(RunMixin):
 
             self._orbit = VirtualOrbits(
                 ascot, ascot._nmrk, diagorb, data)
+        if dist5d is not None:
+            data = pointer_increment(
+                ascot._sim.diag_offload_data.offload_dist5D_index)
+
+            self._dist5d = VirtualDist("5d", dist5d, diag_offload_array)
+
+class VirtualBBNBIRun(BBNBIMixin):
+    """Virtual :class:`BBNBIGroup` whose data exists solely in the memory.
+    """
+
+    def __init__(self, ascot, nmrk, state, options, diag_offload_array,
+                 dist5d=None, dist5drho=None):
+        """Initialize fields that allow this instance to replicate
+        :class:`BBNBIGroup` behavior.
+
+        Sets state and orbit attributes which are used by the methods in
+        :class:`BBNBIMixin`.
+
+        Parameters
+        ----------
+        ascot : :class:`Ascot`
+            Ascot instance for input interpolation.
+        nmrk : int
+            Number of markers in the simulation.
+        state :
+            Pointer to marker state array.
+        dist5d : array_like, optional
+            The 5d dist data struct if present.
+        dist5drho : array_like, optional
+            The diagnostics array containing the 5D rhodist data, if present.
+        """
+        self.options = options
+        # There's a need for better solution here in case inputs are provided
+        #for inp in ["bfield", "efield", "plasma", "neutral", "wall", "boozer",
+        #            "mhd", "asigma"]:
+        #    grp = ascot.data[inp].active
+        #    setattr(self, inp, grp)
+        self._state = VirtualState(ascot, ascot._nmrk, state)
+
+        def pointer_increment(idx):
+            """Returns pointer to the diagnostics array on index idx.
+            """
+            array_at_idx = ctypes.cast(diag_offload_array,
+                                       ctypes.POINTER(ctypes.c_double))
+            ptr  = ctypes.cast(ctypes.pointer(array_at_idx),
+                               ctypes.POINTER(ctypes.c_void_p))
+            ptr.contents.value += idx*ctypes.sizeof(ctypes.c_double)
+            return array_at_idx
+
         if dist5d is not None:
             data = pointer_increment(
                 ascot._sim.diag_offload_data.offload_dist5D_index)

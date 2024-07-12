@@ -140,7 +140,7 @@ OBJS= math.o list.o octree.o error.c \
 	$(SPLINEOBJS) \
 	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
 	E_field.o wall.o simulate.o diag.o offload.o boozer.o mhd.o \
-	random.o print.c hdf5_interface.o suzuki.o nbi.o biosaw.o \
+	random.o print.o hdf5_interface.o suzuki.o nbi.o biosaw.o \
 	asigma.o mpi_interface.o boschhale.o
 
 BINS=test_math test_nbi test_bsearch \
@@ -165,13 +165,13 @@ ifeq ($(CC),h5pcc)
 libascot.so: CFLAGS+=-shlib
 endif
 
-libascot.so: libascot.o ascot5_main.o libascot_mem.o afsi.o $(OBJS)
+libascot.so: libascot.o ascot5_main.o libascot_mem.o afsi.o bbnbi5.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
 ascot5_main: ascot5_main.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-bbnbi5: bbnbi5.o $(OBJS)
+bbnbi5: bbnbi5_main.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 doc:
@@ -235,7 +235,8 @@ ASCOT2PY_HEADERFILES=ascot5.h particle.h mpi_interface.h endcond.h simulate.h  \
 	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) $(PLSHEADERS)  \
 	$(ASIGMAHEADERS) $(N0HEADERS) $(MHDHEADERS) hdf5_interface.h           \
 	libascot_mem.h diag.h B_field.h E_field.h wall.h plasma.h neutral.h    \
-	boozer.h mhd.h nbi.h asigma.h afsi.h ascot5_main.h biosaw.h boschhale.h
+	boozer.h mhd.h nbi.h asigma.h afsi.h ascot5_main.h biosaw.h boschhale.h\
+	bbnbi5.h
 
 ascot2py.py : libascot.so
 	$(eval CLANGOMP=$(shell clang --print-resource-dir)) \
