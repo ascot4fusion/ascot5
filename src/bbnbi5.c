@@ -1,6 +1,6 @@
 /**
  * @file bbnbi5.c
- * @brief BBNBI5 main program
+ * @brief Interface to BBNBI5
  *
  * BBNBI5 models neutral beam injectors and is used to evaluate shine-through
  * and beam birth-profile. Neutral markers are generated from injector geometry
@@ -22,8 +22,6 @@
 #include "gitver.h"
 #include "math.h"
 #include "physlib.h"
-#include "hdf5_interface.h"
-#include "hdf5io/hdf5_helpers.h"
 #include "print.h"
 #include "simulate.h"
 #include "endcond.h"
@@ -37,112 +35,56 @@
 #include "asigma.h"
 #include "nbi.h"
 #include "diag.h"
+#include "bbnbi5.h"
 
-int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt,
-                   real* t1, real* t2);
-void bbnbi_simulate(particle_queue *pq, sim_data* sim);
-void bbnbi_inject(particle_state* p, int nprt, int ngenerated, real t0, real t1,
-                  nbi_injector* inj, sim_data* sim);
+int bbnbi_read_arguments(int argc, char** argv, sim_offload_data* sim,
+                         int* nprt, real* t1, real* t2);
+void bbnbi_trace_markers(particle_queue *pq, sim_data* sim);
+void bbnbi_inject_markers(particle_state* p, int nprt, int ngenerated, real t0,
+                          real t1, nbi_injector* inj, sim_data* sim);
 
 /**
- * @brief Main function for BBNBI5
+ * @brief Simulate NBI injection
  *
- * @param  argc argument count of the command line arguments
- * @param  argv argument vector of the command line arguments
+ * This function initializes neutrals and traces them until they have ionized or
+ * hit the wall.
  *
- * @return Zero if simulation was completed
+ * @param sim pointer to the simulation offload data structure
+ * @param nprt number of markers to be injected
+ * @param t1 time instant when the injector is turned on
+ * @param t2 time instant when the injector is turned off
+ * @param B_offload_array pointer to the magnetic field data
+ * @param plasma_offload_array pointer to the plasma data
+ * @param neutral_offload_array pointer to the neutral data
+ * @param wall_offload_array pointer to the wall data
+ * @param wall_int_offload_array pointer to the wall int data
+ * @param asigma_offload_array pointer to the atomic sigma data
+ * @param nbi_offload_array pointer to the nbi data
+ * @param p pointer to the marker array which is allocated here
+ * @param diag_offload_array pointer to the diagnostics data
  */
-int main(int argc, char** argv) {
-    int nprt;    /* Number of markers to be generated in total */
-    real t1, t2; /* Markers are initialized in this time-spawn */
-    sim_offload_data sim;
-
-    /* Read and parse command line arguments */
-    if(read_arguments(argc, argv, &sim, &nprt, &t1, &t2) != 0) {
-        abort();
-        return 1;
-    }
-
-    int mpi_rank = 0, mpi_root = 0; /* BBNBI 5 does not yet support MPI */
-    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "BBNBI5\n");
-    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
-               "Tag %s\nBranch %s\n\n", GIT_VERSION, GIT_BRANCH);
-
-    /* Read data needed for bbnbi simulation */
-    real* nbi_offload_array;
-    real* B_offload_array;
-    real* plasma_offload_array;
-    real* neutral_offload_array;
-    real* wall_offload_array;
-    int*  wall_int_offload_array;
-    real* asigma_offload_array;
-    real* diag_offload_array;
-    if( hdf5_interface_read_input(&sim, hdf5_input_bfield | hdf5_input_plasma |
-                                  hdf5_input_neutral | hdf5_input_wall |
-                                  hdf5_input_asigma | hdf5_input_nbi |
-                                  hdf5_input_options,
-                                  &B_offload_array, NULL, &plasma_offload_array,
-                                  &neutral_offload_array, &wall_offload_array,
-                                  &wall_int_offload_array, NULL, NULL,
-                                  &asigma_offload_array, &nbi_offload_array,
-                                  NULL, NULL) ) {
-        print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
-                   "Input initialization failed\n");
-        abort();
-        return 1;
-    }
-
-    /* Disable diagnostics that are not supported */
-    sim.diag_offload_data.diagorb_collect   = 0;
-    sim.diag_offload_data.diagtrcof_collect = 0;
-
-    /* Initialize diagnostics */
-    if( diag_init_offload(&sim.diag_offload_data, &diag_offload_array, 0) ) {
-        print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
-                       "\nFailed to initialize diagnostics.\n"
-                       "See stderr for details.\n");
-            abort();
-            return 1;
-    }
-    real diag_offload_array_size = sim.diag_offload_data.offload_array_length
-        * sizeof(real) / (1024.0*1024.0);
-    print_out0(VERBOSE_IO, mpi_rank, mpi_root,
-               "Initialized diagnostics, %.1f MB.\n", diag_offload_array_size);
-    simulate_init_offload(&sim);
-
-    /* QID for this run */
-    char qid[11];
-    hdf5_generate_qid(qid);
-
-    /* Write bbnbi run group to HDF5 */
-    if(mpi_rank == mpi_root) {
-        print_out0(VERBOSE_IO, mpi_rank, mpi_root, "\nPreparing output.\n");
-        if( hdf5_interface_init_results(&sim, qid, "bbnbi") ) {
-            print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
-                       "\nInitializing output failed.\n"
-                       "See stderr for details.\n");
-            /* Free offload data and terminate */
-            abort();
-            return 1;
-        }
-        strcpy(sim.qid, qid);
-    }
+void bbnbi_simulate(
+    sim_offload_data* sim, int nprt, real t1, real t2, real* B_offload_array,
+    real* plasma_offload_array, real* neutral_offload_array,
+    real* wall_offload_array, int* wall_int_offload_array,
+    real* asigma_offload_array, real* nbi_offload_array, particle_state** p,
+    real* diag_offload_array) {
 
     /* Initialize input data */
     sim_data sim_data;
-    sim_init(&sim_data, &sim);
+    sim_init(&sim_data, sim);
     random_init(&sim_data.random_data, time(NULL));
-    B_field_init(&sim_data.B_data, &sim.B_offload_data, B_offload_array);
-    plasma_init(&sim_data.plasma_data, &sim.plasma_offload_data,
+    B_field_init(&sim_data.B_data, &sim->B_offload_data, B_offload_array);
+    plasma_init(&sim_data.plasma_data, &sim->plasma_offload_data,
                 plasma_offload_array);
-    neutral_init(&sim_data.neutral_data, &sim.neutral_offload_data,
+    neutral_init(&sim_data.neutral_data, &sim->neutral_offload_data,
                  neutral_offload_array);
-    wall_init(&sim_data.wall_data, &sim.wall_offload_data, wall_offload_array,
+    wall_init(&sim_data.wall_data, &sim->wall_offload_data, wall_offload_array,
               wall_int_offload_array);
-    asigma_init(&sim_data.asigma_data, &sim.asigma_offload_data,
+    asigma_init(&sim_data.asigma_data, &sim->asigma_offload_data,
                 asigma_offload_array);
-    nbi_init(&sim_data.nbi_data, &sim.nbi_offload_data, nbi_offload_array);
-    diag_init(&sim_data.diag_data, &sim.diag_offload_data, diag_offload_array);
+    nbi_init(&sim_data.nbi_data, &sim->nbi_offload_data, nbi_offload_array);
+    diag_init(&sim_data.diag_data, &sim->diag_offload_data, diag_offload_array);
 
     /* Calculate total NBI power so that we can distribute markers along
      * the injectors according to their power */
@@ -152,7 +94,7 @@ int main(int argc, char** argv) {
     }
 
     /* Initialize particle struct */
-    particle_state *p = (particle_state*) malloc(nprt * sizeof(particle_state));
+    *p = (particle_state*) malloc(nprt * sizeof(particle_state));
 
     /* Generate markers at the injectors */
     int nprt_generated = 0;
@@ -168,11 +110,11 @@ int main(int argc, char** argv) {
 
         /* Generates markers at the injector location and traces them until
          * they enter the region with magnetic field data */
-        bbnbi_inject(&p[nprt_generated], nprt_inj, nprt_generated, t1, t2,
-                     &(sim_data.nbi_data.inj[i]), &sim_data);
+        bbnbi_inject_markers(&((*p)[nprt_generated]), nprt_inj, nprt_generated,
+                             t1, t2, &(sim_data.nbi_data.inj[i]), &sim_data);
 
         nprt_generated += nprt_inj;
-        print_out0(VERBOSE_NORMAL, mpi_rank, mpi_root,
+        print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,
                    "Generated %d markers for injector %d.\n", nprt_inj, i+1);
     }
 
@@ -187,35 +129,14 @@ int main(int argc, char** argv) {
 
     pq.next = 0;
     for(int i = 0; i < nprt; i++) {
-        pq.p[pq.next++] = &p[i];
+        pq.p[pq.next++] = &((*p)[i]);
 
     }
     pq.next = 0;
 
     /* Trace neutrals until they are ionized or lost to the wall */
     #pragma omp parallel
-    bbnbi_simulate(&pq, &sim_data);
-
-    /* Write output and close the simulation */
-    if(mpi_rank == mpi_root) {
-        if( hdf5_interface_write_state(sim.hdf5_out, "state",
-                                       nprt_generated, p) ) {
-            print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
-                       "\n"
-                       "Writing marker state failed.\n"
-                       "See stderr for details.\n"
-                       "\n");
-        }
-        free(p);
-        print_out0(VERBOSE_NORMAL, mpi_rank, mpi_root,
-                   "\nMarker state written.\n");
-
-        hdf5_interface_write_diagnostics(
-            &sim, diag_offload_array, sim.hdf5_out);
-    }
-    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "\nDone\n");
-
-    return 0;
+    bbnbi_trace_markers(&pq, &sim_data);
 }
 
 /**
@@ -235,8 +156,8 @@ int main(int argc, char** argv) {
  * @param inj pointer to injector data
  * @param sim pointer to the sim struct with initialized data
  */
-void bbnbi_inject(particle_state* p, int nprt, int ngenerated, real t0, real t1,
-                  nbi_injector* inj, sim_data* sim) {
+void bbnbi_inject_markers(particle_state* p, int nprt, int ngenerated, real t0,
+                          real t1, nbi_injector* inj, sim_data* sim) {
 
     /* Set marker weights assuming a large number is created so that the energy
      * fractions of generated markers are close to the injector values */
@@ -305,7 +226,7 @@ void bbnbi_inject(particle_state* p, int nprt, int ngenerated, real t0, real t1,
  * @param pq pointer to the marker queue containing the initial neutrals
  * @param sim pointer to the simu struct with initialized data
  */
-void bbnbi_simulate(particle_queue *pq, sim_data* sim) {
+void bbnbi_trace_markers(particle_queue *pq, sim_data* sim) {
     int cycle[NSIMD]  __memalign__;
     real hin[NSIMD]  __memalign__;
     int shinethrough[NSIMD] __memalign__;
@@ -520,8 +441,8 @@ void bbnbi_simulate(particle_queue *pq, sim_data* sim) {
  *
  * @return Zero if success
  */
-int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt,
-                   real* t1, real* t2) {
+int bbnbi_read_arguments(int argc, char** argv, sim_offload_data* sim,
+                         int* nprt, real* t1, real* t2) {
     struct option longopts[] = {
         {"in",       required_argument, 0,  1},
         {"out",      required_argument, 0,  2},

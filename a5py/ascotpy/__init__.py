@@ -129,7 +129,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
 
     def _init(self, data, bfield=None, efield=None, plasma=None,
               wall=None, neutral=None, boozer=None, mhd=None, asigma=None,
-              switch=False):
+              nbi=None, switch=False):
         """Read, offload, and initialize input data so it can be accessed
         by libascot.
 
@@ -168,6 +168,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             QID of the MHD data to be initialized or the data as a dictionary.
         asigma : str or dict
             QID of the atomicdata to be initialized or the data as a dictionary.
+        nbi : str or dict
+            QID of the NBI data to be initialized or the data as a dictionary.
         switch : bool
             If ``True``, free input that has been
         """
@@ -179,7 +181,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         args = locals() # Contains function arguments and values in a dictionary
         to_be_provided = [] # Inputs to be directly injected (provided)
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
-                    "mhd", "asigma"]:
+                    "mhd", "asigma", "nbi"]:
             if args[inp] is None:
                 # This input is not going to be initialized
                 continue
@@ -225,7 +227,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         # an exception, in which case sim.qid_* would point to data which is not
         # initialized.
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
-                    "mhd", "asigma"]:
+                    "mhd", "asigma", "nbi"]:
             if inputs2read.value & getattr(ascot2py, "hdf5_input_" + inp):
                 setattr(self._sim, "qid_" + inp, args[inp])
 
