@@ -17,12 +17,12 @@
 
 /* INITIALISATION */
 
-void __valipalikka_MOD_call_initev_excl_marker_stuff(char* xml_filename,
+void __ascot5_icrh_routines_MOD_call_initev_excl_marker_stuff(char* xml_filename,
     int **xml_filename_len,void** cptr_rfglobal, void** cptr_rfof_input_params);
-void __valipalikka_MOD_call_initialise_res_mem(void** cptr_mem,
+void __ascot5_icrh_routines_MOD_call_initialise_res_mem(void** cptr_mem,
     int* cptr_mem_shape_i, int* cptr_mem_shape_j, void** cptr_rfglobal,
     void** cptr_rfof_input_param);
-void __valipalikka_MOD_call_initialise_diagnostics(void** cptr_RFglobal,
+void __ascot5_icrh_routines_MOD_call_initialise_diagnostics(void** cptr_RFglobal,
     void** cptr_diagno);
 
 /* NOTE: There is no separate routine for initialising the markers; it is done 
@@ -32,7 +32,7 @@ void __valipalikka_MOD_call_initialise_diagnostics(void** cptr_RFglobal,
 
 /* STUFF TO DO BETWEEN KICKS */
 
-void __valipalikka_MOD_call_set_marker_pointers(void** cptr_marker, int** id,
+void __ascot5_icrh_routines_MOD_call_set_marker_pointers(void** cptr_marker, int** id,
     real** weight, real** R, real** phi, real** z, real** psi, real** charge,
     real** mass, real** Ekin, real** velocity, real** mu, real** pphicanonical,
     real** vpar, real** vperp, real** gyrof, real** vdriftRho, real** acc,
@@ -41,7 +41,7 @@ void __valipalikka_MOD_call_set_marker_pointers(void** cptr_marker, int** id,
 
 /* KICK */
 
-void __valipalikka_MOD_call_rf_kick(double*time, double*dtin, int* myMPIprocID,
+void __ascot5_icrh_routines_MOD_call_rf_kick(double*time, double*dtin, int* myMPIprocID,
     prt_rfof* rfof_data_pack, void** cptr_marker, void**cptr_mem,
     void** cptr_rfglobal, void** cptr_rfdiagno, int *err, int*mem_shape_i,
     int*mem_shape_j);
@@ -49,32 +49,32 @@ void __valipalikka_MOD_call_rf_kick(double*time, double*dtin, int* myMPIprocID,
 
 /* RESET RESONANCE MEMORY */
 
-void __valipalikka_MOD_call_reset_res_mem(void** rfof_mem_pointer,
+void __ascot5_icrh_routines_MOD_call_reset_res_mem(void** rfof_mem_pointer,
     int* mem_shape_i, int* mem_shape_j);
 
 
 /* DEALLOCATIONS*/
 
-void __valipalikka_MOD_call_deallocate_rfof_input_param(
+void __ascot5_icrh_routines_MOD_call_deallocate_rfof_input_param(
     void** cptr_rfof_input_param);
-void __valipalikka_MOD_call_deallocate_rfglobal(void** cptr_rfglobal);
-void __valipalikka_MOD_call_deallocate_res_mem(void** cptr_res_mem,
+void __ascot5_icrh_routines_MOD_call_deallocate_rfglobal(void** cptr_rfglobal);
+void __ascot5_icrh_routines_MOD_call_deallocate_res_mem(void** cptr_res_mem,
     int* cptr_mem_shape_i, int* cptr_mem_shape_j);
-void __valipalikka_MOD_call_deallocate_diagnostics(void** cptr_diagno);
-void __valipalikka_MOD_deallocate_marker(void** cptr_rfof_marker);
+void __ascot5_icrh_routines_MOD_call_deallocate_diagnostics(void** cptr_diagno);
+void __ascot5_icrh_routines_MOD_deallocate_marker(void** cptr_rfof_marker);
 
 
 /* FOR VISUALISING ICRH WAVE FIELD  */
 
-void __valipalikka_MOD_get_rf_wave_local_v2(real* R, real* z, real* rho_tor, real* theta,
+void __ascot5_icrh_routines_MOD_get_rf_wave_local_v2(real* R, real* z, real* rho_tor, real* theta,
     void** cptr_wi, real* e_plus_out, real* e_minus_out);
 
-void __valipalikka_MOD_eval_resonance_function(void** cptr_marker, void** cptr_rfglobal, real* omega_res, int* nharm);
+void __ascot5_icrh_routines_MOD_eval_resonance_function(void** cptr_marker, void** cptr_rfglobal, real* omega_res, int* nharm);
 
 
 /* FOR DEBUGGING (n.b. TOTALLY OBSOLETE) */
 
-void __valipalikka_MOD_print_marker_stuff(void** marker_pointer);
+void __ascot5_icrh_routines_MOD_print_marker_stuff(void** marker_pointer);
 #endif
 
 
@@ -101,7 +101,7 @@ void __valipalikka_MOD_print_marker_stuff(void** marker_pointer);
 void rfof_interface_initev_excl_marker_stuff(char* xml_filename,
     int **xml_filename_len,void** cptr_rfglobal,void** cptr_rfof_input_params) {
 #ifdef RFOF
-    __valipalikka_MOD_call_initev_excl_marker_stuff(xml_filename,
+    __ascot5_icrh_routines_MOD_call_initev_excl_marker_stuff(xml_filename,
         xml_filename_len,cptr_rfglobal, cptr_rfof_input_params);
 #endif
 };
@@ -121,7 +121,7 @@ void rfof_interface_initev_excl_marker_stuff(char* xml_filename,
 void rfof_interface_initialise_res_mem(void** cptr_mem, int* cptr_mem_shape_i,
     int* cptr_mem_shape_j, void** cptr_rfglobal, void** cptr_rfof_input_param) {
 #ifdef RFOF
-    __valipalikka_MOD_call_initialise_res_mem(cptr_mem, cptr_mem_shape_i,
+    __ascot5_icrh_routines_MOD_call_initialise_res_mem(cptr_mem, cptr_mem_shape_i,
         cptr_mem_shape_j, cptr_rfglobal, cptr_rfof_input_param);
 #endif
 };
@@ -135,7 +135,7 @@ void rfof_interface_initialise_res_mem(void** cptr_mem, int* cptr_mem_shape_i,
 void rfof_interface_initialise_diagnostics(void** cptr_rfglobal,
     void** cptr_diagno) {
 #ifdef RFOF  
-    __valipalikka_MOD_call_initialise_diagnostics(cptr_rfglobal, cptr_diagno);
+    __ascot5_icrh_routines_MOD_call_initialise_diagnostics(cptr_rfglobal, cptr_diagno);
 #endif
 };
 
@@ -160,7 +160,7 @@ void rfof_interface_allocate_rfof_marker(void** rfof_marker_pointer) {
     int is_already_allocated = 0; 
     
     /* Allocates memory and sets some dummy values to the marker fields       */
-    __valipalikka_MOD_call_set_marker_pointers(
+    __ascot5_icrh_routines_MOD_call_set_marker_pointers(
                 rfof_marker_pointer, 
                 &dummy_int_rfof_ptr,
                 &dummy_real_rfof_ptr,
@@ -231,7 +231,7 @@ void rfof_interface_set_marker_pointers(void** cptr_marker, int* id,
     real* vpar, real* vperp, real* gyrof, real* vdriftRho, real* acc,
     int* isOrbitTimeAccelerated, int* is_already_allocated) {
 #ifdef RFOF
-    __valipalikka_MOD_call_set_marker_pointers(cptr_marker, &id, &weight, &R, &phi,
+    __ascot5_icrh_routines_MOD_call_set_marker_pointers(cptr_marker, &id, &weight, &R, &phi,
         &z, &psi, &charge, &mass, &Ekin, &velocity, &mu, &pphicanonical, &vpar, &vperp,
         &gyrof, &vdriftRho, &acc, isOrbitTimeAccelerated, is_already_allocated);
 #endif
@@ -391,7 +391,7 @@ void rfof_interface_do_rfof_stuff_gc(particle_simd_gc* ascot_marker, real* hin,
             real ppar_old = ascot_marker->ppar[i];
 
             /* Update the fields of RFOF marker */
-            __valipalikka_MOD_call_set_marker_pointers(
+            __ascot5_icrh_routines_MOD_call_set_marker_pointers(
                 &rfof_marker_pointer_array[i], /* Note that the pointer to the 
                                                   pointer is passed.          */
                 &(dummy_Id_ptr),
@@ -439,11 +439,11 @@ void rfof_interface_do_rfof_stuff_gc(particle_simd_gc* ascot_marker, real* hin,
             int mpiprocid = 0; 
 
             /* Ready to kick some ash */
-            __valipalikka_MOD_call_rf_kick(&(ascot_marker->time[i]), &(hin[i]),
-                &mpiprocid, &rfof_data_pack, &(rfof_marker_pointer_array[i]),
-                &(rfof_mem_pointer_array[i]), &(rfof_data.cptr_rfglobal),
-                &(rfof_diag_pointer_array[i]), &err, &(mem_shape_i[i]),
-                &(mem_shape_j[i]));
+            __ascot5_icrh_routines_MOD_call_rf_kick(&(ascot_marker->time[i]), 
+                &(hin[i]), &mpiprocid, &rfof_data_pack, 
+                &(rfof_marker_pointer_array[i]), &(rfof_mem_pointer_array[i]), 
+                &(rfof_data.cptr_rfglobal), &(rfof_diag_pointer_array[i]), &err, 
+                &(mem_shape_i[i]), &(mem_shape_j[i]));
 
             /* Some of the rfof marker's pointers where pointing to the fields 
             of the ascot marker but some are pointing to the local variables 
@@ -626,7 +626,7 @@ void rfof_interface_do_rfof_stuff_gc(particle_simd_gc* ascot_marker, real* hin,
 //            not go there yourself. We're in luck, though, as we happen to //have
 //            a courier.) */
 //            
-//            __valipalikka_MOD_call_set_marker_pointers(
+//            __ascot5_icrh_routines_MOD_call_set_marker_pointers(
 //                ascot_marker->id[i],
 //                ascot_marker->weight[i],  /**<Number of real particles 
 //                represented 
@@ -676,7 +676,7 @@ void rfof_interface_do_rfof_stuff_gc(particle_simd_gc* ascot_marker, real* hin,
 void rfof_interface_reset_icrh_mem(void** rfof_mem_pointer, int* mem_shape_i,
     int* mem_shape_j) {
 #ifdef RFOF
-    __valipalikka_MOD_call_reset_res_mem(rfof_mem_pointer, mem_shape_i,
+    __ascot5_icrh_routines_MOD_call_reset_res_mem(rfof_mem_pointer, mem_shape_i,
         mem_shape_j);
 #endif
 };
@@ -693,7 +693,7 @@ void rfof_interface_reset_icrh_mem(void** rfof_mem_pointer, int* mem_shape_i,
  */
 void rfof_interface_deallocate_rfof_input_param(void** cptr_rfof_input_param) {
 #ifdef RFOF
-    __valipalikka_MOD_call_deallocate_rfof_input_param(cptr_rfof_input_param);
+    __ascot5_icrh_routines_MOD_call_deallocate_rfof_input_param(cptr_rfof_input_param);
 #endif
 };
 
@@ -706,7 +706,7 @@ void rfof_interface_deallocate_rfof_input_param(void** cptr_rfof_input_param) {
  */
 void rfof_interface_deallocate_rfglobal(void** cptr_rfglobal) {
 #ifdef RFOF
-    __valipalikka_MOD_call_deallocate_rfglobal(cptr_rfglobal);
+    __ascot5_icrh_routines_MOD_call_deallocate_rfglobal(cptr_rfglobal);
 #endif
 };
 
@@ -722,7 +722,7 @@ void rfof_interface_deallocate_rfglobal(void** cptr_rfglobal) {
 void rfof_interface_deallocate_res_mem(void** cptr_res_mem,
     int* cptr_mem_shape_i, int* cptr_mem_shape_j) {
 #ifdef RFOF
-    __valipalikka_MOD_call_deallocate_res_mem(cptr_res_mem, cptr_mem_shape_i,
+    __ascot5_icrh_routines_MOD_call_deallocate_res_mem(cptr_res_mem, cptr_mem_shape_i,
         cptr_mem_shape_j);
 #endif
 };
@@ -733,7 +733,7 @@ void rfof_interface_deallocate_res_mem(void** cptr_res_mem,
  */
 void rfof_interface_deallocate_diagnostics(void** cptr_diagno) {
 #ifdef RFOF
-    __valipalikka_MOD_call_deallocate_diagnostics(cptr_diagno);
+    __ascot5_icrh_routines_MOD_call_deallocate_diagnostics(cptr_diagno);
 #endif
 };
 
@@ -743,7 +743,7 @@ void rfof_interface_deallocate_diagnostics(void** cptr_diagno) {
  */
 void rfof_interface_deallocate_marker(void** cptr_rfof_marker) {
 #ifdef RFOF
-    __valipalikka_MOD_deallocate_marker(cptr_rfof_marker);
+    __ascot5_icrh_routines_MOD_deallocate_marker(cptr_rfof_marker);
 #endif
 };
 
@@ -765,7 +765,7 @@ void rfof_interface_deallocate_marker(void** cptr_rfof_marker) {
 void rfof_interface_get_rf_wave_local(real* R, real* z, real* rho_tor, 
     real* theta, void** cptr_wi, real* e_plus_out, real* e_minus_out) {
 #ifdef RFOF
-    __valipalikka_MOD_get_rf_wave_local_v2(R, z, rho_tor, theta , cptr_wi, 
+    __ascot5_icrh_routines_MOD_get_rf_wave_local_v2(R, z, rho_tor, theta , cptr_wi, 
         e_plus_out,  e_minus_out);
 #endif
 };
@@ -780,7 +780,7 @@ void rfof_interface_get_rf_wave_local(real* R, real* z, real* rho_tor,
 void rfof_interface_eval_resonance_function(void** cptr_marker, 
     void** cptr_rfglobal, real* omega_res, int* nharm){
 #ifdef RFOF
-    __valipalikka_MOD_eval_resonance_function(cptr_marker, cptr_rfglobal, 
+    __ascot5_icrh_routines_MOD_eval_resonance_function(cptr_marker, cptr_rfglobal, 
         omega_res, nharm);
 #endif
 };
