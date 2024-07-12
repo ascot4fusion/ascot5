@@ -405,7 +405,7 @@ void libascot_E_field_eval_E(
     rfof_interface_allocate_rfof_marker(&marker_pointer);
     printf("MARKER POINTER ALLOCATION OK\n");
     
-    //__valipalikka_MOD_print_marker_stuff(&marker_pointer); //debugging
+    //__ascot5_icrh_routines_MOD_print_marker_stuff(&marker_pointer); //debugging
     
     real gyrof;
     int nharm;    // +-20 or just 1 and 2 ?
@@ -449,7 +449,7 @@ void libascot_E_field_eval_E(
         
 
         //At this the values might be those dummies that were set in the allocation but they could have changed too beacuse those dummies were from stack and thus free'd after the allocation routine in C was done. 
-        //__valipalikka_MOD_print_marker_stuff(&marker_pointer); //debugging
+        //__ascot5_icrh_routines_MOD_print_marker_stuff(&marker_pointer); //debugging
 
         printf("Calling  set marker pointers from c with inputs\n");
         printf("R[k] = %f\n", R[k]);
@@ -464,7 +464,7 @@ void libascot_E_field_eval_E(
         
         //tässä kohtaa omega_gyron ja vparin printtaaminen antaa segfaulttia. Huom. R ei!
 
-        //__valipalikka_MOD_print_marker_stuff(&marker_pointer); //debugging
+        //__ascot5_icrh_routines_MOD_print_marker_stuff(&marker_pointer); //debugging
 
         rfof_interface_eval_resonance_function(&marker_pointer, &(sim.rfof_data.cptr_rfglobal), &omega_res, &nharm);
         Ephi[k] = omega_res;
@@ -546,7 +546,7 @@ void libascot_E_field_eval_E(
     // call kick 1
     printf("\n***********************************************\n");
     printf("\nBefore first kick,\n\tgyrof = %f\n\tR = %f\n", *gyrof_ptr, *R_ptr);
-    __valipalikka_MOD_call_rf_kick(&(time), &(hin),
+    __ascot5_icrh_routines_MOD_call_rf_kick(&(time), &(hin),
                 &mpiprocid, &rfof_data_pack, &(marker_pointer),
                 &(rfof_mem_pointer), &(sim.rfof_data.cptr_rfglobal),
                 &(rfof_diag_pointer), err_ptr, &(mem_shape_i),
@@ -569,7 +569,7 @@ void libascot_E_field_eval_E(
     //call kick 2
     printf("\n***********************************************\n");
     printf("\nBefore second kick,\n\tgyrof = %f\n\tR = %f\n", *gyrof_ptr, *R_ptr);
-    __valipalikka_MOD_call_rf_kick(&(time), &(hin),
+    __ascot5_icrh_routines_MOD_call_rf_kick(&(time), &(hin),
                 &mpiprocid, &rfof_data_pack, &(marker_pointer),
                 &(rfof_mem_pointer), &(sim.rfof_data.cptr_rfglobal),
                 &(rfof_diag_pointer), err_ptr, &(mem_shape_i),
@@ -591,7 +591,7 @@ void libascot_E_field_eval_E(
     //call kick 3
     printf("\n***********************************************\n");
     printf("\nBefore third kick,\n\tgyrof = %f\n\tR = %f\n", *gyrof_ptr, *R_ptr);
-    __valipalikka_MOD_call_rf_kick(&(time), &(hin),
+    __ascot5_icrh_routines_MOD_call_rf_kick(&(time), &(hin),
                 &mpiprocid, &rfof_data_pack, &(marker_pointer),
                 &(rfof_mem_pointer), &(sim.rfof_data.cptr_rfglobal),
                 &(rfof_diag_pointer), err_ptr, &(mem_shape_i),
@@ -613,7 +613,7 @@ void libascot_E_field_eval_E(
     //call kick 4
     printf("\n***********************************************\n");
     printf("\nBefore 4th kick,\n\tgyrof = %f\n\tR = %f\n", *gyrof_ptr, *R_ptr);
-    __valipalikka_MOD_call_rf_kick(&(time), &(hin),
+    __ascot5_icrh_routines_MOD_call_rf_kick(&(time), &(hin),
                 &mpiprocid, &rfof_data_pack, &(marker_pointer),
                 &(rfof_mem_pointer), &(sim.rfof_data.cptr_rfglobal),
                 &(rfof_diag_pointer), err_ptr, &(mem_shape_i),
@@ -636,7 +636,7 @@ void libascot_E_field_eval_E(
     //call kick 5
     printf("\n***********************************************\n");
     printf("\nBefore 5th kick,\n\tgyrof = %f\n\tR = %f\n", *gyrof_ptr, *R_ptr);
-    __valipalikka_MOD_call_rf_kick(&(time), &(hin),
+    __ascot5_icrh_routines_MOD_call_rf_kick(&(time), &(hin),
                 &mpiprocid, &rfof_data_pack, &(marker_pointer),
                 &(rfof_mem_pointer), &(sim.rfof_data.cptr_rfglobal),
                 &(rfof_diag_pointer), err_ptr, &(mem_shape_i),
