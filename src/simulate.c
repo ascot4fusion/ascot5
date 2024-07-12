@@ -95,6 +95,7 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     /*    respective init functions.                                          */
     /*                                                                        */
     /**************************************************************************/
+<<<<<<< HEAD
     simulate_init(sim);
 
 #ifdef GPU
@@ -125,11 +126,14 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
         exit(1);
     }
 #endif
-    char *xml_filename = "rfof_codeparam.xml";
-    int xml_filename_len = strlen(xml_filename);
-    int*xml_filename_len_ptr = &xml_filename_len;
-    rfof_interface_initev_excl_marker_stuff(xml_filename, &xml_filename_len_ptr,
-        &(sim.rfof_data.cptr_rfglobal), &(sim.rfof_data.cptr_rfof_input_params));
+
+    if(sim.enable_icrh) {
+        char *xml_filename = "rfof_codeparam.xml";
+        int xml_filename_len = strlen(xml_filename);
+        int*xml_filename_len_ptr = &xml_filename_len;
+        rfof_interface_initev_excl_marker_stuff(xml_filename, &xml_filename_len_ptr,
+            &(sim.rfof_data.cptr_rfglobal), &(sim.rfof_data.cptr_rfof_input_params));
+    }
 
     diag_init(&sim->diag_data, n_particles);
     GPU_MAP_TO_DEVICE(sim[0:1])
@@ -302,9 +306,17 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     free(pq.p);
     print_out(VERBOSE_NORMAL, "Simulation complete.\n");
 
-    rfof_interface_deallocate_rfof_input_param(
-        &(sim.rfof_data.cptr_rfof_input_params));
-    rfof_interface_deallocate_rfglobal(&(sim.rfof_data.cptr_rfglobal));
+    if(sim.enable_icrh) {
+        rfof_interface_deallocate_rfof_input_param(
+            &(sim.rfof_data.cptr_rfof_input_params));
+        rfof_interface_deallocate_rfglobal(&(sim.rfof_data.cptr_rfglobal));
+    }
+
+    /**************************************************************************/
+    /* 8. Execution returns to host where this function was called.           */
+    /*                                                                        */
+    /**************************************************************************/
+    print_out(VERBOSE_NORMAL, "%s: Simulation complete.\n", targetname);
 }
 
 /**
