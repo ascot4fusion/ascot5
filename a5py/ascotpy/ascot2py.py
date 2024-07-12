@@ -2183,6 +2183,7 @@ struct_c__SA_wall_2d_offload_data._pack_ = 1 # source:False
 struct_c__SA_wall_2d_offload_data._fields_ = [
     ('n', ctypes.c_int32),
     ('offload_array_length', ctypes.c_int32),
+    ('int_offload_array_length', ctypes.c_int32),
 ]
 
 wall_2d_offload_data = struct_c__SA_wall_2d_offload_data
@@ -2195,18 +2196,19 @@ struct_c__SA_wall_2d_data._fields_ = [
     ('PADDING_0', ctypes.c_ubyte * 4),
     ('wall_r', ctypes.POINTER(ctypes.c_double)),
     ('wall_z', ctypes.POINTER(ctypes.c_double)),
+    ('flag', ctypes.POINTER(ctypes.c_int32)),
 ]
 
 wall_2d_data = struct_c__SA_wall_2d_data
 wall_2d_init_offload = _libraries['libascot.so'].wall_2d_init_offload
 wall_2d_init_offload.restype = ctypes.c_int32
-wall_2d_init_offload.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_offload_data), ctypes.POINTER(ctypes.POINTER(ctypes.c_double))]
+wall_2d_init_offload.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_offload_data), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_int32))]
 wall_2d_free_offload = _libraries['libascot.so'].wall_2d_free_offload
 wall_2d_free_offload.restype = None
-wall_2d_free_offload.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_offload_data), ctypes.POINTER(ctypes.POINTER(ctypes.c_double))]
+wall_2d_free_offload.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_offload_data), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_int32))]
 wall_2d_init = _libraries['libascot.so'].wall_2d_init
 wall_2d_init.restype = None
-wall_2d_init.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_data), ctypes.POINTER(struct_c__SA_wall_2d_offload_data), ctypes.POINTER(ctypes.c_double)]
+wall_2d_init.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_data), ctypes.POINTER(struct_c__SA_wall_2d_offload_data), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32)]
 wall_2d_inside = _libraries['libascot.so'].wall_2d_inside
 wall_2d_inside.restype = ctypes.c_int32
 wall_2d_inside.argtypes = [real, real, ctypes.POINTER(struct_c__SA_wall_2d_data)]
@@ -2258,6 +2260,7 @@ struct_c__SA_wall_3d_data._fields_ = [
     ('depth', ctypes.c_int32),
     ('ngrid', ctypes.c_int32),
     ('wall_tris', ctypes.POINTER(ctypes.c_double)),
+    ('flag', ctypes.POINTER(ctypes.c_int32)),
     ('tree_array_size', ctypes.c_int32),
     ('PADDING_1', ctypes.c_ubyte * 4),
     ('tree_array', ctypes.POINTER(ctypes.c_int32)),
@@ -2310,7 +2313,6 @@ struct_c__SA_wall_offload_data._pack_ = 1 # source:False
 struct_c__SA_wall_offload_data._fields_ = [
     ('type', wall_type),
     ('w2d', wall_2d_offload_data),
-    ('PADDING_0', ctypes.c_ubyte * 4),
     ('w3d', wall_3d_offload_data),
     ('offload_array_length', ctypes.c_int32),
     ('int_offload_array_length', ctypes.c_int32),
@@ -2344,6 +2346,9 @@ wall_hit_wall.argtypes = [real, real, real, real, real, real, ctypes.POINTER(str
 wall_get_n_elements = _libraries['libascot.so'].wall_get_n_elements
 wall_get_n_elements.restype = ctypes.c_int32
 wall_get_n_elements.argtypes = [ctypes.POINTER(struct_c__SA_wall_data)]
+wall_get_flag = _libraries['libascot.so'].wall_get_flag
+wall_get_flag.restype = ctypes.c_int32
+wall_get_flag.argtypes = [ctypes.POINTER(struct_c__SA_wall_data), ctypes.c_int32]
 class struct_c__SA_boozer_offload_data(Structure):
     pass
 
@@ -2868,6 +2873,17 @@ struct_c__SA_mccc_data._fields_ = [
     ('include_gcdiff', ctypes.c_int32),
 ]
 
+class struct_c__SA_rfof_data(Structure):
+    pass
+
+struct_c__SA_rfof_data._pack_ = 1 # source:False
+struct_c__SA_rfof_data._fields_ = [
+    ('cptr_rfof_input_params', ctypes.POINTER(None)),
+    ('cptr_rfglobal', ctypes.POINTER(None)),
+    ('icrh_initialised', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+]
+
 struct_c__SA_sim_data._pack_ = 1 # source:False
 struct_c__SA_sim_data._fields_ = [
     ('B_data', B_field_data),
@@ -2882,6 +2898,7 @@ struct_c__SA_sim_data._fields_ = [
     ('diag_data', diag_data),
     ('random_data', ctypes.POINTER(None)),
     ('mccc_data', struct_c__SA_mccc_data),
+    ('rfof_data', struct_c__SA_rfof_data),
     ('sim_mode', ctypes.c_int32),
     ('enable_ada', ctypes.c_int32),
     ('record_mode', ctypes.c_int32),
@@ -2897,12 +2914,14 @@ struct_c__SA_sim_data._fields_ = [
     ('enable_clmbcol', ctypes.c_int32),
     ('enable_mhd', ctypes.c_int32),
     ('enable_atomic', ctypes.c_int32),
+    ('enable_icrh', ctypes.c_int32),
     ('disable_gctransform', ctypes.c_int32),
     ('disable_energyccoll', ctypes.c_int32),
     ('disable_pitchccoll', ctypes.c_int32),
     ('disable_gcdiffccoll', ctypes.c_int32),
     ('reverse_time', ctypes.c_int32),
     ('endcond_active', ctypes.c_int32),
+    ('PADDING_1', ctypes.c_ubyte * 4),
     ('endcond_lim_simtime', ctypes.c_double),
     ('endcond_max_mileage', ctypes.c_double),
     ('endcond_max_cputime', ctypes.c_double),
@@ -2913,7 +2932,7 @@ struct_c__SA_sim_data._fields_ = [
     ('endcond_max_tororb', ctypes.c_double),
     ('endcond_max_polorb', ctypes.c_double),
     ('endcond_torandpol', ctypes.c_int32),
-    ('PADDING_1', ctypes.c_ubyte * 4),
+    ('PADDING_2', ctypes.c_ubyte * 4),
 ]
 
 sim_data = struct_c__SA_sim_data
@@ -3317,20 +3336,21 @@ __all__ = \
     'struct_c__SA_plasma_1Dt_data',
     'struct_c__SA_plasma_1Dt_offload_data',
     'struct_c__SA_plasma_data', 'struct_c__SA_plasma_offload_data',
-    'struct_c__SA_sim_data', 'struct_c__SA_sim_offload_data',
-    'struct_c__SA_wall_2d_data', 'struct_c__SA_wall_2d_offload_data',
-    'struct_c__SA_wall_3d_data', 'struct_c__SA_wall_3d_offload_data',
-    'struct_c__SA_wall_data', 'struct_c__SA_wall_offload_data',
-    'struct_diag_transcoef_link', 'union_c__SA_input_particle_0',
-    'wall_2d_data', 'wall_2d_find_intersection',
-    'wall_2d_free_offload', 'wall_2d_hit_wall', 'wall_2d_init',
-    'wall_2d_init_offload', 'wall_2d_inside', 'wall_2d_offload_data',
-    'wall_3d_data', 'wall_3d_free_offload', 'wall_3d_hit_wall',
+    'struct_c__SA_rfof_data', 'struct_c__SA_sim_data',
+    'struct_c__SA_sim_offload_data', 'struct_c__SA_wall_2d_data',
+    'struct_c__SA_wall_2d_offload_data', 'struct_c__SA_wall_3d_data',
+    'struct_c__SA_wall_3d_offload_data', 'struct_c__SA_wall_data',
+    'struct_c__SA_wall_offload_data', 'struct_diag_transcoef_link',
+    'union_c__SA_input_particle_0', 'wall_2d_data',
+    'wall_2d_find_intersection', 'wall_2d_free_offload',
+    'wall_2d_hit_wall', 'wall_2d_init', 'wall_2d_init_offload',
+    'wall_2d_inside', 'wall_2d_offload_data', 'wall_3d_data',
+    'wall_3d_free_offload', 'wall_3d_hit_wall',
     'wall_3d_hit_wall_full', 'wall_3d_init', 'wall_3d_init_octree',
     'wall_3d_init_offload', 'wall_3d_init_tree',
     'wall_3d_offload_data', 'wall_3d_quad_collision',
     'wall_3d_tri_collision', 'wall_3d_tri_in_cube', 'wall_data',
-    'wall_free_offload', 'wall_get_n_elements', 'wall_hit_wall',
-    'wall_init', 'wall_init_offload', 'wall_offload_data',
-    'wall_type', 'wall_type_2D', 'wall_type_3D', 'write_output',
-    'write_rungroup']
+    'wall_free_offload', 'wall_get_flag', 'wall_get_n_elements',
+    'wall_hit_wall', 'wall_init', 'wall_init_offload',
+    'wall_offload_data', 'wall_type', 'wall_type_2D', 'wall_type_3D',
+    'write_output', 'write_rungroup']

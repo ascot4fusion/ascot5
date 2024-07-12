@@ -31,12 +31,14 @@ typedef struct {
                                        fortran side. This is needed when
                                        allocating resonance memory.           */
     void* cptr_rfglobal;          /**< Wave field; same for all markers.      */
+    int icrh_initialised;         /**< 0 if not initialised, 1 if initialised.
+                                      Currently used only in gui when plotting*/
 } rfof_data;
 
 
 
 
-/******************************** FUNCTIONS ********************************/
+/********************************* FUNCTIONS **********************************/
 
 
 /* INITIALISATION */
@@ -50,7 +52,7 @@ void rfof_interface_initialise_res_mem(void** cptr_mem, int* cptr_mem_shape_i,
 void rfof_interface_initialise_diagnostics(void** cptr_RFglobal,
     void** cptr_diagno);
 
-void rfof_interface_allocate_rfof_marker(void* rfof_marker_pointer);
+void rfof_interface_allocate_rfof_marker(void** rfof_marker_pointer);
 
 
 /* STUFF TO DO BETWEEN KICKS */
@@ -69,6 +71,7 @@ void rfof_interface_do_rfof_stuff_gc(particle_simd_gc* ascot_marker, real* hin,
     void** rfof_marker_pointer_array, void** rfof_mem_pointer_array,
     void** rfof_diag_pointer_array, int* mem_shape_i, int* mem_shape_j);
 
+// To be implemented shortly
 /*
 void rfof_interface_do_rfof_stuff_fo(particle_simd_fo* ascot_marker, real* hin,
     real* hout_rfof, rfof_data rfof_data, B_field_data* Bdata,
@@ -95,4 +98,12 @@ void rfof_interface_deallocate_res_mem(void** cptr_res_mem,
 void rfof_interface_deallocate_diagnostics(void** cptr_diagno);
 
 void rfof_interface_deallocate_marker(void** cptr_rfof_marker);
+
+
+/* FOR VISUALISING ICRH WAVE FIELD AND RESONANCE */
+
+void rfof_interface_get_rf_wave_local(real* R, real* z, real* rho_tor, real* theta,
+    void** cptr_wi, real* e_plus_out, real* e_minus_out);
+
+void rfof_interface_eval_resonance_function(void** cptr_marker, void** cptr_rfglobal, real* omega_res, int* nharm);
 #endif

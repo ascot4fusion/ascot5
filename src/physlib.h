@@ -288,12 +288,37 @@
         ppar * R * (Bphi / B)  +  q * psi )
 
 /**
- * @brief Evaluate perpendicular speed from velocity norm and parallel component of velocity for guiding centre.
+ * @brief Evaluate perpendicular speed from velocity norm and parallel 
+ * component of velocity for guiding centre.
  */
 #define phys_vperp_gc(v,vpar) sqrt(pow(v,2) - pow(vpar,2))
 
 /**
- * @brief Evaluate perpendicular momentum from momentum norm and parallel component of momentum for guiding centre.
+ * @brief Evaluate perpendicular momentum from momentum norm and parallel 
+ * component of momentum for guiding centre.
  */
 #define phys_pperp_gc(p,ppar) sqrt(pow(p,2) - pow(ppar,2))
+
+/**
+ * @brief Evaluate magnitude of parallel momentum from kinetic energy
+ */
+#define phys_ppar_Ekin(m, ekin, mu, B) (sqrt((physlib_gamma_Ekin(m, ekin)*\
+        physlib_gamma_Ekin(m, ekin) - 1.0)*m*m*CONST_C2 - 2.0*m*mu*B))
+
+/**
+ * @brief Evaluates magnitude of perpendicular velocity based on magnetic moment
+ */
+#define phys_vperp_mu(m, mu, B) sqrt(2*mu*B/m)
+
+/** 
+* @brief  Evaluates magnitude of parallel momentum from magnetic moment and 
+* gyrofrequency.
+*/
+#define phys_ppar_mu(m, mu, B, q, gyrof) (m*CONST_C*sqrt((q*B/(gyrof*m)) * \
+        (q*B/(gyrof*m)) - 2*mu*B/(m*CONST_C2) - 1))
+
+/**
+ * @brief Evaluate parallel momentum from canonical momentum conjugate to phi.
+ */
+#define phys_ppar_pphi(B, R, B_phi, p_phi, q, psi) (B/(R*B_phi)*(p_phi - q*psi))
 #endif
