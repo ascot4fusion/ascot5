@@ -262,8 +262,8 @@ class wall_2D(DataGroup):
         return gname
 
     @staticmethod
-    def write_hdf5_dummy(fn):
-        """Write dummy data that has correct format and is valid, but can be
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
         non-sensical.
 
         This method is intended for testing purposes or to provide data whose
