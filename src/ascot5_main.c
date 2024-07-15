@@ -505,8 +505,9 @@ int offload_and_simulate(
     }
 
     /* Code execution returns to host. */
-    print_out(VERBOSE_NORMAL, "process %d finished: gpu %lf s, host %lf s\n",
-              sim->mpi_rank, mic_end-mic_start, host_end-host_start);
+    MPI_Barrier(MPI_COMM_WORLD);
+    print_out0(VERBOSE_NORMAL, mpi_rank, "gpu %lf s, host %lf s\n",
+               mic_end-mic_start, host_end-host_start);
 
     /* Gather output data */
     mpi_gather_particlestate(pin, pout, n_gather, n_tot, sim->mpi_rank,
