@@ -27,12 +27,9 @@ typedef struct prt_rfof {
 
 /** @brief Struct containing void pointers to RFOF structs */
 typedef struct {
-    void* cptr_rfof_input_params; /**< Pointer to rfof_input_param struct on the
-                                       fortran side. This is needed when
-                                       allocating resonance memory.           */
-    void* cptr_rfglobal;          /**< Wave field; same for all markers.      */
-    int icrh_initialised;         /**< 0 if not initialised, 1 if initialised.
-                                      Currently used only in gui when plotting*/
+    void* cptr_rfof_input_params; /**< Pointer to rfof_input_param struct on
+                                       the fortran side                       */
+    void* cptr_rfglobal;          /**< Wave field; same for all markers       */
 } rfof_data;
 
 
@@ -45,7 +42,9 @@ typedef struct {
 
 /*void rfof_interface_initev_excl_marker_stuff(char* xml_filename,
     int **xml_filename_len,void** cptr_rfglobal, void** cptr_rfof_input_params);*/
-void rfof_interface_initev_excl_marker_stuff(char* xml_filename, rfof_data* rfof_data);
+void rfof_interface_initev_excl_marker_stuff(rfof_data* rfof_data);
+
+void rfof_init(rfof_data* rfof, rfof_data* rfof_offload_data);
 
 void rfof_interface_initialise_res_mem(void** cptr_mem, int* cptr_mem_shape_i,
     int* cptr_mem_shape_j, void** cptr_rfglobal, void** cptr_rfof_input_param);

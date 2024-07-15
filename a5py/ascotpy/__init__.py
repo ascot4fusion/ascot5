@@ -12,7 +12,7 @@ import a5py.routines.plotting as a5plt
 from a5py.routines.plotting import openfigureifnoaxes, plt
 from a5py.exceptions import AscotInitException
 
-from .libascot    import LibAscot, _LIBASCOT
+from .libascot    import LibAscot, _LIBASCOT, PTR_RFOF
 from .libsimulate import LibSimulate
 from .libproviders import LibProviders
 
@@ -104,6 +104,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         self._asigma_offload_array  = ctypes.POINTER(ctypes.c_double)()
         self._nbi_offload_array     = ctypes.POINTER(ctypes.c_double)()
         self._diag_offload_array    = ctypes.POINTER(ctypes.c_double)()
+        self._rfof_initialized      = False
 
         self._wall_int_offload_array = ctypes.POINTER(ctypes.c_int)()
 
@@ -423,6 +424,25 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             qid = getattr(self._sim, "qid_" + inp)
             if qid == Ascotpy.DUMMY_QID:
                 raise AscotInitException(inp + " is not initialized")
+
+    def input_init_rfof(self):
+        """
+        """
+        if self._rfof_initialized:
+            raise AscotInitException("RFOF input is already initialized")
+        fun = _LIBASCOT.rfof_interface_initev_excl_marker_stuff
+        fun.restype  = None
+        fun.argtypes = [PTR_RFOF]
+        fun(ctypes.byref(self._sim.rfof_data))
+        self._rfof_initialized = True
+
+    def input_free_rfof(self):
+        """
+        """
+        if not self._rfof_initialized:
+            raise AscotInitException("RFOF input is not initialized")
+
+        self._rfof_initialized = False
 
     def input_initialized(self):
         """Get inputs that are currently initialized.

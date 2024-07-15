@@ -65,6 +65,7 @@ typedef struct {
     asigma_offload_data asigma_offload_data;  /**< Atomic sigma offload data  */
     nbi_offload_data nbi_offload_data;        /**< NBI offload data           */
     diag_offload_data diag_offload_data;      /**< Diagnostics offload data   */
+    rfof_data rfof_data; /**< RFOF data (offloading not yet implemented) */
 
     /* Options - general */
     int sim_mode;        /**< Which simulation mode is used                   */
@@ -171,9 +172,8 @@ typedef struct {
     mccc_data mccc_data;       /**< Tabulated special functions and collision
                                     operator parameters                       */
 
-    /* TODO: rfof_data */
-    rfof_data rfof_data;       /**< void pointers to ICRH wave field and input 
-                                    parameters Fortran structs.               */
+    rfof_data rfof_data;       /**< Stores void pointers to ICRH wave field
+                                    and required Fortran structs              */
 
     /* Options - general */
     int sim_mode;        /**< Which simulation mode is used                   */

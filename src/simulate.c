@@ -98,13 +98,10 @@ void simulate(
     /**************************************************************************/
     sim_data sim;
     sim_init(&sim, sim_offload);
-    sim.enable_icrh = 1;
 
-    /* TODO: initialize RFOF wave field */
-    if(sim.enable_icrh) {
-        char *xml_filename = "rfof_codeparam.xml";
-       rfof_interface_initev_excl_marker_stuff(xml_filename, &(sim.rfof_data));
-    }
+    /* RFOF does not support proper offloading yet so this will cause problems
+     * if offloading is enabled */
+    rfof_init(&sim.rfof_data, &sim_offload->rfof_data);
 
     real* ptr; int* ptrint;
     offload_unpack(offload_data, offload_array,
@@ -315,15 +312,6 @@ void simulate(
     /**************************************************************************/
     free(pq.p);
     diag_free(&sim.diag_data);
-
-    /* TODO free RFOF stuff (only wave field and rfof_input_param. the markers, 
-    res_memory and diagnostics needs to be deallocated e.g. inside the 
-    simulate_gc_adaptive)                                                     */
-    if(sim.enable_icrh) {
-        rfof_interface_deallocate_rfof_input_param(
-            &(sim.rfof_data.cptr_rfof_input_params));
-        rfof_interface_deallocate_rfglobal(&(sim.rfof_data.cptr_rfglobal));
-    }
 
     /**************************************************************************/
     /* 8. Execution returns to host where this function was called.           */

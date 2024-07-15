@@ -130,4 +130,7 @@ typedef double real;  /**< Double precision float   */
 /** @brief Default depth of octree struct */
 #define WALL_OCTREE_DEPTH 7
 
+/** @brief Input filename where RFOF parameters are stored */
+#define RFOF_CODEPARAM_XML "rfof_codeparam.xml"
+
 #endif
