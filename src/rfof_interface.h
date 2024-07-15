@@ -43,8 +43,9 @@ typedef struct {
 
 /* INITIALISATION */
 
-void rfof_interface_initev_excl_marker_stuff(char* xml_filename,
-    int **xml_filename_len,void** cptr_rfglobal, void** cptr_rfof_input_params);
+/*void rfof_interface_initev_excl_marker_stuff(char* xml_filename,
+    int **xml_filename_len,void** cptr_rfglobal, void** cptr_rfof_input_params);*/
+void rfof_interface_initev_excl_marker_stuff(char* xml_filename, rfof_data* rfof_data);
 
 void rfof_interface_initialise_res_mem(void** cptr_mem, int* cptr_mem_shape_i,
     int* cptr_mem_shape_j, void** cptr_rfglobal, void** cptr_rfof_input_param);

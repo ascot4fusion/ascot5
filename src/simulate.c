@@ -103,10 +103,7 @@ void simulate(
     /* TODO: initialize RFOF wave field */
     if(sim.enable_icrh) {
         char *xml_filename = "rfof_codeparam.xml";
-        int xml_filename_len = strlen(xml_filename);
-        int*xml_filename_len_ptr = &xml_filename_len;
-        rfof_interface_initev_excl_marker_stuff(xml_filename, &xml_filename_len_ptr,
-            &(sim.rfof_data.cptr_rfglobal), &(sim.rfof_data.cptr_rfof_input_params));
+       rfof_interface_initev_excl_marker_stuff(xml_filename, &(sim.rfof_data));
     }
 
     real* ptr; int* ptrint;

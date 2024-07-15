@@ -72,7 +72,7 @@ void __ascot5_icrh_routines_MOD_get_rf_wave_local_v2(real* R, real* z, real* rho
 void __ascot5_icrh_routines_MOD_eval_resonance_function(void** cptr_marker, void** cptr_rfglobal, real* omega_res, int* nharm);
 
 
-/* FOR DEBUGGING (n.b. TOTALLY OBSOLETE) */
+/* FOR DEBUGGING (n.b. TOTALLY OBSOLETE, OBVIOUSLY) */
 
 void __ascot5_icrh_routines_MOD_print_marker_stuff(void** marker_pointer);
 #endif
@@ -98,11 +98,12 @@ void __ascot5_icrh_routines_MOD_print_marker_stuff(void** marker_pointer);
  * input parameters. Only relevant when constructing the resonance memorys later
  * on.
 */
-void rfof_interface_initev_excl_marker_stuff(char* xml_filename,
-    int **xml_filename_len,void** cptr_rfglobal,void** cptr_rfof_input_params) {
+void rfof_interface_initev_excl_marker_stuff(char* xml_filename, rfof_data* rfof_data) {
 #ifdef RFOF
+    int xml_filename_len = strlen(xml_filename);
+    int*xml_filename_len_ptr = &xml_filename_len;
     __ascot5_icrh_routines_MOD_call_initev_excl_marker_stuff(xml_filename,
-        xml_filename_len,cptr_rfglobal, cptr_rfof_input_params);
+        &xml_filename_len_ptr, &(rfof_data->cptr_rfglobal), &(rfof_data->cptr_rfof_input_params));
 #endif
 };
 
