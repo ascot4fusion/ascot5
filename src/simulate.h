@@ -93,6 +93,7 @@ typedef struct {
     int enable_mhd;            /**< Are MHD modes enabled                     */
     int enable_atomic;         /**< Are atomic reactions enabled, and with
                                     what functionality                        */
+    int enable_icrh;           /**< Is RFOF enabled                           */
     int disable_gctransform;   /**< Disables first order velocity terms in
                                     guiding center transformation             */
     int disable_energyccoll;   /**< Disables energy component from Coulomb
@@ -200,7 +201,7 @@ typedef struct {
     int enable_clmbcol;        /**< Are Coulomb collisions enabled            */
     int enable_mhd;            /**< Are MHD modes enabled                     */
     int enable_atomic;         /**< Are atomic reactions enabled              */
-    int enable_icrh; /**< Is RFOF enabled. */
+    int enable_icrh;           /**< Is RFOF enabled                           */
     int disable_gctransform;   /**< Disables first order velocity terms in
                                     guiding center transformation             */
     int disable_energyccoll;   /**< Disables energy component from Coulomb

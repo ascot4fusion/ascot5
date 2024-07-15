@@ -375,6 +375,7 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->enable_clmbcol       = offload_data->enable_clmbcol;
     sim->enable_mhd           = offload_data->enable_mhd;
     sim->enable_atomic        = offload_data->enable_atomic;
+    sim->enable_icrh          = offload_data->enable_icrh;
     sim->disable_gctransform  = offload_data->disable_gctransform;
     sim->disable_energyccoll  = offload_data->disable_energyccoll;
     sim->disable_pitchccoll   = offload_data->disable_pitchccoll;
