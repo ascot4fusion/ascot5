@@ -60,6 +60,7 @@ try:
     PTR_REAL = _ndpointerwithnull(ctypes.c_double, flags="C_CONTIGUOUS")
     PTR_INT  = _ndpointerwithnull(ctypes.c_int,    flags="C_CONTIGUOUS")
     PTR_SIM  = ctypes.POINTER(_get_struct_class("sim_data"))
+    PTR_RFOF = ctypes.POINTER(_get_struct_class("rfof_data"))
     PTR_ARR  = ctypes.POINTER(ctypes.c_double)
     STRUCT_DIST5D        = _get_struct_class("dist_5D_data")
     STRUCT_AFSITHERMAL   = _get_struct_class("afsi_thermal_data")
@@ -72,6 +73,7 @@ except ImportError as error:
     PTR_REAL  = None
     PTR_INT   = None
     PTR_SIM   = None
+    PTR_RFOF  = None
     PTR_ARR   = None
     STRUCT_DIST5D        = None
     STRUCT_AFSITHERMAL   = None
@@ -883,6 +885,7 @@ class LibAscot:
                             ctypes.c_double, ctypes.c_int, ctypes.c_int]
             fun(ctypes.byref(self._sim), psi, rz, step, tol, maxiter, ascent)
 
+<<<<<<< HEAD
             if np.isnan(psi[0]):
                 raise RuntimeError("Failed to converge.")
 
@@ -949,3 +952,65 @@ class LibAscot:
                              "for 3D fields. For 2D fields, none of these "
                              "should be provided.\n\nYou did an oopsie. Search "
                              "your feelings. You know it to be true.")
+=======
+        return (rz[0], rz[1], psi)
+
+    @parseunits(m="kg", q="C", vpar="m/s", r="m", phi="rad", z="m", t="s")
+    def input_eval_rfof(self, m, q, vpar, r, phi, z, t):
+        """Evaluate Evaluate ICRH electric field and the resonance condition.
+
+        The evaluated electric field consists of left-hand (-) and right-hand (+)
+        circularly polarized components. The resonance condition is given by
+
+        omega_wave - n * omega_gyro - k_parallel * v_parallel
+        - k_perp dot v_drift = 0.
+
+        Parameters
+        ----------
+        m : float
+            Test particle mass (for calculating the resonance).
+        q : float
+            Test particle charge (for calculating the resonance).
+        vpar : float
+            Test particle parallel velocity (for calculating the resonance).
+        r : array_like, (n,)
+            R coordinates where data is evaluated.
+        phi : array_like (n,)
+            phi coordinates where data is evaluated.
+        z : array_like (n,)
+            z coordinates where data is evaluated.
+        t : array_like (n,)
+            Time coordinates where data is evaluated.
+
+        Returns
+        -------
+        eplus : array_like, (n,)
+            Reaction cross-section.
+        eminus : array_like, (n,)
+        rescond : array_like, (n,)
+
+        Raises
+        ------
+        AssertionError
+            If required data has not been initialized.
+        """
+        self._requireinit("bfield")
+        if not self._rfof_initialized:
+            raise RuntimeError("RFOF data not initialized.")
+
+        Neval = r.size
+        eplus    = np.NaN * np.zeros((Neval,), dtype="f8") * unyt.V/unyt.m
+        eminus   = np.NaN * np.zeros((Neval,), dtype="f8") * unyt.V/unyt.m
+        res_cond = np.NaN * np.zeros((Neval,), dtype="f8") * unyt.dimensionless
+
+        fun = _LIBASCOT.libascot_eval_rfof
+        fun.restype  = None
+        fun.argtypes = [PTR_SIM, PTR_ARR,
+                        ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                        ctypes.c_double, ctypes.c_double, ctypes.c_double,
+                        PTR_REAL, PTR_REAL, PTR_REAL]
+        fun(ctypes.byref(self._sim), self._bfield_offload_array,
+            Neval, r, phi, z, t, m, q, vpar, eplus, eminus, res_cond)
+
+        return eplus, eminus, res_cond
+>>>>>>> b5756ac8 (RFOF functions should now be callable via libascot)

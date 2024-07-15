@@ -89,6 +89,7 @@ void __ascot5_icrh_routines_MOD_print_marker_stuff(void** marker_pointer);
  * @brief Initialise everyting  excluding marker stuff. Reads the ICRH (RFOF) 
  * inputs (xml, xsd, ASCII) and initialises the wave field (variable name: 
  * RFglobal).
+ *
  * @param xml_filename Name of the xml file (less than 124 char)
  * @param xml_filename_len Length of the xml_filename (excluding the '\0' at the 
  * end)
@@ -98,14 +99,28 @@ void __ascot5_icrh_routines_MOD_print_marker_stuff(void** marker_pointer);
  * input parameters. Only relevant when constructing the resonance memorys later
  * on.
 */
-void rfof_interface_initev_excl_marker_stuff(char* xml_filename, rfof_data* rfof_data) {
+void rfof_interface_initev_excl_marker_stuff(rfof_data* rfof_data) {
 #ifdef RFOF
-    int xml_filename_len = strlen(xml_filename);
+    int xml_filename_len = strlen(RFOF_CODEPARAM_XML);
     int*xml_filename_len_ptr = &xml_filename_len;
     __ascot5_icrh_routines_MOD_call_initev_excl_marker_stuff(xml_filename,
         &xml_filename_len_ptr, &(rfof_data->cptr_rfglobal), &(rfof_data->cptr_rfof_input_params));
 #endif
 };
+
+/**
+ * @brief Initialize RFOF data on target.
+ *
+ * Offloading for the RFOF data is not yet implemented, so this function just
+ * copies pointers from the offload data to the target data for now.
+ *
+ * @param rfof_data rfof data struct on target
+ * @param rfof_offload_data rfof data on host
+ */
+void rfof_init(rfof_data* rfof, rfof_data* rfof_offload_data) {
+    rfof->cptr_rfglobal = rfof_offload_data->cptr_rfglobal;
+    rfof->cptr_rfof_input_params = rfof_offload_data->cptr_rfof_input_params;
+}
 
 /**
  * @brief Initialises resonance memory for rfof markers. To be called before the
