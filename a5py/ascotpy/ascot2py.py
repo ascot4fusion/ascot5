@@ -2779,6 +2779,76 @@ nbi_free_offload.argtypes = [ctypes.POINTER(struct_c__SA_nbi_offload_data), ctyp
 nbi_inject = _libraries['libascot.so'].nbi_inject
 nbi_inject.restype = None
 nbi_inject.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(struct_c__SA_nbi_injector), ctypes.POINTER(ctypes.POINTER(None))]
+class struct_prt_rfof(Structure):
+    pass
+
+struct_prt_rfof._pack_ = 1 # source:False
+struct_prt_rfof._fields_ = [
+    ('dmu', ctypes.c_double),
+    ('dvpar', ctypes.c_double),
+    ('de', ctypes.c_double),
+    ('deCumulative', ctypes.c_double),
+    ('dpitch', ctypes.c_double),
+    ('maxAcc', ctypes.c_double),
+    ('RFdt', ctypes.c_double),
+]
+
+prt_rfof = struct_prt_rfof
+class struct_c__SA_rfof_data(Structure):
+    pass
+
+struct_c__SA_rfof_data._pack_ = 1 # source:False
+struct_c__SA_rfof_data._fields_ = [
+    ('cptr_rfof_input_params', ctypes.POINTER(None)),
+    ('cptr_rfglobal', ctypes.POINTER(None)),
+]
+
+rfof_data = struct_c__SA_rfof_data
+rfof_interface_initev_excl_marker_stuff = _libraries['libascot.so'].rfof_interface_initev_excl_marker_stuff
+rfof_interface_initev_excl_marker_stuff.restype = None
+rfof_interface_initev_excl_marker_stuff.argtypes = [ctypes.POINTER(struct_c__SA_rfof_data)]
+rfof_init = _libraries['libascot.so'].rfof_init
+rfof_init.restype = None
+rfof_init.argtypes = [ctypes.POINTER(struct_c__SA_rfof_data), ctypes.POINTER(struct_c__SA_rfof_data)]
+rfof_interface_initialise_res_mem = _libraries['libascot.so'].rfof_interface_initialise_res_mem
+rfof_interface_initialise_res_mem.restype = None
+rfof_interface_initialise_res_mem.argtypes = [ctypes.POINTER(ctypes.POINTER(None)), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.POINTER(None)), ctypes.POINTER(ctypes.POINTER(None))]
+rfof_interface_initialise_diagnostics = _libraries['libascot.so'].rfof_interface_initialise_diagnostics
+rfof_interface_initialise_diagnostics.restype = None
+rfof_interface_initialise_diagnostics.argtypes = [ctypes.POINTER(ctypes.POINTER(None)), ctypes.POINTER(ctypes.POINTER(None))]
+rfof_interface_allocate_rfof_marker = _libraries['libascot.so'].rfof_interface_allocate_rfof_marker
+rfof_interface_allocate_rfof_marker.restype = None
+rfof_interface_allocate_rfof_marker.argtypes = [ctypes.POINTER(ctypes.POINTER(None))]
+rfof_interface_set_marker_pointers = _libraries['libascot.so'].rfof_interface_set_marker_pointers
+rfof_interface_set_marker_pointers.restype = None
+rfof_interface_set_marker_pointers.argtypes = [ctypes.POINTER(ctypes.POINTER(None)), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32)]
+rfof_interface_do_rfof_stuff_gc = _libraries['libascot.so'].rfof_interface_do_rfof_stuff_gc
+rfof_interface_do_rfof_stuff_gc.restype = None
+rfof_interface_do_rfof_stuff_gc.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), rfof_data, ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(ctypes.POINTER(None)), ctypes.POINTER(ctypes.POINTER(None)), ctypes.POINTER(ctypes.POINTER(None)), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32)]
+rfof_interface_reset_icrh_mem = _libraries['libascot.so'].rfof_interface_reset_icrh_mem
+rfof_interface_reset_icrh_mem.restype = None
+rfof_interface_reset_icrh_mem.argtypes = [ctypes.POINTER(ctypes.POINTER(None)), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32)]
+rfof_interface_deallocate_rfof_input_param = _libraries['libascot.so'].rfof_interface_deallocate_rfof_input_param
+rfof_interface_deallocate_rfof_input_param.restype = None
+rfof_interface_deallocate_rfof_input_param.argtypes = [ctypes.POINTER(ctypes.POINTER(None))]
+rfof_interface_deallocate_rfglobal = _libraries['libascot.so'].rfof_interface_deallocate_rfglobal
+rfof_interface_deallocate_rfglobal.restype = None
+rfof_interface_deallocate_rfglobal.argtypes = [ctypes.POINTER(ctypes.POINTER(None))]
+rfof_interface_deallocate_res_mem = _libraries['libascot.so'].rfof_interface_deallocate_res_mem
+rfof_interface_deallocate_res_mem.restype = None
+rfof_interface_deallocate_res_mem.argtypes = [ctypes.POINTER(ctypes.POINTER(None)), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32)]
+rfof_interface_deallocate_diagnostics = _libraries['libascot.so'].rfof_interface_deallocate_diagnostics
+rfof_interface_deallocate_diagnostics.restype = None
+rfof_interface_deallocate_diagnostics.argtypes = [ctypes.POINTER(ctypes.POINTER(None))]
+rfof_interface_deallocate_marker = _libraries['libascot.so'].rfof_interface_deallocate_marker
+rfof_interface_deallocate_marker.restype = None
+rfof_interface_deallocate_marker.argtypes = [ctypes.POINTER(ctypes.POINTER(None))]
+rfof_interface_get_rf_wave_local = _libraries['libascot.so'].rfof_interface_get_rf_wave_local
+rfof_interface_get_rf_wave_local.restype = None
+rfof_interface_get_rf_wave_local.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.POINTER(None)), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+rfof_interface_eval_resonance_function = _libraries['libascot.so'].rfof_interface_eval_resonance_function
+rfof_interface_eval_resonance_function.restype = None
+rfof_interface_eval_resonance_function.argtypes = [ctypes.POINTER(ctypes.POINTER(None)), ctypes.POINTER(ctypes.POINTER(None)), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32)]
 
 # values for enumeration 'SIMULATION_MODE'
 SIMULATION_MODE__enumvalues = {
@@ -2807,6 +2877,7 @@ struct_c__SA_sim_offload_data._fields_ = [
     ('asigma_offload_data', asigma_offload_data),
     ('nbi_offload_data', nbi_offload_data),
     ('diag_offload_data', diag_offload_data),
+    ('rfof_data', rfof_data),
     ('sim_mode', ctypes.c_int32),
     ('enable_ada', ctypes.c_int32),
     ('record_mode', ctypes.c_int32),
@@ -2875,17 +2946,6 @@ struct_c__SA_mccc_data._fields_ = [
     ('include_gcdiff', ctypes.c_int32),
 ]
 
-class struct_c__SA_rfof_data(Structure):
-    pass
-
-struct_c__SA_rfof_data._pack_ = 1 # source:False
-struct_c__SA_rfof_data._fields_ = [
-    ('cptr_rfof_input_params', ctypes.POINTER(None)),
-    ('cptr_rfglobal', ctypes.POINTER(None)),
-    ('icrh_initialised', ctypes.c_int32),
-    ('PADDING_0', ctypes.c_ubyte * 4),
-]
-
 struct_c__SA_sim_data._pack_ = 1 # source:False
 struct_c__SA_sim_data._fields_ = [
     ('B_data', B_field_data),
@@ -2900,7 +2960,7 @@ struct_c__SA_sim_data._fields_ = [
     ('diag_data', diag_data),
     ('random_data', ctypes.POINTER(None)),
     ('mccc_data', struct_c__SA_mccc_data),
-    ('rfof_data', struct_c__SA_rfof_data),
+    ('rfof_data', rfof_data),
     ('sim_mode', ctypes.c_int32),
     ('enable_ada', ctypes.c_int32),
     ('record_mode', ctypes.c_int32),
@@ -3283,12 +3343,27 @@ __all__ = \
     'plasma_init', 'plasma_init_offload', 'plasma_offload_data',
     'plasma_type', 'plasma_type_1D', 'plasma_type_1DS',
     'plasma_type_1Dt', 'prepare_markers', 'print_marker_summary',
-    'real', 'sigma_CX', 'sigma_ioniz', 'sigma_recomb', 'sigmav_BMS',
-    'sigmav_CX', 'sigmav_ioniz', 'sigmav_recomb', 'sigmaveff_CX',
-    'sigmaveff_ioniz', 'sigmaveff_recomb', 'sim_data', 'sim_init',
-    'sim_offload_data', 'simulate', 'simulate_init_offload',
-    'simulate_mode_fo', 'simulate_mode_gc', 'simulate_mode_hybrid',
-    'simulate_mode_ml', 'size_t', 'struct_c__SA_B_2DS_data',
+    'prt_rfof', 'real', 'rfof_data', 'rfof_init',
+    'rfof_interface_allocate_rfof_marker',
+    'rfof_interface_deallocate_diagnostics',
+    'rfof_interface_deallocate_marker',
+    'rfof_interface_deallocate_res_mem',
+    'rfof_interface_deallocate_rfglobal',
+    'rfof_interface_deallocate_rfof_input_param',
+    'rfof_interface_do_rfof_stuff_gc',
+    'rfof_interface_eval_resonance_function',
+    'rfof_interface_get_rf_wave_local',
+    'rfof_interface_initev_excl_marker_stuff',
+    'rfof_interface_initialise_diagnostics',
+    'rfof_interface_initialise_res_mem',
+    'rfof_interface_reset_icrh_mem',
+    'rfof_interface_set_marker_pointers', 'sigma_CX', 'sigma_ioniz',
+    'sigma_recomb', 'sigmav_BMS', 'sigmav_CX', 'sigmav_ioniz',
+    'sigmav_recomb', 'sigmaveff_CX', 'sigmaveff_ioniz',
+    'sigmaveff_recomb', 'sim_data', 'sim_init', 'sim_offload_data',
+    'simulate', 'simulate_init_offload', 'simulate_mode_fo',
+    'simulate_mode_gc', 'simulate_mode_hybrid', 'simulate_mode_ml',
+    'size_t', 'struct_c__SA_B_2DS_data',
     'struct_c__SA_B_2DS_offload_data', 'struct_c__SA_B_3DS_data',
     'struct_c__SA_B_3DS_offload_data', 'struct_c__SA_B_GS_data',
     'struct_c__SA_B_GS_offload_data', 'struct_c__SA_B_STS_data',
@@ -3343,7 +3418,7 @@ __all__ = \
     'struct_c__SA_wall_2d_offload_data', 'struct_c__SA_wall_3d_data',
     'struct_c__SA_wall_3d_offload_data', 'struct_c__SA_wall_data',
     'struct_c__SA_wall_offload_data', 'struct_diag_transcoef_link',
-    'union_c__SA_input_particle_0', 'wall_2d_data',
+    'struct_prt_rfof', 'union_c__SA_input_particle_0', 'wall_2d_data',
     'wall_2d_find_intersection', 'wall_2d_free_offload',
     'wall_2d_hit_wall', 'wall_2d_init', 'wall_2d_init_offload',
     'wall_2d_inside', 'wall_2d_offload_data', 'wall_3d_data',

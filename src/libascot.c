@@ -361,119 +361,6 @@ void libascot_B_field_gradient_descent_3d(
 
 
 /**
- * @brief Evaluate ICRH electric field abs(E+) and abs(E-) at given coordinates.
- * Also evaluate reonance condition ( = 0 for resonance).
- *
- * @param sim_offload_data initialized simulation offload data struct
- * @param B_offload_array initialized magnetic field offload data
- * @param E_offload_array initialized electric field offload data
- * @param Neval number of evaluation points.
- * @param R R coordinates of the evaluation points [m].
- * @param phi phi coordinates of the evaluation points [rad].
- * @param z z coordinates of the evaluation points [m].
- * @param t time coordinates of the evaluation points [s].
- * @param xml_filename Name of the XML input file for RFOF. Should be 
- * "rfof_codeparam.xml"
- * @param vpar Parallel velocity of the marker. Use for evaluating shift in the 
- * resonance function [m/s].
- * @param q Charge of the marker [C].
- * @param mass Mass of the marker [kg].
- * @param Eplus output array [V/m].
- * @param Eminus output array [V/m].
- * @param res_cond output array [unitless].
- */
-void libascot_E_field_eval_icrh(
-    sim_data* sim, real* B_offload_array,
-    real* E_offload_array, int Neval, real* R, real* phi, real* z, real* t,
-    char *xml_filename, real vpar, real q,
-    real mass, real* Eplus, real* Eminus, real* res_cond) {
-
-    int icrh_initialised = 0;
-    /* Initialise RFOF (only done because we want the ICRH wave field) */
-    if(icrh_initialised == 0) {
-        printf("ASCOT: WENT TO INIITALISE ICRH WAVE FIELD FROM INPUT FILES \n");
-        rfof_interface_initev_excl_marker_stuff(xml_filename, &(sim.rfof_data));
-    }
-    
-
-    /* Allocate an RFOF marker (to be able to use an existing routine) */
-    void* marker_pointer;
-    rfof_interface_allocate_rfof_marker(&marker_pointer);
-    
-    real gyrof;           /** < Gyfo frequency, evaluated based on inputs     */
-    int nharm;            /** < Currently a dummy, the function fills this.   */
-    real omega_res;       /**< Value of the resonance condition               */
-    int dummy_int = 1;    /**< Dummy int for the RFOF marker                  */
-    real dummy_real = 0;  /**< Dummy real for the RFOF marker                 */
-    real* vpar_ptr = &vpar;
-    
-    #pragma omp parallel for
-    for(int k = 0; k < Neval; k++) {  
-        /* Get B-field magnitude for fyrofrequency. */
-        real B[3];
-        real B_magn;
-
-        // TODO: change the bounding box values to something more genreal!!
-        /* Check that the point is inside the bounding box of RFOF. */
-        if((1.20111 < R[k]) && (R[k] < 2.1097) && (-0.787 < z[k]) && (z[k] < 0.7897)){
-            if( B_field_eval_B(B, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
-                printf("ERROR IN B_field_eval_B");
-                B_magn = 0.0;
-                continue;
-            }else{
-                B_magn = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
-            }
-        }        
-        
-        /* Evaluate gyrofreguency*/
-        if(B_magn != 0){
-            gyrof = q*B_magn/mass;
-        }else{
-            gyrof = 0.0;
-            continue;
-        }
-        
-        /* Set the fields of a dummy-ish marker */
-        rfof_interface_set_marker_pointers(&marker_pointer, &dummy_int,
-            &dummy_real, &(R[k]), &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real, vpar_ptr, &dummy_real, &gyrof, &dummy_real, &dummy_real,
-            &dummy_int, &dummy_int);
-        
-        /* Evaluate the resonance condition for the marker */
-        rfof_interface_eval_resonance_function(&marker_pointer, &(sim.rfof_data.cptr_rfglobal), &omega_res, &nharm);
-        res_cond[k] = omega_res;
-        }
-
-    rfof_interface_deallocate_marker(&marker_pointer);
-
-    
-    /* Get the abs(E+) and abs(E-)*/
-    
-    #pragma omp parallel for
-    for(int k = 0; k < Neval; k++) {
-        real E[3];
-        if( E_field_eval_E(E, R[k], phi[k], z[k], t[k], &sim.E_data,
-            &sim.B_data) ) {
-            continue;
-        }
-     
-        real dummy_coordinate = 0.42;
-        real* dummy_ptr = &dummy_coordinate;
-        // TODO: change the bounding box values to something more genreal!!
-        //Check if inside the defined RF field
-        if((1.20111 < R[k]) && (R[k] < 2.1097) && (-0.787 < z[k]) && (z[k] < 0.7897)){
-            rfof_interface_get_rf_wave_local(&(R[k]), &(z[k]), dummy_ptr, dummy_ptr ,&(sim.rfof_data.cptr_rfglobal), &(E[0]), &(E[2]));
-            Eplus[k]   = fabs(E[0]);   //E+
-            Eminus[k]   = fabs(E[2]);   //E-
-        }else {
-            Eplus[k]   = 0.0;
-            Eminus[k]   = 0.0;
-        }
-    }
-    
-    // TODO: add deallocation to the python side.
-}
-
-/**
  * @brief Evaluate electric field vector at given coordinates.
  *
  * @param sim_data initialized simulation data struct
@@ -1041,4 +928,71 @@ void libascot_eval_ratecoeff(
         }
     }
 
+}
+
+/**
+ * @brief Evaluate ICRH electric field and the resonance condition.
+ *
+ * The evaluated electric field consists of left-hand (-) and right-hand (+)
+ * circularly polarized components. The resonance condition is given by
+ *
+ * omega_wave - n * omega_gyro - k_parallel * v_parallel - k_perp dot v_drift
+ * = 0.
+ *
+ * @param sim_offload_data initialized simulation offload data struct
+ * @param B_offload_array initialized magnetic field offload data
+ * @param E_offload_array initialized electric field offload data
+ * @param Neval number of evaluation points.
+ * @param R R coordinates of the evaluation points [m].
+ * @param phi phi coordinates of the evaluation points [rad].
+ * @param z z coordinates of the evaluation points [m].
+ * @param t time coordinates of the evaluation points [s].
+ * @param mass test particle mass (for computing resonance) [kg].
+ * @param q test particle charge (for computing resonance) [C].
+ * @param vpar test particle parallel velocity (for computing resonance) [m/s].
+ * @param Eplus left-handed electric field component of the wave [V/m].
+ * @param Eminus right-handed electric field component of the wave [V/m].
+ * @param res_cond value of the resonance condition where zero is the resonance
+ * [unitless].
+ */
+void libascot_eval_rfof(
+    sim_data* sim, real* B_offload_array, int Neval,
+    real* R, real* phi, real* z, real* t, real mass, real q, real vpar,
+    real* Eplus, real* Eminus, real* res_cond) {
+
+    #pragma omp parallel for
+    for(int k = 0; k < Neval; k++) {
+        real B[3];
+        if( B_field_eval_B(B, R[k], phi[k], z[k], t[k], &sim->B_data) ) {
+            continue;
+        }
+        real B_magn = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+        real gyrofreq = q * B_magn / mass;
+
+        /* The function that evaluates resonance condition takes an RFOF marker
+         * as an input. However, only the R and vpar values are actually used.
+         * Therefore, we initialize a dummy marker and adjust only the values of
+         * R and vpar. */
+        void* marker_pointer;
+        int dummy_int   = 1;
+        real dummy_real = 0;
+        rfof_interface_allocate_rfof_marker(&marker_pointer);
+        rfof_interface_set_marker_pointers(&marker_pointer, &dummy_int,
+            &dummy_real, &(R[k]), &dummy_real, &dummy_real, &dummy_real,
+            &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real,
+            &dummy_real, &vpar, &dummy_real, &gyrofreq, &dummy_real,
+            &dummy_real, &dummy_int, &dummy_int);
+        rfof_interface_deallocate_marker(&marker_pointer);
+
+        int nharm; /* For storing return value which is not used */
+        rfof_interface_eval_resonance_function(
+            &marker_pointer, &(sim->rfof_data.cptr_rfglobal),
+            &(res_cond[k]), &nharm);
+
+        // TODO: this should return a non-zero value if the evaluation failed.
+        rfof_interface_get_rf_wave_local(
+            &(R[k]), &(z[k]), &dummy_real, &dummy_real,
+            &(sim->rfof_data.cptr_rfglobal), &(Eplus[k]), &(Eminus[k]));
+        continue;
+    }
 }

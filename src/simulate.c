@@ -95,7 +95,7 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     /*    respective init functions.                                          */
     /*                                                                        */
     /**************************************************************************/
-<<<<<<< HEAD
+
     simulate_init(sim);
 
 #ifdef GPU
@@ -127,9 +127,9 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     }
 #endif
 
-    if(sim.enable_icrh) {
+    if(sim->enable_icrh) {
         char *xml_filename = "rfof_codeparam.xml";
-       rfof_interface_initev_excl_marker_stuff(xml_filename, &(sim.rfof_data));
+       rfof_interface_initev_excl_marker_stuff(xml_filename, &(sim->rfof_data));
     }
 
     diag_init(&sim->diag_data, n_particles);
@@ -301,19 +301,17 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     /* 7. Simulation data is deallocated.                                     */
     /**************************************************************************/
     free(pq.p);
-    print_out(VERBOSE_NORMAL, "Simulation complete.\n");
 
-    if(sim.enable_icrh) {
+    if(sim->enable_icrh) {
         rfof_interface_deallocate_rfof_input_param(
-            &(sim.rfof_data.cptr_rfof_input_params));
-        rfof_interface_deallocate_rfglobal(&(sim.rfof_data.cptr_rfglobal));
+            &(sim->rfof_data.cptr_rfof_input_params));
+        rfof_interface_deallocate_rfglobal(&(sim->rfof_data.cptr_rfglobal));
     }
-
     /**************************************************************************/
     /* 8. Execution returns to host where this function was called.           */
     /*                                                                        */
     /**************************************************************************/
-    print_out(VERBOSE_NORMAL, "%s: Simulation complete.\n", targetname);
+    print_out(VERBOSE_NORMAL, "Simulation complete.\n");
 }
 
 /**

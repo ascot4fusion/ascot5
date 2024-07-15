@@ -161,6 +161,10 @@ int main(int argc, char** argv) {
         return 1;
     };
 
+    if(sim.enable_icrh) {
+        rfof_interface_initev_excl_marker_stuff(&(sim.rfof_data));
+    }
+
     /* Initialize marker states array ps and free marker input p */
     int n_proc; /* Number of markers allocated for this MPI process */
     particle_state* ps;
@@ -194,6 +198,12 @@ int main(int argc, char** argv) {
     boozer_free(&sim.boozer_data);
     mhd_free(&sim.mhd_data);
     asigma_free(&sim.asigma_data);
+
+    if(sim.enable_icrh) {
+        rfof_interface_deallocate_rfof_input_param(
+            &(sim.rfof_data.cptr_rfof_input_params));
+        rfof_interface_deallocate_rfglobal(&(sim.rfof_data.cptr_rfglobal));
+    }
 
     /* Write output and clean */
     if( write_output(&sim, pout, n_gathered) ) {

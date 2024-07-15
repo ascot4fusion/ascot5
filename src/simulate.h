@@ -74,7 +74,6 @@ typedef struct {
     random_data random_data;   /**< Random number generator                   */
     mccc_data mccc_data;       /**< Tabulated special functions and collision
                                     operator parameters                       */
-
     /* Options - general */
     int sim_mode;        /**< Which simulation mode is used                   */
     int enable_ada;      /**< Is adaptive time-step used                      */
