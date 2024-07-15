@@ -67,15 +67,13 @@ typedef struct {
     asigma_data asigma_data;   /**< Atomic sigma data interface               */
     nbi_data nbi_data;         /**< Neutral beam injection data interface     */
     diag_data diag_data;       /**< Diagnostics data interface                */
+    rfof_data rfof_data;       /**< Void pointers to ICRH wave field and input
+                                    parameters Fortran structs.               */
 
     /* Metadata */
     random_data random_data;   /**< Random number generator                   */
     mccc_data mccc_data;       /**< Tabulated special functions and collision
                                     operator parameters                       */
-
-    /* TODO: rfof_data */
-    rfof_data rfof_data;       /**< void pointers to ICRH wave field and input 
-                                    parameters Fortran structs.               */
 
     /* Options - general */
     int sim_mode;        /**< Which simulation mode is used                   */
@@ -103,7 +101,7 @@ typedef struct {
     int enable_clmbcol;        /**< Are Coulomb collisions enabled            */
     int enable_mhd;            /**< Are MHD modes enabled                     */
     int enable_atomic;         /**< Are atomic reactions enabled              */
-    int enable_icrh; /**< Is RFOF enabled. */
+    int enable_icrh;           /**< Is RFOF enabled                           */
     int disable_gctransform;   /**< Disables first order velocity terms in
                                     guiding center transformation             */
     int disable_energyccoll;   /**< Disables energy component from Coulomb
