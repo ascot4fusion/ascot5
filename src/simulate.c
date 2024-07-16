@@ -434,7 +434,8 @@ void sim_monitor(char* filename, volatile int* n, volatile int* finished) {
         else {
             fprintf(f, "Progress: %d/%d, %.2f %%. Time spent: %.2f h, "
                     "estimated time to finish: %.2f h\n", finished_temp, n_temp,
-                    100*fracprog, timespent/3600, (1/fracprog-1)*timespent/3600);
+                    100*fracprog, timespent/3600,
+                    (1/fracprog-1)*timespent/3600);
         }
         fflush(f);
         sleep(A5_PRINTPROGRESSINTERVAL);
