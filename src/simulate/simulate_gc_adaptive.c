@@ -86,20 +86,20 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
     /* TODO Initialise rfof markers and their resonance memory*/
 
-    /** @brief C equivalents of fortran pointers to RFOF (ICRH) markers.      */ 
+    /** @brief C equivalents of fortran pointers to RFOF (ICRH) markers.      */
     void* rfof_marker_pointer_array[NSIMD]    __memalign__;
 
-    /** @brief C equivalents of fortran pointers to resonance memorys of rfof 
+    /** @brief C equivalents of fortran pointers to resonance memorys of rfof
                markers                                                        */
-    void* rfof_mem_pointer_array[NSIMD]    __memalign__; 
+    void* rfof_mem_pointer_array[NSIMD]    __memalign__;
 
-    /** @brief C equivalents of fortran diagnostics pointers. These are not 
-     *         really used but they must be allocated nevertheless if one does 
+    /** @brief C equivalents of fortran diagnostics pointers. These are not
+     *         really used but they must be allocated nevertheless if one does
      *         not want a segmentation fault.                                 */
-    void* rfof_diag_pointer_array[NSIMD]    __memalign__; 
-    
+    void* rfof_diag_pointer_array[NSIMD]    __memalign__;
+
     /** @brief First indices of RFOF resonance memory matrices (number of rows)*/
-    int mem_shape_i[NSIMD]    __memalign__; 
+    int mem_shape_i[NSIMD]    __memalign__;
 
     /** @brief First indices of RFOF resonance memory matrices (number of rows)*/
     int mem_shape_j[NSIMD]    __memalign__;
@@ -109,12 +109,12 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
             /* Allocate memory for the rfof markers on the fortran side.      */
             rfof_interface_allocate_rfof_marker(
                 &(rfof_marker_pointer_array[i]));
-            
-            /* Allocate memory for the rfof resonance memory on the fortran 
+
+            /* Allocate memory for the rfof resonance memory on the fortran
                side. */
-            rfof_interface_initialise_res_mem(&(rfof_mem_pointer_array[i]), 
-            &(mem_shape_i[i]), &(mem_shape_j[i]), 
-            &(sim->rfof_data.cptr_rfglobal), 
+            rfof_interface_initialise_res_mem(&(rfof_mem_pointer_array[i]),
+            &(mem_shape_i[i]), &(mem_shape_j[i]),
+            &(sim->rfof_data.cptr_rfglobal),
             &(sim->rfof_data.cptr_rfof_input_params));
 
             /* Initialise rfof diagnostics (dummy argument for ICRH kick)     */
@@ -144,7 +144,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
      * - Check whether time step was accepted
      *   - NO:  revert to initial state and ignore the end of the loop
      *          (except CPU_TIME_MAX end condition if this is implemented)
-     *   - YES: update particle time, clean redundant Wiener processes, and proceed
+     *   - YES: update particle time, clean redundant Wiener processes, and
+     *          proceed
      * - Check for end condition(s)
      * - Update diagnostics
      */
@@ -184,7 +185,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
             /* Check whether time step was rejected */
             #pragma omp simd
             for(int i = 0; i < NSIMD; i++) {
-                /* Switch sign of the time-step again if it was reverted earlier */
+                /* Switch sign of the time-step again if it was reverted earlier
+                */
                 if(sim->reverse_time) {
                     hout_orb[i] = -hout_orb[i];
                     hin[i]      = -hin[i];
@@ -214,9 +216,9 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         }
 
         /* TODO implement RFOF_kick */
-        if(sim->enable_icrh) { 
+        if(sim->enable_icrh) {
             /* Performs the ICRH kick if in resonance. */
-            rfof_interface_do_rfof_stuff_gc(&p, hin, hout_rfof, sim->rfof_data, 
+            rfof_interface_do_rfof_stuff_gc(&p, hin, hout_rfof, sim->rfof_data,
                 &(sim->B_data), rfof_marker_pointer_array,
                 rfof_mem_pointer_array, rfof_diag_pointer_array, mem_shape_i,
                 mem_shape_j);
@@ -250,7 +252,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                     }
                 }
 
-                /* Retrieve marker states in case time step was rejected */
+                /* Retrieve marker states in case time step was rejected      */
                 if(hnext[i] < 0) {
                     particle_copy_gc(&p0, i, &p, i);
 
@@ -340,7 +342,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
             rfof_interface_deallocate_marker(&(rfof_marker_pointer_array[i]));
 
             /* Deallocate rfof marker resonance memory matrix.                */
-            rfof_interface_deallocate_res_mem(&(rfof_mem_pointer_array[i]), 
+            rfof_interface_deallocate_res_mem(&(rfof_mem_pointer_array[i]),
             &(mem_shape_i[i]), &(mem_shape_j[i]));
 
             /* Deallocate dummy diagnostics of rfof markers.                  */
