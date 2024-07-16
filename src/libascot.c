@@ -982,13 +982,13 @@ void libascot_eval_rfof(
             &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real,
             &dummy_real, &vpar, &dummy_real, &gyrofreq, &dummy_real,
             &dummy_real, &dummy_int, &dummy_int);
-        rfof_interface_deallocate_marker(&marker_pointer);
 
         int nharm; /* For storing return value which is not used */
         rfof_interface_eval_resonance_function(
             &marker_pointer, &(sim->rfof_data.cptr_rfglobal),
             &(res_cond[k]), &nharm);
 
+        rfof_interface_deallocate_marker(&marker_pointer);
         // TODO: this should return a non-zero value if the evaluation failed.
         rfof_interface_get_rf_wave_local(
             &(R[k]), &(z[k]), &dummy_real, &dummy_real,
