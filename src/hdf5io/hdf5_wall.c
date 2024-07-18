@@ -104,6 +104,7 @@ int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
     short* flag = (short*) malloc(nelements * sizeof(short));
     if( hdf5_read_short(WPATH "flag", flag,
                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    offload_data->int_offload_array_length = nelements;
     *int_offload_array = (int*) malloc(nelements * sizeof(int));
     for(int i=0; i<nelements; i++) {
         (*int_offload_array)[i] = (int)flag[i];
@@ -169,6 +170,7 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
     short* flag = (short*) malloc(nelements * sizeof(short));
     if( hdf5_read_short(WPATH "flag", flag,
                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    offload_data->int_offload_array_length = nelements;
     *int_offload_array = (int*) malloc(nelements * sizeof(int));
     for(int i=0; i<nelements; i++) {
         (*int_offload_array)[i] = (int)flag[i];
