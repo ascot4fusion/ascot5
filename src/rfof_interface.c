@@ -102,7 +102,7 @@ void __ascot5_icrh_routines_MOD_print_marker_stuff(void** marker_pointer);
  * input parameters. Only relevant when constructing the resonance memorys later
  * on.
 */
-const char* xml_filename = "rfof_codeparam.xml";
+char xml_filename[128] = "rfof_codeparam.xml";
 void rfof_interface_initev_excl_marker_stuff(rfof_data* rfof_data) {
 
 #ifdef RFOF
