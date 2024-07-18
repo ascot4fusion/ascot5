@@ -83,9 +83,21 @@ int hdf5_wall_read_2D(hid_t f, wall_2d_data* data, char* qid) {
     if( hdf5_read_int(WPATH "flag", flag,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
 
+<<<<<<< HEAD
     int err = wall_2d_init(data, nelements, r, z, flag);
     free(r);
     free(z);
+=======
+    /* Read flags */
+    short* flag = (short*) malloc(nelements * sizeof(short));
+    if( hdf5_read_short(WPATH "flag", flag,
+                        f, qid, __FILE__, __LINE__) ) {return 1;}
+    offload_data->int_offload_array_length = nelements;
+    *int_offload_array = (int*) malloc(nelements * sizeof(int));
+    for(int i=0; i<nelements; i++) {
+        (*int_offload_array)[i] = (int)flag[i];
+    }
+>>>>>>> 5c3456d8 (Offload int array size was not set in wall inputs)
     free(flag);
     return err;
 }
