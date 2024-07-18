@@ -18,7 +18,7 @@ typedef struct prt_rfof {
     double dvpar;        /**< Change in parallel velocity component due to ICRH
                               kick.                                           */
     double de;           /**< Change in energy due to a single ICRH kick [J]. */
-    double deCumulative; /**< Change in energy due to possibly several ICRH 
+    double deCumulative; /**< Change in energy due to possibly several ICRH
                               kicks during an orbit time step [J]             */
     double dpitch;       /**< Change in pitch due to ICRH kick                */
     double maxAcc;       /**< Maximum acceleration allowed by RFOF            */
@@ -57,7 +57,7 @@ void rfof_interface_allocate_rfof_marker(void** rfof_marker_pointer);
 
 /* STUFF TO DO BETWEEN KICKS */
 
-void rfof_interface_set_marker_pointers(void** cptr_marker, int* id, 
+void rfof_interface_set_marker_pointers(void** cptr_marker, int* id,
     real* weight, real* R, real* phi, real* z, real* psi, real* charge,
     real* mass, real* Ekin, real* velocity, real* mu, real* pphicanonical,
     real* vpar, real* vperp, real* gyrof, real* vdriftRho, real* acc,
@@ -102,8 +102,8 @@ void rfof_interface_deallocate_marker(void** cptr_rfof_marker);
 
 /* FOR VISUALISING ICRH WAVE FIELD AND RESONANCE */
 
-void rfof_interface_get_rf_wave_local(real* R, real* z, real* rho_tor, real* theta,
-    void** cptr_wi, real* e_plus_out, real* e_minus_out);
+void rfof_interface_get_rf_wave_local(real* R, real* z, real* rho_tor,
+    real* theta, void** cptr_wi, real* e_plus_out, real* e_minus_out);
 
 void rfof_interface_eval_resonance_function(void** cptr_marker, void** cptr_rfglobal, real* omega_res, int* nharm);
 #endif
