@@ -479,18 +479,19 @@ void rfof_interface_do_rfof_stuff_gc(particle_simd_gc* ascot_marker, real* hin,
             the ASCOT marker fields (= ppar) accordingly.*/
 
 
-            //OLD VERSION
+            // CURRENT VERSION FOR EVALUATING PPAR
+            int sign_v_par_old = (v_par_old > 0) - (v_par_old < 0);
+            if(v_par_old*v_par < 0){
+                /* The parallel velocity has flipped during the icrh kick, give opposite sign to v_par_old */
+                ascot_marker->ppar[i] = -sign_v_par_old*phys_ppar_Ekin(ascot_marker->mass[i], Ekin, ascot_marker->mu[i], B);
+            }else{
+                /* The parallel velocity has not flipped, return ppar with same sign as v_par_old */
+                ascot_marker->ppar[i] = sign_v_par_old*phys_ppar_Ekin(ascot_marker->mass[i], Ekin, ascot_marker->mu[i], B);
+            }
 
-            //int sign_v_par_old = (v_par_old > 0) - (v_par_old < 0);
-            //if(v_par_old*v_par < 0){
-            //    /* The parallel velocity has flipped during the icrh kick, give opposite sign to v_par_old */
-            //    ascot_marker->ppar[i] = -sign_v_par_old*phys_ppar_Ekin(ascot_marker->mass[i], Ekin, ascot_marker->mu[i], B);
-            //}else{
-            //    /* The parallel velocity has not flipped, return ppar with same sign as v_par_old */
-            //    ascot_marker->ppar[i] = sign_v_par_old*phys_ppar_Ekin(ascot_marker->mass[i], Ekin, ascot_marker->mu[i], B);
-            //}
 
 
+            /* IGNORE THE COMMENT BELOW; THERE IS A BUG */
             /* Current version for updating ppar of ASCOT marker based on the
             RFOF kick. Below there are several other methods listed for doing
             this. This method was found to conserve the ppar in the case that
@@ -499,12 +500,13 @@ void rfof_interface_do_rfof_stuff_gc(particle_simd_gc* ascot_marker, real* hin,
             applied. This implementation corresponds to number 5 in the list
             below. In fear that this effect could accumulate, this method of
             evaluating ppar was deemed best. */
+            /*
             ascot_marker->ppar[i] = phys_ppar_pphi(B, ascot_marker->r[i],
                                                    ascot_marker->B_phi[i],
                                                    p_phi,
                                                    ascot_marker->charge[i],
                                                    psi);
-
+            */
 
             // The other proposed methods for evaluating ppar:
             /*
