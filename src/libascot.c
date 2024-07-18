@@ -975,7 +975,7 @@ void libascot_eval_rfof(
          * R and vpar. */
         void* marker_pointer;
         int dummy_int   = 1;
-        real dummy_real = 0;
+        real dummy_real = -999.0;
         rfof_interface_allocate_rfof_marker(&marker_pointer);
         rfof_interface_set_marker_pointers(&marker_pointer, &dummy_int,
             &dummy_real, &(R[k]), &dummy_real, &dummy_real, &dummy_real,
@@ -987,12 +987,18 @@ void libascot_eval_rfof(
         rfof_interface_eval_resonance_function(
             &marker_pointer, &(sim->rfof_data.cptr_rfglobal),
             &(res_cond[k]), &nharm);
-
-        rfof_interface_deallocate_marker(&marker_pointer);
+        /* Removing the print below will cause a mess in the figure. Something
+        wrong with memory usage. */
+        if(nharm==1){
+            printf("nharm = %d, R = %f\n", nharm, R[k]);
+        }else{
+            printf("nharm = %d, \t\tR = %f\n", nharm, R[k]);
+        }
         // TODO: this should return a non-zero value if the evaluation failed.
         rfof_interface_get_rf_wave_local(
             &(R[k]), &(z[k]), &dummy_real, &dummy_real,
             &(sim->rfof_data.cptr_rfglobal), &(Eplus[k]), &(Eminus[k]));
+        rfof_interface_deallocate_marker(&marker_pointer);
         continue;
     }
 }
