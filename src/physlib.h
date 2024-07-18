@@ -396,6 +396,8 @@
 #define phys_ppar_mu(m, mu, B, q, gyrof) (m*CONST_C*sqrt((q*B/(gyrof*m)) * \
         (q*B/(gyrof*m)) - 2*mu*B/(m*CONST_C2) - 1))
 
+
+// ISSUE: SEEMS TO CONTAIN A BUG!
 /**
  * @brief Evaluate parallel momentum from canonical momentum conjugate to phi.
  *
