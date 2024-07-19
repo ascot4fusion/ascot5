@@ -40,8 +40,6 @@ typedef struct {
 
 /* INITIALISATION */
 
-/*void rfof_interface_initev_excl_marker_stuff(char* xml_filename,
-    int **xml_filename_len,void** cptr_rfglobal, void** cptr_rfof_input_params);*/
 void rfof_interface_initev_excl_marker_stuff(rfof_data* rfof_data);
 
 void rfof_init(rfof_data* rfof, rfof_data* rfof_offload_data);
@@ -71,14 +69,6 @@ void rfof_interface_do_rfof_stuff_gc(particle_simd_gc* ascot_marker, real* hin,
     void** rfof_marker_pointer_array, void** rfof_mem_pointer_array,
     void** rfof_diag_pointer_array, int* mem_shape_i, int* mem_shape_j);
 
-// To be implemented shortly
-/*
-void rfof_interface_do_rfof_stuff_fo(particle_simd_fo* ascot_marker, real* hin,
-    real* hout_rfof, rfof_data rfof_data, B_field_data* Bdata,
-    void** rfof_marker_pointer_array, void** rfof_mem_pointer_array,
-    void** rfof_diag_pointer_array, int* mem_shape_i, int* mem_shape_j);
-*/
-
 
 /* RESET RESONANCE MEMORY */
 
@@ -105,5 +95,6 @@ void rfof_interface_deallocate_marker(void** cptr_rfof_marker);
 void rfof_interface_get_rf_wave_local(real* R, real* z, real* rho_tor,
     real* theta, void** cptr_wi, real* e_plus_out, real* e_minus_out);
 
-void rfof_interface_eval_resonance_function(void** cptr_marker, void** cptr_rfglobal, real* omega_res, int* nharm);
+void rfof_interface_eval_resonance_function(void** cptr_marker,
+    void** cptr_rfglobal, real* omega_res, int* nharm);
 #endif
