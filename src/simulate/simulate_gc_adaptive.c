@@ -86,9 +86,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     /* Initialize running particles */
     int n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 
-    /* TODO Initialise rfof markers and their resonance memory*/
-
-    /** @brief C equivalents of fortran pointers to RFOF (ICRH) markers.      */
+    /** @brief C equivalents of Fortran pointers to RFOF (ICRH) markers.      */
     void* rfof_marker_pointer_array[NSIMD]    __memalign__;
 
     /** @brief C equivalents of fortran pointers to resonance memorys of rfof
@@ -100,10 +98,10 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
      *         not want a segmentation fault.                                 */
     void* rfof_diag_pointer_array[NSIMD]    __memalign__;
 
-    /** @brief First indices of RFOF resonance memory matrices (number of rows)*/
+    /** @brief Number of rows in an RFOF resonance memory matrix.             */
     int mem_shape_i[NSIMD]    __memalign__;
 
-    /** @brief First indices of RFOF resonance memory matrices (number of rows)*/
+    /** @brief Number of columns in an RFOF resonance memory matrix.          */
     int mem_shape_j[NSIMD]    __memalign__;
 
     if(sim->enable_icrh) {
@@ -348,7 +346,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
             &(mem_shape_i[i]), &(mem_shape_j[i]));
 
             /* Deallocate dummy diagnostics of rfof markers.                  */
-            rfof_interface_deallocate_diagnostics(&(rfof_diag_pointer_array[i]));
+            rfof_interface_deallocate_diagnostics(
+                &(rfof_diag_pointer_array[i]));
         }
     }
 }
@@ -388,7 +387,8 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
         /* Value calculated from collision frequency */
         if(sim->enable_clmbcol) {
             real nu = 1;
-            //mccc_collfreq_gc(p, &sim->B_data, &sim->plasma_data, sim->coldata, &nu, i);
+            /*mccc_collfreq_gc(p, &sim->B_data, &sim->plasma_data,
+                sim->coldata, &nu, i); */
 
             /* Only small angle collisions so divide this by 100 */
             real colltime = 1/(100*nu);

@@ -213,18 +213,18 @@ typedef struct {
     int reverse_time;          /**< Set time running backwards in simulation  */
 
     /* Options - end conditions */
-    int endcond_active;       /**< Bit array notating active end conditions  */
-    real endcond_lim_simtime; /**< Simulation time limit [s]                 */
-    real endcond_max_mileage; /**< Maximum simulation duration [s]           */
-    real endcond_max_cputime; /**< Maximum wall-clock time [s]               */
-    real endcond_min_rho;     /**< Minimum rho limit                         */
-    real endcond_max_rho;     /**< Maximum rho limit                         */
-    real endcond_min_ekin;    /**< Fixed minimum kinetic energy limit [J]    */
-    real endcond_min_thermal; /**< Thermal minimum energy limit is this
-                                   parameter times local thermal energy      */
-    real endcond_max_tororb;  /**< Maximum limit for toroidal distance [rad] */
-    real endcond_max_polorb;  /**< Maximum limit for poloidal distance [rad] */
-    int endcond_torandpol;    /**< Flag whether both tor and pol must be met */
+    int endcond_active;        /**< Bit array notating active end conditions  */
+    real endcond_lim_simtime;  /**< Simulation time limit [s]                 */
+    real endcond_max_mileage;  /**< Maximum simulation duration [s]           */
+    real endcond_max_cputime;  /**< Maximum wall-clock time [s]               */
+    real endcond_min_rho;      /**< Minimum rho limit                         */
+    real endcond_max_rho;      /**< Maximum rho limit                         */
+    real endcond_min_ekin;     /**< Fixed minimum kinetic energy limit [J]    */
+    real endcond_min_thermal;  /**< Thermal minimum energy limit is this
+                                    parameter times local thermal energy      */
+    real endcond_max_tororb;   /**< Maximum limit for toroidal distance [rad] */
+    real endcond_max_polorb;   /**< Maximum limit for poloidal distance [rad] */
+    int endcond_torandpol;     /**< Flag whether both tor and pol must be met */
 
 } sim_data;
 
