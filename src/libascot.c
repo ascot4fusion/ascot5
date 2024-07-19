@@ -989,11 +989,13 @@ void libascot_eval_rfof(
             &(res_cond[k]), &nharm);
         /* Removing the print below will cause a mess in the figure. Something
         wrong with memory usage. */
+        /*
         if(nharm==1){
             printf("nharm = %d, R = %f\n", nharm, R[k]);
         }else{
             printf("nharm = %d, \t\tR = %f\n", nharm, R[k]);
         }
+        */
         // TODO: this should return a non-zero value if the evaluation failed.
         rfof_interface_get_rf_wave_local(
             &(R[k]), &(z[k]), &dummy_real, &dummy_real,

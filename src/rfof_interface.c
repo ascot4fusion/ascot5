@@ -335,8 +335,8 @@ void rfof_interface_do_rfof_stuff_gc(particle_simd_gc* ascot_marker, real* hin,
                 ascot_marker->r[i], ascot_marker->ppar[i], psi, B,
                 ascot_marker->B_phi[i]);
 
-            /** @brief Momentum norm */
-            real p = physlib_pnorm_vnorm(ascot_marker->mass[i], speed);
+            /** @brief Momentum norm (was used in debugging) */
+            //real p = physlib_pnorm_vnorm(ascot_marker->mass[i], speed);
 
             /** @brief pitch */
             real xi = physlib_gc_xi(ascot_marker->mass[i], ascot_marker->mu[i],
@@ -410,13 +410,14 @@ void rfof_interface_do_rfof_stuff_gc(particle_simd_gc* ascot_marker, real* hin,
             real* vdriftRho_ptr = &vdriftRho;
             real* acc_ptr = &acc;
 
-            //For debugging store the old values
-            real Ekin_old = Ekin;
-            real p_phi_old = p_phi;
+            /* Store the old values for debugging or to be able to evaluate the
+            new ppar after kick. */
+            //real Ekin_old = Ekin;
+            //real p_phi_old = p_phi;
             real v_par_old = v_par;
-            real v_perp_old = v_perp;
-            real speed_old = speed;
-            real ppar_old = ascot_marker->ppar[i];
+            //real v_perp_old = v_perp;
+            //real speed_old = speed;
+            //real ppar_old = ascot_marker->ppar[i];
 
             /* Update the fields of RFOF marker */
             __ascot5_icrh_routines_MOD_call_set_marker_pointers(
