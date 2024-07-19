@@ -479,15 +479,17 @@ void rfof_interface_do_rfof_stuff_gc(particle_simd_gc* ascot_marker, real* hin,
             the ASCOT marker fields (= ppar) accordingly.*/
 
 
-            // CURRENT VERSION FOR EVALUATING PPAR
-            int sign_v_par_old = (v_par_old > 0) - (v_par_old < 0);
-            if(v_par_old*v_par < 0){
+            // OLDEST VERSION FOR EVALUATING PPAR
+            //
+            // NO DEVIL BUG; BUT GIVES NAN PPAR SOMETIMES (NEGATIVE SQRT?)
+            //int sign_v_par_old = (v_par_old > 0) - (v_par_old < 0);
+            //if(v_par_old*v_par < 0){
                 /* The parallel velocity has flipped during the icrh kick, give opposite sign to v_par_old */
-                ascot_marker->ppar[i] = -sign_v_par_old*phys_ppar_Ekin(ascot_marker->mass[i], Ekin, ascot_marker->mu[i], B);
-            }else{
+            //    ascot_marker->ppar[i] = -sign_v_par_old*phys_ppar_Ekin(ascot_marker->mass[i], Ekin, ascot_marker->mu[i], B);
+            //}else{
                 /* The parallel velocity has not flipped, return ppar with same sign as v_par_old */
-                ascot_marker->ppar[i] = sign_v_par_old*phys_ppar_Ekin(ascot_marker->mass[i], Ekin, ascot_marker->mu[i], B);
-            }
+            //    ascot_marker->ppar[i] = sign_v_par_old*phys_ppar_Ekin(ascot_marker->mass[i], Ekin, ascot_marker->mu[i], B);
+            //}
 
 
 
@@ -507,6 +509,11 @@ void rfof_interface_do_rfof_stuff_gc(particle_simd_gc* ascot_marker, real* hin,
                                                    ascot_marker->charge[i],
                                                    psi);
             */
+
+
+
+           //Third time is the charm
+           ascot_marker->ppar[i] = ascot_marker->mass[i]*(v_par_old + rfof_data_pack.dvpar);
 
             // The other proposed methods for evaluating ppar:
             /*
