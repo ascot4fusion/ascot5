@@ -736,10 +736,19 @@ class ImportData():
                    "edensity":ne, "idensity":ni}
         else:
             # Data is read already and only needs to be extrapolated
-            pls["ne"] = interp(pls["rho"], pls["ne"], nmin)
-            interp(pls["rho"], pls["Te"], Tmin)
-            interp(pls["rho"], pls["Ti"], Tmin)
-            interp(pls["rho"], pls["ni"], nmin)
+            pls0, pls = pls, copy.deepcopy(pls)
+            pls["edensity"]     = interp(
+                pls["rho"].ravel(), pls["edensity"].ravel(), nmin)
+            pls["etemperature"] = interp(
+                pls["rho"].ravel(), pls["etemperature"].ravel(), Tmin)
+            pls["itemperature"] = interp(
+                pls["rho"].ravel(), pls["itemperature"].ravel(), Tmin)
+
+            ni = np.zeros((rho.size, pls["nion"]))
+            for i in range(pls["nion"]):
+                ni[:,i] = interp(
+                    pls["rho"].ravel(), pls["idensity"][:,i].ravel(), nmin)
+            pls["idensity"] = ni
             pls["rho"]  = rho
             pls["nrho"] = rho.size
 
