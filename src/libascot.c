@@ -1006,15 +1006,22 @@ void libascot_eval_ratecoeff(
  * @param mass test particle mass (for computing resonance) [kg].
  * @param q test particle charge (for computing resonance) [C].
  * @param vpar test particle parallel velocity (for computing resonance) [m/s].
- * @param Eplus left-handed electric field component of the wave [V/m].
- * @param Eminus right-handed electric field component of the wave [V/m].
+ * @param Eplus_real Real part of the left-handed electric field component of
+ *                   the wave [V/m].
+ * @param Eminus_real Real part of the right-handed electric field component of
+ *                    the wave [V/m].
+ * @param Eplus_imag Imaginary part of the left-handed electric field component
+ *                   of the wave [V/m].
+ * @param Eminus_imag Imaginary part of the right-handed electric field
+ *                    component of the wave [V/m].
  * @param res_cond value of the resonance condition where zero is the resonance
  * [unitless].
  */
 void libascot_eval_rfof(
     sim_offload_data* sim_offload_data, real* B_offload_array, int Neval,
     real* R, real* phi, real* z, real* t, real mass, real q, real vpar,
-    real* Eplus, real* Eminus, real* res_cond) {
+    real* Eplus_real, real* Eminus_real, real* Eplus_imag, real* Eminus_imag,
+    real* res_cond) {
 
     sim_data sim;
     B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
@@ -1051,7 +1058,8 @@ void libascot_eval_rfof(
         // TODO: this should return a non-zero value if the evaluation failed.
         rfof_interface_get_rf_wave_local(
             &(R[k]), &(z[k]), &dummy_real, &dummy_real,
-            &(sim.rfof_data.cptr_rfglobal), &(Eplus[k]), &(Eminus[k]));
+            &(sim.rfof_data.cptr_rfglobal), &(Eplus_real[k]), &(Eminus_real[k]),
+            &(Eplus_imag[k]), &(Eminus_imag[k]));
         rfof_interface_deallocate_marker(&marker_pointer);
         continue;
     }

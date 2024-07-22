@@ -93,7 +93,8 @@ void rfof_interface_deallocate_marker(void** cptr_rfof_marker);
 /* FOR VISUALISING ICRH WAVE FIELD AND RESONANCE */
 
 void rfof_interface_get_rf_wave_local(real* R, real* z, real* rho_tor,
-    real* theta, void** cptr_wi, real* e_plus_out, real* e_minus_out);
+    real* theta, void** cptr_wi, real* e_plus_real, real* e_minus_real,
+    real* e_plus_imag, real* e_minus_imag);
 
 void rfof_interface_eval_resonance_function(void** cptr_marker,
     void** cptr_rfglobal, real* omega_res, int* nharm);
