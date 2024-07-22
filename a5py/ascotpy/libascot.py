@@ -885,7 +885,6 @@ class LibAscot:
                             ctypes.c_double, ctypes.c_int, ctypes.c_int]
             fun(ctypes.byref(self._sim), psi, rz, step, tol, maxiter, ascent)
 
-<<<<<<< HEAD
             if np.isnan(psi[0]):
                 raise RuntimeError("Failed to converge.")
 
@@ -952,7 +951,7 @@ class LibAscot:
                              "for 3D fields. For 2D fields, none of these "
                              "should be provided.\n\nYou did an oopsie. Search "
                              "your feelings. You know it to be true.")
-=======
+
         return (rz[0], rz[1], psi)
 
     @parseunits(m="kg", q="C", vpar="m/s", r="m", phi="rad", z="m", t="s")
@@ -984,9 +983,10 @@ class LibAscot:
 
         Returns
         -------
-        eplus : array_like, (n,)
-            Reaction cross-section.
-        eminus : array_like, (n,)
+        eplus_real : array_like, (n,)
+        eminus_real : array_like, (n,)
+        eplus_imag : array_like, (n,)
+        eminus_imag : array_like, (n,)
         rescond : array_like, (n,)
 
         Raises
@@ -999,8 +999,10 @@ class LibAscot:
             raise RuntimeError("RFOF data not initialized.")
 
         Neval = r.size
-        eplus    = np.NaN * np.zeros((Neval,), dtype="f8") * unyt.V/unyt.m
-        eminus   = np.NaN * np.zeros((Neval,), dtype="f8") * unyt.V/unyt.m
+        eplus_real    = np.NaN * np.zeros((Neval,), dtype="f8") * unyt.V/unyt.m
+        eminus_real   = np.NaN * np.zeros((Neval,), dtype="f8") * unyt.V/unyt.m
+        eplus_imag    = np.NaN * np.zeros((Neval,), dtype="f8") * unyt.V/unyt.m
+        eminus_imag   = np.NaN * np.zeros((Neval,), dtype="f8") * unyt.V/unyt.m
         res_cond = np.NaN * np.zeros((Neval,), dtype="f8") * unyt.dimensionless
 
         fun = _LIBASCOT.libascot_eval_rfof
@@ -1008,9 +1010,9 @@ class LibAscot:
         fun.argtypes = [PTR_SIM, PTR_ARR,
                         ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
                         ctypes.c_double, ctypes.c_double, ctypes.c_double,
-                        PTR_REAL, PTR_REAL, PTR_REAL]
+                        PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL]
         fun(ctypes.byref(self._sim), self._bfield_offload_array,
-            Neval, r, phi, z, t, m, q, vpar, eplus, eminus, res_cond)
+            Neval, r, phi, z, t, m, q, vpar, eplus_real, eminus_real,
+            eplus_imag, eminus_imag, res_cond)
 
-        return eplus, eminus, res_cond
->>>>>>> b5756ac8 (RFOF functions should now be callable via libascot)
+        return eplus_real, eminus_real, eplus_imag, eminus_imag, res_cond

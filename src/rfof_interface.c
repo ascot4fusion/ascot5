@@ -69,8 +69,8 @@ void __ascot5_icrh_routines_MOD_deallocate_marker(void** cptr_rfof_marker);
 /* FOR VISUALISING ICRH WAVE FIELD  */
 
 void __ascot5_icrh_routines_MOD_get_rf_wave_local_v2(real* R, real* z,
-    real* rho_tor, real* theta, void** cptr_wi, real* e_plus_out,
-    real* e_minus_out);
+    real* rho_tor, real* theta, void** cptr_wi, real* e_plus_real,
+    real* e_minus_real, real* e_plus_imag, real* e_minus_imag);
 
 void __ascot5_icrh_routines_MOD_eval_resonance_function(void** cptr_marker,
     void** cptr_rfglobal, real* omega_res, int* nharm);
@@ -659,14 +659,17 @@ void rfof_interface_deallocate_marker(void** cptr_rfof_marker) {
  * @param theta
  * @param cptr_rfglobal Void pointer to the RFglobal global wave field in
  * fortran
- * @param e_plus E+ component of the local wave field
- * @param e_minus E- component of the local wave field
+ * @param e_plus_real Re(E+) component of the local wave field
+ * @param e_minus_real Re(E-) component of the local wave field
+ * @param e_plus_imag Im(E+) component of the local wave field
+ * @param e_minus_imag Im(E-) component of the local wave field
  */
 void rfof_interface_get_rf_wave_local(real* R, real* z, real* rho_tor,
-    real* theta, void** cptr_wi, real* e_plus_out, real* e_minus_out) {
+    real* theta, void** cptr_wi, real* e_plus_real, real* e_minus_real,
+    real* e_plus_imag, real* e_minus_imag) {
 #ifdef RFOF
     __ascot5_icrh_routines_MOD_get_rf_wave_local_v2(R, z, rho_tor, theta,
-        cptr_wi, e_plus_out, e_minus_out);
+        cptr_wi, e_plus_real, e_minus_real, e_plus_imag, e_minus_imag);
 #endif
 };
 
