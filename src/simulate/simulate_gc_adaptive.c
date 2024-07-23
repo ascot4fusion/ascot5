@@ -20,7 +20,7 @@
 #include "../E_field.h"
 #include "../boozer.h"
 #include "../mhd.h"
-#include "../rfof_interface.h"
+#include "../rfof.h"
 #include "../plasma.h"
 #include "simulate_gc_adaptive.h"
 #include "step/step_gc_cashkarp.h"
@@ -59,11 +59,11 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
     /* Current time step, suggestions for the next time step and next time
      * step                                                                */
-    real hin[NSIMD]      __memalign__;
-    real hout_orb[NSIMD] __memalign__;
-    real hout_col[NSIMD] __memalign__;
+    real hin[NSIMD]       __memalign__;
+    real hout_orb[NSIMD]  __memalign__;
+    real hout_col[NSIMD]  __memalign__;
     real hout_rfof[NSIMD] __memalign__;
-    real hnext[NSIMD]    __memalign__;
+    real hnext[NSIMD]     __memalign__;
 
     /* Flag indicateing whether a new marker was initialized */
     int cycle[NSIMD]     __memalign__;
@@ -76,6 +76,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     particle_simd_gc p;  // This array holds current states
     particle_simd_gc p0; // This array stores previous states
 
+    rfof_marker rfof_mrk; // RFOF specific data
+
     for(int i=0; i< NSIMD; i++) {
         p.id[i] = -1;
         p.running[i] = 0;
@@ -84,41 +86,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     /* Initialize running particles */
     int n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 
-    /** @brief C equivalents of Fortran pointers to RFOF (ICRH) markers.      */
-    void* rfof_marker_pointer_array[NSIMD]    __memalign__;
-
-    /** @brief C equivalents of fortran pointers to resonance memorys of rfof
-               markers                                                        */
-    void* rfof_mem_pointer_array[NSIMD]    __memalign__;
-
-    /** @brief C equivalents of fortran diagnostics pointers. These are not
-     *         really used but they must be allocated nevertheless if one does
-     *         not want a segmentation fault.                                 */
-    void* rfof_diag_pointer_array[NSIMD]    __memalign__;
-
-    /** @brief Number of rows in an RFOF resonance memory matrix.             */
-    int mem_shape_i[NSIMD]    __memalign__;
-
-    /** @brief Number of columns in an RFOF resonance memory matrix.          */
-    int mem_shape_j[NSIMD]    __memalign__;
-
     if(sim->enable_icrh) {
-        for(int i=0; i< NSIMD; i++) {
-            /* Allocate memory for the rfof markers on the fortran side.      */
-            rfof_interface_allocate_rfof_marker(
-                &(rfof_marker_pointer_array[i]));
-
-            /* Allocate memory for the rfof resonance memory on the fortran
-               side. */
-            rfof_interface_initialise_res_mem(&(rfof_mem_pointer_array[i]),
-            &(mem_shape_i[i]), &(mem_shape_j[i]),
-            &(sim->rfof_data.cptr_rfglobal),
-            &(sim->rfof_data.cptr_rfof_input_params));
-
-            /* Initialise rfof diagnostics (dummy argument for ICRH kick)     */
-            rfof_interface_initialise_diagnostics(
-                &(sim->rfof_data.cptr_rfglobal), &(rfof_diag_pointer_array[i]));
-        }
+        rfof_set_up(&rfof_mrk, &sim->rfof_data);
     }
 
     #pragma omp simd
@@ -153,10 +122,10 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
             particle_copy_gc(&p, i, &p0, i);
-            hout_orb[i] = DUMMY_TIMESTEP_VAL;
-            hout_col[i] = DUMMY_TIMESTEP_VAL;
+            hout_orb[i]  = DUMMY_TIMESTEP_VAL;
+            hout_col[i]  = DUMMY_TIMESTEP_VAL;
             hout_rfof[i] = DUMMY_TIMESTEP_VAL;
-            hnext[i]    = DUMMY_TIMESTEP_VAL;
+            hnext[i]     = DUMMY_TIMESTEP_VAL;
         }
 
         /*************************** Physics **********************************/
@@ -213,13 +182,10 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
             }
         }
 
-        /* TODO implement RFOF_kick */
+        /* Performs the ICRH kick if in resonance. */
         if(sim->enable_icrh) {
-            /* Performs the ICRH kick if in resonance. */
-            rfof_interface_do_rfof_stuff_gc(&p, hin, hout_rfof, sim->rfof_data,
-                &(sim->B_data), rfof_marker_pointer_array,
-                rfof_mem_pointer_array, rfof_diag_pointer_array, mem_shape_i,
-                mem_shape_j);
+            rfof_resonance_check_and_kick_gc(
+                &p, hin, hout_rfof, &rfof_mrk, &sim->rfof_data, &sim->B_data);
 
             /* Check whether time step was rejected */
             #pragma omp simd
@@ -322,8 +288,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                 }
                 if(sim->enable_icrh) {
                     /* Reset icrh (rfof) resonance memory matrix. */
-                    rfof_interface_reset_icrh_mem(&(rfof_mem_pointer_array[i]),
-                    &(mem_shape_i[i]), &(mem_shape_j[i]));
+                    rfof_clear_history(&rfof_mrk, i);
                 }
             }
         }
@@ -331,22 +296,9 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
     /* All markers simulated! */
 
-    /* TODO: deallocate rfof structs (excl. wave field and input param which are
-    read in only once)                                                        */
     /* Deallocate rfof structs */
     if(sim->enable_icrh) {
-        for(int i=0; i< NSIMD; i++) {
-            /* Deallocate rfof markers                                        */
-            rfof_interface_deallocate_marker(&(rfof_marker_pointer_array[i]));
-
-            /* Deallocate rfof marker resonance memory matrix.                */
-            rfof_interface_deallocate_res_mem(&(rfof_mem_pointer_array[i]),
-            &(mem_shape_i[i]), &(mem_shape_j[i]));
-
-            /* Deallocate dummy diagnostics of rfof markers.                  */
-            rfof_interface_deallocate_diagnostics(
-                &(rfof_diag_pointer_array[i]));
-        }
+        rfof_tear_down(&rfof_mrk);
     }
 }
 

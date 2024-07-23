@@ -21,7 +21,7 @@
 #include "diag.h"
 #include "random.h"
 #include "simulate/mccc/mccc.h"
-#include "rfof_interface.h"
+#include "rfof.h"
 
 /**
  * @brief Simulaton modes

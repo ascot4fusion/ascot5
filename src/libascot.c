@@ -959,7 +959,7 @@ void libascot_eval_ratecoeff(
  * @param Eminus_imag Imaginary part of the right-handed electric field
  *                    component of the wave [V/m].
  * @param res_cond value of the resonance condition where zero is the resonance
- * [unitless].
+ * [dimensionless].
  */
 void libascot_eval_rfof(
     sim_data* sim, real* B_offload_array, int Neval,
@@ -967,40 +967,40 @@ void libascot_eval_rfof(
     real* Eplus_real, real* Eminus_real, real* Eplus_imag, real* Eminus_imag,
     real* res_cond) {
 
-    #pragma omp parallel for
-    for(int k = 0; k < Neval; k++) {
-        real B[3];
-        if( B_field_eval_B(B, R[k], phi[k], z[k], t[k], &sim->B_data) ) {
-            continue;
-        }
-        real B_magn = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
-        real gyrofreq = q * B_magn / mass;
-
+    #pragma omp parallel
+    {
         /* The function that evaluates resonance condition takes an RFOF marker
-         * as an input. However, only the R and vpar values are actually used.
-         * Therefore, we initialize a dummy marker and adjust only the values of
-         * R and vpar. */
-        void* marker_pointer;
+        * as an input. However, only the R and vpar values are actually used.
+        * Therefore, we initialize a dummy marker and adjust only the values of
+        * R and vpar. */
+        rfof_marker rfof_mrk;
         int dummy_int   = 1;
-        real dummy_real = -999.0;
-        rfof_interface_allocate_rfof_marker(&marker_pointer);
-        rfof_interface_set_marker_pointers(&marker_pointer, &dummy_int,
-            &dummy_real, &(R[k]), &dummy_real, &dummy_real, &dummy_real,
-            &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real,
-            &dummy_real, &vpar, &dummy_real, &gyrofreq, &dummy_real,
-            &dummy_real, &dummy_int, &dummy_int);
+        real dummy_real = 0.0;
+        rfof_set_up(&rfof_mrk, &sim->rfof_data);
 
-        int nharm; /* For storing return value which is not used */
-        rfof_interface_eval_resonance_function(
-            &marker_pointer, &(sim->rfof_data.cptr_rfglobal),
-            &(res_cond[k]), &nharm);
+        #pragma omp for
+        for(int k = 0; k < Neval; k++) {
+            real B[3];
+            if( B_field_eval_B(B, R[k], phi[k], z[k], t[k], &sim->B_data) ) {
+                continue;
+            }
+            real B_magn = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+            real gyrofreq = q * B_magn / mass;
+            rfof_set_marker_manually(&rfof_mrk, &dummy_int,
+                &dummy_real, &(R[k]), &dummy_real, &dummy_real, &dummy_real,
+                &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real,
+                &dummy_real, &vpar, &dummy_real, &gyrofreq, &dummy_real,
+                &dummy_real, &dummy_int, &dummy_int);
 
-        // TODO: this should return a non-zero value if the evaluation failed.
-        rfof_interface_get_rf_wave_local(
-            &(R[k]), &(z[k]), &dummy_real, &dummy_real,
-            &(sim->rfof_data.cptr_rfglobal), &(Eplus_real[k]), &(Eminus_real[k]),
-            &(Eplus_imag[k]), &(Eminus_imag[k]));
-        rfof_interface_deallocate_marker(&marker_pointer);
-        continue;
+            int nharm; /* For storing return value which is not used */
+            rfof_eval_resonance_function(
+                &(res_cond[k]), &nharm, &rfof_mrk, &(sim->rfof_data.rfglobal));
+
+            // TODO: this should return a non-zero value for failed evaluations
+            rfof_eval_rf_wave(
+                &(Eplus_real[k]), &(Eminus_real[k]), &(Eplus_imag[k]),
+                &(Eminus_imag[k]), R[k], z[k], &sim->rfof_data);
+        }
+        rfof_tear_down(&rfof_mrk);
     }
 }
