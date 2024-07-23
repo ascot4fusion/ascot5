@@ -27,7 +27,7 @@
 #include "simulate/mccc/mccc.h"
 #include "gctransform.h"
 #include "asigma.h"
-#include "rfof_interface.h"
+#include "rfof.h"
 
 #pragma omp declare target
 void sim_monitor(char* filename, volatile int* n, volatile int* finished);

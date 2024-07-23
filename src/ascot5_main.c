@@ -64,6 +64,7 @@
 #include "diag.h"
 #include "B_field.h"
 #include "plasma.h"
+#include "rfof.h"
 #include "print.h"
 #include "simulate.h"
 #include "particle.h"
@@ -233,9 +234,7 @@ int main(int argc, char** argv) {
     offload_free_offload(&offload_data, &offload_array, &int_offload_array);
 
     if(sim.enable_icrh) {
-        rfof_interface_deallocate_rfof_input_param(
-            &(sim.rfof_data.cptr_rfof_input_params));
-        rfof_interface_deallocate_rfglobal(&(sim.rfof_data.cptr_rfglobal));
+        rfof_free_offload(&sim.rfof_data);
     }
 
     /* Write output and clean */
