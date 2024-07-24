@@ -994,7 +994,7 @@ void libascot_eval_rfof(
 
             int nharm; /* For storing return value which is not used */
             rfof_eval_resonance_function(
-                &(res_cond[k]), &nharm, &rfof_mrk, &(sim->rfof_data.rfglobal));
+                &(res_cond[k]), &nharm, &rfof_mrk, &sim->rfof_data);
 
             // TODO: this should return a non-zero value for failed evaluations
             rfof_eval_rf_wave(

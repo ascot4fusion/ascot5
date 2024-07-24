@@ -8,6 +8,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include "physlib.h"
+#include "consts.h"
 #include "particle.h"
 #include "rfof.h"
 
@@ -28,7 +29,7 @@ typedef struct rfof_output {
 
 #ifdef RFOF
 void __ascot5_icrh_routines_MOD_call_initev_excl_marker_stuff(
-    char* xml_filename, int **xml_filename_len, void** cptr_rfglobal,
+    const char* xml_filename, int **xml_filename_len, void** cptr_rfglobal,
     void** cptr_rfof_input_params);
 void __ascot5_icrh_routines_MOD_call_initialise_res_mem(void** cptr_mem,
     int* cptr_mem_shape_i, int* cptr_mem_shape_j, void** cptr_rfglobal,
@@ -132,11 +133,12 @@ void rfof_set_up(rfof_marker* rfof_mrk, rfof_data* rfof) {
 #ifdef RFOF
     for(int i=0; i< NSIMD; i++) {
         /* Initialize marker data with dummy values */
+        int is_accelerated = 0;
         int is_already_allocated = 0;
         __ascot5_icrh_routines_MOD_call_set_marker_pointers(
             &(rfof_mrk->p[i]),  NULL,  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-            NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-            &is_already_allocated);
+            NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+            &is_accelerated, &is_already_allocated);
 
         /* Initialize resonance history */
         __ascot5_icrh_routines_MOD_call_initialise_res_mem(
@@ -236,6 +238,8 @@ void rfof_resonance_check_and_kick_gc(
             real acceleration   = 1.0;
             int is_accelerated  = 0;
             int is_preallocated = 1;
+
+            psi *= CONST_2PI;
 
             int dummy_id = -1;
             int* dummy_Id_ptr = &dummy_id;
