@@ -181,7 +181,7 @@ int main(int argc, char** argv) {
     };
 
     if(sim.enable_icrh) {
-        rfof_interface_initev_excl_marker_stuff(&(sim.rfof_data));
+        rfof_init_offload(&(sim.rfof_data));
     }
 
     /* Initialize marker states array ps and free marker input p */

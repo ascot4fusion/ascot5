@@ -44,11 +44,11 @@ void rfof_init(rfof_data* rfof, rfof_data* rfof_offload_data);
 
 void rfof_free_offload(rfof_data* rfof);
 
-void rfof_set_marker_manually(void** cptr_marker, int* id,
-    real* weight, real* R, real* phi, real* z, real* psi, real* charge,
-    real* mass, real* Ekin, real* vnorm, real* mu, real* Pphi,
-    real* vpar, real* vperp, real* gyrof, real* vdriftRho, real* acceleration,
-    int* is_accelerated, int* is_already_allocated);
+void rfof_set_marker_manually(
+    rfof_marker* rfof_mrk, int* id, real* weight, real* R, real* phi, real* z,
+    real* psi, real* charge, real* mass, real* Ekin, real* vnorm, real* mu,
+    real* Pphi, real* vpar, real* vperp, real* gyrof, real* vdriftRho,
+    real* acceleration, int* is_accelerated, int* is_already_allocated);
 
 void rfof_set_up(rfof_marker* rfof_mrk, rfof_data* rfof_data);
 
