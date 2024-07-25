@@ -133,11 +133,13 @@ void rfof_set_up(rfof_marker* rfof_mrk, rfof_data* rfof) {
 #ifdef RFOF
     for(int i=0; i< NSIMD; i++) {
         /* Initialize marker data with dummy values */
+        real dummy = 0.0, *ptr = &dummy;
+        int dummyint = 0, *iptr = &dummyint;
         int is_accelerated = 0;
         int is_already_allocated = 0;
         __ascot5_icrh_routines_MOD_call_set_marker_pointers(
-            &(rfof_mrk->p[i]),  NULL,  NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-            NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+            &(rfof_mrk->p[i]), &iptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr,
+            &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr,
             &is_accelerated, &is_already_allocated);
 
         /* Initialize resonance history */
@@ -223,6 +225,7 @@ void rfof_resonance_check_and_kick_gc(
             real psi, B, gamma, Ekin, vnorm, P_phi, xi, v_par, v_perp, gyrof;
             B_field_eval_psi(&psi, p->r[i], p->phi[i], p->z[i], p->time[i],
                              Bdata);
+            psi *= CONST_2PI; // librfof is COCOS 13
             B = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
             gamma  = physlib_gamma_ppar(p->mass[i], p->mu[i], p->ppar[i], B);
             Ekin   = physlib_Ekin_gamma(p->mass[i], gamma);
@@ -239,27 +242,25 @@ void rfof_resonance_check_and_kick_gc(
             int is_accelerated  = 0;
             int is_preallocated = 1;
 
-            psi *= CONST_2PI;
-
-            int dummy_id = -1;
+            int dummy_id = 1;
             int* dummy_Id_ptr = &dummy_id;
 
-            real* weight_ptr = &(p->weight[i]);
-            real* r_ptr = &(p->r[i]);
-            real* phi_ptr = &(p->phi[i]);
-            real* z_ptr = &(p->z[i]);
-            real* charge_ptr = &(p->charge[i]);
-            real* mass_ptr = &(p->mass[i]);
-            real* mu_ptr = &(p->mu[i]);
-            real* Ekin_ptr = &Ekin;
-            real* psi_ptr = &psi;
-            real* speed_ptr = &vnorm;
-            real* P_phi_ptr = &P_phi;
-            real* v_par_ptr = &v_par;
-            real* v_perp_ptr = &v_perp;
-            real* gyrof_ptr = &gyrof;
+            real* weight_ptr    = &(p->weight[i]);
+            real* r_ptr         = &(p->r[i]);
+            real* phi_ptr       = &(p->phi[i]);
+            real* z_ptr         = &(p->z[i]);
+            real* charge_ptr    = &(p->charge[i]);
+            real* mass_ptr      = &(p->mass[i]);
+            real* mu_ptr        = &(p->mu[i]);
+            real* Ekin_ptr      = &Ekin;
+            real* psi_ptr       = &psi;
+            real* speed_ptr     = &vnorm;
+            real* P_phi_ptr     = &P_phi;
+            real* v_par_ptr     = &v_par;
+            real* v_perp_ptr    = &v_perp;
+            real* gyrof_ptr     = &gyrof;
             real* vdriftRho_ptr = &vdriftRho;
-            real* acc_ptr = &acceleration;
+            real* acc_ptr       = &acceleration;
 
             /* Store the old value to be able to evaluate the new ppar after
                kick. */
