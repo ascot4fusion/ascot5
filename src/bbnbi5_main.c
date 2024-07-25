@@ -28,6 +28,9 @@
 #include "diag.h"
 #include "bbnbi5.h"
 
+int bbnbi_read_arguments(int argc, char** argv, sim_offload_data* sim,
+                         int* nprt, real* t1, real* t2);
+
 /**
  * @brief Main function for BBNBI5
  *
@@ -140,5 +143,172 @@ int main(int argc, char** argv) {
     }
     print_out0(VERBOSE_MINIMAL, sim.mpi_rank, sim.mpi_root, "\nDone\n");
 
+    return 0;
+}
+
+/**
+ * @brief Read command line arguments
+ *
+ * Read in command line arguments, input and output names and mpi parameters
+ * are stored in sim structure as with ascot5, number of markers is passed
+ * as an argument.
+ *
+ * If the arguments could not be parsed, this function returns a non-zero exit
+ * value.
+ *
+ * @param argc argument count as given to main()
+ * @param argv argument vector as given to main()
+ * @param sim pointer to offload data struct
+ * @param nprt pointer to integer where number of markers is stored
+ * @param t1 pointer to store beginning of time interval
+ * @param t2 pointer to store end of the time interval
+ *
+ * @return Zero if success
+ */
+int bbnbi_read_arguments(int argc, char** argv, sim_offload_data* sim,
+                         int* nprt, real* t1, real* t2) {
+    struct option longopts[] = {
+        {"in",       required_argument, 0,  1},
+        {"out",      required_argument, 0,  2},
+        {"mpi_size", required_argument, 0,  3},
+        {"mpi_rank", required_argument, 0,  4},
+        {"d",        required_argument, 0,  5},
+        {"bfield",   required_argument, 0,  6},
+        {"wall",     required_argument, 0,  7},
+        {"plasma",   required_argument, 0,  8},
+        {"nbi",      required_argument, 0,  9},
+        {"n",        required_argument, 0, 10},
+        {"t1",       required_argument, 0, 11},
+        {"t2",       required_argument, 0, 12},
+        {0, 0, 0, 0}
+    };
+
+    /* Initialize default values */
+    sim->hdf5_in[0]     = '\0';
+    sim->hdf5_out[0]    = '\0';
+    sim->qid_options[0] = '\0';
+    sim->qid_bfield[0]  = '\0';
+    sim->qid_efield[0]  = '\0';
+    sim->qid_marker[0]  = '\0';
+    sim->qid_wall[0]    = '\0';
+    sim->qid_plasma[0]  = '\0';
+    sim->qid_neutral[0] = '\0';
+    sim->qid_boozer[0]  = '\0';
+    sim->qid_mhd[0]     = '\0';
+    sim->qid_asigma[0]  = '\0';
+    sim->qid_nbi[0]     = '\0';
+    sim->mpi_rank       = 0;
+    sim->mpi_size       = 0;
+    *nprt               = 10000;
+    *t1                 = 0.0;
+    *t2                 = 0.0;
+    strcpy(sim->description, "TAG");
+
+    /* Read user input */
+    int c;
+    int slen;
+    while((c = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
+        switch(c) {
+            case 1:
+                /* The .hdf5 filename can be specified with or without the
+                 * trailing .h5 */
+                slen = strlen(optarg);
+                if ( slen > 3 && !strcmp(optarg+slen-3, ".h5") ) {
+                    strcpy(sim->hdf5_in, optarg);
+                    (sim->hdf5_in)[slen-3]='\0';
+                }
+                else {
+                    strcpy(sim->hdf5_in, optarg);
+                }
+                break;
+            case 2:
+                /* The .hdf5 filename can be specified with or without the
+                 * trailing .h5 */
+                slen = strlen(optarg);
+                if ( slen > 3 && !strcmp(optarg+slen-3, ".h5") ) {
+                    strcpy(sim->hdf5_out, optarg);
+                    (sim->hdf5_out)[slen-3]='\0';
+                }
+                else {
+                    strcpy(sim->hdf5_out, optarg);
+                }
+                break;
+            case 3:
+                sim->mpi_size = atoi(optarg);
+                break;
+            case 4:
+                sim->mpi_rank = atoi(optarg);
+                break;
+            case 5:
+                strcpy(sim->description, optarg);
+                break;
+            case 6:
+                strcpy(sim->qid_bfield, optarg);
+                break;
+            case 7:
+                strcpy(sim->qid_wall, optarg);
+                break;
+            case 8:
+                strcpy(sim->qid_plasma, optarg);
+                break;
+            case 9:
+                strcpy(sim->qid_nbi, optarg);
+                break;
+            case 10:
+                *nprt = atoi(optarg);
+                break;
+            case 11:
+                *t1 = atof(optarg);
+                break;
+            case 12:
+                *t2 = atof(optarg);
+                break;
+            default:
+                // Unregonizable argument(s). Tell user how to run ascot5_main
+                print_out(VERBOSE_MINIMAL,
+                          "\nUnrecognized argument. The valid arguments are:\n");
+                print_out(VERBOSE_MINIMAL,
+                          "--in input file (default: ascot.h5)\n");
+                print_out(VERBOSE_MINIMAL,
+                          "--out output file (default: same as input)\n");
+                print_out(VERBOSE_MINIMAL,
+                          "--mpi_size number of independent processes\n");
+                print_out(VERBOSE_MINIMAL,
+                          "--mpi_rank rank of independent process\n");
+                print_out(VERBOSE_MINIMAL,
+                          "--d run description maximum of 250 characters\n");
+                print_out(VERBOSE_MINIMAL,
+                          "--n number of markers to generate (default: 10000)\n");
+                print_out(VERBOSE_MINIMAL,
+                          "--t1 time when injectors are turned on (default: 0.0 s)\n");
+                print_out(VERBOSE_MINIMAL,
+                          "--t2 time when injectors are turned off (default: 0.0 s)\n");
+                return 1;
+        }
+    }
+
+    /* Default value for input file is ascot.h5, and for output same as input
+     * file. Adujust hdf5_in and hdf5_out accordingly. For output file, we don't
+     * add the .h5 extension here. */
+    if(sim->hdf5_in[0] == '\0' && sim->hdf5_out[0] == '\0') {
+        /* No input, use default values for both */
+        strcpy(sim->hdf5_in,  "ascot.h5");
+        strcpy(sim->hdf5_out, "ascot.h5");
+    }
+    else if(sim->hdf5_in[0] == '\0' && sim->hdf5_out[0] != '\0') {
+        /* Output file is given but the input file is not */
+        strcpy(sim->hdf5_in,  "ascot.h5");
+        strcat(sim->hdf5_out, ".h5");
+    }
+    else if(sim->hdf5_in[0] != '\0' && sim->hdf5_out[0] == '\0') {
+        /* Input file is given but the output is not */
+        strcat(sim->hdf5_in, ".h5");
+        strcpy(sim->hdf5_out, sim->hdf5_in);
+    }
+    else {
+        /* Both input and output files are given */
+        strcat(sim->hdf5_in,  ".h5");
+        strcat(sim->hdf5_out, ".h5");
+    }
     return 0;
 }
