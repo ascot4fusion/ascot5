@@ -5,7 +5,7 @@ import unyt
 import copy
 
 from scipy.interpolate import interp1d
-from scipy.integrate import solve_ivp, cumtrapz
+from scipy.integrate import solve_ivp
 
 from a5py.ascot5io.marker  import Marker
 from a5py.ascot5io.options import Opt
