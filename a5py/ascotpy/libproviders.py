@@ -187,7 +187,7 @@ class LibProviders():
             ctypes.byref(self._bfield_offload_array)
         )
 
-        qid, _, _, _ = fileapi._generate_meta()
+        qid, _, _ = fileapi._generate_meta()
         self._sim.qid_bfield = bytes(qid, "utf-8")
 
     def _provide_B_TC(self, **kwargs):
@@ -364,7 +364,7 @@ class LibProviders():
             ctypes.byref(self._efield_offload_array)
         )
 
-        qid, _, _, _ = fileapi._generate_meta()
+        qid, _, _ = fileapi._generate_meta()
         self._sim.qid_efield = bytes(qid, "utf-8")
 
     def _provide_E_TC(self, **kwargs):
@@ -405,7 +405,7 @@ class LibProviders():
             ctypes.byref(self._plasma_offload_array)
         )
 
-        qid, _, _, _ = fileapi._generate_meta()
+        qid, _, _ = fileapi._generate_meta()
         self._sim.qid_plasma = bytes(qid, "utf-8")
 
     def _provide_plasma_1D(self, **kwargs):
@@ -520,7 +520,7 @@ class LibProviders():
             ctypes.byref(self._wall_int_offload_array)
         )
 
-        qid, _, _, _ = fileapi._generate_meta()
+        qid, _, _ = fileapi._generate_meta()
         self._sim.qid_wall = bytes(qid, "utf-8")
 
     def _provide_wall_2D(self, **kwargs):
@@ -570,7 +570,7 @@ class LibProviders():
             ctypes.byref(self._neutral_offload_array)
         )
 
-        qid, _, _, _ = fileapi._generate_meta()
+        qid, _, _ = fileapi._generate_meta()
         self._sim.qid_neutral = bytes(qid, "utf-8")
 
     def _provide_N0_1D(self, **kwargs):
@@ -634,7 +634,7 @@ class LibProviders():
             ctypes.byref(self._boozer_offload_array)
         )
 
-        qid, _, _, _ = fileapi._generate_meta()
+        qid, _, _ = fileapi._generate_meta()
         self._sim.qid_boozer = bytes(qid, "utf-8")
 
     def _provide_Boozer(self, **kwargs):
@@ -678,7 +678,7 @@ class LibProviders():
             ctypes.byref(self._mhd_offload_array)
         )
 
-        qid, _, _, _ = fileapi._generate_meta()
+        qid, _, _ = fileapi._generate_meta()
         self._sim.qid_mhd = bytes(qid, "utf-8")
 
     def _provide_MHD_STAT(self, **kwargs):
@@ -741,7 +741,7 @@ class LibProviders():
             ctypes.byref(self._asigma_offload_array)
         )
 
-        qid, _, _, _ = fileapi._generate_meta()
+        qid, _, _ = fileapi._generate_meta()
         self._sim.qid_asigma = bytes(qid, "utf-8")
 
     def _provide_asigma_loc(self, **kwargs):
@@ -784,7 +784,7 @@ class LibProviders():
             ctypes.byref(self._nbi_offload_array)
         )
 
-        qid, _, _, _ = fileapi._generate_meta()
+        qid, _, _ = fileapi._generate_meta()
         self._sim.qid_nbi = bytes(qid, "utf-8")
 
     def _provide_NBI(self, **kwargs):

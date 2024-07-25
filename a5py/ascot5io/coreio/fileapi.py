@@ -85,7 +85,7 @@ def set_active(f, group):
     """
     qid = get_qid(group)
     grp = get_group(f, qid)
-    grp.parent.attrs["active"] = np.string_(qid)
+    grp.parent.attrs["active"] = np.bytes_(qid)
 
 def get_active(f, parent):
     """Get active group.
@@ -170,7 +170,7 @@ def set_desc(f, group, desc):
     """
     qid = get_qid(group)
     grp = get_group(f, qid)
-    grp.attrs["description"] = np.string_(desc)
+    grp.attrs["description"] = np.bytes_(desc)
 
 def get_desc(f, group):
     """Get group description.
@@ -217,7 +217,7 @@ def _set_date(f, group, date):
     """
     qid = get_qid(group)
     grp = get_group(f, qid)
-    grp.attrs["date"] = np.string_(date)
+    grp.attrs["date"] = np.bytes_(date)
 
 def get_date(f, group):
     """Get date.
@@ -608,7 +608,7 @@ def write_data(group, name, data, shape, dtype, unit=None, compress=False):
             dtype = dtype
         )
     if unit is not None:
-        g.attrs.create("unit", np.string_(unit))
+        g.attrs.create("unit", np.bytes_(unit))
 
 def read_data(group, name):
     """Read a dataset including its units if present.
