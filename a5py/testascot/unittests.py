@@ -224,10 +224,10 @@ class TestAscot5IO(unittest.TestCase):
         qid2 = a5.data.efield[grp2].get_qid()
         with h5py.File(self.testfilename, "a") as h5:
             group = fileapi.add_group(h5, "results", "run", desc="RUN1")
-            group.attrs["qid_efield"] = np.string_(qid1)
+            group.attrs["qid_efield"] = np.bytes_(qid1)
             time.sleep(1.0)
             group = fileapi.add_group(h5, "results", "run", desc="RUN2")
-            group.attrs["qid_efield"] = np.string_(qid2)
+            group.attrs["qid_efield"] = np.bytes_(qid2)
 
         a5 = Ascot(self.testfilename)
         run1 = a5.data["RUN1"].get_qid()
@@ -276,7 +276,7 @@ class TestAscot5IO(unittest.TestCase):
         # Create a new run and test the remove all results method
         with h5py.File(self.testfilename, "a") as h5:
             group = fileapi.add_group(h5, "results", "run", desc="RUN1")
-            group.attrs["qid_efield"] = np.string_(qid1)
+            group.attrs["qid_efield"] = np.bytes_(qid1)
 
         a5.data.destroy(repack=False)
         self.assertFalse("results" in a5.data,
@@ -822,19 +822,19 @@ class TestMoments(unittest.TestCase):
         mrkdist = {}
         mrkdist["density"]          = weight * dt
         mrkdist["chargedensity"]    = weight * charge * dt
-        mrkdist["energydensity"]    = weight * ( energy * dt ).to("J")
-        mrkdist["pressure"]         = weight * (mass * vnorm**2 * dt).to("J")/3
-        mrkdist["toroidalcurrent"]  = weight * ( charge * vphi * dt ).to("A*m")
-        mrkdist["parallelcurrent"]  = weight * ( charge * vpar * dt ).to("A*m")
-        mrkdist["powerdep"]         = weight * dEtot_d.to("W")
-        mrkdist["electronpowerdep"] = weight * dEele_d.to("W")
-        mrkdist["ionpowerdep"]      = weight * dEion_d.to("W")
+        mrkdist["energydensity"]    = weight * (energy * dt).to("J*s")
+        mrkdist["pressure"]         = weight * (mass * vnorm**2*dt).to("J*s")/3
+        mrkdist["toroidalcurrent"]  = weight * ( charge * vphi * dt ).to("A*s*m")
+        mrkdist["parallelcurrent"]  = weight * ( charge * vpar * dt ).to("A*s*m")
+        mrkdist["powerdep"]         = weight * dEtot_d.to("J")
+        mrkdist["electronpowerdep"] = weight * dEele_d.to("J")
+        mrkdist["ionpowerdep"]      = weight * dEion_d.to("J")
         mrkdist["jxbtorque"]        = weight * (-charge * dpsi/unyt.s).to("N*m")
-        mrkdist["colltorque"]       = weight * (r*dppar*(bphi/bnorm)*dt).to("J")
+        mrkdist["colltorque"]       = weight * (r*dppar*(bphi/bnorm)*dt).to("J*s")
         mrkdist["canmomtorque"]     = weight * -charge * dPphi
 
         print(weight[0]*tf)
-        print(((ef-ei)*weight[0]/unyt.s).to("W"))
+        print(((ef-ei)*weight[0]).to("W"))
         for o in ordinates:
             a1 = np.sum(rhomom.ordinate(o) * rhomom.volume)
             a2 = np.sum(mom.ordinate(o) * mom.volume)

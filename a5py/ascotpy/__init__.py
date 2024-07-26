@@ -953,7 +953,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                                           np.append(phimin, phimax),
                                           indexing="ij" )
             rc, zc = self.input_rhotheta2rz(
-                rhoc.ravel(), thc.ravel()*unyt.rad, phic.ravel()*unyt.rad, t)
+                rhoc.ravel(), thc.ravel(), phic.ravel(), t)
             bbox = np.ones((4,)) * unyt.m
             bbox[0] = np.nanmin(rc)
             bbox[1] = np.nanmax(rc)
@@ -1363,8 +1363,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
 
         nmrk = mrk['n']
         passing = np.zeros((n1, n2))
-        torfreq = np.zeros((n1, n2)) + np.NaN
-        polfreq = np.zeros((n1, n2)) + np.NaN
+        torfreq = np.zeros((n1, n2)) + np.nan
+        polfreq = np.zeros((n1, n2)) + np.nan
         for i in range(nmrk):
             ixi  = int(i / n1)
             irho = i % n1

@@ -20,7 +20,7 @@ dependencies = [
   "numpy",
   "scipy",
   "h5py",
-  "unyt==2.9.5",
+  "unyt",
   "wurlitzer",
   "xmlschema",
 ]

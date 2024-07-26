@@ -1002,7 +1002,7 @@ class Dist(DataContainer):
                                dist.abscissa_edges("ppar")[0]**2,
                                dist.abscissa_edges("pperp")[-1]**2)
             ekinmax = physlib.energy_momentum(mass, np.sqrt(p2max)).to("eV")
-            ekin_edges = np.linspace(0, ekinmax, ekin_edges)
+            ekin_edges = np.linspace(0*unyt.eV, ekinmax, ekin_edges)
         if isinstance(pitch_edges, int):
             pitch_edges = np.linspace(-1, 1, pitch_edges)
 

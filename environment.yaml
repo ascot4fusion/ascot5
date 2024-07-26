@@ -15,7 +15,7 @@ dependencies:
   - scipy
   - h5py
   - xmlschema
-  - unyt==2.9.5
+  - unyt
   - wurlitzer
   - matplotlib
   - pyvista
