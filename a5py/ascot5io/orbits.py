@@ -59,8 +59,10 @@ class Orbits(DataContainer):
             """
             with self as h5:
                 if q in h5:
-                    q = fileapi.read_data(h5, q)
-                    return q if mask is None else q[mask]
+                    qnt = fileapi.read_data(h5, q)
+                    if q == "weight":
+                        qnt *= unyt.unyt_quantity.from_string("particles/s")
+                    return qnt if mask is None else qnt[mask]
             return None
 
         # Sort using the fact that inistate.get return values ordered by ID

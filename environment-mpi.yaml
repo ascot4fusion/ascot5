@@ -17,7 +17,7 @@ dependencies:
   - h5py=*=*openmpi*
   - mpi4py
   - xmlschema
-  - unyt==2.9.5
+  - unyt
   - wurlitzer
   - matplotlib
   - pyvista

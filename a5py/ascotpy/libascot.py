@@ -797,8 +797,8 @@ class LibAscot:
         self._requireinit("bfield")
         rho = np.asarray(rho).ravel().astype(dtype="f8")
         Neval = rho.size
-        r   = np.NaN * np.zeros((Neval,), dtype="f8") * unyt.m
-        z   = np.NaN * np.zeros((Neval,), dtype="f8") * unyt.m
+        r   = np.nan * np.zeros((Neval,), dtype="f8") * unyt.m
+        z   = np.nan * np.zeros((Neval,), dtype="f8") * unyt.m
 
         if theta.size == 1:
             theta = theta * np.ones(rho.shape).astype(dtype="f8")
@@ -857,7 +857,7 @@ class LibAscot:
         psi0 = self._eval_bfield(
             ax["axisr"], 0.0*unyt.rad, ax["axisz"], 0.0*unyt.s, evalrho=True)
 
-        psi = np.NaN * np.zeros((1,), dtype="f8") * unyt.Wb
+        psi = np.nan * np.zeros((1,), dtype="f8") * unyt.Wb
         rz  = np.zeros((2,), dtype="f8") * unyt.m
         rz[0] = ax["axisr"]
         rz[1] = ax["axisz"]

@@ -147,7 +147,7 @@ class RunMixin(DistMixin):
 
             # Go through each unique end cond and mark that end cond valid or
             # not. This can then be used to make udix as boolean mask array.
-            uecs, uidx = np.unique(self._endstate.get("endcond"),
+            uecs, uidx = np.unique(self._endstate.get("endcond")[0],
                                    return_inverse=True)
             mask = np.zeros(uecs.shape, dtype=bool)
             for i, uec in enumerate(uecs):
@@ -161,7 +161,7 @@ class RunMixin(DistMixin):
         if ids is not None:
             idx = np.logical_and(idx, np.in1d(self._inistate.get("ids"), ids))
 
-        for i in range(len(data)):
+        for i in range(len(qnt)):
             data[i] = data[i][idx]
         if "mu" in qnt:
             data[qnt.index("mu")].convert_to_units("eV/T")
@@ -1109,11 +1109,10 @@ class RunMixin(DistMixin):
             # Sort data so that when the stacked histogram is plotted, the stack
             # with most markers is at the bottom.
             idx = np.argsort([len(i) for i in xcs])[::-1]
-            xcs = [xcs[i].v for i in idx]
+            xcs = [xcs[i] for i in idx]
             ecs = [endconds[i][1] + " : %.2e" % endconds[i][0] for i in idx]
             weights = [weights[i] for i in idx]
             if not weight: weights = None
-
             a5plt.hist1d(x=xcs, xbins=xbins, weights=weights, xlog=xlog,
                          logscale=logscale, xlabel=x, axes=axes, legend=ecs)
 
@@ -1124,7 +1123,6 @@ class RunMixin(DistMixin):
             weights = self.getstate("weight", state="ini", endcond=endcond,
                                     ids=ids)
             if not weight: weights = None
-
             a5plt.hist2d(xc, yc, xbins=xbins, ybins=ybins, weights=weights,
                          xlog=xlog, ylog=ylog, logscale=logscale, xlabel=x,
                          ylabel=y, axesequal=axesequal, axes=axes, cax=cax)
