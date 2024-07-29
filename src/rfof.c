@@ -45,9 +45,9 @@ void __ascot5_icrh_routines_MOD_call_set_marker_pointers(void** cptr_marker,
     int* is_already_allocated);
 
 void __ascot5_icrh_routines_MOD_call_rf_kick(double*time, double*dtin,
-    int* mpi_rank, rfof_output* out, void** cptr_marker,
-    void**cptr_mem, void** cptr_rfglobal, void** cptr_rfdiagno, int *err,
-    int*mem_shape_i, int*mem_shape_j);
+    int* mpi_rank, void** cptr_marker, void** cptr_mem, void** cptr_rfglobal,
+    void** cptr_rfdiagno, void** cptr_rfof_input, int* mem_shape_i,
+    int* mem_shape_j, int *err, rfof_output* out);
 
 void __ascot5_icrh_routines_MOD_call_reset_res_mem(void** rfof_mem_pointer,
     int* mem_shape_i, int* mem_shape_j);
@@ -306,10 +306,11 @@ void rfof_resonance_check_and_kick_gc(
 
             /* Ready to kick some ash (if in resonance) */
             __ascot5_icrh_routines_MOD_call_rf_kick(
-                &(p->time[i]), &(hin[i]), &mpi_rank, &rfof_data_pack,
+                &(p->time[i]), &(hin[i]), &mpi_rank,
                 &(rfof_mrk->p[i]), &(rfof_mrk->history_array[i]),
-                &(rfof_data->rfglobal), &(rfof_mrk->diag_array[i]), &err,
-                &(rfof_mrk->nrow[i]), &(rfof_mrk->ncol[i]));
+                &(rfof_data->rfglobal), &(rfof_mrk->diag_array[i]),
+                &(rfof_data->rfof_input_params), &(rfof_mrk->nrow[i]),
+                &(rfof_mrk->ncol[i]), &err, &rfof_data_pack);
 
             /* Most marker phase-space coordinates are updated automatically
              * via the pointers in rfof_mrk except ppar which we update here */
