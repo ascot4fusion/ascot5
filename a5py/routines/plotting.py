@@ -904,8 +904,8 @@ def poincare(x, y, ids, connlen=None, xlim=None, ylim=None, xlabel=None,
         clim = np.linspace(cmin, cmax, nc_b+1)
 
         # Confined markers are plotted separately.
-        connlen[idx+1:] = cmax + 1/nc
-        clim = np.append(clim, cmax + np.linspace(0, 1/nc, nc))
+        connlen[idx+1:] = cmax + (1/nc) * cmax.units
+        clim = np.append(clim, cmax + np.linspace(0, 1/nc, nc) * cmax.units)
 
         # Create colormap and colorbar
         cmapred  = plt.cm.get_cmap("Reds_r")
@@ -923,9 +923,11 @@ def poincare(x, y, ids, connlen=None, xlim=None, ylim=None, xlabel=None,
             ticklabels = list(clim[:nc_b]) + [r"$\inf$"]
         else:
             ticklabels = list(clim[:nc_b]) + [r"$\inf$"]
-        cb = plt.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap), ax=axes,
-                          spacing='proportional', extend='min', ticks=ticks,
-                          boundaries=[clim[0]-0.5] + clim + [clim[-1]+0.5])
+        deltac = clim[1] - clim[2]
+        cb = plt.colorbar(
+            mpl.cm.ScalarMappable(norm=norm, cmap=cmap), ax=axes,
+            spacing='proportional', extend='min', ticks=ticks,
+            boundaries=[clim[0]-deltac/2] + clim + [clim[-1]+deltac/2])
         cb.ax.set_yticklabels(ticklabels)
         if clabel is not None:
             clabel = "log10( "+clabel+" )" if logscale else clabel

@@ -532,7 +532,7 @@ class PhysTest():
             """Check if the change in time of a given quantity is below given
             tolerance
             """
-            err = np.polyfit(t, (q - q[0]) / q[0], 1)[0]
+            err = _linfit(t, (q - q[0]) / q[0])
             msg = "Rate of change in %6s (%s/%11s): %e Tolerance: %e" \
                 % (qnt, otype, mode, err, eps)
             if np.abs(err) > eps:
@@ -771,7 +771,7 @@ class PhysTest():
         # calculating sum-of-squares of the difference between go and gc and
         # go2gc and gc. The latter should be smaller if the guiding center
         # transformation works.
-        t = np.linspace(0, 1e-6, 1000)
+        t = np.linspace(0, 1e-6, 1000) * unyt.s
         mugo    = np.interp(t, tgo,    mugo)
         mugc    = np.interp(t, tgc,    mugc)
         mugo2gc = np.interp(t, tgo2gc[1:], mugo2gc[1:])
@@ -1016,11 +1016,13 @@ class PhysTest():
             print("  (Failed)")
             passed = False
 
+        fig = a5plt.figuredoublecolumn(3/2)
+        ax = fig.add_subplot(1,1,1)
         dist = run_tgo.getdist("5d")
         dist.integrate(
             r=np.s_[:], phi=np.s_[:], z=np.s_[:], time=np.s_[:],
             charge=np.s_[:])
-        dist.plot()
+        dist.plot(axes=ax)
 
         return passed
 
@@ -1151,10 +1153,10 @@ class PhysTest():
 
         print("Test classical transport:")
         passed = True
-        k0 = np.polyfit(1/bnorm**2, Dana, 1)[0]
-        k1 = np.polyfit(1/bnorm**2, Dgo,  1)[0]
-        k2 = np.polyfit(1/bnorm**2, Dgcf, 1)[0]
-        k3 = np.polyfit(1/bnorm**2, Dgca, 1)[0]
+        k0 = _linfit(1/bnorm**2, Dana)
+        k1 = _linfit(1/bnorm**2, Dgo)
+        k2 = _linfit(1/bnorm**2, Dgcf)
+        k3 = _linfit(1/bnorm**2, Dgca)
 
         print(" slope (expected): %1.3f" % k0)
         f = ""
@@ -1292,24 +1294,24 @@ class PhysTest():
 
             ri, ti = run_go.getstate("rho", "mileage", state="ini")
             rf, tf = run_go.getstate("rho", "mileage", state="end")
-            ri = np.interp(ri, rhoomp, romp) * unyt.m
-            rf = np.interp(rf, rhoomp, romp) * unyt.m
+            ri = np.interp(ri, rhoomp, romp)
+            rf = np.interp(rf, rhoomp, romp)
             Dgo[i] = 0.5 * np.mean( (rf - ri)**2 / (tf - ti) )
             Dgoerr[i] = np.sqrt( (0.5 * np.var( (rf - ri)**2 / (tf - ti) )) \
                                  / ri.size )
 
             ri, ti = run_gcf.getstate("rho", "mileage", state="ini")
             rf, tf = run_gcf.getstate("rho", "mileage", state="end")
-            ri = np.interp(ri, rhoomp, romp) * unyt.m
-            rf = np.interp(rf, rhoomp, romp) * unyt.m
+            ri = np.interp(ri, rhoomp, romp)
+            rf = np.interp(rf, rhoomp, romp)
             Dgcf[i] = 0.5 * np.mean( (rf - ri)**2 / (tf - ti) )
             Dgcferr[i] = np.sqrt( (0.5 * np.var( (rf - ri)**2 / (tf - ti) )) \
                                   / ri.size )
 
             ri, ti = run_gca.getstate("rho", "mileage", state="ini")
             rf, tf = run_gca.getstate("rho", "mileage", state="end")
-            ri = np.interp(ri, rhoomp, romp) * unyt.m
-            rf = np.interp(rf, rhoomp, romp) * unyt.m
+            ri = np.interp(ri, rhoomp, romp)
+            rf = np.interp(rf, rhoomp, romp)
             Dgca[i] = 0.5 * np.mean( (rf - ri)**2 / (tf - ti) )
             Dgcaerr[i] = np.sqrt( (0.5 * np.var( (rf - ri)**2 / (tf - ti) )) \
                                   / ri.size )
@@ -1379,10 +1381,10 @@ class PhysTest():
         print("                   GO       GCF      GCA      analytical")
         passed = True
         idx = veff_x <= np.power(eps, 3.0/2.0)
-        k0 = np.polyfit(veff[:i1+1], Db[:i1+1], 1)[0]
-        k1 = np.polyfit(veff_x[idx], Dgo[idx],  1)[0]
-        k2 = np.polyfit(veff_x[idx], Dgcf[idx], 1)[0]
-        k3 = np.polyfit(veff_x[idx], Dgca[idx], 1)[0]
+        k0 = _linfit(veff[:i1+1], Db[:i1+1])
+        k1 = _linfit(veff_x[idx], Dgo[idx])
+        k2 = _linfit(veff_x[idx], Dgcf[idx])
+        k3 = _linfit(veff_x[idx], Dgca[idx])
         f = ""
         if np.amax(np.abs(np.array([k1,k2,k3]) - k0)) > 2e-2:
             f = "(FAILED)"
@@ -1391,11 +1393,10 @@ class PhysTest():
               % (k1, k2, k3, k0, f))
 
         idx = np.logical_and(veff_x >= np.power(eps, 3.0/2.0), veff_x <=1)
-        #k0 = np.polyfit(veff[i1:i2+1], Dp[i1:i2+1], 1)[0]
         k0 = 0.0
-        k1 = np.polyfit(veff_x[idx],   Dgo[idx],    1)[0]
-        k2 = np.polyfit(veff_x[idx],   Dgcf[idx],   1)[0]
-        k3 = np.polyfit(veff_x[idx],   Dgca[idx],   1)[0]
+        k1 = _linfit(veff_x[idx], Dgo[idx])
+        k2 = _linfit(veff_x[idx], Dgcf[idx])
+        k3 = _linfit(veff_x[idx], Dgca[idx])
         f = ""
         if np.amax(np.abs(np.array([k1,k2,k3]) - k0)) > 3e-3:
             f = "(FAILED)"
@@ -1404,10 +1405,10 @@ class PhysTest():
               % (k1, k2, k3, k0, f))
 
         idx = veff_x >=1
-        k0 = np.polyfit(veff[i2:],   Dps[i2:],  1)[0]
-        k1 = np.polyfit(veff_x[idx], Dgo[idx],  1)[0]
-        k2 = np.polyfit(veff_x[idx], Dgcf[idx], 1)[0]
-        k3 = np.polyfit(veff_x[idx], Dgca[idx], 1)[0]
+        k0 = _linfit(veff[i2:],   Dps[i2:])
+        k1 = _linfit(veff_x[idx], Dgo[idx])
+        k2 = _linfit(veff_x[idx], Dgcf[idx])
+        k3 = _linfit(veff_x[idx], Dgca[idx])
         f = ""
         if np.amax(np.abs(np.array([k1,k2,k3]) - k0)) > 5e-4:
             f = "(FAILED)"
@@ -2001,8 +2002,9 @@ class PhysTest():
         ekin  = alphadist.abscissa("ekin")
         pitch = alphadist.abscissa("pitch")
 
-        emean = 3.537e6 + 1e4 * 2
-        gauss = np.exp(-(ekin.v - emean)**2 / (4*1e4*emean*4.001/(4.001+1.008)))
+        emean = (3.537e6 + 1e4 * 2) * unyt.eV
+        gauss = np.exp(-(ekin - emean)**2 / (4*1e4*emean*4.001/(4.001+1.008))) \
+            / unyt.eV
 
         pdens = 1e20*unyt.m**(-3)*1e20*unyt.m**(-3)*1.1e-16*unyt.cm**3
         vol = 6*unyt.m*np.pi*2*0.2*unyt.m*0.2*unyt.m
@@ -2012,7 +2014,7 @@ class PhysTest():
         ax2 = fig.add_subplot(2,1,2)
 
         ekindist.plot(axes=ax1)
-        ax1.plot(ekin, pdens * vol * gauss / np.trapz(gauss,ekin))
+        ax1.plot(ekin, pdens * vol * gauss / np.trapz(gauss, ekin))
         xidist.plot(axes=ax2)
         ax2.plot(pitch, 0.5 * pdens * vol * np.ones(pitch.shape))
 
@@ -2391,6 +2393,14 @@ class PhysTest():
             ["./../../build/ascot5_main", "--in=testascot.h5", "--d="+test],
             stdout=subprocess.DEVNULL)
         self.ascot = Ascot(self.ascot.file_getpath())
+
+def _linfit(x, y):
+    """Calculate linear fit and return the slope.
+    """
+    try:
+        return np.polyfit(x, y, 1)[0]
+    except TypeError:
+        return np.polyfit(x, y.v, 1)[0]
 
 if __name__ == '__main__':
     test = PhysTest()

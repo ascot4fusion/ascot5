@@ -280,13 +280,14 @@ class PoincareTemplates():
             # Boozer coordinate Jacobian is (I - qg) / B^2. Setting it fixes the
             # Boozer poloidal angle which we can now solve.
             jac = (Iprof + qprof*gprof)[i] / bnorm**2
-            btheta = np.append(0, np.cumsum( ds / ( jac * bpol ) ))
+            btheta = np.append(
+                0*unyt.T*unyt.m, np.cumsum( ds / ( jac * bpol ) ))
 
             # The above Jacobian is for a periodical theta, so theta[-1] should
             # equal to 2 pi already, but normalize it to remove numerical error
             # (note that the new Jacobian would be J / a)
             a = 2*np.pi / btheta[-1]
-            if np.isnan(a) or np.abs(a - 1) > 0.1:
+            if np.isnan(a) or np.abs(a.v - 1) > 0.1:
                 raise ValueError(
                     "Something wrong with Boozer data generation. " +
                     "Theta is not periodic: thetamax/2pi = %f", a)
@@ -295,7 +296,8 @@ class PoincareTemplates():
 
             # For Boozer toroidal coordinate, we need to integrate the local
             # safety factor along the contour
-            nu = gprof[i] * np.append(0, np.cumsum( ds / ( r**2 * bpol ) ) )
+            nu = gprof[i] * np.append(
+                0/(unyt.T*unyt.m), np.cumsum( ds / ( r**2 * bpol ) ) )
 
             # Interpolate nu used in zeta = phi + nu(psi, theta)
             nutable[i,:] = -interp1d(btheta, nu, 'linear')(thbzrgrid) \

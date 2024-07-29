@@ -228,14 +228,12 @@ class BioSaw():
         # Scale axis Bphi to given value if requested
         scaling = 1.0
         if b0 == "axis":
-            f3d = interpolate.interp2d(r, z, np.mean(bphi, axis=1).T,
-                                       kind='cubic')
-            f2d = interpolate.interp2d(r, z, b2d["bphi"].T, kind='cubic')
+            f3d = interpolate.RectBivariateSpline(r, z, np.mean(bphi, axis=1))
+            f2d = interpolate.RectBivariateSpline(r, z, b2d["bphi"])
             scaling = f2d(b2d["axisr"], b2d["axisz"]) \
                 / f3d(b2d["axisr"], b2d["axisz"])
         elif b0 is not None:
-            f = interpolate.interp2d(r, z, np.mean(bphi, axis=1).T,
-                                     kind='cubic')
+            f = interpolate.RectBivariateSpline(r, z, np.mean(bphi, axis=1))
             scaling = b0 / f(b2d["axisr"], b2d["axisz"])
 
         if not exclude_bphi_from_eqdsk:

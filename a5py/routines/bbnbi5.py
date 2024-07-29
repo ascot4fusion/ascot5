@@ -72,7 +72,7 @@ class BBNBIMixin(DistMixin):
 
             # Go through each unique end cond and mark that end cond valid or
             # not. This can then be used to make udix as boolean mask array.
-            uecs, uidx = np.unique(self._state.get("endcond"),
+            uecs, uidx = np.unique(self._state.get("endcond")[0],
                                    return_inverse=True)
             mask = np.zeros(uecs.shape, dtype=bool)
             for i, uec in enumerate(uecs):
