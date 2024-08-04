@@ -272,11 +272,6 @@ class Ascot5IO(RootNode):
         """
         Template(self._ascot).showtemplate(template)
 
-class InputGroup(InputNode):
-    """Node containing input data groups.
-    """
-    pass
-
 class RunGroup(ResultNode, RunMixin):
     """Node containing results and methods to process them.
     """

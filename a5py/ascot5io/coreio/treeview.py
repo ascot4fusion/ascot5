@@ -1,9 +1,11 @@
+from __future__ import annotations
 """Module for building the treeview that shows ASCOT5 HDF5 file contents.
 
 Treeview consists of nodes acting as containers for other nodes and data. The
 tree is spanned by the `RootNode`.
 """
 import subprocess
+from contextlib import contextmanager
 import h5py
 
 from a5py.exceptions import AscotIOException
@@ -69,6 +71,195 @@ class _FancyText():
         """
         return _FancyText._green + string + _FancyText._reset
 
+class _Address():
+    """Data class that contains information on how to access the data.
+    """
+
+    from enum import Enum
+
+    class Format(Enum):
+
+        IMAS_IDS = 1
+        HDF5_FILE = 2
+        IN_MEMORY = 3
+
+    def __init__(self,
+                 hdf5_filename=None,
+                 path_within_hdf5=None,
+                 imas_ids=None,
+                 pointer_to_c_struct=None,
+                 **kwargs
+                 ) -> None:
+        super().__init__(**kwargs)
+        self.imas_ids = imas_ids
+        self.hdf5_filename = hdf5_filename
+        self.path_within_hdf5 = path_within_hdf5
+        self.pointer_to_c_struct = pointer_to_c_struct
+
+        self.format = None
+        inconsistent_address = False
+        if imas_ids is not None:
+            self.format = _Address.Format.IMAS_IDS
+        if hdf5_filename is not None and path_within_hdf5 is not None:
+            self.format = _Address.Format.HDF5_FILE
+        if pointer_to_c_struct is not None:
+            self.format = _Address.Format.IN_MEMORY
+        no_address = self.format is None
+
+        if inconsistent_address:
+            raise ValueError("Inconsistent address specified.")
+        if no_address:
+            raise ValueError("No address specified.")
+
+
+    @classmethod
+    def from_hdf5(cls, hdf5_filename, path_within_hdf5) -> _Address:
+        """Create an Address instance from an HDF5 file.
+
+        Parameters
+        ----------
+        hdf5_filename : str
+            Path to HDF5 file.
+
+        Returns
+        -------
+        _Address
+            An instance of _Address.
+        """
+        return cls(
+            hdf5_filename=hdf5_filename,
+            path_within_hdf5=path_within_hdf5,
+            )
+
+    @classmethod
+    def from_imas(cls, imas_ids) -> _Address:
+        """Create an Address instance from IMAS IDS.
+
+        Parameters
+        ----------
+        imas_ids : list of str
+            List of IMAS IDS.
+
+        Returns
+        -------
+        _Address
+            An instance of _Address.
+        """
+        return cls(imas_ids=imas_ids)
+
+class TreeData():
+    """Data container that also has meta data (QID, date, description).
+    """
+
+    def __init__(self, address, qid, date, description, type_, **kwargs):
+        """Initialize data container.
+
+        Parameters
+        ----------
+        address : :class:`_Address`
+            Address of the data.
+        qid : str
+            Unique identifier for this data.
+        date : str
+            Date when this data was created.
+        description : str
+            Short description for the user to document this data.
+        type_ : str
+            What type of data this object represents.
+        """
+        self._qid = qid
+        self._date = date
+        self._type = type_
+        self._address = address
+        self._description = description
+
+    def __setattr__(self, name, value):
+        """Prevent changing read-only attributes.
+
+        Parameters
+        ----------
+        name : str
+            Name of the attribute.
+        value : any
+            Value to set.
+        """
+        if name in ["qid", "qqid", "date", "type", "name"]:
+            raise AscotIOException(
+                f"Attribute {name} is read only."
+                )
+        super().__setattr__(name, value)
+
+    def _adopt(self, ascot, root):
+        """Make this data as a part of the tree.
+
+        Parameters
+        ----------
+        ascot : :class:`Ascot5`
+            The ASCOT5 object this data container belongs to.
+        root : :class:`RootNode`
+            The root node this data container belongs to.
+        """
+        self._root = root
+        self._ascot = ascot
+
+    @property
+    def qid(self):
+        """Unique identifier for this data."""
+        return self._qid
+
+    @property
+    def qqid(self):
+        """Unique identifier for this data with preceding 'q'."""
+        return "q" + self._qid
+
+    @property
+    def date(self):
+        """Date when this data was created."""
+        return self._date
+
+    @property
+    def description(self):
+        """Short description for the user to document this data."""
+        return self._description
+
+    @description.setter
+    def description(self, description):
+        """Add short description to document this data."""
+        self._description = description
+
+    @property
+    def type(self):
+        """What type of data this object represents."""
+        return self._type
+
+    @property
+    def name(self):
+        """Name of the data"""
+        return f"{self.type}_{self.qid}"
+
+    def activate(self):
+        """Set this group as active.
+
+        Active inputs are used when the simulation is run. Active groups are
+        also used during post-processing.
+        """
+        self._root.activate_group(self.qid)
+
+    def destroy(self, repack=True):
+        """Remove this group from the HDF5 file.
+
+        Parameters
+        ----------
+        repack : bool, optional
+            If True, repack the HDF5 file.
+
+            Removing data from the HDF5 file only removes references to it and
+            repacking is required to free the disk space. Repacking makes a copy
+            of the HDF5 file and destroys the original, and it also requires
+            3rd party tool `h5repack` which is why it's use is optional here.
+        """
+        self._root.destroy_group(self.qid, repack)
+
 class _Node():
     """Base class which all tree nodes inherit.
 
@@ -108,6 +299,16 @@ class _Node():
         """
         self._frozen = False
 
+    @contextmanager
+    def _modify_attributes(self):
+        """Open a context where attributes can be modified.
+        """
+        self._unfreeze()
+        try:
+            yield
+        finally:
+            self._freeze()
+
     def __setitem__(self, key, value):
         """Add a new attribute this node in dictionary style.
 
@@ -125,7 +326,8 @@ class _Node():
         """
         if self._frozen:
             raise AscotIOException(
-                "Node is frozen and attributes cannot be set")
+                "The attributes of this class are immutable."
+                )
 
         setattr(self, key, value)
 
@@ -146,7 +348,8 @@ class _Node():
         """
         if key != "_frozen" and self._frozen:
             raise AscotIOException(
-                "Node is frozen and attributes cannot be set")
+                "The attributes of this class are immutable."
+                )
         super().__setattr__(key, value)
 
     def __contains__(self, key):
@@ -189,129 +392,197 @@ class _ParentNode(_Node):
     ----------
     _qids : list [str]
         QIDs of this node's children.
+    _tags : list [str]
+        Unsorted list of all children's tags.
     _root : `RootNode`
         The `RootNode` this node belongs to.
-    _path : str
-        Path to this node within the HDF5 file.
-    active : `DataGroup`
+    _active : `DataGroup`
         The currently active group.
     """
 
-    def __init__(self, root, path, **kwargs):
+    def __init__(self, root, **kwargs):
         """Initialize a parent node that initially has no children.
 
         Parameters
         ----------
         root : `RootNode`
             The `RootNode` this node belongs to.
-        path : str
-            Path to this node within the HDF5 file.
         **kwargs
             Arguments passed to other constructors in case of multiple
             inheritance.
         """
         super().__init__(**kwargs)
         self._qids  = []
+        self._tags  = []
         self._root  = root
-        self._path  = path
-        self.active = None
+        self._active = None
 
-    def _add_child(self, key, datagroup):
-        """Add a child to this node.
+    def __iter__(self):
+        """Iterate over this node's children.
 
-        This should be called only when the HDF5 file is open and the tree is
-        being built. After all childs have been added, `_finalize` must be
-        called to organize this node.
+        Returns
+        -------
+        child : `DataGroup`
+        """
+        for qid in self._qids:
+            yield self["q" + qid]
+
+    def _add(self, group):
+        """Add an input or a result group to this node.
 
         Parameters
         ----------
-        key : str
-            Name of the child in format <type>_<QID>.
-        datagroup : `DataGroup`
+        group : `DataGroup`
             The child data.
         """
-        qid = fileapi.get_qid(key)
-        self._qids.append(qid)
+        self._qids.append(group.qid)
 
-        # Add reference by name
-        self[key] = datagroup
+        with self._modify_attributes():
+            reference_by_name, reference_by_qid = group.name, group.qqid
+            self[reference_by_qid] = group
+            self[reference_by_name] = group
 
-        # Add reference by QID
-        self["q" + qid] = datagroup
+        self._organize()
 
-    def _finalize(self, h5):
-        """Organize contents and add references.
-
-        This method should be called once after all childs have been added and
-        the HDF5 file is still open.
+    def _remove(self, group):
+        """Remove an input or a result group from this node.
 
         Parameters
         ----------
-        h5 : `h5py.File`
-            The HDF5 file from which the tree is constructed.
+        group : `DataGroup`
+            The child data.
         """
-        # Find active group and set it
-        qid = fileapi.get_activeqid(h5, h5[self._path])
-        self.active = self["q"+qid]
+        self._qids.remove(group.qid)
 
-        # List all dates but remove the active
-        dates = []
-        for q in self._qids:
-            grp = fileapi.get_group(h5, q)
-            dates.append(fileapi.get_date(h5, grp))
+        with self._modify_attributes():
+            if self.active == group:
+                if len(self._qids):
+                    self._active = self["q" + self._qids[0]]
+                else:
+                    self._active = None
+            reference_by_name, reference_by_qid = group.name, group.qqid
+            delattr(self, reference_by_qid)
+            delattr(self, reference_by_name)
 
-        # Sort QIDs by date starting from most recent
-        self._qids = [x for _, x in sorted(zip(dates, self._qids))][::-1]
+        self._organize()
 
-        # Add references by tag
-        def desc2tag(desc):
-            """Convert desc to tag.
+    def _organize(self):
+        """Organize this node and its references when its children has been
+        modified.
+
+        - If this node has no children, do nothing except set active group to
+          None.
+        - If this node has just one child, set it as active.
+        - Sort `self._qids` by date.
+        - Update references by tag. If multiple groups have the same tag, update
+          their tags with running index, i.e. `new_tag = tag_<index>`, counting
+          from zero for the group with the most recent date.
+        """
+        def activate_if_first_child():
+            """Activate the group if it is the first in this node."""
+            try:
+                self.active
+            except AscotIOException as no_active_group:
+                self._active = self["q" + self._qids[0]]
+
+        def sort_qids_by_date():
+            """Sort the collected list of qids by date."""
+            dates = [self["q" + qid].date for qid in self._qids]
+            self._qids = [
+                qid for _, qid in sorted(zip(dates, self._qids), reverse=True)
+                ]
+
+        def update_references_by_tag():
+            """Add references by tag with unique tags and remove the old ones.
             """
-            # Cut from first whitespace
-            desc = desc.split(" ")[0]
+            for tag_to_be_removed in self._tags:
+                delattr(self, tag_to_be_removed)
+            self._tags = []
 
-            # Maximum length is 10 characters
-            #if len(desc) > 10:
-            #    desc = desc[:10]
+            dates = [self["q" + qid].date for qid in self._qids]
+            descriptions = [self["q" + qid].description for qid in self._qids]
+            unsorted_qids = self._qids
+            unsorted_tags = [
+                RootNode._description2tag(desc) for desc in descriptions
+                ]
 
-            # Remove all special characters
-            desc = "".join(c for c in desc if c.isalnum())
+            counts = {}
+            dates.reverse()
+            for tag, _, qid in sorted(zip(unsorted_tags, dates, unsorted_qids)):
+                if tag in counts:
+                    counts[tag] += 1
+                    new_tag = f"{tag}_{counts[tag]}"
+                else:
+                    counts[tag] = 0
+                    if unsorted_tags.count(tag) > 1:
+                        new_tag = f"{tag}_{counts[tag]}"
+                    else:
+                        new_tag = tag
 
-            # Make all caps
-            desc = desc.upper()
+                self._tags.append(new_tag)
+                self[new_tag] = self["q" + qid]
 
-            # Use default if empty first character is number
-            if desc == "" or desc[0] in "1234567890":
-                desc = "TAG"
+        with self._modify_attributes():
+            if not len(self._qids):
+                self._active = None
+                for tag_to_be_removed in self._tags:
+                    delattr(self, tag_to_be_removed)
+                self._tags = []
+                return
 
-            return desc
+            activate_if_first_child()
+            sort_qids_by_date()
+            update_references_by_tag()
 
-        replacedtags = [] # Tags that appear more than once are deleted
-        for q in self._qids:
-            tag = desc2tag(fileapi.get_desc(h5, q))
-            if tag in self:
-                # This tag is repeated
+    @staticmethod
+    def _description2tag(description):
+        """Convert description to a valid tag.
 
-                if tag not in replacedtags:
-                    # First time we notice a tag is repeated, rename the tag
-                    # already present to "tag_0" and add the tag to list of tags
-                    # we remove afterwards. (We cannot remove the tag here as
-                    # then we wouldn't notice repeated entries).
-                    replacedtags.append(tag)
-                    self[tag + "_0"] = self[tag]
+        Description is converted to a tag like this:
 
-                # Find next available index and create "tag_i".
-                i = 0
-                tag0 = tag
-                while tag in self:
-                    tag = tag0 + "_" + str(i)
-                    i += 1
+        1. The first word in the description is chosen, i.e., everything before
+           the first whitespace.
+        2. All special characters are removed from the first word.
+        3. The word is converted to uppercase which becomes the tag.
+        4. If the tag is invalid (empty string) or it starts with a number,
+           the default tag is returned instead.
 
-            self[tag] = self["q"+q]
+        Parameters
+        ----------
+        description : str
+            Description of the data.
 
-        # Remove repeated tags as they have their renamed variants in place.
-        for tag in replacedtags:
-            delattr(self, tag)
+        Returns
+        -------
+        tag : str
+            The tag.
+        """
+        tag_candidate = description.split(" ")[0]
+        tag_candidate = "".join(ch for ch in tag_candidate if ch.isalnum())
+        tag_candidate = tag_candidate.upper()
+        if not len(tag_candidate) or tag_candidate[0] in "1234567890":
+            return "TAG"
+        return tag_candidate
+
+    @property
+    def active(self):
+        """Get the active group.
+
+        Returns
+        -------
+        active : `DataGroup`
+            The active group.
+
+        Raises
+        ------
+        AscotIOException
+            If there's no active group.
+        """
+        if self._active is None:
+            raise AscotIOException(
+                "No active group. Perhaps there's no data in this parent group?"
+                )
+        return self._active
 
     def destroy(self, repack=True):
         """Remove this group from the HDF5 file.
@@ -363,29 +634,25 @@ class InputNode(_ParentNode):
     contain several input data groups.
     """
 
-    def __init__(self, root, path, h5, **kwargs):
+    def __init__(self, root, **kwargs):
         """Create an input node and its children.
 
         Parameters
         ----------
         root : `RootNode`
             The `RootNode` this node belongs to.
-        path : str
-            Path to this node within the HDF5 file.
-        h5 : `h5py.File`
-            The HDF5 file from which the tree is constructed.
         **kwargs
             Arguments passed to other constructors in case of multiple
             inheritance.
         """
-        super().__init__(root=root, path=path, **kwargs)
-        parent = h5[path]
-        for name, group in parent.items():
-            inputtype = fileapi.get_type(name)
-            inputobj  = root._create_datagroup(inputtype, group.name)
-            self._add_child(name, inputobj)
+        super().__init__(root=root, **kwargs)
+        #parent = h5[path]
+        #for name, group in parent.items():
+        #    inputtype = fileapi.get_type(name)
+        #    inputobj  = root._create_datagroup(inputtype, group.name)
+        #    self._add_child(name, inputobj)
 
-        self._finalize(h5)
+        #self._finalize(h5)
         self._freeze()
 
     def ls(self, show=True):
@@ -427,7 +694,7 @@ class ResultNode(_Node, DataGroup):
     of the input groups used to obtain that result.
     """
 
-    def __init__(self, root, path, h5, inputqids, **kwargs):
+    def __init__(self, root, inputqids, **kwargs):
         """Create a result node and its children, and store references to
         the input data.
 
@@ -446,15 +713,15 @@ class ResultNode(_Node, DataGroup):
             Arguments passed to other constructors in case of multiple
             inheritance.
         """
-        super().__init__(root=root, path=path, **kwargs)
+        super().__init__(root=root, **kwargs)
 
         # Put references to the input data
         for name, qid in inputqids.items():
             self[name] = root[name]["q"+qid]
 
         # Store output data
-        for name, group in h5[path].items():
-            self["_" + name] = root._create_datagroup(name, group.name)
+        #for name, group in h5[path].items():
+        #    self["_" + name] = root._create_datagroup(name, group.name)
 
         self._freeze()
 
@@ -525,99 +792,141 @@ class RootNode(_ParentNode):
 
     Attributes
     ----------
-    _ascot : `Ascot`
+    _hdf5_filename : `Ascot`
         The `Ascot` object whose HDF5 file is what this tree structure
         represents.
     """
 
-    def __init__(self, ascot, **kwargs):
-        """Initialize the tree structure based on the HDF5 file.
-
-        This opens the HDF5 file obtained from `Ascot.file_getpath` and builds
-        the tree structure. Nothing is done if the filename is `None`
+    def __init__(self, hdf5_filename=None, **kwargs):
+        """Initialize the tree structure based on the available data.
 
         Parameters
         ----------
-        ascot : `Ascot`
-            The `Ascot` object whose HDF5 file is what this tree structure
-            represents.
+        hdf5_filename : str
+            The HDF5 file from which the tree is constructed and where new data
+            will be written.
+
+            If None, no data is read from the HDF5 file.
         **kwargs
             Arguments passed to other constructors in case of multiple
             inheritance.
         """
-        super().__init__(root=self, path="/", **kwargs)
-        self._ascot = ascot
+        super().__init__(root=self, **kwargs)
+        self._hdf5_filename = hdf5_filename
+        for inp in fileapi.INPUTGROUPS:
+            self[inp] = InputNode(self)
 
-        fn = self._ascot.file_getpath()
-        if fn is not None:
-            h5py.File(fn, "r") # Try opening the file
-            self._build(fn)
+        input_from_ids, output_from_ids = self._read_groups_from_ids()
+        input_from_hdf5, output_from_hdf5 = self._read_groups_from_hdf5()
 
-    def _build(self, fn):
-        """(Re-)build node structure from file.
+        input_groups = input_from_hdf5 + input_from_ids
+        output_groups = output_from_hdf5 + output_from_ids
 
-        Use this liberally to update the treeview every time the contents have
-        changed.
-
-        Parameters
-        ----------
-        fn : str
-            The HDF5 file from which the tree is constructed.
+    def _build(self):
+        """(Re-)build node structure.
         """
-        ascot = self._ascot
+        input_from_ids, output_from_ids = self._read_groups_from_ids()
+        input_from_hdf5, output_from_hdf5 = self._read_groups_from_hdf5()
+        input_from_memory, output_from_memory = self._read_groups_from_memory()
+
+        hdf5_filename = self._hdf5_filename
         for v in list(vars(self)):
             delattr(self, v)
 
-        super().__init__(root=self, path="/results")
-        self._ascot = ascot
-        if fn is None:
-            return
+        super().__init__(root=self)
+        for inp in fileapi.INPUTGROUPS:
+            self[inp] = InputNode(self)
+        self._hdf5_filename = hdf5_filename
 
-        with h5py.File(fn, "r") as h5:
+        input_groups = input_from_hdf5 + input_from_ids + input_from_memory
+        output_groups = output_from_hdf5 + output_from_ids + output_from_memory
 
-            # Initialize input groups.
-            for inp in h5.keys():
-                if inp in fileapi.INPUTGROUPS:
-                    self[inp] = self._create_inputgroup(inp, h5)
+            # if "results" in h5:
+            #     results = h5["results"]
+            #     for run in results.keys():
 
-            if "results" in h5:
-                results = h5["results"]
-                for run in results.keys():
+            #         # Fetch those input groups that correspond to this run.
+            #         inputqids = fileapi.get_inputqids(h5, results[run])
 
-                    # Fetch those input groups that correspond to this run.
-                    inputqids = fileapi.get_inputqids(h5, results[run])
+            #         # Make a result group
+            #         runnode = self._create_resultgroup(
+            #             results[run].name, h5, inputqids)
+            #         self._add_child(run, runnode)
 
-                    # Make a result group
-                    runnode = self._create_resultgroup(
-                        results[run].name, h5, inputqids)
-                    self._add_child(run, runnode)
-
-                self._finalize(h5)
+            #     self._finalize(h5)
 
         self._freeze()
 
-    def _destroy_group(self, group, repack=True):
-        """Remove a group from the HDF5 file and rebuild the tree.
+    def _read_groups_from_hdf5(self):
+        """Read all input and output groups from a HDF5 file and return them as
+        lists.
+
+        Returns
+        -------
+        input_groups : list [TreeData]
+            List of input groups.
+        output_groups : list [TreeData]
+            List of output groups.
+        """
+        input_groups, output_groups = [], []
+        if self._hdf5_filename is None:
+            return input_groups, output_groups
+
+        with h5py.File(self._hdf5_filename, "r") as h5:
+            for inp in h5.keys():
+                if inp in fileapi.INPUTGROUPS:
+                    qids = fileapi.get_qids(h5, inp)
+                    for qid in qids:
+                        g = fileapi.get_group(h5, qid)
+                        date = fileapi.get_date(h5, g)
+                        desc = fileapi.get_desc(h5, g)
+                        address = _Address.from_hdf5(
+                            hdf5_filename=self._hdf5_filename,
+                            path_within_hdf5=g.name,
+                            )
+                        input_groups.append(TreeData())
+
+        return input_groups, output_groups
+
+    def _read_groups_from_ids(self):
+        """Read all input and output groups from IDS and return them as lists.
+
+        Returns
+        -------
+        input_groups : list [TreeData]
+            List of input groups.
+        output_groups : list [TreeData]
+            List of output groups.
+        """
+        input_groups = []
+        output_groups = []
+        return input_groups, output_groups
+
+    def destroy_group(self, group, repack=True):
+        """Remove group and associated data permanently.
 
         Parameters
         ----------
         group : str
-            Name of the group to be removed.
+            Name or QID of the group to be removed.
         repack : bool, optional
             If True, repack the HDF5 file.
         """
-        fn = self._ascot.file_getpath()
-        with h5py.File(fn, "a") as f:
-            fileapi.remove_group(f, group)
+        group = f"q{group[-10:]}"
+        for inp in fileapi.INPUTGROUPS:
+            if group in self[inp]:
+                self[inp]._remove(group)
+        # with h5py.File(fn, "a") as f:
+        #     fileapi.remove_group(f, group)
 
-        if repack:
-            fntemp = fn + "_repack"
-            subprocess.call(["h5repack", fn, fntemp], stdout=subprocess.DEVNULL)
-            subprocess.call(["mv", fntemp, fn])
+        # if repack:
+        #     fntemp = fn + "_repack"
+        #     subprocess.call(["h5repack", fn, fntemp], stdout=subprocess.DEVNULL)
+        #     subprocess.call(["mv", fntemp, fn])
 
-        self._build(fn)
+        # self._build(fn)
 
-    def _activate_group(self, group):
+    def activate_group(self, group):
         """Set group as active and rebuild the tree.
 
         Parameters
@@ -625,11 +934,12 @@ class RootNode(_ParentNode):
         group : str
             Name or QID of the group to be activated.
         """
-        fn = self._ascot.file_getpath()
-        with h5py.File(fn, "a") as f:
-            fileapi.set_active(f, group)
-
-        self._build(fn)
+        for inp in fileapi.INPUTGROUPS:
+            if group in self[inp]:
+                self[inp]._active = group
+        #fn = self._ascot.file_getpath()
+        #with h5py.File(fn, "a") as f:
+        #    fileapi.set_active(f, group)
 
     def _get_group(self, name):
         """Fetch group based on its QID or name.
@@ -651,66 +961,21 @@ class RootNode(_ParentNode):
             if parent in self and qid in self[parent]:
                 return self[parent][qid]
 
-    def _create_inputgroup(self, path, h5):
-        """Create an input group to be added to the treeview.
-
-        Parameters
-        ----------
-        path : str
-            Path to the input group within the HDF5 file.
-        h5 : `h5py.File`
-            The HDF5 file from which the tree is constructed.
-
-        Returns
-        -------
-        group : `InputNode`
-            The input group that was created
-        """
-        pass
-
-    def _create_resultgroup(self, path, h5, inputgroups):
-        """Create a result group to be added to the treeview.
-
-        Parameters
-        ----------
-        path : str
-            Path to the result node within the HDF5 file.
-        h5 : `h5py.File`
-            The HDF5 file from which the tree is constructed.
-        inputqids : dict [str, str]
-            Dictionary containing the name of the input parent group
-            (e.g. "bfield") and the QID of the input used for this result.
-
-        Returns
-        -------
-        group : `ResultNode`
-            The result group that was created.
-        """
-        pass
-
-    def _create_datagroup(self, grouptype, group):
-        """Create data group based on the given type.
-
-        Parameters
-        ----------
-        grouptype : str
-            Type of the group as it appears in `HDF5TOOBJ`.
-        path : str
-            Path to the data in the HDF5 file that corresponds to the group.
-
-        Returns
-        -------
-        `DataContainer`
-            The data group that was created.
-        """
-        pass
-
-    @staticmethod
-    def _create_file(fn):
-        """Create an empty HDF5 file.
-        """
-        f = h5py.File(fn, "w")
-        f.close()
+    def create_BTC(
+            self,
+            bxyz,
+            jacobian,
+            rhoval,
+            description=None,
+            activate=None,
+            dryrun=False,
+            store_hdf5=True,
+            ):
+        from a5py.ascot5io.bfield import B_TC
+        obj = B_TC(bxyz, jacobian, rhoval)
+        self.bfield._add(obj)
+        obj._adopt(None, self)
+        return obj
 
     def get_runs(self, inputqid):
         """Fetch QIDs of runs using given input.

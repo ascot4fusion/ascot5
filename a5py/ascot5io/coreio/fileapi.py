@@ -657,7 +657,7 @@ def _generate_meta():
         qid = "0" + qid
 
     # Get date but remove last digits which are milliseconds which we don't need
-    date = str(datetime.datetime.now())[0:19]
+    date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # Default value for the description
     desc = "TAG"

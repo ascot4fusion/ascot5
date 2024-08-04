@@ -19,16 +19,22 @@ import numpy as np
 
 from .coreio.fileapi import add_group
 from .coreio.treedata import DataGroup
+from .coreio.treeview import TreeData, _Address
 
 import a5py.physlib.analyticequilibrium as psifun
 
-class B_TC(DataGroup):
+class B_TC(TreeData):
     """Magnetic field in Cartesian basis for testing purposes.
 
     This input defines the magnetic field vector on the Cartesian basis, and
     uses constant Jacobian to make the field non-uniform if needed. This field
     is only used to test the validity of the orbit-integrators.
     """
+
+    def __init__(self, bxyz, jacobian, rhoval, psival=None, axisr=1, axisz=0):
+
+        address = _Address.from_hdf5("", "")
+        super().__init__(address, "0123456789", "02-02-02 02:03:40", "sss", "B_TC")
 
     def read(self):
         """Read data from HDF5 file.

@@ -136,19 +136,19 @@ class Ascot(Ascotpy):
         if inputfile == None:
             # No input file so this is now an empty instance
             self._inputfile = None
-            self.data = Ascot5IO(self)
+            self.data = Ascot5IO(self._inputfile)
             if _LIBASCOT:
                 self._sim.hdf5_in = "".encode('UTF-8')
         else:
             inputfile = os.path.abspath(inputfile)
             try:
                 self._inputfile = inputfile
-                self.data = Ascot5IO(self)
+                self.data = Ascot5IO(self._inputfile)
                 if _LIBASCOT:
                     self._sim.hdf5_in = inputfile.encode('UTF-8')
             except:
                 self.inputfile = None
-                self.data = Ascot5IO(self)
+                self.data = Ascot5IO(self._inputfile)
                 if _LIBASCOT:
                     self._sim.hdf5_in = "".encode('UTF-8')
 

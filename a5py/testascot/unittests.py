@@ -12,9 +12,421 @@ import matplotlib.pyplot as plt
 
 import a5py.routines.plotting as a5plt
 from a5py import Ascot, AscotInitException, AscotIOException
-from a5py.ascot5io.coreio import fileapi
+from a5py.ascot5io.coreio import fileapi, treeview
 from a5py.ascot5io.state import State
 from a5py.ascot5io.marker import Marker
+
+class TestTree(unittest.TestCase):
+    """Class to test `ascot5io.coreio` module.
+    """
+
+    def test_add_remove_activate(self):
+        """Test that groups can be added, removed and activated.
+        """
+        root = treeview.RootNode()
+        dummy_address = treeview._Address.from_hdf5("", "")
+
+        btc1 = root.create_BTC(0,0,0)
+        btc2 = root.create_BTC(0,0,0)
+        btc3 = root.create_BTC(0,0,0)
+
+        btc1.activate()
+        root.bfield.active == btc1
+
+        root.destroy_group(btc1)
+        root.destroy_group(btc2.qid)
+        root.destroy_group(btc3.name)
+
+    def test_init_empty_tree(self):
+        """Test that the tree is initialized properly (without any data).
+
+        A properly initialized tree:
+        - Doesn't need input (filename) in order to initialize.
+        - Has input parent groups present.
+        - No parent has children and accessing the active group returns
+          AscotIOException.
+        - Active group cannot be changed directly.
+        - ls commands return no data.
+        """
+        root = treeview.RootNode()
+        for parent in fileapi.INPUTGROUPS:
+            self.assertTrue(parent in root, f"Parent group {parent} not found.")
+
+        for parent in fileapi.INPUTGROUPS:
+            for children in root[parent]:
+                self.assertTrue(
+                    True, f"Parent group {parent} has children {children}")
+
+        for parent in fileapi.INPUTGROUPS:
+            self.assertTrue(
+                "_active" in root[parent].__dict__,
+                f"Parent group {parent} has no 'active' attribute.")
+            with self.assertRaises(
+                AscotIOException,
+                msg="Accessing empty active group did not produce an error.",
+                ):
+                root[parent].active
+
+        with self.assertRaises(
+            AscotIOException,
+            msg="User is able to modify active group directly",
+            ):
+            root.bfield.active = None
+
+    def test_add_children(self):
+        """Test adding new children.
+
+        - First child should become active and remain so.
+        - Adding new children should preserve the order by date.
+        - Children with same tags should have their tags updated with running
+          index from newest (0) to oldest.
+        """
+        root = treeview.RootNode()
+        dummy_address = treeview._Address.from_hdf5("", "")
+
+        def date2str(date):
+            """Convert datetime to string format ASCOT uses."""
+            return date.strftime("%Y-%m-%d %H:%M:%S")
+
+        first_group = treeview.TreeData(
+            address=dummy_address,
+            qid="0000000001",
+            date=date2str(datetime.datetime.now()),
+            description="TAG",
+            type_="DUMMY",
+        )
+        second_group = treeview.TreeData(
+            address=dummy_address,
+            qid="0000000002",
+            date=date2str(datetime.datetime.now() - datetime.timedelta(days=1)),
+            description="OTHERTAG",
+            type_="DUMMY",
+        )
+        third_group = treeview.TreeData(
+            address=dummy_address,
+            qid="0000000003",
+            date=date2str(datetime.datetime.now() + datetime.timedelta(days=1)),
+            description="TAG",
+            type_="DUMMY",
+        )
+
+        #############################
+        root.bfield._add(first_group)
+
+        self.assertEqual(
+            root.bfield.active.qid, "0000000001",
+            "Active group not set correctly when the first group was added to "
+            "an otherwise empty node."
+            )
+        self.assertTrue(
+            hasattr(root.bfield, "DUMMY_0000000001"),
+            "Reference by name was not added.",
+        )
+        self.assertTrue(
+            hasattr(root.bfield, "q0000000001"),
+            "Reference by QID was not added.",
+        )
+        self.assertEqual(
+            root.bfield.DUMMY_0000000001.qid, first_group.qid,
+            "Reference by name does not work.",
+        )
+        self.assertEqual(
+            root.bfield.q0000000001.qid, first_group.qid,
+            "Reference by QID does not work.",
+        )
+        self.assertEqual(
+            root.bfield["DUMMY_0000000001"].qid, first_group.qid,
+            "Reference by name (dictionary-like) does not work.",
+        )
+        self.assertEqual(
+            root.bfield["q0000000001"].qid, first_group.qid,
+            "Reference by QID (dictionary-like) does not work.",
+        )
+
+        self.assertTrue(
+            hasattr(root.bfield, "TAG"),
+            "Tag TAG was not set when the first group was added to "
+            "an otherwise empty node.")
+
+        self.assertEqual(
+            root.bfield.TAG, first_group,
+            "Tag TAG does not reference the first group which was added to "
+            "an otherwise empty node.")
+
+        ##############################
+        root.bfield._add(second_group)
+
+        self.assertEqual(
+            root.bfield.active.qid, "0000000001",
+            "Active group changed when a second group was added."
+            )
+
+        qid = [child.qid for child in root.bfield]
+        dates = [child.date for child in root.bfield]
+        self.assertEqual(
+            qid, ["0000000001", "0000000002"],
+            f"QIDs not sorted by dates when the second group was added "
+            f"({dates})."
+            )
+
+        self.assertTrue(
+            hasattr(root.bfield, "TAG"),
+            "Tag TAG became unset when the second group was added."
+            )
+        self.assertTrue(
+            hasattr(root.bfield, "OTHERTAG"),
+            "Tag OTHERTAG not set when the second group was added."
+            )
+
+        self.assertEqual(
+            root.bfield.TAG, first_group,
+            "Tag TAG does not reference the first group when the second "
+            "group was added."
+            )
+        self.assertEqual(
+            root.bfield.OTHERTAG, second_group,
+            "Tag OTHERTAG does not reference the second group when the second "
+            "group was added."
+            )
+
+        #############################
+        root.bfield._add(third_group)
+
+        self.assertEqual(
+            root.bfield.active.qid, "0000000001",
+            "Active group not set correctly when the third group was added.",
+            )
+
+        self.assertFalse(
+            hasattr(root.bfield, "TAG"),
+            "Tag TAG was not removed when the third group with the same tag "
+            "was added.",
+            )
+        self.assertTrue(
+            hasattr(root.bfield, "TAG_0"),
+            "Tag TAG_0 was not set when the third group with the same tag "
+            "was added.",
+            )
+        self.assertTrue(
+            hasattr(root.bfield, "TAG_1"),
+            "Tag TAG_1 was not set when the third group with the same tag "
+            "was added.",
+            )
+        self.assertTrue(
+            hasattr(root.bfield, "OTHERTAG"),
+            "Tag OTHERTAG became unset when the third group was added.",
+            )
+
+        self.assertEqual(
+            root.bfield.TAG_0.qid, third_group.qid,
+            "Tag TAG_0 does not reference the newest group with the same tag.",
+            )
+        self.assertEqual(
+            root.bfield.TAG_1.qid, first_group.qid,
+            "Tag TAG_1 does not reference the oldest group with the same tag.",
+            )
+        self.assertEqual(
+            root.bfield.OTHERTAG.qid, second_group.qid,
+            "Tag OTHERTAG does not reference the correct group when the third "
+            "group was added.",
+            )
+
+        qid = [child.qid for child in root.bfield]
+        dates = [child.date for child in root.bfield]
+        self.assertEqual(
+            qid, ["0000000003", "0000000001", "0000000002"],
+            f"QIDs not sorted by dates ({dates}).",
+            )
+
+    def test_remove_children(self):
+        """Test removing children.
+
+        - When the active group is removed, the newest remaining group becomes
+          active. If no children are left, the active group is set to None.
+        - Removing children should preserve the order by date.
+        - If multiple children have same tags, their references should be
+          kept up to date.
+        """
+        parent = treeview._ParentNode(None)
+        dummy_address = treeview._Address.from_hdf5("", "")
+
+        def date2str(date):
+            """Convert datetime to string format ASCOT uses."""
+            return date.strftime("%Y-%m-%d %H:%M:%S")
+
+        first_group = treeview.TreeData(
+            address=dummy_address,
+            qid="0000000001",
+            date=date2str(datetime.datetime.now()),
+            description="TAG",
+            type_="DUMMY",
+        )
+        second_group = treeview.TreeData(
+            address=dummy_address,
+            qid="0000000002",
+            date=date2str(datetime.datetime.now() - datetime.timedelta(days=1)),
+            description="OTHERTAG",
+            type_="DUMMY",
+        )
+        third_group = treeview.TreeData(
+            address=dummy_address,
+            qid="0000000003",
+            date=date2str(datetime.datetime.now() + datetime.timedelta(days=1)),
+            description="TAG",
+            type_="DUMMY",
+        )
+        parent._add(first_group)
+        parent._add(second_group)
+        parent._add(third_group)
+
+        ################################
+        parent._remove(first_group)
+        self.assertEqual(
+            parent.active.qid, "0000000003",
+            "Active group not set correctly when the first group was removed.",
+            )
+        self.assertFalse(
+            hasattr(parent, "DUMMY_0000000001"),
+            "Reference by name was not removed.",
+        )
+        self.assertFalse(
+            hasattr(parent, "q0000000001"),
+            "Reference by QID was not removed.",
+        )
+
+        self.assertTrue(
+            hasattr(parent, "TAG"),
+            "Tag TAG was not set when the a group with the same tag "
+            "was removed.",
+            )
+        self.assertTrue(
+            hasattr(parent, "OTHERTAG"),
+            "Tag TAG was not kept when the a group with the same tag "
+            "was removed.",
+            )
+        self.assertFalse(
+            hasattr(parent, "TAG_0"),
+            "Tag TAG_0 was not removed when the a group with the same tag "
+            "was removed.",
+            )
+        self.assertFalse(
+            hasattr(parent, "TAG_1"),
+            "Tag TAG_1 was not removed when the a group with the same tag "
+            "was removed.",
+            )
+
+        #################################
+        parent._remove(second_group)
+        self.assertFalse(
+            hasattr(parent, "OTHERTAG"),
+            "Tag OTHERTAG was not removed when the corresponding group was "
+            "removed.",
+            )
+
+        #################################
+        parent._remove(third_group)
+        with self.assertRaises(
+            AscotIOException,
+            msg="Active group was not set to None although no groups remain.",
+            ):
+            parent.active
+        self.assertFalse(
+            hasattr(parent, "TAG"),
+            "Tag TAG was not removed when the a group with the same tag "
+            "was removed.",
+            )
+
+        empty_parent = treeview._ParentNode(None)
+        for attribute in parent.__dict__:
+            self.assertTrue(
+                attribute in empty_parent.__dict__,
+                "Extra attributes remain in fully cleaned group.",
+                )
+
+        for attribute in empty_parent.__dict__:
+            self.assertTrue(
+                attribute in parent.__dict__,
+                "Essential attributes were removed",
+                )
+
+    def test_protected_fields(self):
+        """Test that all fields in TreeData can be accessed but only the ones
+        which are not protected can be modified.
+        """
+        dummy_address = treeview._Address.from_hdf5("", "")
+
+        def date2str(date):
+            """Convert datetime to string format ASCOT uses."""
+            return date.strftime("%Y-%m-%d %H:%M:%S")
+
+        date = date2str(datetime.datetime.now())
+        treedata = treeview.TreeData(
+            address=dummy_address,
+            qid="0000000001",
+            date=date,
+            description="TAG",
+            type_="DUMMY",
+        )
+
+        self.assertEqual(
+            treedata.qid, "0000000001",
+            "QID does not match.",
+            )
+        with self.assertRaises(
+            AscotIOException,
+            msg="User is able to modify QID directly",
+            ):
+            treedata.qid = "0123456789"
+
+        self.assertEqual(
+            treedata.qqid, "q0000000001",
+            "q+QID does not match.",
+            )
+        with self.assertRaises(
+            AscotIOException,
+            msg="User is able to modify q+QID directly",
+            ):
+            treedata.qqid = "0123456789"
+
+        self.assertEqual(
+            treedata.date, date,
+            "Date does not match.",
+            )
+        with self.assertRaises(
+            AscotIOException,
+            msg="User is able to modify date directly",
+            ):
+            treedata.date = ""
+
+        self.assertEqual(
+            treedata.name, "DUMMY_0000000001",
+            "Name does not match.",
+            )
+        with self.assertRaises(
+            AscotIOException,
+            msg="User is able to modify name directly",
+            ):
+            treedata.name = ""
+
+        self.assertEqual(
+            treedata.type, "DUMMY",
+            "Type does not match.",
+            )
+        with self.assertRaises(
+            AscotIOException,
+            msg="User is able to modify type directly",
+            ):
+            treedata.type = ""
+
+        self.assertEqual(
+            treedata.description, "TAG",
+            "Description does not match.",
+            )
+        treedata.description = "New description"
+        self.assertEqual(
+            treedata.description, "New description",
+            "Failed to set new description.",
+            )
 
 class TestAscot5IO(unittest.TestCase):
     """Class to test `ascot5io` module.
