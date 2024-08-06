@@ -18,8 +18,7 @@ from .transcoef  import Transcoef
 from .dist import Dist_5D, Dist_6D, Dist_rho5D, Dist_rho6D, Dist_COM, Dist
 from .reaction import Reaction
 
-from .coreio.fileapi import INPUTGROUPS
-from .coreio.treeview import RootNode, InputNode, ResultNode
+from .coreio.treeview import Root
 from .coreio.treedata import DataGroup
 from a5py.routines.runmixin import RunMixin
 from a5py.routines.afsi5 import AfsiMixin
@@ -53,7 +52,7 @@ HDF5TOOBJ = {
 """Dictionary connecting group names in HDF5 file to corresponding data objects.
 """
 
-class Ascot5IO(RootNode):
+class Ascot5IO(Root):
     """Entry node for accessing data in the HDF5 file.
 
     Initializing this node builds rest of the tree. This object and its child
@@ -272,17 +271,77 @@ class Ascot5IO(RootNode):
         """
         Template(self._ascot).showtemplate(template)
 
-class RunGroup(ResultNode, RunMixin):
+    def create_BTC(
+            self,
+            bxyz,
+            jacobian,
+            rhoval,
+            description=None,
+            activate=None,
+            dryrun=False,
+            store_hdf5=True,
+            ):
+        """Create a magnetic field input which is defined on a Cartesian basis.
+
+        This input represents a magnetic field input, where the field vector is
+        defined at the origo on a Cartesian basis and the Jacobian is constant.
+
+        The purpose of this field is to validate the orbit-integrators.
+
+        Parameters
+        ----------
+        bxyz : array_like (3,1)
+            Magnetic field in cartesian coordinates at origo.
+        jacobian : array_like (3,3)
+            Magnetic field Jacobian, jacobian[i,j] = dB_i/dx_j.
+        rhoval: float
+            Constant rho value.
+        psival: float, optional
+            Constant psi value.
+
+            If None, same as rhoval.
+        axisr: float, optional
+            Magnetic axis R coordinate.
+        axisz: real, optional
+            Magnetic axis z coordinate.
+        description : str, optional
+            User-defined description of the data.
+
+            Use this to document the contents of this input. The first word of
+            the description is capitalized and used as a "tag" to reference the
+            input as a5.data.bfield.MYTAG.
+        activate : bool, optional
+            Set this input as active on creation.
+        dryrun : bool, optional
+            Do not add this input to the data structure or store it on disk.
+
+            Use this flag to modify the input manually after it has been
+            created, but before it is stored.
+        store_hdf5 : bool, optional
+            Write this input to the HDF5 file if one has been specified when
+            `Ascot` was initialized.
+
+        Returns
+        -------
+        """
+        obj = B_TC(bxyz, jacobian, rhoval)
+        self._add_input(
+            obj, parent="bfield", dryrun=dryrun, description=description,
+            store_hdf5=store_hdf5
+            )
+        return obj
+
+class RunGroup(RunMixin):
     """Node containing results and methods to process them.
     """
     pass
 
-class AfsiGroup(ResultNode, AfsiMixin):
+class AfsiGroup(AfsiMixin):
     """Node containing AFSI results and methods to process them.
     """
     pass
 
-class BBNBIGroup(ResultNode, BBNBIMixin):
+class BBNBIGroup(BBNBIMixin):
     """Node containing BBNBI results and methods to process them.
     """
     pass

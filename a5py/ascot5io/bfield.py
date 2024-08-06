@@ -18,23 +18,44 @@ import h5py
 import numpy as np
 
 from .coreio.fileapi import add_group
-from .coreio.treedata import DataGroup
-from .coreio.treeview import TreeData, _Address
+from .coreio.treeview import MetaDataHolder
+from .coreio.treedata import DataGroup, DataHolder
 
 import a5py.physlib.analyticequilibrium as psifun
 
-class B_TC(TreeData):
+class B_TC(DataHolder, MetaDataHolder):
     """Magnetic field in Cartesian basis for testing purposes.
 
     This input defines the magnetic field vector on the Cartesian basis, and
     uses constant Jacobian to make the field non-uniform if needed. This field
     is only used to test the validity of the orbit-integrators.
+
+    bxyz : array_like (3,1)
+        Magnetic field in cartesian coordinates at origo.
+    jacobian : array_like (3,3)
+        Magnetic field Jacobian, jacobian[i,j] = dB_i/dx_j.
+    rhoval: float
+        Constant rho value.
+    psival: float, optional
+        Constant psi value. If None, same as rhoval.
+    axisr: float, optional
+        Magnetic axis R coordinate.
+    axisz: real, optional
+        Magnetic axis z coordinate.
     """
 
     def __init__(self, bxyz, jacobian, rhoval, psival=None, axisr=1, axisz=0):
+        """
 
-        address = _Address.from_hdf5("", "")
-        super().__init__(address, "0123456789", "02-02-02 02:03:40", "sss", "B_TC")
+        Raises
+        ------
+        ValueError
+            If inputs were not consistent.
+        """
+        if bxyz.shape != (3,1) and bxyz.shape != (3,):
+            raise ValueError("Invalid shape for Bxyz.")
+
+        super().__init__()
 
     def read(self):
         """Read data from HDF5 file.
@@ -51,43 +72,9 @@ class B_TC(TreeData):
                 out[key] = f[key][:]
         return out
 
-    @staticmethod
-    def write_hdf5(fn, bxyz, jacobian, rhoval, psival=None, axisr=1, axisz=0,
-                   desc=None):
+    def write_hdf5(self):
         """Write input data to the HDF5 file.
-
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-        bxyz : array_like (3,1)
-            Magnetic field in cartesian coordinates at origo.
-        jacobian : array_like (3,3)
-            Magnetic field Jacobian, jacobian[i,j] = dB_i/dx_j.
-        rhoval: float
-            Constant rho value.
-        psival: float, optional
-            Constant psi value. If None, same as rhoval.
-        axisr: float, optional
-            Magnetic axis R coordinate.
-        axisz: real, optional
-            Magnetic axis z coordinate.
-        desc : str, optional
-            Input description.
-
-        Returns
-        -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
-
-        Raises
-        ------
-        ValueError
-            If inputs were not consistent.
         """
-        if bxyz.shape != (3,1) and bxyz.shape != (3,):
-            raise ValueError("Invalid shape for Bxyz.")
-
         parent = "bfield"
         group  = "B_TC"
         gname  = ""
@@ -99,12 +86,12 @@ class B_TC(TreeData):
             g = add_group(f, parent, group, desc=desc)
             gname = g.name.split("/")[-1]
 
-            g.create_dataset("bxyz",     (3,1), data=bxyz,     dtype="f8")
-            g.create_dataset("jacobian", (3,3), data=jacobian, dtype="f8")
-            g.create_dataset("rhoval",   (1,),  data=rhoval,   dtype="f8")
-            g.create_dataset("psival",   (1,),  data=psival,   dtype="f8")
-            g.create_dataset("axisr",    (1,),  data=axisr,    dtype="f8")
-            g.create_dataset("axisz",    (1,),  data=axisz,    dtype="f8")
+            g.create_dataset("bxyz",     (3,1), data=self.bxyz,     dtype="f8")
+            g.create_dataset("jacobian", (3,3), data=self.jacobian, dtype="f8")
+            g.create_dataset("rhoval",   (1,),  data=self.rhoval,   dtype="f8")
+            g.create_dataset("psival",   (1,),  data=self.psival,   dtype="f8")
+            g.create_dataset("axisr", (1,),  data=self.axisr, dtype="f8")
+            g.create_dataset("axisz", (1,),  data=self.axisz, dtype="f8")
 
         return gname
 

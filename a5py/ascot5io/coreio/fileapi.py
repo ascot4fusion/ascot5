@@ -633,33 +633,3 @@ def read_data(group, name):
         unit     = unyt.Unit(unit_str)
 
     return group[name][:].ravel() * unit
-
-def _generate_meta():
-    """Generate QID, date and default description/tag.
-
-    Calls random number generator to create 32 bit string which is then
-    converted as a QID string using left-padding with zeroes if necessary.
-
-    Returns
-    -------
-    qid : str
-        QID.
-    data : str
-        Date.
-    desc : str
-        Description.
-    """
-    # Generate random unsigned 32 bit integer and convert it to string.
-    qid = str(np.uint32(random.getrandbits(32)))
-
-    # Left-padding with zeroes so that QID is always 10 characters long.
-    while len(qid) < 10:
-        qid = "0" + qid
-
-    # Get date but remove last digits which are milliseconds which we don't need
-    date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    # Default value for the description
-    desc = "TAG"
-
-    return qid, date, desc

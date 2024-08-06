@@ -10,9 +10,11 @@ import subprocess
 import importlib
 import matplotlib.pyplot as plt
 
+from a5py import utils
+
 import a5py.routines.plotting as a5plt
 from a5py import Ascot, AscotInitException, AscotIOException
-from a5py.ascot5io.coreio import fileapi, treeview
+from a5py.ascot5io.coreio import fileapi, treeview, common, treedata
 from a5py.ascot5io.state import State
 from a5py.ascot5io.marker import Marker
 
@@ -24,7 +26,6 @@ class TestTree(unittest.TestCase):
         """Test that groups can be added, removed and activated.
         """
         root = treeview.RootNode()
-        dummy_address = treeview._Address.from_hdf5("", "")
 
         btc1 = root.create_BTC(0,0,0)
         btc2 = root.create_BTC(0,0,0)
@@ -82,30 +83,27 @@ class TestTree(unittest.TestCase):
           index from newest (0) to oldest.
         """
         root = treeview.RootNode()
-        dummy_address = treeview._Address.from_hdf5("", "")
+        dummy_address = common.Address()
 
-        def date2str(date):
-            """Convert datetime to string format ASCOT uses."""
-            return date.strftime("%Y-%m-%d %H:%M:%S")
-
-        first_group = treeview.TreeData(
+        now, deltat = datetime.datetime.now(), datetime.timedelta(days=1)
+        first_group = treeview.MetadataHolder(
             address=dummy_address,
             qid="0000000001",
-            date=date2str(datetime.datetime.now()),
+            date=utils.format2universaldate(now),
             description="TAG",
             type_="DUMMY",
         )
         second_group = treeview.TreeData(
             address=dummy_address,
             qid="0000000002",
-            date=date2str(datetime.datetime.now() - datetime.timedelta(days=1)),
+            date=utils.format2universaldate(now - deltat),
             description="OTHERTAG",
             type_="DUMMY",
         )
         third_group = treeview.TreeData(
             address=dummy_address,
             qid="0000000003",
-            date=date2str(datetime.datetime.now() + datetime.timedelta(days=1)),
+            date=utils.format2universaldate(now + deltat),
             description="TAG",
             type_="DUMMY",
         )
