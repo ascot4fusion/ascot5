@@ -1,4 +1,3 @@
-from __future__ import annotations
 """Module for building a tree data structure representing ASCOT5 input and output.
 
 This module provides a tree consisting of `ImmutableNode` and `Leaf` instances,
@@ -27,19 +26,25 @@ Note
 `Leaf` is intended for internal use, while `MetaDataHolder` is for external
 interfaces.
 """
-import h5py
+from __future__ import annotations
+
 import random
 import datetime
 import warnings
 from contextlib import contextmanager
+from typing import Tuple, List, Dict, Any, Generator
 
+import h5py
 import numpy as np
 
 from a5py.exceptions import AscotIOException
 from a5py import utils
 
-default_tag = "TAG"
+DEFAULT_TAG = "TAG"
 """Default tag and description."""
+
+QIDLEN = 10
+"""Number of characters (numbers) in quasi-unique identifier."""
 
 input_categories = (
     "options", "bfield", "efield", "marker", "plasma", "neutral", "wall",
@@ -47,12 +52,28 @@ input_categories = (
     )
 """All input categories."""
 
+data_variants = {
+    "bfield":("B_TC", "B_GS", "B_2DS", "B_3DS", "B_3DST", "B_STS"),
+    "efield":("E_TC", "E_1DS"),
+    "marker":("prt", "gc", "fl"),
+    "wall":("wall_2D", "wall_3D"),
+    "plasma":("plasma_1D", "plasma_1DS", "plasma_1Dt"),
+    "neutral":("N0_1D", "N0_3D"),
+    "boozer":("Boozer"),
+    "mhd":("MHD_STAT", "MHD_NONSTAT"),
+    "asigma":("asigma_loc"),
+    "nbi":("NBI"),
+}
+"""Data variants by category."""
+
+run_variants = ("run", "afsi", "bbnbi")
+
 simulation_diagnostics = (
     "inistate", "endstate", "state", "orbits",
 )
 """All simulation diagnostics."""
 
-def generate_metadata():
+def generate_metadata() -> Tuple[str, str, str]:
     """Generate QID, date and default description/tag.
 
     Calls random number generator to create 32 bit string which is then
@@ -67,13 +88,13 @@ def generate_metadata():
     desc : str
         Description.
     """
-    qid = str( np.uint32( random.getrandbits(32) ) ).rjust(10, "0")
+    qid = str( np.uint32( random.getrandbits(32) ) ).rjust(QIDLEN, "0")
     date = utils.format2universaldate(datetime.datetime.now())
-    description = default_tag
+    description = DEFAULT_TAG
 
     return qid, date, description
 
-def get_input_category(variant):
+def get_input_category(variant: str) -> str:
     """Return the input category corresponding to the given variant.
 
     Parameters
@@ -91,31 +112,13 @@ def get_input_category(variant):
     ValueError
         If the variant is unknown.
     """
-    if variant in ("B_TC", "B_GS", "B_2DS", "B_3DS", "B_3DST", "B_STS"):
-        return "bfield"
-    elif variant in ("E_TC", "E_1DS"):
-        return "efield"
-    elif variant in ("prt", "gc", "fl"):
-        return "marker"
-    elif variant in ("wall_2D", "wall_3D"):
-        return "wall"
-    elif variant in ("plasma_1D", "plasma_1DS", "plasma_1Dt"):
-        return "plasma"
-    elif variant in ("N0_1D", "N0_3D"):
-        return "neutral"
-    elif variant in ("Boozer"):
-        return "boozer"
-    elif variant in ("MHD_STAT", "MHD_NONSTAT"):
-        return "mhd"
-    elif variant in ("asigma_loc"):
-        return "asigma"
-    elif variant in ("NBI"):
-        return "nbi"
-    else:
-        raise ValueError(f"Unknown variant: {variant}")
+    for category, variants in data_variants.items():
+        if variant in variants:
+            return category
+    raise ValueError(f"Unknown variant: {variant}")
 
 
-def get_qid(dataset, with_prefix=False):
+def get_qid(dataset: MetaDataHolder, with_prefix: bool=False) -> str:
     """Returns the QID from a given object or string.
 
     Parameters
@@ -132,8 +135,8 @@ def get_qid(dataset, with_prefix=False):
         A string with 10 digits.
     """
     if isinstance(dataset, str):
-        if len(dataset) >= 10 and dataset[-10:].isdigit():
-            qid = dataset[-10:]
+        if len(dataset) >= QIDLEN and dataset[-QIDLEN:].isdigit():
+            qid = dataset[-QIDLEN:]
         else:
             raise ValueError(
                 f"This doesn't appear to be a valid QID: {dataset}"
@@ -155,10 +158,6 @@ class MetaDataHolder():
 
     Attributes
     ----------
-    _root : `Root`
-        Root node of the tree where this leaf belongs to.
-    _ascot : `Ascot`
-        The `Ascot` object for which the tree belongs to.
     _usedby : [MetaDataHolder]
         List of objects that reference this data.
     qid : str
@@ -171,28 +170,27 @@ class MetaDataHolder():
         What is the variant of the data this instance represents.
     """
 
-    def __init__(self, qid, date, description, variant, **kwargs):
-        """Initialize data container.
+    def __init__(self, qid: str, date: str, description:str, variant:str,
+                 **kwargs: Any) -> None:
+        """Initialize object which does not belong to a tree initially.
         """
         super().__init__(**kwargs)
-        self._ascot = None
-        self._parent = None
+        self._parent: ImmutableNode = None
 
-        self._qid = qid
-        self._date = date
-        self._usedby = []
-        self._variant = variant
-        self._description = description
+        self._qid: str = qid
+        self._date: str = date
+        self._usedby: List = []
+        self._variant: str = variant
+        self._description: str = description
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return a string representation of this object."""
         return (
             f"<{self.__class__.__name__}(root={self._parent!r}, "
-            f"ascot={self._ascot!r}, qid={self._qid}, date={self._date}, "
-            f"variant={self._variant})>"
+            f"qid={self._qid}, date={self._date}, variant={self._variant})>"
             )
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: Any) -> None:
         """Change the value of the attribute unless it is read-only.
 
         Parameters
@@ -211,15 +209,13 @@ class MetaDataHolder():
             raise AscotIOException(f"Attribute {name} is read only.")
         super().__setattr__(name, value)
 
-    def _adopt(self, parent, ascot):
+    def _adopt(self, parent: ImmutableNode) -> None:
         """Adopt this leaf to a tree.
 
         Parameters
         ----------
-        root : `Root`
-            Root node of the tree where this leaf belongs to.
-        ascot : `Ascot`
-            The `Ascot` object for which the tree belongs to.
+        parent : `ImmutableNode`
+            The node where this leaf belongs to.
 
         Raises
         ------
@@ -229,9 +225,8 @@ class MetaDataHolder():
         if self._parent:
             raise AscotIOException("Leaf is already adopted.")
         self._parent = parent
-        self._ascot = ascot
 
-    def _extract_tag(self):
+    def _extract_tag(self) -> str:
         """Extracts a tag from description.
 
         Description is converted to a tag like this:
@@ -254,46 +249,46 @@ class MetaDataHolder():
         tag_candidate = self.description.split(" ")[0]
         tag_candidate = "".join(ch for ch in tag_candidate if ch.isalnum())
         tag_candidate = tag_candidate.upper()
-        if not len(tag_candidate) or tag_candidate[0] in "1234567890":
-            return default_tag
+        if not tag_candidate or tag_candidate[0] in "1234567890":
+            return DEFAULT_TAG
         return tag_candidate
 
     @property
-    def qid(self):
+    def qid(self) -> str:
         """Unique identifier for this data."""
         return self._qid
 
     @property
-    def qqid(self):
+    def qqid(self) -> str:
         """Unique identifier for this data with preceding 'q'."""
         return "q" + self._qid
 
     @property
-    def date(self):
+    def date(self) -> str:
         """Date when this data was created."""
         return self._date
 
     @property
-    def description(self):
+    def description(self) -> str:
         """Short description for the user to document this data."""
         return self._description
 
     @description.setter
-    def description(self, description):
+    def description(self, description: str) -> None:
         """Set a short description to document this data."""
         self._description = description
 
     @property
-    def variant(self):
+    def variant(self) -> str:
         """What variant of data this object represents."""
         return self._variant
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Full name of the data."""
         return f"{self.variant}_{self.qid}"
 
-    def activate(self):
+    def activate(self) -> None:
         """Set this dataset as active.
 
         Active inputs are used when the simulation is run. Active datasets are
@@ -301,7 +296,7 @@ class MetaDataHolder():
         """
         self._parent.activate_dataset(self.qid)
 
-    def destroy(self, repack=True):
+    def destroy(self, repack: bool=True) -> None:
         """Remove this dataset.
 
         This also removes any data on the disk.
@@ -318,7 +313,6 @@ class MetaDataHolder():
         """
         self._parent._remove_leaf(self)
         self._parent = None
-        self._ascot = None
 
 Leaf = MetaDataHolder
 """Alias for `MetaDataHolder` for internal use.
@@ -334,7 +328,7 @@ class ImmutableStorage():
         Indicates whether the node is frozen, preventing attribute modification.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         """Initialize an empty node which is unfrozen.
 
         Parameters
@@ -343,14 +337,14 @@ class ImmutableStorage():
             Arguments passed to other constructors in case of multiple
             inheritance.
         """
-        self._frozen = False
+        self._frozen: bool = False
         super().__init__(**kwargs)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return a string representation of this object."""
         return f"<{self.__class__.__name__}(frozen={self._frozen})>"
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any) -> None:
         """Add a new attribute this node in dictionary style.
 
         Parameters
@@ -369,10 +363,9 @@ class ImmutableStorage():
             raise AscotIOException(
                 "The attributes of this class are immutable."
                 )
-
         setattr(self, key, value)
 
-    def __setattr__(self, key, value):
+    def __setattr__(self, key: str, value: Any) -> None:
         """Add a new attribute this node.
 
         Parameters
@@ -393,7 +386,7 @@ class ImmutableStorage():
                 )
         super().__setattr__(key, value)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         """Retrieve attribute in dictionary-like manner.
 
         Parameters
@@ -408,23 +401,23 @@ class ImmutableStorage():
         """
         return getattr(self, key)
 
-    def _freeze(self):
+    def _freeze(self) -> None:
         """Make this node immutable.
         """
         self._frozen = True
 
-    def _unfreeze(self):
+    def _unfreeze(self) -> None:
         """Make this node mutable.
         """
         self._frozen = False
 
     @contextmanager
-    def _modify_attributes(self):
+    def _modify_attributes(self) -> Generator[ImmutableStorage, None, None]:
         """Open a context where attributes can be modified.
         """
         self._unfreeze()
         try:
-            yield
+            yield self
         finally:
             self._freeze()
 
@@ -465,7 +458,7 @@ class ImmutableNode(ImmutableStorage):
         The root to which this node belongs.
     """
 
-    def __init__(self, root, **kwargs):
+    def __init__(self, root: Root, **kwargs) -> None:
         """Initialize an empty node which is unfrozen.
 
         Parameters
@@ -477,12 +470,12 @@ class ImmutableNode(ImmutableStorage):
             inheritance.
         """
         super().__init__(**kwargs)
-        self._root = root
-        self._qids = []
-        self._tags = []
-        self._active = None
+        self._root: Root = root
+        self._qids: List = []
+        self._tags: List = []
+        self._active: Leaf = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return a string representation of this object."""
         return (
             f"<{self.__class__.__name__}(root={self._root!r}, "
@@ -490,7 +483,7 @@ class ImmutableNode(ImmutableStorage):
             f"frozen={self._frozen})>"
             )
 
-    def __contains__(self, key):
+    def __contains__(self, key: str) -> bool:
         """Check whether this node contains the requested leaf.
 
         Parameters
@@ -509,12 +502,32 @@ class ImmutableNode(ImmutableStorage):
             pass
         return hasattr(self, key) or hasattr(self, f"q{key}")
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[Leaf, None, None]:
         """Iterate over this node's leafs."""
         for qid in self._qids:
             yield self[f"q{qid}"]
 
-    def _add_leaf(self, leaf):
+    def _activate(self, leaf) -> None:
+        """Set given leaf as active.
+
+        Parameters
+        ----------
+        leaf : `Leaf`
+            The leaf to be set as active.
+
+        Raises
+        ------
+        AscotIOException
+            If the leaf does not belong to this node.
+        """
+        if leaf not in self:
+            raise AscotIOException(
+                f"Leaf with QID {leaf.qid} does not belong to this node."
+                )
+        with self._modify_attributes():
+            self._active = leaf
+
+    def _add_leaf(self, leaf: Leaf) -> None:
         """Add leaf to this node.
 
         Parameters
@@ -541,7 +554,7 @@ class ImmutableNode(ImmutableStorage):
 
         self._organize()
 
-    def _remove_leaf(self, leaf):
+    def _remove_leaf(self, leaf: Leaf) -> None:
         """Remove a leaf from this node.
 
         Parameters
@@ -557,7 +570,7 @@ class ImmutableNode(ImmutableStorage):
 
         with self._modify_attributes():
             if self.active == leaf:
-                if len(self._qids):
+                if self._qids:
                     self._active = self[f"q{self._qids[0]}"]
                 else:
                     self._active = None
@@ -567,7 +580,7 @@ class ImmutableNode(ImmutableStorage):
 
         self._organize()
 
-    def _organize(self):
+    def _organize(self) -> None:
         """Organize this node and its references when its children has been
         modified.
 
@@ -621,7 +634,7 @@ class ImmutableNode(ImmutableStorage):
                 self[new_tag] = self[f"q{qid}"]
 
         with self._modify_attributes():
-            if not len(self._qids):
+            if len(self._qids) == 0:
                 self._active = None
                 for tag_to_be_removed in self._tags:
                     delattr(self, tag_to_be_removed)
@@ -633,7 +646,7 @@ class ImmutableNode(ImmutableStorage):
             update_references_by_tag()
 
     @property
-    def active(self):
+    def active(self) -> Leaf:
         """The active group.
 
         Raises
@@ -647,7 +660,7 @@ class ImmutableNode(ImmutableStorage):
                 )
         return self._active
 
-    def destroy(self, repack=True):
+    def destroy(self, repack: bool=True) -> None:
         """Remove all datasets belonging to this node.
 
         Parameters
@@ -681,7 +694,7 @@ class InputCategory(ImmutableNode):
 
             contents += f"\n{self._tags[index]}\n{leaf.description}\n\n"
 
-        if not len(contents):
+        if not contents:
             contents = "No data in this category.\n"
         return contents
 
@@ -739,7 +752,12 @@ class SimulationOutput(ImmutableStorage, MetaDataHolder):
     exception is raised.
     """
 
-    def __init__(self, inputs, diagnostics, **kwargs):
+    def __init__(
+            self,
+            inputs: Dict[str, Leaf],
+            diagnostics: Dict[str, Any],
+            **kwargs: Any,
+            ) -> None:
         """Initialize simulation output node with given inputs and diagnostics.
 
         Parameters
@@ -772,18 +790,18 @@ class SimulationOutput(ImmutableStorage, MetaDataHolder):
             else:
                 self[f"_{diagnostic}"] = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return a string representation of this object."""
         inputs, diagnostics = [], []
         for category in input_categories:
             try:
-                self[category]
+                _ = self[category]
                 inputs.append(category)
             except AscotIOException:
                 pass
         for diagnostic in simulation_diagnostics:
             try:
-                self[f"_{diagnostic}"]
+                _ = self[f"_{diagnostic}"]
                 diagnostics.append(diagnostic)
             except AscotIOException:
                 pass
@@ -795,7 +813,7 @@ class SimulationOutput(ImmutableStorage, MetaDataHolder):
             f"frozen={self._frozen})>"
             )
 
-    def __getattribute__(self, key):
+    def __getattribute__(self, key: str) -> Any:
         """Return attribute unless it refers to an input or diagnostic not
         present in the simulation.
 
@@ -829,7 +847,7 @@ class SimulationOutput(ImmutableStorage, MetaDataHolder):
 
         return value
 
-    def _get_decorated_contents(self):
+    def _get_decorated_contents(self) -> str:
         """Get a string representation of the contents decorated with ANSI
         escape sequences.
         """
@@ -865,18 +883,18 @@ class SimulationOutput(ImmutableStorage, MetaDataHolder):
         return contents
 
     @property
-    def contents(self):
+    def contents(self) -> str:
         """A string representation of the contents.
         """
         return utils.undecorate(self._get_decorated_contents())
 
-    def show_contents(self):
+    def show_contents(self) -> None:
         """Show on screen the metadata of this run among with all the inputs
         that were used and the active diagnostics.
         """
         print(self._get_decorated_contents())
 
-    def ls(self, show=False):
+    def ls(self, show:bool=False) -> str:
         """Get a string representation of the contents.
 
         Deprecated. Use `show_contents()` or `contents` instead.
@@ -918,32 +936,20 @@ class Root(ImmutableNode):
         represents.
     """
 
-    def __init__(self, hdf5_filename=None, **kwargs):
-        """Initialize the tree structure based on the available data.
+    def __init__(self, **kwargs: Any) -> None:
+        """Initialize an empty tree structure.
 
         Parameters
         ----------
-        hdf5_filename : str
-            The HDF5 file from which the tree is constructed and where new data
-            will be written.
-
-            If None, no data is read from the HDF5 file.
         **kwargs
             Arguments passed to other constructors in case of multiple
             inheritance.
         """
         super().__init__(root=self, **kwargs)
-        self._hdf5_filename = hdf5_filename
         for category in input_categories:
             self[category] = InputCategory(self)
 
         self._freeze()
-
-        #input_from_ids, output_from_ids = self._read_groups_from_ids()
-        #input_from_hdf5, output_from_hdf5 = self._read_groups_from_hdf5()
-
-        #input_groups = input_from_hdf5 + input_from_ids
-        #output_groups = output_from_hdf5 + output_from_ids
 
     def __repr__(self):
         """Return a string representation of this object."""
@@ -952,132 +958,48 @@ class Root(ImmutableNode):
             f"active={self._active!r}, frozen={self._frozen})>"
             )
 
-    def _build(self):
-        """(Re-)build node structure.
-        """
-        input_from_ids, output_from_ids = self._read_groups_from_ids()
-        input_from_hdf5, output_from_hdf5 = self._read_groups_from_hdf5()
-        input_from_memory, output_from_memory = self._read_groups_from_memory()
-
-        hdf5_filename = self._hdf5_filename
-        for v in list(vars(self)):
-            delattr(self, v)
-
-        super().__init__(root=self)
-        for inp in fileapi.INPUTGROUPS:
-            self[inp] = InputNode(self)
-        self._hdf5_filename = hdf5_filename
-
-        input_groups = input_from_hdf5 + input_from_ids + input_from_memory
-        output_groups = output_from_hdf5 + output_from_ids + output_from_memory
-
-            # if "results" in h5:
-            #     results = h5["results"]
-            #     for run in results.keys():
-
-            #         # Fetch those input groups that correspond to this run.
-            #         inputqids = fileapi.get_inputqids(h5, results[run])
-
-            #         # Make a result group
-            #         runnode = self._create_resultgroup(
-            #             results[run].name, h5, inputqids)
-            #         self._add_child(run, runnode)
-
-            #     self._finalize(h5)
-
-        self._freeze()
-
-    def _read_groups_from_hdf5(self):
-        """Read all input and output groups from a HDF5 file and return them as
-        lists.
-
-        Returns
-        -------
-        input_groups : list [TreeData]
-            List of input groups.
-        output_groups : list [TreeData]
-            List of output groups.
-        """
-        input_groups, output_groups = [], []
-        if self._hdf5_filename is None:
-            return input_groups, output_groups
-
-        with h5py.File(self._hdf5_filename, "r") as h5:
-            for inp in h5.keys():
-                if inp in fileapi.INPUTGROUPS:
-                    qids = fileapi.get_qids(h5, inp)
-                    for qid in qids:
-                        g = fileapi.get_group(h5, qid)
-                        date = fileapi.get_date(h5, g)
-                        desc = fileapi.get_desc(h5, g)
-                        address = _Address.from_hdf5(
-                            hdf5_filename=self._hdf5_filename,
-                            path_within_hdf5=g.name,
-                            )
-                        input_groups.append(TreeData())
-
-        return input_groups, output_groups
-
-    def _read_groups_from_ids(self):
-        """Read all input and output groups from IDS and return them as lists.
-
-        Returns
-        -------
-        input_groups : list [TreeData]
-            List of input groups.
-        output_groups : list [TreeData]
-            List of output groups.
-        """
-        input_groups = []
-        output_groups = []
-        return input_groups, output_groups
-
-    def _get_group(self, name):
-        """Fetch group based on its QID or name.
-
-        Parameters
-        ----------
-        group : str
-            Name or QID of the group to be fetched.
-
-        Returns
-        -------
-        group : DataGroup
-            The group that was fetched.
-        """
-        qid = "q" + fileapi.get_qid(name)
-        if qid in self:
-            return self[qid]
-        for parent in fileapi.INPUTGROUPS:
-            if parent in self and qid in self[parent]:
-                return self[parent][qid]
-
     def _add_input(
             self,
-            dataset,
-            ascot,
-            description=None,
-            dryrun=False,
-            store_hdf5=None,
+            dataset: Leaf,
+            description: str=None,
+            dryrun: bool=False,
             ):
         """Add input dataset to this tree."""
+        identical_qid_exists = False
+        try:
+            self._locate_leaf(dataset)
+            identical_qid_exists = True
+        except AscotIOException:
+            pass
+        if identical_qid_exists:
+            raise AscotIOException(
+                "There is already a dataset with identical QID."
+                )
         if description is not None:
             dataset.description = description
         if not dryrun:
             category = get_input_category(dataset.variant)
-            dataset._adopt(self[category], ascot)
+            dataset._adopt(self[category])
             self[category]._add_leaf(dataset)
-            if store_hdf5:
-                dataset._write_hdf5()
 
     def _add_run(
             self,
-            dataset,
-            ascot,
-            description=None,
-            store_hdf5=None,):
+            dataset: Leaf,
+            description: str=None,
+            ) -> None:
         """Add simulation output to this tree.
         """
+        identical_qid_exists = False
+        try:
+            self._locate_leaf(dataset)
+            identical_qid_exists = True
+        except AscotIOException:
+            pass
+        if identical_qid_exists:
+            raise AscotIOException(
+                "There is already a dataset with identical QID."
+                )
+
         for category in input_categories:
             try:
                 dataset[category]
@@ -1092,12 +1014,10 @@ class Root(ImmutableNode):
 
         if description is not None:
             dataset.description = description
-        dataset._adopt(self, ascot)
+        dataset._adopt(self)
         self._add_leaf(dataset)
-        if store_hdf5:
-            dataset._write_hdf5()
 
-    def _locate_leaf(self, qid):
+    def _locate_leaf(self, qid: str) -> Tuple[Leaf, ImmutableNode]:
         """Find leaf and its parent corresponding to the given QID.
 
         Parameters
@@ -1129,6 +1049,87 @@ class Root(ImmutableNode):
 
         raise AscotIOException(f"Leaf {qid} not found in the tree.")
 
+    def _get_decorated_contents(self) -> str:
+        """Get a string representation of the contents decorated with ANSI
+        escape sequences.
+        """
+        contents = ""
+        contents += utils.decorate("Inputs:", color="purple",
+                                   underline=True, bold=True)
+        contents += utils.decorate(" [only active shown]\n", color="green")
+        for category in input_categories:
+            contents += utils.decorate(f"{category.ljust(10)}", color="green")
+
+            number_of_inputs  = len(self[category]._qids)
+            if number_of_inputs == 0:
+                contents += "*no inputs*\n\n"
+                continue
+
+            leaf = self[category].active
+            contents += utils.decorate(
+                f"{leaf.variant.ljust(10)}{leaf.qid}", bold=True,
+                )
+            contents += f" {leaf.date}"
+            if number_of_inputs > 1:
+                contents += f" + {number_of_inputs-1} other(s)"
+            else:
+                contents += " (no other inputs)"
+            contents += f"\n{"".ljust(10)}{leaf.description}\n"
+
+        contents += utils.decorate("\nSimulations:\n", color="purple",
+                                   underline=True, bold=True)
+        for leaf in self:
+            contents += utils.decorate(
+                f"{leaf.variant.ljust(10)}{leaf.qid}", bold=True,
+                )
+            contents += f" {leaf.date}"
+            if leaf == self.active:
+                contents += utils.decorate(" [active]", color="green")
+            contents += f"\n{"".ljust(10)}{leaf.description}\n"
+        if not self._qids:
+            contents += "No simulation results.\n"
+
+
+        return contents
+
+    @property
+    def contents(self) -> str:
+        """A string representation of the contents.
+        """
+        return utils.undecorate(self._get_decorated_contents())
+
+    def show_contents(self) -> None:
+        """Show on screen the metadata of the currently active inputs and list
+        of all simulation runs.
+        """
+        print(self._get_decorated_contents())
+
+    def ls(self, show: bool=False) -> str:
+        """Get a string representation of the contents.
+
+        Deprecated. Use `show_contents()` or `contents` instead.
+
+        Parameters
+        ----------
+        show : str, optional
+            If True, the contents are also printed on screen.
+
+        Returns
+        -------
+        contents : str
+            Multiline string decorated with ANSI escape sequences that list
+            this node's meta data, all output data within this node, and inputs
+            that were used.
+        """
+        warnings.warn(
+            "'ls' will be removed in a future release. Use 'show_contents' "
+            "instead.",
+            DeprecationWarning, stacklevel=2)
+        contents = self._get_decorated_contents()
+        if show:
+            print(contents)
+        return contents
+
     def destroy_dataset(self, dataset, repack=True):
         """Remove group and associated data permanently.
 
@@ -1140,19 +1141,10 @@ class Root(ImmutableNode):
             If True, repack the HDF5 file.
         """
         qid = get_qid(dataset)
-        leaf, parent = self._locate_leaf(qid)
+        leaf, _ = self._locate_leaf(qid)
         leaf.destroy(repack=repack)
-        # with h5py.File(fn, "a") as f:
-        #     fileapi.remove_group(f, group)
 
-        # if repack:
-        #     fntemp = fn + "_repack"
-        #     subprocess.call(["h5repack", fn, fntemp], stdout=subprocess.DEVNULL)
-        #     subprocess.call(["mv", fntemp, fn])
-
-        # self._build(fn)
-
-    def activate_dataset(self, group):
+    def activate_dataset(self, dataset: Leaf) -> None:
         """Set group as active and rebuild the tree.
 
         Parameters
@@ -1160,13 +1152,10 @@ class Root(ImmutableNode):
         group : str
             Name or QID of the group to be activated.
         """
-        for inp in fileapi.INPUTGROUPS:
-            if group in self[inp]:
-                self[inp]._active = group
-        #fn = self._ascot.file_getpath()
-        #with h5py.File(fn, "a") as f:
-        #    fileapi.set_active(f, group)
-
+        qid = get_qid(dataset)
+        leaf, parent = self._locate_leaf(qid)
+        with parent._modify_attributes():
+            parent._activate(leaf)
 
     def destroy(self, repack=True):
         """Remove all results from the HDF5 file.
@@ -1182,51 +1171,3 @@ class Root(ImmutableNode):
             3rd party tool `h5repack` which is why it's use is optional here.
         """
         super().destroy(repack=repack)
-
-    def ls(self, show=True):
-        """Get a string representation of the contents.
-
-        Parameters
-        ----------
-        show : str, optional
-            If True, the contents are also printed on screen.
-
-        Returns
-        -------
-        contents : str
-            Multiline string decorated with ANSI escape sequences that list
-            all results and their meta data and currently active inputs.
-        """
-        out = ""
-        out += _FancyText.title("Inputs:")
-        out += _FancyText.active(" [only active shown]\n")
-        for inp in fileapi.INPUTGROUPS:
-            if not inp in self:
-                continue
-
-            ngrp  = len(self[inp]._qids)
-            qid   = self[inp].active.get_qid()
-            date  = self[inp].active.get_date()
-            desc  = self[inp].active.get_desc()
-            gtype = self[inp].active.get_type()
-            out += _FancyText.active(inp.ljust(8))
-            out += _FancyText.header(gtype.ljust(10) + " " + qid)
-            out += " " + date
-            out += "\n" + desc + "\n"
-            out += "+ " + str(ngrp-1) + " other(s)\n"
-
-        out += _FancyText.title("Results:\n")
-        for q in self._qids:
-            date  = self["q"+q].get_date()
-            desc  = self["q"+q].get_desc()
-            gtype = self["q"+q].get_type()
-            out += _FancyText.header(gtype.ljust(10) + " " + q)
-            out += " " + date
-            if q == self.active.get_qid():
-                out += _FancyText.active(" [active]")
-
-            out += "\n" + desc + "\n"
-
-        if show:
-            print(out)
-        return out

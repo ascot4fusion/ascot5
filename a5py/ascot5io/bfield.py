@@ -18,12 +18,12 @@ import h5py
 import numpy as np
 
 from .coreio.fileapi import add_group
-from .coreio.treeview import MetaDataHolder
-from .coreio.treedata import DataGroup, DataHolder
+from .coreio.treestructure import MetaDataHolder
+from .coreio.treedata import DataGroup, DataManager
 
 import a5py.physlib.analyticequilibrium as psifun
 
-class B_TC(DataHolder, MetaDataHolder):
+class B_TC(MetaDataHolder):
     """Magnetic field in Cartesian basis for testing purposes.
 
     This input defines the magnetic field vector on the Cartesian basis, and
@@ -52,25 +52,77 @@ class B_TC(DataHolder, MetaDataHolder):
         ValueError
             If inputs were not consistent.
         """
-        if bxyz.shape != (3,1) and bxyz.shape != (3,):
-            raise ValueError("Invalid shape for Bxyz.")
+        self.bxyz = np.array(bxyz)
+        self.jacobian = np.array(jacobian)
+        self.rhoval = float(rhoval)
+        self.psival = float(psival) if psival is not None else rhoval
+        self.axisr = float(axisr) if axisr is not None else None
+        self.axisz = float(axisz) if axisz is not None else None
 
         super().__init__()
 
-    def read(self):
-        """Read data from HDF5 file.
+    @property
+    def bxyz(self):
+        return self._bxyz
 
-        Returns
-        -------
-        data : dict
-            Data read from HDF5 stored in the same format as is passed to
-            :meth:`write_hdf5`.
-        """
-        out = {}
-        with self as f:
-            for key in f:
-                out[key] = f[key][:]
-        return out
+    @bxyz.setter
+    def bxyz(self, value):
+        value = np.array(value)
+        if value.shape != (3,):
+            raise ValueError("bxyz must be a 1D array with 3 elements")
+        self._bxyz = value
+
+    @property
+    def jacobian(self):
+        return self._jacobian
+
+    @jacobian.setter
+    def jacobian(self, value):
+        value = np.array(value)
+        if value.shape != (3, 3):
+            raise ValueError("jacobian must be a 3x3 array")
+        self._jacobian = value
+
+    @property
+    def rhoval(self):
+        return self._rhoval
+
+    @rhoval.setter
+    def rhoval(self, value):
+        self._rhoval = float(value)
+
+    @property
+    def psival(self):
+        return self._psival
+
+    @psival.setter
+    def psival(self, value):
+        if value is not None:
+            self._psival = float(value)
+        else:
+            self._psival = self._rhoval
+
+    @property
+    def axisr(self):
+        return self._axisr
+
+    @axisr.setter
+    def axisr(self, value):
+        if value is not None:
+            self._axisr = float(value)
+        else:
+            self._axisr = None
+
+    @property
+    def axisz(self):
+        return self._axisz
+
+    @axisz.setter
+    def axisz(self, value):
+        if value is not None:
+            self._axisz = float(value)
+        else:
+            self._axisz = None
 
     def write_hdf5(self):
         """Write input data to the HDF5 file.
@@ -80,7 +132,7 @@ class B_TC(DataHolder, MetaDataHolder):
         gname  = ""
 
         if psival is None:
-            psival = rhoval
+            psival = self.rhoval
 
         with h5py.File(fn, "a") as f:
             g = add_group(f, parent, group, desc=desc)

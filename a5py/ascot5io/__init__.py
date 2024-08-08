@@ -1,5 +1,8 @@
 """Interface for accessing data in ASCOT5 HDF5 files.
 """
+from typing import Any
+
+from a5py.ascot5io.coreio.treestructure import Leaf
 from .bfield  import B_TC, B_GS, B_2DS, B_3DS, B_3DST, B_STS
 from .efield  import E_TC, E_1DS, E_3D, E_3DS, E_3DST
 from .marker  import Marker, Prt, GC, FL
@@ -18,8 +21,9 @@ from .transcoef  import Transcoef
 from .dist import Dist_5D, Dist_6D, Dist_rho5D, Dist_rho6D, Dist_COM, Dist
 from .reaction import Reaction
 
-from .coreio.treeview import Root
-from .coreio.treedata import DataGroup
+from .coreio.treestructure import Root, InputCategory, input_categories, MetaDataHolder, SimulationOutput
+from .coreio.fileapi import HDF5Interface
+#from .coreio.treedata import DataGroup
 from a5py.routines.runmixin import RunMixin
 from a5py.routines.afsi5 import AfsiMixin
 from a5py.routines.bbnbi5 import BBNBIMixin
@@ -52,16 +56,35 @@ HDF5TOOBJ = {
 """Dictionary connecting group names in HDF5 file to corresponding data objects.
 """
 
+
+class InputNode(InputCategory):
+
+    def __init__(self, root):
+        super().__init__(root)
+
+    def _activate(self, leaf) -> None:
+        super()._activate(leaf)
+
+        with HDF5Interface(self._root._hdf5_filename) as h5:
+            h5.set_active(leaf.qid)
+
+    def _add_leaf(self, leaf) -> None:
+        return super()._add_leaf(leaf)
+
+    def _remove_leaf(self, leaf) -> None:
+        return super()._remove_leaf(leaf)
+
 class Ascot5IO(Root):
-    """Entry node for accessing data in the HDF5 file.
+    """Tree structure for accessing ASCOT5 data.
 
-    Initializing this node builds rest of the tree. This object and its child
-    nodes act as container objects for the data in the HDF5 file. At top level
-    (this node) run nodes containing simulation results can be accessed as well
-    as the parent nodes (bfield, efield, etc.) that in turn contain the actual
-    input groups.
+    This class is an interface to ASCOT5 data wherever it is stored (in HDF5
+    file, IMAS IDS, memory). The data is organized into a tree where the top
+    level has one node for each simulation category (bfield, efield, etc.) and
+    groups for each simulation run. Each input category holds all inputs of that
+    kind in separate groups. Multiple simulations and multiple inputs of same
+    category are supported.
 
-    The data can be accessed as
+    Groups can be accessed as
 
     .. code-block:: python
 
@@ -73,125 +96,90 @@ class Ascot5IO(Root):
 
        data["bfield"]["B_2DS_1234567890"]
 
-    In each input group, one input is always set as "active" (meaning it would
-    be used for the next simulation) and it can be accessed as
+    Groups can also be accessed through their QID (quasi-unique identifier) or
+    user specified tag (first word in the description, capitalized, without
+    special characters, and starting with a letter).
+
+    .. code-block:: python
+
+       # These are equivalent references
+       data.bfield.B_2DS_1234567890
+       data.bfield.q1234567890
+       data.bfield.TAG
+
+    In each input category, one input is always set as "active" indicating that
+    it will be used in the next simulation or in post-processing. The active
+    group is accessed with
 
     .. code-block:: python
 
        data.bfield.active
 
-    QID can be used as a reference as well
+    Simulation outputs are located on the top level and they are accessed in
+    identical manner, including that one run is always set as active (by default
+    the most recent simulation):
 
     .. code-block:: python
 
-       data.bfield.q1234567890
-
-    Run groups are accessed in a similar fashion, e.g.
-
-    .. code-block:: python
-
-       data.run_1234567890 .
-
-    However, the easiest way to access the simulation output is via the methods
-    in the RunNode. The active run (by default the most recent simulation) can
-    be accessed with
-
-    .. code-block:: python
-
+       data.run_1234567890
        data.active
 
-    and its inputs as
+    To quickly show the contents of the tree, input category, or simulation
+    output, use the `show_contents` methods:
 
     .. code-block:: python
 
-       data.active.bfield
+       data.show_contents()
+       data.bfield.show_contents()
+       data.run_1234567890.show_contents()
 
-    Most of these examples also work with dictionary-like reference but here we
-    use only the attribute-like referencing for brevity.
-
-    You can even use user defined tag taken from description to refer to it
-
-    .. code-block:: python
-
-       data.THATPRLRUN
-
-    However, there are few rules to this:
-
-    - Tag is the first word in description converted to all caps for brevity.
-    - Maximum length is ten characters.
-    - Only letters and numbers are allowed (all special characters are removed).
-    - First character must be a letter.
-    - If two fields would have identical tags, they are changed to format
-      <tag>_<i>, where i is running index starting from zero (corresponding
-      to most recent data).
-
-    Finally, you can print the contents of a node with
-
-    .. code-block:: python
-
-       data.ls()
     """
 
-    def _create_inputgroup(self, path, h5):
-        """Create an input group to be added to the treeview.
+    def __init__(self, hdf5_filename: str = None, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        with self._modify_attributes():
+            self._hdf5_filename = hdf5_filename
+        if hdf5_filename:
+            self._init_from_hdf5()
 
-        Parameters
-        ----------
-        path : str
-            Path to the input group within the HDF5 file.
-        h5 : `h5py.File`
-            The HDF5 file from which the tree is constructed.
+    def _init_from_hdf5(self):
 
-        Returns
-        -------
-        group : `InputGroup`
-            The input group that was created
-        """
-        return InputGroup(self, path, h5)
+        with HDF5Interface(self._hdf5_filename) as h5:
+            for category in input_categories:
+                active, leafs = h5.read_input_category(category)
+                for metadata in leafs:
+                    leaf = MetaDataHolder(
+                        qid=metadata["qid"],
+                        date=metadata["date"],
+                        description=metadata["description"],
+                        variant=metadata["variant"],
+                        )
+                    self._add_input(leaf)
+                    if active == metadata["qid"]:
+                        self[category]._activate(leaf)
 
-    def _create_resultgroup(self, path, h5, inputqids):
-        """Create a result group to be added to the treeview.
+            active, leafs = h5.read_simulation_output()
+            for metadata in leafs:
+                input_objects = []
+                for input in metadata["inputs"]:
+                    input_objects.append(self._locate_leaf(input))
 
-        Parameters
-        ----------
-        path : str
-            Path to the result node within the HDF5 file.
-        h5 : `h5py.File`
-            The HDF5 file from which the tree is constructed.
-        inputqids : dict [str, str]
-            Dictionary containing the name of the input parent group
-            (e.g. "bfield") and the QID of the input used for this result.
+                leaf = SimulationOutput(
+                    inputs=input_objects,
+                    diagnostics=[],
+                    qid=metadata["qid"],
+                    date=metadata["date"],
+                    description=metadata["description"],
+                    variant=metadata["variant"],
+                    )
+                self._add_run(leaf)
+                if active == metadata["qid"]:
+                    self._activate(leaf)
 
-        Returns
-        -------
-        group : `ResultGroup`
-            The result group that was created.
-        """
-        if path.split("/")[-1].split("_")[0] == "run":
-            return RunGroup(self, path, h5, inputqids)
-        elif path.split("/")[-1].split("_")[0] == "afsi":
-            return AfsiGroup(self, path, h5, inputqids)
-        elif path.split("/")[-1].split("_")[0] == "bbnbi":
-            return BBNBIGroup(self, path, h5, inputqids)
-        else:
-            raise ValueError("Unknown")
-
-    def _create_datagroup(self, grouptype, path):
-        """Create data group based on the given type.
-
-        Parameters
-        ----------
-        grouptype : str
-            Type of the group as it appears in `HDF5TOOBJ`.
-        path : str
-            Path to the data in the HDF5 file that corresponds to the group.
-
-        Returns
-        -------
-        `DataContainer`
-            The data group that was created.
-        """
-        return HDF5TOOBJ[grouptype](self, path)
+            try:
+                h5.set_simulation_output("results")
+            except Exception:
+                pass
 
     def create_input(self, inp, desc=None, activate=None, dryrun=False,
                      **kwargs):

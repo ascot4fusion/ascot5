@@ -1,11 +1,15 @@
-# pylint: disable=protected-access, no-member
-"""Test functionality of a5py.
+# pylint: disable=protected-access, no-member, too-many-instance-attributes
+"""Tests that cover the functionality of the data tree formed mainly by `Root`,
+`ImmutableNode` and `MetaDataHolder` classes.
+
+Note that this test handles the tree in its abstract form. All IO operations
+are tested in separate modules.
 """
 import unittest
 from unittest.mock import MagicMock
 
 from a5py import AscotIOException
-from a5py.ascot5io.coreio.treeview import (
+from a5py.ascot5io.coreio.treestructure import (
     Leaf, ImmutableNode, InputCategory, SimulationOutput, Root,
     input_categories,
     )
@@ -24,22 +28,10 @@ class TestLeaf(unittest.TestCase):
 
     def test_initialization(self):
         """Test that attributes were set properly in initialization."""
-        self.assertEqual(
-            self.leaf.qid, "0123456789",
-            "QID does not match the initialized value.",
-            )
-        self.assertEqual(
-            self.leaf.date, "1953-12-08 00:00:00",
-            "Date does not match the initialized value.",
-            )
-        self.assertEqual(
-            self.leaf.description, "Test description",
-            "Description does not match the initialized value.",
-            )
-        self.assertEqual(
-            self.leaf.variant, "test",
-            "Variant does not match the initialized value.",
-            )
+        self.assertEqual(self.leaf.qid, "0123456789")
+        self.assertEqual(self.leaf.date, "1953-12-08 00:00:00")
+        self.assertEqual(self.leaf.description, "Test description")
+        self.assertEqual(self.leaf.variant, "test")
 
     def test_description_mutability(self):
         """Test that description can be changed."""
@@ -80,22 +72,17 @@ class TestLeaf(unittest.TestCase):
     def test_adopt_method(self):
         """Test that the fields are set correctly when the leaf is adopted and
         that the leaf cannot be adopted twice."""
-        ascot = MagicMock()
         parent = MagicMock()
-        self.leaf._adopt(parent, ascot)
+        self.leaf._adopt(parent)
         self.assertEqual(
             self.leaf._parent, parent,
             "Parent was not set when the leaf was adopted.",
-            )
-        self.assertEqual(
-            self.leaf._ascot, ascot,
-            "Ascot was not set when the leaf was adopted.",
             )
         with self.assertRaises(
             AscotIOException,
             msg="Was able to adopt same leaf twice.",
             ):
-            self.leaf._adopt(parent, ascot)
+            self.leaf._adopt(parent)
 
     def test_extract_tag(self):
         """Test extracting a tag from description."""
@@ -133,12 +120,11 @@ class TestLeaf(unittest.TestCase):
         with parent._modify_attributes():
             parent.activate_dataset = MagicMock()
             parent._remove_leaf = MagicMock()
-        ascot = MagicMock()
 
-        self.leaf._adopt(parent, ascot)
+        self.leaf._adopt(parent)
         self.leaf.activate()
         parent.activate_dataset.assert_called_with("0123456789")
-        self.leaf.destroy(repack=False)
+        self.leaf.destroy()
         parent._remove_leaf.assert_called_with(self.leaf)
 
 
@@ -156,35 +142,18 @@ class TestImmutableNode(unittest.TestCase):
 
     def test_initialization(self):
         """Test that the initialized object us unfrozen and is empty."""
-        self.assertFalse(
-            self.node._frozen, "Node was not unfrozen initially.",
-            )
-        self.assertEqual(
-            self.node._qids, [],
-            "Node is not empty initially.",
-            )
-        self.assertEqual(
-            self.node._tags, [],
-            "Node is not empty initially.",
-            )
-        self.assertEqual(
-            self.node._root, self.root,
-            "Root was not set on initialization.",
-            )
-        self.assertIsNone(
-            self.node._active,
-            "Active group is not None initially.",
-            )
+        self.assertFalse(self.node._frozen)
+        self.assertEqual(self.node._qids, [])
+        self.assertEqual(self.node._tags, [])
+        self.assertEqual(self.node._root, self.root)
+        self.assertIsNone(self.node._active)
 
     def test_freeze_and_unfreeze(self):
         """Test that the attributes can only be modified when the instance is
         unfrozen.
         """
         self.node._freeze()
-        self.assertTrue(
-            self.node._frozen,
-            "The node was not frozen.",
-            )
+        self.assertTrue(self.node._frozen)
         with self.assertRaises(
             AscotIOException,
             msg="Was able to modify node while frozen.",
@@ -192,15 +161,9 @@ class TestImmutableNode(unittest.TestCase):
             self.node.new_attr = "value"
 
         self.node._unfreeze()
-        self.assertFalse(
-            self.node._frozen,
-            "Node was not unfrozen.",
-            )
+        self.assertFalse(self.node._frozen,)
         self.node.new_attr = "value"
-        self.assertEqual(
-            self.node.new_attr, "value",
-            "Failed to modify unfrozen node.",
-            )
+        self.assertEqual(self.node.new_attr, "value")
 
     def test_modify_attributes_context(self):
         """Test the modify attributes context."""
@@ -240,22 +203,10 @@ class TestImmutableNode(unittest.TestCase):
             variant="test",
             )
         self.node._add_leaf(leaf)
-        self.assertIn(
-            "0123456789", self.node,
-            "Failed to query using QID.",
-            )
-        self.assertIn(
-            "q0123456789", self.node,
-            "Failed to query using QID with 'q' prefix.",
-            )
-        self.assertIn(
-            "test_0123456789", self.node,
-            "Failed to query using the name.",
-            )
-        self.assertIn(
-            leaf, self.node,
-            "Failed to query using the object itself.",
-            )
+        self.assertIn("0123456789", self.node,)
+        self.assertIn("q0123456789", self.node,)
+        self.assertIn("test_0123456789", self.node)
+        self.assertIn(leaf, self.node)
 
     def test_add_leaf(self):
         """Test adding a single leaf."""
@@ -266,22 +217,10 @@ class TestImmutableNode(unittest.TestCase):
             variant="test",
             )
         self.node._add_leaf(leaf)
-        self.assertEqual(
-            leaf, self.node.q0123456789,
-            "Reference by QID not set.",
-            )
-        self.assertEqual(
-            leaf, self.node.test_0123456789,
-            "Reference by name not set.",
-            )
-        self.assertEqual(
-            leaf, self.node.TEST,
-            "Reference by tag not set.",
-            )
-        self.assertEqual(
-            self.node._qids, ["0123456789"],
-            "QID not included in the list of QIDs.",
-            )
+        self.assertEqual(leaf, self.node.q0123456789)
+        self.assertEqual(leaf, self.node.test_0123456789)
+        self.assertEqual(leaf, self.node.TEST)
+        self.assertEqual(self.node._qids, ["0123456789"])
 
         with self.assertRaises(
             AscotIOException,
@@ -299,26 +238,11 @@ class TestImmutableNode(unittest.TestCase):
             )
         self.node._add_leaf(leaf)
         self.node._remove_leaf(leaf)
-        self.assertNotIn(
-            "q0123456789", self.node,
-            "Reference by QID was not removed.",
-            )
-        self.assertNotIn(
-            "leaf_0123456789", self.node,
-            "Reference by name was not removed.",
-            )
-        self.assertNotIn(
-            "TEST", self.node,
-            "Reference by tag was not removed.",
-            )
-        self.assertNotIn(
-            leaf, self.node,
-            "The object itself was not removed.",
-            )
-        self.assertEqual(
-            self.node._qids, [],
-            "The QID was not removed from the parent's container.",
-            )
+        self.assertNotIn("q0123456789", self.node)
+        self.assertNotIn("leaf_0123456789", self.node)
+        self.assertNotIn("TEST", self.node)
+        self.assertNotIn(leaf, self.node)
+        self.assertEqual(self.node._qids, [])
 
         with self.assertRaises(
             AscotIOException,
@@ -512,10 +436,19 @@ class TestSimulationOutput(unittest.TestCase):
         """Test that the contents of an simulation output are displayed
         correctly.
         """
-        pass
-        #print("")
-        #self.node.show_contents()
-
+        lines = self.node.contents.splitlines()
+        self.assertIn(self.node.variant, lines[0])
+        self.assertIn(self.node.qid, lines[0])
+        self.assertIn(self.node.date, lines[0])
+        self.assertIn(self.node.description, lines[1])
+        self.assertIn("Diagnostics", lines[3])
+        self.assertIn("inistate", lines[4])
+        self.assertIn("Inputs", lines[6])
+        self.assertIn("bfield", lines[7])
+        self.assertIn(self.node.bfield.variant, lines[7])
+        self.assertIn(self.node.bfield.qid, lines[7])
+        self.assertIn(self.node.bfield.date, lines[7])
+        self.assertIn(self.node.bfield.description, lines[8])
 
 class TestRoot(unittest.TestCase):
     """Tests for the `Root` class.
@@ -526,15 +459,40 @@ class TestRoot(unittest.TestCase):
     def setUp(self):
         """Initialize an empty tree."""
         self.root = Root()
-        self.ascot = MagicMock()
-        self.bfield = Leaf(
+        self.efield = Leaf(
             qid="0000000001",
             date="1953-12-08 00:00:00",
+            description="Not used in a simulation",
+            variant="E_TC",
+        )
+        self.bfield = Leaf(
+            qid="0000000002",
+            date="1953-12-08 00:00:00",
+            description="Not used in a simulation",
+            variant="B_TC",
+        )
+        self.bfield2 = Leaf(
+            qid="0000000003",
+            date="1953-12-08 00:00:01",
+            description="Not used in a simulation",
+            variant="B_TC",
+        )
+        self.bfield_identical_qid = Leaf(
+            qid="0000000002",
+            date="1953-12-08 00:00:01",
             description="Not used in a simulation",
             variant="B_TC",
         )
         self.inistate = MagicMock()
         self.output = SimulationOutput(
+            inputs={"bfield":self.bfield},
+            diagnostics={"inistate":self.inistate},
+            qid="0000000004",
+            date="1953-12-08 00:00:01",
+            description="TAG",
+            variant="run",
+            )
+        self.output_identical_qid = SimulationOutput(
             inputs={"bfield":self.bfield},
             diagnostics={"inistate":self.inistate},
             qid="0000000002",
@@ -560,30 +518,41 @@ class TestRoot(unittest.TestCase):
             variant="B_TC",
             )
         self.root._add_input(
-            leaf, self.ascot, "description", dryrun=False, store_hdf5=False,
+            leaf, "description", dryrun=False,
             )
         self.assertIn(leaf, self.root.bfield)
         self.assertEqual(leaf._parent, self.root.bfield)
 
     def test_add_run(self):
         """Test adding a new run."""
-
         with self.assertRaises(AscotIOException):
             self.root._add_run(
-                self.output, None, "description", store_hdf5=False,
+                self.output, "description",
                 )
 
-        self.root._add_input(self.bfield, None)
+        self.root._add_input(self.bfield)
         self.root._add_run(
-            self.output, self.ascot, "description", store_hdf5=False,
+            self.output, "description",
             )
         self.assertIn(self.output, self.root)
 
+    def test_add_identical_qid(self):
+        """Test adding an input or output when there is data with identical
+        QID.
+        """
+        self.root._add_input(self.bfield)
+        with self.assertRaises(AscotIOException):
+            self.root._add_input(self.bfield_identical_qid)
+        with self.assertRaises(AscotIOException):
+            self.root._add_run(
+                self.output_identical_qid, "description",
+            )
+
     def test_remove_dataset(self):
         """Test removing dataset."""
-        self.root._add_input(self.bfield, None)
+        self.root._add_input(self.bfield)
         self.root._add_run(
-            self.output, self.ascot, "description", store_hdf5=False,
+            self.output, "description",
             )
         self.root.destroy_dataset(self.output)
         self.assertNotIn(self.output, self.root)
@@ -593,22 +562,39 @@ class TestRoot(unittest.TestCase):
     def test_remove_dataset_dependent(self):
         """Test removing input which is being used in a run and contents of
         whole nodes at once."""
-        self.root._add_input(self.bfield, None)
+        self.root._add_input(self.bfield)
         self.root._add_run(
-            self.output, self.ascot, "description", store_hdf5=False,
+            self.output, "description",
             )
         self.root.destroy_dataset(self.bfield.qid)
         self.root.destroy_dataset(self.output)
 
     def test_activate_dataset(self):
-        """
-        """
-        pass
+        """Test setting dataset active."""
+        self.root._add_input(self.bfield)
+        self.root._add_input(self.bfield2)
+        self.root.activate_dataset(self.bfield2)
+        self.assertEqual(self.root.bfield.active, self.bfield2)
 
     def test_contents(self):
-        """
-        """
-        pass
+        """Test getting the contents in a string."""
+        self.root._add_input(self.bfield)
+        self.root._add_input(self.bfield2)
+        self.root._add_input(self.efield)
+        self.root._add_run(
+            self.output, "description",
+            )
+        lines = self.root.contents.splitlines()
+        self.assertIn("Inputs: [only active shown]", lines[0])
+        self.assertIn("bfield", lines[3])
+        self.assertIn(self.bfield.variant, lines[3])
+        self.assertIn(self.bfield.qid, lines[3])
+        self.assertIn(self.bfield.date, lines[3])
+        self.assertIn("+ 1 other(s)", lines[3])
+        self.assertIn(self.bfield.description, lines[4])
+        self.assertIn("(no other inputs)", lines[5])
+        self.assertIn("*no inputs*", lines[7])
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

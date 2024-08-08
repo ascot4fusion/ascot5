@@ -45,532 +45,165 @@ module. The actual datasets are accessed via corresponding modules. This module
 assumes the HDF5 file is open when these routines are called, and closed
 afterwards.
 """
-import random
-import datetime
-from importlib.metadata import version as importlib_version
-from collections import OrderedDict
+from __future__ import annotations
 
+from importlib.metadata import version as importlib_version
+from collections import namedtuple
+from typing import List, Dict, Tuple
+
+import h5py
 import numpy as np
 import unyt
 
+from . treestructure import (
+    input_categories, run_variants, get_input_category, get_qid, QIDLEN,
+    )
 from a5py.exceptions import AscotNoDataException, AscotIOException
-
-INPUTGROUPS = ["options", "bfield", "efield", "marker", "plasma", "neutral",
-               "wall", "boozer", "mhd", "asigma", "nbi"]
-"""Names of the input parent groups.
-"""
-
-OUTPUTGROUPS = ["inistate", "endstate", "dist5d", "distrho5d", "dist6d",
-                "distrho6d", "orbit", "transcoef"]
-"""Names of the output data containers in runs.
-"""
 
 VERSION = importlib_version("a5py")
 """Current version of the code."""
 
-def set_active(f, group):
-    """Set given group as active.
-
-    Parameters
-    ----------
-    f : `h5py.File`
-        Open HDF5 file.
-    group : str or `h5py.Group`
-        Group object or its name.
-
-    Raises
-    ------
-    AscotNoDataException
-        Raised if the group or its parent does not exist.
-    """
-    qid = get_qid(group)
-    grp = get_group(f, qid)
-    grp.parent.attrs["active"] = np.bytes_(qid)
-
-def get_active(f, parent):
-    """Get active group.
-
-    Parameters
-    ----------
-    f : `h5py.File`
-        Open HDF5 file.
-    parent : str or `h5py.Group`
-        Group object or its name.
-
-    Returns
-    -------
-    group : `h5py.Group`
-        The active group.
-
-    Raises
-    ------
-    AscotNoDataException
-        Raised if the parent or the active group does not exist.
-    """
-    if str(parent) == parent:
-        if parent not in f:
-            raise AscotNoDataException(
-            "Parent " + parent + " does not exist.")
-        parent = f[parent]
-
-    qid = parent.attrs["active"].decode('utf-8')
-    group = get_group(f, qid)
-
-    if group is None:
-        raise AscotNoDataException("Active group does not exist.")
-    return group
-
-def set_activeqid(f, qid):
-    """Set a group with the given QID as the active one.
-
-    Parameters
-    ----------
-    f : `h5py.File`
-        Open HDF5 file.
-    qid : str
-        QID.
-    """
-    group = get_group(f, qid)
-    set_active(f, group)
-
-def get_activeqid(f, parent):
-    """Get QID of the currently active group.
-
-    Parameters
-    ----------
-    f : `h5py.File`
-        Open HDF5 file.
-    parent : str or `h5py.Group`
-        Parent whose active group is sought.
-
-    Returns
-    -------
-    qid : str
-        QID string.
-    """
-    group = get_active(f, parent)
-    return group.parent.attrs["active"].decode('utf-8')
-
-def set_desc(f, group, desc):
-    """Set group description.
-
-    Parameters
-    ----------
-    f : `h5py.File`
-        Open HDF5 file.
-    group : str or `h5py.Group`
-        Group object or its name.
-    desc : str
-        Description as a string.
-
-    Raises
-    ------
-    AscotNoDataException
-        Raised if group does not exist.
-    """
-    qid = get_qid(group)
-    grp = get_group(f, qid)
-    grp.attrs["description"] = np.bytes_(desc)
-
-def get_desc(f, group):
-    """Get group description.
-
-    Parameters
-    ----------
-    f : `h5py.File`
-        Open HDF5 file.
-    group : str or `h5py.Group`
-        Group object or its name.
-
-    Returns
-    -------
-    desc : str
-        Description as a string.
-
-    Raises
-    ------
-    AscotNoDataException
-        Raised if group does not exist.
-    """
-    qid = get_qid(group)
-    grp = get_group(f, qid)
-    return grp.attrs["description"].decode('utf-8')
-
-def _set_date(f, group, date):
-    """Set group date.
-
-    Note that this function should only be called when the group is created.
-
-    Parameters
-    ----------
-    f : `h5py.File`
-        Open HDF5 file.
-    group : str or `h5py.Group`
-        Group object or its name.
-    date : str
-        Date as a string in a YYYY-MM-DD hh:mm:ss format.
-
-    Raises
-    ------
-    AscotNoDataException
-        Raised if the group does not exist.
-    """
-    qid = get_qid(group)
-    grp = get_group(f, qid)
-    grp.attrs["date"] = np.bytes_(date)
-
-def get_date(f, group):
-    """Get date.
-
-    Parameters
-    ----------
-    f : `h5py.File`
-        Open HDF5 file.
-    group : str or `h5py.Group`
-        Group object or its name.
-
-    Returns
-    -------
-    date : str
-        Date as a string in format YYYY-MM-DD hh:mm:ss.
-
-    Raises
-    ------
-    AscotNoDataException
-        Raised if the group does not exist.
-    """
-    qid = get_qid(group)
-    grp = get_group(f, qid)
-    return grp.attrs["date"].decode('utf-8')
-
-def get_qid(group):
-    """Get QID from a given group.
-
-    Parameters
-    ----------
-    group : str or `h5py.Group`
-        Group object or its name.
-
-    Returns
-    -------
-    qid : str
-        QID string.
-
-    Raises
-    ------
-    AscotNoDataException
-        Raised if group does not have a valid QID.
-    """
-    if str(group) != group:
-        group = group.name
-
-    if len(group) >= 10:
-        qid = group[-10:]
-        if qid.isdigit():
-            # Seems like a valid QID
-            return qid
-
-    raise AscotNoDataException(group + " is not a valid QID.")
-
-def get_type(group):
-    """Get type from a given group or from its name.
-
-    Parameters
-    ----------
-    group : str or `h5py.Group`
-        Group object or its name.
-
-    Returns
-    -------
-    type : str
-         Group's type.
-
-    Raises
-    ------
-    AscotNoDataException
-        Raised if group does not have a valid type.
-    """
-    if str(group) != group:
-        group = group.name
-
-    group = group.split("/")[-1]
-    if len(group) > 12:
-        type_ = group[:-11]
-        if not type_.isdigit():
-            # Seems like a valid QID
-            return type_
-
-    # Not a valid type
-    raise AscotNoDataException(group + " does not contain a valid type.")
-
-def get_group(f, qid):
-    """Scan the file and return the group the QID corresponds to.
-
-    Parameters
-    ----------
-    f : `h5py.File`
-        Open HDF5 file.
-    qid : str
-        QID string.
-
-    Returns
-    -------
-    group : `h5py.Group`
-        Group or None if the group was not present.
-    """
-    for parent in f.keys():
-        for group in f[parent].keys():
-            if qid in group:
-                return f[parent][group]
-
-    return None
-
-def get_qids(f, parent):
-    """Get QIDs of all the groups that a given parent contains.
-
-    The QIDs are returned as list of no specific order.
-
-    Parameters
-    ----------
-    f : `h5py.File`
-        Open HDF5 file.
-    parent : str or `h5py.Group`
-        Parent object or its name.
-
-    Returns
-    -------
-    qids : list [str]
-        A list of QID strings.
-
-    Raises
-    ------
-    AscotNoDataException
-        Raised if parent group does not exist.
-    """
-    if str(parent) == parent:
-        if not parent in f:
-            raise AscotNoDataException("Could not find parent " + parent)
-        parent = f[parent]
-
-    qids = []
-    for group in parent:
-        qids.append(get_qid(group))
-
-    return qids
-
-def get_inputqids(f, rungroup):
-    """Get all QIDs that tell which input was used in the given run group.
-
-    Parameters
-    ----------
-    f : `h5py.File`
-        Open HDF5 file.
-    rungroup : str or `h5py.Group`
-        Either the run group object or its name.
-
-    Returns
-    -------
-    qids : `collections.OrderedDict` [str, str]
-        Ordered dictionary with "parent name" - "qid" value pairs with the order
-        being same as in `INPUTGROUPS`.
-
-    Raises
-    ------
-    AscotNoDataException
-        Raised if run group does not exist.
-    """
-    if str(rungroup) == rungroup:
-        qid = get_qid(rungroup)
-        grp = get_group(f, qid)
-        if grp is None:
-            raise AscotNoDataException("Could not find group " + rungroup)
-        rungroup = grp
-
-    qids = OrderedDict()
-    for inp in INPUTGROUPS:
-        try:
-            qids[inp] = rungroup.attrs["qid_" + inp].decode("utf-8")
-        except KeyError:
-            pass
-
-    return qids
-
-def add_group(f, parent, group, desc=None):
-    """Create a new group. A parent is created if need be.
-
-    If parent is created, then this new group is set as active.
-
-    Parameters
-    ----------
-    f : `h5py.File`
-        Open HDF5 file.
-    parent : str or `h5py.Group`
-        Parent of the created group.
-    group : str
-        The group name.
-    desc : str, optional
-        Description for the group.
-
-    Returns
-    -------
-    newgroup : `h5py.Group`
-        The new group.
-    """
-    # Create a parent if one does not exists yet.
-    if str(parent) == parent:
-        parent = f.require_group(parent)
-
-    # Generate metadata and include qid in group's name.
-    qid, date, defdesc = _generate_meta()
-    group = group + "_" + qid
-    if desc is None:
-        desc = defdesc
-
-    # Create group and set it as the active group if it is the only group.
-    # Also set date and description.
-    parent.create_group(group)
-    set_desc(f, group, desc)
-    _set_date(f, group, date)
-
-    if len(parent.keys()) == 1:
-        set_active(f, group)
-
-    return get_group(f, qid)
-
-def remove_group(f, group):
-    """Remove a group.
-
-    If this was an active group, a most recent group is set as an active
-    instead. If no other groups exist the parent is also removed.
-
-    Input groups are not removed if they have been used in an existing run.
-
-    Note that to reclaim the disk space which the group occupied, one needs
-    to call h5repack in a terminal.
-
-    Parameters
-    ----------
-    f : `h5py.File`
-        Open HDF5 file.
-    group : str or `h5py.Group`
-        The group to be removed.
-
-    Raises
-    ------
-    AscotNoDataException
-        Raised if group could not be found.
-    AscotIOException
-        Raised if the group is input used by a run.
-    """
-    # Check the group exists and access it.
-    if str(group) == group:
-        if group in f.keys():
-            # Group is a parent group
-            group = f[group]
+def add_group():
+    pass
+
+class HDF5Interface(h5py.File):
+
+    def __init__(self, filename, create=False):
+        """Initialize HDF5Interface.
+
+        Groups corresponding to input categories are created if they do not
+        already exist and active attributes are initialized empty.
+
+        Parameters
+        ----------
+        filename : str
+            HDF5 file name.
+        create : bool, optional
+            Create the HDF5 file if it does not exist.
+        """
+        super().__init__(filename, "a")
+        with h5py.File(filename, "a") as h5:
+            if "active" not in self.attrs:
+                self.attrs["active"] = np.bytes_("")
+            for category in input_categories:
+                if category not in self:
+                    group = self.create_group(category)
+                    group.attrs["active"] = np.bytes_("")
+
+            for name, group in self.items():
+                if name.startswith(run_variants):
+                    for category in input_categories:
+                        group.attrs[category] = np.bytes_("")
+
+    def set_input(self, metadata):
+        """Set metadata of an input data creating the group if one doesn't
+        exist.
+        """
+        category = get_input_category(metadata.variant)
+        group = self[category].create_group(f"{metadata.variant}_{metadata.qid}")
+        group.attrs["date"] = np.bytes_(metadata.date)
+        group.attrs["description"] = np.bytes_(metadata.description)
+
+    def set_node(self, category: str, active: str) -> None:
+        """Set metadata of the root or an input category creating the group if
+        one doesn't exist.
+
+        This routine does not touch the simulation output or input data
+        belonging to this category.
+
+        Parameters
+        ----------
+        category : str
+            Name of the input category or empty string for root.
+        """
+        if category:
+            try:
+                group = self.create_group(category)
+            except Exception:
+                group = self[category]
         else:
-            # Assume group is a data group
-            qid = get_qid(group)
-            grp = get_group(f, qid)
-            if grp is None:
-                raise AscotNoDataException("Could not find group " + group)
-            group = grp
+            group = self
+        group.attrs["active"] = np.bytes_(active)
 
-    # Check if this is an input group and whether it has been used in run.
-    parent = group.parent
-    if "results" in f.keys() and parent.name != "results":
-        if parent.name == "/":
-            for run in f["results"].keys():
-                for q in f["results"][run].attrs.keys():
-                    if q[:4] == "qid_" and q[4:] == group.name[1:]:
-                        raise AscotIOException(
-                        "Input \"" + group.name[1:] + "\" is used by " + run)
-        else:
-            qid = get_qid(group)
-            for run in f["results"].keys():
-                for q in f["results"][run].attrs.keys():
-                    t = f["results"][run].attrs[q].decode('utf-8')
-                    if q[:4] == "qid_" and t == qid:
-                        raise AscotIOException(
-                            "Input " + qid + " is used by " + run)
+    def set_simulation_output(self, simulation: str):
+        """Set metadata of a simulation output data creating the group if one
+        doesn't exist.
 
-    # Remove the group
-    if parent.name!='/':
-        the_group_was_active = get_active(f, parent) == group
-        del f[group.name]
-        if the_group_was_active:
-            if len(parent.keys()) == 0:
-                del f[parent.name]
-            else:
-                date = "0"
-                for grp in parent:
-                    grpdate = get_date(f, grp)
-                    if grpdate > date:
-                        date  = grpdate
-                        group = grp
+        Diagnostics data is not stored by this routine.
+        """
+        group = self["results"].create_group(
+            f"{simulation.variant}_{simulation.qid}",
+            )
+        group.attrs["date"] = np.bytes_(simulation.date)
+        group.attrs["description"] = np.bytes_(simulation.description)
 
-                set_active(f, group)
-    else:
-        del f[group.name]
+        for category in input_categories:
+            try:
+                qid = simulation[category].qid
+                group.attrs[category] = np.bytes_(qid)
+            except AscotIOException:
+                continue
 
-def copy_group(fs, ft, group, newgroup=False):
-    """Copy group from one file to another. A parent is also created if need be.
+    def read_input(self, ):
+        """
+        """
+        return None
 
-    The new group is set as active if the parent on the target file has no other
-    groups. The copied group retains its original QID and date of creation.
+    def read_input_category(
+            self,
+            category: str,
+            ) -> Tuple[str, List[Dict[str, str]]]:
+        """Read metadata from an input category group.
 
-    Parameters
-    ----------
-    fs : `h5py.File`
-        File from which the group is copied.
-    ft : `h5py.File`
-        File to which the group is copied.
-    group : str pr `h5py.Group`
-        The group to be copied.
-    newgroup : bool, optional
-        Flag indicating if copied group should be given new QID and date.
+        Parameters
+        ----------
+        category : str
+            Name of the input category.
 
-    Returns
-    -------
-    groupt : `h5py.Group`
-        The new group which is a copy of group at ft.
+        Returns
+        -------
+        active : str
+            QID of the active group in the input category.
+        metadata : list of dict [str, str]
+            Metadata ("qid", "date", "description", "variant") of the input
+            groups in the category.
+        """
+        metadata = []
+        for name, group in self[category].items():
+            metadata.append({
+                "qid":get_qid(name),
+                "variant":name[:-(QIDLEN + 1)],
+                "description":group.attrs["desc"].decode("utf-8"),
+                "date":group.attrs["date"].decode("utf-8"),
+                })
+        return self[category].attrs["active"].decode("utf-8"), metadata
 
-    Raises
-    ------
-    AscotNoDataException
-        Raised if the copied group cannot be found.
-    AscotIOException
-        Raised if the group already exists on the target file.
-    """
-    # Check the group exists and access it.
-    if str(group) == group:
-        qid = get_qid(group)
-        grp = get_group(fs, qid)
-        if grp is None:
-            raise AscotNoDataException("Could not find group " + group)
-        group = grp
+    def read_simulation_output(self):
+        """Read metadata from a simulation output.
+        """
+        metadata = []
+        for name, group in self.items():
+            if not name.startswith(run_variants):
+                continue
+            inputs = []
+            for category in input_categories:
+                if category in group.attrs:
+                    inputs.append(group.attrs[category].decode("utf-8"))
 
-    # Create target parent if none exists.
-    parentname = group.parent.name
+            metadata.append({
+                "qid":get_qid(name),
+                "variant":name[:-(QIDLEN + 1)],
+                "description":group.attrs["desc"].decode("utf-8"),
+                "date":group.attrs["date"].decode("utf-8"),
+                "inputs":inputs
+                })
+        return self.attrs["active"].decode("utf-8"), metadata
 
-    newparent  = ft.require_group(parentname)
-    if group.name in newparent:
-        raise AscotIOException("Target already has the group " + group.name)
+    def read_tree(self):
+        """
+        """
+        return inputs, runs, active
 
-    # Copy
-    if newgroup:
-        qid, date, _ = _generate_meta()
-        newname = group.name[:-11] + "_" + qid
-        fs.copy(group, newparent, name=newname)
-        _set_date(ft, newname, date)
-        newgroupobj = ft[parentname][newname]
-    else:
-        fs.copy(group, newparent)
-        newgroupobj = ft[parentname][group.name]
-
-    if len(newparent) == 1:
-        set_active(ft, newgroupobj)
-
-    return newgroupobj
 
 def write_data(group, name, data, shape, dtype, unit=None, compress=False):
     """Write a dataset.
