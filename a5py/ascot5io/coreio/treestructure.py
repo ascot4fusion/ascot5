@@ -19,195 +19,32 @@ Components
   children managed by `Root`.
 - `SimulationOutput`: Inherits from `Leaf` and `ImmutableStorage`, representing
   the output of simulations. Contains references to input `Leaf` instances,
-  which technically makes the structure a graph rather than a strict tree.
-
-Note
-----
-`Leaf` is intended for internal use, while `MetaDataHolder` is for external
-interfaces.
+  which technically makes this structure a graph rather than a strict tree.
 """
 from __future__ import annotations
 
-import random
-import datetime
 import warnings
 from contextlib import contextmanager
-from typing import Tuple, List, Dict, Any, Generator
+from typing import Tuple, List, Dict, Any, Generator, Optional
 
-import h5py
-import numpy as np
-
-from a5py.exceptions import AscotIOException
-from a5py import utils
-
-DEFAULT_TAG = "TAG"
-"""Default tag and description."""
-
-QIDLEN = 10
-"""Number of characters (numbers) in quasi-unique identifier."""
-
-input_categories = (
-    "options", "bfield", "efield", "marker", "plasma", "neutral", "wall",
-    "boozer", "mhd", "asigma", "nbi",
-    )
-"""All input categories."""
-
-data_variants = {
-    "bfield":("B_TC", "B_GS", "B_2DS", "B_3DS", "B_3DST", "B_STS"),
-    "efield":("E_TC", "E_1DS"),
-    "marker":("prt", "gc", "fl"),
-    "wall":("wall_2D", "wall_3D"),
-    "plasma":("plasma_1D", "plasma_1DS", "plasma_1Dt"),
-    "neutral":("N0_1D", "N0_3D"),
-    "boozer":("Boozer"),
-    "mhd":("MHD_STAT", "MHD_NONSTAT"),
-    "asigma":("asigma_loc"),
-    "nbi":("NBI"),
-}
-"""Data variants by category."""
-
-run_variants = ("run", "afsi", "bbnbi")
-
-simulation_diagnostics = (
-    "inistate", "endstate", "state", "orbits",
-)
-"""All simulation diagnostics."""
-
-def generate_metadata() -> Tuple[str, str, str]:
-    """Generate QID, date and default description/tag.
-
-    Calls random number generator to create 32 bit string which is then
-    converted as a QID string using left-padding with zeroes if necessary.
-
-    Returns
-    -------
-    qid : str
-        QID.
-    data : str
-        Date.
-    desc : str
-        Description.
-    """
-    qid = str( np.uint32( random.getrandbits(32) ) ).rjust(QIDLEN, "0")
-    date = utils.format2universaldate(datetime.datetime.now())
-    description = DEFAULT_TAG
-
-    return qid, date, description
-
-def get_input_category(variant: str) -> str:
-    """Return the input category corresponding to the given variant.
-
-    Parameters
-    ----------
-    variant : str
-        Variant of the data.
-
-    Returns
-    -------
-    category : str
-        Input category corresponding to the given variant.
-
-    Raises
-    ------
-    ValueError
-        If the variant is unknown.
-    """
-    for category, variants in data_variants.items():
-        if variant in variants:
-            return category
-    raise ValueError(f"Unknown variant: {variant}")
+from ...exceptions import AscotIOException
+from ... import utils
+from . import metadata
+from .metadata import MetaDataHolder, MetaData
+from .datamanager import DataManager
+from .hdf5interface import HDF5Manager
 
 
-def get_qid(dataset: MetaDataHolder, with_prefix: bool=False) -> str:
-    """Returns the QID from a given object or string.
-
-    Parameters
-    ----------
-    dataset : `MetaDataHolder` or str
-        Object that has QID, name of the object, or it's QID with or without
-        the preceding 'q'.
-    with_prefix : bool, optional
-        Return the QID with the preceding 'q'.
-
-    Returns
-    -------
-    qid : str
-        A string with 10 digits.
-    """
-    if isinstance(dataset, str):
-        if len(dataset) >= QIDLEN and dataset[-QIDLEN:].isdigit():
-            qid = dataset[-QIDLEN:]
-        else:
-            raise ValueError(
-                f"This doesn't appear to be a valid QID: {dataset}"
-                )
-    else:
-        qid = dataset.qid
-
-    if with_prefix:
-        qid = f"q{qid}"
-    return qid
-
-
-class MetaDataHolder():
-    """Holds metadata and acts as a leaf for the tree data structure.
-
-    Classes that have access to the actual data should inherit from this class.
-
-    The metadata is immutable with the exception of `description`.
-
-    Attributes
-    ----------
-    _usedby : [MetaDataHolder]
-        List of objects that reference this data.
-    qid : str
-        Unique identifier for this data.
-    date : str
-        Date when this data was created.
-    description : str
-        Short description for the user to document this data.
-    variant : str
-        What is the variant of the data this instance represents.
+class Leaf(MetaDataHolder):
+    """Leaf of a tree which has no further children managed by the tree.
     """
 
-    def __init__(self, qid: str, date: str, description:str, variant:str,
-                 **kwargs: Any) -> None:
-        """Initialize object which does not belong to a tree initially.
-        """
+    def __init__(self, **kwargs):
+        """Leaf which has no parent initially."""
         super().__init__(**kwargs)
         self._parent: ImmutableNode = None
-
-        self._qid: str = qid
-        self._date: str = date
-        self._usedby: List = []
-        self._variant: str = variant
-        self._description: str = description
-
-    def __repr__(self) -> str:
-        """Return a string representation of this object."""
-        return (
-            f"<{self.__class__.__name__}(root={self._parent!r}, "
-            f"qid={self._qid}, date={self._date}, variant={self._variant})>"
-            )
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        """Change the value of the attribute unless it is read-only.
-
-        Parameters
-        ----------
-        name : str
-            Name of the attribute.
-        value : any
-            Value to set.
-
-        Raises
-        ------
-        AscotIOException
-            If the attribute is read-only.
-        """
-        if name in ["qid", "qqid", "date", "variant", "name"]:
-            raise AscotIOException(f"Attribute {name} is read only.")
-        super().__setattr__(name, value)
+        self._data_manager: DataManager = DataManager()
+        self._hdf5manager: Optional[HDF5Manager] = None
 
     def _adopt(self, parent: ImmutableNode) -> None:
         """Adopt this leaf to a tree.
@@ -226,67 +63,15 @@ class MetaDataHolder():
             raise AscotIOException("Leaf is already adopted.")
         self._parent = parent
 
-    def _extract_tag(self) -> str:
-        """Extracts a tag from description.
-
-        Description is converted to a tag like this:
-
-        1. The first word in the description is chosen, i.e., everything before
-            the first whitespace.
-        2. All special characters are removed from the first word.
-        3. The word is converted to uppercase which becomes the tag.
-        4. If the tag is invalid (empty string) or it starts with a number,
-            the default tag is returned instead.
-
-        Note that the returned value is not the actual tag used in the tree if
-        there are other leafs with identical tags.
-
-        Returns
-        -------
-        tag : str
-            The tag.
-        """
-        tag_candidate = self.description.split(" ")[0]
-        tag_candidate = "".join(ch for ch in tag_candidate if ch.isalnum())
-        tag_candidate = tag_candidate.upper()
-        if not tag_candidate or tag_candidate[0] in "1234567890":
-            return DEFAULT_TAG
-        return tag_candidate
-
-    @property
-    def qid(self) -> str:
-        """Unique identifier for this data."""
-        return self._qid
-
-    @property
-    def qqid(self) -> str:
-        """Unique identifier for this data with preceding 'q'."""
-        return "q" + self._qid
-
-    @property
-    def date(self) -> str:
-        """Date when this data was created."""
-        return self._date
-
-    @property
-    def description(self) -> str:
-        """Short description for the user to document this data."""
-        return self._description
-
-    @description.setter
-    def description(self, description: str) -> None:
-        """Set a short description to document this data."""
-        self._description = description
-
-    @property
-    def variant(self) -> str:
-        """What variant of data this object represents."""
-        return self._variant
-
-    @property
-    def name(self) -> str:
-        """Full name of the data."""
-        return f"{self.variant}_{self.qid}"
+    @MetaDataHolder.note.setter
+    def note(self, note):
+        # Changing note changes tag as well.
+        self._note = note
+        self._parent and self._parent._organize()
+        if self._hdf5manager:
+            self._hdf5manager.update_leaf_note(
+                self._parent._name, self._qid, self._variant, note
+                )
 
     def activate(self) -> None:
         """Set this dataset as active.
@@ -294,9 +79,9 @@ class MetaDataHolder():
         Active inputs are used when the simulation is run. Active datasets are
         also used during post-processing by default unless otherwise specified.
         """
-        self._parent.activate_dataset(self.qid)
+        self._parent and self._parent._activate_leaf(self)
 
-    def destroy(self, repack: bool=True) -> None:
+    def destroy(self, repack: bool = True) -> None:
         """Remove this dataset.
 
         This also removes any data on the disk.
@@ -304,19 +89,34 @@ class MetaDataHolder():
         Parameters
         ----------
         repack : bool, optional
-            If True, repack the HDF5 file.
+            Repack the HDF5 file reducing the size of the file on disk.
 
-            Removing data from the HDF5 file only removes references to it and
-            repacking is required to free the disk space. Repacking makes a copy
-            of the HDF5 file and destroys the original, and it also requires
-            3rd party tool `h5repack` which is why it's use is optional here.
+            Without repacking only references to the data, not the actual data,
+            are removed. Repacking has some overhead for large files and
+            requires third-party `h5repack` tool.
         """
-        self._parent._remove_leaf(self)
+        self._parent and self._parent._remove_leaf(self)
         self._parent = None
+        if self._hdf5manager:
+            self._hdf5manager.remove_leaf(
+                self._parent._name, self._qid, self._variant
+                )
+            repack and self._hdf5manager.repack()
 
-Leaf = MetaDataHolder
-"""Alias for `MetaDataHolder` for internal use.
-"""
+    def export_hdf5(self):
+        """Stores the data to the HDF5 file.
+        """
+        if self._hdf5manager:
+            raise AscotIOException("This data is already stored in a file.")
+        self._hdf5manager = self._parent._hdf5manager
+        self._hdf5manager.write_leaf(
+            MetaData(self._qid, self._date, self._variant, self._note)
+        )
+        filename, path_in_file = self._hdf5manager.locate_leaf(self._metadata)
+        self._data_manager.migrate(
+            hdf5_filename=filename, path_within_hdf5=path_in_file,
+            )
+
 
 class ImmutableStorage():
     """Object which supports dictionary-like assignment and which can be made
@@ -421,6 +221,7 @@ class ImmutableStorage():
         finally:
             self._freeze()
 
+
 class ImmutableNode(ImmutableStorage):
     """Tree node which can store other nodes or leaves, and whose attributes
     cannot be altered once frozen.
@@ -431,7 +232,7 @@ class ImmutableNode(ImmutableStorage):
        `node.child` and `node["child"]` are equivalent.
     2. Freezing this instance prevents setting and removing any attributes.
     3. Leaves can be accessed using their name, QID, or a tag constructed from
-       the user-given description.
+       the user-given note.
     4. One leaf is always set as 'active' and is accessed via the `active`
        attribute.
     5. Leaves can be iterated over and are organized by their date of creation.
@@ -456,20 +257,25 @@ class ImmutableNode(ImmutableStorage):
         The currently active leaf.
     _root : `Root`
         The root to which this node belongs.
+    _name : str
+        Name of this node (optional).
     """
 
-    def __init__(self, root: Root, **kwargs) -> None:
+    def __init__(self, root: Root, name: str = "", **kwargs) -> None:
         """Initialize an empty node which is unfrozen.
 
         Parameters
         ----------
         root : `Root`
             The root to which this node belongs.
+        name : str, optional
+            Name of this node.
         **kwargs
             Arguments passed to other constructors in case of multiple
             inheritance.
         """
         super().__init__(**kwargs)
+        self._name: str = name
         self._root: Root = root
         self._qids: List = []
         self._tags: List = []
@@ -478,9 +284,9 @@ class ImmutableNode(ImmutableStorage):
     def __repr__(self) -> str:
         """Return a string representation of this object."""
         return (
-            f"<{self.__class__.__name__}(root={self._root!r}, "
-            f"qids={self._qids}, tags={self._tags}, active={self._active!r}, "
-            f"frozen={self._frozen})>"
+            f"<{self.__class__.__name__}(root={self._name}, "
+            f"root={self._root!r}, qids={self._qids}, tags={self._tags}, "
+            f"active={self._active!r}, frozen={self._frozen})>"
             )
 
     def __contains__(self, key: str) -> bool:
@@ -507,7 +313,7 @@ class ImmutableNode(ImmutableStorage):
         for qid in self._qids:
             yield self[f"q{qid}"]
 
-    def _activate(self, leaf) -> None:
+    def _activate_leaf(self, leaf) -> None:
         """Set given leaf as active.
 
         Parameters
@@ -553,6 +359,7 @@ class ImmutableNode(ImmutableStorage):
             self[reference_by_name] = leaf
 
         self._organize()
+        leaf._adopt(self)
 
     def _remove_leaf(self, leaf: Leaf) -> None:
         """Remove a leaf from this node.
@@ -660,25 +467,73 @@ class ImmutableNode(ImmutableStorage):
                 )
         return self._active
 
-    def destroy(self, repack: bool=True) -> None:
+    def destroy(self) -> None:
         """Remove all datasets belonging to this node.
+        """
+        for dataset in self:
+            dataset.destroy()
+
+
+class ImmutableNodeHDF5(ImmutableNode):
+    """Extends the `ImmutableNode` to support data storage in HDF5 format.
+
+    Attributes
+    ----------
+    _hdf5manager : HDF5 manager
+        Manages the contents of the HDF5 file.
+    """
+
+    def __init__(self, root: Root, **kwargs):
+        """Initialize node with no manager."""
+        super().__init__(root, **kwargs)
+        self._hdf5manager = None
+
+    def _activate_leaf(self, leaf: Leaf):
+        """
+        """
+        super()._activate_leaf(leaf)
+        if self._hdf5manager:
+            self._hdf5manager.set_active(self._name, self._active)
+
+    def _add_leaf(self, leaf: Leaf, store_hdf5: bool = False):
+        """
+        """
+        super()._add_leaf(leaf)
+        if store_hdf5:
+            self._hdf5manager.write_leaf(self._name, leaf.name)
+
+    def _remove_leaf(self, leaf : Leaf):
+        """
+        """
+        super()._remove_leaf(leaf)
+        if self._hdf5manager:
+            self._hdf5manager.write_leaf(self._name, leaf.name)
+
+    def _set_hdf5manager(self, manager: HDF5Manager):
+        """Associate this node with a file.
+        """
+        self._hdf5manager = manager
+
+    def destroy(self, repack: bool = True) -> None:
+        """Remove all datasets and associated data permanently from within this
+        node.
 
         Parameters
         ----------
         repack : bool, optional
-            If True, repack the HDF5 file.
+            Repack the HDF5 file reducing the size of the file on disk.
 
-            Removing data from the HDF5 file only removes references to it and
-            repacking is required to free the disk space. Repacking makes a copy
-            of the HDF5 file and destroys the original, and it also requires
-            3rd party tool `h5repack` which is why it's use is optional here.
+            Without repacking only references to the data, not the actual data,
+            are removed. Repacking has some overhead for large files and
+            requires third-party `h5repack` tool.
         """
-        for dataset in self:
-            dataset.destroy(repack=repack)
+        super().destroy()
+        if self._hdf5manager and repack:
+            self._hdf5manager.repack()
 
-class InputCategory(ImmutableNode):
-    """Node that contains all inputs of the same category.
-    """
+
+class InputCategory(ImmutableNodeHDF5):
+    """Node that contains all inputs of the same category."""
 
     def _get_decorated_contents(self):
         """Get a string representation of the contents decorated with ANSI
@@ -692,7 +547,7 @@ class InputCategory(ImmutableNode):
             if self.active == leaf:
                 contents += utils.decorate(" [active]", color="green")
 
-            contents += f"\n{self._tags[index]}\n{leaf.description}\n\n"
+            contents += f"\n{self._tags[index]}\n{leaf.note}\n\n"
 
         if not contents:
             contents = "No data in this category.\n"
@@ -735,7 +590,23 @@ class InputCategory(ImmutableNode):
             print(contents)
         return contents
 
-class SimulationOutput(ImmutableStorage, MetaDataHolder):
+    def destroy(self, repack: bool = True) -> None:
+        """Remove all inputs and data within this category permanently.
+
+        Parameters
+        ----------
+        repack : bool, optional
+            Repack the HDF5 file reducing the size of the file on disk.
+
+            Without repacking only references to the data, not the actual data,
+            are removed. Repacking has some overhead for large files and
+            requires third-party `h5repack` tool.
+        """
+        # This function overriden only to update the docstring.
+        super().destroy(repack=repack)
+
+
+class SimulationOutput(ImmutableStorage, Leaf):
     """Node that contains results of a single simulation.
 
     This node contains all the metadata associated with the simulation.
@@ -754,7 +625,7 @@ class SimulationOutput(ImmutableStorage, MetaDataHolder):
 
     def __init__(
             self,
-            inputs: Dict[str, Leaf],
+            inputs: List[str, Leaf],
             diagnostics: Dict[str, Any],
             **kwargs: Any,
             ) -> None:
@@ -764,7 +635,7 @@ class SimulationOutput(ImmutableStorage, MetaDataHolder):
         ----------
         root : `Root`
             The root this node belongs to.
-        inputs : dict [str, `Dataset`]
+        inputs : dict [str, `Leaf`]
             Dictionary with the inputs used in the simulation.
 
             Key is the name of the corresponding input category e.g. 'bfield'.
@@ -778,13 +649,13 @@ class SimulationOutput(ImmutableStorage, MetaDataHolder):
         """
         super().__init__(**kwargs)
 
-        for category in input_categories:
+        for category in metadata.input_categories:
             if category in inputs:
                 self[category] = inputs[category]
             else:
                 self[category] = None
 
-        for diagnostic in simulation_diagnostics:
+        for diagnostic in metadata.simulation_diagnostics:
             if diagnostic in diagnostics:
                 self[f"_{diagnostic}"] = diagnostics[diagnostic]
             else:
@@ -793,13 +664,13 @@ class SimulationOutput(ImmutableStorage, MetaDataHolder):
     def __repr__(self) -> str:
         """Return a string representation of this object."""
         inputs, diagnostics = [], []
-        for category in input_categories:
+        for category in metadata.input_categories:
             try:
                 _ = self[category]
                 inputs.append(category)
             except AscotIOException:
                 pass
-        for diagnostic in simulation_diagnostics:
+        for diagnostic in metadata.simulation_diagnostics:
             try:
                 _ = self[f"_{diagnostic}"]
                 diagnostics.append(diagnostic)
@@ -833,13 +704,13 @@ class SimulationOutput(ImmutableStorage, MetaDataHolder):
             If the queried input or diagnostic was not used in the simulation.
         """
         value = super().__getattribute__(key)
-        if key in input_categories and not value:
+        if key in metadata.input_categories and not value:
             raise AscotIOException(
                 f"Input '{key}' was not used in the simulation."
                 )
         if key.startswith("_") and len(key) > 1:
             diag_key = key[1:]
-            if diag_key in simulation_diagnostics and not value:
+            if diag_key in metadata.simulation_diagnostics and not value:
                 raise AscotIOException(
                     f"Diagnostics '{diag_key}' was not present in "
                     f"the simulation."
@@ -855,11 +726,11 @@ class SimulationOutput(ImmutableStorage, MetaDataHolder):
         contents += utils.decorate(f"{self.variant.ljust(10)} {self.qid}",
                                    bold=True)
         contents += f" {self.date}"
-        contents += f"\n{self.description}\n\n"
+        contents += f"\n{self.note}\n\n"
 
         contents += utils.decorate("Diagnostics:\n", color="purple",
                                    underline=True, bold=True)
-        for diagnostic in simulation_diagnostics:
+        for diagnostic in metadata.simulation_diagnostics:
             try:
                 self[f"_{diagnostic}"]
             except AscotIOException:
@@ -868,7 +739,7 @@ class SimulationOutput(ImmutableStorage, MetaDataHolder):
 
         contents += utils.decorate("\nInputs:\n", color="purple",
                                    underline=True, bold=True)
-        for category in input_categories:
+        for category in metadata.input_categories:
             try:
                 leaf = self[category]
             except AscotIOException:
@@ -878,7 +749,7 @@ class SimulationOutput(ImmutableStorage, MetaDataHolder):
             contents += utils.decorate(f"{leaf.variant.ljust(10)} {leaf.qid}",
                                        bold=True)
             contents += f" {leaf.date}"
-            contents += f"\n{"".ljust(8)}{leaf.description}\n"
+            contents += f"\n{"".ljust(8)}{leaf.note}\n"
 
         return contents
 
@@ -920,7 +791,8 @@ class SimulationOutput(ImmutableStorage, MetaDataHolder):
             print(contents)
         return contents
 
-class Root(ImmutableNode):
+
+class Root(ImmutableNodeHDF5):
     """The entry node for accessing data in the HDF5 file.
 
     The root node spawns the treeview creating all other nodes and data groups.
@@ -931,12 +803,11 @@ class Root(ImmutableNode):
 
     Attributes
     ----------
-    _hdf5_filename : `Ascot`
-        The `Ascot` object whose HDF5 file is what this tree structure
-        represents.
+    _hdf5manager : `HDF5Manager`
+        Manages the contents of the HDF5 file if one is provided.
     """
 
-    def __init__(self, **kwargs: Any) -> None:
+    def __init__(self, hdf5_filename=None, **kwargs: Any) -> None:
         """Initialize an empty tree structure.
 
         Parameters
@@ -945,9 +816,17 @@ class Root(ImmutableNode):
             Arguments passed to other constructors in case of multiple
             inheritance.
         """
-        super().__init__(root=self, **kwargs)
-        for category in input_categories:
-            self[category] = InputCategory(self)
+        super().__init__(root=self, name="root", **kwargs)
+        for category in metadata.input_categories:
+            self[category] = InputCategory(self, name=category)
+            self[category]._freeze()
+
+        hdf5manager: Optional[HDF5Manager]
+        hdf5manager = HDF5Manager(hdf5_filename) if hdf5_filename else None
+
+        if hdf5manager:
+            self._set_hdf5manager(hdf5manager)
+            self._init_from_hdf5()
 
         self._freeze()
 
@@ -955,99 +834,156 @@ class Root(ImmutableNode):
         """Return a string representation of this object."""
         return (
             f"<{self.__class__.__name__}(qids={self._qids}, tags={self._tags}, "
-            f"active={self._active!r}, frozen={self._frozen})>"
+            f"active={self._active!r}, frozen={self._frozen}, "
+            f"hdf5manager={self._hdf5manager!r})>"
             )
 
-    def _add_input(
-            self,
-            dataset: Leaf,
-            description: str=None,
-            dryrun: bool=False,
-            ):
-        """Add input dataset to this tree."""
-        identical_qid_exists = False
-        try:
-            self._locate_leaf(dataset)
-            identical_qid_exists = True
-        except AscotIOException:
-            pass
-        if identical_qid_exists:
-            raise AscotIOException(
-                "There is already a dataset with identical QID."
-                )
-        if description is not None:
-            dataset.description = description
-        if not dryrun:
-            category = get_input_category(dataset.variant)
-            dataset._adopt(self[category])
-            self[category]._add_leaf(dataset)
-
-    def _add_run(
-            self,
-            dataset: Leaf,
-            description: str=None,
-            ) -> None:
-        """Add simulation output to this tree.
-        """
-        identical_qid_exists = False
-        try:
-            self._locate_leaf(dataset)
-            identical_qid_exists = True
-        except AscotIOException:
-            pass
-        if identical_qid_exists:
-            raise AscotIOException(
-                "There is already a dataset with identical QID."
-                )
-
-        for category in input_categories:
-            try:
-                dataset[category]
-            except AscotIOException:
-                continue
-
-            inputdata = dataset[category]
-            if inputdata not in self[category]:
-                raise AscotIOException(
-                    f"Simulation {category} input cannot be found in the tree."
+    def _init_from_hdf5(self):
+        """Initializes the tree structure from the HDF5 file."""
+        for category in metadata.input_categories:
+            node = self[category]
+            active, qids, variants = self._hdf5manager.read_node(node._name)
+            for qid, variant in zip(qids, variants):
+                date, note = self._hdf5manager.read_input(qid, variant)
+                self._add_input_dataset(
+                    MetaData(qid=qid, date=date, note=note, variant=variant),
+                    store_hdf5=False,
                     )
 
-        if description is not None:
-            dataset.description = description
-        dataset._adopt(self)
-        self._add_leaf(dataset)
+            if active:
+                leaf, _ = self._locate_leaf(active)
+                self.activate_dataset(leaf)
 
-    def _locate_leaf(self, qid: str) -> Tuple[Leaf, ImmutableNode]:
-        """Find leaf and its parent corresponding to the given QID.
+        active, qids, variants = self._hdf5manager.read_node(self._name)
+        for qid, variant in zip(qids, variants):
+            date, note, inputqids = self._hdf5manager.read_output(qid, variant)
+            self._add_simulation_output(
+                MetaData(qid=qid, date=date, note=note, variant=variant),
+                [],
+                inputqids,
+                store_hdf5=False,
+                )
+        if active:
+            leaf, _ = self._locate_leaf(active)
+            self.activate_dataset(leaf)
+
+    def _add_input_dataset(
+            self,
+            meta: MetaData,
+            note: str = None,
+            dryrun: bool = False,
+            store_hdf5: Optional[bool] = None,
+            ):
+        """Add new input dataset to this tree.
+
+        This method uses the factory method to create the `Leaf` instance that
+        is stored.
 
         Parameters
         ----------
-        qid : str
-            QID of the leaf.
+        dataset : `Leaf`
+            Dataset to be added.
+        note : str, optional
+            Note of the dataset (overrides original if given).
+        dryrun : bool, optional
+            Only check if a dataset with same QID exists on the tree, but
+            otherwise do nothing.
+        store_hdf5 : bool, optional
+            Store the dataset in the HDF5 file (requires that the this tree
+            has access to a file).
 
-        Returns
-        -------
-        leaf : `MetaDataHolder`
-            Leaf corresponding to the given QID.
-        parent : `ImmutableNode`
-            The parent of the located leaf.
-
-        Raises
-        ------
-        AscotIOException
-            If the leaf does not belong to this tree.
+            If not explicitly set, the default behavior is to:
+            - store the input to a file if filename was specified when this tree
+              was created.
+            - not to store the input if filename was not specified.
         """
-        qqid = get_qid(qid, with_prefix=True)
-        if qqid in self:
-            leaf = self[qqid]
-            return leaf, self
+        try:
+            self._locate_leaf(meta.qid)
+        except AscotIOException:
+            pass
+        else:
+            raise AscotIOException(
+                "There is already a dataset with identical QID."
+                )
+        leaf = self._leaf_factory(meta)
+        if note:
+            leaf.note = note
+        if not dryrun:
+            category = metadata.get_input_category(leaf.variant)
+            self[category]._add_leaf(leaf)
 
-        for category in input_categories:
-            if qqid in self[category]:
-                leaf = self[category][qqid]
-                return leaf, self[category]
+            if store_hdf5 is None:
+                store_hdf5 = self._hdf5manager is not None
 
-        raise AscotIOException(f"Leaf {qid} not found in the tree.")
+            if store_hdf5:
+                if not self._hdf5manager:
+                    raise AscotIOException("No HDF5 file was provided.")
+                self._hdf5manager.write_leaf(leaf)
+
+        return leaf
+
+    def _add_simulation_output(
+            self,
+            meta: MetaData,
+            diagnostics: List [str],
+            inputqids: List [str],
+            note: str = None,
+            dryrun: bool = False,
+            store_hdf5: Optional[bool] = None,
+            ) -> None:
+        """Add simulation output to this tree.
+
+        dataset : `Leaf`
+            Dataset to be added.
+        note : str, optional
+            Note on the dataset (overrides original if given).
+        dryrun : bool, optional
+            Only check if a dataset with same QID exists on the tree, but
+            otherwise do nothing.
+        store_hdf5 : bool, optional
+            Store the dataset in the HDF5 file (requires that the this tree
+            has access to a file).
+        """
+        try:
+            self._locate_leaf(meta.qid)
+        except AscotIOException:
+            pass
+        else:
+            raise AscotIOException(
+                "There is already a dataset with identical QID."
+                )
+        inputs = {}
+        for qid in inputqids:
+            inputleaf, _ = self._locate_leaf(qid)
+            category = metadata.get_input_category(inputleaf.variant)
+            inputs[category] = inputleaf
+
+        leaf = self._leaf_factory(
+            meta, inputs=inputs, diagnostics=diagnostics
+            )
+        if note:
+            leaf.note = note
+
+        if not dryrun:
+            if store_hdf5 is None:
+                store_hdf5 = self._hdf5manager is not None
+            if store_hdf5 and not self._hdf5manager:
+                raise AscotIOException("No HDF5 file was provided.")
+            self._add_leaf(leaf, store_hdf5=store_hdf5)
+        return leaf
+
+    @classmethod
+    def _leaf_factory(cls, meta, **kwargs):
+        """Create `Leaf` instances of different variety.
+
+        Override this method to create specific `Leaf` instances that are stored
+        in this tree. This function is automatically called when using the
+        `_add_input_dataset` and `_add_simulation_output` methods. This base
+        implementation simply creates a generic `Leaf` instance.
+        """
+        if meta.variant in metadata.run_variants:
+            return SimulationOutput(**meta._asdict(), **kwargs)
+        return Leaf(**meta._asdict())
 
     def _get_decorated_contents(self) -> str:
         """Get a string representation of the contents decorated with ANSI
@@ -1057,7 +993,7 @@ class Root(ImmutableNode):
         contents += utils.decorate("Inputs:", color="purple",
                                    underline=True, bold=True)
         contents += utils.decorate(" [only active shown]\n", color="green")
-        for category in input_categories:
+        for category in metadata.input_categories:
             contents += utils.decorate(f"{category.ljust(10)}", color="green")
 
             number_of_inputs  = len(self[category]._qids)
@@ -1074,7 +1010,7 @@ class Root(ImmutableNode):
                 contents += f" + {number_of_inputs-1} other(s)"
             else:
                 contents += " (no other inputs)"
-            contents += f"\n{"".ljust(10)}{leaf.description}\n"
+            contents += f"\n{"".ljust(10)}{leaf.note}\n"
 
         contents += utils.decorate("\nSimulations:\n", color="purple",
                                    underline=True, bold=True)
@@ -1085,12 +1021,42 @@ class Root(ImmutableNode):
             contents += f" {leaf.date}"
             if leaf == self.active:
                 contents += utils.decorate(" [active]", color="green")
-            contents += f"\n{"".ljust(10)}{leaf.description}\n"
+            contents += f"\n{"".ljust(10)}{leaf.note}\n"
         if not self._qids:
             contents += "No simulation results.\n"
-
-
         return contents
+
+    def _locate_leaf(self, qid: str) -> Tuple[Leaf, ImmutableNode]:
+        """Find leaf and its parent corresponding to the given QID.
+
+        Parameters
+        ----------
+        qid : str
+            QID of the leaf.
+
+        Returns
+        -------
+        leaf : `Leaf`
+            Leaf corresponding to the given QID.
+        parent : `ImmutableNode`
+            The parent of the located leaf.
+
+        Raises
+        ------
+        AscotIOException
+            If the leaf does not belong to this tree.
+        """
+        qqid = metadata.get_qid(qid, with_prefix=True)
+        if qqid in self:
+            leaf = self[qqid]
+            return leaf, self
+
+        for category in metadata.input_categories:
+            if qqid in self[category]:
+                leaf = self[category][qqid]
+                return leaf, self[category]
+
+        raise AscotIOException(f"Leaf {qid} not found in the tree.")
 
     @property
     def contents(self) -> str:
@@ -1130,44 +1096,47 @@ class Root(ImmutableNode):
             print(contents)
         return contents
 
-    def destroy_dataset(self, dataset, repack=True):
-        """Remove group and associated data permanently.
-
-        Parameters
-        ----------
-        dataset : `MetaDataHolder` or str
-            Dataset to be removed or its name or QID.
-        repack : bool, optional
-            If True, repack the HDF5 file.
-        """
-        qid = get_qid(dataset)
-        leaf, _ = self._locate_leaf(qid)
-        leaf.destroy(repack=repack)
-
     def activate_dataset(self, dataset: Leaf) -> None:
         """Set group as active and rebuild the tree.
 
         Parameters
         ----------
-        group : str
-            Name or QID of the group to be activated.
+        dataset : `Leaf` or str
+            Dataset to be activated or its name or QID.
         """
-        qid = get_qid(dataset)
+        qid = metadata.get_qid(dataset)
         leaf, parent = self._locate_leaf(qid)
-        with parent._modify_attributes():
-            parent._activate(leaf)
+        parent._activate_leaf(leaf)
 
-    def destroy(self, repack=True):
-        """Remove all results from the HDF5 file.
+    def destroy_dataset(self, dataset: Leaf, repack: bool=True) -> None:
+        """Remove dataset and associated data permanently.
+
+        Parameters
+        ----------
+        dataset : `Leaf` or str
+            Dataset to be removed or its name or QID.
+        repack : bool, optional
+            Repack the HDF5 file reducing the size of the file on disk.
+
+            Without repacking only references to the data, not the actual data,
+            are removed. Repacking has some overhead for large files and
+            requires third-party `h5repack` tool.
+        """
+        qid = metadata.get_qid(dataset)
+        leaf, _ = self._locate_leaf(qid)
+        leaf.destroy(repack=repack)
+
+    def destroy(self, repack: bool = True) -> None:
+        """Remove all results and associated data permanently.
 
         Parameters
         ----------
         repack : bool, optional
-            If True, repack the HDF5 file.
+            Repack the HDF5 file reducing the size of the file on disk.
 
-            Removing data from the HDF5 file only removes references to it and
-            repacking is required to free the disk space. Repacking makes a copy
-            of the HDF5 file and destroys the original, and it also requires
-            3rd party tool `h5repack` which is why it's use is optional here.
+            Without repacking only references to the data, not the actual data,
+            are removed. Repacking has some overhead for large files and
+            requires third-party `h5repack` tool.
         """
+        # This function overriden only to update the docstring.
         super().destroy(repack=repack)

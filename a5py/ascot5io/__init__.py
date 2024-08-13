@@ -21,9 +21,7 @@ from .transcoef  import Transcoef
 from .dist import Dist_5D, Dist_6D, Dist_rho5D, Dist_rho6D, Dist_COM, Dist
 from .reaction import Reaction
 
-from .coreio.treestructure import Root, InputCategory, input_categories, MetaDataHolder, SimulationOutput
-from .coreio.fileapi import HDF5Interface
-#from .coreio.treedata import DataGroup
+from .coreio.treestructure import Root
 from a5py.routines.runmixin import RunMixin
 from a5py.routines.afsi5 import AfsiMixin
 from a5py.routines.bbnbi5 import BBNBIMixin
@@ -55,24 +53,6 @@ HDF5TOOBJ = {
 }
 """Dictionary connecting group names in HDF5 file to corresponding data objects.
 """
-
-
-class InputNode(InputCategory):
-
-    def __init__(self, root):
-        super().__init__(root)
-
-    def _activate(self, leaf) -> None:
-        super()._activate(leaf)
-
-        with HDF5Interface(self._root._hdf5_filename) as h5:
-            h5.set_active(leaf.qid)
-
-    def _add_leaf(self, leaf) -> None:
-        return super()._add_leaf(leaf)
-
-    def _remove_leaf(self, leaf) -> None:
-        return super()._remove_leaf(leaf)
 
 class Ascot5IO(Root):
     """Tree structure for accessing ASCOT5 data.
@@ -134,52 +114,6 @@ class Ascot5IO(Root):
        data.run_1234567890.show_contents()
 
     """
-
-    def __init__(self, hdf5_filename: str = None, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        with self._modify_attributes():
-            self._hdf5_filename = hdf5_filename
-        if hdf5_filename:
-            self._init_from_hdf5()
-
-    def _init_from_hdf5(self):
-
-        with HDF5Interface(self._hdf5_filename) as h5:
-            for category in input_categories:
-                active, leafs = h5.read_input_category(category)
-                for metadata in leafs:
-                    leaf = MetaDataHolder(
-                        qid=metadata["qid"],
-                        date=metadata["date"],
-                        description=metadata["description"],
-                        variant=metadata["variant"],
-                        )
-                    self._add_input(leaf)
-                    if active == metadata["qid"]:
-                        self[category]._activate(leaf)
-
-            active, leafs = h5.read_simulation_output()
-            for metadata in leafs:
-                input_objects = []
-                for input in metadata["inputs"]:
-                    input_objects.append(self._locate_leaf(input))
-
-                leaf = SimulationOutput(
-                    inputs=input_objects,
-                    diagnostics=[],
-                    qid=metadata["qid"],
-                    date=metadata["date"],
-                    description=metadata["description"],
-                    variant=metadata["variant"],
-                    )
-                self._add_run(leaf)
-                if active == metadata["qid"]:
-                    self._activate(leaf)
-
-            try:
-                h5.set_simulation_output("results")
-            except Exception:
-                pass
 
     def create_input(self, inp, desc=None, activate=None, dryrun=False,
                      **kwargs):

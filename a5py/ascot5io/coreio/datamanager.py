@@ -2,11 +2,11 @@
 """
 from __future__ import annotations
 
-from typing import Any, List
+from enum import Enum
+from typing import Any, Optional
 
 import h5py
 import numpy as np
-from enum import Enum
 
 from a5py.exceptions import AscotIOException
 
@@ -32,9 +32,9 @@ class DataManager():
     IMAS_IDS = Format.IMAS_IDS
 
     def __init__(self,
-                 hdf5_filename: str=None,
-                 path_within_hdf5: str=None,
-                 imas_ids: str=None,
+                 hdf5_filename: Optional[str] = None,
+                 path_within_hdf5: Optional[str] = None,
+                 imas_ids: Optional[str] = None,
                  **kwargs: Any,
                  ) -> None:
         """Initializes an object which by default stores the data in memory.
@@ -49,9 +49,9 @@ class DataManager():
             Key value pairs for data if the data is being stored in the memory.
         """
         super().__init__()
-        self._imas_ids: str = imas_ids
-        self._hdf5_filename: str = hdf5_filename
-        self._path_within_hdf5: str = path_within_hdf5
+        self._imas_ids: Optional[str] = imas_ids
+        self._hdf5_filename: Optional[str] = hdf5_filename
+        self._path_within_hdf5: Optional[str] = path_within_hdf5
 
         self._format: DataManager.Format = DataManager.MEMORY
 
@@ -71,26 +71,28 @@ class DataManager():
             f"imas_ids={self._imas_ids})"
         )
 
-    def get(self, key: str) -> np.array:
+    def get(self, key: str) -> np.ndarray:
         """Get the value of the given attribute.
 
         The value is read from wherever the data is stored.
         """
         if self._format == DataManager.MEMORY:
             return self._storage[key]
-        elif self._format == DataManager.IMAS_IDS:
-            return self._imas_ids.get(key)
-        elif self._format == DataManager.HDF5:
+        if self._format == DataManager.IMAS_IDS:
+            return np.array([0])
+            #return self._imas_ids.get(key)
+        if self._format == DataManager.HDF5:
             with h5py.File(self._hdf5_filename, "r") as f:
                 return f[self._path_within_hdf5][key][:]
 
+        raise AscotIOException(f"Unknown format: {self._format}")
+
     def migrate(self,
                 newformat: DataManager.Format,
-                hdf5_filename: str=None,
-                path_within_hdf5: str=None,
-                imas_ids: str=None,
+                hdf5_filename: Optional[str] = None,
+                path_within_hdf5: Optional[str] = None,
                 ):
-        """Change the storage locationand write the existing data to the new
+        """Change the storage location and write the existing data to the new
         location.
         """
         if newformat == self._format:
@@ -101,14 +103,7 @@ class DataManager():
             self._hdf5_filename = hdf5_filename
             self._path_within_hdf5 = path_within_hdf5
             with h5py.File(self._hdf5_filename, "r") as f:
-                for key, data in self._storage:
+                for key, data in self._storage.items():
                     f[self._path_within_hdf5][key] = data.value
         else:
             raise AscotIOException(f"Unsupported format: {newformat}")
-
-class DataContainer():
-    pass
-
-
-class DataGroup(DataContainer):
-    pass
