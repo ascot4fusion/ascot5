@@ -396,6 +396,18 @@ class HDF5Manager():
         with HDF5Interface(self.filename) as h5:
             del h5[node][name]
 
+    def contains_dataset(self, dataset):
+        """Checks if a dataset exists on the file.
+
+        Parameters
+        ----------
+        
+
+        Returns
+        -------
+        """
+        with HDF5Interface.contains_dataset(self.filename):
+
     def repack(self) -> None:
         """Repack the file.
 

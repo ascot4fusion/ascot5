@@ -78,8 +78,6 @@ class MetaDataHolder():
 
     Attributes
     ----------
-    _usedby : [MetaDataHolder]
-        List of objects that reference this data.
     qid : str
         Unique identifier for this data.
     date : str
@@ -105,7 +103,6 @@ class MetaDataHolder():
         self._qid: str = qid
         self._date: str = date
         self._note: str = note
-        self._usedby: List = []
         self._variant: str = variant
 
     def __repr__(self) -> str:

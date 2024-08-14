@@ -8,95 +8,86 @@ are tested in separate modules.
 If this test passes, there should not be any issues wit the `AscotIO` class when
 the data is stored in the memory.
 """
+from __future__ import annotations
+
 import unittest
 from unittest.mock import MagicMock
 
 from a5py import AscotIOException
+
+from a5py.ascot5io.coreio import metadata
 from a5py.ascot5io.coreio.metadata import input_categories, MetaData
 from a5py.ascot5io.coreio.treestructure import (
     Leaf, ImmutableNode, InputCategory, SimulationOutput, Root,
     )
 
+QID1 = "2991786571"
+QID2 = "9753987342"
+QID3 = "4404229430"
+QID4 = "0963810214"
+QID5 = "5960585966"
+DATE_FRI = "1997-08-29 02:14:00"
+DATE_SAT = "1997-08-30 02:14:00"
+DATE_SUN = "1997-08-31 02:14:00"
+INPUTVAR = "input"
+INPUTVAR2 = "E_TC"
+OUTPUTVAR = "output"
+CATEGORY = "wall"
+DATE = DATE_FRI
+NOTE = "Stick around"
 
-class TreeTester(unittest.TestCase):
-    """Helper class that implements methods for testing the tree structure."""
+# Make Ascot recognize our dummy variants
+metadata.data_variants[CATEGORY] = (
+    metadata.data_variants[CATEGORY] + (INPUTVAR,)
+)
+metadata.run_variants = metadata.run_variants + (OUTPUTVAR,)
 
-    QID1 = "0000000001"
-    QID2 = "0000000002"
-    QID3 = "0000000003"
-    QID4 = "0000000004"
-    QID5 = "0000000005"
-    DATETODAY = "1953-12-08 00:00:00"
-    DATETOMORROW = "1953-12-09 00:00:00"
-    DATEYESTERDAY = "1953-12-07 00:00:00"
-    DEFAULTINPUT = "input"
-    DEFAULTOUTPUT = "output"
-    DEFAULTNOTE = "TAG"
+def create_leaf(
+        qid: str, date: str = DATE, variant: str = INPUTVAR, note: str = NOTE,
+        ) -> Leaf:
+    """Create a `Leaf` instance."""
+    return Leaf(qid=qid, date=date, variant=variant, note=note)
 
-    def create_leaf(
-            self, qid: str, date: str = DATETODAY,
-            variant: str = DEFAULTINPUT, note: str = DEFAULTNOTE,
-            ) -> Leaf:
-        """Create a `Leaf` instance.
-        """
-        return Leaf(qid=qid, date=date, variant=variant, note=note)
-
-    def assertLeaf(self, obj, **expected_attrs):
-        """Assert that the `Leaf` instance has expected values for the
-        attributes.
-
-        (This method does not appear in the error stack.)
-        """
-        for attr, expected in expected_attrs.items():
-            actual = getattr(obj, attr, None)
-            try:
-                self.assertEqual(
-                    actual, expected,
-                    f"Expected {attr} to be {expected}, but got {actual}."
-                    )
-            except AssertionError as e:
-                err = AssertionError(e).with_traceback(e.__traceback__.tb_next)
-                raise err from None
-
-class TestLeaf(TreeTester):
+class TestLeaf(unittest.TestCase):
     """Tests for `Leaf` class."""
 
     def test_initialization(self):
         """Test that attributes were set properly in initialization."""
-        leaf = self.create_leaf(TreeTester.QID1)
-        self.assertLeaf(
-            leaf, qid=TreeTester.QID1, date=TreeTester.DATETODAY,
-            note=TreeTester.DEFAULTNOTE, variant=TreeTester.DEFAULTINPUT,
-        )
+        leaf = create_leaf(QID1)
+        for actual, expected in zip(
+            [leaf.qid, leaf.date, leaf.note, leaf.variant],
+            [QID1, DATE, NOTE, INPUTVAR],
+            ):
+            self.assertEqual(actual, expected)
         self.assertEqual(
-            leaf.qqid, f"q{TreeTester.QID1}", "No preceding 'q' in qqid.",
+            leaf.qqid, f"q{QID1}", "No preceding 'q' in qqid.",
             )
         self.assertEqual(
-            leaf.name, f"{TreeTester.DEFAULTINPUT}_{TreeTester.QID1}",
+            leaf.name, f"{INPUTVAR}_{QID1}",
             "Property name does not match <variety>_<QID>.",
             )
 
     def test_can_change_note(self):
         """Test that description can be changed."""
-        leaf = self.create_leaf(TreeTester.QID1)
+        leaf = create_leaf(QID1)
         leaf.note = "New note"
         self.assertEqual(leaf.note, "New note")
 
     def test_cannot_change_fixed_attributes(self):
         """Test that immutable attributes are immutable."""
-        leaf = self.create_leaf(TreeTester.QID1)
+        leaf = create_leaf(QID1)
         for attr in ["qid", "date", "variant", "qqid", "name"]:
             with self.assertRaises(
                 AscotIOException,
                 msg=f"User is able to change {attr}.",
                 ):
-                setattr(leaf, attr, TreeTester.QID2)
+                setattr(leaf, attr, QID2)
 
     def test_adopt_method(self):
         """Test that the fields are set correctly when the leaf is adopted and
         that the leaf cannot be adopted twice."""
         parent = MagicMock()
-        leaf = self.create_leaf(TreeTester.QID1)
+        leaf = create_leaf(QID1)
         leaf._adopt(parent)
         self.assertEqual(
             leaf._parent, parent,
@@ -109,7 +100,8 @@ class TestLeaf(TreeTester):
 
     def test_extract_tag(self):
         """Test extracting a tag from description."""
-        leaf = self.create_leaf(TreeTester.QID1)
+        leaf = create_leaf(QID1)
+        leaf.note = "tag me"
         self.assertEqual(
             leaf._extract_tag(), "TAG",
             "Extracted tag is not the first word in note capitalized.",
@@ -129,7 +121,7 @@ class TestLeaf(TreeTester):
         """Test that activate and remove methods convey the call to the parent
         node.
         """
-        leaf = self.create_leaf(TreeTester.QID1)
+        leaf = create_leaf(QID1)
         parent = MagicMock()
         with parent._modify_attributes():
             parent._activate_leaf = MagicMock()
@@ -142,7 +134,7 @@ class TestLeaf(TreeTester):
         parent._remove_leaf.assert_called_with(leaf)
 
 
-class TestImmutableNode(TreeTester):
+class TestImmutableNode(unittest.TestCase):
     """Tests for `ImmutableNode` class.
 
     There's no separate test for the `ImmutableStorage` class as it is also
@@ -209,12 +201,12 @@ class TestImmutableNode(TreeTester):
 
     def test_add_leaf(self):
         """Test adding a single leaf."""
-        leaf = self.create_leaf(TreeTester.QID1)
+        leaf = create_leaf(QID1)
         self.node._add_leaf(leaf)
         self.assertEqual(leaf, self.node[leaf.qqid])
         self.assertEqual(leaf, self.node[leaf.name])
         self.assertEqual(leaf, self.node[leaf._extract_tag()])
-        self.assertEqual(self.node._qids, [TreeTester.QID1])
+        self.assertEqual(self.node._qids, [QID1])
 
         with self.assertRaises(
             AscotIOException,
@@ -225,7 +217,7 @@ class TestImmutableNode(TreeTester):
     def test_contains(self):
         """Test that the contained leaf can be queried with QID, name, and with
         the leaf itself"""
-        leaf = self.create_leaf(TreeTester.QID1)
+        leaf = create_leaf(QID1)
         self.node._add_leaf(leaf)
         self.assertIn(leaf.qid, self.node,)
         self.assertIn(leaf.qqid, self.node,)
@@ -234,7 +226,7 @@ class TestImmutableNode(TreeTester):
 
     def test_remove_leaf(self):
         """Test removing a single leaf."""
-        leaf = self.create_leaf(TreeTester.QID1)
+        leaf = create_leaf(QID1)
         self.node._add_leaf(leaf)
         self.node._remove_leaf(leaf)
         self.assertNotIn(leaf.qid, self.node)
@@ -251,8 +243,8 @@ class TestImmutableNode(TreeTester):
 
     def test_active_property(self):
         """Test switching active leaf."""
-        leaf1 = self.create_leaf(TreeTester.QID1)
-        leaf2 = self.create_leaf(TreeTester.QID2)
+        leaf1 = create_leaf(QID1)
+        leaf2 = create_leaf(QID2)
         self.node._add_leaf(leaf1)
         self.node._add_leaf(leaf2)
         self.assertEqual(self.node.active, leaf1)
@@ -266,35 +258,28 @@ class TestImmutableNode(TreeTester):
         """Test that leafs remain organized by date when new ones are added or
         removed.
         """
-        leaf1 = self.create_leaf(TreeTester.QID1, date=TreeTester.DATETODAY,
-                                 note="TODAY")
-        leaf2 = self.create_leaf(TreeTester.QID2, date=TreeTester.DATEYESTERDAY,
-                                 note="YESTERDAY")
-        leaf3 = self.create_leaf(TreeTester.QID3, date=TreeTester.DATETOMORROW,
-                                 note="TOMORROW")
+        leaf1 = create_leaf(QID1, date=DATE_SAT, note="Saturday")
+        leaf2 = create_leaf(QID2, date=DATE_FRI, note="Friday")
+        leaf3 = create_leaf(QID3, date=DATE_SUN, note="Sunday")
         self.node._add_leaf(leaf1)
-        self.assertEqual(self.node._qids, [TreeTester.QID1])
+        self.assertEqual(self.node._qids, [QID1])
         self.node._add_leaf(leaf2)
-        self.assertEqual(self.node._qids, [TreeTester.QID1, TreeTester.QID2])
+        self.assertEqual(self.node._qids, [QID1, QID2])
         self.node._add_leaf(leaf3)
-        self.assertEqual(self.node._qids,
-                         [TreeTester.QID3, TreeTester.QID1, TreeTester.QID2])
-        self.assertEqual(self.node._tags, ["TODAY", "TOMORROW", "YESTERDAY"])
+        self.assertEqual(self.node._qids, [QID3, QID1, QID2])
+        self.assertEqual(self.node._tags, ["FRIDAY", "SATURDAY", "SUNDAY"])
         self.node._remove_leaf(leaf3)
-        self.assertEqual(self.node._qids, [TreeTester.QID1, TreeTester.QID2])
-        self.assertEqual(self.node._tags, ["TODAY", "YESTERDAY"])
+        self.assertEqual(self.node._qids, [QID1, QID2])
+        self.assertEqual(self.node._tags, ["FRIDAY", "SATURDAY"])
         self.node._remove_leaf(leaf2)
-        self.assertEqual(self.node._qids, [TreeTester.QID1])
+        self.assertEqual(self.node._qids, [QID1])
 
     def test_organize_same_tags(self):
         """Test that tags are properly renamed when there are multiple identical
         tags"""
-        leaf1 = self.create_leaf(TreeTester.QID1, date=TreeTester.DATETODAY,
-                                 note="TAG")
-        leaf2 = self.create_leaf(TreeTester.QID2, date=TreeTester.DATEYESTERDAY,
-                                 note="TAG2")
-        leaf3 = self.create_leaf(TreeTester.QID3, date=TreeTester.DATETOMORROW,
-                                 note="TAG")
+        leaf1 = create_leaf(QID1, date=DATE_SAT, note="TAG")
+        leaf2 = create_leaf(QID2, date=DATE_FRI, note="TAG2")
+        leaf3 = create_leaf(QID3, date=DATE_SUN, note="TAG")
         self.node._add_leaf(leaf1)
         self.node._add_leaf(leaf2)
         self.assertIn("TAG", self.node)
@@ -317,7 +302,7 @@ class TestImmutableNode(TreeTester):
 
     def test_update_tag(self):
         """Test that the tag is updated when the note is changed."""
-        leaf = self.create_leaf(TreeTester.QID1)
+        leaf = create_leaf(QID1, note="tag")
         self.node._add_leaf(leaf)
         self.assertIn("TAG", self.node)
 
@@ -325,7 +310,7 @@ class TestImmutableNode(TreeTester):
         self.assertIn("NEWTAG", self.node)
 
 
-class TestInputCategory(TreeTester):
+class TestInputCategory(unittest.TestCase):
     """Tests for `InputCategory` class."""
 
     def test_contents(self):
@@ -334,12 +319,9 @@ class TestInputCategory(TreeTester):
         """
         root = MagicMock()
         node = InputCategory(root)
-        leaf1 = self.create_leaf(TreeTester.QID1, date=TreeTester.DATETODAY)
-        leaf2 = self.create_leaf(TreeTester.QID2, date=TreeTester.DATEYESTERDAY)
-        self.assertEqual(
-            node.contents,
-            "No data in this category.\n"
-            )
+        leaf1 = create_leaf(QID1, date=DATE_SAT)
+        leaf2 = create_leaf(QID2, date=DATE_FRI)
+        self.assertEqual(node.contents, "No data in this category.\n")
 
         node._add_leaf(leaf1)
         node._add_leaf(leaf2)
@@ -415,134 +397,127 @@ class TestSimulationOutput(unittest.TestCase):
         self.assertIn(self.node.bfield.date, lines[7])
         self.assertIn(self.node.bfield.note, lines[8])
 
+
 class TestRoot(unittest.TestCase):
-    """Tests for the `Root` class.
-
-    These tests don't cover any IO operations.
-    """
-
-    def setUp(self):
-        """Initialize an empty tree."""
-        self.root = Root()
-        self.inistate = MagicMock()
-        self.metadata = {}
-        self.metadata["efield"] = (
-            MetaData("0000000001", "1953-12-08 00:00:00", "note", "E_TC")
-        )
-        self.metadata["bfield"] = (
-            MetaData("0000000002", "1953-12-08 00:00:00", "note", "B_TC")
-        )
-        self.metadata["bfield2"] = (
-            MetaData("0000000003", "1953-12-08 00:00:00", "note", "B_TC")
-        )
-        self.metadata["bfield_identical_qid"] = (
-            MetaData("0000000002", "1953-12-08 00:00:00", "note", "B_TC")
-        )
-        self.metadata["output"] = (
-            MetaData("0000000004", "1953-12-08 00:00:01", "note", "run")
-        )
-        self.metadata["output_identical_qid"] = (
-            MetaData("0000000002", "1953-12-08 00:00:01", "note", "run")
-        )
+    """Tests for the `Root` class (not including IO operations)."""
 
     def test_initialization(self):
-        """Test that the tree is initially empty with only input categories
-        present.
-        """
-        self.assertFalse(len(self.root._qids))
+        """Test initializing (empty) tree."""
+        root = Root()
+        self.assertFalse(len(root._qids))
+        self.assertEqual(root._name, "root")
         with self.assertRaises(AscotIOException):
-            setattr(self.root, "attribute", 0)
+            setattr(root, "attribute", "value")
 
         for category in input_categories:
-            self.assertIn(category, self.root)
+            self.assertIn(category, root)
+            self.assertEqual(root[category]._name, category)
             with self.assertRaises(AscotIOException):
-                setattr(self.root[category], "attribute", 0)
+                setattr(root[category], "attribute", "value")
 
     def test_add_input(self):
         """Test adding a new input."""
-        leaf = self.root._add_input_dataset(
-            self.metadata["bfield"], "note",
-            )
-        self.assertIn(leaf, self.root.bfield)
-        self.assertEqual(leaf._parent, self.root.bfield)
+        root = Root()
+        meta = MetaData(qid=QID1, date=DATE, note=NOTE, variant=INPUTVAR)
+        leaf = root._add_input_dataset(meta)
+        self.assertIn(leaf, root[CATEGORY])
+        self.assertEqual(leaf._parent, root[CATEGORY])
 
     def test_add_simulation_output(self):
         """Test adding a new run."""
-        with self.assertRaises(AscotIOException):
-            self.root._add_simulation_output(
-                self.metadata["output"], [self.inistate],
-                [self.metadata["bfield"].qid], "note",
-                )
+        root = Root()
+        metaout = MetaData(qid=QID2, date=DATE, note=NOTE, variant=OUTPUTVAR)
+        with self.assertRaises(
+            AscotIOException,
+            msg="Was able to add run whose input does not exist.",
+            ):
+            root._add_simulation_output(metaout, [], [QID1])
 
-        self.root._add_input_dataset(self.metadata["bfield"])
-        output = self.root._add_simulation_output(
-            self.metadata["output"], [self.inistate],
-            [self.metadata["bfield"].qid], "note",
-            )
-        self.assertIn(output, self.root)
+        metain = MetaData(qid=QID1, date=DATE, note=NOTE, variant=INPUTVAR)
+        root._add_input_dataset(metain)
+        output = root._add_simulation_output(metaout, [], [QID1])
+        self.assertIn(output, root)
 
     def test_add_identical_qid(self):
-        """Test adding an input or output when there is data with identical
-        QID.
-        """
-        self.root._add_input_dataset(self.metadata["bfield"])
+        """Test adding dataset when one with identical QID exists."""
+        root = Root()
+        meta = MetaData(qid=QID1, date=DATE, note=NOTE, variant=INPUTVAR)
+        root._add_input_dataset(meta)
         with self.assertRaises(AscotIOException):
-            self.root._add_input_dataset(self.metadata["bfield_identical_qid"])
+            root._add_input_dataset(meta)
+
+        meta = MetaData(qid=QID1, date=DATE, note=NOTE, variant=OUTPUTVAR)
         with self.assertRaises(AscotIOException):
-            self.root._add_simulation_output(
-                self.metadata["output_identical_qid"], [self.inistate],
-                [self.metadata["bfield"].qid], "note",
-            )
+            root._add_simulation_output(meta, [], [QID1])
+
+        meta = MetaData(qid=QID2, date=DATE, note=NOTE, variant=OUTPUTVAR)
+        root._add_simulation_output(meta, [], [QID1])
+        with self.assertRaises(AscotIOException):
+            root._add_simulation_output(meta, [], [QID2])
 
     def test_remove_dataset(self):
         """Test removing dataset."""
-        bfield = self.root._add_input_dataset(self.metadata["bfield"])
-        output = self.root._add_simulation_output(
-                self.metadata["output"], [self.inistate],
-                [self.metadata["bfield"].qid], "note",
-            )
-        self.root.destroy_dataset(output)
-        self.assertNotIn(output, self.root)
-        self.root.destroy_dataset(bfield.qid)
-        self.assertNotIn(bfield, self.root.bfield)
+        root = Root()
+        meta = MetaData(qid=QID1, date=DATE, note=NOTE, variant=INPUTVAR)
+        dataset = root._add_input_dataset(meta)
+        meta = MetaData(qid=QID2, date=DATE, note=NOTE, variant=OUTPUTVAR)
+        output = root._add_simulation_output(meta, [], [QID1])
 
-    def test_remove_dataset_dependent(self):
-        """Test removing input which is being used in a run and contents of
-        whole nodes at once."""
-        bfield = self.root._add_input_dataset(self.metadata["bfield"])
-        output = self.root._add_simulation_output(
-                self.metadata["output"], [self.inistate],
-                [self.metadata["bfield"].qid], "note",
-            )
-        self.root.destroy_dataset(bfield.qid)
-        self.root.destroy_dataset(output)
+        with self.assertRaises(
+            AscotIOException,
+            msg="Was able to destroy input that is being used in a simulation.",
+            ):
+            root.destroy_dataset(dataset.qid)
+
+        root.destroy_dataset(output)
+        self.assertNotIn(output, root)
+        root.destroy_dataset(dataset.qid)
+        self.assertNotIn(dataset, root[CATEGORY])
 
     def test_activate_dataset(self):
         """Test setting dataset active."""
-        self.root._add_input_dataset(self.metadata["bfield"])
-        bfield2 = self.root._add_input_dataset(self.metadata["bfield2"])
-        self.root.activate_dataset(bfield2)
-        self.assertEqual(self.root.bfield.active, bfield2)
+        root = Root()
+        meta = MetaData(qid=QID1, date=DATE, note=NOTE, variant=INPUTVAR)
+        root._add_input_dataset(meta)
+        meta = MetaData(qid=QID2, date=DATE, note=NOTE, variant=INPUTVAR)
+        dataset = root._add_input_dataset(meta)
+        root.activate_dataset(dataset)
+        self.assertEqual(root[CATEGORY].active, dataset)
 
     def test_contents(self):
         """Test getting the contents in a string."""
-        bfield = self.root._add_input_dataset(self.metadata["bfield"])
-        self.root._add_input_dataset(self.metadata["bfield2"])
-        self.root._add_input_dataset(self.metadata["efield"])
-        output = self.root._add_simulation_output(
-                self.metadata["output"], [self.inistate],
-                [self.metadata["bfield"].qid], "note",
-            )
-        lines = self.root.contents.splitlines()
+        root = Root()
+        meta = MetaData(qid=QID1, date=DATE, note=NOTE, variant=INPUTVAR)
+        dataset = root._add_input_dataset(meta)
+        meta = MetaData(qid=QID3, date=DATE, note=NOTE, variant=INPUTVAR)
+        root._add_input_dataset(meta)
+        meta = MetaData(qid=QID4, date=DATE, note=NOTE, variant=INPUTVAR2)
+        root._add_input_dataset(meta)
+        meta = MetaData(qid=QID2, date=DATE, note=NOTE, variant=OUTPUTVAR)
+        output = root._add_simulation_output(meta, [], [QID1])
+        meta = MetaData(qid=QID5, date=DATE, note=NOTE, variant=OUTPUTVAR)
+        root._add_simulation_output(meta, [], [QID1])
+
+        lines = root.contents.splitlines()
+        root.show_contents()
         self.assertIn("Inputs: [only active shown]", lines[0])
-        self.assertIn("bfield", lines[3])
-        self.assertIn(bfield.variant, lines[3])
-        self.assertIn(bfield.qid, lines[3])
-        self.assertIn(bfield.date, lines[3])
-        self.assertIn("+ 1 other(s)", lines[3])
-        self.assertIn(bfield.note, lines[4])
+        self.assertIn("*no inputs*", lines[1])
         self.assertIn("(no other inputs)", lines[5])
-        self.assertIn("*no inputs*", lines[7])
+        self.assertIn(CATEGORY, lines[13])
+        self.assertIn(dataset.variant, lines[13])
+        self.assertIn(dataset.qid, lines[13])
+        self.assertIn(dataset.date, lines[13])
+        self.assertIn("+ 1 other(s)", lines[13])
+        self.assertIn(dataset.note, lines[14])
+
+        self.assertIn("Simulations:", lines[24])
+        self.assertIn(output.variant, lines[25])
+        self.assertIn(output.qid, lines[25])
+        self.assertIn(output.date, lines[25])
+        self.assertIn("[active]", lines[25])
+        self.assertIn(output.note, lines[26])
+        self.assertTrue(lines[27])
+        self.assertNotIn("[active]", lines[27])
 
 
 if __name__ == "__main__":

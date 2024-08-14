@@ -37,12 +37,16 @@ from .hdf5interface import HDF5Manager
 
 class Leaf(MetaDataHolder):
     """Leaf of a tree which has no further children managed by the tree.
+
+    _usedby : [MetaDataHolder]
+        List of objects that reference this data.
     """
 
     def __init__(self, **kwargs):
         """Leaf which has no parent initially."""
         super().__init__(**kwargs)
         self._parent: ImmutableNode = None
+        self._usedby: List[str] = []
         self._data_manager: DataManager = DataManager()
         self._hdf5manager: Optional[HDF5Manager] = None
 
@@ -95,20 +99,23 @@ class Leaf(MetaDataHolder):
             are removed. Repacking has some overhead for large files and
             requires third-party `h5repack` tool.
         """
-        self._parent and self._parent._remove_leaf(self)
-        self._parent = None
-        if self._hdf5manager:
-            self._hdf5manager.remove_leaf(
-                self._parent._name, self._qid, self._variant
+        if self._usedby:
+            raise AscotIOException(
+                "Cannot remove a dataset that is used by a simulation run."
                 )
-            repack and self._hdf5manager.repack()
+        self._parent and self._parent._remove_leaf(self)
+        hdf5manager = self._parent._root._hdf5manager
+        if hdf5manager:
+            hdf5manager.remove_dataset(self._qid, self._variant)
+
+        self._parent = None
+            #repack and self._hdf5manager.repack()
 
     def export_hdf5(self):
-        """Stores the data to the HDF5 file.
-        """
+        """Stores the data to the HDF5 file."""
         if self._hdf5manager:
             raise AscotIOException("This data is already stored in a file.")
-        self._hdf5manager = self._parent._hdf5manager
+        self._hdf5manager = self._parent._root._hdf5manager
         self._hdf5manager.write_leaf(
             MetaData(self._qid, self._date, self._variant, self._note)
         )
@@ -652,6 +659,7 @@ class SimulationOutput(ImmutableStorage, Leaf):
         for category in metadata.input_categories:
             if category in inputs:
                 self[category] = inputs[category]
+                inputs[category]._usedby.append(self.qid)
             else:
                 self[category] = None
 
@@ -752,6 +760,14 @@ class SimulationOutput(ImmutableStorage, Leaf):
             contents += f"\n{"".ljust(8)}{leaf.note}\n"
 
         return contents
+
+    def destroy(self, repack: bool = True) -> None:
+        super().destroy(repack)
+        for category in metadata.input_categories:
+            try:
+                self[category]._usedby.remove(self.qid)
+            except AscotIOException:
+                pass
 
     @property
     def contents(self) -> str:
@@ -870,7 +886,6 @@ class Root(ImmutableNodeHDF5):
     def _add_input_dataset(
             self,
             meta: MetaData,
-            note: str = None,
             dryrun: bool = False,
             store_hdf5: Optional[bool] = None,
             ):
@@ -881,13 +896,11 @@ class Root(ImmutableNodeHDF5):
 
         Parameters
         ----------
-        dataset : `Leaf`
-            Dataset to be added.
-        note : str, optional
-            Note of the dataset (overrides original if given).
+        meta : `MetaData`
+            Metadata of the dataset.
         dryrun : bool, optional
-            Only check if a dataset with same QID exists on the tree, but
-            otherwise do nothing.
+            Creates a dataset and checks if one with same ID exists on the tree,
+            but doesn't include it into the tree.
         store_hdf5 : bool, optional
             Store the dataset in the HDF5 file (requires that the this tree
             has access to a file).
@@ -896,6 +909,17 @@ class Root(ImmutableNodeHDF5):
             - store the input to a file if filename was specified when this tree
               was created.
             - not to store the input if filename was not specified.
+
+        Returns
+        -------
+        leaf : `Leaf`
+            The input dataset which was created.
+
+        Raises
+        ------
+        AscotIOException
+            When there is already a dataset with identical QID or if the HDF5
+            file was not specified while trying to write the data on file.
         """
         try:
             self._locate_leaf(meta.qid)
@@ -906,20 +930,16 @@ class Root(ImmutableNodeHDF5):
                 "There is already a dataset with identical QID."
                 )
         leaf = self._leaf_factory(meta)
-        if note:
-            leaf.note = note
         if not dryrun:
-            category = metadata.get_input_category(leaf.variant)
-            self[category]._add_leaf(leaf)
-
             if store_hdf5 is None:
                 store_hdf5 = self._hdf5manager is not None
-
             if store_hdf5:
                 if not self._hdf5manager:
                     raise AscotIOException("No HDF5 file was provided.")
-                self._hdf5manager.write_leaf(leaf)
+                self._hdf5manager.write_input(leaf._metadata)
 
+            category = metadata.get_input_category(leaf.variant)
+            self[category]._add_leaf(leaf)
         return leaf
 
     def _add_simulation_output(
@@ -933,16 +953,26 @@ class Root(ImmutableNodeHDF5):
             ) -> None:
         """Add simulation output to this tree.
 
+        Parameters
+        ----------
         dataset : `Leaf`
             Dataset to be added.
-        note : str, optional
-            Note on the dataset (overrides original if given).
         dryrun : bool, optional
-            Only check if a dataset with same QID exists on the tree, but
-            otherwise do nothing.
+            Creates a dataset and checks if one with same ID exists on the tree,
+            but doesn't include it into the tree.
         store_hdf5 : bool, optional
             Store the dataset in the HDF5 file (requires that the this tree
             has access to a file).
+
+            If not explicitly set, the default behavior is to:
+            - store the input to a file if filename was specified when this tree
+              was created.
+            - not to store the input if filename was not specified.
+
+        Returns
+        -------
+        leaf : `SimulationOutput`
+            The simulation output which was created and added to the tree.
         """
         try:
             self._locate_leaf(meta.qid)
@@ -952,23 +982,33 @@ class Root(ImmutableNodeHDF5):
             raise AscotIOException(
                 "There is already a dataset with identical QID."
                 )
-        inputs = {}
+        inputs, usedinputs = {}, {}
         for qid in inputqids:
             inputleaf, _ = self._locate_leaf(qid)
             category = metadata.get_input_category(inputleaf.variant)
             inputs[category] = inputleaf
+            usedinputs[category] = inputleaf.qid
 
         leaf = self._leaf_factory(
             meta, inputs=inputs, diagnostics=diagnostics
             )
-        if note:
-            leaf.note = note
-
         if not dryrun:
             if store_hdf5 is None:
                 store_hdf5 = self._hdf5manager is not None
-            if store_hdf5 and not self._hdf5manager:
-                raise AscotIOException("No HDF5 file was provided.")
+            if store_hdf5:
+                if not self._hdf5manager:
+                    raise AscotIOException("No HDF5 file was provided.")
+                for category, qid in usedinputs.items():
+                    _, qids, _ = self._hdf5manager.read_node(category)
+                    if qid not in qids:
+                        raise AscotIOException(
+                            f"Input with qid='{qid}' ({category}) was used in "
+                            f"the simulation, but is not stored in the file. "
+                            f"Store the input first and only then this "
+                            f"simulation data can be stored in the file.",
+                            )
+                self._hdf5manager.write_output(leaf._metadata, usedinputs)
+
             self._add_leaf(leaf, store_hdf5=store_hdf5)
         return leaf
 
@@ -989,39 +1029,59 @@ class Root(ImmutableNodeHDF5):
         """Get a string representation of the contents decorated with ANSI
         escape sequences.
         """
+        def print_category(category):
+            return utils.decorate(f"{category.ljust(10)}", color="green")
+
+        def print_howmanyinputs(number_of_inputs):
+            if number_of_inputs > 1:
+                return f" + {number_of_inputs-1} other(s)"
+            if number_of_inputs == 1:
+                return " (no other inputs)"
+            return "*no inputs*\n\n"
+
+        def print_name(leaf):
+            if not leaf:
+                return ""
+            return (
+                utils.decorate(
+                    f"{leaf.variant.ljust(10)}{leaf.qid}", bold=True,
+                )
+                + f" {leaf.date}"
+            )
+
+        def print_note(leaf):
+            if not leaf:
+                return ""
+            return f"\n{"".ljust(10)}\"{leaf.note}\"\n"
+
+        def print_title(title):
+            return utils.decorate(
+                title, color="purple", underline=True, bold=True,
+                )
+
         contents = ""
-        contents += utils.decorate("Inputs:", color="purple",
-                                   underline=True, bold=True)
+        contents += print_title("Inputs:")
         contents += utils.decorate(" [only active shown]\n", color="green")
         for category in metadata.input_categories:
-            contents += utils.decorate(f"{category.ljust(10)}", color="green")
+            contents += print_category(category)
+            leaf = None
+            try:
+                leaf = self[category].active
+                contents += print_name(leaf)
+            except AscotIOException:
+                pass
 
-            number_of_inputs  = len(self[category]._qids)
-            if number_of_inputs == 0:
-                contents += "*no inputs*\n\n"
-                continue
+            number_of_inputs = len(self[category]._qids)
+            contents += print_howmanyinputs(number_of_inputs)
+            contents += print_note(leaf)
 
-            leaf = self[category].active
-            contents += utils.decorate(
-                f"{leaf.variant.ljust(10)}{leaf.qid}", bold=True,
-                )
-            contents += f" {leaf.date}"
-            if number_of_inputs > 1:
-                contents += f" + {number_of_inputs-1} other(s)"
-            else:
-                contents += " (no other inputs)"
-            contents += f"\n{"".ljust(10)}{leaf.note}\n"
-
-        contents += utils.decorate("\nSimulations:\n", color="purple",
-                                   underline=True, bold=True)
+        contents += print_title("\nSimulations:\n")
         for leaf in self:
-            contents += utils.decorate(
-                f"{leaf.variant.ljust(10)}{leaf.qid}", bold=True,
-                )
-            contents += f" {leaf.date}"
+            contents += print_name(leaf)
             if leaf == self.active:
                 contents += utils.decorate(" [active]", color="green")
-            contents += f"\n{"".ljust(10)}{leaf.note}\n"
+            contents += print_note(leaf)
+
         if not self._qids:
             contents += "No simulation results.\n"
         return contents
