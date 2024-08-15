@@ -35,6 +35,88 @@ from .datamanager import DataManager
 from .hdf5interface import HDF5Manager
 
 
+class TreeManager():
+    """Manages contents of the tree.
+
+    This manager operates in the background and is responsible for keeping
+    the contents of the tree consistent. The manager has references to all
+    nodes and their leafs. The public methods of nodes and leafs should always
+    call this manager, which then manipulates the tree accordingly.
+    The components of the tree should not interact with each other directly.
+
+    Attributes
+    ----------
+    inputs : List[Leaf]
+    outputs : List[Leaf]
+    usedin : Dict[MetaDataHolder, List[MetaDataHolder]]
+    uses : Dict[MetaDataHolder, List[MetaDataHolder]]
+    hdf5manager : HDF5Manager
+    """
+
+    def __init__(self, **nodes) -> None:
+        self.inputs: List[Leaf] = []
+        self.outputs: List[Leaf] = []
+        self.usedin: Dict[Leaf, List[Leaf]] = {}
+        self.uses: Dict[Leaf, List[Leaf]] = {}
+        self.nodes: Dict[str, ImmutableNode] = {
+            node._name: node for node in nodes
+            }
+        self.hdf5manager = None
+
+    def add_input(self, leaf) -> None:
+        """Add a new input leaf."""
+        if leaf in self.inputs:
+            raise ValueError("I'm already managing this leaf.")
+        self.inputs.append(leaf)
+
+    def add_output(self, leaf):
+        """Add a new output leaf."""
+        if leaf in self.outputs:
+            raise ValueError("I'm already managing this leaf.")
+        self.outputs.append(leaf)
+        for category in metadata.input_categories:
+            leaf[category]
+
+    def destroy_leaf(self, leaf):
+        """Destroy a single leaf."""
+        if leaf in self.inputs:
+            self.inputs.remove(leaf)
+            category = metadata.get_input_category(leaf.variant)
+            self.nodes[category]._remove(leaf)
+        if leaf in self.outputs:
+            self.outputs.remove(leaf)
+            self.nodes["root"]._remove(leaf)
+
+    def destroy_node_leafs(self, node):
+        """Destroy all leafs within a node."""
+        self.nodes[node]._remove_leaf()
+
+    def activate_leaf(self, leaf):
+        """Set given leaf as active within the node it belongs to."""
+        try:
+            category = metadata.get_input_category(leaf.variant)
+        except:
+            category = "root"
+        self.nodes[category]._activate_leaf(leaf)
+
+    def get_leaf(self, qid):
+        """Retrieve leaf with the given QID."""
+        for leaf in (self.inputs + self.outputs):
+            if leaf.qid == qid:
+                return leaf
+        raise ValueError(f"Leaf with qid = {qid} not found.")
+
+    def note_changed(self, leaf):
+        """Notify that given leaf's note has changed.
+
+        The note is used to create a tag which enables creating a custom
+        reference to the leaf. Therefore, updating the note requires updating
+        the references in the node it belongs to.
+        """
+        category = metadata.get_input_category(leaf.variant)
+        self.nodes[category]._organize()
+
+
 class Leaf(MetaDataHolder):
     """Leaf of a tree which has no further children managed by the tree.
 
@@ -45,37 +127,14 @@ class Leaf(MetaDataHolder):
     def __init__(self, **kwargs):
         """Leaf which has no parent initially."""
         super().__init__(**kwargs)
-        self._parent: ImmutableNode = None
-        self._usedby: List[str] = []
+        self._treemanager: Optional[TreeManager] = None
         self._data_manager: DataManager = DataManager()
-        self._hdf5manager: Optional[HDF5Manager] = None
-
-    def _adopt(self, parent: ImmutableNode) -> None:
-        """Adopt this leaf to a tree.
-
-        Parameters
-        ----------
-        parent : `ImmutableNode`
-            The node where this leaf belongs to.
-
-        Raises
-        ------
-        AscotIOException
-            If the leaf is already adopted.
-        """
-        if self._parent:
-            raise AscotIOException("Leaf is already adopted.")
-        self._parent = parent
 
     @MetaDataHolder.note.setter
     def note(self, note):
         # Changing note changes tag as well.
         self._note = note
-        self._parent and self._parent._organize()
-        if self._hdf5manager:
-            self._hdf5manager.update_leaf_note(
-                self._parent._name, self._qid, self._variant, note
-                )
+        self._treemanager.note_changed(self)
 
     def activate(self) -> None:
         """Set this dataset as active.
@@ -83,7 +142,7 @@ class Leaf(MetaDataHolder):
         Active inputs are used when the simulation is run. Active datasets are
         also used during post-processing by default unless otherwise specified.
         """
-        self._parent and self._parent._activate_leaf(self)
+        self._treemanager.activate(self)
 
     def destroy(self, repack: bool = True) -> None:
         """Remove this dataset.
@@ -99,30 +158,7 @@ class Leaf(MetaDataHolder):
             are removed. Repacking has some overhead for large files and
             requires third-party `h5repack` tool.
         """
-        if self._usedby:
-            raise AscotIOException(
-                "Cannot remove a dataset that is used by a simulation run."
-                )
-        self._parent and self._parent._remove_leaf(self)
-        hdf5manager = self._parent._root._hdf5manager
-        if hdf5manager:
-            hdf5manager.remove_dataset(self._qid, self._variant)
-
-        self._parent = None
-            #repack and self._hdf5manager.repack()
-
-    def export_hdf5(self):
-        """Stores the data to the HDF5 file."""
-        if self._hdf5manager:
-            raise AscotIOException("This data is already stored in a file.")
-        self._hdf5manager = self._parent._root._hdf5manager
-        self._hdf5manager.write_leaf(
-            MetaData(self._qid, self._date, self._variant, self._note)
-        )
-        filename, path_in_file = self._hdf5manager.locate_leaf(self._metadata)
-        self._data_manager.migrate(
-            hdf5_filename=filename, path_within_hdf5=path_in_file,
-            )
+        self._treemanager.remove(self, repack)
 
 
 class ImmutableStorage():
@@ -268,7 +304,7 @@ class ImmutableNode(ImmutableStorage):
         Name of this node (optional).
     """
 
-    def __init__(self, root: Root, name: str = "", **kwargs) -> None:
+    def __init__(self, manager: TreeManager, name: str = "", **kwargs) -> None:
         """Initialize an empty node which is unfrozen.
 
         Parameters
@@ -282,8 +318,8 @@ class ImmutableNode(ImmutableStorage):
             inheritance.
         """
         super().__init__(**kwargs)
+        self._treemanager: TreeManager = manager
         self._name: str = name
-        self._root: Root = root
         self._qids: List = []
         self._tags: List = []
         self._active: Leaf = None
@@ -333,10 +369,6 @@ class ImmutableNode(ImmutableStorage):
         AscotIOException
             If the leaf does not belong to this node.
         """
-        if leaf not in self:
-            raise AscotIOException(
-                f"Leaf with QID {leaf.qid} does not belong to this node."
-                )
         with self._modify_attributes():
             self._active = leaf
 
@@ -353,20 +385,14 @@ class ImmutableNode(ImmutableStorage):
         AscotIOException
             If the leaf already belongs to this node.
         """
-        if leaf in self:
-            raise AscotIOException(
-                f"Leaf with QID {leaf.qqid} already belongs to this node."
-                )
-
+        self._treemanager.add_leaf(leaf)
         self._qids.append(leaf.qid)
-
         with self._modify_attributes():
             reference_by_name, reference_by_qid = leaf.name, leaf.qqid
             self[reference_by_qid] = leaf
             self[reference_by_name] = leaf
 
         self._organize()
-        leaf._adopt(self)
 
     def _remove_leaf(self, leaf: Leaf) -> None:
         """Remove a leaf from this node.
@@ -376,12 +402,7 @@ class ImmutableNode(ImmutableStorage):
         leaf : `Leaf`
             The leaf to be removed.
         """
-        if leaf not in self:
-            raise AscotIOException(
-                f"Leaf with QID {leaf.qqid} does not belong to this node."
-                )
         self._qids.remove(leaf.qid)
-
         with self._modify_attributes():
             if self.active == leaf:
                 if self._qids:
@@ -477,69 +498,10 @@ class ImmutableNode(ImmutableStorage):
     def destroy(self) -> None:
         """Remove all datasets belonging to this node.
         """
-        for dataset in self:
-            dataset.destroy()
+        self._treemanager.remove(node=self, name=self._name)
 
 
-class ImmutableNodeHDF5(ImmutableNode):
-    """Extends the `ImmutableNode` to support data storage in HDF5 format.
-
-    Attributes
-    ----------
-    _hdf5manager : HDF5 manager
-        Manages the contents of the HDF5 file.
-    """
-
-    def __init__(self, root: Root, **kwargs):
-        """Initialize node with no manager."""
-        super().__init__(root, **kwargs)
-        self._hdf5manager = None
-
-    def _activate_leaf(self, leaf: Leaf):
-        """
-        """
-        super()._activate_leaf(leaf)
-        if self._hdf5manager:
-            self._hdf5manager.set_active(self._name, self._active)
-
-    def _add_leaf(self, leaf: Leaf, store_hdf5: bool = False):
-        """
-        """
-        super()._add_leaf(leaf)
-        if store_hdf5:
-            self._hdf5manager.write_leaf(self._name, leaf.name)
-
-    def _remove_leaf(self, leaf : Leaf):
-        """
-        """
-        super()._remove_leaf(leaf)
-        if self._hdf5manager:
-            self._hdf5manager.write_leaf(self._name, leaf.name)
-
-    def _set_hdf5manager(self, manager: HDF5Manager):
-        """Associate this node with a file.
-        """
-        self._hdf5manager = manager
-
-    def destroy(self, repack: bool = True) -> None:
-        """Remove all datasets and associated data permanently from within this
-        node.
-
-        Parameters
-        ----------
-        repack : bool, optional
-            Repack the HDF5 file reducing the size of the file on disk.
-
-            Without repacking only references to the data, not the actual data,
-            are removed. Repacking has some overhead for large files and
-            requires third-party `h5repack` tool.
-        """
-        super().destroy()
-        if self._hdf5manager and repack:
-            self._hdf5manager.repack()
-
-
-class InputCategory(ImmutableNodeHDF5):
+class InputCategory(ImmutableNode):
     """Node that contains all inputs of the same category."""
 
     def _get_decorated_contents(self):
@@ -808,7 +770,7 @@ class SimulationOutput(ImmutableStorage, Leaf):
         return contents
 
 
-class Root(ImmutableNodeHDF5):
+class Root(ImmutableNode):
     """The entry node for accessing data in the HDF5 file.
 
     The root node spawns the treeview creating all other nodes and data groups.
@@ -832,9 +794,9 @@ class Root(ImmutableNodeHDF5):
             Arguments passed to other constructors in case of multiple
             inheritance.
         """
-        super().__init__(root=self, name="root", **kwargs)
+        super().__init__(contentmanager=ContentManager(), name="root", **kwargs)
         for category in metadata.input_categories:
-            self[category] = InputCategory(self, name=category)
+            self[category] = InputCategory(self._contentmanager, name=category)
             self[category]._freeze()
 
         hdf5manager: Optional[HDF5Manager]
@@ -1086,38 +1048,6 @@ class Root(ImmutableNodeHDF5):
             contents += "No simulation results.\n"
         return contents
 
-    def _locate_leaf(self, qid: str) -> Tuple[Leaf, ImmutableNode]:
-        """Find leaf and its parent corresponding to the given QID.
-
-        Parameters
-        ----------
-        qid : str
-            QID of the leaf.
-
-        Returns
-        -------
-        leaf : `Leaf`
-            Leaf corresponding to the given QID.
-        parent : `ImmutableNode`
-            The parent of the located leaf.
-
-        Raises
-        ------
-        AscotIOException
-            If the leaf does not belong to this tree.
-        """
-        qqid = metadata.get_qid(qid, with_prefix=True)
-        if qqid in self:
-            leaf = self[qqid]
-            return leaf, self
-
-        for category in metadata.input_categories:
-            if qqid in self[category]:
-                leaf = self[category][qqid]
-                return leaf, self[category]
-
-        raise AscotIOException(f"Leaf {qid} not found in the tree.")
-
     @property
     def contents(self) -> str:
         """A string representation of the contents.
@@ -1183,8 +1113,7 @@ class Root(ImmutableNodeHDF5):
             requires third-party `h5repack` tool.
         """
         qid = metadata.get_qid(dataset)
-        leaf, _ = self._locate_leaf(qid)
-        leaf.destroy(repack=repack)
+        self._contentmanager.remove(dataset)
 
     def destroy(self, repack: bool = True) -> None:
         """Remove all results and associated data permanently.
