@@ -1402,8 +1402,8 @@ class RunMixin(DistMixin):
                        cax=cax)
 
     @a5plt.openfigureifnoaxes(projection=None)
-    def plotwall_convergence(self, qnt, nmin=1000, nsample=10, flags=None,
-                             axes=None):
+    def plotwall_convergence(self, qnt, nmin=1000, nsample=10, axes=None,
+                             flags=None):
         """Plot convergence of losses by subsampling the results.
 
         This function works by picking randomly a subset of
@@ -1440,14 +1440,23 @@ class RunMixin(DistMixin):
         rng = np.random.default_rng()
         for i, n in enumerate(nsubset):
             idx = rng.choice(ntotal, replace=False, size=n)
+            ids0  = ids[idx]
+            lost0 = lost[idx]
 
             if qnt == 'lostpower':
-                val[i] = np.sum((lost*weight*ekin.to('J'))[idx]) \
-                    * wtotal / np.sum(weight[idx])
+                if flags is None:
+                    val[i] = ( np.sum((lost*weight*ekin.to('J'))[idx])
+                        * wtotal / np.sum(weight[idx])
+                    )
+                else:
+                    _, area, loads, _, _ = self.getwall_loads(
+                        weights=True, p_ids=ids0[lost0], flags=flags,
+                    )
+                    val[i] = (
+                        np.sum( loads * area ) * wtotal / np.sum(weight[idx])
+                    )
                 axes.set_ylabel('Lost power [W]')
             elif qnt == 'peakload':
-                ids0  = ids[idx]
-                lost0 = lost[idx]
                 _, area, loads, _, _ = self.getwall_loads(
                     weights=True, p_ids=ids0[lost0], flags=flags,
                     )

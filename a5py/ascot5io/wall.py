@@ -411,6 +411,73 @@ class wall_3D(DataGroup):
         nvec /= np.sqrt(np.sum(nvec**2, axis=0))
         return area, nvec
 
+    def barycenters(self, cartesian=True, data=None):
+        """Calculate wall element barycenter.
+
+        Parameters
+        ----------
+        data : dict, optional
+            Dictionary with the wall data. If ``None``, the data is read from
+            the file.
+        cartesian : bool, optional
+            If True, the barycenters will be returned in cartesian coordinates: x,y,z
+            If False, the barycenters will be returned in cylindrical coordinates: r,phi(rad),z
+
+        Returns
+        -------
+        barycenters : array_like, (nelement,3)
+            Barycenter of the wall elements.
+        """
+        if data is None:
+            w = self.read()
+        else:
+            w = data
+
+        x1x2x3 = w["x1x2x3"]
+        y1y2y3 = w["y1y2y3"]
+        z1z2z3 = w["z1z2z3"]
+        ntriangle = x1x2x3.shape[0]
+
+        vertices  = np.zeros((ntriangle*3,3), dtype="f8")
+
+        vertices[0::3,0] = x1x2x3[:,0]
+        vertices[0::3,1] = y1y2y3[:,0]
+        vertices[0::3,2] = z1z2z3[:,0]
+        vertices[1::3,0] = x1x2x3[:,1]
+        vertices[1::3,1] = y1y2y3[:,1]
+        vertices[1::3,2] = z1z2z3[:,1]
+        vertices[2::3,0] = x1x2x3[:,2]
+        vertices[2::3,1] = y1y2y3[:,2]
+        vertices[2::3,2] = z1z2z3[:,2]
+
+        # Reshape the array so that each row contains the vertices of one triangle
+        reshaped_array = vertices.reshape(-1, 3, 3)
+        # Calculate the barycenter for each triangle
+        barycenters = np.mean(reshaped_array, axis=1)
+        if not cartesian:
+            # Convert barycenter to cylindrical basis
+            def cartesian_to_cylindrical(x, y, z):
+                """
+                Convert Cartesian coordinates to cylindrical coordinates.
+
+                Parameters
+                ----------
+                x: X coordinate
+                y: Y coordinate
+                z: Z coordinate
+
+                Returns
+                -------
+                Tuple containing (r, phi, z)
+                """
+                r = np.sqrt(x**2 + y**2)
+                phi = np.arctan2(y, x)
+                return r, phi, z
+
+            barycenters = np.array([cartesian_to_cylindrical(x, y, z) for x, y, z in barycenters])
+
+        return barycenters
+
     def getwallcontour(self, phi=0*unyt.deg):
         """Return a cross section of the wall with a given poloidal plane.
 
