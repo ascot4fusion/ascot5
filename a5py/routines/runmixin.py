@@ -1442,7 +1442,6 @@ class RunMixin(DistMixin):
             idx = rng.choice(ntotal, replace=False, size=n)
             ids0  = ids[idx]
             lost0 = lost[idx]
-
             if qnt == 'lostpower':
                 if flags is None:
                     val[i] = ( np.sum((lost*weight*ekin.to('J'))[idx])
@@ -1462,6 +1461,11 @@ class RunMixin(DistMixin):
                     )
                 val[i] = np.amax(loads/area) * wtotal / np.sum(weight[idx])
                 axes.set_ylabel(r'Peak load [W/m$^2$]')
+            else:
+                raise ValueError(
+                    f"Unrecognized quantity: {qnt}. Recognized quantities are:"
+                    f" lostpower, peakload."
+                    )
 
         axes.set_xscale('log')
         axes.set_xlabel('Number of markers')
