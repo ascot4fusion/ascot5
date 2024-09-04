@@ -2,11 +2,14 @@
 *.optrpt
 *.pyc
 *.so
+*.coverage
+*.code-workspace
 *~
 /build
 /doc/_static/doxygen
-/.metadata/
-/a5py.egg-info/
+/.metadata
+/.vscode
+/a5py.egg-info
 /venv
 /.venv
 /env
