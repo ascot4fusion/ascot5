@@ -16,7 +16,7 @@ from a5py import physlib
 from a5py.routines.virtualrun import VirtualRun, VirtualBBNBIRun
 from a5py.exceptions import *
 
-from .libascot import _LIBASCOT
+from .libascot import _LIBASCOT, _get_struct_class
 if _LIBASCOT:
     from . import ascot2py
 
@@ -341,7 +341,7 @@ class LibSimulate():
                 p.id      = ids[i]
 
         def initmarkers():
-            ps = ctypes.pointer(ascot2py.struct_c__SA_particle_state())
+            ps = ctypes.pointer(_get_struct_class("particle_state")())
             self._nmrk.value = nmrk
             n_proc = ctypes.c_int32(0)
             ascot2py.prepare_markers(
@@ -421,7 +421,7 @@ class LibSimulate():
                 setattr(inistate[j], name, val)
 
         # Initialize diagnostics array and endstate
-        self._endstate = ctypes.pointer(ascot2py.struct_c__SA_particle_state())
+        self._endstate = ctypes.pointer(_get_struct_class("particle_state")())
         ascot2py.diag_init_offload(ctypes.byref(self._sim.diag_offload_data),
                                    ctypes.byref(self._diag_offload_array),
                                    self._nmrk)
@@ -523,7 +523,7 @@ class LibSimulate():
             raise AscotInitException(
                 "Free previous results before running the simulation")
         # Initialize diagnostics array and endstate
-        self._endstate = ctypes.pointer(ascot2py.struct_c__SA_particle_state())
+        self._endstate = ctypes.pointer(_get_struct_class("particle_state")())
         ascot2py.diag_init_offload(ctypes.byref(self._sim.diag_offload_data),
                                    ctypes.byref(self._diag_offload_array),
                                    nprt)
