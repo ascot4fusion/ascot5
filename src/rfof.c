@@ -40,7 +40,7 @@ void __ascot5_icrh_routines_MOD_call_initialise_diagnostics(
 void __ascot5_icrh_routines_MOD_call_set_marker_pointers(void** cptr_marker,
     int** id, real** weight, real** R, real** phi, real** z, real** psi,
     real** charge, real** mass, real** Ekin, real** velocity, real** mu,
-    real** pphicanonical, real** vpar, real** vperp, real** gyrof,
+    real** pphicanonical, real** vpar, real** vperp, real** gyrof, real** tauB,
     real** vdriftRho, real** acc, int* isOrbitTimeAccelerated,
     int* is_already_allocated);
 
@@ -68,6 +68,8 @@ void __ascot5_icrh_routines_MOD_eval_resonance_function(void** cptr_marker,
     void** cptr_rfglobal, real* omega_res, int* nharm);
 
 void __ascot5_icrh_routines_MOD_print_marker_stuff(void** marker_pointer);
+
+void __ascot5_icrh_routines_MOD_print_mem_stuff(void** mem_pointer);
 #endif
 
 /**
@@ -133,13 +135,17 @@ void rfof_set_up(rfof_marker* rfof_mrk, rfof_data* rfof) {
 #ifdef RFOF
     for(int i=0; i< NSIMD; i++) {
         /* Initialize marker data with dummy values */
-        real dummy = 0.0, *ptr = &dummy;
-        int dummyint = 0, *iptr = &dummyint;
+        real dummy = -999.0, *ptr = &dummy;   /* -999.0 should be used for real
+                                                 dummy when dealing with RFOF */
+        int dummyint = 0, *iptr = &dummyint;  /* -999 should be used for int
+                                                 dummy with RFOF but in this
+                                                 case it is irrelevant as iptr
+                                                 only goes to RFOF marker id  */
         int is_accelerated = 0;
         int is_already_allocated = 0;
         __ascot5_icrh_routines_MOD_call_set_marker_pointers(
             &(rfof_mrk->p[i]), &iptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr,
-            &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr,
+            &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr,
             &is_accelerated, &is_already_allocated);
 
         /* Initialize resonance history */
@@ -222,7 +228,11 @@ void rfof_resonance_check_and_kick_gc(
     for(int i=0; i<NSIMD; i++) {
         if(p->id[i] > 0 && p->running[i]) {
             /* Evaluate derived quantities needed by librfof */
-            real psi, B, gamma, Ekin, vnorm, P_phi, xi, v_par, v_perp, gyrof;
+            /* NOTE: It is possible that the use of (multiple) physlib
+               functions to evalutate some quantity introduces some error which,
+               at least when cumulated, grows intolerable.                    */
+            real psi, B, gamma, Ekin, vnorm, P_phi, xi, v_par, v_perp, gyrof,
+            tauB;
             B_field_eval_psi(&psi, p->r[i], p->phi[i], p->z[i], p->time[i],
                              Bdata);
             psi *= CONST_2PI; // librfof is COCOS 13
@@ -233,10 +243,13 @@ void rfof_resonance_check_and_kick_gc(
             P_phi  = phys_ptoroid_gc(p->charge[i], p->r[i], p->ppar[i], psi, B,
                                      p->B_phi[i]);
             xi     = physlib_gc_xi(p->mass[i], p->mu[i], p->ppar[i], B);
-            v_par  = vnorm*xi;
+            v_par = p->ppar[i]/p->mass[i];
             v_perp = phys_vperp_gc(vnorm, v_par);
             gyrof  = phys_gyrofreq_ppar(p->mass[i], p->charge[i], p->mu[i],
                                         p->ppar[i], B);
+            real majR = 1.65;   // For now AUG
+            real minR = 0.6;    // AUG
+            tauB = CONST_2PI*p->charge[i]/CONST_E*majR/v_par*sqrt(2*majR/minR);
             real vdriftRho      = 0; // Assuming this is not needed in librfof
             real acceleration   = 1.0;
             int is_accelerated  = 0;
@@ -259,6 +272,7 @@ void rfof_resonance_check_and_kick_gc(
             real* v_par_ptr     = &v_par;
             real* v_perp_ptr    = &v_perp;
             real* gyrof_ptr     = &gyrof;
+            real* tauB_ptr      = &tauB;
             real* vdriftRho_ptr = &vdriftRho;
             real* acc_ptr       = &acceleration;
 
@@ -284,6 +298,7 @@ void rfof_resonance_check_and_kick_gc(
                 &(v_par_ptr),
                 &(v_perp_ptr),
                 &(gyrof_ptr),
+                &(tauB_ptr),
                 &(vdriftRho_ptr),
                 &(acc_ptr),
                 &is_accelerated,
@@ -304,6 +319,9 @@ void rfof_resonance_check_and_kick_gc(
             int err = 0;
             int mpi_rank = 0; // RFOF does not work with MPI yet
 
+            real Ekin_old = Ekin;
+            real mu_old = *mu_ptr;
+
             /* Ready to kick some ash (if in resonance) */
             __ascot5_icrh_routines_MOD_call_rf_kick(
                 &(p->time[i]), &(hin[i]), &mpi_rank,
@@ -314,7 +332,16 @@ void rfof_resonance_check_and_kick_gc(
 
             /* Most marker phase-space coordinates are updated automatically
              * via the pointers in rfof_mrk except ppar which we update here */
-            p->ppar[i] = p->mass[i]*(v_par_old + rfof_data_pack.dvpar);
+            p->ppar[i] = p->ppar[i] + p->mass[i]*(rfof_data_pack.dvpar);
+
+            //__ascot5_icrh_routines_MOD_print_mem_stuff(&(rfof_mrk->history_array[i]));
+            //printf("\nAt time = %.3e\n", p->time[i]);
+            //printf("Ekin_old = %.3e\t Ekin_new = %.3e\t erotus = %.3e\n", Ekin_old, Ekin,(Ekin-Ekin_old));
+            //printf("Ekin_ptr_old = %.3e\t Ekin_ptr_new = %.3e\n", Ekin_ptr_old, &Ekin);
+            //printf("mu_old = %.3e\t mu_new = %.3e\terotus = %.3e\n", mu_old, *mu_ptr,(*mu_ptr-mu_old));
+            //printf("de = %.3e\tdmu = %.3e\n",rfof_data_pack.de, rfof_data_pack.dmu);
+            //printf("----------------------------------\n");
+
 
             if (err == 7) {
                 /* Overshot the resonance. Mark the suggested time-step as
@@ -365,9 +392,13 @@ void rfof_set_marker_manually(rfof_marker* rfof_mrk, int* id,
     real* vpar, real* vperp, real* gyrof, real* vdriftRho, real* acc,
     int* is_accelerated, int* is_already_allocated) {
 #ifdef RFOF
+    // TODO: Check if this is needed and implement properly.
+    real bigR = 2.0;
+    real tauB_target = CONST_2PI*(*charge)*(bigR)/(*vpar);
+    real* tauB = &tauB_target;
     __ascot5_icrh_routines_MOD_call_set_marker_pointers(
         &rfof_mrk->p[0], &id, &weight, &R, &phi, &z, &psi, &charge, &mass,
-        &Ekin, &vnorm, &mu, &Pphi, &vpar, &vperp, &gyrof, &vdriftRho, &acc,
+        &Ekin, &vnorm, &mu, &Pphi, &vpar, &vperp, &gyrof, &tauB, &vdriftRho, &acc,
         is_accelerated, is_already_allocated);
 #endif
 }
@@ -387,7 +418,13 @@ void rfof_eval_rf_wave(
     real* e_plus_real, real* e_minus_real, real* e_plus_imag,
     real* e_minus_imag, real R, real z, rfof_data* rfof) {
 #ifdef RFOF
-    real rho_tor, theta; // Apparently not used in librfof
+    /* The current implementation assumes that the ICRH wave field is given in
+        R,z co-ordinates. It would be possible to give it in rho_tor,theta as
+        well. Information about the choice of co-ordinates is saved in the
+        rfglobal fortran struct in the fields rfglobal%coord_name_x1 and
+        rfglobal_coord_name_x2. */
+    real rho_tor = -999.0; //currently dummy (-999.0 is standard dummy in RFOF)
+    real theta = -999.0; //currently dummy
     __ascot5_icrh_routines_MOD_get_rf_wave_local_v2(
         &R, &z, &rho_tor, &theta, &rfof->rfglobal, e_plus_real, e_minus_real,
         e_plus_imag, e_minus_imag);
