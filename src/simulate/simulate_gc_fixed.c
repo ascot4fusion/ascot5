@@ -17,6 +17,7 @@
 #include "../diag.h"
 #include "../B_field.h"
 #include "../E_field.h"
+#include "../rfof.h"
 #include "../plasma.h"
 #include "simulate_gc_fixed.h"
 #include "step/step_gc_rk4.h"
@@ -46,13 +47,31 @@ real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i);
  * @param sim simulation data
  */
 void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
-    int cycle[NSIMD]  __memalign__; // Flag indigating whether a new marker was initialized
-    real hin[NSIMD]  __memalign__;  // Time step
+    int cycle[NSIMD]      __memalign__; /* Flag indigating whether a new marker
+                                           was initialized */
+    real hin[NSIMD]       __memalign__;  // Fixed time step (used by default)
+    real hin_default[NSIMD] __memalign__;
+    //real hnext_recom[NSIMD]     __memalign__; /* Next time step (same as hin almost
+     //                                      always, except for when RFOF needs
+       //                                    smaller)                           */
+    real hout_rfof[NSIMD] __memalign__; /* The time step that RFOF recommends.
+                                            Small positive means that resonance
+                                            is close, small negative means that
+                                            the step failed because the marker
+                                            overshot the resonance and that the
+                                            time step should be retaken with a
+                                            smaller time step given by the
+                                            negative of hout_rfof             */
+
+    // Start by using the default
+    //for(int i = 0; i<NSIMD; i++) {hnext[i] = hin[i];};
 
     real cputime, cputime_last; // Global cpu time: recent and previous record
 
     particle_simd_gc p;  // This array holds current states
     particle_simd_gc p0; // This array stores previous states
+
+    rfof_marker rfof_mrk; // RFOF specific data
 
     /* Init dummy markers */
     for(int i=0; i< NSIMD; i++) {
@@ -63,11 +82,16 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
     /* Initialize running particles */
     int n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 
+    if(sim->enable_icrh) {
+        rfof_set_up(&rfof_mrk, &sim->rfof_data);
+    }
+
     /* Determine simulation time-step */
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
         if(cycle[i] > 0) {
-            hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
+            hin_default[i] = simulate_gc_fixed_inidt(sim, &p, i);
+            hin[i] = hin_default[i];
         }
     }
 
@@ -126,6 +150,27 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
                           &sim->mccc_data, rnd);
         }
 
+        /* Performs the ICRH kick if in resonance. */
+        if(sim->enable_icrh) {
+            rfof_resonance_check_and_kick_gc(
+                &p, hin, hout_rfof, &rfof_mrk, &sim->rfof_data, &sim->B_data);
+
+            /* Check whether time step was rejected */
+            #pragma omp simd
+            for(int i = 0; i < NSIMD; i++) {
+                if(p.running[i] && hout_rfof[i] < 0){
+                    // Screwed up big time
+                    p.running[i] = 0;
+                    hin[i] = hout_rfof[i];  /* Use the smaller time-step
+                                                 suggested by RFOF on the next
+                                                 round. */
+                } else if(p.running[i]) {
+                    // Everything went better than expected
+                    hin[i] = hin_default[i];  // use the original fixed step
+                }
+            }
+        }
+
         /**********************************************************************/
 
 
@@ -134,9 +179,18 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
             if(p.running[i]) {
-                p.time[i]    += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) ) * hin[i];
-                p.mileage[i] += hin[i];
-                p.cputime[i] += cputime - cputime_last;
+                // Check whether the time-step was ok
+                if(hin[i] < 0) {
+                    /* Screwed up big time (negative time-step only when RFOF
+                       rejected) */
+                    particle_copy_gc(&p0, i, &p, i);
+                    hin[i] = -hin[i];
+                } else {
+                    // The step was successful
+                    p.time[i]    += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) ) * hin[i];
+                    p.mileage[i] += hin[i];
+                    p.cputime[i] += cputime - cputime_last;
+                }
             }
         }
         cputime_last = cputime;
@@ -155,6 +209,10 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         for(int i = 0; i < NSIMD; i++) {
             if(cycle[i] > 0) {
                 hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
+                if(sim->enable_icrh) {
+                    /* Reset icrh (rfof) resonance memory matrix. */
+                    rfof_clear_history(&rfof_mrk, i);
+                }
             }
         }
 
@@ -162,6 +220,10 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 
     /* All markers simulated! */
 
+    /* Deallocate rfof structs */
+    if(sim->enable_icrh) {
+        rfof_tear_down(&rfof_mrk);
+    }
 }
 
 /**
