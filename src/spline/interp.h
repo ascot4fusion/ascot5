@@ -165,25 +165,13 @@ void interp3Dexpl_init_spline(interp3D_data* str, real* c,
                               real y_min, real y_max,
                               real z_min, real z_max);
 
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(str)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp1Dcomp_eval_f(real* f, interp1D_data* str, real x);
 DECLARE_TARGET_END
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(str)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y);
 DECLARE_TARGET_END
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(str)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp3Dcomp_eval_f(real* f, interp3D_data* str,
                          real x, real y, real z);
 DECLARE_TARGET_END
@@ -196,25 +184,13 @@ DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp3Dexpl_eval_f(real* f, interp3D_data* str,
                           real x, real y, real z);
 
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(str)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp1Dcomp_eval_df(real* f_df, interp1D_data* str, real x);
 DECLARE_TARGET_END
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(str)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp2Dcomp_eval_df(real* f_df, interp2D_data* str, real x, real y);
 DECLARE_TARGET_END
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(str)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
                            real x, real y, real z);
 DECLARE_TARGET_END

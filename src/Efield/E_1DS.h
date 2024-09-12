@@ -36,11 +36,7 @@ void E_1DS_free_offload(E_1DS_offload_data* offload_data, real** offload_array);
 
 void E_1DS_init(E_1DS_data* Edata, E_1DS_offload_data* offload_data,
                 real* offload_array);
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(Edata,Bdata)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(Edata,Bdata)
 a5err E_1DS_eval_E(real E[3], real r, real phi, real z, E_1DS_data* Edata,
                    B_field_data* Bdata);
 DECLARE_TARGET_END

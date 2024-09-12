@@ -65,20 +65,12 @@ void wall_free_offload(wall_offload_data* offload_data, real** offload_array,
 int wall_init(wall_data* w, wall_offload_data* offload_data,
               real* offload_array, int* int_offload_array);
 
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(w)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(w)
 int wall_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
                   wall_data* w, real* w_coll);
 DECLARE_TARGET_END
 
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(w)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(w)
 int wall_get_n_elements(wall_data* w);
 DECLARE_TARGET_END
 #endif
