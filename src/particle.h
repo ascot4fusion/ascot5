@@ -461,11 +461,7 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
 DECLARE_TARGET_SIMD_UNIFORM(p_fo,Bdata)
 int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
                       B_field_data* Bdata);
-#ifndef GPU
-DECLARE_TARGET_SIMD
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD
 void particle_copy_fo(particle_simd_fo* p1, int i, particle_simd_fo* p2, int j);
 DECLARE_TARGET_END
 DECLARE_TARGET_SIMD
