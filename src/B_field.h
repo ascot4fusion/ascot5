@@ -77,58 +77,30 @@ void B_field_free_offload(B_field_offload_data* offload_data,
 int B_field_init(
     B_field_data* Bdata, B_field_offload_data* offload_data,
     real* offload_array);
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err B_field_eval_psi(
     real* psi, real r, real phi, real z, real t, B_field_data* Bdata);
 DECLARE_TARGET_END
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err B_field_eval_psi_dpsi(
     real psi_dpsi[4], real r, real phi, real z, real t, B_field_data* Bdata);
 DECLARE_TARGET_END
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err B_field_eval_rho(real rho[2], real psi, B_field_data* Bdata);
 DECLARE_TARGET_END
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err B_field_eval_rho_drho(
     real rho_drho[4], real r, real phi, real z, B_field_data* Bdata);
 DECLARE_TARGET_END
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err B_field_eval_B(real B[3], real r, real phi, real z, real t,
                      B_field_data* Bdata);
 DECLARE_TARGET_END
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err B_field_eval_B_dB(
     real B_dB[15], real r, real phi, real z, real t, B_field_data* Bdata);
 DECLARE_TARGET_END
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err B_field_get_axis_rz(real rz[2], B_field_data* Bdata, real phi);
 DECLARE_TARGET_END
 

@@ -82,25 +82,13 @@ void linint3D_init(linint3D_data* str, real* c,
                    real y_min, real y_max,
                    real z_min, real z_max);
 
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(str)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
 int linint1D_eval_f(real* f, linint1D_data* str, real x);
 DECLARE_TARGET_END
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(str)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
 int linint2D_eval_f(real* f, linint2D_data* str, real x, real y);
 DECLARE_TARGET_END
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(str)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
 int linint3D_eval_f(real* f, linint3D_data* str,
                     real x, real y, real z);
 DECLARE_TARGET_END

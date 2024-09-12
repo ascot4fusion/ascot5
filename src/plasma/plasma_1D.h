@@ -46,27 +46,15 @@ void plasma_1D_free_offload(plasma_1D_offload_data* offload_data,
 void plasma_1D_init(plasma_1D_data* pls_data,
                     plasma_1D_offload_data* offload_data,
                     real* offload_array);
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(pls_data)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
 a5err plasma_1D_eval_temp(real* dens, real rho, int species,
                           plasma_1D_data* pls_data);
 DECLARE_TARGET_END
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(pls_data)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
 a5err plasma_1D_eval_dens(real* temp, real rho, int species,
                           plasma_1D_data* pls_data);
 DECLARE_TARGET_END
-#ifndef GPU
-DECLARE_TARGET_SIMD_UNIFORM(pls_data)
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
 a5err plasma_1D_eval_densandtemp(real* dens, real* temp, real rho,
                                  plasma_1D_data* pls_data);
 DECLARE_TARGET_END

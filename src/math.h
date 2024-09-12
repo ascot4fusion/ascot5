@@ -111,18 +111,10 @@
 
 DECLARE_TARGET_SIMD
 void math_jac_rpz2xyz(real* rpz, real* xyz, real r, real phi);
-#ifndef GPU
-DECLARE_TARGET_SIMD
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD
 void math_jac_xyz2rpz(real* xyz, real* rpz, real r, real phi);
 DECLARE_TARGET_END
-#ifndef GPU
-DECLARE_TARGET_SIMD
-#else
-DECLARE_TARGET
-#endif
+GPU_DECLARE_TARGET_SIMD
 void math_matmul(real* matA, real* matB, int d1, int d2, int d3, real* matC);
 DECLARE_TARGET_END
 DECLARE_TARGET_SIMD
