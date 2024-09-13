@@ -6,9 +6,6 @@
 #include <stdlib.h>
 #include <time.h>
 #include <omp.h>
-#ifndef __NVCOMPILER
-#include <immintrin.h>
-#endif
 #include <math.h>
 #include "../ascot5.h"
 #include "../endcond.h"
