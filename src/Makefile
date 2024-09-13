@@ -42,13 +42,27 @@ else ifeq ($(RANDOM),LCG)
 	DEFINES+=-DRANDOM_LCG
 endif
 
-#ifneq ($(CC),h5cc)
-#	ifneq ($(CC),h5pcc)
-	CFLAGS+=-lhdf5 -lhdf5_hl
-#	endif
-#endif
+ifneq ($(CC),h5cc)
+	ifneq ($(CC),h5pcc)
+		CFLAGS+=-lhdf5 -lhdf5_hl
+	endif
+endif
 
-CFLAGS+=-O2 -lm -Wall -fopenmp -fPIC -std=c11 $(DEFINES) $(FLAGS)
+ifeq ($(GPU),1)
+	DEFINES+=-DGPU
+	CFLAGS+=-c++libs -cuda
+	ifeq ($(ACC), 1)
+		CFLAGS+=-acc -Mnoopenmp
+	else ifeq ($(OMP), 1)
+		CFLAGS+=-mp=gpu -fopenmp
+		DEFINES+=-D_OPENMP
+	endif
+else
+	CFLAGS+=-fopenmp
+endif
+
+CFLAGS+=-O3 -lm -Wall -fPIC -std=c11 -D_XOPEN_SOURCE=700 \
+	$(DEFINES) $(FLAGS)
 
 # Write CFLAGS and CC to a file to be included into output
 $(shell echo "#define CFLAGS " $(CFLAGS) > compiler_flags.h)
