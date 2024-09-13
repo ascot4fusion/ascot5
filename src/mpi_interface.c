@@ -62,6 +62,17 @@ void mpi_interface_finalize() {
 }
 
 /**
+ * @brief Wait until all processes have reached this routine
+ *
+ * Wrapper for the MPI_Barrier.
+ */
+void mpi_interface_barrier() {
+#ifdef MPI
+    MPI_Barrier(MPI_COMM_WORLD);
+#endif
+}
+
+/**
  * @brief Divide markers to mpi processes
  *
  * This function divides ntotal markers evenly and returns the starting index

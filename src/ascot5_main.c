@@ -472,51 +472,26 @@ int offload_and_simulate(
     offload_package* offload_data, real* offload_array, int* int_offload_array,
     int* n_gather, particle_state** pout, real* diag_offload_array) {
 
-    /* Divide markers among host and target */
-    int n_mic = 0;
-    int n_host = nprts;
-
-    double mic_start = 0, mic_end=0, host_start=0, host_end=0;
-
-    /* Empty message buffer before proceeding to offload */
+    /* Empty message buffer before proceeding to actual simulation */
     fflush(stdout);
 
-    /* Allow threads to spawn threads */
-    //omp_set_nested(1);
+    /* Actual marker simulation happens here. */
+    real t_sim_start = omp_get_wtime();
+    simulate(0, nprts, pin, sim, offload_data,
+        offload_array, int_offload_array, *diag_offload_array);
 
-    /* Actual marker simulation happens here. Threads are spawned which
-     * distribute the execution between target(s) and host. Both input and
-     * diagnostic offload arrays are mapped to target. Simulation is initialized
-     * at the target and completed within the simulate() function.*/
-    //#pragma omp parallel sections num_threads(3)
-    {
-        /* Run simulation on first target */
-
-#ifndef TARGET
-        /* No target, marker simulation happens where the code execution began.
-         * Offloading is only emulated. */
-        //#pragma omp section
-        {
-            host_start = omp_get_wtime();
-            simulate(0, n_host, pin+2*n_mic, sim, offload_data,
-                offload_array, int_offload_array, diag_offload_array);
-            host_end = omp_get_wtime();
-        }
-    }
-
-    /* Code execution returns to host. */
-    MPI_Barrier(MPI_COMM_WORLD);
-    print_out0(VERBOSE_NORMAL, mpi_rank, "gpu %lf s, host %lf s\n",
-               mic_end-mic_start, host_end-host_start);
+    mpi_interface_barrier();
+    real t_sim_end = omp_get_wtime();
+    print_out0(VERBOSE_NORMAL, mpi_rank, "Simulation finished in %lf s\n",
+               t_sim_end-t_sim_start);
 
     /* Gather output data */
     mpi_gather_particlestate(pin, pout, n_gather, n_tot, sim->mpi_rank,
                              sim->mpi_size, sim->mpi_root);
     free(pin);
 
-    mpi_gather_diag(&sim->diag_offload_data, diag_offload_array, n_tot,
-                    sim->mpi_rank, sim->mpi_size, sim->mpi_root);
-
+    mpi_gather_diag(&sim->diag_offload_data, *diag_offload_array, n_tot,
+                    mpi_rank, mpi_size, mpi_root);
     return 0;
 }
 
