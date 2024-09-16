@@ -385,7 +385,7 @@ a5err B_GS_eval_B(real B[3], real r, real phi,
                       + ( z - Bdata->z0 ) * ( z - Bdata->z0 ));
         real theta = atan2( z - Bdata->z0, r - Bdata->R0 );
         real delta = Bdata->delta0 * exp(-0.5*theta*theta)
-	  * pow( radius / Bdata->a0, Bdata->alpha0 );
+                     * pow( radius / Bdata->a0, Bdata->alpha0 );
         B[1] = B[1] * ( 1 + delta * cos(Bdata->Nripple * phi) );
     }
 
@@ -509,7 +509,7 @@ a5err B_GS_eval_B_dB(real B_dB[12], real r, real phi, real z,
                       + ( z - z0 ) * ( z - z0 ));
         real theta = atan2( z - z0, r - R0 );
         real delta = Bdata->delta0 * exp(-0.5*theta*theta)
-	  * pow( radius / Bdata->a0, Bdata->alpha0 );
+	                 * pow( radius / Bdata->a0, Bdata->alpha0 );
 
         real Bphi = B4;
         real Bpert = Bphi * delta * cos(Bdata->Nripple * phi);
