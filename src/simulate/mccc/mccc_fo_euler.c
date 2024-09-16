@@ -25,19 +25,20 @@
  *        collisions. Values for marker i are rnd[i*NSIMD + j]
  */
 void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
-                   random_data* rdata, mccc_data* mdata, real* rnd, int n_queue_size) {
+                   random_data* rdata, mccc_data* mdata, real* rnd) {
 
     /* Generate random numbers and get plasma information before going to the *
      * SIMD loop                                                              */
-    random_normal_simd(rdata, 3*n_queue_size, rnd);
+    random_normal_simd(rdata, 3*p->n_mrk, rnd);
 
     /* Get plasma information before going to the  SIMD loop */
     int n_species  = plasma_get_n_species(pdata);
     const real* qb = plasma_get_species_charge(pdata);
     const real* mb = plasma_get_species_mass(pdata);
 
+    #pragma acc data present(h[0:p->n_mrk], rnd[0:3*p->n_mrk])
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for(int i = 0; i < n_queue_size; i++) {
+    for(int i = 0; i < p->n_mrk; i++) {
         if(p->running[i]) {
             a5err errflag = 0;
 
@@ -74,7 +75,7 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
             /* Evaluate collision coefficients and sum them for each *
              * species                                               */
             real F = 0, Dpara = 0, Dperp = 0;
-#pragma acc loop seq
+            #pragma acc loop seq
             for(int j = 0; j < n_species; j++) {
                 real vb = sqrt( 2 * Tb[j] / mb[j] );
                 real x  = vin / vb;
@@ -92,9 +93,9 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
             /* Evaluate collisions */
             real sdt = sqrt(h[i]);
             real dW[3];
-            dW[0] = sdt * rnd[0*n_queue_size + i];
-            dW[1] = sdt * rnd[1*n_queue_size + i];
-            dW[2] = sdt * rnd[2*n_queue_size + i];
+            dW[0] = sdt * rnd[0*p->n_mrk + i];
+            dW[1] = sdt * rnd[1*p->n_mrk + i];
+            dW[2] = sdt * rnd[2*p->n_mrk + i];
 
             real vhat[3];
             math_unit(vin_xyz, vhat);
@@ -131,5 +132,4 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
             }
         }
     }
-    //    GPU_MAP_DELETE_DEVICE(rnd[0:3*n_queue_size])
 }

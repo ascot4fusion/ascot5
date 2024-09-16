@@ -96,7 +96,7 @@ typedef struct {
 void dist_6D_init(dist_6D_data* dist_data, dist_6D_offload_data* offload_data,
                   real* offload_array);
 void dist_6D_update_fo(dist_6D_data* dist, particle_simd_fo* p_f,
-                       particle_simd_fo* p_i, int n_queue_size);
+                       particle_simd_fo* p_i);
 void dist_6D_update_gc(dist_6D_data* dist, particle_simd_gc* p_f,
                        particle_simd_gc* p_i);
 

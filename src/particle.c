@@ -58,60 +58,60 @@
 #include "E_field.h"
 
 /**
- * @brief Allocates Struct representing particle markers
+ * @brief Allocates struct representing particle markers
  *
- * Size used for memory allocation is NSIMD for CPU run and
- * the total number nprt of particles for GPU.
+ * Size used for memory allocation is NSIMD for CPU run and the total number
+ * of particles for GPU.
  *
- * @param p_fo  pointer to particle_simd_fo array where dummy is placed
- * @param nprt     index of the new dummy in the SIMD arrays
+ * @param p_fo marker struct to allocate
+ * @param nmrk the number of markers that the struct represents
  */
-void particle_to_fo_alloc(particle_simd_fo* p_fo, int nsize){
-    p_fo->r      = malloc(nsize * sizeof(p_fo->r)     );
-    p_fo->phi    = malloc(nsize * sizeof(p_fo->phi)   );
-    p_fo->z      = malloc(nsize * sizeof(p_fo->z)     );
-    p_fo->p_r    = malloc(nsize * sizeof(p_fo->p_r)   );
-    p_fo->p_phi  = malloc(nsize * sizeof(p_fo->p_phi) );
-    p_fo->p_z    = malloc(nsize * sizeof(p_fo->p_z)   );
-    p_fo->mass   = malloc(nsize * sizeof(p_fo->mass)  );
-    p_fo->charge = malloc(nsize * sizeof(p_fo->charge));
-    p_fo->time   = malloc(nsize * sizeof(p_fo->time)  );
-    p_fo->znum   = malloc(nsize * sizeof(p_fo->znum)  );
-    p_fo->anum   = malloc(nsize * sizeof(p_fo->anum)  );
+void particle_allocate_fo(particle_simd_fo* p_fo, int nmrk){
+    p_fo->r      = malloc(nmrk * sizeof(p_fo->r)     );
+    p_fo->phi    = malloc(nmrk * sizeof(p_fo->phi)   );
+    p_fo->z      = malloc(nmrk * sizeof(p_fo->z)     );
+    p_fo->p_r    = malloc(nmrk * sizeof(p_fo->p_r)   );
+    p_fo->p_phi  = malloc(nmrk * sizeof(p_fo->p_phi) );
+    p_fo->p_z    = malloc(nmrk * sizeof(p_fo->p_z)   );
+    p_fo->mass   = malloc(nmrk * sizeof(p_fo->mass)  );
+    p_fo->charge = malloc(nmrk * sizeof(p_fo->charge));
+    p_fo->time   = malloc(nmrk * sizeof(p_fo->time)  );
+    p_fo->znum   = malloc(nmrk * sizeof(p_fo->znum)  );
+    p_fo->anum   = malloc(nmrk * sizeof(p_fo->anum)  );
 
     /* Magnetic field data */
-    p_fo->B_r        = malloc(nsize * sizeof(p_fo->B_r)       );
-    p_fo->B_phi      = malloc(nsize * sizeof(p_fo->B_phi)     );
-    p_fo->B_z        = malloc(nsize * sizeof(p_fo->B_z)       );
-    p_fo->B_r_dr     = malloc(nsize * sizeof(p_fo->B_r_dr)    );
-    p_fo->B_phi_dr   = malloc(nsize * sizeof(p_fo->B_phi_dr)  );
-    p_fo->B_z_dr     = malloc(nsize * sizeof(p_fo->B_z_dr)    );
-    p_fo->B_r_dphi   = malloc(nsize * sizeof(p_fo->B_r_dphi)  );
-    p_fo->B_phi_dphi = malloc(nsize * sizeof(p_fo->B_phi_dphi));
-    p_fo->B_z_dphi   = malloc(nsize * sizeof(p_fo->B_z_dphi)  );
-    p_fo->B_r_dz     = malloc(nsize * sizeof(p_fo->B_r_dz)    );
-    p_fo->B_phi_dz   = malloc(nsize * sizeof(p_fo->B_phi_dz)  );
-    p_fo->B_z_dz     = malloc(nsize * sizeof(p_fo->B_z_dz)    );
+    p_fo->B_r        = malloc(nmrk * sizeof(p_fo->B_r)       );
+    p_fo->B_phi      = malloc(nmrk * sizeof(p_fo->B_phi)     );
+    p_fo->B_z        = malloc(nmrk * sizeof(p_fo->B_z)       );
+    p_fo->B_r_dr     = malloc(nmrk * sizeof(p_fo->B_r_dr)    );
+    p_fo->B_phi_dr   = malloc(nmrk * sizeof(p_fo->B_phi_dr)  );
+    p_fo->B_z_dr     = malloc(nmrk * sizeof(p_fo->B_z_dr)    );
+    p_fo->B_r_dphi   = malloc(nmrk * sizeof(p_fo->B_r_dphi)  );
+    p_fo->B_phi_dphi = malloc(nmrk * sizeof(p_fo->B_phi_dphi));
+    p_fo->B_z_dphi   = malloc(nmrk * sizeof(p_fo->B_z_dphi)  );
+    p_fo->B_r_dz     = malloc(nmrk * sizeof(p_fo->B_r_dz)    );
+    p_fo->B_phi_dz   = malloc(nmrk * sizeof(p_fo->B_phi_dz)  );
+    p_fo->B_z_dz     = malloc(nmrk * sizeof(p_fo->B_z_dz)    );
 
     /* Quantities used in diagnostics */
-    p_fo->bounces = malloc(nsize * sizeof(p_fo->bounces));
-    p_fo->weight  = malloc(nsize * sizeof(p_fo->weight) );
-    p_fo->cputime = malloc(nsize * sizeof(p_fo->cputime));
-    p_fo->rho     = malloc(nsize * sizeof(p_fo->rho)    );
-    p_fo->theta   = malloc(nsize * sizeof(p_fo->theta)  );
+    p_fo->bounces = malloc(nmrk * sizeof(p_fo->bounces));
+    p_fo->weight  = malloc(nmrk * sizeof(p_fo->weight) );
+    p_fo->cputime = malloc(nmrk * sizeof(p_fo->cputime));
+    p_fo->rho     = malloc(nmrk * sizeof(p_fo->rho)    );
+    p_fo->theta   = malloc(nmrk * sizeof(p_fo->theta)  );
 
-    p_fo->id       = malloc(nsize * sizeof(p_fo->id)      );
-    p_fo->endcond  = malloc(nsize * sizeof(p_fo->endcond) );
-    p_fo->walltile = malloc(nsize * sizeof(p_fo->walltile));
+    p_fo->id       = malloc(nmrk * sizeof(p_fo->id)      );
+    p_fo->endcond  = malloc(nmrk * sizeof(p_fo->endcond) );
+    p_fo->walltile = malloc(nmrk * sizeof(p_fo->walltile));
 
     /* Meta data */
-    p_fo->mileage = malloc(nsize * sizeof(p_fo->mileage));
+    p_fo->mileage = malloc(nmrk * sizeof(p_fo->mileage));
 
-    p_fo->running = malloc(nsize * sizeof(p_fo->running));
+    p_fo->running = malloc(nmrk * sizeof(p_fo->running));
 
-    p_fo->err   = malloc(nsize * sizeof(p_fo->err)  );
-    p_fo->index = malloc(nsize * sizeof(p_fo->index));
-
+    p_fo->err   = malloc(nmrk * sizeof(p_fo->err)  );
+    p_fo->index = malloc(nmrk * sizeof(p_fo->index));
+    p_fo->n_mrk = nmrk;
 }
 
 
@@ -266,11 +266,11 @@ void particle_to_ml_dummy(particle_simd_ml* p_ml, int j){
  * @return Number of markers within the SIMD structure that are still running
  */
 int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
-                      B_field_data* Bdata, int* cycle, int n_queue_size) {
+                      B_field_data* Bdata, int* cycle) {
 
     /* Loop over markers.
      * A SIMD loop is not possible as we modify the queue. */
-    for(int i = 0; i < n_queue_size; i++) {
+    for(int i = 0; i < p->n_mrk; i++) {
 
         /* First check whether we should pick a new marker */
         int newmarker = 0;
@@ -332,7 +332,7 @@ int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
 
     int n_running = 0;
     #pragma omp simd reduction(+:n_running)
-    for(int i = 0; i < n_queue_size; i++) {
+    for(int i = 0; i < p->n_mrk; i++) {
         n_running += p->running[i];
     }
 
