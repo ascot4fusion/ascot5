@@ -48,8 +48,8 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i);
  * @param n_queue_size size of particle arrays
  */
 void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int n_queue_size) {
-    int cycle[n_queue_size];//  __memalign__; // Flag indigating whether a new marker was initialized
-    real hin[n_queue_size];//  __memalign__;  // Time step
+    int cycle[n_queue_size];// Indicates whether a new marker was initialized
+    real hin[n_queue_size];// Time step
 
     real cputime, cputime_last; // Global cpu time: recent and previous record
 
@@ -97,7 +97,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int n_queue_size) {
 
 #ifdef GPU
     simulate_fo_fixed_copy_to_gpu(sim, p_ptr, p0_ptr, Bdata, Edata, &p_loc, hin, rnd, n_queue_size);
-#endif    
+#endif
     while(n_running > 0) {
         /* Store marker states */
         GPU_PARALLEL_LOOP_ALL_LEVELS
@@ -117,15 +117,11 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int n_queue_size) {
         /* Volume preserving algorithm for orbit-following */
         if(sim->enable_orbfol) {
             if(sim->enable_mhd) {
-#ifdef GPU
-	      printf("step_fo_vpa_mhd NOT YET PORTED TO GPU");
-	      exit(1);
-#endif
                 step_fo_vpa_mhd(&p, hin, &sim->B_data, &sim->E_data,
                                 &sim->boozer_data, &sim->mhd_data);
             }
             else {
-	      step_fo_vpa(p_ptr, hin, &sim->B_data, &sim->E_data, n_queue_size);
+	            step_fo_vpa(p_ptr, hin, &sim->B_data, &sim->E_data, n_queue_size);
             }
         }
 
@@ -145,20 +141,13 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int n_queue_size) {
 			&sim->random_data,
 #else
 			sim->random_data,
-#endif			
+#endif
 			&sim->mccc_data,
 			rnd, n_queue_size);
-#else
-	  printf("mccc_fo_euler ported on GPU only for RANDOM_LCG");
-	  exit(1);	  
-#endif	  
+#endif
         }
         /* Atomic reactions */
         if(sim->enable_atomic) {
-#ifdef GPU
-	  printf("atomic_fo NOT YET PORTED TO GPU");
-	  exit(1);
-#endif
             atomic_fo(p_ptr, hin, &sim->plasma_data, &sim->neutral_data,
                       &sim->random_data, &sim->asigma_data,
                       &sim->enable_atomic);
@@ -184,14 +173,10 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int n_queue_size) {
         /* Update diagnostics */
         if(!(sim->record_mode)) {
             /* Record particle coordinates */
-	  diag_update_fo(&sim->diag_data, &sim->B_data, p_ptr, p0_ptr, &p_loc, n_queue_size);
+	        diag_update_fo(&sim->diag_data, &sim->B_data, p_ptr, p0_ptr, &p_loc, n_queue_size);
         }
         else {
-#ifdef GPU
-	  printf("particle_fo_to_gc NOT YET PORTED TO GPU");
-	  exit(1);
-#endif	  
-	  /* Instead of particle coordinates we record guiding center */
+	        /* Instead of particle coordinates we record guiding center */
 
             // Dummy guiding centers
             particle_simd_gc gc_f;
@@ -229,7 +214,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int n_queue_size) {
 #else
 	n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle, n_queue_size);
 #endif
-#ifndef GPU	
+#ifndef GPU
         /* Determine simulation time-step for new particles */
 	GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < n_queue_size; i++) {
@@ -238,14 +223,14 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int n_queue_size) {
 	      hin[i] = simulate_fo_fixed_inidt(sim, &p, i);
 	    }
         }
-#endif	
+#endif
     }
     /* All markers simulated! */
 
 #ifdef GPU
     simulate_fo_fixed_copy_from_gpu(sim, p_ptr, n_queue_size);
     n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle, n_queue_size);
-#endif    
+#endif
 }
 
 /**

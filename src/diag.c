@@ -223,15 +223,13 @@ void diag_free(diag_data* data) {
  *        current time-step
  * @param p_loc pre-allocated pointer to SIMD arrays used in diagnostics kernels
  *        to avoid dynamical allocation
- * @param n_queue_size size of particle arrays 
+ * @param n_queue_size size of particle arrays
  */
 void diag_update_fo(diag_data* data, B_field_data* Bdata, particle_simd_fo* p_f,
                     particle_simd_fo* p_i, particle_loc* p_loc, int n_queue_size) {
-#ifndef  GPU
     if(data->diagorb_collect) {
         diag_orb_update_fo(&data->diagorb, p_f, p_i);
     }
-#endif
     if(data->dist5D_collect) {
         dist_5D_update_fo(&data->dist5D, p_f, p_i, p_loc, n_queue_size);
     }
@@ -251,12 +249,8 @@ void diag_update_fo(diag_data* data, B_field_data* Bdata, particle_simd_fo* p_f,
     if(data->distCOM_collect){
       dist_COM_update_fo(&data->distCOM, Bdata, p_f, p_i, p_loc, n_queue_size);
     }
-    
+
     if(data->diagtrcof_collect){
-#ifdef GPU
-	  printf("diagtrcof NOT YET PORTED TO GPU");
-	  exit(1);
-#endif
       diag_transcoef_update_fo(&data->diagtrcof, p_f, p_i, n_queue_size);
     }
 }
