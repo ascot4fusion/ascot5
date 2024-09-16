@@ -93,8 +93,8 @@ void simulate(
 #ifdef GPU
     n_queue_size = n_particles;
 #else
-    n_queue_size = NSIMD;      
-#endif      
+    n_queue_size = NSIMD;
+#endif
     /**************************************************************************/
     /* 1. Input offload data is unpacked and initialized by calling           */
     /*    respective init functions.                                          */
@@ -102,6 +102,35 @@ void simulate(
     /**************************************************************************/
     sim_data sim;
     sim_init(&sim, sim_offload);
+
+#ifdef GPU
+    if(sim.sim_mode != 1) {
+        print_err("Only GO mode ported to GPU. Please set SIM_MODE=1.");
+        exit(1);
+    }
+    if(sim.record_mode) {
+        print_err("RECORD_MODE=1 not ported to GPU. Please disable it.");
+        exit(1);
+    }
+    if(sim.enable_atomic) {
+        print_err("Atomic not yet ported to GPU. Please set ENABLE_ATOMIC=0.");
+        exit(1);
+    }
+    if(sim.enable_mhd) {
+        print_err("MHD not yet ported to GPU. Please set ENABLE_MHD=0.");
+        exit(1);
+    }
+    if(sim.diag_data.diagorb_collect) {
+        print_err(
+            "ENABLE_ORBITWRITE=1 not ported to GPU. Please disable it.");
+        exit(1);
+    }
+    if(sim.diag_data.diagtrcof_collect) {
+        print_err(
+            "ENABLE_TRANSCOEF=1 not ported to GPU. Please disable it.");
+        exit(1);
+    }
+#endif
 
     real* ptr; int* ptrint;
     offload_unpack(offload_data, offload_array,
@@ -203,27 +232,27 @@ void simulate(
                 if(sim.enable_ada) {
 #ifndef GPU
                     #pragma omp parallel
-#endif		  
+#endif
                     simulate_gc_adaptive(&pq, &sim);
                 }
                 else {
 #ifndef GPU
                     #pragma omp parallel
-#endif		  
+#endif
                     simulate_gc_fixed(&pq, &sim);
                 }
             }
             else if(pq.n > 0 && sim.sim_mode == simulate_mode_fo) {
 #ifndef GPU
               #pragma omp parallel
-#endif	      
+#endif
 	      simulate_fo_fixed(&pq, &sim, n_queue_size);
             }
             else if(pq.n > 0 && sim.sim_mode == simulate_mode_ml) {
 
 #ifndef GPU
                 #pragma omp parallel
-#endif	      
+#endif
                 simulate_ml_adaptive(&pq, &sim);
             }
         }

@@ -29,6 +29,26 @@ ifeq ($(MPI),1)
 	CC=h5pcc
 endif
 
+ifneq ($(CC),h5cc)
+	ifneq ($(CC),h5pcc)
+		CFLAGS+=-lhdf5 -lhdf5_hl
+	endif
+endif
+
+ifeq ($(GPU),1)
+	DEFINES+=-DGPU
+	RANDOM=LCG
+	CFLAGS+=-c++libs -cuda
+	ifeq ($(ACC), 1)
+		CFLAGS+=-acc -Mnoopenmp
+	else ifeq ($(OMP), 1)
+		CFLAGS+=-mp=gpu -fopenmp
+		DEFINES+=-D_OPENMP
+	endif
+else
+	CFLAGS+=-fopenmp
+endif
+
 ifeq ($(RANDOM),MKL)
 	DEFINES+=-DRANDOM_MKL
 	CFLAGS+=-mkl
@@ -40,25 +60,6 @@ else ifeq ($(RANDOM),GSL)
 	CFLAGS+=-lgsl -lgslcblas
 else ifeq ($(RANDOM),LCG)
 	DEFINES+=-DRANDOM_LCG
-endif
-
-ifneq ($(CC),h5cc)
-	ifneq ($(CC),h5pcc)
-		CFLAGS+=-lhdf5 -lhdf5_hl
-	endif
-endif
-
-ifeq ($(GPU),1)
-	DEFINES+=-DGPU
-	CFLAGS+=-c++libs -cuda
-	ifeq ($(ACC), 1)
-		CFLAGS+=-acc -Mnoopenmp
-	else ifeq ($(OMP), 1)
-		CFLAGS+=-mp=gpu -fopenmp
-		DEFINES+=-D_OPENMP
-	endif
-else
-	CFLAGS+=-fopenmp
 endif
 
 CFLAGS+=-O3 -lm -Wall -fPIC -std=c11 -D_XOPEN_SOURCE=700 \
