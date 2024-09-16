@@ -109,6 +109,9 @@
 /** @brief Convert radians to degrees */
 #define math_rad2deg(a) (a * math_raddeg)
 
+DECLARE_TARGET
+real fmod(real x, real y);
+DECLARE_TARGET_END
 DECLARE_TARGET_SIMD
 void math_jac_rpz2xyz(real* rpz, real* xyz, real r, real phi);
 GPU_DECLARE_TARGET_SIMD

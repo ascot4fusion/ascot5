@@ -13,6 +13,17 @@ double math_simpson_helper(double (*f)(double), double a, double b, double eps,
                            int bottom);
 
 /**
+ * @brief Compute the modulus of two real numbers
+ *
+ * @param x The dividend
+ * @param y The divisor
+ * @return The modulus (remainder) of x and y
+ */
+real fmod(real x, real y) {
+    return x - y * floor( x / y );
+}
+
+/**
  * @brief Convert a Jacobian from cylindrical to cartesian coordinates
  *
  * This function converts a Jacobian located at angle phi and radius r from
