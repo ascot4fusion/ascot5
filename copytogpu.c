@@ -11,24 +11,9 @@
 /**
  * @brief Copy data from CPU to GPU
 */
-void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, B_field_data* Bdata, E_field_data* Edata, particle_loc*  p_loc, real* hin, real* rnd, int n_queue_size) {
+void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, B_field_data* Bdata, E_field_data* Edata, real* hin, real* rnd, int n_queue_size) {
 
   GPU_MAP_TO_DEVICE(
-		      p_loc[0:1],\
-		      p_loc->r_arr1[0:n_queue_size],\
-		      p_loc->r_arr2[0:n_queue_size],\
-		      p_loc->r_arr3[0:n_queue_size],\
-		      p_loc->r_arr4[0:n_queue_size],\
-		      p_loc->r_arr5[0:n_queue_size],\
-		      p_loc->i_arr1[0:n_queue_size],\
-		      p_loc->i_arr2[0:n_queue_size],\
-		      p_loc->i_arr3[0:n_queue_size],\
-		      p_loc->i_arr4[0:n_queue_size],\
-		      p_loc->i_arr5[0:n_queue_size],\
-		      p_loc->i_arr6[0:n_queue_size],\
-		      p_loc->i_arr7[0:n_queue_size],\
-		      p_loc->i_arr8[0:n_queue_size],\
-		      p_loc->i_arr9[0:n_queue_size],\
   		      p_ptr[0:1],\
 		      p_ptr->running        [0:n_queue_size],\
 		      p_ptr->r              [0:n_queue_size],\
@@ -153,12 +138,10 @@ void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, parti
       GPU_MAP_TO_DEVICE(
 			Edata->E1DS,Edata->E1DS.dV,Edata->E1DS.dV.c[0:Edata->E1DS.dV.n_x*NSIZE_COMP1D] )
       break;
-      
     case E_field_type_TC:
       GPU_MAP_TO_DEVICE(
 			Edata->ETC,Edata->ETC.Exyz[0:1] )
       break;
-      
     default:
       break;
     }
@@ -175,7 +158,7 @@ void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, parti
 		      sim->plasma_data.plasma_1D.temp       [0:sim->plasma_data.plasma_1D.n_rho*sim->plasma_data.plasma_1D.n_species], \
   		      sim->plasma_data.plasma_1D.dens       [0:sim->plasma_data.plasma_1D.n_rho*sim->plasma_data.plasma_1D.n_species] )
       break;
-			
+
       case plasma_type_1Dt:
 	GPU_MAP_TO_DEVICE(
 		      sim->plasma_data.plasma_1Dt.mass      [0:MAX_SPECIES],\
@@ -208,14 +191,12 @@ void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, parti
       break;
     }
 
-
     switch(Bdata->type) {
 
     case B_field_type_GS:
       GPU_MAP_TO_DEVICE(
 			Bdata->BGS.psi_coeff[0:13] )
       break;
-      
     case B_field_type_2DS:
       GPU_MAP_TO_DEVICE(
 		      Bdata->B2DS.psi,    Bdata->B2DS.psi.c    [0:Bdata->B2DS.psi.n_x   *Bdata->B2DS.psi.n_y                          *NSIZE_COMP2D],\
@@ -223,7 +204,6 @@ void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, parti
 		      Bdata->B2DS.B_phi,  Bdata->B2DS.B_phi.c  [0:Bdata->B2DS.B_phi.n_x *Bdata->B2DS.B_phi.n_y                        *NSIZE_COMP2D],\
 		      Bdata->B2DS.B_z,    Bdata->B2DS.B_z.c    [0:Bdata->B2DS.B_z.n_x   *Bdata->B2DS.B_z.n_y                          *NSIZE_COMP2D] )
       break;
-      
     case B_field_type_3DS:
       GPU_MAP_TO_DEVICE(
 			Bdata->B3DS.psi,    Bdata->B3DS.psi.c    [0:Bdata->B3DS.psi.n_x   *Bdata->B3DS.psi.n_y                          *NSIZE_COMP2D],	\
@@ -232,7 +212,6 @@ void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, parti
 			Bdata->B3DS.B_z,    Bdata->B3DS.B_z.c    [0:Bdata->B3DS.B_z.n_x   *Bdata->B3DS.B_z.n_y   *Bdata->B3DS.B_z.n_z   *NSIZE_COMP3D] )
 
       break;
-      
     case B_field_type_STS:
       GPU_MAP_TO_DEVICE(
 
@@ -243,22 +222,18 @@ void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, parti
 			Bdata->BSTS.B_z,    Bdata->BSTS.B_z.c    [0:Bdata->BSTS.B_z.n_x   *Bdata->BSTS.B_z.n_y   *Bdata->BSTS.B_z.n_z   *NSIZE_COMP3D],	\
 			Bdata->BSTS.B_phi,  Bdata->BSTS.B_phi.c  [0:Bdata->BSTS.B_phi.n_x *Bdata->BSTS.B_phi.n_y *Bdata->BSTS.B_phi.n_z *NSIZE_COMP3D] )
       break;
-      
     case B_field_type_TC:
       GPU_MAP_TO_DEVICE(
 			Bdata->BTC.B[0:3],Bdata->BTC.dB[0:9] )
       break;
-      
     default:
       break;
     }
-
 }
 
 /**
  * @brief Copy data from GPU to CPU
 */
-
 void simulate_fo_fixed_copy_from_gpu(sim_data* sim, particle_simd_fo *p_ptr, int n_queue_size){
 
   GPU_UPDATE_FROM_DEVICE(

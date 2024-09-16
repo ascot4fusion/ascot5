@@ -61,7 +61,7 @@
  * @brief Allocates Struct representing particle markers
  *
  * Size used for memory allocation is NSIMD for CPU run and
- * the total number nprt of particles for GPU 
+ * the total number nprt of particles for GPU.
  *
  * @param p_fo  pointer to particle_simd_fo array where dummy is placed
  * @param nprt     index of the new dummy in the SIMD arrays
@@ -80,7 +80,7 @@ void particle_to_fo_alloc(particle_simd_fo* p_fo, int nsize){
     p_fo->anum   = malloc(nsize * sizeof(p_fo->anum)  );
 
     /* Magnetic field data */
-    p_fo->B_r        = malloc(nsize * sizeof(p_fo->B_r)       );                                    
+    p_fo->B_r        = malloc(nsize * sizeof(p_fo->B_r)       );
     p_fo->B_phi      = malloc(nsize * sizeof(p_fo->B_phi)     );
     p_fo->B_z        = malloc(nsize * sizeof(p_fo->B_z)       );
     p_fo->B_r_dr     = malloc(nsize * sizeof(p_fo->B_r_dr)    );
@@ -114,26 +114,7 @@ void particle_to_fo_alloc(particle_simd_fo* p_fo, int nsize){
 
 }
 
-/**
- * @brief Allocate local arrays for markers
- *
- */
-void particle_loc_alloc(particle_loc* p_loc, int nsize){
-    p_loc->r_arr1 = malloc(nsize * sizeof(p_loc->r_arr1) );
-    p_loc->r_arr2 = malloc(nsize * sizeof(p_loc->r_arr2) );
-    p_loc->r_arr3 = malloc(nsize * sizeof(p_loc->r_arr3) );
-    p_loc->r_arr4 = malloc(nsize * sizeof(p_loc->r_arr4) );
-    p_loc->r_arr5 = malloc(nsize * sizeof(p_loc->r_arr5) );
-    p_loc->i_arr1 = malloc(nsize * sizeof(p_loc->i_arr1) );
-    p_loc->i_arr2 = malloc(nsize * sizeof(p_loc->i_arr2) );
-    p_loc->i_arr3 = malloc(nsize * sizeof(p_loc->i_arr3) );
-    p_loc->i_arr4 = malloc(nsize * sizeof(p_loc->i_arr4) );
-    p_loc->i_arr5 = malloc(nsize * sizeof(p_loc->i_arr5) );
-    p_loc->i_arr6 = malloc(nsize * sizeof(p_loc->i_arr6) );
-    p_loc->i_arr7 = malloc(nsize * sizeof(p_loc->i_arr7) );
-    p_loc->i_arr8 = malloc(nsize * sizeof(p_loc->i_arr8) );
-    p_loc->i_arr9 = malloc(nsize * sizeof(p_loc->i_arr9) );
-}
+
 /**
  * @brief Makes a dummy FO simulation marker
  *
