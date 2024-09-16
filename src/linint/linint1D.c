@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "../ascot5.h"
+#include "../math.h"
 #include "../spline/interp.h"
 #include "linint.h"
 

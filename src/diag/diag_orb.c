@@ -11,11 +11,6 @@
 #include "../consts.h"
 #include "../simulate.h"
 
-real fmod(real a, real b)
-{
-    return (a - b*floor(a/b));
-}
-
 /**
  * @brief Initializes orbit diagnostics offload data.
  *

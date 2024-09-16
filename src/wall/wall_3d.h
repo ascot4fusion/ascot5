@@ -5,6 +5,7 @@
 #ifndef WALL_3D_H
 #define WALL_3D_H
 #include "../ascot5.h"
+#include "../offload_acc_omp.h"
 
 /** Small value to check if x = 0 (i.e. abs(x) < WALL_EPSILON) */
 #define WALL_EPSILON 1e-9
