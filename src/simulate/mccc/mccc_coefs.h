@@ -196,6 +196,15 @@
         ( 0.5 * ( Dpara - Dperp ) * ( 1 - xi*xi ) + Dperp )      \
         / (gyrofreq*gyrofreq) )
 
+GPU_DECLARE_TARGET_SIMD_UNIFORM(mdata)
+static void mccc_coefs_mufun(real mufun[3], real x, mccc_data* mdata);
+DECLARE_TARGET_END
+
+GPU_DECLARE_TARGET_SIMD_UNIFORM(nspec, mb, qb, nb, Tb)
+static void mccc_coefs_clog(real* clogab, real ma, real qa, real va, int nspec,
+                            const real* mb, const real* qb, const real* nb,
+                            const real* Tb);
+DECLARE_TARGET_END
 
 /**
  * @brief Evaluate Coulomb logarithm.
@@ -216,19 +225,13 @@
  * @param nb plasma species densities [m^-3]
  * @param Tb plasma species temperatures [J]
  */
-GPU_DECLARE_TARGET_SIMD_UNIFORM(nspec, mb, qb, nb, Tb)
-static void mccc_coefs_clog(real* clogab, real ma, real qa, real va, int nspec,
-                            const real* mb, const real* qb, const real* nb,
-                            const real* Tb);
-DECLARE_TARGET_END
-
 static void mccc_coefs_clog(real* clogab, real ma, real qa, real va, int nspec,
                             const real* mb, const real* qb, const real* nb,
                             const real* Tb) {
 
     /* Evaluate Debye length */
     real sum = 0;
-#pragma acc loop seq
+    #pragma acc loop seq
     for(int i = 0; i < nspec; i++){
         sum += nb[i] * qb[i] * qb[i] / Tb[i];
     }
@@ -236,7 +239,7 @@ static void mccc_coefs_clog(real* clogab, real ma, real qa, real va, int nspec,
 
     /* Evaluate classical and quantum mechanical impact parameter. The one *
      * that is larger is used to evaluate Coulomb logarithm.               */
-#pragma acc loop seq
+    #pragma acc loop seq
     for(int i=0; i < nspec; i++){
         real vbar = va * va + 2 * Tb[i] / mb[i];
         real mr   = ma * mb[i] / ( ma + mb[i] );
@@ -269,9 +272,6 @@ static void mccc_coefs_clog(real* clogab, real ma, real qa, real va, int nspec,
  * @param x argument for the special functions
  * @param mdata pointer to mccc data
  */
-GPU_DECLARE_TARGET_SIMD_UNIFORM(mdata)
-static void mccc_coefs_mufun(real mufun[3], real x, mccc_data* mdata);
-DECLARE_TARGET_END
 static void mccc_coefs_mufun(real mufun[3], real x, mccc_data* mdata) {
 
     if(!mdata->usetabulated && x!= 0) {
@@ -292,6 +292,4 @@ static void mccc_coefs_mufun(real mufun[3], real x, mccc_data* mdata) {
     }
 
 }
-
-
 #endif

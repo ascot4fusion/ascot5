@@ -117,8 +117,6 @@ void dist_6D_init(dist_6D_data* dist_data, dist_6D_offload_data* offload_data,
  * @param dist pointer to distribution parameter struct
  * @param p_i pointer to SIMD particle struct at the beginning of time step
  * @param p_f pointer to SIMD particle struct at the end of time step
- * @param p_loc pre-allocated pointer to SIMD arrays used in diagnostics kernels
- *        to avoid dynamical allocation
  */
 void dist_6D_update_fo(dist_6D_data* dist, particle_simd_fo* p_f,
                        particle_simd_fo* p_i) {

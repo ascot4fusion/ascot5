@@ -115,8 +115,6 @@ void dist_rho5D_init(dist_rho5D_data* dist_data,
  * @param dist pointer to distribution parameter struct
  * @param p_f pointer to SIMD particle struct at the end of current time step
  * @param p_i pointer to SIMD particle struct at the start of current time step
- * @param p_loc pre-allocated pointer to SIMD arrays used in diagnostics kernels
- *        to avoid dynamical allocation
  */
 void dist_rho5D_update_fo(dist_rho5D_data* dist, particle_simd_fo* p_f,
                           particle_simd_fo* p_i) {
