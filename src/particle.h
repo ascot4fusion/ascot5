@@ -206,8 +206,6 @@ typedef struct {
  * aligned array with length NSIMD, so this struct represents NSIMD markers
  * (they can be dummy or markers whose simulation has been terminated) and so it
  * can be used within SIMD loops.
- *
- * The fields are aligned to 64 bit with __memalign__ (see ascot5.h).
  */
 typedef struct {
     /* Physical coordinates and parameters */
@@ -224,12 +222,9 @@ typedef struct {
     int* anum;     /**< Particle mass number               */
 
     /* Magnetic field data */
-    real* B_r;        /**< Magnetic field R component at
-                                              marker position [T]             */
-    real* B_phi;      /**< Magnetic field phi component at
-                                              marker position [T]             */
-    real* B_z;        /**< Magnetic field z component at
-                                              marker position [T]             */
+    real* B_r;        /**< Magnetic field R component at marker position [T]  */
+    real* B_phi;      /**< Magnetic field phi component at marker position [T]*/
+    real* B_z;        /**< Magnetic field z component at marker position [T]  */
 
     real* B_r_dr;     /**< dB_R/dR at marker position [T/m]     */
     real* B_phi_dr;   /**< dB_phi/dR at marker position [T/m]   */
@@ -250,16 +245,15 @@ typedef struct {
 
     integer* id;       /**< Unique ID for the marker       */
     integer* endcond;  /**< Marker end condition           */
-    integer* walltile; /**< ID of walltile if marker has
-                                               hit the wall                   */
+    integer* walltile; /**< ID of walltile if marker has hit the wall */
 
     /* Meta data */
-    real* mileage;    /**< Duration this marker has been
-                                              simulated [s]                   */
-    integer* running; /**< Indicates whether this marker is
-                                              currently simulated (1) or not  */
+    real* mileage;    /**< Duration this marker has been simulated [s] */
+    integer* running; /**< Indicates whether this marker is currently
+                           simulated (1) or not  */
     a5err* err;       /**< Error flag, zero if no error    */
     integer* index;   /**< Marker index at marker queue    */
+    size_t n_mrk;     /**< How many markers this struct contains */
 } particle_simd_fo;
 
 /**
@@ -393,7 +387,7 @@ typedef struct {
 } particle_simd_ml;
 
 
-void particle_to_fo_alloc(particle_simd_fo* p_fo, int nsize);
+void particle_allocate_fo(particle_simd_fo* p_fo, int nmrk);
 void particle_to_fo_dummy(particle_simd_fo* p_fo, int j);
 void particle_to_gc_dummy(particle_simd_gc* p_gc, int j);
 void particle_to_fo_dummy(particle_simd_fo* p_fo, int j);
@@ -401,7 +395,7 @@ void particle_to_gc_dummy(particle_simd_gc* p_gc, int j);
 void particle_to_ml_dummy(particle_simd_ml* p_ml, int j);
 
 int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
-                      B_field_data* Bdata, int* cycle, int n_queue_size);
+                      B_field_data* Bdata, int* cycle);
 int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
                       B_field_data* Bdata, int* cycle);
 int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,

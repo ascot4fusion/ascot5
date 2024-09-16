@@ -31,17 +31,12 @@
  * @param h pointer to array containing time steps
  * @param Bdata pointer to magnetic field data
  * @param Edata pointer to electric field data
- * @param n_queue_size size of particle arrays 
  */
 void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
-                 E_field_data* Edata, int n_queue_size) {
-
-    int i;
-    /* Following loop will be executed simultaneously for all i */
-
-#pragma acc data present(h[0:n_queue_size])
+                 E_field_data* Edata) {
+    #pragma acc data present(h[0:p->n_mrk])
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for(i = 0; i < n_queue_size; i++) {
+    for(int i = 0; i < p->n_mrk; i++) {
         if(p->running[i]) {
             a5err errflag = 0;
 
