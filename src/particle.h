@@ -393,31 +393,7 @@ typedef struct {
 } particle_simd_ml;
 
 
-/**
- * @brief Local arrays for markers
- *
- */
-typedef struct {
-    real* r_arr1;
-    real* r_arr2;
-    real* r_arr3;
-    real* r_arr4;
-    real* r_arr5;
-
-    int* i_arr1;
-    int* i_arr2;
-    int* i_arr3;
-    int* i_arr4;
-    int* i_arr5;
-    int* i_arr6;
-    int* i_arr7;
-    int* i_arr8;
-    int* i_arr9;
-} particle_loc;
-
-
 void particle_to_fo_alloc(particle_simd_fo* p_fo, int nsize);
-void particle_loc_alloc(particle_loc* p_loc, int nsize);
 void particle_to_fo_dummy(particle_simd_fo* p_fo, int j);
 void particle_to_gc_dummy(particle_simd_gc* p_gc, int j);
 void particle_to_fo_dummy(particle_simd_fo* p_fo, int j);

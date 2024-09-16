@@ -91,12 +91,10 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int n_queue_size) {
     particle_simd_fo *p0_ptr=&p0;
     B_field_data* Bdata = &sim->B_data;
     E_field_data* Edata = &sim->E_data;
-    particle_loc  p_loc;
-    particle_loc_alloc(&p_loc, n_queue_size);
     real rnd[3*n_queue_size];
 
 #ifdef GPU
-    simulate_fo_fixed_copy_to_gpu(sim, p_ptr, p0_ptr, Bdata, Edata, &p_loc, hin, rnd, n_queue_size);
+    simulate_fo_fixed_copy_to_gpu(sim, p_ptr, p0_ptr, Bdata, Edata, hin, rnd, n_queue_size);
 #endif
     while(n_running > 0) {
         /* Store marker states */
@@ -173,7 +171,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int n_queue_size) {
         /* Update diagnostics */
         if(!(sim->record_mode)) {
             /* Record particle coordinates */
-	        diag_update_fo(&sim->diag_data, &sim->B_data, p_ptr, p0_ptr, &p_loc, n_queue_size);
+	        diag_update_fo(&sim->diag_data, &sim->B_data, p_ptr, p0_ptr, n_queue_size);
         }
         else {
 	        /* Instead of particle coordinates we record guiding center */

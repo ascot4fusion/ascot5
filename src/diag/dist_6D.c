@@ -121,7 +121,7 @@ void dist_6D_init(dist_6D_data* dist_data, dist_6D_offload_data* offload_data,
  *        to avoid dynamical allocation
  */
 void dist_6D_update_fo(dist_6D_data* dist, particle_simd_fo* p_f,
-                       particle_simd_fo* p_i, particle_loc* p_loc, int n_queue_size) {
+                       particle_simd_fo* p_i, int n_queue_size) {
 
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < n_queue_size; i++) {
