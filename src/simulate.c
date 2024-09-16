@@ -81,13 +81,6 @@ void simulate(
     offload_package* offload_data, real* offload_array, int* int_offload_array,
     real* diag_offload_array) {
 
-    char targetname[5];
-    if(id == 0) {
-        sprintf(targetname, "host");
-    }
-    else {
-        sprintf(targetname, "mic%hu", (unsigned short)(id-1));
-    }
     // Size = NSIMD on CPU and Size = Total number of particles on GPU
     int n_queue_size;
 #ifdef GPU
@@ -209,18 +202,22 @@ void simulate(
     }
     pq.next = 0;
 
-    print_out(VERBOSE_NORMAL,
-              "%s: All fields initialized. Simulation begins, %d threads.\n",
-              targetname, omp_get_max_threads());
+    print_out(VERBOSE_NORMAL, "Simulation begins; %d threads.\n",
+              omp_get_max_threads());
 
     /**************************************************************************/
     /* 4. Threads are spawned. One thread is dedicated for monitoring         */
     /*    progress, if monitoring is active.                                  */
     /*                                                                        */
     /**************************************************************************/
-    //#pragma omp parallel sections num_threads(2)
+#ifndef GPU
+    omp_set_max_active_levels(2);
+#endif
+#if !defined(GPU) && VERBOSE > 1
+    #pragma omp parallel sections num_threads(2)
     {
-      //#pragma omp section
+        #pragma omp section
+#endif
         {
             /******************************************************************/
             /* 5. Other threads execute marker simulation using the mode the  */
@@ -230,36 +227,26 @@ void simulate(
             if(pq.n > 0 && (sim.sim_mode == simulate_mode_gc
                         || sim.sim_mode == simulate_mode_hybrid)) {
                 if(sim.enable_ada) {
-#ifndef GPU
-                    #pragma omp parallel
-#endif
+                    OMP_PARALLEL_CPU_ONLY
                     simulate_gc_adaptive(&pq, &sim);
                 }
                 else {
-#ifndef GPU
-                    #pragma omp parallel
-#endif
+                    OMP_PARALLEL_CPU_ONLY
                     simulate_gc_fixed(&pq, &sim);
                 }
             }
             else if(pq.n > 0 && sim.sim_mode == simulate_mode_fo) {
-#ifndef GPU
-              #pragma omp parallel
-#endif
-	      simulate_fo_fixed(&pq, &sim, n_queue_size);
+                OMP_PARALLEL_CPU_ONLY
+	            simulate_fo_fixed(&pq, &sim, n_queue_size);
             }
             else if(pq.n > 0 && sim.sim_mode == simulate_mode_ml) {
-
-#ifndef GPU
-                #pragma omp parallel
-#endif
+                OMP_PARALLEL_CPU_ONLY
                 simulate_ml_adaptive(&pq, &sim);
             }
         }
-
-        //#pragma omp section
+#if !defined(GPU) && VERBOSE > 1
+        #pragma omp section
         {
-#if VERBOSE > 1
             /* Update progress until simulation is complete.             */
             /* Trim .h5 from filename and replace it with _<QID>.stdout  */
             if(id == 0) {
@@ -269,9 +256,9 @@ void simulate(
                 sprintf(filename, "%s_%s.stdout", outfn, sim_offload->qid);
                 sim_monitor(filename, &pq.n, &pq.finished);
             }
-#endif
         }
     }
+#endif
 
     /**************************************************************************/
     /* 6. (If hybrid mode is active) Markers with hybrid end condition active */
@@ -303,9 +290,7 @@ void simulate(
                 }
             }
         }
-
     }
-
     if(n_new > 0) {
 
         /* Reset hybrid marker end condition */
@@ -317,19 +302,18 @@ void simulate(
         pq.next = 0;
         pq.finished = 0;
 
-        //#pragma omp parallel sections num_threads(2)
+#if !defined(GPU) && VERBOSE > 1
+        #pragma omp parallel sections num_threads(2)
         {
-	  //#pragma omp section
+	        #pragma omp section
+#endif
             {
-#ifndef GPU	      
-                #pragma omp parallel
-#endif	      
-	      simulate_fo_fixed(&pq, &sim, n_queue_size);
+                OMP_PARALLEL_CPU_ONLY
+	            simulate_fo_fixed(&pq, &sim, n_queue_size);
             }
-
-            //#pragma omp section
+#if !defined(GPU) && VERBOSE > 1
+            #pragma omp section
             {
-#if VERBOSE > 1
                 /* Trim .h5 from filename and replace it with _<qid>.stdout */
                 if(id == 0) {
                     char filename[519], outfn[256];
@@ -338,24 +322,18 @@ void simulate(
                     sprintf(filename, "%s_%s.stdout", outfn, sim_offload->qid);
                     sim_monitor(filename, &pq.n, &pq.finished);
                 }
-#endif
             }
         }
+#endif
     }
 
     /**************************************************************************/
-    /* 7. Simulation data is deallocated except for data that is mapped back  */
-    /*    to host.                                                            */
-    /*                                                                        */
+    /* 7. Simulation data is deallocated.                                     */
     /**************************************************************************/
     free(pq.p);
     diag_free(&sim.diag_data);
 
-    /**************************************************************************/
-    /* 8. Execution returns to host where this function was called.           */
-    /*                                                                        */
-    /**************************************************************************/
-    print_out(VERBOSE_NORMAL, "%s: Simulation complete.\n", targetname);
+    print_out(VERBOSE_NORMAL, "Simulation complete.\n");
 }
 
 /**

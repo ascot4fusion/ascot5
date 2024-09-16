@@ -206,6 +206,15 @@
 #define GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 #endif
 
+/**
+ * @brief Makes a parallel region (CPU only)
+ */
+#if defined(GPU)
+#define OMP_PARALLEL_CPU_ONLY
+#else
+#define OMP_PARALLEL_CPU_ONLY str_pragma(omp parallel)
+#endif
+
 #ifdef _OPENACC
 /**
  * @brief Number of gangs (OpenACC parallel execution units).
