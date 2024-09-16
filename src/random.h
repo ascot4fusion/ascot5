@@ -52,13 +52,10 @@ void random_gsl_normal_simd(random_data* rdata, int n, double* r);
 #define random_normal_simd(data, n, r)  random_gsl_normal_simd(data, n, r)
 
 
-
 #elif defined(RANDOM_LCG)
 
 #include <stdint.h>
-#ifdef GPU
 #include "offload_acc_omp.h"
-#endif
 
 typedef struct {
     uint64_t r;
@@ -104,7 +101,6 @@ void random_drand48_normal_simd(int n, double* r);
 /** Same as random_normal but vectorised                          */
 #define random_normal_simd(data, n, r) random_drand48_normal_simd(n, r)
 
-#endif
-
+#endif // drand48
 
 #endif

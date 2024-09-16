@@ -99,10 +99,8 @@ double random_lcg_normal(random_data* rdata) {
 
 void random_lcg_uniform_simd(random_data* rdata, int n, double* r) {
 #ifndef GPU
-#ifdef SIMD
     #pragma omp simd
 #endif
-#endif  
     for(int i = 0; i < n; i++) {
         r[i] = (double) random_lcg_integer(rdata) / UINT64_MAX;
     }
