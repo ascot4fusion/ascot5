@@ -81,7 +81,6 @@ int diag_init_offload(diag_offload_data* data, real** offload_array, int Nmrk){
 
     data->offload_dist_length = n;
 
-#ifndef  GPU
     if(data->diagorb_collect) {
         data->offload_diagorb_index = n;
         data->diagorb.Nmrk = Nmrk;
@@ -115,7 +114,6 @@ int diag_init_offload(diag_offload_data* data, real** offload_array, int Nmrk){
                 * data->diagorb.Nmrk * data->diagorb.Npnt;
         }
     }
-#endif
     if(data->diagtrcof_collect) {
         data->offload_diagtrcof_index = n;
         data->diagtrcof.Nmrk = Nmrk;
