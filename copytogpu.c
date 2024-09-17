@@ -11,7 +11,7 @@
 /**
  * @brief Copy data from CPU to GPU
 */
-void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, B_field_data* Bdata, E_field_data* Edata, real* hin, real* rnd) {
+void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, real* hin, real* rnd) {
   	GPU_MAP_TO_DEVICE(
 		p_ptr[0:1],\
 		p_ptr->running        [0:p_ptr->n_mrk],\
@@ -87,8 +87,6 @@ void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, parti
 		p0_ptr->bounces       [0:p_ptr->n_mrk],\
 		hin[0:p_ptr->n_mrk],\
 			sim[0:1],		\
-		Bdata[0:1],\
-		Edata[0:1],Edata->type, \
 		rnd[0:3*p_ptr->n_mrk] \
 	)
 
@@ -131,15 +129,15 @@ void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, parti
     }
 
 
-  switch(Edata->type) {
+  switch(sim->E_data.type) {
 
     case E_field_type_1DS:
       GPU_MAP_TO_DEVICE(
-			Edata->E1DS,Edata->E1DS.dV,Edata->E1DS.dV.c[0:Edata->E1DS.dV.n_x*NSIZE_COMP1D] )
+			sim->E_data.E1DS,sim->E_data.E1DS.dV,sim->E_data.E1DS.dV.c[0:sim->E_data.E1DS.dV.n_x*NSIZE_COMP1D] )
       break;
     case E_field_type_TC:
       GPU_MAP_TO_DEVICE(
-			Edata->ETC,Edata->ETC.Exyz[0:1] )
+			sim->E_data.ETC,sim->E_data.ETC.Exyz[0:1] )
       break;
     default:
       break;
@@ -190,40 +188,39 @@ void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, parti
       break;
     }
 
-    switch(Bdata->type) {
+    switch(sim->B_data.type) {
 
     case B_field_type_GS:
       GPU_MAP_TO_DEVICE(
-			Bdata->BGS.psi_coeff[0:13] )
+			sim->B_data.BGS.psi_coeff[0:13] )
       break;
     case B_field_type_2DS:
       GPU_MAP_TO_DEVICE(
-		      Bdata->B2DS.psi,    Bdata->B2DS.psi.c    [0:Bdata->B2DS.psi.n_x   *Bdata->B2DS.psi.n_y                          *NSIZE_COMP2D],\
-  		      Bdata->B2DS.B_r,    Bdata->B2DS.B_r.c    [0:Bdata->B2DS.B_r.n_x   *Bdata->B2DS.B_r.n_y                          *NSIZE_COMP2D],\
-		      Bdata->B2DS.B_phi,  Bdata->B2DS.B_phi.c  [0:Bdata->B2DS.B_phi.n_x *Bdata->B2DS.B_phi.n_y                        *NSIZE_COMP2D],\
-		      Bdata->B2DS.B_z,    Bdata->B2DS.B_z.c    [0:Bdata->B2DS.B_z.n_x   *Bdata->B2DS.B_z.n_y                          *NSIZE_COMP2D] )
+		      sim->B_data.B2DS.psi,    sim->B_data.B2DS.psi.c    [0:sim->B_data.B2DS.psi.n_x   *sim->B_data.B2DS.psi.n_y                          *NSIZE_COMP2D],\
+  		      sim->B_data.B2DS.B_r,    sim->B_data.B2DS.B_r.c    [0:sim->B_data.B2DS.B_r.n_x   *sim->B_data.B2DS.B_r.n_y                          *NSIZE_COMP2D],\
+		      sim->B_data.B2DS.B_phi,  sim->B_data.B2DS.B_phi.c  [0:sim->B_data.B2DS.B_phi.n_x *sim->B_data.B2DS.B_phi.n_y                        *NSIZE_COMP2D],\
+		      sim->B_data.B2DS.B_z,    sim->B_data.B2DS.B_z.c    [0:sim->B_data.B2DS.B_z.n_x   *sim->B_data.B2DS.B_z.n_y                          *NSIZE_COMP2D] )
       break;
     case B_field_type_3DS:
       GPU_MAP_TO_DEVICE(
-			Bdata->B3DS.psi,    Bdata->B3DS.psi.c    [0:Bdata->B3DS.psi.n_x   *Bdata->B3DS.psi.n_y                          *NSIZE_COMP2D],	\
-			Bdata->B3DS.B_r,    Bdata->B3DS.B_r.c    [0:Bdata->B3DS.B_r.n_x   *Bdata->B3DS.B_r.n_y   *Bdata->B3DS.B_r.n_z   *NSIZE_COMP3D],	\
-			Bdata->B3DS.B_phi,  Bdata->B3DS.B_phi.c  [0:Bdata->B3DS.B_phi.n_x *Bdata->B3DS.B_phi.n_y *Bdata->B3DS.B_phi.n_z *NSIZE_COMP3D],	\
-			Bdata->B3DS.B_z,    Bdata->B3DS.B_z.c    [0:Bdata->B3DS.B_z.n_x   *Bdata->B3DS.B_z.n_y   *Bdata->B3DS.B_z.n_z   *NSIZE_COMP3D] )
+			sim->B_data.B3DS.psi,    sim->B_data.B3DS.psi.c    [0:sim->B_data.B3DS.psi.n_x   *sim->B_data.B3DS.psi.n_y                          *NSIZE_COMP2D],	\
+			sim->B_data.B3DS.B_r,    sim->B_data.B3DS.B_r.c    [0:sim->B_data.B3DS.B_r.n_x   *sim->B_data.B3DS.B_r.n_y   *sim->B_data.B3DS.B_r.n_z   *NSIZE_COMP3D],	\
+			sim->B_data.B3DS.B_phi,  sim->B_data.B3DS.B_phi.c  [0:sim->B_data.B3DS.B_phi.n_x *sim->B_data.B3DS.B_phi.n_y *sim->B_data.B3DS.B_phi.n_z *NSIZE_COMP3D],	\
+			sim->B_data.B3DS.B_z,    sim->B_data.B3DS.B_z.c    [0:sim->B_data.B3DS.B_z.n_x   *sim->B_data.B3DS.B_z.n_y   *sim->B_data.B3DS.B_z.n_z   *NSIZE_COMP3D] )
 
       break;
     case B_field_type_STS:
       GPU_MAP_TO_DEVICE(
-
-			Bdata->BSTS.axis_r, Bdata->BSTS.axis_r.c [0:Bdata->BSTS.axis_r.n_x                                                           ], \
-			Bdata->BSTS.axis_z, Bdata->BSTS.axis_z.c [0:Bdata->BSTS.axis_z.n_x                                                           ],	\
-			Bdata->BSTS.psi,    Bdata->BSTS.psi.c    [0:Bdata->BSTS.psi.n_x   *Bdata->BSTS.psi.n_y   *Bdata->BSTS.psi.n_z   *NSIZE_COMP3D],	\
-			Bdata->BSTS.B_r,    Bdata->BSTS.B_r.c    [0:Bdata->BSTS.B_r.n_x   *Bdata->BSTS.B_r.n_y   *Bdata->BSTS.B_r.n_z   *NSIZE_COMP3D],	\
-			Bdata->BSTS.B_z,    Bdata->BSTS.B_z.c    [0:Bdata->BSTS.B_z.n_x   *Bdata->BSTS.B_z.n_y   *Bdata->BSTS.B_z.n_z   *NSIZE_COMP3D],	\
-			Bdata->BSTS.B_phi,  Bdata->BSTS.B_phi.c  [0:Bdata->BSTS.B_phi.n_x *Bdata->BSTS.B_phi.n_y *Bdata->BSTS.B_phi.n_z *NSIZE_COMP3D] )
+			sim->B_data.BSTS.axis_r, sim->B_data.BSTS.axis_r.c [0:sim->B_data.BSTS.axis_r.n_x                                                           ], \
+			sim->B_data.BSTS.axis_z, sim->B_data.BSTS.axis_z.c [0:sim->B_data.BSTS.axis_z.n_x                                                           ],	\
+			sim->B_data.BSTS.psi,    sim->B_data.BSTS.psi.c    [0:sim->B_data.BSTS.psi.n_x   *sim->B_data.BSTS.psi.n_y   *sim->B_data.BSTS.psi.n_z   *NSIZE_COMP3D],	\
+			sim->B_data.BSTS.B_r,    sim->B_data.BSTS.B_r.c    [0:sim->B_data.BSTS.B_r.n_x   *sim->B_data.BSTS.B_r.n_y   *sim->B_data.BSTS.B_r.n_z   *NSIZE_COMP3D],	\
+			sim->B_data.BSTS.B_z,    sim->B_data.BSTS.B_z.c    [0:sim->B_data.BSTS.B_z.n_x   *sim->B_data.BSTS.B_z.n_y   *sim->B_data.BSTS.B_z.n_z   *NSIZE_COMP3D],	\
+			sim->B_data.BSTS.B_phi,  sim->B_data.BSTS.B_phi.c  [0:sim->B_data.BSTS.B_phi.n_x *sim->B_data.BSTS.B_phi.n_y *sim->B_data.BSTS.B_phi.n_z *NSIZE_COMP3D] )
       break;
     case B_field_type_TC:
       GPU_MAP_TO_DEVICE(
-			Bdata->BTC.B[0:3],Bdata->BTC.dB[0:9] )
+			sim->B_data.BTC.B[0:3],sim->B_data.BTC.dB[0:9] )
       break;
     default:
       break;
