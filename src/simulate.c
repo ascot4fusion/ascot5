@@ -97,34 +97,33 @@ void simulate(
     sim_init(&sim, sim_offload);
 
 #ifdef GPU
-    if(sim.sim_mode != 1) {
+    if(sim_offload->sim_mode != 1) {
         print_err("Only GO mode ported to GPU. Please set SIM_MODE=1.");
         exit(1);
     }
-    if(sim.record_mode) {
+    if(sim_offload->record_mode) {
         print_err("RECORD_MODE=1 not ported to GPU. Please disable it.");
         exit(1);
     }
-    if(sim.enable_atomic) {
+    if(sim_offload->enable_atomic) {
         print_err("Atomic not yet ported to GPU. Please set ENABLE_ATOMIC=0.");
         exit(1);
     }
-    if(sim.enable_mhd) {
+    if(sim_offload->enable_mhd) {
         print_err("MHD not yet ported to GPU. Please set ENABLE_MHD=0.");
         exit(1);
     }
-    if(sim.diag_data.diagorb_collect) {
+    if(sim_offload->diag_offload_data.diagorb_collect) {
         print_err(
             "ENABLE_ORBITWRITE=1 not ported to GPU. Please disable it.");
         exit(1);
     }
-    if(sim.diag_data.diagtrcof_collect) {
+    if(sim_offload->diag_offload_data.diagtrcof_collect) {
         print_err(
             "ENABLE_TRANSCOEF=1 not ported to GPU. Please disable it.");
         exit(1);
     }
 #endif
-
     real* ptr; int* ptrint;
     offload_unpack(offload_data, offload_array,
                    sim_offload->B_offload_data.offload_array_length,
