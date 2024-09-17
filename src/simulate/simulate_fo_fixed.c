@@ -89,12 +89,10 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     int diag_data_field_size = sim->diag_data.diagorb.Nmrk*sim->diag_data.diagorb.Npnt;
     particle_simd_fo *p_ptr = &p;
     particle_simd_fo *p0_ptr = &p0;
-    B_field_data* Bdata = &sim->B_data;
-    E_field_data* Edata = &sim->E_data;
     real rnd[3*mrk_array_size];
 
 #ifdef GPU
-    simulate_fo_fixed_copy_to_gpu(sim, p_ptr, p0_ptr, Bdata, Edata, hin, rnd);
+    simulate_fo_fixed_copy_to_gpu(sim, p_ptr, p0_ptr, hin, rnd);
 #endif
     while(n_running > 0) {
         /* Store marker states */

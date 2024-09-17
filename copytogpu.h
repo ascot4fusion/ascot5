@@ -4,7 +4,7 @@
  */
 #ifndef COPYTOGPU_H
 #define COPYTOGPU_H
-void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, B_field_data* Bdata, E_field_data* Edata, real* hin, real* rnd);
+void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, real* hin, real* rnd);
 
 void simulate_fo_fixed_copy_from_gpu(sim_data* sim, particle_simd_fo *p_ptr);
 
