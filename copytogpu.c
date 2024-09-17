@@ -11,84 +11,8 @@
 /**
  * @brief Copy data from CPU to GPU
 */
-void simulate_fo_fixed_copy_to_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p0_ptr, real* hin, real* rnd) {
-  	GPU_MAP_TO_DEVICE(
-		p_ptr[0:1],\
-		p_ptr->running        [0:p_ptr->n_mrk],\
-		p_ptr->r              [0:p_ptr->n_mrk],\
-		p_ptr->phi            [0:p_ptr->n_mrk],\
-		p_ptr->p_r            [0:p_ptr->n_mrk],\
-		p_ptr->p_phi          [0:p_ptr->n_mrk],\
-		p_ptr->p_z            [0:p_ptr->n_mrk],\
-		p_ptr->mileage        [0:p_ptr->n_mrk],\
-		p_ptr->z              [0:p_ptr->n_mrk],\
-		p_ptr->charge         [0:p_ptr->n_mrk],\
-		p_ptr->mass           [0:p_ptr->n_mrk],\
-		p_ptr->B_r            [0:p_ptr->n_mrk],\
-		p_ptr->B_r_dr         [0:p_ptr->n_mrk],\
-		p_ptr->B_r_dphi       [0:p_ptr->n_mrk],\
-		p_ptr->B_r_dz         [0:p_ptr->n_mrk],\
-		p_ptr->B_phi          [0:p_ptr->n_mrk],\
-		p_ptr->B_phi_dr       [0:p_ptr->n_mrk],\
-		p_ptr->B_phi_dphi     [0:p_ptr->n_mrk],\
-		p_ptr->B_phi_dz       [0:p_ptr->n_mrk],\
-		p_ptr->B_z            [0:p_ptr->n_mrk],\
-		p_ptr->B_z_dr         [0:p_ptr->n_mrk],\
-		p_ptr->B_z_dphi       [0:p_ptr->n_mrk],\
-		p_ptr->B_z_dz         [0:p_ptr->n_mrk],\
-		p_ptr->rho            [0:p_ptr->n_mrk],\
-		p_ptr->theta          [0:p_ptr->n_mrk],\
-		p_ptr->err            [0:p_ptr->n_mrk],\
-		p_ptr->time           [0:p_ptr->n_mrk],\
-		p_ptr->weight         [0:p_ptr->n_mrk],\
-		p_ptr->cputime        [0:p_ptr->n_mrk],\
-		p_ptr->id             [0:p_ptr->n_mrk],\
-		p_ptr->endcond        [0:p_ptr->n_mrk],\
-		p_ptr->walltile       [0:p_ptr->n_mrk],\
-		p_ptr->index          [0:p_ptr->n_mrk],\
-		p_ptr->znum           [0:p_ptr->n_mrk],\
-		p_ptr->anum           [0:p_ptr->n_mrk],\
-		p_ptr->bounces        [0:p_ptr->n_mrk],\
-		p0_ptr[0:1],\
-		p0_ptr->running       [0:p_ptr->n_mrk],\
-		p0_ptr->r             [0:p_ptr->n_mrk],\
-		p0_ptr->phi           [0:p_ptr->n_mrk],\
-		p0_ptr->p_r           [0:p_ptr->n_mrk],\
-		p0_ptr->p_phi         [0:p_ptr->n_mrk],\
-		p0_ptr->p_z           [0:p_ptr->n_mrk],\
-		p0_ptr->mileage       [0:p_ptr->n_mrk],\
-		p0_ptr->z             [0:p_ptr->n_mrk],\
-		p0_ptr->charge        [0:p_ptr->n_mrk],\
-		p0_ptr->mass          [0:p_ptr->n_mrk],\
-		p0_ptr->B_r           [0:p_ptr->n_mrk],\
-		p0_ptr->B_r_dr        [0:p_ptr->n_mrk],\
-		p0_ptr->B_r_dphi      [0:p_ptr->n_mrk],\
-		p0_ptr->B_r_dz        [0:p_ptr->n_mrk],\
-		p0_ptr->B_phi         [0:p_ptr->n_mrk],\
-		p0_ptr->B_phi_dr      [0:p_ptr->n_mrk],\
-		p0_ptr->B_phi_dphi    [0:p_ptr->n_mrk],\
-		p0_ptr->B_phi_dz      [0:p_ptr->n_mrk],\
-		p0_ptr->B_z           [0:p_ptr->n_mrk],\
-		p0_ptr->B_z_dr        [0:p_ptr->n_mrk],\
-		p0_ptr->B_z_dphi      [0:p_ptr->n_mrk],\
-		p0_ptr->B_z_dz        [0:p_ptr->n_mrk],\
-		p0_ptr->rho           [0:p_ptr->n_mrk],\
-		p0_ptr->theta         [0:p_ptr->n_mrk],\
-		p0_ptr->err           [0:p_ptr->n_mrk],\
-		p0_ptr->time          [0:p_ptr->n_mrk],\
-		p0_ptr->weight        [0:p_ptr->n_mrk],\
-		p0_ptr->cputime       [0:p_ptr->n_mrk],\
-		p0_ptr->id            [0:p_ptr->n_mrk],\
-		p0_ptr->endcond       [0:p_ptr->n_mrk],\
-		p0_ptr->walltile      [0:p_ptr->n_mrk],\
-		p0_ptr->index         [0:p_ptr->n_mrk],\
-		p0_ptr->znum          [0:p_ptr->n_mrk],\
-		p0_ptr->anum          [0:p_ptr->n_mrk],\
-		p0_ptr->bounces       [0:p_ptr->n_mrk],\
-		hin[0:p_ptr->n_mrk],\
-			sim[0:1],		\
-		rnd[0:3*p_ptr->n_mrk] \
-	)
+void simulate_copy_to_gpu(sim_data* sim) {
+  	GPU_MAP_TO_DEVICE(sim[0:1])
 
     switch(sim->wall_data.type) {
     case wall_type_2D:

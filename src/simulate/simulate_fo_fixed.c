@@ -91,9 +91,9 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     particle_simd_fo *p0_ptr = &p0;
     real rnd[3*mrk_array_size];
 
-#ifdef GPU
-    simulate_fo_fixed_copy_to_gpu(sim, p_ptr, p0_ptr, hin, rnd);
-#endif
+    particle_offload_fo(p_ptr);
+    particle_offload_fo(p0_ptr);
+    GPU_MAP_TO_DEVICE(hin[0:mrk_array_size], rnd[0:3*mrk_array_size])
     while(n_running > 0) {
         /* Store marker states */
         GPU_PARALLEL_LOOP_ALL_LEVELS

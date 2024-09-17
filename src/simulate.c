@@ -27,6 +27,7 @@
 #include "simulate/mccc/mccc.h"
 #include "gctransform.h"
 #include "asigma.h"
+#include "copytogpu.h"
 
 void sim_monitor(char* filename, volatile int* n, volatile int* finished);
 
@@ -173,6 +174,7 @@ void simulate(
 
     diag_init(&sim.diag_data, &sim_offload->diag_offload_data,
               diag_offload_array);
+    simulate_copy_to_gpu(&sim);
 
     /**************************************************************************/
     /* 2. Meta data (e.g. random number generator) is initialized.            */

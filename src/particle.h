@@ -410,6 +410,8 @@ a5err particle_input_gc_to_state(particle_gc* p, particle_state* ps,
 a5err particle_input_ml_to_state(particle_ml* p, particle_state* ps,
                                  B_field_data* Bdata);
 
+void particle_offload_fo(particle_simd_fo* p);
+
 DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo,
                            int j, B_field_data* Bdata);
