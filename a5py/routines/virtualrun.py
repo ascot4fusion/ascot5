@@ -45,10 +45,14 @@ class VirtualRun(RunMixin):
         self.options = options
         self.markers = markers
         # There's a need for better solution here in case inputs are provided
-        #for inp in ["bfield", "efield", "plasma", "neutral", "wall", "boozer",
-        #            "mhd", "asigma"]:
-        #    grp = ascot.data[inp].active
-        #    setattr(self, inp, grp)
+        for inp in ["bfield", "efield", "plasma", "neutral", "wall", "boozer",
+                   "mhd", "asigma"]:
+            try:
+                grp = ascot.data[inp].active
+                setattr(self, inp, grp)
+            except:
+                pass
+
         self._inistate = VirtualState(ascot, ascot._nmrk, inistate)
         self._endstate = VirtualState(ascot, ascot._nmrk, endstate)
 
@@ -101,13 +105,10 @@ class VirtualBBNBIRun(BBNBIMixin):
         """
         self.options = options
         # There's a need for better solution here in case inputs are provided
-        for inp in ["bfield", "efield", "plasma", "neutral", "wall", "boozer",
-                    "mhd", "asigma"]:
-            try:
-                grp = ascot.data[inp].active
-                setattr(self, inp, grp)
-            except:
-                pass
+        #for inp in ["bfield", "efield", "plasma", "neutral", "wall", "boozer",
+        #            "mhd", "asigma"]:
+        #    grp = ascot.data[inp].active
+        #    setattr(self, inp, grp)
         self._state = VirtualState(ascot, ascot._nmrk, state)
 
         def pointer_increment(idx):
