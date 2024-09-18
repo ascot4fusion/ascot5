@@ -73,6 +73,7 @@ int asigma_init_offload(asigma_offload_data* offload_data,
 void asigma_free_offload(asigma_offload_data* offload_data,
                          real** offload_array);
 
+void asigma_extrapolate(int extrapolate);
 int asigma_init(asigma_data* asigma_data, asigma_offload_data* offload_data,
                 real* offload_array);
 DECLARE_TARGET_SIMD_UNIFORM(asigmadata)
@@ -81,8 +82,18 @@ a5err asigma_eval_sigma(
     asigma_reac_type reac_type, asigma_data* asigmadata);
 DECLARE_TARGET_SIMD_UNIFORM(asigmadata)
 a5err asigma_eval_sigmav(
-    real* sigmav, int z_1, int a_1, real m_1, int z_2, int a_2, int reac_type,
-    asigma_data* asigmadata, real E, real T_e, real T_0, real n_i,
-    int* enable_atomic);
+    real* sigmav, int z_1, int a_1, real m_1, int z_2, int a_2,
+    real E, real T_e, real T_0, real n_i, asigma_reac_type reac_type,
+    asigma_data* asigmadata);
+DECLARE_TARGET_SIMD_UNIFORM(asigmadata)
+a5err asigma_eval_cx(
+    real* ratecoeff, int z_1, int a_1, real E, real mass, int nspec,
+    const int* znum, const int* anum, real T_0, real* n_0,
+    asigma_data* asigmadata);
+DECLARE_TARGET_SIMD_UNIFORM(asigmadata)
+a5err asigma_eval_bms(
+    real* ratecoeff, int z_1, int a_1, real E, real mass, int nion,
+    const int* znum, const int* anum, real T_e, real* n_i,
+    asigma_data* asigmadata);
 
 #endif

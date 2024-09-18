@@ -106,12 +106,12 @@ int diag_init_offload(diag_offload_data* data, real** offload_array, int Nmrk){
         }
 
         if(data->diagorb.mode == DIAG_ORB_POINCARE) {
-            n += (data->diagorb.Nfld+2)
-                * data->diagorb.Nmrk * data->diagorb.Npnt;
+            n += (size_t)(data->diagorb.Nfld+2)
+                * (size_t)(data->diagorb.Nmrk) * (size_t)(data->diagorb.Npnt);
         }
         else if(data->diagorb.mode == DIAG_ORB_INTERVAL) {
-            n += data->diagorb.Nfld
-                * data->diagorb.Nmrk * data->diagorb.Npnt;
+            n += (size_t)(data->diagorb.Nfld)
+                * (size_t)(data->diagorb.Nmrk) * (size_t)(data->diagorb.Npnt);
         }
     }
     if(data->diagtrcof_collect) {

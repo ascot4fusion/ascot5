@@ -490,8 +490,8 @@ int offload_and_simulate(
                              sim->mpi_size, sim->mpi_root);
     free(pin);
 
-    mpi_gather_diag(&sim->diag_offload_data, *diag_offload_array, n_tot,
-                    mpi_rank, mpi_size, mpi_root);
+    mpi_gather_diag(&sim->diag_offload_data, diag_offload_array, n_tot,
+                    sim->mpi_rank, sim->mpi_size, sim->mpi_root);
     return 0;
 }
 

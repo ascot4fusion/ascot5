@@ -6,18 +6,16 @@
  * steps are rejected), Wiener processes are generated using the so-called
  * Brownian bridge. This module contains associated helper routines.
  */
-#define _XOPEN_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include "../../offload_acc_omp.h"
 #include "../../math.h"
 #include "../../ascot5.h"
 #include "../../consts.h"
 #include "../../error.h"
 #include "mccc_wiener.h"
 
-/**< Indicates an empty slot in wiener array */
+/** Indicates an empty slot in wiener array */
 #ifdef _OPENACC
 const int MCCC_EMPTY = -1;
 #pragma acc declare copyin(MCCC_EMPTY)

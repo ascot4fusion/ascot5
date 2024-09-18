@@ -14,11 +14,11 @@
 /**
  * @brief Internal function calculating the index in the histogram array
  */
-unsigned long dist_COM_index(int i_mu, int i_Ekin, int i_Ptor,
-                             int n_mu, int n_Ekin, int n_Ptor) {
-    return i_mu    * (n_Ekin * n_Ptor)
-        + i_Ekin   * (n_Ptor)
-        + i_Ptor;
+size_t dist_COM_index(int i_mu, int i_Ekin, int i_Ptor, size_t step_2,
+                      size_t step_1) {
+    return (size_t)(i_mu)   * step_2
+         + (size_t)(i_Ekin) * step_1
+         + (size_t)(i_Ptor);
 }
 
 /**

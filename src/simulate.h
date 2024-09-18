@@ -223,6 +223,8 @@ typedef struct {
 
 void simulate_init_offload(sim_offload_data* sim);
 
+void sim_init(sim_data* sim, sim_offload_data* sim_offload);
+
 void simulate(int id, int n_particles, particle_state* p,
               sim_offload_data* sim_offload,
               offload_package* offload_data,

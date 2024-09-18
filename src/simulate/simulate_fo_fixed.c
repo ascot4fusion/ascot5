@@ -131,22 +131,13 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 
         /* Euler-Maruyama for Coulomb collisions */
         if(sim->enable_clmbcol) {
-#if !defined(GPU) || defined(RANDOM_LCG)
-	        mccc_fo_euler(p_ptr, hin, &sim->plasma_data,
-#if defined(RANDOM_LCG)
-			    &sim->random_data,
-#else
-			    sim->random_data,
-#endif
-			    &sim->mccc_data,
-			    rnd);
-#endif
+            random_normal_simd(&sim->random_data, 3*p.n_mrk, rnd);
+	        mccc_fo_euler(p_ptr, hin, &sim->plasma_data, &sim->mccc_data, rnd);
         }
         /* Atomic reactions */
         if(sim->enable_atomic) {
             atomic_fo(p_ptr, hin, &sim->plasma_data, &sim->neutral_data,
-                      &sim->random_data, &sim->asigma_data,
-                      &sim->enable_atomic);
+                      &sim->random_data, &sim->asigma_data);
         }
         /**********************************************************************/
 

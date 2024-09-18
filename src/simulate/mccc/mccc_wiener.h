@@ -43,5 +43,4 @@ a5err mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5);
 DECLARE_TARGET_SIMD
 a5err mccc_wiener_clean(mccc_wienarr* w, real t);
 
-
 #endif
