@@ -38,7 +38,9 @@ int wall_2d_inside(real r, real z, wall_2d_data* w);
 DECLARE_TARGET_END
 GPU_DECLARE_TARGET_SIMD_UNIFORM(w)
 int wall_2d_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
-                     wall_2d_data* w);
+                     wall_2d_data* w, real* w_coll);
+GPU_DECLARE_TARGET_SIMD_UNIFORM(w)
+int wall_2d_find_intersection(real r1, real z1, real r2, real z2,
+                              wall_2d_data* w, real* w_coll);
 DECLARE_TARGET_END
-
 #endif

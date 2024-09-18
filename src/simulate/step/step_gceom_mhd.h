@@ -25,8 +25,8 @@
  * @param mhd_dmhd mhd perturbation information evaluated by mhd.c
  */
 DECLARE_TARGET_SIMD
-static void step_gceom_mhd(real* ydot, real* y, real mass, real charge,
-                           real* B_dB, real* E, real* mhd_dmhd) {
+inline static void step_gceom_mhd(real* ydot, real* y, real mass, real charge,
+                                  real* B_dB, real* E, real* mhd_dmhd) {
 
     real B[3];
     B[0] = B_dB[0];

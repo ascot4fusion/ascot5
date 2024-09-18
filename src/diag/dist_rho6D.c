@@ -14,18 +14,18 @@
 /**
  * @brief Internal function calculating the index in the histogram array
  */
-unsigned long dist_rho6D_index(int i_rho, int i_theta, int i_phi, int i_pr,
-                               int i_pphi, int i_pz, int i_time, int i_q,
-                               int n_theta, int n_phi, int n_pr, int n_pphi,
-                               int n_pz, int n_time, int n_q) {
-    return i_rho  * (n_theta * n_phi * n_pr * n_pphi * n_pz * n_time * n_q)
-        + i_theta * (n_phi * n_pr * n_pphi * n_pz * n_time * n_q)
-        + i_phi  * (n_pr * n_pphi * n_pz * n_time * n_q)
-        + i_pr   * (n_pphi * n_pz * n_time * n_q)
-        + i_pphi * (n_pz * n_time * n_q)
-        + i_pz   * (n_time * n_q)
-        + i_time * (n_q)
-        + i_q;
+size_t dist_rho6D_index(int i_rho, int i_theta, int i_phi, int i_pr, int i_pphi,
+                        int i_pz, int i_time, int i_q, size_t step_7,
+                        size_t step_6, size_t step_5, size_t step_4,
+                        size_t step_3, size_t step_2, size_t step_1) {
+    return (size_t)(i_rho)   * step_7
+         + (size_t)(i_theta) * step_6
+         + (size_t)(i_phi)   * step_5
+         + (size_t)(i_pr)    * step_4
+         + (size_t)(i_pphi)  * step_3
+         + (size_t)(i_pz)    * step_2
+         + (size_t)(i_time)  * step_1
+         + (size_t)(i_q);
 }
 
 /**

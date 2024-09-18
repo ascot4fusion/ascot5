@@ -84,10 +84,10 @@ typedef struct {
     real* histogram;  /**< pointer to start of histogram array */
 } dist_5D_data;
 
-unsigned long dist_5D_index(int i_r, int i_phi, int i_z, int i_ppara,
-                            int i_pperp, int i_time, int i_q, int n_phi,
-                            int n_z, int n_ppara, int n_pperp, int n_time,
-                            int n_q);
+size_t dist_5D_index(int i_r, int i_phi, int i_z, int i_ppara, int i_pperp,
+                     int i_time, int i_q, size_t step_6, size_t step_5,
+                     size_t step_4, size_t step_3, size_t step_2,
+                     size_t step_1);
 void dist_5D_init(dist_5D_data* dist_data,
                   dist_5D_offload_data* offload_data,
                   real* offload_array);
