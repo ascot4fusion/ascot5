@@ -19,7 +19,7 @@ jobs:
         shell: bash -el {0}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: conda-incubator/setup-miniconda@v3
         with:
@@ -45,7 +45,7 @@ jobs:
           tar -xf code.tar -C ./build/
 
       - name: Clone figures repository
-        uses: actions/checkout@master
+        uses: actions/checkout@4
         with:
           repository: ascot4fusion/figures
           ssh-key: ${{ secrets.SSH_KEY_FIGURES }}

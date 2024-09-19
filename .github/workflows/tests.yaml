@@ -26,13 +26,13 @@ jobs:
       contents: read
       packages: read
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: conda-incubator/setup-miniconda@v3
         with:
           auto-update-conda: true
           python-version: "3.10"
-          environment-file: environment.yaml
+          environment-file: environment-dev.yaml
           activate-environment: ascot-dev
           auto-activate-base: false
 
@@ -62,13 +62,13 @@ jobs:
       contents: read
       packages: read
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: conda-incubator/setup-miniconda@v3
         with:
           auto-update-conda: true
           python-version: "3.10"
-          environment-file: environment.yaml
+          environment-file: environment-dev.yaml
           activate-environment: ascot-dev
           auto-activate-base: false
 

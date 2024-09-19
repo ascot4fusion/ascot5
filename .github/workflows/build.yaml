@@ -21,23 +21,22 @@ jobs:
           auto-activate-base: false
 
       - name: Make ascot5_main with MPI
-        run: |
-          make ascot5_main MPI=1 -j
+        run: make ascot5_main MPI=1 -j
 
       - name: Make clean
         run: make clean
 
       - name: Make ascot5_main without MPI
-        run: make ascot5_main -j
+        run: make ascot5_main CC=h5pcc -j
 
       - name: Make libascot.so
-        run: make libascot
+        run: make libascot CC=h5pcc
 
       - name: Make BBNBI
-        run: make bbnbi5
+        run: make bbnbi5 CC=h5pcc
 
       - name: Make ascot2py
-        run: make ascot2py.py
+        run: make ascot2py.py CC=h5pcc
 
       - name: Set permissions and pack
         run: |
