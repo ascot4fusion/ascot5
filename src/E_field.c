@@ -21,6 +21,9 @@
 #include "B_field.h"
 #include "Efield/E_TC.h"
 #include "Efield/E_1DS.h"
+#include "Efield/E_3D.h"
+#include "Efield/E_3DS.h"
+#include "Efield/E_3DST.h"
 
 /**
  * @brief Load electric field data and prepare parameters
@@ -55,6 +58,25 @@ int E_field_init_offload(E_field_offload_data* offload_data,
             offload_data->offload_array_length =
                 offload_data->ETC.offload_array_length;
             break;
+
+        case E_field_type_3D:
+            err = E_3D_init_offload(&(offload_data->E3D), offload_array);
+            offload_data->offload_array_length =
+                offload_data->E3D.offload_array_length;
+            break;
+
+       case E_field_type_3DS:
+            err = E_3DS_init_offload(&(offload_data->E3DS), offload_array);
+            offload_data->offload_array_length =
+                offload_data->E3DS.offload_array_length;
+            break;
+
+       case E_field_type_3DST:
+            err = E_3DST_init_offload(&(offload_data->E3DST), offload_array);
+            offload_data->offload_array_length =
+                offload_data->E3DST.offload_array_length;
+            break;
+
 
         default:
             /* Unregonized input. Produce error. */
@@ -93,6 +115,19 @@ void E_field_free_offload(E_field_offload_data* offload_data,
         case E_field_type_TC:
             E_TC_free_offload(&(offload_data->ETC), offload_array);
             break;
+
+        case E_field_type_3D:
+            E_3D_free_offload(&(offload_data->E3D), offload_array);
+            break;
+
+        case E_field_type_3DS:
+            E_3DS_free_offload(&(offload_data->E3DS), offload_array);
+            break;
+
+        case E_field_type_3DST:
+            E_3DST_free_offload(&(offload_data->E3DST), offload_array);
+            break;
+
     }
 }
 
@@ -125,6 +160,18 @@ int E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
 
         case E_field_type_TC:
             E_TC_init(&(Edata->ETC), &(offload_data->ETC), offload_array);
+            break;
+
+        case E_field_type_3D:
+            E_3D_init(&(Edata->E3D), &(offload_data->E3D), offload_array);
+            break;
+
+        case E_field_type_3DS:
+            E_3DS_init(&(Edata->E3DS), &(offload_data->E3DS), offload_array);
+            break;
+
+        case E_field_type_3DST:
+            E_3DST_init(&(Edata->E3DST), &(offload_data->E3DST), offload_array);
             break;
 
         default:
@@ -175,6 +222,18 @@ a5err E_field_eval_E(real E[3], real r, real phi, real z, real t,
 
         case E_field_type_TC:
             err = E_TC_eval_E(E, r, phi, z, &(Edata->ETC), Bdata);
+            break;
+
+        case E_field_type_3D:
+            err = E_3D_eval_E(E, r, phi, z, &(Edata->E3D));
+            break;
+
+        case E_field_type_3DS:
+            err = E_3DS_eval_E(E, r, phi, z, &(Edata->E3DS));
+            break;
+
+        case E_field_type_3DST:
+            err = E_3DST_eval_E(E, r, phi, z, t, &(Edata->E3DST));
             break;
 
         default:

@@ -16,12 +16,17 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <hdf5.h>
 #include <hdf5_hl.h>
 #include "../ascot5.h"
+#include "../math.h"
 #include "../E_field.h"
 #include "../Efield/E_TC.h"
 #include "../Efield/E_1DS.h"
+#include "../Efield/E_3D.h"
+#include "../Efield/E_3DS.h"
+#include "../Efield/E_3DST.h"
 #include "../print.h"
 #include "hdf5_helpers.h"
 #include "hdf5_efield.h"
@@ -32,6 +37,12 @@ int hdf5_efield_read_1DS(hid_t f, E_1DS_offload_data* offload_data,
                          real** offload_array, char* qid);
 int hdf5_efield_read_TC(hid_t f, E_TC_offload_data* offload_data,
                         real** offload_array, char* qid);
+int hdf5_efield_read_3D(hid_t f, E_3D_offload_data* offload_data,
+                        real** offload_array, char* qid);
+int hdf5_efield_read_3DS(hid_t f, E_3DS_offload_data* offload_data,
+                         real** offload_array, char* qid);
+int hdf5_efield_read_3DST(hid_t f, E_3DST_offload_data* offload_data,
+                         real** offload_array, char* qid);
 
 /**
  * @brief Read electric field data from HDF5 file
@@ -73,6 +84,27 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data,
         offload_data->type = E_field_type_1DS;
         err = hdf5_efield_read_1DS(f, &(offload_data->E1DS),
                                    offload_array, qid);
+    }
+
+    hdf5_gen_path("/efield/E_3D_XXXXXXXXXX", qid, path);
+    if(hdf5_find_group(f, path) == 0) {
+      offload_data->type = E_field_type_3D;
+      err = hdf5_efield_read_3D(f, &(offload_data->E3D),
+                                offload_array, qid);
+    }
+
+    hdf5_gen_path("/efield/E_3DS_XXXXXXXXXX", qid, path);
+    if(hdf5_find_group(f, path) == 0) {
+      offload_data->type = E_field_type_3DS;
+      err = hdf5_efield_read_3DS(f, &(offload_data->E3DS),
+                                 offload_array, qid);
+    }
+
+    hdf5_gen_path("/efield/E_3DST_XXXXXXXXXX", qid, path);
+    if(hdf5_find_group(f, path) == 0) {
+      offload_data->type = E_field_type_3DST;
+      err = hdf5_efield_read_3DST(f, &(offload_data->E3DST),
+                                 offload_array, qid);
     }
 
     /* Initialize if data was read succesfully */
@@ -151,6 +183,271 @@ int hdf5_efield_read_TC(hid_t f, E_TC_offload_data* offload_data,
     *offload_array = NULL;
 
     if( hdf5_read_double(EPATH "exyz", offload_data->Exyz,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    return 0;
+}
+
+
+/**
+ * @brief Read electric field data of type E_3D
+ *
+ * The E_3D data is stored in HDF5 file under the group
+ * /efield/E_3D_XXXXXXXXXX/ where X's mark the QID.
+ *
+ * This function assumes the group holds the following datasets:
+ * (E data refers to \f$E_R\f$, \f$E_phi\f$, and \f$E_z\f$)
+ *
+ * - int nr Number of R grid points in the E data grid
+ * - int nphi Number of phi grid points in the E data grid
+ * - int nz Number of z grid points in the E data grid
+ * - double rmin Minimum value in E data R grid [m]
+ * - double rmax Maximum value in E data R grid [m]
+ * - double phimin Minimum value in E data phi grid [deg]
+ * - double phimax Maximum value in E data phi grid [deg]
+ * - double zmin Minimum value in E data z grid [m]
+ * - double zmax Maximum value in E data z grid [m]
+ *
+ * - double er   Electric field R component on the Rz-grid as
+ *                a {nz, nphi, nR} matrix [V/m]
+ * - double ephi Electric field phi component on the Rz-grid as
+ *                a {nz, nphi, nR} matrix [V/m]
+ * - double ez   Electric field z component on the Rz-grid as
+ *                a {nz, nphi, nR} matrix [V/m]
+ *
+ * @param f HDF5 file identifier for a file which is opened and closed outside
+ *          of this function
+ * @param offload_data pointer to offload data struct which is allocated here
+ * @param offload_array pointer to offload array which is allocated here and
+ *                      used to store E_R, E_phi, and E_z values as
+ *                      required by E_3D_init_offload()
+ * @param qid QID of the E_3D field that is to be read
+ *
+ * @return zero if reading succeeded
+ */
+int hdf5_efield_read_3D(hid_t f, E_3D_offload_data* offload_data,
+                         real** offload_array, char* qid) {
+    #undef EPATH
+    #define EPATH "/efield/E_3D_XXXXXXXXXX/"
+
+  /* Read and initialize magnetic field Rpz-grid */
+  if( hdf5_read_int(EPATH "nr", &(offload_data->n_r),
+                    f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_int(EPATH "nz", &(offload_data->n_z),
+                    f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "rmin", &(offload_data->r_min),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "rmax", &(offload_data->r_max),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "zmin", &(offload_data->z_min),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "zmax", &(offload_data->z_max),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+
+  if( hdf5_read_int(EPATH "nphi", &(offload_data->n_phi),
+                    f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "phimin", &(offload_data->phi_min),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "phimax", &(offload_data->phi_max),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+
+  // Convert to radians
+  offload_data->phi_min = math_deg2rad(offload_data->phi_min);
+  offload_data->phi_max = math_deg2rad(offload_data->phi_max);
+
+  /* Allocate offload_array storing the three components of E */
+    int E_size = offload_data->n_r * offload_data->n_z
+      * offload_data->n_phi;
+
+    *offload_array = (real*) malloc((3 * E_size) * sizeof(real));
+    offload_data->offload_array_length =  3 * E_size;
+
+    /* Read the magnetic field */
+    if( hdf5_read_double(EPATH "er", &(*offload_array)[0*E_size],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(EPATH "ephi", &(*offload_array)[1*E_size],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(EPATH "ez", &(*offload_array)[2*E_size],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    return 0;
+}
+
+/**
+ * @brief Read electric field data of type E_3DS
+ *
+ * The E_3DS data is stored in HDF5 file under the group
+ * /efield/E_3DS_XXXXXXXXXX/ where X's mark the QID.
+ *
+ * This function assumes the group holds the following datasets:
+ * (E data refers to \f$E_R\f$, \f$E_phi\f$, and \f$E_z\f$)
+ *
+ * - int nr Number of R grid points in the E data grid
+ * - int nphi Number of phi grid points in the E data grid
+ * - int nz Number of z grid points in the E data grid
+ * - double rmin Minimum value in E data R grid [m]
+ * - double rmax Maximum value in E data R grid [m]
+ * - double phimin Minimum value in E data phi grid [deg]
+ * - double phimax Maximum value in E data phi grid [deg]
+ * - double zmin Minimum value in E data z grid [m]
+ * - double zmax Maximum value in E data z grid [m]
+ *
+ * - double er   Electric field R component on the Rz-grid as
+ *                a {nz, nphi, nR} matrix [V/m]
+ * - double ephi Electric field phi component on the Rz-grid as
+ *                a {nz, nphi, nR} matrix [V/m]
+ * - double ez   Electric field z component on the Rz-grid as
+ *                a {nz, nphi, nR} matrix [V/m]
+ *
+ * @param f HDF5 file identifier for a file which is opened and closed outside
+ *          of this function
+ * @param offload_data pointer to offload data struct which is allocated here
+ * @param offload_array pointer to offload array which is allocated here and
+ *                      used to store E_R, E_phi, and E_z values as
+ *                      required by E_3DS_init_offload()
+ * @param qid QID of the E_3DS field that is to be read
+ *
+ * @return zero if reading succeeded
+ */
+int hdf5_efield_read_3DS(hid_t f, E_3DS_offload_data* offload_data,
+                         real** offload_array, char* qid) {
+    #undef EPATH
+    #define EPATH "/efield/E_3DS_XXXXXXXXXX/"
+
+  /* Read and initialize magnetic field Rpz-grid */
+  if( hdf5_read_int(EPATH "nr", &(offload_data->n_r),
+                    f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_int(EPATH "nz", &(offload_data->n_z),
+                    f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "rmin", &(offload_data->r_min),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "rmax", &(offload_data->r_max),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "zmin", &(offload_data->z_min),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "zmax", &(offload_data->z_max),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+
+  if( hdf5_read_int(EPATH "nphi", &(offload_data->n_phi),
+                    f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "phimin", &(offload_data->phi_min),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "phimax", &(offload_data->phi_max),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+
+
+  // Convert to radians
+  offload_data->phi_min = math_deg2rad(offload_data->phi_min);
+  offload_data->phi_max = math_deg2rad(offload_data->phi_max);
+
+  /* Allocate offload_array storing the three components of E */
+    int E_size = offload_data->n_r * offload_data->n_z
+      * offload_data->n_phi;
+
+    *offload_array = (real*) malloc((3 * E_size) * sizeof(real));
+    offload_data->offload_array_length =  3 * E_size;
+
+    /* Read the magnetic field */
+    if( hdf5_read_double(EPATH "er", &(*offload_array)[0*E_size],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(EPATH "ephi", &(*offload_array)[1*E_size],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(EPATH "ez", &(*offload_array)[2*E_size],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    return 0;
+}
+
+/**
+ * @brief Read electric field data of type E_3DST
+ *
+ * The E_3DST data is stored in HDF5 file under the group
+ * /efield/E_3DST_XXXXXXXXXX/ where X's mark the QID.
+ *
+ * This function assumes the group holds the following datasets:
+ * (E data refers to \f$E_R\f$, \f$E_phi\f$, and \f$E_z\f$
+ *
+ * - int nr Number of R grid points in the E data grid
+ * - int nphi Number of phi grid points in the E data grid
+ * - int nz Number of z grid points in the E data grid
+ * - int nt Number of t grid points in the E data grid
+ * - double rmin Minimum value in E data R grid [m]
+ * - double rmax Maximum value in E data R grid [m]
+ * - double phimin Minimum value in E data phi grid [deg]
+ * - double phimax Maximum value in E data phi grid [deg]
+ * - double zmin Minimum value in E data z grid [m]
+ * - double zmax Maximum value in E data z grid [m]
+ * - double tmin Minimum value in E data t grid [s]
+ * - double tmax Maximum value in E data t grid [s]
+ *
+ * - double er   Electric field R component on the Rzphit-grid as
+ *                a {nt, nz, nphi, nR} matrix [V/m]
+ * - double ephi Electric field phi component on the Rzphit-grid as
+ *                a {nt, nz, nphi, nR} matrix [V/m]
+ * - double ez   Electric field z component on the Rzphit-grid as
+ *                a {nt, nz, nphi, nR} matrix [V/m]
+ *
+ * @param f HDF5 file identifier for a file which is opened and closed outside
+ *          of this function
+ * @param offload_data pointer to offload data struct which is allocated here
+ * @param offload_array pointer to offload array which is allocated here and
+ *                      used to store E_R, E_phi, and E_z values as
+ *                      required by E_3DST_init_offload()
+ * @param qid QID of the E_3DST field that is to be read
+ *
+ * @return zero if reading succeeded
+ */
+int hdf5_efield_read_3DST(hid_t f, E_3DST_offload_data* offload_data,
+                         real** offload_array, char* qid) {
+    #undef EPATH
+    #define EPATH "/efield/E_3DST_XXXXXXXXXX/"
+
+  /* Read and initialize magnetic field Rpz-grid */
+  if( hdf5_read_int(EPATH "nr", &(offload_data->n_r),
+                    f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_int(EPATH "nz", &(offload_data->n_z),
+                    f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "rmin", &(offload_data->r_min),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "rmax", &(offload_data->r_max),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "zmin", &(offload_data->z_min),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "zmax", &(offload_data->z_max),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+
+  if( hdf5_read_int(EPATH "nphi", &(offload_data->n_phi),
+                    f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "phimin", &(offload_data->phi_min),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "phimax", &(offload_data->phi_max),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+
+  if( hdf5_read_int(EPATH "nt", &(offload_data->n_t),
+                    f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "tmin", &(offload_data->t_min),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "tmax", &(offload_data->t_max),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+
+
+  // Convert to radians
+  offload_data->phi_min = math_deg2rad(offload_data->phi_min);
+  offload_data->phi_max = math_deg2rad(offload_data->phi_max);
+
+  /* Allocate offload_array storing the three components of E */
+    int E_size = offload_data->n_r * offload_data->n_z
+      * offload_data->n_phi * offload_data->n_t;
+
+    *offload_array = (real*) malloc((3 * E_size) * sizeof(real));
+    offload_data->offload_array_length =  3 * E_size;
+
+    /* Read the magnetic field */
+    if( hdf5_read_double(EPATH "er", &(*offload_array)[0*E_size],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(EPATH "ephi", &(*offload_array)[1*E_size],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(EPATH "ez", &(*offload_array)[2*E_size],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     return 0;
