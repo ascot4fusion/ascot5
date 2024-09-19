@@ -472,7 +472,7 @@ a5err B_3DST_eval_B(
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_3DST_eval_B_dB(real B_dB[], real r, real phi, real z, real t,
+a5err B_3DST_eval_B_dB(real B_dB[12], real r, real phi, real z, real t,
                       B_3DST_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */

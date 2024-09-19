@@ -418,6 +418,112 @@ B_3DS_eval_B_dB.argtypes = [ctypes.c_double * 12, real, real, real, ctypes.POINT
 B_3DS_get_axis_rz = _libraries['libascot.so'].B_3DS_get_axis_rz
 B_3DS_get_axis_rz.restype = a5err
 B_3DS_get_axis_rz.argtypes = [ctypes.c_double * 2, ctypes.POINTER(struct_c__SA_B_3DS_data)]
+class struct_c__SA_B_3DST_offload_data(Structure):
+    pass
+
+struct_c__SA_B_3DST_offload_data._pack_ = 1 # source:False
+struct_c__SA_B_3DST_offload_data._fields_ = [
+    ('psigrid_n_r', ctypes.c_int32),
+    ('psigrid_n_z', ctypes.c_int32),
+    ('psigrid_r_min', ctypes.c_double),
+    ('psigrid_r_max', ctypes.c_double),
+    ('psigrid_z_min', ctypes.c_double),
+    ('psigrid_z_max', ctypes.c_double),
+    ('Bgrid_n_r', ctypes.c_int32),
+    ('Bgrid_n_z', ctypes.c_int32),
+    ('Bgrid_n_phi', ctypes.c_int32),
+    ('Bgrid_n_t', ctypes.c_int32),
+    ('Bgrid_r_min', ctypes.c_double),
+    ('Bgrid_r_max', ctypes.c_double),
+    ('Bgrid_z_min', ctypes.c_double),
+    ('Bgrid_z_max', ctypes.c_double),
+    ('Bgrid_phi_min', ctypes.c_double),
+    ('Bgrid_phi_max', ctypes.c_double),
+    ('Bgrid_t_min', ctypes.c_double),
+    ('Bgrid_t_max', ctypes.c_double),
+    ('psi0', ctypes.c_double),
+    ('psi1', ctypes.c_double),
+    ('axis_r', ctypes.c_double),
+    ('axis_z', ctypes.c_double),
+    ('offload_array_length', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+]
+
+B_3DST_offload_data = struct_c__SA_B_3DST_offload_data
+class struct_c__SA_B_3DST_data(Structure):
+    pass
+
+class struct_c__SA_interp4D_data(Structure):
+    pass
+
+struct_c__SA_interp4D_data._pack_ = 1 # source:False
+struct_c__SA_interp4D_data._fields_ = [
+    ('n_x', ctypes.c_int32),
+    ('n_y', ctypes.c_int32),
+    ('n_z', ctypes.c_int32),
+    ('n_t', ctypes.c_int32),
+    ('bc_x', ctypes.c_int32),
+    ('bc_y', ctypes.c_int32),
+    ('bc_z', ctypes.c_int32),
+    ('bc_t', ctypes.c_int32),
+    ('x_min', ctypes.c_double),
+    ('x_max', ctypes.c_double),
+    ('x_grid', ctypes.c_double),
+    ('y_min', ctypes.c_double),
+    ('y_max', ctypes.c_double),
+    ('y_grid', ctypes.c_double),
+    ('z_min', ctypes.c_double),
+    ('z_max', ctypes.c_double),
+    ('z_grid', ctypes.c_double),
+    ('t_min', ctypes.c_double),
+    ('t_max', ctypes.c_double),
+    ('t_grid', ctypes.c_double),
+    ('c', ctypes.POINTER(ctypes.c_double)),
+]
+
+struct_c__SA_B_3DST_data._pack_ = 1 # source:False
+struct_c__SA_B_3DST_data._fields_ = [
+    ('psi0', ctypes.c_double),
+    ('psi1', ctypes.c_double),
+    ('axis_r', ctypes.c_double),
+    ('axis_z', ctypes.c_double),
+    ('psi', struct_c__SA_interp2D_data),
+    ('B_r', struct_c__SA_interp4D_data),
+    ('B_phi', struct_c__SA_interp4D_data),
+    ('B_z', struct_c__SA_interp4D_data),
+]
+
+B_3DST_data = struct_c__SA_B_3DST_data
+B_3DST_init_offload = _libraries['libascot.so'].B_3DST_init_offload
+B_3DST_init_offload.restype = ctypes.c_int32
+B_3DST_init_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_3DST_offload_data), ctypes.POINTER(ctypes.POINTER(ctypes.c_double))]
+B_3DST_free_offload = _libraries['libascot.so'].B_3DST_free_offload
+B_3DST_free_offload.restype = None
+B_3DST_free_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_3DST_offload_data), ctypes.POINTER(ctypes.POINTER(ctypes.c_double))]
+B_3DST_init = _libraries['libascot.so'].B_3DST_init
+B_3DST_init.restype = None
+B_3DST_init.argtypes = [ctypes.POINTER(struct_c__SA_B_3DST_data), ctypes.POINTER(struct_c__SA_B_3DST_offload_data), ctypes.POINTER(ctypes.c_double)]
+B_3DST_eval_psi = _libraries['libascot.so'].B_3DST_eval_psi
+B_3DST_eval_psi.restype = a5err
+B_3DST_eval_psi.argtypes = [ctypes.c_double * 1, real, real, real, ctypes.POINTER(struct_c__SA_B_3DST_data)]
+B_3DST_eval_psi_dpsi = _libraries['libascot.so'].B_3DST_eval_psi_dpsi
+B_3DST_eval_psi_dpsi.restype = a5err
+B_3DST_eval_psi_dpsi.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_3DST_data)]
+B_3DST_eval_rho = _libraries['libascot.so'].B_3DST_eval_rho
+B_3DST_eval_rho.restype = a5err
+B_3DST_eval_rho.argtypes = [ctypes.c_double * 1, real, ctypes.POINTER(struct_c__SA_B_3DST_data)]
+B_3DST_eval_rho_drho = _libraries['libascot.so'].B_3DST_eval_rho_drho
+B_3DST_eval_rho_drho.restype = a5err
+B_3DST_eval_rho_drho.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_3DST_data)]
+B_3DST_eval_B = _libraries['libascot.so'].B_3DST_eval_B
+B_3DST_eval_B.restype = a5err
+B_3DST_eval_B.argtypes = [ctypes.c_double * 3, real, real, real, real, ctypes.POINTER(struct_c__SA_B_3DST_data)]
+B_3DST_eval_B_dB = _libraries['libascot.so'].B_3DST_eval_B_dB
+B_3DST_eval_B_dB.restype = a5err
+B_3DST_eval_B_dB.argtypes = [ctypes.c_double * 12, real, real, real, real, ctypes.POINTER(struct_c__SA_B_3DST_data)]
+B_3DST_get_axis_rz = _libraries['libascot.so'].B_3DST_get_axis_rz
+B_3DST_get_axis_rz.restype = a5err
+B_3DST_get_axis_rz.argtypes = [ctypes.c_double * 2, ctypes.POINTER(struct_c__SA_B_3DST_data)]
 class struct_c__SA_B_STS_offload_data(Structure):
     pass
 
@@ -572,14 +678,16 @@ B_field_type__enumvalues = {
     0: 'B_field_type_GS',
     1: 'B_field_type_2DS',
     2: 'B_field_type_3DS',
-    3: 'B_field_type_STS',
-    4: 'B_field_type_TC',
+    3: 'B_field_type_3DST',
+    4: 'B_field_type_STS',
+    5: 'B_field_type_TC',
 }
 B_field_type_GS = 0
 B_field_type_2DS = 1
 B_field_type_3DS = 2
-B_field_type_STS = 3
-B_field_type_TC = 4
+B_field_type_3DST = 3
+B_field_type_STS = 4
+B_field_type_TC = 5
 B_field_type = ctypes.c_uint32 # enum
 class struct_c__SA_B_field_offload_data(Structure):
     pass
@@ -591,6 +699,7 @@ struct_c__SA_B_field_offload_data._fields_ = [
     ('BGS', B_GS_offload_data),
     ('B2DS', B_2DS_offload_data),
     ('B3DS', B_3DS_offload_data),
+    ('B3DST', B_3DST_offload_data),
     ('BSTS', B_STS_offload_data),
     ('BTC', B_TC_offload_data),
     ('offload_array_length', ctypes.c_int32),
@@ -608,6 +717,7 @@ struct_c__SA_B_field_data._fields_ = [
     ('BGS', B_GS_data),
     ('B2DS', B_2DS_data),
     ('B3DS', B_3DS_data),
+    ('B3DST', B_3DST_data),
     ('BSTS', B_STS_data),
     ('BTC', B_TC_data),
 ]
@@ -723,14 +833,179 @@ E_1DS_init.argtypes = [ctypes.POINTER(struct_c__SA_E_1DS_data), ctypes.POINTER(s
 E_1DS_eval_E = _libraries['libascot.so'].E_1DS_eval_E
 E_1DS_eval_E.restype = a5err
 E_1DS_eval_E.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_E_1DS_data), ctypes.POINTER(struct_c__SA_B_field_data)]
+class struct_c__SA_E_3D_offload_data(Structure):
+    pass
+
+struct_c__SA_E_3D_offload_data._pack_ = 1 # source:False
+struct_c__SA_E_3D_offload_data._fields_ = [
+    ('n_r', ctypes.c_int32),
+    ('n_z', ctypes.c_int32),
+    ('n_phi', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('r_min', ctypes.c_double),
+    ('r_max', ctypes.c_double),
+    ('r_grid', ctypes.c_double),
+    ('z_min', ctypes.c_double),
+    ('z_max', ctypes.c_double),
+    ('z_grid', ctypes.c_double),
+    ('phi_min', ctypes.c_double),
+    ('phi_max', ctypes.c_double),
+    ('phi_grid', ctypes.c_double),
+    ('offload_array_length', ctypes.c_int32),
+    ('PADDING_1', ctypes.c_ubyte * 4),
+]
+
+E_3D_offload_data = struct_c__SA_E_3D_offload_data
+class struct_c__SA_E_3D_data(Structure):
+    pass
+
+class struct_c__SA_linint3D_data(Structure):
+    pass
+
+struct_c__SA_linint3D_data._pack_ = 1 # source:False
+struct_c__SA_linint3D_data._fields_ = [
+    ('n_x', ctypes.c_int32),
+    ('n_y', ctypes.c_int32),
+    ('n_z', ctypes.c_int32),
+    ('bc_x', ctypes.c_int32),
+    ('bc_y', ctypes.c_int32),
+    ('bc_z', ctypes.c_int32),
+    ('x_min', ctypes.c_double),
+    ('x_max', ctypes.c_double),
+    ('x_grid', ctypes.c_double),
+    ('y_min', ctypes.c_double),
+    ('y_max', ctypes.c_double),
+    ('y_grid', ctypes.c_double),
+    ('z_min', ctypes.c_double),
+    ('z_max', ctypes.c_double),
+    ('z_grid', ctypes.c_double),
+    ('c', ctypes.POINTER(ctypes.c_double)),
+]
+
+struct_c__SA_E_3D_data._pack_ = 1 # source:False
+struct_c__SA_E_3D_data._fields_ = [
+    ('E_r', struct_c__SA_linint3D_data),
+    ('E_phi', struct_c__SA_linint3D_data),
+    ('E_z', struct_c__SA_linint3D_data),
+]
+
+E_3D_data = struct_c__SA_E_3D_data
+E_3D_init_offload = _libraries['libascot.so'].E_3D_init_offload
+E_3D_init_offload.restype = ctypes.c_int32
+E_3D_init_offload.argtypes = [ctypes.POINTER(struct_c__SA_E_3D_offload_data), ctypes.POINTER(ctypes.POINTER(ctypes.c_double))]
+E_3D_free_offload = _libraries['libascot.so'].E_3D_free_offload
+E_3D_free_offload.restype = None
+E_3D_free_offload.argtypes = [ctypes.POINTER(struct_c__SA_E_3D_offload_data), ctypes.POINTER(ctypes.POINTER(ctypes.c_double))]
+E_3D_init = _libraries['libascot.so'].E_3D_init
+E_3D_init.restype = None
+E_3D_init.argtypes = [ctypes.POINTER(struct_c__SA_E_3D_data), ctypes.POINTER(struct_c__SA_E_3D_offload_data), ctypes.POINTER(ctypes.c_double)]
+E_3D_eval_E = _libraries['libascot.so'].E_3D_eval_E
+E_3D_eval_E.restype = a5err
+E_3D_eval_E.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_E_3D_data)]
+class struct_c__SA_E_3DS_offload_data(Structure):
+    pass
+
+struct_c__SA_E_3DS_offload_data._pack_ = 1 # source:False
+struct_c__SA_E_3DS_offload_data._fields_ = [
+    ('n_r', ctypes.c_int32),
+    ('n_z', ctypes.c_int32),
+    ('n_phi', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('r_min', ctypes.c_double),
+    ('r_max', ctypes.c_double),
+    ('r_grid', ctypes.c_double),
+    ('z_min', ctypes.c_double),
+    ('z_max', ctypes.c_double),
+    ('z_grid', ctypes.c_double),
+    ('phi_min', ctypes.c_double),
+    ('phi_max', ctypes.c_double),
+    ('phi_grid', ctypes.c_double),
+    ('offload_array_length', ctypes.c_int32),
+    ('PADDING_1', ctypes.c_ubyte * 4),
+]
+
+E_3DS_offload_data = struct_c__SA_E_3DS_offload_data
+class struct_c__SA_E_3DS_data(Structure):
+    _pack_ = 1 # source:False
+    _fields_ = [
+    ('E_r', struct_c__SA_interp3D_data),
+    ('E_phi', struct_c__SA_interp3D_data),
+    ('E_z', struct_c__SA_interp3D_data),
+     ]
+
+E_3DS_data = struct_c__SA_E_3DS_data
+E_3DS_init_offload = _libraries['libascot.so'].E_3DS_init_offload
+E_3DS_init_offload.restype = ctypes.c_int32
+E_3DS_init_offload.argtypes = [ctypes.POINTER(struct_c__SA_E_3DS_offload_data), ctypes.POINTER(ctypes.POINTER(ctypes.c_double))]
+E_3DS_free_offload = _libraries['libascot.so'].E_3DS_free_offload
+E_3DS_free_offload.restype = None
+E_3DS_free_offload.argtypes = [ctypes.POINTER(struct_c__SA_E_3DS_offload_data), ctypes.POINTER(ctypes.POINTER(ctypes.c_double))]
+E_3DS_init = _libraries['libascot.so'].E_3DS_init
+E_3DS_init.restype = None
+E_3DS_init.argtypes = [ctypes.POINTER(struct_c__SA_E_3DS_data), ctypes.POINTER(struct_c__SA_E_3DS_offload_data), ctypes.POINTER(ctypes.c_double)]
+E_3DS_eval_E = _libraries['libascot.so'].E_3DS_eval_E
+E_3DS_eval_E.restype = a5err
+E_3DS_eval_E.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_E_3DS_data)]
+class struct_c__SA_E_3DST_offload_data(Structure):
+    pass
+
+struct_c__SA_E_3DST_offload_data._pack_ = 1 # source:False
+struct_c__SA_E_3DST_offload_data._fields_ = [
+    ('n_r', ctypes.c_int32),
+    ('n_z', ctypes.c_int32),
+    ('n_phi', ctypes.c_int32),
+    ('n_t', ctypes.c_int32),
+    ('r_min', ctypes.c_double),
+    ('r_max', ctypes.c_double),
+    ('r_grid', ctypes.c_double),
+    ('z_min', ctypes.c_double),
+    ('z_max', ctypes.c_double),
+    ('z_grid', ctypes.c_double),
+    ('phi_min', ctypes.c_double),
+    ('phi_max', ctypes.c_double),
+    ('phi_grid', ctypes.c_double),
+    ('t_min', ctypes.c_double),
+    ('t_max', ctypes.c_double),
+    ('offload_array_length', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+]
+
+E_3DST_offload_data = struct_c__SA_E_3DST_offload_data
+class struct_c__SA_E_3DST_data(Structure):
+    _pack_ = 1 # source:False
+    _fields_ = [
+    ('E_r', struct_c__SA_interp4D_data),
+    ('E_phi', struct_c__SA_interp4D_data),
+    ('E_z', struct_c__SA_interp4D_data),
+     ]
+
+E_3DST_data = struct_c__SA_E_3DST_data
+E_3DST_init_offload = _libraries['libascot.so'].E_3DST_init_offload
+E_3DST_init_offload.restype = ctypes.c_int32
+E_3DST_init_offload.argtypes = [ctypes.POINTER(struct_c__SA_E_3DST_offload_data), ctypes.POINTER(ctypes.POINTER(ctypes.c_double))]
+E_3DST_free_offload = _libraries['libascot.so'].E_3DST_free_offload
+E_3DST_free_offload.restype = None
+E_3DST_free_offload.argtypes = [ctypes.POINTER(struct_c__SA_E_3DST_offload_data), ctypes.POINTER(ctypes.POINTER(ctypes.c_double))]
+E_3DST_init = _libraries['libascot.so'].E_3DST_init
+E_3DST_init.restype = None
+E_3DST_init.argtypes = [ctypes.POINTER(struct_c__SA_E_3DST_data), ctypes.POINTER(struct_c__SA_E_3DST_offload_data), ctypes.POINTER(ctypes.c_double)]
+E_3DST_eval_E = _libraries['libascot.so'].E_3DST_eval_E
+E_3DST_eval_E.restype = a5err
+E_3DST_eval_E.argtypes = [ctypes.c_double * 3, real, real, real, real, ctypes.POINTER(struct_c__SA_E_3DST_data)]
 
 # values for enumeration 'E_field_type'
 E_field_type__enumvalues = {
     0: 'E_field_type_TC',
     1: 'E_field_type_1DS',
+    2: 'E_field_type_3D',
+    3: 'E_field_type_3DS',
+    4: 'E_field_type_3DST',
 }
 E_field_type_TC = 0
 E_field_type_1DS = 1
+E_field_type_3D = 2
+E_field_type_3DS = 3
+E_field_type_3DST = 4
 E_field_type = ctypes.c_uint32 # enum
 class struct_c__SA_E_field_offload_data(Structure):
     pass
@@ -741,6 +1016,9 @@ struct_c__SA_E_field_offload_data._fields_ = [
     ('PADDING_0', ctypes.c_ubyte * 4),
     ('ETC', E_TC_offload_data),
     ('E1DS', E_1DS_offload_data),
+    ('E3D', E_3D_offload_data),
+    ('E3DS', E_3DS_offload_data),
+    ('E3DST', E_3DST_offload_data),
     ('offload_array_length', ctypes.c_int32),
     ('PADDING_1', ctypes.c_ubyte * 4),
 ]
@@ -755,6 +1033,9 @@ struct_c__SA_E_field_data._fields_ = [
     ('PADDING_0', ctypes.c_ubyte * 4),
     ('ETC', E_TC_data),
     ('E1DS', E_1DS_data),
+    ('E3D', E_3D_data),
+    ('E3DS', E_3DS_data),
+    ('E3DST', E_3DST_data),
 ]
 
 E_field_data = struct_c__SA_E_field_data
@@ -2070,29 +2351,6 @@ N0_3D_offload_data = struct_c__SA_N0_3D_offload_data
 class struct_c__SA_N0_3D_data(Structure):
     pass
 
-class struct_c__SA_linint3D_data(Structure):
-    pass
-
-struct_c__SA_linint3D_data._pack_ = 1 # source:False
-struct_c__SA_linint3D_data._fields_ = [
-    ('n_x', ctypes.c_int32),
-    ('n_y', ctypes.c_int32),
-    ('n_z', ctypes.c_int32),
-    ('bc_x', ctypes.c_int32),
-    ('bc_y', ctypes.c_int32),
-    ('bc_z', ctypes.c_int32),
-    ('x_min', ctypes.c_double),
-    ('x_max', ctypes.c_double),
-    ('x_grid', ctypes.c_double),
-    ('y_min', ctypes.c_double),
-    ('y_max', ctypes.c_double),
-    ('y_grid', ctypes.c_double),
-    ('z_min', ctypes.c_double),
-    ('z_max', ctypes.c_double),
-    ('z_grid', ctypes.c_double),
-    ('c', ctypes.POINTER(ctypes.c_double)),
-]
-
 struct_c__SA_N0_3D_data._pack_ = 1 # source:False
 struct_c__SA_N0_3D_data._fields_ = [
     ('n_species', ctypes.c_int32),
@@ -3128,7 +3386,11 @@ __all__ = \
     ['B_2DS_data', 'B_2DS_eval_B', 'B_2DS_eval_B_dB',
     'B_2DS_eval_psi', 'B_2DS_eval_psi_dpsi', 'B_2DS_eval_rho_drho',
     'B_2DS_free_offload', 'B_2DS_get_axis_rz', 'B_2DS_init',
-    'B_2DS_init_offload', 'B_2DS_offload_data', 'B_3DS_data',
+    'B_2DS_init_offload', 'B_2DS_offload_data', 'B_3DST_data',
+    'B_3DST_eval_B', 'B_3DST_eval_B_dB', 'B_3DST_eval_psi',
+    'B_3DST_eval_psi_dpsi', 'B_3DST_eval_rho', 'B_3DST_eval_rho_drho',
+    'B_3DST_free_offload', 'B_3DST_get_axis_rz', 'B_3DST_init',
+    'B_3DST_init_offload', 'B_3DST_offload_data', 'B_3DS_data',
     'B_3DS_eval_B', 'B_3DS_eval_B_dB', 'B_3DS_eval_psi',
     'B_3DS_eval_psi_dpsi', 'B_3DS_eval_rho_drho',
     'B_3DS_free_offload', 'B_3DS_get_axis_rz', 'B_3DS_init',
@@ -3148,16 +3410,23 @@ __all__ = \
     'B_field_eval_rho', 'B_field_eval_rho_drho',
     'B_field_free_offload', 'B_field_get_axis_rz', 'B_field_init',
     'B_field_init_offload', 'B_field_offload_data', 'B_field_type',
-    'B_field_type_2DS', 'B_field_type_3DS', 'B_field_type_GS',
-    'B_field_type_STS', 'B_field_type_TC', 'DD_He3n', 'DD_Tp',
-    'DHe3_He4p', 'DT_He4n', 'ENDCOND_FLAG', 'E_1DS_data',
-    'E_1DS_eval_E', 'E_1DS_free_offload', 'E_1DS_init',
-    'E_1DS_init_offload', 'E_1DS_offload_data', 'E_TC_data',
+    'B_field_type_2DS', 'B_field_type_3DS', 'B_field_type_3DST',
+    'B_field_type_GS', 'B_field_type_STS', 'B_field_type_TC',
+    'DD_He3n', 'DD_Tp', 'DHe3_He4p', 'DT_He4n', 'ENDCOND_FLAG',
+    'E_1DS_data', 'E_1DS_eval_E', 'E_1DS_free_offload', 'E_1DS_init',
+    'E_1DS_init_offload', 'E_1DS_offload_data', 'E_3DST_data',
+    'E_3DST_eval_E', 'E_3DST_free_offload', 'E_3DST_init',
+    'E_3DST_init_offload', 'E_3DST_offload_data', 'E_3DS_data',
+    'E_3DS_eval_E', 'E_3DS_free_offload', 'E_3DS_init',
+    'E_3DS_init_offload', 'E_3DS_offload_data', 'E_3D_data',
+    'E_3D_eval_E', 'E_3D_free_offload', 'E_3D_init',
+    'E_3D_init_offload', 'E_3D_offload_data', 'E_TC_data',
     'E_TC_eval_E', 'E_TC_free_offload', 'E_TC_init',
     'E_TC_init_offload', 'E_TC_offload_data', 'E_field_data',
     'E_field_eval_E', 'E_field_free_offload', 'E_field_init',
     'E_field_init_offload', 'E_field_offload_data', 'E_field_type',
-    'E_field_type_1DS', 'E_field_type_TC', 'N0_1D_data',
+    'E_field_type_1DS', 'E_field_type_3D', 'E_field_type_3DS',
+    'E_field_type_3DST', 'E_field_type_TC', 'N0_1D_data',
     'N0_1D_eval_n0', 'N0_1D_eval_t0', 'N0_1D_free_offload',
     'N0_1D_get_n_species', 'N0_1D_init', 'N0_1D_init_offload',
     'N0_1D_offload_data', 'N0_3D_data', 'N0_3D_eval_n0',
@@ -3268,13 +3537,17 @@ __all__ = \
     'sim_offload_data', 'simulate', 'simulate_init_offload',
     'simulate_mode_fo', 'simulate_mode_gc', 'simulate_mode_hybrid',
     'simulate_mode_ml', 'size_t', 'struct_c__SA_B_2DS_data',
-    'struct_c__SA_B_2DS_offload_data', 'struct_c__SA_B_3DS_data',
+    'struct_c__SA_B_2DS_offload_data', 'struct_c__SA_B_3DST_data',
+    'struct_c__SA_B_3DST_offload_data', 'struct_c__SA_B_3DS_data',
     'struct_c__SA_B_3DS_offload_data', 'struct_c__SA_B_GS_data',
     'struct_c__SA_B_GS_offload_data', 'struct_c__SA_B_STS_data',
     'struct_c__SA_B_STS_offload_data', 'struct_c__SA_B_TC_data',
     'struct_c__SA_B_TC_offload_data', 'struct_c__SA_B_field_data',
     'struct_c__SA_B_field_offload_data', 'struct_c__SA_E_1DS_data',
-    'struct_c__SA_E_1DS_offload_data', 'struct_c__SA_E_TC_data',
+    'struct_c__SA_E_1DS_offload_data', 'struct_c__SA_E_3DST_data',
+    'struct_c__SA_E_3DST_offload_data', 'struct_c__SA_E_3DS_data',
+    'struct_c__SA_E_3DS_offload_data', 'struct_c__SA_E_3D_data',
+    'struct_c__SA_E_3D_offload_data', 'struct_c__SA_E_TC_data',
     'struct_c__SA_E_TC_offload_data', 'struct_c__SA_E_field_data',
     'struct_c__SA_E_field_offload_data', 'struct_c__SA_N0_1D_data',
     'struct_c__SA_N0_1D_offload_data', 'struct_c__SA_N0_3D_data',
@@ -3298,9 +3571,9 @@ __all__ = \
     'struct_c__SA_dist_rho6D_offload_data',
     'struct_c__SA_input_particle', 'struct_c__SA_interp1D_data',
     'struct_c__SA_interp2D_data', 'struct_c__SA_interp3D_data',
-    'struct_c__SA_linint1D_data', 'struct_c__SA_linint3D_data',
-    'struct_c__SA_mccc_data', 'struct_c__SA_mhd_data',
-    'struct_c__SA_mhd_nonstat_data',
+    'struct_c__SA_interp4D_data', 'struct_c__SA_linint1D_data',
+    'struct_c__SA_linint3D_data', 'struct_c__SA_mccc_data',
+    'struct_c__SA_mhd_data', 'struct_c__SA_mhd_nonstat_data',
     'struct_c__SA_mhd_nonstat_offload_data',
     'struct_c__SA_mhd_offload_data', 'struct_c__SA_mhd_stat_data',
     'struct_c__SA_mhd_stat_offload_data', 'struct_c__SA_nbi_data',
