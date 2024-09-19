@@ -26,6 +26,7 @@
 #include "../B_field.h"
 #include "../Bfield/B_2DS.h"
 #include "../Bfield/B_3DS.h"
+#include "../Bfield/B_3DST.h"
 #include "../Bfield/B_STS.h"
 #include "../Bfield/B_TC.h"
 #include "../Bfield/B_GS.h"
@@ -44,6 +45,8 @@ int hdf5_bfield_read_TC(hid_t f, B_TC_offload_data* offload_data,
                         real** offload_array, char* qid);
 int hdf5_bfield_read_GS(hid_t f, B_GS_offload_data* offload_data,
                         real** offload_array, char* qid);
+int hdf5_bfield_read_3DST(hid_t f, B_3DST_offload_data* offload_data,
+                         real** offload_array, char* qid);
 
 /**
  * @brief Initialize magnetic field offload data from HDF5 file
@@ -99,6 +102,13 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data,
     if( !hdf5_find_group(f, path) ) {
         offload_data->type = B_field_type_3DS;
         err = hdf5_bfield_read_3DS(f, &(offload_data->B3DS),
+                                   offload_array, qid);
+    }
+
+    hdf5_gen_path("/bfield/B_3DST_XXXXXXXXXX", qid, path);
+    if( !hdf5_find_group(f, path) ) {
+        offload_data->type = B_field_type_3DST;
+        err = hdf5_bfield_read_3DST(f, &(offload_data->B3DST),
                                    offload_array, qid);
     }
 
@@ -207,15 +217,15 @@ int hdf5_bfield_read_2DS(hid_t f, B_2DS_offload_data* offload_data,
  * @brief Read magnetic field data of type B_3DS
  *
  * The B_3DS data is stored in HDF5 file under the group
- * /bfield/B_3DS-XXXXXXXXXX/ where X's mark the QID.
+ * /bfield/B_3DS_XXXXXXXXXX/ where X's mark the QID.
  *
  * This function assumes the group holds the following datasets:
  * (B data refers to \f$B_R\f$, \f$B_phi\f$, and \f$B_z\f$ and psi data to
  *  \f$\psi\f$.)
  *
- * - int nr Number of R grid points in the B data grid
- * - int nphi Number of phi grid points in the B data grid
- * - int nz Number of z grid points in the B data grid
+ * - int b_nr Number of R grid points in the B data grid
+ * - int b_nphi Number of phi grid points in the B data grid
+ * - int b_nz Number of z grid points in the B data grid
  * - double b_rmin Minimum value in B data R grid [m]
  * - double b_rmax Maximum value in B data R grid [m]
  * - double b_phimin Minimum value in B data phi grid [deg]
@@ -223,9 +233,9 @@ int hdf5_bfield_read_2DS(hid_t f, B_2DS_offload_data* offload_data,
  * - double b_zmin Minimum value in B data z grid [m]
  * - double b_zmax Maximum value in B data z grid [m]
  *
- * - int b_nr Number of R grid points in the psi data grid
+ * - int psi_nr Number of R grid points in the psi data grid
  * - int psi_nz Number of z grid points in the psi data grid
- * - double ps_rmin Minimum value in psi data R grid [m]
+ * - double psi_rmin Minimum value in psi data R grid [m]
  * - double psi_rmax Maximum value in psi data R grid [m]
  * - double psi_zmin Minimum value in psi data z grid [m]
  * - double psi_zmax Maximum value in psi data z grid [m]
@@ -301,6 +311,148 @@ int hdf5_bfield_read_3DS(hid_t f, B_3DS_offload_data* offload_data,
     int psi_size = offload_data->psigrid_n_r*offload_data->psigrid_n_z;
     int B_size = offload_data->Bgrid_n_r * offload_data->Bgrid_n_z
         * offload_data->Bgrid_n_phi;
+
+    *offload_array = (real*) malloc((psi_size + 3 * B_size) * sizeof(real));
+    offload_data->offload_array_length = psi_size + 3 * B_size;
+
+    /* Read psi */
+    if( hdf5_read_double(BPATH "psi", &(*offload_array)[3*B_size],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    /* Read the magnetic field */
+    if( hdf5_read_double(BPATH "br", &(*offload_array)[0*B_size],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "bphi", &(*offload_array)[1*B_size],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "bz", &(*offload_array)[2*B_size],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    /* Read the poloidal flux (psi) values at magnetic axis and separatrix. */
+    if( hdf5_read_double(BPATH "psi0", &(offload_data->psi0),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "psi1", &(offload_data->psi1),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    /* Read magnetic axis R and z coordinates */
+    if( hdf5_read_double(BPATH "axisr", &(offload_data->axis_r),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "axisz", &(offload_data->axis_z),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    return 0;
+}
+
+
+/**
+ * @brief Read magnetic field data of type B_3DST
+ *
+ * The B_3DST data is stored in HDF5 file under the group
+ * /bfield/B_3DST_XXXXXXXXXX/ where X's mark the QID.
+ *
+ * This function assumes the group holds the following datasets:
+ * (B data refers to \f$B_R\f$, \f$B_phi\f$, and \f$B_z\f$ and psi data to
+ *  \f$\psi\f$.)
+ *
+ * - int b_nr Number of R grid points in the B data grid
+ * - int b_nphi Number of phi grid points in the B data grid
+ * - int b_nz Number of z grid points in the B data grid
+ * - int b_nt Number of t grid points in the B data grid
+ * - double b_rmin Minimum value in B data R grid [m]
+ * - double b_rmax Maximum value in B data R grid [m]
+ * - double b_phimin Minimum value in B data phi grid [deg]
+ * - double b_phimax Maximum value in B data phi grid [deg]
+ * - double b_zmin Minimum value in B data z grid [m]
+ * - double b_zmax Maximum value in B data z grid [m]
+ * - double b_tmin Minimum value in B data t grid [s]
+ * - double b_tmax Maximum value in B data t grid [s]
+ *
+ * - int psi_nr Number of R grid points in the psi data grid
+ * - int psi_nz Number of z grid points in the psi data grid
+ * - double psi_rmin Minimum value in psi data R grid [m]
+ * - double psi_rmax Maximum value in psi data R grid [m]
+ * - double psi_zmin Minimum value in psi data z grid [m]
+ * - double psi_zmax Maximum value in psi data z grid [m]
+ *
+ * - double axisr Magnetic axis R coordinate [m]
+ * - double axisz Magnetic axis z coordinate [m]
+ * - double psi0 Poloidal magnetic flux value on magnetic axis [V*s*m^-1]
+ * - double psi1 Poloidal magnetic flux value on separatrix [V*s*m^-1]
+ * - double psi Poloidal magnetic flux on the Rz-grid as
+ *              a {psi_nz, psi_nr} matrix [V*s*m^-1]
+ * - double br   Magnetic field R component on the Rz-grid as
+ *               a {b_nt, b_nz, b_nphi, b_nr} matrix [T]
+ * - double bphi Magnetic field R component on the Rz-grid as
+ *               a {b_nt, b_nz, b_nphi, b_nr} matrix [T]
+ * - double bz   Magnetic field R component on the Rz-grid as
+ *               a {b_nt, b_nz, b_nphi, b_nr} matrix [T]
+ *
+ * @param f HDF5 file identifier for a file which is opened and closed outside
+ *          of this function
+ * @param offload_data pointer to offload data struct which is allocated here
+ * @param offload_array pointer to offload array which is allocated here and
+ *                      used to store psi, B_R, B_phi, and B_z values as
+ *                      required by B_3DST_init_offload()
+ * @param qid QID of the B_3DST field that is to be read
+ *
+ * @return zero if reading succeeded
+ */
+
+
+int hdf5_bfield_read_3DST(hid_t f, B_3DST_offload_data* offload_data,
+                         real** offload_array, char* qid) {
+    #undef BPATH
+    #define BPATH "/bfield/B_3DST_XXXXXXXXXX/"
+
+    /* Read and initialize magnetic field Rpz-grid */
+    if( hdf5_read_int(BPATH "b_nr", &(offload_data->Bgrid_n_r),
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(BPATH "b_nz", &(offload_data->Bgrid_n_z),
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "b_rmin", &(offload_data->Bgrid_r_min),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "b_rmax", &(offload_data->Bgrid_r_max),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "b_zmin", &(offload_data->Bgrid_z_min),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "b_zmax", &(offload_data->Bgrid_z_max),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    if( hdf5_read_int(BPATH "b_nphi", &(offload_data->Bgrid_n_phi),
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "b_phimin", &(offload_data->Bgrid_phi_min),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "b_phimax", &(offload_data->Bgrid_phi_max),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    if( hdf5_read_int(BPATH "b_nt", &(offload_data->Bgrid_n_t),
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "b_tmin", &(offload_data->Bgrid_t_min),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "b_tmax", &(offload_data->Bgrid_t_max),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    // Convert to radians
+    offload_data->Bgrid_phi_min = math_deg2rad(offload_data->Bgrid_phi_min);
+    offload_data->Bgrid_phi_max = math_deg2rad(offload_data->Bgrid_phi_max);
+
+    /* Read and initialize psi field Rz-grid */
+    if( hdf5_read_int(BPATH "psi_nr", &(offload_data->psigrid_n_r),
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(BPATH "psi_nz", &(offload_data->psigrid_n_z),
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "psi_rmin", &(offload_data->psigrid_r_min),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "psi_rmax", &(offload_data->psigrid_r_max),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "psi_zmin", &(offload_data->psigrid_z_min),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "psi_zmax", &(offload_data->psigrid_z_max),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    /* Allocate offload_array storing psi and the three components of B */
+    int psi_size = offload_data->psigrid_n_r*offload_data->psigrid_n_z;
+    int B_size = offload_data->Bgrid_n_r * offload_data->Bgrid_n_z
+        * offload_data->Bgrid_n_phi * offload_data->Bgrid_n_t;
 
     *offload_array = (real*) malloc((psi_size + 3 * B_size) * sizeof(real));
     offload_data->offload_array_length = psi_size + 3 * B_size;
