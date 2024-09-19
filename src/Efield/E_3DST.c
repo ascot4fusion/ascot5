@@ -1,8 +1,9 @@
 /**
- * @file E_3DST.c @brief Time dependent 3D electric field with 4D spline interpolation
+ * @file E_3DST.c
+ * @brief Time dependent 3D electric field with 4D spline interpolation
  *
- * This module represents an electric field where data is given in \f$R\phi z t\f$-
- * grid from which it is interpolated with tricubic splines.
+ * This module represents an electric field where data is given in
+ * \f$R\phi z t\f$- grid from which it is interpolated with tricubic splines.
  *
  * This module does no extrapolation so if queried value is outside the
  * \f$Rz\f$-grid an error is thrown. For \f$\phi\f$-grid, periodic boundary
@@ -65,7 +66,8 @@
  *
  * @return zero if initialization succeeded
  */
-int E_3DST_init_offload(E_3DST_offload_data* offload_data, real** offload_array) {
+int E_3DST_init_offload(
+    E_3DST_offload_data* offload_data, real** offload_array) {
 
     /* Spline initialization. */
     int err = 0;
@@ -148,7 +150,8 @@ int E_3DST_init_offload(E_3DST_offload_data* offload_data, real** offload_array)
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
-void E_3DST_free_offload(E_3DST_offload_data* offload_data, real** offload_array) {
+void E_3DST_free_offload(
+    E_3DST_offload_data* offload_data, real** offload_array) {
     free(*offload_array);
     *offload_array = NULL;
 }
@@ -241,7 +244,9 @@ a5err E_3DST_eval_E(real E[3], real r, real phi, real z, real t,
     interperr += interp4Dcomp_eval_f(&E[2], &Edata->E_z, r, phi, z, t);
 
     /* Test for E field interpolation error */
-    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_E_3DST );}
+    if(interperr) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_E_3DST );
+    }
 
     return err;
 }

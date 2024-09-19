@@ -166,7 +166,7 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
         case EF_E_3D:
             sprintf(file, "E_3D.c");
             break;
-       
+
         case EF_E_3DS:
             sprintf(file, "E_3DS.c");
             break;

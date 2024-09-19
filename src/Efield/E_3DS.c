@@ -1,8 +1,9 @@
 /**
- * @file E_3DS.c @brief 3D electric field with tricubic interpolation
+ * @file E_3DS.c
+ * @brief 3D electric field with tricubic interpolation
  *
- * This module represents an electric field where data is given in \f$R\phi z\f$-
- * grid from which it is interpolated with tricubic splines.
+ * This module represents an electric field where data is given in \f$R\phi z\f$
+ * -grid from which it is interpolated with tricubic splines.
  *
  * This module does no extrapolation so if queried value is outside the
  * \f$Rz\f$-grid an error is thrown. For \f$\phi\f$-grid, periodic boundary
@@ -14,7 +15,6 @@
  * and \f$n_\phi = 360\f$, then \f$\phi_\mathrm{max}=359\f$ if periodicity is
  * \f$N=0\f$.
  *
- * @see E_field.c
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -113,7 +113,8 @@ int E_3DS_init_offload(E_3DS_offload_data* offload_data, real** offload_array) {
         offload_data->offload_array_length = NSIZE_COMP3D*E_size*3;
 
     /* Print some sanity check on data */
-    print_out(VERBOSE_IO, "\n3D electric field, tricubic interpolation (E_3DS)\n");
+    print_out(VERBOSE_IO,
+              "\n3D electric field, tricubic interpolation (E_3DS)\n");
     print_out(VERBOSE_IO, "Grid: nR = %4.d Rmin = %3.3f Rmax = %3.3f\n",
               offload_data->n_r,
               offload_data->r_min, offload_data->r_max);
@@ -137,7 +138,8 @@ int E_3DS_init_offload(E_3DS_offload_data* offload_data, real** offload_array) {
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
-void E_3DS_free_offload(E_3DS_offload_data* offload_data, real** offload_array) {
+void E_3DS_free_offload(
+    E_3DS_offload_data* offload_data, real** offload_array) {
     free(*offload_array);
     *offload_array = NULL;
 }
@@ -221,7 +223,9 @@ a5err E_3DS_eval_E(real E[3], real r, real phi, real z,
     interperr += interp3Dcomp_eval_f(&E[2], &Edata->E_z, r, phi, z);
 
     /* Test for E field interpolation error */
-    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_E_3DS );}
+    if(interperr) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_E_3DS );
+    }
 
     return err;
 }

@@ -1,8 +1,9 @@
 /**
- * @file E_3D.c @brief 3D electric field with trilinear interpolation
+ * @file E_3D.c
+ * @brief 3D electric field with trilinear interpolation
  *
- * This module represents an electric field where data is given in \f$R\phi z\f$-
- * grid from which it is interpolated with trilinear splines.
+ * This module represents an electric field where data is given in \f$R\phi z\f$
+ * -grid from which it is interpolated with trilinear splines.
  *
  * This module does no extrapolation so if queried value is outside the
  * \f$Rz\f$-grid an error is thrown. For \f$\phi\f$-grid, periodic boundary
@@ -14,7 +15,6 @@
  * and \f$n_\phi = 360\f$, then \f$\phi_\mathrm{max}=359\f$ if periodicity is
  * \f$N=0\f$.
  *
- * @see E_field.c linint3D.c
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -66,7 +66,8 @@ int E_3D_init_offload(E_3D_offload_data* offload_data, real** offload_array) {
     offload_data->offload_array_length =
         3*offload_data->n_r * offload_data->n_phi * offload_data->n_z;
 
-    print_out(VERBOSE_IO, "\n3D electric field, trilinear interpolation (E_3D)\n");
+    print_out(VERBOSE_IO,
+              "\n3D electric field, trilinear interpolation (E_3D)\n");
     print_out(VERBOSE_IO, "Grid: nR = %4.d Rmin = %3.3f Rmax = %3.3f\n",
               offload_data->n_r,
               offload_data->r_min, offload_data->r_max);
@@ -123,22 +124,25 @@ void E_3D_init(E_3D_data* Edata, E_3D_offload_data* offload_data,
     int E_size = offload_data->n_r * offload_data->n_z
         * offload_data->n_phi;
 
-    linint3D_init(&Edata->E_r, &offload_array[E_size*0],
-                  offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-                  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-                  offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-                  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    linint3D_init(&Edata->E_phi, &offload_array[E_size*1],
-                  offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-                  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-                  offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-                  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    linint3D_init(
+        &Edata->E_r, &offload_array[E_size*0],
+        offload_data->n_r, offload_data->n_phi, offload_data->n_z,
+        offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+        offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
+        offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    linint3D_init(
+        &Edata->E_phi, &offload_array[E_size*1],
+        offload_data->n_r, offload_data->n_phi, offload_data->n_z,
+        offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+        offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
+        offload_data->z_min, offload_data->z_max, offload_data->z_grid);
 
-    linint3D_init(&Edata->E_z, &offload_array[E_size*2],
-                  offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-                  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-                  offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-                  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    linint3D_init(
+        &Edata->E_z, &offload_array[E_size*2],
+        offload_data->n_r, offload_data->n_phi, offload_data->n_z,
+        offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+        offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
+        offload_data->z_min, offload_data->z_max, offload_data->z_grid);
 
     return;
 }
