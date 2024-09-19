@@ -45,7 +45,7 @@ jobs:
           tar -xf code.tar -C ./build/
 
       - name: Clone figures repository
-        uses: actions/checkout@4
+        uses: actions/checkout@v4
         with:
           repository: ascot4fusion/figures
           ssh-key: ${{ secrets.SSH_KEY_FIGURES }}
