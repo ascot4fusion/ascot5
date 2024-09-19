@@ -163,6 +163,18 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
             sprintf(file, "E_1DS.c");
             break;
 
+        case EF_E_3D:
+            sprintf(file, "E_3D.c");
+            break;
+       
+        case EF_E_3DS:
+            sprintf(file, "E_3DS.c");
+            break;
+
+        case EF_E_3DST:
+            sprintf(file, "E_3DST.c");
+            break;
+
         case EF_NEUTRAL:
             sprintf(file, "neutral.c");
             break;
@@ -197,6 +209,10 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
 
         case EF_B_3DS:
             sprintf(file, "B_3DS.c");
+            break;
+
+        case EF_B_3DST:
+            sprintf(file, "B_3DST.c");
             break;
 
         case EF_PARTICLE:
