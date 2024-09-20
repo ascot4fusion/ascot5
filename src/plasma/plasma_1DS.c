@@ -336,3 +336,15 @@ a5err plasma_1DS_eval_densandtemp(real* dens, real* temp, real rho,
     }
     return err;
 }
+
+/**
+ *
+ */
+a5err plasma_1DS_eval_rotation(real* vr, real* vphi, real* vz, real rho, real r,
+                               plasma_1DS_data* plasma_data) {
+    *vr = 0;
+    *vphi = 0;
+    *vz = 0;
+
+    return 0;
+}

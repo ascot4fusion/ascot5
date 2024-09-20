@@ -125,8 +125,9 @@ void plasma_1D_init(plasma_1D_data* pls_data,
         pls_data->anum[i]   = offload_data->anum[i];
     }
     pls_data->rho  = &offload_array[0];
-    pls_data->temp = &offload_array[pls_data->n_rho];
-    pls_data->dens = &offload_array[pls_data->n_rho*3];
+    pls_data->vtor = &offload_array[pls_data->n_rho];
+    pls_data->temp = &offload_array[pls_data->n_rho*2];
+    pls_data->dens = &offload_array[pls_data->n_rho*4];
 }
 
 /**
@@ -258,6 +259,48 @@ a5err plasma_1D_eval_densandtemp(real* dens, real* temp, real rho,
                 temp[i] = temp[1];
             }
         }
+    }
+
+    return err;
+}
+
+/**
+ * @brief Evaluate plasma rotation
+ *
+ * @param vr
+ * @param vphi
+ * @param vz
+ * @param rho
+ * @param r
+ * @param pls_data
+ *
+ * @return zero if the evaluation succeeded
+ */
+a5err plasma_1D_eval_rotation(real* vr, real* vphi, real* vz, real rho, real r,
+                              plasma_1D_data* pls_data) {
+    a5err err = 0;
+    if(rho < pls_data->rho[0]) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
+    }
+    else if(rho >= pls_data->rho[pls_data->n_rho-1]) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
+    }
+    else {
+        int i_rho = 0;
+        while(i_rho < pls_data->n_rho-1 && pls_data->rho[i_rho] <= rho) {
+            i_rho++;
+        }
+        i_rho--;
+
+        real t_rho = (rho - pls_data->rho[i_rho])
+                 / (pls_data->rho[i_rho+1] - pls_data->rho[i_rho]);
+
+        real p1, p2;
+        p1 = pls_data->vtor[i_rho];
+        p2 = pls_data->vtor[i_rho+1];
+        *vphi = r * (p1 + t_rho * (p2 - p1));
+        *vr = 0;
+        *vz = 0;
     }
 
     return err;

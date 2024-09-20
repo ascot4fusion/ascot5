@@ -80,6 +80,9 @@ a5err plasma_eval_densandtemp(real* dens, real* temp, real rho,
                               real r, real phi, real z, real t,
                               plasma_data* pls_data);
 #pragma omp declare simd uniform(pls_data)
+a5err plasma_eval_rotation(real* vr, real* vphi, real* vz, real rho, real r,
+                           real phi, real z, real t, plasma_data* pls_data);
+#pragma omp declare simd uniform(pls_data)
 int plasma_get_n_species(plasma_data* pls_data);
 #pragma omp declare simd uniform(pls_data)
 const real* plasma_get_species_mass(plasma_data* pls_data);

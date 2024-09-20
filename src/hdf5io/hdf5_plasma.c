@@ -130,21 +130,28 @@ int hdf5_plasma_read_1D(hid_t f, plasma_1D_offload_data* offload_data,
     /* Allocate space for rhogrid, density (for each species) and
        temperature (for electrons and ions - all ions have same temperature) */
     offload_data->offload_array_length =
-        3*n_rho + offload_data->n_species*n_rho;
+        4*n_rho + offload_data->n_species*n_rho;
     *offload_array = (real*) malloc(sizeof(real)
                                     * offload_data->offload_array_length);
 
     /* Pointers to beginning of different data series to make code more
      * readable */
     real* rho = &(*offload_array)[0];
-    real* temp_e = &(*offload_array)[n_rho];
-    real* temp_i = &(*offload_array)[n_rho*2];
-    real* dens_e = &(*offload_array)[n_rho*3];
-    real* dens_i = &(*offload_array)[n_rho*4];
+    real* vtor = &(*offload_array)[n_rho];
+    real* temp_e = &(*offload_array)[n_rho*2];
+    real* temp_i = &(*offload_array)[n_rho*3];
+    real* dens_e = &(*offload_array)[n_rho*4];
+    real* dens_i = &(*offload_array)[n_rho*5];
 
     /* Read rhogrid, densities, and temperatures into allocated array */
     if( hdf5_read_double(PLSPATH "rho", rho,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(PLSPATH "vtor", vtor,
+                         f, qid, __FILE__, __LINE__) ) {
+        for(int i = 0; i < n_rho; i++) {
+            vtor[i] = 0;
+        }
+    }
     if( hdf5_read_double(PLSPATH "etemperature", temp_e,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(PLSPATH "edensity", dens_e,
