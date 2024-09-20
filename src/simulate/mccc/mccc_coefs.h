@@ -217,18 +217,19 @@
  * @param nb plasma species densities [m^-3]
  * @param Tb plasma species temperatures [J]
  */
-#pragma omp declare simd uniform(nspec, mb, qb, nb, Tb)
-inline static void mccc_coefs_clog(real* clogab, real ma, real qa, real va,
-                                   int nspec, const real* mb, const real* qb,
-                                   const real* nb, const real* Tb) {
+#pragma omp declare simd uniform(nspec, mb, qb, nb, Tb, B)
+inline static void mccc_coefs_clog(
+    real* clogab, real ma, real qa, real va, real B, int nspec, const real* mb,
+    const real* qb, const real* nb, const real* Tb) {
 
     /* Evaluate Debye length */
     real sum = 0;
     for(int i = 0; i < nspec; i++){
-        sum += (nb[i] * qb[i] * qb[i] / (mb[i]*CONST_E0) + qa*5.3/ma) / (Tb[i]/mb[i] + va * va);
-        //sum += nb[i] * qb[i] * qb[i] / Tb[i];
+        sum += (   nb[i] * qb[i] * qb[i] / ( mb[i] * CONST_E0 )
+                 + qb[i] * qb[i] * B * B / ( mb[i] * mb[i] ) )
+          / ( Tb[i] / mb[i] + va * va );
     }
-    real debyeLength = sqrt(sum);//sqrt(CONST_E0/sum);
+    real debyeLength = 1.0/sqrt(sum);
 
     /* Evaluate classical and quantum mechanical impact parameter. The one *
      * that is larger is used to evaluate Coulomb logarithm.               */

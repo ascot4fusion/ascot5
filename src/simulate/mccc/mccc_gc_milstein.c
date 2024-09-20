@@ -72,7 +72,7 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
 
             /* Coulomb logarithm */
             real clogab[MAX_SPECIES];
-            mccc_coefs_clog(clogab, p->mass[i], p->charge[i], vin,
+            mccc_coefs_clog(clogab, p->mass[i], p->charge[i], vin, Bnorm,
                             n_species, mb, qb, nb, Tb);
 
             /* Evaluate collision coefficients and sum them for each *

@@ -827,11 +827,14 @@ void libascot_eval_collcoefs(
         real mufun[3] = {0., 0., 0.};
 
         /* Evaluate rho as it is needed to evaluate plasma parameters */
-        real psi, rho[2];
+        real psi, rho[2], B[3];
         if( B_field_eval_psi(&psi, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
             continue;
         }
         if( B_field_eval_rho(rho, psi, &sim.B_data) ) {
+            continue;
+        }
+        if( B_field_eval_B(B, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
             continue;
         }
 
@@ -840,6 +843,7 @@ void libascot_eval_collcoefs(
                                     &sim.plasma_data) ) {
             continue;
         }
+        real Bnorm = math_norm(B);
 
         /* Evaluate coefficients for different velocities */
         for(int iv=0; iv<Nv; iv++) {
@@ -849,8 +853,8 @@ void libascot_eval_collcoefs(
 
                 /* Coulomb logarithm */
                 real clogab[MAX_SPECIES];
-                mccc_coefs_clog(clogab, ma, qa, va[iv], n_species, mb, qb,
-                                nb, Tb);
+                mccc_coefs_clog(
+                    clogab, ma, qa, va[iv], Bnorm, n_species, mb, qb, nb, Tb);
 
                 /* Special functions */
                 real vb = sqrt( 2 * Tb[ib] / mb[ib] );

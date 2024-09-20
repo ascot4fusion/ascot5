@@ -64,7 +64,8 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
 
             /* Coulomb logarithm */
             real clogab[MAX_SPECIES];
-            mccc_coefs_clog(clogab, p->mass[i], p->charge[i], vin,
+            real B = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
+            mccc_coefs_clog(clogab, p->mass[i], p->charge[i], vin, B,
                             n_species, mb, qb, nb, Tb);
 
             /* Evaluate collision coefficients and sum them for each *
