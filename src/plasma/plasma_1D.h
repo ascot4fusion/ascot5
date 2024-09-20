@@ -21,6 +21,7 @@ typedef struct {
     real* rho;     /**< pointer to start of rho values               */
     real* temp;    /**< pointer to start of temperatures             */
     real* dens;    /**< pointer to start of densities                */
+    real* vtor;
 } plasma_1D_data;
 
 int plasma_1D_init(plasma_1D_data* data, int nrho, int nion, real* rho,
@@ -39,6 +40,10 @@ DECLARE_TARGET_END
 GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
 a5err plasma_1D_eval_densandtemp(real* dens, real* temp, real rho,
                                  plasma_1D_data* pls_data);
+DECLARE_TARGET_END
+GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
+a5err plasma_1D_eval_rotation(real* vr, real* vphi, real* vz, real rho, real r,
+                              plasma_1D_data* pls_data);
 DECLARE_TARGET_END
 
 #endif
