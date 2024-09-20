@@ -39,5 +39,9 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
 a5err plasma_1DS_eval_densandtemp(real* dens, real* temp, real rho,
                                   plasma_1DS_data* pls_data);
 DECLARE_TARGET_END
+GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
+a5err plasma_1DS_eval_rotation(real* vr, real* vphi, real* vz, real rho, real r,
+                               plasma_1DS_data* pls_data);
+DECLARE_TARGET_END
 
 #endif
