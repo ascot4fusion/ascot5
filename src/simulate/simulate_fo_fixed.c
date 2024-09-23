@@ -18,7 +18,6 @@
 #include "../plasma.h"
 #include "../endcond.h"
 #include "../math.h"
-#include "../flow.h"
 #include "../consts.h"
 #include "simulate_fo_fixed.h"
 #include "step/step_fo_vpa.h"
@@ -131,9 +130,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         /* Euler-Maruyama for Coulomb collisions */
         if(sim->enable_clmbcol) {
             random_normal_simd(&sim->random_data, 3*p.n_mrk, rnd);
-            flow_fo_to_plasma(&p, &sim->B_data, &sim->plasma_data);
             mccc_fo_euler(&p, hin, &sim->plasma_data, &sim->mccc_data, rnd);
-            flow_fo_to_lab(&p, &sim->B_data, &sim->plasma_data);
         }
         /* Atomic reactions */
         if(sim->enable_atomic) {
