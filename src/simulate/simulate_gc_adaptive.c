@@ -141,13 +141,14 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         /* Cash-Karp method for orbit-following */
         if(sim->enable_orbfol) {
             if(sim->enable_mhd) {
-                step_gc_cashkarp_mhd(&p, hin, hout_orb, tol_orb,
-                                     &sim->B_data, &sim->E_data,
-                                     &sim->boozer_data, &sim->mhd_data);
+                step_gc_cashkarp_mhd(
+                    &p, hin, hout_orb, tol_orb, &sim->B_data, &sim->E_data,
+                    &sim->boozer_data, &sim->mhd_data, sim->enable_aldforce);
             }
             else {
-                step_gc_cashkarp(&p, hin, hout_orb, tol_orb,
-                                 &sim->B_data, &sim->E_data);
+                step_gc_cashkarp(
+                    &p, hin, hout_orb, tol_orb, &sim->B_data, &sim->E_data,
+                    sim->enable_aldforce);
             }
             /* Check whether time step was rejected */
             #pragma omp simd
