@@ -21,7 +21,6 @@
 #include "../plasma.h"
 #include "simulate_gc_fixed.h"
 #include "step/step_gc_rk4.h"
-#include "../flow.h"
 #include "mccc/mccc.h"
 
 #pragma omp declare target
@@ -149,10 +148,8 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         if(sim->enable_clmbcol) {
             real rnd[5*NSIMD];
             random_normal_simd(&sim->random_data, 5*NSIMD, rnd);
-            flow_gc_to_plasma(&p, &sim->B_data, &sim->plasma_data);
             mccc_gc_euler(&p, hin, &sim->B_data, &sim->plasma_data,
                           &sim->mccc_data, rnd);
-            flow_gc_to_lab(&p, &sim->B_data, &sim->plasma_data);
         }
 
         /* Performs the ICRH kick if in resonance. */

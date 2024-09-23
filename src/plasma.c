@@ -316,19 +316,25 @@ a5err plasma_eval_densandtemp(real* dens, real* temp, real rho,
     return err;
 }
 
-a5err plasma_eval_rotation(real* vr, real* vphi, real* vz, real rho, real r,
-                           real phi, real z, real t, plasma_data* pls_data) {
+a5err plasma_eval_flow(
+    real* vflow, real rho, real r, real phi, real z, real t,
+    plasma_data* pls_data) {
     a5err err = 0;
 
     switch(pls_data->type) {
         case plasma_type_1D:
-            err = plasma_1D_eval_rotation(vr, vphi, vz, rho, r,
-                                          &(pls_data->plasma_1D));
+            err = plasma_1D_eval_flow(
+                vflow, rho, &(pls_data->plasma_1D));
             break;
 
         case plasma_type_1DS:
-            err = plasma_1DS_eval_rotation(vr, vphi, vz, rho, r,
-                                           &(pls_data->plasma_1DS));
+            err = plasma_1DS_eval_flow(
+                vflow, rho, &(pls_data->plasma_1DS));
+            break;
+
+        case plasma_type_1Dt:
+            err = plasma_1Dt_eval_flow(
+                vflow, rho, t, &(pls_data->plasma_1Dt));
             break;
 
         default:
@@ -340,9 +346,7 @@ a5err plasma_eval_rotation(real* vr, real* vphi, real* vz, real rho, real r,
     if(err) {
         /* In case of error, return some reasonable values to avoid further
            complications */
-        *vr = 0;
-        *vz = 0;
-        *vphi = 0;
+        *vflow = 0;
     }
 
     return err;
