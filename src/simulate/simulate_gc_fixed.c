@@ -124,11 +124,13 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         /* RK4 method for orbit-following */
         if(sim->enable_orbfol) {
             if(sim->enable_mhd) {
-                step_gc_rk4_mhd(&p, hin, &sim->B_data, &sim->E_data,
-                                &sim->boozer_data, &sim->mhd_data);
+                step_gc_rk4_mhd(
+                    &p, hin, &sim->B_data, &sim->E_data, &sim->boozer_data,
+                    &sim->mhd_data, sim->enable_aldforce);
             }
             else {
-                step_gc_rk4(&p, hin, &sim->B_data, &sim->E_data);
+                step_gc_rk4(&p, hin, &sim->B_data, &sim->E_data,
+                            sim->enable_aldforce);
             }
         }
 

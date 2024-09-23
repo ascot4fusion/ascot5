@@ -303,9 +303,7 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     free(pq.p);
 
     if(sim->enable_icrh) {
-        rfof_interface_deallocate_rfof_input_param(
-            &(sim->rfof_data.cptr_rfof_input_params));
-        rfof_interface_deallocate_rfglobal(&(sim->rfof_data.cptr_rfglobal));
+        rfof_free_offload(&sim->rfof_data);
     }
     /**************************************************************************/
     /* 8. Execution returns to host where this function was called.           */
@@ -328,7 +326,6 @@ void simulate_init(sim_data* sim) {
         gctransform_setorder(0);
     }
     asigma_extrapolate(sim->enable_atomic==2);
-
 }
 
 /**
