@@ -295,3 +295,21 @@ a5err plasma_1Dt_eval_densandtemp(real* dens, real* temp, real rho, real t,
 
     return err;
 }
+
+/**
+ * @brief Evalate plasma flow along the field lines
+ *
+ * @param vflow pointer where the flow value is stored [m/s]
+ * @param rho particle rho coordinate [1]
+ * @param r particle R coordinate [m]
+ * @param phi particle toroidal coordinate [rad]
+ * @param z particle z coordinate [m]
+ * @param t particle time coordinate [s]
+ * @param pls_data pointer to plasma data
+ */
+a5err plasma_1Dt_eval_flow(real* vflow, real rho, real t,
+                           plasma_1Dt_data* pls_data) {
+    a5err err = 0;
+
+    return err;
+}

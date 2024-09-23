@@ -265,19 +265,17 @@ a5err plasma_1D_eval_densandtemp(real* dens, real* temp, real rho,
 }
 
 /**
- * @brief Evaluate plasma rotation
+ * @brief Evalate plasma flow along the field lines
  *
- * @param vr
- * @param vphi
- * @param vz
- * @param rho
- * @param r
- * @param pls_data
- *
- * @return zero if the evaluation succeeded
+ * @param vflow pointer where the flow value is stored [m/s]
+ * @param rho particle rho coordinate [1]
+ * @param r particle R coordinate [m]
+ * @param phi particle toroidal coordinate [rad]
+ * @param z particle z coordinate [m]
+ * @param t particle time coordinate [s]
+ * @param pls_data pointer to plasma data
  */
-a5err plasma_1D_eval_rotation(real* vr, real* vphi, real* vz, real rho, real r,
-                              plasma_1D_data* pls_data) {
+a5err plasma_1D_eval_flow(real* vflow, real rho, plasma_1D_data* pls_data) {
     a5err err = 0;
     if(rho < pls_data->rho[0]) {
         err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
@@ -291,16 +289,7 @@ a5err plasma_1D_eval_rotation(real* vr, real* vphi, real* vz, real rho, real r,
             i_rho++;
         }
         i_rho--;
-
-        real t_rho = (rho - pls_data->rho[i_rho])
-                 / (pls_data->rho[i_rho+1] - pls_data->rho[i_rho]);
-
-        real p1, p2;
-        p1 = pls_data->vtor[i_rho];
-        p2 = pls_data->vtor[i_rho+1];
-        *vphi = r * (p1 + t_rho * (p2 - p1));
-        *vr = 0;
-        *vz = 0;
+        *vflow = pls_data->vtor[i_rho];
     }
 
     return err;

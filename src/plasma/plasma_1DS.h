@@ -38,6 +38,7 @@ typedef struct {
                                      interpolation structs                    */
     interp1D_data dens[MAX_SPECIES]; /**< electron and every ion species
                                           density interpolation structs       */
+    interp1D_data vtor;         /**< toroidal rotation interpolation struct   */
 } plasma_1DS_data;
 
 int plasma_1DS_init_offload(plasma_1DS_offload_data* offload_data,
@@ -60,8 +61,7 @@ a5err plasma_1DS_eval_dens(real* dens, real rho, int species,
 a5err plasma_1DS_eval_densandtemp(real* dens, real* temp, real rho,
                                   plasma_1DS_data* pls_data);
 #pragma omp declare simd uniform(pls_data)
-a5err plasma_1DS_eval_rotation(real* vr, real* vphi, real* vz, real rho, real r,
-                               plasma_1DS_data* pls_data);
+a5err plasma_1DS_eval_flow(real* vflow, real rho, plasma_1DS_data* pls_data);
 #pragma omp end declare target
 
 #endif
