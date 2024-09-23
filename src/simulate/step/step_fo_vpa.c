@@ -30,9 +30,10 @@
  * @param h pointer to array containing time steps
  * @param Bdata pointer to magnetic field data
  * @param Edata pointer to electric field data
+ * @param aldforce indicates whether Abraham-Lorentz-Dirac force is enabled
  */
 void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
-                 E_field_data* Edata) {
+                 E_field_data* Edata, int aldforce) {
 
     int i;
     /* Following loop will be executed simultaneously for all i */
@@ -188,6 +189,26 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
                                       + (z0-axisrz[1]) * (p->z[i]-axisrz[1]) );
             }
 
+            /* Evaluate Abraham-Lorentz-Dirac force (if enabled) is evaluated
+             * separately using the Euler method */
+            real Bnorm = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
+            real pnorm = math_normc(p->p_r[i], p->p_phi[i], p->p_z[i]);
+            real t_ald = phys_ald_force_chartime(
+                p->charge[i], p->mass[i], Bnorm, gamma) * aldforce;
+            real pparbhatperB = (
+                  p->p_r[i]*p->B_r[i] + p->p_phi[i]*p->B_phi[i]
+                + p->p_z[i]*p->B_z[i] ) / ( Bnorm * Bnorm * pnorm );
+            real pperpvec[3] = {
+                p->p_r[i]   - pparbhatperB * p->B_r[i],
+                p->p_phi[i] - pparbhatperB * p->B_phi[i],
+                p->p_z[i]   - pparbhatperB * p->B_z[i] };
+            real C = (   pperpvec[0]*pperpvec[0] + pperpvec[1]*pperpvec[1]
+                       + pperpvec[2]*pperpvec[2] )
+                       / ( p->mass[i]*p->mass[i] * CONST_C2 );
+            p->p_r[i]   -= t_ald * ( pperpvec[0] + C * p->p_r[i] );
+            p->p_phi[i] -= t_ald * ( pperpvec[1] + C * p->p_phi[i] );
+            p->p_z[i]   -= t_ald * ( pperpvec[2] + C * p->p_z[i] );
+
             /* Error handling */
             if(errflag) {
                 p->err[i] = errflag;
@@ -209,9 +230,11 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
  * @param Edata pointer to electric field data
  * @param boozer pointer to boozer data
  * @param mhd pointer to MHD data
+ * @param aldforce indicates whether Abraham-Lorentz-Dirac force is enabled
  */
-void step_fo_vpa_mhd(particle_simd_fo* p, real* h, B_field_data* Bdata,
-                     E_field_data* Edata, boozer_data* boozer, mhd_data* mhd) {
+void step_fo_vpa_mhd(
+    particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data* Edata,
+    boozer_data* boozer, mhd_data* mhd, int aldforce) {
 
     int i;
     /* Following loop will be executed simultaneously for all i */

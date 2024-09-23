@@ -24,10 +24,12 @@
  * @param B_dB magnetic field and derivatives at the guiding center location
  * @param E electric field at the guiding center location
  * @param mhd_dmhd mhd perturbation information evaluated by mhd.c
+ * @param aldforce indicates whether Abraham-Lorentz-Dirac force is enabled
  */
 #pragma omp declare simd
-static inline void step_gceom_mhd(real* ydot, real* y, real mass, real charge,
-                                  real* B_dB, real* E, real* mhd_dmhd) {
+static inline void step_gceom_mhd(
+    real* ydot, real* y, real mass, real charge, real* B_dB, real* E,
+    real* mhd_dmhd, int aldforce) {
 
     real B[3];
     B[0] = B_dB[0];
@@ -99,6 +101,10 @@ static inline void step_gceom_mhd(real* ydot, real* y, real mass, real charge,
     ydot[4] = 0;
     ydot[5] = charge * normB / (gamma*mass);
 
+    real t_ald = phys_ald_force_chartime(charge, mass, normB, gamma) * aldforce;
+    real C = 2 * y[4] * normB / (mass * CONST_C2);
+    ydot[3] += -t_ald * y[3] * C;
+    ydot[4] += -2 * t_ald * y[4] * (1 + C);
 }
 
 #pragma omp end declare target

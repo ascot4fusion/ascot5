@@ -23,10 +23,11 @@
  * @param charge charge [C]
  * @param B_dB magnetic field and derivatives at the guiding center location
  * @param E electric field at the guiding center location
+ * @param aldforce indicates whether Abraham-Lorentz-Dirac force is enabled
  */
 #pragma omp declare simd
 inline static void step_gceom(real* ydot, real* y, real mass, real charge,
-                              real* B_dB, real* E) {
+                              real* B_dB, real* E, int aldforce) {
 
     real B[3];
     B[0] = B_dB[0];
@@ -83,16 +84,10 @@ inline static void step_gceom(real* ydot, real* y, real mass, real charge,
     ydot[4] = 0;
     ydot[5] = charge * normB / ( gamma * mass );
 
-    /* ALD force from E. Hirvijoki et al. 2015 Guiding-center transformation of
-     * the Abrahams-Lorentz-Dirac radiation reaction force
-     * http://de.arxiv.org/abs/1412.1966 */
-    real C = 2 * y[4] * normB / (mass * CONST_C * CONST_C);
-    real nu = charge * charge * charge * charge * normB * normB
-              / (6 * CONST_PI * CONST_E0 * gamma * mass * mass * mass
-                 * CONST_C * CONST_C * CONST_C);
-
-    ydot[3] += -nu * y[3] * C;
-    ydot[4] += -2 * nu * y[4] * (1 + C);
+    real t_ald = phys_ald_force_chartime(charge, mass, normB, gamma) * aldforce;
+    real C = 2 * y[4] * normB / (mass * CONST_C2);
+    ydot[3] += -t_ald * y[3] * C;
+    ydot[4] += -2 * t_ald * y[4] * (1 + C);
 }
 
 #pragma omp end declare target
