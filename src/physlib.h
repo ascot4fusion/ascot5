@@ -415,4 +415,15 @@
  * \f$\psi\f$ is the poloidal magnetic flux [Tm^2]
  */
 #define phys_ppar_pphi(B, R, B_phi, p_phi, q, psi) (B/(R*B_phi)*(p_phi - q*psi))
+
+/**
+ * @brief Characteristic time for the radiation reaction force
+ *
+ * From E. Hirvijoki et al. 2015 Guiding-center transformation of
+ * the Abrahams-Lorentz-Dirac radiation reaction force
+ * http://de.arxiv.org/abs/1412.1966
+ */
+#define phys_ald_force_chartime(q, m, B, gamma) ( (q*q*q*q) * (B*B) / \
+        (6.0 * CONST_PI * CONST_E0 * gamma * (m*m*m) * CONST_C3 ) )
+
 #endif
