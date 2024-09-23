@@ -49,12 +49,19 @@ void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
 
             /* Move guiding center to (x, y, z, vnorm, xi) coordinates */
             real vin, pin, xiin, Xin_xyz[3];
-            pin  = physlib_gc_p( p->mass[i], p->mu[i], p->ppar[i], Bnorm);
-            xiin = physlib_gc_xi(p->mass[i], p->mu[i], p->ppar[i], Bnorm);
-            vin  = physlib_vnorm_pnorm(p->mass[i], pin);
             Xin_xyz[0] = p->r[i] * cos(p->phi[i]);
             Xin_xyz[1] = p->r[i] * sin(p->phi[i]);
             Xin_xyz[2] = p->z[i];
+            pin  = physlib_gc_p( p->mass[i], p->mu[i], p->ppar[i], Bnorm);
+            xiin = physlib_gc_xi(p->mass[i], p->mu[i], p->ppar[i], Bnorm);
+
+            real vflow;
+            if(!errflag) {
+                errflag = plasma_eval_flow(
+                    &vflow, p->rho[i], p->r[i], p->phi[i], p->z[i], p->time[i],
+                    pdata);
+            }
+            vin = physlib_vnorm_pnorm(p->mass[i], pin) - vflow;
 
             /* Evaluate plasma density and temperature */
             real nb[MAX_SPECIES], Tb[MAX_SPECIES];
@@ -118,7 +125,7 @@ void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
             Xout_xyz[0] = Xin_xyz[0] + k1 * ( dW[0] - k2 * bhat[0] );
             Xout_xyz[1] = Xin_xyz[1] + k1 * ( dW[1] - k2 * bhat[1] );
             Xout_xyz[2] = Xin_xyz[2] + k1 * ( dW[2] - k2 * bhat[2] );
-            vout  = vin + K*h[i] + sqrt( 2 * Dpara ) * dW[3];
+            vout  = vin + K*h[i] + sqrt( 2 * Dpara ) * dW[3] + vflow;
             xiout = xiin - xiin*nu*h[i] + sqrt(( 1 - xiin*xiin ) * nu) * dW[4];
 
             /* Enforce boundary conditions */

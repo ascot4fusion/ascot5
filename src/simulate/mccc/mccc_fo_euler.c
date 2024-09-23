@@ -53,7 +53,16 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
             vin_xyz[1] = ( p->p_r[i] * sinphi + p->p_phi[i] * cosphi )
                 / ( gamma * p->mass[i] );
             vin_xyz[2] = p->p_z[i] / ( gamma * p->mass[i] );
-            real vin   = math_norm(vin_xyz);
+
+            real vflow;
+            if(!errflag) {
+                errflag = plasma_eval_flow(
+                    &vflow, p->rho[i], p->r[i], p->phi[i], p->z[i], p->time[i],
+                    pdata);
+            }
+            vin_xyz[0] -= vflow * cosphi;
+            vin_xyz[1] -= vflow * sinphi;
+            real vin = math_norm(vin_xyz);
 
             /* Evaluate plasma density and temperature */
             real nb[MAX_SPECIES], Tb[MAX_SPECIES];
@@ -110,7 +119,8 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
                         + k3*(dW[2]  - t1*vhat[2]);
 
             /* Transform back to cylindrical coordinates.  */
-
+            vout_xyz[0] += vflow * cosphi;
+            vout_xyz[1] += vflow * sinphi;
             real vnorm = math_norm(vout_xyz);
             gamma = physlib_gamma_vnorm(vnorm);
             if(!errflag) {
