@@ -101,7 +101,7 @@ int wall_3d_init_offload(wall_3d_offload_data* offload_data,
     wall_3d_init_octree(offload_data, *offload_array, int_offload_array);
 
     /* Copy flags to offload array */
-    int idx = offload_data->offload_array_length - offload_data->n;
+    int idx = offload_data->int_offload_array_length - offload_data->n;
     memcpy(&(*int_offload_array)[idx], flag, offload_data->n * sizeof(int));
     free(flag);
 
@@ -311,6 +311,7 @@ void wall_3d_init_octree(wall_3d_offload_data* w, real* offload_array,
         list_size += list_int_size(tri_list[i]);
     }
 
+    /* Enough space is reserved to store flags in the end afterwards */
     w->int_offload_array_length = 2*ncell + list_size + w->n;
     *tree_array = (int*) malloc((w->int_offload_array_length)*sizeof(int));
 

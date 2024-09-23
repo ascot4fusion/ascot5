@@ -157,6 +157,8 @@ class LibProviders():
         if intdata:
             array = ctypes.cast(offload_array,
                                 ctypes.POINTER(ctypes.c_int*size) )[0]
+            offload_array = ctypes.cast(offload_array,
+                        ctypes.POINTER(ctypes.c_int) )
         else:
             array = ctypes.cast(offload_array,
                                 ctypes.POINTER(ctypes.c_double*size) )[0]
@@ -531,6 +533,8 @@ class LibProviders():
 
         W2D.offload_array_length, self._wall_offload_array = \
             self._init_offload_array(kwargs["r"], kwargs["z"])
+        W2D.int_offload_array_length, self._wall_int_offload_array = \
+            self._init_offload_array(kwargs["flag"].flatten(), intdata=True)
 
         self._sim.wall_offload_data.type = ascot2py.wall_type_2D
 
@@ -550,6 +554,9 @@ class LibProviders():
 
         W3D.offload_array_length, self._wall_offload_array = \
             self._init_offload_array(xyz)
+
+        W3D.int_offload_array_length, self._wall_int_offload_array = \
+            self._init_offload_array(kwargs["flag"].flatten(), intdata=True)
 
         self._sim.wall_offload_data.type = ascot2py.wall_type_3D
 
