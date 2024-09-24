@@ -34,7 +34,7 @@
  */
 void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
                  E_field_data* Edata) {
-    #pragma acc data present(h[0:p->n_mrk])
+    GPU_DATA_IS_MAPPED(h[0:p->n_mrk])
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < p->n_mrk; i++) {
         if(p->running[i]) {

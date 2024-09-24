@@ -193,6 +193,26 @@
 #define OMP_PARALLEL_CPU_ONLY str_pragma(omp parallel)
 #endif
 
+/**
+ * @brief Ensures the following loop within a parallel region is executed by
+ *        a single thread only (OpenACC only)
+ */
+#if defined(GPU) && defined(_OPENACC)
+#define GPU_SEQUENTIAL_LOOP str_pragma(acc loop seq)
+#else
+#define GPU_SEQUENTIAL_LOOP
+#endif
+
+/**
+ * @brief Hints compiler that the following data is already present in the GPU
+ *        (OpenACC only)
+ */
+#if defined(GPU) && defined(_OPENACC)
+#define GPU_DATA_IS_MAPPED(...) str_pragma(acc data present(__VA_ARGS__))
+#else
+#define GPU_DATA_IS_MAPPED(...)
+#endif
+
 #ifdef _OPENACC
 /**
  * @brief Number of gangs (OpenACC parallel execution units).

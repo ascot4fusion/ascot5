@@ -231,7 +231,7 @@ inline static void mccc_coefs_clog(
 
     /* Evaluate Debye length */
     real sum = 0;
-    #pragma acc loop seq
+    GPU_SEQUENTIAL_LOOP
     for(int i = 0; i < nspec; i++){
         sum += nb[i] * qb[i] * qb[i] / Tb[i];
     }
@@ -239,7 +239,7 @@ inline static void mccc_coefs_clog(
 
     /* Evaluate classical and quantum mechanical impact parameter. The one *
      * that is larger is used to evaluate Coulomb logarithm.               */
-    #pragma acc loop seq
+    GPU_SEQUENTIAL_LOOP
     for(int i=0; i < nspec; i++){
         real vbar = va * va + 2 * Tb[i] / mb[i];
         real mr   = ma * mb[i] / ( ma + mb[i] );
