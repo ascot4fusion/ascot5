@@ -156,6 +156,8 @@ int main(int argc, char** argv) {
     real* boozer_offload_array;
     real* mhd_offload_array;
     real* asigma_offload_array;
+    real* diag_offload_array;
+    size_t diag_offload_array_size;
 
     /* Read input from the HDF5 file */
     if( hdf5_interface_read_input(&sim,
@@ -198,10 +200,9 @@ int main(int argc, char** argv) {
     }
 
     /* Initialize diagnostics offload data */
-    real* diag_offload_array;
     diag_init_offload(&sim.diag_offload_data, &diag_offload_array, n_tot);
 
-    real diag_offload_array_size = sim.diag_offload_data.offload_array_length
+    diag_offload_array_size = sim.diag_offload_data.offload_array_length
         * sizeof(real) / (1024.0*1024.0);
     print_out0(VERBOSE_NORMAL, sim.mpi_rank, sim.mpi_root,
                "Initialized diagnostics, %.1f MB.\n", diag_offload_array_size);

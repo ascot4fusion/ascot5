@@ -2,6 +2,7 @@
  * @file nbi.c
  * @brief Functions for NBI simulation and particle generation
  */
+#include <stdlib.h>
 #include <math.h>
 #include "print.h"
 #include "ascot5.h"
