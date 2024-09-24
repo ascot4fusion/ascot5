@@ -238,7 +238,7 @@ void simulate(
             }
             else if(pq.n > 0 && sim.sim_mode == simulate_mode_fo) {
                 OMP_PARALLEL_CPU_ONLY
-	            simulate_fo_fixed(&pq, &sim, n_queue_size);
+                simulate_fo_fixed(&pq, &sim, n_queue_size);
             }
             else if(pq.n > 0 && sim.sim_mode == simulate_mode_ml) {
                 OMP_PARALLEL_CPU_ONLY
@@ -306,11 +306,11 @@ void simulate(
 #if !defined(GPU) && VERBOSE > 1
         #pragma omp parallel sections num_threads(2)
         {
-	        #pragma omp section
+            #pragma omp section
 #endif
             {
                 OMP_PARALLEL_CPU_ONLY
-	            simulate_fo_fixed(&pq, &sim, n_queue_size);
+                simulate_fo_fixed(&pq, &sim, n_queue_size);
             }
 #if !defined(GPU) && VERBOSE > 1
             #pragma omp section

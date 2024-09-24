@@ -62,12 +62,6 @@ else ifeq ($(RANDOM),LCG)
 	DEFINES+=-DRANDOM_LCG
 endif
 
-ifneq ($(CC),h5cc)
-	ifneq ($(CC),h5pcc)
-		CFLAGS+=-lhdf5 -lhdf5_hl
-	endif
-endif
-
 ifeq ($(DEBUG),1)
 	CFLAGS+=-g -fsanitize=address
 else
