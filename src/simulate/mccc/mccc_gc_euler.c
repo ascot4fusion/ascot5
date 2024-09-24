@@ -27,7 +27,7 @@
  *        collisions. Values for marker i are rnd[i*NSIMD + j]
  */
 void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
-                   plasma_data* pdata, mccc_data* mdata, real rnd[5*NSIMD]) {
+                   plasma_data* pdata, mccc_data* mdata, real* rnd) {
 
     /* Get plasma information before going to the  SIMD loop */
     int n_species  = plasma_get_n_species(pdata);

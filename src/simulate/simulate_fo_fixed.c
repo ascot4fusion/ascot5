@@ -86,7 +86,6 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
      * - Check for end condition(s)
      * - Update diagnostics
      */
-    int diag_data_field_size = sim->diag_data.diagorb.Nmrk*sim->diag_data.diagorb.Npnt;
     particle_simd_fo *p_ptr = &p;
     particle_simd_fo *p0_ptr = &p0;
     real rnd[3*mrk_array_size];

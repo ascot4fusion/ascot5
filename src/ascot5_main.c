@@ -477,13 +477,13 @@ int offload_and_simulate(
 
     /* Actual marker simulation happens here. */
     real t_sim_start = omp_get_wtime();
-    simulate(0, nprts, pin, sim, offload_data,
-        offload_array, int_offload_array, *diag_offload_array);
+    simulate(0, n_proc, pin, sim, offload_data,
+        offload_array, int_offload_array, diag_offload_array);
 
     mpi_interface_barrier();
     real t_sim_end = omp_get_wtime();
-    print_out0(VERBOSE_NORMAL, mpi_rank, "Simulation finished in %lf s\n",
-               t_sim_end-t_sim_start);
+    print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,
+        "Simulation finished in %lf s\n", t_sim_end-t_sim_start);
 
     /* Gather output data */
     mpi_gather_particlestate(pin, pout, n_gather, n_tot, sim->mpi_rank,
