@@ -5,6 +5,7 @@ import unyt
 import a5py.routines.plotting as a5plt
 from a5py.routines.distmixin import DistMixin
 from a5py.ascot5io import Marker, State
+from a5py.exceptions import AscotNoDataException
 
 class BBNBIMixin(DistMixin):
     """Mixin class with post-processing results related to AFSI.
