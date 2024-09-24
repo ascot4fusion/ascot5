@@ -230,13 +230,16 @@ void bbnbi_trace_markers(particle_queue *pq, sim_data* sim) {
     int shinethrough[NSIMD] __memalign__;
     real remaining[NSIMD]  __memalign__;
     real threshold[NSIMD]  __memalign__;
-    particle_simd_fo p, p0;
+    particle_simd_fo p, p0, pdiag;
 
     int n_species       = plasma_get_n_species(&sim->plasma_data);
     const int* pls_anum = plasma_get_species_anum(&sim->plasma_data);
     const int* pls_znum = plasma_get_species_znum(&sim->plasma_data);
 
     /* Init dummy markers */
+    particle_allocate_fo(&p, NSIMD);
+    particle_allocate_fo(&p0, NSIMD);
+    particle_allocate_fo(&pdiag, NSIMD);
     for(int i=0; i< NSIMD; i++) {
         p.id[i] = -1;
         p.running[i] = 0;
@@ -367,7 +370,6 @@ void bbnbi_trace_markers(particle_queue *pq, sim_data* sim) {
         }
 
         /* Update markers that just finished */
-        particle_simd_fo pdiag;
         #pragma omp simd
         for(int i=0; i< NSIMD; i++) {
             /* Use this as a flag for which markers to update in diagnostics */
