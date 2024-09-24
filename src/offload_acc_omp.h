@@ -128,17 +128,6 @@
 #endif
 
 /**
- * @brief Does nothing
- */
-#if defined(GPU) && defined(_OPENMP)
-#define DECLARE_TARGET_SIMD_END
-#elif defined(GPU) && defined(_OPENACC)
-#define DECLARE_TARGET_SIMD_END
-#else
-#define DECLARE_TARGET_SIMD_END
-#endif
-
-/**
  * @brief Declares SIMD loop and specifies variables which are uniform
  */
 #if defined(GPU) && defined(_OPENMP)
@@ -148,17 +137,6 @@
     str_pragma(omp declare simd uniform (__VA_ARGS__))
 #else
 #define DECLARE_TARGET_SIMD_UNIFORM(...)
-#endif
-
-/**
- * @brief Does nothing
- */
-#if defined(GPU) && defined(_OPENMP)
-#define DECLARE_TARGET_SIMD_UNIFORM_END
-#elif defined(GPU) && defined(_OPENACC)
-#define DECLARE_TARGET_SIMD_UNIFORM_END
-#else
-#define DECLARE_TARGET_SIMD_UNIFORM_END
 #endif
 
 /**
