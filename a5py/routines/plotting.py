@@ -897,6 +897,9 @@ def poincare(x, y, ids, connlen=None, xlim=None, ylim=None, xlabel=None,
             cmin   = np.log10(cmin)
             cmax   = np.log10(cmax)
             connlen = np.log10(connlen)
+            cunits = 1
+        else:
+            cunits = cmax.units
 
         cmin = np.floor(cmin)
         cmax = np.ceil(cmax)
@@ -904,8 +907,8 @@ def poincare(x, y, ids, connlen=None, xlim=None, ylim=None, xlabel=None,
         clim = np.linspace(cmin, cmax, nc_b+1)
 
         # Confined markers are plotted separately.
-        connlen[idx+1:] = cmax + (1/nc) * cmax.units
-        clim = np.append(clim, cmax + np.linspace(0, 1/nc, nc) * cmax.units)
+        connlen[idx+1:] = cmax + (1/nc) * cunits
+        clim = np.append(clim, cmax + np.linspace(0, 1/nc, nc) * cunits)
 
         # Create colormap and colorbar
         cmapred  = plt.cm.get_cmap("Reds_r")
