@@ -32,7 +32,7 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
     const real* qb = plasma_get_species_charge(pdata);
     const real* mb = plasma_get_species_mass(pdata);
 
-    #pragma acc data present(h[0:p->n_mrk], rnd[0:3*p->n_mrk])
+    GPU_DATA_IS_MAPPED(h[0:p->n_mrk], rnd[0:3*p->n_mrk])
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < p->n_mrk; i++) {
         if(p->running[i]) {
@@ -71,7 +71,7 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
             /* Evaluate collision coefficients and sum them for each *
              * species                                               */
             real F = 0, Dpara = 0, Dperp = 0;
-            #pragma acc loop seq
+            GPU_SEQUENTIAL_LOOP
             for(int j = 0; j < n_species; j++) {
                 real vb = sqrt( 2 * Tb[j] / mb[j] );
                 real x  = vin / vb;
