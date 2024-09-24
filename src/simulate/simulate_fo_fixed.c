@@ -97,7 +97,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         /* Store marker states */
         GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < p.n_mrk; i++) {
-	        particle_copy_fo(p_ptr, i, p0_ptr, i);
+            particle_copy_fo(p_ptr, i, p0_ptr, i);
         }
         /*************************** Physics **********************************/
 
@@ -116,7 +116,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
                                 &sim->boozer_data, &sim->mhd_data);
             }
             else {
-	            step_fo_vpa(p_ptr, hin, &sim->B_data, &sim->E_data);
+                step_fo_vpa(p_ptr, hin, &sim->B_data, &sim->E_data);
             }
         }
 
@@ -131,7 +131,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         /* Euler-Maruyama for Coulomb collisions */
         if(sim->enable_clmbcol) {
             random_normal_simd(&sim->random_data, 3*p.n_mrk, rnd);
-	        mccc_fo_euler(p_ptr, hin, &sim->plasma_data, &sim->mccc_data, rnd);
+            mccc_fo_euler(p_ptr, hin, &sim->plasma_data, &sim->mccc_data, rnd);
         }
         /* Atomic reactions */
         if(sim->enable_atomic) {
@@ -159,10 +159,10 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         /* Update diagnostics */
         if(!(sim->record_mode)) {
             /* Record particle coordinates */
-	        diag_update_fo(&sim->diag_data, &sim->B_data, p_ptr, p0_ptr);
+            diag_update_fo(&sim->diag_data, &sim->B_data, p_ptr, p0_ptr);
         }
         else {
-	        /* Instead of particle coordinates we record guiding center */
+            /* Instead of particle coordinates we record guiding center */
 
             // Dummy guiding centers
             particle_simd_gc gc_f;
@@ -198,15 +198,15 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
             if(p_ptr->running[i] > 0) n_running++;
         }
 #else
-	    n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
+        n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
 #endif
 #ifndef GPU
         /* Determine simulation time-step for new particles */
-	    GPU_PARALLEL_LOOP_ALL_LEVELS
+        GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < p.n_mrk; i++) {
-	        if(cycle[i] > 0) {
-	            hin[i] = simulate_fo_fixed_inidt(sim, &p, i);
-	        }
+            if(cycle[i] > 0) {
+                hin[i] = simulate_fo_fixed_inidt(sim, &p, i);
+            }
         }
 #endif
     }

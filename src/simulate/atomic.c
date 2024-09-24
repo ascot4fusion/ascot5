@@ -37,7 +37,7 @@ a5err atomic_rates(
 #ifndef GPU
 #pragma omp end declare target
 #endif
-#ifndef	GPU
+#ifndef GPU
 DECLARE_TARGET_SIMD
 #endif
 a5err atomic_react(
