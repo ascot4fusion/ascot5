@@ -247,9 +247,10 @@ void rfof_resonance_check_and_kick_gc(
             v_perp = phys_vperp_gc(vnorm, v_par);
             gyrof  = phys_gyrofreq_ppar(p->mass[i], p->charge[i], p->mu[i],
                                         p->ppar[i], B);
+            real q_safe = 1.0;
             real majR = 1.65;   // For now AUG
             real minR = 0.6;    // AUG
-            tauB = CONST_2PI*p->charge[i]/CONST_E*majR/v_par*sqrt(2*majR/minR);
+            tauB = CONST_2PI*q_safe/majR/v_par*sqrt(2*majR/minR);
             real vdriftRho      = 0; // Assuming this is not needed in librfof
             real acceleration   = 1.0;
             int is_accelerated  = 0;
