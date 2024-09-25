@@ -975,7 +975,7 @@ void libascot_eval_rfof(
         * R and vpar. */
         rfof_marker rfof_mrk;
         int dummy_int   = 1;
-        real dummy_real = 0.0;
+        real dummy_real = -999.0;  /*-999.0 to be on the safe side */
         rfof_set_up(&rfof_mrk, &sim->rfof_data);
 
         #pragma omp for
