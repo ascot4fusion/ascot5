@@ -252,7 +252,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         """
         if self._rfof_initialized:
             raise AscotInitException("RFOF input is already initialized")
-        fun = _LIBASCOT.rfof_interface_initev_excl_marker_stuff
+        fun = _LIBASCOT.rfof_init_offload
         fun.restype  = None
         fun.argtypes = [PTR_RFOF]
         fun(ctypes.byref(self._sim.rfof_data))
