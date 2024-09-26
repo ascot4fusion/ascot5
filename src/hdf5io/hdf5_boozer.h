@@ -9,7 +9,6 @@
 #include "../ascot5.h"
 #include "../boozer.h"
 
-int hdf5_boozer_init_offload(hid_t f, boozer_offload_data* offload_data,
-                             real** offload_array, char* qid);
+int hdf5_boozer_init(hid_t f, boozer_data* data, char* qid);
 
 #endif
