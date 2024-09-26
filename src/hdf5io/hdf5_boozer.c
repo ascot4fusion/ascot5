@@ -14,19 +14,16 @@
 #include "hdf5_boozer.h"
 
 /**
- * @brief Initialize Boozer offload data from HDF5 file
+ * @brief Initialize Boozer data from HDF5 file
  *
  * @param f HDF5 file identifier for a file which is opened and closed outside
  *          of this function
- * @param offload_data pointer to offload data struct which is initialized here
- * @param offload_array pointer to offload array which is allocated and
- *                      initialized here
+ * @param data pointer to the data struct which is initialized here
  * @param qid QID of the data that is to be read
  *
  * @return zero if reading and initialization succeeded
  */
-int hdf5_boozer_init_offload(hid_t f, boozer_offload_data* offload_data,
-                             real** offload_array, char* qid) {
+int hdf5_boozer_init(hid_t f, boozer_data* data, char* qid) {
 
     /// @cond
     #undef BOOZERPATH
@@ -41,47 +38,40 @@ int hdf5_boozer_init_offload(hid_t f, boozer_offload_data* offload_data,
     }
 
     /* Read parameters. */
-    if( hdf5_read_int(BOOZERPATH "ntheta", &(offload_data->ntheta),
+    int ntheta, nthetag, nrzs, npsi;
+    real psimin, psimax;
+    if( hdf5_read_int(BOOZERPATH "ntheta", &ntheta,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(BOOZERPATH "nthetag", &(offload_data->nthetag),
+    if( hdf5_read_int(BOOZERPATH "nthetag", &nthetag,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(BOOZERPATH "nrzs", &(offload_data->nrzs),
+    if( hdf5_read_int(BOOZERPATH "nrzs", &nrzs,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(BOOZERPATH "npsi",       &(offload_data->npsi),
+    if( hdf5_read_int(BOOZERPATH "npsi", &npsi,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "psimin",    &(offload_data->psi_min),
+    if( hdf5_read_double(BOOZERPATH "psimin", &psimin,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "psimax",    &(offload_data->psi_max),
+    if( hdf5_read_double(BOOZERPATH "psimax", &psimax,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    /* Size of 1D and 2D input data arrays */
-    int nusize      = offload_data->npsi * offload_data->ntheta;
-    int thetasize   = offload_data->npsi * offload_data->nthetag;
-    int contoursize = offload_data->nrzs;
-
-    /* Allocate offload array */
-    *offload_array = (real*) malloc(
-        (nusize + thetasize + 2 * contoursize) * sizeof(real) );
 
     /* Read data to offload array */
-    if( hdf5_read_double(BOOZERPATH "nu_psitheta",
-                         &(*offload_array)[0],
+    real* rs = (real*) malloc( npsi * nrzs * sizeof(real) );
+    real* zs = (real*) malloc( npsi * nrzs * sizeof(real) );
+    real* nu = (real*) malloc( npsi * ntheta * sizeof(real) );
+    real* theta = (real*) malloc( npsi * nthetag * sizeof(real) );
+    if( hdf5_read_double(BOOZERPATH "nu_psitheta", nu,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "theta_psithetageom",
-                         &(*offload_array)[nusize],
+    if( hdf5_read_double(BOOZERPATH "theta_psithetageom", theta,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "rs",
-                         &(*offload_array)[nusize + thetasize],
+    if( hdf5_read_double(BOOZERPATH "rs", rs,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "zs",
-                         &(*offload_array)[nusize + thetasize
-                                           + contoursize],
+    if( hdf5_read_double(BOOZERPATH "zs", zs,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    /* Initialize the data */
-    if( boozer_init_offload(offload_data, offload_array) ) {
-        return 1;
-    }
-
-    return 0;
+    int err = boozer_init(data, npsi, psimin, psimax, ntheta, nthetag,
+                          nu, theta, nrzs, rs, zs);
+    free(rs);
+    free(zs);
+    free(nu);
+    free(theta);
+    return err;
 }
