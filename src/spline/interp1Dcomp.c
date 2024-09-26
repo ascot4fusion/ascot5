@@ -83,6 +83,31 @@ void interp1Dcomp_init_spline(interp1D_data* str, real* c,
 }
 
 /**
+ * @brief Set up splines to interpolate 1D scalar data.
+ *
+ * This function is equivalent to calling both `interp1Dcomp_init_coeff` and
+ * `interp1Dcomp_init_spline`.
+ *
+ * @param str pointer to spline to be initialized
+ * @param f 1D data to be interpolated
+ * @param n_x number of data points in the x direction
+ * @param bc_x boundary condition for x axis
+ * @param x_min minimum value of the x axis
+ * @param x_max maximum value of the x axis
+ *
+ * @return zero if initialization succeeded
+ */
+int interp1Dcomp_setup(interp1D_data* str, real* f, int n_x, int bc_x,
+                       real x_min, real x_max) {
+    real* c = (real*) malloc(n_x*NSIZE_COMP1D*sizeof(real));
+    int err = interp1Dcomp_init_coeff(c, f, n_x, bc_x, x_min, x_max);
+    if(err) {
+        return err;
+    }
+    interp1Dcomp_init_spline(str, c, n_x, bc_x, x_min, x_max);
+}
+
+/**
  * @brief Evaluate interpolated value of 1D scalar field
  *
  * This function evaluates the interpolated value of a 1D scalar field using
