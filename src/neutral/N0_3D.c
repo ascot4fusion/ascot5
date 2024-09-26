@@ -14,101 +14,67 @@
 #include "../linint/linint.h"
 
 /**
- * @brief Initialize offload data
+ * @brief Initialize neutral data
  *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload data array
- *
- * @return zero if initialization succeeded
+ * @param ndata pointer to the data struct
  */
-int N0_3D_init_offload(N0_3D_offload_data* offload_data,
-                       real** offload_array) {
-    int N0_size = offload_data->n_r * offload_data->n_phi * offload_data->n_z;
-    int T0_size = offload_data->n_r * offload_data->n_phi * offload_data->n_z;
+int N0_3D_init(N0_3D_data* data,
+               int n_r, real r_min, real r_max,
+               int n_phi, real phi_min, real phi_max,
+               int n_z, real z_min, real z_max,
+               int n_species, int* anum, int* znum, int* maxwellian,
+               real* density, real* temperature) {
+    data->n_species = n_species;
+    data->anum = (int*) malloc(n_species * sizeof(int));
+    data->znum = (int*) malloc(n_species * sizeof(int));
+    data->maxwellian = (int*) malloc(n_species * sizeof(int));
+    for(int i = 0; i < data->n_species; i++) {
+        data->anum[i]       = anum[i];
+        data->znum[i]       = znum[i];
+        data->maxwellian[i] = maxwellian[i];
 
-    offload_data->offload_array_length = offload_data->n_species * N0_size
-        + offload_data->n_species * T0_size;
-
+        real* c = (real*) malloc(n_r * n_phi * n_z * sizeof(real));
+        linint3D_init(&data->n0[i], c, n_r, n_phi, n_z,
+                      NATURALBC, PERIODICBC, NATURALBC,
+                      r_min, r_max, phi_min, phi_max, z_min, z_max);
+        c = (real*) malloc(n_r * n_phi * n_z * sizeof(real));
+        linint3D_init(&data->t0[i], c, n_r, n_phi, n_z,
+                      NATURALBC, PERIODICBC, NATURALBC,
+                      r_min, r_max, phi_min, phi_max, z_min, z_max);
+    }
     print_out(VERBOSE_IO, "\n3D neutral density and temperature (N0_3D)\n");
     print_out(VERBOSE_IO, "Grid:  nR = %4.d   Rmin = %3.3f   Rmax = %3.3f\n",
-              offload_data->n_r,
-              offload_data->r_min, offload_data->r_max);
+              n_r,
+              r_min, r_max);
     print_out(VERBOSE_IO, "       nz = %4.d   zmin = %3.3f   zmax = %3.3f\n",
-              offload_data->n_z,
-              offload_data->z_min, offload_data->z_max);
+              n_z,
+              z_min, z_max);
     print_out(VERBOSE_IO, "     nphi = %4.d phimin = %3.3f phimax = %3.3f\n",
-              offload_data->n_phi,
-              offload_data->phi_min, offload_data->phi_max);
+              n_phi,
+              phi_min, phi_max);
     print_out(VERBOSE_IO,
               " Number of neutral species = %d\n",
-              offload_data->n_species);
-    print_out(VERBOSE_IO,
-              "Species Z/A   (Maxwellian)\n");
-    for(int i=0; i < offload_data->n_species; i++) {
+              data->n_species);
+    print_out(VERBOSE_IO, "Species Z/A   (Maxwellian)\n");
+    for(int i=0; i < data->n_species; i++) {
         print_out(VERBOSE_IO,
                   "      %3d/%3d (%1d)    \n",
-                  (int)(offload_data->znum[i]),
-                  (int)(offload_data->anum[i]),
-                  (int)(offload_data->maxwellian[i]));
+                  data->znum[i], data->anum[i], data->maxwellian[i]);
     }
-
-    return 0;
 }
 
 /**
- * @brief Free offload array and reset parameters
+ * @brief Free allocated resources
  *
- * This function deallocates the offload_array.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param offload_data pointer to the data struct
  */
-void N0_3D_free_offload(N0_3D_offload_data* offload_data,
-                        real** offload_array) {
-    free(*offload_array);
-    *offload_array = NULL;
-}
-
-/**
- * @brief Initialize neutral data on target
- *
- * This function copies parameters from the offload struct to the struct on
- * target and sets the data pointers on target struct to correct offsets in
- * the offload array.
- *
- * Any initialization that requires any computations must have been done already
- * when the offload struct was initialized.
- *
- * @param ndata pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
- */
-void N0_3D_init(N0_3D_data* ndata, N0_3D_offload_data* offload_data,
-                real* offload_array) {
-    int N0_size = offload_data->n_r * offload_data->n_phi * offload_data->n_z;
-    int T0_size = offload_data->n_r * offload_data->n_phi * offload_data->n_z;
-    ndata->n_species  = offload_data->n_species;
-    for(int i = 0; i < offload_data->n_species; i++) {
-        ndata->anum[i]       = offload_data->anum[i];
-        ndata->znum[i]       = offload_data->znum[i];
-        ndata->maxwellian[i] = offload_data->maxwellian[i];
-
-        linint3D_init(
-            &ndata->n0[i], &offload_array[i * N0_size],
-            offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-            NATURALBC, PERIODICBC, NATURALBC,
-            offload_data->r_min, offload_data->r_max,
-            offload_data->phi_min, offload_data->phi_max,
-            offload_data->z_min, offload_data->z_max);
-
-        linint3D_init(
-            &ndata->t0[i],
-            &offload_array[i * T0_size + offload_data->n_species * N0_size],
-            offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-            NATURALBC, PERIODICBC, NATURALBC,
-            offload_data->r_min, offload_data->r_max,
-            offload_data->phi_min, offload_data->phi_max,
-            offload_data->z_min, offload_data->z_max);
+void N0_3D_free(N0_3D_data* data) {
+    free(data->anum);
+    free(data->znum);
+    free(data->maxwellian);
+    for(int i = 0; i < data->n_species; i++) {
+        free(data->n0->c);
+        free(data->t0->c);
     }
 }
 
