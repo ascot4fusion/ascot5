@@ -12,24 +12,7 @@
 #include "../spline/interp.h"
 
 /**
- * @brief 2D magnetic field parameters that will be offloaded to target
- */
-typedef struct {
-    int n_r;                  /**< Number of r grid points                    */
-    int n_z;                  /**< Number of z grid points                    */
-    real r_min;               /**< Minimum R coordinate in the grid [m]       */
-    real r_max;               /**< Maximum R coordinate in the grid [m]       */
-    real z_min;               /**< Minimum z coordinate in the grid [m]       */
-    real z_max;               /**< Maximum z coordinate in the grid [m]       */
-    real psi0;                /**< Poloidal flux at magnetic axis [V*s*m^-1]  */
-    real psi1;                /**< Poloidal flux at separatrix [V*s*m^-1]     */
-    real axis_r;              /**< R coordinate of magnetic axis [m]          */
-    real axis_z;              /**< z coordinate of magnetic axis [m]          */
-    int offload_array_length; /**< Number of elements in offload_array        */
-} B_2DS_offload_data;
-
-/**
- * @brief 2D magnetic field parameters on the target
+ * @brief 2D magnetic field parameters
  */
 typedef struct {
     real psi0;           /**< Poloidal flux value at magnetic axis [V*s*m^-1] */
@@ -42,11 +25,12 @@ typedef struct {
     interp2D_data B_z;   /**< B_z interpolation 2D spline struct              */
 } B_2DS_data;
 
-int B_2DS_init_offload(B_2DS_offload_data* offload_data, real** offload_array);
-void B_2DS_free_offload(B_2DS_offload_data* offload_data, real** offload_array);
-
-void B_2DS_init(B_2DS_data* Bdata, B_2DS_offload_data* offload_data,
-                real* offload_array);
+int B_2DS_init(B_2DS_data* data,
+               int n_r, real r_min, real r_max,
+               int n_z, real z_min, real z_max,
+               real axis_r, real axis_z, real psi0, real psi1,
+               real* psi, real* B_r, real* B_phi, real* B_z);
+void B_2DS_free(B_2DS_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err B_2DS_eval_psi(real* psi, real r, real phi, real z, B_2DS_data* Bdata);
 DECLARE_TARGET_END

@@ -13,7 +13,6 @@
 #include "../Bfield/B_TC.h"
 #include "hdf5.h"
 
-int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data,
-                             real** offload_array, char* qid);
+int hdf5_bfield_init(hid_t f, B_field_data* data, char* qid);
 
 #endif

@@ -74,33 +74,53 @@
 #include "B_GS.h"
 
 /**
- * @brief Initialize magnetic field offload data
+ * @brief Initialize magnetic field data
  *
- * The offload data struct is very simple and contains only the necessary fields
- * which are all initialized when the data is read (except
- * B_GS.offload_array_length). The offload array is not required at all.
- * Therefore, this function only sets the offload_array_length to zero, assigns
- * a NULL pointer to offload_array, and prints sanity checks so that user may
- * verify that data was initialized succesfully.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
+ * @param data pointer to the data struct
+ * @param R0 major radius R coordinate [m]
+ * @param z0 midplane z coordinate [m]
+ * @param raxis magnetic axis R coordinate [m]
+ * @param zaxis magnetic axis z coordinate [m]
+ * @param B_phi0 on-axis toroidal field [T]
+ * @param psi0 poloidal flux at axis [Vs/m]
+ * @param psi1 poloidal flux at separatrix [Vs/m]
+ * @param psi_mult psi multiplier
+ * @param psi_coeff coefficients for evaluating psi
+ * @param Nripple number of toroidal field coils
+ * @param a0 minor radius
+ * @param alpha0 ripple r-dependency delta ~ (r/a0)^alpha0
+ * @param delta0 ripple strength
  *
  * @return zero to indicate success
  */
-int B_GS_init_offload(B_GS_offload_data* offload_data, real** offload_array) {
-
-    offload_data->offload_array_length = 0;
+int B_GS_init(B_GS_data* data, real R0, real z0, real raxis, real zaxis,
+              real B_phi0, real psi0, real psi1, real psi_mult, real c[14],
+              int Nripple, real a0, real alpha0, real delta0) {
 
     /* Evaluate psi and magnetic field on axis for checks */
     a5err err = 0;
-    B_GS_data Bdata;
-    B_GS_init(&Bdata, offload_data, *offload_array);
+
+    data->R0        = R0;
+    data->z0        = z0;
+    data->raxis     = raxis;
+    data->zaxis     = zaxis;
+    data->B_phi0    = B_phi0;
+    data->psi0      = psi0;
+    data->psi1      = psi1;
+    data->psi_mult  = psi_mult;
+
+    data->Nripple   = Nripple;
+    data->a0        = a0;
+    data->delta0    = delta0;
+    data->alpha0    = alpha0;
+
+    for(int i; i < 14; i++) {
+        data->psi_coeff[i] = c[i];
+    }
+
     real psival[1], Bval[3];
-    err = B_GS_eval_psi(psival, offload_data->raxis, 0, offload_data->zaxis,
-                        &Bdata);
-    err = B_GS_eval_B(Bval, offload_data->raxis, 0, offload_data->zaxis,
-                      &Bdata);
+    err = B_GS_eval_psi(psival, data->raxis, 0, data->zaxis, &data);
+    err = B_GS_eval_B(Bval, data->raxis, 0, data->zaxis, &data);
     if(err) {
         print_err("Error: Initialization failed.\n");
         return err;
@@ -114,50 +134,21 @@ int B_GS_init_offload(B_GS_offload_data* offload_data, real** offload_array) {
               "Magnetic field on axis:\n"
               "B_R = %3.3f B_phi = %3.3f B_z = %3.3f\n"
               "Number of toroidal field coils %d\n",
-              offload_data->raxis, offload_data->zaxis,
-              psival[0], offload_data->psi0,
+              data->raxis, data->zaxis,
+              psival[0], data->psi0,
               Bval[0], Bval[1], Bval[2],
-              offload_data->Nripple);
+              data->Nripple);
 
     return 0;
 }
 
 /**
- * @brief Free offload array
+ * @brief Free allocated resources
  *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param data pointer to the data struct
  */
-void B_GS_free_offload(B_GS_offload_data* offload_data,
-                       real** offload_array) {
-    free(*offload_array);
-    *offload_array = NULL;
-}
-
-/**
- * @brief Initialize magnetic field data struct on target
- *
- * @param Bdata pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array offload array
- */
-void B_GS_init(B_GS_data* Bdata, B_GS_offload_data* offload_data,
-               real* offload_array) {
-    Bdata->R0        = offload_data->R0;
-    Bdata->z0        = offload_data->z0;
-    Bdata->raxis     = offload_data->raxis;
-    Bdata->zaxis     = offload_data->zaxis;
-    Bdata->B_phi0    = offload_data->B_phi0;
-    Bdata->psi0      = offload_data->psi0;
-    Bdata->psi1      = offload_data->psi1;
-    Bdata->psi_mult  = offload_data->psi_mult;
-
-    Bdata->Nripple   = offload_data->Nripple;
-    Bdata->a0        = offload_data->a0;
-    Bdata->delta0    = offload_data->delta0;
-    Bdata->alpha0    = offload_data->alpha0;
-
-    Bdata->psi_coeff = offload_data->psi_coeff;
+void B_GS_free(B_GS_data* data) {
+    // No resources were dynamically allocated
 }
 
 /**

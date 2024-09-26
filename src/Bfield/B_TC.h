@@ -11,27 +11,6 @@
 #include "../error.h"
 
 /**
- * @brief TC magnetic field parameters that will be offloaded to target
- */
-typedef struct {
-    real axisr;  /**< A value that is returned when magnetic axis
-                      R coordinate is requested [m]                           */
-    real axisz;  /**< A value that is returned when magnetic axis
-                      z coordinate is requested [m]                           */
-    real psival; /**< A value that is returned when poloidal magnetic flux
-                      value is requested [V*s*m^-1]                           */
-    real rhoval; /**< A value that is returened when normalized poloidal flux
-                      value is requested                                      */
-    real B[3];   /**< Magnetic field at origo: [B_x, B_y, B_z] [T]            */
-    real dB[9];  /**< Magnetic field Jacobian:
-                      [dB_x/dx, dB_x/dy, dB_x/dz,
-                       dB_y/dx, dB_y/dy, dB_y/dz,
-                       dB_z/dx, dB_z/dy, dB_z/dz] [T/m]                       */
-    int offload_array_length; /**< Number of elements in offload_array; zero
-                                   always for this magnetic field type        */
-} B_TC_offload_data;
-
-/**
  * @brief TC magnetic field parameters on the target
  */
 typedef struct {
@@ -43,18 +22,16 @@ typedef struct {
                       value is requested [V*s*m^-1]                           */
     real rhoval; /**< A value that is returened when normalized poloidal flux
                       value is requested                                      */
-    real* B;     /**< Magnetic field at origo: [B_x, B_y, B_z] [T]            */
-    real* dB;    /**< Magnetic field Jacobian:
+    real B[3];     /**< Magnetic field at origo: [B_x, B_y, B_z] [T]            */
+    real dB[9];    /**< Magnetic field Jacobian:
                       [dB_x/dx, dB_x/dy, dB_x/dz,
                        dB_y/dx, dB_y/dy, dB_y/dz,
                        dB_z/dx, dB_z/dy, dB_z/dz] [T/m]                       */
 } B_TC_data;
 
-int B_TC_init_offload(B_TC_offload_data* offload_data, real** offload_array);
-void B_TC_free_offload(B_TC_offload_data* offload_data, real** offload_array);
-
-void B_TC_init(B_TC_data* Bdata, B_TC_offload_data* offload_data,
-               real* offload_array);
+int B_TC_init(B_TC_data* data, real axisr, real axisz, real psival, real rhoval,
+              real B[3], real dB[9]);
+void B_TC_free(B_TC_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err B_TC_eval_B(real B[3], real r, real phi, real z, B_TC_data* Bdata);
 DECLARE_TARGET_END
