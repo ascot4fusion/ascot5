@@ -234,6 +234,43 @@ void interp3Dcomp_init_spline(interp3D_data* str, real* c,
 }
 
 /**
+ * @brief Set up splines to interpolate 3D scalar data.
+ *
+ * This function is equivalent to calling both `interp3Dcomp_init_coeff` and
+ * `interp3Dcomp_init_spline`.
+ *
+ * @param str pointer to spline to be initialized
+ * @param f 3D data to be interpolated
+ * @param n_x number of data points in the x direction
+ * @param n_y number of data points in the y direction
+ * @param n_z number of data points in the z direction
+ * @param bc_x boundary condition for x axis
+ * @param bc_y boundary condition for y axis
+ * @param bc_z boundary condition for z axis
+ * @param x_min minimum value of the x axis
+ * @param x_max maximum value of the x axis
+ * @param y_min minimum value of the y axis
+ * @param y_max maximum value of the y axis
+ * @param z_min minimum value of the z axis
+ * @param z_max maximum value of the z axis
+ *
+ * @return zero if initialization succeeded
+ */
+int inter32Dcomp_setup(interp3D_data* str, real* f,
+                       int n_x, int n_y, int n_z, int bc_x, int bc_y, int bc_z,
+                       real x_min, real x_max, real y_min, real y_max,
+                       real z_min, real z_max) {
+    real* c = (real*) malloc(n_z*n_y*n_x*NSIZE_COMP3D*sizeof(real));
+    int err = interp3Dcomp_init_coeff(c, f, n_x, n_y, n_z, bc_x, bc_y, bc_z,
+                                      x_min, x_max, y_min, y_max, z_min, z_max);
+    if(err) {
+        return err;
+    }
+    interp3Dcomp_init_spline(str, c, n_x, n_y, n_z, bc_x, bc_y, bc_z,
+                             x_min, x_max, y_min, y_max, z_min, z_max);
+}
+
+/**
  * @brief Evaluate interpolated value of 3D scalar field
  *
  * This function evaluates the interpolated value of a 3D scalar field using
