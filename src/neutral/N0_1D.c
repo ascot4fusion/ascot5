@@ -13,90 +13,83 @@
 #include "N0_1D.h"
 #include "../linint/linint.h"
 
+int n_rho;      /**< Number of r grid points in the data                  */
+    real rho_min;   /**< Minimum r coordinate in the grid in the data [m]     */
+    real rho_max;   /**< Maximum r coordinate in the grid in the data [m]     */
+    int n_species;               /**< Number of neutral species               */
+    int anum[MAX_SPECIES];       /**< Neutral species mass number []          */
+    int znum[MAX_SPECIES];       /**< Neutral species charge number []        */
+    int maxwellian[MAX_SPECIES]; /**< Whether species distribution is
+                                    Maxwellian or monoenergetic               */
+
 /**
- * @brief Initialize offload data
+ * @brief Initialize data
  *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload data array
+ * @param data pointer to data struct
+ * @param n_rho number of r grid points in the data
+ * @param rho_min minimum r coordinate in the grid in the data [m]
+ * @param rho_max maximum r coordinate in the grid in the data [m]
+ * @param n_species number of neutral species
+ * @param anum neutral species mass number
+ * @param znum neutral species charge number
+ * @param maxwellian is the species distribution Maxwellian or monoenergetic
  *
  * @return zero if initialization succeeded
  */
-int N0_1D_init_offload(N0_1D_offload_data* offload_data,
-                       real** offload_array) {
-    int N0_size = offload_data->n_rho;
-    int T0_size = offload_data->n_rho;
+int N0_1D_init(N0_1D_data* data, int n_rho, real rho_min, real rho_max,
+               int n_species, int* anum, int* znum, int* maxwellian,
+               real* density, real* temperature) {
 
-    offload_data->offload_array_length = offload_data->n_species * N0_size
-        + offload_data->n_species * T0_size;
+    data->n_species = n_species;
+    data->anum = (int*) malloc(n_species * sizeof(int));
+    data->znum = (int*) malloc(n_species * sizeof(int));
+    data->maxwellian = (int*) malloc(n_species * sizeof(int));
+    for(int i = 0; i < data->n_species; i++) {
+        data->anum[i] = anum[i];
+        data->znum[i] = znum[i];
+        data->maxwellian[i] = maxwellian[i];
+
+        real* c = (real*) malloc(n_rho * sizeof(real));
+        for(int i = 0; i < n_rho; i++) {
+            c[i] = density[i];
+        }
+        linint1D_init(&data->n0[i], c, n_rho, NATURALBC, rho_min, rho_max);
+        c = (real*) malloc(n_rho * sizeof(real));
+        for(int i = 0; i < n_rho; i++) {
+            c[i] = density[i];
+        }
+        linint1D_init(&data->t0[i], c, n_rho, NATURALBC, rho_min, rho_max);
+    }
 
     print_out(VERBOSE_IO, "\n1D neutral density and temperature (N0_1D)\n");
-    print_out(VERBOSE_IO, "Grid:  nrho = %4.d   rhomin = %3.3f   rhomax = %3.3f\n",
-              offload_data->n_rho,
-              offload_data->rho_min, offload_data->rho_max);
     print_out(VERBOSE_IO,
-              " Number of neutral species = %d\n",
-              offload_data->n_species);
-    print_out(VERBOSE_IO,
-              "Species Z/A   (Maxwellian)\n");
-    for(int i=0; i < offload_data->n_species; i++) {
+              "Grid:  nrho = %4.d   rhomin = %3.3f   rhomax = %3.3f\n",
+              n_rho, rho_min, rho_max);
+    print_out(VERBOSE_IO, " Number of neutral species = %d\n", data->n_species);
+    print_out(VERBOSE_IO, "Species Z/A   (Maxwellian)\n");
+    for(int i=0; i < data->n_species; i++) {
         print_out(VERBOSE_IO,
                   "      %3d/%3d (%1d)    \n",
-                  (int)(offload_data->znum[i]),
-                  (int)(offload_data->anum[i]),
-                  (int)(offload_data->maxwellian[i]));
+                  (int)(data->znum[i]),
+                  (int)(data->anum[i]),
+                  (int)(data->maxwellian[i]));
     }
 
     return 0;
 }
 
 /**
- * @brief Free offload array and reset parameters
+ * @brief Free allocated resources
  *
- * This function deallocates the offload_array.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param data pointer to the data struct
  */
-void N0_1D_free_offload(N0_1D_offload_data* offload_data,
-                        real** offload_array) {
-    free(*offload_array);
-    *offload_array = NULL;
-}
-
-/**
- * @brief Initialize neutral data on target
- *
- * This function copies parameters from the offload struct to the struct on
- * target and sets the data pointers on target struct to correct offsets in
- * the offload array.
- *
- * Any initialization that requires any computations must have been done already
- * when the offload struct was initialized.
- *
- * @param ndata pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
- */
-void N0_1D_init(N0_1D_data* ndata, N0_1D_offload_data* offload_data,
-                real* offload_array) {
-    int N0_size = offload_data->n_rho;
-    int T0_size = offload_data->n_rho;
-    ndata->n_species  = offload_data->n_species;
-    for(int i = 0; i < offload_data->n_species; i++) {
-        ndata->anum[i]       = offload_data->anum[i];
-        ndata->znum[i]       = offload_data->znum[i];
-        ndata->maxwellian[i] = offload_data->maxwellian[i];
-
-        linint1D_init(
-            &ndata->n0[i], &offload_array[i * N0_size],
-            offload_data->n_rho, NATURALBC,
-            offload_data->rho_min, offload_data->rho_max);
-
-        linint1D_init(
-            &ndata->t0[i],
-            &offload_array[i * T0_size + offload_data->n_species * N0_size],
-            offload_data->n_rho, NATURALBC,
-            offload_data->rho_min, offload_data->rho_max);
+void N0_1D_free(N0_1D_data* data) {
+    free(data->anum);
+    free(data->znum);
+    free(data->maxwellian);
+    for(int i = 0; i < data->n_species; i++) {
+        free(data->n0->c);
+        free(data->t0->c);
     }
 }
 

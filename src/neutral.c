@@ -22,109 +22,19 @@
 #include "neutral/N0_3D.h"
 
 /**
- * @brief Load neutral data and prepare parameters
+ * @brief Free allocated resources
  *
- * This function fills the relevant neutral offload struct with parameters and
- * allocates and fills the offload array. Sets offload array length in the
- * offload struct.
- *
- * The offload data has to have a type when this function is called as it should
- * be set when the offload data is constructed from inputs.
- *
- * This function is host only.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
- *
- * @return Zero if initialization succeeded
+ * @param data pointer to data struct
  */
-int neutral_init_offload(neutral_offload_data* offload_data,
-                         real** offload_array) {
-    int err = 0;
-
-    switch(offload_data->type) {
+void neutral_free(neutral_data* data) {
+    switch(data->type) {
         case neutral_type_1D:
-            err = N0_1D_init_offload(&(offload_data->N01D), offload_array);
-            offload_data->offload_array_length =
-                offload_data->N01D.offload_array_length;
+            N0_1D_free(&data->N01D);
             break;
         case neutral_type_3D:
-            err = N0_3D_init_offload(&(offload_data->N03D), offload_array);
-            offload_data->offload_array_length =
-                offload_data->N03D.offload_array_length;
-            break;
-        default:
-            /* Unregonized input. Produce error. */
-            print_err("Error: Unregonized neutral data type.");
-            err = 1;
+            N0_3D_free(&data->N03D);
             break;
     }
-    if(!err) {
-        print_out(VERBOSE_IO, "Estimated memory usage %.1f MB\n",
-                  offload_data->offload_array_length
-                  * sizeof(real) / (1024.0*1024.0) );
-    }
-
-    return err;
-}
-
-/**
- * @brief Free offload array and reset parameters
- *
- * This function deallocates the offload_array.
- *
- * This function is host only.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
- */
-void neutral_free_offload(neutral_offload_data* offload_data,
-                          real** offload_array) {
-    switch(offload_data->type) {
-        case neutral_type_1D:
-            N0_1D_free_offload(&(offload_data->N01D), offload_array);
-            break;
-        case neutral_type_3D:
-            N0_3D_free_offload(&(offload_data->N03D), offload_array);
-            break;
-    }
-}
-
-/**
- * @brief Initialize neutral data struct on target
- *
- * This function copies the neutral data parameters from the offload struct to
- * the struct on target and sets the neutral data pointers to correct offsets in
- * the offload array.
- *
- * @param ndata pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
- *
- * @return Zero if initialization succeeded
- */
-int neutral_init(neutral_data* ndata, neutral_offload_data* offload_data,
-                  real* offload_array) {
-    int err = 0;
-
-    switch(offload_data->type) {
-        case neutral_type_1D:
-            N0_1D_init(&(ndata->N01D),
-                       &(offload_data->N01D), offload_array);
-            break;
-        case neutral_type_3D:
-            N0_3D_init(&(ndata->N03D),
-                       &(offload_data->N03D), offload_array);
-            break;
-        default:
-            /* Unregonized input. Produce error. */
-            print_err("Error: Unregonized neutral data type.\n");
-            err = 1;
-            break;
-    }
-    ndata->type = offload_data->type;
-
-    return err;
 }
 
 /**

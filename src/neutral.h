@@ -15,10 +15,6 @@
 
 /**
  * @brief Neutral data types
- *
- * Neutral data types are used in the neutral interface (neutral.c) to direct
- * function calls to correct neutral data instances. Each neutral data instance
- * must have a corresponding type.
  */
 typedef enum neutral_type {
     neutral_type_1D, /**< Linearly-interpolated 1D neutral data          */
@@ -26,29 +22,10 @@ typedef enum neutral_type {
 } neutral_type;
 
 /**
- * @brief Neutral offload data
- *
- * This struct holds data necessary for offloading. The struct is initialized in
- * neutral_init_offload().
- *
- * The intended usage is that only single offload data is used at the time, and
- * the type of the data is declared with the "type" field.
- */
-typedef struct {
-    neutral_type type;        /**< Neutral data type wrapped by this struct */
-    N0_1D_offload_data N01D;  /**< 1D field or NULL if not active           */
-    N0_3D_offload_data N03D;  /**< 3D field or NULL if not active           */
-    int offload_array_length; /**< Allocated offload array length           */
-} neutral_offload_data;
-
-/**
  * @brief Neutral simulation data
  *
- * This struct holds data necessary for simulation. The struct is initialized
- * from the neutral_offload_data in neutral_init().
- *
- * The intended usage is that only single neutral_data is used at the time, and
- * the type of the data is declared with the "type" field.
+ * The intended usage is that only single type of data is used at a time. This
+ * is declared using the `type` field.
  */
 typedef struct {
     neutral_type type; /**< Neutral data type wrapped by this struct */
@@ -56,13 +33,7 @@ typedef struct {
     N0_3D_data N03D;   /**< 3D field or NULL if not active           */
 } neutral_data;
 
-int neutral_init_offload(neutral_offload_data* offload_data,
-                         real** offload_array);
-void neutral_free_offload(neutral_offload_data* offload_data,
-                          real** offload_array);
-
-int neutral_init(neutral_data* ndata, neutral_offload_data* offload_data,
-                 real* offload_array);
+void neutral_free(neutral_data* ndata);
 DECLARE_TARGET_SIMD_UNIFORM(ndata)
 a5err neutral_eval_n0(real* n0, real rho, real r, real phi, real z, real t,
                       neutral_data* ndata);
