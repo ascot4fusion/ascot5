@@ -9,7 +9,6 @@
 #include "../ascot5.h"
 #include "../nbi.h"
 
-int hdf5_nbi_init_offload(hid_t f, nbi_offload_data* offload_data,
-                          real** offload_array, char* qid);
+int hdf5_nbi_init(hid_t f, nbi_data* data, char* qid);
 
 #endif
