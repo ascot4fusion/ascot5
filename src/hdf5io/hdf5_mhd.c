@@ -15,25 +15,20 @@
 
 #define MHDPATH /**< Macro that is used to store paths to data groups */
 
-int hdf5_mhd_read_stat(hid_t f, mhd_stat_offload_data* offload_data,
-                       real** offload_array, char* qid);
-int hdf5_mhd_read_nonstat(hid_t f, mhd_nonstat_offload_data* offload_data,
-                          real** offload_array, char* qid);
+int hdf5_mhd_read_stat(hid_t f, mhd_stat_data* data, char* qid);
+int hdf5_mhd_read_nonstat(hid_t f, mhd_nonstat_data* data, char* qid);
 
 /**
- * @brief Initialize MHD offload data from HDF5 file
+ * @brief Initialize MHD data from HDF5 file
  *
  * @param f HDF5 file identifier for a file which is opened and closed outside
  *          of this function
- * @param offload_data pointer to offload data struct which is initialized here
- * @param offload_array pointer to offload array which is allocated and
- *                      initialized here
+ * @param data pointer to the data struct which is initialized here
  * @param qid QID of the data that is to be read
  *
  * @return zero if reading and initialization succeeded
  */
-int hdf5_mhd_init_offload(hid_t f, mhd_offload_data* offload_data,
-                          real** offload_array, char* qid) {
+int hdf5_mhd_init(hid_t f, mhd_data* data, char* qid) {
 
     char path[256];
     int err = 1;
@@ -41,23 +36,14 @@ int hdf5_mhd_init_offload(hid_t f, mhd_offload_data* offload_data,
     /* Read data the QID corresponds to */
     hdf5_gen_path("/mhd/MHD_STAT_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
-        offload_data->type = mhd_type_stat;
-        err = hdf5_mhd_read_stat(f, &(offload_data->stat),
-                                 offload_array, qid);
+        data->type = mhd_type_stat;
+        err = hdf5_mhd_read_stat(f, &data->stat, qid);
     }
-
     hdf5_gen_path("/mhd/MHD_NONSTAT_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
-        offload_data->type = mhd_type_nonstat;
-        err = hdf5_mhd_read_nonstat(f, &(offload_data->nonstat),
-                                 offload_array, qid);
+        data->type = mhd_type_nonstat;
+        err = hdf5_mhd_read_nonstat(f, &data->nonstat, qid);
     }
-
-    /* Initialize if data was read succesfully */
-    if(!err) {
-        err = mhd_init_offload(offload_data, offload_array);
-    }
-
     return err;
 }
 
@@ -65,101 +51,111 @@ int hdf5_mhd_init_offload(hid_t f, mhd_offload_data* offload_data,
  * @brief Read stationary MHD data from HDF5 file.
  *
  * @param f HDF5 file from which data is read
- * @param offload_data pointer to offload data
- * @param offload_array pointer to offload array
+ * @param data pointer to the data
  * @param qid QID of the data
  *
  * @return Zero if reading succeeded
  */
-int hdf5_mhd_read_stat(hid_t f, mhd_stat_offload_data* offload_data,
-                       real** offload_array, char* qid) {
+int hdf5_mhd_read_stat(hid_t f, mhd_stat_data* data, char* qid) {
     #undef MHDPATH
     #define MHDPATH "/mhd/MHD_STAT_XXXXXXXXXX/"
 
-    /* Read parameters. */
-    if( hdf5_read_int(   MHDPATH "nmode",      &(offload_data->n_modes),
+    int nmode, nrho;
+    real rhomin, rhomax;
+    if( hdf5_read_int(   MHDPATH "nmode", &nmode,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(   MHDPATH "nrho",       &(offload_data->nrho),
+    if( hdf5_read_int(   MHDPATH "nrho", &nrho,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "rhomin",     &(offload_data->rho_min),
+    if( hdf5_read_double(MHDPATH "rhomin", &rhomin,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "rhomax",     &(offload_data->rho_max),
+    if( hdf5_read_double(MHDPATH "rhomax", &rhomax,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(   MHDPATH "nmodes",       offload_data->nmode,
+
+    int* moden = (int*) malloc( nmode * sizeof(int) );
+    int* modem = (int*) malloc( nmode * sizeof(int) );
+    real* omega_nm = (real*) malloc( nmode * sizeof(real) );
+    real* phase_nm = (real*) malloc( nmode * sizeof(real) );
+    real* amplitude_nm = (real*)malloc( nmode * sizeof(real) );
+    if( hdf5_read_int(   MHDPATH "nmodes", moden,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(   MHDPATH "mmodes",       offload_data->mmode,
+    if( hdf5_read_int(   MHDPATH "mmodes", modem,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "amplitude",    offload_data->amplitude_nm,
+    if( hdf5_read_double(MHDPATH "omega", omega_nm,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "omega",        offload_data->omega_nm,
+    if( hdf5_read_double(MHDPATH "phase", phase_nm,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "phase",        offload_data->phase_nm,
+    if( hdf5_read_double(MHDPATH "amplitude", amplitude_nm,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Allocate offload array */
-    int datasize = offload_data->nrho * offload_data->n_modes;
-    *offload_array = (real*) malloc( 2 * datasize * sizeof(real) );
-
-    /* Read data to offload array */
-    if( hdf5_read_double(MHDPATH "alpha", &(*offload_array)[0],
+    real* phi = (real*) malloc( nrho * nmode * sizeof(real) );
+    real* alpha = (real*) malloc( nrho * nmode * sizeof(real) );
+    if( hdf5_read_double(MHDPATH "alpha", alpha,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "phi",   &(*offload_array)[datasize],
+    if( hdf5_read_double(MHDPATH "phi", phi,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    return 0;
+    int err = mhd_stat_init(data, nmode, nrho, rhomin, rhomax, moden, modem,
+                            amplitude_nm, omega_nm, phase_nm, alpha, phi);
+    return err;
 }
 
 /**
  * @brief Read nonstationary MHD data from HDF5 file.
  *
  * @param f HDF5 file from which data is read
- * @param offload_data pointer to offload data
- * @param offload_array pointer to offload array
+ * @param data pointer to the data
  * @param qid QID of the data
  *
  * @return Zero if reading succeeded
  */
-int hdf5_mhd_read_nonstat(hid_t f, mhd_nonstat_offload_data* offload_data,
-                          real** offload_array, char* qid) {
+int hdf5_mhd_read_nonstat(hid_t f, mhd_nonstat_data* data, char* qid) {
     #undef MHDPATH
     #define MHDPATH "/mhd/MHD_NONSTAT_XXXXXXXXXX/"
 
-    /* Read parameters. */
-    if( hdf5_read_int(   MHDPATH "nmode",      &(offload_data->n_modes),
+    int nmode, nrho, ntime;
+    real rhomin, rhomax, tmin, tmax;
+    if( hdf5_read_int(   MHDPATH "nmode", &nmode,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(   MHDPATH "nrho",       &(offload_data->nrho),
+    if( hdf5_read_int(   MHDPATH "nrho", &nrho,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "rhomin",     &(offload_data->rho_min),
+    if( hdf5_read_double(MHDPATH "rhomin", &rhomin,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "rhomax",     &(offload_data->rho_max),
+    if( hdf5_read_double(MHDPATH "rhomax", &rhomax,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(   MHDPATH "ntime",      &(offload_data->ntime),
+    if( hdf5_read_int(   MHDPATH "ntime", &ntime,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "tmin",       &(offload_data->t_min),
+    if( hdf5_read_double(MHDPATH "tmin", &tmin,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "tmax",       &(offload_data->t_max),
+    if( hdf5_read_double(MHDPATH "tmax", &tmax,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(   MHDPATH "nmodes",       offload_data->nmode,
+
+    int* moden = (int*) malloc( nmode * sizeof(int) );
+    int* modem = (int*) malloc( nmode * sizeof(int) );
+    real* omega_nm = (real*) malloc( nmode * sizeof(real) );
+    real* phase_nm = (real*) malloc( nmode * sizeof(real) );
+    real* amplitude_nm = (real*)malloc( nmode * sizeof(real) );
+    if( hdf5_read_int(   MHDPATH "nmodes", moden,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(   MHDPATH "mmodes",       offload_data->mmode,
+    if( hdf5_read_int(   MHDPATH "mmodes", modem,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "amplitude",    offload_data->amplitude_nm,
+    if( hdf5_read_double(MHDPATH "omega", omega_nm,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "omega",        offload_data->omega_nm,
+    if( hdf5_read_double(MHDPATH "phase", phase_nm,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "phase",        offload_data->phase_nm,
+    if( hdf5_read_double(MHDPATH "amplitude", amplitude_nm,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Allocate offload array */
-    int datasize = offload_data->nrho * offload_data->ntime
-                   * offload_data->n_modes;
-    *offload_array = (real*) malloc( 2 * datasize * sizeof(real) );
-
-    /* Read data to offload array */
-    if( hdf5_read_double(MHDPATH "alpha", &(*offload_array)[0],
+    real* phi = (real*) malloc( nrho * ntime * nmode * sizeof(real) );
+    real* alpha = (real*) malloc( nrho * ntime * nmode * sizeof(real) );
+    if( hdf5_read_double(MHDPATH "alpha", alpha,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "phi",   &(*offload_array)[datasize],
+    if( hdf5_read_double(MHDPATH "phi", phi,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    return 0;
+    int err = mhd_nonstat_init(data, nmode, nrho, ntime, rhomin, rhomax,
+                               tmin, tmax, moden, modem, amplitude_nm,
+                               omega_nm, phase_nm, alpha, phi);
+    return err;
 }

@@ -10,7 +10,6 @@
 #include "../mhd/mhd_stat.h"
 #include "../mhd/mhd_nonstat.h"
 
-int hdf5_mhd_init_offload(hid_t f, mhd_offload_data* offload_data,
-                          real** offload_array, char* qid);
+int hdf5_mhd_init(hid_t f, mhd_data* data, char* qid);
 
 #endif
