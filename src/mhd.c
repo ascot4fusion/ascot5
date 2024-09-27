@@ -27,122 +27,19 @@
 #include "mhd/mhd_nonstat.h"
 
 /**
- * @brief Load MHD data and prepare parameters
+ * @brief Free allocated resources
  *
- * This function fills the relevant MHD offload struct with
- * parameters and allocates and fills the offload array.
- *
- * The offload data has to have a type when this function is called as it should
- * be set when the offload data is constructed from inputs.
- *
- * This function is host only.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
- *
- * @return zero if initialization succeeded
+ * @param data pointer to the data struct
  */
-int mhd_init_offload(mhd_offload_data* offload_data,
-                     real** offload_array) {
-    int err = 0;
-
-    switch(offload_data->type) {
-
+void mhd_free(mhd_data* data) {
+    switch(data->type) {
         case mhd_type_stat:
-            err = mhd_stat_init_offload(&(offload_data->stat), offload_array);
-            offload_data->offload_array_length =
-                offload_data->stat.offload_array_length;
+            mhd_stat_free(&data->stat);
             break;
-
         case mhd_type_nonstat:
-            err = mhd_nonstat_init_offload(&(offload_data->nonstat),
-                                           offload_array);
-            offload_data->offload_array_length =
-                offload_data->nonstat.offload_array_length;
-            break;
-
-        default:
-            /* Unregonized input. Produce error. */
-            print_err("Error: Unregonized MHD type.");
-            err = 1;
+            mhd_nonstat_free(&data->nonstat);
             break;
     }
-
-    if(!err) {
-        print_out(VERBOSE_IO, "Estimated memory usage %.1f MB\n",
-                  offload_data->offload_array_length
-                  * sizeof(real) / (1024.0*1024.0) );
-    }
-
-    return err;
-}
-
-/**
- * @brief Free offload array and reset parameters
- *
- * This function deallocates the offload_array.
- *
- * This function is host only.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
- */
-void mhd_free_offload(mhd_offload_data* offload_data,
-                      real** offload_array) {
-    switch(offload_data->type) {
-
-        case mhd_type_stat:
-            mhd_stat_free_offload(&(offload_data->stat), offload_array);
-            break;
-
-        case mhd_type_nonstat:
-            mhd_nonstat_free_offload(&(offload_data->nonstat), offload_array);
-            break;
-    }
-}
-
-/**
- * @brief Initialize MHD data struct on target
- *
- * This function copies the electric field parameters from the offload struct
- * to the struct on target and sets the MHD data pointers to correct offsets
- * in the offload array.
- *
- * This function returns error if the offload data has not been initialized.
- * The instances themselves should not return an error since all they do is
- * assign pointers and values.
- *
- * @param mhddata pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array the offload array
- *
- * @return Non-zero integer if offload was not initialized beforehand
- */
-int mhd_init(mhd_data* mhddata, mhd_offload_data* offload_data,
-             real* offload_array) {
-    int err = 0;
-
-    switch(offload_data->type) {
-
-        case mhd_type_stat:
-            mhd_stat_init(&(mhddata->stat), &(offload_data->stat),
-                          offload_array);
-            break;
-
-        case mhd_type_nonstat:
-            mhd_nonstat_init(&(mhddata->nonstat), &(offload_data->nonstat),
-                             offload_array);
-            break;
-
-        default:
-            /* Unregonized input. Produce error. */
-            print_err("Error: Unregonized electric field type.\n");
-            err = 1;
-            break;
-    }
-    mhddata->type = offload_data->type;
-
-    return err;
 }
 
 /**
