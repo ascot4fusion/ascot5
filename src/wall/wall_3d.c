@@ -19,6 +19,8 @@
 #include "../octree.h"
 #include "../print.h"
 
+void wall_3d_init_octree(wall_3d_data* w);
+
 /**
  * @brief Initialize 3D wall data and check inputs
  *
@@ -41,45 +43,56 @@
  *
  * @return zero if initialization succeeded
  */
-int wall_3d_init_offload(wall_3d_offload_data* offload_data,
-                         real** offload_array, int** int_offload_array) {
+int wall_3d_init(wall_3d_data* data, int nelements, real* x1x2x3, real* y1y2y3,
+                 real* z1z2z3) {
 
-    /* Find min & max values of the volume occupied by the wall triangles. */
-    real xmin = (*offload_array)[0], xmax = (*offload_array)[0];
-    real ymin = (*offload_array)[1], ymax = (*offload_array)[1];
-    real zmin = (*offload_array)[2], zmax = (*offload_array)[2];
-    for(int i=0; i<offload_data->n*3; i++) {
-        xmin = fmin( xmin, (*offload_array)[i*3 + 0] );
-        xmax = fmax( xmax, (*offload_array)[i*3 + 0] );
-        ymin = fmin( ymin, (*offload_array)[i*3 + 1] );
-        ymax = fmax( ymax, (*offload_array)[i*3 + 1] );
-        zmin = fmin( zmin, (*offload_array)[i*3 + 2] );
-        zmax = fmax( zmax, (*offload_array)[i*3 + 2] );
+    /* The data is to be in the format
+     *  [x1 y1 z1 x2 y2 z2 x3 y3 z3; ... ]
+     */
+    data->n = nelements;
+    data->wall_tris = (real*)malloc(9 * nelements * sizeof(real));
+    real xmin = x1x2x3[0], xmax = x1x2x3[0];
+    real ymin = y1y2y3[0], ymax = y1y2y3[0];
+    real zmin = z1z2z3[0], zmax = z1z2z3[0];
+    for(int i = 0; i < nelements; i++) {
+        for(int j = 0; j < 3; j++) {
+            data->wall_tris[i*9 + j*3 + 0] = x1x2x3[3*i+j];
+            data->wall_tris[i*9 + j*3 + 1] = y1y2y3[3*i+j];
+            data->wall_tris[i*9 + j*3 + 2] = z1z2z3[3*i+j];
+
+            /* Find min & max values of the volume occupied by the wall */
+            xmin = fmin( xmin, x1x2x3[3*i+j] );
+            xmax = fmax( xmax, x1x2x3[3*i+j] );
+            ymin = fmin( ymin, y1y2y3[3*i+j] );
+            ymax = fmax( ymax, y1y2y3[3*i+j] );
+            zmin = fmin( zmin, z1z2z3[3*i+j] );
+            zmax = fmax( zmax, z1z2z3[3*i+j] );
+        }
     }
 
     /* Add a little bit of padding so we don't need to worry about triangles
        clipping the edges */
-    offload_data->xmin = xmin - 0.1;
-    offload_data->xmax = xmax + 0.1;
-    offload_data->ymin = ymin - 0.1;
-    offload_data->ymax = ymax + 0.1;
-    offload_data->zmin = zmin - 0.1;
-    offload_data->zmax = zmax + 0.1;
+    data->xmin = xmin - 0.1;
+    data->xmax = xmax + 0.1;
+    data->ymin = ymin - 0.1;
+    data->ymax = ymax + 0.1;
+    data->zmin = zmin - 0.1;
+    data->zmax = zmax + 0.1;
 
     /* Depth of the octree in which the triangles are sorted */
-    offload_data->depth = WALL_OCTREE_DEPTH;
+    data->depth = WALL_OCTREE_DEPTH;
     int ngrid = 1;
-    for(int i = 0; i < offload_data->depth - 1; i++) {
+    for(int i = 0; i < data->depth - 1; i++) {
         ngrid *= 2;
     }
-    offload_data->ngrid = ngrid;
+    data->ngrid = ngrid;
 
-    offload_data->xgrid = (offload_data->xmax - offload_data->xmin)
-                          / offload_data->ngrid;
-    offload_data->ygrid = (offload_data->ymax - offload_data->ymin)
-                          / offload_data->ngrid;
-    offload_data->zgrid = (offload_data->zmax - offload_data->zmin)
-                          / offload_data->ngrid;
+    data->xgrid = (data->xmax - data->xmin) / data->ngrid;
+    data->ygrid = (data->ymax - data->ymin) / data->ngrid;
+    data->zgrid = (data->zmax - data->zmin) / data->ngrid;
+
+    data->depth = WALL_OCTREE_DEPTH;
+    wall_3d_init_octree(data);
 
     print_out(VERBOSE_IO, "\n3D wall model (wall_3D)\n");
     print_out(VERBOSE_IO,
@@ -87,65 +100,21 @@ int wall_3d_init_offload(wall_3d_offload_data* offload_data,
               "Spanning xmin = %2.3f m, xmax = %2.3f m\n"
               "         ymin = %2.3f m, ymax = %2.3f m\n"
               "         zmin = %2.3f m, zmax = %2.3f m\n",
-              offload_data->n,
-              offload_data->xmin, offload_data->xmax, offload_data->ymin,
-              offload_data->ymax, offload_data->zmin, offload_data->zmax);
-
-    wall_3d_init_octree(offload_data, *offload_array, int_offload_array);
+              data->n,
+              data->xmin, data->xmax, data->ymin,
+              data->ymax, data->zmin, data->zmax);
 
     return 0;
 }
 
 /**
- * @brief Free offload array and reset parameters
+ * @brief Free allocated resources
  *
- * This function deallocates the offload_array.
- *
- * This function is host only.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
- * @param int_offload_array pointer to offload array containing integers
+ * @param data pointer to data struct
  */
-void wall_3d_free_offload(wall_3d_offload_data* offload_data,
-                          real** offload_array, int** int_offload_array) {
-    free(*offload_array);
-    *offload_array = NULL;
-
-    free(*int_offload_array);
-    *int_offload_array = NULL;
-}
-
-/**
- * @brief Initialize wall data struct on target
- *
- * This function copies the wall parameters from the offload struct to the
- * struct on target and sets the wall data pointers to correct offsets in the
- * offload array.
- *
- * @param w pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array offload array
- * @param int_offload_array offload array containing integers
- */
-void wall_3d_init(wall_3d_data* w, wall_3d_offload_data* offload_data,
-                  real* offload_array, int* int_offload_array) {
-    w->n = offload_data->n;
-    w->xmin = offload_data->xmin;
-    w->xmax = offload_data->xmax;
-    w->xgrid = offload_data->xgrid;
-    w->ymin = offload_data->ymin;
-    w->ymax = offload_data->ymax;
-    w->ygrid = offload_data->ygrid;
-    w->zmin = offload_data->zmin;
-    w->zmax = offload_data->zmax;
-    w->zgrid = offload_data->zgrid;
-    w->depth = offload_data->depth;
-    w->ngrid = offload_data->ngrid;
-    w->wall_tris = &offload_array[0];
-
-    w->tree_array_size = offload_data->int_offload_array_length;
-    w->tree_array = &int_offload_array[0];
+void wall_3d_free_offload(wall_3d_data* data) {
+    free(data->tree_array);
+    free(data->wall_tris);
 }
 
 /**
@@ -211,8 +180,7 @@ void wall_3d_init_tree(wall_3d_data* w, real* offload_array) {
         list_size += list_int_size(tri_list[i]);
     }
 
-    w->tree_array_size = 2*ncell + list_size;
-    w->tree_array = (int*) malloc((w->tree_array_size)*sizeof(int));
+    w->tree_array = (int*) malloc((2*ncell + list_size)*sizeof(int));
 
     int next_empty_list = ncell;
     for(i = 0; i < ncell; i++) {
@@ -239,10 +207,7 @@ void wall_3d_init_tree(wall_3d_data* w, real* offload_array) {
  * @param tree_array pointer to array storing what octree cells contain
  *        which triangles
  */
-void wall_3d_init_octree(wall_3d_offload_data* w, real* offload_array,
-                         int** tree_array) {
-
-
+void wall_3d_init_octree(wall_3d_data* w) {
     if (w->n > 1000000){
         print_out(VERBOSE_NORMAL,
                   "Starting to initialize 3D-wall octree with %d triangles.\n",
@@ -256,15 +221,15 @@ void wall_3d_init_octree(wall_3d_offload_data* w, real* offload_array,
     int i;
     for(i = 0; i < w->n; i++) {
         real t1[3], t2[3], t3[3];
-        t1[0] = offload_array[i*9];
-        t1[1] = offload_array[i*9+1];
-        t1[2] = offload_array[i*9+2];
-        t2[0] = offload_array[i*9+3];
-        t2[1] = offload_array[i*9+4];
-        t2[2] = offload_array[i*9+5];
-        t3[0] = offload_array[i*9+6];
-        t3[1] = offload_array[i*9+7];
-        t3[2] = offload_array[i*9+8];
+        t1[0] = w->wall_tris[i*9];
+        t1[1] = w->wall_tris[i*9+1];
+        t1[2] = w->wall_tris[i*9+2];
+        t2[0] = w->wall_tris[i*9+3];
+        t2[1] = w->wall_tris[i*9+4];
+        t2[2] = w->wall_tris[i*9+5];
+        t3[0] = w->wall_tris[i*9+6];
+        t3[1] = w->wall_tris[i*9+7];
+        t3[2] = w->wall_tris[i*9+8];
         octree_add(tree, t1, t2, t3, i);
         if (i%1000000==0 && i > 0){
             print_out(VERBOSE_NORMAL, "  Adding triangle %10d/%d.\n",i,w->n);
@@ -296,25 +261,23 @@ void wall_3d_init_octree(wall_3d_offload_data* w, real* offload_array,
     for(i = 0; i < ncell; i++) {
         list_size += list_int_size(tri_list[i]);
     }
-
-    w->int_offload_array_length = 2*ncell + list_size;
-    *tree_array = (int*) malloc((w->int_offload_array_length)*sizeof(int));
+    w->tree_array = (int*) malloc((2*ncell + list_size)*sizeof(int));
 
     int next_empty_list = ncell;
     for(i = 0; i < ncell; i++) {
         /* First ncell elements store the position where the actual cell data
          * begins in tree_array */
-        (*tree_array)[i] = next_empty_list;
+        w->tree_array[i] = next_empty_list;
 
         /* The first data point in the actual cell data is the number of
          * triangles in this cell */
-        (*tree_array)[next_empty_list] = list_int_size(tri_list[i]);
+        w->tree_array[next_empty_list] = list_int_size(tri_list[i]);
 
         /* Store triangle IDs that are located in this cell */
-        for(int j = 0; j < (*tree_array)[next_empty_list]; j++) {
-            (*tree_array)[next_empty_list+j+1] = list_int_get(tri_list[i], j);
+        for(int j = 0; j < w->tree_array[next_empty_list]; j++) {
+            w->tree_array[next_empty_list+j+1] = list_int_get(tri_list[i], j);
         }
-        next_empty_list += (*tree_array)[next_empty_list] + 1;
+        next_empty_list += w->tree_array[next_empty_list] + 1;
     }
     free(tri_list);
     octree_free(&tree);
