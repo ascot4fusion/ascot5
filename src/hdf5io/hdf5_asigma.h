@@ -9,7 +9,5 @@
 #include "../ascot5.h"
 #include "../asigma.h"
 
-int hdf5_asigma_init_offload(hid_t f,
-                             asigma_offload_data* offload_data,
-                             real** offload_array, char* qid);
+int hdf5_asigma_init(hid_t f, asigma_data* data, char* qid);
 #endif

@@ -16,25 +16,18 @@
 #include "hdf5_helpers.h"
 #include "hdf5_asigma.h"
 
-int hdf5_asigma_read_loc(hid_t f, asigma_loc_offload_data* offload_data,
-                         real** offload_array, char* qid);
+int hdf5_asigma_read_loc(hid_t f, asigma_loc_data* data, char* qid);
 
 /**
  * @brief Read atomic data from HDF5 file
  *
- * This function reads atomic cross-section (sigma) data with given qid
- * while also initializing offload data and allocating and filling
- * offload array. The file is opened and closed outside this function.
- *
  * @param f HDF5 file from which data is read
- * @param offload_data pointer to offload data
- * @param offload_array pointer to offload array
+ * @param data pointer to the data
  * @param qid QID of the data
  *
  * @return Zero if reading and initialization of data succeeded
  */
-int hdf5_asigma_init_offload(hid_t f, asigma_offload_data* offload_data,
-                             real** offload_array, char* qid) {
+int hdf5_asigma_init(hid_t f, asigma_data* data, char* qid) {
 
     char path[256];
     int err = 1;
@@ -42,14 +35,8 @@ int hdf5_asigma_init_offload(hid_t f, asigma_offload_data* offload_data,
     /* Read data the QID corresponds to */
     hdf5_gen_path("/asigma/asigma_loc_XXXXXXXXXX", qid, path);
     if(hdf5_find_group(f, path) == 0) {
-        offload_data->type = asigma_type_loc;
-        err = hdf5_asigma_read_loc(f, &(offload_data->asigma_loc),
-                                   offload_array, qid);
-    }
-
-    /* Initialize if data was read succesfully */
-    if(!err) {
-        err = asigma_init_offload(offload_data, offload_array);
+        data->type = asigma_type_loc;
+        err = hdf5_asigma_read_loc(f, &data->asigma_loc, qid);
     }
 
     return err;
@@ -59,80 +46,88 @@ int hdf5_asigma_init_offload(hid_t f, asigma_offload_data* offload_data,
  * @brief Read atomic sigma data from HDF5 file
  *
  * @param f HDF5 file from which data is read
- * @param offload_data pointer to offload data
+ * @param data pointer to offload data
  * @param offload_array pointer to offload array
  * @param qid QID of the data
  *
  * @return Zero if reading succeeded
  */
-int hdf5_asigma_read_loc(hid_t f, asigma_loc_offload_data* offload_data,
-                         real** offload_array, char* qid) {
+int hdf5_asigma_read_loc(hid_t f, asigma_loc_data* data, char* qid) {
     /// @cond
     #undef ASGMPATH
     #define ASGMPATH "/asigma/asigma_loc_XXXXXXXXXX/"
     /// @endcond
 
-    /* Read number of reactions */
-    if (hdf5_read_int(ASGMPATH "nreac", &offload_data->N_reac,
+    int nreac;
+    if (hdf5_read_int(ASGMPATH "nreac", &nreac,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    /* Read dimensionalities to allow memory alloction for offload array */
-    if (hdf5_read_int(ASGMPATH "nenergy", offload_data->N_E,
+    int* ne = (int*) malloc( nreac * sizeof(int) );
+    int* nn = (int*) malloc( nreac * sizeof(int) );
+    int* nT = (int*) malloc( nreac * sizeof(int) );
+    int* z1 = (int*) malloc( nreac * sizeof(int) );
+    int* a1 = (int*) malloc( nreac * sizeof(int) );
+    int* z2 = (int*) malloc( nreac * sizeof(int) );
+    int* a2 = (int*) malloc( nreac * sizeof(int) );
+    int* reactype = (int*) malloc( nreac * sizeof(int) );
+    real* emin = (real*) malloc( nreac * sizeof(real) );
+    real* emax = (real*) malloc( nreac * sizeof(real) );
+    real* nmin = (real*) malloc( nreac * sizeof(real) );
+    real* nmax = (real*) malloc( nreac * sizeof(real) );
+    real* Tmin = (real*) malloc( nreac * sizeof(real) );
+    real* Tmax = (real*) malloc( nreac * sizeof(real) );
+    if (hdf5_read_int(ASGMPATH "nenergy", ne,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if (hdf5_read_int(ASGMPATH "ndensity", offload_data->N_n,
+    if (hdf5_read_int(ASGMPATH "ndensity", nn,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if (hdf5_read_int(ASGMPATH "ntemperature", offload_data->N_T,
+    if (hdf5_read_int(ASGMPATH "ntemperature", nT,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
+    if (hdf5_read_int(ASGMPATH "z1", z1,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if (hdf5_read_int(ASGMPATH "a1", a1,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if (hdf5_read_int(ASGMPATH "z2", z2,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if (hdf5_read_int(ASGMPATH "a2", a2,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if (hdf5_read_int(ASGMPATH "reactype", reactype,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if (hdf5_read_double(ASGMPATH "energymin", emin,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if (hdf5_read_double(ASGMPATH "energymax", emax,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if (hdf5_read_double(ASGMPATH "densitymin", nmin,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if (hdf5_read_double(ASGMPATH "densitymax", nmax,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if (hdf5_read_double(ASGMPATH "temperaturemin", Tmin,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if (hdf5_read_double(ASGMPATH "temperaturemax", Tmax,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    /* Helper variables for number of reactions and abscissa dimensions */
-    int N_reac = offload_data->N_reac;
-
-    /* Allocate data for the abscissa limits [Emin,Emax,nmin,nmax,Tmin,Tmax]
-     * and then for the actual data */
-    offload_data->offload_array_length = 6*N_reac;
-    for(int i_reac = 0; i_reac < N_reac; i_reac++) {
-        offload_data->offload_array_length +=
-              offload_data->N_E[i_reac] * offload_data->N_n[i_reac]
-            * offload_data->N_T[i_reac];
+    int nsigmadata = 0;
+    for(int i = 0; i < nreac; i++) {
+        nsigmadata += ne[i] * nn[i] * nT[i];
     }
-    *offload_array = (real*) malloc(offload_data->offload_array_length
-                                    *sizeof(real));
-
-    real* E_min     = &(*offload_array)[0*N_reac];
-    real* E_max     = &(*offload_array)[1*N_reac];
-    real* n_min     = &(*offload_array)[2*N_reac];
-    real* n_max     = &(*offload_array)[3*N_reac];
-    real* T_min     = &(*offload_array)[4*N_reac];
-    real* T_max     = &(*offload_array)[5*N_reac];
-    real* sigma     = &(*offload_array)[6*N_reac];
-
-    /* Read reaction identifiers, rest of abscissa parameters and
-       reaction data into the offload array*/
-    if (hdf5_read_int(ASGMPATH "z1", offload_data->z_1,
-                      f, qid, __FILE__, __LINE__) ) {return 1;}
-    if (hdf5_read_int(ASGMPATH "a1", offload_data->a_1,
-                      f, qid, __FILE__, __LINE__) ) {return 1;}
-    if (hdf5_read_int(ASGMPATH "z2", offload_data->z_2,
-                      f, qid, __FILE__, __LINE__) ) {return 1;}
-    if (hdf5_read_int(ASGMPATH "a2", offload_data->a_2,
-                      f, qid, __FILE__, __LINE__) ) {return 1;}
-    if (hdf5_read_int(ASGMPATH "reactype", offload_data->reac_type,
-                      f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    if (hdf5_read_double(ASGMPATH "energymin", E_min,
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if (hdf5_read_double(ASGMPATH "energymax", E_max,
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if (hdf5_read_double(ASGMPATH "densitymin", n_min,
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if (hdf5_read_double(ASGMPATH "densitymax", n_max,
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if (hdf5_read_double(ASGMPATH "temperaturemin", T_min,
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if (hdf5_read_double(ASGMPATH "temperaturemax", T_max,
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    real* sigma = (real*) malloc(nsigmadata * sizeof(real));
     if( hdf5_read_double(ASGMPATH "sigma", sigma,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    return 0;
+    int err = asigma_loc_init(data, nreac, z1, a1, z2, a2,
+                              ne, emin, emax, nn, nmin, nmax, nT, Tmin, Tmax,
+                              reactype, sigma);
+    free(ne);
+    free(nn);
+    free(nT);
+    free(z1);
+    free(a1);
+    free(z2);
+    free(a2);
+    free(reactype);
+    free(emin);
+    free(emax);
+    free(nmin);
+    free(nmax);
+    free(Tmin);
+    free(Tmax);
+    return err;
 }
