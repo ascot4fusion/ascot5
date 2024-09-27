@@ -13,94 +13,98 @@
 #include "nbi.h"
 
 /**
- * @brief Load NBI data and prepare parameters for offload
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
- *
- * @return zero if initialization succeeded.
- */
-int nbi_init_offload(nbi_offload_data* offload_data, real** offload_array) {
-    int err = 0;
-    print_out(VERBOSE_IO, "\nNBI input\n");
-    print_out(VERBOSE_IO, "Number of injectors %d:\n", offload_data->ninj);
-    for(int i=0; i<offload_data->ninj; i++) {
-        print_out(VERBOSE_IO, "\n  Injector ID %d (%d beamlets) Power: %1.1e\n",
-                  offload_data->id[i], offload_data->n_beamlet[i],
-                  offload_data->power[i]);
-        print_out(VERBOSE_IO,
-                  "    Anum %d Znum %d mass %1.1e amu energy %1.1e eV\n",
-                  offload_data->anum[i], offload_data->znum[i],
-                  offload_data->mass[i] / CONST_U,
-                  offload_data->energy[i] / CONST_E);
-        print_out(VERBOSE_IO,
-                  "    Energy fractions: %1.1e (Full) %1.1e (1/2) %1.1e (1/3)\n",
-                  offload_data->efrac[0], offload_data->efrac[1],
-                  offload_data->efrac[2]);
-
-        /* Even if halo fraction is zero, the divergences should be nonzero
-           to avoid division by zero during evaluation. Do this after the
-           input has been printed as to not confuse the user */
-        if(offload_data->div_halo_frac[i] == 0) {
-            offload_data->div_halo_h[i] = 1e-10;
-            offload_data->div_halo_v[i] = 1e-10;
-        }
-    }
-    return err;
-}
-
-/**
  * @brief Initialize NBI data struct on target
  *
  * @param nbi pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
  */
-void nbi_init(nbi_data* nbi, nbi_offload_data* offload_data,
-              real* offload_array) {
+void nbi_init(nbi_data* data, int ninj, int* id, int* anum, int* znum,
+              real* mass, real* power, real* efrac, real* energy,
+              real* div_h, real* div_v, real* div_halo_v, real* div_halo_h,
+              real* div_halo_frac, int* nbeamlet, real* beamlet_xyz) {
     int idx = 0;
-    nbi->ninj = offload_data->ninj;
-    for(int i=0; i<nbi->ninj; i++) {
-        nbi->inj[i].anum          = offload_data->anum[i];
-        nbi->inj[i].znum          = offload_data->znum[i];
-        nbi->inj[i].mass          = offload_data->mass[i];
-        nbi->inj[i].power         = offload_data->power[i];
-        nbi->inj[i].energy        = offload_data->energy[i];
-        nbi->inj[i].efrac[0]      = offload_data->efrac[3*i+0];
-        nbi->inj[i].efrac[1]      = offload_data->efrac[3*i+1];
-        nbi->inj[i].efrac[2]      = offload_data->efrac[3*i+2];
-        nbi->inj[i].div_h         = offload_data->div_h[i];
-        nbi->inj[i].div_v         = offload_data->div_v[i];
-        nbi->inj[i].div_halo_frac = offload_data->div_halo_frac[i];
-        nbi->inj[i].div_halo_h    = offload_data->div_halo_h[i];
-        nbi->inj[i].div_halo_v    = offload_data->div_halo_v[i];
-        nbi->inj[i].id            = offload_data->id[i];
-        nbi->inj[i].n_beamlet     = offload_data->n_beamlet[i];
+    data->ninj =ninj;
+    data->inj = (nbi_injector*) malloc( ninj*sizeof(nbi_injector) );
+    for(int i=0; i<data->ninj; i++) {
+        data->inj[i].anum          = anum[i];
+        data->inj[i].znum          = znum[i];
+        data->inj[i].mass          = mass[i];
+        data->inj[i].power         = power[i];
+        data->inj[i].energy        = energy[i];
+        data->inj[i].efrac[0]      = efrac[3*i+0];
+        data->inj[i].efrac[1]      = efrac[3*i+1];
+        data->inj[i].efrac[2]      = efrac[3*i+2];
+        data->inj[i].div_h         = div_h[i];
+        data->inj[i].div_v         = div_v[i];
+        data->inj[i].div_halo_frac = div_halo_frac[i];
+        data->inj[i].div_halo_h    = div_halo_h[i];
+        data->inj[i].div_halo_v    = div_halo_v[i];
+        data->inj[i].id            = id[i];
+        data->inj[i].n_beamlet     = nbeamlet[i];
 
-        int n_beamlet = nbi->inj[i].n_beamlet;
-        nbi->inj[i].beamlet_x  = &(offload_array[idx + 0*n_beamlet]);
-        nbi->inj[i].beamlet_y  = &(offload_array[idx + 1*n_beamlet]);
-        nbi->inj[i].beamlet_z  = &(offload_array[idx + 2*n_beamlet]);
-        nbi->inj[i].beamlet_dx = &(offload_array[idx + 3*n_beamlet]);
-        nbi->inj[i].beamlet_dy = &(offload_array[idx + 4*n_beamlet]);
-        nbi->inj[i].beamlet_dz = &(offload_array[idx + 5*n_beamlet]);
+        int n_beamlet = data->inj[i].n_beamlet;
+        data->inj[i].beamlet_x = (real*) malloc( n_beamlet*sizeof(real) );
+        data->inj[i].beamlet_y = (real*) malloc( n_beamlet*sizeof(real) );
+        data->inj[i].beamlet_z = (real*) malloc( n_beamlet*sizeof(real) );
+        data->inj[i].beamlet_dx = (real*) malloc( n_beamlet*sizeof(real) );
+        data->inj[i].beamlet_dy = (real*) malloc( n_beamlet*sizeof(real) );
+        data->inj[i].beamlet_dz = (real*) malloc( n_beamlet*sizeof(real) );
+        for(int j = 0; j < n_beamlet; j++) {
+            data->inj[i].beamlet_x[j]  = beamlet_xyz[idx + 0*n_beamlet + j];
+            data->inj[i].beamlet_y[j]  = beamlet_xyz[idx + 1*n_beamlet + j];
+            data->inj[i].beamlet_z[j]  = beamlet_xyz[idx + 2*n_beamlet + j];
+            data->inj[i].beamlet_dx[j] = beamlet_xyz[idx + 3*n_beamlet + j];
+            data->inj[i].beamlet_dy[j] = beamlet_xyz[idx + 4*n_beamlet + j];
+            data->inj[i].beamlet_dz[j] = beamlet_xyz[idx + 5*n_beamlet + j];
+        }
         idx += 6 * n_beamlet;
     }
+
+    int err = 0;
+    print_out(VERBOSE_IO, "\nNBI input\n");
+    print_out(VERBOSE_IO, "Number of injectors %d:\n", data->ninj);
+    for(int i=0; i < data->ninj; i++) {
+        print_out(VERBOSE_IO, "\n  Injector ID %d (%d beamlets) Power: %1.1e\n",
+                  data->inj[i].id, data->inj[i].n_beamlet,
+                  data->inj[i].power);
+        print_out(VERBOSE_IO,
+                  "    Anum %d Znum %d mass %1.1e amu energy %1.1e eV\n",
+                  data->inj[i].anum, data->inj[i].znum,
+                  data->inj[i].mass / CONST_U, data->inj[i].energy / CONST_E);
+        print_out(VERBOSE_IO,
+                  "    Energy fractions: %1.1e (Full) %1.1e (1/2) %1.1e (1/3)\n",
+                  data->inj[i].efrac[0], data->inj[i].efrac[1],
+                  data->inj[i].efrac[2]);
+
+        /* Even if halo fraction is zero, the divergences should be nonzero
+           to avoid division by zero during evaluation. Do this after the
+           input has been printed as to not confuse the user */
+        if(data->inj[i].div_halo_frac == 0) {
+            data->inj[i].div_halo_h = 1e-10;
+            data->inj[i].div_halo_v = 1e-10;
+        }
+    }
+    return err;
 }
 
 /**
- * @brief Free offload array
+ * @brief Free allocated resources
  *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param data pointer to the data struct
  */
-void nbi_free_offload(nbi_offload_data* offload_data,
-                      real** offload_array) {
-    for(int i=0; i<offload_data->ninj; i++) {
-        offload_data->n_beamlet[i] = 0;
+void nbi_free(nbi_data* data) {
+    for(int i=0; i<data->ninj; i++) {
+        data->inj[i].n_beamlet = 0;
+        free(data->inj[i].beamlet_x);
+        free(data->inj[i].beamlet_y);
+        free(data->inj[i].beamlet_z);
+        free(data->inj[i].beamlet_dx);
+        free(data->inj[i].beamlet_dy);
+        free(data->inj[i].beamlet_dz);
     }
-    offload_data->ninj = 0;
-    free(*offload_array);
+    data->ninj = 0;
+    free(data->inj);
 }
 
 /**
