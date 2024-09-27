@@ -23,119 +23,19 @@
 #include "Efield/E_1DS.h"
 
 /**
- * @brief Load electric field data and prepare parameters
+ * @brief Free allocated resources
  *
- * This function fills the relevant electric field offload struct with
- * parameters and allocates and fills the offload array.
- *
- * The offload data has to have a type when this function is called as it should
- * be set when the offload data is constructed from inputs.
- *
- * This function is host only.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
- *
- * @return zero if initialization succeeded
+ * @param data pointer to the data struct
  */
-int E_field_init_offload(E_field_offload_data* offload_data,
-                          real** offload_array) {
-    int err = 0;
-
-    switch(offload_data->type) {
-
+void E_field_free(E_field_data* data) {
+    switch(data->type) {
         case E_field_type_1DS:
-            err = E_1DS_init_offload(&(offload_data->E1DS), offload_array);
-            offload_data->offload_array_length =
-                offload_data->E1DS.offload_array_length;
+            E_1DS_free_offload(&data->E1DS);
             break;
-
         case E_field_type_TC:
-            err = E_TC_init_offload(&(offload_data->ETC), offload_array);
-            offload_data->offload_array_length =
-                offload_data->ETC.offload_array_length;
-            break;
-
-        default:
-            /* Unregonized input. Produce error. */
-            print_err("Error: Unregonized electric field type.");
-            err = 1;
+            E_TC_free_offload(&data->ETC);
             break;
     }
-
-    if(!err) {
-        print_out(VERBOSE_IO, "Estimated memory usage %.1f MB\n",
-                  offload_data->offload_array_length
-                  * sizeof(real) / (1024.0*1024.0) );
-    }
-
-    return err;
-}
-
-/**
- * @brief Free offload array and reset parameters
- *
- * This function deallocates the offload_array.
- *
- * This function is host only.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
- */
-void E_field_free_offload(E_field_offload_data* offload_data,
-                          real** offload_array) {
-    switch(offload_data->type) {
-
-        case E_field_type_1DS:
-            E_1DS_free_offload(&(offload_data->E1DS), offload_array);
-            break;
-
-        case E_field_type_TC:
-            E_TC_free_offload(&(offload_data->ETC), offload_array);
-            break;
-    }
-}
-
-/**
- * @brief Initialize electric field data struct on target
- *
- * This function copies the electric field parameters from the offload struct
- * to the struct on target and sets the electric field data pointers to correct
- * offsets in the offload array.
- *
- * This function returns error if the offload data has not been initialized.
- * The instances themselves should not return an error since all they do is
- * assign pointers and values.
- *
- * @param Edata pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array the offload array
- *
- * @return Non-zero integer if offload was not initialized beforehand
- */
-int E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
-                  real* offload_array) {
-    int err = 0;
-
-    switch(offload_data->type) {
-
-        case E_field_type_1DS:
-            E_1DS_init(&(Edata->E1DS), &(offload_data->E1DS), offload_array);
-            break;
-
-        case E_field_type_TC:
-            E_TC_init(&(Edata->ETC), &(offload_data->ETC), offload_array);
-            break;
-
-        default:
-            /* Unregonized input. Produce error. */
-            print_err("Error: Unregonized electric field type.\n");
-            err = 1;
-            break;
-    }
-    Edata->type = offload_data->type;
-
-    return err;
 }
 
 /**

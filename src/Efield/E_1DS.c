@@ -17,88 +17,46 @@
 /**
  * @brief Initialize 1DS electric field data
  *
- * This function takes pre-initialized offload data struct and offload array as
- * inputs. The data is used to fill rest of the offload struct and to construct
- * a cubic spline whose coefficients are stored in re-allocated offload array.
- *
- * The offload data struct must have the following fields initialized:
- * - E_1DS_offload_data.n_rho
- * - E_1DS_offload_data.rho_min
- * - E_1DS_offload_data.rho_max
- *
- * E_1DS_offload_data.offload_array_length is set here.
- *
- * The offload array must contain the following data:
- * - offload_array[i] = dV_drho(rho_i)   [V]
- *
- * Sanity checks are printed if data was initialized succesfully.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array which is reallocated here
+ * @param data pointer to the data struct
+ * @param nrho number of points in the rho grid
+ * @param rhomin minimum rho value in the grid
+ * @param rhomax maximum rho value in the grid
+ * @param reff effective minor radius
+ * @param dvdrho gradient of the potential
  *
  * @return zero if initialization succeeded
  */
-int E_1DS_init_offload(E_1DS_offload_data* offload_data, real** offload_array) {
+int E_1DS_init(E_1DS_data* data, int nrho, real rhomin, real rhomax, real reff,
+               real* dvdrho) {
 
-    /* Spline initialization. */
     int err = 0;
-    real* dV_drho = (real*) malloc(NSIZE_COMP1D * offload_data->n_rho
-                                   * sizeof(real));
-    err += interp1Dcomp_init_coeff(dV_drho, *offload_array,
-                                   offload_data->n_rho,
-                                   NATURALBC,
-                                   offload_data->rho_min,
-                                   offload_data->rho_max);
+    /* Scale derivatives by effective minor radius */
+    real* temp = (real*) malloc( nrho * sizeof(real) );
+    for(int i = 0; i < nrho; i++) {
+        temp[i] = reff * dvdrho[i];
+    }
+    err = interp1Dcomp_setup(&data->dV, dvdrho, nrho, NATURALBC,
+                             rhomin, rhomax);
+    free(temp);
     if(err) {
         print_err("Error: Failed to initialize splines.\n");
         return err;
     }
 
-    /* Free the offload array and replace it with the coefficient array */
-    free(*offload_array);
-    *offload_array = dV_drho;
-    offload_data->offload_array_length = NSIZE_COMP1D * offload_data->n_rho;
-
     /* Print some sanity check on data */
     print_out(VERBOSE_IO, "\nRadial electric field (E_1DS)");
     print_out(VERBOSE_IO, "(n_rho, rho_min, rho_max) = (%d, %le, %le)\n",
-              offload_data->n_rho,offload_data->rho_min,
-              offload_data->rho_max);
+              nrho, rhomin, rhomax);
     return err;
 }
 
 /**
- * @brief Free offload array and reset parameters
+ * @brief Free allocated resources
  *
- * This function deallocates the offload_array.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param data pointer to the data struct
  */
-void E_1DS_free_offload(E_1DS_offload_data* offload_data,
-                       real** offload_array) {
-    free(*offload_array);
-    *offload_array = NULL;
-}
-
-/**
- * @brief Initialize 1D spline electric field data struct on target
- *
- * This function copies the 1D spline electric field parameters from the offload
- * struct to the struct on target and sets the 1D spline electric field data
- * pointers to correct offsets in the offload array.
- *
- * @param Edata pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
- */
-void E_1DS_init(E_1DS_data* Edata, E_1DS_offload_data* offload_data,
-               real* offload_array) {
-    interp1Dcomp_init_spline(&Edata->dV, offload_array,
-                             offload_data->n_rho,
-                             NATURALBC,
-                             offload_data->rho_min,
-                             offload_data->rho_max);
+void E_1DS_free_offload(E_1DS_data* data) {
+    free(data->dV.c);
 }
 
 /**

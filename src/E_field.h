@@ -28,29 +28,10 @@ typedef enum E_field_type {
 } E_field_type;
 
 /**
- * @brief Electric field offload data
- *
- * This struct holds data necessary for offloading. The struct is initialized in
- * E_field_init_offload().
- *
- * The intended usage is that only single offload data is used at the time, and
- * the type of the data is declared with the "type" field.
- */
-typedef struct {
-    E_field_type type;        /**< Electric field type wrapped by this struct */
-    E_TC_offload_data ETC;    /**< TC field or NULL if not active             */
-    E_1DS_offload_data E1DS;  /**< 1DS field or NULL if not active            */
-    int offload_array_length; /**< Allocated offload array length             */
-} E_field_offload_data;
-
-/**
  * @brief Electric field simulation data
  *
- * This struct holds data necessary for simulation. The struct is initialized
- * from the E_field_offload_data in E_field_init().
- *
- * The intended usage is that only single E_field_data is used at the time, and
- * the type of the data is declared with the "type" field.
+ * The intended usage is that only single type of data is used at a time. This
+ * is declared using the `type` field.
  */
 typedef struct {
     E_field_type type; /**< Electric field type wrapped by this struct */
@@ -58,13 +39,7 @@ typedef struct {
     E_1DS_data E1DS;   /**< 1DS field or NULL if not active            */
 } E_field_data;
 
-int E_field_init_offload(E_field_offload_data* offload_data,
-                         real** offload_array);
-void E_field_free_offload(E_field_offload_data* offload_data,
-                          real** offload_array);
-
-int E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
-                 real* offload_array);
+void E_field_free(E_field_data* Edata);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(Edata, Bdata)
 a5err E_field_eval_E(real E[3], real r, real phi, real z, real t,
                      E_field_data* Edata, B_field_data* Bdata);
