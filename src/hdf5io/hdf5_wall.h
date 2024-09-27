@@ -9,7 +9,5 @@
 #include "../ascot5.h"
 #include "../wall.h"
 
-int hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data,
-                           real** offload_array, int** int_offload_array,
-                           char* qid);
+int hdf5_wall_init(hid_t f, wall_data* data, char* qid);
 #endif

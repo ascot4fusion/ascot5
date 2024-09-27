@@ -22,120 +22,20 @@
 #include "wall/wall_3d.h"
 
 /**
- * @brief Load wall data and prepare parameters
+ * @brief Free allocated resources
  *
- * This function fills the relevant wall offload struct with parameters and
- * allocates and fills the offload array. Sets offload array length in the
- * offload struct.
- *
- * The offload data has to have a type when this function is called as it should
- * be set when the offload data is constructed from inputs.
- *
- * This function is host only.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
- * @param int_offload_array pointer to pointer to offload array storing integers
- *
- * @return zero if initialization succeeded
+ * @param data pointer to the data struct
  */
-int wall_init_offload(wall_offload_data* offload_data, real** offload_array,
-                      int** int_offload_array) {
-
-    int err = 0;
-
-    switch(offload_data->type) {
-
+void wall_free(wall_data* data) {
+    switch(data->type) {
         case wall_type_2D:
-            err = wall_2d_init_offload(&(offload_data->w2d), offload_array);
-            offload_data->offload_array_length =
-                offload_data->w2d.offload_array_length;
-            offload_data->int_offload_array_length = 0;
+            wall_2d_free(&data->w2d);
             break;
 
         case wall_type_3D:
-            err = wall_3d_init_offload(&(offload_data->w3d), offload_array,
-                                       int_offload_array);
-            offload_data->offload_array_length =
-                offload_data->w3d.offload_array_length;
-            offload_data->int_offload_array_length =
-                offload_data->w3d.int_offload_array_length;
-            break;
-
-        default:
-            /* Unregonized input. Produce error. */
-            print_err("Error: Unregonized electric field type.");
-            err = 1;
+            wall_3d_free(&data->w3d);
             break;
     }
-    if(!err) {
-        print_out(VERBOSE_IO, "Estimated memory usage %.1f MB\n",
-                  offload_data->offload_array_length
-                  * sizeof(real) / (1024.0*1024.0) );
-    }
-
-    return err;
-}
-
-/**
- * @brief Free offload array and reset parameters
- *
- * This function deallocates the offload_array.
- *
- * This function is host only.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
- * @param int_offload_array pointer to pointer to offload array storing integers
- */
-void wall_free_offload(wall_offload_data* offload_data, real** offload_array,
-                       int** int_offload_array) {
-    switch(offload_data->type) {
-        case wall_type_2D:
-            wall_2d_free_offload(&(offload_data->w2d), offload_array);
-            break;
-
-        case wall_type_3D:
-            wall_3d_free_offload(&(offload_data->w3d), offload_array,
-                                 int_offload_array);
-            break;
-    }
-}
-
-/**
- * @brief Initialize wall data struct on target
- *
- * This function copies the wall parameters from the offload struct to the
- * struct on target and sets the wall data pointers to correct offsets in the
- * offload array.
- *
- * @param w pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
- * @param int_offload_array pointer to pointer to offload array storing integers
- *
- * @return zero on success
- */
-int wall_init(wall_data* w, wall_offload_data* offload_data,
-              real* offload_array, int* int_offload_array) {
-    int err = 0;
-    switch(offload_data->type) {
-        case wall_type_2D:
-            wall_2d_init(&(w->w2d), &(offload_data->w2d), offload_array);
-            break;
-
-        case wall_type_3D:
-            wall_3d_init(&(w->w3d), &(offload_data->w3d), offload_array,
-                         int_offload_array);
-            break;
-        default:
-            /* Unregonized input. Produce error. */
-            err = 1;
-            break;
-    }
-    w->type = offload_data->type;
-
-    return err;
 }
 
 /**
