@@ -45,19 +45,6 @@ typedef enum asigma_reac_type {
 } asigma_reac_type;
 
 /**
- * @brief Atomic reaction offload data
- *
- * This struct holds data necessary for offloading. The struct is initialized
- * in asigma_init_offload().
- */
-typedef struct {
-    asigma_type type;   /**< Atomic reaction data type wrapped by this struct */
-    asigma_loc_offload_data asigma_loc; /**< Local-files data or NULL if
-                                             not active */
-    int offload_array_length; /**< Allocated offload array length */
-} asigma_offload_data;
-
-/**
  * @brief Atomic reaction simulation data
  *
  * This struct holds data necessary for simulation. The struct is initialized
@@ -68,14 +55,8 @@ typedef struct {
     asigma_loc_data asigma_loc; /**< Local-files data or NULL if not active */
 } asigma_data;
 
-int asigma_init_offload(asigma_offload_data* offload_data,
-                        real** offload_array);
-void asigma_free_offload(asigma_offload_data* offload_data,
-                         real** offload_array);
-
+void asigma_free(asigma_data* data);
 void asigma_extrapolate(int extrapolate);
-int asigma_init(asigma_data* asigma_data, asigma_offload_data* offload_data,
-                real* offload_array);
 DECLARE_TARGET_SIMD_UNIFORM(asigmadata)
 a5err asigma_eval_sigma(
     real* sigma, int z_1, int a_1, int z_2, int a_2, real E_coll_per_amu,
