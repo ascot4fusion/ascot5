@@ -1,0 +1,54 @@
+name: ascot-osx
+channels:
+  - conda-forge
+dependencies:
+  - c-compiler  # latest is 1.8 which is clang-17
+  - make
+  - glib
+  # - libgomp # [not osx]
+  - python>=3.10
+  # - hdf5=*=*openmp*
+  # - mpi=*=*openmp*
+  - hdf5
+  - zlib
+  - setuptools
+  - pip
+  - ipython
+  - numpy
+  - scipy
+  - h5py
+  # - mpi4py
+  - xmlschema
+  - unyt
+  - wurlitzer
+  - matplotlib
+  - pyvista
+  - freeqdsk
+  - doxygen
+  - ruff
+  - ipykernel
+  - pandoc
+  - sphinx==6.*
+  - numpydoc
+  - nbsphinx
+  - nbformat
+  - breathe
+  - sphinxcontrib-bibtex
+  - sphinx-rtd-theme
+  - sphinx-gallery
+  - sphinx-design
+  - sphinxcontrib-mermaid
+  - clang==17.*
+  - clang-tools==17*
+  - libclang==17.*
+  - llvm-openmp==17.*
+  # - libsanitizer # [not osx]
+  - pylint
+  - pip:
+    - libclang==17.*  # more updated
+  #  - clang==17.*  this package and the above do the same thing
+  #  - ctypeslib2 # default is broken on osx
+  # PR branch for macos + clang-16+ support
+    - git+https://github.com/dgarnier/ctypeslib.git@anon_union_macos#egg=ctypeslib2
+  #  - --editable=../ctypeslib
+    

@@ -77,7 +77,7 @@ ifeq ($(UNAME_S),Darwin)
 	CLANG2PY_ARGS=$(CFLAGS) -I$(H5_INCLUDES)
 # For MacOS, we need to add the clang library path to the environment
 # since built-in clang doesn't have openmp support enabled by default
-ascot2py.py: export CLANG_LIBRARY_PATH=$(shell $(CC) --print-resource-dir)/../..
+# ascot2py.py: export CLANG_LIBRARY_PATH=$(shell $(CC) --print-resource-dir)/../..
 endif
 
 ifeq ($(UNAME_S),Linux)
@@ -190,9 +190,9 @@ libascot: libascot.so
 
 ifeq ($(UNAME_S),Darwin)
 ifeq ($(CC), $(filter $(CC), h5cc h5pcc))
-# don't share the hdf5 library since it isn't the same as h5py anyway
-# also.. non't need -shared -lm or -fPIC on MacOS.. they are default/redundant
-libascot.so: CFLAGS+=-noshlib
+# don't need -shared -lm on MacOS.. they are default/redundant
+# -shlib flag needed for conda installed h5cc 
+libascot.so: CFLAGS+=-fPIC -shlib
 endif
 else
 
