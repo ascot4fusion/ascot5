@@ -18,65 +18,70 @@
 /**
  * @brief Initialize 1D plasma data and check inputs
  *
- * Before calling this function, the offload struct is expected to be fully
- * initialized.
- *
- * The offload array is expected to hold plasma data as
- *   -                              [0] = rho grid
- *   -                          [n_rho] = electron temperature [J]
- *   -                        [n_rho*2] = ion temperature [J]
- *   -         [n_rho*2 + n_rho*n_ions] = electron density [m^-3]
- *   - [n_rho*2 + n_rho*n_ions + n_rho] = ion density [m^-3]
- *
- * Since this data requires no initialization, the only thing this function does
- * is that it prints some values as sanity check.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param data pointer to the data struct
  *
  * @return zero if initialization succes
  */
-int plasma_1D_init_offload(plasma_1D_offload_data* offload_data,
-                           real** offload_array) {
+int plasma_1D_init(plasma_1D_data* data, int nrho, int nion, real* rho,
+                   int* anum, int* znum, real* mass, real* charge,
+                   real* Te, real* Ti, real* ne, real* ni) {
 
-    int n_rho = offload_data->n_rho;
-    int n_ions = offload_data->n_species -1;
+    data->n_rho = nrho;
+    data->n_species = nion + 1;
+
+    data->anum = (int*) malloc( nion*sizeof(int) );
+    data->znum = (int*) malloc( nion*sizeof(int) );
+    data->mass = (real*) malloc( (nion+1)*sizeof(real) );
+    data->charge = (real*) malloc( (nion+1)*sizeof(real) );
+    for(int i = 0; i < data->n_species; i++) {
+        if(i < nion) {
+            data->znum[i] = znum[i];
+            data->anum[i] = anum[i];
+        }
+        data->mass[i] = mass[i];
+        data->charge[i] = charge[i];
+    }
+    for(int i = 0; i < data->n_rho; i++) {
+        data->rho[i] = rho[0];
+        data->temp[i] = Te[i];
+        data->temp[nrho + i] = Ti[i];
+        data->dens[i] = ne[i];
+        for(int j = 0; j < nion; j++) {
+            data->dens[(j+1) * nrho + i] = ni[j*nrho + i];
+        }
+    }
+
     print_out(VERBOSE_IO, "\n1D plasma profiles (P_1D)\n");
     print_out(VERBOSE_IO,
               "Min rho = %1.2le, Max rho = %1.2le,"
               " Number of rho grid points = %d,"
               " Number of ion species = %d\n",
-              (*offload_array)[0], (*offload_array)[n_rho-1], n_rho, n_ions);
+              data->rho[0], data->rho[data->n_rho-1], data->n_rho, nion);
     print_out(VERBOSE_IO,
               "Species Z/A  charge [e]/mass [amu] Density [m^-3] at Min/Max rho"
               "    Temperature [eV] at Min/Max rho\n");
-    for(int i=0; i < n_ions; i++) {
+    for(int i=0; i < nion; i++) {
         print_out(VERBOSE_IO,
                   " %3d  /%3d   %3d  /%7.3f             %1.2le/%1.2le     "
                   "           %1.2le/%1.2le       \n",
-                  offload_data->znum[i], offload_data->anum[i],
-                  (int)round(offload_data->charge[i+1]/CONST_E),
-                  offload_data->mass[i+1]/CONST_U,
-                  (*offload_array)[n_rho*(4+i)],
-                  (*offload_array)[n_rho*(5+i) - 1],
-                  (*offload_array)[n_rho*2] / CONST_E,
-                  (*offload_array)[n_rho*3-1] / CONST_E);
+                  data->znum[i], data->anum[i],
+                  (int)round(data->charge[i+1]/CONST_E),
+                  data->mass[i+1]/CONST_U,
+                  data->dens[(i+1)*nrho], data->dens[(i+1)*nrho - 1],
+                  data->temp[nrho] / CONST_E, data->temp[2*nrho-1] / CONST_E);
     }
     print_out(VERBOSE_IO,
               "[electrons]  %3d  /%7.3f             %1.2le/%1.2le          "
               "      %1.2le/%1.2le       \n",
               -1, CONST_M_E/CONST_U,
-              (*offload_array)[n_rho*3],
-              (*offload_array)[n_rho*4 - 1],
-              (*offload_array)[n_rho] / CONST_E,
-              (*offload_array)[n_rho*2-1] / CONST_E);
+              data->dens[0], data->dens[nrho - 1],
+              data->temp[0] / CONST_E, data->temp[nrho-1] / CONST_E);
     real quasineutrality = 0;
-    for(int k = 0; k <n_rho; k++) {
-        real ele_qdens = (*offload_array)[n_rho*3 + k] * CONST_E;
+    for(int k = 0; k < nrho; k++) {
+        real ele_qdens = data->dens[k] * CONST_E;
         real ion_qdens = 0;
-        for(int i=0; i < n_ions; i++) {
-            ion_qdens +=
-                (*offload_array)[n_rho*(4+i) + k] * offload_data->charge[i+1];
+        for(int i = 0; i < nion; i++) {
+            ion_qdens += data->dens[(i+1)*nrho + k] * data->charge[i+1];
         }
         quasineutrality = fmax( quasineutrality,
                                 fabs( 1 - ion_qdens / ele_qdens ) );
@@ -87,46 +92,18 @@ int plasma_1D_init_offload(plasma_1D_offload_data* offload_data,
 }
 
 /**
- * @brief Free offload array and reset parameters
+ * @brief Free allocated resources
  *
- *This function deallocates the offload_array.
-
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
-*/
-void plasma_1D_free_offload(plasma_1D_offload_data* offload_data,
-                            real** offload_array) {
-    free(*offload_array);
-    *offload_array = NULL;
-}
-
-/**
- * @brief Initialize magnetic field data struct on target
- *
- * This function copies the magnetic field parameters from the offload struct
- * to the struct on target and sets the plasma data pointers to
- * correct offsets in the offload array.
- *
- * @param pls_data pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
-*/
-void plasma_1D_init(plasma_1D_data* pls_data,
-                    plasma_1D_offload_data* offload_data,
-                    real* offload_array) {
-
-    pls_data->n_rho = offload_data->n_rho;
-    pls_data->n_species = offload_data->n_species;
-
-    for(int i = 0; i < pls_data->n_species; i++) {
-        pls_data->mass[i]   = offload_data->mass[i];
-        pls_data->charge[i] = offload_data->charge[i];
-        pls_data->znum[i]   = offload_data->znum[i];
-        pls_data->anum[i]   = offload_data->anum[i];
-    }
-    pls_data->rho  = &offload_array[0];
-    pls_data->temp = &offload_array[pls_data->n_rho];
-    pls_data->dens = &offload_array[pls_data->n_rho*3];
+ * @param data pointer to the data struct
+ */
+void plasma_1D_free(plasma_1D_data* data) {
+    free(data->mass);
+    free(data->charge);
+    free(data->anum);
+    free(data->znum);
+    free(data->rho);
+    free(data->temp);
+    free(data->dens);
 }
 
 /**
