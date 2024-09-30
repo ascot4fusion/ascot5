@@ -9,46 +9,22 @@
 #include "../spline/interp.h"
 
 /**
- * @brief 1D spline plasma parameters that will be offloaded to target
- */
-typedef struct {
-    int n_rho;                  /**< number of rho values in the data    */
-    real rho_min;               /**< minimum rho value in the grid       */
-    real rho_max;               /**< maximum rho value in the grid       */
-    int n_species;              /**< number of plasma species including
-                                     electrons                           */
-    real mass[MAX_SPECIES];     /**< plasma species masses (kg)          */
-    real charge[MAX_SPECIES];   /**< plasma species charges (C)          */
-    int anum[MAX_SPECIES];      /**< ion species atomic number           */
-    int znum[MAX_SPECIES];      /**< ion species charge number           */
-    int offload_array_length;   /**< number of elements in offload_array */
-} plasma_1DS_offload_data;
-
-/**
  * @brief 1D spline plasma parameters on the target
  */
 typedef struct {
-    int n_species;              /**< number of plasma species including
-                                     electrons                                */
-    real mass[MAX_SPECIES];     /**< plasma species masses (kg)               */
-    real charge[MAX_SPECIES];   /**< plasma species charges (C)               */
-    int anum[MAX_SPECIES];      /**< ion species atomic number                */
-    int znum[MAX_SPECIES];      /**< ion species charge number                */
-    interp1D_data temp[2];      /**< electron and ion temperature
-                                     interpolation structs                    */
-    interp1D_data dens[MAX_SPECIES]; /**< electron and every ion species
-                                          density interpolation structs       */
+    int n_species; /**< number of plasma species including electrons */
+    real* mass;    /**< plasma species masses (kg)                   */
+    real* charge;  /**< plasma species charges (C)                   */
+    int* anum;     /**< ion species atomic number                    */
+    int* znum;     /**< ion species charge number                    */
+    interp1D_data temp[2]; /**< electron and ion temperature interpolation    */
+    interp1D_data* dens;   /**< electron and ion density interpolation structs*/
 } plasma_1DS_data;
 
-int plasma_1DS_init_offload(plasma_1DS_offload_data* offload_data,
-                            real** offload_array);
-
-void plasma_1DS_free_offload(plasma_1DS_offload_data* offload_data,
-                             real** offload_array);
-
-void plasma_1DS_init(plasma_1DS_data* pls_data,
-                     plasma_1DS_offload_data* offload_data,
-                     real* offload_array);
+int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
+                    int nion, int* anum, int* znum, real* mass, real* charge,
+                    real* Te, real* Ti, real* ne, real* ni);
+void plasma_1DS_free(plasma_1DS_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
 a5err plasma_1DS_eval_temp(real* temp, real rho, int species,
                            plasma_1DS_data* pls_data);

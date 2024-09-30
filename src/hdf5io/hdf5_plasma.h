@@ -8,6 +8,5 @@
 #include "../ascot5.h"
 #include "../plasma.h"
 
-int hdf5_plasma_init_offload(hid_t f, plasma_offload_data* offload_data,
-                             real** offload_array, char* qid);
+int hdf5_plasma_init(hid_t f, plasma_data* data, char* qid);
 #endif
