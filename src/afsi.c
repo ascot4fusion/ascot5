@@ -52,11 +52,9 @@ real afsi_get_volume(afsi_data* dist, int iR);
  * @param prod1_offload_array array where product 1 distribution is stored
  * @param prod2_offload_array array where product 2 distribution is stored
  */
-void afsi_run(sim_offload_data* sim, Reaction reaction, int n,
+void afsi_run(sim_data* sim, Reaction reaction, int n,
               afsi_data* react1, afsi_data* react2, real mult,
-              dist_5D_offload_data* prod1_offload_data,
-              dist_5D_offload_data* prod2_offload_data,
-              real* prod1_offload_array, real* prod2_offload_array) {
+              dist_5D_data* prod1, dist_5D_data* prod2) {
     /* QID for this run */
     char qid[11];
     hdf5_generate_qid(qid);
@@ -66,16 +64,12 @@ void afsi_run(sim_offload_data* sim, Reaction reaction, int n,
     print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "AFSI5\n");
     print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
                "Tag %s\nBranch %s\n\n", GIT_VERSION, GIT_BRANCH);
+    dist_5D_init(prod1);
+    dist_5D_init(prod2);
 
-    dist_5D_data prod1, prod2;
-    dist_5D_init(&prod1, prod1_offload_data, prod1_offload_array);
-    dist_5D_init(&prod2, prod2_offload_data, prod2_offload_array);
-
-    simulate_init_offload(sim);
     random_init(&rdata, time((NULL)));
-    sim_data sim_data;
     strcpy(sim->hdf5_out, sim->hdf5_in);
-    sim_init(&sim_data, sim);
+    simulate_init(sim);
 
     if( hdf5_interface_init_results(sim, qid, "afsi") ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
@@ -133,32 +127,32 @@ void afsi_run(sim_offload_data* sim, Reaction reaction, int n,
                             * boschhale_sigma(reaction, E)/n*vol;
 
                         int ippara = floor(
-                            (pparaprod1[i] - prod1.min_ppara) * prod1.n_ppara
-                            / ( prod1.max_ppara - prod1.min_ppara ) );
+                            (pparaprod1[i] - prod1->min_ppara) * prod1->n_ppara
+                            / ( prod1->max_ppara - prod1->min_ppara ) );
                         int ipperp = floor(
-                            (pperpprod1[i] - prod1.min_pperp) * prod1.n_pperp
-                            / ( prod1.max_pperp - prod1.min_pperp ) );
-                        if( 0 <= ippara && ippara < prod1.n_ppara &&
-                            0 <= ipperp && ipperp < prod1.n_pperp) {
-                            prod1.histogram[dist_5D_index(
+                            (pperpprod1[i] - prod1->min_pperp) * prod1->n_pperp
+                            / ( prod1->max_pperp - prod1->min_pperp ) );
+                        if( 0 <= ippara && ippara < prod1->n_ppara &&
+                            0 <= ipperp && ipperp < prod1->n_pperp) {
+                            prod1->histogram[dist_5D_index(
                                     iR, iphi, iz, ippara, ipperp, 0, 0,
-                                    prod1.step_6, prod1.step_5, prod1.step_4,
-                                    prod1.step_3, prod1.step_2, prod1.step_1)]
+                                    prod1->step_6, prod1->step_5, prod1->step_4,
+                                    prod1->step_3, prod1->step_2, prod1->step_1)]
                                 += weight * mult;
                         }
 
                         ippara = floor(
-                            (pparaprod2[i] - prod2.min_ppara) * prod2.n_ppara
-                            / ( prod2.max_ppara - prod2.min_ppara ) );
+                            (pparaprod2[i] - prod2->min_ppara) * prod2->n_ppara
+                            / ( prod2->max_ppara - prod2->min_ppara ) );
                         ipperp = floor(
-                            (pperpprod2[i] - prod2.min_pperp) * prod2.n_pperp
-                            / ( prod2.max_pperp - prod2.min_pperp ) );
-                        if( 0 <= ippara && ippara < prod2.n_ppara &&
-                            0 <= ipperp && ipperp < prod2.n_pperp) {
-                            prod2.histogram[dist_5D_index(
+                            (pperpprod2[i] - prod2->min_pperp) * prod2->n_pperp
+                            / ( prod2->max_pperp - prod2->min_pperp ) );
+                        if( 0 <= ippara && ippara < prod2->n_ppara &&
+                            0 <= ipperp && ipperp < prod2->n_pperp) {
+                            prod2->histogram[dist_5D_index(
                                     iR, iphi, iz, ippara, ipperp, 0, 0,
-                                    prod2.step_6, prod2.step_5, prod2.step_4,
-                                    prod2.step_3, prod2.step_2, prod2.step_1)]
+                                    prod2->step_6, prod2->step_5, prod2->step_4,
+                                    prod2->step_3, prod2->step_2, prod2->step_1)]
                                 += weight * mult;
                         }
                     }
@@ -244,11 +238,11 @@ void afsi_run(sim_offload_data* sim, Reaction reaction, int n,
     }
 
     sprintf(path, "/results/afsi_%s/prod1dist5d", sim->qid);
-    if( hdf5_dist_write_5D(f, path, prod1_offload_data, prod1_offload_array) ) {
+    if( hdf5_dist_write_5D(f, path, prod1) ) {
         print_err("Warning: 5D distribution could not be written.\n");
     }
     sprintf(path, "/results/afsi_%s/prod2dist5d", sim->qid);
-    if( hdf5_dist_write_5D(f, path, prod2_offload_data, prod2_offload_array) ) {
+    if( hdf5_dist_write_5D(f, path, prod2) ) {
         print_err("Warning: 5D distribution could not be written.\n");
     }
     if(hdf5_close(f)) {
