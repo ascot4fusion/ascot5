@@ -172,18 +172,21 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
             #pragma omp simd
             for(int i=0; i<p.n_mrk; i++) {
                 if(p.running[i]) {
-                    particle_fo_to_gc(&p, i, &gc_f, &sim->B_data);
-                }
-                else {
-                    gc_f.id[i] = p.id[i];
-                    gc_f.running[i] = 0;
-                }
-                if(p0.running[i]) {
-                    particle_fo_to_gc(&p0, i, &gc_i, &sim->B_data);
+                    int err = 0;
+                    err += particle_fo_to_gc(&p0, i, &gc_i, &sim->B_data);
+                    err += particle_fo_to_gc(&p, i, &gc_f, &sim->B_data);
+                    if(err) {
+                        gc_i.id[i] = p0.id[i];
+                        gc_i.running[i] = 0;
+                        gc_f.id[i] = p.id[i];
+                        gc_f.running[i] = 0;
+                    }
                 }
                 else {
                     gc_i.id[i] = p0.id[i];
                     gc_i.running[i] = 0;
+                    gc_f.id[i] = p.id[i];
+                    gc_f.running[i] = 0;
                 }
             }
             diag_update_gc(&sim->diag_data, &sim->B_data, &gc_f, &gc_i);

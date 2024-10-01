@@ -1322,6 +1322,7 @@ void particle_copy_fo(particle_simd_fo* p1, int i, particle_simd_fo* p2, int j) 
         p2->anum[j]       = p1->anum[i];
 
         p2->id[j]         = p1->id[i];
+        p2->err[j]        = p1->err[i];
         p2->bounces[j]    = p1->bounces[i];
         p2->running[j]    = p1->running[i];
         p2->endcond[j]    = p1->endcond[i];
@@ -1371,6 +1372,7 @@ void particle_copy_gc(particle_simd_gc* p1, int i, particle_simd_gc* p2, int j) 
     p2->charge[j]     = p1->charge[i];
 
     p2->id[j]         = p1->id[i];
+    p2->err[j]        = p1->err[i];
     p2->bounces[j]    = p1->bounces[i];
     p2->running[j]    = p1->running[i];
     p2->endcond[j]    = p1->endcond[i];
@@ -1416,6 +1418,7 @@ void particle_copy_ml(particle_simd_ml* p1, int i, particle_simd_ml* p2,
     p2->theta[j]      = p1->theta[i];
 
     p2->id[j]         = p1->id[i];
+    p2->err[j]        = p1->err[i];
     p2->running[j]    = p1->running[i];
     p2->endcond[j]    = p1->endcond[i];
     p2->walltile[j]   = p1->walltile[i];
