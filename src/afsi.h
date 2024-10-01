@@ -42,11 +42,9 @@ typedef struct {
     afsi_thermal_data* dist_thermal; /**< Thermal data                        */
 } afsi_data;
 
-void afsi_run(sim_offload_data* sim, Reaction reaction, int n,
+void afsi_run(sim_data* sim, Reaction reaction, int n,
               afsi_data* react1, afsi_data* react2, real mult,
-              dist_5D_offload_data* prod1_offload_data,
-              dist_5D_offload_data* prod2_offload_data,
-              real* prod1_offload_array, real* prod2_offload_array);
+              dist_5D_data* prod1, dist_5D_data* prod2);
 void afsi_test_dist(dist_5D_data* dist1);
 void afsi_test_thermal();
 
