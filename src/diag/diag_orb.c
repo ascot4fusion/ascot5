@@ -12,7 +12,7 @@
 #include "../simulate.h"
 
 /**
- * @brief Initializes orbit diagnostics offload data.
+ * @brief Initializes orbit diagnostics data.
  *
  * The offload array should have a length of Nfld * Nmrk * Npnt and elements
  * initialized to zero. The orbit data will be stored in this field as
@@ -22,43 +22,24 @@
  * simulation is terminated.
  *
  * @param data orbit diagnostics data struct
- * @param offload_data orbit diagnostics offload data struct
- * @param offload_array offload data array
  */
-void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
-                   real* offload_array) {
-
-    data->mode = offload_data->mode;
-    data->Nmrk = offload_data->Nmrk;
-    data->Npnt = offload_data->Npnt;
+void diag_orb_init(diag_orb_data* data) {
 
     int step = data->Nmrk*data->Npnt;
-
-    if(data->mode == DIAG_ORB_INTERVAL) {
-        data->writeInterval = offload_data->writeInterval;
+    if(data->mode == DIAG_ORB_POINCARE) {
+        int Nsize = data->Nmrk*data->Npnt*(data->Nfld + 2);
+        data->id = (real*) malloc( Nsize * sizeof(real) );
+        data->pncrid = &(data->id[step*data->Nfld]);
+        data->pncrdi = &(data->id[step*(data->Nfld+1)]);
+    } else {
+        int Nsize = data->Nmrk*data->Npnt*data->Nfld;
+        data->id = (real*) malloc( Nsize * sizeof(real) );
     }
-    else if(data->mode == DIAG_ORB_POINCARE) {
-        data->ntoroidalplots = offload_data->ntoroidalplots;
-        for(int i=0; i<data->ntoroidalplots; i++) {
-            data->toroidalangles[i] = offload_data->toroidalangles[i];
-        }
-        data->npoloidalplots = offload_data->npoloidalplots;
-        for(int i=0; i<data->npoloidalplots; i++) {
-            data->poloidalangles[i] = offload_data->poloidalangles[i];
-        }
-        data->nradialplots = offload_data->nradialplots;
-        for(int i=0; i<data->nradialplots; i++) {
-            data->radialdistances[i] = offload_data->radialdistances[i];
-        }
+    real* offload_array = data->id;
 
-        data->pncrid = &(offload_array[step*offload_data->Nfld]);
-        data->pncrdi = &(offload_array[step*(offload_data->Nfld+1)]);
-    }
-
-    switch(offload_data->record_mode) {
+    switch(data->record_mode) {
 
         case simulate_mode_fo:
-            data->id      = &(offload_array[step*0]);
             data->mileage = &(offload_array[step*1]);
             data->r       = &(offload_array[step*2]);
             data->phi     = &(offload_array[step*3]);
@@ -77,7 +58,6 @@ void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
             break;
 
         case simulate_mode_gc:
-            data->id      = &(offload_array[step*0]);
             data->mileage = &(offload_array[step*1]);
             data->r       = &(offload_array[step*2]);
             data->phi     = &(offload_array[step*3]);
@@ -96,7 +76,6 @@ void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
             break;
 
         case simulate_mode_ml:
-            data->id      = &(offload_array[step*0]);
             data->mileage = &(offload_array[step*1]);
             data->r       = &(offload_array[step*2]);
             data->phi     = &(offload_array[step*3]);
@@ -110,7 +89,6 @@ void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
             break;
 
         case simulate_mode_hybrid:
-            data->id      = &(offload_array[step*0]);
             data->mileage = &(offload_array[step*1]);
             data->r       = &(offload_array[step*2]);
             data->phi     = &(offload_array[step*3]);
@@ -132,7 +110,7 @@ void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
             break;
     }
 
-    data->mrk_pnt      = malloc( data->Nmrk*sizeof(integer) );
+    data->mrk_pnt = malloc( data->Nmrk*sizeof(integer) );
     data->mrk_recorded = malloc( data->Nmrk*sizeof(real) );
 
     memset(data->mrk_pnt, 0, data->Nmrk*sizeof(integer));
@@ -140,7 +118,7 @@ void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
 }
 
 /**
- * @brief Free orbit diagnostics data
+ * @brief Free allocated resources
  *
  * @param data orbit diagnostics data struct
  */

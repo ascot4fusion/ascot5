@@ -25,14 +25,11 @@ void hdf5_orbit_writeset(hid_t group,  const char* name, const char* unit,
  *
  * @param f hdf5 file
  * @param path path to group which is created here and where the data is stored
- * @param data orbit diagnostics offload data
- * @param orbits array storing the orbit data (format same as in init() in
- *        diag_orb.c)
+ * @param data orbit diagnostics data
  *
  * @return zero on success
  */
-int hdf5_orbit_write(hid_t f, char* path, diag_orb_offload_data* data,
-                     real* orbits) {
+int hdf5_orbit_write(hid_t f, char* path, diag_orb_data* data) {
     hid_t group = H5Gcreate2(f, path, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     if(group < 0) {
         return 1;
@@ -42,6 +39,7 @@ int hdf5_orbit_write(hid_t f, char* path, diag_orb_offload_data* data,
     int datasize = 0;
     integer* mask = malloc(arraylength*sizeof(real));
 
+    real* orbits = data->id;
     for(integer i=0; i < arraylength; i++) {
         mask[i] = orbits[i] > 0;
         if(mask[i]) {
@@ -206,9 +204,11 @@ int hdf5_orbit_write(hid_t f, char* path, diag_orb_offload_data* data,
 
     if(data->mode == DIAG_ORB_POINCARE) {
         hdf5_orbit_writeset(group,  "pncrid", "1", dtypei16, arraylength, 1,
-                            mask, datasize, &orbits[arraylength * data->Nfld]);
+                            mask, datasize,
+                            &orbits[arraylength * data->Nfld]);
         hdf5_orbit_writeset(group,  "pncrdi", "1", dtypei16, arraylength, 1,
-                            mask, datasize, &orbits[arraylength * (data->Nfld+1)]);
+                            mask, datasize,
+                            &orbits[arraylength * (data->Nfld+1)]);
     }
 
     free(mask);

@@ -63,7 +63,7 @@ int mhd_stat_init(mhd_stat_data* data, int nmode, int nrho,
               nrho, data->rho_min, data->rho_max);
 
     print_out(VERBOSE_IO, "\nModes:\n");
-    for(int i = 0; i < moden; i++) {
+    for(int i = 0; i < nmode; i++) {
         print_out(VERBOSE_IO,
                   "(n,m) = (%2.d,%2.d) Amplitude = %3.3g Frequency = %3.3g"
                   " Phase = %3.3g\n",
@@ -79,7 +79,7 @@ int mhd_stat_init(mhd_stat_data* data, int nmode, int nrho,
  *
  * @param data pointer to the data struct
  */
-void mhd_stat_free_offload(mhd_stat_data* data) {
+void mhd_stat_free(mhd_stat_data* data) {
     for(int i = 0; i < data->n_modes; i++) {
         free(data->phi_nm[i].c);
         free(data->alpha_nm[i].c);

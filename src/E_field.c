@@ -30,10 +30,10 @@
 void E_field_free(E_field_data* data) {
     switch(data->type) {
         case E_field_type_1DS:
-            E_1DS_free_offload(&data->E1DS);
+            E_1DS_free(&data->E1DS);
             break;
         case E_field_type_TC:
-            E_TC_free_offload(&data->ETC);
+            E_TC_free(&data->ETC);
             break;
     }
 }

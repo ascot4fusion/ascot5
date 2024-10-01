@@ -47,7 +47,7 @@ void bbnbi_inject_markers(particle_state* p, int nprt, int ngenerated, real t0,
  * This function initializes neutrals and traces them until they have ionized or
  * hit the wall.
  *
- * @param sim pointer to the simulation offload data structure
+ * @param sim pointer to the simulation data structure
  * @param nprt number of markers to be injected
  * @param t1 time instant when the injector is turned on
  * @param t2 time instant when the injector is turned off
@@ -62,27 +62,12 @@ void bbnbi_inject_markers(particle_state* p, int nprt, int ngenerated, real t0,
  * @param diag_offload_array pointer to the diagnostics data
  */
 void bbnbi_simulate(
-    sim_offload_data* sim, int nprt, real t1, real t2, real* B_offload_array,
-    real* plasma_offload_array, real* neutral_offload_array,
-    real* wall_offload_array, int* wall_int_offload_array,
-    real* asigma_offload_array, real* nbi_offload_array, particle_state** p,
-    real* diag_offload_array) {
+    sim_data* sim, int nprt, real t1, real t2, particle_state** p) {
 
     /* Initialize input data */
     sim_data sim_data;
-    sim_init(&sim_data, sim);
+    simulate_init(sim);
     random_init(&sim_data.random_data, time(NULL));
-    B_field_init(&sim_data.B_data, &sim->B_offload_data, B_offload_array);
-    plasma_init(&sim_data.plasma_data, &sim->plasma_offload_data,
-                plasma_offload_array);
-    neutral_init(&sim_data.neutral_data, &sim->neutral_offload_data,
-                 neutral_offload_array);
-    wall_init(&sim_data.wall_data, &sim->wall_offload_data, wall_offload_array,
-              wall_int_offload_array);
-    asigma_init(&sim_data.asigma_data, &sim->asigma_offload_data,
-                asigma_offload_array);
-    nbi_init(&sim_data.nbi_data, &sim->nbi_offload_data, nbi_offload_array);
-    diag_init(&sim_data.diag_data, &sim->diag_offload_data, diag_offload_array);
 
     /* Calculate total NBI power so that we can distribute markers along
      * the injectors according to their power */

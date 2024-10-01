@@ -61,6 +61,8 @@ int N0_3D_init(N0_3D_data* data,
                   "      %3d/%3d (%1d)    \n",
                   data->znum[i], data->anum[i], data->maxwellian[i]);
     }
+
+    return 0;
 }
 
 /**

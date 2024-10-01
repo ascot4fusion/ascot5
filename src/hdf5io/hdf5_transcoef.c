@@ -23,8 +23,7 @@
  *
  * @return zero on success
  */
-int hdf5_transcoef_write(hid_t f, char* path, diag_transcoef_offload_data* data,
-                         real* coefarr) {
+int hdf5_transcoef_write(hid_t f, char* path, diag_transcoef_data* data) {
     hid_t group = H5Gcreate2(f, path, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     if(group < 0) {
         return 1;
@@ -35,7 +34,7 @@ int hdf5_transcoef_write(hid_t f, char* path, diag_transcoef_offload_data* data,
     int datasize = 0;
     integer* mask = malloc(arrlen*sizeof(real));
     for(integer i=0; i < arrlen; i++) {
-        mask[i] = coefarr[i] > 0;
+        mask[i] = data->id[i] > 0;
         if(mask[i]) {
             datasize++;
         }
@@ -46,7 +45,7 @@ int hdf5_transcoef_write(hid_t f, char* path, diag_transcoef_offload_data* data,
     integer* idarr = (integer*) malloc(datasize * sizeof(integer));
     for(integer i = 0; i < arrlen; i++) {
         if(mask[i]) {
-            idarr[j] = coefarr[i];
+            idarr[j] = data->id[i];
             j++;
         }
     }
@@ -58,7 +57,7 @@ int hdf5_transcoef_write(hid_t f, char* path, diag_transcoef_offload_data* data,
     real* dataarr = (real*) malloc(datasize * sizeof(real));
     for(integer i = 0; i < arrlen; i++) {
         if(mask[i]) {
-            dataarr[j] = coefarr[i + arrlen];
+            dataarr[j] = data->Kcoef[i];
             j++;
         }
     }
@@ -67,7 +66,7 @@ int hdf5_transcoef_write(hid_t f, char* path, diag_transcoef_offload_data* data,
     j = 0;
     for(integer i = 0; i < arrlen; i++) {
         if(mask[i]) {
-            dataarr[j] = coefarr[i + 2*arrlen];
+            dataarr[j] = data->Dcoef[i];
             j++;
         }
     }

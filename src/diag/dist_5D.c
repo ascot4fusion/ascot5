@@ -28,79 +28,38 @@ size_t dist_5D_index(int i_r, int i_phi, int i_z, int i_ppara, int i_pperp,
 }
 
 /**
- * @brief Frees the offload data
+ * @brief Initializes distribution from offload data
  *
- * @param offload_data pointer to offload data struct
+ * @param data pointer to data struct
  */
-void dist_5D_free_offload(dist_5D_offload_data* offload_data) {
-    offload_data->n_r       = 0;
-    offload_data->min_r     = 0;
-    offload_data->max_r     = 0;
-    offload_data->n_phi     = 0;
-    offload_data->min_phi   = 0;
-    offload_data->max_phi   = 0;
-    offload_data->n_z       = 0;
-    offload_data->min_z     = 0;
-    offload_data->max_z     = 0;
-    offload_data->n_ppara   = 0;
-    offload_data->min_ppara = 0;
-    offload_data->max_ppara = 0;
-    offload_data->n_pperp   = 0;
-    offload_data->min_pperp = 0;
-    offload_data->max_pperp = 0;
+int dist_5D_init(dist_5D_data* data) {
+
+    size_t n_q     = (size_t)(data->n_q);
+    size_t n_time  = (size_t)(data->n_time);
+    size_t n_pperp = (size_t)(data->n_pperp);
+    size_t n_ppara = (size_t)(data->n_ppara);
+    size_t n_z     = (size_t)(data->n_z);
+    size_t n_phi   = (size_t)(data->n_phi);
+    data->step_6 = n_q * n_time * n_pperp * n_ppara * n_z * n_phi;
+    data->step_5 = n_q * n_time * n_pperp * n_ppara * n_z;
+    data->step_4 = n_q * n_time * n_pperp * n_ppara;
+    data->step_3 = n_q * n_time * n_pperp;
+    data->step_2 = n_q * n_time;
+    data->step_1 = n_q;
+
+    data->histogram = malloc(   data->n_time * data->n_pperp * data->n_ppara
+                              * data->n_z * data->n_phi * data->n_r
+                              * sizeof(real) );
+    return data->histogram == NULL;
 }
 
 /**
- * @brief Initializes distribution from offload data
+ * @brief Free allocated resources
  *
- * @param dist_data pointer to data struct
  * @param offload_data pointer to offload data struct
- * @param offload_array offload array
  */
-void dist_5D_init(dist_5D_data* dist_data, dist_5D_offload_data* offload_data,
-                  real* offload_array) {
-    dist_data->n_r       = offload_data->n_r;
-    dist_data->min_r     = offload_data->min_r;
-    dist_data->max_r     = offload_data->max_r;
-
-    dist_data->n_phi     = offload_data->n_phi;
-    dist_data->min_phi   = offload_data->min_phi;
-    dist_data->max_phi   = offload_data->max_phi;
-
-    dist_data->n_z       = offload_data->n_z;
-    dist_data->min_z     = offload_data->min_z;
-    dist_data->max_z     = offload_data->max_z;
-
-    dist_data->n_ppara   = offload_data->n_ppara;
-    dist_data->min_ppara = offload_data->min_ppara;
-    dist_data->max_ppara = offload_data->max_ppara;
-
-    dist_data->n_pperp   = offload_data->n_pperp;
-    dist_data->min_pperp = offload_data->min_pperp;
-    dist_data->max_pperp = offload_data->max_pperp;
-
-    dist_data->n_time    = offload_data->n_time;
-    dist_data->min_time  = offload_data->min_time;
-    dist_data->max_time  = offload_data->max_time;
-
-    dist_data->n_q       = offload_data->n_q;
-    dist_data->min_q     = offload_data->min_q;
-    dist_data->max_q     = offload_data->max_q;
-
-    size_t n_q     = (size_t)(dist_data->n_q);
-    size_t n_time  = (size_t)(dist_data->n_time);
-    size_t n_pperp = (size_t)(dist_data->n_pperp);
-    size_t n_ppara = (size_t)(dist_data->n_ppara);
-    size_t n_z     = (size_t)(dist_data->n_z);
-    size_t n_phi   = (size_t)(dist_data->n_phi);
-    dist_data->step_6 = n_q * n_time * n_pperp * n_ppara * n_z * n_phi;
-    dist_data->step_5 = n_q * n_time * n_pperp * n_ppara * n_z;
-    dist_data->step_4 = n_q * n_time * n_pperp * n_ppara;
-    dist_data->step_3 = n_q * n_time * n_pperp;
-    dist_data->step_2 = n_q * n_time;
-    dist_data->step_1 = n_q;
-
-    dist_data->histogram = &offload_array[0];
+void dist_5D_free(dist_5D_data* data) {
+    free(data->histogram);
 }
 
 /**

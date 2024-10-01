@@ -23,38 +23,32 @@ void diag_transcoef_process_and_clean(diag_transcoef_data* data,
                                       integer index, integer id);
 
 /**
- * @brief Initializes orbit diagnostics offload data.
+ * @brief Initializes transport coefficient diagnostics data
  *
  * @param data transport coefficient diagnostics data struct
- * @param offload_data transport coefficient diagnostics offload data struct
- * @param offload_array offload data array
  */
-void diag_transcoef_init(diag_transcoef_data* data,
-                         diag_transcoef_offload_data* offload_data,
-                         real* offload_array) {
-    data->id    = &(offload_array[0*offload_data->Nmrk]);
-    data->Kcoef = &(offload_array[1*offload_data->Nmrk]);
-    data->Dcoef = &(offload_array[2*offload_data->Nmrk]);
+void diag_transcoef_init(diag_transcoef_data* data) {
+    data->id = (int*) malloc( data->Nmrk * sizeof(int) );
+    data->Kcoef = (real*) malloc( data->Nmrk * sizeof(real) );
+    data->Dcoef = (real*) malloc( data->Nmrk * sizeof(real) );
 
-    data->interval  = offload_data->interval;
-    data->recordrho = offload_data->recordrho;
-    data->Navg      = offload_data->Navg;
-
-    data->datapoints = malloc(
-        offload_data->Nmrk*sizeof(diag_transcoef_link*) );
-    for(int i = 0; i < offload_data->Nmrk; i++) {
+    data->datapoints = malloc( data->Nmrk*sizeof(diag_transcoef_link*) );
+    for(int i = 0; i < data->Nmrk; i++) {
         data->id[i] = -1;
         data->datapoints[i] = NULL;
     }
 }
 
 /**
- * @brief Free transport coefficient data on target
+ * @brief Free allocated resources
  *
  * @param data transport coefficient diagnostics data struct
  */
 void diag_transcoef_free(diag_transcoef_data* data) {
     free(data->datapoints);
+    free(data->id);
+    free(data->Kcoef);
+    free(data->Dcoef);
 }
 
 /**

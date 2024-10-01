@@ -114,13 +114,13 @@ int B_GS_init(B_GS_data* data, real R0, real z0, real raxis, real zaxis,
     data->delta0    = delta0;
     data->alpha0    = alpha0;
 
-    for(int i; i < 14; i++) {
+    for(int i = 0; i < 14; i++) {
         data->psi_coeff[i] = c[i];
     }
 
     real psival[1], Bval[3];
-    err = B_GS_eval_psi(psival, data->raxis, 0, data->zaxis, &data);
-    err = B_GS_eval_B(Bval, data->raxis, 0, data->zaxis, &data);
+    err = B_GS_eval_psi(psival, data->raxis, 0, data->zaxis, data);
+    err = B_GS_eval_B(Bval, data->raxis, 0, data->zaxis, data);
     if(err) {
         print_err("Error: Initialization failed.\n");
         return err;

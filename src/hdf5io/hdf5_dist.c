@@ -22,10 +22,8 @@
  * @param f HDF5 file id
  * @param path path to group which is created here and where the data is stored
  * @param dist pointer to distribution data struct
- * @param hist pointer to distribution data
  */
-int hdf5_dist_write_5D(hid_t f, char* path, dist_5D_offload_data* dist,
-                       real* hist) {
+int hdf5_dist_write_5D(hid_t f, char* path, dist_5D_data* dist) {
     int abscissa_dim = 7;
     int ordinate_dim = 1;
 
@@ -66,7 +64,7 @@ int hdf5_dist_write_5D(hid_t f, char* path, dist_5D_offload_data* dist,
     int retval = hdf5_histogram_write_uniform_double(
         f, path, abscissa_dim, ordinate_dim, abscissa_n_slots, abscissa_min,
         abscissa_max, abscissa_units, abscissa_names, ordinate_units,
-        ordinate_names, hist);
+        ordinate_names, dist->histogram);
 
     return retval;
 }
@@ -79,8 +77,7 @@ int hdf5_dist_write_5D(hid_t f, char* path, dist_5D_offload_data* dist,
  * @param dist pointer to distribution data struct
  * @param hist pointer to distribution data
  */
-int hdf5_dist_write_6D(hid_t f, char* path, dist_6D_offload_data* dist,
-                       real* hist) {
+int hdf5_dist_write_6D(hid_t f, char* path, dist_6D_data* dist) {
     int abscissa_dim = 8;
     int ordinate_dim = 1;
 
@@ -125,7 +122,7 @@ int hdf5_dist_write_6D(hid_t f, char* path, dist_6D_offload_data* dist,
     int retval = hdf5_histogram_write_uniform_double(
         f, path, abscissa_dim, ordinate_dim, abscissa_n_slots, abscissa_min,
         abscissa_max, abscissa_units, abscissa_names, ordinate_units,
-        ordinate_names, hist);
+        ordinate_names, dist->histogram);
 
     return retval;
 }
@@ -136,10 +133,8 @@ int hdf5_dist_write_6D(hid_t f, char* path, dist_6D_offload_data* dist,
  * @param f HDF5 file id
  * @param path path to group which is created here and where the data is stored
  * @param dist pointer to distribution data struct
- * @param hist pointer to distribution data
  */
-int hdf5_dist_write_rho5D(hid_t f, char* path, dist_rho5D_offload_data* dist,
-                          real* hist) {
+int hdf5_dist_write_rho5D(hid_t f, char* path, dist_rho5D_data* dist) {
     int abscissa_dim = 7;
     int ordinate_dim = 1;
 
@@ -181,7 +176,7 @@ int hdf5_dist_write_rho5D(hid_t f, char* path, dist_rho5D_offload_data* dist,
     int retval = hdf5_histogram_write_uniform_double(
         f, path, abscissa_dim, ordinate_dim, abscissa_n_slots, abscissa_min,
         abscissa_max, abscissa_units, abscissa_names, ordinate_units,
-        ordinate_names, hist);
+        ordinate_names, dist->histogram);
 
     return retval;
 }
@@ -192,10 +187,8 @@ int hdf5_dist_write_rho5D(hid_t f, char* path, dist_rho5D_offload_data* dist,
  * @param f HDF5 file id
  * @param path path to group which is created here and where the data is stored
  * @param dist pointer to distribution data struct
- * @param hist pointer to distribution data
  */
-int hdf5_dist_write_rho6D(hid_t f, char* path, dist_rho6D_offload_data* dist,
-                          real* hist) {
+int hdf5_dist_write_rho6D(hid_t f, char* path, dist_rho6D_data* dist) {
     int abscissa_dim = 8;
     int ordinate_dim = 1;
 
@@ -240,7 +233,7 @@ int hdf5_dist_write_rho6D(hid_t f, char* path, dist_rho6D_offload_data* dist,
     int retval = hdf5_histogram_write_uniform_double(
         f, path, abscissa_dim, ordinate_dim, abscissa_n_slots, abscissa_min,
         abscissa_max, abscissa_units, abscissa_names, ordinate_units,
-        ordinate_names, hist);
+        ordinate_names, dist->histogram);
 
     return retval;
 }
@@ -251,10 +244,8 @@ int hdf5_dist_write_rho6D(hid_t f, char* path, dist_rho6D_offload_data* dist,
  * @param f HDF5 file id
  * @param path path to group which is created here and where the data is stored
  * @param dist pointer to distribution data struct
- * @param hist pointer to distribution data
  */
-int hdf5_dist_write_COM(hid_t f, char* path, dist_COM_offload_data* dist,
-                        real* hist) {
+int hdf5_dist_write_COM(hid_t f, char* path, dist_COM_data* dist) {
 
     int abscissa_dim = 3;
     int ordinate_dim = 1;
@@ -283,7 +274,7 @@ int hdf5_dist_write_COM(hid_t f, char* path, dist_COM_offload_data* dist,
     int retval = hdf5_histogram_write_uniform_double(
         f, path, abscissa_dim, ordinate_dim, abscissa_n_slots, abscissa_min,
         abscissa_max, abscissa_units, abscissa_names, ordinate_units,
-        ordinate_names, hist);
+        ordinate_names, dist->histogram);
 
     return retval;
 }

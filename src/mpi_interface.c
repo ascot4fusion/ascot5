@@ -285,15 +285,14 @@ void mpi_gather_particlestate(
  * Distributions are summed and orbit data is appended to the root process
  * diagnostics array.
  *
- * @param data diagnostics offload data
- * @param offload_array pointer to diagnostics offload array
+ * @param data diagnostics data
  * @param ntotal total number of markers in the simulation
  * @param mpi_rank rank of this MPI process
  * @param mpi_size total number of MPI processes
  * @param mpi_root rank of the root process
  */
-void mpi_gather_diag(diag_offload_data* data, real* offload_array, int ntotal,
-                     int mpi_rank, int mpi_size, int mpi_root) {
+void mpi_gather_diag(diag_data* data, int ntotal, int mpi_rank, int mpi_size,
+                     int mpi_root) {
 #ifdef MPI
 
     if(data->dist5D_collect || data->distrho5D_collect

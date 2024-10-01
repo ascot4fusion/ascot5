@@ -55,7 +55,7 @@ int E_1DS_init(E_1DS_data* data, int nrho, real rhomin, real rhomax, real reff,
  *
  * @param data pointer to the data struct
  */
-void E_1DS_free_offload(E_1DS_data* data) {
+void E_1DS_free(E_1DS_data* data) {
     free(data->dV.c);
 }
 

@@ -153,8 +153,8 @@ int B_3DS_init(B_3DS_data* data,
 
     /* Evaluate psi and magnetic field on axis for checks */
     real psival[1], Bval[3];
-    err = B_3DS_eval_psi(psival, data->axis_r, 0, data->axis_z, &data);
-    err = B_3DS_eval_B(Bval, data->axis_r, 0, data->axis_z, &data);
+    err = B_3DS_eval_psi(psival, data->axis_r, 0, data->axis_z, data);
+    err = B_3DS_eval_B(Bval, data->axis_r, 0, data->axis_z, data);
     if(err) {
         print_err("Error: Initialization failed.\n");
         return err;

@@ -66,7 +66,6 @@ void sim_monitor(char* filename, volatile int* n, volatile int* finished);
  *
  * 8. Execution returns to host where this function was called.
  *
- * @param id target id where this function is executed, zero if on host
  * @param n_particles total number of markers to be simulated
  * @param p pointer to array storing all marker states to be simulated
  * @param sim_offload pointer to simulation offload data
@@ -77,10 +76,7 @@ void sim_monitor(char* filename, volatile int* n, volatile int* finished);
  *
  * @todo Reorganize this function so that it conforms to documentation.
  */
-void simulate(
-    int id, int n_particles, particle_state* p, sim_offload_data* sim_offload,
-    offload_package* offload_data, real* offload_array, int* int_offload_array,
-    real* diag_offload_array) {
+void simulate(int n_particles, particle_state* p, sim_data* sim) {
 
     // Size = NSIMD on CPU and Size = Total number of particles on GPU
     int n_queue_size;
@@ -94,93 +90,45 @@ void simulate(
     /*    respective init functions.                                          */
     /*                                                                        */
     /**************************************************************************/
-    sim_data sim;
-    sim_init(&sim, sim_offload);
+    simulate_init(sim);
 
 #ifdef GPU
-    if(sim_offload->sim_mode != 1) {
+    if(sim->sim_mode != 1) {
         print_err("Only GO mode ported to GPU. Please set SIM_MODE=1.");
         exit(1);
     }
-    if(sim_offload->record_mode) {
+    if(sim->record_mode) {
         print_err("RECORD_MODE=1 not ported to GPU. Please disable it.");
         exit(1);
     }
-    if(sim_offload->enable_atomic) {
+    if(sim->enable_atomic) {
         print_err("Atomic not yet ported to GPU. Please set ENABLE_ATOMIC=0.");
         exit(1);
     }
-    if(sim_offload->enable_mhd) {
+    if(sim->enable_mhd) {
         print_err("MHD not yet ported to GPU. Please set ENABLE_MHD=0.");
         exit(1);
     }
-    if(sim_offload->diag_offload_data.diagorb_collect) {
+    if(sim->diag_data.diagorb_collect) {
         print_err(
             "ENABLE_ORBITWRITE=1 not ported to GPU. Please disable it.");
         exit(1);
     }
-    if(sim_offload->diag_offload_data.diagtrcof_collect) {
+    if(sim->diag_data.diagtrcof_collect) {
         print_err(
             "ENABLE_TRANSCOEF=1 not ported to GPU. Please disable it.");
         exit(1);
     }
 #endif
-    real* ptr; int* ptrint;
-    offload_unpack(offload_data, offload_array,
-                   sim_offload->B_offload_data.offload_array_length,
-                   NULL, 0, &ptr, &ptrint);
-    B_field_init(&sim.B_data, &sim_offload->B_offload_data, ptr);
 
-    offload_unpack(offload_data, offload_array,
-                   sim_offload->E_offload_data.offload_array_length,
-                   NULL, 0, &ptr, &ptrint);
-    E_field_init(&sim.E_data, &sim_offload->E_offload_data, ptr);
-
-    offload_unpack(offload_data, offload_array,
-                   sim_offload->plasma_offload_data.offload_array_length,
-                   NULL, 0, &ptr, &ptrint);
-    plasma_init(&sim.plasma_data, &sim_offload->plasma_offload_data, ptr);
-
-    offload_unpack(offload_data, offload_array,
-                   sim_offload->neutral_offload_data.offload_array_length,
-                   NULL, 0, &ptr, &ptrint);
-    neutral_init(&sim.neutral_data, &sim_offload->neutral_offload_data, ptr);
-
-    offload_unpack(offload_data, offload_array,
-                   sim_offload->wall_offload_data.offload_array_length,
-                   int_offload_array,
-                   sim_offload->wall_offload_data.int_offload_array_length,
-                   &ptr, &ptrint);
-    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr, ptrint);
-
-    offload_unpack(offload_data, offload_array,
-                   sim_offload->boozer_offload_data.offload_array_length,
-                   NULL, 0, &ptr, &ptrint);
-    boozer_init(&sim.boozer_data, &sim_offload->boozer_offload_data, ptr);
-
-    offload_unpack(offload_data, offload_array,
-                   sim_offload->mhd_offload_data.offload_array_length,
-                   NULL, 0, &ptr, &ptrint);
-    mhd_init(&sim.mhd_data, &sim_offload->mhd_offload_data, ptr);
-
-    offload_unpack(offload_data, offload_array,
-                   sim_offload->asigma_offload_data.offload_array_length,
-                   NULL, 0, &ptr, &ptrint);
-    asigma_init(&sim.asigma_data, &sim_offload->asigma_offload_data, ptr);
-
-    /* Offload complete. Reset struct so it can be reused. */
-    offload_data->unpack_pos     = 0;
-    offload_data->int_unpack_pos = 0;
-
-    diag_init(&sim.diag_data, &sim_offload->diag_offload_data,
-              diag_offload_array);
-    simulate_copy_to_gpu(&sim);
+    diag_init(&sim->diag_data, n_particles);
+    simulate_copy_to_gpu(sim);
 
     /**************************************************************************/
     /* 2. Meta data (e.g. random number generator) is initialized.            */
     /*                                                                        */
     /**************************************************************************/
-    random_init(&sim.random_data, 0);
+    random_init(&sim->random_data, 0);
 
     /**************************************************************************/
     /* 3. Markers are put into simulation queue.                              */
@@ -225,24 +173,24 @@ void simulate(
             /*    user has chosen.                                            */
             /*                                                                */
             /******************************************************************/
-            if(pq.n > 0 && (sim.sim_mode == simulate_mode_gc
-                        || sim.sim_mode == simulate_mode_hybrid)) {
-                if(sim.enable_ada) {
+            if(pq.n > 0 && (sim->sim_mode == simulate_mode_gc
+                        || sim->sim_mode == simulate_mode_hybrid)) {
+                if(sim->enable_ada) {
                     OMP_PARALLEL_CPU_ONLY
-                    simulate_gc_adaptive(&pq, &sim);
+                    simulate_gc_adaptive(&pq, sim);
                 }
                 else {
                     OMP_PARALLEL_CPU_ONLY
-                    simulate_gc_fixed(&pq, &sim);
+                    simulate_gc_fixed(&pq, sim);
                 }
             }
-            else if(pq.n > 0 && sim.sim_mode == simulate_mode_fo) {
+            else if(pq.n > 0 && sim->sim_mode == simulate_mode_fo) {
                 OMP_PARALLEL_CPU_ONLY
-                simulate_fo_fixed(&pq, &sim, n_queue_size);
+                simulate_fo_fixed(&pq, sim, n_queue_size);
             }
-            else if(pq.n > 0 && sim.sim_mode == simulate_mode_ml) {
+            else if(pq.n > 0 && sim->sim_mode == simulate_mode_ml) {
                 OMP_PARALLEL_CPU_ONLY
-                simulate_ml_adaptive(&pq, &sim);
+                simulate_ml_adaptive(&pq, sim);
             }
         }
 #if !defined(GPU) && VERBOSE > 1
@@ -252,9 +200,9 @@ void simulate(
             /* Trim .h5 from filename and replace it with _<QID>.stdout  */
             if(id == 0) {
                 char filename[519], outfn[256];
-                strcpy(outfn, sim_offload->hdf5_out);
+                strcpy(outfn, sim->hdf5_out);
                 outfn[strlen(outfn)-3] = '\0';
-                sprintf(filename, "%s_%s.stdout", outfn, sim_offload->qid);
+                sprintf(filename, "%s_%s.stdout", outfn, sim->qid);
                 sim_monitor(filename, &pq.n, &pq.finished);
             }
         }
@@ -270,7 +218,7 @@ void simulate(
     /*                                                                        */
     /**************************************************************************/
     int n_new = 0;
-    if(sim.sim_mode == simulate_mode_hybrid) {
+    if(sim->sim_mode == simulate_mode_hybrid) {
 
         /* Determine the number markers that should be run
          * in fo after previous gc simulation */
@@ -281,7 +229,7 @@ void simulate(
                 real w_coll;
                 int tile = wall_hit_wall(pq.p[i]->r, pq.p[i]->phi, pq.p[i]->z,
                         pq.p[i]->rprt, pq.p[i]->phiprt, pq.p[i]->zprt,
-                                         &sim.wall_data, &w_coll);
+                                         &sim->wall_data, &w_coll);
                 if(tile > 0) {
                     pq.p[i]->walltile = tile;
                     pq.p[i]->endcond |= endcond_wall;
@@ -310,7 +258,7 @@ void simulate(
 #endif
             {
                 OMP_PARALLEL_CPU_ONLY
-                simulate_fo_fixed(&pq, &sim, n_queue_size);
+                simulate_fo_fixed(&pq, sim, n_queue_size);
             }
 #if !defined(GPU) && VERBOSE > 1
             #pragma omp section
@@ -318,9 +266,9 @@ void simulate(
                 /* Trim .h5 from filename and replace it with _<qid>.stdout */
                 if(id == 0) {
                     char filename[519], outfn[256];
-                    strcpy(outfn, sim_offload->hdf5_out);
+                    strcpy(outfn, sim->hdf5_out);
                     outfn[strlen(outfn)-3] = '\0';
-                    sprintf(filename, "%s_%s.stdout", outfn, sim_offload->qid);
+                    sprintf(filename, "%s_%s.stdout", outfn, sim->qid);
                     sim_monitor(filename, &pq.n, &pq.finished);
                 }
             }
@@ -332,74 +280,24 @@ void simulate(
     /* 7. Simulation data is deallocated.                                     */
     /**************************************************************************/
     free(pq.p);
-    diag_free(&sim.diag_data);
 
     print_out(VERBOSE_NORMAL, "Simulation complete.\n");
 }
 
 /**
- * @brief Initializes simulation settings
+ * @brief Initialize simulation data struct
  *
- * This function adjusts simulation settings, e.g. how physics are included,
- * according to the given simulation data. This function should only be called
- * once right after input data has been read.
- *
- * @param sim simulation offload struct which has all fields initialized
+ * @param sim pointer to data struct
  */
-void simulate_init_offload(sim_offload_data* sim) {
+void simulate_init(sim_data* sim) {
+
+    mccc_init(&sim->mccc_data, !sim->disable_energyccoll,
+              !sim->disable_pitchccoll, !sim->disable_gcdiffccoll);
+
     if(sim->disable_gctransform) {
         gctransform_setorder(0);
     }
     asigma_extrapolate(sim->enable_atomic==2);
-}
-
-/**
- * @brief Initialize simulation data struct on target
- *
- * This function copies the simulation parameters from the offload struct
- * to the struct on the target.
- *
- * @param sim pointer to data struct on target
- * @param offload_data pointer to offload data struct
- */
-void sim_init(sim_data* sim, sim_offload_data* offload_data) {
-    sim->sim_mode             = offload_data->sim_mode;
-    sim->enable_ada           = offload_data->enable_ada;
-    sim->record_mode          = offload_data->record_mode;
-
-    sim->fix_usrdef_use       = offload_data->fix_usrdef_use;
-    sim->fix_usrdef_val       = offload_data->fix_usrdef_val;
-    sim->fix_gyrodef_nstep    = offload_data->fix_gyrodef_nstep;
-
-    sim->ada_tol_orbfol       = offload_data->ada_tol_orbfol;
-    sim->ada_tol_clmbcol      = offload_data->ada_tol_clmbcol;
-    sim->ada_max_drho         = offload_data->ada_max_drho;
-    sim->ada_max_dphi         = offload_data->ada_max_dphi;
-
-    sim->enable_orbfol        = offload_data->enable_orbfol;
-    sim->enable_clmbcol       = offload_data->enable_clmbcol;
-    sim->enable_mhd           = offload_data->enable_mhd;
-    sim->enable_atomic        = offload_data->enable_atomic;
-    sim->disable_gctransform  = offload_data->disable_gctransform;
-    sim->disable_energyccoll  = offload_data->disable_energyccoll;
-    sim->disable_pitchccoll   = offload_data->disable_pitchccoll;
-    sim->disable_gcdiffccoll  = offload_data->disable_gcdiffccoll;
-    sim->reverse_time         = offload_data->reverse_time;
-
-    sim->endcond_active       = offload_data->endcond_active;
-    sim->endcond_lim_simtime  = offload_data->endcond_lim_simtime;
-    sim->endcond_max_mileage  = offload_data->endcond_max_mileage;
-    sim->endcond_max_cputime  = offload_data->endcond_max_cputime;
-    sim->endcond_min_rho      = offload_data->endcond_min_rho;
-    sim->endcond_max_rho      = offload_data->endcond_max_rho;
-    sim->endcond_min_ekin     = offload_data->endcond_min_ekin;
-    sim->endcond_min_thermal  = offload_data->endcond_min_thermal;
-    sim->endcond_max_tororb   = offload_data->endcond_max_tororb;
-    sim->endcond_max_polorb   = offload_data->endcond_max_polorb;
-    sim->endcond_torandpol    = offload_data->endcond_torandpol;
-
-    mccc_init(&sim->mccc_data, !sim->disable_energyccoll,
-              !sim->disable_pitchccoll, !sim->disable_gcdiffccoll);
 
 }
 

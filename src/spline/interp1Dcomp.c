@@ -105,6 +105,7 @@ int interp1Dcomp_setup(interp1D_data* str, real* f, int n_x, int bc_x,
         return err;
     }
     interp1Dcomp_init_spline(str, c, n_x, bc_x, x_min, x_max);
+    return 0;
 }
 
 /**

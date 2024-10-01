@@ -487,7 +487,7 @@ int hdf5_bfield_read_STS(hid_t f, B_STS_data* data, char* qid) {
     free(axisr);
     free(axisz);
 
-    return 0;
+    return err;
 }
 
 /**

@@ -182,6 +182,7 @@ int interp2Dcomp_setup(interp2D_data* str, real* f,
     }
     interp2Dcomp_init_spline(str, c, n_x, n_y, bc_x, bc_y, x_min, x_max,
                              y_min, y_max);
+    return 0;
 }
 
 /**
