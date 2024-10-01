@@ -21,20 +21,13 @@
 #include "hdf5_options.h"
 #define OPTPATH /**< Macro that is used to store paths to data groups */
 
-int hdf5_options_read_dist5D(hid_t file, dist_5D_offload_data* dist,
-                             char* qid);
-int hdf5_options_read_dist6D(hid_t file, dist_6D_offload_data* dist,
-                             char* qid);
-int hdf5_options_read_distrho5D(hid_t file, dist_rho5D_offload_data* dist,
-                                char* qid);
-int hdf5_options_read_distrho6D(hid_t file, dist_rho6D_offload_data* dist,
-                                char* qid);
-int hdf5_options_read_distCOM(hid_t file, dist_COM_offload_data* dist,
-                              char* qid);
-int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
-                              char* qid);
-int hdf5_options_read_diagtrcof(hid_t file,
-                                diag_transcoef_offload_data* diagtrcof,
+int hdf5_options_read_dist5D(hid_t file, dist_5D_data* dist, char* qid);
+int hdf5_options_read_dist6D(hid_t file, dist_6D_data* dist, char* qid);
+int hdf5_options_read_distrho5D(hid_t file, dist_rho5D_data* dist, char* qid);
+int hdf5_options_read_distrho6D(hid_t file, dist_rho6D_data* dist, char* qid);
+int hdf5_options_read_distCOM(hid_t file, dist_COM_data* dist, char* qid);
+int hdf5_options_read_diagorb(hid_t file, diag_orb_data* diagorb, char* qid);
+int hdf5_options_read_diagtrcof(hid_t file, diag_transcoef_data* diagtrcof,
                                 char* qid);
 
 /**
@@ -51,7 +44,7 @@ int hdf5_options_read_diagtrcof(hid_t file,
  *
  * @return zero if reading succeeded.
  */
-int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
+int hdf5_options_read(hid_t file, sim_data* sim, char* qid){
 
     #undef OPTPATH
     #define OPTPATH "/options/opt_XXXXXXXXXX/"
@@ -198,7 +191,7 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
 
 
     /* See which diagnostics are active */
-    diag_offload_data* diag = &sim->diag_offload_data;
+    diag_data* diag = &sim->diag_data;
 
     if( hdf5_read_double(OPTPATH "ENABLE_DIST_5D", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
@@ -278,7 +271,7 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
  *
  * @return zero if reading succeeded.
  */
-int hdf5_options_read_dist5D(hid_t file, dist_5D_offload_data* dist,
+int hdf5_options_read_dist5D(hid_t file, dist_5D_data* dist,
                              char* qid) {
     #undef OPTPATH
     #define OPTPATH "/options/opt_XXXXXXXXXX/"
@@ -355,7 +348,7 @@ int hdf5_options_read_dist5D(hid_t file, dist_5D_offload_data* dist,
  *
  * @return zero if reading succeeded.
  */
-int hdf5_options_read_dist6D(hid_t file, dist_6D_offload_data* dist,
+int hdf5_options_read_dist6D(hid_t file, dist_6D_data* dist,
                              char* qid) {
     #undef OPTPATH
     #define OPTPATH "/options/opt_XXXXXXXXXX/"
@@ -440,7 +433,7 @@ int hdf5_options_read_dist6D(hid_t file, dist_6D_offload_data* dist,
  *
  * @return zero if reading succeeded.
  */
-int hdf5_options_read_distrho5D(hid_t file, dist_rho5D_offload_data* dist,
+int hdf5_options_read_distrho5D(hid_t file, dist_rho5D_data* dist,
                                 char* qid) {
     #undef OPTPATH
     #define OPTPATH "/options/opt_XXXXXXXXXX/"
@@ -519,7 +512,7 @@ int hdf5_options_read_distrho5D(hid_t file, dist_rho5D_offload_data* dist,
  *
  * @return zero if reading succeeded.
  */
-int hdf5_options_read_distrho6D(hid_t file, dist_rho6D_offload_data* dist,
+int hdf5_options_read_distrho6D(hid_t file, dist_rho6D_data* dist,
                                 char* qid) {
     #undef OPTPATH
     #define OPTPATH "/options/opt_XXXXXXXXXX/"
@@ -606,7 +599,7 @@ int hdf5_options_read_distrho6D(hid_t file, dist_rho6D_offload_data* dist,
  *
  * @return zero if reading succeeded.
  */
-int hdf5_options_read_distCOM(hid_t file, dist_COM_offload_data* dist,
+int hdf5_options_read_distCOM(hid_t file, dist_COM_data* dist,
                               char* qid) {
     #undef OPTPATH
     #define OPTPATH "/options/opt_XXXXXXXXXX/"
@@ -648,7 +641,7 @@ int hdf5_options_read_distCOM(hid_t file, dist_COM_offload_data* dist,
  *
  * @return zero if reading succeeded.
  */
-int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
+int hdf5_options_read_diagorb(hid_t file, diag_orb_data* diagorb,
                               char* qid) {
     #undef OPTPATH
     #define OPTPATH "/options/opt_XXXXXXXXXX/"
@@ -740,7 +733,7 @@ int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
  * @return zero if reading succeeded.
  */
 int hdf5_options_read_diagtrcof(
-    hid_t file, diag_transcoef_offload_data* diagtrcof, char* qid) {
+    hid_t file, diag_transcoef_data* diagtrcof, char* qid) {
     #undef OPTPATH
     #define OPTPATH "/options/opt_XXXXXXXXXX/"
 

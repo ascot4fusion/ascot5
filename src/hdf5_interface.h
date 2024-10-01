@@ -31,28 +31,15 @@ enum input_group {
     hdf5_input_nbi     = 0x400  /**< Input group for injector data           */
 };
 
-int hdf5_interface_read_input(sim_offload_data* sim,
-                              int input_active,
-                              real** B_offload_array,
-                              real** E_offload_array,
-                              real** plasma_offload_array,
-                              real** neutral_offload_array,
-                              real** wall_offload_array,
-                              int**  wall_int_offload_array,
-                              real** boozer_offload_array,
-                              real** mhd_offload_array,
-                              real** asigma_offload_array,
-                              real** nbi_offload_array,
-                              input_particle** p,
-                              int* n_markers);
+int hdf5_interface_read_input(sim_data* sim, int input_active,
+                              input_particle** p, int* n_markers);
 
-int hdf5_interface_init_results(sim_offload_data* sim, char* qid, char* run);
+int hdf5_interface_init_results(sim_data* sim, char* qid, char* run);
 
 int hdf5_interface_write_state(char* fn, char* state, integer n,
                                particle_state* p);
 
-int hdf5_interface_write_diagnostics(sim_offload_data* sim,
-                                     real* diag_offload_array, char* out);
+int hdf5_interface_write_diagnostics(sim_data* sim);
 
 void hdf5_generate_qid(char* qid);
 #endif

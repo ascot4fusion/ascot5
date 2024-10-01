@@ -112,7 +112,7 @@ int wall_3d_init(wall_3d_data* data, int nelements, real* x1x2x3, real* y1y2y3,
  *
  * @param data pointer to data struct
  */
-void wall_3d_free_offload(wall_3d_data* data) {
+void wall_3d_free(wall_3d_data* data) {
     free(data->tree_array);
     free(data->wall_tris);
 }

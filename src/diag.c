@@ -29,60 +29,14 @@
 void diag_arraysum(size_t start, size_t stop, real* array1, real* array2);
 
 /**
- * @brief Initializes offload array from offload data
+ * @brief Initializes diagnostics data
  *
- * @param data diagnostics offload data
- * @param offload_array pointer to offload array  which is allocated here
- * @param Nmrk number of markers that will be simulated
- *
- * @return zero if initialization succeeded
+ * @param data diagnostics data
+ * @param Nmrk number of markers in the simulation
  */
-int diag_init_offload(diag_offload_data* data, real** offload_array, int Nmrk){
-    /* Determine how long array we need and allocate it */
-    size_t n = 0;
-
-    if(data->dist5D_collect) {
-        data->offload_dist5D_index = n;
-        n += (size_t)(data->dist5D.n_r)     * (size_t)(data->dist5D.n_phi)
-           * (size_t)(data->dist5D.n_z)     * (size_t)(data->dist5D.n_ppara)
-           * (size_t)(data->dist5D.n_pperp) * (size_t)(data->dist5D.n_time)
-           * (size_t)(data->dist5D.n_q);
-    }
-
-    if(data->dist6D_collect) {
-        data->offload_dist6D_index = n;
-        n += (size_t)(data->dist6D.n_r)    * (size_t)(data->dist6D.n_phi)
-           * (size_t)(data->dist6D.n_z)    * (size_t)(data->dist6D.n_pr)
-           * (size_t)(data->dist6D.n_pphi) * (size_t)(data->dist6D.n_pz)
-           * (size_t)(data->dist6D.n_time) * (size_t)(data->dist6D.n_q);
-    }
-
-    if(data->distrho5D_collect) {
-        data->offload_distrho5D_index = n;
-        n += (size_t)(data->distrho5D.n_rho) * (size_t)(data->distrho5D.n_theta)
-           * (size_t)(data->distrho5D.n_phi) * (size_t)(data->distrho5D.n_ppara)
-           * (size_t)(data->distrho5D.n_pperp)
-           * (size_t)(data->distrho5D.n_time) * (size_t)(data->distrho5D.n_q);
-    }
-
-    if(data->distrho6D_collect) {
-        data->offload_distrho6D_index = n;
-        n += (size_t)(data->distrho6D.n_rho) * (size_t)(data->distrho6D.n_theta)
-           * (size_t)(data->distrho6D.n_phi) * (size_t)(data->distrho6D.n_pr)
-           * (size_t)(data->distrho6D.n_pphi) * (size_t)(data->distrho6D.n_pz)
-           * (size_t)(data->distrho6D.n_time) * (size_t)(data->distrho6D.n_q);
-    }
-
-    if(data->distCOM_collect) {
-        data->offload_distCOM_index = n;
-        n += (size_t)(data->distCOM.n_mu) * (size_t)(data->distCOM.n_Ekin)
-            * (size_t)(data->distCOM.n_Ptor);
-    }
-
-    data->offload_dist_length = n;
+int diag_init(diag_data* data, int Nmrk) {
 
     if(data->diagorb_collect) {
-        data->offload_diagorb_index = n;
         data->diagorb.Nmrk = Nmrk;
 
         switch(data->diagorb.record_mode) {
@@ -104,102 +58,46 @@ int diag_init_offload(diag_offload_data* data, real** offload_array, int Nmrk){
                 break;
 
         }
-
-        if(data->diagorb.mode == DIAG_ORB_POINCARE) {
-            n += (size_t)(data->diagorb.Nfld+2)
-                * (size_t)(data->diagorb.Nmrk) * (size_t)(data->diagorb.Npnt);
-        }
-        else if(data->diagorb.mode == DIAG_ORB_INTERVAL) {
-            n += (size_t)(data->diagorb.Nfld)
-                * (size_t)(data->diagorb.Nmrk) * (size_t)(data->diagorb.Npnt);
-        }
     }
     if(data->diagtrcof_collect) {
-        data->offload_diagtrcof_index = n;
         data->diagtrcof.Nmrk = Nmrk;
-        n += (size_t)(3*data->diagtrcof.Nmrk);
     }
 
-    data->offload_array_length = n;
-    *offload_array = malloc(n * sizeof(real));
-    if(*offload_array == NULL) {
-        return 1;
+    if(data->dist5D_collect) {
+        dist_5D_init(&data->dist5D);
     }
 
-    memset(*offload_array, 0, n * sizeof(real));
+    if(data->dist6D_collect) {
+        dist_6D_init(&data->dist6D);
+    }
+
+    if(data->distrho5D_collect) {
+        dist_rho5D_init(&data->distrho5D);
+    }
+
+    if(data->distrho6D_collect) {
+        dist_rho6D_init(&data->distrho6D);
+    }
+
+    if(data->distCOM_collect) {
+        dist_COM_init(&data->distCOM);
+    }
+
+    if(data->diagorb_collect) {
+        diag_orb_init(&data->diagorb);
+    }
+
+    if(data->diagtrcof_collect) {
+        diag_transcoef_init(&data->diagtrcof);
+    }
 
     return 0;
 }
 
 /**
- * @brief Frees the offload array
- *
- * @param data diagnostics offload data
- * @param offload_array offload array
- */
-void diag_free_offload(diag_offload_data* data, real** offload_array) {
-    free(*offload_array);
-    *offload_array = NULL;
-}
-
-/**
- * @brief Initializes diagnostics from offload data
+ * @brief Free allocated resources
  *
  * @param data diagnostics data
- * @param offload_data diagnostics offload data
- * @param offload_array offload array
- */
-void diag_init(diag_data* data, diag_offload_data* offload_data,
-               real* offload_array) {
-    data->diagorb_collect   = offload_data->diagorb_collect;
-    data->dist5D_collect    = offload_data->dist5D_collect;
-    data->dist6D_collect    = offload_data->dist6D_collect;
-    data->distrho5D_collect = offload_data->distrho5D_collect;
-    data->distrho6D_collect = offload_data->distrho6D_collect;
-    data->distCOM_collect   = offload_data->distCOM_collect;
-    data->diagtrcof_collect = offload_data->diagtrcof_collect;
-
-    if(data->dist5D_collect) {
-        dist_5D_init(&data->dist5D, &offload_data->dist5D,
-                     &offload_array[offload_data->offload_dist5D_index]);
-    }
-
-    if(data->dist6D_collect) {
-        dist_6D_init(&data->dist6D, &offload_data->dist6D,
-                     &offload_array[offload_data->offload_dist6D_index]);
-    }
-
-    if(data->distrho5D_collect) {
-        dist_rho5D_init(&data->distrho5D, &offload_data->distrho5D,
-                        &offload_array[offload_data->offload_distrho5D_index]);
-    }
-
-    if(data->distrho6D_collect) {
-        dist_rho6D_init(&data->distrho6D, &offload_data->distrho6D,
-                        &offload_array[offload_data->offload_distrho6D_index]);
-    }
-
-    if(data->distCOM_collect) {
-        dist_COM_init(&data->distCOM, &offload_data->distCOM,
-                        &offload_array[offload_data->offload_distCOM_index]);
-    }
-
-    if(data->diagorb_collect) {
-        diag_orb_init(&data->diagorb, &offload_data->diagorb,
-                      &offload_array[offload_data->offload_diagorb_index]);
-    }
-
-    if(data->diagtrcof_collect) {
-        diag_transcoef_init(
-            &data->diagtrcof, &offload_data->diagtrcof,
-            &offload_array[offload_data->offload_diagtrcof_index]);
-    }
-}
-
-/**
- * @brief Free diagnostics data
- *
- * @param data diagnostics data struct
  */
 void diag_free(diag_data* data) {
     if(data->diagorb_collect) {
@@ -320,72 +218,61 @@ void diag_update_ml(diag_data* data, particle_simd_ml* p_f,
  * @param array1 the array to which array2 is summed
  * @param array2 the array which is to be summed
  */
-void diag_sum(diag_offload_data* data, real* array1, real* array2) {
-    if(data->diagorb_collect) {
-        size_t arr_start = data->offload_diagorb_index;
-        size_t arr_length = (size_t)(data->diagorb.Nfld)
-            * (size_t)(data->diagorb.Nmrk) * (size_t)(data->diagorb.Npnt);
-
-        memcpy(&(array1[arr_start+arr_length]),
-               &(array2[arr_start]),
-               arr_length*sizeof(real));
+void diag_sum(diag_data* data1, diag_data* data2) {
+    if(data1->diagorb_collect) {
     }
 
-    if(data->diagtrcof_collect) {
-        size_t arr_start = data->offload_diagtrcof_index;
-        size_t arr_length = (size_t)(3 * data->diagtrcof.Nmrk);
-
-        memcpy(&(array1[arr_start+arr_length]),
-               &(array2[arr_start]),
-               arr_length*sizeof(real));
+    if(data1->diagtrcof_collect) {
     }
 
-    if(data->dist5D_collect){
-        size_t start = data->offload_dist5D_index;
-        size_t stop = start + (size_t)(data->dist5D.n_r)
-            * (size_t)(data->dist5D.n_z) * (size_t)(data->dist5D.n_ppara)
-            * (size_t)(data->dist5D.n_pperp) * (size_t)(data->dist5D.n_time)
-            * (size_t)(data->dist5D.n_q);
-        diag_arraysum(start, stop, array1, array2);
+    if(data1->dist5D_collect){
+        size_t stop = (size_t)(data1->dist5D.n_r) * (size_t)(data1->dist5D.n_z)
+            * (size_t)(data1->dist5D.n_ppara) * (size_t)(data1->dist5D.n_pperp)
+            * (size_t)(data1->dist5D.n_time) * (size_t)(data1->dist5D.n_q);
+        diag_arraysum(0, stop, data1->dist5D.histogram,
+                      data2->dist5D.histogram);
     }
 
-    if(data->dist6D_collect){
-        size_t start = data->offload_dist6D_index;
-        size_t stop = start + (size_t)(data->dist6D.n_r)
-            * (size_t)(data->dist6D.n_phi)
-            * (size_t)(data->dist6D.n_z) * (size_t)(data->dist6D.n_pr)
-            * (size_t)(data->dist6D.n_pphi) * (size_t)(data->dist6D.n_pz)
-            * (size_t)(data->dist6D.n_time) * (size_t)(data->dist6D.n_q);
-        diag_arraysum(start, stop, array1, array2);
+    if(data1->dist6D_collect){
+        size_t stop = (size_t)(data1->dist6D.n_r)
+            * (size_t)(data1->dist6D.n_phi)
+            * (size_t)(data1->dist6D.n_z) * (size_t)(data1->dist6D.n_pr)
+            * (size_t)(data1->dist6D.n_pphi) * (size_t)(data1->dist6D.n_pz)
+            * (size_t)(data1->dist6D.n_time) * (size_t)(data1->dist6D.n_q);
+        diag_arraysum(0, stop, data1->dist6D.histogram,
+                      data2->dist6D.histogram);
     }
 
-    if(data->distrho5D_collect){
-        size_t start = data->offload_distrho5D_index;
-        size_t stop = start + (size_t)(data->distrho5D.n_rho)
-            * (size_t)(data->distrho5D.n_theta)
-            * (size_t)(data->distrho5D.n_phi)
-            * (size_t)(data->distrho5D.n_ppara)
-            * (size_t)(data->distrho5D.n_pperp)
-            * (size_t)(data->distrho5D.n_time)
-            * (size_t)(data->distrho5D.n_q);
-        diag_arraysum(start, stop, array1, array2);
+    if(data1->distrho5D_collect){
+        size_t stop = (size_t)(data1->distrho5D.n_rho)
+            * (size_t)(data1->distrho5D.n_theta)
+            * (size_t)(data1->distrho5D.n_phi)
+            * (size_t)(data1->distrho5D.n_ppara)
+            * (size_t)(data1->distrho5D.n_pperp)
+            * (size_t)(data1->distrho5D.n_time)
+            * (size_t)(data1->distrho5D.n_q);
+        diag_arraysum(0, stop, data1->distrho5D.histogram,
+                      data2->distrho5D.histogram);
     }
 
-    if(data->distrho6D_collect){
-        size_t start = data->offload_distrho6D_index;
-        size_t stop = start + (size_t)(data->distrho6D.n_rho)
-            * (size_t)(data->distrho6D.n_theta)
-            * (size_t)(data->distrho6D.n_phi)  * (size_t)(data->distrho6D.n_pr)
-            * (size_t)(data->distrho6D.n_pphi) * (size_t)(data->distrho6D.n_pz)
-            * (size_t)(data->distrho6D.n_time) * (size_t)(data->distrho6D.n_q);
-        diag_arraysum(start, stop, array1, array2);
+    if(data1->distrho6D_collect){
+        size_t stop = (size_t)(data1->distrho6D.n_rho)
+            * (size_t)(data1->distrho6D.n_theta)
+            * (size_t)(data1->distrho6D.n_phi)
+            * (size_t)(data1->distrho6D.n_pr)
+            * (size_t)(data1->distrho6D.n_pphi)
+            * (size_t)(data1->distrho6D.n_pz)
+            * (size_t)(data1->distrho6D.n_time)
+            * (size_t)(data1->distrho6D.n_q);
+        diag_arraysum(0, stop, data1->distrho6D.histogram,
+                      data2->distrho6D.histogram);
     }
 
-    if(data->distCOM_collect){
-        size_t start = data->offload_distCOM_index;
-        size_t stop = start + (size_t)(data->distCOM.n_mu)
-            * (size_t)(data->distCOM.n_Ekin) * (size_t)(data->distCOM.n_Ptor);
-        diag_arraysum(start, stop, array1, array2);
+    if(data1->distCOM_collect){
+        size_t stop = (size_t)(data1->distCOM.n_mu)
+            * (size_t)(data1->distCOM.n_Ekin) * (size_t)(data1->distCOM.n_Ptor);
+        diag_arraysum(0, stop, data1->dist6D.histogram,
+                      data2->dist6D.histogram);
     }
 }
 

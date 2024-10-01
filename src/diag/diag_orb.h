@@ -28,25 +28,6 @@ real diag_orb_check_plane_crossing(real fang, real iang, real ang0);
 DECLARE_TARGET_SIMD_UNIFORM(r0)
 real diag_orb_check_radial_crossing(real fr, real ir, real r0);
 
-
-/**
- * @brief Orbit diagnostics offload data struct.
- */
-typedef struct{
-    int record_mode;    /**< Defines what fields are initialized           */
-    int mode;           /**< Defines condition for recording markers       */
-    int Npnt;           /**< Maximum number of points to keep recorded     */
-    int Nmrk;           /**< Number of markers to record                   */
-    int Nfld;           /**< Number of fields the record contains          */
-    real writeInterval; /**< Interval at which markers are recorded        */
-    int ntoroidalplots; /**< Number of toroidal Poincare planes            */
-    int npoloidalplots; /**< Number of toroidal Poincare planes            */
-    int nradialplots;   /**< Number of radial Poincare planes              */
-    real toroidalangles[DIAG_ORB_MAXPOINCARES]; /**< Toroidal plane angles */
-    real poloidalangles[DIAG_ORB_MAXPOINCARES]; /**< Poloidal plane angles */
-    real radialdistances[DIAG_ORB_MAXPOINCARES];   /**< Radial plane angles*/
-}diag_orb_offload_data;
-
 /**
  * @brief Orbit diagnostics data struct.
  *
@@ -59,7 +40,6 @@ typedef struct{
  * ones from the start.
  */
 typedef struct{
-
     real* id;     /**< Marker ID                                            */
     real* mileage;/**< Time marker has been simulated for [s]               */
     real* r;      /**< Marker R coordinate [m]                              */
@@ -88,17 +68,18 @@ typedef struct{
     int mode;           /**< Defines condition for recording markers        */
     int Npnt;           /**< Maximum number of points to keep recorded      */
     int Nmrk;           /**< Number of markers to record                    */
+    int Nfld;           /**< Number of fields the record contains           */
     real writeInterval; /**< Interval at which markers are recorded         */
     int ntoroidalplots; /**< Number of toroidal Poincare planes             */
     int npoloidalplots; /**< Number of poloidal Poincare planes             */
     int nradialplots;   /**< Number of radial Poincare planes               */
+    int record_mode;    /**< Defines what fields are initialized            */
     real toroidalangles[DIAG_ORB_MAXPOINCARES]; /**< Toroidal plane angles  */
     real poloidalangles[DIAG_ORB_MAXPOINCARES]; /**< Poloidal plane angles  */
     real radialdistances[DIAG_ORB_MAXPOINCARES];   /**< Radial plane angles */
 }diag_orb_data;
 
-void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
-                   real* offload_array);
+void diag_orb_init(diag_orb_data* data);
 
 void diag_orb_free(diag_orb_data* data);
 

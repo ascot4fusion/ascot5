@@ -112,9 +112,9 @@ int hdf5_asigma_read_loc(hid_t f, asigma_loc_data* data, char* qid) {
     real* sigma = (real*) malloc(nsigmadata * sizeof(real));
     if( hdf5_read_double(ASGMPATH "sigma", sigma,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    int err = asigma_loc_init(data, nreac, z1, a1, z2, a2,
+    int err = asigma_loc_init(data, nreac, z1, a1, z2, a2, reactype,
                               ne, emin, emax, nn, nmin, nmax, nT, Tmin, Tmax,
-                              reactype, sigma);
+                              sigma);
     free(ne);
     free(nn);
     free(nT);

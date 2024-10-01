@@ -19,16 +19,6 @@ typedef struct {
     linint3D_data* n0; /**< Density interpolation struct for each species     */
     linint3D_data* t0; /**< Temperature intepolation struct for each species  */
 } N0_3D_data;
-int n_r;        /**< Number of r grid points in the data                  */
-    int n_z;        /**< Number of z grid points in the data                  */
-    int n_phi;      /**< Number of phi grid points in the data                */
-    real r_min;     /**< Minimum r coordinate in the grid in the data [m]     */
-    real r_max;     /**< Maximum r coordinate in the grid in the data [m]     */
-    real z_min;     /**< Minimum z coordinate in the grid in the data [m]     */
-    real z_max;     /**< Maximum z coordinate in the grid in the data [m]     */
-    real phi_min;   /**< Minimum phi coordinate in the grid in the data [rad] */
-    real phi_max;   /**< Maximum phi coordinate in the grid in the data [rad] */
-
 
 int N0_3D_init(N0_3D_data* data,
                int n_r, real r_min, real r_max,

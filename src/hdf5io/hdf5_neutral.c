@@ -81,9 +81,9 @@ int hdf5_neutral_init_1D(hid_t f, N0_1D_data* data, char* qid) {
     int n_species;
     if( hdf5_read_int(NPATH "nspecies", &n_species,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    int anum = (int*) malloc(n_species * sizeof(int));
-    int znum = (int*) malloc(n_species * sizeof(int));
-    int maxwellian = (int*) malloc(n_species * sizeof(int));
+    int* anum = (int*) malloc(n_species * sizeof(int));
+    int* znum = (int*) malloc(n_species * sizeof(int));
+    int* maxwellian = (int*) malloc(n_species * sizeof(int));
     if( hdf5_read_int(NPATH "anum", anum,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(NPATH "znum", znum,
@@ -111,7 +111,7 @@ int hdf5_neutral_init_1D(hid_t f, N0_1D_data* data, char* qid) {
     free(density);
     free(temperature);
 
-    return 0;
+    return err;
 }
 
 /**
@@ -157,9 +157,9 @@ int hdf5_neutral_init_3D(hid_t f, N0_3D_data* data, char* qid) {
     int n_species;
     if( hdf5_read_int(NPATH "nspecies", &n_species,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    int anum = (int*) malloc(n_species * sizeof(int));
-    int znum = (int*) malloc(n_species * sizeof(int));
-    int maxwellian = (int*) malloc(n_species * sizeof(int));
+    int* anum = (int*) malloc(n_species * sizeof(int));
+    int* znum = (int*) malloc(n_species * sizeof(int));
+    int* maxwellian = (int*) malloc(n_species * sizeof(int));
     if( hdf5_read_int(NPATH "anum", anum,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(NPATH "znum", znum,

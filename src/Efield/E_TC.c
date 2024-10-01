@@ -39,7 +39,7 @@ int E_TC_init(E_TC_data* data, real exyz[3]) {
  *
  * @param data pointer to the data struct
  */
-void E_TC_free_offload(E_TC_data* data) {
+void E_TC_free(E_TC_data* data) {
     // No resources were allocated
 }
 

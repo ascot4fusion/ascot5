@@ -19,10 +19,10 @@
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
  */
-void nbi_init(nbi_data* data, int ninj, int* id, int* anum, int* znum,
-              real* mass, real* power, real* efrac, real* energy,
-              real* div_h, real* div_v, real* div_halo_v, real* div_halo_h,
-              real* div_halo_frac, int* nbeamlet, real* beamlet_xyz) {
+int nbi_init(nbi_data* data, int ninj, int* id, int* anum, int* znum,
+             real* mass, real* power, real* efrac, real* energy,
+             real* div_h, real* div_v, real* div_halo_v, real* div_halo_h,
+             real* div_halo_frac, int* nbeamlet, real* beamlet_xyz) {
     int idx = 0;
     data->ninj =ninj;
     data->inj = (nbi_injector*) malloc( ninj*sizeof(nbi_injector) );

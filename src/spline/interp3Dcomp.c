@@ -256,7 +256,7 @@ void interp3Dcomp_init_spline(interp3D_data* str, real* c,
  *
  * @return zero if initialization succeeded
  */
-int inter32Dcomp_setup(interp3D_data* str, real* f,
+int interp3Dcomp_setup(interp3D_data* str, real* f,
                        int n_x, int n_y, int n_z, int bc_x, int bc_y, int bc_z,
                        real x_min, real x_max, real y_min, real y_max,
                        real z_min, real z_max) {
@@ -268,6 +268,7 @@ int inter32Dcomp_setup(interp3D_data* str, real* f,
     }
     interp3Dcomp_init_spline(str, c, n_x, n_y, n_z, bc_x, bc_y, bc_z,
                              x_min, x_max, y_min, y_max, z_min, z_max);
+    return 0;
 }
 
 /**

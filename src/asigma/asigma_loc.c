@@ -104,7 +104,7 @@ int asigma_loc_init(asigma_loc_data* data, int nreac,
               ne[i_reac], nn[i_reac], nT[i_reac]);
     }
 
-    return 0;
+    return err;
 }
 
 /**

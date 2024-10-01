@@ -85,7 +85,7 @@ int hdf5_plasma_read_1D(hid_t f, plasma_1D_data* data, char* qid) {
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(PLSPATH "anum", anum,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(PLSPATH "charge", &q,
+    if( hdf5_read_int(PLSPATH "charge", q,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(PLSPATH "mass", &mass[1],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
@@ -164,7 +164,7 @@ int hdf5_plasma_read_1Dt(hid_t f, plasma_1Dt_data* data, char* qid) {
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(PLSPATH "anum", anum,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(PLSPATH "charge", &q,
+    if( hdf5_read_int(PLSPATH "charge", q,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(PLSPATH "mass", &mass[1],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
@@ -253,7 +253,7 @@ int hdf5_plasma_read_1DS(hid_t f, plasma_1DS_data* data, char* qid) {
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(PLSPATH "anum", anum,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(PLSPATH "charge", &q,
+    if( hdf5_read_int(PLSPATH "charge", q,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(PLSPATH "mass", &mass[1],
                          f, qid, __FILE__, __LINE__) ) {return 1;}

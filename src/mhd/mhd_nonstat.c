@@ -34,8 +34,8 @@ int mhd_nonstat_init(mhd_nonstat_data* data, int nmode, int nrho, int ntime,
     data->omega_nm = (real*) malloc(nmode * sizeof(real));
     data->phase_nm = (real*) malloc(nmode * sizeof(real));
     data->amplitude_nm = (real*) malloc(nmode * sizeof(real));
-    data->phi_nm = (interp1D_data*) malloc(nmode * sizeof(interp1D_data));
-    data->alpha_nm = (interp1D_data*) malloc(nmode * sizeof(interp1D_data));
+    data->phi_nm = (interp2D_data*) malloc(nmode * sizeof(interp2D_data));
+    data->alpha_nm = (interp2D_data*) malloc(nmode * sizeof(interp2D_data));
     for(int i = 0; i < nmode; i++) {
         data->nmode[i] = moden[i];
         data->mmode[i] = modem[i];
@@ -67,7 +67,7 @@ int mhd_nonstat_init(mhd_nonstat_data* data, int nmode, int nrho, int ntime,
               ntime, tmin, tmax);
 
     print_out(VERBOSE_IO, "\nModes:\n");
-    for(int i = 0; i < moden; i++) {
+    for(int i = 0; i < nmode; i++) {
         print_out(VERBOSE_IO,
                   "(n,m) = (%2.d,%2.d) Amplitude = %3.3g Frequency = %3.3g"
                   " Phase = %3.3g\n",
@@ -83,7 +83,7 @@ int mhd_nonstat_init(mhd_nonstat_data* data, int nmode, int nrho, int ntime,
  *
  * @param data pointer to the data struct
  */
-void mhd_nonstat_free_offload(mhd_nonstat_data* data) {
+void mhd_nonstat_free(mhd_nonstat_data* data) {
     for(int i = 0; i < data->n_modes; i++) {
         free(data->phi_nm[i].c);
         free(data->alpha_nm[i].c);
