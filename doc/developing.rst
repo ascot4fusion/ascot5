@@ -379,11 +379,11 @@ This allows one to reference C documentation as (see the Breathe manual for all 
 
    .. code-block:: rst
 
-      .. doxygenfunction:: B_field_eval_B
+      .. doxygenfunction:: simulate_gc_fixed
 
    Output:
 
-   .. doxygenfunction:: B_field_eval_B
+   .. doxygenfunction:: simulate_gc_fixed
 
 Code structure and development
 ******************************
