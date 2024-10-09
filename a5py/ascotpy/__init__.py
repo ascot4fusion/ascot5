@@ -12,7 +12,7 @@ import a5py.routines.plotting as a5plt
 from a5py.routines.plotting import openfigureifnoaxes, plt
 from a5py.exceptions import AscotInitException
 
-from .libascot    import LibAscot, _LIBASCOT
+from .libascot    import LibAscot, _LIBASCOT, _get_struct_class
 from .libsimulate import LibSimulate
 from .libproviders import LibProviders
 
@@ -87,13 +87,13 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         self._offload_ready     = False
         self._nmrk              = ctypes.c_int32()
         self._diag_occupied     = False
-        self._offload_data      = ascot2py.struct_c__SA_offload_package()
+        self._offload_data      = _get_struct_class("offload_package")()
         self._offload_array     = ctypes.POINTER(ctypes.c_double)()
         self._int_offload_array = ctypes.POINTER(ctypes.c_int   )()
-        self._inistate = ctypes.POINTER(ascot2py.struct_c__SA_particle_state)()
-        self._endstate = ctypes.POINTER(ascot2py.struct_c__SA_particle_state)()
+        self._inistate = ctypes.POINTER(_get_struct_class("particle_state"))()
+        self._endstate = ctypes.POINTER(_get_struct_class("particle_state"))()
 
-        self._sim = ascot2py.struct_c__SA_sim_offload_data()
+        self._sim = _get_struct_class("sim_offload_data")()
         self._bfield_offload_array  = ctypes.POINTER(ctypes.c_double)()
         self._efield_offload_array  = ctypes.POINTER(ctypes.c_double)()
         self._plasma_offload_array  = ctypes.POINTER(ctypes.c_double)()
