@@ -1791,6 +1791,7 @@ struct_c__SA_plasma_1D_data._fields_ = [
     ('rho', ctypes.POINTER(ctypes.c_double)),
     ('temp', ctypes.POINTER(ctypes.c_double)),
     ('dens', ctypes.POINTER(ctypes.c_double)),
+    ('vtor', ctypes.POINTER(ctypes.c_double)),
 ]
 
 plasma_1D_data = struct_c__SA_plasma_1D_data
@@ -1812,6 +1813,9 @@ plasma_1D_eval_dens.argtypes = [ctypes.POINTER(ctypes.c_double), real, ctypes.c_
 plasma_1D_eval_densandtemp = _libraries['libascot.so'].plasma_1D_eval_densandtemp
 plasma_1D_eval_densandtemp.restype = a5err
 plasma_1D_eval_densandtemp.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), real, ctypes.POINTER(struct_c__SA_plasma_1D_data)]
+plasma_1D_eval_flow = _libraries['libascot.so'].plasma_1D_eval_flow
+plasma_1D_eval_flow.restype = a5err
+plasma_1D_eval_flow.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, ctypes.POINTER(struct_c__SA_plasma_1D_data)]
 class struct_c__SA_plasma_1Dt_offload_data(Structure):
     pass
 
@@ -1847,6 +1851,7 @@ struct_c__SA_plasma_1Dt_data._fields_ = [
     ('time', ctypes.POINTER(ctypes.c_double)),
     ('temp', ctypes.POINTER(ctypes.c_double)),
     ('dens', ctypes.POINTER(ctypes.c_double)),
+    ('vtor', ctypes.POINTER(ctypes.c_double)),
 ]
 
 plasma_1Dt_data = struct_c__SA_plasma_1Dt_data
@@ -1868,6 +1873,9 @@ plasma_1Dt_eval_dens.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, ct
 plasma_1Dt_eval_densandtemp = _libraries['libascot.so'].plasma_1Dt_eval_densandtemp
 plasma_1Dt_eval_densandtemp.restype = a5err
 plasma_1Dt_eval_densandtemp.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), real, real, ctypes.POINTER(struct_c__SA_plasma_1Dt_data)]
+plasma_1Dt_eval_flow = _libraries['libascot.so'].plasma_1Dt_eval_flow
+plasma_1Dt_eval_flow.restype = a5err
+plasma_1Dt_eval_flow.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_plasma_1Dt_data)]
 class struct_c__SA_plasma_1DS_offload_data(Structure):
     pass
 
@@ -1901,6 +1909,7 @@ struct_c__SA_plasma_1DS_data._fields_ = [
     ('znum', ctypes.c_int32 * 8),
     ('temp', struct_c__SA_interp1D_data * 2),
     ('dens', struct_c__SA_interp1D_data * 8),
+    ('vtor', struct_c__SA_interp1D_data),
 ]
 
 plasma_1DS_data = struct_c__SA_plasma_1DS_data
@@ -1922,6 +1931,9 @@ plasma_1DS_eval_dens.argtypes = [ctypes.POINTER(ctypes.c_double), real, ctypes.c
 plasma_1DS_eval_densandtemp = _libraries['libascot.so'].plasma_1DS_eval_densandtemp
 plasma_1DS_eval_densandtemp.restype = a5err
 plasma_1DS_eval_densandtemp.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), real, ctypes.POINTER(struct_c__SA_plasma_1DS_data)]
+plasma_1DS_eval_flow = _libraries['libascot.so'].plasma_1DS_eval_flow
+plasma_1DS_eval_flow.restype = a5err
+plasma_1DS_eval_flow.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, ctypes.POINTER(struct_c__SA_plasma_1DS_data)]
 
 # values for enumeration 'plasma_type'
 plasma_type__enumvalues = {
@@ -1979,6 +1991,9 @@ plasma_eval_dens.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, 
 plasma_eval_densandtemp = _libraries['libascot.so'].plasma_eval_densandtemp
 plasma_eval_densandtemp.restype = a5err
 plasma_eval_densandtemp.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), real, real, real, real, real, ctypes.POINTER(struct_c__SA_plasma_data)]
+plasma_eval_flow = _libraries['libascot.so'].plasma_eval_flow
+plasma_eval_flow.restype = a5err
+plasma_eval_flow.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, real, real, ctypes.POINTER(struct_c__SA_plasma_data)]
 plasma_get_n_species = _libraries['libascot.so'].plasma_get_n_species
 plasma_get_n_species.restype = ctypes.c_int32
 plasma_get_n_species.argtypes = [ctypes.POINTER(struct_c__SA_plasma_data)]
@@ -3309,18 +3324,20 @@ __all__ = \
     'particle_state_to_ml', 'particle_to_fo_dummy',
     'particle_to_gc_dummy', 'particle_to_ml_dummy', 'plasma_1DS_data',
     'plasma_1DS_eval_dens', 'plasma_1DS_eval_densandtemp',
-    'plasma_1DS_eval_temp', 'plasma_1DS_free_offload',
-    'plasma_1DS_init', 'plasma_1DS_init_offload',
-    'plasma_1DS_offload_data', 'plasma_1D_data',
-    'plasma_1D_eval_dens', 'plasma_1D_eval_densandtemp',
+    'plasma_1DS_eval_flow', 'plasma_1DS_eval_temp',
+    'plasma_1DS_free_offload', 'plasma_1DS_init',
+    'plasma_1DS_init_offload', 'plasma_1DS_offload_data',
+    'plasma_1D_data', 'plasma_1D_eval_dens',
+    'plasma_1D_eval_densandtemp', 'plasma_1D_eval_flow',
     'plasma_1D_eval_temp', 'plasma_1D_free_offload', 'plasma_1D_init',
     'plasma_1D_init_offload', 'plasma_1D_offload_data',
     'plasma_1Dt_data', 'plasma_1Dt_eval_dens',
-    'plasma_1Dt_eval_densandtemp', 'plasma_1Dt_eval_temp',
-    'plasma_1Dt_free_offload', 'plasma_1Dt_init',
-    'plasma_1Dt_init_offload', 'plasma_1Dt_offload_data',
-    'plasma_data', 'plasma_eval_dens', 'plasma_eval_densandtemp',
-    'plasma_eval_temp', 'plasma_free_offload', 'plasma_get_n_species',
+    'plasma_1Dt_eval_densandtemp', 'plasma_1Dt_eval_flow',
+    'plasma_1Dt_eval_temp', 'plasma_1Dt_free_offload',
+    'plasma_1Dt_init', 'plasma_1Dt_init_offload',
+    'plasma_1Dt_offload_data', 'plasma_data', 'plasma_eval_dens',
+    'plasma_eval_densandtemp', 'plasma_eval_flow', 'plasma_eval_temp',
+    'plasma_free_offload', 'plasma_get_n_species',
     'plasma_get_species_anum', 'plasma_get_species_charge',
     'plasma_get_species_mass', 'plasma_get_species_znum',
     'plasma_init', 'plasma_init_offload', 'plasma_offload_data',
