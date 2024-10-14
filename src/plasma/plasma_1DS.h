@@ -61,7 +61,8 @@ a5err plasma_1DS_eval_dens(real* dens, real rho, int species,
 a5err plasma_1DS_eval_densandtemp(real* dens, real* temp, real rho,
                                   plasma_1DS_data* pls_data);
 #pragma omp declare simd uniform(pls_data)
-a5err plasma_1DS_eval_flow(real* vflow, real rho, plasma_1DS_data* pls_data);
+a5err plasma_1DS_eval_flow(real* vflow, real rho, real r,
+                           plasma_1DS_data* pls_data);
 #pragma omp end declare target
 
 #endif

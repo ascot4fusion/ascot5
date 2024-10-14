@@ -61,19 +61,19 @@ int plasma_1Dt_init_offload(plasma_1Dt_offload_data* offload_data,
                   offload_data->znum[i], offload_data->anum[i],
                   (int)round(offload_data->charge[i+1]/CONST_E),
                   offload_data->mass[i+1]/CONST_U,
-                  (*offload_array)[2*n_rho*n_time + n_time + n_rho*(3+i)],
-                  (*offload_array)[2*n_rho*n_time + n_time + n_rho*(4+i) - 1],
-                  (*offload_array)[n_time + n_rho*2] / CONST_E,
-                  (*offload_array)[n_time + n_rho*3-1] / CONST_E);
+                  (*offload_array)[3*n_rho*n_time + n_time + n_rho*(4+i)],
+                  (*offload_array)[3*n_rho*n_time + n_time + n_rho*(5+i) - 1],
+                  (*offload_array)[1*n_rho*n_time + n_time + n_rho*3] / CONST_E,
+                  (*offload_array)[1*n_rho*n_time + n_time + n_rho*4-1] / CONST_E);
     }
     print_out(VERBOSE_IO,
               "[electrons]  %3d  /%7.3f             %1.2le/%1.2le          "
               "%1.2le/%1.2le       \n",
               -1, CONST_M_E/CONST_U,
-              (*offload_array)[2*n_rho*n_time + n_time + n_rho*1],
-              (*offload_array)[2*n_rho*n_time + n_time + n_rho*2 - 1],
-              (*offload_array)[n_time + n_rho*1] / CONST_E,
-              (*offload_array)[n_time + n_rho*2 - 1] / CONST_E);
+              (*offload_array)[3*n_rho*n_time + n_time + n_rho*1],
+              (*offload_array)[3*n_rho*n_time + n_time + n_rho*2 - 1],
+              (*offload_array)[1*n_rho*n_time + n_time + n_rho*1] / CONST_E,
+              (*offload_array)[1*n_rho*n_time + n_time + n_rho*2 - 1] / CONST_E);
     real quasineutrality = 0;
     for(int k = 0; k <n_rho; k++) {
         real ele_qdens =
@@ -89,6 +89,10 @@ int plasma_1Dt_init_offload(plasma_1Dt_offload_data* offload_data,
     }
     print_out(VERBOSE_IO, "Quasi-neutrality is (electron / ion charge density)"
               " %.2f\n", 1+quasineutrality);
+    print_out(VERBOSE_IO, "Toroidal rotation [rad/s] at Min/Max rho: "
+              "%1.2le/%1.2le\n",
+              (*offload_array)[n_time+n_rho],
+              (*offload_array)[n_time+n_rho*2-1]);
     return 0;
 }
 
@@ -131,9 +135,11 @@ void plasma_1Dt_init(plasma_1Dt_data* pls_data,
     }
     pls_data->rho  = &offload_array[0];
     pls_data->time = &offload_array[pls_data->n_rho];
-    pls_data->temp = &offload_array[pls_data->n_rho+pls_data->n_time];
+    pls_data->vtor = &offload_array[pls_data->n_rho+pls_data->n_time];
+    pls_data->temp = &offload_array[pls_data->n_rho+pls_data->n_time
+                                    +1*pls_data->n_rho*pls_data->n_time];
     pls_data->dens = &offload_array[pls_data->n_rho+pls_data->n_time
-                                    +2*pls_data->n_rho*pls_data->n_time];
+                                    +3*pls_data->n_rho*pls_data->n_time];
 }
 
 /**
@@ -301,15 +307,60 @@ a5err plasma_1Dt_eval_densandtemp(real* dens, real* temp, real rho, real t,
  *
  * @param vflow pointer where the flow value is stored [m/s]
  * @param rho particle rho coordinate [1]
- * @param r particle R coordinate [m]
- * @param phi particle toroidal coordinate [rad]
- * @param z particle z coordinate [m]
  * @param t particle time coordinate [s]
+ * @param r particle R coordinate [m]
  * @param pls_data pointer to plasma data
  */
-a5err plasma_1Dt_eval_flow(real* vflow, real rho, real t,
+a5err plasma_1Dt_eval_flow(real* vflow, real rho, real t, real r,
                            plasma_1Dt_data* pls_data) {
     a5err err = 0;
+    if(rho < pls_data->rho[0]) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
+    }
+    else if(rho >= pls_data->rho[pls_data->n_rho-1]) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
+    }
+    else {
+        int i_rho = 0;
+        while(i_rho < pls_data->n_rho-1 && pls_data->rho[i_rho] <= rho) {
+            i_rho++;
+        }
+        i_rho--;
 
+        real t_rho = (rho - pls_data->rho[i_rho])
+                 / (pls_data->rho[i_rho+1] - pls_data->rho[i_rho]);
+
+        int i_time = 0;
+        while(i_time < pls_data->n_time-1 && pls_data->time[i_time] <= t) {
+            i_time++;
+        }
+        i_time--;
+
+        real t_time = (t - pls_data->time[i_time])
+                 / (pls_data->time[i_time+1] - pls_data->time[i_time]);
+
+        if(i_time < 0) {
+            /* time < t[0], use first profile */
+            i_time = 0;
+            t_time = 0;
+        }
+        else if(i_time >= pls_data->n_time-2) {
+            /* time > t[n_time-1], use last profile */
+            i_time = pls_data->n_time-2;
+            t_time = 1;
+        }
+
+        real p11, p12, p21, p22, p1, p2;
+
+        p11 = pls_data->vtor[i_time*pls_data->n_rho + i_rho];
+        p12 = pls_data->dens[(i_time+1)*pls_data->n_rho + i_rho];
+        p22 = pls_data->dens[(i_time+1)*pls_data->n_rho + i_rho + 1];
+
+        p1 = p11 + t_rho * (p12 - p11);
+        p2 = p21 + t_rho * (p22 - p21);
+
+        *vflow = p1 + t_time * (p2 - p1);
+    }
+    *vflow *= CONST_2PI * r;
     return err;
 }

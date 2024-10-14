@@ -57,32 +57,35 @@ int plasma_1D_init_offload(plasma_1D_offload_data* offload_data,
                   offload_data->znum[i], offload_data->anum[i],
                   (int)round(offload_data->charge[i+1]/CONST_E),
                   offload_data->mass[i+1]/CONST_U,
-                  (*offload_array)[n_rho*(4+i)],
-                  (*offload_array)[n_rho*(5+i) - 1],
-                  (*offload_array)[n_rho*2] / CONST_E,
-                  (*offload_array)[n_rho*3-1] / CONST_E);
+                  (*offload_array)[n_rho*(5+i)],
+                  (*offload_array)[n_rho*(6+i) - 1],
+                  (*offload_array)[n_rho*3] / CONST_E,
+                  (*offload_array)[n_rho*4-1] / CONST_E);
     }
     print_out(VERBOSE_IO,
               "[electrons]  %3d  /%7.3f             %1.2le/%1.2le          "
               "      %1.2le/%1.2le       \n",
               -1, CONST_M_E/CONST_U,
-              (*offload_array)[n_rho*3],
-              (*offload_array)[n_rho*4 - 1],
-              (*offload_array)[n_rho] / CONST_E,
-              (*offload_array)[n_rho*2-1] / CONST_E);
+              (*offload_array)[n_rho*4],
+              (*offload_array)[n_rho*5 - 1],
+              (*offload_array)[n_rho*2] / CONST_E,
+              (*offload_array)[n_rho*3-1] / CONST_E);
     real quasineutrality = 0;
     for(int k = 0; k <n_rho; k++) {
-        real ele_qdens = (*offload_array)[n_rho*3 + k] * CONST_E;
+        real ele_qdens = (*offload_array)[n_rho*4 + k] * CONST_E;
         real ion_qdens = 0;
         for(int i=0; i < n_ions; i++) {
             ion_qdens +=
-                (*offload_array)[n_rho*(4+i) + k] * offload_data->charge[i+1];
+                (*offload_array)[n_rho*(5+i) + k] * offload_data->charge[i+1];
         }
         quasineutrality = fmax( quasineutrality,
                                 fabs( 1 - ion_qdens / ele_qdens ) );
     }
     print_out(VERBOSE_IO, "Quasi-neutrality is (electron / ion charge density)"
               " %.2f\n", 1+quasineutrality);
+    print_out(VERBOSE_IO, "Toroidal rotation [rad/s] at Min/Max rho: "
+              "%1.2le/%1.2le\n",
+              (*offload_array)[n_rho], (*offload_array)[n_rho*2 - 1]);
     return 0;
 }
 
@@ -270,12 +273,10 @@ a5err plasma_1D_eval_densandtemp(real* dens, real* temp, real rho,
  * @param vflow pointer where the flow value is stored [m/s]
  * @param rho particle rho coordinate [1]
  * @param r particle R coordinate [m]
- * @param phi particle toroidal coordinate [rad]
- * @param z particle z coordinate [m]
- * @param t particle time coordinate [s]
  * @param pls_data pointer to plasma data
  */
-a5err plasma_1D_eval_flow(real* vflow, real rho, plasma_1D_data* pls_data) {
+a5err plasma_1D_eval_flow(real* vflow, real rho, real r,
+                          plasma_1D_data* pls_data) {
     a5err err = 0;
     if(rho < pls_data->rho[0]) {
         err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
@@ -291,6 +292,6 @@ a5err plasma_1D_eval_flow(real* vflow, real rho, plasma_1D_data* pls_data) {
         i_rho--;
         *vflow = pls_data->vtor[i_rho];
     }
-
+    *vflow *= CONST_2PI * r;
     return err;
 }

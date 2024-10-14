@@ -133,8 +133,8 @@ class AnalyticalInputs():
 
         return ("B_3DS", out)
 
-    def plasma_flat(self, density=10e20, temperature=10e3, anum=1, znum=1,
-                    charge=1, mass=1):
+    def plasma_flat(self, density=10e20, temperature=10e3, vtor=0,
+                    anum=1, znum=1, charge=1, mass=1):
         """Create uniform single-species plasma that is flat inside the
         separatrix but inexistent outside.
 
@@ -144,6 +144,8 @@ class AnalyticalInputs():
             Plasma density.
         temperature : float, optional
             Plasma temperature.
+        vtor : float, optional
+            Toroidal flow.
         anum : int, optional
             Ion atomic number.
         znum : int, optional
@@ -164,6 +166,7 @@ class AnalyticalInputs():
         nrho   = 100
         rho    = np.transpose( np.linspace(0, 10, nrho) )
         prof   = np.ones((nrho, 1))
+        vflow  = vtor        * prof
         edens  = density     * prof
         etemp  = temperature * prof
         idens  = density     * prof
@@ -173,7 +176,7 @@ class AnalyticalInputs():
 
         out = {"nrho" : nrho, "nion" : 1, "anum" : np.array([anum]),
                "znum" : np.array([znum]), "mass" : np.array([mass]),
-               "charge" : np.array([charge]), "rho" : rho,
+               "charge" : np.array([charge]), "rho" : rho, "vtor" : vflow,
                "edensity" : edens, "etemperature" : etemp, "idensity" : idens,
                "itemperature" : itemp}
         return ("plasma_1D", out)

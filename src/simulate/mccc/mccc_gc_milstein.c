@@ -54,20 +54,20 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
             real z0   = p->z[i];
 
             /* Move guiding center to (x, y, z, vnorm, xi) coordinates */
-            real vin, pin, xiin, Xin_xyz[3];
+            real vin, pin, vflow, gamma, ppar_flow, xiin, Xin_xyz[3];
             Xin_xyz[0] = p->r[i] * cos(p->phi[i]);
             Xin_xyz[1] = p->r[i] * sin(p->phi[i]);
             Xin_xyz[2] = p->z[i];
-            pin  = physlib_gc_p( p->mass[i], p->mu[i], p->ppar[i], Bnorm);
-            xiin = physlib_gc_xi(p->mass[i], p->mu[i], p->ppar[i], Bnorm);
-
-            real vflow;
             if(!errflag) {
                 errflag = plasma_eval_flow(
                     &vflow, p->rho[i], p->r[i], p->phi[i], p->z[i], p->time[i],
                     pdata);
             }
-            vin = physlib_vnorm_pnorm(p->mass[i], pin) - vflow;
+            gamma = physlib_gamma_ppar(p->mass[i], p->mu[i], p->ppar[i], Bnorm);
+            ppar_flow = p->ppar[i] - gamma * vflow * p->mass[i];
+            pin  = physlib_gc_p(p->mass[i], p->mu[i], ppar_flow, Bnorm);
+            xiin = physlib_gc_xi(p->mass[i], p->mu[i], p->ppar[i], Bnorm);
+            vin = physlib_vnorm_pnorm(p->mass[i], pin);
 
             /* Evaluate plasma density and temperature */
             real nb[MAX_SPECIES], Tb[MAX_SPECIES];
@@ -143,7 +143,7 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
             Xout_xyz[1] = Xin_xyz[1] + k1 * ( dW[1] - k2 * bhat[1] );
             Xout_xyz[2] = Xin_xyz[2] + k1 * ( dW[2] - k2 * bhat[2] );
             vout  = vin + K*hin[i] + sqrt( 2 * Dpara ) * dW[3]
-                  + 0.5 * dDpara * ( dW[3]*dW[3] - hin[i] ) + vflow;
+                  + 0.5 * dDpara * ( dW[3]*dW[3] - hin[i] );
             xiout = xiin - xiin*nu*hin[i] + sqrt( ( 1 - xiin*xiin ) * nu )*dW[4]
                   - 0.5 * xiin * nu * ( dW[4]*dW[4] - hin[i] );
 
@@ -240,8 +240,10 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
 
                 p->r[i]    = Xout_rpz[0];
                 p->z[i]    = Xout_rpz[2];
-                p->ppar[i] = physlib_gc_ppar(pout, xiout);
                 p->mu[i]   = physlib_gc_mu(p->mass[i], pout, xiout, Bnorm);
+                gamma      = physlib_gamma_pnorm(p->mass[i], pout);
+                ppar_flow  = gamma * p->mass[i] * vflow;
+                p->ppar[i] = physlib_gc_ppar(pout, xiout) + ppar_flow;
 
                 /* Evaluate phi and theta angles so that they are cumulative */
                 real axisrz[2];

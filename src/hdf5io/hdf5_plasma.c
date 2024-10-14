@@ -147,11 +147,7 @@ int hdf5_plasma_read_1D(hid_t f, plasma_1D_offload_data* offload_data,
     if( hdf5_read_double(PLSPATH "rho", rho,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(PLSPATH "vtor", vtor,
-                         f, qid, __FILE__, __LINE__) ) {
-        for(int i = 0; i < n_rho; i++) {
-            vtor[i] = 0;
-        }
-    }
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(PLSPATH "etemperature", temp_e,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(PLSPATH "edensity", dens_e,
@@ -222,10 +218,8 @@ int hdf5_plasma_read_1Dt(hid_t f, plasma_1Dt_offload_data* offload_data,
         offload_data->mass[i+1] *= CONST_U;
     }
 
-    /* Allocate space for rhogrid, density (for each species) and
-       temperature (for electrons and ions - all ions have same temperature) */
     offload_data->offload_array_length =
-        n_rho + n_time + 2*n_time*n_rho + n_time*offload_data->n_species*n_rho;
+        n_rho + n_time + 3*n_time*n_rho + n_time*offload_data->n_species*n_rho;
     *offload_array = (real*) malloc(sizeof(real)
                                     * offload_data->offload_array_length);
 
@@ -233,16 +227,19 @@ int hdf5_plasma_read_1Dt(hid_t f, plasma_1Dt_offload_data* offload_data,
      * readable */
     real* rho  = &(*offload_array)[0];
     real* time = &(*offload_array)[n_rho];
-    real* temp = &(*offload_array)[n_rho+n_time];
-    real* dens = &(*offload_array)[n_rho+n_time+n_time*n_rho*2];
+    real* vtor = &(*offload_array)[n_rho+n_time];
+    real* temp = &(*offload_array)[n_rho+n_time+n_time*n_rho];
+    real* dens = &(*offload_array)[n_rho+n_time+n_time*n_rho*3];
 
-    /* Read rho and time grids */
+    /* Read rho and time grids and toroidal rotation */
     if( hdf5_read_double(PLSPATH "rho", rho,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(PLSPATH "time", time,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(PLSPATH "vtor", vtor,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    /* read electron and ion temperature data into temporary arrays and
+    /* Read electron and ion temperature data into temporary arrays and
      * rearrange into offload array */
     real* temp_e_in = (real*) malloc(n_time*n_rho*sizeof(real));
     real* temp_i_in = (real*) malloc(n_time*n_rho*sizeof(real));
@@ -254,13 +251,11 @@ int hdf5_plasma_read_1Dt(hid_t f, plasma_1Dt_offload_data* offload_data,
 
     for(int i_time = 0; i_time < n_time; i_time++) {
         for(int i_rho = 0; i_rho < n_rho; i_rho++) {
-            /* electrons */
+            /* Convert ion and electron temperatures to Joules */
             temp[i_time*2*n_rho+i_rho]
-                = temp_e_in[i_time*n_rho + i_rho] * CONST_E; /* convert to J */
-
-            /* ions */
-            temp[i_time*2*n_rho+n_rho+i_rho]
-                = temp_i_in[i_time*n_rho + i_rho] * CONST_E; /* convert to J */
+                = temp_e_in[i_time*n_rho + i_rho] * CONST_E;
+            temp[i_time*2*n_rho+n_rho + i_rho]
+                = temp_i_in[i_time*n_rho + i_rho] * CONST_E;
         }
     }
 
@@ -358,21 +353,24 @@ int hdf5_plasma_read_1DS(hid_t f, plasma_1DS_offload_data* offload_data,
         offload_data->mass[i+1] *= CONST_U;
     }
 
-    /* Allocate space for density (for each species) and
+    /* Allocate space for rotation, density (for each species) and
        temperature (for electrons and ions - all ions have same temperature) */
     offload_data->offload_array_length =
-        2*n_rho + offload_data->n_species*n_rho;
+        3*n_rho + offload_data->n_species*n_rho;
     *offload_array = (real*) malloc(sizeof(real)
                                     * offload_data->offload_array_length);
 
     /* Pointers to beginning of different data series to make code more
      * readable */
-    real* temp_e = &(*offload_array)[0];
-    real* temp_i = &(*offload_array)[n_rho*1];
-    real* dens_e = &(*offload_array)[n_rho*2];
-    real* dens_i = &(*offload_array)[n_rho*3];
+    real* vtor   = &(*offload_array)[0];
+    real* temp_e = &(*offload_array)[n_rho*1];
+    real* temp_i = &(*offload_array)[n_rho*2];
+    real* dens_e = &(*offload_array)[n_rho*3];
+    real* dens_i = &(*offload_array)[n_rho*4];
 
     /* Read densities, and temperatures into allocated array */
+    if( hdf5_read_double(PLSPATH "vtor", vtor,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(PLSPATH "etemperature", temp_e,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(PLSPATH "edensity", dens_e,

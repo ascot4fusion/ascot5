@@ -62,10 +62,10 @@ int plasma_1DS_init_offload(plasma_1DS_offload_data* offload_data,
     int n_species = offload_data->n_species;
 
     /* Allocate enough space for two temperature and n_species density arrays */
-    real* coeff_array = (real*) malloc((2 + n_species) * NSIZE_COMP1D
+    real* coeff_array = (real*) malloc((3 + n_species) * NSIZE_COMP1D
                                        * n_rho * sizeof(real));
 
-    for(int i=0; i< ((2 + n_species)*n_rho); i++) {
+    for(int i=n_rho; i< ((3 + n_species)*n_rho); i++) {
 #if PLASMA_1DS_NONEG == PLASMA_1DS_LOG
         (*offload_array)[i] = log( (*offload_array)[i]);
 #elif PLASMA_1DS_NONEG == PLASMA_1DS_SQRT
@@ -75,25 +75,32 @@ int plasma_1DS_init_offload(plasma_1DS_offload_data* offload_data,
 
     /* Evaluate spline coefficients */
 
-    /* Te */
+    /* vtor */
     err += interp1Dcomp_init_coeff(
         coeff_array + 0*n_rho*NSIZE_COMP1D,
         *offload_array + 0*n_rho,
         offload_data->n_rho, NATURALBC,
         offload_data->rho_min, offload_data->rho_max);
 
-    /* Ti */
+    /* Te */
     err += interp1Dcomp_init_coeff(
         coeff_array + 1*n_rho*NSIZE_COMP1D,
         *offload_array + 1*n_rho,
         offload_data->n_rho, NATURALBC,
         offload_data->rho_min, offload_data->rho_max);
 
+    /* Ti */
+    err += interp1Dcomp_init_coeff(
+        coeff_array + 2*n_rho*NSIZE_COMP1D,
+        *offload_array + 2*n_rho,
+        offload_data->n_rho, NATURALBC,
+        offload_data->rho_min, offload_data->rho_max);
+
     /* Densities */
     for(int i=0; i < n_species; i++) {
         err += interp1Dcomp_init_coeff(
-            coeff_array + (2 +i)*n_rho*NSIZE_COMP1D,
-            *offload_array + (2 + i)*n_rho,
+            coeff_array + (3 + i)*n_rho*NSIZE_COMP1D,
+            *offload_array + (3 + i)*n_rho,
             offload_data->n_rho, NATURALBC,
             offload_data->rho_min, offload_data->rho_max);
     }
@@ -108,7 +115,7 @@ int plasma_1DS_init_offload(plasma_1DS_offload_data* offload_data,
     offload_data->offload_array_length = (2 + n_species) * NSIZE_COMP1D * n_rho;
 
     /* Initialize the data so that we can perform sanity checks */
-    real temp0, temp1, dens0, dens1;
+    real temp0, temp1, dens0, dens1, vtor0, vtor1;
     plasma_1DS_data plsdata;
     plasma_1DS_init(&plsdata, offload_data, *offload_array);
 
@@ -136,6 +143,8 @@ int plasma_1DS_init_offload(plasma_1DS_offload_data* offload_data,
                   dens0, dens1, temp0 / CONST_E, temp1 / CONST_E);
     }
 
+    plasma_1DS_eval_flow(&vtor0, offload_data->rho_min, 1.0/CONST_2PI, &plsdata);
+    plasma_1DS_eval_flow(&vtor1, offload_data->rho_max, 1.0/CONST_2PI, &plsdata);
     plasma_1DS_eval_temp(&temp0, offload_data->rho_min, 0, &plsdata);
     plasma_1DS_eval_temp(&temp1, offload_data->rho_max, 0, &plsdata);
     plasma_1DS_eval_dens(&dens0, offload_data->rho_min, 0, &plsdata);
@@ -161,6 +170,8 @@ int plasma_1DS_init_offload(plasma_1DS_offload_data* offload_data,
     }
     print_out(VERBOSE_IO, "Quasi-neutrality is (electron / ion charge density)"
               " %.2f\n", 1+quasineutrality);
+    print_out(VERBOSE_IO, "Toroidal rotation [rad/s] at Min/Max rho: "
+              "%1.2le/%1.2le\n", vtor0, vtor1);
 
     return 0;
 }
@@ -201,20 +212,25 @@ void plasma_1DS_init(plasma_1DS_data* plasma_data,
     }
 
     int n_rho = offload_data->n_rho;
+    interp1Dcomp_init_spline(&(plasma_data->vtor),
+                             &(offload_array[0*n_rho*NSIZE_COMP1D]),
+                             offload_data->n_rho, NATURALBC,
+                             offload_data->rho_min,
+                             offload_data->rho_max);
     interp1Dcomp_init_spline(&(plasma_data->temp[0]),
-                             &(offload_array[0*n_rho]),
+                             &(offload_array[1*n_rho*NSIZE_COMP1D]),
                              offload_data->n_rho, NATURALBC,
                              offload_data->rho_min,
                              offload_data->rho_max);
     interp1Dcomp_init_spline(&(plasma_data->temp[1]),
-                             &(offload_array[1*n_rho*NSIZE_COMP1D]),
+                             &(offload_array[2*n_rho*NSIZE_COMP1D]),
                              offload_data->n_rho, NATURALBC,
                              offload_data->rho_min,
                              offload_data->rho_max);
 
     for(int i=0; i<offload_data->n_species; i++) {
         interp1Dcomp_init_spline(&(plasma_data->dens[i]),
-                                 &(offload_array[(2+i)*n_rho*NSIZE_COMP1D]),
+                                 &(offload_array[(3+i)*n_rho*NSIZE_COMP1D]),
                                  offload_data->n_rho, NATURALBC,
                                  offload_data->rho_min,
                                  offload_data->rho_max);
@@ -343,13 +359,14 @@ a5err plasma_1DS_eval_densandtemp(real* dens, real* temp, real rho,
  * @param vflow pointer where the flow value is stored [m/s]
  * @param rho particle rho coordinate [1]
  * @param r particle R coordinate [m]
- * @param phi particle toroidal coordinate [rad]
- * @param z particle z coordinate [m]
- * @param t particle time coordinate [s]
  * @param pls_data pointer to plasma data
  */
-a5err plasma_1DS_eval_flow(real* vflow, real rho, plasma_1DS_data* pls_data) {
+a5err plasma_1DS_eval_flow(real* vflow, real rho, real r,
+                           plasma_1DS_data* pls_data) {
     a5err err = 0;
-
+    if(interp1Dcomp_eval_f(vflow, &pls_data->vtor, rho)) {
+        error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1DS );
+    }
+    *vflow *= CONST_2PI * r;
     return err;
 }
