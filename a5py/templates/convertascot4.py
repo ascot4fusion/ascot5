@@ -717,7 +717,7 @@ class Ascot4Templates():
             rho = np.array(h5data[:,0])
             te  = np.array(h5data[:,1])
             ne  = np.array(h5data[:,2])
-            #data["vtor"] = np.array(h5data[:,3]) Rotation not yet implemented
+            vtor = np.array(h5data[:,3])
             ti  = np.array(h5data[:,4])
             ni  = np.zeros((nion,nrho))
             for i in range(nion):
@@ -753,7 +753,7 @@ class Ascot4Templates():
             "Assuming fully-ionized ions and that mass = Anum * amu")
         data.update({"nion":nion, "nrho":nrho, "rho":rho, "etemperature":te,
                      "itemperature":ti, "edensity":ne, "idensity":ni,
-                     "mass":data["anum"], "charge":data["znum"]})
+                     "vtor":vtor, "mass":data["anum"], "charge":data["znum"]})
         return("plasma_1D", data)
 
     def _ascot4_magn_header(self, fn):

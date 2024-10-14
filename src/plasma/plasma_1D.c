@@ -24,7 +24,7 @@
  */
 int plasma_1D_init(plasma_1D_data* data, int nrho, int nion, real* rho,
                    int* anum, int* znum, real* mass, real* charge,
-                   real* Te, real* Ti, real* ne, real* ni) {
+                   real* Te, real* Ti, real* ne, real* ni, real* vtor) {
 
     data->n_rho = nrho;
     data->n_species = nion + 1;
@@ -42,10 +42,12 @@ int plasma_1D_init(plasma_1D_data* data, int nrho, int nion, real* rho,
         data->charge[i] = charge[i];
     }
     data->rho = (real*) malloc( nrho*sizeof(real) );
+    data->vtor = (real*) malloc( nrho*sizeof(real) );
     data->temp = (real*) malloc( 2*nrho*sizeof(real) );
     data->dens = (real*) malloc( (nion+1)*nrho*sizeof(real) );
     for(int i = 0; i < data->n_rho; i++) {
         data->rho[i] = rho[i];
+        data->vtor[i] = vtor[i];
         data->temp[i] = Te[i];
         data->temp[nrho + i] = Ti[i];
         data->dens[i] = ne[i];
@@ -79,6 +81,9 @@ int plasma_1D_init(plasma_1D_data* data, int nrho, int nion, real* rho,
               -1, CONST_M_E/CONST_U,
               data->dens[0], data->dens[nrho - 1],
               data->temp[0] / CONST_E, data->temp[nrho-1] / CONST_E);
+    print_out(VERBOSE_IO, "Toroidal rotation [rad/s] at Min/Max rho: "
+              "%1.2le/%1.2le\n",
+              data->vtor[0], data->vtor[nrho - 1]);
     real quasineutrality = 0;
     for(int k = 0; k < nrho; k++) {
         real ele_qdens = data->dens[k] * CONST_E;
@@ -91,6 +96,8 @@ int plasma_1D_init(plasma_1D_data* data, int nrho, int nion, real* rho,
     }
     print_out(VERBOSE_IO, "Quasi-neutrality is (electron / ion charge density)"
               " %.2f\n", 1+quasineutrality);
+    print_out(VERBOSE_IO, "Toroidal rotation [rad/s] at Min/Max rho: "
+              "%1.2le/%1.2le\n", data->vtor[0], data->vtor[nrho - 1]);
     return 0;
 }
 
@@ -112,7 +119,6 @@ void plasma_1D_free(plasma_1D_data* data) {
 /**
  * @brief Offload data to the accelerator.
  *
-<<<<<<< HEAD
  * @param data pointer to the data struct
  */
 void plasma_1D_offload(plasma_1D_data* data) {
@@ -265,12 +271,10 @@ a5err plasma_1D_eval_densandtemp(real* dens, real* temp, real rho,
  * @param vflow pointer where the flow value is stored [m/s]
  * @param rho particle rho coordinate [1]
  * @param r particle R coordinate [m]
- * @param phi particle toroidal coordinate [rad]
- * @param z particle z coordinate [m]
- * @param t particle time coordinate [s]
  * @param pls_data pointer to plasma data
  */
-a5err plasma_1D_eval_flow(real* vflow, real rho, plasma_1D_data* pls_data) {
+a5err plasma_1D_eval_flow(real* vflow, real rho, real r,
+                          plasma_1D_data* pls_data) {
     a5err err = 0;
     if(rho < pls_data->rho[0]) {
         err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
@@ -286,6 +290,6 @@ a5err plasma_1D_eval_flow(real* vflow, real rho, plasma_1D_data* pls_data) {
         i_rho--;
         *vflow = pls_data->vtor[i_rho];
     }
-
+    *vflow *= CONST_2PI * r;
     return err;
 }

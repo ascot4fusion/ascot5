@@ -43,16 +43,10 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
             real sinphi = sin(p->phi[i]);
             real cosphi = cos(p->phi[i]);
 
+            real bnorm = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
             real pnorm = sqrt( p->p_r[i] * p->p_r[i] + p->p_phi[i] * p->p_phi[i]
                                + p->p_z[i] * p->p_z[i] );
             real gamma = physlib_gamma_pnorm(p->mass[i], pnorm);
-
-            real vin_xyz[3];
-            vin_xyz[0] = ( p->p_r[i] * cosphi - p->p_phi[i] * sinphi )
-                / ( gamma * p->mass[i] );
-            vin_xyz[1] = ( p->p_r[i] * sinphi + p->p_phi[i] * cosphi )
-                / ( gamma * p->mass[i] );
-            vin_xyz[2] = p->p_z[i] / ( gamma * p->mass[i] );
 
             real vflow;
             if(!errflag) {
@@ -60,8 +54,18 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
                     &vflow, p->rho[i], p->r[i], p->phi[i], p->z[i], p->time[i],
                     pdata);
             }
-            vin_xyz[0] -= vflow * cosphi;
-            vin_xyz[1] -= vflow * sinphi;
+
+            real vin_xyz[3];
+            vin_xyz[0] = ( p->p_r[i] / ( gamma * p->mass[i] )
+                - vflow * p->B_r[i] / bnorm ) * cosphi
+                - (  p->p_phi[i] / ( gamma * p->mass[i] )
+                   - vflow * p->B_phi[i] / bnorm) * sinphi;
+            vin_xyz[1] = ( p->p_r[i] / ( gamma * p->mass[i] )
+                - vflow * p->B_r[i] / bnorm ) * sinphi
+                + (  p->p_phi[i] / ( gamma * p->mass[i] )
+                   - vflow * p->B_phi[i] / bnorm) * cosphi;
+            vin_xyz[2] = p->p_z[i] / ( gamma * p->mass[i] )
+                - vflow * p->B_z[i] / bnorm;
             real vin = math_norm(vin_xyz);
 
             /* Evaluate plasma density and temperature */
@@ -119,16 +123,17 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
                         + k3*(dW[2]  - t1*vhat[2]);
 
             /* Transform back to cylindrical coordinates.  */
-            vout_xyz[0] += vflow * cosphi;
-            vout_xyz[1] += vflow * sinphi;
-            real vnorm = math_norm(vout_xyz);
+            real vout_rpz[3];
+            math_vec_xyz2rpz(vout_xyz, vout_rpz, p->phi[i]);
+            vout_rpz[0] += vflow * p->B_r[i] / bnorm;
+            vout_rpz[1] += vflow * p->B_phi[i] / bnorm;
+            vout_rpz[2] += vflow * p->B_z[i] / bnorm;
+            real vnorm = math_norm(vout_rpz);
             gamma = physlib_gamma_vnorm(vnorm);
             if(!errflag) {
-                p->p_r[i]   = (  vout_xyz[0] * cosphi + vout_xyz[1] * sinphi )
-                    * gamma * p->mass[i];
-                p->p_phi[i] = ( -vout_xyz[0] * sinphi + vout_xyz[1] * cosphi )
-                               * gamma * p->mass[i];
-                p->p_z[i]   =    vout_xyz[2] * gamma * p->mass[i];
+                p->p_r[i]   = vout_rpz[0] * gamma * p->mass[i];
+                p->p_phi[i] = vout_rpz[1] * gamma * p->mass[i];
+                p->p_z[i]   = vout_rpz[2] * gamma * p->mass[i];
             }
 
             /* Error handling */
