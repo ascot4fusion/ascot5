@@ -28,7 +28,8 @@ typedef struct {
 
 int plasma_1Dt_init(plasma_1Dt_data* data, int nrho, int ntime, int nion,
                     real* rho, real* time, int* anum, int* znum, real* mass,
-                    real* charge, real* Te, real* Ti, real* ne, real* ni);
+                    real* charge, real* Te, real* Ti, real* ne, real* ni,
+                    real* vtor);
 void plasma_1Dt_free(plasma_1Dt_data* pls_data);
 void plasma_1Dt_offload(plasma_1Dt_data* pls_data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
@@ -44,7 +45,7 @@ a5err plasma_1Dt_eval_densandtemp(real* dens, real* temp, real rho, real t,
                                  plasma_1Dt_data* pls_data);
 DECLARE_TARGET_END
 GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
-a5err plasma_1Dt_eval_flow(real* vflow, real rho, real t,
+a5err plasma_1Dt_eval_flow(real* vflow, real rho, real t, real r,
                            plasma_1Dt_data* pls_data);
 DECLARE_TARGET_END
 

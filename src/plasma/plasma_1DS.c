@@ -42,7 +42,7 @@
  */
 int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
                     int nion, int* anum, int* znum, real* mass, real* charge,
-                    real* Te, real* Ti, real* ne, real* ni) {
+                    real* Te, real* Ti, real* ne, real* ni, real* vtor) {
     int err = 0;
     data->n_species = nion + 1;
     data->anum = (int*) malloc( nion*sizeof(int) );
@@ -130,6 +130,9 @@ int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
     free(ne_scaled);
     free(ni_scaled);
 
+    err = interp1Dcomp_setup(&data->vtor[0], vtor, nrho, NATURALBC,
+                             rhomin, rhomax);
+
     print_out(VERBOSE_IO, "\n1D plasma profiles (P_1DS)\n");
     print_out(VERBOSE_IO,
               "Min rho = %1.2le, Max rho = %1.2le,"
@@ -139,7 +142,7 @@ int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
     print_out(VERBOSE_IO,
               "Species Z/A  charge [e]/mass [amu] Density [m^-3] at Min/Max rho"
               "    Temperature [eV] at Min/Max rho\n");
-    real T0, T1, n0, n1;
+    real T0, T1, n0, n1, vtor0, vtor1;
     for(int i=0; i < nion; i++) {
         plasma_1DS_eval_temp(&T0, rhomin, i+1, data);
         plasma_1DS_eval_temp(&T1, rhomax, i+1, data);
@@ -158,6 +161,8 @@ int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
     plasma_1DS_eval_temp(&T1, rhomax, 0, data);
     plasma_1DS_eval_dens(&n0, rhomin, 0, data);
     plasma_1DS_eval_dens(&n1, rhomax, 0, data);
+    plasma_1DS_eval_flow(&vtor0, rhomin, 1.0/CONST_2PI, data);
+    plasma_1DS_eval_flow(&vtor1, rhomax, 1.0/CONST_2PI, data);
     print_out(VERBOSE_IO,
               "[electrons]  %3d  /%7.3f             %1.2le/%1.2le          "
               "      %1.2le/%1.2le       \n", -1, CONST_M_E/CONST_U,
@@ -177,6 +182,8 @@ int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
     }
     print_out(VERBOSE_IO, "Quasi-neutrality is (electron / ion charge density)"
               " %.2f\n", 1+quasineutrality);
+    print_out(VERBOSE_IO, "Toroidal rotation [rad/s] at Min/Max rho: "
+              "%1.2le/%1.2le\n", vtor0, vtor1);
 
     return 0;
 }
@@ -206,6 +213,7 @@ void plasma_1DS_offload(plasma_1DS_data* data) {
     GPU_MAP_TO_DEVICE(
         data->mass[0:data->n_species], data->charge[0:data->n_species], \
         data->anum[0:data->n_species-1], data->znum[0:data->n_species-1], \
+        data->vtor[0],\
         data->temp[0:2], data->dens[0:data->n_species], \
         data->temp[0].c[0:data->temp[0].n_x*NSIZE_COMP1D], \
         data->temp[1].c[0:data->temp[1].n_x*NSIZE_COMP1D]
@@ -337,13 +345,14 @@ a5err plasma_1DS_eval_densandtemp(real* dens, real* temp, real rho,
  * @param vflow pointer where the flow value is stored [m/s]
  * @param rho particle rho coordinate [1]
  * @param r particle R coordinate [m]
- * @param phi particle toroidal coordinate [rad]
- * @param z particle z coordinate [m]
- * @param t particle time coordinate [s]
  * @param pls_data pointer to plasma data
  */
-a5err plasma_1DS_eval_flow(real* vflow, real rho, plasma_1DS_data* pls_data) {
+a5err plasma_1DS_eval_flow(real* vflow, real rho, real r,
+                           plasma_1DS_data* pls_data) {
     a5err err = 0;
-
+    if(interp1Dcomp_eval_f(vflow, &pls_data->vtor, rho)) {
+        error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1DS );
+    }
+    *vflow *= CONST_2PI * r;
     return err;
 }
