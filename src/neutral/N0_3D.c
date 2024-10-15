@@ -28,6 +28,8 @@ int N0_3D_init(N0_3D_data* data,
     data->anum = (int*) malloc(n_species * sizeof(int));
     data->znum = (int*) malloc(n_species * sizeof(int));
     data->maxwellian = (int*) malloc(n_species * sizeof(int));
+    data->n0 = (linint3D_data*) malloc( n_species * sizeof(linint3D_data) );
+    data->t0 = (linint3D_data*) malloc( n_species * sizeof(linint3D_data) );
     for(int i = 0; i < data->n_species; i++) {
         data->anum[i]       = anum[i];
         data->znum[i]       = znum[i];

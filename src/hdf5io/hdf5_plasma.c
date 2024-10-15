@@ -95,7 +95,7 @@ int hdf5_plasma_read_1D(hid_t f, plasma_1D_data* data, char* qid) {
     }
     mass[0] = CONST_M_E;
     for(int i = 0; i < n_ions; i++) {
-        data->mass[i+1] = CONST_U;
+        mass[i+1] *= CONST_U;
     }
     free(q);
 
@@ -174,7 +174,7 @@ int hdf5_plasma_read_1Dt(hid_t f, plasma_1Dt_data* data, char* qid) {
     }
     mass[0] = CONST_M_E;
     for(int i = 0; i < n_ions; i++) {
-        data->mass[i+1] = CONST_U;
+        mass[i+1] *= CONST_U;
     }
     free(q);
 
@@ -263,7 +263,7 @@ int hdf5_plasma_read_1DS(hid_t f, plasma_1DS_data* data, char* qid) {
     }
     mass[0] = CONST_M_E;
     for(int i = 0; i < n_ions; i++) {
-        data->mass[i+1] = CONST_U;
+        mass[i+1] *= CONST_U;
     }
     free(q);
 

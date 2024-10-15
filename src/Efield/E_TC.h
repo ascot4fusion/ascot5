@@ -16,8 +16,8 @@
  * @brief Trivial Cartesian electric field simulation data
  */
 typedef struct {
-    real* Exyz; /**< Pointer to array holding constant [E_x, E_y, E_z]
-                     values [V/m]                                             */
+    real Exyz[3]; /**< Pointer to array holding constant [E_x, E_y, E_z]
+                       values [V/m]                                           */
 } E_TC_data;
 
 int E_TC_init(E_TC_data* Edata, real exyz[3]);

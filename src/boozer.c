@@ -54,6 +54,8 @@ int boozer_init(boozer_data* data, int npsi, real psi_min, real psi_max,
                              THETAMIN-padding, THETAMAX+padding);
 
     data->nrzs = nrzs;
+    data->rs = (real*) malloc( nrzs * sizeof(real) );
+    data->zs = (real*) malloc( nrzs * sizeof(real) );
     for(int i = 0; i < nrzs; i++) {
         data->rs[i] = rs[i];
         data->zs[i] = zs[i];

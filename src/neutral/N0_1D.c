@@ -44,6 +44,8 @@ int N0_1D_init(N0_1D_data* data, int n_rho, real rho_min, real rho_max,
     data->anum = (int*) malloc(n_species * sizeof(int));
     data->znum = (int*) malloc(n_species * sizeof(int));
     data->maxwellian = (int*) malloc(n_species * sizeof(int));
+    data->n0 = (linint1D_data*) malloc( n_species * sizeof(linint1D_data) );
+    data->t0 = (linint1D_data*) malloc( n_species * sizeof(linint1D_data) );
     for(int i = 0; i < data->n_species; i++) {
         data->anum[i] = anum[i];
         data->znum[i] = znum[i];
