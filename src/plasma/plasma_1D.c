@@ -41,8 +41,11 @@ int plasma_1D_init(plasma_1D_data* data, int nrho, int nion, real* rho,
         data->mass[i] = mass[i];
         data->charge[i] = charge[i];
     }
+    data->rho = (real*) malloc( nrho*sizeof(real) );
+    data->temp = (real*) malloc( 2*nrho*sizeof(real) );
+    data->dens = (real*) malloc( (nion+1)*nrho*sizeof(real) );
     for(int i = 0; i < data->n_rho; i++) {
-        data->rho[i] = rho[0];
+        data->rho[i] = rho[i];
         data->temp[i] = Te[i];
         data->temp[nrho + i] = Ti[i];
         data->dens[i] = ne[i];

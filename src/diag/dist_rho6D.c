@@ -48,9 +48,9 @@ int dist_rho6D_init(dist_rho6D_data* data) {
     data->step_2 = n_q * n_time;
     data->step_1 = n_q;
 
-    data->histogram = malloc(   data->n_time * data->n_pr * data->n_pphi
-                              * data->n_pr * data->n_phi * data->n_theta
-                              * data->n_rho * sizeof(real) );
+    data->histogram = calloc(  data->n_time * data->n_pr * data->n_pphi
+                             * data->n_pr * data->n_phi * data->n_theta
+                             * data->n_rho, sizeof(real) );
     return data->histogram == NULL;
 }
 

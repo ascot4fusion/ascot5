@@ -51,13 +51,12 @@ int asigma_loc_init(asigma_loc_data* data, int nreac,
 
         /* Initialize spline struct according to dimensionality of
            reaction data (and mark reaction availability) */
-        int  dim   = (ne[i_reac] > 1) + (nn[i_reac] > 1) + (nT[i_reac] > 1);
+        int dim = (ne[i_reac] > 1) + (nn[i_reac] > 1) + (nT[i_reac] > 1);
         real* pos = sigma;
         switch(dim) {
             case 1:
                 err = interp1Dcomp_setup(&data->sigma[i_reac], pos,
-                                         ne[i_reac],
-                                         NATURALBC,
+                                         ne[i_reac], NATURALBC,
                                          emin[i_reac], emax[i_reac]);
                 pos += ne[i_reac];
                 break;
@@ -114,9 +113,15 @@ int asigma_loc_init(asigma_loc_data* data, int nreac,
 */
 void asigma_loc_free(asigma_loc_data* data) {
     for(int i_reac = 0; i_reac < data->N_reac; i_reac++) {
-        free(&data->sigma[i_reac]);
-        free(&data->sigmav[i_reac]);
-        free(&data->BMSsigmav[i_reac]);
+        if(data->reac_type[i_reac] == sigma_CX) {
+            free(data->sigma[i_reac].c);
+        }
+        else if(data->reac_type[i_reac] == sigmav_CX) {
+            free(data->sigmav[i_reac].c);
+        }
+        else if(data->reac_type[i_reac] == sigmav_BMS) {
+            free(data->BMSsigmav[i_reac].c);
+        }
     }
     free(data->z_1);
     free(data->a_1);
