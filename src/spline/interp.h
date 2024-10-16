@@ -26,8 +26,8 @@
  */
 #ifndef INTERP_H
 #define INTERP_H
-#include "../offload_acc_omp.h"
 #include "../ascot5.h"
+#include "../offload.h"
 #include "../error.h"
 
 /**

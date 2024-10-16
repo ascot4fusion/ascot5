@@ -5,6 +5,7 @@
 #ifndef N0_1D_H
 #define N0_1D_H
 #include "../ascot5.h"
+#include "../offload.h"
 #include "../linint/linint.h" /* for 1D interpolation routines */
 
 /**

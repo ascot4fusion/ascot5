@@ -7,7 +7,7 @@
 #ifndef E_TC_H
 #define E_TC_H
 
-#include "../offload_acc_omp.h"
+#include "../offload.h"
 #include "../ascot5.h"
 #include "../error.h"
 #include "../B_field.h"

@@ -19,7 +19,6 @@
 #include "asigma.h"
 #include "nbi.h"
 #include "diag.h"
-#include "offload.h"
 #include "random.h"
 #include "simulate/mccc/mccc.h"
 

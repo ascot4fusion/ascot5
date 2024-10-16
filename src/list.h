@@ -4,7 +4,7 @@
  */
 #ifndef LIST_H
 #define LIST_H
-#include "offload_acc_omp.h"
+#include "offload.h"
 
 /**
  * @brief Linked list node that stores int data

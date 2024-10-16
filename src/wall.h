@@ -10,7 +10,7 @@
 #define WALL_H
 
 #include "ascot5.h"
-#include "offload_acc_omp.h"
+#include "offload.h"
 #include "wall/wall_2d.h"
 #include "wall/wall_3d.h"
 

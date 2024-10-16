@@ -69,7 +69,6 @@
 #include "particle.h"
 #include "endcond.h"
 #include "hdf5_interface.h"
-#include "offload.h"
 #include "gitver.h"
 #include "mpi_interface.h"
 

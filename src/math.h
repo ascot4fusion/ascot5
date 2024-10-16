@@ -5,7 +5,7 @@
 #ifndef MATH_H
 #define MATH_H
 
-#include "offload_acc_omp.h"
+#include "offload.h"
 #include <math.h>
 #include "ascot5.h"
 

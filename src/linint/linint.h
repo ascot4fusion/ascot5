@@ -11,8 +11,8 @@
  */
 #ifndef LININT_H
 #define LININT_H
-#include "../offload_acc_omp.h"
 #include "../ascot5.h"
+#include "../offload.h"
 #include "../spline/interp.h"
 
 /**

@@ -8,8 +8,8 @@
 #ifndef E_FIELD_H
 #define E_FIELD_H
 
-#include "offload_acc_omp.h"
 #include "ascot5.h"
+#include "offload.h"
 #include "error.h"
 #include "B_field.h"
 #include "Efield/E_TC.h"

@@ -5,6 +5,7 @@
 #ifndef N0_3D_H
 #define N0_3D_H
 #include "../ascot5.h"
+#include "../offload.h"
 #include "../linint/linint.h" /* for 3D interpolation routines */
 
 /**
