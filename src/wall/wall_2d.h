@@ -5,7 +5,7 @@
 #ifndef WALL_2D_H
 #define WALL_2D_H
 #include "../ascot5.h"
-#include "../offload_acc_omp.h"
+#include "../offload.h"
 
 /**
  * @brief 2D wall data parameters

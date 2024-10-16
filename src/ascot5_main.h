@@ -10,7 +10,6 @@
 #define ASCOT5_MAIN_H
 
 #include "ascot5.h"
-#include "offload.h"
 #include "simulate.h"
 
 int prepare_markers(

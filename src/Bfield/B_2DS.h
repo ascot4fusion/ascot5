@@ -6,7 +6,7 @@
  */
 #ifndef B_2DS_H
 #define B_2DS_H
-#include "../offload_acc_omp.h"
+#include "../offload.h"
 #include "../ascot5.h"
 #include "../error.h"
 #include "../spline/interp.h"

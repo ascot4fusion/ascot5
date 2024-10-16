@@ -8,8 +8,8 @@
 #ifndef B_FIELD_H
 #define B_FIELD_H
 
-#include "offload_acc_omp.h"
 #include "ascot5.h"
+#include "offload.h"
 #include "error.h"
 #include "Bfield/B_GS.h"
 #include "Bfield/B_2DS.h"

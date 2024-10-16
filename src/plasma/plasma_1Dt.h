@@ -5,6 +5,7 @@
 #ifndef PLASMA_1DT_H
 #define PLASMA_1DT_H
 #include "../ascot5.h"
+#include "../offload.h"
 #include "../error.h"
 
 /**

@@ -6,6 +6,7 @@
 #define MHD_STAT_H
 
 #include "../ascot5.h"
+#include "../offload.h"
 #include "../error.h"
 #include "../boozer.h"
 #include "../spline/interp.h"

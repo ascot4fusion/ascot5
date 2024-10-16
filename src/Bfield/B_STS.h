@@ -4,7 +4,7 @@
  */
 #ifndef B_STS_H
 #define B_STS_H
-#include "../offload_acc_omp.h"
+#include "../offload.h"
 #include "../ascot5.h"
 #include "../linint/linint.h"
 #include "../spline/interp.h"

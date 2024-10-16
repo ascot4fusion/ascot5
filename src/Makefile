@@ -154,7 +154,7 @@ OBJS= math.o list.o octree.o error.o \
 	$(PLSOBJS) $(N0OBJS) $(MHDOBJS) $(ASIGMAOBJS) $(LINTOBJS) \
 	$(SPLINEOBJS) \
 	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
-	E_field.o wall.o simulate.o diag.o offload.o boozer.o mhd.o \
+	E_field.o wall.o simulate.o diag.o boozer.o mhd.o \
 	random.o print.o hdf5_interface.o suzuki.o nbi.o biosaw.o \
 	asigma.o mpi_interface.o boschhale.o copytogpu.o bbnbi5.o
 
@@ -205,9 +205,6 @@ test_math: $(UTESTDIR)test_math.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_wall_2d: $(UTESTDIR)test_wall_2d.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
-
-test_offload: $(UTESTDIR)test_offload.o
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_E: $(UTESTDIR)test_E.o $(OBJS)

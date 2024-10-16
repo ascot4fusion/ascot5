@@ -14,7 +14,6 @@
 #include <string.h>
 #include <unistd.h>
 #include "endcond.h"
-#include "offload.h"
 #include "particle.h"
 #include "plasma.h"
 #include "random.h"
