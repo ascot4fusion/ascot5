@@ -158,8 +158,7 @@ void libascot_B_field_get_axis(
  * a given position, the corresponding (R,z) values in the output arrays are
  * not altered.
  *
- * @param sim_offload_data initialized simulation offload data struct
- * @param B_offload_array initialized magnetic field offload data
+ * @param sim_data initialized simulation data struct
  * @param Neval number of query points.
  * @param rho the square root of the normalized poloidal flux values.
  * @param theta poloidal angles [rad].
@@ -225,8 +224,7 @@ void libascot_B_field_rhotheta2rz(
  *
  * Note that the psi value is not returned in case this algorithm fails.
  *
- * @param sim_offload_data initialized simulation offload data struct
- * @param B_offload_array initialized magnetic field offload data
+ * @param sim_data initialized simulation data struct
  * @param psi value of psi on axis if this function did not fail
  * @param rz initial (R,z) position where also the result is stored
  * @param step the step size
@@ -283,9 +281,7 @@ void libascot_B_field_gradient_descent(
 /**
  * @brief Evaluate electric field vector at given coordinates.
  *
- * @param sim_offload_data initialized simulation offload data struct
- * @param B_offload_array initialized magnetic field offload data
- * @param E_offload_array initialized electric field offload data
+ * @param sim_data initialized simulation data struct
  * @param Neval number of evaluation points.
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
@@ -315,8 +311,7 @@ void libascot_E_field_eval_E(
 /**
  * @brief Get number of plasma species.
  *
- * @param sim_offload_data initialized simulation offload data struct
- * @param plasma_offload_array initialized plasma offload data
+ * @param @param sim_data initialized simulation data struct
  *
  * @return number of plasma species.
  */
@@ -327,8 +322,7 @@ int libascot_plasma_get_n_species(sim_data* sim) {
 /**
  * @brief Get mass and charge of all plasma species.
  *
- * @param sim_offload_data initialized simulation offload data struct
- * @param plasma_offload_array initialized plasma offload data
+ * @param sim_data initialized simulation data struct
  * @param mass mass output array [kg].
  * @param charge charge output array [C].
  * @param anum atomic mass number output array [1].
@@ -357,9 +351,7 @@ void libascot_plasma_get_species_mass_and_charge(
 /**
  * @brief Evaluate plasma density and temperature at given coordinates.
  *
- * @param sim_offload_data initialized simulation offload data struct
- * @param B_offload_array initialized mangetic field offload data
- * @param plasma_offload_array initialized plasma offload data
+ * @param sim_data initialized simulation data struct
  * @param Neval number of evaluation points.
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
@@ -397,9 +389,7 @@ void libascot_plasma_eval_background(
 /**
  * @brief Evaluate neutral density at given coordinates.
  *
- * @param sim_offload_data initialized simulation offload data struct
- * @param B_offload_array initialized mangetic field offload data
- * @param neutral_offload_array initialized neutral offload data
+ * @param sim_data initialized simulation data struct
  * @param Neval number of evaluation points.
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
@@ -430,9 +420,7 @@ void libascot_neutral_eval_density(
 /**
  * @brief Evaluate boozer coordinates and derivatives.
  *
- * @param sim_offload_data initialized simulation offload data struct
- * @param B_offload_array initialized magnetic field offload data
- * @param boozer_offload_array initialized boozer offload data
+ * @param sim_data initialized simulation data struct
  * @param Neval number of evaluation points.
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
@@ -492,9 +480,7 @@ void libascot_boozer_eval_psithetazeta(
 /**
  * @brief Evaluate boozer coordinates related quantities.
  *
- * @param sim_offload_data initialized simulation offload data struct
- * @param B_offload_array initialized magnetic field offload data
- * @param boozer_offload_array initialized boozer offload data
+ * @param sim_data initialized simulation data struct
  * @param Neval number of evaluation points.
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
@@ -549,8 +535,7 @@ void libascot_boozer_eval_fun(
 /**
  * @brief Get number of MHD modes.
  *
- * @param sim_offload_data initialized simulation offload data struct
- * @param mhd_offload_array initialized mhd offload data
+ * @param @param sim_data initialized simulation data struct
  *
  * @return number of MHD modes
  */
@@ -562,8 +547,7 @@ int libascot_mhd_get_n_modes(sim_data* sim) {
 /**
  * @brief Get MHD mode amplitude, frequency, phase, and mode numbers
  *
- * @param sim_offload_data initialized simulation offload data struct
- * @param mhd_offload_array initialized mhd offload data
+ * @param sim_data initialized simulation data struct
  * @param nmode output array for toroidal mode number
  * @param mmode output array for poloidal mode number
  * @param amplitude output array for mode amplitude
@@ -592,10 +576,7 @@ void libascot_mhd_get_mode_specs(
 /**
  * @brief Evaluate MHD perturbation potentials
  *
- * @param sim_offload_data initialized simulation offload data struct
- * @param B_offload_array initialized magnetic field offload data
- * @param boozer_offload_array initialized boozer offload data
- * @param mhd_offload_array initialized MHD offload data
+ * @param sim_data initialized simulation data struct
  * @param Neval number of evaluation points.
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
@@ -642,10 +623,7 @@ void libascot_mhd_eval(
 /**
  * @brief Evaluate MHD perturbation EM-field components
  *
- * @param sim_offload_data initialized simulation offload data struct
- * @param B_offload_array initialized magnetic field offload data
- * @param boozer_offload_array initialized boozer offload data
- * @param mhd_offload_array initialized MHD offload data
+ * @param sim_data initialized simulation data struct
  * @param Neval number of evaluation points.
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
@@ -688,9 +666,7 @@ void libascot_mhd_eval_perturbation(
 /**
  * @brief Evaluate collision coefficients
  *
- * @param sim_offload_data initialized simulation offload data struct
- * @param B_offload_array initialized magnetic field offload data
- * @param plasma_offload_array initialized plasma offload data
+ * @param sim_data initialized simulation data struct
  * @param Neval number of evaluation points
  * @param R R coordinates of the evaluation points [m]
  * @param phi phi coordinates of the evaluation points [rad]
@@ -798,11 +774,7 @@ void libascot_eval_collcoefs(
 /**
  * @brief Evaluate atomic reaction rate coefficient.
  *
- * @param sim_offload_data initialized simulation offload data struct
- * @param B_offload_array initialized magnetic field offload data
- * @param plasma_offload_array initialized magnetic field offload data
- * @param neutral_offload_array initialized magnetic field offload data
- * @param asigma_offload_array initialized magnetic field offload data
+ * @param sim_data initialized simulation data struct
  * @param Neval number of evaluation points in (R, phi, z, t).
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].

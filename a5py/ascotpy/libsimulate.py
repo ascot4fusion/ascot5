@@ -117,7 +117,7 @@ class LibSimulate():
         self._sim.endcond_max_tororb  = 2*np.pi*opt["ENDCOND_MAX_TOROIDALORBS"]
 
         # Setting options
-        diag = self._sim.diag_offload_data
+        diag = self._sim.diag_data
         diag.dist5D_collect    = int(opt["ENABLE_DIST_5D"])
         diag.dist6D_collect    = int(opt["ENABLE_DIST_6D"]) * 0    # Not impl.
         diag.distrho5D_collect = int(opt["ENABLE_DIST_RHO5D"])*0
@@ -197,7 +197,6 @@ class LibSimulate():
         self.input_init(
             bfield=bfield, efield=efield, plasma=plasma, neutral=neutral,
             wall=wall, boozer=boozer, mhd=mhd, asigma=asigma, switch=switch)
-        self._pack()
 
     def simulation_initbbnbi(
             self,
@@ -346,7 +345,7 @@ class LibSimulate():
             n_proc = ctypes.c_int32(0)
             ascot2py.prepare_markers(
                 ctypes.byref(self._sim), self._nmrk, pin, ctypes.byref(ps),
-                ctypes.byref(n_proc), self._bfield_offload_array)
+                ctypes.byref(n_proc))
 
             ascot2py.mpi_gather_particlestate(
                 ps, ctypes.byref(self._inistate), ctypes.byref(n_proc), self._nmrk,
@@ -395,9 +394,6 @@ class LibSimulate():
         if not _LIBASCOT:
             raise AscotInitException(
                 "Python interface disabled as libascot.so is not found")
-        if not self._offload_ready:
-            raise AscotInitException(
-                "Initialize inputs before running the simulation")
         if self._nmrk.value == 0:
             raise AscotInitException(
                 "Initialize markers before running the simulation")
@@ -422,19 +418,14 @@ class LibSimulate():
 
         # Initialize diagnostics array and endstate
         self._endstate = ctypes.pointer(ascot2py.struct_c__SA_particle_state())
-        ascot2py.diag_init_offload(ctypes.byref(self._sim.diag_offload_data),
-                                   ctypes.byref(self._diag_offload_array),
-                                   self._nmrk)
+        ascot2py.diag_init(ctypes.byref(self._sim.diag_data), self._nmrk)
         self._diag_occupied = True
 
         # Simulate and print stdout/stderr if requested
         def runsim():
             ascot2py.offload_and_simulate(
-                ctypes.byref(self._sim), self._nmrk,
-                n_proc.value, inistate, ctypes.byref(self._offload_data),
-                self._offload_array, self._int_offload_array,
-                ctypes.byref(self._nmrk), ctypes.byref(self._endstate),
-                self._diag_offload_array)
+                ctypes.byref(self._sim), self._nmrk, n_proc.value, inistate,
+                ctypes.byref(self._nmrk), ctypes.byref(self._endstate))
 
         if self._mute == "no":
             runsim()
@@ -459,16 +450,15 @@ class LibSimulate():
                 return self.inp
 
         diagorb = None
-        if self._sim.diag_offload_data.diagorb_collect:
-            diagorb = self._sim.diag_offload_data.diagorb
+        if self._sim.diag_data.diagorb_collect:
+            diagorb = self._sim.diag_data.diagorb
         dist5d = None
-        if self._sim.diag_offload_data.dist5D_collect:
-            dist5d = self._sim.diag_offload_data.dist5D
+        if self._sim.diag_data.dist5D_collect:
+            dist5d = self._sim.diag_data.dist5D
         return VirtualRun(self, self._nmrk.value,
                           self._inistate, self._endstate,
                           VirtualInput(self._virtualoptions),
                           VirtualInput(self._virtualmarkers),
-                          self._diag_offload_array,
                           diagorb=diagorb, dist5d=dist5d)
 
     def simulation_bbnbi(self, nprt, t1=0, t2=0, printsummary=True):
@@ -524,23 +514,14 @@ class LibSimulate():
                 "Free previous results before running the simulation")
         # Initialize diagnostics array and endstate
         self._endstate = ctypes.pointer(ascot2py.struct_c__SA_particle_state())
-        ascot2py.diag_init_offload(ctypes.byref(self._sim.diag_offload_data),
-                                   ctypes.byref(self._diag_offload_array),
-                                   nprt)
+        ascot2py.diag_init(ctypes.byref(self._sim.diag_data), nprt)
         self._diag_occupied = True
 
         # Simulate and print stdout/stderr if requested
         def runsim():
             ascot2py.bbnbi_simulate(
                 ctypes.byref(self._sim), nprt, t1, t2,
-                self._bfield_offload_array,
-                self._plasma_offload_array,
-                self._neutral_offload_array,
-                self._wall_offload_array, self._wall_int_offload_array,
-                self._asigma_offload_array,
-                self._nbi_offload_array,
-                ctypes.byref(self._endstate),
-                self._diag_offload_array)
+                ctypes.byref(self._endstate))
 
         if self._mute == "no":
             runsim()
@@ -566,14 +547,14 @@ class LibSimulate():
                 return self.inp
 
         diagorb = None
-        if self._sim.diag_offload_data.diagorb_collect:
-            diagorb = self._sim.diag_offload_data.diagorb
+        if self._sim.diag_data.diagorb_collect:
+            diagorb = self._sim.diag_data.diagorb
         dist5d = None
-        if self._sim.diag_offload_data.dist5D_collect:
-            dist5d = self._sim.diag_offload_data.dist5D
+        if self._sim.diag_data.dist5D_collect:
+            dist5d = self._sim.diag_data.dist5D
         return VirtualBBNBIRun(
             self, nprt, self._endstate, VirtualInput(self._virtualoptions),
-            self._diag_offload_array, dist5d=dist5d)
+            dist5d=dist5d)
 
     def simulation_free(self, inputs=False, markers=False, diagnostics=False):
         """Free resources used by the interactive simulation.
@@ -597,13 +578,11 @@ class LibSimulate():
             markers     = True
             diagnostics = True
 
-        if inputs and self._offload_ready:
-            self._unpack()
         if markers and self._nmrk.value > 0:
             self._nmrk.value = 0
             ascot2py.libascot_deallocate(self._inistate)
             self._virtualmarkers = None
         if diagnostics and self._diag_occupied:
             self._diag_occupied = False
-            ascot2py.libascot_deallocate(self._diag_offload_array)
+            ascot2py.diag_free(ctypes.byref(self._sim.diag_data))
             ascot2py.libascot_deallocate(self._endstate)

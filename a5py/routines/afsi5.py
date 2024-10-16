@@ -7,9 +7,8 @@ import numpy as np
 import unyt
 import numpy.ctypeslib as npctypes
 
-from a5py.ascotpy.libascot import _LIBASCOT, STRUCT_DIST5DOFFLOAD, \
-    STRUCT_DIST5D, STRUCT_AFSIDATA, STRUCT_AFSITHERMAL, PTR_REAL, \
-    AFSI_REACTIONS
+from a5py.ascotpy.libascot import _LIBASCOT, STRUCT_DIST5D, STRUCT_AFSIDATA, \
+    STRUCT_AFSITHERMAL, PTR_REAL, AFSI_REACTIONS
 from a5py.exceptions import AscotNoDataException
 from a5py.routines.distmixin import DistMixin
 

@@ -29,9 +29,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
     Attributes
     ----------
     _sim
-        Simulation offload data struct.
-    _offload_ready
-        Flag indicating if inputs are packed.
+        Simulation data struct.
     _nmrk
         Number of markers currently in the marker array.
     _inistate
@@ -39,34 +37,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
     _endstate
         Marker output array for interactive simulations.
     _diag_occupied
-        Flag indicating if diagnostics array contains data.
-    _diag_offload_array
-        Diagnostics data offload array.
-    _offload_array
-        Offload array containing the input data when this instance is packed.
-    _int_offload_array
-        Offload array for integers containing the input data when this instance
-        is packed.
-    _bfield_offload_array
-        Offload data for the magnetic field input.
-    _efield_offload_array
-        Offload data for the electric field input.
-    _plasma_offload_array
-        Offload data for the plasma input.
-    _neutral_offload_array
-        Offload data for the neutral input.
-    _wall_offload_array
-        Offload data for the wall (float) input.
-    _wall_int_offload_array
-        Offload data for the wall (int) input.
-    _boozer_offload_array
-        Offload data for the Boozer input.
-    _mhd_offload_array
-        Offload data for the MHD input.
-    _asigma_offload_array
-        Offload data for the atomic data input.
-    _nbi_offload_array
-        Offload data for the neutral beam injector data input.
+        Flag indicating if diagnostics output contains data.
     _mute
         Mute output from libascot.so: "yes" - stdout and stderr both muted,
         "no" - output is not muted, "err" - stderr is printed.
@@ -84,29 +55,12 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             return
 
         # Initialize attributes
-        self._offload_ready     = False
-        self._nmrk              = ctypes.c_int32()
-        self._diag_occupied     = False
-        self._offload_data      = ascot2py.struct_c__SA_offload_package()
-        self._offload_array     = ctypes.POINTER(ctypes.c_double)()
-        self._int_offload_array = ctypes.POINTER(ctypes.c_int   )()
+        self._nmrk = ctypes.c_int32()
         self._inistate = ctypes.POINTER(ascot2py.struct_c__SA_particle_state)()
         self._endstate = ctypes.POINTER(ascot2py.struct_c__SA_particle_state)()
+        self._diag_occupied = False
 
-        self._sim = ascot2py.struct_c__SA_sim_offload_data()
-        self._bfield_offload_array  = ctypes.POINTER(ctypes.c_double)()
-        self._efield_offload_array  = ctypes.POINTER(ctypes.c_double)()
-        self._plasma_offload_array  = ctypes.POINTER(ctypes.c_double)()
-        self._neutral_offload_array = ctypes.POINTER(ctypes.c_double)()
-        self._wall_offload_array    = ctypes.POINTER(ctypes.c_double)()
-        self._boozer_offload_array  = ctypes.POINTER(ctypes.c_double)()
-        self._mhd_offload_array     = ctypes.POINTER(ctypes.c_double)()
-        self._asigma_offload_array  = ctypes.POINTER(ctypes.c_double)()
-        self._nbi_offload_array     = ctypes.POINTER(ctypes.c_double)()
-        self._diag_offload_array    = ctypes.POINTER(ctypes.c_double)()
-
-        self._wall_int_offload_array = ctypes.POINTER(ctypes.c_int)()
-
+        self._sim = ascot2py.struct_c__SA_sim_data()
         self._mute = "no"
 
     def _initmpi(self, mpirank, mpisize, mpiroot=0):
@@ -130,7 +84,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
     def _init(self, data, bfield=None, efield=None, plasma=None,
               wall=None, neutral=None, boozer=None, mhd=None, asigma=None,
               nbi=None, switch=False):
-        """Read, offload, and initialize input data so it can be accessed
+        """Read and initialize input data so it can be accessed
         by libascot.
 
         The input is initialized by reading the data from the HDF5 file
@@ -141,7 +95,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         would be provided to a corresponding write_hdf5 function) then the HDF5
         file is completely ignored and the input is initialized from
         the dictionary completely on the Python side, using ctypes, and only
-        the init_offload is done in C. See :mod:`a5py.ascotpy.libproviders` for
+        the init is done in C. See :mod:`a5py.ascotpy.libproviders` for
         details.
 
         Parameters
@@ -173,9 +127,6 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         switch : bool
             If ``True``, free input that has been
         """
-        if self._offload_ready:
-            raise AscotInitException("This instance has been packed")
-
         # Iterate through all inputs and mark those that are initialized
         inputs2read = ctypes.c_int32()
         args = locals() # Contains function arguments and values in a dictionary
@@ -238,16 +189,6 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             ascot2py.hdf5_interface_read_input(
                 ctypes.byref(self._sim),
                 inputs2read,
-                ctypes.byref(self._bfield_offload_array),
-                ctypes.byref(self._efield_offload_array),
-                ctypes.byref(self._plasma_offload_array),
-                ctypes.byref(self._neutral_offload_array),
-                ctypes.byref(self._wall_offload_array),
-                ctypes.byref(self._wall_int_offload_array),
-                ctypes.byref(self._boozer_offload_array),
-                ctypes.byref(self._mhd_offload_array),
-                ctypes.byref(self._asigma_offload_array),
-                ctypes.byref(self._nbi_offload_array),
                 None, # Marker array (ignore)
                 None  # Number of markers that were read (ignore)
             )
@@ -268,9 +209,6 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
               neutral=False, boozer=False, mhd=False, asigma=False):
         """Free input data initialized in C-side.
         """
-        if self._offload_ready:
-            raise AscotInitException("This instance has been packed")
-
         args = locals() # Contains function arguments and values in a dictionary
 
         # Iterate through all inputs and free the data if the corresponding
@@ -278,133 +216,18 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
                     "mhd", "asigma"]:
             if args[inp] and \
-               getattr(self._sim, "qid_" + inp) != Ascotpy.DUMMY_QID:
-
+                getattr(self._sim, "qid_" + inp) != Ascotpy.DUMMY_QID:
                 # Deallocate the data allocated in C side
-                array = getattr(self, "_" + inp + "_offload_array")
-                ascot2py.libascot_deallocate(array)
-                if inp == "wall":
-                    array = getattr(self, "_" + inp + "_int_offload_array")
-                    ascot2py.libascot_deallocate(array)
-
-                # Set the offload array length to zero
                 if inp == "bfield":
-                    self._sim.B_offload_data.offload_array_length = 0
+                    _LIBASCOT.B_field_free(ctypes.byref(self._sim.B_data))
                 elif inp == "efield":
-                    self._sim.E_offload_data.offload_array_length = 0
+                    _LIBASCOT.E_field_free(ctypes.byref(self._sim.E_data))
                 else:
-                    data = getattr(self._sim, inp + "_offload_data")
-                    data.offload_array_length = 0
-                    if inp == "wall":
-                        data.int_offload_array_length = 0
+                    data = getattr(self._sim, inp + "_data")
+                    getattr(_LIBASCOT, inp + "_free")(ctypes.byref(data))
 
                 # Set QID to dummy value
                 setattr(self._sim, "qid_" + inp, Ascotpy.DUMMY_QID)
-
-    def _pack(self):
-        """Pack offload arrays as one making this instance ready for simulation.
-
-        Note that inputs cannot be changed or freed before calling _unpack. Make
-        sure all required data is initialized before packing.
-        """
-        if self._offload_ready:
-            raise AscotInitException("This instance is already packed")
-
-        # This call internally frees individual offload arrays and initializes
-        # the common ones.
-        ascot2py.pack_offload_array(
-            ctypes.byref(self._sim), ctypes.byref(self._offload_data),
-            self._bfield_offload_array, self._efield_offload_array,
-            self._plasma_offload_array, self._neutral_offload_array,
-            self._wall_offload_array,   self._wall_int_offload_array,
-            self._boozer_offload_array, self._mhd_offload_array,
-            self._asigma_offload_array,
-            ctypes.byref(self._offload_array),
-            ctypes.byref(self._int_offload_array))
-        self._offload_ready = True
-
-        # Set pointers to correct locations (based on the order arrays are
-        # packed) so that we can continue using evaluation routines.
-        def setptr(pos):
-            """Create a pointer on the offload array on a given position
-            """
-            arr = ctypes.byref(self._offload_array.contents,
-                               ctypes.sizeof(ctypes.c_double) * pos)
-            return ctypes.cast(arr, ctypes.POINTER(ctypes.c_double))
-
-        def setintptr(pos):
-            """Create a pointer on the int offload array on a given position
-            """
-            if self._int_offload_array:
-                arr = ctypes.byref(self._int_offload_array.contents,
-                                   ctypes.sizeof(ctypes.c_int) * pos)
-                return ctypes.cast(arr, ctypes.POINTER(ctypes.c_int))
-            else:
-                return self._int_offload_array
-
-        # These must be in the same order as they are packed in C
-        pos = 0
-        self._bfield_offload_array = setptr(pos)
-        pos += self._sim.B_offload_data.offload_array_length
-        self._efield_offload_array = setptr(pos)
-        pos += self._sim.E_offload_data.offload_array_length
-        self._plasma_offload_array = setptr(pos)
-        pos += self._sim.plasma_offload_data.offload_array_length
-        self._neutral_offload_array = setptr(pos)
-        pos += self._sim.neutral_offload_data.offload_array_length
-        self._wall_offload_array = setptr(pos)
-        pos += self._sim.wall_offload_data.offload_array_length
-        self._boozer_offload_array = setptr(pos)
-        pos += self._sim.boozer_offload_data.offload_array_length
-        self._mhd_offload_array = setptr(pos)
-        pos += self._sim.mhd_offload_data.offload_array_length
-        self._asigma_offload_array = setptr(pos)
-        pos += self._sim.asigma_offload_data.offload_array_length
-
-        self._wall_int_offload_array = setintptr(0)
-
-    def _unpack(self, bfield=True, efield=True, plasma=True, wall=True,
-                neutral=True, boozer=True, mhd=True, asigma=True):
-        """Unpack simulation arrays, i.e. free offload array and re-read data.
-
-        After unpacking the inputs can be changed or freed again but simulations
-        cannot be performed.
-        """
-        if not self._offload_ready:
-            raise AscotInitException("This instance hasn't been packed")
-
-        ascot2py.libascot_deallocate(self._offload_array)
-        ascot2py.libascot_deallocate(self._int_offload_array)
-        self._offload_data.offload_array_length     = 0
-        self._offload_data.int_offload_array_length = 0
-        self._offload_data.unpack_pos               = 0
-        self._offload_data.int_unpack_pos           = 0
-
-        inputs2read = {}
-        def readornot(name, read, qid):
-            if read:
-                inputs2read[name] = qid.decode("utf-8")
-            return Ascotpy.DUMMY_QID
-
-        self._sim.qid_bfield  = readornot("bfield",  bfield,
-                                          self._sim.qid_bfield)
-        self._sim.qid_efield  = readornot("efield",  efield,
-                                          self._sim.qid_efield)
-        self._sim.qid_plasma  = readornot("plasma",  plasma,
-                                          self._sim.qid_plasma)
-        self._sim.qid_neutral = readornot("neutral", neutral,
-                                          self._sim.qid_neutral)
-        self._sim.qid_wall    = readornot("wall",    wall,
-                                          self._sim.qid_wall)
-        self._sim.qid_boozer  = readornot("boozer",  boozer,
-                                          self._sim.qid_boozer)
-        self._sim.qid_mhd     = readornot("mhd",     mhd,
-                                          self._sim.qid_mhd)
-        self._sim.qid_asigma  = readornot("asigma",  asigma,
-                                          self._sim.qid_asigma)
-
-        self._offload_ready = False
-        self.input_init(**inputs2read)
 
     def _requireinit(self, *inputs):
         """Raise error if given input parent is not initialized.
