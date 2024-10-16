@@ -18,7 +18,7 @@ class VirtualRun(RunMixin):
     """
 
     def __init__(self, ascot, nmrk, inistate, endstate, options, markers,
-                 diag_offload_array, diagorb=None, dist5d=None, dist5drho=None):
+                 diagorb=None, dist5d=None, dist5drho=None):
         """Initialize fields that allow this instance to replicate
         :class:`RunGroup` behavior.
 
@@ -56,27 +56,10 @@ class VirtualRun(RunMixin):
         self._inistate = VirtualState(ascot, ascot._nmrk, inistate)
         self._endstate = VirtualState(ascot, ascot._nmrk, endstate)
 
-        def pointer_increment(idx):
-            """Returns pointer to the diagnostics array on index idx.
-            """
-            array_at_idx = ctypes.cast(diag_offload_array,
-                                       ctypes.POINTER(ctypes.c_double))
-            ptr  = ctypes.cast(ctypes.pointer(array_at_idx),
-                               ctypes.POINTER(ctypes.c_void_p))
-            ptr.contents.value += idx*ctypes.sizeof(ctypes.c_double)
-            return array_at_idx
-
         if diagorb is not None:
-            data = pointer_increment(
-                ascot._sim.diag_offload_data.offload_diagorb_index)
-
-            self._orbit = VirtualOrbits(
-                ascot, ascot._nmrk, diagorb, data)
+            self._orbit = VirtualOrbits(ascot, ascot._nmrk, diagorb)
         if dist5d is not None:
-            data = pointer_increment(
-                ascot._sim.diag_offload_data.offload_dist5D_index)
-
-            self._dist5d = VirtualDist("5d", dist5d, diag_offload_array)
+            self._dist5d = VirtualDist("5d", dist5d)
 
 class VirtualBBNBIRun(BBNBIMixin):
     """Virtual :class:`BBNBIGroup` whose data exists solely in the memory.
@@ -110,22 +93,8 @@ class VirtualBBNBIRun(BBNBIMixin):
         #    grp = ascot.data[inp].active
         #    setattr(self, inp, grp)
         self._state = VirtualState(ascot, ascot._nmrk, state)
-
-        def pointer_increment(idx):
-            """Returns pointer to the diagnostics array on index idx.
-            """
-            array_at_idx = ctypes.cast(diag_offload_array,
-                                       ctypes.POINTER(ctypes.c_double))
-            ptr  = ctypes.cast(ctypes.pointer(array_at_idx),
-                               ctypes.POINTER(ctypes.c_void_p))
-            ptr.contents.value += idx*ctypes.sizeof(ctypes.c_double)
-            return array_at_idx
-
         if dist5d is not None:
-            data = pointer_increment(
-                ascot._sim.diag_offload_data.offload_dist5D_index)
-
-            self._dist5d = VirtualDist("5d", dist5d, diag_offload_array)
+            self._dist5d = VirtualDist("5d", dist5d)
 
 class VirtualState():
     """Like :class:`State` but the data is in C array.
@@ -203,7 +172,7 @@ class VirtualOrbits():
     """Like :class:`Orbits` but the data is in C array.
     """
 
-    def __init__(self, ascot, nmrk, diagorb, diag_offload_array):
+    def __init__(self, ascot, nmrk, diagorb):
         """Initialize fields that allow this instance to replicate
         :class:`Orbits` behavior.
 
@@ -214,16 +183,14 @@ class VirtualOrbits():
         nmrk : int
             Number of markers in the simulation.
         diagorb :
-            Diag_orb offload struct.
-        diag_offload_array : array_like
-            The offload array where the orbit data begins at the first index.
+            Diag_orb struct.
         """
         self.ascot   = ascot
         self.nmrk    = nmrk.value
         self.npnt    = diagorb.Npnt
         self.mode    = diagorb.record_mode
         self.orbmode = diagorb.mode
-        self.arr     = diag_offload_array
+        self.orb     = diagorb
 
     def get(self, inistate, endstate, *qnt):
         """Return marker quantity.
@@ -253,127 +220,132 @@ class VirtualOrbits():
         # Prepare helper variables and functions
         arrlen = self.nmrk * self.npnt
         def _val(q, mask=None):
-            """Read quantity from the orbit array.
-            """
+            """Read quantity from the orbit array."""
             # C array contains dummy data where ids == 0
-            idx = np.array(self.arr[arrlen*0:arrlen*1]) > 0
+            def asarray(qnt, dtype="f8"):
+                arr = np.ctypeslib.as_array(qnt, shape=(arrlen,))
+                if dtype != "f8":
+                    arr = arr.astype(dtype)
+                return arr
+
+            idx = asarray(self.orb.id, dtype="i8") > 0
             m = unyt.m; rad = unyt.rad; kg = unyt.kg; s = unyt.s; J = unyt.J
             T = unyt.T; C = unyt.C; nodim = unyt.dimensionless
             if q == "ids":
-                val = np.array(self.arr[arrlen*0:arrlen*1]) * nodim
+                val = asarray(self.orb.id, "i8") * nodim
             elif q == "mileage":
-                val = np.array(self.arr[arrlen*1:arrlen*2]) * s
+                val = asarray(self.orb.mileage) * s
             elif q == "r":
-                val = np.array(self.arr[arrlen*2:arrlen*3]) * m
+                val = asarray(self.orb.r) * m
             elif q == "phi":
-                val = np.array(self.arr[arrlen*3:arrlen*4]) * rad
+                val = asarray(self.orb.phi) * rad
             elif q == "z":
-                val = np.array(self.arr[arrlen*4:arrlen*5]) * m
+                val = asarray(self.orb.z) * m
 
             if self.mode == ascot2py.simulate_mode_fo:
                 if q == "pr":
-                    val = np.array(self.arr[arrlen*5:arrlen*6]) * kg*m/s
+                    val = asarray(self.orb.pr) * kg*m/s
                 elif q == "pphi":
-                    val = np.array(self.arr[arrlen*6:arrlen*7]) * kg*m/s
+                    val = asarray(self.orb.pphi) * kg*m/s
                 elif q == "pz":
-                    val = np.array(self.arr[arrlen*7:arrlen*8]) * kg*m/s
+                    val = asarray(self.orb.pz) * kg*m/s
                 elif q == "weight":
-                    val = np.array(self.arr[arrlen*8:arrlen*9]) * nodim
+                    val = asarray(self.orb.weight) * nodim
                 elif q == "charge":
-                    val = np.array(self.arr[arrlen*9:arrlen*10]) * C
+                    val = asarray(self.orb.charge) * C
                 elif q == "rho":
-                    val = np.array(self.arr[arrlen*10:arrlen*11]) * nodim
+                    val = asarray(self.orb.rho) * nodim
                 elif q == "theta":
-                    val = np.array(self.arr[arrlen*11:arrlen*12]) * rad
+                    val = asarray(self.orb.theta) * rad
                 elif q == "br":
-                    val = np.array(self.arr[arrlen*12:arrlen*13]) * T
+                    val = asarray(self.orb.br) * T
                 elif q == "bphi":
-                    val = np.array(self.arr[arrlen*13:arrlen*14]) * T
+                    val = asarray(self.orb.bphi) * T
                 elif q == "bz":
-                    val = np.array(self.arr[arrlen*14:arrlen*15]) * T
+                    val = asarray(self.orb.bz) * T
                 elif q == "simmode":
-                    val = np.array(self.arr[arrlen*15:arrlen*16]) * nodim
+                    val = asarray(self.orb.simmode, "i8") * nodim
                 if q == "pncrid" and self.orbmode == 0:
-                    val = np.array(self.arr[arrlen*16:arrlen*17]) * nodim
+                    val = asarray(self.orb.pncrid, "i8") * nodim
                 if q == "pncrdir" and self.orbmode == 0:
-                    val = np.array(self.arr[arrlen*17:arrlen*18]) * nodim
+                    val = asarray(self.orb.pncrdir) * nodim
             elif self.mode == ascot2py.simulate_mode_gc:
                 if q == "ppar":
-                    val = np.array(self.arr[arrlen*5:arrlen*6]) * kg*m/s
+                    val = asarray(self.orb.ppar) * kg*m/s
                 elif q == "mu":
-                    val = np.array(self.arr[arrlen*6:arrlen*7]) * J/T
+                    val = asarray(self.orb.mu) * J/T
                 elif q == "zeta":
-                    val = np.array(self.arr[arrlen*7:arrlen*8]) * rad
+                    val = asarray(self.orb.zeta) * rad
                 elif q == "weight":
-                    val = np.array(self.arr[arrlen*8:arrlen*9]) * nodim
+                    val = asarray(self.orb.weight) * nodim
                 elif q == "charge":
-                    val = np.array(self.arr[arrlen*9:arrlen*10]) * C
+                    val = asarray(self.orb.charge) * C
                 elif q == "rho":
-                    val = np.array(self.arr[arrlen*10:arrlen*11]) * nodim
+                    val = asarray(self.orb.rho) * nodim
                 elif q == "theta":
-                    val = np.array(self.arr[arrlen*11:arrlen*12]) * rad
+                    val = asarray(self.orb.theta) * rad
                 elif q == "br":
-                    val = np.array(self.arr[arrlen*12:arrlen*13]) * T
+                    val = asarray(self.orb.br) * T
                 elif q == "bphi":
-                    val = np.array(self.arr[arrlen*13:arrlen*14]) * T
+                    val = asarray(self.orb.bphi) * T
                 elif q == "bz":
-                    val = np.array(self.arr[arrlen*14:arrlen*15]) * T
+                    val = asarray(self.orb.bz) * T
                 elif q == "simmode":
-                    val = np.array(self.arr[arrlen*15:arrlen*16]) * nodim
+                    val = asarray(self.orb.simmode, "i8") * nodim
                 if q == "pncrid" and self.orbmode == 0:
-                    val = np.array(self.arr[arrlen*16:arrlen*17]) * nodim
+                    val = asarray(self.orb.pncrid, "i8") * nodim
                 if q == "pncrdir" and self.orbmode == 0:
-                    val = np.array(self.arr[arrlen*17:arrlen*18]) * nodim
+                    val = asarray(self.orb.pncrdir) * nodim
             elif self.mode == ascot2py.simulate_mode_ml:
                 if q == "rho":
-                    val = np.array(self.arr[arrlen*5:arrlen*6]) * nodim
+                    val = asarray(self.orb.rho) * nodim
                 elif q == "theta":
-                    val = np.array(self.arr[arrlen*6:arrlen*7]) * rad
+                    val = asarray(self.orb.theta) * rad
                 elif q == "br":
-                    val = np.array(self.arr[arrlen*7:arrlen*8]) * T
+                    val = asarray(self.orb.br) * T
                 elif q == "bphi":
-                    val = np.array(self.arr[arrlen*8:arrlen*9]) * T
+                    val = asarray(self.orb.bphi) * T
                 elif q == "bz":
-                    val = np.array(self.arr[arrlen*9:arrlen*10]) * T
+                    val = asarray(self.orb.bz) * T
                 elif q == "simmode":
-                    val = np.array(self.arr[arrlen*10:arrlen*11]) * nodim
+                    val = asarray(self.orb.simmode, "i8") * nodim
                 if q == "pncrid" and self.orbmode == 0:
-                    val = np.array(self.arr[arrlen*11:arrlen*12]) * nodim
+                    val = asarray(self.orb.pncrid, "i8") * nodim
                 if q == "pncrdir" and self.orbmode == 0:
-                    val = np.array(self.arr[arrlen*12:arrlen*13]) * nodim
+                    val = asarray(self.orb.pncrdir) * nodim
             elif self.mode == ascot2py.simulate_mode_hybrid:
                 if q == "pr":
-                    val = np.array(self.arr[arrlen*5:arrlen*6]) * kg*m/s
+                    val = asarray(self.orb.pr) * kg*m/s
                 elif q == "pphi":
-                    val = np.array(self.arr[arrlen*6:arrlen*7]) * kg*m/s
+                    val = asarray(self.orb.pphi) * kg*m/s
                 elif q == "pz":
-                    val = np.array(self.arr[arrlen*7:arrlen*8]) * kg*m/s
+                    val = asarray(self.orb.pz) * kg*m/s
                 elif q == "ppar":
-                    val = np.array(self.arr[arrlen*8:arrlen*9]) * kg*m/s
+                    val = asarray(self.orb.ppar) * kg*m/s
                 elif q == "mu":
-                    val = np.array(self.arr[arrlen*9:arrlen*10]) * J/T
+                    val = asarray(self.orb.mu) * J/T
                 elif q == "zeta":
-                    val = np.array(self.arr[arrlen*10:arrlen*11]) * rad
+                    val = asarray(self.orb.zeta) * rad
                 elif q == "weight":
-                    val = np.array(self.arr[arrlen*11:arrlen*12]) * nodim
+                    val = asarray(self.orb.weight) * nodim
                 elif q == "charge":
-                    val = np.array(self.arr[arrlen*12:arrlen*13]) * C
+                    val = asarray(self.orb.charge) * C
                 elif q == "rho":
-                    val = np.array(self.arr[arrlen*13:arrlen*14]) * nodim
+                    val = asarray(self.orb.rho) * nodim
                 elif q == "theta":
-                    val = np.array(self.arr[arrlen*14:arrlen*15]) * rad
+                    val = asarray(self.orb.theta) * rad
                 elif q == "br":
-                    val = np.array(self.arr[arrlen*15:arrlen*16]) * T
+                    val = asarray(self.orb.br) * T
                 elif q == "bphi":
-                    val = np.array(self.arr[arrlen*16:arrlen*17]) * T
+                    val = asarray(self.orb.bphi) * T
                 elif q == "bz":
-                    val = np.array(self.arr[arrlen*17:arrlen*18]) * T
+                    val = asarray(self.orb.bz) * T
                 elif q == "simmode":
-                    val = np.array(self.arr[arrlen*18:arrlen*19]) * nodim
+                    val = asarray(self.orb.simmode, "i8") * nodim
                 if q == "pncrid" and self.orbmode == 0:
-                    val = np.array(self.arr[arrlen*19:arrlen*20]) * nodim
+                    val = asarray(self.orb.pncrid, "i8") * nodim
                 if q == "pncrdir" and self.orbmode == 0:
-                    val = np.array(self.arr[arrlen*20:arrlen*21]) * nodim
+                    val = asarray(self.orb.pncrdir) * nodim
             return val[idx][mask].ravel()
 
         # Sort using the fact that inistate.get return values ordered by ID

@@ -38,9 +38,8 @@ try:
 
     PTR_REAL = _ndpointerwithnull(ctypes.c_double, flags="C_CONTIGUOUS")
     PTR_INT  = _ndpointerwithnull(ctypes.c_int,    flags="C_CONTIGUOUS")
-    PTR_SIM  = ctypes.POINTER(ascot2py.struct_c__SA_sim_offload_data)
+    PTR_SIM  = ctypes.POINTER(ascot2py.struct_c__SA_sim_data)
     PTR_ARR  = ctypes.POINTER(ctypes.c_double)
-    STRUCT_DIST5DOFFLOAD = ascot2py.struct_c__SA_dist_5D_offload_data
     STRUCT_DIST5D        = ascot2py.struct_c__SA_dist_5D_data
     STRUCT_AFSITHERMAL   = ascot2py.struct_c__SA_afsi_thermal_data
     STRUCT_AFSIDATA      = ascot2py.struct_c__SA_afsi_data
@@ -53,7 +52,6 @@ except ImportError as error:
     PTR_INT   = None
     PTR_SIM   = None
     PTR_ARR   = None
-    STRUCT_DIST5DOFFLOAD = None
     STRUCT_DIST5D        = None
     STRUCT_AFSITHERMAL   = None
     STRUCT_AFSIDATA      = None
@@ -121,13 +119,12 @@ class LibAscot:
 
             fun = _LIBASCOT.libascot_B_field_eval_B_dB
             fun.restype  = None
-            fun.argtypes = [PTR_SIM, PTR_ARR,
-                            ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+            fun.argtypes = [PTR_SIM, ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
                             PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
                             PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
                             PTR_REAL, PTR_REAL, PTR_REAL]
 
-            fun(ctypes.byref(self._sim), self._bfield_offload_array,
+            fun(ctypes.byref(self._sim),
                 Neval, r, phi, z, t, out["br"], out["bphi"], out["bz"],
                 out["brdr"], out["brdphi"], out["brdz"], out["bphidr"],
                 out["bphidphi"], out["bphidz"], out["bzdr"], out["bzdphi"],
@@ -147,12 +144,11 @@ class LibAscot:
 
             fun = _LIBASCOT.libascot_B_field_eval_rho
             fun.restype  = None
-            fun.argtypes = [PTR_SIM, PTR_ARR,
-                            ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+            fun.argtypes = [PTR_SIM, ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
                             PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
                             PTR_REAL, PTR_REAL]
 
-            fun(ctypes.byref(self._sim), self._bfield_offload_array,
+            fun(ctypes.byref(self._sim),
                 Neval, r, phi, z, t, out["rho"], out["rhodpsi"], out["psi"],
                 out["psidr"], out["psidphi"], out["psidz"])
 
@@ -162,11 +158,9 @@ class LibAscot:
 
             fun = _LIBASCOT.libascot_B_field_get_axis
             fun.restype  = None
-            fun.argtypes = [PTR_SIM, PTR_ARR,
-                            ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL]
+            fun.argtypes = [PTR_SIM, ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL]
 
-            fun(ctypes.byref(self._sim), self._bfield_offload_array,
-                Neval, phi, out["axisr"], out["axisz"])
+            fun(ctypes.byref(self._sim), Neval, phi, out["axisr"], out["axisz"])
 
         return out
 
@@ -206,11 +200,9 @@ class LibAscot:
 
         fun = _LIBASCOT.libascot_E_field_eval_E
         fun.restype  = None
-        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
-                        ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
-                        PTR_REAL, PTR_REAL, PTR_REAL]
-        fun(ctypes.byref(self._sim), self._bfield_offload_array,
-            self._efield_offload_array,
+        fun.argtypes = [PTR_SIM, ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+                        PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL]
+        fun(ctypes.byref(self._sim),
             Neval, r, phi, z, t, out["er"], out["ephi"], out["ez"])
 
         return out
@@ -253,13 +245,10 @@ class LibAscot:
 
         fun = _LIBASCOT.libascot_plasma_eval_background
         fun.restype  = None
-        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
-                        ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
-                        PTR_REAL, PTR_REAL]
+        fun.argtypes = [PTR_SIM, ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+                        PTR_REAL, PTR_REAL, PTR_REAL]
 
-        fun(ctypes.byref(self._sim), self._bfield_offload_array,
-            self._plasma_offload_array,
-            Neval, r, phi, z, t, rawdens, rawtemp)
+        fun(ctypes.byref(self._sim), Neval, r, phi, z, t, rawdens, rawtemp)
 
         out = {}
         out["ne"] = rawdens[0:Neval]
@@ -304,12 +293,10 @@ class LibAscot:
 
         fun = _LIBASCOT.libascot_neutral_eval_density
         fun.restype  = None
-        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
-                        ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
-                        PTR_REAL]
+        fun.argtypes = [PTR_SIM, ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+                        PTR_REAL, PTR_REAL]
 
-        fun(ctypes.byref(self._sim), self._bfield_offload_array,
-            self._neutral_offload_array, Neval, r, phi, z, t, out["n0"])
+        fun(ctypes.byref(self._sim), Neval, r, phi, z, t, out["n0"])
 
         return out
 
@@ -352,14 +339,11 @@ class LibAscot:
 
             fun = _LIBASCOT.libascot_boozer_eval_fun
             fun.restype  = ctypes.c_int
-            fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
-                            ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+            fun.argtypes = [PTR_SIM, ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
                             PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL]
 
-            fun(ctypes.byref(self._sim), self._bfield_offload_array,
-                self._boozer_offload_array,
-                Neval, r, phi, z, t, out["qprof"], out["bjac"],
-                out["bjacxb2"])
+            fun(ctypes.byref(self._sim),
+                Neval, r, phi, z, t, out["qprof"], out["bjac"], out["bjacxb2"])
         else:
             out["psi (bzr)"]      = (np.copy(temp) + np.nan) * Wb
             out["theta"]          = (np.copy(temp) + np.nan) * rad
@@ -377,14 +361,12 @@ class LibAscot:
 
             fun = _LIBASCOT.libascot_boozer_eval_psithetazeta
             fun.restype  = ctypes.c_int
-            fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
-                            ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+            fun.argtypes = [PTR_SIM, ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
                             PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
                             PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
                             PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL]
 
-            fun(ctypes.byref(self._sim), self._bfield_offload_array,
-                self._boozer_offload_array,
+            fun(ctypes.byref(self._sim),
                 Neval, r, phi, z, t, out["psi (bzr)"], out["theta"],
                 out["zeta"], out["dpsidr (bzr)"], out["dpsidphi (bzr)"],
                 out["dpsidz (bzr)"], out["dthetadr"], out["dthetadphi"],
@@ -440,13 +422,11 @@ class LibAscot:
 
         fun = _LIBASCOT.libascot_mhd_eval_perturbation
         fun.restype  = None
-        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR, PTR_ARR,
-                        ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
-                        ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
-                        PTR_REAL, PTR_REAL, PTR_REAL]
+        fun.argtypes = [PTR_SIM, ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+                        PTR_REAL, ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+                        PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL]
 
-        fun(ctypes.byref(self._sim), self._bfield_offload_array,
-            self._boozer_offload_array, self._mhd_offload_array,
+        fun(ctypes.byref(self._sim),
             Neval, r, phi, z, t, mode, out["mhd_br"], out["mhd_bphi"],
             out["mhd_bz"], out["mhd_er"], out["mhd_ephi"], out["mhd_ez"],
             out["mhd_phi"])
@@ -465,14 +445,12 @@ class LibAscot:
 
             fun = _LIBASCOT.libascot_mhd_eval
             fun.restype  = None
-            fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR, PTR_ARR,
-                            ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+            fun.argtypes = [PTR_SIM, ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
                             PTR_REAL, ctypes.c_int, PTR_REAL, PTR_REAL,
                             PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
                             PTR_REAL, PTR_REAL, PTR_REAL]
 
-            fun(ctypes.byref(self._sim), self._bfield_offload_array,
-                self._boozer_offload_array, self._mhd_offload_array,
+            fun(ctypes.byref(self._sim),
                 Neval, r, phi, z, t, mode, out["alphaeig"],
                 out["dadr"], out["dadphi"], out["dadz"], out["dadt"],
                 out["phieig"], out["dphidr"], out["dphidphi"], out["dphidz"],
@@ -508,11 +486,10 @@ class LibAscot:
         self._requireinit("mhd")
         fun = _LIBASCOT.libascot_mhd_get_n_modes
         fun.restype  = ctypes.c_int
-        fun.argtypes = [PTR_SIM, PTR_ARR]
+        fun.argtypes = [PTR_SIM]
 
         out = {}
-        out["nmodes"] = fun(
-            ctypes.byref(self._sim), self._mhd_offload_array)
+        out["nmodes"] = fun(ctypes.byref(self._sim))
 
         out["nmode"]     = np.zeros((out["nmodes"],), dtype="i4")
         out["mmode"]     = np.zeros((out["nmodes"],), dtype="i4")
@@ -522,11 +499,9 @@ class LibAscot:
 
         fun = _LIBASCOT.libascot_mhd_get_mode_specs
         fun.restype  = ctypes.c_int
-        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_INT, PTR_INT, PTR_REAL, PTR_REAL,
-                        PTR_REAL]
-        fun(ctypes.byref(self._sim), self._mhd_offload_array,
-            out["nmode"], out["mmode"], out["amplitude"], out["omega"],
-            out["phase"])
+        fun.argtypes = [PTR_SIM, PTR_INT, PTR_INT, PTR_REAL, PTR_REAL, PTR_REAL]
+        fun(ctypes.byref(self._sim), out["nmode"], out["mmode"],
+            out["amplitude"], out["omega"], out["phase"])
 
         return out["nmodes"], out["nmode"], out["mmode"], out["amplitude"],\
             out["omega"], out["phase"]
@@ -618,15 +593,12 @@ class LibAscot:
 
         fun = _LIBASCOT.libascot_eval_collcoefs
         fun.restype  = ctypes.c_int
-        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
-                        ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
-                        ctypes.c_int, PTR_REAL,
-                        ctypes.c_double, ctypes.c_double,
-                        PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
-                        PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
-                        PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL]
-        fun(ctypes.byref(self._sim), self._bfield_offload_array,
-            self._plasma_offload_array, Neval, r, phi, z, t, Nv, va, ma, qa,
+        fun.argtypes = [PTR_SIM, ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+                        PTR_REAL, ctypes.c_int, PTR_REAL, ctypes.c_double,
+                        ctypes.c_double, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                        PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                        PTR_REAL, PTR_REAL, PTR_REAL]
+        fun(ctypes.byref(self._sim), Neval, r, phi, z, t, Nv, va, ma, qa,
             out["f"], out["dpara"], out["dperp"], out["k"], out["nu"], out["q"],
             out["dq"], out["ddpara"], out["clog"], out["mu0"], out["mu1"],
             out["dmu0"])
@@ -706,14 +678,11 @@ class LibAscot:
 
         fun = _LIBASCOT.libascot_eval_ratecoeff
         fun.restype  = ctypes.c_int
-        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR, PTR_ARR, PTR_ARR,
-                        ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
-                        ctypes.c_int, PTR_REAL, ctypes.c_int, ctypes.c_int,
-                        ctypes.c_double, ctypes.c_int, PTR_REAL]
+        fun.argtypes = [PTR_SIM, ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+                        PTR_REAL, ctypes.c_int, PTR_REAL, ctypes.c_int,
+                        ctypes.c_int, ctypes.c_double, ctypes.c_int, PTR_REAL]
 
-        fun(ctypes.byref(self._sim), self._bfield_offload_array,
-            self._plasma_offload_array, self._neutral_offload_array,
-            self._asigma_offload_array, Neval, r, phi, z, t, Nv, va,
+        fun(ctypes.byref(self._sim), Neval, r, phi, z, t, Nv, va,
             anum, znum, ma, reaction, out)
 
         return out
@@ -744,11 +713,10 @@ class LibAscot:
         self._requireinit("plasma")
         fun = _LIBASCOT.libascot_plasma_get_n_species
         fun.restype  = ctypes.c_int
-        fun.argtypes = [PTR_SIM, PTR_ARR]
+        fun.argtypes = [PTR_SIM]
 
         out = {}
-        out["nspecies"] = fun(
-            ctypes.byref(self._sim), self._plasma_offload_array)
+        out["nspecies"] = fun(ctypes.byref(self._sim))
 
         out["mass"]   = np.zeros((out["nspecies"],), dtype="f8")*unyt.kg
         out["charge"] = np.zeros((out["nspecies"],), dtype="f8")*unyt.C
@@ -757,9 +725,8 @@ class LibAscot:
 
         fun = _LIBASCOT.libascot_plasma_get_species_mass_and_charge
         fun.restype  = ctypes.c_int
-        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_REAL, PTR_REAL, PTR_INT,
-                        PTR_INT]
-        fun(ctypes.byref(self._sim), self._plasma_offload_array,
+        fun.argtypes = [PTR_SIM, PTR_REAL, PTR_REAL, PTR_INT, PTR_INT]
+        fun(ctypes.byref(self._sim),
             out["mass"], out["charge"], out["anum"], out["znum"])
 
         return out["nspecies"], out["mass"], out["charge"], out["anum"],\
@@ -807,11 +774,10 @@ class LibAscot:
 
         fun = _LIBASCOT.libascot_B_field_rhotheta2rz
         fun.restype  = None
-        fun.argtypes = [PTR_SIM, PTR_ARR,
-                        ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+        fun.argtypes = [PTR_SIM, ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
                         ctypes.c_double, ctypes.c_int, ctypes.c_double,
                         PTR_REAL, PTR_REAL]
-        fun(ctypes.byref(self._sim), self._bfield_offload_array,
+        fun(ctypes.byref(self._sim),
             Neval, rho, theta, phi, time, maxiter, tol, r, z)
 
         return (r, z)
@@ -869,11 +835,9 @@ class LibAscot:
 
         fun = _LIBASCOT.libascot_B_field_gradient_descent
         fun.restype  = None
-        fun.argtypes = [PTR_SIM, PTR_ARR,
-                        PTR_REAL, PTR_REAL, ctypes.c_double, ctypes.c_double,
-                        ctypes.c_int, ctypes.c_int]
-        fun(ctypes.byref(self._sim), self._bfield_offload_array,
-            psi, rz, step, tol, maxiter, ascent)
+        fun.argtypes = [PTR_SIM, PTR_REAL, PTR_REAL, ctypes.c_double,
+                        ctypes.c_double, ctypes.c_int, ctypes.c_int]
+        fun(ctypes.byref(self._sim), psi, rz, step, tol, maxiter, ascent)
 
         if np.isnan(psi[0]):
             raise RuntimeError("Failed to converge.")
