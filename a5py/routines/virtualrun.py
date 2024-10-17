@@ -268,7 +268,7 @@ class VirtualOrbits():
                 if q == "pncrid" and self.orbmode == 0:
                     val = asarray(self.orb.pncrid, "i8") * nodim
                 if q == "pncrdir" and self.orbmode == 0:
-                    val = asarray(self.orb.pncrdir) * nodim
+                    val = asarray(self.orb.pncrdi) * nodim
             elif self.mode == ascot2py.simulate_mode_gc:
                 if q == "ppar":
                     val = asarray(self.orb.ppar) * kg*m/s
@@ -295,7 +295,7 @@ class VirtualOrbits():
                 if q == "pncrid" and self.orbmode == 0:
                     val = asarray(self.orb.pncrid, "i8") * nodim
                 if q == "pncrdir" and self.orbmode == 0:
-                    val = asarray(self.orb.pncrdir) * nodim
+                    val = asarray(self.orb.pncrdi) * nodim
             elif self.mode == ascot2py.simulate_mode_ml:
                 if q == "rho":
                     val = asarray(self.orb.rho) * nodim
@@ -312,7 +312,7 @@ class VirtualOrbits():
                 if q == "pncrid" and self.orbmode == 0:
                     val = asarray(self.orb.pncrid, "i8") * nodim
                 if q == "pncrdir" and self.orbmode == 0:
-                    val = asarray(self.orb.pncrdir) * nodim
+                    val = asarray(self.orb.pncrdi) * nodim
             elif self.mode == ascot2py.simulate_mode_hybrid:
                 if q == "pr":
                     val = asarray(self.orb.pr) * kg*m/s
@@ -345,7 +345,7 @@ class VirtualOrbits():
                 if q == "pncrid" and self.orbmode == 0:
                     val = asarray(self.orb.pncrid, "i8") * nodim
                 if q == "pncrdir" and self.orbmode == 0:
-                    val = asarray(self.orb.pncrdir) * nodim
+                    val = asarray(self.orb.pncrdi) * nodim
             return val[idx][mask].ravel()
 
         # Sort using the fact that inistate.get return values ordered by ID
