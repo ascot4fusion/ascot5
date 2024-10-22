@@ -244,11 +244,11 @@ class VirtualOrbits():
 
             if self.mode == ascot2py.simulate_mode_fo:
                 if q == "pr":
-                    val = asarray(self.orb.pr) * kg*m/s
+                    val = asarray(self.orb.p_r) * kg*m/s
                 elif q == "pphi":
-                    val = asarray(self.orb.pphi) * kg*m/s
+                    val = asarray(self.orb.p_phi) * kg*m/s
                 elif q == "pz":
-                    val = asarray(self.orb.pz) * kg*m/s
+                    val = asarray(self.orb.p_z) * kg*m/s
                 elif q == "weight":
                     val = asarray(self.orb.weight) * nodim
                 elif q == "charge":
@@ -258,11 +258,11 @@ class VirtualOrbits():
                 elif q == "theta":
                     val = asarray(self.orb.theta) * rad
                 elif q == "br":
-                    val = asarray(self.orb.br) * T
+                    val = asarray(self.orb.B_r) * T
                 elif q == "bphi":
-                    val = asarray(self.orb.bphi) * T
+                    val = asarray(self.orb.B_phi) * T
                 elif q == "bz":
-                    val = asarray(self.orb.bz) * T
+                    val = asarray(self.orb.B_z) * T
                 elif q == "simmode":
                     val = asarray(self.orb.simmode, "i8") * nodim
                 if q == "pncrid" and self.orbmode == 0:
@@ -285,11 +285,11 @@ class VirtualOrbits():
                 elif q == "theta":
                     val = asarray(self.orb.theta) * rad
                 elif q == "br":
-                    val = asarray(self.orb.br) * T
+                    val = asarray(self.orb.B_r) * T
                 elif q == "bphi":
-                    val = asarray(self.orb.bphi) * T
+                    val = asarray(self.orb.B_phi) * T
                 elif q == "bz":
-                    val = asarray(self.orb.bz) * T
+                    val = asarray(self.orb.B_z) * T
                 elif q == "simmode":
                     val = asarray(self.orb.simmode, "i8") * nodim
                 if q == "pncrid" and self.orbmode == 0:
@@ -302,11 +302,11 @@ class VirtualOrbits():
                 elif q == "theta":
                     val = asarray(self.orb.theta) * rad
                 elif q == "br":
-                    val = asarray(self.orb.br) * T
+                    val = asarray(self.orb.B_r) * T
                 elif q == "bphi":
-                    val = asarray(self.orb.bphi) * T
+                    val = asarray(self.orb.B_phi) * T
                 elif q == "bz":
-                    val = asarray(self.orb.bz) * T
+                    val = asarray(self.orb.B_z) * T
                 elif q == "simmode":
                     val = asarray(self.orb.simmode, "i8") * nodim
                 if q == "pncrid" and self.orbmode == 0:
@@ -335,11 +335,11 @@ class VirtualOrbits():
                 elif q == "theta":
                     val = asarray(self.orb.theta) * rad
                 elif q == "br":
-                    val = asarray(self.orb.br) * T
+                    val = asarray(self.orb.B_r) * T
                 elif q == "bphi":
-                    val = asarray(self.orb.bphi) * T
+                    val = asarray(self.orb.B_phi) * T
                 elif q == "bz":
-                    val = asarray(self.orb.bz) * T
+                    val = asarray(self.orb.B_z) * T
                 elif q == "simmode":
                     val = asarray(self.orb.simmode, "i8") * nodim
                 if q == "pncrid" and self.orbmode == 0:
@@ -372,8 +372,8 @@ class VirtualDist(Dist):
     """Distribution shared by C and Python.
     """
 
-    def __init__(self, disttype, dist, data):
-        self._histogram = data
+    def __init__(self, disttype, dist):
+        self._histogram = dist.histogram
         if disttype == "5d":
             names = ["r", "phi", "z", "ppar", "pperp", "time", "charge"]
 

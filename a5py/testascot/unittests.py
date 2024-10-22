@@ -322,8 +322,6 @@ class TestAscot5IO(unittest.TestCase):
             }
         a5 = Ascot(self.testfilename, create=True)
         for parent, inp in inputs.items():
-            mod = importlib.import_module("a5py.ascot5io." + parent)
-
             for grp in inp:
                 a5.data.create_input(grp, desc="DUMMY")
 

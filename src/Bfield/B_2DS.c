@@ -111,7 +111,7 @@ int B_2DS_init(B_2DS_data* data,
               n_r, r_min, r_max,
               n_z, z_min, z_max,
               data->axis_r, data->axis_z,
-              psi[0], data->psi0,
+              psival[0], data->psi0,
               Bval[0], Bval[1], Bval[2]);
 
     return err;

@@ -391,6 +391,8 @@ class LibSimulate():
             If inputs are not packed, markers are not initialized or previous
             results have not been freed.
         """
+        self._requireinit("bfield", "efield", "plasma", "wall", "boozer", "mhd",
+                          "asigma", "neutral")
         if not _LIBASCOT:
             raise AscotInitException(
                 "Python interface disabled as libascot.so is not found")
@@ -578,6 +580,8 @@ class LibSimulate():
             markers     = True
             diagnostics = True
 
+        if inputs:
+            self.input_free()
         if markers and self._nmrk.value > 0:
             self._nmrk.value = 0
             ascot2py.libascot_deallocate(self._inistate)

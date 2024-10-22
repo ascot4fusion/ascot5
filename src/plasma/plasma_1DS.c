@@ -65,21 +65,20 @@ int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
     for(int i=0; i < nrho; i++) {
 #if PLASMA_1DS_NONEG == PLASMA_1DS_LOG
         Te_scaled[i] = log(Te[i]);
-        Ti_scaled[i] = log(Te[i]);
-        ne_scaled[i] = log(Te[i]);
+        Ti_scaled[i] = log(Ti[i]);
+        ne_scaled[i] = log(ne[i]);
         for(int j = 0; j < nion; j++) {
             ni_scaled[j*nrho + i] = log(ni[j*nrho + i]);
         }
 #elif PLASMA_1DS_NONEG == PLASMA_1DS_SQRT
         Te_scaled[i] = sqrt(Te[i]);
-        Ti_scaled[i] = sqrt(Te[i]);
-        ne_scaled[i] = sqrt(Te[i]);
+        Ti_scaled[i] = sqrt(Ti[i]);
+        ne_scaled[i] = sqrt(ne[i]);
         for(int j = 0; j < nion; j++) {
             ni_scaled[j*nrho + i] = sqrt(ni[j*nrho + i]);
         }
 #endif
     }
-
     err = interp1Dcomp_setup(&data->temp[0], Te_scaled, nrho, NATURALBC,
                              rhomin, rhomax);
     if(err) {
@@ -100,6 +99,8 @@ int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
         free(ni_scaled);
         return 1;
     }
+
+    data->dens = (interp1D_data*) malloc(data->n_species*sizeof(interp1D_data));
     err = interp1Dcomp_setup(&data->dens[0], ne_scaled, nrho, NATURALBC,
                              rhomin, rhomax);
     if(err) {
@@ -108,10 +109,11 @@ int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
         free(Ti_scaled);
         free(ne_scaled);
         free(ni_scaled);
+        free(data->dens);
         return 1;
     }
     for(int i = 0; i < nion; i++) {
-        err = interp1Dcomp_setup(&data->dens[(i+1)*nrho], &ni_scaled[i*nrho],
+        err = interp1Dcomp_setup(&data->dens[i+1], &ni_scaled[i*nrho],
                                  nrho, NATURALBC, rhomin, rhomax);
         if(err) {
             print_err("Error: Failed to initialize splines.\n");
@@ -119,6 +121,7 @@ int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
             free(Ti_scaled);
             free(ne_scaled);
             free(ni_scaled);
+            free(data->dens);
             return 1;
         }
     }
@@ -189,7 +192,7 @@ void plasma_1DS_free(plasma_1DS_data* data) {
     free(data->anum);
     free(data->znum);
     for(int i = 0; i < data->n_species; i++) {
-        free(&data->dens[i]);
+        free(data->dens[i].c);
     }
     free(data->dens);
 }

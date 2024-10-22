@@ -53,9 +53,10 @@ int plasma_1Dt_init(plasma_1Dt_data* data, int nrho, int ntime, int nion,
         for(int j = 0; j < ntime; j++) {
             data->temp[j*2*nrho + i] = Te[j*nrho + i];
             data->temp[(j*2+1)*nrho + i] = Ti[j*nrho + i];
-            data->dens[(j*2+1)*nrho + i] = ne[j*nrho + i];
+            data->dens[j*nrho + i] = ne[j*nrho + i];
             for(int k = 0; k < nion; k++) {
-
+                data->dens[(k+1)*nrho*ntime + j*nrho + i] =
+                    ni[k*nrho*ntime + j*nrho + i];
             }
         }
     }

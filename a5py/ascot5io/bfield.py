@@ -429,7 +429,7 @@ class B_2DS(DataGroup):
                                   6.200e-03, -1.205e-03, -3.701e-05,  0,
                                   0,          0,          0,          0,
                                   -0.155])
-        gs = {"rmin":1, "rmax":6, "nr":50, "zmin":-4, "zmax":4, "nz":100,
+        gs = {"rmin":4, "rmax":8, "nr":50, "zmin":-4, "zmax":4, "nz":100,
               "r0":6.2, "z0":0, "bphi0":5.3, "psimult":200,
               "coefficients":coefficients}
         return B_2DS.convert_B_GS(**gs)
@@ -719,7 +719,7 @@ class B_3DS(DataGroup):
                                   6.200e-03, -1.205e-03, -3.701e-05,  0,
                                   0,          0,          0,          0,
                                   -0.155])
-        gs = {"rmin":1, "rmax":6, "nr":50, "zmin":-4, "zmax":4, "nz":100,
+        gs = {"rmin":4, "rmax":8, "nr":50, "zmin":-4, "zmax":4, "nz":100,
               "phimin":0, "phimax":360, "nphi":100,
               "r0":6.2, "z0":0, "bphi0":5.3, "psimult":200,
               "coefficients":coefficients, "nripple":18, "a0":2, "alpha0":2,
@@ -1217,7 +1217,7 @@ class B_STS(DataGroup):
             a corresponding type.
         """
         return {"b_rmin":4, "b_rmax":8, "b_nr":3, "b_zmin":-2, "b_zmax":2,
-                "b_nz":3, "b_phimin":0, "b_phimax":360, "b_nphi":3, "psi0":0,
+                "b_nz":3, "b_phimin":0, "b_phimax":360, "b_nphi":3, "psi0":0.5,
                 "psi1":1, "br":np.zeros((3,3,3)), "bphi":np.ones((3,3,3)),
                 "bz":np.zeros((3,3,3)), "psi":0.5*np.ones((3,3,3)),
                 "axis_phimin":0, "axis_phimax":360, "axis_nphi":3,
