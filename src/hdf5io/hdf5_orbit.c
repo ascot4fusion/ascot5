@@ -18,7 +18,7 @@
 
 void hdf5_orbit_writeset(hid_t group,  const char* name, const char* unit,
                          int type, int arraylength, real confac,
-                         integer* mask, integer size, real* data);
+                         int* mask, integer size, real* data);
 
 /**
  * @brief Write orbit diagnostics data to a HDF5 file
@@ -37,11 +37,9 @@ int hdf5_orbit_write(hid_t f, char* path, diag_orb_data* data) {
 
     int arraylength = data->Nmrk*data->Npnt;
     int datasize = 0;
-    integer* mask = malloc(arraylength*sizeof(real));
-
-    real* orbits = data->id;
-    for(integer i=0; i < arraylength; i++) {
-        mask[i] = orbits[i] > 0;
+    int* mask = malloc(arraylength*sizeof(int));
+    for(int i=0; i < arraylength; i++) {
+        mask[i] = data->id[i] > 0.1;
         if(mask[i]) {
             datasize++;
         }
@@ -53,162 +51,147 @@ int hdf5_orbit_write(hid_t f, char* path, diag_orb_data* data) {
     if(data->record_mode == simulate_mode_fo) {
 
         hdf5_orbit_writeset(group,  "ids", "1", dtypei32, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*0]);
+                            mask, datasize, data->id);
         hdf5_orbit_writeset(group,  "mileage", "s", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*1]);
+                            mask, datasize, data->mileage);
         hdf5_orbit_writeset(group,  "r", "m", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*2]);
+                            mask, datasize, data->r);
         hdf5_orbit_writeset(group,  "phi", "deg", dtypef64, arraylength,
-                            180.0/CONST_PI,
-                            mask, datasize, &orbits[arraylength*3]);
+                            180.0/CONST_PI, mask, datasize, data->phi);
         hdf5_orbit_writeset(group,  "z", "m", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*4]);
+                            mask, datasize, data->z);
         hdf5_orbit_writeset(group,  "pr", "kg*m/s", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*5]);
+                            mask, datasize, data->p_r);
         hdf5_orbit_writeset(group,  "pphi", "kg*m/s", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*6]);
+                            mask, datasize, data->p_phi);
         hdf5_orbit_writeset(group,  "pz", "kg*m/s", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*7]);
+                            mask, datasize, data->p_z);
         hdf5_orbit_writeset(group,  "weight", "1", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*8]);
+                            mask, datasize, data->weight);
         hdf5_orbit_writeset(group,  "charge", "e", dtypei16, arraylength,
-                            1.0/CONST_E,
-                            mask, datasize, &orbits[arraylength*9]);
+                            1.0/CONST_E, mask, datasize, data->charge);
         hdf5_orbit_writeset(group,  "rho", "1", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*10]);
+                            mask, datasize, data->rho);
         hdf5_orbit_writeset(group,  "theta", "deg", dtypef64, arraylength,
-                            180.0/CONST_PI,
-                            mask, datasize, &orbits[arraylength*11]);
+                            180.0/CONST_PI, mask, datasize, data->theta);
         hdf5_orbit_writeset(group,  "br", "T", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*12]);
+                            mask, datasize, data->B_r);
         hdf5_orbit_writeset(group,  "bphi", "T", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*13]);
+                            mask, datasize, data->B_phi);
         hdf5_orbit_writeset(group,  "bz", "T", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*14]);
+                            mask, datasize, data->B_z);
         hdf5_orbit_writeset(group,  "simmode", "1", dtypei32, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*15]);
+                            mask, datasize, data->simmode);
 
     }
 
     if(data->record_mode == simulate_mode_gc) {
         hdf5_orbit_writeset(group,  "ids", "1", dtypei32, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*0]);
+                            mask, datasize, data->id);
         hdf5_orbit_writeset(group,  "mileage", "s", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*1]);
+                            mask, datasize, data->mileage);
         hdf5_orbit_writeset(group,  "r", "m", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*2]);
+                            mask, datasize, data->r);
         hdf5_orbit_writeset(group,  "phi", "deg", dtypef64, arraylength,
-                            180.0/CONST_PI,
-                            mask, datasize, &orbits[arraylength*3]);
+                            180.0/CONST_PI, mask, datasize, data->phi);
         hdf5_orbit_writeset(group,  "z", "m", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*4]);
+                            mask, datasize, data->z);
         hdf5_orbit_writeset(group,  "ppar", "kg*m/s", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*5]);
+                            mask, datasize, data->ppar);
         hdf5_orbit_writeset(group,  "mu", "eV/T", dtypef64, arraylength,
-                            1.0/CONST_E,
-                            mask, datasize, &orbits[arraylength*6]);
+                            1.0/CONST_E, mask, datasize, data->mu);
         hdf5_orbit_writeset(group,  "zeta", "rad", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*7]);
+                            mask, datasize, data->zeta);
         hdf5_orbit_writeset(group,  "weight", "1", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*8]);
+                            mask, datasize, data->weight);
         hdf5_orbit_writeset(group,  "charge", "e", dtypei16, arraylength,
-                            1.0/CONST_E,
-                            mask, datasize, &orbits[arraylength*9]);
+                            1.0/CONST_E, mask, datasize, data->charge);
         hdf5_orbit_writeset(group,  "rho", "1", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*10]);
+                            mask, datasize, data->rho);
         hdf5_orbit_writeset(group,  "theta", "deg", dtypef64, arraylength,
-                            180.0/CONST_PI,
-                            mask, datasize, &orbits[arraylength*11]);
+                            180.0/CONST_PI, mask, datasize, data->theta);
         hdf5_orbit_writeset(group,  "br", "T", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*12]);
+                            mask, datasize, data->B_r);
         hdf5_orbit_writeset(group,  "bphi", "T", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*13]);
+                            mask, datasize, data->B_phi);
         hdf5_orbit_writeset(group,  "bz", "T", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*14]);
+                            mask, datasize, data->B_z);
         hdf5_orbit_writeset(group,  "simmode", "1", dtypei32, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*15]);
+                            mask, datasize, data->simmode);
     }
 
     if(data->record_mode == simulate_mode_ml) {
         hdf5_orbit_writeset(group,  "ids", "1", dtypei32, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*0]);
+                            mask, datasize, data->id);
         hdf5_orbit_writeset(group,  "mileage", "s", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*1]);
+                            mask, datasize, data->mileage);
         hdf5_orbit_writeset(group,  "r", "m", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*2]);
+                            mask, datasize, data->r);
         hdf5_orbit_writeset(group,  "phi", "deg", dtypef64, arraylength,
-                            180.0/CONST_PI,
-                            mask, datasize, &orbits[arraylength*3]);
+                            180.0/CONST_PI, mask, datasize, data->phi);
         hdf5_orbit_writeset(group,  "z", "m", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*4]);
+                            mask, datasize, data->z);
         hdf5_orbit_writeset(group,  "rho", "1", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*5]);
+                            mask, datasize, data->rho);
         hdf5_orbit_writeset(group,  "theta", "deg", dtypef64, arraylength,
-                            180.0/CONST_PI,
-                            mask, datasize, &orbits[arraylength*6]);
+                            180.0/CONST_PI, mask, datasize, data->theta);
         hdf5_orbit_writeset(group,  "br", "T", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*7]);
+                            mask, datasize, data->B_r);
         hdf5_orbit_writeset(group,  "bphi", "T", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*8]);
+                            mask, datasize, data->B_phi);
         hdf5_orbit_writeset(group,  "bz", "T", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*9]);
+                            mask, datasize, data->B_z);
         hdf5_orbit_writeset(group,  "simmode", "1", dtypei32, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*10]);
+                            mask, datasize, data->simmode);
     }
 
     if(data->record_mode == simulate_mode_hybrid) {
         hdf5_orbit_writeset(group,  "ids", "1", dtypei32, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*0]);
+                            mask, datasize, data->id);
         hdf5_orbit_writeset(group,  "mileage", "s", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*1]);
+                            mask, datasize, data->mileage);
         hdf5_orbit_writeset(group,  "r", "m", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*2]);
+                            mask, datasize, data->r);
         hdf5_orbit_writeset(group,  "phi", "deg", dtypef64, arraylength,
-                            180.0/CONST_PI,
-                            mask, datasize, &orbits[arraylength*3]);
+                            180.0/CONST_PI, mask, datasize, data->phi);
         hdf5_orbit_writeset(group,  "z", "m", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*4]);
+                            mask, datasize, data->z);
         hdf5_orbit_writeset(group,  "pr", "kg*m/s", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*5]);
+                            mask, datasize, data->p_r);
         hdf5_orbit_writeset(group,  "pphi", "kg*m/s", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*6]);
+                            mask, datasize, data->p_phi);
         hdf5_orbit_writeset(group,  "pz", "kg*m/s", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*7]);
+                            mask, datasize, data->p_z);
         hdf5_orbit_writeset(group,  "ppar", "kg*m/s", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*8]);
+                            mask, datasize, data->ppar);
         hdf5_orbit_writeset(group,  "mu", "eV/T", dtypef64, arraylength,
-                            1.0/CONST_E,
-                            mask, datasize, &orbits[arraylength*9]);
+                            1.0/CONST_E, mask, datasize, data->mu);
         hdf5_orbit_writeset(group,  "zeta", "rad", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*10]);
+                            mask, datasize, data->zeta);
         hdf5_orbit_writeset(group,  "weight", "1", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*11]);
+                            mask, datasize, data->weight);
         hdf5_orbit_writeset(group,  "charge", "e", dtypei16, arraylength,
-                            1.0/CONST_E,
-                            mask, datasize, &orbits[arraylength*12]);
+                            1.0/CONST_E, mask, datasize, data->charge);
         hdf5_orbit_writeset(group,  "rho", "1", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*13]);
+                            mask, datasize, data->rho);
         hdf5_orbit_writeset(group,  "theta", "deg", dtypef64, arraylength,
-                            180.0/CONST_PI,
-                            mask, datasize, &orbits[arraylength*14]);
+                            180.0/CONST_PI, mask, datasize, data->theta);
         hdf5_orbit_writeset(group,  "br", "T", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*15]);
+                            mask, datasize, data->B_r);
         hdf5_orbit_writeset(group,  "bphi", "T", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*16]);
+                            mask, datasize, data->B_phi);
         hdf5_orbit_writeset(group,  "bz", "T", dtypef64, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*17]);
+                            mask, datasize, data->B_z);
         hdf5_orbit_writeset(group,  "simmode", "1", dtypei32, arraylength, 1,
-                            mask, datasize, &orbits[arraylength*18]);
+                            mask, datasize, data->simmode);
 
     }
 
     if(data->mode == DIAG_ORB_POINCARE) {
         hdf5_orbit_writeset(group,  "pncrid", "1", dtypei16, arraylength, 1,
-                            mask, datasize,
-                            &orbits[arraylength * data->Nfld]);
+                            mask, datasize, data->pncrid);
         hdf5_orbit_writeset(group,  "pncrdi", "1", dtypei16, arraylength, 1,
-                            mask, datasize,
-                            &orbits[arraylength * (data->Nfld+1)]);
+                            mask, datasize, data->pncrdi);
     }
 
     free(mask);
@@ -232,11 +215,11 @@ int hdf5_orbit_write(hid_t f, char* path, diag_orb_data* data) {
  */
 void hdf5_orbit_writeset(hid_t group,  const char* name, const char* unit,
                          int type, int arraylength, real confac,
-                         integer* mask, integer size, real* orbits) {
+                         int* mask, integer size, real* orbits) {
     if(type == 0) {
         real* data = (real*) malloc(size * sizeof(real));
-        integer j = 0;
-        for(integer i = 0; i < arraylength; i++) {
+        int j = 0;
+        for(int i = 0; i < arraylength; i++) {
             if(mask[i]) {
                 data[j] = confac*orbits[i];
                 j++;

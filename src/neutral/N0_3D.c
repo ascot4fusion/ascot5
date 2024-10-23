@@ -36,10 +36,16 @@ int N0_3D_init(N0_3D_data* data,
         data->maxwellian[i] = maxwellian[i];
 
         real* c = (real*) malloc(n_r * n_phi * n_z * sizeof(real));
+        for(int i = 0; i < n_r * n_phi * n_z; i++) {
+            c[i] = density[i];
+        }
         linint3D_init(&data->n0[i], c, n_r, n_phi, n_z,
                       NATURALBC, PERIODICBC, NATURALBC,
                       r_min, r_max, phi_min, phi_max, z_min, z_max);
         c = (real*) malloc(n_r * n_phi * n_z * sizeof(real));
+        for(int i = 0; i < n_r * n_phi * n_z; i++) {
+            c[i] = temperature[i];
+        }
         linint3D_init(&data->t0[i], c, n_r, n_phi, n_z,
                       NATURALBC, PERIODICBC, NATURALBC,
                       r_min, r_max, phi_min, phi_max, z_min, z_max);

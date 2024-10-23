@@ -222,8 +222,9 @@ a5err B_field_eval_rho(real rho[2], real psi, B_field_data* Bdata) {
             break;
 
         case B_field_type_TC:
-            psi0 = Bdata->BTC.psival;
-            psi1 = 2.0;
+            psi0 = Bdata->BTC.psival - Bdata->BTC.rhoval * Bdata->BTC.rhoval;
+            psi1 = Bdata->BTC.psival - Bdata->BTC.rhoval * Bdata->BTC.rhoval
+                   + 1.0;
             break;
 
         default:

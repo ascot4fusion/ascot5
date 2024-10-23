@@ -26,87 +26,81 @@
 void diag_orb_init(diag_orb_data* data) {
 
     int step = data->Nmrk*data->Npnt;
+    data->id = (real*) calloc( step, sizeof(real) );
     if(data->mode == DIAG_ORB_POINCARE) {
-        int Nsize = data->Nmrk*data->Npnt*(data->Nfld + 2);
-        data->id = (real*) malloc( Nsize * sizeof(real) );
-        data->pncrid = &(data->id[step*data->Nfld]);
-        data->pncrdi = &(data->id[step*(data->Nfld+1)]);
-    } else {
-        int Nsize = data->Nmrk*data->Npnt*data->Nfld;
-        data->id = (real*) malloc( Nsize * sizeof(real) );
+        data->pncrid = (real*) calloc( step, sizeof(real) );
+        data->pncrdi = (real*) calloc( step, sizeof(real) );
     }
-    real* offload_array = data->id;
-
     switch(data->record_mode) {
 
         case simulate_mode_fo:
-            data->mileage = &(offload_array[step*1]);
-            data->r       = &(offload_array[step*2]);
-            data->phi     = &(offload_array[step*3]);
-            data->z       = &(offload_array[step*4]);
-            data->p_r     = &(offload_array[step*5]);
-            data->p_phi   = &(offload_array[step*6]);
-            data->p_z     = &(offload_array[step*7]);
-            data->weight  = &(offload_array[step*8]);
-            data->charge  = &(offload_array[step*9]);
-            data->rho     = &(offload_array[step*10]);
-            data->theta   = &(offload_array[step*11]);
-            data->B_r     = &(offload_array[step*12]);
-            data->B_phi   = &(offload_array[step*13]);
-            data->B_z     = &(offload_array[step*14]);
-            data->simmode = &(offload_array[step*15]);
+            data->mileage = (real*) calloc( step, sizeof(real) );
+            data->r       = (real*) calloc( step, sizeof(real) );
+            data->phi     = (real*) calloc( step, sizeof(real) );
+            data->z       = (real*) calloc( step, sizeof(real) );
+            data->p_r     = (real*) calloc( step, sizeof(real) );
+            data->p_phi   = (real*) calloc( step, sizeof(real) );
+            data->p_z     = (real*) calloc( step, sizeof(real) );
+            data->weight  = (real*) calloc( step, sizeof(real) );
+            data->charge  = (real*) calloc( step, sizeof(real) );
+            data->rho     = (real*) calloc( step, sizeof(real) );
+            data->theta   = (real*) calloc( step, sizeof(real) );
+            data->B_r     = (real*) calloc( step, sizeof(real) );
+            data->B_phi   = (real*) calloc( step, sizeof(real) );
+            data->B_z     = (real*) calloc( step, sizeof(real) );
+            data->simmode = (real*) calloc( step, sizeof(real) );
             break;
 
         case simulate_mode_gc:
-            data->mileage = &(offload_array[step*1]);
-            data->r       = &(offload_array[step*2]);
-            data->phi     = &(offload_array[step*3]);
-            data->z       = &(offload_array[step*4]);
-            data->ppar    = &(offload_array[step*5]);
-            data->mu      = &(offload_array[step*6]);
-            data->zeta    = &(offload_array[step*7]);
-            data->weight  = &(offload_array[step*8]);
-            data->charge  = &(offload_array[step*9]);
-            data->rho     = &(offload_array[step*10]);
-            data->theta   = &(offload_array[step*11]);
-            data->B_r     = &(offload_array[step*12]);
-            data->B_phi   = &(offload_array[step*13]);
-            data->B_z     = &(offload_array[step*14]);
-            data->simmode = &(offload_array[step*15]);
+            data->mileage = (real*) calloc( step, sizeof(real) );
+            data->r       = (real*) calloc( step, sizeof(real) );
+            data->phi     = (real*) calloc( step, sizeof(real) );
+            data->z       = (real*) calloc( step, sizeof(real) );
+            data->ppar    = (real*) calloc( step, sizeof(real) );
+            data->mu      = (real*) calloc( step, sizeof(real) );
+            data->zeta    = (real*) calloc( step, sizeof(real) );
+            data->weight  = (real*) calloc( step, sizeof(real) );
+            data->charge  = (real*) calloc( step, sizeof(real) );
+            data->rho     = (real*) calloc( step, sizeof(real) );
+            data->theta   = (real*) calloc( step, sizeof(real) );
+            data->B_r     = (real*) calloc( step, sizeof(real) );
+            data->B_phi   = (real*) calloc( step, sizeof(real) );
+            data->B_z     = (real*) calloc( step, sizeof(real) );
+            data->simmode = (real*) calloc( step, sizeof(real) );
             break;
 
         case simulate_mode_ml:
-            data->mileage = &(offload_array[step*1]);
-            data->r       = &(offload_array[step*2]);
-            data->phi     = &(offload_array[step*3]);
-            data->z       = &(offload_array[step*4]);
-            data->rho     = &(offload_array[step*5]);
-            data->theta   = &(offload_array[step*6]);
-            data->B_r     = &(offload_array[step*7]);
-            data->B_phi   = &(offload_array[step*8]);
-            data->B_z     = &(offload_array[step*9]);
-            data->simmode = &(offload_array[step*10]);
+            data->mileage = (real*) calloc( step, sizeof(real) );
+            data->r       = (real*) calloc( step, sizeof(real) );
+            data->phi     = (real*) calloc( step, sizeof(real) );
+            data->z       = (real*) calloc( step, sizeof(real) );
+            data->rho     = (real*) calloc( step, sizeof(real) );
+            data->theta   = (real*) calloc( step, sizeof(real) );
+            data->B_r     = (real*) calloc( step, sizeof(real) );
+            data->B_phi   = (real*) calloc( step, sizeof(real) );
+            data->B_z     = (real*) calloc( step, sizeof(real) );
+            data->simmode = (real*) calloc( step, sizeof(real) );
             break;
 
         case simulate_mode_hybrid:
-            data->mileage = &(offload_array[step*1]);
-            data->r       = &(offload_array[step*2]);
-            data->phi     = &(offload_array[step*3]);
-            data->z       = &(offload_array[step*4]);
-            data->p_r     = &(offload_array[step*5]);
-            data->p_phi   = &(offload_array[step*6]);
-            data->p_z     = &(offload_array[step*7]);
-            data->ppar    = &(offload_array[step*8]);
-            data->mu      = &(offload_array[step*9]);
-            data->zeta    = &(offload_array[step*10]);
-            data->weight  = &(offload_array[step*11]);
-            data->charge  = &(offload_array[step*12]);
-            data->rho     = &(offload_array[step*13]);
-            data->theta   = &(offload_array[step*14]);
-            data->B_r     = &(offload_array[step*15]);
-            data->B_phi   = &(offload_array[step*16]);
-            data->B_z     = &(offload_array[step*17]);
-            data->simmode = &(offload_array[step*18]);
+            data->mileage = (real*) calloc( step, sizeof(real) );
+            data->r       = (real*) calloc( step, sizeof(real) );
+            data->phi     = (real*) calloc( step, sizeof(real) );
+            data->z       = (real*) calloc( step, sizeof(real) );
+            data->p_r     = (real*) calloc( step, sizeof(real) );
+            data->p_phi   = (real*) calloc( step, sizeof(real) );
+            data->p_z     = (real*) calloc( step, sizeof(real) );
+            data->ppar    = (real*) calloc( step, sizeof(real) );
+            data->mu      = (real*) calloc( step, sizeof(real) );
+            data->zeta    = (real*) calloc( step, sizeof(real) );
+            data->weight  = (real*) calloc( step, sizeof(real) );
+            data->charge  = (real*) calloc( step, sizeof(real) );
+            data->rho     = (real*) calloc( step, sizeof(real) );
+            data->theta   = (real*) calloc( step, sizeof(real) );
+            data->B_r     = (real*) calloc( step, sizeof(real) );
+            data->B_phi   = (real*) calloc( step, sizeof(real) );
+            data->B_z     = (real*) calloc( step, sizeof(real) );
+            data->simmode = (real*) calloc( step, sizeof(real) );
             break;
     }
 
