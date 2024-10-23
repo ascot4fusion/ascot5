@@ -41,16 +41,14 @@ real afsi_get_volume(afsi_data* dist, int iR);
  * Inputs and outputs are expected to have same physical (R, phi, z)
  * dimensions.
  *
- * @param sim pointer to simulation offload data
+ * @param sim pointer to simulation data
  * @param reaction fusion reaction type, see the description
  * @param n number of Monte Carlo samples to be used
  * @param react1 reactant 1 distribution data
  * @param react2 reactant 2 distribution data
  * @param mult factor by which the output is scaled
- * @param prod1_offload_data distribution data for product 1 output
- * @param prod2_offload_data distribution data for product 2 output
- * @param prod1_offload_array array where product 1 distribution is stored
- * @param prod2_offload_array array where product 2 distribution is stored
+ * @param prod1_data distribution data for product 1 output
+ * @param prod2_data distribution data for product 2 output
  */
 void afsi_run(sim_data* sim, Reaction reaction, int n,
               afsi_data* react1, afsi_data* react2, real mult,
@@ -75,7 +73,7 @@ void afsi_run(sim_data* sim, Reaction reaction, int n,
         print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
                    "\nInitializing output failed.\n"
                    "See stderr for details.\n");
-        /* Free offload data and terminate */
+        /* Free data and terminate */
         abort();
     }
 

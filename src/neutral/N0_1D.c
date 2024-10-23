@@ -13,15 +13,6 @@
 #include "N0_1D.h"
 #include "../linint/linint.h"
 
-int n_rho;      /**< Number of r grid points in the data                  */
-    real rho_min;   /**< Minimum r coordinate in the grid in the data [m]     */
-    real rho_max;   /**< Maximum r coordinate in the grid in the data [m]     */
-    int n_species;               /**< Number of neutral species               */
-    int anum[MAX_SPECIES];       /**< Neutral species mass number []          */
-    int znum[MAX_SPECIES];       /**< Neutral species charge number []        */
-    int maxwellian[MAX_SPECIES]; /**< Whether species distribution is
-                                    Maxwellian or monoenergetic               */
-
 /**
  * @brief Initialize data
  *
@@ -58,7 +49,7 @@ int N0_1D_init(N0_1D_data* data, int n_rho, real rho_min, real rho_max,
         linint1D_init(&data->n0[i], c, n_rho, NATURALBC, rho_min, rho_max);
         c = (real*) malloc(n_rho * sizeof(real));
         for(int i = 0; i < n_rho; i++) {
-            c[i] = density[i];
+            c[i] = temperature[i];
         }
         linint1D_init(&data->t0[i], c, n_rho, NATURALBC, rho_min, rho_max);
     }

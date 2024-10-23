@@ -51,29 +51,20 @@ void bbnbi_inject_markers(particle_state* p, int nprt, int ngenerated, real t0,
  * @param nprt number of markers to be injected
  * @param t1 time instant when the injector is turned on
  * @param t2 time instant when the injector is turned off
- * @param B_offload_array pointer to the magnetic field data
- * @param plasma_offload_array pointer to the plasma data
- * @param neutral_offload_array pointer to the neutral data
- * @param wall_offload_array pointer to the wall data
- * @param wall_int_offload_array pointer to the wall int data
- * @param asigma_offload_array pointer to the atomic sigma data
- * @param nbi_offload_array pointer to the nbi data
  * @param p pointer to the marker array which is allocated here
- * @param diag_offload_array pointer to the diagnostics data
  */
 void bbnbi_simulate(
     sim_data* sim, int nprt, real t1, real t2, particle_state** p) {
 
     /* Initialize input data */
-    sim_data sim_data;
     simulate_init(sim);
-    random_init(&sim_data.random_data, time(NULL));
+    random_init(&sim->random_data, time(NULL));
 
     /* Calculate total NBI power so that we can distribute markers along
      * the injectors according to their power */
     real total_power = 0;
-    for(int i=0; i < sim_data.nbi_data.ninj; i++) {
-        total_power += sim_data.nbi_data.inj[i].power;
+    for(int i=0; i < sim->nbi_data.ninj; i++) {
+        total_power += sim->nbi_data.inj[i].power;
     }
 
     /* Initialize particle struct */
@@ -81,11 +72,11 @@ void bbnbi_simulate(
 
     /* Generate markers at the injectors */
     int nprt_generated = 0;
-    for(int i = 0; i < sim_data.nbi_data.ninj; i++) {
+    for(int i = 0; i < sim->nbi_data.ninj; i++) {
 
         /* Number of markers generated is proportional to NBI power */
-        int nprt_inj = ( sim_data.nbi_data.inj[i].power / total_power ) * nprt;
-        if(i == sim_data.nbi_data.ninj-1) {
+        int nprt_inj = ( sim->nbi_data.inj[i].power / total_power ) * nprt;
+        if(i == sim->nbi_data.ninj-1) {
             /* All "remaining" markers goes to the last injector to avoid any
              * rounding issues */
             nprt_inj = nprt - nprt_generated;
@@ -94,7 +85,7 @@ void bbnbi_simulate(
         /* Generates markers at the injector location and traces them until
          * they enter the region with magnetic field data */
         bbnbi_inject_markers(&((*p)[nprt_generated]), nprt_inj, nprt_generated,
-                             t1, t2, &(sim_data.nbi_data.inj[i]), &sim_data);
+                             t1, t2, &(sim->nbi_data.inj[i]), sim);
 
         nprt_generated += nprt_inj;
         print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,
@@ -119,7 +110,7 @@ void bbnbi_simulate(
 
     /* Trace neutrals until they are ionized or lost to the wall */
     #pragma omp parallel
-    bbnbi_trace_markers(&pq, &sim_data);
+    bbnbi_trace_markers(&pq, sim);
 }
 
 /**

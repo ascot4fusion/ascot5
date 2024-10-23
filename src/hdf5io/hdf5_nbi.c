@@ -41,6 +41,7 @@ int hdf5_nbi_init(hid_t f, nbi_data* data, char* qid) {
     int ninj;
     if( hdf5_read_int(NBIPATH "ninj", &ninj,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
+    data->ninj = ninj;
 
     /* Loop over injectors twice: first time we initialize offload data */
     int nbeamlet_total = 0;
@@ -50,7 +51,7 @@ int hdf5_nbi_init(hid_t f, nbi_data* data, char* qid) {
     int* nbeamlet = (int*) malloc( ninj*sizeof(int) );
     real* mass = (real*) malloc( ninj*sizeof(real) );
     real* power = (real*) malloc( ninj*sizeof(real) );
-    real* efrac = (real*) malloc( ninj*sizeof(real) );
+    real* efrac = (real*) malloc( 3*ninj*sizeof(real) );
     real* energy = (real*) malloc( ninj*sizeof(real) );
     real* div_h = (real*) malloc( ninj*sizeof(real) );
     real* div_v = (real*) malloc( ninj*sizeof(real) );

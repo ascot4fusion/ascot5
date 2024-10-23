@@ -2,7 +2,6 @@
 studies in fusion devices
 """
 import ctypes
-import copy
 import numpy as np
 import unyt
 import numpy.ctypeslib as npctypes
@@ -160,14 +159,14 @@ class Afsi():
         react.min_time = 0.0
         react.max_time = 1.0
 
-        prod1, prod1_data = self._init_product_dist(
+        prod1 = self._init_product_dist(
             react, q1, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
-        prod2, prod2_data = self._init_product_dist(
+        prod2 = self._init_product_dist(
             react, q2, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
 
         _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
                            react1, react2, mult, prod1, prod2,
-                           prod1_data, prod2_data)
+                           )
         self._ascot.input_free(bfield=True, plasma=True)
 
         # Reload Ascot
@@ -263,20 +262,20 @@ class Afsi():
         react1 = self._init_afsi_data(dist_thermal=thermal)
         react2 = self._init_afsi_data(dist_5D=dist)
 
-        prod1, prod1_data = self._init_product_dist(
+        prod1 = self._init_product_dist(
             dist, q1, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
-        prod2, prod2_data = self._init_product_dist(
+        prod2 = self._init_product_dist(
             dist, q2, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
 
         mult = 1.0
         if swap:
             _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
                                react1, react2, mult, prod1, prod2,
-                               prod1_data, prod2_data)
+                               )
         else:
             _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
                                react2, react1, mult, prod1, prod2,
-                               prod1_data, prod2_data)
+                               )
         self._ascot.input_free(bfield=True, plasma=True)
 
         # Reload Ascot
@@ -337,14 +336,14 @@ class Afsi():
             react2 = react1
             mult = 0.5
 
-        prod1, prod1_data = self._init_product_dist(
+        prod1 = self._init_product_dist(
             dist1, q1, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
-        prod2, prod2_data = self._init_product_dist(
+        prod2 = self._init_product_dist(
             dist1, q2, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
 
         _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
                            react1, react2, mult, prod1, prod2,
-                           prod1_data, prod2_data)
+                           )
 
         self._ascot.input_free(bfield=True, plasma=True)
 
@@ -420,7 +419,7 @@ class Afsi():
 
     def _init_product_dist(self, react, charge, minppara, maxppara, nppara,
                            minpperp, maxpperp, npperp):
-        prod           = STRUCT_DIST5DOFFLOAD()
+        prod           = STRUCT_DIST5D()
         prod.n_r       = react.n_r
         prod.min_r     = react.min_r
         prod.max_r     = react.max_r
@@ -445,9 +444,9 @@ class Afsi():
 
         distsize = prod.n_r * prod.n_phi * prod.n_z * prod.n_ppara \
             * prod.n_pperp
-        offload_array = npctypes.as_ctypes(
+        prod.histogram = npctypes.as_ctypes(
             np.ascontiguousarray(np.zeros(distsize), dtype="f8") )
-        return prod, offload_array
+        return prod
 
     def reactions(self, reaction=None):
         """Return reaction data for a given reaction.

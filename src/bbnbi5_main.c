@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
             print_out0(VERBOSE_MINIMAL, sim.mpi_rank, sim.mpi_root,
                        "\nInitializing output failed.\n"
                        "See stderr for details.\n");
-            /* Free offload data and terminate */
+            /* Free data and terminate */
             abort();
             return 1;
         }
@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
  *
  * @param argc argument count as given to main()
  * @param argv argument vector as given to main()
- * @param sim pointer to offload data struct
+ * @param sim pointer to the data struct
  * @param nprt pointer to integer where number of markers is stored
  * @param t1 pointer to store beginning of time interval
  * @param t2 pointer to store end of the time interval
