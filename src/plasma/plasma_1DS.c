@@ -44,6 +44,7 @@ int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
                     int nion, int* anum, int* znum, real* mass, real* charge,
                     real* Te, real* Ti, real* ne, real* ni) {
     int err = 0;
+    data->n_species = nion + 1;
     data->anum = (int*) malloc( nion*sizeof(int) );
     data->znum = (int*) malloc( nion*sizeof(int) );
     data->mass = (real*) malloc( (nion+1)*sizeof(real) );
@@ -57,7 +58,6 @@ int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
         data->charge[i] = charge[i];
     }
 
-    data->n_species = nion +1;
     real* Te_scaled = (real*) malloc( nrho*sizeof(real) );
     real* Ti_scaled = (real*) malloc( nrho*sizeof(real) );
     real* ne_scaled = (real*) malloc( nrho*sizeof(real) );
