@@ -110,6 +110,20 @@ void plasma_1D_free(plasma_1D_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void plasma_1D_offload(plasma_1D_data* data) {
+    GPU_MAP_TO_DEVICE(
+        data->mass[0:data->n_species], data->charge[0:data->n_species], \
+        data->anum[0:data->n_species-1], data->znum[0:data->n_species-1], \
+        data->rho[0:data->n_rho], data->temp[0:data->n_rho*data->n_species], \
+        data->dens[0:data->n_rho*data->n_species]
+    )
+}
+
+/**
  * @brief Evaluate plasma temperature
  *
  * This function evaluates the temperature of a plasma species at the given

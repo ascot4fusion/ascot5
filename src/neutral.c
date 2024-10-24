@@ -38,6 +38,22 @@ void neutral_free(neutral_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void neutral_offload(neutral_data* data) {
+    switch(data->type) {
+        case neutral_type_1D:
+            N0_1D_offload(&data->N01D);
+            break;
+        case neutral_type_3D:
+            N0_3D_offload(&data->N03D);
+            break;
+    }
+}
+
+/**
  * @brief Evaluate neutral density
  *
  * This function evaluates the neutral density n0 at the given coordinates.

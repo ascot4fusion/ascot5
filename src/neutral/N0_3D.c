@@ -89,6 +89,15 @@ void N0_3D_free(N0_3D_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void N0_3D_offload(N0_3D_data* data) {
+    //TODO: Implement
+}
+
+/**
  * @brief Evaluate neutral density
  *
  * This function evaluates the neutral density at the given coordinates using

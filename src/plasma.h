@@ -36,7 +36,8 @@ typedef struct {
     plasma_1DS_data plasma_1DS; /**< 1DS data or NULL if not active          */
 } plasma_data;
 
-void plasma_free(plasma_data* plasma_data);
+void plasma_free(plasma_data* data);
+void plasma_offload(plasma_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
 a5err plasma_eval_temp(real* temp, real rho, real r, real phi, real z, real t,
                        int species, plasma_data* pls_data);

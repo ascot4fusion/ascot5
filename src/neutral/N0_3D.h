@@ -28,6 +28,7 @@ int N0_3D_init(N0_3D_data* data,
                int n_species, int* anum, int* znum, int* maxwellian,
                real* density, real* temperature);
 void N0_3D_free(N0_3D_data* data);
+void N0_3D_offload(N0_3D_data* data);
 DECLARE_TARGET_SIMD_UNIFORM(ndata)
 a5err N0_3D_eval_n0(real* n0, real r, real phi, real z, N0_3D_data* ndata);
 DECLARE_TARGET_SIMD_UNIFORM(ndata)

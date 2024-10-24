@@ -30,6 +30,7 @@ int boozer_init(boozer_data* data, int npsi, real psi_min, real psi_max,
                 int ntheta, int nthetag, real* nu, real* theta,
                 int nrzs, real* rs, real* zs);
 void boozer_free(boozer_data* data);
+void boozer_offload(boozer_data* data);
 DECLARE_TARGET_SIMD_UNIFORM(Bdata, boozerdata)
 a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside, real r,
                                real phi, real z, B_field_data* Bdata,

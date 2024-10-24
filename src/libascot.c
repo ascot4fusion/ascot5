@@ -25,6 +25,7 @@
 #include "asigma.h"
 #include "consts.h"
 #include "physlib.h"
+#include "gitver.h"
 
 #include "simulate/mccc/mccc_coefs.h"
 

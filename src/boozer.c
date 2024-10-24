@@ -84,6 +84,15 @@ void boozer_free(boozer_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void boozer_offload(boozer_data* data) {
+    // TODO: Implement
+}
+
+/**
  * @brief Evaluate Boozer coordinates and partial derivatives
  *
  * The output vector has the following elements:

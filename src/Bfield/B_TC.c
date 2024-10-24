@@ -85,6 +85,15 @@ void B_TC_free(B_TC_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void B_TC_offload(B_TC_data* data) {
+    GPU_MAP_TO_DEVICE( data->B[0:3], data->dB[0:9] )
+}
+
+/**
  * @brief Evaluate poloidal flux psi
  *
  * @param psi pointer where psi [V*s*m^-1] value will be stored

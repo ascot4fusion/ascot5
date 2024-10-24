@@ -62,6 +62,17 @@ void dist_rho6D_free(dist_rho6D_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void dist_rho6D_offload(dist_rho6D_data* data) {
+    GPU_MAP_TO_DEVICE(
+        data->histogram[0:data->n_rho*data->n_theta*data->n_phi*data->n_pr*data->n_pphi*data->n_pz*data->n_time*data->n_q]
+    )
+}
+
+/**
  * @brief Update the histogram from full-orbit particles
  *
  * This function updates the histogram from the particle data. Bins are

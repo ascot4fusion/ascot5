@@ -43,6 +43,22 @@ void mhd_free(mhd_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void mhd_offload(mhd_data* data) {
+    switch(data->type) {
+        case mhd_type_stat:
+            mhd_stat_offload(&data->stat);
+            break;
+        case mhd_type_nonstat:
+            mhd_nonstat_offload(&data->nonstat);
+            break;
+    }
+}
+
+/**
  * @brief Evaluate the needed quantities from MHD mode for orbit following
  *
  * The quantities to be evaluated are alpha, phi, grad alpha, grad phi,

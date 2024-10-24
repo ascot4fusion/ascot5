@@ -44,6 +44,15 @@ void E_TC_free(E_TC_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void E_TC_offload(E_TC_data* data) {
+    GPU_MAP_TO_DEVICE( data->Exyz[0:3] )
+}
+
+/**
  * @brief Evaluate electric field
  *
  * Even though this module represents a Cartesian electric field, the returned

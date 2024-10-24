@@ -39,6 +39,7 @@ typedef struct {
 } mhd_data;
 
 void mhd_free(mhd_data* data);
+void mhd_offload(mhd_data* data);
 DECLARE_TARGET_SIMD_UNIFORM(boozerdata, mhddata, Bdata, includemode)
 a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
                int includemode, boozer_data* boozerdata, mhd_data* mhddata,

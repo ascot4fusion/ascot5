@@ -29,6 +29,7 @@ int plasma_1Dt_init(plasma_1Dt_data* data, int nrho, int ntime, int nion,
                     real* rho, real* time, int* anum, int* znum, real* mass,
                     real* charge, real* Te, real* Ti, real* ne, real* ni);
 void plasma_1Dt_free(plasma_1Dt_data* pls_data);
+void plasma_1Dt_offload(plasma_1Dt_data* pls_data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
 a5err plasma_1Dt_eval_temp(real* dens, real rho, real t, int species,
                           plasma_1Dt_data* pls_data);

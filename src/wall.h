@@ -34,7 +34,8 @@ typedef struct {
     wall_3d_data w3d; /**< 3D model or NULL if not active         */
 } wall_data;
 
-void wall_free(wall_data* w);
+void wall_free(wall_data* data);
+void wall_offload(wall_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(w)
 int wall_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
                   wall_data* w, real* w_coll);

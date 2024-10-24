@@ -39,7 +39,8 @@ typedef struct {
     E_1DS_data E1DS;   /**< 1DS field or NULL if not active            */
 } E_field_data;
 
-void E_field_free(E_field_data* Edata);
+void E_field_free(E_field_data* data);
+void E_field_offload(E_field_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(Edata, Bdata)
 a5err E_field_eval_E(real E[3], real r, real phi, real z, real t,
                      E_field_data* Edata, B_field_data* Bdata);

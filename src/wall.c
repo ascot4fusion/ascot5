@@ -39,6 +39,23 @@ void wall_free(wall_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void wall_offload(wall_data* data) {
+    switch(data->type) {
+        case wall_type_2D:
+            wall_2d_offload(&data->w2d);
+            break;
+
+        case wall_type_3D:
+            wall_3d_offload(&data->w3d);
+            break;
+    }
+}
+
+/**
  * @brief Check if a given directed line segment intersects the wall
  *
  * This function is intended to be used to check whether a marker collides with

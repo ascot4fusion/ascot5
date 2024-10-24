@@ -31,6 +31,7 @@ int asigma_loc_init(asigma_loc_data* data, int nreac,
                     int* nn, real* nmin, real* nmax,
                     int* nT, real* Tmin, real* Tmax, real* sigma);
 void asigma_loc_free(asigma_loc_data* data);
+void asigma_loc_offload(asigma_loc_data* data);
 #pragma omp declare target
 DECLARE_TARGET_SIMD_UNIFORM(asigma_data, reac_type, z_2, a_2,\
     extrapolate)

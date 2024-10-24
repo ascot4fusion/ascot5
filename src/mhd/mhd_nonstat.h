@@ -40,6 +40,7 @@ int mhd_nonstat_init(mhd_nonstat_data* data, int nmode, int nrho, int ntime,
                      int* moden, int* modem, real* amplitude_nm,
                      real* omega_nm, real* phase_nm, real* alpha, real* phi);
 void mhd_nonstat_free(mhd_nonstat_data* data);
+void mhd_nonstat_offload(mhd_nonstat_data* data);
 DECLARE_TARGET_SIMD_UNIFORM(boozerdata, mhddata, Bdata, includemode)
 a5err mhd_nonstat_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
                        int includemode, boozer_data* boozerdata,
