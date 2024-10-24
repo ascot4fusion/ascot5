@@ -38,6 +38,7 @@ typedef struct {
      * ntriangle elements are the triangle indices.
      */
     int* tree_array;
+    int tree_array_size; /* Number of elements in tree_array */
 } wall_3d_data;
 
 int wall_3d_init(wall_3d_data* w, int nelements, real* x1x2x3, real* y1y2y3,

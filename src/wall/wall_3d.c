@@ -181,6 +181,7 @@ void wall_3d_init_tree(wall_3d_data* w, real* offload_array) {
     }
 
     w->tree_array = (int*) malloc((2*ncell + list_size)*sizeof(int));
+    w->tree_array_size = 2*ncell + list_size;
 
     int next_empty_list = ncell;
     for(i = 0; i < ncell; i++) {
