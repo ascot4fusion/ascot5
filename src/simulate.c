@@ -16,6 +16,12 @@
 #include "endcond.h"
 #include "particle.h"
 #include "plasma.h"
+#include "wall.h"
+#include "boozer.h"
+#include "mhd.h"
+#include "neutral.h"
+#include "B_field.h"
+#include "E_field.h"
 #include "random.h"
 #include "simulate.h"
 #include "print.h"
@@ -26,7 +32,6 @@
 #include "simulate/mccc/mccc.h"
 #include "gctransform.h"
 #include "asigma.h"
-#include "copytogpu.h"
 
 void sim_monitor(char* filename, volatile int* n, volatile int* finished);
 
@@ -121,7 +126,16 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
 #endif
 
     diag_init(&sim->diag_data, n_particles);
-    simulate_copy_to_gpu(sim);
+    GPU_MAP_TO_DEVICE(sim[0:1])
+    B_field_offload(&sim->B_data);
+    E_field_offload(&sim->E_data);
+    plasma_offload(&sim->plasma_data);
+    neutral_offload(&sim->neutral_data);
+    wall_offload(&sim->wall_data);
+    boozer_offload(&sim->boozer_data);
+    mhd_offload(&sim->mhd_data);
+    asigma_offload(&sim->asigma_data);
+    diag_offload(&sim->diag_data);
 
     /**************************************************************************/
     /* 2. Meta data (e.g. random number generator) is initialized.            */

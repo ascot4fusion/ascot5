@@ -50,6 +50,25 @@ void plasma_free(plasma_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void plasma_offload(plasma_data* data) {
+    switch(data->type) {
+        case plasma_type_1D:
+            plasma_1D_offload(&data->plasma_1D);
+            break;
+        case plasma_type_1Dt:
+            plasma_1Dt_offload(&data->plasma_1Dt);
+            break;
+        case plasma_type_1DS:
+            plasma_1DS_offload(&data->plasma_1DS);
+            break;
+    }
+}
+
+/**
  * @brief Evaluate plasma temperature
  *
  * This function evaluates the temperature of a given plasma species at the

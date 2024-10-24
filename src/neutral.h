@@ -33,7 +33,8 @@ typedef struct {
     N0_3D_data N03D;   /**< 3D field or NULL if not active           */
 } neutral_data;
 
-void neutral_free(neutral_data* ndata);
+void neutral_free(neutral_data* data);
+void neutral_offload(neutral_data* data);
 DECLARE_TARGET_SIMD_UNIFORM(ndata)
 a5err neutral_eval_n0(real* n0, real rho, real r, real phi, real z, real t,
                       neutral_data* ndata);

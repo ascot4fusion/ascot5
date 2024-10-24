@@ -32,6 +32,7 @@ typedef struct {
 int B_TC_init(B_TC_data* data, real axisr, real axisz, real psival, real rhoval,
               real B[3], real dB[9]);
 void B_TC_free(B_TC_data* data);
+void B_TC_offload(B_TC_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err B_TC_eval_B(real B[3], real r, real phi, real z, B_TC_data* Bdata);
 DECLARE_TARGET_END

@@ -109,6 +109,29 @@ void diag_free(diag_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void diag_offload(diag_data* data) {
+    if(data->dist5D_collect) {
+        dist_5D_offload(&data->dist5D);
+    }
+    if(data->dist6D_collect) {
+        dist_6D_offload(&data->dist6D);
+    }
+    if(data->distrho5D_collect) {
+        dist_rho5D_offload(&data->distrho5D);
+    }
+    if(data->distrho6D_collect) {
+        dist_rho6D_offload(&data->distrho6D);
+    }
+    if(data->distCOM_collect) {
+        dist_COM_offload(&data->distCOM);
+    }
+}
+
+/**
  * @brief Collects diagnostics when marker represents a particle
  *
  * @param data diagnostics data struct

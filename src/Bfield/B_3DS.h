@@ -32,6 +32,7 @@ int B_3DS_init(B_3DS_data* data,
                real axis_r, real axis_z, real psi0, real psi1,
                real* psi, real* B_r, real* B_phi, real* B_z);
 void B_3DS_free(B_3DS_data* data);
+void B_3DS_offload(B_3DS_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err B_3DS_eval_psi(real* psi, real r, real phi, real z, B_3DS_data* Bdata);
 DECLARE_TARGET_END

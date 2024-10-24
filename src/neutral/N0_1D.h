@@ -25,6 +25,7 @@ int N0_1D_init(N0_1D_data* data, int n_rho, real rho_min, real rho_max,
                int n_species, int* anum, int* znum, int* maxwellian,
                real* density, real* temperature);
 void N0_1D_free(N0_1D_data* data);
+void N0_1D_offload(N0_1D_data* data);
 DECLARE_TARGET_SIMD_UNIFORM(ndata)
 a5err N0_1D_eval_n0(real* n0, real rho, N0_1D_data* ndata);
 DECLARE_TARGET_SIMD_UNIFORM(ndata)

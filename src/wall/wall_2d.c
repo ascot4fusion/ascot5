@@ -45,11 +45,23 @@ int wall_2d_init(wall_2d_data* data, int nelements, real* r, real* z) {
 /**
  * @brief Free allocated resources
  *
- * @param offload_data pointer to the data struct
+ * @param data pointer to the data struct
  */
 void wall_2d_free(wall_2d_data* data) {
     free(data->wall_r);
     free(data->wall_z);
+}
+
+/**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void wall_2d_offload(wall_2d_data* data) {
+    GPU_MAP_TO_DEVICE(
+        data->wall_r[0:data->n],
+        data->wall_z[0:data->n]
+    )
 }
 
 /**

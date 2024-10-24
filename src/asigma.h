@@ -56,6 +56,7 @@ typedef struct {
 } asigma_data;
 
 void asigma_free(asigma_data* data);
+void asigma_offload(asigma_data* data);
 void asigma_extrapolate(int extrapolate);
 DECLARE_TARGET_SIMD_UNIFORM(asigmadata)
 a5err asigma_eval_sigma(

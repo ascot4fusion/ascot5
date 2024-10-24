@@ -48,6 +48,15 @@ void dist_COM_free(dist_COM_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void dist_COM_offload(dist_COM_data* data) {
+    GPU_MAP_TO_DEVICE( data->histogram[0:data->n_mu*data->n_Ekin*data->n_Ptor] )
+}
+
+/**
  * @brief Update the histogram from full-orbit markers
  *
  * @param dist pointer to distribution parameter struct

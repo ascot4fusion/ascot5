@@ -32,6 +32,7 @@ int B_GS_init(B_GS_data* data, real R0, real z0, real raxis, real zaxis,
               real B_phi0, real psi0, real psi1, real psi_mult, real c[14],
               int Nripple, real a0, real alpha0, real delta0);
 void B_GS_free(B_GS_data* data);
+void B_GS_offload(B_GS_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err B_GS_eval_B(real B[3], real r, real phi, real z, B_GS_data* Bdata);
 DECLARE_TARGET_END

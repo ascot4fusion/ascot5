@@ -31,6 +31,7 @@ int B_2DS_init(B_2DS_data* data,
                real axis_r, real axis_z, real psi0, real psi1,
                real* psi, real* B_r, real* B_phi, real* B_z);
 void B_2DS_free(B_2DS_data* data);
+void B_2DS_offload(B_2DS_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err B_2DS_eval_psi(real* psi, real r, real phi, real z, B_2DS_data* Bdata);
 DECLARE_TARGET_END

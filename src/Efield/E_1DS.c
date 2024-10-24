@@ -60,6 +60,15 @@ void E_1DS_free(E_1DS_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void E_1DS_offload(E_1DS_data* data) {
+    GPU_MAP_TO_DEVICE( data->dV, data->dV.c[0:data->dV.n_x*NSIZE_COMP1D] )
+}
+
+/**
  * @brief Evaluate 1D spline radial electric field
  *
  * This function evaluates the 1D spline potential gradient of the plasma at the

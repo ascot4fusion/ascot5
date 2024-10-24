@@ -134,6 +134,15 @@ void asigma_loc_free(asigma_loc_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void asigma_loc_offload(asigma_loc_data* data) {
+    // TODO: Implement
+}
+
+/**
  * @brief Evaluate atomic reaction cross-section
  *
  * This function evaluates the cross-section (sigma) for the atomic reaction

@@ -38,8 +38,8 @@ typedef struct {
 } diag_data;
 
 int diag_init(diag_data* data, int Nmrk);
-
 void diag_free(diag_data* data);
+void diag_offload(diag_data* data);
 
 void diag_sum(diag_data* data1, diag_data* data2);
 

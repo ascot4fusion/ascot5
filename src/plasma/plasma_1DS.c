@@ -198,6 +198,24 @@ void plasma_1DS_free(plasma_1DS_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void plasma_1DS_offload(plasma_1DS_data* data) {
+    GPU_MAP_TO_DEVICE(
+        data->mass[0:data->n_species], data->charge[0:data->n_species], \
+        data->anum[0:data->n_species-1], data->znum[0:data->n_species-1], \
+        data->temp[0:2], data->dens[0:data->n_species], \
+        data->temp[0].c[0:data->temp[0].n_x*NSIZE_COMP1D], \
+        data->temp[1].c[0:data->temp[1].n_x*NSIZE_COMP1D]
+    )
+    for (int i = 0; i < data->n_species; i++) {
+        GPU_MAP_TO_DEVICE( data->dens[i].c[0:data->dens[i].n_x*NSIZE_COMP1D] )
+    }
+}
+
+/**
  * @brief Evaluate plasma temperature
  *
  * @param temp temperature value will be stored in temp[0]

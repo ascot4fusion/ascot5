@@ -152,6 +152,15 @@ void B_GS_free(B_GS_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void B_GS_offload(B_GS_data* data) {
+    GPU_MAP_TO_DEVICE( data->psi_coeff[0:14] )
+}
+
+/**
  * @brief Evaluate poloidal flux psi
  *
  * @param psi pointer where psi [V*s*m^-1] value will be stored

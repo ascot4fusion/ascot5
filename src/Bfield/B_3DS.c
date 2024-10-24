@@ -196,6 +196,21 @@ void B_3DS_free(B_3DS_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void B_3DS_offload(B_3DS_data* data) {
+    GPU_MAP_TO_DEVICE(
+        data->psi, data->B_r, data->B_phi, data->B_z, \
+        data->psi.c[0:data->psi.n_x*data->psi.n_y*NSIZE_COMP2D], \
+        data->B_r.c[0:data->B_r.n_x*data->B_r.n_y*data->B_r.n_z*NSIZE_COMP3D], \
+        data->B_phi.c[0:data->B_phi.n_x*data->B_phi.n_y*data->B_phi.n_z*NSIZE_COMP3D], \
+        data->B_z.c[0:data->B_z.n_x*data->B_z.n_y*data->B_z.n_z*NSIZE_COMP3D]
+    )
+}
+
+/**
  * @brief Evaluate poloidal flux psi
  *
  * @param psi pointer where psi [V*s*m^-1] value will be stored

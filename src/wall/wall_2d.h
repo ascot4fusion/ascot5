@@ -18,8 +18,9 @@ typedef struct {
     real* wall_z;   /**< z coordinates for the wall polygon points      */
 } wall_2d_data;
 
-int wall_2d_init(wall_2d_data* w, int nelements, real* r, real* z);
-void wall_2d_free(wall_2d_data* w);
+int wall_2d_init(wall_2d_data* data, int nelements, real* r, real* z);
+void wall_2d_free(wall_2d_data* data);
+void wall_2d_offload(wall_2d_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(w)
 int wall_2d_inside(real r, real z, wall_2d_data* w);
 DECLARE_TARGET_END

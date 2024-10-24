@@ -47,7 +47,8 @@ typedef struct {
     B_TC_data BTC;     /**< TC field or NULL if not active             */
 } B_field_data;
 
-void B_field_free(B_field_data* Bdata);
+void B_field_free(B_field_data* data);
+void B_field_offload(B_field_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err B_field_eval_psi(
     real* psi, real r, real phi, real z, real t, B_field_data* Bdata);

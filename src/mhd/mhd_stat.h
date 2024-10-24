@@ -41,6 +41,7 @@ int mhd_stat_init(mhd_stat_data* data, int nmode, int nrho,
                   real* amplitude_nm, real* omega_nm, real* phase_nm,
                   real* alpha, real* phi);
 void mhd_stat_free(mhd_stat_data* data);
+void mhd_stat_offload(mhd_stat_data* data);
 DECLARE_TARGET_SIMD_UNIFORM(boozerdata, mhddata, includemode)
 a5err mhd_stat_eval(
     real mhd_dmhd[10], real r, real phi, real z, real t, int includemode,

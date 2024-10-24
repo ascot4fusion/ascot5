@@ -118,6 +118,18 @@ void wall_3d_free(wall_3d_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void wall_3d_offload(wall_3d_data* data) {
+    GPU_MAP_TO_DEVICE(
+        data->wall_tris[0:data->n*9],
+        data->tree_array[0:data->tree_array_size]
+    )
+}
+
+/**
  * @brief Construct wall octree iteratively
  *
  * Constructs the octree array by iterating through all wall triangles and

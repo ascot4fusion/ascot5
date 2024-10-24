@@ -19,7 +19,6 @@
 #include "../endcond.h"
 #include "../math.h"
 #include "../consts.h"
-#include "../copytogpu.h"
 #include "simulate_fo_fixed.h"
 #include "step/step_fo_vpa.h"
 #include "mccc/mccc.h"
@@ -212,7 +211,8 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     }
     /* All markers simulated! */
 #ifdef GPU
-    simulate_fo_fixed_copy_from_gpu(sim, p_ptr);
+    GPU_MAP_FROM_DEVICE(sim[0:1])
+    particle_onload_fo(p_ptr);
     n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
 #endif
 }

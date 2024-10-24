@@ -54,6 +54,35 @@ void B_field_free(B_field_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void B_field_offload(B_field_data* data) {
+    switch(data->type) {
+        case B_field_type_GS:
+            B_GS_offload(&(data->BGS));
+            break;
+
+        case B_field_type_2DS:
+            B_2DS_offload(&(data->B2DS));
+            break;
+
+        case B_field_type_3DS:
+            B_3DS_offload(&(data->B3DS));
+            break;
+
+        case B_field_type_STS:
+            B_STS_offload(&(data->BSTS));
+            break;
+
+        case B_field_type_TC:
+            B_TC_offload(&(data->BTC));
+            break;
+    }
+}
+
+/**
  * @brief Evaluate poloidal flux psi
  *
  * This function evaluates the poloidal flux psi at the given coordinates. The

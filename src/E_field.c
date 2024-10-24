@@ -39,6 +39,22 @@ void E_field_free(E_field_data* data) {
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void E_field_offload(E_field_data* data) {
+    switch(data->type) {
+        case E_field_type_1DS:
+            E_1DS_offload(&data->E1DS);
+            break;
+        case E_field_type_TC:
+            E_TC_offload(&data->ETC);
+            break;
+    }
+}
+
+/**
  * @brief Evaluate electric field
  *
  * This function evaluates the electric field at the given coordinates. Note
