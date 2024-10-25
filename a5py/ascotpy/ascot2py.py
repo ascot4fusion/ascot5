@@ -195,6 +195,9 @@ B_GS_init.argtypes = [ctypes.POINTER(struct_c__SA_B_GS_data), real, real, real, 
 B_GS_free = _libraries['libascot.so'].B_GS_free
 B_GS_free.restype = None
 B_GS_free.argtypes = [ctypes.POINTER(struct_c__SA_B_GS_data)]
+B_GS_offload = _libraries['libascot.so'].B_GS_offload
+B_GS_offload.restype = None
+B_GS_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_GS_data)]
 a5err = ctypes.c_uint64
 B_GS_eval_B = _libraries['libascot.so'].B_GS_eval_B
 B_GS_eval_B.restype = a5err
@@ -254,6 +257,9 @@ B_2DS_init.argtypes = [ctypes.POINTER(struct_c__SA_B_2DS_data), ctypes.c_int32, 
 B_2DS_free = _libraries['libascot.so'].B_2DS_free
 B_2DS_free.restype = None
 B_2DS_free.argtypes = [ctypes.POINTER(struct_c__SA_B_2DS_data)]
+B_2DS_offload = _libraries['libascot.so'].B_2DS_offload
+B_2DS_offload.restype = None
+B_2DS_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_2DS_data)]
 B_2DS_eval_psi = _libraries['libascot.so'].B_2DS_eval_psi
 B_2DS_eval_psi.restype = a5err
 B_2DS_eval_psi.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_B_2DS_data)]
@@ -317,6 +323,9 @@ B_3DS_init.argtypes = [ctypes.POINTER(struct_c__SA_B_3DS_data), ctypes.c_int32, 
 B_3DS_free = _libraries['libascot.so'].B_3DS_free
 B_3DS_free.restype = None
 B_3DS_free.argtypes = [ctypes.POINTER(struct_c__SA_B_3DS_data)]
+B_3DS_offload = _libraries['libascot.so'].B_3DS_offload
+B_3DS_offload.restype = None
+B_3DS_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_3DS_data)]
 B_3DS_eval_psi = _libraries['libascot.so'].B_3DS_eval_psi
 B_3DS_eval_psi.restype = a5err
 B_3DS_eval_psi.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_B_3DS_data)]
@@ -370,6 +379,9 @@ B_STS_init.argtypes = [ctypes.POINTER(struct_c__SA_B_STS_data), ctypes.c_int32, 
 B_STS_free = _libraries['libascot.so'].B_STS_free
 B_STS_free.restype = None
 B_STS_free.argtypes = [ctypes.POINTER(struct_c__SA_B_STS_data)]
+B_STS_offload = _libraries['libascot.so'].B_STS_offload
+B_STS_offload.restype = None
+B_STS_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_STS_data)]
 B_STS_eval_psi = _libraries['libascot.so'].B_STS_eval_psi
 B_STS_eval_psi.restype = a5err
 B_STS_eval_psi.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_B_STS_data)]
@@ -408,6 +420,9 @@ B_TC_init.argtypes = [ctypes.POINTER(struct_c__SA_B_TC_data), real, real, real, 
 B_TC_free = _libraries['libascot.so'].B_TC_free
 B_TC_free.restype = None
 B_TC_free.argtypes = [ctypes.POINTER(struct_c__SA_B_TC_data)]
+B_TC_offload = _libraries['libascot.so'].B_TC_offload
+B_TC_offload.restype = None
+B_TC_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_TC_data)]
 B_TC_eval_B = _libraries['libascot.so'].B_TC_eval_B
 B_TC_eval_B.restype = a5err
 B_TC_eval_B.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_B_TC_data)]
@@ -459,6 +474,9 @@ B_field_data = struct_c__SA_B_field_data
 B_field_free = _libraries['libascot.so'].B_field_free
 B_field_free.restype = None
 B_field_free.argtypes = [ctypes.POINTER(struct_c__SA_B_field_data)]
+B_field_offload = _libraries['libascot.so'].B_field_offload
+B_field_offload.restype = None
+B_field_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_field_data)]
 B_field_eval_psi = _libraries['libascot.so'].B_field_eval_psi
 B_field_eval_psi.restype = a5err
 B_field_eval_psi.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, real, ctypes.POINTER(struct_c__SA_B_field_data)]
@@ -495,6 +513,9 @@ E_TC_init.argtypes = [ctypes.POINTER(struct_c__SA_E_TC_data), ctypes.c_double * 
 E_TC_free = _libraries['libascot.so'].E_TC_free
 E_TC_free.restype = None
 E_TC_free.argtypes = [ctypes.POINTER(struct_c__SA_E_TC_data)]
+E_TC_offload = _libraries['libascot.so'].E_TC_offload
+E_TC_offload.restype = None
+E_TC_offload.argtypes = [ctypes.POINTER(struct_c__SA_E_TC_data)]
 E_TC_eval_E = _libraries['libascot.so'].E_TC_eval_E
 E_TC_eval_E.restype = a5err
 E_TC_eval_E.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_E_TC_data), ctypes.POINTER(struct_c__SA_B_field_data)]
@@ -526,6 +547,9 @@ E_1DS_init.argtypes = [ctypes.POINTER(struct_c__SA_E_1DS_data), ctypes.c_int32, 
 E_1DS_free = _libraries['libascot.so'].E_1DS_free
 E_1DS_free.restype = None
 E_1DS_free.argtypes = [ctypes.POINTER(struct_c__SA_E_1DS_data)]
+E_1DS_offload = _libraries['libascot.so'].E_1DS_offload
+E_1DS_offload.restype = None
+E_1DS_offload.argtypes = [ctypes.POINTER(struct_c__SA_E_1DS_data)]
 E_1DS_eval_E = _libraries['libascot.so'].E_1DS_eval_E
 E_1DS_eval_E.restype = a5err
 E_1DS_eval_E.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_E_1DS_data), ctypes.POINTER(struct_c__SA_B_field_data)]
@@ -553,6 +577,9 @@ E_field_data = struct_c__SA_E_field_data
 E_field_free = _libraries['libascot.so'].E_field_free
 E_field_free.restype = None
 E_field_free.argtypes = [ctypes.POINTER(struct_c__SA_E_field_data)]
+E_field_offload = _libraries['libascot.so'].E_field_offload
+E_field_offload.restype = None
+E_field_offload.argtypes = [ctypes.POINTER(struct_c__SA_E_field_data)]
 E_field_eval_E = _libraries['libascot.so'].E_field_eval_E
 E_field_eval_E.restype = a5err
 E_field_eval_E.argtypes = [ctypes.c_double * 3, real, real, real, real, ctypes.POINTER(struct_c__SA_E_field_data), ctypes.POINTER(struct_c__SA_B_field_data)]
@@ -863,6 +890,9 @@ particle_input_ml_to_state.argtypes = [ctypes.POINTER(struct_c__SA_particle_ml),
 particle_offload_fo = _libraries['libascot.so'].particle_offload_fo
 particle_offload_fo.restype = None
 particle_offload_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo)]
+particle_onload_fo = _libraries['libascot.so'].particle_onload_fo
+particle_onload_fo.restype = None
+particle_onload_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo)]
 particle_state_to_fo = _libraries['libascot.so'].particle_state_to_fo
 particle_state_to_fo.restype = a5err
 particle_state_to_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.c_int32, ctypes.POINTER(struct_c__SA_B_field_data)]
@@ -946,6 +976,9 @@ dist_5D_init.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data)]
 dist_5D_free = _libraries['libascot.so'].dist_5D_free
 dist_5D_free.restype = None
 dist_5D_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data)]
+dist_5D_offload = _libraries['libascot.so'].dist_5D_offload
+dist_5D_offload.restype = None
+dist_5D_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data)]
 dist_5D_update_fo = _libraries['libascot.so'].dist_5D_update_fo
 dist_5D_update_fo.restype = None
 dist_5D_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
@@ -1006,6 +1039,9 @@ dist_6D_init.argtypes = [ctypes.POINTER(struct_c__SA_dist_6D_data)]
 dist_6D_free = _libraries['libascot.so'].dist_6D_free
 dist_6D_free.restype = None
 dist_6D_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_6D_data)]
+dist_6D_offload = _libraries['libascot.so'].dist_6D_offload
+dist_6D_offload.restype = None
+dist_6D_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_6D_data)]
 dist_6D_update_fo = _libraries['libascot.so'].dist_6D_update_fo
 dist_6D_update_fo.restype = None
 dist_6D_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_6D_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
@@ -1061,6 +1097,9 @@ dist_rho5D_init.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho5D_data)]
 dist_rho5D_free = _libraries['libascot.so'].dist_rho5D_free
 dist_rho5D_free.restype = None
 dist_rho5D_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho5D_data)]
+dist_rho5D_offload = _libraries['libascot.so'].dist_rho5D_offload
+dist_rho5D_offload.restype = None
+dist_rho5D_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho5D_data)]
 dist_rho5D_update_fo = _libraries['libascot.so'].dist_rho5D_update_fo
 dist_rho5D_update_fo.restype = None
 dist_rho5D_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho5D_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
@@ -1121,6 +1160,9 @@ dist_rho6D_init.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho6D_data)]
 dist_rho6D_free = _libraries['libascot.so'].dist_rho6D_free
 dist_rho6D_free.restype = None
 dist_rho6D_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho6D_data)]
+dist_rho6D_offload = _libraries['libascot.so'].dist_rho6D_offload
+dist_rho6D_offload.restype = None
+dist_rho6D_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho6D_data)]
 dist_rho6D_update_fo = _libraries['libascot.so'].dist_rho6D_update_fo
 dist_rho6D_update_fo.restype = None
 dist_rho6D_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho6D_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
@@ -1156,6 +1198,9 @@ dist_COM_init.argtypes = [ctypes.POINTER(struct_c__SA_dist_COM_data)]
 dist_COM_free = _libraries['libascot.so'].dist_COM_free
 dist_COM_free.restype = None
 dist_COM_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_COM_data)]
+dist_COM_offload = _libraries['libascot.so'].dist_COM_offload
+dist_COM_offload.restype = None
+dist_COM_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_COM_data)]
 dist_COM_update_fo = _libraries['libascot.so'].dist_COM_update_fo
 dist_COM_update_fo.restype = None
 dist_COM_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_COM_data), ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
@@ -1299,6 +1344,9 @@ diag_init.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.c_int32]
 diag_free = _libraries['libascot.so'].diag_free
 diag_free.restype = None
 diag_free.argtypes = [ctypes.POINTER(struct_c__SA_diag_data)]
+diag_offload = _libraries['libascot.so'].diag_offload
+diag_offload.restype = None
+diag_offload.argtypes = [ctypes.POINTER(struct_c__SA_diag_data)]
 diag_sum = _libraries['libascot.so'].diag_sum
 diag_sum.restype = None
 diag_sum.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.POINTER(struct_c__SA_diag_data)]
@@ -1352,6 +1400,9 @@ plasma_1D_init.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1D_data), ctypes.c
 plasma_1D_free = _libraries['libascot.so'].plasma_1D_free
 plasma_1D_free.restype = None
 plasma_1D_free.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1D_data)]
+plasma_1D_offload = _libraries['libascot.so'].plasma_1D_offload
+plasma_1D_offload.restype = None
+plasma_1D_offload.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1D_data)]
 plasma_1D_eval_temp = _libraries['libascot.so'].plasma_1D_eval_temp
 plasma_1D_eval_temp.restype = a5err
 plasma_1D_eval_temp.argtypes = [ctypes.POINTER(ctypes.c_double), real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_1D_data)]
@@ -1387,6 +1438,9 @@ plasma_1Dt_init.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1Dt_data), ctypes
 plasma_1Dt_free = _libraries['libascot.so'].plasma_1Dt_free
 plasma_1Dt_free.restype = None
 plasma_1Dt_free.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1Dt_data)]
+plasma_1Dt_offload = _libraries['libascot.so'].plasma_1Dt_offload
+plasma_1Dt_offload.restype = None
+plasma_1Dt_offload.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1Dt_data)]
 plasma_1Dt_eval_temp = _libraries['libascot.so'].plasma_1Dt_eval_temp
 plasma_1Dt_eval_temp.restype = a5err
 plasma_1Dt_eval_temp.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_1Dt_data)]
@@ -1418,6 +1472,9 @@ plasma_1DS_init.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1DS_data), ctypes
 plasma_1DS_free = _libraries['libascot.so'].plasma_1DS_free
 plasma_1DS_free.restype = None
 plasma_1DS_free.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1DS_data)]
+plasma_1DS_offload = _libraries['libascot.so'].plasma_1DS_offload
+plasma_1DS_offload.restype = None
+plasma_1DS_offload.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1DS_data)]
 plasma_1DS_eval_temp = _libraries['libascot.so'].plasma_1DS_eval_temp
 plasma_1DS_eval_temp.restype = a5err
 plasma_1DS_eval_temp.argtypes = [ctypes.POINTER(ctypes.c_double), real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_1DS_data)]
@@ -1454,6 +1511,9 @@ plasma_data = struct_c__SA_plasma_data
 plasma_free = _libraries['libascot.so'].plasma_free
 plasma_free.restype = None
 plasma_free.argtypes = [ctypes.POINTER(struct_c__SA_plasma_data)]
+plasma_offload = _libraries['libascot.so'].plasma_offload
+plasma_offload.restype = None
+plasma_offload.argtypes = [ctypes.POINTER(struct_c__SA_plasma_data)]
 plasma_eval_temp = _libraries['libascot.so'].plasma_eval_temp
 plasma_eval_temp.restype = a5err
 plasma_eval_temp.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_data)]
@@ -1499,6 +1559,9 @@ N0_1D_init.argtypes = [ctypes.POINTER(struct_c__SA_N0_1D_data), ctypes.c_int32, 
 N0_1D_free = _libraries['libascot.so'].N0_1D_free
 N0_1D_free.restype = None
 N0_1D_free.argtypes = [ctypes.POINTER(struct_c__SA_N0_1D_data)]
+N0_1D_offload = _libraries['libascot.so'].N0_1D_offload
+N0_1D_offload.restype = None
+N0_1D_offload.argtypes = [ctypes.POINTER(struct_c__SA_N0_1D_data)]
 N0_1D_eval_n0 = _libraries['libascot.so'].N0_1D_eval_n0
 N0_1D_eval_n0.restype = a5err
 N0_1D_eval_n0.argtypes = [ctypes.POINTER(ctypes.c_double), real, ctypes.POINTER(struct_c__SA_N0_1D_data)]
@@ -1552,6 +1615,9 @@ N0_3D_init.argtypes = [ctypes.POINTER(struct_c__SA_N0_3D_data), ctypes.c_int32, 
 N0_3D_free = _libraries['libascot.so'].N0_3D_free
 N0_3D_free.restype = None
 N0_3D_free.argtypes = [ctypes.POINTER(struct_c__SA_N0_3D_data)]
+N0_3D_offload = _libraries['libascot.so'].N0_3D_offload
+N0_3D_offload.restype = None
+N0_3D_offload.argtypes = [ctypes.POINTER(struct_c__SA_N0_3D_data)]
 N0_3D_eval_n0 = _libraries['libascot.so'].N0_3D_eval_n0
 N0_3D_eval_n0.restype = a5err
 N0_3D_eval_n0.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_N0_3D_data)]
@@ -1585,6 +1651,9 @@ neutral_data = struct_c__SA_neutral_data
 neutral_free = _libraries['libascot.so'].neutral_free
 neutral_free.restype = None
 neutral_free.argtypes = [ctypes.POINTER(struct_c__SA_neutral_data)]
+neutral_offload = _libraries['libascot.so'].neutral_offload
+neutral_offload.restype = None
+neutral_offload.argtypes = [ctypes.POINTER(struct_c__SA_neutral_data)]
 neutral_eval_n0 = _libraries['libascot.so'].neutral_eval_n0
 neutral_eval_n0.restype = a5err
 neutral_eval_n0.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, real, real, ctypes.POINTER(struct_c__SA_neutral_data)]
@@ -1612,6 +1681,9 @@ wall_2d_init.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_data), ctypes.c_int
 wall_2d_free = _libraries['libascot.so'].wall_2d_free
 wall_2d_free.restype = None
 wall_2d_free.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_data)]
+wall_2d_offload = _libraries['libascot.so'].wall_2d_offload
+wall_2d_offload.restype = None
+wall_2d_offload.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_data)]
 wall_2d_inside = _libraries['libascot.so'].wall_2d_inside
 wall_2d_inside.restype = ctypes.c_int32
 wall_2d_inside.argtypes = [real, real, ctypes.POINTER(struct_c__SA_wall_2d_data)]
@@ -1641,6 +1713,8 @@ struct_c__SA_wall_3d_data._fields_ = [
     ('ngrid', ctypes.c_int32),
     ('wall_tris', ctypes.POINTER(ctypes.c_double)),
     ('tree_array', ctypes.POINTER(ctypes.c_int32)),
+    ('tree_array_size', ctypes.c_int32),
+    ('PADDING_1', ctypes.c_ubyte * 4),
 ]
 
 wall_3d_data = struct_c__SA_wall_3d_data
@@ -1650,6 +1724,9 @@ wall_3d_init.argtypes = [ctypes.POINTER(struct_c__SA_wall_3d_data), ctypes.c_int
 wall_3d_free = _libraries['libascot.so'].wall_3d_free
 wall_3d_free.restype = None
 wall_3d_free.argtypes = [ctypes.POINTER(struct_c__SA_wall_3d_data)]
+wall_3d_offload = _libraries['libascot.so'].wall_3d_offload
+wall_3d_offload.restype = None
+wall_3d_offload.argtypes = [ctypes.POINTER(struct_c__SA_wall_3d_data)]
 wall_3d_hit_wall = _libraries['libascot.so'].wall_3d_hit_wall
 wall_3d_hit_wall.restype = ctypes.c_int32
 wall_3d_hit_wall.argtypes = [real, real, real, real, real, real, ctypes.POINTER(struct_c__SA_wall_3d_data), ctypes.POINTER(ctypes.c_double)]
@@ -1692,6 +1769,9 @@ wall_data = struct_c__SA_wall_data
 wall_free = _libraries['libascot.so'].wall_free
 wall_free.restype = None
 wall_free.argtypes = [ctypes.POINTER(struct_c__SA_wall_data)]
+wall_offload = _libraries['libascot.so'].wall_offload
+wall_offload.restype = None
+wall_offload.argtypes = [ctypes.POINTER(struct_c__SA_wall_data)]
 wall_hit_wall = _libraries['libascot.so'].wall_hit_wall
 wall_hit_wall.restype = ctypes.c_int32
 wall_hit_wall.argtypes = [real, real, real, real, real, real, ctypes.POINTER(struct_c__SA_wall_data), ctypes.POINTER(ctypes.c_double)]
@@ -1720,6 +1800,9 @@ boozer_init.argtypes = [ctypes.POINTER(struct_c__SA_boozer_data), ctypes.c_int32
 boozer_free = _libraries['libascot.so'].boozer_free
 boozer_free.restype = None
 boozer_free.argtypes = [ctypes.POINTER(struct_c__SA_boozer_data)]
+boozer_offload = _libraries['libascot.so'].boozer_offload
+boozer_offload.restype = None
+boozer_offload.argtypes = [ctypes.POINTER(struct_c__SA_boozer_data)]
 boozer_eval_psithetazeta = _libraries['libascot.so'].boozer_eval_psithetazeta
 boozer_eval_psithetazeta.restype = a5err
 boozer_eval_psithetazeta.argtypes = [ctypes.c_double * 12, ctypes.POINTER(ctypes.c_int32), real, real, real, ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(struct_c__SA_boozer_data)]
@@ -1748,6 +1831,9 @@ mhd_stat_init.argtypes = [ctypes.POINTER(struct_c__SA_mhd_stat_data), ctypes.c_i
 mhd_stat_free = _libraries['libascot.so'].mhd_stat_free
 mhd_stat_free.restype = None
 mhd_stat_free.argtypes = [ctypes.POINTER(struct_c__SA_mhd_stat_data)]
+mhd_stat_offload = _libraries['libascot.so'].mhd_stat_offload
+mhd_stat_offload.restype = None
+mhd_stat_offload.argtypes = [ctypes.POINTER(struct_c__SA_mhd_stat_data)]
 mhd_stat_eval = _libraries['libascot.so'].mhd_stat_eval
 mhd_stat_eval.restype = a5err
 mhd_stat_eval.argtypes = [ctypes.c_double * 10, real, real, real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_boozer_data), ctypes.POINTER(struct_c__SA_mhd_stat_data), ctypes.POINTER(struct_c__SA_B_field_data)]
@@ -1779,6 +1865,9 @@ mhd_nonstat_init.argtypes = [ctypes.POINTER(struct_c__SA_mhd_nonstat_data), ctyp
 mhd_nonstat_free = _libraries['libascot.so'].mhd_nonstat_free
 mhd_nonstat_free.restype = None
 mhd_nonstat_free.argtypes = [ctypes.POINTER(struct_c__SA_mhd_nonstat_data)]
+mhd_nonstat_offload = _libraries['libascot.so'].mhd_nonstat_offload
+mhd_nonstat_offload.restype = None
+mhd_nonstat_offload.argtypes = [ctypes.POINTER(struct_c__SA_mhd_nonstat_data)]
 mhd_nonstat_eval = _libraries['libascot.so'].mhd_nonstat_eval
 mhd_nonstat_eval.restype = a5err
 mhd_nonstat_eval.argtypes = [ctypes.c_double * 10, real, real, real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_boozer_data), ctypes.POINTER(struct_c__SA_mhd_nonstat_data), ctypes.POINTER(struct_c__SA_B_field_data)]
@@ -1809,6 +1898,9 @@ mhd_data = struct_c__SA_mhd_data
 mhd_free = _libraries['libascot.so'].mhd_free
 mhd_free.restype = None
 mhd_free.argtypes = [ctypes.POINTER(struct_c__SA_mhd_data)]
+mhd_offload = _libraries['libascot.so'].mhd_offload
+mhd_offload.restype = None
+mhd_offload.argtypes = [ctypes.POINTER(struct_c__SA_mhd_data)]
 mhd_eval = _libraries['libascot.so'].mhd_eval
 mhd_eval.restype = a5err
 mhd_eval.argtypes = [ctypes.c_double * 10, real, real, real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_boozer_data), ctypes.POINTER(struct_c__SA_mhd_data), ctypes.POINTER(struct_c__SA_B_field_data)]
@@ -1857,6 +1949,9 @@ asigma_loc_init.argtypes = [ctypes.POINTER(struct_c__SA_asigma_loc_data), ctypes
 asigma_loc_free = _libraries['libascot.so'].asigma_loc_free
 asigma_loc_free.restype = None
 asigma_loc_free.argtypes = [ctypes.POINTER(struct_c__SA_asigma_loc_data)]
+asigma_loc_offload = _libraries['libascot.so'].asigma_loc_offload
+asigma_loc_offload.restype = None
+asigma_loc_offload.argtypes = [ctypes.POINTER(struct_c__SA_asigma_loc_data)]
 asigma_loc_eval_sigma = _libraries['libascot.so'].asigma_loc_eval_sigma
 asigma_loc_eval_sigma.restype = a5err
 asigma_loc_eval_sigma.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, real, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
@@ -1915,6 +2010,9 @@ asigma_data = struct_c__SA_asigma_data
 asigma_free = _libraries['libascot.so'].asigma_free
 asigma_free.restype = None
 asigma_free.argtypes = [ctypes.POINTER(struct_c__SA_asigma_data)]
+asigma_offload = _libraries['libascot.so'].asigma_offload
+asigma_offload.restype = None
+asigma_offload.argtypes = [ctypes.POINTER(struct_c__SA_asigma_data)]
 asigma_extrapolate = _libraries['libascot.so'].asigma_extrapolate
 asigma_extrapolate.restype = None
 asigma_extrapolate.argtypes = [ctypes.c_int32]
@@ -2263,31 +2361,34 @@ bbnbi_simulate.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.c_int32
 __all__ = \
     ['B_2DS_data', 'B_2DS_eval_B', 'B_2DS_eval_B_dB',
     'B_2DS_eval_psi', 'B_2DS_eval_psi_dpsi', 'B_2DS_eval_rho_drho',
-    'B_2DS_free', 'B_2DS_get_axis_rz', 'B_2DS_init', 'B_3DS_data',
-    'B_3DS_eval_B', 'B_3DS_eval_B_dB', 'B_3DS_eval_psi',
+    'B_2DS_free', 'B_2DS_get_axis_rz', 'B_2DS_init', 'B_2DS_offload',
+    'B_3DS_data', 'B_3DS_eval_B', 'B_3DS_eval_B_dB', 'B_3DS_eval_psi',
     'B_3DS_eval_psi_dpsi', 'B_3DS_eval_rho_drho', 'B_3DS_free',
-    'B_3DS_get_axis_rz', 'B_3DS_init', 'B_GS_data', 'B_GS_eval_B',
-    'B_GS_eval_B_dB', 'B_GS_eval_psi', 'B_GS_eval_psi_dpsi',
-    'B_GS_eval_rho_drho', 'B_GS_free', 'B_GS_get_axis_rz',
-    'B_GS_init', 'B_STS_data', 'B_STS_eval_B', 'B_STS_eval_B_dB',
-    'B_STS_eval_psi', 'B_STS_eval_psi_dpsi', 'B_STS_eval_rho_drho',
-    'B_STS_free', 'B_STS_get_axis_rz', 'B_STS_init', 'B_TC_data',
+    'B_3DS_get_axis_rz', 'B_3DS_init', 'B_3DS_offload', 'B_GS_data',
+    'B_GS_eval_B', 'B_GS_eval_B_dB', 'B_GS_eval_psi',
+    'B_GS_eval_psi_dpsi', 'B_GS_eval_rho_drho', 'B_GS_free',
+    'B_GS_get_axis_rz', 'B_GS_init', 'B_GS_offload', 'B_STS_data',
+    'B_STS_eval_B', 'B_STS_eval_B_dB', 'B_STS_eval_psi',
+    'B_STS_eval_psi_dpsi', 'B_STS_eval_rho_drho', 'B_STS_free',
+    'B_STS_get_axis_rz', 'B_STS_init', 'B_STS_offload', 'B_TC_data',
     'B_TC_eval_B', 'B_TC_eval_B_dB', 'B_TC_eval_psi',
     'B_TC_eval_psi_dpsi', 'B_TC_eval_rho_drho', 'B_TC_free',
-    'B_TC_get_axis_rz', 'B_TC_init', 'B_field_data', 'B_field_eval_B',
-    'B_field_eval_B_dB', 'B_field_eval_psi', 'B_field_eval_psi_dpsi',
-    'B_field_eval_rho', 'B_field_eval_rho_drho', 'B_field_free',
-    'B_field_get_axis_rz', 'B_field_type', 'B_field_type_2DS',
+    'B_TC_get_axis_rz', 'B_TC_init', 'B_TC_offload', 'B_field_data',
+    'B_field_eval_B', 'B_field_eval_B_dB', 'B_field_eval_psi',
+    'B_field_eval_psi_dpsi', 'B_field_eval_rho',
+    'B_field_eval_rho_drho', 'B_field_free', 'B_field_get_axis_rz',
+    'B_field_offload', 'B_field_type', 'B_field_type_2DS',
     'B_field_type_3DS', 'B_field_type_GS', 'B_field_type_STS',
     'B_field_type_TC', 'DD_He3n', 'DD_Tp', 'DHe3_He4p', 'DT_He4n',
     'ENDCOND_FLAG', 'E_1DS_data', 'E_1DS_eval_E', 'E_1DS_free',
-    'E_1DS_init', 'E_TC_data', 'E_TC_eval_E', 'E_TC_free',
-    'E_TC_init', 'E_field_data', 'E_field_eval_E', 'E_field_free',
+    'E_1DS_init', 'E_1DS_offload', 'E_TC_data', 'E_TC_eval_E',
+    'E_TC_free', 'E_TC_init', 'E_TC_offload', 'E_field_data',
+    'E_field_eval_E', 'E_field_free', 'E_field_offload',
     'E_field_type', 'E_field_type_1DS', 'E_field_type_TC',
     'N0_1D_data', 'N0_1D_eval_n0', 'N0_1D_eval_t0', 'N0_1D_free',
-    'N0_1D_get_n_species', 'N0_1D_init', 'N0_3D_data',
-    'N0_3D_eval_n0', 'N0_3D_eval_t0', 'N0_3D_free',
-    'N0_3D_get_n_species', 'N0_3D_init', 'Reaction',
+    'N0_1D_get_n_species', 'N0_1D_init', 'N0_1D_offload',
+    'N0_3D_data', 'N0_3D_eval_n0', 'N0_3D_eval_t0', 'N0_3D_free',
+    'N0_3D_get_n_species', 'N0_3D_init', 'N0_3D_offload', 'Reaction',
     'SIMULATION_MODE', 'a5err', 'afsi_data', 'afsi_run',
     'afsi_test_dist', 'afsi_test_thermal', 'afsi_thermal_data',
     'asigma_data', 'asigma_eval_bms', 'asigma_eval_cx',
@@ -2295,11 +2396,12 @@ __all__ = \
     'asigma_free', 'asigma_loc_data', 'asigma_loc_eval_bms',
     'asigma_loc_eval_cx', 'asigma_loc_eval_sigma',
     'asigma_loc_eval_sigmav', 'asigma_loc_free', 'asigma_loc_init',
-    'asigma_reac_type', 'asigma_type', 'asigma_type_loc',
-    'bbnbi_simulate', 'biosaw_calc_B', 'boozer_data',
-    'boozer_eval_psithetazeta', 'boozer_free', 'boozer_init',
+    'asigma_loc_offload', 'asigma_offload', 'asigma_reac_type',
+    'asigma_type', 'asigma_type_loc', 'bbnbi_simulate',
+    'biosaw_calc_B', 'boozer_data', 'boozer_eval_psithetazeta',
+    'boozer_free', 'boozer_init', 'boozer_offload',
     'boschhale_reaction', 'boschhale_sigma', 'boschhale_sigmav',
-    'diag_data', 'diag_free', 'diag_init',
+    'diag_data', 'diag_free', 'diag_init', 'diag_offload',
     'diag_orb_check_plane_crossing', 'diag_orb_check_radial_crossing',
     'diag_orb_data', 'diag_orb_free', 'diag_orb_init',
     'diag_orb_update_fo', 'diag_orb_update_gc', 'diag_orb_update_ml',
@@ -2308,24 +2410,25 @@ __all__ = \
     'diag_transcoef_update_fo', 'diag_transcoef_update_gc',
     'diag_transcoef_update_ml', 'diag_update_fo', 'diag_update_gc',
     'diag_update_ml', 'dist_5D_data', 'dist_5D_free', 'dist_5D_index',
-    'dist_5D_init', 'dist_5D_update_fo', 'dist_5D_update_gc',
-    'dist_6D_data', 'dist_6D_free', 'dist_6D_init',
-    'dist_6D_update_fo', 'dist_6D_update_gc', 'dist_COM_data',
-    'dist_COM_free', 'dist_COM_init', 'dist_COM_update_fo',
+    'dist_5D_init', 'dist_5D_offload', 'dist_5D_update_fo',
+    'dist_5D_update_gc', 'dist_6D_data', 'dist_6D_free',
+    'dist_6D_init', 'dist_6D_offload', 'dist_6D_update_fo',
+    'dist_6D_update_gc', 'dist_COM_data', 'dist_COM_free',
+    'dist_COM_init', 'dist_COM_offload', 'dist_COM_update_fo',
     'dist_COM_update_gc', 'dist_rho5D_data', 'dist_rho5D_free',
-    'dist_rho5D_init', 'dist_rho5D_update_fo', 'dist_rho5D_update_gc',
-    'dist_rho6D_data', 'dist_rho6D_free', 'dist_rho6D_init',
-    'dist_rho6D_update_fo', 'dist_rho6D_update_gc',
-    'endcond_check_fo', 'endcond_check_gc', 'endcond_check_ml',
-    'endcond_cpumax', 'endcond_emin', 'endcond_hybrid',
-    'endcond_ioniz', 'endcond_neutr', 'endcond_parse',
-    'endcond_parse2str', 'endcond_polmax', 'endcond_rhomax',
-    'endcond_rhomin', 'endcond_therm', 'endcond_tlim',
-    'endcond_tormax', 'endcond_wall', 'hdf5_generate_qid',
-    'hdf5_input_asigma', 'hdf5_input_bfield', 'hdf5_input_boozer',
-    'hdf5_input_efield', 'hdf5_input_marker', 'hdf5_input_mhd',
-    'hdf5_input_nbi', 'hdf5_input_neutral', 'hdf5_input_options',
-    'hdf5_input_plasma', 'hdf5_input_wall',
+    'dist_rho5D_init', 'dist_rho5D_offload', 'dist_rho5D_update_fo',
+    'dist_rho5D_update_gc', 'dist_rho6D_data', 'dist_rho6D_free',
+    'dist_rho6D_init', 'dist_rho6D_offload', 'dist_rho6D_update_fo',
+    'dist_rho6D_update_gc', 'endcond_check_fo', 'endcond_check_gc',
+    'endcond_check_ml', 'endcond_cpumax', 'endcond_emin',
+    'endcond_hybrid', 'endcond_ioniz', 'endcond_neutr',
+    'endcond_parse', 'endcond_parse2str', 'endcond_polmax',
+    'endcond_rhomax', 'endcond_rhomin', 'endcond_therm',
+    'endcond_tlim', 'endcond_tormax', 'endcond_wall',
+    'hdf5_generate_qid', 'hdf5_input_asigma', 'hdf5_input_bfield',
+    'hdf5_input_boozer', 'hdf5_input_efield', 'hdf5_input_marker',
+    'hdf5_input_mhd', 'hdf5_input_nbi', 'hdf5_input_neutral',
+    'hdf5_input_options', 'hdf5_input_plasma', 'hdf5_input_wall',
     'hdf5_interface_init_results', 'hdf5_interface_read_input',
     'hdf5_interface_write_diagnostics', 'hdf5_interface_write_state',
     'input_group', 'input_particle', 'input_particle_type',
@@ -2337,40 +2440,43 @@ __all__ = \
     'mhd_get_amplitude', 'mhd_get_frequency', 'mhd_get_mmode',
     'mhd_get_n_modes', 'mhd_get_nmode', 'mhd_get_phase',
     'mhd_nonstat_data', 'mhd_nonstat_eval', 'mhd_nonstat_free',
-    'mhd_nonstat_init', 'mhd_nonstat_perturbations',
-    'mhd_perturbations', 'mhd_stat_data', 'mhd_stat_eval',
-    'mhd_stat_free', 'mhd_stat_init', 'mhd_stat_perturbations',
+    'mhd_nonstat_init', 'mhd_nonstat_offload',
+    'mhd_nonstat_perturbations', 'mhd_offload', 'mhd_perturbations',
+    'mhd_stat_data', 'mhd_stat_eval', 'mhd_stat_free',
+    'mhd_stat_init', 'mhd_stat_offload', 'mhd_stat_perturbations',
     'mhd_type', 'mhd_type_nonstat', 'mhd_type_stat',
     'mpi_gather_diag', 'mpi_gather_particlestate',
     'mpi_interface_barrier', 'mpi_interface_finalize',
     'mpi_interface_init', 'mpi_my_particles', 'nbi_data', 'nbi_free',
     'nbi_init', 'nbi_inject', 'nbi_injector', 'neutral_data',
     'neutral_eval_n0', 'neutral_eval_t0', 'neutral_free',
-    'neutral_get_n_species', 'neutral_type', 'neutral_type_1D',
-    'neutral_type_3D', 'offload_and_simulate', 'particle',
-    'particle_allocate_fo', 'particle_copy_fo', 'particle_copy_gc',
-    'particle_copy_ml', 'particle_cycle_fo', 'particle_cycle_gc',
-    'particle_cycle_ml', 'particle_fo_to_gc', 'particle_fo_to_state',
-    'particle_gc', 'particle_gc_to_state',
+    'neutral_get_n_species', 'neutral_offload', 'neutral_type',
+    'neutral_type_1D', 'neutral_type_3D', 'offload_and_simulate',
+    'particle', 'particle_allocate_fo', 'particle_copy_fo',
+    'particle_copy_gc', 'particle_copy_ml', 'particle_cycle_fo',
+    'particle_cycle_gc', 'particle_cycle_ml', 'particle_fo_to_gc',
+    'particle_fo_to_state', 'particle_gc', 'particle_gc_to_state',
     'particle_input_gc_to_state', 'particle_input_ml_to_state',
     'particle_input_p_to_state', 'particle_input_to_state',
     'particle_ml', 'particle_ml_to_state', 'particle_offload_fo',
-    'particle_queue', 'particle_simd_fo', 'particle_simd_gc',
-    'particle_simd_ml', 'particle_state', 'particle_state_to_fo',
-    'particle_state_to_gc', 'particle_state_to_ml',
-    'particle_to_fo_dummy', 'particle_to_gc_dummy',
-    'particle_to_ml_dummy', 'plasma_1DS_data', 'plasma_1DS_eval_dens',
-    'plasma_1DS_eval_densandtemp', 'plasma_1DS_eval_temp',
-    'plasma_1DS_free', 'plasma_1DS_init', 'plasma_1D_data',
-    'plasma_1D_eval_dens', 'plasma_1D_eval_densandtemp',
-    'plasma_1D_eval_temp', 'plasma_1D_free', 'plasma_1D_init',
+    'particle_onload_fo', 'particle_queue', 'particle_simd_fo',
+    'particle_simd_gc', 'particle_simd_ml', 'particle_state',
+    'particle_state_to_fo', 'particle_state_to_gc',
+    'particle_state_to_ml', 'particle_to_fo_dummy',
+    'particle_to_gc_dummy', 'particle_to_ml_dummy', 'plasma_1DS_data',
+    'plasma_1DS_eval_dens', 'plasma_1DS_eval_densandtemp',
+    'plasma_1DS_eval_temp', 'plasma_1DS_free', 'plasma_1DS_init',
+    'plasma_1DS_offload', 'plasma_1D_data', 'plasma_1D_eval_dens',
+    'plasma_1D_eval_densandtemp', 'plasma_1D_eval_temp',
+    'plasma_1D_free', 'plasma_1D_init', 'plasma_1D_offload',
     'plasma_1Dt_data', 'plasma_1Dt_eval_dens',
     'plasma_1Dt_eval_densandtemp', 'plasma_1Dt_eval_temp',
-    'plasma_1Dt_free', 'plasma_1Dt_init', 'plasma_data',
-    'plasma_eval_dens', 'plasma_eval_densandtemp', 'plasma_eval_temp',
-    'plasma_free', 'plasma_get_n_species', 'plasma_get_species_anum',
-    'plasma_get_species_charge', 'plasma_get_species_mass',
-    'plasma_get_species_znum', 'plasma_type', 'plasma_type_1D',
+    'plasma_1Dt_free', 'plasma_1Dt_init', 'plasma_1Dt_offload',
+    'plasma_data', 'plasma_eval_dens', 'plasma_eval_densandtemp',
+    'plasma_eval_temp', 'plasma_free', 'plasma_get_n_species',
+    'plasma_get_species_anum', 'plasma_get_species_charge',
+    'plasma_get_species_mass', 'plasma_get_species_znum',
+    'plasma_offload', 'plasma_type', 'plasma_type_1D',
     'plasma_type_1DS', 'plasma_type_1Dt', 'prepare_markers',
     'print_marker_summary', 'real', 'sigma_CX', 'sigma_ioniz',
     'sigma_recomb', 'sigmav_BMS', 'sigmav_CX', 'sigmav_ioniz',
@@ -2407,9 +2513,10 @@ __all__ = \
     'struct_diag_transcoef_link', 'union_c__SA_input_particle_0',
     'wall_2d_data', 'wall_2d_find_intersection', 'wall_2d_free',
     'wall_2d_hit_wall', 'wall_2d_init', 'wall_2d_inside',
-    'wall_3d_data', 'wall_3d_free', 'wall_3d_hit_wall',
-    'wall_3d_hit_wall_full', 'wall_3d_init', 'wall_3d_init_tree',
-    'wall_3d_quad_collision', 'wall_3d_tri_collision',
-    'wall_3d_tri_in_cube', 'wall_data', 'wall_free',
-    'wall_get_n_elements', 'wall_hit_wall', 'wall_type',
-    'wall_type_2D', 'wall_type_3D', 'write_output', 'write_rungroup']
+    'wall_2d_offload', 'wall_3d_data', 'wall_3d_free',
+    'wall_3d_hit_wall', 'wall_3d_hit_wall_full', 'wall_3d_init',
+    'wall_3d_init_tree', 'wall_3d_offload', 'wall_3d_quad_collision',
+    'wall_3d_tri_collision', 'wall_3d_tri_in_cube', 'wall_data',
+    'wall_free', 'wall_get_n_elements', 'wall_hit_wall',
+    'wall_offload', 'wall_type', 'wall_type_2D', 'wall_type_3D',
+    'write_output', 'write_rungroup']
