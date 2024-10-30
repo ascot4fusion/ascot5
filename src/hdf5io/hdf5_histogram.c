@@ -6,7 +6,119 @@
 #include <stdlib.h>
 #include <hdf5.h>
 #include <hdf5_hl.h>
+#include "../diag/hist.h"
 #include "hdf5_histogram.h"
+
+/**
+ * @brief Write a histogram object to HDF5 file
+ */
+int hdf5_hist_write(hid_t f, char* path, histogram* hist) {
+    int ordinate_dim = 1;
+    int abscissa_dim = 0;
+    for(int i = 0; i < HIST_ALLDIM; i++) {
+        abscissa_dim += hist->axes[i].n ? 1 : 0;
+    }
+
+    int* abscissa_n_slots = (int*) malloc(abscissa_dim * sizeof(int));
+    double* abscissa_min = (double*) malloc(abscissa_dim * sizeof(double));
+    double* abscissa_max = (double*) malloc(abscissa_dim * sizeof(double));
+    char** abscissa_names = (char**) malloc(abscissa_dim * sizeof(char*));
+    char** abscissa_units = (char**) malloc(abscissa_dim * sizeof(char*));
+
+    int k = 0;
+    for(int i = 0; i < HIST_ALLDIM; i++) {
+        if(!hist->axes[i].n) {
+            continue;
+        }
+        abscissa_min[k] = hist->axes[i].min;
+        abscissa_max[k] = hist->axes[i].max;
+        abscissa_n_slots[k] = hist->axes[i].n;
+
+        switch (hist->axes[i].name)
+        {
+        case R:
+            abscissa_names[k] = "r";
+            abscissa_units[k] = "m";
+            break;
+        case PHI:
+            abscissa_names[k] = "phi";
+            abscissa_units[k] = "deg";
+            break;
+        case Z:
+            abscissa_names[k] = "z";
+            abscissa_units[k] = "m";
+            break;
+        case RHO:
+            abscissa_names[k] = "rho";
+            abscissa_units[k] = "1";
+            break;
+        case THETA:
+            abscissa_names[k] = "theta";
+            abscissa_units[k] = "deg";
+            break;
+        case PPAR:
+            abscissa_names[k] = "ppar";
+            abscissa_units[k] = "kg*m/s";
+            break;
+        case PPERP:
+            abscissa_names[k] = "pperp";
+            abscissa_units[k] = "kg*m/s";
+            break;
+        case PR:
+            abscissa_names[k] = "pr";
+            abscissa_units[k] = "kg*m/s";
+            break;
+        case PPHI:
+            abscissa_names[k] = "pphi";
+            abscissa_units[k] = "kg*m/s";
+            break;
+        case PZ:
+            abscissa_names[k] = "pz";
+            abscissa_units[k] = "kg*m/s";
+            break;
+        case EKIN:
+            abscissa_names[k] = "ekin";
+            abscissa_units[k] = "eV";
+            break;
+        case XI:
+            abscissa_names[k] = "pitch";
+            abscissa_units[k] = "1";
+            break;
+        case MU:
+            abscissa_names[k] = "mu";
+            abscissa_units[k] = "T/eV";
+            break;
+        case PTOR:
+            abscissa_names[k] = "ptor";
+            abscissa_units[k] = "kg*m/s";
+            break;
+        case TIME:
+            abscissa_names[k] = "time";
+            abscissa_units[k] = "s";
+            break;
+        case CHARGE:
+            abscissa_names[k] = "charge";
+            abscissa_units[k] = "e";
+            break;
+        }
+        k++;
+    }
+    char* ordinate_names[] = { "distribution" };
+    char* ordinate_units[] = { "s/(m^5*kg^2*deg*e)" };
+
+    /* Create a group for this distribution and write the data in it */
+    int retval = hdf5_histogram_write_uniform_double(
+        f, path, abscissa_dim, ordinate_dim, abscissa_n_slots, abscissa_min,
+        abscissa_max, abscissa_units, abscissa_names, ordinate_units,
+        ordinate_names, hist->bins);
+    free(abscissa_n_slots);
+    free(abscissa_min);
+    free(abscissa_max);
+    free(abscissa_names);
+    free(abscissa_units);
+
+    return retval;
+}
 
 /**
  * @brief Write a histogram with uniform grid to HDF5 file
