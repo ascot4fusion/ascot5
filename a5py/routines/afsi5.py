@@ -6,7 +6,7 @@ import numpy as np
 import unyt
 import numpy.ctypeslib as npctypes
 
-from a5py.ascotpy.libascot import _LIBASCOT, STRUCT_DIST5D, STRUCT_AFSIDATA, \
+from a5py.ascotpy.libascot import _LIBASCOT, STRUCT_HIST, STRUCT_AFSIDATA, \
     STRUCT_AFSITHERMAL, PTR_REAL, AFSI_REACTIONS
 from a5py.exceptions import AscotNoDataException
 from a5py.routines.distmixin import DistMixin
@@ -355,10 +355,10 @@ class Afsi():
         afsidata = STRUCT_AFSIDATA()
         if dist_5D is not None:
             afsidata.type = 1
-            afsidata.dist_5D = ctypes.pointer(dist_5D)
+            afsidata.beam = ctypes.pointer(dist_5D)
         elif dist_thermal is not None:
             afsidata.type = 2
-            afsidata.dist_thermal = ctypes.pointer(dist_thermal)
+            afsidata.thermal = ctypes.pointer(dist_thermal)
         else:
             afsidata.type = 0
         return afsidata
@@ -382,70 +382,54 @@ class Afsi():
         return thermaldata
 
     def _init_dist_5d(self, dist):
-        data           = STRUCT_DIST5D()
-        data.n_r       = dist.abscissa("r").size
-        data.min_r     = dist.abscissa_edges("r")[0]
-        data.max_r     = dist.abscissa_edges("r")[-1]
-        data.n_phi     = dist.abscissa("phi").size
-        data.min_phi   = dist.abscissa_edges("phi")[0] * np.pi/180
-        data.max_phi   = dist.abscissa_edges("phi")[-1] * np.pi/180
-        data.n_z       = dist.abscissa("z").size
-        data.min_z     = dist.abscissa_edges("z")[0]
-        data.max_z     = dist.abscissa_edges("z")[-1]
-        data.n_ppara   = dist.abscissa("ppar").size
-        data.min_ppara = dist.abscissa_edges("ppar")[0]
-        data.max_ppara = dist.abscissa_edges("ppar")[-1]
-        data.n_pperp   = dist.abscissa("pperp").size
-        data.min_pperp = dist.abscissa_edges("pperp")[0]
-        data.max_pperp = dist.abscissa_edges("pperp")[-1]
-        data.n_time    = dist.abscissa("time").size
-        data.min_time  = dist.abscissa_edges("time")[0]
-        data.max_time  = dist.abscissa_edges("time")[-1]
-        data.n_q       = dist.abscissa("charge").size
-        data.min_q     = dist.abscissa_edges("charge")[0]
-        data.max_q     = dist.abscissa_edges("charge")[-1]
-
-        data.step_6 = 1 * 1 * data.n_pperp * data.n_ppara * data.n_z \
-            * data.n_phi
-        data.step_5 = 1 * 1 * data.n_pperp * data.n_ppara * data.n_z
-        data.step_4 = 1 * 1 * data.n_pperp * data.n_ppara
-        data.step_3 = 1 * 1 * data.n_pperp
-        data.step_2 = 1 * 1
-        data.step_1 = 1
-
-        data.histogram = npctypes.as_ctypes(np.ascontiguousarray(
-            dist.histogram().ravel(), dtype="f8"))
+        data = STRUCT_HIST()
+        coordinates = np.array([0, 1, 2, 5, 6, 14, 15], dtype="uint32")
+        nbin = np.array([
+            dist.abscissa("r").size, dist.abscissa("phi").size,
+            dist.abscissa("z").size, dist.abscissa("ppar").size,
+            dist.abscissa("pperp").size, dist.abscissa("time").size,
+            dist.abscissa("charge").size], dtype="u8")
+        binmin = np.array([
+            dist.abscissa_edges("r")[0], dist.abscissa_edges("phi")[0],
+            dist.abscissa_edges("z")[0], dist.abscissa_edges("ppar")[0],
+            dist.abscissa_edges("pperp")[0], dist.abscissa_edges("time")[0],
+            dist.abscissa_edges("charge")[0]])
+        binmax = np.array([
+            dist.abscissa_edges("r")[-1], dist.abscissa_edges("phi")[-1],
+            dist.abscissa_edges("z")[-1], dist.abscissa_edges("ppar")[-1],
+            dist.abscissa_edges("pperp")[-1], dist.abscissa_edges("time")[-1],
+            dist.abscissa_edges("charge")[-1]])
+        _LIBASCOT.hist_init(
+            ctypes.byref(data),
+            coordinates.size,
+            coordinates.ctypes.data_as(ctypes.POINTER(ctypes.c_uint)),
+            binmin.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+            binmax.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+            nbin.ctypes.data_as(ctypes.POINTER(ctypes.c_size_t))
+            )
         return data
 
     def _init_product_dist(self, react, charge, minppara, maxppara, nppara,
                            minpperp, maxpperp, npperp):
-        prod           = STRUCT_DIST5D()
-        prod.n_r       = react.n_r
-        prod.min_r     = react.min_r
-        prod.max_r     = react.max_r
-        prod.n_phi     = react.n_phi
-        prod.min_phi   = react.min_phi
-        prod.max_phi   = react.max_phi
-        prod.n_z       = react.n_z
-        prod.min_z     = react.min_z
-        prod.max_z     = react.max_z
-        prod.n_ppara   = nppara
-        prod.min_ppara = minppara
-        prod.max_ppara = maxppara
-        prod.n_pperp   = npperp
-        prod.min_pperp = minpperp
-        prod.max_pperp = maxpperp
-        prod.n_time    = react.n_time
-        prod.min_time  = react.min_time
-        prod.max_time  = react.max_time
-        prod.n_q       = 1
-        prod.min_q     = charge - 1
-        prod.max_q     = charge + 1
-
-        distsize = prod.n_r * prod.n_phi * prod.n_z * prod.n_ppara \
-            * prod.n_pperp
-        prod.histogram = npctypes.as_ctypes(
-            np.ascontiguousarray(np.zeros(distsize), dtype="f8") )
+        prod = STRUCT_HIST()
+        coordinates = np.array([0, 1, 2, 5, 6, 14, 15], dtype="uint32")
+        nbin = np.array([
+            react.n_r, react.n_phi, react.n_z, nppara, npperp, react.n_time, 1
+            ], dtype="u8")
+        binmin = np.array([
+            react.min_r, react.min_phi, react.min_z, minppara, minpperp,
+            react.min_time, charge[0] - 1])
+        binmax = np.array([
+            react.max_r, react.max_phi, react.max_z, maxppara, maxpperp,
+            react.max_time, charge[0] + 1])
+        _LIBASCOT.hist_init(
+            ctypes.byref(prod),
+            coordinates.size,
+            coordinates.ctypes.data_as(ctypes.POINTER(ctypes.c_uint)),
+            binmin.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+            binmax.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+            nbin.ctypes.data_as(ctypes.POINTER(ctypes.c_size_t))
+            )
         return prod
 
     def reactions(self, reaction=None):
