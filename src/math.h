@@ -17,6 +17,9 @@
 /** @brief Maximum recursion depth for the simpson integral rule */
 #define math_maxSimpsonDepth 20
 
+/** @brief Find the bin index on a uniform grid */
+#define math_bin_index(x, nx, xmin, xmax) floor( nx * (x-xmin) / (xmax-xmin) )
+
 /** @brief Copies elements of vector b to vector a */
 #define math_copy(a,b) do { a[0]=b[0];a[1]=b[1];a[2]=b[2]; } while(0)
 

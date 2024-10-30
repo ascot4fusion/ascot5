@@ -40,7 +40,7 @@ try:
     PTR_INT  = _ndpointerwithnull(ctypes.c_int,    flags="C_CONTIGUOUS")
     PTR_SIM  = ctypes.POINTER(ascot2py.struct_c__SA_sim_data)
     PTR_ARR  = ctypes.POINTER(ctypes.c_double)
-    STRUCT_DIST5D        = ascot2py.struct_c__SA_dist_5D_data
+    STRUCT_HIST          = ascot2py.struct_c__SA_histogram
     STRUCT_AFSITHERMAL   = ascot2py.struct_c__SA_afsi_thermal_data
     STRUCT_AFSIDATA      = ascot2py.struct_c__SA_afsi_data
     AFSI_REACTIONS       = ascot2py.Reaction__enumvalues
@@ -52,7 +52,7 @@ except ImportError as error:
     PTR_INT   = None
     PTR_SIM   = None
     PTR_ARR   = None
-    STRUCT_DIST5D        = None
+    STRUCT_HIST          = None
     STRUCT_AFSITHERMAL   = None
     STRUCT_AFSIDATA      = None
     AFSI_REACTIONS       = None

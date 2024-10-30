@@ -11,7 +11,7 @@
 #include "simulate.h"
 #include "random.h"
 #include "boschhale.h"
-#include "diag/dist_5D.h"
+#include "diag/hist.h"
 
 /**
  * @brief Structure for passing in 2D thermal temperature and density
@@ -37,15 +37,13 @@ typedef struct {
  * @brief Wrapper around input data structures
  */
 typedef struct {
-    int type;                        /**< Distribution type (1:5D, 2:thermal) */
-    dist_5D_data* dist_5D;           /**< Distribution data                   */
-    afsi_thermal_data* dist_thermal; /**< Thermal data                        */
+    int type;                   /**< Distribution type (1:beam, 2:thermal)    */
+    histogram* beam;            /**< Distribution data                        */
+    afsi_thermal_data* thermal; /**< Thermal data                             */
 } afsi_data;
 
 void afsi_run(sim_data* sim, Reaction reaction, int n,
               afsi_data* react1, afsi_data* react2, real mult,
-              dist_5D_data* prod1, dist_5D_data* prod2);
-void afsi_test_dist(dist_5D_data* dist1);
+              histogram* prod1, histogram* prod2);
 void afsi_test_thermal();
-
 #endif
