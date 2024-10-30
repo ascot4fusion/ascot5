@@ -2219,6 +2219,85 @@ endcond_parse2str = _libraries['libascot.so'].endcond_parse2str
 endcond_parse2str.restype = None
 endcond_parse2str.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.c_char)]
 
+# values for enumeration 'c__EA_hist_coordinate'
+c__EA_hist_coordinate__enumvalues = {
+    0: 'R',
+    1: 'PHI',
+    2: 'Z',
+    3: 'RHO',
+    4: 'THETA',
+    5: 'PPAR',
+    6: 'PPERP',
+    7: 'PR',
+    8: 'PPHI',
+    9: 'PZ',
+    10: 'EKIN',
+    11: 'XI',
+    12: 'MU',
+    13: 'PTOR',
+    14: 'TIME',
+    15: 'CHARGE',
+}
+R = 0
+PHI = 1
+Z = 2
+RHO = 3
+THETA = 4
+PPAR = 5
+PPERP = 6
+PR = 7
+PPHI = 8
+PZ = 9
+EKIN = 10
+XI = 11
+MU = 12
+PTOR = 13
+TIME = 14
+CHARGE = 15
+c__EA_hist_coordinate = ctypes.c_uint32 # enum
+hist_coordinate = c__EA_hist_coordinate
+hist_coordinate__enumvalues = c__EA_hist_coordinate__enumvalues
+class struct_c__SA_hist_axis(Structure):
+    pass
+
+struct_c__SA_hist_axis._pack_ = 1 # source:False
+struct_c__SA_hist_axis._fields_ = [
+    ('name', hist_coordinate),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('min', ctypes.c_double),
+    ('max', ctypes.c_double),
+    ('n', ctypes.c_uint64),
+]
+
+hist_axis = struct_c__SA_hist_axis
+class struct_c__SA_histogram(Structure):
+    pass
+
+struct_c__SA_histogram._pack_ = 1 # source:False
+struct_c__SA_histogram._fields_ = [
+    ('axes', struct_c__SA_hist_axis * 16),
+    ('strides', ctypes.c_uint64 * 15),
+    ('nbin', ctypes.c_uint64),
+    ('bins', ctypes.POINTER(ctypes.c_double)),
+]
+
+histogram = struct_c__SA_histogram
+hist_init = _libraries['libascot.so'].hist_init
+hist_init.restype = ctypes.c_int32
+hist_init.argtypes = [ctypes.POINTER(struct_c__SA_histogram), ctypes.c_int32, ctypes.POINTER(c__EA_hist_coordinate), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_uint64)]
+hist_free = _libraries['libascot.so'].hist_free
+hist_free.restype = None
+hist_free.argtypes = [ctypes.POINTER(struct_c__SA_histogram)]
+hist_offload = _libraries['libascot.so'].hist_offload
+hist_offload.restype = None
+hist_offload.argtypes = [ctypes.POINTER(struct_c__SA_histogram)]
+hist_update_fo = _libraries['libascot.so'].hist_update_fo
+hist_update_fo.restype = None
+hist_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_histogram), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
+hist_update_gc = _libraries['libascot.so'].hist_update_gc
+hist_update_gc.restype = None
+hist_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_histogram), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
+
 # values for enumeration 'input_group'
 input_group__enumvalues = {
     1: 'hdf5_input_options',
@@ -2323,17 +2402,14 @@ struct_c__SA_afsi_data._pack_ = 1 # source:False
 struct_c__SA_afsi_data._fields_ = [
     ('type', ctypes.c_int32),
     ('PADDING_0', ctypes.c_ubyte * 4),
-    ('dist_5D', ctypes.POINTER(struct_c__SA_dist_5D_data)),
-    ('dist_thermal', ctypes.POINTER(struct_c__SA_afsi_thermal_data)),
+    ('beam', ctypes.POINTER(struct_c__SA_histogram)),
+    ('thermal', ctypes.POINTER(struct_c__SA_afsi_thermal_data)),
 ]
 
 afsi_data = struct_c__SA_afsi_data
 afsi_run = _libraries['libascot.so'].afsi_run
 afsi_run.restype = None
-afsi_run.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), Reaction, ctypes.c_int32, ctypes.POINTER(struct_c__SA_afsi_data), ctypes.POINTER(struct_c__SA_afsi_data), real, ctypes.POINTER(struct_c__SA_dist_5D_data), ctypes.POINTER(struct_c__SA_dist_5D_data)]
-afsi_test_dist = _libraries['libascot.so'].afsi_test_dist
-afsi_test_dist.restype = None
-afsi_test_dist.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data)]
+afsi_run.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), Reaction, ctypes.c_int32, ctypes.POINTER(struct_c__SA_afsi_data), ctypes.POINTER(struct_c__SA_afsi_data), real, ctypes.POINTER(struct_c__SA_histogram), ctypes.POINTER(struct_c__SA_histogram)]
 afsi_test_thermal = _libraries['libascot.so'].afsi_test_thermal
 afsi_test_thermal.restype = None
 afsi_test_thermal.argtypes = []
@@ -2379,28 +2455,30 @@ __all__ = \
     'B_field_eval_rho_drho', 'B_field_free', 'B_field_get_axis_rz',
     'B_field_offload', 'B_field_type', 'B_field_type_2DS',
     'B_field_type_3DS', 'B_field_type_GS', 'B_field_type_STS',
-    'B_field_type_TC', 'DD_He3n', 'DD_Tp', 'DHe3_He4p', 'DT_He4n',
-    'ENDCOND_FLAG', 'E_1DS_data', 'E_1DS_eval_E', 'E_1DS_free',
-    'E_1DS_init', 'E_1DS_offload', 'E_TC_data', 'E_TC_eval_E',
-    'E_TC_free', 'E_TC_init', 'E_TC_offload', 'E_field_data',
-    'E_field_eval_E', 'E_field_free', 'E_field_offload',
-    'E_field_type', 'E_field_type_1DS', 'E_field_type_TC',
-    'N0_1D_data', 'N0_1D_eval_n0', 'N0_1D_eval_t0', 'N0_1D_free',
-    'N0_1D_get_n_species', 'N0_1D_init', 'N0_1D_offload',
-    'N0_3D_data', 'N0_3D_eval_n0', 'N0_3D_eval_t0', 'N0_3D_free',
-    'N0_3D_get_n_species', 'N0_3D_init', 'N0_3D_offload', 'Reaction',
-    'SIMULATION_MODE', 'a5err', 'afsi_data', 'afsi_run',
-    'afsi_test_dist', 'afsi_test_thermal', 'afsi_thermal_data',
-    'asigma_data', 'asigma_eval_bms', 'asigma_eval_cx',
-    'asigma_eval_sigma', 'asigma_eval_sigmav', 'asigma_extrapolate',
-    'asigma_free', 'asigma_loc_data', 'asigma_loc_eval_bms',
-    'asigma_loc_eval_cx', 'asigma_loc_eval_sigma',
-    'asigma_loc_eval_sigmav', 'asigma_loc_free', 'asigma_loc_init',
-    'asigma_loc_offload', 'asigma_offload', 'asigma_reac_type',
-    'asigma_type', 'asigma_type_loc', 'bbnbi_simulate',
-    'biosaw_calc_B', 'boozer_data', 'boozer_eval_psithetazeta',
-    'boozer_free', 'boozer_init', 'boozer_offload',
-    'boschhale_reaction', 'boschhale_sigma', 'boschhale_sigmav',
+    'B_field_type_TC', 'CHARGE', 'DD_He3n', 'DD_Tp', 'DHe3_He4p',
+    'DT_He4n', 'EKIN', 'ENDCOND_FLAG', 'E_1DS_data', 'E_1DS_eval_E',
+    'E_1DS_free', 'E_1DS_init', 'E_1DS_offload', 'E_TC_data',
+    'E_TC_eval_E', 'E_TC_free', 'E_TC_init', 'E_TC_offload',
+    'E_field_data', 'E_field_eval_E', 'E_field_free',
+    'E_field_offload', 'E_field_type', 'E_field_type_1DS',
+    'E_field_type_TC', 'MU', 'N0_1D_data', 'N0_1D_eval_n0',
+    'N0_1D_eval_t0', 'N0_1D_free', 'N0_1D_get_n_species',
+    'N0_1D_init', 'N0_1D_offload', 'N0_3D_data', 'N0_3D_eval_n0',
+    'N0_3D_eval_t0', 'N0_3D_free', 'N0_3D_get_n_species',
+    'N0_3D_init', 'N0_3D_offload', 'PHI', 'PPAR', 'PPERP', 'PPHI',
+    'PR', 'PTOR', 'PZ', 'R', 'RHO', 'Reaction', 'SIMULATION_MODE',
+    'THETA', 'TIME', 'XI', 'Z', 'a5err', 'afsi_data', 'afsi_run',
+    'afsi_test_thermal', 'afsi_thermal_data', 'asigma_data',
+    'asigma_eval_bms', 'asigma_eval_cx', 'asigma_eval_sigma',
+    'asigma_eval_sigmav', 'asigma_extrapolate', 'asigma_free',
+    'asigma_loc_data', 'asigma_loc_eval_bms', 'asigma_loc_eval_cx',
+    'asigma_loc_eval_sigma', 'asigma_loc_eval_sigmav',
+    'asigma_loc_free', 'asigma_loc_init', 'asigma_loc_offload',
+    'asigma_offload', 'asigma_reac_type', 'asigma_type',
+    'asigma_type_loc', 'bbnbi_simulate', 'biosaw_calc_B',
+    'boozer_data', 'boozer_eval_psithetazeta', 'boozer_free',
+    'boozer_init', 'boozer_offload', 'boschhale_reaction',
+    'boschhale_sigma', 'boschhale_sigmav', 'c__EA_hist_coordinate',
     'diag_data', 'diag_free', 'diag_init', 'diag_offload',
     'diag_orb_check_plane_crossing', 'diag_orb_check_radial_crossing',
     'diag_orb_data', 'diag_orb_free', 'diag_orb_init',
@@ -2431,9 +2509,12 @@ __all__ = \
     'hdf5_input_options', 'hdf5_input_plasma', 'hdf5_input_wall',
     'hdf5_interface_init_results', 'hdf5_interface_read_input',
     'hdf5_interface_write_diagnostics', 'hdf5_interface_write_state',
-    'input_group', 'input_particle', 'input_particle_type',
-    'input_particle_type_gc', 'input_particle_type_ml',
-    'input_particle_type_p', 'input_particle_type_s', 'integer',
+    'hist_axis', 'hist_coordinate', 'hist_coordinate__enumvalues',
+    'hist_free', 'hist_init', 'hist_offload', 'hist_update_fo',
+    'hist_update_gc', 'histogram', 'input_group', 'input_particle',
+    'input_particle_type', 'input_particle_type_gc',
+    'input_particle_type_ml', 'input_particle_type_p',
+    'input_particle_type_s', 'integer',
     'libascot_allocate_input_particles',
     'libascot_allocate_particle_states', 'libascot_allocate_reals',
     'libascot_deallocate', 'mhd_data', 'mhd_eval', 'mhd_free',
@@ -2495,7 +2576,8 @@ __all__ = \
     'struct_c__SA_diag_orb_data', 'struct_c__SA_diag_transcoef_data',
     'struct_c__SA_dist_5D_data', 'struct_c__SA_dist_6D_data',
     'struct_c__SA_dist_COM_data', 'struct_c__SA_dist_rho5D_data',
-    'struct_c__SA_dist_rho6D_data', 'struct_c__SA_input_particle',
+    'struct_c__SA_dist_rho6D_data', 'struct_c__SA_hist_axis',
+    'struct_c__SA_histogram', 'struct_c__SA_input_particle',
     'struct_c__SA_interp1D_data', 'struct_c__SA_interp2D_data',
     'struct_c__SA_interp3D_data', 'struct_c__SA_linint1D_data',
     'struct_c__SA_linint3D_data', 'struct_c__SA_mccc_data',

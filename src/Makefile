@@ -112,8 +112,9 @@ MCCCHEADERS = $(wildcard $(MCCCDIR)mccc*.h)
 MCCCOBJS = $(patsubst %.c,%.o,$(wildcard $(MCCCDIR)mccc*.c))
 
 DIAGDIR = diag/
-DIAGHEADERS = $(wildcard $(DIAGDIR)diag*.h $(DIAGDIR)dist*.h)
-DIAGOBJS = $(patsubst %.c,%.o,$(wildcard $(DIAGDIR)diag*.c $(DIAGDIR)dist*.c))
+DIAGHEADERS = $(wildcard $(DIAGDIR)diag*.h $(DIAGDIR)dist*.h $(DIAGDIR)hist*.h)
+DIAGOBJS = $(patsubst %.c,%.o,$(wildcard $(DIAGDIR)diag*.c $(DIAGDIR)dist*.c \
+	$(DIAGDIR)hist.c))
 
 BFDIR = Bfield/
 BFHEADERS = $(wildcard $(BFDIR)B_*.h)
