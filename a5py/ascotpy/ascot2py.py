@@ -2446,6 +2446,17 @@ boschhale_sigma.argtypes = [Reaction, real]
 boschhale_sigmav = _libraries['libascot.so'].boschhale_sigmav
 boschhale_sigmav.restype = real
 boschhale_sigmav.argtypes = [Reaction, real]
+
+# values for enumeration 'c__EA_mom_space_basis'
+c__EA_mom_space_basis__enumvalues = {
+    0: 'PPARPPERP',
+    1: 'EKINXI',
+}
+PPARPPERP = 0
+EKINXI = 1
+c__EA_mom_space_basis = ctypes.c_uint32 # enum
+mom_space_basis = c__EA_mom_space_basis
+mom_space_basis__enumvalues = c__EA_mom_space_basis__enumvalues
 class struct_c__SA_afsi_thermal_data(Structure):
     pass
 
@@ -2483,9 +2494,6 @@ afsi_data = struct_c__SA_afsi_data
 afsi_run = _libraries['libascot.so'].afsi_run
 afsi_run.restype = None
 afsi_run.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), Reaction, ctypes.c_int32, ctypes.POINTER(struct_c__SA_afsi_data), ctypes.POINTER(struct_c__SA_afsi_data), real, ctypes.POINTER(struct_c__SA_histogram), ctypes.POINTER(struct_c__SA_histogram)]
-afsi_test_thermal = _libraries['libascot.so'].afsi_test_thermal
-afsi_test_thermal.restype = None
-afsi_test_thermal.argtypes = []
 prepare_markers = _libraries['libascot.so'].prepare_markers
 prepare_markers.restype = ctypes.c_int32
 prepare_markers.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.c_int32, ctypes.POINTER(struct_c__SA_input_particle), ctypes.POINTER(ctypes.POINTER(struct_c__SA_particle_state)), ctypes.POINTER(ctypes.c_int32)]
@@ -2529,19 +2537,19 @@ __all__ = \
     'B_field_offload', 'B_field_type', 'B_field_type_2DS',
     'B_field_type_3DS', 'B_field_type_GS', 'B_field_type_STS',
     'B_field_type_TC', 'CHARGE', 'DD_He3n', 'DD_Tp', 'DHe3_He4p',
-    'DT_He4n', 'EKIN', 'ENDCOND_FLAG', 'E_1DS_data', 'E_1DS_eval_E',
-    'E_1DS_free', 'E_1DS_init', 'E_1DS_offload', 'E_TC_data',
-    'E_TC_eval_E', 'E_TC_free', 'E_TC_init', 'E_TC_offload',
-    'E_field_data', 'E_field_eval_E', 'E_field_free',
+    'DT_He4n', 'EKIN', 'EKINXI', 'ENDCOND_FLAG', 'E_1DS_data',
+    'E_1DS_eval_E', 'E_1DS_free', 'E_1DS_init', 'E_1DS_offload',
+    'E_TC_data', 'E_TC_eval_E', 'E_TC_free', 'E_TC_init',
+    'E_TC_offload', 'E_field_data', 'E_field_eval_E', 'E_field_free',
     'E_field_offload', 'E_field_type', 'E_field_type_1DS',
     'E_field_type_TC', 'MU', 'N0_1D_data', 'N0_1D_eval_n0',
     'N0_1D_eval_t0', 'N0_1D_free', 'N0_1D_get_n_species',
     'N0_1D_init', 'N0_1D_offload', 'N0_3D_data', 'N0_3D_eval_n0',
     'N0_3D_eval_t0', 'N0_3D_free', 'N0_3D_get_n_species',
-    'N0_3D_init', 'N0_3D_offload', 'PHI', 'PPAR', 'PPERP', 'PPHI',
-    'PR', 'PTOR', 'PZ', 'R', 'RHO', 'Reaction', 'SIMULATION_MODE',
-    'THETA', 'TIME', 'XI', 'Z', 'a5err', 'afsi_data', 'afsi_run',
-    'afsi_test_thermal', 'afsi_thermal_data', 'asigma_data',
+    'N0_3D_init', 'N0_3D_offload', 'PHI', 'PPAR', 'PPARPPERP',
+    'PPERP', 'PPHI', 'PR', 'PTOR', 'PZ', 'R', 'RHO', 'Reaction',
+    'SIMULATION_MODE', 'THETA', 'TIME', 'XI', 'Z', 'a5err',
+    'afsi_data', 'afsi_run', 'afsi_thermal_data', 'asigma_data',
     'asigma_eval_bms', 'asigma_eval_cx', 'asigma_eval_sigma',
     'asigma_eval_sigmav', 'asigma_extrapolate', 'asigma_free',
     'asigma_loc_data', 'asigma_loc_eval_bms', 'asigma_loc_eval_cx',
@@ -2552,11 +2560,12 @@ __all__ = \
     'boozer_data', 'boozer_eval_psithetazeta', 'boozer_free',
     'boozer_init', 'boozer_offload', 'boschhale_reaction',
     'boschhale_sigma', 'boschhale_sigmav', 'c__EA_hist_coordinate',
-    'diag_data', 'diag_free', 'diag_init', 'diag_offload',
-    'diag_orb_check_plane_crossing', 'diag_orb_check_radial_crossing',
-    'diag_orb_data', 'diag_orb_free', 'diag_orb_init',
-    'diag_orb_update_fo', 'diag_orb_update_gc', 'diag_orb_update_ml',
-    'diag_sum', 'diag_transcoef_data', 'diag_transcoef_free',
+    'c__EA_mom_space_basis', 'diag_data', 'diag_free', 'diag_init',
+    'diag_offload', 'diag_orb_check_plane_crossing',
+    'diag_orb_check_radial_crossing', 'diag_orb_data',
+    'diag_orb_free', 'diag_orb_init', 'diag_orb_update_fo',
+    'diag_orb_update_gc', 'diag_orb_update_ml', 'diag_sum',
+    'diag_transcoef_data', 'diag_transcoef_free',
     'diag_transcoef_init', 'diag_transcoef_link',
     'diag_transcoef_update_fo', 'diag_transcoef_update_gc',
     'diag_transcoef_update_ml', 'diag_update_fo', 'diag_update_gc',
@@ -2599,6 +2608,7 @@ __all__ = \
     'mhd_stat_data', 'mhd_stat_eval', 'mhd_stat_free',
     'mhd_stat_init', 'mhd_stat_offload', 'mhd_stat_perturbations',
     'mhd_type', 'mhd_type_nonstat', 'mhd_type_stat',
+    'mom_space_basis', 'mom_space_basis__enumvalues',
     'mpi_gather_diag', 'mpi_gather_particlestate',
     'mpi_interface_barrier', 'mpi_interface_finalize',
     'mpi_interface_init', 'mpi_my_particles', 'nbi_data', 'nbi_free',
