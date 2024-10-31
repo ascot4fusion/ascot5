@@ -9,6 +9,7 @@
 #include "print.h"
 #include "gitver.h"
 #include "math.h"
+#include "physlib.h"
 #include "consts.h"
 #include "offload.h"
 #include "random.h"
@@ -24,20 +25,19 @@
 /** Random number generator used by AFSI */
 random_data rdata;
 
-void afsi_sample_reactant_momenta(
-    afsi_data* react1, afsi_data* react2, real m1, real m2, int n,
-    size_t iR, size_t iphi, size_t iz,
-    real* ppara1, real* pperp1, real* ppara2, real* pperp2);
-void afsi_compute_product_momenta(
-    int i, real m1, real m2, real mprod1, real mprod2, real Q,
+void afsi_sample_reactant_momenta_2d(
+    afsi_data* react, real mass, int nsample, size_t spatial_index,
+    real* ppara, real* pperp);
+void afsi_compute_product_momenta_2d(
+    int i, real m1, real m2, real mprod1, real mprod2, real Q, int prodmomspace,
     real* ppara1, real* pperp1, real* ppara2, real* pperp2, real* vcom2,
-    real* pparaprod1, real* pperpprod1, real* pparaprod2, real* pperpprod2);
-void afsi_sample_beam(histogram* hist, int n, size_t iR, size_t iphi, size_t iz,
-                      real* ppara, real* pperp);
-void afsi_sample_thermal(afsi_thermal_data* data, real mass, int n, size_t iR,
-                         size_t iphi, size_t iz, real* ppara, real* pperp);
-real afsi_get_density(afsi_data* dist, size_t iR, size_t iphi, size_t iz);
-real afsi_get_volume(afsi_data* dist, size_t iR);
+    real* prod1_p1, real* prod1_p2, real* prod2_p1, real* prod2_p2);
+void afsi_sample_beam_2d(histogram* hist, int nsample, size_t spatial_index,
+                         real mass, real* p1, real* p2);
+void afsi_sample_thermal_2d(afsi_thermal_data* data, real mass, int nsample,
+                            size_t spatial_index, real* p1, real* p2);
+real afsi_get_density(afsi_data* dist, size_t spatial_index, real r);
+real afsi_get_volume(afsi_data* dist, real vol);
 
 /**
  * @brief Calculate fusion source from two arbitrary ion distributions
@@ -95,67 +95,92 @@ void afsi_run(sim_data* sim, Reaction reaction, int n,
         n_z   = react1->thermal->n_z;
     }
 
-    #pragma omp parallel for
-    for(int iR = 0; iR < n_r; iR++) {
-        real* ppara1     = (real*) malloc(n*sizeof(real));
-        real* pperp1     = (real*) malloc(n*sizeof(real));
-        real* ppara2     = (real*) malloc(n*sizeof(real));
-        real* pperp2     = (real*) malloc(n*sizeof(real));
-        real* pparaprod1 = (real*) malloc(n*sizeof(real));
-        real* pperpprod1 = (real*) malloc(n*sizeof(real));
-        real* pparaprod2 = (real*) malloc(n*sizeof(real));
-        real* pperpprod2 = (real*) malloc(n*sizeof(real));
+    int prod_mom_space;
+    int p1coord, p2coord;
+    if(prod1->axes[5].n) {
+        p1coord = 5;
+        p2coord = 6;
+        prod_mom_space = PPARPPERP;
+    }
+    else if(prod1->axes[10].n) {
+        p1coord = 10;
+        p2coord = 11;
+        prod_mom_space = EKINXI;
+    }
+    else {
+        return;
+    }
 
-        real vol = afsi_get_volume(react1, iR);
+    #pragma omp parallel for
+    for(size_t ir = 0; ir < n_r; ir++) {
+        real* ppara1 = (real*) malloc(n*sizeof(real));
+        real* pperp1 = (real*) malloc(n*sizeof(real));
+        real* ppara2 = (real*) malloc(n*sizeof(real));
+        real* pperp2 = (real*) malloc(n*sizeof(real));
+        real* prod1_p1 = (real*) malloc(n*sizeof(real));
+        real* prod1_p2 = (real*) malloc(n*sizeof(real));
+        real* prod2_p1 = (real*) malloc(n*sizeof(real));
+        real* prod2_p2 = (real*) malloc(n*sizeof(real));
+
+        real dr = (prod2->axes[0].max-prod2->axes[0].min) / prod2->axes[0].n;
+        real r =  prod2->axes[0].min + 0.5 * dr + ir * dr;
+        real vol = afsi_get_volume(react1, r);
         for(size_t iphi = 0; iphi < n_phi; iphi++) {
             for(size_t iz = 0; iz < n_z; iz++) {
-                real density1 = afsi_get_density(react1, iR, iphi, iz);
-                real density2 = afsi_get_density(react2, iR, iphi, iz);
+                // size_t spatial_index = ir*prod1->strides[0]
+                //              + iphi*prod1->strides[1]
+                //              + iz*prod1->strides[2];
+                size_t spatial_index = ir*n_phi*n_z
+                             + iphi*n_z
+                             + iz;
+                real density1 = afsi_get_density(react1, spatial_index, vol);
+                real density2 = afsi_get_density(react2, spatial_index, vol);
                 if(density1 > 0 && density2 > 0) {
-                    afsi_sample_reactant_momenta(
-                        react1, react2, m1, m2, n, iR, iphi, iz,
-                        ppara1, pperp1, ppara2, pperp2);
+                    afsi_sample_reactant_momenta_2d(
+                        react1, m1, n, spatial_index, ppara1, pperp1);
+                    afsi_sample_reactant_momenta_2d(
+                        react2, m2, n, spatial_index, ppara2, pperp2);
                     for(size_t i = 0; i < n; i++) {
                         real vcom2;
-                        afsi_compute_product_momenta(
-                            i, m1, m2, mprod1, mprod2, Q,
+                        afsi_compute_product_momenta_2d(
+                            i, m1, m2, mprod1, mprod2, Q, prod_mom_space,
                             ppara1, pperp1, ppara2, pperp2, &vcom2,
-                            pparaprod1, pperpprod1, pparaprod2, pperpprod2);
+                            prod1_p1, prod1_p2, prod2_p1, prod2_p2);
                         real E = 0.5 * ( m1 * m2 ) / ( m1 + m2 ) * vcom2;
 
                         real weight = density1 * density2 * sqrt(vcom2)
                             * boschhale_sigma(reaction, E)/n*vol;
 
-                        size_t ippara = math_bin_index(
-                            pparaprod1[i], prod1->axes[5].n,
-                            prod1->axes[5].min, prod1->axes[5].max);
-                        size_t ipperp = math_bin_index(
-                            pperpprod1[i], prod1->axes[6].n,
-                            prod1->axes[6].min, prod1->axes[6].max);
-                        if( 0 <= ippara && ippara < prod1->axes[5].n &&
-                            0 <= ipperp && ipperp < prod1->axes[6].n) {
-                            size_t index = iR*prod1->strides[0]
+                        size_t ip1 = math_bin_index(
+                            prod1_p1[i], prod1->axes[p1coord].n,
+                            prod1->axes[p1coord].min, prod1->axes[p1coord].max);
+                        size_t ip2 = math_bin_index(
+                            prod1_p2[i], prod1->axes[p2coord].n,
+                            prod1->axes[p2coord].min, prod1->axes[p2coord].max);
+                        if( 0 <= ip1 && ip1 < prod1->axes[p1coord].n &&
+                            0 <= ip2 && ip2 < prod1->axes[p2coord].n) {
+                            size_t index = ir*prod1->strides[0]
                                          + iphi*prod1->strides[1]
                                          + iz*prod1->strides[2]
-                                         + ippara*prod1->strides[5]
-                                         + ipperp*prod1->strides[6];
+                                         + ip1*prod1->strides[p1coord]
+                                         + ip2*prod1->strides[p2coord];
                             GPU_ATOMIC
                             prod1->bins[index] += weight * mult;
                         }
 
-                        ippara = math_bin_index(
-                            pparaprod2[i], prod2->axes[5].n,
-                            prod2->axes[5].min, prod2->axes[5].max);
-                        ipperp = math_bin_index(
-                            pperpprod2[i], prod2->axes[6].n,
-                            prod2->axes[6].min, prod2->axes[6].max);
-                        if( 0 <= ippara && ippara < prod2->axes[5].n &&
-                            0 <= ipperp && ipperp < prod2->axes[6].n) {
-                            size_t index = iR*prod2->strides[0]
+                        ip1 = math_bin_index(
+                            prod2_p1[i], prod2->axes[p1coord].n,
+                            prod2->axes[p1coord].min, prod2->axes[p1coord].max);
+                        ip2 = math_bin_index(
+                            prod2_p2[i], prod2->axes[p2coord].n,
+                            prod2->axes[p2coord].min, prod2->axes[p2coord].max);
+                        if( 0 <= ip1 && ip1 < prod2->axes[p1coord].n &&
+                            0 <= ip2 && ip2 < prod2->axes[p2coord].n) {
+                            size_t index = ir*prod2->strides[0]
                                          + iphi*prod2->strides[1]
                                          + iz*prod2->strides[2]
-                                         + ippara*prod2->strides[5]
-                                         + ipperp*prod2->strides[6];
+                                         + ip1*prod2->strides[p1coord]
+                                         + ip2*prod2->strides[p2coord];
                             GPU_ATOMIC
                             prod2->bins[index] += weight * mult;
                         }
@@ -170,10 +195,10 @@ void afsi_run(sim_data* sim, Reaction reaction, int n,
         free(ppara2);
         free(pperp1);
         free(pperp2);
-        free(pparaprod1);
-        free(pparaprod2);
-        free(pperpprod1);
-        free(pperpprod2);
+        free(prod1_p1);
+        free(prod1_p2);
+        free(prod2_p1);
+        free(prod2_p2);
     }
 
     m1     = m1 / CONST_U;
@@ -258,44 +283,6 @@ void afsi_run(sim_data* sim, Reaction reaction, int n,
 }
 
 /**
- * @brief Sample velocities from reactant distributions.
- *
- * @param react1 reactant 1 distribution data.
- * @param react2 reactant 2 distribution data.
- * @param m1 mass of reactant 1 [kg].
- * @param m2 mass of reactant 2 [kg].
- * @param n number of samples.
- * @param iR R index of the distribution cell where sampling is done.
- * @param iphi phi index of the distribution cell where sampling is done.
- * @param iz z index of the distribution cell where sampling is done.
- * @param ppara1 array where the parallel momentum of react1 will be stored
- * @param pperp1 array where the perpendicular momentum of react1 will be stored
- * @param ppara2 array where the parallel momentum of react2 will be stored
- * @param pperp2 array where the perpendicular momentum of react2 will be stored
- */
-void afsi_sample_reactant_momenta(
-    afsi_data* react1, afsi_data* react2, real m1, real m2, int n,
-    size_t iR, size_t iphi, size_t iz,
-    real* ppara1, real* pperp1, real* ppara2, real* pperp2) {
-
-    if(react1->type == 1) {
-        afsi_sample_beam(react1->beam, n, iR, iphi, iz, ppara1, pperp1);
-    }
-    else if(react1->type == 2) {
-        afsi_sample_thermal(
-            react1->thermal, m1, n, iR, iphi, iz, ppara1, pperp1);
-    }
-
-    if(react2->type == 1) {
-        afsi_sample_beam(react2->beam, n, iR, iphi, iz, ppara2, pperp2);
-    }
-    else if(react2->type == 2) {
-        afsi_sample_thermal(
-            react2->thermal, m2, n, iR, iphi, iz, ppara2, pperp2);
-    }
-}
-
-/**
  * @brief Compute momenta of reaction products.
  *
  * @param i marker index on input velocity and output momentum arrays.
@@ -314,10 +301,10 @@ void afsi_sample_reactant_momenta(
  * @param pparaprod2 array where parallel momentum of product 2 is stored.
  * @param pperpprod2 array where perpendicular momentum of product 2 is stored.
  */
-void afsi_compute_product_momenta(
-    int i, real m1, real m2, real mprod1, real mprod2, real Q,
+void afsi_compute_product_momenta_2d(
+    int i, real m1, real m2, real mprod1, real mprod2, real Q, int prodmomspace,
     real* ppara1, real* pperp1, real* ppara2, real* pperp2, real* vcom2,
-    real* pparaprod1, real* pperpprod1, real* pparaprod2, real* pperpprod2) {
+    real* prod1_p1, real* prod1_p2, real* prod2_p1, real* prod2_p2) {
 
     real rn1 = CONST_2PI * random_uniform(rdata);
     real rn2 = CONST_2PI * random_uniform(rdata);
@@ -370,60 +357,123 @@ void afsi_compute_product_momenta(
     vprod2[1] = v2_cm[1] + v_cm[1];
     vprod2[2] = v2_cm[2] + v_cm[2];
 
-    // ppara and pperp
-    pparaprod1[i] = vprod1[2] * mprod1;
-    pperpprod1[i] = sqrt( vprod1[0]*vprod1[0] + vprod1[1]*vprod1[1] ) * mprod1;
-    pparaprod2[i] = vprod2[2] * mprod2;
-    pperpprod2[i] = sqrt( vprod2[0]*vprod2[0] + vprod2[1]*vprod2[1] ) * mprod2;
+    if(prodmomspace == PPARPPERP) {
+        prod1_p1[i] = vprod1[2] * mprod1;
+        prod1_p2[i] = sqrt(vprod1[0]*vprod1[0] + vprod1[1]*vprod1[1]) * mprod1;
+        prod2_p1[i] = vprod2[2] * mprod2;
+        prod2_p2[i] = sqrt(vprod2[0]*vprod2[0] + vprod2[1]*vprod2[1]) * mprod2;
+    }
+    else {
+        real vnorm1 = math_norm(vprod1);
+        prod1_p2[i] = vprod1[2] / vnorm1;
+        prod1_p1[i] = physlib_Ekin_gamma(mprod1, physlib_gamma_vnorm(vnorm1));
+
+        real vnorm2 = math_norm(vprod2);
+        prod2_p2[i] = vprod2[2] / vnorm2;
+        prod2_p1[i] = physlib_Ekin_gamma(mprod2, physlib_gamma_vnorm(vnorm2));
+    }
+}
+
+/**
+ * @brief Sample velocities from reactant distributions.
+ *
+ * @param react1 reactant 1 distribution data.
+ * @param react2 reactant 2 distribution data.
+ * @param m1 mass of reactant 1 [kg].
+ * @param m2 mass of reactant 2 [kg].
+ * @param n number of samples.
+ * @param iR R index of the distribution cell where sampling is done.
+ * @param iphi phi index of the distribution cell where sampling is done.
+ * @param iz z index of the distribution cell where sampling is done.
+ * @param ppara1 array where the parallel momentum of react1 will be stored
+ * @param pperp1 array where the perpendicular momentum of react1 will be stored
+ * @param ppara2 array where the parallel momentum of react2 will be stored
+ * @param pperp2 array where the perpendicular momentum of react2 will be stored
+ */
+void afsi_sample_reactant_momenta_2d(
+    afsi_data* react, real mass, int nsample, size_t spatial_index,
+    real* ppara, real* pperp) {
+    if(react->type == 1) {
+        afsi_sample_beam_2d(react->beam, nsample, spatial_index, mass,
+                            ppara, pperp);
+    }
+    else if(react->type == 2) {
+        afsi_sample_thermal_2d(
+            react->thermal, mass, nsample, spatial_index, ppara, pperp);
+    }
 }
 
 /**
  * @brief Sample ppara and pperp from a 5D distribution.
  *
  * @param dist pointer to the distribution data.
- * @param n number of values to be sampled.
- * @param iR R index where sampling is done.
- * @param iphi phi index where sampling is done.
- * @param iz z index where sampling is done.
+ * @param nsample number of values to be sampled.
+ * @param spatial_index spatial index where sampling is done.
  * @param ppara pointer to array where sampled parallel momenta are stored.
  * @param pperp pointer to array where sampled perpedicular momenta are stored.
  */
-void afsi_sample_beam(histogram* hist, int n, size_t iR, size_t iphi, size_t iz,
-                      real* ppara, real* pperp) {
+void afsi_sample_beam_2d(histogram* hist, int nsample, size_t spatial_index,
+                         real mass, real* ppara, real* pperp) {
+    int mom_space;
+    int p1coord, p2coord;
+    if(hist->axes[5].n) {
+        p1coord = 5;
+        p2coord = 6;
+        mom_space = PPARPPERP;
+    }
+    else if(hist->axes[10].n) {
+        p1coord = 10;
+        p2coord = 11;
+        mom_space = EKINXI;
+    }
+    else {
+        return;
+    }
+
     real* cumdist = (real*) malloc(
         hist->axes[5].n*hist->axes[6].n*sizeof(real));
 
-    for(size_t ippara = 0; ippara < hist->axes[5].n; ippara++) {
-        for(size_t ipperp = 0; ipperp < hist->axes[6].n; ipperp++) {
-            size_t index = iR*hist->strides[0]
-                         + iphi*hist->strides[1]
-                         + iz*hist->strides[2]
-                         + ippara*hist->strides[5]
-                         + ipperp*hist->strides[6];
+    for(size_t ippara = 0; ippara < hist->axes[p1coord].n; ippara++) {
+        for(size_t ipperp = 0; ipperp < hist->axes[p2coord].n; ipperp++) {
+            size_t index = spatial_index
+                         + ippara*hist->strides[p1coord]
+                         + ipperp*hist->strides[p2coord];
             if(ippara == 0 && ipperp == 0) {
                 cumdist[0] = hist->bins[index];
             } else {
-                cumdist[ippara*hist->axes[6].n+ipperp] =
-                      cumdist[ippara*hist->axes[6].n+ipperp-1]
+                cumdist[ippara*hist->axes[p2coord].n+ipperp] =
+                      cumdist[ippara*hist->axes[p2coord].n+ipperp-1]
                     + hist->bins[index];
             }
         }
     }
-    for(size_t ippara = 0; ippara < hist->axes[5].n; ippara++) {
-        for(size_t ipperp = 0; ipperp < hist->axes[6].n; ipperp++) {
-            cumdist[ippara*hist->axes[6].n+ipperp] /=
-                cumdist[hist->axes[5].n*hist->axes[6].n-1];
+    for(size_t ippara = 0; ippara < hist->axes[p1coord].n; ippara++) {
+        for(size_t ipperp = 0; ipperp < hist->axes[p2coord].n; ipperp++) {
+            cumdist[ippara*hist->axes[p2coord].n+ipperp] /=
+                cumdist[hist->axes[p1coord].n*hist->axes[p2coord].n-1];
         }
     }
 
-    for(size_t i = 0; i < n; i++) {
+    for(size_t i = 0; i < nsample; i++) {
         real r = random_uniform(rdata);
-        for(size_t j = 0; j < hist->axes[5].n*hist->axes[6].n; j++) {
+        for(size_t j = 0; j < hist->axes[p1coord].n*hist->axes[p2coord].n; j++) {
             if(cumdist[j] > r) {
-                ppara[i] = hist->axes[5].min + (j / hist->axes[5].n + 0.5)
-                    * (hist->axes[5].max - hist->axes[5].min) / hist->axes[5].n;
-                pperp[i] = hist->axes[6].min + (j % hist->axes[6].n + 0.5)
-                    * (hist->axes[6].max - hist->axes[6].min) / hist->axes[6].n;
+                if(mom_space == PPARPPERP) {
+                    ppara[i] = hist->axes[5].min + (j / hist->axes[5].n + 0.5)
+                        * (hist->axes[5].max - hist->axes[5].min) / hist->axes[5].n;
+                    pperp[i] = hist->axes[6].min + (j % hist->axes[6].n + 0.5)
+                        * (hist->axes[6].max - hist->axes[6].min) / hist->axes[6].n;
+                }
+                else {
+                    real ekin = hist->axes[10].min + (j / hist->axes[10].n + 0.5)
+                        * (hist->axes[10].max - hist->axes[10].min) / hist->axes[10].n;
+                    real pitch = hist->axes[11].min + (j / hist->axes[11].n + 0.5)
+                        * (hist->axes[11].max - hist->axes[11].min) / hist->axes[11].n;
+                    real gamma = physlib_gamma_Ekin(mass, ekin);
+                    real pnorm = sqrt(gamma * gamma - 1.0) * mass * CONST_C;
+                    ppara[i] = pitch * pnorm;
+                    pperp[i] = sqrt( 1.0 - pitch*pitch ) * pnorm;
+                }
                 break;
             }
         }
@@ -440,19 +490,15 @@ void afsi_sample_beam(histogram* hist, int n, size_t iR, size_t iphi, size_t iz,
  *
  * @param data pointer to the thermal data.
  * @param mass mass of the particle species.
- * @param n number of values to be sampled.
- * @param iR R index where sampling is done.
- * @param iphi phi index where sampling is done.
- * @param iz z index where sampling is done.
+ * @param nsample number of values to be sampled.
+ * @param spatial_index spatial index where sampling is done.
  * @param ppara pointer to array where sampled parallel momenta are stored.
  * @param pperp pointer to array where sampled perpedicular momenta are stored.
  */
-void afsi_sample_thermal(afsi_thermal_data* data, real mass, int n, size_t iR,
-                         size_t iphi, size_t iz, real* ppara, real* pperp) {
-    int ind = iR * (data->n_phi * data->n_z) + iphi * data->n_z + iz;
-    real temp = data->temperature[ind];
-
-    for(int i = 0; i < n; i++) {
+void afsi_sample_thermal_2d(afsi_thermal_data* data, real mass, int nsample,
+                            size_t spatial_index, real* ppara, real* pperp) {
+    real temp = data->temperature[spatial_index];
+    for(int i = 0; i < nsample; i++) {
         real r1, r2, r3, r4, E;
 
         r1 = random_uniform(rdata);
@@ -470,20 +516,17 @@ void afsi_sample_thermal(afsi_thermal_data* data, real mass, int n, size_t iR,
  * @brief Get particle density.
  *
  * @param dist pointer to afsi data.
- * @param iR R index at which density is queried.
- * @param iphi phi index at which density is queried.
- * @param iz z index at which density is queried.
+ * @param spatial_index spatial index where density is queried.
+ * @param vol cell volume [m^3].
+ *
  * @return density [m^-3] or zero if type was unknown.
  */
-real afsi_get_density(afsi_data* dist, size_t iR, size_t iphi, size_t iz) {
+real afsi_get_density(afsi_data* dist, size_t spatial_index, real vol) {
     if(dist->type == 1) {
-        real vol = afsi_get_volume(dist, iR);
         real density = 0.0;
         for(size_t ippara = 0; ippara < dist->beam->axes[5].n; ippara++) {
             for(size_t ipperp = 0; ipperp < dist->beam->axes[6].n; ipperp++) {
-                size_t index = iR*dist->beam->strides[0]
-                             + iphi*dist->beam->strides[1]
-                             + iz*dist->beam->strides[2]
+                size_t index = spatial_index
                              + ippara*dist->beam->strides[5]
                              + ipperp*dist->beam->strides[6];
 
@@ -492,9 +535,7 @@ real afsi_get_density(afsi_data* dist, size_t iR, size_t iphi, size_t iz) {
         }
         return density;
     } else if(dist->type == 2) {
-        return dist->thermal->density[
-              iR * dist->thermal->n_phi * dist->thermal->n_z
-            + iphi * dist->thermal->n_z + iz];
+        return dist->thermal->density[spatial_index];
     } else {
         return 0;
     }
@@ -504,57 +545,24 @@ real afsi_get_density(afsi_data* dist, size_t iR, size_t iphi, size_t iz) {
  * @brief Get physical volume of a distribution cell.
  *
  * @param dist distribution.
- * @param iR radial index of the cell.
+ * @param r radial coordinate at the center of the cell.
  * @return cell volume [m^3].
  */
-real afsi_get_volume(afsi_data* dist, size_t iR) {
-    real dR, dz;
-
+real afsi_get_volume(afsi_data* dist, real r) {
+    real dr, dphi, dz;
     if(dist->type == 1) {
-        dR = (dist->beam->axes[0].max - dist->beam->axes[0].min)
-            / dist->beam->axes[0].n;
-        dz = (dist->beam->axes[2].max - dist->beam->axes[2].min)
-            / dist->beam->axes[2].n;
-        return CONST_2PI*(dist->beam->axes[0].min + iR * dR + 0.5*dR)*dR*dz;
-    } else if(dist->type == 2) {
-        dR = (dist->thermal->max_r - dist->thermal->min_r)
-            / dist->thermal->n_r;
-        dz = (dist->thermal->max_z - dist->thermal->min_z)
-            / dist->thermal->n_z;
-        return CONST_2PI*(dist->thermal->min_r + iR * dR + 0.5*dR)*dR*dz;
+        dr =  (dist->beam->axes[0].max - dist->beam->axes[0].min)
+             / dist->beam->axes[0].n;
+        dz =  (dist->beam->axes[2].max - dist->beam->axes[2].min)
+             / dist->beam->axes[2].n;
+        dphi =  (dist->beam->axes[1].max - dist->beam->axes[1].min)
+              / dist->beam->axes[1].n;
     }
-    return 0;
-}
-
-/**
- * @brief Test thermal source.
- */
-void afsi_test_thermal() {
-    afsi_thermal_data data;
-
-    data.n_r     = 1;
-    data.min_r   = 0.1;
-    data.max_r   = 1;
-    data.n_phi   = 1;
-    data.min_phi = 0;
-    data.max_phi = 360;
-    data.n_z     = 1;
-    data.min_z   = -1;
-    data.max_z   = 1;
-
-    real temperature = 1e3;
-    real density = 1e19;
-
-    data.temperature = &temperature;
-    data.density = &density;
-
-    int n = 100000;
-    real* ppara = (real*) malloc(n*sizeof(real));
-    real* pperp = (real*) malloc(n*sizeof(real));
-
-    afsi_sample_thermal(&data, 3.343e-27, n, 0, 0, 0, ppara, pperp);
-
-    for(int i = 0; i < n; i++) {
-        printf("%le %le\n", ppara[i], pperp[i]);
+    else {
+        dr = (dist->thermal->max_r - dist->thermal->min_r) / dist->thermal->n_r;
+        dz = (dist->thermal->max_z - dist->thermal->min_z) / dist->thermal->n_z;
+        dphi = (dist->thermal->max_phi - dist->thermal->min_phi)
+              / dist->thermal->n_phi;
     }
+    return dphi*dz*dr*r;
 }
