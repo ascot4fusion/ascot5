@@ -173,6 +173,145 @@ class Afsi():
         self._ascot.file_load(self._ascot.file_getpath())
         return prod1, prod2
 
+    def thermal_exi(
+            self, reaction, minr, maxr, nr, minz, maxz, nz,
+            minphi=0, maxphi=360, nphi=1, nmc=1000,
+            minekin=1.0e6, maxekin=6.0e6, nekin=40,
+            minpitch=-1.0, maxpitch=1.0, npitch=20):
+        """Calculate thermonuclear fusion between two thermal (Maxwellian)
+        species in (E,xi) basis.
+
+        Parameters
+        ----------
+        reaction : int or str
+            Fusion reaction index or name.
+        minr : float
+            Minimum R value in the output distribution.
+        maxr : float
+            Maximum R value in the output distribution.
+        nr : int
+            Number of R bins in the output distribution.
+        minz : float
+            Minimum z value in the output distribution.
+        maxz : float
+            Maximum z value in the output distribution.
+        nz : int
+            Number of z bins in the output distribution.
+        minphi : float, optional
+            Minimum phi value in the output distribution.
+        maxphi : float, optional
+            Maximum phi value in the output distribution.
+        nphi : int, optional
+            Number of phi bins in the output distribution.
+        nmc : int, optional
+            Number of MC samples used in each (R, phi, z) bin.
+        minekin : float, optional
+            Minimum ekin value in the output distribution.
+        maxekin : float, optional
+            Maximum ekin value in the output distribution.
+        nekin : int, optional
+            Number of ekin bins in the output distribution.
+        minpitch : float, optional
+            Minimum pitch value in the output distribution.
+        maxpitch : float, optional
+            Maximum pitch value in the output distribution.
+        npitch : int, optional
+            Number of pitch bins in the output distribution.
+
+        Returns
+        -------
+        prod1 : array_like
+            Fusion product 1 distribution.
+        prod2 : array_like
+            Fusion product 2 distribution.
+        """
+        m1, q1, m2, q2, _, qprod1, _, qprod2, _ = self.reactions(reaction)
+        reactions = {v: k for k, v in AFSI_REACTIONS.items()}
+        reaction = reactions[reaction]
+        anum1 = np.round(m1.to("amu").v)
+        anum2 = np.round(m2.to("amu").v)
+        znum1 = np.round(q1.to("e").v)
+        znum2 = np.round(q2.to("e").v)
+        q1 = np.round(qprod1.to("e").v)
+        q2 = np.round(qprod2.to("e").v)
+
+        time = 0*unyt.s
+        r_edges   = np.linspace(minr, maxr, nr+1)*unyt.m
+        phi_edges = np.linspace(minphi, maxphi, nphi+1)*unyt.deg
+        z_edges   = np.linspace(minz, maxz, nz+1)*unyt.m
+        r   = 0.5 * (r_edges[1:]   + r_edges[:-1])
+        phi = 0.5 * (phi_edges[1:] + phi_edges[:-1])
+        z   = 0.5 * (z_edges[1:]   + z_edges[:-1])
+
+        self._ascot.input_init(bfield=True, plasma=True)
+        nspec, _, _, anums, znums = self._ascot.input_getplasmaspecies()
+        ispecies1 = np.nan; ispecies2 = np.nan
+        for i in range(nspec):
+            if( anum1 == anums[i] and znum1 == znums[i] ):
+                ispecies1 = i
+            if( anum2 == anums[i] and znum2 == znums[i] ):
+                ispecies2 = i
+        if np.isnan(ispecies1) or np.isnan(ispecies2):
+            self._ascot.input_free(bfield=True, plasma=True)
+            raise ValueError("Reactant species not present in plasma input.")
+        mult = 0.5 if ispecies1 == ispecies2 else 1.0
+
+        temp  = np.zeros((nr, nphi, nz))
+        dens1 = np.zeros((nr, nphi, nz))
+        dens2 = np.zeros((nr, nphi, nz))
+        for j in range(nphi):
+            for i in range(nr):
+                for k in range(nz):
+                    temp[i,j,k]  = self._ascot.input_eval(
+                        r[i], phi[j], z[k], time, "ti1").to("J")
+                    dens1[i,j,k] = self._ascot.input_eval(
+                        r[i], phi[j], z[k], time, "ni"+str(ispecies1))
+                    dens2[i,j,k] = self._ascot.input_eval(
+                        r[i], phi[j], z[k], time,"ni"+str(ispecies2))
+
+        thermal1 = self._init_thermal_data(
+            minr, maxr, nr, minphi, maxphi, nphi, minz, maxz, nz, temp, dens1)
+        thermal2 = self._init_thermal_data(
+            minr, maxr, nr, minphi, maxphi, nphi, minz, maxz, nz, temp, dens2)
+
+        react1 = self._init_afsi_data(dist_thermal=thermal1)
+        react2 = self._init_afsi_data(dist_thermal=thermal2)
+
+        class DummyDist(object):
+            pass
+
+        react = DummyDist()
+        react.n_r      = nr
+        react.min_r    = r_edges[0]
+        react.max_r    = r_edges[-1]
+        react.n_phi    = nphi
+        react.min_phi  = phi_edges.to('rad')[0]
+        react.max_phi  = phi_edges.to('rad')[-1]
+        react.n_z      = nz
+        react.min_z    = z_edges[0]
+        react.max_z    = z_edges[-1]
+        react.n_time   = 1
+        react.min_time = 0.0
+        react.max_time = 1.0
+
+        minekin = (minekin * unyt.eV).to("J").v
+        maxekin = (maxekin * unyt.eV).to("J").v
+        prod1 = self._init_product_dist(
+            react, q1, minekin, maxekin, nekin, minpitch, maxpitch, npitch,
+            exi=True)
+        prod2 = self._init_product_dist(
+            react, q2, minekin, maxekin, nekin, minpitch, maxpitch, npitch,
+            exi=True)
+
+        _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
+                           react1, react2, mult, prod1, prod2,
+                           )
+        self._ascot.input_free(bfield=True, plasma=True)
+
+        # Reload Ascot
+        self._ascot.file_load(self._ascot.file_getpath())
+        return prod1, prod2
+
     def beamthermal(self, reaction, beam, swap=False, nmc=1000,
                     minppara=-1.3e-19, maxppara=1.3e-19, nppara=80,
                     minpperp=0, maxpperp=1.3e-19, npperp=40):
@@ -409,18 +548,21 @@ class Afsi():
             )
         return data
 
-    def _init_product_dist(self, react, charge, minppara, maxppara, nppara,
-                           minpperp, maxpperp, npperp):
+    def _init_product_dist(self, react, charge, minp1, maxp1, np1,
+                           minp2, maxp2, np2, exi=False):
         prod = STRUCT_HIST()
-        coordinates = np.array([0, 1, 2, 5, 6, 14, 15], dtype="uint32")
+        if(exi):
+            coordinates = np.array([0, 1, 2, 10, 11, 14, 15], dtype="uint32")
+        else:
+            coordinates = np.array([0, 1, 2, 5, 6, 14, 15], dtype="uint32")
         nbin = np.array([
-            react.n_r, react.n_phi, react.n_z, nppara, npperp, react.n_time, 1
+            react.n_r, react.n_phi, react.n_z, np1, np2, react.n_time, 1
             ], dtype="u8")
         binmin = np.array([
-            react.min_r, react.min_phi, react.min_z, minppara, minpperp,
+            react.min_r, react.min_phi, react.min_z, minp1, minp2,
             react.min_time, charge[0] - 1])
         binmax = np.array([
-            react.max_r, react.max_phi, react.max_z, maxppara, maxpperp,
+            react.max_r, react.max_phi, react.max_z, maxp1, maxp2,
             react.max_time, charge[0] + 1])
         _LIBASCOT.hist_init(
             ctypes.byref(prod),
