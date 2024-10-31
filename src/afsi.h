@@ -14,6 +14,14 @@
 #include "diag/hist.h"
 
 /**
+ * @brief Valid momentum space basis.
+ */
+typedef enum {
+    PPARPPERP,
+    EKINXI
+} mom_space_basis;
+
+/**
  * @brief Structure for passing in 2D thermal temperature and density
  */
 typedef struct {
@@ -45,5 +53,4 @@ typedef struct {
 void afsi_run(sim_data* sim, Reaction reaction, int n,
               afsi_data* react1, afsi_data* react2, real mult,
               histogram* prod1, histogram* prod2);
-void afsi_test_thermal();
 #endif
