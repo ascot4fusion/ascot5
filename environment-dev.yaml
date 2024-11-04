@@ -5,7 +5,7 @@ dependencies:
   - c-compiler
   - make
   - glib
-  - libgomp
+  - llvm-openmp
   - python>=3.10
   - hdf5=*=*openmp*
   - mpi=*=*openmp*

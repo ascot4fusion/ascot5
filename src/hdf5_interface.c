@@ -684,7 +684,7 @@ void hdf5_generate_qid(char* qid) {
     /* Seed random number generator with current time */
     struct timespec ts;
 #ifdef __MACH__
-    clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+    clock_gettime(CLOCK_MONOTONIC, &ts);
 #else
     clock_gettime(CLOCK_REALTIME, &ts);
 #endif

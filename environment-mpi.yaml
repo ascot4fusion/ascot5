@@ -4,7 +4,7 @@ channels:
 dependencies:
   - c-compiler
   - make
-  - libgomp
+  - llvm-openmp
   - python>=3.10
   - hdf5
   - zlib
