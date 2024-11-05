@@ -76,7 +76,7 @@ void simulate_copy_to_gpu(sim_data* sim) {
 		      sim->plasma_data.plasma_1D.anum       [0:MAX_SPECIES],\
 		      sim->plasma_data.plasma_1D.znum       [0:MAX_SPECIES],\
 		      sim->plasma_data.plasma_1D.rho        [0:sim->plasma_data.plasma_1D.n_rho],\
-		      sim->plasma_data.plasma_1D.temp       [0:sim->plasma_data.plasma_1D.n_rho*sim->plasma_data.plasma_1D.n_species], \
+		      sim->plasma_data.plasma_1D.temp       [0:sim->plasma_data.plasma_1D.n_rho*2], \
   		      sim->plasma_data.plasma_1D.dens       [0:sim->plasma_data.plasma_1D.n_rho*sim->plasma_data.plasma_1D.n_species] )
       break;
 
