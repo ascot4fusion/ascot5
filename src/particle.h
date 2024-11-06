@@ -251,9 +251,11 @@ typedef struct {
     real* mileage;    /**< Duration this marker has been simulated [s] */
     integer* running; /**< Indicates whether this marker is currently
                            simulated (1) or not  */
-    a5err* err;       /**< Error flag, zero if no error    */
-    integer* index;   /**< Marker index at marker queue    */
-    size_t n_mrk;     /**< How many markers this struct contains */
+    a5err* err;           /**< Error flag, zero if no error    */
+    integer* index;       /**< Marker index at marker queue    */
+    int* initialIndex;    /**< initial index before packing */
+    size_t n_mrk;         /**< How many markers this struct contains */
+    size_t n_mrk_ref;     /**< Number of markers after a markers packing step */
 } particle_simd_fo;
 
 /**
@@ -439,6 +441,9 @@ DECLARE_TARGET_END
 DECLARE_TARGET_SIMD
 void particle_copy_gc(particle_simd_gc* p1, int i, particle_simd_gc* p2, int j);
 DECLARE_TARGET_SIMD
-void particle_copy_ml(particle_simd_ml* p1, int i, particle_simd_ml* p2, int j);
+DECLARE_TARGET_SIMD
+void hin_copy_fo(real* hin1, int i, real* hin2, int j);
+DECLARE_TARGET_END
+}void particle_copy_ml(particle_simd_ml* p1, int i, particle_simd_ml* p2, int j);
 
 #endif
