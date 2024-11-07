@@ -79,7 +79,7 @@ void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
                         particle_simd_fo* p_f, particle_simd_fo* p_i) {
 
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for(int i = 0; i < p_f->n_mrk; i++) {
+    for(int i = 0; i < p_f->n_mrk_ref; i++) {
         if(p_f->running[i]) {
             real Ekin, Ptor, Bnorm, psi, mu, xi, pnorm, ppar;
 

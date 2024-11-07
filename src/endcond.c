@@ -88,7 +88,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
     int active_ioniz     = sim->endcond_active & endcond_ioniz;
 
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for(int i = 0; i < p_f->n_mrk; i++) {
+    for(int i = 0; i < p_f->n_mrk_ref; i++) {
         if(p_f->running[i]) {
 
             /* Update bounces if pitch changed sign */
@@ -216,14 +216,14 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                 p_f->endcond[i] |= maxorb;
                 p_f->running[i] = 0;
             }
-            /* Check if the time spent simulating this marker exceeds the
-             * given limit*/
-            if(active_cpumax) {
-                if(p_f->cputime[i] > sim->endcond_max_cputime) {
-                    p_f->endcond[i] |= endcond_cpumax;
-                    p_f->running[i] = 0;
-                }
-            }
+            /* /\* Check if the time spent simulating this marker exceeds the */
+            /*  * given limit*\/ */
+            /* if(active_cpumax) { */
+            /*     if(p_f->cputime[i] > sim->endcond_max_cputime) { */
+            /*         p_f->endcond[i] |= endcond_cpumax; */
+            /*         p_f->running[i] = 0; */
+            /*     } */
+            /* } */
             /* Check if the particle has been neutralized */
             if(active_neutr) {
                 if(p_i->charge[i] != 0.0 && p_f->charge[i] == 0.0) {

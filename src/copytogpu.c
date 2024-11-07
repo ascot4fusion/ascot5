@@ -154,7 +154,7 @@ void simulate_copy_to_gpu(sim_data* sim) {
 /**
  * @brief Copy data from GPU to CPU
 */
-void simulate_fo_fixed_copy_from_gpu(sim_data* sim, particle_simd_fo *p_ptr){
+void simulate_fo_fixed_copy_from_gpu(sim_data* sim, particle_simd_fo *p_ptr, particle_simd_fo *p2_ptr){
 
   GPU_UPDATE_FROM_DEVICE(
       p_ptr->running[0:p_ptr->n_mrk],p_ptr->r[0:p_ptr->n_mrk],p_ptr->phi[0:p_ptr->n_mrk],p_ptr->p_r[0:p_ptr->n_mrk],p_ptr->p_phi[0:p_ptr->n_mrk],p_ptr->p_z[0:p_ptr->n_mrk],p_ptr->mileage[0:p_ptr->n_mrk], \
@@ -162,6 +162,13 @@ void simulate_fo_fixed_copy_from_gpu(sim_data* sim, particle_simd_fo *p_ptr){
   p_ptr->B_phi[0:p_ptr->n_mrk],p_ptr->B_phi_dr[0:p_ptr->n_mrk],p_ptr->B_phi_dphi[0:p_ptr->n_mrk],p_ptr->B_phi_dz[0:p_ptr->n_mrk],p_ptr->B_z[0:p_ptr->n_mrk],p_ptr->B_z_dr[0:p_ptr->n_mrk],p_ptr->B_z_dphi[0:p_ptr->n_mrk], \
   p_ptr->B_z_dz[0:p_ptr->n_mrk],p_ptr->rho[0:p_ptr->n_mrk],p_ptr->theta[0:p_ptr->n_mrk],p_ptr->err[0:p_ptr->n_mrk],p_ptr->time[0:p_ptr->n_mrk],p_ptr->weight[0:p_ptr->n_mrk],p_ptr->cputime[0:p_ptr->n_mrk], \
       p_ptr->id[0:p_ptr->n_mrk],p_ptr->endcond[0:p_ptr->n_mrk],p_ptr->walltile[0:p_ptr->n_mrk],p_ptr->index[0:p_ptr->n_mrk],p_ptr->znum[0:p_ptr->n_mrk],p_ptr->anum[0:p_ptr->n_mrk],p_ptr->bounces[0:p_ptr->n_mrk] )
+
+  GPU_UPDATE_FROM_DEVICE(
+      p2_ptr->running[0:p2_ptr->n_mrk],p2_ptr->r[0:p2_ptr->n_mrk],p2_ptr->phi[0:p2_ptr->n_mrk],p2_ptr->p_r[0:p2_ptr->n_mrk],p2_ptr->p_phi[0:p2_ptr->n_mrk],p2_ptr->p_z[0:p2_ptr->n_mrk],p2_ptr->mileage[0:p2_ptr->n_mrk], \
+  p2_ptr->z[0:p2_ptr->n_mrk],p2_ptr->charge[0:p2_ptr->n_mrk],p2_ptr->mass[0:p2_ptr->n_mrk],p2_ptr->B_r[0:p2_ptr->n_mrk],p2_ptr->B_r_dr[0:p2_ptr->n_mrk],p2_ptr->B_r_dphi[0:p2_ptr->n_mrk],p2_ptr->B_r_dz[0:p2_ptr->n_mrk], \
+  p2_ptr->B_phi[0:p2_ptr->n_mrk],p2_ptr->B_phi_dr[0:p2_ptr->n_mrk],p2_ptr->B_phi_dphi[0:p2_ptr->n_mrk],p2_ptr->B_phi_dz[0:p2_ptr->n_mrk],p2_ptr->B_z[0:p2_ptr->n_mrk],p2_ptr->B_z_dr[0:p2_ptr->n_mrk],p2_ptr->B_z_dphi[0:p2_ptr->n_mrk], \
+  p2_ptr->B_z_dz[0:p2_ptr->n_mrk],p2_ptr->rho[0:p2_ptr->n_mrk],p2_ptr->theta[0:p2_ptr->n_mrk],p2_ptr->err[0:p2_ptr->n_mrk],p2_ptr->time[0:p2_ptr->n_mrk],p2_ptr->weight[0:p2_ptr->n_mrk],p2_ptr->cputime[0:p2_ptr->n_mrk], \
+      p2_ptr->id[0:p2_ptr->n_mrk],p2_ptr->endcond[0:p2_ptr->n_mrk],p2_ptr->walltile[0:p2_ptr->n_mrk],p2_ptr->index[0:p2_ptr->n_mrk],p2_ptr->znum[0:p2_ptr->n_mrk],p2_ptr->anum[0:p2_ptr->n_mrk],p2_ptr->bounces[0:p2_ptr->n_mrk] )
 
     GPU_MAP_FROM_DEVICE(
 			      sim[0:1]  )

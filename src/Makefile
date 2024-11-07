@@ -1,4 +1,5 @@
-CC=h5cc
+CC=mpicc
+CUDAC=nvcc
 LFLAGS=
 
 ifdef TRAP_FPE
@@ -26,21 +27,17 @@ endif
 
 ifeq ($(MPI),1)
 	DEFINES+=-DMPI
-	CC=h5pcc
+	CC=mpicc
 endif
 
-ifneq ($(CC),h5cc)
-	ifneq ($(CC),h5pcc)
-		CFLAGS+=-lhdf5 -lhdf5_hl
-	endif
-endif
+		CFLAGS+=-L$(HDF5_ROOT)/lib -lhdf5 -lhdf5_hl -I$(HDF5_ROOT)/include
 
 ifeq ($(GPU),1)
 	DEFINES+=-DGPU
 	RANDOM=LCG
 	CFLAGS+=-c++libs -cuda
 	ifeq ($(ACC), 1)
-		CFLAGS+=-acc -Mnoopenmp
+		CFLAGS+=-acc -Mnoopenmp -gpu=cc90
 	else ifeq ($(OMP), 1)
 		CFLAGS+=-mp=gpu -fopenmp
 		DEFINES+=-D_OPENMP
@@ -148,7 +145,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	asigma.h boschhale.h mpi_interface.h libascot_mem.h copytogpu.h \
 	bbnbi5.h
 
-OBJS= math.o list.o octree.o error.o \
+OBJS= csort.o math.o list.o octree.o error.o \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
 	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS) $(HDF5IOOBJS) \
 	$(PLSOBJS) $(N0OBJS) $(MHDOBJS) $(ASIGMAOBJS) $(LINTOBJS) \
@@ -242,6 +239,9 @@ test_spline: $(UTESTDIR)test_spline.o $(OBJS)
 
 test_asigma: $(UTESTDIR)test_asigma.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
+
+%.o: %.cu $(HEADERS) Makefile
+	@$(CUDAC) -c -o $@ $<
 
 %.o: %.c $(HEADERS) Makefile
 	$(CC) -c -o $@ $< $(CFLAGS)

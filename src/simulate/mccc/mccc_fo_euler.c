@@ -34,7 +34,7 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
 
     GPU_DATA_IS_MAPPED(h[0:p->n_mrk], rnd[0:3*p->n_mrk])
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for(int i = 0; i < p->n_mrk; i++) {
+    for(int i = 0; i < p->n_mrk_ref; i++) {
         if(p->running[i]) {
             a5err errflag = 0;
 

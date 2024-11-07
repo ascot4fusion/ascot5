@@ -444,6 +444,6 @@ DECLARE_TARGET_SIMD
 DECLARE_TARGET_SIMD
 void hin_copy_fo(real* hin1, int i, real* hin2, int j);
 DECLARE_TARGET_END
-}void particle_copy_ml(particle_simd_ml* p1, int i, particle_simd_ml* p2, int j);
+void particle_copy_ml(particle_simd_ml* p1, int i, particle_simd_ml* p2, int j);
 
 #endif
