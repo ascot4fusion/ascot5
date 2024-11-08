@@ -141,7 +141,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         for(int i = 0; i < n_running_ref; i++) {
             if(sim->reverse_time) {
 	       if(p_ptr->running[i]){
-                   hin[i] = -hin[i];
+                   hin_ptr[i] = -hin_ptr[i];
 	       }
             }
         }
@@ -162,7 +162,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         for(int i = 0; i < n_running_ref; i++) {
             if(sim->reverse_time) {
 	       if(p_ptr->running[i]){
-                  hin[i]  = -hin[i];
+                  hin_ptr[i]  = -hin_ptr[i];
 	       }
             }
         }
@@ -185,8 +185,8 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < n_running_ref; i++) {
             if(p_ptr->running[i]){
-                p_ptr->time[i]    += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) ) * hin[i];
-                p_ptr->mileage[i] += hin[i];
+                p_ptr->time[i]    += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) ) * hin_ptr[i];
+                p_ptr->mileage[i] += hin_ptr[i];
                 p_ptr->cputime[i] += cputime - cputime_last;
             }
         }
@@ -260,7 +260,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 	      particle_copy_fo(p_ptr, i, p2_ptr, iloc);
 	      //hinbis_ptr[iloc] = hin_ptr[i];
 	      //use this to circumvent nvhpc compiler bug 
-	      //hin_copy_fo(hin_ptr, i, hin2_ptr, iloc);
+	      hin_copy_fo(hin_ptr, i, hin2_ptr, iloc);
 	    }
 	}
 
@@ -307,7 +307,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 	      int i = sort_index[iloc];
 	      particle_copy_fo(p_ptr, iloc, p2_ptr, i);
 	      //use this to circumvent nvhpc compiler bug
-	      //hin_copy_fo(hin_ptr, iloc, hin2_ptr, i);
+	      hin_copy_fo(hin_ptr, iloc, hin2_ptr, i);
 	    }
 	  p_tmp_ptr = p_ptr;
 	  p_ptr = p2_ptr;

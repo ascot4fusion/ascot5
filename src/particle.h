@@ -437,13 +437,13 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
                       B_field_data* Bdata);
 GPU_DECLARE_TARGET_SIMD
 void particle_copy_fo(particle_simd_fo* p1, int i, particle_simd_fo* p2, int j);
-DECLARE_TARGET_END
+GPU_DECLARE_TARGET_SIMD_END
 DECLARE_TARGET_SIMD
 void particle_copy_gc(particle_simd_gc* p1, int i, particle_simd_gc* p2, int j);
-DECLARE_TARGET_SIMD
-DECLARE_TARGET_SIMD
-void hin_copy_fo(real* hin1, int i, real* hin2, int j);
 DECLARE_TARGET_END
+GPU_DECLARE_TARGET_SIMD
+void hin_copy_fo(real* hin1, int i, real* hin2, int j);
+GPU_DECLARE_TARGET_SIMD_END
 void particle_copy_ml(particle_simd_ml* p1, int i, particle_simd_ml* p2, int j);
 
 #endif
