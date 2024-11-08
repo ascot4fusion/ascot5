@@ -112,7 +112,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     int ipack = 0;
     particle_simd_fo *p_tmp_ptr;
     real* hin_tmp_ptr;
-    real rpack_coef = 1.;
+    real rpack_coef = 0.1;
     int n_running_ref = n_running;
 #ifdef PACK_COEF
     rpack_coef = PACK_COEF;
@@ -209,7 +209,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 
             /* Particle to guiding center transformation */
             #pragma omp simd
-            for(int i=0; i<p.n_mrk; i++) {
+            for(int i=0; i<mrk_array_size; i++) {
                 if(p.running[i]) {
                     particle_fo_to_gc(&p, i, &gc_f, &sim->B_data);
                 }
@@ -231,7 +231,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         /* Update running particles */
         /* Update, sort and pack running particles */
 #ifdef GPU
-	if ((n_running_ref - n_running) > rpack_coef * p_ptr->n_mrk  ) {
+	if ((n_running_ref - n_running) > rpack_coef * mrk_array_size  ) {
 	  packing = 1;
 	  n_running_ref = n_running;
 	}
@@ -243,18 +243,18 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 	  ipack++;
 	  printf("PACKING: n_running = %d => packing number %d\n",n_running,ipack);
 	  GPU_PARALLEL_LOOP_ALL_LEVELS
-	  for (int i=0;i<n_running_ref;i++) {
+	  for (int i=0;i<mrk_array_size;i++) {
 	    ps[i] = -1*p_ptr->running[i];
 	    sort_index[i] = i;
 	  }
 
 #pragma acc host_data use_device(ps,sort_index)
 	  {
-	    sort_by_key_int_wrapper(ps,sort_index,n_running_ref);
+	    sort_by_key_int_wrapper(ps,sort_index,mrk_array_size);
 	  }
 
 	  GPU_PARALLEL_LOOP_ALL_LEVELS
-	  for(int iloc = 0; iloc < NSIMD; iloc++)
+	  for(int iloc = 0; iloc < mrk_array_size; iloc++)
 	    {
 	      int i = sort_index[iloc];
 	      particle_copy_fo(p_ptr, i, p2_ptr, iloc);
@@ -266,7 +266,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 
         n_running = 0;
         GPU_PARALLEL_LOOP_ALL_LEVELS_REDUCTION(n_running)
-        for(int i = 0; i < p.n_mrk; i++)
+        for(int i = 0; i < mrk_array_size; i++)
         {
             if(p_ptr->running[i] > 0) n_running++;
         }
@@ -276,7 +276,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 #ifndef GPU
         /* Determine simulation time-step for new particles */
         GPU_PARALLEL_LOOP_ALL_LEVELS
-        for(int i = 0; i < p.n_mrk; i++) {
+        for(int i = 0; i < mrk_array_size; i++) {
             if(cycle[i] > 0) {
                 hin[i] = simulate_fo_fixed_inidt(sim, &p, i);
             }
@@ -296,13 +296,13 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 	}
 	if (n_running == 0) {
 	  GPU_PARALLEL_LOOP_ALL_LEVELS
-	  for(int iloc = 0; iloc < p_ptr->n_mrk; iloc++)
+	    for(int iloc = 0; iloc < mrk_array_size; iloc++)
 	    {
 	      sort_index[iloc] = p_ptr->initialIndex[iloc];
 	    }
 
 	  GPU_PARALLEL_LOOP_ALL_LEVELS
-          for(int iloc = 0; iloc < p_ptr->n_mrk; iloc++)
+          for(int iloc = 0; iloc < mrk_array_size; iloc++)
 	    {
 	      int i = sort_index[iloc];
 	      particle_copy_fo(p_ptr, iloc, p2_ptr, i);
@@ -319,6 +319,22 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     /* All markers simulated! */
 #ifdef GPU
     simulate_fo_fixed_copy_from_gpu(sim, p_ptr, p2_ptr);
+    if (p_ptr == &p) {
+      p_tmp_ptr = &p;
+      printf("p is used\n");
+    }
+    else if(p_ptr == &p2) {
+      p_tmp_ptr = &p2;
+      printf("pbis is used\n");
+      for(int i = 0; i < mrk_array_size; i++)
+	{
+	  particle_copy_fo(&p2, i, &p, i);
+	}
+    }
+    else {
+      printf("pointer issue in simulate_fo_fixed\n");
+      exit(1);
+    }	
     n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
 #endif
 }
