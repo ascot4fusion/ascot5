@@ -163,8 +163,8 @@ a5err plasma_1D_eval_temp(real* temp, real rho, int species,
         real t_rho = (rho - pls_data->rho[i_rho])
             / (pls_data->rho[i_rho+1] - pls_data->rho[i_rho]);
 
-        real p1 = pls_data->temp[species*pls_data->n_rho + i_rho];
-        real p2 = pls_data->temp[species*pls_data->n_rho + i_rho+1];
+        real p1 = pls_data->temp[(species>0)*pls_data->n_rho + i_rho];
+        real p2 = pls_data->temp[(species>0)*pls_data->n_rho + i_rho+1];
         temp[0] = p1 + t_rho * (p2 - p1);
     }
 
