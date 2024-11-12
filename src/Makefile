@@ -63,7 +63,7 @@ else ifeq ($(RANDOM),LCG)
 endif
 
 ifeq ($(DEBUG),1)
-	CFLAGS+=-g -fsanitize=address
+	CFLAGS+=-g -fsanitize=address,undefined
 else
 	CFLAGS+=-O2
 endif

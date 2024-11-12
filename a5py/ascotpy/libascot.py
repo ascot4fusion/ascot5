@@ -41,7 +41,6 @@ try:
     PTR_SIM  = ctypes.POINTER(ascot2py.struct_c__SA_sim_data)
     PTR_ARR  = ctypes.POINTER(ctypes.c_double)
     STRUCT_HIST          = ascot2py.struct_c__SA_histogram
-    STRUCT_AFSITHERMAL   = ascot2py.struct_c__SA_afsi_thermal_data
     STRUCT_AFSIDATA      = ascot2py.struct_c__SA_afsi_data
     AFSI_REACTIONS       = ascot2py.Reaction__enumvalues
     _LIBASCOT = ascot2py._libraries['libascot.so']
@@ -53,7 +52,6 @@ except ImportError as error:
     PTR_SIM   = None
     PTR_ARR   = None
     STRUCT_HIST          = None
-    STRUCT_AFSITHERMAL   = None
     STRUCT_AFSIDATA      = None
     AFSI_REACTIONS       = None
     msg = \

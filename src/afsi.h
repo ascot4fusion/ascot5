@@ -22,32 +22,12 @@ typedef enum {
 } mom_space_basis;
 
 /**
- * @brief Structure for passing in 2D thermal temperature and density
- */
-typedef struct {
-    int n_r;          /**< number of r bins       */
-    real min_r;       /**< value of lowest r bin  */
-    real max_r;       /**< value of highest r bin */
-
-    int n_phi;        /**< number of r bins       */
-    real min_phi;     /**< value of lowest r bin  */
-    real max_phi;     /**< value of highest r bin */
-
-    int n_z;          /**< number of z bins       */
-    real min_z;       /**< value of lowest z bin  */
-    real max_z;       /**< value of highest z bin */
-
-    real* temperature; /**< pointer to start of histogram array */
-    real* density;     /**< pointer to start of histogram array */
-} afsi_thermal_data;
-
-/**
  * @brief Wrapper around input data structures
  */
 typedef struct {
-    int type;                   /**< Distribution type (1:beam, 2:thermal)    */
-    histogram* beam;            /**< Distribution data                        */
-    afsi_thermal_data* thermal; /**< Thermal data                             */
+    int type;        /**< Distribution type (1:beam, 2:thermal)               */
+    histogram* beam; /**< Distribution data                                   */
+    int thermal;     /**< Thermal species index                               */
 } afsi_data;
 
 void afsi_run(sim_data* sim, Reaction reaction, int n,
