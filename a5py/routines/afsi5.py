@@ -7,7 +7,7 @@ import unyt
 import numpy.ctypeslib as npctypes
 
 from a5py.ascotpy.libascot import _LIBASCOT, STRUCT_HIST, STRUCT_AFSIDATA, \
-    STRUCT_AFSITHERMAL, PTR_REAL, AFSI_REACTIONS
+    PTR_REAL, AFSI_REACTIONS
 from a5py.exceptions import AscotNoDataException
 from a5py.routines.distmixin import DistMixin
 
@@ -39,10 +39,22 @@ class Afsi():
     def __init__(self, ascot):
         self._ascot = ascot
 
-    def thermal(self, reaction, minr, maxr, nr, minz, maxz, nz,
-                minphi=0, maxphi=360, nphi=1, nmc=1000,
-                minppara=-1.3e-19, maxppara=1.3e-19, nppara=80,
-                minpperp=0, maxpperp=1.3e-19, npperp=40):
+    def thermal(
+            self,
+            reaction,
+            r=None,
+            phi=None,
+            z=None,
+            ppar1=None,
+            pperp1=None,
+            ekin1=None,
+            pitch1=None,
+            ppar2=None,
+            pperp2=None,
+            ekin2=None,
+            pitch2=None,
+            nmc=1000,
+            ):
         """Calculate thermonuclear fusion between two thermal (Maxwellian)
         species.
 
@@ -50,46 +62,95 @@ class Afsi():
         ----------
         reaction : int or str
             Fusion reaction index or name.
-        minr : float
-            Minimum R value in the output distribution.
-        maxr : float
-            Maximum R value in the output distribution.
-        nr : int
-            Number of R bins in the output distribution.
-        minz : float
-            Minimum z value in the output distribution.
-        maxz : float
-            Maximum z value in the output distribution.
-        nz : int
-            Number of z bins in the output distribution.
-        minphi : float, optional
-            Minimum phi value in the output distribution.
-        maxphi : float, optional
-            Maximum phi value in the output distribution.
-        nphi : int, optional
-            Number of phi bins in the output distribution.
+        r : array_like
+            Abscissa for the radial coordinate in (R,phi,z) basis.
+        phi : array_like
+            Abscissa for the toroidal coordinate in (R,phi,z) basis.
+        z : array_like
+            Abscissa for the axial coordinate in (R,phi,z) basis.
+        ppar1 : array_like
+            Abscissa for the parallel momentum in (ppar,pperp) basis for the
+            first reaction product.
+        pperp1 : array_like
+            Abscissa for the perpendicular momentum in (ppar,pperp) basis for
+            the first reaction product.
+        ekin1 : array_like
+            Abscissa for the kinetic energy in (E,pitch) basis for the first
+            reaction product.
+        pitch1 : array_like
+            Abscissa for the pitch in (E,pitch) basis for the first reaction
+            product.
+        ppar2 : array_like
+            Abscissa for the parallel momentum in (ppar,pperp) basis for the
+            second reaction product.
+        pperp2 : array_like
+            Abscissa for the perpendicular momentum in (ppar,pperp) basis for
+            the second reaction product.
+        ekin2 : array_like
+            Abscissa for the kinetic energy in (E,pitch) basis for the second
+            reaction product.
+        pitch2 : array_like
+            Abscissa for the pitch in (E,pitch) basis for the second reaction
+            product.
         nmc : int, optional
             Number of MC samples used in each (R, phi, z) bin.
-        minppara : float, optional
-            Minimum ppara value in the output distribution.
-        maxppara : float, optional
-            Maximum ppara value in the output distribution.
-        nppara : int, optional
-            Number of pperp bins in the output distribution.
-        minpperp : float, optional
-            Minimum pperp value in the output distribution.
-        maxpperp : float, optional
-            Maximum ppara value in the output distribution.
-        npperp : int, optional
-            Number of pperp bins in the output distribution.
 
         Returns
         -------
         prod1 : array_like
-            Fusion product 1 distribution.
+            Source distribution of the first fusion product.
         prod2 : array_like
-            Fusion product 2 distribution.
+            Source distribution of the second fusion product.
         """
+        if phi is None:
+            phi = np.array([0, 360])
+        dont_use_rpz_basis = ( any([r is None, z is None]) and
+                               all([r is None, phi is None, z is None]) )
+        use_rpz_basis = ( not any([r is None, z is None]) and
+                          all([not r is None, not phi is None, not z is None]) )
+        if use_rpz_basis and dont_use_rpz_basis:
+            raise ValueError(
+                "Either give all of r, phi, and z to use (R,phi,z) basis or "
+                "use (rho,theta,phi) basis instead"
+                )
+        dont_use_ekinpitch_basis = ( any([ekin1 is None, pitch1 is None]) and
+                                     all([ekin1 is None, pitch1 is None]) )
+        use_ekinpitch_basis = ( not any([ekin1 is None, pitch1 is None]) and
+                                all([not ekin1 is None, not pitch1 is None]) )
+        if use_ekinpitch_basis and dont_use_ekinpitch_basis:
+            raise ValueError(
+                "Either give both ekin1 and pitch1 to use (E,pitch) basis or "
+                "use (ppar,pperp) basis instead"
+                )
+
+        dont_use_ekinpitch_basis2 = ( any([ekin2 is None, pitch2 is None]) and
+                                      all([ekin2 is None, pitch2 is None]) )
+        use_ekinpitch_basis2 = ( not any([ekin2 is None, pitch2 is None]) and
+                                 all([not ekin2 is None, not pitch2 is None]) )
+        if use_ekinpitch_basis2 and dont_use_ekinpitch_basis2:
+            raise ValueError(
+                "Either give both ekin2 and pitch2 to use (E,pitch) basis or "
+                "use (ppar,pperp) basis instead"
+                )
+        if use_ekinpitch_basis != use_ekinpitch_basis2:
+            if use_ekinpitch_basis:
+                raise ValueError(
+                    "Both product distributions have to use same basis system: "
+                    "now the first product were to use (E,pitch) and the "
+                    "second (ppar,pperp)"
+                    )
+            else:
+                raise ValueError(
+                    "Both product distributions have to use same basis system: "
+                    "now the second product were to use (E,pitch) and the "
+                    "first (ppar,pperp)"
+                    )
+        if dont_use_ekinpitch_basis:
+            ppar1 = 1.3e-19 * np.linspace(-1., 1., 80) if ppar1 is None else ppar1
+            pperp1 = np.linspace(0, 1.3e-19, 40) if pperp1 is None else pperp1
+            ppar2 = 1.3e-19 * np.linspace(-1., 1., 80) if ppar2 is None else ppar2
+            pperp2 = np.linspace(0, 1.3e-19, 40) if pperp2 is None else pperp2
+
         m1, q1, m2, q2, _, qprod1, _, qprod2, _ = self.reactions(reaction)
         reactions = {v: k for k, v in AFSI_REACTIONS.items()}
         reaction = reactions[reaction]
@@ -100,18 +161,10 @@ class Afsi():
         q1 = np.round(qprod1.to("e").v)
         q2 = np.round(qprod2.to("e").v)
 
-        time = 0*unyt.s
-        r_edges   = np.linspace(minr, maxr, nr+1)*unyt.m
-        phi_edges = np.linspace(minphi, maxphi, nphi+1)*unyt.deg
-        z_edges   = np.linspace(minz, maxz, nz+1)*unyt.m
-        r   = 0.5 * (r_edges[1:]   + r_edges[:-1])
-        phi = 0.5 * (phi_edges[1:] + phi_edges[:-1])
-        z   = 0.5 * (z_edges[1:]   + z_edges[:-1])
-
         self._ascot.input_init(bfield=True, plasma=True)
         nspec, _, _, anums, znums = self._ascot.input_getplasmaspecies()
-        ispecies1 = np.nan; ispecies2 = np.nan
-        for i in range(nspec):
+        ispecies1, ispecies2 = np.nan, np.nan
+        for i in np.arange(nspec):
             if( anum1 == anums[i] and znum1 == znums[i] ):
                 ispecies1 = i
             if( anum2 == anums[i] and znum2 == znums[i] ):
@@ -121,48 +174,19 @@ class Afsi():
             raise ValueError("Reactant species not present in plasma input.")
         mult = 0.5 if ispecies1 == ispecies2 else 1.0
 
-        temp  = np.zeros((nr, nphi, nz))
-        dens1 = np.zeros((nr, nphi, nz))
-        dens2 = np.zeros((nr, nphi, nz))
-        for j in range(nphi):
-            for i in range(nr):
-                for k in range(nz):
-                    temp[i,j,k]  = self._ascot.input_eval(
-                        r[i], phi[j], z[k], time, "ti1").to("J")
-                    dens1[i,j,k] = self._ascot.input_eval(
-                        r[i], phi[j], z[k], time, "ni"+str(ispecies1))
-                    dens2[i,j,k] = self._ascot.input_eval(
-                        r[i], phi[j], z[k], time,"ni"+str(ispecies2))
+        react1 = self._init_afsi_data(dist_thermal=ispecies1)
+        react2 = self._init_afsi_data(dist_thermal=ispecies2)
 
-        thermal1 = self._init_thermal_data(
-            minr, maxr, nr, minphi, maxphi, nphi, minz, maxz, nz, temp, dens1)
-        thermal2 = self._init_thermal_data(
-            minr, maxr, nr, minphi, maxphi, nphi, minz, maxz, nz, temp, dens2)
-
-        react1 = self._init_afsi_data(dist_thermal=thermal1)
-        react2 = self._init_afsi_data(dist_thermal=thermal2)
-
-        class DummyDist(object):
-            pass
-
-        react = DummyDist()
-        react.n_r      = nr
-        react.min_r    = r_edges[0]
-        react.max_r    = r_edges[-1]
-        react.n_phi    = nphi
-        react.min_phi  = phi_edges.to('rad')[0]
-        react.max_phi  = phi_edges.to('rad')[-1]
-        react.n_z      = nz
-        react.min_z    = z_edges[0]
-        react.max_z    = z_edges[-1]
-        react.n_time   = 1
-        react.min_time = 0.0
-        react.max_time = 1.0
-
-        prod1 = self._init_product_dist(
-            react, q1, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
-        prod2 = self._init_product_dist(
-            react, q2, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
+        if use_ekinpitch_basis:
+            prod1 = self._init_histogram(
+                r, phi*np.pi/180, z, ekin1, pitch1, charge=q1, exi=True)
+            prod2 = self._init_histogram(
+                r, phi*np.pi/180, z, ekin2, pitch2, charge=q2, exi=True)
+        else:
+            prod1 = self._init_histogram(
+                r, phi*np.pi/180, z, ppar1, pperp1, charge=q1, exi=False)
+            prod2 = self._init_histogram(
+                r, phi*np.pi/180, z, ppar2, pperp2, charge=q2, exi=False)
 
         _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
                            react1, react2, mult, prod1, prod2,
@@ -173,148 +197,17 @@ class Afsi():
         self._ascot.file_load(self._ascot.file_getpath())
         return prod1, prod2
 
-    def thermal_exi(
-            self, reaction, minr, maxr, nr, minz, maxz, nz,
-            minphi=0, maxphi=360, nphi=1, nmc=1000,
-            minekin=1.0e6, maxekin=6.0e6, nekin=40,
-            minpitch=-1.0, maxpitch=1.0, npitch=20):
-        """Calculate thermonuclear fusion between two thermal (Maxwellian)
-        species in (E,xi) basis.
-
-        Parameters
-        ----------
-        reaction : int or str
-            Fusion reaction index or name.
-        minr : float
-            Minimum R value in the output distribution.
-        maxr : float
-            Maximum R value in the output distribution.
-        nr : int
-            Number of R bins in the output distribution.
-        minz : float
-            Minimum z value in the output distribution.
-        maxz : float
-            Maximum z value in the output distribution.
-        nz : int
-            Number of z bins in the output distribution.
-        minphi : float, optional
-            Minimum phi value in the output distribution.
-        maxphi : float, optional
-            Maximum phi value in the output distribution.
-        nphi : int, optional
-            Number of phi bins in the output distribution.
-        nmc : int, optional
-            Number of MC samples used in each (R, phi, z) bin.
-        minekin : float, optional
-            Minimum ekin value in the output distribution.
-        maxekin : float, optional
-            Maximum ekin value in the output distribution.
-        nekin : int, optional
-            Number of ekin bins in the output distribution.
-        minpitch : float, optional
-            Minimum pitch value in the output distribution.
-        maxpitch : float, optional
-            Maximum pitch value in the output distribution.
-        npitch : int, optional
-            Number of pitch bins in the output distribution.
-
-        Returns
-        -------
-        prod1 : array_like
-            Fusion product 1 distribution.
-        prod2 : array_like
-            Fusion product 2 distribution.
-        """
-        m1, q1, m2, q2, _, qprod1, _, qprod2, _ = self.reactions(reaction)
-        reactions = {v: k for k, v in AFSI_REACTIONS.items()}
-        reaction = reactions[reaction]
-        anum1 = np.round(m1.to("amu").v)
-        anum2 = np.round(m2.to("amu").v)
-        znum1 = np.round(q1.to("e").v)
-        znum2 = np.round(q2.to("e").v)
-        q1 = np.round(qprod1.to("e").v)
-        q2 = np.round(qprod2.to("e").v)
-
-        time = 0*unyt.s
-        r_edges   = np.linspace(minr, maxr, nr+1)*unyt.m
-        phi_edges = np.linspace(minphi, maxphi, nphi+1)*unyt.deg
-        z_edges   = np.linspace(minz, maxz, nz+1)*unyt.m
-        r   = 0.5 * (r_edges[1:]   + r_edges[:-1])
-        phi = 0.5 * (phi_edges[1:] + phi_edges[:-1])
-        z   = 0.5 * (z_edges[1:]   + z_edges[:-1])
-
-        self._ascot.input_init(bfield=True, plasma=True)
-        nspec, _, _, anums, znums = self._ascot.input_getplasmaspecies()
-        ispecies1 = np.nan; ispecies2 = np.nan
-        for i in range(nspec):
-            if( anum1 == anums[i] and znum1 == znums[i] ):
-                ispecies1 = i
-            if( anum2 == anums[i] and znum2 == znums[i] ):
-                ispecies2 = i
-        if np.isnan(ispecies1) or np.isnan(ispecies2):
-            self._ascot.input_free(bfield=True, plasma=True)
-            raise ValueError("Reactant species not present in plasma input.")
-        mult = 0.5 if ispecies1 == ispecies2 else 1.0
-
-        temp  = np.zeros((nr, nphi, nz))
-        dens1 = np.zeros((nr, nphi, nz))
-        dens2 = np.zeros((nr, nphi, nz))
-        for j in range(nphi):
-            for i in range(nr):
-                for k in range(nz):
-                    temp[i,j,k]  = self._ascot.input_eval(
-                        r[i], phi[j], z[k], time, "ti1").to("J")
-                    dens1[i,j,k] = self._ascot.input_eval(
-                        r[i], phi[j], z[k], time, "ni"+str(ispecies1))
-                    dens2[i,j,k] = self._ascot.input_eval(
-                        r[i], phi[j], z[k], time,"ni"+str(ispecies2))
-
-        thermal1 = self._init_thermal_data(
-            minr, maxr, nr, minphi, maxphi, nphi, minz, maxz, nz, temp, dens1)
-        thermal2 = self._init_thermal_data(
-            minr, maxr, nr, minphi, maxphi, nphi, minz, maxz, nz, temp, dens2)
-
-        react1 = self._init_afsi_data(dist_thermal=thermal1)
-        react2 = self._init_afsi_data(dist_thermal=thermal2)
-
-        class DummyDist(object):
-            pass
-
-        react = DummyDist()
-        react.n_r      = nr
-        react.min_r    = r_edges[0]
-        react.max_r    = r_edges[-1]
-        react.n_phi    = nphi
-        react.min_phi  = phi_edges.to('rad')[0]
-        react.max_phi  = phi_edges.to('rad')[-1]
-        react.n_z      = nz
-        react.min_z    = z_edges[0]
-        react.max_z    = z_edges[-1]
-        react.n_time   = 1
-        react.min_time = 0.0
-        react.max_time = 1.0
-
-        minekin = (minekin * unyt.eV).to("J").v
-        maxekin = (maxekin * unyt.eV).to("J").v
-        prod1 = self._init_product_dist(
-            react, q1, minekin, maxekin, nekin, minpitch, maxpitch, npitch,
-            exi=True)
-        prod2 = self._init_product_dist(
-            react, q2, minekin, maxekin, nekin, minpitch, maxpitch, npitch,
-            exi=True)
-
-        _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
-                           react1, react2, mult, prod1, prod2,
-                           )
-        self._ascot.input_free(bfield=True, plasma=True)
-
-        # Reload Ascot
-        self._ascot.file_load(self._ascot.file_getpath())
-        return prod1, prod2
-
-    def beamthermal(self, reaction, beam, swap=False, nmc=1000,
-                    minppara=-1.3e-19, maxppara=1.3e-19, nppara=80,
-                    minpperp=0, maxpperp=1.3e-19, npperp=40):
+    def beamthermal(
+            self,
+            reaction,
+            beam,
+            swap=False,
+            nmc=1000,
+            ppar1=None,
+            pperp1=None,
+            ppar2=None,
+            pperp2=None,
+            ):
         """Calculate beam-thermal fusion.
 
         Parameters
@@ -328,18 +221,18 @@ class Afsi():
             the first reactant is a background species.
         nmc : int, optional
             Number of MC samples used in each (R, phi, z) bin.
-        minppara : float, optional
-            Minimum ppara value in the output distribution.
-        maxppara : float, optional
-            Maximum ppara value in the output distribution.
-        nppara : int, optional
-            Number of pperp bins in the output distribution.
-        minpperp : float, optional
-            Minimum pperp value in the output distribution.
-        maxpperp : float, optional
-            Maximum ppara value in the output distribution.
-        npperp : int, optional
-            Number of pperp bins in the output distribution.
+        ppar1 : array_like
+            Abscissa for the parallel momentum in (ppar,pperp) basis for the
+            first reaction product.
+        pperp1 : array_like
+            Abscissa for the perpendicular momentum in (ppar,pperp) basis for
+            the first reaction product.
+        ppar2 : array_like
+            Abscissa for the parallel momentum in (ppar,pperp) basis for the
+            second reaction product.
+        pperp2 : array_like
+            Abscissa for the perpendicular momentum in (ppar,pperp) basis for
+            the second reaction product.
 
         Returns
         -------
@@ -348,6 +241,11 @@ class Afsi():
         prod2 : array_like
             Fusion product 2 distribution.
         """
+        ppar1 = 1.3e-19 * np.linspace(-1., 1., 50) if ppar1 is None else ppar1
+        pperp1 = np.linspace(0, 1.3e-19, 50) if pperp1 is None else pperp1
+        ppar2 = 1.3e-19 * np.linspace(-1., 1., 50) if ppar2 is None else ppar2
+        pperp2 = np.linspace(0, 1.3e-19, 50) if pperp2 is None else pperp2
+
         m1, q1, m2, q2, _, qprod1, _, qprod2, _ = self.reactions(reaction)
         reactions = {v: k for k, v in AFSI_REACTIONS.items()}
         reaction = reactions[reaction]
@@ -357,20 +255,6 @@ class Afsi():
         znum2 = np.round(q2.to("e").v)
         q1 = np.round(qprod1.to("e").v)
         q2 = np.round(qprod2.to("e").v)
-
-        time   = 0*unyt.s
-        nr     = beam.abscissa("r").size
-        nphi   = beam.abscissa("phi").size
-        nz     = beam.abscissa("z").size
-        r      = beam.abscissa("r")
-        phi    = beam.abscissa("phi")
-        z      = beam.abscissa("z")
-        minr   = beam.abscissa_edges("r")[0]
-        maxr   = beam.abscissa_edges("r")[-1]
-        minphi = beam.abscissa_edges("phi")[0]
-        maxphi = beam.abscissa_edges("phi")[-1]
-        minz   = beam.abscissa_edges("z")[0]
-        maxz   = beam.abscissa_edges("r")[-1]
 
         self._ascot.input_init(bfield=True, plasma=True)
         nspec, _, _, anums, znums = self._ascot.input_getplasmaspecies()
@@ -384,27 +268,28 @@ class Afsi():
             self._ascot.input_free(bfield=True, plasma=True)
             raise ValueError("Reactant species not present in plasma input.")
 
-        temp = np.zeros((nr, nphi, nz))
-        dens = np.zeros((nr, nphi, nz))
-        for j in range(nphi):
-            for i in range(nr):
-                for k in range(nz):
-                    temp[i,j,k] = self._ascot.input_eval(
-                        r[i], phi[j], z[k], time, "ti1").to("J")
-                    dens[i,j,k] = self._ascot.input_eval(
-                        r[i], phi[j], z[k], time, "ni"+str(ispecies))
-
-        thermal = self._init_thermal_data(
-            minr, maxr, nr, minphi, maxphi, nphi, minz, maxz, nz, temp, dens)
-
         dist = self._init_dist_5d(beam)
-        react1 = self._init_afsi_data(dist_thermal=thermal)
+        react1 = self._init_afsi_data(dist_thermal=ispecies)
         react2 = self._init_afsi_data(dist_5D=dist)
 
-        prod1 = self._init_product_dist(
-            dist, q1, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
-        prod2 = self._init_product_dist(
-            dist, q2, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
+        prod1 = self._init_histogram(
+            beam.abscissa_edges("r"),
+            beam.abscissa_edges("phi").to("rad"),
+            beam.abscissa_edges("z"),
+            ppar1,
+            pperp1,
+            charge=q1,
+            exi=False,
+            )
+        prod2 = self._init_histogram(
+            beam.abscissa_edges("r"),
+            beam.abscissa_edges("phi").to("rad"),
+            beam.abscissa_edges("z"),
+            ppar2,
+            pperp2,
+            charge=q2,
+            exi=False,
+            )
 
         mult = 1.0
         if swap:
@@ -421,9 +306,17 @@ class Afsi():
         self._ascot.file_load(self._ascot.file_getpath())
         return prod1, prod2
 
-    def beambeam(self, reaction, beam1, beam2=None, nmc=1000,
-                 minppara=-1.3e-19, maxppara=1.3e-19, nppara=80,
-                 minpperp=0, maxpperp=1.3e-19, npperp=40):
+    def beambeam(
+            self,
+            reaction,
+            beam1,
+            beam2=None,
+            nmc=1000,
+            ppar1=None,
+            pperp1=None,
+            ppar2=None,
+            pperp2=None,
+            ):
         """Calculate beam-beam fusion.
 
         Parameters
@@ -437,18 +330,18 @@ class Afsi():
             beam1 itself.
         nmc : int, optional
             Number of MC samples used in each (R, phi, z) bin.
-        minppara : float, optional
-            Minimum ppara value in the output distribution.
-        maxppara : float, optional
-            Maximum ppara value in the output distribution.
-        nppara : int, optional
-            Number of pperp bins in the output distribution.
-        minpperp : float, optional
-            Minimum pperp value in the output distribution.
-        maxpperp : float, optional
-            Maximum ppara value in the output distribution.
-        npperp : int, optional
-            Number of pperp bins in the output distribution.
+        ppar1 : array_like
+            Abscissa for the parallel momentum in (ppar,pperp) basis for the
+            first reaction product.
+        pperp1 : array_like
+            Abscissa for the perpendicular momentum in (ppar,pperp) basis for
+            the first reaction product.
+        ppar2 : array_like
+            Abscissa for the parallel momentum in (ppar,pperp) basis for the
+            second reaction product.
+        pperp2 : array_like
+            Abscissa for the perpendicular momentum in (ppar,pperp) basis for
+            the second reaction product.
 
         Returns
         -------
@@ -457,6 +350,10 @@ class Afsi():
         prod2 : array_like
             Fusion product 2 distribution.
         """
+        ppar1 = 1.3e-19 * np.linspace(-1., 1., 80) if ppar1 is None else ppar1
+        pperp1 = np.linspace(0, 1.3e-19, 40) if pperp1 is None else pperp1
+        ppar2 = 1.3e-19 * np.linspace(-1., 1., 80) if ppar2 is None else ppar2
+        pperp2 = np.linspace(0, 1.3e-19, 40) if pperp2 is None else pperp2
         _, _, _, _, _, qprod1, _, qprod2, _ = self.reactions(reaction)
         reactions = {v: k for k, v in AFSI_REACTIONS.items()}
         reaction = reactions[reaction]
@@ -475,10 +372,24 @@ class Afsi():
             react2 = react1
             mult = 0.5
 
-        prod1 = self._init_product_dist(
-            dist1, q1, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
-        prod2 = self._init_product_dist(
-            dist1, q2, minppara, maxppara, nppara, minpperp, maxpperp, npperp)
+        prod1 = self._init_histogram(
+            beam1.abscissa_edges("r"),
+            beam1.abscissa_edges("phi").to("rad"),
+            beam1.abscissa_edges("z"),
+            ppar1,
+            pperp1,
+            charge=q1,
+            exi=False,
+            )
+        prod2 = self._init_histogram(
+            beam1.abscissa_edges("r"),
+            beam1.abscissa_edges("phi").to("rad"),
+            beam1.abscissa_edges("z"),
+            ppar2,
+            pperp2,
+            charge=q2,
+            exi=False,
+            )
 
         _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
                            react1, react2, mult, prod1, prod2,
@@ -497,28 +408,10 @@ class Afsi():
             afsidata.beam = ctypes.pointer(dist_5D)
         elif dist_thermal is not None:
             afsidata.type = 2
-            afsidata.thermal = ctypes.pointer(dist_thermal)
+            afsidata.thermal = dist_thermal
         else:
             afsidata.type = 0
         return afsidata
-
-    def _init_thermal_data(self, minr, maxr, nr, minphi, maxphi, nphi, minz,
-                           maxz, nz, temperature, density):
-        thermaldata         = STRUCT_AFSITHERMAL()
-        thermaldata.n_r     = nr
-        thermaldata.min_r   = minr
-        thermaldata.max_r   = maxr
-        thermaldata.n_phi   = nphi
-        thermaldata.min_phi = minphi * np.pi/180
-        thermaldata.max_phi = maxphi * np.pi/180
-        thermaldata.n_z     = nz
-        thermaldata.min_z   = minz
-        thermaldata.max_z   = maxz
-        thermaldata.temperature = npctypes.as_ctypes(
-            np.ascontiguousarray(temperature.ravel(), dtype="f8"))
-        thermaldata.density = npctypes.as_ctypes(
-            np.ascontiguousarray(density.ravel(), dtype="f8"))
-        return thermaldata
 
     def _init_dist_5d(self, dist):
         data = STRUCT_HIST()
@@ -529,12 +422,12 @@ class Afsi():
             dist.abscissa("pperp").size, dist.abscissa("time").size,
             dist.abscissa("charge").size], dtype="u8")
         binmin = np.array([
-            dist.abscissa_edges("r")[0], dist.abscissa_edges("phi")[0],
+            dist.abscissa_edges("r")[0], dist.abscissa_edges("phi").to("rad")[0],
             dist.abscissa_edges("z")[0], dist.abscissa_edges("ppar")[0],
             dist.abscissa_edges("pperp")[0], dist.abscissa_edges("time")[0],
             dist.abscissa_edges("charge")[0]])
         binmax = np.array([
-            dist.abscissa_edges("r")[-1], dist.abscissa_edges("phi")[-1],
+            dist.abscissa_edges("r")[-1], dist.abscissa_edges("phi").to("rad")[-1],
             dist.abscissa_edges("z")[-1], dist.abscissa_edges("ppar")[-1],
             dist.abscissa_edges("pperp")[-1], dist.abscissa_edges("time")[-1],
             dist.abscissa_edges("charge")[-1]])
@@ -546,24 +439,31 @@ class Afsi():
             binmax.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
             nbin.ctypes.data_as(ctypes.POINTER(ctypes.c_size_t))
             )
+        d = dist.histogram().ravel()
+        for i in range(data.nbin):
+            data.bins[i] = d[i]
         return data
 
-    def _init_product_dist(self, react, charge, minp1, maxp1, np1,
-                           minp2, maxp2, np2, exi=False):
+    def _init_histogram(self, *args, charge=None, time=None, exi=False):
         prod = STRUCT_HIST()
+        if time is None:
+            time = np.array([0, 1])
+        nbin = np.array([
+            args[0].size-1, args[1].size-1, args[2].size-1, args[3].size-1,
+            args[4].size-1, time.size-1, 1
+            ], dtype="u8")
+        binmin = np.array([
+            args[0][0], args[1][0], args[2][0], args[3][0],
+            args[4][0], time[0], charge[0] - 1])
+        binmax = np.array([
+            args[0][-1], args[1][-1], args[2][-1], args[3][-1],
+            args[4][-1], time[-1], charge[0] + 1])
         if(exi):
+            binmin[3] *= unyt.elementary_charge
+            binmax[3] *= unyt.elementary_charge
             coordinates = np.array([0, 1, 2, 10, 11, 14, 15], dtype="uint32")
         else:
             coordinates = np.array([0, 1, 2, 5, 6, 14, 15], dtype="uint32")
-        nbin = np.array([
-            react.n_r, react.n_phi, react.n_z, np1, np2, react.n_time, 1
-            ], dtype="u8")
-        binmin = np.array([
-            react.min_r, react.min_phi, react.min_z, minp1, minp2,
-            react.min_time, charge[0] - 1])
-        binmax = np.array([
-            react.max_r, react.max_phi, react.max_z, maxp1, maxp2,
-            react.max_time, charge[0] + 1])
         _LIBASCOT.hist_init(
             ctypes.byref(prod),
             coordinates.size,

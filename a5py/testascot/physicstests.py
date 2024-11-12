@@ -74,7 +74,7 @@ class PhysTest():
         try:
             self.ascot = Ascot(fn)
         except FileNotFoundError:
-            self.ascot = Ascot(fn, create=True)
+            self.ascot = Ascot(fn, create=True, mute="no")
             init = self.ascot.data.create_input
             init("opt",        desc="DUMMY")
             init("gc",         desc="DUMMY")
@@ -1941,15 +1941,19 @@ class PhysTest():
             warnings.warn("Results already present: Test AFSI")
             return
 
-        rmin =  5.9; rmax = 6.1; nr = 1
-        zmin = -0.1; zmax = 0.1; nz = 1
+        r = np.linspace(5.9, 6.1, 2)
+        phi = np.linspace(0, 360, 2)
+        z = np.linspace(-0.1, 0.1, 2)
+        ppar = np.linspace(-1.0e-19, 1.0e-19, 401) * unyt.kg *unyt.m / unyt.s
+        pperp = np.linspace(0, 1.0e-19, 401) * unyt.kg *unyt.m / unyt.s
+        ekin = np.linspace(0,7e6,100)
+        pitch = np.linspace(-1,1,20)
         self._activateinputs(PhysTest.tag_afsi_thermal)
         self.ascot.afsi.thermal(
-            "DT_He4n",
-            rmin, rmax, nr, zmin, zmax, nz,
-            minphi=0, maxphi=2*np.pi, nphi=1, nmc=10**6,
-            minppara=-1.0e-19, maxppara=1.0e-19, nppara=400,
-            minpperp=0, maxpperp=1.0e-19, npperp=200)
+            "DT_He4n", nmc=10**6, r=r, phi=phi, z=z,
+            #ekin1=ekin, ekin2=ekin, pitch1=pitch, pitch2=pitch,
+            ppar1=ppar, ppar2=ppar, pperp1=pperp, pperp2=pperp,
+            )
         self.ascot.data.active.set_desc(PhysTest.tag_afsi_thermal)
 
         dist = self.ascot.data[PhysTest.tag_afsi_thermal].getdist("prod1")
@@ -1971,19 +1975,25 @@ class PhysTest():
         dist._distribution[0,0,0,:,:,0,0] = maxwellian(2.014)
 
         self._activateinputs(PhysTest.tag_afsi_beamthermal)
-        self.ascot.afsi.beamthermal("DT_He4n", dist, nmc=10**6)
+        self.ascot.afsi.beamthermal(
+            "DT_He4n", dist, nmc=10**6,
+            ppar1=ppar, ppar2=ppar, pperp1=pperp, pperp2=pperp,
+            #ekin1=ekin, ekin2=ekin, pitch1=pitch, pitch2=pitch,
+            )
         self.ascot.data.active.set_desc(PhysTest.tag_afsi_beamthermal)
 
         dist = self.ascot.data[PhysTest.tag_afsi_thermal].getdist("prod1")
-        ppa, ppe = np.meshgrid(dist.abscissa("ppar"), dist.abscissa("pperp"),
-                               indexing="ij")
         dist._distribution[0,0,0,:,:,0,0] = maxwellian(2.014)
 
         dist1 = self.ascot.data[PhysTest.tag_afsi_thermal].getdist("prod1")
         dist1._distribution[0,0,0,:,:,0,0] = maxwellian(3.016)
 
         self._activateinputs(PhysTest.tag_afsi_beambeam)
-        self.ascot.afsi.beambeam("DT_He4n", dist, dist1, nmc=10**6)
+        self.ascot.afsi.beambeam(
+            "DT_He4n", dist, dist1, nmc=10**6,
+            ppar1=ppar, ppar2=ppar, pperp1=pperp, pperp2=pperp,
+            #ekin1=ekin, ekin2=ekin, pitch1=pitch, pitch2=pitch,
+            )
         self.ascot.data.active.set_desc(PhysTest.tag_afsi_beambeam)
 
     def check_afsi(self):
