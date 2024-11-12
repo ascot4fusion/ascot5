@@ -63,7 +63,6 @@ try:
     PTR_RFOF = ctypes.POINTER(_get_struct_class("rfof_data"))
     PTR_ARR  = ctypes.POINTER(ctypes.c_double)
     STRUCT_DIST5D        = _get_struct_class("histogram")
-    STRUCT_AFSITHERMAL   = _get_struct_class("afsi_thermal_data")
     STRUCT_AFSIDATA      = _get_struct_class("afsi_data")
     AFSI_REACTIONS       = ascot2py.Reaction__enumvalues
     _LIBASCOT = ascot2py._libraries['libascot.so']
@@ -76,7 +75,6 @@ except ImportError as error:
     PTR_RFOF  = None
     PTR_ARR   = None
     STRUCT_HIST          = None
-    STRUCT_AFSITHERMAL   = None
     STRUCT_AFSIDATA      = None
     AFSI_REACTIONS       = None
     msg = \

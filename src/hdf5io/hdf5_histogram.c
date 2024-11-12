@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <hdf5.h>
 #include <hdf5_hl.h>
+#include "../consts.h"
 #include "../diag/hist.h"
 #include "hdf5_histogram.h"
 
@@ -43,6 +44,8 @@ int hdf5_hist_write(hid_t f, char* path, histogram* hist) {
         case PHI:
             abscissa_names[k] = "phi";
             abscissa_units[k] = "deg";
+            abscissa_min[k] *= 180.0/CONST_PI;
+            abscissa_max[k] *= 180.0/CONST_PI;
             break;
         case Z:
             abscissa_names[k] = "z";
@@ -79,6 +82,8 @@ int hdf5_hist_write(hid_t f, char* path, histogram* hist) {
         case EKIN:
             abscissa_names[k] = "ekin";
             abscissa_units[k] = "eV";
+            abscissa_min[k] /= CONST_E;
+            abscissa_max[k] /= CONST_E;
             break;
         case XI:
             abscissa_names[k] = "pitch";
