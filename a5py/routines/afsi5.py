@@ -45,6 +45,8 @@ class Afsi():
             r=None,
             phi=None,
             z=None,
+            rho=None,
+            theta=None,
             ppar1=None,
             pperp1=None,
             ekin1=None,
@@ -65,9 +67,14 @@ class Afsi():
         r : array_like
             Abscissa for the radial coordinate in (R,phi,z) basis.
         phi : array_like
-            Abscissa for the toroidal coordinate in (R,phi,z) basis.
+            Abscissa for the toroidal coordinate in (R,phi,z) and
+            (rho,theta,phi) basis.
         z : array_like
             Abscissa for the axial coordinate in (R,phi,z) basis.
+        rho : array_like
+            Abscissa for the radial coordinate in (rho,theta,phi) basis.
+        theta : array_like
+            Abscissa for the poloidal coordinate in (rho,theta,phi) basis.
         ppar1 : array_like
             Abscissa for the parallel momentum in (ppar,pperp) basis for the
             first reaction product.
@@ -105,9 +112,9 @@ class Afsi():
         if phi is None:
             phi = np.array([0, 360])
         dont_use_rpz_basis = ( any([r is None, z is None]) and
-                               all([r is None, phi is None, z is None]) )
+                               all([r is None, z is None]) )
         use_rpz_basis = ( not any([r is None, z is None]) and
-                          all([not r is None, not phi is None, not z is None]) )
+                          all([not r is None, not z is None]) )
         if use_rpz_basis and dont_use_rpz_basis:
             raise ValueError(
                 "Either give all of r, phi, and z to use (R,phi,z) basis or "
@@ -145,6 +152,21 @@ class Afsi():
                     "now the second product were to use (E,pitch) and the "
                     "first (ppar,pperp)"
                     )
+        self._ascot.input_init(bfield=True, plasma=True)
+        if dont_use_rpz_basis:
+            rho = np.linspace(0, 1, 10) if rho is None else rho
+            theta = np.array([0, 180, 360]) if theta is None else theta
+            vol, rc, phic, zc = self._ascot.input_rhovolume(
+                nrho=rho.size, ntheta=theta.size, nphi=phi.size, method="prism",
+                return_coords=True,
+                )
+        else:
+            phic, rc, zc = np.meshgrid(1.5*phi[:-1]-0.5*phi[1:],
+                                       1.5*r[:-1]-0.5*r[1:],
+                                       1.5*z[:-1]-0.5*z[1:])
+            phic *= np.pi/180
+            vol = ( rc * np.diff(r[:2]) * np.diff(z[:2]) * np.diff(phi[:2])
+                       * np.pi/180 )
         if dont_use_ekinpitch_basis:
             ppar1 = 1.3e-19 * np.linspace(-1., 1., 80) if ppar1 is None else ppar1
             pperp1 = np.linspace(0, 1.3e-19, 40) if pperp1 is None else pperp1
@@ -161,7 +183,6 @@ class Afsi():
         q1 = np.round(qprod1.to("e").v)
         q2 = np.round(qprod2.to("e").v)
 
-        self._ascot.input_init(bfield=True, plasma=True)
         nspec, _, _, anums, znums = self._ascot.input_getplasmaspecies()
         ispecies1, ispecies2 = np.nan, np.nan
         for i in np.arange(nspec):
@@ -174,22 +195,40 @@ class Afsi():
             raise ValueError("Reactant species not present in plasma input.")
         mult = 0.5 if ispecies1 == ispecies2 else 1.0
 
-        react1 = self._init_afsi_data(dist_thermal=ispecies1)
-        react2 = self._init_afsi_data(dist_thermal=ispecies2)
+        afsi = self._init_afsi_data(
+            react1=ispecies1, react2=ispecies2, reaction=reaction, mult=mult,
+            r=rc, phi=phic, z=zc, vol=vol,
+            )
 
         if use_ekinpitch_basis:
-            prod1 = self._init_histogram(
-                r, phi*np.pi/180, z, ekin1, pitch1, charge=q1, exi=True)
-            prod2 = self._init_histogram(
-                r, phi*np.pi/180, z, ekin2, pitch2, charge=q2, exi=True)
+            if use_rpz_basis:
+                prod1 = self._init_histogram(
+                    r, phi*np.pi/180, z, ekin1, pitch1, charge=q1, exi=True)
+                prod2 = self._init_histogram(
+                    r, phi*np.pi/180, z, ekin2, pitch2, charge=q2, exi=True)
+            else:
+                prod1 = self._init_histogram(
+                    rho, theta*np.pi/180, phi*np.pi/180, ekin1, pitch1,
+                    charge=q1, exi=True, toroidal=True)
+                prod2 = self._init_histogram(
+                    rho, theta*np.pi/180, phi*np.pi/180, ekin2, pitch2,
+                    charge=q2, exi=True, toroidal=True)
         else:
-            prod1 = self._init_histogram(
-                r, phi*np.pi/180, z, ppar1, pperp1, charge=q1, exi=False)
-            prod2 = self._init_histogram(
-                r, phi*np.pi/180, z, ppar2, pperp2, charge=q2, exi=False)
+            if use_rpz_basis:
+                prod1 = self._init_histogram(
+                    r, phi*np.pi/180, z, ppar1, pperp1, charge=q1, exi=False)
+                prod2 = self._init_histogram(
+                    r, phi*np.pi/180, z, ppar2, pperp2, charge=q2, exi=False)
+            else:
+                prod1 = self._init_histogram(
+                    rho, theta*np.pi/180, phi*np.pi/180, ppar1, pperp1,
+                    charge=q1, exi=False, toroidal=True)
+                prod2 = self._init_histogram(
+                    rho, theta*np.pi/180, phi*np.pi/180, ppar2, pperp2,
+                    charge=q2, exi=False, toroidal=True)
 
-        _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
-                           react1, react2, mult, prod1, prod2,
+        _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim),
+                           ctypes.byref(afsi), nmc, prod1, prod2,
                            )
         self._ascot.input_free(bfield=True, plasma=True)
 
@@ -401,16 +440,27 @@ class Afsi():
         self._ascot.file_load(self._ascot.file_getpath())
         return prod1, prod2
 
-    def _init_afsi_data(self, dist_5D=None, dist_thermal=None):
+    def _init_afsi_data(self, react1, react2, reaction, mult, r, phi, z, vol):
         afsidata = STRUCT_AFSIDATA()
-        if dist_5D is not None:
-            afsidata.type = 1
-            afsidata.beam = ctypes.pointer(dist_5D)
-        elif dist_thermal is not None:
-            afsidata.type = 2
-            afsidata.thermal = dist_thermal
+        afsidata.reaction = reaction
+        afsidata.mult = mult
+        afsidata.r = r.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        afsidata.z = z.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        afsidata.phi = phi.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        afsidata.vol = vol.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        afsidata.volshape[:] = vol.shape
+        if isinstance(react1, np.int_):
+            afsidata.type1 = 2
+            afsidata.thermal1 = react1
         else:
-            afsidata.type = 0
+            afsidata.type1 = 1
+            afsidata.beam1 = ctypes.pointer(react1)
+        if isinstance(react2, np.int_):
+            afsidata.type2 = 2
+            afsidata.thermal2 = react2
+        else:
+            afsidata.type2 = 1
+            afsidata.beam2 = ctypes.pointer(react2)
         return afsidata
 
     def _init_dist_5d(self, dist):
@@ -444,7 +494,8 @@ class Afsi():
             data.bins[i] = d[i]
         return data
 
-    def _init_histogram(self, *args, charge=None, time=None, exi=False):
+    def _init_histogram(self, *args, charge=None, time=None, exi=False,
+                        toroidal=False):
         prod = STRUCT_HIST()
         if time is None:
             time = np.array([0, 1])
@@ -464,6 +515,10 @@ class Afsi():
             coordinates = np.array([0, 1, 2, 10, 11, 14, 15], dtype="uint32")
         else:
             coordinates = np.array([0, 1, 2, 5, 6, 14, 15], dtype="uint32")
+        if(toroidal):
+            coordinates[0] = 3
+            coordinates[1] = 4
+            coordinates[2] = 1
         _LIBASCOT.hist_init(
             ctypes.byref(prod),
             coordinates.size,
