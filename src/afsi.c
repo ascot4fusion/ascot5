@@ -30,7 +30,7 @@ void afsi_compute_product_momenta_2d(
     real* ppara1, real* pperp1, real* ppara2, real* pperp2, real* vcom2,
     real* prod1_p1, real* prod1_p2, real* prod2_p1, real* prod2_p2);
 void afsi_sample_reactant_momenta_2d(
-    sim_data* sim, afsi_data* react1, afsi_data* react2, real mass1, real mass2,
+    sim_data* sim, afsi_data* afsi, real mass1, real mass2,
     real vol, int nsample, size_t i0, size_t i1, size_t i2,
     real r, real phi, real z, real time, real rho,
     real* density1, real* ppara1, real* pperp1,
@@ -57,8 +57,7 @@ void afsi_sample_thermal_2d(sim_data* sim, int ispecies, real mass, int nsample,
  * @param prod1_data distribution data for product 1 output
  * @param prod2_data distribution data for product 2 output
  */
-void afsi_run(sim_data* sim, Reaction reaction, int n,
-              afsi_data* react1, afsi_data* react2, real mult,
+void afsi_run(sim_data* sim, afsi_data* afsi, int n,
               histogram* prod1, histogram* prod2) {
     /* QID for this run */
     char qid[11];
@@ -84,14 +83,24 @@ void afsi_run(sim_data* sim, Reaction reaction, int n,
 
     real m1, q1, m2, q2, mprod1, qprod1, mprod2, qprod2, Q;
     boschhale_reaction(
-        reaction, &m1, &q1, &m2, &q2, &mprod1, &qprod1, &mprod2, &qprod2, &Q);
-
-    size_t n_r = prod1->axes[0].n;
-    size_t n_phi = prod1->axes[1].n;
-    size_t n_z = prod1->axes[2].n;
+        afsi->reaction, &m1, &q1, &m2, &q2,
+        &mprod1, &qprod1, &mprod2, &qprod2, &Q);
 
     int prod_mom_space;
-    int p1coord, p2coord;
+    int i0coord, i1coord, i2coord, p1coord, p2coord;
+    if(prod1->axes[0].n) {
+        i0coord = 0;
+        i1coord = 1;
+        i2coord = 2;
+    }
+    else if(prod1->axes[3].n) {
+        i0coord = 3;
+        i1coord = 4;
+        i2coord = 1;
+    }
+    else {
+        return;
+    }
     if(prod1->axes[5].n) {
         p1coord = 5;
         p2coord = 6;
@@ -108,8 +117,8 @@ void afsi_run(sim_data* sim, Reaction reaction, int n,
 
     real time = 0.0;
 
-    #pragma omp parallel for
-    for(size_t i0 = 0; i0 < n_r; i0++) {
+    //#pragma omp parallel for
+    for(size_t i0 = 0; i0 < afsi->volshape[0]; i0++) {
         real* ppara1 = (real*) malloc(n*sizeof(real));
         real* pperp1 = (real*) malloc(n*sizeof(real));
         real* ppara2 = (real*) malloc(n*sizeof(real));
@@ -119,18 +128,14 @@ void afsi_run(sim_data* sim, Reaction reaction, int n,
         real* prod2_p1 = (real*) malloc(n*sizeof(real));
         real* prod2_p2 = (real*) malloc(n*sizeof(real));
 
-        for(size_t i1 = 0; i1 < n_phi; i1++) {
-            for(size_t i2 = 0; i2 < n_z; i2++) {
-                real dr =  (prod1->axes[0].max - prod1->axes[0].min)
-                    / prod1->axes[0].n;
-                real dz =  (prod1->axes[2].max - prod1->axes[2].min)
-                    / prod1->axes[2].n;
-                real dphi =  (prod1->axes[1].max - prod1->axes[1].min)
-                    / prod1->axes[1].n;
-                real r =  prod2->axes[0].min + 0.5 * dr + i0 * dr;
-                real z =  prod2->axes[2].min + 0.5 * dz + i2 * dz;
-                real phi =  prod2->axes[1].min + 0.5 * dphi + i1 * dphi;
-                real vol = dphi*dz*dr*r;
+        for(size_t i1 = 0; i1 < afsi->volshape[1]; i1++) {
+            for(size_t i2 = 0; i2 < afsi->volshape[2]; i2++) {
+                size_t spatial_index = i0*afsi->volshape[1]*afsi->volshape[2]
+                                     + i1*afsi->volshape[2] + i2;
+                real r = afsi->r[spatial_index];
+                real z = afsi->z[spatial_index];
+                real phi = afsi->phi[spatial_index];
+                real vol = afsi->vol[spatial_index];
 
                 real psi, rho[2];
                 if(B_field_eval_psi(&psi, r, phi, z, time, &sim->B_data) ||
@@ -140,7 +145,7 @@ void afsi_run(sim_data* sim, Reaction reaction, int n,
 
                 real density1, density2;
                 afsi_sample_reactant_momenta_2d(
-                    sim, react1, react2, m1, m2, vol, n, i0, i1, i2,
+                    sim, afsi, m1, m2, vol, n, i0, i1, i2,
                     r, phi, z, time, rho[0],
                     &density1, ppara1, pperp1, &density2, ppara2, pperp2);
                 if(density1 == 0 || density2 == 0) {
@@ -155,7 +160,7 @@ void afsi_run(sim_data* sim, Reaction reaction, int n,
                     real E = 0.5 * ( m1 * m2 ) / ( m1 + m2 ) * vcom2;
 
                     real weight = density1 * density2 * sqrt(vcom2)
-                        * boschhale_sigma(reaction, E)/n*vol;
+                        * boschhale_sigma(afsi->reaction, E)/n*vol;
 
                     size_t ip1 = math_bin_index(
                         prod1_p1[i], prod1->axes[p1coord].n,
@@ -165,13 +170,13 @@ void afsi_run(sim_data* sim, Reaction reaction, int n,
                         prod1->axes[p2coord].min, prod1->axes[p2coord].max);
                     if( 0 <= ip1 && ip1 < prod1->axes[p1coord].n &&
                         0 <= ip2 && ip2 < prod1->axes[p2coord].n) {
-                        size_t index =    i0*prod1->strides[0]
-                                        + i1*prod1->strides[1]
-                                        + i2*prod1->strides[2]
+                        size_t index =    i0*prod1->strides[i0coord]
+                                        + i1*prod1->strides[i1coord]
+                                        + i2*prod1->strides[i2coord]
                                         + ip1*prod1->strides[p1coord]
                                         + ip2*prod1->strides[p2coord];
-                        GPU_ATOMIC
-                        prod1->bins[index] += weight * mult;
+                        //printf("%lu %lu %lu %lu %lu %lu\n", i0, i1, i2, ip1, ip2, index);
+                        prod1->bins[index] += weight * afsi->mult;
                     }
 
                     ip1 = math_bin_index(
@@ -182,13 +187,12 @@ void afsi_run(sim_data* sim, Reaction reaction, int n,
                         prod2->axes[p2coord].min, prod2->axes[p2coord].max);
                     if( 0 <= ip1 && ip1 < prod2->axes[p1coord].n &&
                         0 <= ip2 && ip2 < prod2->axes[p2coord].n) {
-                        size_t index =    i0*prod2->strides[0]
-                                        + i1*prod2->strides[1]
-                                        + i2*prod2->strides[2]
+                        size_t index =    i0*prod2->strides[i0coord]
+                                        + i1*prod2->strides[i1coord]
+                                        + i2*prod2->strides[i2coord]
                                         + ip1*prod2->strides[p1coord]
                                         + ip2*prod2->strides[p2coord];
-                        GPU_ATOMIC
-                        prod2->bins[index] += weight * mult;
+                        prod2->bins[index] += weight * afsi->mult;
                     }
                 }
             }
@@ -393,25 +397,25 @@ void afsi_compute_product_momenta_2d(
  * @param pperp2 array where the perpendicular momentum of react2 will be stored
  */
 void afsi_sample_reactant_momenta_2d(
-    sim_data* sim, afsi_data* react1, afsi_data* react2, real mass1, real mass2,
-    real vol, int nsample, size_t i0, size_t i1, size_t i2,
+    sim_data* sim, afsi_data* afsi, real mass1, real mass2, real vol,
+    int nsample, size_t i0, size_t i1, size_t i2,
     real r, real phi, real z, real time, real rho,
     real* density1, real* ppara1, real* pperp1,
     real* density2, real* ppara2, real* pperp2) {
-    if(react1->type == 1) {
-        afsi_sample_beam_2d(react1->beam, mass1, vol, nsample, i0, i1, i2,
+    if(afsi->type1 == 1) {
+        afsi_sample_beam_2d(afsi->beam1, mass1, vol, nsample, i0, i1, i2,
                             density1, ppara1, pperp1);
     }
-    else if(react1->type == 2) {
-        afsi_sample_thermal_2d(sim, react1->thermal, mass1, nsample, r, phi, z,
+    else if(afsi->type1 == 2) {
+        afsi_sample_thermal_2d(sim, afsi->thermal1, mass1, nsample, r, phi, z,
                                time, rho, density1, ppara1, pperp1);
     }
-    if(react2->type == 1) {
-        afsi_sample_beam_2d(react2->beam, mass2, vol, nsample, i0, i1, i2,
+    if(afsi->type2 == 1) {
+        afsi_sample_beam_2d(afsi->beam2, mass2, vol, nsample, i0, i1, i2,
                             density2, ppara2, pperp2);
     }
-    else if(react2->type == 2) {
-        afsi_sample_thermal_2d(sim, react2->thermal, mass2, nsample, r, phi, z,
+    else if(afsi->type2 == 2) {
+        afsi_sample_thermal_2d(sim, afsi->thermal2, mass2, nsample, r, phi, z,
                                time, rho, density2, ppara2, pperp2);
     }
 }
