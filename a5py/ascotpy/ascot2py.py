@@ -2389,17 +2389,26 @@ class struct_c__SA_afsi_data(Structure):
 
 struct_c__SA_afsi_data._pack_ = 1 # source:False
 struct_c__SA_afsi_data._fields_ = [
-    ('type', ctypes.c_int32),
+    ('type1', ctypes.c_int32),
+    ('type2', ctypes.c_int32),
+    ('thermal1', ctypes.c_int32),
+    ('thermal2', ctypes.c_int32),
+    ('beam1', ctypes.POINTER(struct_c__SA_histogram)),
+    ('beam2', ctypes.POINTER(struct_c__SA_histogram)),
+    ('r', ctypes.POINTER(ctypes.c_double)),
+    ('phi', ctypes.POINTER(ctypes.c_double)),
+    ('z', ctypes.POINTER(ctypes.c_double)),
+    ('vol', ctypes.POINTER(ctypes.c_double)),
+    ('volshape', ctypes.c_uint64 * 3),
+    ('reaction', Reaction),
     ('PADDING_0', ctypes.c_ubyte * 4),
-    ('beam', ctypes.POINTER(struct_c__SA_histogram)),
-    ('thermal', ctypes.c_int32),
-    ('PADDING_1', ctypes.c_ubyte * 4),
+    ('mult', ctypes.c_double),
 ]
 
 afsi_data = struct_c__SA_afsi_data
 afsi_run = _libraries['libascot.so'].afsi_run
 afsi_run.restype = None
-afsi_run.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), Reaction, ctypes.c_int32, ctypes.POINTER(struct_c__SA_afsi_data), ctypes.POINTER(struct_c__SA_afsi_data), real, ctypes.POINTER(struct_c__SA_histogram), ctypes.POINTER(struct_c__SA_histogram)]
+afsi_run.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.POINTER(struct_c__SA_afsi_data), ctypes.c_int32, ctypes.POINTER(struct_c__SA_histogram), ctypes.POINTER(struct_c__SA_histogram)]
 prepare_markers = _libraries['libascot.so'].prepare_markers
 prepare_markers.restype = ctypes.c_int32
 prepare_markers.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.c_int32, ctypes.POINTER(struct_c__SA_input_particle), ctypes.POINTER(ctypes.POINTER(struct_c__SA_particle_state)), ctypes.POINTER(ctypes.c_int32)]
