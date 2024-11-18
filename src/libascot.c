@@ -279,6 +279,90 @@ void libascot_B_field_gradient_descent(
     }
 }
 
+
+/**
+ * @brief Find one psi minimum using the gradient descent method for 3D field
+ * inside a sector (phimin < phi < phimax). Not guaranteed to find the global
+ * minimum inside the given sector.
+ *
+ * @param sim_offload_data initialized simulation offload data struct
+ * @param B_offload_array initialized magnetic field offload data
+ * @param psi value of psi on axis if this function did not fail
+ * @param rzphi initial (R,z,phi) position where also the result is stored
+ * @param step the step size
+ * @param tol the current position is accepted if the distance (in meters)
+ * between this and the previous point is below this value
+ * @param maxiter maximum number of iterations before failure
+ * @param ascent if true the algorithm instead ascends to find psi0 (> psi1)
+ */
+void libascot_B_field_gradient_descent_3d(
+    sim_offload_data* sim_offload_data, real* B_offload_array, real psi[1],
+    real rzphi[3], real phimin, real phimax, real step, real tol, int maxiter,
+    int ascent) {
+
+    sim_data sim;
+    B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
+                 B_offload_array);
+
+    if(ascent) {
+        step = -1 * step;
+    }
+
+    time = 0.0;
+    real psidpsi[4], nextrzphi[3];
+    B_field_eval_psi_dpsi(psidpsi, rzphi[0], rzphi[2], rzphi[1], time,
+        &sim.B_data);
+
+    int iter = 0;
+    while(1) {
+        if( B_field_eval_psi_dpsi(psidpsi, rzphi[0], rzphi[2], rzphi[1], time,
+                                  &sim.B_data) ) {
+            break;
+        }
+        nextrzphi[0] = rzphi[0] - step * psidpsi[1];          // R
+        nextrzphi[1] = rzphi[1] - step * psidpsi[3];          // z
+        nextrzphi[2] = rzphi[2] - step/rzphi[0] * psidpsi[2]; /* phi. phidpsi[2]
+                                                               is dimensionless,
+                                                               must divide by R
+                                                               because in
+                                                               cylindrical
+                                                               co-ordinates   */
+
+        /* Check that phi remained inside the sector. If not, use the value on
+           the sector boundary. */
+        if (nextrzphi[2] > phimax) {nextrzphi[2] = phimax;}
+        if (nextrzphi[2] < phimin) {nextrzphi[2]=phimin;}
+
+        /* Check convergence (phi difference must be multiplied by R to get
+        the arc length which has dimensions of L) */
+        if(sqrt( (nextrzphi[0] - rzphi[0]) * (nextrzphi[0] - rzphi[0])
+                + (nextrzphi[1] - rzphi[1]) * (nextrzphi[1] - rzphi[1])
+                + rzphi[0]*(nextrzphi[2] - rzphi[2]) *
+                rzphi[0]*(nextrzphi[2] - rzphi[2])) < tol){
+            psi[0] = psidpsi[0];
+            rzphi[0] = nextrzphi[0];
+            rzphi[1] = nextrzphi[1];
+            rzphi[2] = nextrzphi[2];
+
+            // Add a bit of padding
+            B_field_eval_psi_dpsi(
+                psidpsi, rzphi[0], rzphi[2], rzphi[1], time, &sim.B_data);
+            psi[0] = psi[0]
+                + (tol * ( psidpsi[1] + psidpsi[2]/rzphi[0] + psidpsi[3] ));
+            break;
+        }
+
+        rzphi[0] = nextrzphi[0];
+        rzphi[1] = nextrzphi[1];
+        rzphi[2] = neztrzphi[2];
+        iter++;
+
+        if(iter == maxiter) {
+            break;
+        }
+    }
+}
+
 /**
  * @brief Evaluate electric field vector at given coordinates.
  *

@@ -494,7 +494,7 @@ a5err B_field_eval_B_dB(real B_dB[15], real r, real phi, real z, real t,
  *
  * @param rz pointer where axis R and z [m] values will be stored
  * @param Bdata pointer to magnetic field data struct
- * @param phi phi coordinate [deg]
+ * @param phi phi coordinate [rad]
  *
  * @return Magnetic axis R-coordinate [m]
  */

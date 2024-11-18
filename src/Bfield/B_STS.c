@@ -414,7 +414,7 @@ a5err B_STS_eval_B_dB(real B_dB[12], real r, real phi, real z,
  *
  * @param rz pointer where axis R and z [m] values will be stored
  * @param Bdata pointer to magnetic field data struct
- * @param phi phi coordinate [deg]
+ * @param phi phi coordinate [rad]
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
