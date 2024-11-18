@@ -783,7 +783,7 @@ class LibAscot:
         return (r, z)
 
     @parseunits(rho="1", theta="rad", phi="rad", time="s")
-    def input_findpsi0(self, psi1):
+    def input_findpsi0(self, psi1, nphi=None, phimin=None, phimax=None):
         """Find poloidal flux on axis value numerically.
 
         Before this function is called, the magnetic field data should contain
@@ -800,6 +800,25 @@ class LibAscot:
 
             This value is used to deduce whether the algorithm searches minimum
             or maximum value when finding psi0.
+        nphi : int, optional
+            Number of B field grid points in the phi direction between phimin
+            and phimax including the end points of this interval.
+
+            Needed for 3D fields.
+            For clarity: if the first and the last grid point in the interval
+            are the same point, this point is counted twice.
+            Example: you have three grid points at 0 deg, 120 deg and 240 deg
+            and you use phimin=0, phimax=2pi. The input argument nphi is then
+            four instead of three because at 2pi you count again the first grid
+            point.
+        phimin : float, optional
+            Minimum of the phi interval.
+
+            Needed for 3D fields.
+        phimax : float, optional
+            Maximum of the phi interval.
+
+            Needed for 3D fields.
 
         Returns
         -------
@@ -818,28 +837,93 @@ class LibAscot:
             If evaluation in libascot.so failed.
         """
         self._requireinit("bfield")
-        ax = self._eval_bfield(
-            1.0*unyt.m, 0.0*unyt.rad, 0.0*unyt.m, 0.0*unyt.s, evalaxis=True)
-        psi0 = self._eval_bfield(
-            ax["axisr"], 0.0*unyt.rad, ax["axisz"], 0.0*unyt.s, evalrho=True)
-
-        psi = np.nan * np.zeros((1,), dtype="f8") * unyt.Wb
-        rz  = np.zeros((2,), dtype="f8") * unyt.m
-        rz[0] = ax["axisr"]
-        rz[1] = ax["axisz"]
-
         tol  = 1e-8
         step = 1e-3
         maxiter = 10**6
-        ascent  = int(psi1 < psi0["psi"])
+        if nphi is None and phimin is None and phimax is None:
+            #2D case
+            ax = self._eval_bfield(
+                1.0*unyt.m, 0.0*unyt.rad, 0.0*unyt.m, 0.0*unyt.s, evalaxis=True)
+            psi0 = self._eval_bfield(
+                ax["axisr"], 0.0*unyt.rad, ax["axisz"], 0.0*unyt.s, evalrho=True)
+            ascent  = int(psi1 < psi0["psi"])
 
-        fun = _LIBASCOT.libascot_B_field_gradient_descent
-        fun.restype  = None
-        fun.argtypes = [PTR_SIM, PTR_REAL, PTR_REAL, ctypes.c_double,
-                        ctypes.c_double, ctypes.c_int, ctypes.c_int]
-        fun(ctypes.byref(self._sim), psi, rz, step, tol, maxiter, ascent)
+            psi = np.nan * np.zeros((1,), dtype="f8") * unyt.Wb
+            rz  = np.zeros((2,), dtype="f8") * unyt.m
+            rz[0] = ax["axisr"]
+            rz[1] = ax["axisz"]
 
-        if np.isnan(psi[0]):
-            raise RuntimeError("Failed to converge.")
+            fun = _LIBASCOT.libascot_B_field_gradient_descent
+            fun.restype  = None
+            fun.argtypes = [PTR_SIM, PTR_ARR,
+                            PTR_REAL, PTR_REAL, ctypes.c_double, ctypes.c_double,
+                            ctypes.c_int, ctypes.c_int]
+            fun(ctypes.byref(self._sim), self._bfield_offload_array,
+                psi, rz, step, tol, maxiter, ascent)
 
-        return (rz[0], rz[1], psi)
+            if np.isnan(psi[0]):
+                raise RuntimeError("Failed to converge.")
+
+            return (rz[0], rz[1], psi)
+        elif nphi is not None and phimin is not None and phimax is not None:
+            #3D case
+
+            # Divide the 3D field into sectors (phi slices) and find the minimum
+            # inside each sector.
+            sectoredges = np.linspace(phimin,phimax,nphi)
+            nsector = len(sectoredges)-1                      #number of sectors
+            psi = np.nan * np.zeros((1,), dtype="f8") * unyt.Wb
+            rzphi  = np.zeros((3,), dtype="f8")
+            rzphi[0:2] *= unyt.m
+            rzphi[2] *= unyt.radian
+
+            psiconverged = np.nan * np.zeros((1,), dtype="f8") * unyt.Wb
+            rzphiconverged  = np.zeros((3,), dtype="f8")
+            rzphiconverged[0:2] *= unyt.m
+            rzphiconverged[2] *= unyt.radian
+
+            fun = _LIBASCOT.libascot_B_field_gradient_descent_3d
+            fun.restype  = None
+            fun.argtypes = [PTR_SIM, PTR_ARR,
+                            PTR_REAL, PTR_REAL, ctypes.c_double,
+                            ctypes.c_double, ctypes.c_double,
+                            ctypes.c_double, ctypes.c_int, ctypes.c_int]
+
+            for i in range(nsector):
+                phiminsector = sectoredges[i] * unyt.radian
+                phimaxsector = sectoredges[i+1] * unyt.radian
+                phi = 0.5*(phiminsector + phimaxsector)
+                ax = self._eval_bfield(
+                    1.0*unyt.m, phi*unyt.rad, 0.0*unyt.m, 0.0*unyt.s,
+                    evalaxis=True)
+                psi0 = self._eval_bfield(
+                    ax["axisr"], phi*unyt.rad, ax["axisz"], 0.0*unyt.s,evalrho=True)
+                ascent  = int(psi1 < psi0["psi"])
+
+                rzphi[0] = ax["axisr"]
+                rzphi[1] = ax["axisz"]
+                rzphi[2] = phi        #using sector average phi as initial guess
+
+                fun(ctypes.byref(self._sim), self._bfield_offload_array,
+                    psi, rzphi, phiminsector, phimaxsector, step, tol,
+                    maxiter, ascent)
+
+                if np.isnan(psi[0]):
+                    raise RuntimeError("Failed to converge.")
+
+                if (psi[0] < psiconverged[0]) and ascent == 0:
+                    psiconverged[0] = psi[0]
+                    rzphiconverged[:] = rzphi[:]
+                elif (psi[0] > psiconverged[0]) and ascent == 1:
+                    psiconverged[0] = psi[0]
+                    rzphiconverged[:] = rzphi[:]
+
+                psi *= np.nan    #reset
+            # Note: rzphiconverged[2] (phi) is not returned!
+            return (rzphiconverged[0], rzphiconverged[1], psiconverged)
+        else:
+            #Missing inputs for 3D or unnecessary inputs for 2D
+            raise ValueError("All arguments (nphi, phimin, phimax) are needed "
+                             "for 3D fields. For 2D fields, none of these "
+                             "should be provided.\n\nYou did an oopsie. Search "
+                             "your feelings. You know it to be true.")
