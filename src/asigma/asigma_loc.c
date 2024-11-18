@@ -427,7 +427,7 @@ a5err asigma_loc_eval_bms(
                 int interperr = \
                         interp3Dcomp_eval_f(
                             &sigmav, &asigma_data->BMSsigmav[i_reac],
-                            E_eV/anum[i_spec], znum[i_spec] * n_i[i_spec], T_e);
+                            E_eV/a_1, znum[i_spec] * n_i[i_spec], T_e);
 
                 /* Interpolation error means the data has to be extrapolated */
                 if(interperr) {
