@@ -308,7 +308,7 @@ void libascot_B_field_gradient_descent_3d(
         step = -1 * step;
     }
 
-    time = 0.0;
+    real time = 0.0;
     real psidpsi[4], nextrzphi[3];
     B_field_eval_psi_dpsi(psidpsi, rzphi[0], rzphi[2], rzphi[1], time,
         &sim.B_data);
@@ -354,7 +354,7 @@ void libascot_B_field_gradient_descent_3d(
 
         rzphi[0] = nextrzphi[0];
         rzphi[1] = nextrzphi[1];
-        rzphi[2] = neztrzphi[2];
+        rzphi[2] = nextrzphi[2];
         iter++;
 
         if(iter == maxiter) {
