@@ -874,13 +874,7 @@ class LibAscot:
             nsector = len(sectoredges)-1                      #number of sectors
             psi = np.nan * np.zeros((1,), dtype="f8") * unyt.Wb
             rzphi  = np.zeros((3,), dtype="f8")
-            rzphi[0:2] *= unyt.m
-            rzphi[2] *= unyt.radian
-
             psiconverged = np.nan * np.zeros((1,), dtype="f8") * unyt.Wb
-            rzphiconverged  = np.zeros((3,), dtype="f8")
-            rzphiconverged[0:2] *= unyt.m
-            rzphiconverged[2] *= unyt.radian
 
             fun = _LIBASCOT.libascot_B_field_gradient_descent_3d
             fun.restype  = None
@@ -894,10 +888,10 @@ class LibAscot:
                 phimaxsector = sectoredges[i+1] * unyt.radian
                 phi = 0.5*(phiminsector + phimaxsector)
                 ax = self._eval_bfield(
-                    1.0*unyt.m, phi*unyt.rad, 0.0*unyt.m, 0.0*unyt.s,
+                    1.0*unyt.m, phi, 0.0*unyt.m, 0.0*unyt.s,
                     evalaxis=True)
                 psi0 = self._eval_bfield(
-                    ax["axisr"], phi*unyt.rad, ax["axisz"], 0.0*unyt.s,evalrho=True)
+                    ax["axisr"], phi, ax["axisz"], 0.0*unyt.s,evalrho=True)
                 ascent  = int(psi1 < psi0["psi"])
 
                 rzphi[0] = ax["axisr"]
@@ -911,16 +905,23 @@ class LibAscot:
                 if np.isnan(psi[0]):
                     raise RuntimeError("Failed to converge.")
 
-                if (psi[0] < psiconverged[0]) and ascent == 0:
+                if i==0:
+                    #Best solution thus far
+                    psiconverged[0]=psi[0]
+                    rzphiconverged = rzphi
+                elif (psi[0] < psiconverged[0]) and ascent == 0:
+                    #Hold up, fount something better
                     psiconverged[0] = psi[0]
                     rzphiconverged[:] = rzphi[:]
                 elif (psi[0] > psiconverged[0]) and ascent == 1:
+                    #Hold up, fount something better
                     psiconverged[0] = psi[0]
                     rzphiconverged[:] = rzphi[:]
 
-                psi *= np.nan    #reset
+                psi *= np.nan    #reset for next iteration
+
             # Note: rzphiconverged[2] (phi) is not returned!
-            return (rzphiconverged[0], rzphiconverged[1], psiconverged)
+            return (rzphiconverged[0]*unyt.m, rzphiconverged[1]*unyt.m, psiconverged)
         else:
             #Missing inputs for 3D or unnecessary inputs for 2D
             raise ValueError("All arguments (nphi, phimin, phimax) are needed "
