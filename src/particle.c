@@ -1771,7 +1771,6 @@ void particle_offload_fo(particle_simd_fo* p) {
  */
 void particle_onload_fo(particle_simd_fo* p) {
     GPU_UPDATE_FROM_DEVICE(
-        p[0:1],\
         p->running   [0:p->n_mrk],\
         p->r         [0:p->n_mrk],\
         p->phi       [0:p->n_mrk],\
