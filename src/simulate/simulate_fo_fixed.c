@@ -194,7 +194,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         GPU_PARALLEL_LOOP_ALL_LEVELS_REDUCTION(n_running)
         for(int i = 0; i < p.n_mrk; i++)
         {
-            if(&p->running[i] > 0) n_running++;
+            if(&p.running[i] > 0) n_running++;
         }
 #else
         n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
