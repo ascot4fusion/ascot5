@@ -855,11 +855,9 @@ class LibAscot:
 
             fun = _LIBASCOT.libascot_B_field_gradient_descent
             fun.restype  = None
-            fun.argtypes = [PTR_SIM, PTR_ARR,
-                            PTR_REAL, PTR_REAL, ctypes.c_double, ctypes.c_double,
-                            ctypes.c_int, ctypes.c_int]
-            fun(ctypes.byref(self._sim), self._bfield_offload_array,
-                psi, rz, step, tol, maxiter, ascent)
+            fun.argtypes = [PTR_SIM, PTR_REAL, PTR_REAL, ctypes.c_double,
+                            ctypes.c_double, ctypes.c_int, ctypes.c_int]
+            fun(ctypes.byref(self._sim), psi, rz, step, tol, maxiter, ascent)
 
             if np.isnan(psi[0]):
                 raise RuntimeError("Failed to converge.")
@@ -878,10 +876,9 @@ class LibAscot:
 
             fun = _LIBASCOT.libascot_B_field_gradient_descent_3d
             fun.restype  = None
-            fun.argtypes = [PTR_SIM, PTR_ARR,
-                            PTR_REAL, PTR_REAL, ctypes.c_double,
-                            ctypes.c_double, ctypes.c_double,
-                            ctypes.c_double, ctypes.c_int, ctypes.c_int]
+            fun.argtypes = [PTR_SIM, PTR_REAL, PTR_REAL, ctypes.c_double,
+                            ctypes.c_double, ctypes.c_double, ctypes.c_double,
+                            ctypes.c_int, ctypes.c_int]
 
             for i in range(nsector):
                 phiminsector = sectoredges[i] * unyt.radian
@@ -898,7 +895,7 @@ class LibAscot:
                 rzphi[1] = ax["axisz"]
                 rzphi[2] = phi        #using sector average phi as initial guess
 
-                fun(ctypes.byref(self._sim), self._bfield_offload_array,
+                fun(ctypes.byref(self._sim),
                     psi, rzphi, phiminsector, phimaxsector, step, tol,
                     maxiter, ascent)
 

@@ -296,13 +296,9 @@ void libascot_B_field_gradient_descent(
  * @param ascent if true the algorithm instead ascends to find psi0 (> psi1)
  */
 void libascot_B_field_gradient_descent_3d(
-    sim_offload_data* sim_offload_data, real* B_offload_array, real psi[1],
+    sim_data* sim, real psi[1],
     real rzphi[3], real phimin, real phimax, real step, real tol, int maxiter,
     int ascent) {
-
-    sim_data sim;
-    B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
-                 B_offload_array);
 
     if(ascent) {
         step = -1 * step;
@@ -311,12 +307,12 @@ void libascot_B_field_gradient_descent_3d(
     real time = 0.0;
     real psidpsi[4], nextrzphi[3];
     B_field_eval_psi_dpsi(psidpsi, rzphi[0], rzphi[2], rzphi[1], time,
-        &sim.B_data);
+        &sim->B_data);
 
     int iter = 0;
     while(1) {
         if( B_field_eval_psi_dpsi(psidpsi, rzphi[0], rzphi[2], rzphi[1], time,
-                                  &sim.B_data) ) {
+                                  &sim->B_data) ) {
             break;
         }
         nextrzphi[0] = rzphi[0] - step * psidpsi[1];          // R
@@ -346,7 +342,7 @@ void libascot_B_field_gradient_descent_3d(
 
             // Add a bit of padding
             B_field_eval_psi_dpsi(
-                psidpsi, rzphi[0], rzphi[2], rzphi[1], time, &sim.B_data);
+                psidpsi, rzphi[0], rzphi[2], rzphi[1], time, &sim->B_data);
             psi[0] = psi[0]
                 + (tol * ( psidpsi[1] + psidpsi[2]/rzphi[0] + psidpsi[3] ));
             break;
