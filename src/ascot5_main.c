@@ -350,9 +350,6 @@ int offload_and_simulate(
     sim_data* sim, int n_tot, int n_proc, particle_state* pin,
     int* n_gather, particle_state** pout) {
 
-    /* Empty message buffer before proceeding to actual simulation */
-    fflush(stdout);
-
     /* Actual marker simulation happens here. */
     real t_sim_start = omp_get_wtime();
     simulate(n_proc, pin, sim);

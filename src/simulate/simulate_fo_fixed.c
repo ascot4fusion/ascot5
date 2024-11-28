@@ -60,7 +60,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     particle_allocate_fo(&p0, mrk_array_size);
 
     /* Init dummy markers */
-    for(int i=0; i< mrk_array_size; i++) {
+    for(int i = 0; i < mrk_array_size; i++) {
         p.id[i] = -1;
         p.running[i] = 0;
     }
@@ -73,7 +73,6 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     for(int i = 0; i < mrk_array_size; i++) {
         if(cycle[i] > 0) {
             hin[i] = simulate_fo_fixed_inidt(sim, &p, i);
-
         }
     }
 
@@ -90,8 +89,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     particle_offload_fo(&p);
     particle_offload_fo(&p0);
     real* rnd = (real*) malloc(3*mrk_array_size*sizeof(real));
-    GPU_MAP_TO_DEVICE(
-        cycle[0:mrk_array_size], hin[0:mrk_array_size], rnd[0:3*mrk_array_size])
+    GPU_MAP_TO_DEVICE(hin[0:mrk_array_size], rnd[0:3*mrk_array_size])
     while(n_running > 0) {
         /* Store marker states */
         GPU_PARALLEL_LOOP_ALL_LEVELS
@@ -194,7 +192,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         GPU_PARALLEL_LOOP_ALL_LEVELS_REDUCTION(n_running)
         for(int i = 0; i < p.n_mrk; i++)
         {
-            if(&p.running[i] > 0) n_running++;
+            if(p.running[i] > 0) n_running++;
         }
 #else
         n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);

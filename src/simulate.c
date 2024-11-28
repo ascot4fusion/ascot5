@@ -166,6 +166,7 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
 
     print_out(VERBOSE_NORMAL, "Simulation begins; %d threads.\n",
               omp_get_max_threads());
+    fflush(stdout);
 
     /**************************************************************************/
     /* 4. Threads are spawned. One thread is dedicated for monitoring         */
