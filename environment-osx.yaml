@@ -2,13 +2,10 @@ name: ascot-osx
 channels:
   - conda-forge
 dependencies:
-  - c-compiler  # latest is 1.8 which is clang-17
+  - c-compiler
   - make
   - glib
-  # - libgomp # [not osx]
   - python>=3.10
-  # - hdf5=*=*openmp*
-  # - mpi=*=*openmp*
   - hdf5
   - zlib
   - setuptools
@@ -17,7 +14,6 @@ dependencies:
   - numpy
   - scipy
   - h5py
-  # - mpi4py
   - xmlschema
   - unyt
   - wurlitzer
@@ -42,12 +38,8 @@ dependencies:
   - clang-tools==17*
   - libclang==17.*
   - llvm-openmp==17.*
-  # - libsanitizer # [not osx]
   - pylint
   - pip:
-    - libclang==17.*  # more updated
-  #  - clang==17.*  this package and the above do the same thing
-  #  - ctypeslib2 # default is broken on osx
-  # PR branch for macos + clang-16+ support
+    - libclang==17.*
+    # PR branch for macos + clang-16+ support
     - ctypeslib2 @ git+https://github.com/dgarnier/ctypeslib.git@anon_union_macos
-    

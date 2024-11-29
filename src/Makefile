@@ -62,26 +62,29 @@ else ifeq ($(RANDOM),LCG)
 	DEFINES+=-DRANDOM_LCG
 endif
 
+CFLAGS+=-Wall -fPIC -std=c11 -D_XOPEN_SOURCE=700 $(DEFINES) $(FLAGS)
+
 ifeq ($(DEBUG),1)
 	CFLAGS+=-g -fsanitize=address
 else
 	CFLAGS+=-O2
 endif
-CFLAGS+=-Wall -fPIC -std=c11 -D_XOPEN_SOURCE=700 \
-	$(DEFINES) $(FLAGS)
 
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-	CFLAGS+=-D_DARWIN_C_SOURCE # for MONOTONIC_CLOCK_RAW
-	H5_INCLUDES=$(shell dirname $(shell which h5cc))/../include
-	CLANG2PY_ARGS=$(CFLAGS) -I$(H5_INCLUDES)
-# For MacOS, we need to add the clang library path to the environment
-# since built-in clang doesn't have openmp support enabled by default
-# ascot2py.py: export CLANG_LIBRARY_PATH=$(shell $(CC) --print-resource-dir)/../..
+ifeq ($(CC), $(filter $(CC), h5cc h5pcc))
+	CFLAGS += -shlib
 endif
 
+UNAME_S := $(shell uname -s)
+
+# macOS-specific adjustments
+ifeq ($(UNAME_S),Darwin)
+	CFLAGS+=-D_DARWIN_C_SOURCE
+	H5_INCLUDES=$(shell dirname $(shell which h5cc))/../include
+	CLANG2PY_ARGS=$(CFLAGS) -I$(H5_INCLUDES)
+endif
+# Linux/other OS adjustments
 ifeq ($(UNAME_S),Linux)
-	CFLAGS+=-lm
+	CFLAGS+=-lm -shared
 	ifdef CONDA_PREFIX
 		CLANG2PY_ARGS=-I$(CONDA_PREFIX)/include/ \
 		  -I$(CONDA_PREFIX)/x86_64-conda-linux-gnu/sysroot/usr/include/
@@ -186,21 +189,6 @@ all: $(BINS)
 
 libascot: libascot.so
 	true
-
-ifeq ($(UNAME_S),Darwin)
-ifeq ($(CC), $(filter $(CC), h5cc h5pcc))
-# don't need -shared -lm on MacOS.. they are default/redundant
-# -shlib flag needed for conda installed h5cc 
-libascot.so: CFLAGS+=-fPIC -shlib
-endif
-else
-
-libascot.so: CFLAGS+=-fPIC -shared -lm
-
-ifeq ($(CC), $(filter $(CC), h5cc h5pcc))
-libascot.so: CFLAGS+=-shlib
-endif
-endif
 
 libascot.so: libascot.o ascot5_main.o libascot_mem.o afsi.o bbnbi5.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
