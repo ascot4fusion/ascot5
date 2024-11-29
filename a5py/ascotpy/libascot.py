@@ -36,13 +36,34 @@ try:
         return type(base.__name__, (base,),
                     {'from_param': classmethod(from_param)})
 
+    def _get_struct_class(struct_cname: str) -> type[ctypes.Structure]:
+        """Get the ctypes class of a struct by its C name.
+
+        Required because ctypeslib returns different names depending on the
+        version of clang used to compile the C code.
+
+        Parameters
+        ----------
+        struct_cname : str
+            Name of the struct in the C code.
+
+        Returns
+        -------
+        out : ctypes.Structure
+            The ctypes class of the struct.
+        """
+        for name, obj in ascot2py.__dict__.items():
+            if name.startswith("struct_") and struct_cname in name:
+                return obj
+        return ctypes.Structure
+
     PTR_REAL = _ndpointerwithnull(ctypes.c_double, flags="C_CONTIGUOUS")
     PTR_INT  = _ndpointerwithnull(ctypes.c_int,    flags="C_CONTIGUOUS")
-    PTR_SIM  = ctypes.POINTER(ascot2py.struct_c__SA_sim_data)
+    PTR_SIM  = ctypes.POINTER(_get_struct_class("sim_data"))
     PTR_ARR  = ctypes.POINTER(ctypes.c_double)
-    STRUCT_DIST5D        = ascot2py.struct_c__SA_dist_5D_data
-    STRUCT_AFSITHERMAL   = ascot2py.struct_c__SA_afsi_thermal_data
-    STRUCT_AFSIDATA      = ascot2py.struct_c__SA_afsi_data
+    STRUCT_DIST5D        = _get_struct_class("dist_5D_data")
+    STRUCT_AFSITHERMAL   = _get_struct_class("afsi_thermal_data")
+    STRUCT_AFSIDATA      = _get_struct_class("afsi_data")
     AFSI_REACTIONS       = ascot2py.Reaction__enumvalues
     _LIBASCOT = ascot2py._libraries['libascot.so']
 

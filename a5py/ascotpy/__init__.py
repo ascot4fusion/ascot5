@@ -12,7 +12,7 @@ import a5py.routines.plotting as a5plt
 from a5py.routines.plotting import openfigureifnoaxes, plt
 from a5py.exceptions import AscotInitException
 
-from .libascot    import LibAscot, _LIBASCOT
+from .libascot    import LibAscot, _LIBASCOT, _get_struct_class
 from .libsimulate import LibSimulate
 from .libproviders import LibProviders
 
@@ -56,11 +56,11 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
 
         # Initialize attributes
         self._nmrk = ctypes.c_int32()
-        self._inistate = ctypes.POINTER(ascot2py.struct_c__SA_particle_state)()
-        self._endstate = ctypes.POINTER(ascot2py.struct_c__SA_particle_state)()
+        self._inistate = ctypes.POINTER(_get_struct_class("particle_state"))()
+        self._endstate = ctypes.POINTER(_get_struct_class("particle_state"))()
         self._diag_occupied = False
 
-        self._sim = ascot2py.struct_c__SA_sim_data()
+        self._sim = _get_struct_class("sim_data")()
         self._mute = "no"
 
     def _initmpi(self, mpirank, mpisize, mpiroot=0):
