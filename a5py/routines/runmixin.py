@@ -780,6 +780,8 @@ class RunMixin(DistMixin):
             Dist.toroidalcurrent(self._root._ascot, mass, dist, out)
         if "parallelcurrent" in moments:
             Dist.parallelcurrent(self._root._ascot, mass, dist, out)
+        if "currentdrive" in moments:
+            Dist.parallelcurrent(self._root._ascot, mass, dist, out, drive=True)
         if "pressure" in moments:
             Dist.pressure(mass, dist, out)
         if "powerdep" in moments:

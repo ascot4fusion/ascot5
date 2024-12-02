@@ -349,6 +349,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             "Electron density",
             "te":
             "Electron temperature",
+            "zeff":
+            "Efective charge, i.e., sum (n_i * Z_i^2) / ne",
             "n0":
             "Neutral density",
             "alphaeig":
@@ -522,8 +524,10 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             out["curlbr"]   = out["bzdphi"] / r - out["bphidz"]
             out["curlbphi"] = out["brdz"] - out["bzdr"]
             out["curlbz"]   = (out["bphi"] - out["brdphi"]) / r + out["bphidr"]
-        if any(q in qnt for q in ["axisr", "axisz"]):
+        if any(q in qnt for q in ["axisr", "axisz", "rminor"]):
             out.update(self._eval_bfield(r, phi, z, t, evalaxis=True))
+            out["rminor"] = np.sqrt(  ( out["axisr"] - r )**2
+                                    + ( out["axisz"] - z )**2 )
         if any(q in qnt for q in ["er", "ephi", "ez"]):
             out.update(self._eval_efield(r, phi, z, t))
         if any(q in qnt for q in ["n0"]):
@@ -551,7 +555,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
 
         ni = ["ni" + str(i+1) for i in range(99)]
         ti = ["ti" + str(i+1) for i in range(99)]
-        if any(q in qnt for q in ["ne", "te"] + ni + ti):
+        if any(q in qnt for q in ["ne", "te", "zeff"] + ni + ti):
             out.update(self._eval_plasma(r, phi, z, t))
 
         for q in list(out.keys()):
@@ -861,7 +865,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         else:
             return volume
 
-    def input_eval_safetyfactor(self, rho, nth=10000):
+    def input_eval_safetyfactor(self, rho, nth=10000, return_ftrap=False):
         """Evaluate safety factor and associated quantities.
 
         This function most likely works for tokamaks only.
@@ -873,6 +877,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
 
             Note that evaluating it near the axis or exactly at the separatrix
             may yield mess.
+        return_bminmax : bool, optional
+            Return also minimum and maximum values of B along the flux surface.
 
         Returns
         -------
@@ -883,7 +889,10 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             enclosed toroidal current.
         gprof : array_like, (n,)
             This is just R * Bphi which is constant since Bphi ~ 1/R.
+        ftrap : array_like, (n,)
+            Trapped particle fraction if `return_ftrap` is true.
         """
+        ftrap = np.ones(rho.shape)
         qprof = np.zeros(rho.shape)
         Iprof = np.zeros(rho.shape) * unyt.m*unyt.T
         gprof = np.zeros(rho.shape) * unyt.m*unyt.T
@@ -910,12 +919,24 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             # enclosed toroidal current)
             Iprof[i] = np.sum( ds * bpol ) / ( 2*np.pi )
 
-            # g = R*Bphi, since Bphi ~ 1/R this is a constant
+            # g = R*Bphi. Since Bphi ~ 1/R, this is a constant
             gprof[i] = r[0] * bphi[0]
 
             # The (global) safety factor q(psi)
             qprof[i] = np.sum( ds * gprof[i] / ( r**2 * bpol ) ) / ( 2*np.pi )
 
+            # Trapped particle fraction
+            dth = np.diff(thgrid)
+            bmax = np.max(bnorm)
+            b_favg = np.sum( bnorm * dth / bpol ) / np.sum( dth / bpol )
+            dtau = 1.0 / 99
+            for tau in np.linspace(0,1,100):
+                favg = ( np.sum( np.sqrt(1 - tau * bnorm / bmax) * dth / bpol )
+                        / np.sum( dth / bpol ) )
+                ftrap[i] -= (3.0/4) * (b_favg / bmax)**2 * tau * dtau / favg
+
+        if return_ftrap:
+            return qprof, Iprof, gprof, ftrap
         return qprof, Iprof, gprof
 
     def _input_eval_orbitboundaries(self, mugrid, ptorgrid, ekin):

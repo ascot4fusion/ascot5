@@ -260,7 +260,7 @@ class LibAscot:
         # Allocate enough space for electrons and all ion species.
         m3 = unyt.m**3
         eV = unyt.eV
-        nspecies  = self.input_getplasmaspecies()[0] + 1
+        nspecies, _, _, _, charge  = self.input_getplasmaspecies()
         rawdens = (np.zeros((Neval*nspecies,), dtype="f8") + np.nan) / m3
         rawtemp = (np.zeros((Neval*nspecies,), dtype="f8") + np.nan) * eV
 
@@ -274,9 +274,12 @@ class LibAscot:
         out = {}
         out["ne"] = rawdens[0:Neval]
         out["te"] = rawtemp[0:Neval]
+        out["zeff"] = rawdens[0:Neval] * 0
         for i in range(1, nspecies):
             out["ni"+str(i)] = rawdens[(Neval)*i:(Neval)*(i+1)]
             out["ti"+str(i)] = rawtemp[(Neval)*i:(Neval)*(i+1)]
+            out["zeff"] += out["ni"+str(i)] * charge[i]**2
+        out["zeff"] /= out["ne"]
 
         return out
 
