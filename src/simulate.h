@@ -20,6 +20,7 @@
 #include "nbi.h"
 #include "diag.h"
 #include "random.h"
+#include "rf_fields_fo.h"
 #include "simulate/mccc/mccc.h"
 
 /**
@@ -66,6 +67,7 @@ typedef struct {
     asigma_data asigma_data;   /**< Atomic sigma data interface               */
     nbi_data nbi_data;         /**< Neutral beam injection data interface     */
     diag_data diag_data;       /**< Diagnostics data interface                */
+    RF2D_fields rf_data;       /**< RF field data interface                   */
 
     /* Metadata */
     random_data random_data;   /**< Random number generator                   */
@@ -144,6 +146,7 @@ typedef struct {
     char qid_mhd[256];     /**< MHD QID if active not used     */
     char qid_asigma[256];  /**< Asigma QID if active not used  */
     char qid_nbi[256];     /**< NBI QID if active not used     */
+    char qid_rffield[256]; /**< RF field QID if active not used */
 
 } sim_data;
 

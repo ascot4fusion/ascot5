@@ -33,6 +33,7 @@
 #include "hdf5io/hdf5_transcoef.h"
 #include "hdf5io/hdf5_asigma.h"
 #include "hdf5io/hdf5_nbi.h"
+#include "hdf5io/hdf5_rffield.h"
 
 int hdf5_get_active_qid(hid_t f, const char* group, char qid[11]);
 
@@ -265,6 +266,34 @@ int hdf5_interface_read_input(sim_data* sim, int input_active,
             return 1;
         }
         print_out(VERBOSE_IO, "Atomic reaction data read and initialized.\n");
+    }
+
+    if(input_active & hdf5_input_rffield){
+        if(!hdf5_find_group(f, "/rffield/")) {
+
+            print_out(VERBOSE_IO, "\nReading RF field input.\n");
+
+            if(sim->qid_rffield[0] != '\0') {
+                strcpy(qid, sim->qid_rffield);
+            }
+            else if( hdf5_get_active_qid(f, "/rffield/", qid) ) {
+                print_err("Error: Active QID not declared.");
+                return 1;
+            }
+
+            strcpy(sim->qid_rffield, qid);
+            print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+            if(hdf5_input_rffield(f, &sim->rffield_data, qid)) {
+                print_err("Error: Failed to initialize RF field data.\n");
+                return 1;
+            }
+            print_out(VERBOSE_IO, "RF field data read and initialized.\n");
+
+            if(sim->mode != simulate_mode_fo){
+                print_err("Error: RF fields are only supported in FO mode.\n");
+                return 1;
+            }
+        }
     }
 
     if(input_active & hdf5_input_nbi) {
