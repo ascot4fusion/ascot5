@@ -34,6 +34,7 @@ typedef struct RF2D_fields{
     interp2D_data* introbj[12];   /**< Simplified pointer to the interpolation objects.           */
     int ntor;                  /**< Toroidal mode number.                           */
     int omega;                 /**< Wave frequency                                  */
+    int initialized;       /**< Flag to check if the object has been initialized */
 }RF2D_fields;
 
 

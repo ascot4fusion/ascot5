@@ -69,6 +69,8 @@ int RF2D_init(RF2D_fields* rfdata, real rmin, real rmax, int nr, \
     
     free(rfdata->introbj);
     free(data);
+
+    rfdata->initialized = 1;
     return err;
 
 }
@@ -89,6 +91,7 @@ void RF2D_free(RF2D_fields* rfdata){
     free(rfdata->Bphi_imag.c);
     rfdata->ntor = 0;
     rfdata->omega = 0;
+    rfdata->initialized = 0;
 
     // Clearing the pointers.
     for(int i = 0; i < 12; i++){
@@ -97,6 +100,8 @@ void RF2D_free(RF2D_fields* rfdata){
 }
 
 void RF_offload(RF2D_fields* rfdata){
+    if(!rfdata->initialized) return; // Nothing to do here.
+
     int nsize = rfdata->Er_real.n_x * rfdata->Er_real.n_y;
     // Offload the data to the accelerator.
     GPU_MAP_TO_DEVICE(rfdata->Er_real, rfdata->Er_real.c[0:nsize*NSIZE_COMP2D], \
@@ -125,6 +130,18 @@ a5err RF_field_eval(real E[3], real B[3], real r, real phi,\
     // 0:Er_real, 1:Er_imag, 2:Ephi_real, 3:Ephi_imag, 4:Ez_real, 5:Ez_imag,
     // 6:Br_real, 7:Br_imag, 8:Bphi_real, 9:Bphi_imag, 10:z_real, 11:Bz_imag
     real interpolated[12];
+
+    if(!rfdata->initialized){
+        // The RF fields have not been initialized, so
+        // RF fields are not available.
+        E[0] = 0.0;
+        E[1] = 0.0;
+        E[2] = 0.0;
+        B[0] = 0.0;
+        B[1] = 0.0;
+        B[2] = 0.0;
+        return 0;
+    }
 
 
     // Interpolating the values.
