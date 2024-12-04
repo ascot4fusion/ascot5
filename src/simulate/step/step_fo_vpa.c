@@ -15,6 +15,7 @@
 #include "../../boozer.h"
 #include "../../mhd.h"
 #include "../../particle.h"
+#include "rf_fields_fo.h"
 #include "step_fo_vpa.h"
 
 /**
@@ -33,7 +34,7 @@
  * @param Edata pointer to electric field data
  */
 void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
-                 E_field_data* Edata) {
+                 E_field_data* Edata, RF2D_fields* rfdata) {
     GPU_DATA_IS_MAPPED(h[0:p->n_mrk])
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < p->n_mrk; i++) {
@@ -71,6 +72,19 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
             if(!errflag) {
                 errflag = E_field_eval_E(Erpz, posrpz[0], posrpz[1], posrpz[2],
                                          t0 + h[i]/2.0, Edata, Bdata);
+            }
+
+            // We add now the perturbation due to the wave fields.
+            real Ewave[3], Bwave[3];
+            if(!errflag) {
+                errflag = RF_field_eval(Ewave, Bwave, posrpz[0], posrpz[1],
+                                        posrpz[2], t0 + h[i]/2, rfdata);
+                Erpz[0] += Ewave[0];
+                Erpz[1] += Ewave[1];
+                Erpz[2] += Ewave[2];
+                Brpz[0] += Bwave[0];
+                Brpz[1] += Bwave[1];
+                Brpz[2] += Bwave[2];
             }
 
             real fposxyz[3]; // final position in cartesian coordinates
@@ -209,8 +223,9 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
  * @param boozer pointer to boozer data
  * @param mhd pointer to MHD data
  */
-void step_fo_vpa_mhd(particle_simd_fo* p, real* h, B_field_data* Bdata,
-                     E_field_data* Edata, boozer_data* boozer, mhd_data* mhd) {
+void step_fo_vpa_mhd(particle_simd_fo* p, real* h, B_field_data* Bdata, 
+                     E_field_data* Edata, RF2D_fields* rfdata, 
+                     boozer_data* boozer, mhd_data* mhd) {
 
     int i;
     /* Following loop will be executed simultaneously for all i */
@@ -265,6 +280,19 @@ void step_fo_vpa_mhd(particle_simd_fo* p, real* h, B_field_data* Bdata,
             Erpz[0] += pert[3];
             Erpz[1] += pert[4];
             Erpz[2] += pert[5];
+
+            // We add now the perturbation due to the wave fields.
+            real Ewave[3], Bwave[3];
+            if(!errflag) {
+                errflag = RF_field_eval(Ewave, Bwave, posrpz[0], posrpz[1],
+                                        posrpz[2], t0 + h[i]/2, rfdata);
+                Erpz[0] += Ewave[0];
+                Erpz[1] += Ewave[1];
+                Erpz[2] += Ewave[2];
+                Brpz[0] += Bwave[0];
+                Brpz[1] += Bwave[1];
+                Brpz[2] += Bwave[2];
+            }
 
             real fposxyz[3]; // final position in cartesian coordinates
 
