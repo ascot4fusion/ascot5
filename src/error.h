@@ -50,7 +50,8 @@ typedef enum error_file {
     EF_ATOMIC            =  25, /**< Error is from atomic.c                   */
     EF_ASIGMA            =  26, /**< Error is from asigma.c                   */
     EF_ASIGMA_LOC        =  27, /**< Error is from asigma_loc.c               */
-    EF_SUZUKI            =  28  /**< Error is from suzuki.c                   */
+    EF_SUZUKI            =  28, /**< Error is from suzuki.c                   */
+    EF_RF_FIELDS_FO      =  29, /**< Error is from rf_fields_fo.c             */
 }error_file;
 
 /**
