@@ -61,7 +61,7 @@ int hdf5_efield_init(hid_t f, E_field_data* data, char* qid) {
         err = hdf5_efield_read_TC(f, &data->ETC, qid);
     }
     hdf5_gen_path("/efield/E_1DS_XXXXXXXXXX", qid, path);
-    if(hdf5_find_group(f, path) == 0) {
+    if(!hdf5_find_group(f, path)) {
         data->type = E_field_type_1DS;
         err = hdf5_efield_read_1DS(f, &data->E1DS, qid);
     }
