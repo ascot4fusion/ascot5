@@ -40,10 +40,10 @@ typedef struct RF2D_fields{
 int RF2D_init( RF2D_fields* rfdata, real rmin, real rmax, int nr, \
                real zmin, real zmax, int nz, \
                int ntor, int omega, \
-               real* Er_real, real* Ez_real, real* Ephi_real, \
-               real* Er_imag, real* Ez_imag, real* Ephi_imag, \
-               real* Br_real, real* Bz_real, real* Bphi_real, \
-                real* Br_imag, real* Bz_imag, real* Bphi_imag);
+               real* Er_real, real* Er_imag, real* Ephi_real, \
+               real* Ephi_imag, real* Ez_real, real* Ez_imag, \
+               real* Br_real, real* Br_imag, real* Bphi_real, \
+               real* Bphi_imag, real* Bz_real, real* Bz_imag);
 void RF2D_free(RF2D_fields* rfdata);
 void RF2D_offload(RF2D_fields* rfdata);
 
