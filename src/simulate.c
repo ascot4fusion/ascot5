@@ -22,6 +22,7 @@
 #include "neutral.h"
 #include "B_field.h"
 #include "E_field.h"
+#include "rf_fields_fo.h"
 #include "random.h"
 #include "simulate.h"
 #include "print.h"
@@ -136,6 +137,7 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     mhd_offload(&sim->mhd_data);
     asigma_offload(&sim->asigma_data);
     diag_offload(&sim->diag_data);
+    RF2D_offload(&sim->rf_data);
 
     /**************************************************************************/
     /* 2. Meta data (e.g. random number generator) is initialized.            */

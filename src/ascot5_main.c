@@ -151,7 +151,8 @@ int main(int argc, char** argv) {
                                   hdf5_input_efield  | hdf5_input_plasma |
                                   hdf5_input_neutral | hdf5_input_wall   |
                                   hdf5_input_marker  | hdf5_input_boozer |
-                                  hdf5_input_mhd     | hdf5_input_asigma,
+                                  hdf5_input_mhd     | hdf5_input_asigma |
+                                  hdf5_input_rffield,
                                   &p, &n_tot) ) {
         print_out0(VERBOSE_MINIMAL, sim.mpi_rank, sim.mpi_root,
                    "\nInput reading or initializing failed.\n"

@@ -15,6 +15,7 @@
 #include "../diag.h"
 #include "../B_field.h"
 #include "../E_field.h"
+#include "../rf_fields_fo.h"
 #include "../plasma.h"
 #include "../endcond.h"
 #include "../math.h"
@@ -109,11 +110,11 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         /* Volume preserving algorithm for orbit-following */
         if(sim->enable_orbfol) {
             if(sim->enable_mhd) {
-                step_fo_vpa_mhd(&p, hin, &sim->B_data, &sim->E_data,
+                step_fo_vpa_mhd(&p, hin, &sim->B_data, &sim->E_data, &sim->rf_data,
                                 &sim->boozer_data, &sim->mhd_data);
             }
             else {
-                step_fo_vpa(&p, hin, &sim->B_data, &sim->E_data);
+                step_fo_vpa(&p, hin, &sim->B_data, &sim->E_data, &sim->rf_data);
             }
         }
 
