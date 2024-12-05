@@ -15,7 +15,7 @@
 #include "../../boozer.h"
 #include "../../mhd.h"
 #include "../../particle.h"
-#include "rf_fields_fo.h"
+#include "../../rf_fields_fo.h"
 #include "step_fo_vpa.h"
 
 /**

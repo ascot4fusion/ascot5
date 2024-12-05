@@ -9,7 +9,7 @@
 #include "../../boozer.h"
 #include "../../mhd.h"
 #include "../../particle.h"
-#include "rf_fields_fo.h"
+#include "../../rf_fields_fo.h"
 
 void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
                  E_field_data* Edata, RF2D_fields* rfdata);
