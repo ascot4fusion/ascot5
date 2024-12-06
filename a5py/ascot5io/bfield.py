@@ -1297,6 +1297,197 @@ class B_STS(DataGroup):
         return out
 
     @staticmethod
+    def desc_field(h5file,phimin=0,phimax=361,nphi=361,ntheta=120,
+                   nr=100,nz=100,psipad=0.0):
+    """Load magnetic field data from a DESC equilibrium.
+
+    Notes
+    -----
+    The toroidal magnetic flux is saved in the DESC output as the variable `Psi`
+    
+    In B_STS B_STS_eval_rho defines psi as:
+        `rho[0] = sqrt( (psi - Bdata->psi0) / delta );`
+    So psi is the toroidal magnetic flux.
+
+    Values outside the LCFS are interpolatedd to the nearest values. Simulations
+        should not extend past rho>1.
+
+    Parameters
+    ----------
+    h5file : str
+        File path to DESC HDF5 output.
+    phimin : float, optional
+        Minimum toroidal angle phi (deg). Default = 0.
+    phimax : float, optional
+        Maximum toroidal angle phi (deg). Default = 360.
+    nphi : int, optional
+        Number of toroidal angle phi grid points. Default = 360.
+    ntheta : int, optional
+        Number of poloidal angle theta grid points. Default = 120.
+    nr : int, optional
+        Number of radial coordinate R grid points. Default = 100.
+    nz : int, optional
+        Number of vertical coordinate Z grid points. Default = 100.
+    psipad : float, optional
+        Padding to slightly alter flux on axis.
+
+    Returns
+    -------
+    out : dict
+        Dictionary with the following items:
+        - `'axis_nphi'`, `'b_nphi'`, `'psi_nphi'`: nphi phi bins
+        - `'b_nr'`, `'psi_nr'`: nr radial bins
+        - `'b_nz'`, `'psi_nz'`: nz z-bins
+        - `'axis_phimin'`, `'b_phimin'`, `'psi_phimin'`: phimin (deg)
+        - `'axis_phimax'`, `'b_phimax'`, `'psi_phimax'`: (phimax-phimin)*(nphi-1)/nphi (deg)
+        - `'b_rmin'`, `'psi_rmin'`: minimum radial coordinate R of output grids (m)
+        - `'b_rmax'`, `'psi_rmax'`: maximum radial coordinate R of output grids (m)
+        - `'b_zmin'`, `'psi_zmin'`: minimum vertical coordinate Z of output grids (m)
+        - `'b_zmax'`, `'psi_zmax'`: maximum vertical coordinate Z of output grids (m)
+        - `'axis_r'`: R(phi) on the magnetic axis (m)
+        - `'axis_z'`: Z(phi) on the magnetic axis (m)
+        - `'rlcfs'`: R(phi,len(u)) for the LCFS (m)
+        - `'zlcfs'`: Z(phi,len(u)) for the LCFS (m)
+        - `'psi0'`: toroidal magnetic flux on the magnetic axis (Wb)
+        - `'psi1'`: toroidal magnetic flux through the last closed flux surface (Wb)
+        - `'psi'`: toroidal magnetic flux psi(R,phi,Z) (Wb)
+        - `'br'`: radial magnetic field B_R(R,phi,Z) (T)
+        - `'bphi'`: toroidal magnetic field B_phi(R,phi,Z) (T)
+        - `'bz'`: vertical magnetic field B_Z(R,phi,Z) (T)
+    """
+        fam = dscio.load(h5file)
+        try:  # if file is an EquilibriaFamily, use final Equilibrium
+            eq = fam[-1]
+        except:  # file is already an Equilibrium
+            eq = fam
+        eq.resolution_summary()
+
+        # poloidal angle array
+        theta = np.linspace(0, 2.0 * np.pi, ntheta)  # rad
+
+        # toroidal angle array
+        # note: phi should start at 0 and end on 360, inclusive
+        phi = np.deg2rad(np.linspace(phimin, phimax, nphi, endpoint=False))  # rad
+
+        # magnetic axis
+        grid_axis = dscg.LinearGrid(rho=0.0, zeta=phi, NFP=eq.NFP)
+        data_axis = eq.compute(["R", "Z"], grid=grid_axis)
+        axis_r = data_axis["R"]  # m
+        axis_z = data_axis["Z"]  # m
+        psi0 = 0  # Wb
+
+        # boundary
+        grid_bdry = dscg.LinearGrid(rho=1.0, theta=theta, zeta=phi, NFP=eq.NFP)
+        data_bdry = eq.compute(["R", "Z"], grid=grid_bdry)
+        bdry_r = data_bdry["R"]
+        bdry_z = data_bdry["Z"]
+
+        # boundary
+        grid_bdry = dscg.LinearGrid(rho=1.0, theta=theta, zeta=phi, NFP=eq.NFP)
+        data_bdry = eq.compute(["R", "Z"], grid=grid_bdry)
+        rmin = np.min(data_bdry["R"])  # m
+        rmax = np.max(data_bdry["R"])  # m
+        zmin = np.min(data_bdry["Z"])  # m
+        zmax = np.max(data_bdry["Z"])  # m
+        psi1 = eq.Psi  # Wb
+
+        # output domain
+        R_1d = np.linspace(rmin, rmax, nr)  # m
+        Z_1d = np.linspace(zmin, zmax, nz)  # m
+        Z_2d, R_2d = np.meshgrid(Z_1d, R_1d)
+
+        # interpolate psi, B_R, B_phi, B_Z to cylindircal coordinates
+        psi = np.zeros([nr, nz, nphi])
+        br = np.zeros([nr, nz, nphi])
+        bphi = np.zeros([nr, nz, nphi])
+        bz = np.zeros([nr, nz, nphi])
+
+        # interpolate to cylindrical grid, iterate through toroidal angle
+        for k in range(nphi):
+            print(k)
+            grid = dscg.ConcentricGrid(
+                L=eq.L_grid, M=eq.M_grid, N=0, NFP=eq.NFP, node_pattern="linear")
+            grid._nodes[:, 2] = phi[k]
+            data = eq.compute(["R", "Z", "psi", "B_R", "B_phi", "B_Z"], grid=grid)
+            
+            # interpolate data inside DESC domain
+            psi[:, :, k] = si.griddata(
+                (data["R"], data["Z"]),
+                data["psi"] * 2 * np.pi,  # DESC `psi` is normalized by 2 pi
+                (R_2d, Z_2d),
+                fill_value=psi1,
+            )
+            br[:,:,k] = si.griddata((data["R"],data["Z"]),data["B_R"],(R_2d,Z_2d))
+            bphi[:,:,k]=si.griddata((data["R"],data["Z"]),data["B_phi"],(R_2d,Z_2d))
+            bz[:,:,k] = si.griddata((data["R"],data["Z"]),data["B_Z"], (R_2d,Z_2d))
+
+            #Replace br, bphi, bz NaN values outside LCFS with closest values
+            data = br[:,:,i]
+            mask = np.where(~np.isnan(data))
+            interp = NearestNDInterpolator(np.transpose(mask),data[mask])
+            filled_data = interp(*np.indices(data.shape))
+            br[:,:,i] = filled_data
+
+            data = bz[:,:,i]
+            mask = np.where(~np.isnan(data))
+            interp = NearestNDInterpolator(np.transpose(mask),data[mask])
+            filled_data = interp(*np.indices(data.shape))
+            bz[:,:,i] = filled_data
+
+            data = bphi[:,:,i]
+            mask = np.where(~np.isnan(data))
+            interp = NearestNDInterpolator(np.transpose(mask),data[mask])
+            filled_data = interp(*np.indices(data.shape))
+            bphi[:,:,i] = filled_data
+
+        # change order from [R,Z,phiang] to [R,phiang,Z]
+        psi = np.transpose(psi, (0, 2, 1))
+        br = np.transpose(br, (0, 2, 1))
+        bphi = np.transpose(bphi, (0, 2, 1))
+        bz = np.transpose(bz, (0, 2, 1))
+
+        #pad psi0 if needed
+        if psipad != 0.0:
+            print('Warning: Padding psi0 with',psipad)
+            psi0 += psipad
+
+        out = {
+            "axis_phimin": phimin,  # deg
+            "axis_phimax": np.rad2deg(phi[-1]),  # deg
+            "axis_nphi": nphi,
+            "axisr": axis_r,  # m
+            "axisz": axis_z,  # m
+            "rlcfs": bdry_r,  # m
+            "zlcfs": bdry_z,  # m
+            "b_rmin": rmin,  # m
+            "b_rmax": rmax,  # m
+            "b_nr": nr,
+            "b_zmin": zmin,  # m
+            "b_zmax": zmax,  # m
+            "b_nz": nz,
+            "b_phimin": phimin,  # deg
+            "b_phimax": np.rad2deg(phi[-1]),  # deg
+            "b_nphi": nphi,
+            "br": br,  # T
+            "bphi": bphi,  # T
+            "bz": bz,  # T
+            "psi": psi,  # Wb
+            "psi0": psi0,  # Wb
+            "psi1": psi1,  # Wb
+            "psi_rmin": rmin,  # m
+            "psi_rmax": rmax,  # m
+            "psi_nr": nr,
+            "psi_zmin": zmin,  # m
+            "psi_zmax": zmax,  # m
+            "psi_nz": nz,
+            "psi_phimin": phimin,  # deg
+            "psi_phimax": np.rad2deg(phi[-1]),  # deg
+            "psi_nphi": nphi,
+        }
+
+        return out
+
+    @staticmethod
     def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
                    b_phimin, b_phimax, b_nphi, psi0, psi1,
                    br, bphi, bz, psi,
