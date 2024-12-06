@@ -1037,7 +1037,7 @@ class B_STS(DataGroup):
         return out
 
     def costransform(theta, phi, rmnc, xm, xn):
-        """Cosine transform for VMEC/DESC coefficients
+        """Cosine transform for VMEC coefficients
 
         Returns
         -------
@@ -1056,7 +1056,7 @@ class B_STS(DataGroup):
         return f
 
     def sintransform(theta, phi, rmnc, xm, xn):
-        """Sine transform for VMEC/DESC coefficients
+        """Sine transform for VMEC coefficients
 
         Returns
         -------
@@ -1202,14 +1202,14 @@ class B_STS(DataGroup):
         bsupvmnc[-1, midx_o] = w3 * bsupvmnc[-1, midx_o] - bsupvmnc[-2, midx_o]
 
         # inverse Fourier transform to (s,u,v) coordinates
-        r_grid = costransform(theta, phi, rmnc, xm, xn)  # R (m)
-        z_grid = sintransform(theta, phi, zmns, xm, xn)  # Z (m)
-        ru_grid = sintransform(theta, phi, rumns, xm, xn)  # dR/du (m/rad)
-        zu_grid = costransform(theta, phi, zumnc, xm, xn)  # dZ/du (m/rad)
-        rv_grid = sintransform(theta, phi, rvmns, xm, xn)  # dR/dv (m/rad)
-        zv_grid = costransform(theta, phi, zvmnc, xm, xn)  # dZ/dv (m/rad)
-        bu_grid = costransform(theta, phi, bsupumnc, xm_nyq, xn_nyq)  # B^u (T)
-        bv_grid = costransform(theta, phi, bsupvmnc, xm_nyq, xn_nyq)  # B^v (T)
+        r_grid = B_STS.costransform(theta, phi, rmnc, xm, xn)  # R (m)
+        z_grid = B_STS.sintransform(theta, phi, zmns, xm, xn)  # Z (m)
+        ru_grid = B_STS.sintransform(theta, phi, rumns, xm, xn)  # dR/du (m/rad)
+        zu_grid = B_STS.costransform(theta, phi, zumnc, xm, xn)  # dZ/du (m/rad)
+        rv_grid = B_STS.sintransform(theta, phi, rvmns, xm, xn)  # dR/dv (m/rad)
+        zv_grid = B_STS.costransform(theta, phi, zvmnc, xm, xn)  # dZ/dv (m/rad)
+        bu_grid = B_STS.costransform(theta, phi, bsupumnc, xm_nyq, xn_nyq)  # B^u (T)
+        bv_grid = B_STS.costransform(theta, phi, bsupvmnc, xm_nyq, xn_nyq)  # B^v (T)
 
         # magnetic axis
         axis_r = r_grid[0, 0, :]  # m
@@ -1273,19 +1273,19 @@ class B_STS(DataGroup):
             #Replace br, bphi, bz NaN values outside LCFS with closest values
             data = br[:,:,i]
             mask = np.where(~np.isnan(data))
-            interp = NearestNDInterpolator(np.transpose(mask),data[mask])
+            interp = si.NearestNDInterpolator(np.transpose(mask),data[mask])
             filled_data = interp(*np.indices(data.shape))
             br[:,:,i] = filled_data
        
             data = bz[:,:,i]
             mask = np.where(~np.isnan(data))
-            interp = NearestNDInterpolator(np.transpose(mask),data[mask])
+            interp = si.NearestNDInterpolator(np.transpose(mask),data[mask])
             filled_data = interp(*np.indices(data.shape))
             bz[:,:,i] = filled_data
 
             data = bphi[:,:,i]
             mask = np.where(~np.isnan(data))
-            interp = NearestNDInterpolator(np.transpose(mask),data[mask])
+            interp = si.NearestNDInterpolator(np.transpose(mask),data[mask])
             filled_data = interp(*np.indices(data.shape))
             bphi[:,:,i] = filled_data
 
@@ -1466,19 +1466,19 @@ class B_STS(DataGroup):
             #Replace br, bphi, bz NaN values outside LCFS with closest values
             data = br[:,:,i]
             mask = np.where(~np.isnan(data))
-            interp = NearestNDInterpolator(np.transpose(mask),data[mask])
+            interp = si.NearestNDInterpolator(np.transpose(mask),data[mask])
             filled_data = interp(*np.indices(data.shape))
             br[:,:,i] = filled_data
 
             data = bz[:,:,i]
             mask = np.where(~np.isnan(data))
-            interp = NearestNDInterpolator(np.transpose(mask),data[mask])
+            interp = si.NearestNDInterpolator(np.transpose(mask),data[mask])
             filled_data = interp(*np.indices(data.shape))
             bz[:,:,i] = filled_data
 
             data = bphi[:,:,i]
             mask = np.where(~np.isnan(data))
-            interp = NearestNDInterpolator(np.transpose(mask),data[mask])
+            interp = si.NearestNDInterpolator(np.transpose(mask),data[mask])
             filled_data = interp(*np.indices(data.shape))
             bphi[:,:,i] = filled_data
 
@@ -1620,8 +1620,8 @@ class B_STS(DataGroup):
         psi_1d = np.array(vmec.variables["phi"])  # toroidal flux, full mesh
 
         # inverse Fourier transform to (psi,theta,phi) coordinates (m)
-        r_grid = costransform(theta, phi, rmnc, xm, xn)
-        z_grid = sintransform(theta, phi, zmns, xm, xn)
+        r_grid = B_STS.costransform(theta, phi, rmnc, xm, xn)
+        z_grid = B_STS.sintransform(theta, phi, zmns, xm, xn)
 
         # magnetic axis (m)
         axisr = r_grid[0, 0, :]
