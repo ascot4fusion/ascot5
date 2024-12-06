@@ -1488,7 +1488,7 @@ class B_STS(DataGroup):
         return out
 
     @staticmethod
-    def vmec_vacuum(ncfile,extfile,ntheta=120,psipad=0.0):
+    def extender_field(ncfile,extfile,ntheta=120,psipad=0.0):
     """Load magnetic field data from VMEC and EXTENDER outputs into ASCOT input format.
 
      Notes
