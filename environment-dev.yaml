@@ -16,6 +16,7 @@ dependencies:
   - numpy
   - scipy
   - desc-opt
+  - netCDF4
   - h5py
   - mpi4py
   - xmlschema
