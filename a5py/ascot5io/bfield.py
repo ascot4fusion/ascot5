@@ -1036,6 +1036,45 @@ class B_STS(DataGroup):
         out["bz"]   = np.transpose(out["bz"],   (2,1,0))
         return out
 
+    def costransform(theta, phi, rmnc, xm, xn):
+        """Cosine transform for VMEC/DESC coefficients
+
+        Returns
+        -------
+        f : array
+            Returns cosine expansion of rmnc coefficients as function of poloidal
+            angle theta, toroidal angle phi, poloidal mode number xm, and
+            toroidal mode number xn
+        """
+        ns  = rmnc.shape[0]
+        xmt = xm*theta[:,None]
+        xnz = xn*phi[:,None]
+        f   = np.zeros((ns,theta.size,phi.size))
+        for i in range(ns):
+            f[i,:,:] = (np.matmul(rmnc[i,:]*np.cos(xmt), np.cos(xnz).T)
+                        + np.matmul(rmnc[i,:]*np.sin(xmt), np.sin(xnz).T))
+        return f
+
+    def sintransform(theta, phi, rmnc, xm, xn):
+        """Sine transform for VMEC/DESC coefficients
+
+        Returns
+        -------
+        f : array
+            Returns sine expansion of rmnc coefficients as function of poloidal
+            angle theta, toroidal angle phi, poloidal mode number xm, and
+            toroidal mode number xn
+        """
+        
+        ns  = rmnc.shape[0]
+        xmt = xm*theta[:,None]
+        xnz = xn*phi[:,None]
+        f   = np.zeros((ns,theta.size,phi.size))
+        for i in range(ns):
+            f[i,:,:] = (np.matmul(rmnc[i,:]*np.sin(xmt), np.cos(xnz).T)
+                        - np.matmul(rmnc[i,:]*np.cos(xmt), np.sin(xnz).T))
+        return f
+
     @staticmethod
     def vmec_field(ncfile,phimin=0,phimax=361,nphi=361,ntheta=120,
                    nr=100,nz=100,psipad=0.0):
