@@ -16,6 +16,10 @@ actual extrema of the interpolation scheme.
 """
 import h5py
 import numpy as np
+import desc.io as dscio
+import desc.grid as dscg
+import netCDF4 as nc
+import scipy.interpolate as si
 
 from .coreio.fileapi import add_group
 from .coreio.treedata import DataGroup
