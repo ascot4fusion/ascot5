@@ -81,6 +81,10 @@ except ImportError as error:
         "Failed to load libascot.so: " + str(error) + "\n" \
         "Some functionalities of Ascot are not available"
     warnings.warn(msg, stacklevel=4)
+    def _ndpointerwithnull(*args, **kwargs):
+        return None
+    def _get_struct_class(struct_cname: str) -> type[ctypes.Structure]:
+        return ctypes.Structure
 
 class LibAscot:
     """Python wrapper of libascot.so.
@@ -481,7 +485,7 @@ class LibAscot:
                 out["dphidt"])
 
         return out
-
+    
     def _input_mhd_modes(self):
         """Return mode numbers, amplitudes and frequencies.
 
@@ -529,6 +533,60 @@ class LibAscot:
 
         return out["nmodes"], out["nmode"], out["mmode"], out["amplitude"],\
             out["omega"], out["phase"]
+
+    def _eval_rffields(self, r, phi, z, t):
+        """Evaluate RF fields at given coordinates.
+
+        Parameters
+        ----------
+        r : array_like, (n,)
+            R coordinates where data is evaluated [m].
+        phi : array_like (n,)
+            phi coordinates where data is evaluated [rad].
+        z : array_like (n,)
+            z coordinates where data is evaluated [m].
+        t : array_like (n,)
+            Time coordinates where data is evaluated [s].
+
+        Returns
+        -------
+        out : dict [str, array_like (n,)]
+            Evaluated quantities in a dictionary. Cylindrical components of
+            the fields are returned as Fi_rf2d where `F` is either `E` or `B`;
+            and `i` is either `r`, `phi` or `z`, the cylindrical components.
+
+
+        Raises
+        ------
+        AssertionError
+            If required data has not been initialized.
+        RuntimeError
+            If evaluation in libascot.so failed.
+        """
+        self._requireinit("rffield")
+        Neval = r.size
+        out = {}
+        E_unit = unyt.V / unyt.m
+        B_unit = unyt.T
+        out["er_rf2d"]   = (np.zeros(r.shape, dtype="f8") + np.nan) * E_unit
+        out["ephi_rf2d"] = (np.zeros(r.shape, dtype="f8") + np.nan) * E_unit
+        out["ez_rf2d"]   = (np.zeros(r.shape, dtype="f8") + np.nan) * E_unit
+        out["br_rf2d"]   = (np.zeros(r.shape, dtype="f8") + np.nan) * B_unit
+        out["bphi_rf2d"] = (np.zeros(r.shape, dtype="f8") + np.nan) * B_unit
+        out["bz_rf2d"]   = (np.zeros(r.shape, dtype="f8") + np.nan) * B_unit
+
+        fun = _LIBASCOT.libascot_rffield_eval_fields
+        fun.restype = None
+        fun.argtypes = [PTR_SIM, ctypes.c_int, # sim, neval
+                        PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, # r, phi, z, t
+                        PTR_REAL, PTR_REAL, PTR_REAL, # er, ephi, ez
+                        PTR_REAL, PTR_REAL, PTR_REAL] # br, bphi, bz
+        fun(ctypes.byref(self._sim),
+            Neval, r, phi, z, t, 
+            out["er_rf2d"], out["ephi_rf2d"], out["ez_rf2d"],
+            out["br_rf2d"], out["bphi_rf2d"], out["bz_rf2d"])
+        
+        return out
 
     @parseunits(ma="kg", qa="C", r="m", phi="rad", z="m", t="s", va="m/s")
     def input_eval_collcoefs(self, ma, qa, r, phi, z, t, va, *coefs, grid=True):
