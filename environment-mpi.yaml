@@ -22,5 +22,6 @@ dependencies:
   - matplotlib
   - pyvista
   - freeqdsk
-  - desc-opt
-  - netCDF4
+  - pip:
+    - desc-opt
+    - netCDF4
