@@ -1037,6 +1037,266 @@ class B_STS(DataGroup):
         return out
 
     @staticmethod
+    def vmec_field(ncfile,phimin=0,phimax=361,nphi=361,ntheta=120,
+                   nr=100,nz=100,psipad=0.0):
+    """Load magnetic field data from a VMEC equilibrium.
+
+    Notes
+    -----
+    VMEC coordinates:
+        s = psi/psi1 (normalized toroidal flux)
+        u = theta (poloidal angle)
+        v = phi (toroidal angle)
+
+    VMEC outputs quantities on two different radial meshes:
+        `s_full = np.linspace(0, 1, ns) # full mesh`
+        `s_half = np.insert(s_full[0:-1] + 0.5 / (ns - 1),0,np.nan) # half mesh`
+    The interpolation/extrapolation scheme to convert from the half mesh 
+           to the full mesh
+    is adapted from Hirshman et al. 1990: 
+           https://doi.org/10.1016/0021-9991(90)90259-4.
+
+    The toroidal magnetic flux is saved in the VMEC output as the variable `phi`
+    
+    In B_STS B_STS_eval_rho defines psi as:
+        `rho[0] = sqrt( (psi - Bdata->psi0) / delta );`
+    So psi is the toroidal magnetic flux.
+
+    Values outside the LCFS are interpolatedd to the nearest values. Simulations
+        should not extend past rho>1.
+
+    Parameters
+    ----------
+    ncfile : str
+        File path to VMEC NetCDF output.
+    phimin : float, optional
+        Minimum toroidal angle phi (deg). Default = 0.
+    phimax : float, optional
+        Maximum toroidal angle phi (deg). Default = 360.
+    nphi : int, optional
+        Number of toroidal angle phi grid points. Default = 360.
+    ntheta : int, optional
+        Number of poloidal angle theta grid points. Default = 120.
+    nr : int, optional
+        Number of radial coordinate R grid points. Default = 100.
+    nz : int, optional
+        Number of vertical coordinate Z grid points. Default = 100.
+    psipad : float, optional
+        Padding to slightly alter flux on axis. 
+
+    Returns
+    -------
+    out : dict
+        Dictionary with the following items:
+        - `'axis_nphi'`, `'b_nphi'`, `'psi_nphi'`: nphi phi bins
+        - `'b_nr'`, `'psi_nr'`: nr radial bins
+        - `'b_nz'`, `'psi_nz'`: nz z-bins
+        - `'axis_phimin'`, `'b_phimin'`, `'psi_phimin'`: phimin (deg)
+        - `'axis_phimax'`, `'b_phimax'`, `'psi_phimax'`: (phimax-phimin)*(nphi-1)/nphi (deg)
+        - `'b_rmin'`, `'psi_rmin'`: minimum radial coordinate R of output grids (m)
+        - `'b_rmax'`, `'psi_rmax'`: maximum radial coordinate R of output grids (m)
+        - `'b_zmin'`, `'psi_zmin'`: minimum vertical coordinate Z of output grids (m)
+        - `'b_zmax'`, `'psi_zmax'`: maximum vertical coordinate Z of output grids (m)
+        - `'axis_r'`: R(phi) on the magnetic axis (m)
+        - `'axis_z'`: Z(phi) on the magnetic axis (m)
+        - `'rlcfs'`: R(phi,len(u)) for the LCFS (m)
+        - `'zlcfs'`: Z(phi,len(u)) for the LCFS (m)
+        - `'psi0'`: toroidal magnetic flux on the magnetic axis (Wb)
+        - `'psi1'`: toroidal magnetic flux through the last closed flux surface (Wb)
+        - `'psi'`: toroidal magnetic flux psi(R,phi,Z) (Wb)
+        - `'br'`: radial magnetic field B_R(R,phi,Z) (T)
+        - `'bphi'`: toroidal magnetic field B_phi(R,phi,Z) (T)
+        - `'bz'`: vertical magnetic field B_Z(R,phi,Z) (T)
+    """
+        # read VMEC NetCDF file
+        data = nc.Dataset(ncfile)
+        xm = np.array(data.variables["xm"])  # poloidal mode numbers
+        xn = np.array(data.variables["xn"])  # toroidal mode numbers
+        xn_nyq = np.array(data.variables["xn_nyq"])  # tor mode numbers (Nyquist)
+        xm_nyq = np.array(data.variables["xm_nyq"])  # pol mode numbers (Nyquist)
+        psi_1d = np.array(data.variables["phi"])  # toroidal flux, full mesh
+        rmnc = np.array(data.variables["rmnc"])  # cos(mn) comp of cyl R, full mesh
+        zmns = np.array(data.variables["zmns"])  # sin(mn) comp of cyl Z, full mesh
+        bsupumnc = np.array(data.variables["bsupumnc"])  #cos(mn) comp B^u,half mesh
+        bsupvmnc = np.array(data.variables["bsupvmnc"])  #cos(mn) comp B^v,half mesh
+
+        # poloidal angle array
+        theta = np.linspace(0, 2.0 * np.pi, ntheta)  # rad
+
+        # toroidal angle array
+        # note phi should start at 0 and end on 360, inclusive
+        phi = np.deg2rad(np.linspace(phimin, phimax, nphi, endpoint=False))  # rad
+   
+        # derivatives
+        rumns = rmnc * (-1 * xm)  # drmn*cos(m*u-n*v)/du = -m*rmn*sin(m*u-n*v)
+        zumnc = zmns * (xm)  # dzmn*sin(m*u-n*v)/du = m*zmn*cos(m*u-n*v)
+        rvmns = rmnc * (xn)  # drmn*cos(m*u-n*v)/dv = n*rmn*sin(m*u-n*v)
+        zvmnc = zmns * (-1 * xn)  # dzmn*sin(m*u-n*v)/dv = -n*zmn*cos(m*u-n*v)
+
+        # convert from half mesh to full mesh
+        ns = len(psi_1d)  # number of flux surfaces
+        midx_e = np.nonzero(np.mod(xm_nyq, 2) == 0)[0]  # indices of even m modes
+        midx_o = np.nonzero(np.mod(xm_nyq, 2) != 0)[0]  # indices of odd m modes
+        w1 = np.atleast_2d(  # interpolation weights
+            0.5 * np.sqrt((np.arange(ns-2) + 2 - 1)/(np.arange(ns-2) + 2 - 1.5))).T
+        w2 = np.atleast_2d(  # interpolation weights
+            0.5 * np.sqrt((np.arange(ns-2) + 2 - 1)/(np.arange(ns-2) + 2 - 0.5))).T
+        w3 = 2 * np.sqrt((ns - 2) / (ns - 1.5))  # extrapolation weight
+
+        # interpolation on intermediate surfaces
+        bsupumnc[1:-1, midx_e] = 0.5*bsupumnc[1:-1,midx_e] + 0.5*bsupumnc[2:,midx_e]
+        bsupvmnc[1:-1, midx_e] = 0.5*bsupvmnc[1:-1,midx_e] + 0.5*bsupvmnc[2:,midx_e]
+        bsupumnc[1:-1, midx_o] = w1*bsupumnc[1:-1, midx_o] + w2*bsupumnc[2:, midx_o]
+        bsupvmnc[1:-1, midx_o] = w1*bsupvmnc[1:-1, midx_o] + w2*bsupvmnc[2:, midx_o]
+
+        # extrapolation to magnetic axis
+        bsupumnc[0, midx_e] = 2 * bsupumnc[1, midx_e] - bsupumnc[2, midx_e]
+        bsupvmnc[0, midx_e] = 2 * bsupvmnc[1, midx_e] - bsupvmnc[2, midx_e]
+        bsupumnc[0, midx_o] = 0.0
+        bsupvmnc[0, midx_o] = 0.0
+
+        # extrapolation to boundary surface
+        bsupumnc[-1, midx_e] = 2 * bsupumnc[-1, midx_e] - bsupumnc[-2, midx_e]
+        bsupvmnc[-1, midx_e] = 2 * bsupvmnc[-1, midx_e] - bsupvmnc[-2, midx_e]
+        bsupumnc[-1, midx_o] = w3 * bsupumnc[-1, midx_o] - bsupumnc[-2, midx_o]
+        bsupvmnc[-1, midx_o] = w3 * bsupvmnc[-1, midx_o] - bsupvmnc[-2, midx_o]
+
+        # inverse Fourier transform to (s,u,v) coordinates
+        r_grid = costransform(theta, phi, rmnc, xm, xn)  # R (m)
+        z_grid = sintransform(theta, phi, zmns, xm, xn)  # Z (m)
+        ru_grid = sintransform(theta, phi, rumns, xm, xn)  # dR/du (m/rad)
+        zu_grid = costransform(theta, phi, zumnc, xm, xn)  # dZ/du (m/rad)
+        rv_grid = sintransform(theta, phi, rvmns, xm, xn)  # dR/dv (m/rad)
+        zv_grid = costransform(theta, phi, zvmnc, xm, xn)  # dZ/dv (m/rad)
+        bu_grid = costransform(theta, phi, bsupumnc, xm_nyq, xn_nyq)  # B^u (T)
+        bv_grid = costransform(theta, phi, bsupvmnc, xm_nyq, xn_nyq)  # B^v (T)
+
+        # magnetic axis
+        axis_r = r_grid[0, 0, :]  # m
+        axis_z = z_grid[0, 0, :]  # m
+
+        #get lcfs
+        lcfs_r = r_grid[-1, :, :] # m
+        lcfs_z = z_grid[-1, :, :] # m
+
+        # calculate B_R, B_phi, B_z
+        br_grid = bu_grid * ru_grid + bv_grid * rv_grid
+        bphi_grid = bv_grid * r_grid
+        bz_grid = bu_grid * zu_grid + bv_grid * zv_grid
+
+        # range in R and Z, make interpolation arrays
+        rmin = np.amin(r_grid)
+        rmax = np.amax(r_grid)
+        zmin = np.amin(z_grid)
+        zmax = np.amax(z_grid)
+        r_1d = np.linspace(rmin, rmax, nr)  # m
+        z_1d = np.linspace(zmin, zmax, nz)  # m
+        z_2d, r_2d = np.meshgrid(z_1d, r_1d)
+    
+        # toroidal magnetic flux
+        psi0 = psi_1d[0]  # axis
+        psi1 = psi_1d[-1]  # LCFS
+        psi_2d = np.tile(psi_1d, (ntheta, 1)).T  # Wb
+
+        # interpolate psi, B_R, B_phi, B_Z to cylindircal coordinates
+        psi = np.zeros([nr, nz, nphi])
+        br = np.zeros([nr, nz, nphi])
+        bphi = np.zeros([nr, nz, nphi])
+        bz = np.zeros([nr, nz, nphi])
+
+        # interpolate to cylindrical grid, iterate through toroidal angle
+        for i in range(nphi):
+            # interpolate data inside VMEC domain
+            print(i)
+            psi[:, :, i] = si.griddata(
+                (r_grid[:, :, i].flatten(), z_grid[:, :, i].flatten()),
+                psi_2d.flatten(),
+                (r_2d, z_2d),
+                fill_value=psi1,
+            )
+            br[:, :, i] = si.griddata(
+                (r_grid[:, :, i].flatten(), z_grid[:, :, i].flatten()),
+                br_grid[:, :, i].flatten(),
+                (r_2d, z_2d),
+            )
+            bphi[:, :, i] = si.griddata(
+                (r_grid[:, :, i].flatten(), z_grid[:, :, i].flatten()),
+                bphi_grid[:, :, i].flatten(),
+                (r_2d, z_2d),
+            )
+            bz[:, :, i] = si.griddata(
+                (r_grid[:, :, i].flatten(), z_grid[:, :, i].flatten()),
+                bz_grid[:, :, i].flatten(),
+                (r_2d, z_2d),
+            )
+
+            #Replace br, bphi, bz NaN values outside LCFS with closest values
+            data = br[:,:,i]
+            mask = np.where(~np.isnan(data))
+            interp = NearestNDInterpolator(np.transpose(mask),data[mask])
+            filled_data = interp(*np.indices(data.shape))
+            br[:,:,i] = filled_data
+       
+            data = bz[:,:,i]
+            mask = np.where(~np.isnan(data))
+            interp = NearestNDInterpolator(np.transpose(mask),data[mask])
+            filled_data = interp(*np.indices(data.shape))
+            bz[:,:,i] = filled_data
+
+            data = bphi[:,:,i]
+            mask = np.where(~np.isnan(data))
+            interp = NearestNDInterpolator(np.transpose(mask),data[mask])
+            filled_data = interp(*np.indices(data.shape))
+            bphi[:,:,i] = filled_data
+
+        # change order from [R,Z,phi] to [R,phi,Z]
+        psi = np.transpose(psi, (0, 2, 1))
+        br = np.transpose(br, (0, 2, 1))
+        bphi = np.transpose(bphi, (0, 2, 1))
+        bz = np.transpose(bz, (0, 2, 1))
+
+        #pad psi0 if needed
+        if psipad != 0.0:
+            print('Warning: Padding psi0 with',psipad)
+            psi0 += psipad
+
+        out = {
+            "axis_phimin": phimin,  # deg
+            "axis_phimax": np.rad2deg(phi[-1]),  # deg
+            "axis_nphi": nphi,
+            "axisr": axis_r,  # m
+            "axisz": axis_z,  # m
+            "rlcfs": lcfs_r,  # m
+            "zlcfs": lcfs_z,  # m
+            "b_rmin": rmin,  # m
+            "b_rmax": rmax,  # m
+            "b_nr": nr,
+            "b_zmin": zmin,  # m
+            "b_zmax": zmax,  # m
+            "b_nz": nz,
+            "b_phimin": phimin,  # deg
+            "b_phimax": np.rad2deg(phi[-1]),  # deg
+            "b_nphi": nphi,
+            "br": br,  # T
+            "bphi": bphi,  # T
+            "bz": bz,  # T
+            "psi": psi,  # Wb
+            "psi0": psi0,  # Wb
+            "psi1": psi1,  # Wb
+            "psi_rmin": rmin,  # m
+            "psi_rmax": rmax,  # m
+            "psi_nr": nr,
+            "psi_zmin": zmin,  # m
+            "psi_zmax": zmax,  # m
+            "psi_nz": nz,
+            "psi_phimin": phimin,  # deg
+            "psi_phimax": np.rad2deg(phi[-1]),  # deg
+            "psi_nphi": nphi,
+        }
+
+        return out
+
+    @staticmethod
     def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
                    b_phimin, b_phimax, b_nphi, psi0, psi1,
                    br, bphi, bz, psi,
