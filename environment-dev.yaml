@@ -15,8 +15,6 @@ dependencies:
   - ipython
   - numpy
   - scipy
-  - desc-opt
-  - netCDF4
   - h5py
   - mpi4py
   - xmlschema
@@ -48,3 +46,5 @@ dependencies:
   - pip:
     - clang==15.*
     - ctypeslib2
+    - desc-opt
+    - netCDF4	
