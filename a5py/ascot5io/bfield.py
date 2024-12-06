@@ -1039,75 +1039,76 @@ class B_STS(DataGroup):
     @staticmethod
     def vmec_field(ncfile,phimin=0,phimax=361,nphi=361,ntheta=120,
                    nr=100,nz=100,psipad=0.0):
-    """Load magnetic field data from a VMEC equilibrium.
+        """Load magnetic field data from a VMEC equilibrium.
 
-    Notes
-    -----
-    VMEC coordinates:
-        s = psi/psi1 (normalized toroidal flux)
-        u = theta (poloidal angle)
-        v = phi (toroidal angle)
+        Notes
+        -----
+        VMEC coordinates:
+           s = psi/psi1 (normalized toroidal flux)
+           u = theta (poloidal angle)
+           v = phi (toroidal angle)
 
-    VMEC outputs quantities on two different radial meshes:
-        `s_full = np.linspace(0, 1, ns) # full mesh`
-        `s_half = np.insert(s_full[0:-1] + 0.5 / (ns - 1),0,np.nan) # half mesh`
-    The interpolation/extrapolation scheme to convert from the half mesh 
-           to the full mesh
-    is adapted from Hirshman et al. 1990: 
+        VMEC outputs quantities on two different radial meshes:
+           `s_full = np.linspace(0, 1, ns) # full mesh`
+           `s_half = np.insert(s_full[0:-1] + 0.5 / (ns - 1),0,np.nan) # half mesh`
+
+        The interpolation/extrapolation scheme to convert from the half mesh 
+        to the full meshis adapted from Hirshman et al. 1990: 
            https://doi.org/10.1016/0021-9991(90)90259-4.
 
-    The toroidal magnetic flux is saved in the VMEC output as the variable `phi`
+        The toroidal magnetic flux is saved in the VMEC output as the variable `phi`
     
-    In B_STS B_STS_eval_rho defines psi as:
+        In B_STS B_STS_eval_rho defines psi as:
         `rho[0] = sqrt( (psi - Bdata->psi0) / delta );`
-    So psi is the toroidal magnetic flux.
+        So psi is the toroidal magnetic flux.
 
-    Values outside the LCFS are interpolated to the nearest values. Simulations
+        Values outside the LCFS are interpolated to the nearest values. Simulations
         should not extend past rho>1.
 
-    Parameters
-    ----------
-    ncfile : str
-        File path to VMEC NetCDF output.
-    phimin : float, optional
-        Minimum toroidal angle phi (deg). Default = 0.
-    phimax : float, optional
-        Maximum toroidal angle phi (deg). Default = 360.
-    nphi : int, optional
-        Number of toroidal angle phi grid points. Default = 360.
-    ntheta : int, optional
-        Number of poloidal angle theta grid points. Default = 120.
-    nr : int, optional
-        Number of radial coordinate R grid points. Default = 100.
-    nz : int, optional
-        Number of vertical coordinate Z grid points. Default = 100.
-    psipad : float, optional
-        Padding to slightly alter flux on axis. 
+        Parameters
+        ----------
+        ncfile : str
+           File path to VMEC NetCDF output.
+        phimin : float, optional
+           Minimum toroidal angle phi (deg). Default = 0.
+        phimax : float, optional
+           Maximum toroidal angle phi (deg). Default = 360.
+        nphi : int, optional
+           Number of toroidal angle phi grid points. Default = 360.
+        ntheta : int, optional
+           Number of poloidal angle theta grid points. Default = 120.
+        nr : int, optional
+           Number of radial coordinate R grid points. Default = 100.
+        nz : int, optional
+           Number of vertical coordinate Z grid points. Default = 100.
+        psipad : float, optional
+           Padding to slightly alter flux on axis. 
 
-    Returns
-    -------
-    out : dict
+        Returns
+        -------
+        out : dict
         Dictionary with the following items:
-        - `'axis_nphi'`, `'b_nphi'`, `'psi_nphi'`: nphi phi bins
-        - `'b_nr'`, `'psi_nr'`: nr radial bins
-        - `'b_nz'`, `'psi_nz'`: nz z-bins
-        - `'axis_phimin'`, `'b_phimin'`, `'psi_phimin'`: phimin (deg)
-        - `'axis_phimax'`, `'b_phimax'`, `'psi_phimax'`: (phimax-phimin)*(nphi-1)/nphi (deg)
-        - `'b_rmin'`, `'psi_rmin'`: minimum radial coordinate R of output grids (m)
-        - `'b_rmax'`, `'psi_rmax'`: maximum radial coordinate R of output grids (m)
-        - `'b_zmin'`, `'psi_zmin'`: minimum vertical coordinate Z of output grids (m)
-        - `'b_zmax'`, `'psi_zmax'`: maximum vertical coordinate Z of output grids (m)
-        - `'axis_r'`: R(phi) on the magnetic axis (m)
-        - `'axis_z'`: Z(phi) on the magnetic axis (m)
-        - `'rlcfs'`: R(phi,len(u)) for the LCFS (m)
-        - `'zlcfs'`: Z(phi,len(u)) for the LCFS (m)
-        - `'psi0'`: toroidal magnetic flux on the magnetic axis (Wb)
-        - `'psi1'`: toroidal magnetic flux through the last closed flux surface (Wb)
-        - `'psi'`: toroidal magnetic flux psi(R,phi,Z) (Wb)
-        - `'br'`: radial magnetic field B_R(R,phi,Z) (T)
-        - `'bphi'`: toroidal magnetic field B_phi(R,phi,Z) (T)
-        - `'bz'`: vertical magnetic field B_Z(R,phi,Z) (T)
-    """
+           - `'axis_nphi'`, `'b_nphi'`, `'psi_nphi'`: nphi phi bins
+           - `'b_nr'`, `'psi_nr'`: nr radial bins
+           - `'b_nz'`, `'psi_nz'`: nz z-bins
+           - `'axis_phimin'`, `'b_phimin'`, `'psi_phimin'`: phimin (deg)
+           - `'axis_phimax'`, `'b_phimax'`, `'psi_phimax'`: (phimax-phimin)*(nphi-1)/nphi (deg)
+           - `'b_rmin'`, `'psi_rmin'`: minimum radial coordinate R of output grids (m)
+           - `'b_rmax'`, `'psi_rmax'`: maximum radial coordinate R of output grids (m)
+           - `'b_zmin'`, `'psi_zmin'`: minimum vertical coordinate Z of output grids (m)
+           - `'b_zmax'`, `'psi_zmax'`: maximum vertical coordinate Z of output grids (m)
+           - `'axis_r'`: R(phi) on the magnetic axis (m)
+           - `'axis_z'`: Z(phi) on the magnetic axis (m)
+           - `'rlcfs'`: R(phi,len(u)) for the LCFS (m)
+           - `'zlcfs'`: Z(phi,len(u)) for the LCFS (m)
+           - `'psi0'`: toroidal magnetic flux on the magnetic axis (Wb)
+           - `'psi1'`: toroidal magnetic flux through the last closed flux surface (Wb)
+           - `'psi'`: toroidal magnetic flux psi(R,phi,Z) (Wb)
+           - `'br'`: radial magnetic field B_R(R,phi,Z) (T)
+           - `'bphi'`: toroidal magnetic field B_phi(R,phi,Z) (T)
+           - `'bz'`: vertical magnetic field B_Z(R,phi,Z) (T)
+        """
+        
         # read VMEC NetCDF file
         data = nc.Dataset(ncfile)
         xm = np.array(data.variables["xm"])  # poloidal mode numbers
@@ -1299,62 +1300,64 @@ class B_STS(DataGroup):
     @staticmethod
     def desc_field(h5file,phimin=0,phimax=361,nphi=361,ntheta=120,
                    nr=100,nz=100,psipad=0.0):
-    """Load magnetic field data from a DESC equilibrium.
+        """Load magnetic field data from a DESC equilibrium.
 
-    Notes
-    -----
-    The toroidal magnetic flux is saved in the DESC output as the variable `Psi`
+        Notes
+        -----
+        The toroidal magnetic flux is saved in the DESC output as the variable `Psi`
     
-    In B_STS B_STS_eval_rho defines psi as:
+        In B_STS B_STS_eval_rho defines psi as:
         `rho[0] = sqrt( (psi - Bdata->psi0) / delta );`
-    So psi is the toroidal magnetic flux.
+        So psi is the toroidal magnetic flux.
 
-    Values outside the LCFS are interpolated to the nearest values. Simulations
+        Values outside the LCFS are interpolated to the nearest values. Simulations
         should not extend past rho>1.
 
-    Parameters
-    ----------
-    h5file : str
-        File path to DESC HDF5 output.
-    phimin : float, optional
-        Minimum toroidal angle phi (deg). Default = 0.
-    phimax : float, optional
-        Maximum toroidal angle phi (deg). Default = 360.
-    nphi : int, optional
-        Number of toroidal angle phi grid points. Default = 360.
-    ntheta : int, optional
-        Number of poloidal angle theta grid points. Default = 120.
-    nr : int, optional
-        Number of radial coordinate R grid points. Default = 100.
-    nz : int, optional
-        Number of vertical coordinate Z grid points. Default = 100.
-    psipad : float, optional
-        Padding to slightly alter flux on axis.
+        Parameters
+        ----------
+        h5file : str
+           File path to DESC HDF5 output.
+        phimin : float, optional
+           Minimum toroidal angle phi (deg). Default = 0.
+        phimax : float, optional
+           Maximum toroidal angle phi (deg). Default = 360.
+        nphi : int, optional
+           Number of toroidal angle phi grid points. Default = 360.
+        ntheta : int, optional
+           Number of poloidal angle theta grid points. Default = 120.
+        nr : int, optional
+           Number of radial coordinate R grid points. Default = 100.
+        nz : int, optional
+           Number of vertical coordinate Z grid points. Default = 100.
+        psipad : float, optional
+           Padding to slightly alter flux on axis.
 
-    Returns
-    -------
-    out : dict
+        Returns
+        -------
+        out : dict
         Dictionary with the following items:
-        - `'axis_nphi'`, `'b_nphi'`, `'psi_nphi'`: nphi phi bins
-        - `'b_nr'`, `'psi_nr'`: nr radial bins
-        - `'b_nz'`, `'psi_nz'`: nz z-bins
-        - `'axis_phimin'`, `'b_phimin'`, `'psi_phimin'`: phimin (deg)
-        - `'axis_phimax'`, `'b_phimax'`, `'psi_phimax'`: (phimax-phimin)*(nphi-1)/nphi (deg)
-        - `'b_rmin'`, `'psi_rmin'`: minimum radial coordinate R of output grids (m)
-        - `'b_rmax'`, `'psi_rmax'`: maximum radial coordinate R of output grids (m)
-        - `'b_zmin'`, `'psi_zmin'`: minimum vertical coordinate Z of output grids (m)
-        - `'b_zmax'`, `'psi_zmax'`: maximum vertical coordinate Z of output grids (m)
-        - `'axis_r'`: R(phi) on the magnetic axis (m)
-        - `'axis_z'`: Z(phi) on the magnetic axis (m)
-        - `'rlcfs'`: R(phi,len(u)) for the LCFS (m)
-        - `'zlcfs'`: Z(phi,len(u)) for the LCFS (m)
-        - `'psi0'`: toroidal magnetic flux on the magnetic axis (Wb)
-        - `'psi1'`: toroidal magnetic flux through the last closed flux surface (Wb)
-        - `'psi'`: toroidal magnetic flux psi(R,phi,Z) (Wb)
-        - `'br'`: radial magnetic field B_R(R,phi,Z) (T)
-        - `'bphi'`: toroidal magnetic field B_phi(R,phi,Z) (T)
-        - `'bz'`: vertical magnetic field B_Z(R,phi,Z) (T)
-    """
+           - `'axis_nphi'`, `'b_nphi'`, `'psi_nphi'`: nphi phi bins
+           - `'b_nr'`, `'psi_nr'`: nr radial bins
+           - `'b_nz'`, `'psi_nz'`: nz z-bins
+           - `'axis_phimin'`, `'b_phimin'`, `'psi_phimin'`: phimin (deg)
+           - `'axis_phimax'`, `'b_phimax'`, `'psi_phimax'`: (phimax-phimin)*(nphi-1)/nphi (deg)
+           - `'b_rmin'`, `'psi_rmin'`: minimum radial coordinate R of output grids (m)
+           - `'b_rmax'`, `'psi_rmax'`: maximum radial coordinate R of output grids (m)
+           - `'b_zmin'`, `'psi_zmin'`: minimum vertical coordinate Z of output grids (m)
+           - `'b_zmax'`, `'psi_zmax'`: maximum vertical coordinate Z of output grids (m)
+           - `'axis_r'`: R(phi) on the magnetic axis (m)
+           - `'axis_z'`: Z(phi) on the magnetic axis (m)
+           - `'rlcfs'`: R(phi,len(u)) for the LCFS (m)
+           - `'zlcfs'`: Z(phi,len(u)) for the LCFS (m)
+           - `'psi0'`: toroidal magnetic flux on the magnetic axis (Wb)
+           - `'psi1'`: toroidal magnetic flux through the last closed flux surface (Wb)
+           - `'psi'`: toroidal magnetic flux psi(R,phi,Z) (Wb)
+           - `'br'`: radial magnetic field B_R(R,phi,Z) (T)
+           - `'bphi'`: toroidal magnetic field B_phi(R,phi,Z) (T)
+           - `'bz'`: vertical magnetic field B_Z(R,phi,Z) (T)
+        """
+
+        #load DESC equilibrium
         fam = dscio.load(h5file)
         try:  # if file is an EquilibriaFamily, use final Equilibrium
             eq = fam[-1]
@@ -1489,61 +1492,62 @@ class B_STS(DataGroup):
 
     @staticmethod
     def extender_field(ncfile,extfile,ntheta=120,psipad=0.0):
-    """Load magnetic field data from VMEC and EXTENDER outputs into ASCOT input format.
+        """Load magnetic field data from VMEC and EXTENDER outputs into ASCOT input format.
 
-     Notes
-    -----
-    The toroidal magnetic flux is saved in the VMEC output as the variable `phi`
-    
-    In B_STS B_STS_eval_rho defines psi as:
+        Notes
+        -----
+        The toroidal magnetic flux is saved in the VMEC output as the variable `phi`
+        
+        In B_STS B_STS_eval_rho defines psi as:
         `rho[0] = sqrt( (psi - Bdata->psi0) / delta );`
-    So psi is the toroidal magnetic flux.
+        So psi is the toroidal magnetic flux.
 
-    Psi values outside the LCFS are defined as psi1, so while markers may exist in the
+        Psi values outside the LCFS are defined as psi1, so while markers may exist in the
         vacuum region (beyond LCFS) the mapping to the rho variable will not be valid
         as the rho=1 everywhere in the vacuum region. 
 
-    The magnetic field (Br,Bphi,Bz) is defined via the EXTENDER input file while the
+        The magnetic field (Br,Bphi,Bz) is defined via the EXTENDER input file while the
         toroidal flux (psi) is supplied via the VMEC input. Care should be taken to 
         make sure that the VMEC psi calculations agree with EXTENDER for rho<1. 
 
-    EXTENDER input is assumed to cover one field period!!
+        EXTENDER input is assumed to cover one field period!!
 
-    Parameters
-    ----------
-    ncfile : str
-        File path to VMEC NetCDF output (free-boundary solution).
-    extfile : str
-        File path to EXTENDER NetCDF output that corresponds to the VMEC solution.
-    ntheta : int, optional
-        Number of poloidal angle theta grid points. Default = 120.
-    psipad : float, optional
-        Padding to slightly alter flux on axis.
+        Parameters
+        ----------
+        ncfile : str
+           File path to VMEC NetCDF output (free-boundary solution).
+        extfile : str
+           File path to EXTENDER NetCDF output that corresponds to the VMEC solution.
+        ntheta : int, optional
+           Number of poloidal angle theta grid points. Default = 120.
+        psipad : float, optional
+           Padding to slightly alter flux on axis.
 
-    Returns
-    -------
-    out : dict
+        Returns
+        -------
+        out : dict
         Dictionary with the following items:
-        - `'axis_nphi'`, `'b_nphi'`, `'psi_nphi'`: nphi phi bins
-        - `'b_nr'`, `'psi_nr'`: nr radial bins
-        - `'b_nz'`, `'psi_nz'`: nz z-bins
-        - `'axis_phimin'`, `'b_phimin'`, `'psi_phimin'`: phimin (deg)
-        - `'axis_phimax'`, `'b_phimax'`, `'psi_phimax'`: (phimax-phimin)*(nphi-1)/nphi (deg)
-        - `'b_rmin'`, `'psi_rmin'`: minimum radial coordinate R of output grids (m)
-        - `'b_rmax'`, `'psi_rmax'`: maximum radial coordinate R of output grids (m)
-        - `'b_zmin'`, `'psi_zmin'`: minimum vertical coordinate Z of output grids (m)
-        - `'b_zmax'`, `'psi_zmax'`: maximum vertical coordinate Z of output grids (m)
-        - `'axis_r'`: R(phi) on the magnetic axis (m)
-        - `'axis_z'`: Z(phi) on the magnetic axis (m)
-        - `'rlcfs'`: R(phi,len(u)) for the LCFS (m)
-        - `'zlcfs'`: Z(phi,len(u)) for the LCFS (m)
-        - `'psi0'`: toroidal magnetic flux on the magnetic axis (Wb)
-        - `'psi1'`: toroidal magnetic flux through the last closed flux surface (Wb)
-        - `'psi'`: toroidal magnetic flux psi(R,phi,Z) (Wb)
-        - `'br'`: radial magnetic field B_R(R,phi,Z) (T)
-        - `'bphi'`: toroidal magnetic field B_phi(R,phi,Z) (T)
-        - `'bz'`: vertical magnetic field B_Z(R,phi,Z) (T)
-    """
+           - `'axis_nphi'`, `'b_nphi'`, `'psi_nphi'`: nphi phi bins
+           - `'b_nr'`, `'psi_nr'`: nr radial bins
+           - `'b_nz'`, `'psi_nz'`: nz z-bins
+           - `'axis_phimin'`, `'b_phimin'`, `'psi_phimin'`: phimin (deg)
+           - `'axis_phimax'`, `'b_phimax'`, `'psi_phimax'`: (phimax-phimin)*(nphi-1)/nphi (deg)
+           - `'b_rmin'`, `'psi_rmin'`: minimum radial coordinate R of output grids (m)
+           - `'b_rmax'`, `'psi_rmax'`: maximum radial coordinate R of output grids (m)
+           - `'b_zmin'`, `'psi_zmin'`: minimum vertical coordinate Z of output grids (m)
+           - `'b_zmax'`, `'psi_zmax'`: maximum vertical coordinate Z of output grids (m)
+           - `'axis_r'`: R(phi) on the magnetic axis (m)
+           - `'axis_z'`: Z(phi) on the magnetic axis (m)
+           - `'rlcfs'`: R(phi,len(u)) for the LCFS (m)
+           - `'zlcfs'`: Z(phi,len(u)) for the LCFS (m)
+           - `'psi0'`: toroidal magnetic flux on the magnetic axis (Wb)
+           - `'psi1'`: toroidal magnetic flux through the last closed flux surface (Wb)
+           - `'psi'`: toroidal magnetic flux psi(R,phi,Z) (Wb)
+           - `'br'`: radial magnetic field B_R(R,phi,Z) (T)
+           - `'bphi'`: toroidal magnetic field B_phi(R,phi,Z) (T)
+           - `'bz'`: vertical magnetic field B_Z(R,phi,Z) (T)
+        """
+        
         # load NetCDF data
         vmec = nc.Dataset(ncfile)
         extender = nc.Dataset(extfile)
