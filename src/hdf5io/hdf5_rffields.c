@@ -5,6 +5,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <hdf5.h>
 #include <hdf5_hl.h>
 #include "../ascot5.h"
@@ -13,14 +14,14 @@
 #include "hdf5_rffields.h"
 #include "../rf_fields_fo.h"
 
-int hdf5_efield_init(hid_t f, RF2D_fields* data, char* qid) {
+int hdf5_rffields_init(hid_t f, RF2D_fields* data, char* qid) {
     char path[256];
     int err = 1;
 
     #ifdef RFPATH
     #undef RFPATH
     #endif
-    #define RFPATH "/rffields/RF_2D_XXXXXXXXXX"
+    #define RFPATH "/rffields/RF_2D_XXXXXXXXXX/" 
 
     // Internal parameters to store temporarily what 
     // we read from the HDF5 file
@@ -28,6 +29,7 @@ int hdf5_efield_init(hid_t f, RF2D_fields* data, char* qid) {
     real rmin, rmax, zmin, zmax; // Min and max values of r and z
     real omega; // Frequency of the RF field
     int n_tor; // Toroidal mode number
+    char tmp[256];
 
     /* Read data the QID corresponds to */
     hdf5_gen_path(RFPATH, qid, path);
@@ -53,13 +55,18 @@ int hdf5_efield_init(hid_t f, RF2D_fields* data, char* qid) {
     int nsize = n_r*n_z;
     real* buffer = (real*) malloc(12*nsize*sizeof(real));
     real* fields[12]; // Pointers to the fields in the buffer
-    const char** fieldnames = {"Er_real", "Er_imag", "Ephi_real", "Ephi_imag", "Ez_real", "Ez_imag",
-                               "Br_real", "Br_imag", "Bphi_real", "Bphi_imag", "Bz_real", "Bz_imag"
+    char fieldnames[12][9] = {"Er_real", "Er_imag", "Ephi_real", "Ephi_imag", "Ez_real", "Ez_imag",
+                              "Br_real", "Br_imag", "Bphi_real", "Bphi_imag", "Bz_real", "Bz_imag"
                              };
+
+    memset(tmp, 0, 256*sizeof(char));
     for(int i = 0; i < 12; i++) {
         fields[i] = buffer + i*nsize;
-        if( hdf5_read_double(RFPATH "field", fieldnames[i],
+        strcpy(tmp, RFPATH);
+        strcat(tmp, fieldnames[i]);
+        if( hdf5_read_double(tmp, fields[i],
                              f, qid, __FILE__, __LINE__) ) {err = 1; break;}
+        memset(tmp, 0, 256*sizeof(char));
     }
     if(err) {
         free(buffer);
@@ -67,9 +74,9 @@ int hdf5_efield_init(hid_t f, RF2D_fields* data, char* qid) {
     }
 
     /* Initialize the RF2D_fields struct */
-    err = RF2D_fields_init(data, rmin, rmax, n_r, zmin, zmax, n_z, n_tor, omega, \
-                           fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], \
-                           fields[6], fields[7], fields[8], fields[9], fields[10], fields[11]);
+    err = rffield_init(data, rmin, rmax, n_r, zmin, zmax, n_z, n_tor, omega, \
+                    fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], \
+                    fields[6], fields[7], fields[8], fields[9], fields[10], fields[11]);
     free(buffer);
 
     return err;

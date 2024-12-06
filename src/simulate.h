@@ -67,7 +67,7 @@ typedef struct {
     asigma_data asigma_data;   /**< Atomic sigma data interface               */
     nbi_data nbi_data;         /**< Neutral beam injection data interface     */
     diag_data diag_data;       /**< Diagnostics data interface                */
-    RF2D_fields rf_data;       /**< RF field data interface                   */
+    RF2D_fields rffield_data;       /**< RF field data interface                   */
 
     /* Metadata */
     random_data random_data;   /**< Random number generator                   */

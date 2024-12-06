@@ -12,9 +12,9 @@
 #include "../../rf_fields_fo.h"
 
 void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
-                 E_field_data* Edata, RF2D_fields* rfdata);
+                 E_field_data* Edata, RF2D_fields* rffield_data);
 void step_fo_vpa_mhd(particle_simd_fo* p, real* h, B_field_data* Bdata,
-                     E_field_data* Edata,RF2D_fields* rfdata, boozer_data* boozer, 
+                     E_field_data* Edata,RF2D_fields* rffield_data, boozer_data* boozer, 
                      mhd_data* mhd);
 
 #endif

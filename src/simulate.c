@@ -137,7 +137,7 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     mhd_offload(&sim->mhd_data);
     asigma_offload(&sim->asigma_data);
     diag_offload(&sim->diag_data);
-    RF2D_offload(&sim->rf_data);
+    RF2D_offload(&sim->rffield_data);
 
     /**************************************************************************/
     /* 2. Meta data (e.g. random number generator) is initialized.            */

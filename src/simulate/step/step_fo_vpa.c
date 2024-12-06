@@ -34,7 +34,7 @@
  * @param Edata pointer to electric field data
  */
 void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
-                 E_field_data* Edata, RF2D_fields* rfdata) {
+                 E_field_data* Edata, RF2D_fields* rffield_data) {
     GPU_DATA_IS_MAPPED(h[0:p->n_mrk])
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < p->n_mrk; i++) {
@@ -78,7 +78,7 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
             real Ewave[3], Bwave[3];
             if(!errflag) {
                 errflag = RF_field_eval(Ewave, Bwave, posrpz[0], posrpz[1],
-                                        posrpz[2], t0 + h[i]/2, rfdata);
+                                        posrpz[2], t0 + h[i]/2, rffield_data);
                 Erpz[0] += Ewave[0];
                 Erpz[1] += Ewave[1];
                 Erpz[2] += Ewave[2];
@@ -224,7 +224,7 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
  * @param mhd pointer to MHD data
  */
 void step_fo_vpa_mhd(particle_simd_fo* p, real* h, B_field_data* Bdata, 
-                     E_field_data* Edata, RF2D_fields* rfdata, 
+                     E_field_data* Edata, RF2D_fields* rffield_data, 
                      boozer_data* boozer, mhd_data* mhd) {
 
     int i;
@@ -285,7 +285,7 @@ void step_fo_vpa_mhd(particle_simd_fo* p, real* h, B_field_data* Bdata,
             real Ewave[3], Bwave[3];
             if(!errflag) {
                 errflag = RF_field_eval(Ewave, Bwave, posrpz[0], posrpz[1],
-                                        posrpz[2], t0 + h[i]/2, rfdata);
+                                        posrpz[2], t0 + h[i]/2, rffield_data);
                 Erpz[0] += Ewave[0];
                 Erpz[1] += Ewave[1];
                 Erpz[2] += Ewave[2];
