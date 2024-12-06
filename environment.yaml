@@ -1,4 +1,4 @@
-name: ascot-env
+name: ascot-env-test
 channels:
   - conda-forge
 dependencies:
@@ -20,5 +20,6 @@ dependencies:
   - matplotlib
   - pyvista
   - freeqdsk
-  - desc-opt
-  - netCDF4
+  - pip:
+    - desc-opt
+    - netCDF4
