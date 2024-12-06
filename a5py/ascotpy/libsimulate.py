@@ -181,7 +181,7 @@ class LibSimulate():
 
     def simulation_initinputs(self, bfield=True, efield=True, plasma=True,
                               neutral=True, wall=True, boozer=True, mhd=True,
-                              asigma=True, switch=True):
+                              asigma=True, switch=True, rffield=False):
         """Prepare input fields for the interactive simulation.
 
         Initializes simulation inputs. The inputs used in the simulation are
@@ -196,7 +196,8 @@ class LibSimulate():
         """
         self.input_init(
             bfield=bfield, efield=efield, plasma=plasma, neutral=neutral,
-            wall=wall, boozer=boozer, mhd=mhd, asigma=asigma, switch=switch)
+            wall=wall, boozer=boozer, mhd=mhd, asigma=asigma, switch=switch,
+            rffield=rffield)
 
     def simulation_initbbnbi(
             self,

@@ -301,6 +301,82 @@ class LibProviders():
             )
         self._sim.B_data.type = ascot2py.B_field_type_STS
 
+    def _provide_rffield(self, **kwargs):
+        """Use the provided input parameters to initialize a RF2D field input.
+
+        Parameters
+        ----------
+        **kwargs
+            Dictionary with the RF2D field data.
+        """
+        # Checking if all the required inputs have been provided
+        list_of_names = ['Er_real', 'Er_imag', 'Ez_real', 'Ez_imag',
+                         'Br_real', 'Br_imag', 'Bz_real', 'Bz_imag',
+                         'Bphi_real', 'Bphi_imag', 
+                         'rmin', 'rmax', 'zmin', 'zmax', 'omega', 'ntor']
+        list_of_names2 = ['Er', 'Ez', 'Br', 'Bz', 'Bphi', 'rmin', 'rmax',
+                          'zmin', 'zmax', 'omega', 'ntor']
+        new_kwargs = {}
+        if 'Er' in kwargs:
+            for name in list_of_names2:
+                if name not in kwargs:
+                    raise ValueError(f"Missing input parameter {name}")
+            
+            new_kwargs = kwargs
+            new_kwargs['Er_real'] = np.real(kwargs['Er'])
+            new_kwargs['Er_imag'] = np.imag(kwargs['Er'])
+            new_kwargs['Ez_real'] = np.real(kwargs['Ez'])
+            new_kwargs['Ez_imag'] = np.imag(kwargs['Ez'])
+            new_kwargs['Ephi_real'] = np.real(kwargs['Ephi'])
+            new_kwargs['Ephi_imag'] = np.imag(kwargs['Ephi'])
+            new_kwargs['Br_real'] = np.real(kwargs['Br'])
+            new_kwargs['Br_imag'] = np.imag(kwargs['Br'])
+            new_kwargs['Bz_real'] = np.real(kwargs['Bz'])
+            new_kwargs['Bz_imag'] = np.imag(kwargs['Bz'])
+            new_kwargs['Bphi_real'] = np.real(kwargs['Bphi'])
+            new_kwargs['Bphi_imag'] = np.imag(kwargs['Bphi'])
+            new_kwargs['rmin'] = kwargs['rmin']
+            new_kwargs['rmax'] = kwargs['rmax']
+            new_kwargs['zmin'] = kwargs['zmin']
+            new_kwargs['zmax'] = kwargs['zmax']
+            new_kwargs['omega'] = kwargs['omega']
+            new_kwargs['ntor'] = kwargs['ntor']
+            
+        elif 'Er_real' in kwargs:
+            for name in list_of_names:
+                if name not in kwargs:
+                    raise ValueError(f"Missing input parameter {name}")
+                
+        new_kwargs['nr'] = kwargs['Er_real'].shape[0]
+        new_kwargs['nz'] = kwargs['Er_real'].shape[1]
+
+        if self._sim.rffield_data.initialized == ctypes.c_int(1):
+            raise ValueError("RF2D field already initialized!")
+
+        qid, _, _ = fileapi._generate_meta()
+        self._sim.qid_rffield = bytes(qid, "utf-8")
+
+        _LIBASCOT.rffield_init(ctypes.byref(self._sim.rffield_data),
+                            new_kwargs["rmin"], new_kwargs["rmax"], 
+                            new_kwargs["nr"],
+                            new_kwargs["zmin"], new_kwargs["zmax"], 
+                            new_kwargs["nz"],
+                            new_kwargs["ntor"], new_kwargs["omega"], 
+                            new_kwargs["Er_real"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Er_imag"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Ephi_real"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Ephi_imag"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Ez_real"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Ez_imag"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Br_real"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Br_imag"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Bphi_real"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Bphi_imag"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Bz_real"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Bz_imag"].ctypes.data_as(PTR_ARR))
+        if self._sim.rffield_data.initialized == ctypes.c_int(0):
+            raise ValueError("RF2D field initialization failed")
+
     def _provide_efield(self, **kwargs):
         """Use the provided input parameters to initialize an electric field
         input.

@@ -63,6 +63,9 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         self._sim = _get_struct_class("sim_data")()
         self._mute = "no"
 
+        # Some tuning for the RF field, to make it optional.
+        self._sim.rffield_data.initialized = ctypes.c_int32(0)
+
     def _initmpi(self, mpirank, mpisize, mpiroot=0):
         """Initialize MPI data.
 
@@ -83,7 +86,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
 
     def _init(self, data, bfield=None, efield=None, plasma=None,
               wall=None, neutral=None, boozer=None, mhd=None, asigma=None,
-              nbi=None, switch=False):
+              nbi=None, rffield=None, switch=False):
         """Read and initialize input data so it can be accessed
         by libascot.
 
@@ -132,7 +135,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         args = locals() # Contains function arguments and values in a dictionary
         to_be_provided = [] # Inputs to be directly injected (provided)
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
-                    "mhd", "asigma", "nbi"]:
+                    "mhd", "asigma", "nbi", "rffield"]:
             if args[inp] is None:
                 # This input is not going to be initialized
                 continue
@@ -178,7 +181,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         # an exception, in which case sim.qid_* would point to data which is not
         # initialized.
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
-                    "mhd", "asigma", "nbi"]:
+                    "mhd", "asigma", "nbi", "rffield"]:
             if inputs2read.value & getattr(ascot2py, "hdf5_input_" + inp):
                 setattr(self._sim, "qid_" + inp, args[inp])
 
@@ -206,7 +209,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             getattr(self, "_provide_" + inp)(**args[inp])
 
     def _free(self, bfield=False, efield=False, plasma=False, wall=False,
-              neutral=False, boozer=False, mhd=False, asigma=False):
+              neutral=False, boozer=False, mhd=False, asigma=False, rffield=False):
         """Free input data initialized in C-side.
         """
         args = locals() # Contains function arguments and values in a dictionary
@@ -214,7 +217,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         # Iterate through all inputs and free the data if the corresponding
         # argument is True
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
-                    "mhd", "asigma"]:
+                    "mhd", "asigma", "rffield"]:
             if args[inp] and \
                 getattr(self._sim, "qid_" + inp) != Ascotpy.DUMMY_QID:
                 # Deallocate the data allocated in C side
@@ -258,7 +261,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         """
         out = {}
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
-                    "mhd", "asigma", "nbi"]:
+                    "mhd", "asigma", "nbi", "rffield"]:
             qid = getattr(self._sim, "qid_" + inp)
             if qid != Ascotpy.DUMMY_QID:
                 out[inp] = qid.decode("utf-8")
@@ -406,6 +409,18 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             "Determinant of the Jacobian in Boozer coordinate transformation",
             "bjacxb2":
             "bjac multiplied by B^2 which is constant along flux surfaces",
+            "er_rf2d":
+            "R component of RF electric field",
+            "ephi_rf2d":
+            "phi component of RF electric field",
+            "ez_rf2d":
+            "z component of RF electric field",
+            "br_rf2d":
+            "R component of RF magnetic field",
+            "bphi_rf2d":
+            "phi component of RF magnetic field",
+            "bz_rf2d":
+            "z component of RF magnetic field",
         }
 
         #nion, mass, charge, anum, znum = self.input_getplasmaspecies()
@@ -552,6 +567,10 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                             + bpert["mhd_bz"]**2)
             b = np.sqrt(b["br"]**2 + b["bphi"]**2 + b["bz"]**2)
             out["db/b (mhd)"] = bpert/b
+        
+        if any(q in qnt for q in ["er_rf2d", "ephi_rf2d", "ez_rf2d",
+                                  "br_rf2d", "bphi_rf2d", "bz_rf2d"]):
+            out.update(self._eval_rffields(r, phi, z, t))
 
         ni = ["ni" + str(i+1) for i in range(99)]
         ti = ["ti" + str(i+1) for i in range(99)]

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# TARGET arch is: ['-I/home/sarkimk1/miniconda3/envs/clang/lib/clang/14.0.6/include/', '-I/home/sarkimk1/miniconda3/envs/clang/include/', '-I/home/sarkimk1/miniconda3/envs/clang/x86_64-conda-linux-gnu/sysroot/usr/include/']
+# TARGET arch is: ['-I/u/poyolado/.conda/envs/ascot-dev/include/', '-I/u/poyolado/.conda/envs/ascot-dev/x86_64-conda-linux-gnu/sysroot/usr/include/', '-I/u/poyolado/.conda/envs/ascot-dev/lib/clang/15.0.7/include/']
 # WORD_SIZE is: 8
 # POINTER_SIZE is: 8
 # LONGDOUBLE_SIZE is: 16
@@ -2075,6 +2075,44 @@ nbi_free.argtypes = [ctypes.POINTER(struct_c__SA_nbi_data)]
 nbi_inject = _libraries['libascot.so'].nbi_inject
 nbi_inject.restype = None
 nbi_inject.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(struct_c__SA_nbi_injector), ctypes.POINTER(ctypes.POINTER(None))]
+class struct_RF2D_fields(Structure):
+    pass
+
+struct_RF2D_fields._pack_ = 1 # source:False
+struct_RF2D_fields._fields_ = [
+    ('Er_real', struct_c__SA_interp2D_data),
+    ('Er_imag', struct_c__SA_interp2D_data),
+    ('Ez_real', struct_c__SA_interp2D_data),
+    ('Ez_imag', struct_c__SA_interp2D_data),
+    ('Ephi_real', struct_c__SA_interp2D_data),
+    ('Ephi_imag', struct_c__SA_interp2D_data),
+    ('Br_real', struct_c__SA_interp2D_data),
+    ('Br_imag', struct_c__SA_interp2D_data),
+    ('Bz_imag', struct_c__SA_interp2D_data),
+    ('Bz_real', struct_c__SA_interp2D_data),
+    ('Bphi_imag', struct_c__SA_interp2D_data),
+    ('Bphi_real', struct_c__SA_interp2D_data),
+    ('introbj', ctypes.POINTER(struct_c__SA_interp2D_data) * 12),
+    ('ntor', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('omega', ctypes.c_double),
+    ('initialized', ctypes.c_int32),
+    ('PADDING_1', ctypes.c_ubyte * 4),
+]
+
+RF2D_fields = struct_RF2D_fields
+rffield_init = _libraries['libascot.so'].rffield_init
+rffield_init.restype = ctypes.c_int32
+rffield_init.argtypes = [ctypes.POINTER(struct_RF2D_fields), real, real, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.c_int32, real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+rffield_free = _libraries['libascot.so'].rffield_free
+rffield_free.restype = None
+rffield_free.argtypes = [ctypes.POINTER(struct_RF2D_fields)]
+RF2D_offload = _libraries['libascot.so'].RF2D_offload
+RF2D_offload.restype = None
+RF2D_offload.argtypes = [ctypes.POINTER(struct_RF2D_fields)]
+RF_field_eval = _libraries['libascot.so'].RF_field_eval
+RF_field_eval.restype = a5err
+RF_field_eval.argtypes = [ctypes.c_double * 3, ctypes.c_double * 3, real, real, real, real, ctypes.POINTER(struct_RF2D_fields)]
 
 # values for enumeration 'SIMULATION_MODE'
 SIMULATION_MODE__enumvalues = {
@@ -2114,6 +2152,7 @@ struct_c__SA_sim_data._fields_ = [
     ('asigma_data', asigma_data),
     ('nbi_data', nbi_data),
     ('diag_data', diag_data),
+    ('rffield_data', RF2D_fields),
     ('random_data', ctypes.POINTER(None)),
     ('mccc_data', struct_c__SA_mccc_data),
     ('sim_mode', ctypes.c_int32),
@@ -2165,6 +2204,7 @@ struct_c__SA_sim_data._fields_ = [
     ('qid_mhd', ctypes.c_char * 256),
     ('qid_asigma', ctypes.c_char * 256),
     ('qid_nbi', ctypes.c_char * 256),
+    ('qid_rffield', ctypes.c_char * 256),
 ]
 
 sim_data = struct_c__SA_sim_data
@@ -2232,6 +2272,7 @@ input_group__enumvalues = {
     256: 'hdf5_input_mhd',
     512: 'hdf5_input_asigma',
     1024: 'hdf5_input_nbi',
+    2048: 'hdf5_input_rffield',
 }
 hdf5_input_options = 1
 hdf5_input_bfield = 2
@@ -2244,6 +2285,7 @@ hdf5_input_boozer = 128
 hdf5_input_mhd = 256
 hdf5_input_asigma = 512
 hdf5_input_nbi = 1024
+hdf5_input_rffield = 2048
 input_group = ctypes.c_uint32 # enum
 hdf5_interface_read_input = _libraries['libascot.so'].hdf5_interface_read_input
 hdf5_interface_read_input.restype = ctypes.c_int32
@@ -2388,7 +2430,8 @@ __all__ = \
     'N0_1D_data', 'N0_1D_eval_n0', 'N0_1D_eval_t0', 'N0_1D_free',
     'N0_1D_get_n_species', 'N0_1D_init', 'N0_1D_offload',
     'N0_3D_data', 'N0_3D_eval_n0', 'N0_3D_eval_t0', 'N0_3D_free',
-    'N0_3D_get_n_species', 'N0_3D_init', 'N0_3D_offload', 'Reaction',
+    'N0_3D_get_n_species', 'N0_3D_init', 'N0_3D_offload',
+    'RF2D_fields', 'RF2D_offload', 'RF_field_eval', 'Reaction',
     'SIMULATION_MODE', 'a5err', 'afsi_data', 'afsi_run',
     'afsi_test_dist', 'afsi_test_thermal', 'afsi_thermal_data',
     'asigma_data', 'asigma_eval_bms', 'asigma_eval_cx',
@@ -2428,12 +2471,13 @@ __all__ = \
     'hdf5_generate_qid', 'hdf5_input_asigma', 'hdf5_input_bfield',
     'hdf5_input_boozer', 'hdf5_input_efield', 'hdf5_input_marker',
     'hdf5_input_mhd', 'hdf5_input_nbi', 'hdf5_input_neutral',
-    'hdf5_input_options', 'hdf5_input_plasma', 'hdf5_input_wall',
-    'hdf5_interface_init_results', 'hdf5_interface_read_input',
-    'hdf5_interface_write_diagnostics', 'hdf5_interface_write_state',
-    'input_group', 'input_particle', 'input_particle_type',
-    'input_particle_type_gc', 'input_particle_type_ml',
-    'input_particle_type_p', 'input_particle_type_s', 'integer',
+    'hdf5_input_options', 'hdf5_input_plasma', 'hdf5_input_rffield',
+    'hdf5_input_wall', 'hdf5_interface_init_results',
+    'hdf5_interface_read_input', 'hdf5_interface_write_diagnostics',
+    'hdf5_interface_write_state', 'input_group', 'input_particle',
+    'input_particle_type', 'input_particle_type_gc',
+    'input_particle_type_ml', 'input_particle_type_p',
+    'input_particle_type_s', 'integer',
     'libascot_allocate_input_particles',
     'libascot_allocate_particle_states', 'libascot_allocate_reals',
     'libascot_deallocate', 'mhd_data', 'mhd_eval', 'mhd_free',
@@ -2478,12 +2522,13 @@ __all__ = \
     'plasma_get_species_mass', 'plasma_get_species_znum',
     'plasma_offload', 'plasma_type', 'plasma_type_1D',
     'plasma_type_1DS', 'plasma_type_1Dt', 'prepare_markers',
-    'print_marker_summary', 'real', 'sigma_CX', 'sigma_ioniz',
-    'sigma_recomb', 'sigmav_BMS', 'sigmav_CX', 'sigmav_ioniz',
-    'sigmav_recomb', 'sigmaveff_CX', 'sigmaveff_ioniz',
-    'sigmaveff_recomb', 'sim_data', 'simulate', 'simulate_init',
-    'simulate_mode_fo', 'simulate_mode_gc', 'simulate_mode_hybrid',
-    'simulate_mode_ml', 'size_t', 'struct_c__SA_B_2DS_data',
+    'print_marker_summary', 'real', 'rffield_free', 'rffield_init',
+    'sigma_CX', 'sigma_ioniz', 'sigma_recomb', 'sigmav_BMS',
+    'sigmav_CX', 'sigmav_ioniz', 'sigmav_recomb', 'sigmaveff_CX',
+    'sigmaveff_ioniz', 'sigmaveff_recomb', 'sim_data', 'simulate',
+    'simulate_init', 'simulate_mode_fo', 'simulate_mode_gc',
+    'simulate_mode_hybrid', 'simulate_mode_ml', 'size_t',
+    'struct_RF2D_fields', 'struct_c__SA_B_2DS_data',
     'struct_c__SA_B_3DS_data', 'struct_c__SA_B_GS_data',
     'struct_c__SA_B_STS_data', 'struct_c__SA_B_TC_data',
     'struct_c__SA_B_field_data', 'struct_c__SA_E_1DS_data',

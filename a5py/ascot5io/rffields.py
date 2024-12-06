@@ -169,13 +169,13 @@ class RF2D_fields(DataGroup):
             Input data that can be passed to ``write_hdf5`` method of
             a corresponding type.
         """
-        rmin = 0.0
-        rmax = 1.0
-        zmin = 0.0
-        zmax = 1.0
+        rmin = 0.1
+        rmax = 10.0
+        zmin = -10.0
+        zmax = 10.0
         nr = 10
         nz = 10
-        Er = np.zeros((nr, nz), dtype=np.complex128)
+        Er = np.ones((nr, nz), dtype=np.complex128)
         Ez = np.zeros((nr, nz), dtype=np.complex128)
         Ephi = np.zeros((nr, nz), dtype=np.complex128)
         Br = np.zeros((nr, nz), dtype=np.complex128)

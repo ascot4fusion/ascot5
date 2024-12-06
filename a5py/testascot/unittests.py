@@ -15,6 +15,7 @@ from a5py import Ascot, AscotInitException, AscotIOException
 from a5py.ascot5io.coreio import fileapi
 from a5py.ascot5io.state import State
 from a5py.ascot5io.marker import Marker
+from a5py.ascot5io import RF2D_fields
 
 class TestAscot5IO(unittest.TestCase):
     """Class to test `ascot5io` module.
@@ -529,6 +530,7 @@ class TestAscot(unittest.TestCase):
 
         # Input evaluations
         a5.input_init()
+        a5.input_init(rffield=RF2D_fields.create_test_fields())
         inputqnts = a5.input_eval_list(show=False)
         r = 6.2 * unyt.m; phi = 0 * unyt.deg; z = 0 * unyt.m; t = 0 * unyt.s
         br, bphi, bz = a5.input_eval(r, phi, z, t, "br", "bphi", "bz")
