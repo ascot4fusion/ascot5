@@ -1062,7 +1062,7 @@ class B_STS(DataGroup):
         `rho[0] = sqrt( (psi - Bdata->psi0) / delta );`
     So psi is the toroidal magnetic flux.
 
-    Values outside the LCFS are interpolatedd to the nearest values. Simulations
+    Values outside the LCFS are interpolated to the nearest values. Simulations
         should not extend past rho>1.
 
     Parameters
@@ -1309,7 +1309,7 @@ class B_STS(DataGroup):
         `rho[0] = sqrt( (psi - Bdata->psi0) / delta );`
     So psi is the toroidal magnetic flux.
 
-    Values outside the LCFS are interpolatedd to the nearest values. Simulations
+    Values outside the LCFS are interpolated to the nearest values. Simulations
         should not extend past rho>1.
 
     Parameters
@@ -1481,6 +1481,216 @@ class B_STS(DataGroup):
             "psi_zmax": zmax,  # m
             "psi_nz": nz,
             "psi_phimin": phimin,  # deg
+            "psi_phimax": np.rad2deg(phi[-1]),  # deg
+            "psi_nphi": nphi,
+        }
+
+        return out
+
+    @staticmethod
+    def vmec_vacuum(ncfile,extfile,ntheta=120,psipad=0.0):
+    """Load magnetic field data from VMEC and EXTENDER outputs into ASCOT input format.
+
+     Notes
+    -----
+    The toroidal magnetic flux is saved in the VMEC output as the variable `phi`
+    
+    In B_STS B_STS_eval_rho defines psi as:
+        `rho[0] = sqrt( (psi - Bdata->psi0) / delta );`
+    So psi is the toroidal magnetic flux.
+
+    Psi values outside the LCFS are defined as psi1, so while markers may exist in the
+        vacuum region (beyond LCFS) the mapping to the rho variable will not be valid
+        as the rho=1 everywhere in the vacuum region. 
+
+    The magnetic field (Br,Bphi,Bz) is defined via the EXTENDER input file while the
+        toroidal flux (psi) is supplied via the VMEC input. Care should be taken to 
+        make sure that the VMEC psi calculations agree with EXTENDER for rho<1. 
+
+    EXTENDER input is assumed to cover one field period!!
+
+    Parameters
+    ----------
+    ncfile : str
+        File path to VMEC NetCDF output (free-boundary solution).
+    extfile : str
+        File path to EXTENDER NetCDF output that corresponds to the VMEC solution.
+    ntheta : int, optional
+        Number of poloidal angle theta grid points. Default = 120.
+    psipad : float, optional
+        Padding to slightly alter flux on axis.
+
+    Returns
+    -------
+    out : dict
+        Dictionary with the following items:
+        - `'axis_nphi'`, `'b_nphi'`, `'psi_nphi'`: nphi phi bins
+        - `'b_nr'`, `'psi_nr'`: nr radial bins
+        - `'b_nz'`, `'psi_nz'`: nz z-bins
+        - `'axis_phimin'`, `'b_phimin'`, `'psi_phimin'`: phimin (deg)
+        - `'axis_phimax'`, `'b_phimax'`, `'psi_phimax'`: (phimax-phimin)*(nphi-1)/nphi (deg)
+        - `'b_rmin'`, `'psi_rmin'`: minimum radial coordinate R of output grids (m)
+        - `'b_rmax'`, `'psi_rmax'`: maximum radial coordinate R of output grids (m)
+        - `'b_zmin'`, `'psi_zmin'`: minimum vertical coordinate Z of output grids (m)
+        - `'b_zmax'`, `'psi_zmax'`: maximum vertical coordinate Z of output grids (m)
+        - `'axis_r'`: R(phi) on the magnetic axis (m)
+        - `'axis_z'`: Z(phi) on the magnetic axis (m)
+        - `'rlcfs'`: R(phi,len(u)) for the LCFS (m)
+        - `'zlcfs'`: Z(phi,len(u)) for the LCFS (m)
+        - `'psi0'`: toroidal magnetic flux on the magnetic axis (Wb)
+        - `'psi1'`: toroidal magnetic flux through the last closed flux surface (Wb)
+        - `'psi'`: toroidal magnetic flux psi(R,phi,Z) (Wb)
+        - `'br'`: radial magnetic field B_R(R,phi,Z) (T)
+        - `'bphi'`: toroidal magnetic field B_phi(R,phi,Z) (T)
+        - `'bz'`: vertical magnetic field B_Z(R,phi,Z) (T)
+    """
+        # load NetCDF data
+        vmec = nc.Dataset(ncfile)
+        extender = nc.Dataset(extfile)
+    
+        # array dimenstions
+        nr = int(extender.variables["ir"].getValue())
+        nz = int(extender.variables["jz"].getValue())
+        nphi = int(extender.variables["kp"].getValue())
+        nfp = int(extender.variables["nfp"].getValue())
+   
+        # coordinate bounds (m)
+        rmin = float(extender.variables["rmin"].getValue())
+        rmax = float(extender.variables["rmax"].getValue())
+        zmin = float(extender.variables["zmin"].getValue())
+        zmax = float(extender.variables["zmax"].getValue())
+    
+        # magnetic field (T)
+        br = np.array(extender.variables["br_001"])
+        bphi = np.array(extender.variables["bp_001"])
+        bz = np.array(extender.variables["bz_001"])
+
+        # poloidal and toroidal angles (rad)
+        theta = np.linspace(0, 2 * np.pi, ntheta, endpoint=True)
+        phi = np.linspace(0, 2 * np.pi / nfp, nphi, endpoint=False)
+    
+        # VMEC spectral coefficients
+        xm = np.array(vmec.variables["xm"])  # poloidal mode numbers
+        xn = np.array(vmec.variables["xn"])  # toroidal mode numbers
+        rmnc = np.array(vmec.variables["rmnc"])  # cos(mn) comp of cyl R, full mesh
+        zmns = np.array(vmec.variables["zmns"])  # sin(mn) comp of cyl Z, full mesh
+        psi_1d = np.array(vmec.variables["phi"])  # toroidal flux, full mesh
+
+        # inverse Fourier transform to (psi,theta,phi) coordinates (m)
+        r_grid = costransform(theta, phi, rmnc, xm, xn)
+        z_grid = sintransform(theta, phi, zmns, xm, xn)
+
+        # magnetic axis (m)
+        axisr = r_grid[0, 0, :]
+        axisz = z_grid[0, 0, :]
+
+        #get lcfs (m)
+        lcfs_r = r_grid[-1, :, :] 
+        lcfs_z = z_grid[-1, :, :]
+
+        # toroidal magnetic flux (Wb)
+        psi0 = psi_1d[0] #axis
+        psi1 = psi_1d[-1] #LCFS
+        psi_2d = np.tile(psi_1d, (ntheta, 1)).T
+    
+        # R,Z interpolation points (m)
+        r_1d = np.linspace(rmin, rmax, nr)
+        z_1d = np.linspace(zmin, zmax, nz)
+        z_2d, r_2d = np.meshgrid(z_1d, r_1d)
+
+        # interpolate psi inside VMEC domain to cylindircal coordinates
+        psi = np.zeros([nr, nz, nphi])
+        for i in range(nphi):
+            print(i)
+            psi[:, :, i] = si.griddata(
+                (r_grid[:, :, i].flatten(), z_grid[:, :, i].flatten()),
+                psi_2d.flatten(),
+                (r_2d, z_2d),
+                fill_value=psi1,
+            )
+    
+        # close NetCDF data
+        vmec.close()
+        extender.close()
+    
+        # change order from [R,Z,phi] to [phi,Z,R] for below
+        psi = np.transpose(psi, (2, 1, 0))
+    
+        # repeat for each field period
+        phidum = phi
+        for i in range(0,nfp):
+            phi = np.append(phi,phidum+i*2*np.pi/nfp)
+        axisr = np.tile(axisr, nfp)
+        axisz = np.tile(axisz, nfp)
+        lcfs_r = np.tile(lcfs_r,(1,nfp))
+        lcfs_z = np.tile(lcfs_z,(1,nfp))
+        br = np.tile(br, (nfp, 1, 1))
+        bphi = np.tile(bphi, (nfp, 1, 1))
+        bz = np.tile(bz, (nfp, 1, 1))
+        psi = np.tile(psi, (nfp, 1, 1))
+   
+        # repeat endpoint phi=0 == phi=360
+        phi = np.append(phi,2*np.pi)
+        nphi = len(phi)
+        axisr = np.append(axisr, axisr[0])
+        axisz = np.append(axisz, axisz[0])
+        br = np.append(br, br[0, :, :][None, :], axis=0)
+        bphi = np.append(bphi, bphi[0, :, :][None, :], axis=0)
+        bz = np.append(bz, bz[0, :, :][None, :], axis=0)
+        psi = np.append(psi, psi[0, :, :][None, :], axis=0)
+    
+        #dumb way to append to lcfs endpoint
+        dumx,dumy = lcfs_r.shape
+        new_lcfsr = np.zeros([dumx,dumy+1])
+        new_lcfsr[:,0:dumy] = lcfs_r
+        new_lcfsr[:,-1] = lcfs_r[:,0]
+        new_lcfsz = np.zeros([dumx,dumy+1])
+        new_lcfsz[:,0:dumy] = lcfs_z
+        new_lcfsz[:,-1] = lcfs_z[:,0]
+        lcfs_r = new_lcfsr
+        lcfs_z = new_lcfsz
+
+        # change order from [phi,Z,R] to [R,phi,Z]
+        br = np.transpose(br, (2, 0, 1))
+        bphi = np.transpose(bphi, (2, 0, 1))
+        bz = np.transpose(bz, (2, 0, 1))
+        psi = np.transpose(psi, (2, 0, 1))
+
+        #pad psi0 if needed
+        if psipad != 0.0:
+            print('Warning: Padding psi0 with',psipad)
+            psi0 += psipad
+    
+        out = {
+            "axis_phimin": 0,  # deg
+            "axis_phimax": np.rad2deg(phi[-1]),  # deg
+            "axis_nphi": nphi,
+            "axisr": axisr,  # m
+            "axisz": axisz,  # m
+            "rlcfs": lcfs_r, # m
+            "zlcfs": lcfs_z, #m
+            "b_rmin": rmin,  # m
+            "b_rmax": rmax,  # m
+            "b_nr": nr,
+            "b_zmin": zmin,  # m
+            "b_zmax": zmax,  # m
+            "b_nz": nz,
+            "b_phimin": 0,  # deg
+            "b_phimax": np.rad2deg(phi[-1]),  # deg
+            "b_nphi": nphi,
+            "br": br,  # T
+            "bphi": bphi,  # T
+            "bz": bz,  # T
+            "psi": psi,  # Wb
+            "psi0": psi0,  # Wb
+            "psi1": psi1,  # Wb
+            "psi_rmin": rmin,  # m
+            "psi_rmax": rmax,  # m
+            "psi_nr": nr,
+            "psi_zmin": zmin,  # m
+            "psi_zmax": zmax,  # m
+            "psi_nz": nz,
+            "psi_phimin": 0,  # deg
             "psi_phimax": np.rad2deg(phi[-1]),  # deg
             "psi_nphi": nphi,
         }
