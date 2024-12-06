@@ -25,7 +25,7 @@
 #include "asigma.h"
 #include "consts.h"
 #include "physlib.h"
-#include "gitver.h"
+#include "rf_fields_fo.h"
 
 #include "simulate/mccc/mccc_coefs.h"
 
@@ -925,6 +925,45 @@ void libascot_eval_ratecoeff(
                 break;
             }
         }
+    }
+
+}
+
+
+/** 
+ * @brief Evaluate RF electric and magnetic fields at given coordinates.
+ * 
+ * @param sim initialized simulation data struct
+ * @param Neval number of evaluation points.
+ * @param R R coordinates of the evaluation points [m].
+ * @param phi phi coordinates of the evaluation points [rad].
+ * @param z z coordinates of the evaluation points [m].
+ * @param t time coordinates of the evaluation points [s].
+ * @param ER output array [V/m].
+ * @param Ephi output array [V/m].
+ * @param Ez output array [V/m].
+ * @param BR output array [T].
+ * @param Bphi output array [T].
+ * @param Bz output array [T].
+ */
+
+void libascot_rffield_eval_fields(sim_data* sim, int Neval,
+            real* R, real* phi, real* z, real* t, 
+            real* ER, real* Ephi, real* Ez,
+            real* BR, real* Bphi, real* Bz){
+    if(sim->rffield_data.initialized == 0) return; // RF data not initialized
+
+    #pragma omp parallel for
+    for(int k = 0; k < Neval; k++) {
+        real E[3], B[3];
+        a5err err = RF_field_eval(E, B, R[k], phi[k], z[k], t[k], &sim->rffield_data) ;
+        if( err ) continue;
+        ER[k]   = E[0];
+        Ephi[k] = E[1];
+        Ez[k]   = E[2];
+        BR[k]   = B[0];
+        Bphi[k] = B[1];
+        Bz[k]   = B[2];
     }
 
 }
