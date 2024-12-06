@@ -13,6 +13,7 @@ dependencies:
   - ipython
   - numpy
   - scipy
+  - desc-opt
   - h5py
   - xmlschema
   - unyt
