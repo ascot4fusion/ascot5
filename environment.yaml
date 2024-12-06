@@ -21,3 +21,4 @@ dependencies:
   - pyvista
   - freeqdsk
   - desc-opt
+  - netCDF4
