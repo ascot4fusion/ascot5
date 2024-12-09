@@ -284,15 +284,15 @@ int hdf5_interface_read_input(sim_data* sim, int input_active,
             strcpy(sim->qid_rffield, qid);
             print_out(VERBOSE_IO, "Active QID is %s\n", qid);
             if(hdf5_rffields_init(f, &sim->rffield_data, qid)) {
-                print_err("Error: Failed to initialize RF field data.\n");
+                print_err("Error: Failed to initialize RF field data (hdf5_interface.c).\n");
                 return 1;
             }
             print_out(VERBOSE_IO, "RF field data read and initialized.\n");
 
-            if(sim->sim_mode != simulate_mode_fo){
-                print_err("Error: RF fields are only supported in FO mode.\n");
-                return 1;
-            }
+            // if(sim->sim_mode != simulate_mode_fo){
+            //     print_err("Error: RF fields are only supported in FO mode.\n");
+            //     return 1;
+            // }
         }
     }
 
