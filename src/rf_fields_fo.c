@@ -60,11 +60,7 @@ int rffield_init(RF2D_fields* rffield_data, real rmin, real rmax, int nr, \
         err += interp2Dcomp_setup(rffield_data->introbj[i], data[i], nr, nz, \
                                   NATURALBC, NATURALBC, \
                                   rmin, rmax, zmin, zmax);
-        if(err){
-            // Setting the error message.
-            print_err("Error: Failed to initialize splines.\n");
-            break;
-        }
+        if(err) break;
     }
 
     rffield_data->initialized = 1;
@@ -145,9 +141,8 @@ a5err RF_field_eval(real E[3], real B[3], real r, real phi,\
     for(int k = 0; k < 12; k++){
         interperr = interp2Dcomp_eval_f(&interpolated[k], rffield_data->introbj[k], r, z);
         if(interperr){
-            // Setting the error message.
-            print_err("Error: Failed to evaluate the RF field.\n");
-            return error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_RF_FIELDS_FO);
+            E[0] = 0.0; E[1] = 0.0; E[2] = 0.0;
+            B[0] = 0.0; B[1] = 0.0; B[2] = 0.0;
         }
     }
 
