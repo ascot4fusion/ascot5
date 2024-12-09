@@ -924,7 +924,7 @@ class ImportData():
         return ("prt", prt)
     
     def import_toric2spiral2ascot(self, fn=None, power_scaling: float=1.0,
-                                  nr: int=100, nz: int=100):
+                                  nr: int=100, nz: int=101):
         """Import toroidal magnetic field from TORIC.
 
         This will read the RZ electric and magnetic fields in cylindrical
@@ -951,12 +951,10 @@ class ImportData():
             raise ImportError("xarray package is required to load the RF data")
         
         inp = self._ascot.input_initialized()
-        if "boozer" not in inp:
+        if ("boozer" not in inp):
             raise AscotInitException("boozer coordinates not initialized")
-        
-        # We load the magnetic coordinates data.
-        grp  = self._ascot.data._get_group(inp["boozer"])
-        d    = grp.read() # Read the magnetic coordinates.
+        if ("bfield" not in inp):
+            raise AscotInitException("magnetic field not initialized")
         
         # Opening the dataset: it contains the electromagnetic field 
         # components in real and imaginary parts but described in a
@@ -972,37 +970,20 @@ class ImportData():
         zmin = ds.zz.min().values
         rgrid = np.linspace(rmin, rmax, nr)
         zgrid = np.linspace(zmin, zmax, nz)
-        grr, gzz = np.meshgrd(rgrid, zgrid, indexing="ij")
 
-        # We evaluate the poloidal flux at all the points in the grid.
-        gridpsi_r = np.linspace(d["rmin"], d["rmax"], d["nr"])
-        gridpsi_z = np.linspace(d["zmin"], d["zmax"], d["nz"])
-        psi       = d["psi_rz"]
+        psi, theta = self._ascot.input_eval(rgrid * unyt.m,
+                                            0.0 * unyt.rad,
+                                            zgrid * unyt.m,
+                                            0.0 * unyt.s, 'psi', 'theta', grid=True)
+        psi = psi.value.squeeze()
+        theta = theta.value.squeeze()
 
-        # We interpolate the poloidal flux to the grid.
-        psi = RectBivariateSpline(gridpsi_r, gridpsi_z, psi)(rgrid, zgrid)
-
-        # We need to evalutate the magnetic poloidal angle, Theta. However,
-        # we first evaluate the geometrical poloidal angles.
-        thetageom = np.arctan2(gzz - d["z0"], grr - d["r0"])
-
-        # Using the psi and the thetageom, we evaluate the magnetic coordinate
-        # theta.
-        thetageom_grid = np.linspace(0, 2*np.pi, d["ntheta"])
-        psigrid = np.linspace(d["psi0"], d["psi1"], d["npsi"])
-        flags = (psi > d["psi0"]) & (psi < d["psi1"])
-        theta = np.zeros((nr, nz))
-
-        theta[flags] = RectBivariateSpline(psigrid, 
-                                    thetageom_grid, 
-                                    d["theta_psithetageom"])(psi[flags].flatten(), 
-                                                             thetageom[flags].flatten(), 
-                                                             grid=False)
+        flags = np.logical_not(np.isnan(psi))
 
         # We have now the values of the (psi,thetamag) to transform the fields from
         # the Boozer magnetic coordinates to the cylindrical coordinates.
         names = ['Er', 'Ez', 'Ephi', 'Br', 'Bz', 'Bphi']
-        psigrid = ds.psi.values
+        psigrid = ds.Poloidal_flux.values / (2*np.pi) # Funny COCOS factor :)))
         thetagrid = np.linspace(0, 2*np.pi, ds.theta.size)
         out = {}
         for ii, iname in enumerate(names):
@@ -1011,17 +992,26 @@ class ImportData():
                 intrp = RectBivariateSpline(psigrid, thetagrid, tmp)
 
                 out[iname + jj] = np.zeros((nr, nz))
-                out[iname + jj][flags] = intrp(psi[flags].flatten(),
+                out[iname + jj][flags] = intrp(-psi[flags].flatten(),
                                                theta[flags].flatten(), 
                                                grid=False)
+            
+                # Setting the fields outside the range (NaNs) to zero
+                flags2 = np.isnan(out[iname + jj])
+                out[iname + jj][flags2] = 0.0
+        
         # Building the complex fields.
         for iname in names:
-            out[iname] = (out[iname + '_re'] + 1j * out[iname + '_im']) * power_scaling
+            out[iname] = (out[iname + '_re'].T + 1j * out[iname + '_im'].T) * power_scaling
             del out[iname + '_re']
             del out[iname + '_im']
 
         # We load also the frequency and the toroidal mode number.
         out["omega"] = ds.frequency.values
-        out["nphi"] = ds.n_tor.values
+        out["ntor"] = ds.n_tor.values
+        out["rmin"] = rmin
+        out["rmax"] = rmax
+        out["zmin"] = zmin
+        out["zmax"] = zmax
         
-        return ("RF2D_fields", out)
+        return ("rffield", out)
