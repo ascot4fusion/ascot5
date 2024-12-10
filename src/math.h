@@ -134,8 +134,8 @@ void math_barycentric_coords_triangle(
 void math_uniquecount(int* in, int* unique, int* count, int n);
 DECLARE_TARGET_SIMD
 real* math_rsearch(const real key, const real* base, int num);
-DECLARE_TARGET_SIMD_UNIFORM(rv,zv,n)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(rv,zv,n)
 int math_point_in_polygon(real r, real z, real* rv, real* zv, int n);
-
+DECLARE_TARGET_END
 
 #endif

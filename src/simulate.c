@@ -109,10 +109,6 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
         print_err("Atomic not yet ported to GPU. Please set ENABLE_ATOMIC=0.");
         exit(1);
     }
-    if(sim->enable_mhd) {
-        print_err("MHD not yet ported to GPU. Please set ENABLE_MHD=0.");
-        exit(1);
-    }
     if(sim->diag_data.diagorb_collect) {
         print_err(
             "ENABLE_ORBITWRITE=1 not ported to GPU. Please disable it.");

@@ -97,7 +97,16 @@ void mhd_stat_free(mhd_stat_data* data) {
  * @param data pointer to the data struct
  */
 void mhd_stat_offload(mhd_stat_data* data) {
-    //TODO: Implement
+    GPU_MAP_TO_DEVICE(
+        data->nmode[0:data->n_modes], data->mmode[0:data->n_modes], \
+        data->amplitude_nm[0:data->n_modes], data->omega_nm[0:data->n_modes], \
+        data->phase_nm[0:data->n_modes], \
+	data->phi_nm[0:data->n_modes], data->alpha_nm[0:data->n_modes]	
+    )
+    for(int i = 0; i < data->n_modes; i++) {
+      GPU_MAP_TO_DEVICE( data->phi_nm[i].c[0:data->phi_nm[i].n_x*NSIZE_COMP1D] )
+      GPU_MAP_TO_DEVICE( data->alpha_nm[i].c[0:data->alpha_nm[i].n_x*NSIZE_COMP1D] )
+    }
 }
 
 /**

@@ -89,7 +89,12 @@ void boozer_free(boozer_data* data) {
  * @param data pointer to the data struct
  */
 void boozer_offload(boozer_data* data) {
-    // TODO: Implement
+    GPU_MAP_TO_DEVICE(
+        data->rs[0:data->nrzs], data->zs[0:data->nrzs], \
+	data->nu_psitheta,data->theta_psithetageom, \
+	data->nu_psitheta.c[0:data->nu_psitheta.n_x*data->nu_psitheta.n_y*NSIZE_COMP2D], \
+	data->theta_psithetageom.c[0:data->theta_psithetageom.n_x*data->theta_psithetageom.n_y*NSIZE_COMP2D]
+    )
 }
 
 /**

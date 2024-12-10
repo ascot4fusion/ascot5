@@ -214,7 +214,8 @@ void step_fo_vpa_mhd(particle_simd_fo* p, real* h, B_field_data* Bdata,
 
     int i;
     /* Following loop will be executed simultaneously for all i */
-    #pragma omp simd  aligned(h : 64)
+    GPU_DATA_IS_MAPPED(h[0:p->n_mrk])
+    GPU_PARALLEL_LOOP_ALL_LEVELS
     for(i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
             a5err errflag = 0;
