@@ -1060,3 +1060,10 @@ class LibAscot:
         fun(ctypes.byref(self._sim), rgc.size, mass, charge,
             rgc, phigc, zgc, pparagc, mugc, zetagc,
             rprt, phiprt, zprt, vr, vphi, vz)
+        
+        out = {"r": rprt, "phi": phiprt, "z": zprt,
+               "vr": vr, "vphi": vphi, "vz": vz, 
+               "mass": mass, 
+               "charge": charge}
+        
+        return out

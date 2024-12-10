@@ -1009,5 +1009,8 @@ void libascot_gc2prt(sim_data* sim, int Neval,
         vr[i] = pr/mass;
         vphi[i] = pphi/(mass); // Not the canonical momentum :)
         vz[i] = pz/mass;
+        R[i] = Rfo;
+        phi[i] = phifo;
+        z[i] = zfo;
     }
 }
