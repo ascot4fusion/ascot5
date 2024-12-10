@@ -953,10 +953,12 @@ void libascot_rffield_eval_fields(sim_data* sim, int Neval,
             real* BR, real* Bphi, real* Bz){
     if(sim->rffield_data.initialized == 0) return; // RF data not initialized
 
-    #pragma omp parallel for
+    real E[3], B[3];
+    a5err err;
+
+    #pragma omp parallel for private(E, B, err)
     for(int k = 0; k < Neval; k++) {
-        real E[3], B[3];
-        a5err err = RF_field_eval(E, B, R[k], phi[k], z[k], t[k], &sim->rffield_data) ;
+        err = RF_field_eval(E, B, R[k], phi[k], z[k], t[k], &sim->rffield_data) ;
         if( err ) continue;
         ER[k]   = E[0];
         Ephi[k] = E[1];

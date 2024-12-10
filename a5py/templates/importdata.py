@@ -1002,12 +1002,12 @@ class ImportData():
         
         # Building the complex fields.
         for iname in names:
-            out[iname] = (out[iname + '_re'].T + 1j * out[iname + '_im'].T) * power_scaling
+            out[iname] = (out[iname + '_re'] + 1j * out[iname + '_im']) * power_scaling
             del out[iname + '_re']
             del out[iname + '_im']
 
         # We load also the frequency and the toroidal mode number.
-        out["omega"] = ds.frequency.values
+        out["omega"] = ds.frequency.values * 2*np.pi
         out["ntor"] = ds.n_tor.values
         out["rmin"] = rmin
         out["rmax"] = rmax

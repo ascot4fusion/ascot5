@@ -108,6 +108,9 @@ class rffield(DataGroup):
             Bz.dtype != np.complex128 or Bphi.dtype != np.complex128):
             raise ValueError("Electric and magnetic field are expected" + 
                              " to be complex fields for the RF waves")
+        
+        nr = Er.shape[0]
+        nz = Er.shape[1]
 
         parent = "rffield"
         group  = "rffield"
@@ -116,29 +119,29 @@ class rffield(DataGroup):
             g = add_group(f, parent, group, desc=desc)
             gname = g.name.split("/")[-1]
 
-            g.create_dataset("rmin", data=(rmin,), dtype="f8")
-            g.create_dataset("rmax", data=(rmax,), dtype="f8")
-            g.create_dataset("zmin", data=(zmin,), dtype="f8")
-            g.create_dataset("zmax", data=(zmax,), dtype="f8")
-            g.create_dataset("nr", data=(Er.shape[0],), dtype="i4")
-            g.create_dataset("nz", data=(Er.shape[1],), dtype="i4")
+            g.create_dataset("rmin", (1,), data=(rmin,), dtype="f8")
+            g.create_dataset("rmax", (1,), data=(rmax,), dtype="f8")
+            g.create_dataset("zmin", (1,), data=(zmin,), dtype="f8")
+            g.create_dataset("zmax", (1,), data=(zmax,), dtype="f8")
+            g.create_dataset("nr", (1,), data=(nr,), dtype="i4")
+            g.create_dataset("nz", (1,), data=(nz,), dtype="i4")
 
-            g.create_dataset("Er_real", data=Er.real, dtype="f8")
-            g.create_dataset("Ez_real", data=Ez.real, dtype="f8")
-            g.create_dataset("Ephi_real", data=Ephi.real, dtype="f8")
-            g.create_dataset("Er_imag", data=Er.imag, dtype="f8")
-            g.create_dataset("Ez_imag", data=Ez.imag, dtype="f8")
-            g.create_dataset("Ephi_imag", data=Ephi.imag, dtype="f8")
+            g.create_dataset("Er_real", (nz, nr), data=Er.real.T, dtype="f8")
+            g.create_dataset("Ez_real", (nz, nr), data=Ez.real.T, dtype="f8")
+            g.create_dataset("Ephi_real", (nz, nr), data=Ephi.real.T, dtype="f8")
+            g.create_dataset("Er_imag", (nz, nr), data=Er.imag.T, dtype="f8")
+            g.create_dataset("Ez_imag", (nz, nr), data=Ez.imag.T, dtype="f8")
+            g.create_dataset("Ephi_imag", (nz, nr), data=Ephi.imag.T, dtype="f8")
 
-            g.create_dataset("Br_real", data=Br.real, dtype="f8")
-            g.create_dataset("Bz_real", data=Bz.real, dtype="f8")
-            g.create_dataset("Bphi_real", data=Bphi.real, dtype="f8")
-            g.create_dataset("Br_imag", data=Br.imag, dtype="f8")
-            g.create_dataset("Bz_imag", data=Bz.imag, dtype="f8")
-            g.create_dataset("Bphi_imag", data=Bphi.imag, dtype="f8")
+            g.create_dataset("Br_real", (nz, nr), data=Br.real.T, dtype="f8")
+            g.create_dataset("Bz_real", (nz, nr), data=Bz.real.T, dtype="f8")
+            g.create_dataset("Bphi_real", (nz, nr), data=Bphi.real.T, dtype="f8")
+            g.create_dataset("Br_imag", (nz, nr), data=Br.imag.T, dtype="f8")
+            g.create_dataset("Bz_imag", (nz, nr), data=Bz.imag.T, dtype="f8")
+            g.create_dataset("Bphi_imag", (nz, nr), data=Bphi.imag.T, dtype="f8")
 
-            g.create_dataset("omega", data=(omega,), dtype="f8")
-            g.create_dataset("ntor", data=(ntor,), dtype="i4")
+            g.create_dataset("omega", (1,), data=(omega,), dtype="f8")
+            g.create_dataset("ntor", (1,), data=(ntor,), dtype="i4")
 
         return gname
     @staticmethod
