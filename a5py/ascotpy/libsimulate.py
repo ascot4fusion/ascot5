@@ -268,7 +268,7 @@ class LibSimulate():
                 p = pin[i].p
 
                 vvec = np.array([vr[i], vphi[i], vz[i]])*unyt.m/unyt.s
-                pvec = physlib.momentum_velocity(mrk["mass"][i], vvec)
+                pvec = physlib.momentum_velocity(m[i], vvec)
 
                 p.r       = r[i]
                 p.phi     = phi[i]
