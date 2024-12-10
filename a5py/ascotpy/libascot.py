@@ -534,6 +534,7 @@ class LibAscot:
         return out["nmodes"], out["nmode"], out["mmode"], out["amplitude"],\
             out["omega"], out["phase"]
 
+    @parseunits(r="m", phi="rad", z="m", t="s")
     def _eval_rffields(self, r, phi, z, t):
         """Evaluate RF fields at given coordinates.
 
@@ -1007,3 +1008,55 @@ class LibAscot:
                              "for 3D fields. For 2D fields, none of these "
                              "should be provided.\n\nYou did an oopsie. Search "
                              "your feelings. You know it to be true.")
+
+    @parseunits(rgc="m", phigc="rad", zgc="m", pparagc="kg*m/s", mugc="J/T",
+                zetagc="rad", mass="kg", charge="C")
+    def gc2prt(self, rgc, phigc, zgc, pparagc, mugc, zetagc, mass, charge):
+        """Convert guiding-center coordinates to particle coordinates.
+
+        Parameters
+        ----------
+        rgc : array_like (n,)
+            Major radius of the guiding-center marker.
+        phigc : array_like (n,)
+            Toroidal angle of the guiding-center marker.
+        zgc : array_like (n,)
+            Height of the guiding-center marker.
+        pparagc : array_like (n,)
+            Parallel momentum of the guiding-center marker.
+        mugc : array_like (n,)
+            Magnetic moment of the guiding-center marker.
+        zetagc : array_like (n,)
+            Gyro-phase of the guiding-center marker.
+        mass : float
+            Mass of the particle.
+        charge : float
+            Charge of the particle.
+        """
+        self._requireinit("bfield")
+        rgc = np.asarray(rgc).ravel().astype(dtype="f8")
+        phigc = np.asarray(phigc).ravel().astype(dtype="f8")
+        zgc = np.asarray(zgc).ravel().astype(dtype="f8")
+        pparagc = np.asarray(pparagc).ravel().astype(dtype="f8")
+        mugc = np.asarray(mugc).ravel().astype(dtype="f8")
+        zetagc = np.asarray(zetagc).ravel().astype(dtype="f8")
+
+        # Generating the output.
+        rprt = np.nan * np.zeros((rgc.size,), dtype="f8") * unyt.m
+        phiprt = np.nan * np.zeros((rgc.size,), dtype="f8") * unyt.rad
+        zprt = np.nan * np.zeros((rgc.size,), dtype="f8") * unyt.m
+        vr = np.nan * np.zeros((rgc.size,), dtype="f8") * unyt.m/unyt.s
+        vphi = np.nan * np.zeros((rgc.size,), dtype="f8") * unyt.m/unyt.s
+        vz = np.nan * np.zeros((rgc.size,), dtype="f8") * unyt.m/unyt.s
+
+        fun = _LIBASCOT.libascot_gc2prt
+        fun.restype  = None
+        fun.argtypes = [PTR_SIM, ctypes.c_int, # sim, neval
+                        ctypes.c_double, ctypes.c_double, # mass (kg), charge (C)
+                        PTR_REAL, PTR_REAL, PTR_REAL, # Rgc, phigc, Zgc
+                        PTR_REAL, PTR_REAL, PTR_REAL, # vparagc, mugc, zetagc
+                        PTR_REAL, PTR_REAL, PTR_REAL, # Rprt, phiprt, Zprt
+                        PTR_REAL, PTR_REAL, PTR_REAL] # vr, vphi, vz
+        fun(ctypes.byref(self._sim), rgc.size, mass, charge,
+            rgc, phigc, zgc, pparagc, mugc, zetagc,
+            rprt, phiprt, zprt, vr, vphi, vz)

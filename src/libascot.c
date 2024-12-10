@@ -26,6 +26,7 @@
 #include "consts.h"
 #include "physlib.h"
 #include "rf_fields_fo.h"
+#include "gctransform.h"
 
 #include "simulate/mccc/mccc_coefs.h"
 
@@ -968,4 +969,45 @@ void libascot_rffield_eval_fields(sim_data* sim, int Neval,
         Bz[k]   = B[2];
     }
 
+}
+
+void libascot_gc2prt(sim_data* sim, int Neval, 
+                   real mass, real charge, 
+                   real* Rgc, real* phigc, real* zgc, real* ppar, real* mu, real *zeta,
+                   real* R, real* phi, real* z, real* vr, real* vphi, real* vz){
+    
+    // Auxiliar private variables.
+    real pparaprt, muprt, zetaprt; // Particle velocity coordinates.
+    real Rfo, phifo, zfo; // Particle position in FO coordinates.
+    real pr, pz, pphi; // Particle momentum components.
+    real B_dB[15]; // Magnetic field evaluated at the particle position.
+
+    #pragma omp parallel for private(pparaprt, muprt, zetaprt, B_dB, Rfo, phifo, zfo, pr, pphi, pz)
+    for(int i = 0; i < Neval; i++){
+        // We evaluate the magnetic field at the GC position.
+        if( B_field_eval_B_dB(B_dB, Rgc[i], phigc[i], zgc[i], 0.0, &sim->B_data) ) {
+            continue;
+        }
+        
+        // We evaluate the GC to FO transformation: getting the physical (ppara, mu, zeta)
+        // coordinates from the GC coordinates.
+        gctransform_guidingcenter2particle(mass, charge, B_dB,
+                   Rgc[i], phigc[i], zgc[i], ppar[i], mu[i], zeta[i],
+                   &Rfo, &phifo, &zfo, &pparaprt, &muprt, &zetaprt);
+
+        // We evaluate again the magnetic field, but on the FO position
+        if( B_field_eval_B_dB(B_dB, Rfo, phifo, zfo, 0.0, &sim->B_data) ) {
+            continue;
+        }
+        
+        // Evaluating the momentum components at the FO position.
+        gctransform_pparmuzeta2prpphipz(mass, charge, B_dB,
+                   phifo, pparaprt, muprt, zetaprt,
+                   &pr, &pphi, &pz);
+
+        // From the momenta we can evaluate the velocity components.
+        vr[i] = pr/mass;
+        vphi[i] = pphi/(mass); // Not the canonical momentum :)
+        vz[i] = pz/mass;
+    }
 }
