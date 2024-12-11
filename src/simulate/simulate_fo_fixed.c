@@ -249,6 +249,14 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
         h = gyrotime/sim->fix_gyrodef_nstep;
     }
 
+    if(sim->rffield_data.initialized == 1){
+        real rf_time = 2.0 * CONST_PI / sim->rffield_data.omega;
+        rf_time /= sim->fix_gyrodef_nstep; // Divide by number of steps per gyrotime
+        if(h > rf_time){
+            h = rf_time;
+        }
+    }
+
     return h;
 }
 
