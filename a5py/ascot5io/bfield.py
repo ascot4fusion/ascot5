@@ -1464,23 +1464,23 @@ class B_STS(DataGroup):
             bz[:,:,k] = si.griddata((data["R"],data["Z"]),data["B_Z"], (R_2d,Z_2d))
 
             #Replace br, bphi, bz NaN values outside LCFS with closest values
-            data = br[:,:,i]
+            data = br[:,:,k]
             mask = np.where(~np.isnan(data))
             interp = si.NearestNDInterpolator(np.transpose(mask),data[mask])
             filled_data = interp(*np.indices(data.shape))
-            br[:,:,i] = filled_data
+            br[:,:,k] = filled_data
 
-            data = bz[:,:,i]
+            data = bz[:,:,k]
             mask = np.where(~np.isnan(data))
             interp = si.NearestNDInterpolator(np.transpose(mask),data[mask])
             filled_data = interp(*np.indices(data.shape))
-            bz[:,:,i] = filled_data
+            bz[:,:,k] = filled_data
 
-            data = bphi[:,:,i]
+            data = bphi[:,:,k]
             mask = np.where(~np.isnan(data))
             interp = si.NearestNDInterpolator(np.transpose(mask),data[mask])
             filled_data = interp(*np.indices(data.shape))
-            bphi[:,:,i] = filled_data
+            bphi[:,:,k] = filled_data
 
         # change order from [R,Z,phiang] to [R,phiang,Z]
         psi = np.transpose(psi, (0, 2, 1))
@@ -1661,7 +1661,7 @@ class B_STS(DataGroup):
     
         # repeat for each field period
         phidum = phi
-        for i in range(0,nfp):
+        for i in range(1,nfp):
             phi = np.append(phi,phidum+i*2*np.pi/nfp)
         axisr = np.tile(axisr, nfp)
         axisz = np.tile(axisz, nfp)
@@ -1671,7 +1671,15 @@ class B_STS(DataGroup):
         bphi = np.tile(bphi, (nfp, 1, 1))
         bz = np.tile(bz, (nfp, 1, 1))
         psi = np.tile(psi, (nfp, 1, 1))
-   
+        print(axisr.shape)
+        print(axisz.shape)
+        print(lcfs_r.shape)
+        print(lcfs_z.shape)
+        print(br.shape)
+        print(bz.shape)
+        print(bphi.shape)
+        print(psi.shape)
+        print(phi.shape)
         # repeat endpoint phi=0 == phi=360
         phi = np.append(phi,2*np.pi)
         nphi = len(phi)
