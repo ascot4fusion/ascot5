@@ -1,4 +1,4 @@
-name: ascot-env-test
+name: ascot-env
 channels:
   - conda-forge
 dependencies:
