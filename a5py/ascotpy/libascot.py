@@ -1034,6 +1034,10 @@ class LibAscot:
             Charge of the particle.
         """
         self._requireinit("bfield")
+        # Checking all the inputs.
+        if rgc.size != phigc.size != zgc.size != pparagc.size != mugc.size != zetagc.size:
+            raise ValueError("All inputs must have the same size.")
+
         rgc = np.asarray(rgc).ravel().astype(dtype="f8")
         phigc = np.asarray(phigc).ravel().astype(dtype="f8")
         zgc = np.asarray(zgc).ravel().astype(dtype="f8")
