@@ -58,7 +58,8 @@ int rffield_init(RF2D_fields* rffield_data, real rmin, real rmax, int nr, \
 
     // Initialize the structures
     for(int i = 0; i < 12; i++){
-        err += interp2Dcomp_setup(rffield_data->introbj[i], data[i], nr, nz, \
+        err += interp2Dcomp_setup(rffield_data->introbj[i], \
+                                  data[i], nr, nz, \
                                   NATURALBC, NATURALBC, \
                                   rmin, rmax, zmin, zmax);
         if(err) break;
@@ -144,6 +145,7 @@ a5err RF_field_eval(real E[3], real B[3], real r, real phi,\
         if(interperr){
             E[0] = 0.0; E[1] = 0.0; E[2] = 0.0;
             B[0] = 0.0; B[1] = 0.0; B[2] = 0.0;
+            return 0; 
         }
     }
 
@@ -151,11 +153,11 @@ a5err RF_field_eval(real E[3], real B[3], real r, real phi,\
     real phase = rffield_data->omega * t + rffield_data->ntor * phi;
     real cosphase = cos(phase);
     real sinphase = sin(phase);
-    E[0] = interpolated[0] * cosphase + interpolated[1] * sinphase; // Er
-    E[1] = interpolated[2] * cosphase + interpolated[3] * sinphase; // Ephi
-    E[2] = interpolated[4] * cosphase + interpolated[5] * sinphase; // Ez
-    B[0] = interpolated[6] * cosphase + interpolated[7] * sinphase; // Br
-    B[1] = interpolated[8] * cosphase + interpolated[9] * sinphase; // Bphi
+    E[0] = interpolated[0]  * cosphase + interpolated[1]  * sinphase; // Er
+    E[1] = interpolated[2]  * cosphase + interpolated[3]  * sinphase; // Ephi
+    E[2] = interpolated[4]  * cosphase + interpolated[5]  * sinphase; // Ez
+    B[0] = interpolated[6]  * cosphase + interpolated[7]  * sinphase; // Br
+    B[1] = interpolated[8]  * cosphase + interpolated[9]  * sinphase; // Bphi
     B[2] = interpolated[10] * cosphase + interpolated[11] * sinphase; // Bz
 
     return err;
