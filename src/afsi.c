@@ -116,8 +116,7 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
     }
 
     real time = 0.0;
-
-    //#pragma omp parallel for
+    #pragma omp parallel for
     for(size_t i0 = 0; i0 < afsi->volshape[0]; i0++) {
         real* ppara1 = (real*) malloc(n*sizeof(real));
         real* pperp1 = (real*) malloc(n*sizeof(real));
@@ -175,7 +174,6 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
                                         + i2*prod1->strides[i2coord]
                                         + ip1*prod1->strides[p1coord]
                                         + ip2*prod1->strides[p2coord];
-                        //printf("%lu %lu %lu %lu %lu %lu\n", i0, i1, i2, ip1, ip2, index);
                         prod1->bins[index] += weight * afsi->mult;
                     }
 

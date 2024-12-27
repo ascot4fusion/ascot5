@@ -748,6 +748,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         r, z = self.input_rhotheta2rz(
             rhoc.ravel(), thc.ravel(), p.ravel(), t)
         del thc, rhoc
+        r = np.reshape(r, p.shape)
+        z = np.reshape(z, p.shape)
 
         def integrate_prism(rho, theta, phimin, phimax):
             """Integrate volume by dividing it into prisms.

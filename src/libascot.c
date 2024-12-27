@@ -194,28 +194,31 @@ void libascot_B_field_rhotheta2rz(
             continue;
         }
 
-        real x = 1e-1;
-        real rj, zj;
+        real a = 0.0, b = 5.0;
         real costh = cos(theta[j]);
         real sinth = sin(theta[j]);
         for(int i=0; i<maxiter; i++) {
-            rj = axisrz[0] + x * costh;
-            zj = axisrz[1] + x * sinth;
-            if( B_field_eval_rho_drho(rhodrho, rj, phi[j], zj, &sim->B_data) ) {
-                break;
+	    real c = 0.5*(a + b);
+	    real rj = axisrz[0] + c * costh;
+            real zj = axisrz[1] + c * sinth;
+	    if(rj < 0) {
+	        b = c;
+		continue;
+	    }
+	    if( B_field_eval_rho_drho(rhodrho, rj, phi[j], zj, &sim->B_data) ) {
+	        b = c;
+                continue;
             }
             if( fabs(rho[j] - rhodrho[0]) < tol ) {
                 r[j] = rj;
                 z[j] = zj;
                 break;
             }
-
-            real drhodx = costh * rhodrho[1] + sinth * rhodrho[3];
-            x = x - (rhodrho[0] - rho[j]) / drhodx;
-            if( x < 0 ) {
-                /* Try again starting closer from the axis */
-                x = (x + (rhodrho[0] - rho[j]) / drhodx) / 2;
-            }
+	    if( rho[j] < rhodrho[0]) {
+	        b = c;
+	    } else {
+	        a = c;
+	    }
         }
     }
 }
