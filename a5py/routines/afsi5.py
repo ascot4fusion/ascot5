@@ -160,6 +160,7 @@ class Afsi():
                 nrho=rho.size, ntheta=theta.size, nphi=phi.size, method="prism",
                 return_coords=True,
                 )
+            phic = phic.ravel()
         else:
             phic, rc, zc = np.meshgrid(1.5*phi[:-1]-0.5*phi[1:],
                                        1.5*r[:-1]-0.5*r[1:],
@@ -444,10 +445,10 @@ class Afsi():
         afsidata = STRUCT_AFSIDATA()
         afsidata.reaction = reaction
         afsidata.mult = mult
-        afsidata.r = r.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-        afsidata.z = z.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        afsidata.r = r.ravel().ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        afsidata.z = z.ravel().ctypes.data_as(ctypes.POINTER(ctypes.c_double))
         afsidata.phi = phi.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-        afsidata.vol = vol.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        afsidata.vol = vol.ravel().ctypes.data_as(ctypes.POINTER(ctypes.c_double))
         afsidata.volshape[:] = vol.shape
         if isinstance(react1, np.int_):
             afsidata.type1 = 2
