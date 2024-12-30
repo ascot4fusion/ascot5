@@ -30,7 +30,7 @@ except:
 
 #for vmec_field and extender_field
 try:
-    from netCDF4 as nc
+    import netCDF4 as nc
 except:
     nc = None
 
