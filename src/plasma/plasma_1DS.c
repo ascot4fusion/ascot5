@@ -350,7 +350,7 @@ a5err plasma_1DS_eval_densandtemp(real* dens, real* temp, real rho,
 a5err plasma_1DS_eval_flow(real* vflow, real rho, real r,
                            plasma_1DS_data* pls_data) {
     a5err err = 0;
-    if(interp1Dcomp_eval_f(vflow, &pls_data->vtor, rho)) {
+    if(interp1Dcomp_eval_f(vflow, &pls_data->vtor[0], rho)) {
         error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1DS );
     }
     *vflow *= CONST_2PI * r;

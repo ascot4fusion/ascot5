@@ -359,8 +359,9 @@ a5err plasma_1Dt_eval_flow(real* vflow, real rho, real t, real r,
         real p11, p12, p21, p22, p1, p2;
 
         p11 = pls_data->vtor[i_time*pls_data->n_rho + i_rho];
-        p12 = pls_data->dens[(i_time+1)*pls_data->n_rho + i_rho];
-        p22 = pls_data->dens[(i_time+1)*pls_data->n_rho + i_rho + 1];
+        p12 = pls_data->vtor[(i_time+1)*pls_data->n_rho + i_rho];
+        p21 = pls_data->vtor[i_time*pls_data->n_rho + i_rho + 1];
+        p22 = pls_data->vtor[(i_time+1)*pls_data->n_rho + i_rho + 1];
 
         p1 = p11 + t_rho * (p12 - p11);
         p2 = p21 + t_rho * (p22 - p21);

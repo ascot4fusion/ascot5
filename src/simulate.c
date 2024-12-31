@@ -127,11 +127,6 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     }
 #endif
 
-    if(sim->enable_icrh) {
-        char *xml_filename = "rfof_codeparam.xml";
-       rfof_interface_initev_excl_marker_stuff(xml_filename, &(sim->rfof_data));
-    }
-
     diag_init(&sim->diag_data, n_particles);
     GPU_MAP_TO_DEVICE(sim[0:1])
     B_field_offload(&sim->B_data);
@@ -302,9 +297,6 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     /**************************************************************************/
     free(pq.p);
 
-    if(sim->enable_icrh) {
-        rfof_free_offload(&sim->rfof_data);
-    }
     /**************************************************************************/
     /* 8. Execution returns to host where this function was called.           */
     /*                                                                        */
