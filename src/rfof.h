@@ -38,11 +38,9 @@ typedef struct {
     void* rfglobal;          /**< Wave field; same for all markers */
 } rfof_data;
 
-void rfof_init_offload(rfof_data* rfof_data);
+void rfof_init(rfof_data* rfof);
 
-void rfof_init(rfof_data* rfof, rfof_data* rfof_offload_data);
-
-void rfof_free_offload(rfof_data* rfof);
+void rfof_free(rfof_data* rfof);
 
 void rfof_set_marker_manually(
     rfof_marker* rfof_mrk, int* id, real* weight, real* R, real* phi, real* z,

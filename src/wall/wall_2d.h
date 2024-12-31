@@ -19,7 +19,8 @@ typedef struct {
     int* flag;    /**< Array of wall element flags               */
 } wall_2d_data;
 
-int wall_2d_init(wall_2d_data* data, int nelements, real* r, real* z, int flag);
+int wall_2d_init(wall_2d_data* data, int nelements, real* r, real* z,
+                 int* flag);
 void wall_2d_free(wall_2d_data* data);
 void wall_2d_offload(wall_2d_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(w)

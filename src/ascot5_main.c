@@ -163,7 +163,7 @@ int main(int argc, char** argv) {
     };
 
     if(sim.enable_icrh) {
-        rfof_init_offload(&(sim.rfof_data));
+        rfof_init(&(sim.rfof_data));
     }
 
     /* Initialize marker states array ps and free marker input p */
@@ -201,7 +201,7 @@ int main(int argc, char** argv) {
     asigma_free(&sim.asigma_data);
 
     if(sim.enable_icrh) {
-        rfof_free_offload(&sim.rfof_data);
+        rfof_free(&sim.rfof_data);
     }
 
     /* Write output and clean */

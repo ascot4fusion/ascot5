@@ -78,12 +78,9 @@ void __ascot5_icrh_routines_MOD_print_mem_stuff(void** mem_pointer);
  * Reads the ICRH (RFOF) inputs (xml, xsd, ASCII) and initialises the wave
  * field.
  *
- * Note: Despite being called init_offload, the offloading is not yet supported.
- * The name implies where in the main program this should be called.
- *
  * @param rfof_data pointer to the RFOF data structure
  */
-void rfof_init_offload(rfof_data* rfof_data) {
+void rfof_init(rfof_data* rfof_data) {
 #ifdef RFOF
     const char xml_filename[128] = RFOF_CODEPARAM_XML;
     int xml_filename_len = strlen(xml_filename);
@@ -95,27 +92,12 @@ void rfof_init_offload(rfof_data* rfof_data) {
 }
 
 /**
- * @brief Initialize RFOF data on target.
+ * @brief Deallocates the rfof_input_param struct on the fortran side.
  *
- * Offloading for the RFOF data is not yet implemented, so this function just
- * copies pointers from the offload data to the target data for now.
- *
- * @param rfof_data rfof data struct on target
- * @param rfof_offload_data rfof data on host
+ * There exists only one copy of this struct and therefore it is to be
+ * deallocated in the simulate.c after the loop is completed.
  */
-void rfof_init(rfof_data* rfof, rfof_data* rfof_offload_data) {
-    rfof->rfglobal = rfof_offload_data->rfglobal;
-    rfof->rfof_input_params = rfof_offload_data->rfof_input_params;
-}
-
-/**
- * @brief Deallocates the rfof_input_param struct on the fortran side. There
- * exists only one copy of this struct and therefore it is to be deallocated in
- * the simulate.c after the loop is completed.
- * @param cptr_rfof_input_param Handle to rfof input param struct on the Fortran
- * side.
- */
-void rfof_free_offload(rfof_data* rfof) {
+void rfof_free(rfof_data* rfof) {
 #ifdef RFOF
     __ascot5_icrh_routines_MOD_call_deallocate_rfof_input_param(
         &rfof->rfof_input_params);
