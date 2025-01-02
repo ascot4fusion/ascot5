@@ -23,6 +23,7 @@ int wall_2d_init(wall_2d_data* data, int nelements, real* r, real* z,
                  int* flag) {
 
     data->n = nelements;
+    data->flag = (int*)malloc(nelements * sizeof(int));
     data->wall_r = (real*) malloc( nelements * sizeof(real) );
     data->wall_z = (real*) malloc( nelements * sizeof(real) );
     real rmin = r[0], rmax = r[0];
