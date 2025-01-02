@@ -102,6 +102,8 @@ int wall_3d_init(wall_3d_data* data, int nelements, real* x1x2x3, real* y1y2y3,
               data->n,
               data->xmin, data->xmax, data->ymin,
               data->ymax, data->zmin, data->zmax);
+
+    data->flag = (int*)malloc(nelements * sizeof(int));
     memcpy(data->flag, flag, data->n * sizeof(int));
 
     return 0;

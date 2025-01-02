@@ -13,7 +13,7 @@ import numpy.ctypeslib as npctypes
 import a5py.physlib.analyticequilibrium as psifun
 
 from a5py.ascot5io.coreio import fileapi
-from .libascot import _LIBASCOT, PTR_ARR
+from .libascot import _LIBASCOT, PTR_ARR, PTR_INT
 if _LIBASCOT:
     from a5py.ascotpy import ascot2py
 
@@ -370,7 +370,8 @@ class LibProviders():
             mass.ctypes.data_as(PTR_ARR), charge.ctypes.data_as(PTR_ARR),
             Te.ctypes.data_as(PTR_ARR), Ti.ctypes.data_as(PTR_ARR),
             kwargs["edensity"].ctypes.data_as(PTR_ARR),
-            kwargs["idensity"].T.ctypes.data_as(PTR_ARR)
+            kwargs["idensity"].T.ctypes.data_as(PTR_ARR),
+            kwargs["vtor"].ctypes.data_as(PTR_ARR),
             )
         self._sim.plasma_data.type = ascot2py.plasma_type_1D
 
@@ -395,7 +396,8 @@ class LibProviders():
             mass.ctypes.data_as(PTR_ARR), charge.ctypes.data_as(PTR_ARR),
             Te.ctypes.data_as(PTR_ARR), Ti.ctypes.data_as(PTR_ARR),
             kwargs["edensity"].ctypes.data_as(PTR_ARR),
-            kwargs["idensity"].T.ctypes.data_as(PTR_ARR)
+            kwargs["idensity"].T.ctypes.data_as(PTR_ARR),
+            kwargs["vtor"].ctypes.data_as(PTR_ARR),
         )
         self._sim.plasma_data.type = ascot2py.plasma_type_1DS
 
@@ -422,7 +424,8 @@ class LibProviders():
             mass.ctypes.data_as(PTR_ARR), charge.ctypes.data_as(PTR_ARR),
             Te.ctypes.data_as(PTR_ARR), Ti.ctypes.data_as(PTR_ARR),
             kwargs["edensity"].ctypes.data_as(PTR_ARR),
-            kwargs["idensity"].T.ctypes.data_as(PTR_ARR)
+            kwargs["idensity"].T.ctypes.data_as(PTR_ARR),
+            kwargs["vtor"].ctypes.data_as(PTR_ARR),
         )
         self._sim.plasma_data.type = ascot2py.plasma_type_1Dt
 
@@ -447,8 +450,8 @@ class LibProviders():
             ctypes.byref(self._sim.wall_data.w2d), int(kwargs["nelements"][0]),
             kwargs["r"].ctypes.data_as(PTR_ARR),
             kwargs["z"].ctypes.data_as(PTR_ARR),
-            kwargs["flag"].flatten()
-            )
+            kwargs["flag"].ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+        )
         self._sim.wall_data.type = ascot2py.wall_type_2D
 
     def _provide_wall_3D(self, **kwargs):
@@ -463,7 +466,7 @@ class LibProviders():
             kwargs["x1x2x3"].ctypes.data_as(PTR_ARR),
             kwargs["y1y2y3"].ctypes.data_as(PTR_ARR),
             kwargs["z1z2z3"].ctypes.data_as(PTR_ARR),
-            kwargs["flag"].flatten()
+            kwargs["flag"].ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
             )
         self._sim.wall_data.type = ascot2py.wall_type_3D
 
