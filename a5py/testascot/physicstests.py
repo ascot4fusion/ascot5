@@ -2097,6 +2097,7 @@ class PhysTest():
         # Hydrogen plasma
         nrho  = 4
         rho   = np.array([0, 1, 1+1e-8, 10])
+        vtor  = np.zeros((nrho,1))
         edens = 1e19 * np.ones((nrho, 1))
         etemp = 2e3  * np.ones((nrho, 1))
         idens = 1e19 * np.ones((nrho, 1))
@@ -2105,7 +2106,7 @@ class PhysTest():
         idens[rho>1,:] = 1
 
         pls = {
-            "nrho" : nrho, "nion" : 1, "rho" : rho,
+            "nrho" : nrho, "nion" : 1, "rho" : rho, "vtor" : vtor,
             "anum" : np.array([1]), "znum" : np.array([1]),
             "mass" : np.array([1.014]), "charge" : np.array([1]),
             "edensity" : edens, "etemperature" : etemp,
