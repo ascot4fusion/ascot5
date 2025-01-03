@@ -1927,7 +1927,9 @@ class PhysTest():
             "anum" : np.array([2, 3]), "znum" : np.array([1, 1]),
             "mass" : np.array([2.014, 3.016]), "charge" : np.array([1, 1]),
             "edensity" : edens, "etemperature" : etemp,
-            "idensity" : idens, "itemperature" : itemp}
+            "idensity" : idens, "itemperature" : itemp,
+            "vtor": 0*rho,
+        }
 
         for tag in [PhysTest.tag_afsi_thermal, PhysTest.tag_afsi_beamthermal,
                     PhysTest.tag_afsi_beambeam]:
