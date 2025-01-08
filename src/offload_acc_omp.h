@@ -204,6 +204,78 @@
 #endif
 
 /**
+ * @brief Applies omp task for GPU
+ */
+#if defined(GPU) && defined(_OPENMP)
+#define GPU_OMP_TASK \
+    str_pragma(omp task)
+#elif defined(GPU) && defined(_OPENACC)
+#define GPU_OMP_TASK str_pragma(omp task)
+#else
+#define GPU_OMP_TASK //
+#endif
+
+/**
+ * @brief Applies omp task depend(in:) for GPU
+ */
+#if defined(GPU) && defined(_OPENMP)
+#define GPU_OMP_TASK_DEPEND_IN(...) \
+  str_pragma(omp task depend(in:__VA_ARGS__))
+#elif defined(GPU) && defined(_OPENACC)
+#define GPU_OMP_TASK_DEPEND_IN(...) str_pragma(omp task depend(in:__VA_ARGS__))
+#else
+#define GPU_OMP_TASK_DEPEND_IN(...) //
+#endif
+
+/**
+ * @brief Applies omp task depend(out:) for GPU
+ */
+#if defined(GPU) && defined(_OPENMP)
+#define GPU_OMP_TASK_DEPEND_OUT(...) \
+  str_pragma(omp task depend(out:__VA_ARGS__))
+#elif defined(GPU) && defined(_OPENACC)
+#define GPU_OMP_TASK_DEPEND_OUT(...) str_pragma(omp task depend(out:__VA_ARGS__))
+#else
+#define GPU_OMP_TASK_DEPEND_OUT(...) //
+#endif
+
+/**
+ * @brief Applies omp parallel for GPU
+ */
+#if defined(GPU) && defined(_OPENMP)
+#define GPU_OMP_PARALLEL \
+    str_pragma(omp parallel)
+#elif defined(GPU) && defined(_OPENACC)
+#define GPU_OMP_PARALLEL str_pragma(omp parallel)
+#else
+#define GPU_OMP_PARALLEL //
+#endif
+
+/**
+ * @brief Applies omp parallel num_threads() for GPU
+ */
+#if defined(GPU) && defined(_OPENMP)
+#define GPU_OMP_PARALLEL_NUM_THREADS(...) \
+    str_pragma(omp parallel num_threads(__VA_ARGS__))
+#elif defined(GPU) && defined(_OPENACC)
+#define GPU_OMP_PARALLEL_NUM_THREADS(...) str_pragma(omp parallel num_threads(__VA_ARGS__))
+#else
+#define GPU_OMP_PARALLEL_NUM_THREADS(...) //
+#endif
+
+/**
+ * @brief Applies omp master for GPU
+ */
+#if defined(GPU) && defined(_OPENMP)
+#define GPU_OMP_MASTER \
+    str_pragma(omp master)
+#elif defined(GPU) && defined(_OPENACC)
+#define GPU_OMP_MASTER str_pragma(omp master)
+#else
+#define GPU_OMP_MASTER //
+#endif
+
+/**
  * @brief Hints compiler that the following data is already present in the GPU
  *        (OpenACC only)
  */

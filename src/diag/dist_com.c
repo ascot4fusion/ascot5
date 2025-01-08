@@ -78,7 +78,7 @@ void dist_COM_init(dist_COM_data* dist_data,
 void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
                         particle_simd_fo* p_f, particle_simd_fo* p_i) {
 
-    GPU_PARALLEL_LOOP_ALL_LEVELS
+  //    GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < p_f->n_mrk; i++) {
         if(p_f->running[i]) {
             real Ekin, Ptor, Bnorm, psi, mu, xi, pnorm, ppar;
@@ -113,7 +113,7 @@ void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
                 real weight = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
                 size_t index = dist_COM_index(
                     i_mu, i_Ekin, i_Ptor, dist->step_2, dist->step_1);
-	            GPU_ATOMIC
+		//	            GPU_ATOMIC
                 dist->histogram[index] += weight;
             }
         }

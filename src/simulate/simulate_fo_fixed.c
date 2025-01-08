@@ -93,7 +93,13 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     particle_offload_fo(p_ptr);
     particle_offload_fo(p0_ptr);
     GPU_MAP_TO_DEVICE(hin[0:mrk_array_size], rnd[0:3*mrk_array_size])
+    GPU_OMP_PARALLEL_NUM_THREADS(2)
+    {
+    GPU_OMP_MASTER
+    {  
     while(n_running > 0) {
+      GPU_OMP_TASK_DEPEND_IN(n_running)
+	{
         /* Store marker states */
         GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < p.n_mrk; i++) {
@@ -155,7 +161,12 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 
         /* Check possible end conditions */
         endcond_check_fo(p_ptr, p0_ptr, sim);
-
+      } //end omp task
+      #pragma omp taskwait
+      GPU_OMP_TASK
+      {
+	simulate_fo_fixed_copy_from_gpu(sim, p0_ptr);
+	simulate_fo_fixed_copy_from_gpu(sim, p_ptr);
         /* Update diagnostics */
         if(!(sim->record_mode)) {
             /* Record particle coordinates */
@@ -189,6 +200,10 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
             diag_update_gc(&sim->diag_data, &sim->B_data, &gc_f, &gc_i);
         }
 
+	} //end omp task
+
+      GPU_OMP_TASK_DEPEND_OUT(n_running)
+	{
         /* Update running particles */
 #ifdef GPU
         n_running = 0;
@@ -208,7 +223,11 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
                 hin[i] = simulate_fo_fixed_inidt(sim, &p, i);
             }
         }
+	
 #endif
+    }
+    }
+    }
     }
     /* All markers simulated! */
 #ifdef GPU
