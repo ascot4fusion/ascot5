@@ -1,4 +1,4 @@
-0;9;55M0;9;55m0;9;55M0;9;55m/**
+/**
  * @brief Macros for parallelizing the code for GPUs (with OpenACC or OpenMP) or
  * for CPUs with OpenMP
  */
