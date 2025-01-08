@@ -1,4 +1,4 @@
-/**
+0;9;55M0;9;55m0;9;55M0;9;55m/**
  * @brief Macros for parallelizing the code for GPUs (with OpenACC or OpenMP) or
  * for CPUs with OpenMP
  */
@@ -249,6 +249,18 @@
 #define GPU_OMP_PARALLEL str_pragma(omp parallel)
 #else
 #define GPU_OMP_PARALLEL //
+#endif
+
+/**
+ * @brief Applies omp parallel do for GPU runs
+ */
+#if defined(GPU) && defined(_OPENMP)
+#define GPU_OMP_PARALLEL_DO \
+    str_pragma(omp parallel do)
+#elif defined(GPU) && defined(_OPENACC)
+#define GPU_OMP_PARALLEL_DO str_pragma(omp parallel do )
+#else
+#define GPU_OMP_PARALLEL_DO str_pragma(omp simd)//
 #endif
 
 /**

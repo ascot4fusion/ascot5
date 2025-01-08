@@ -211,9 +211,7 @@ void simulate(
     /*    progress, if monitoring is active.                                  */
     /*                                                                        */
     /**************************************************************************/
-#ifndef GPU
     omp_set_max_active_levels(2);
-#endif
 #if !defined(GPU) && VERBOSE > 1
     #pragma omp parallel sections num_threads(2)
     {
