@@ -1014,3 +1014,33 @@ void libascot_gc2prt(sim_data* sim, int Neval,
         z[i] = zfo;
     }
 }
+
+void libascot_prt2gc(sim_data* sim, int Neval, 
+                     real mass, real charge, 
+                     real* R, real* phi, real* z, 
+                     real* vr, real* vphi, real* vz,
+                     real* Rgc, real* phigc, real* zgc, 
+                     real* ppar, real* mu, real *zeta){
+    
+    // Auxiliar private variables.
+    real pr, pz, pphi; // Particle momentum components.
+    real B_dB[15]; // Magnetic field evaluated at the particle position.
+
+    #pragma omp parallel for private(B_dB, pr, pphi, pz)
+    for(int i = 0; i < Neval; i++){
+        // We evaluate the magnetic field at the particle position.
+        if( B_field_eval_B_dB(B_dB, R[i], phi[i], z[i], 0.0, &sim->B_data) ) {
+            continue;
+        }
+
+        // Evaluating the momentum components at the FO position.
+        pr = mass*vr[i];
+        pphi = mass*vphi[i]; // Not the canonical momentum :)
+        pz = mass*vz[i];
+        
+        // We evaluate the FO to GC transformation: getting the GC coordinates from the FO coordinates.
+        gctransform_particle2guidingcenter(mass, charge, B_dB,
+                   R[i], phi[i], z[i], pr, pphi, pz,
+                   &Rgc[i], &phigc[i], &zgc[i], &ppar[i], &mu[i], &zeta[i]);
+    }
+}

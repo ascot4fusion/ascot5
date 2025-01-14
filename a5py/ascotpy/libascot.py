@@ -1071,3 +1071,66 @@ class LibAscot:
                "charge": charge}
         
         return out
+    
+    @parseunits(rprt="m", phiprt="rad", zprt="m", vr="m/s", vphi="m/s", vz="m/s",
+                mass="kg", charge="C")
+    def prt2gc(self, rprt, phiprt, zprt, vr, vphi, vz, mass, charge):
+        """Convert particle coordinates to guiding-center coordinates.
+
+        Parameters
+        ----------
+        rprt : array_like (n,)
+            Major radius of the particle marker.
+        phiprt : array_like (n,)
+            Toroidal angle of the particle marker.
+        zprt : array_like (n,)
+            Height of the particle marker.
+        vr : array_like (n,)
+            Radial velocity of the particle marker.
+        vphi : array_like (n,)
+            Toroidal velocity of the particle marker.
+        vz : array_like (n,)
+            Vertical velocity of the particle marker.
+        mass : float
+            Mass of the particle.
+        charge : float
+            Charge of the particle.
+        """
+        self._requireinit("bfield")
+        # Checking all the inputs.
+        if rprt.size != phiprt.size != zprt.size != vr.size != vphi.size != vz.size:
+            raise ValueError("All inputs must have the same size.")
+
+        rprt = np.asarray(rprt).ravel().astype(dtype="f8")
+        phiprt = np.asarray(phiprt).ravel().astype(dtype="f8")
+        zprt = np.asarray(zprt).ravel().astype(dtype="f8")
+        vr = np.asarray(vr).ravel().astype(dtype="f8")
+        vphi = np.asarray(vphi).ravel().astype(dtype="f8")
+        vz = np.asarray(vz).ravel().astype(dtype="f8")
+
+        # Generating the output.
+        rgc = np.nan * np.zeros((rprt.size,), dtype="f8") * unyt.m
+        phigc = np.nan * np.zeros((rprt.size,), dtype="f8") * unyt.rad
+        zgc = np.nan * np.zeros((rprt.size,), dtype="f8") * unyt.m
+        pparagc = np.nan * np.zeros((rprt.size,), dtype="f8") * unyt.kg*unyt.m/unyt.s
+        mugc = np.nan * np.zeros((rprt.size,), dtype="f8") * unyt.J/unyt.T
+        zetagc = np.nan * np.zeros((rprt.size,), dtype="f8") * unyt.rad
+
+        fun = _LIBASCOT.libascot_prt2gc
+        fun.restype  = None
+        fun.argtypes = [PTR_SIM, ctypes.c_int, # sim, neval
+                        ctypes.c_double, ctypes.c_double, # mass (kg), charge (C)
+                        PTR_REAL, PTR_REAL, PTR_REAL, # Rprt, phiprt, Zprt
+                        PTR_REAL, PTR_REAL, PTR_REAL, # vr, vphi, vz
+                        PTR_REAL, PTR_REAL, PTR_REAL, # Rgc, phigc, Zgc
+                        PTR_REAL, PTR_REAL, PTR_REAL] # pparagc, mugc, zetagc
+        fun(ctypes.byref(self._sim), rprt.size, mass, charge,
+            rprt, phiprt, zprt, vr, vphi, vz,
+            rgc, phigc, zgc, pparagc, mugc, zetagc)
+        
+        out = {"rgc": rgc, "phigc": phigc, "zgc": zgc,
+               "pparagc": pparagc, "mugc": mugc, "zetagc": zetagc,
+               "mass": mass, 
+               "charge": charge}
+        
+        return out
