@@ -275,7 +275,7 @@ class Ascot(Ascotpy):
 
     def input_free(self, bfield=False, efield=False, plasma=False, wall=False,
                    neutral=False, boozer=False, mhd=False, asigma=False, 
-                   rffields=False):
+                   rffield=False):
         """Free input used by the Python interface.
 
         Arguments toggle which input fields are free'd. If called without
@@ -304,7 +304,7 @@ class Ascot(Ascotpy):
             raise AscotInitException(
                 "Python interface disabled as libascot.so is not found")
         freeall = not any([bfield, efield, plasma, wall, neutral, boozer,
-                           mhd, asigma, rffields])
+                           mhd, asigma, rffield])
         if freeall:
             self._free(bfield=True, efield=True, plasma=True, wall=True,
                        neutral=True, boozer=True, mhd=True, asigma=True,
@@ -312,7 +312,7 @@ class Ascot(Ascotpy):
         else:
             self._free(bfield=bfield, efield=efield, plasma=plasma, wall=wall,
                        neutral=neutral, boozer=boozer, mhd=mhd, asigma=asigma,
-                       rffield=rffields)
+                       rffield=rffield)
 
     def preflight_inputspresent(self):
         """Check required inputs are present for this run.
