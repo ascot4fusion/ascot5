@@ -181,7 +181,7 @@ class LibSimulate():
 
     def simulation_initinputs(self, bfield=True, efield=True, plasma=True,
                               neutral=True, wall=True, boozer=True, mhd=True,
-                              asigma=True, switch=True, rffield=False):
+                              asigma=True, switch=True, rffield=True):
         """Prepare input fields for the interactive simulation.
 
         Initializes simulation inputs. The inputs used in the simulation are
