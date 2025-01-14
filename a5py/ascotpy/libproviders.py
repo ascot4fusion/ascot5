@@ -375,7 +375,7 @@ class LibProviders():
                             new_kwargs["Bz_real"].ctypes.data_as(PTR_ARR),
                             new_kwargs["Bz_imag"].ctypes.data_as(PTR_ARR))
         if self._sim.rffield_data.initialized == ctypes.c_int(0):
-            raise ValueError("RF2D field initialization failed")
+            raise Exception("RF2D field initialization failed")
 
     def _provide_efield(self, **kwargs):
         """Use the provided input parameters to initialize an electric field
