@@ -258,7 +258,7 @@
 #define GPU_OMP_PARALLEL_DO \
     str_pragma(omp parallel do)
 #elif defined(GPU) && defined(_OPENACC)
-#define GPU_OMP_PARALLEL_DO str_pragma(omp parallel do )
+#define GPU_OMP_PARALLEL_DO str_pragma(omp parallel for )
 #else
 #define GPU_OMP_PARALLEL_DO str_pragma(omp simd)//
 #endif
