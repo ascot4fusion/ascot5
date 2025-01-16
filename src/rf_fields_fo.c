@@ -71,19 +71,21 @@ int rffield_init(RF2D_fields* rffield_data, real rmin, real rmax, int nr, \
 }
 
 void rffield_free(RF2D_fields* rffield_data){
+    if(!rffield_data->initialized) return; // Nothing to do here.
+
     // Free the allocated memory for the splines.
-    free(rffield_data->Er_real.c);
-    free(rffield_data->Er_imag.c);
-    free(rffield_data->Ez_real.c);
-    free(rffield_data->Ez_imag.c);
-    free(rffield_data->Ephi_real.c);
-    free(rffield_data->Ephi_imag.c);
-    free(rffield_data->Br_real.c);
-    free(rffield_data->Br_imag.c);
-    free(rffield_data->Bz_real.c);
-    free(rffield_data->Bz_imag.c);
-    free(rffield_data->Bphi_real.c);
-    free(rffield_data->Bphi_imag.c);
+    if(rffield_data->Er_real.c != NULL) free(rffield_data->Er_real.c);
+    if(rffield_data->Er_imag.c != NULL) free(rffield_data->Er_imag.c);
+    if(rffield_data->Ez_real.c != NULL) free(rffield_data->Ez_real.c);
+    if(rffield_data->Ez_imag.c != NULL) free(rffield_data->Ez_imag.c);
+    if(rffield_data->Ephi_real.c != NULL) free(rffield_data->Ephi_real.c);
+    if(rffield_data->Ephi_imag.c != NULL) free(rffield_data->Ephi_imag.c);
+    if(rffield_data->Br_real.c != NULL) free(rffield_data->Br_real.c);
+    if(rffield_data->Br_imag.c != NULL) free(rffield_data->Br_imag.c);
+    if(rffield_data->Bz_real.c != NULL) free(rffield_data->Bz_real.c);
+    if(rffield_data->Bz_imag.c != NULL) free(rffield_data->Bz_imag.c);
+    if(rffield_data->Ephi_real.c != NULL) free(rffield_data->Bphi_real.c);
+    if(rffield_data->Ephi_imag.c != NULL) free(rffield_data->Bphi_imag.c);
     rffield_data->ntor = 0;
     rffield_data->omega = 0.0;
     rffield_data->initialized = 0;
