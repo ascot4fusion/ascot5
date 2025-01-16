@@ -219,20 +219,32 @@ void rfof_resonance_check_and_kick_gc(
                              Bdata);
             psi *= CONST_2PI; // librfof is COCOS 13
             B = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
+            v_par = p->ppar[i]/p->mass[i];
             gamma  = physlib_gamma_ppar(p->mass[i], p->mu[i], p->ppar[i], B);
-            Ekin   = physlib_Ekin_gamma(p->mass[i], gamma);
-            vnorm  = physlib_vnorm_gamma(gamma);
+            if (gamma > 1.00001) {
+                /* gamma is sufficiently high so that numerical problems will
+                not get in our way */
+                Ekin   = physlib_Ekin_gamma(p->mass[i], gamma);
+                vnorm  = physlib_vnorm_gamma(gamma);
+                v_perp = phys_vperp_gc(vnorm, v_par);
+            } else {
+                /* gamma is too close to one (1) and using the relativistic
+                formulas will result in a negative argument of the square root,
+                leading into a -NaN which poops the party. */
+                Ekin = p->ppar[i]*p->ppar[i]/(2*p->mass[i]) + p->mu[i]*B;
+                vnorm = sqrt( (p->ppar[i]/p->mass[i])*(p->ppar[i]/p->mass[i]) + 2*p->mu[i]*B/p->mass[i] );
+                v_perp = sqrt( 2 * p->mu[i]*B/p->mass[i] );
+            }
+
             P_phi  = phys_ptoroid_gc(p->charge[i], p->r[i], p->ppar[i], psi, B,
                                      p->B_phi[i]);
             xi     = physlib_gc_xi(p->mass[i], p->mu[i], p->ppar[i], B);
-            v_par = p->ppar[i]/p->mass[i];
-            v_perp = phys_vperp_gc(vnorm, v_par);
             gyrof  = phys_gyrofreq_ppar(p->mass[i], p->charge[i], p->mu[i],
                                         p->ppar[i], B);
             real q_safe = 1.0;
             real majR = 1.65;   // For now AUG
             real minR = 0.6;    // AUG
-            tauB = CONST_2PI*q_safe/majR/v_par*sqrt(2*majR/minR);
+            tauB = CONST_2PI*q_safe*p->r[i]/fabs(v_par)*sqrt(2*majR/minR);
             real vdriftRho      = 0; // Assuming this is not needed in librfof
             real acceleration   = 1.0;
             int is_accelerated  = 0;
@@ -258,10 +270,6 @@ void rfof_resonance_check_and_kick_gc(
             real* tauB_ptr      = &tauB;
             real* vdriftRho_ptr = &vdriftRho;
             real* acc_ptr       = &acceleration;
-
-            /* Store the old value to be able to evaluate the new ppar after
-               kick. */
-            real v_par_old = v_par;
 
             /* Update the fields of RFOF marker */
             __ascot5_icrh_routines_MOD_call_set_marker_pointers(
@@ -302,8 +310,6 @@ void rfof_resonance_check_and_kick_gc(
             int err = 0;
             int mpi_rank = 0; // RFOF does not work with MPI yet
 
-            real Ekin_old = Ekin;
-            real mu_old = *mu_ptr;
 
             /* Ready to kick some ash (if in resonance) */
             __ascot5_icrh_routines_MOD_call_rf_kick(
@@ -316,14 +322,6 @@ void rfof_resonance_check_and_kick_gc(
             /* Most marker phase-space coordinates are updated automatically
              * via the pointers in rfof_mrk except ppar which we update here */
             p->ppar[i] = p->ppar[i] + p->mass[i]*(rfof_data_pack.dvpar);
-
-            //__ascot5_icrh_routines_MOD_print_mem_stuff(&(rfof_mrk->history_array[i]));
-            //printf("\nAt time = %.3e\n", p->time[i]);
-            //printf("Ekin_old = %.3e\t Ekin_new = %.3e\t erotus = %.3e\n", Ekin_old, Ekin,(Ekin-Ekin_old));
-            //printf("Ekin_ptr_old = %.3e\t Ekin_ptr_new = %.3e\n", Ekin_ptr_old, &Ekin);
-            //printf("mu_old = %.3e\t mu_new = %.3e\terotus = %.3e\n", mu_old, *mu_ptr,(*mu_ptr-mu_old));
-            //printf("de = %.3e\tdmu = %.3e\n",rfof_data_pack.de, rfof_data_pack.dmu);
-            //printf("----------------------------------\n");
 
 
             if (err == 7) {
@@ -389,10 +387,17 @@ void rfof_set_marker_manually(rfof_marker* rfof_mrk, int* id,
 /**
  * @brief Calculate the local E+ and E- values of the ICRH field
  *
- * @param e_plus_real Re(E+) component of the local wave field
- * @param e_minus_real Re(E-) component of the local wave field
- * @param e_plus_imag Im(E+) component of the local wave field
- * @param e_minus_imag Im(E-) component of the local wave field
+ * The definitions of E+ and E- sometimes differ. In this context,
+ * E+ = E_LH * (cos(phi) + i sin(phi)),
+ * where E_LH is the magnitude of the left-hand polarised (rotating) component
+ * and phi is its phase. That is, E_LH and phi are real. Often, however, E_LH is
+ * called E+ which creates confusion. Afterall, in this function, E+ is a
+ * complex number.
+ *
+ * @param e_plus_real Re("E+"") component of the local wave field
+ * @param e_minus_real Re("E-"") component of the local wave field
+ * @param e_plus_imag Im("E+"") component of the local wave field
+ * @param e_minus_imag Im("E-"") component of the local wave field
  * @param R major radius coordinate [m]
  * @param z z-coordinate [m]
  * @param rfof pointer to the RFOF data structure
