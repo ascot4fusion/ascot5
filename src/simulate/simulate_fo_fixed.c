@@ -241,22 +241,21 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
         h = sim->fix_usrdef_val;
     }
     else {
-      /* Value calculated from gyrotime */
+        /* Value calculated from gyrotime */
         real Bnorm = math_normc( p->B_r[i], p->B_phi[i], p->B_z[i] );
         real pnorm = math_normc( p->p_r[i], p->p_phi[i], p->p_z[i] );
         real gyrotime = CONST_2PI/
             phys_gyrofreq_pnorm(p->mass[i], p->charge[i], pnorm, Bnorm);
         h = gyrotime/sim->fix_gyrodef_nstep;
-    }
 
-    if(sim->rffield_data.initialized == 1){
-        real rf_time = 2.0 * CONST_PI / sim->rffield_data.omega;
-        rf_time /= sim->fix_gyrodef_nstep; // Divide by number of steps per gyrotime
-        if(h > rf_time){
-            h = rf_time;
+        if(sim->rffield_data.initialized == 1){
+            real rf_time = 2.0 * CONST_PI / sim->rffield_data.omega;
+            rf_time /= sim->fix_gyrodef_nstep; // Divide by number of steps per gyrotime
+            if(h > rf_time){
+                h = rf_time;
+            }
         }
     }
-
     return h;
 }
 
