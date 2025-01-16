@@ -933,11 +933,25 @@ void libascot_eval_ratecoeff(
 /**
  * @brief Evaluate ICRH electric field and the resonance condition.
  *
- * The evaluated electric field consists of left-hand (-) and right-hand (+)
- * circularly polarized components. The resonance condition is given by
+ * The evaluated electric field consists of left-hand (+) and right-hand (-)
+ * circularly polarized components. The circularly polarised components are
+ * notorious of their negatice effects on the mental health of their consumers.
+ * In the context of this function, they have the following definitions:
+ * E_plus_real = Re{E_LH ( cos( phase(E_LH) ) + i sin( phase(E_LH) ) } and
+ * E_minus_real = Re{E_RH ( cos( phase(E_RH) ) - i sin( phase(E_RH) ) }.
+ * E_LH, E_RH and their phases are all real. Furthermore, E_LH is called E_+ and
+ * R_RH is called E_- in the context of RFOF and also more generally. Sometimes
+ * the definition E+- = E_x +- iE_y. It is seen that |E+| = sqrt(E+  E+*) where
+ * E+* is the complex conjugate. But because E+*=E-, one has
+ * |E+| = sqrt(E+  E-) = |E-|. This is obviously not the case in this function,
+ * as the magnitudes are different but this definition is also used sometimes.
+ *
+ * The resonance condition is given by
  *
  * omega_wave - n * omega_gyro - k_parallel * v_parallel - k_perp dot v_drift
- * = 0.
+ * = 0. Whether the Doppler shift (k_par v_par) or/and the drift term
+ * (k_per v_drif) is used, is specified in the rfof_codeparam.xml. The drift
+ * has not yet been implemented (Jan 2025).
  *
  * @param sim_offload_data initialized simulation offload data struct
  * @param B_offload_array initialized magnetic field offload data
@@ -950,14 +964,14 @@ void libascot_eval_ratecoeff(
  * @param mass test particle mass (for computing resonance) [kg].
  * @param q test particle charge (for computing resonance) [C].
  * @param vpar test particle parallel velocity (for computing resonance) [m/s].
- * @param Eplus_real Real part of the left-handed electric field component of
- *                   the wave [V/m].
- * @param Eminus_real Real part of the right-handed electric field component of
- *                    the wave [V/m].
- * @param Eplus_imag Imaginary part of the left-handed electric field component
- *                   of the wave [V/m].
- * @param Eminus_imag Imaginary part of the right-handed electric field
- *                    component of the wave [V/m].
+ * @param Eplus_real Real part of the right-handed electric field component of
+ *                   the wave [V/m]. (See comment above!)
+ * @param Eminus_real Real part of the left-handed electric field component of
+ *                    the wave [V/m]. (See comment above!)
+ * @param Eplus_imag Imaginary part of the right-handed electric field component
+ *                   of the wave [V/m]. (See comment above!)
+ * @param Eminus_imag Imaginary part of the left-handed electric field
+ *                    component of the wave [V/m]. (See comment above!)
  * @param res_cond value of the resonance condition where zero is the resonance
  * [dimensionless].
  */
