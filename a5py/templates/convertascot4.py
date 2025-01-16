@@ -747,6 +747,7 @@ class Ascot4Templates():
                 ni   = np.append(ni, np.expand_dims(ni[-1,:]*1e-10, 1).T,
                                  axis=0)
                 ti   = np.append(ti, ti[-1])
+                vtor = np.append(vtor, 0)
 
         warnings.warn(
             "Ascot4 data does not contain masses and charges explicitly. " + \
