@@ -178,7 +178,17 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
             for(int i = 0; i < NSIMD; i++) {
                 if(p.running[i] && hout_col[i] < 0){
                     p.running[i] = 0;
-                    hnext[i] = hout_col[i];
+                    /* Check if hnext is already negative and if true, update
+                    hnext only if it is smaller in absolute value than
+                    currently. */
+                    if (hnext > 0) {
+                        // hnext has not yet become negative
+                        hnext[i] = hout_col[i];
+                    } else if (fabs(hout_col[i] < fabs(hnext[i]))) {
+                        /* hnext has been negative, but is now even smaller in
+                        absolute value and therefore should be updated. */
+                        hnext[i] =  hout_col[i];
+                    }
                 }
             }
         }
@@ -193,7 +203,17 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
             for(int i = 0; i < NSIMD; i++) {
                 if(p.running[i] && hout_rfof[i] < 0){
                     p.running[i] = 0;
-                    hnext[i] = hout_rfof[i];
+                    /* Check if hnext is already negative and if true, update
+                    hnext only if it is smaller in absolute value than
+                    currently. */
+                    if (hnext > 0) {
+                        // hnext has not yet become negative
+                        hnext[i] = hout_rfof[i];
+                    } else if (fabs(hout_rfof[i] < fabs(hnext[i]))) {
+                        /* hnext has been negative, but is now even smaller in
+                        absolute value and therefore should be updated. */
+                        hnext[i] =  hout_rfof[i];
+                    }
                 }
             }
         }
@@ -220,23 +240,23 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                 /* Retrieve marker states in case time step was rejected      */
                 if(hnext[i] < 0) {
                     particle_copy_gc(&p0, i, &p, i);
-
-                    hin[i] = -hnext[i];
                 }
                 if(p.running[i]){
 
                     /* Advance time (if time step was accepted) and determine
                        next time step */
                     if(hnext[i] < 0){
-                        /* Time step was rejected, use the suggestion given by
-                           integrator */
+                        /* if hnext < 0, you screwed up and had to copy the
+                        previous state. Therefore, let us use the suggestion
+                        given by the integrator when retaking the failed step.*/
                         hin[i] = -hnext[i];
                     }
                     else {
                         p.time[i] += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) )
                             * hin[i];
                         p.mileage[i] += hin[i];
-
+                        /* In case the time step was succesful, pick the
+                        smallest recommended value for the next step */
                         if(hnext[i] > hout_orb[i]) {
                             /* Use time step suggested by the orbit-following
                                integrator */
