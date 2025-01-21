@@ -353,6 +353,6 @@ a5err plasma_1DS_eval_flow(real* vflow, real rho, real r,
     if(interp1Dcomp_eval_f(vflow, &pls_data->vtor[0], rho)) {
         error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1DS );
     }
-    *vflow *= CONST_2PI * r;
+    *vflow *= r;
     return err;
 }

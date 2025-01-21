@@ -66,7 +66,7 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
             gamma = physlib_gamma_ppar(p->mass[i], p->mu[i], p->ppar[i], Bnorm);
             ppar_flow = p->ppar[i] - gamma * vflow * p->mass[i];
             pin  = physlib_gc_p(p->mass[i], p->mu[i], ppar_flow, Bnorm);
-            xiin = physlib_gc_xi(p->mass[i], p->mu[i], p->ppar[i], Bnorm);
+            xiin = physlib_gc_xi(p->mass[i], p->mu[i], ppar_flow, Bnorm);
             vin = physlib_vnorm_pnorm(p->mass[i], pin);
 
             /* Evaluate plasma density and temperature */
@@ -240,10 +240,20 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
 
                 p->r[i]    = Xout_rpz[0];
                 p->z[i]    = Xout_rpz[2];
+
+                /*Since we use xiout (in "flow frame") here, we will get the mu
+                in the "flow frame". If we assume that the flow frame has the
+                same perpendicular velocity, mu remains unchanged under the
+                co-ordinate transformation and thus this mu is then the same as
+                the mu in the lab frame.*/
                 p->mu[i]   = physlib_gc_mu(p->mass[i], pout, xiout, Bnorm);
                 gamma      = physlib_gamma_pnorm(p->mass[i], pout);
-                ppar_flow  = gamma * p->mass[i] * vflow;
-                p->ppar[i] = physlib_gc_ppar(pout, xiout) + ppar_flow;
+                /* difference in ppar between the lab frame and "flow frame"  */
+                real dppar  = gamma * p->mass[i] * vflow;
+
+                /* p->ppar is in the lab frame; xiout and pout are in the
+                "flow frame" */
+                p->ppar[i] = physlib_gc_ppar(pout, xiout) + dppar;
 
                 /* Evaluate phi and theta angles so that they are cumulative */
                 real axisrz[2];

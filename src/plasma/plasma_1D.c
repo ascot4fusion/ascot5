@@ -290,6 +290,6 @@ a5err plasma_1D_eval_flow(real* vflow, real rho, real r,
         i_rho--;
         *vflow = pls_data->vtor[i_rho];
     }
-    *vflow *= CONST_2PI * r;
+    *vflow *= r;
     return err;
 }
