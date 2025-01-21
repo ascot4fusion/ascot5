@@ -178,17 +178,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
             for(int i = 0; i < NSIMD; i++) {
                 if(p.running[i] && hout_col[i] < 0){
                     p.running[i] = 0;
-                    /* Check if hnext is already negative and if true, update
-                    hnext only if it is smaller in absolute value than
-                    currently. */
-                    if (hnext > 0) {
-                        // hnext has not yet become negative
-                        hnext[i] = hout_col[i];
-                    } else if (fabs(hout_col[i] < fabs(hnext[i]))) {
-                        /* hnext has been negative, but is now even smaller in
-                        absolute value and therefore should be updated. */
-                        hnext[i] =  hout_col[i];
-                    }
+                    hnext[i] =  hout_col[i];
                 }
             }
         }
@@ -203,17 +193,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
             for(int i = 0; i < NSIMD; i++) {
                 if(p.running[i] && hout_rfof[i] < 0){
                     p.running[i] = 0;
-                    /* Check if hnext is already negative and if true, update
-                    hnext only if it is smaller in absolute value than
-                    currently. */
-                    if (hnext > 0) {
-                        // hnext has not yet become negative
-                        hnext[i] = hout_rfof[i];
-                    } else if (fabs(hout_rfof[i] < fabs(hnext[i]))) {
-                        /* hnext has been negative, but is now even smaller in
-                        absolute value and therefore should be updated. */
-                        hnext[i] =  hout_rfof[i];
-                    }
+                    hnext[i] =  hout_rfof[i];
                 }
             }
         }

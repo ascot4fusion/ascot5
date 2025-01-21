@@ -213,32 +213,19 @@ void rfof_resonance_check_and_kick_gc(
             /* NOTE: It is possible that the use of (multiple) physlib
                functions to evalutate some quantity introduces some error which,
                at least when cumulated, grows intolerable.                    */
-            real psi, B, gamma, Ekin, vnorm, P_phi, xi, v_par, v_perp, gyrof,
+            real psi, B, Ekin, vnorm, P_phi, v_par, v_perp, gyrof,
             tauB;
             B_field_eval_psi(&psi, p->r[i], p->phi[i], p->z[i], p->time[i],
                              Bdata);
             psi *= CONST_2PI; // librfof is COCOS 13
             B = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
             v_par = p->ppar[i]/p->mass[i];
-            gamma  = physlib_gamma_ppar(p->mass[i], p->mu[i], p->ppar[i], B);
-            if (gamma > 1.00001) {
-                /* gamma is sufficiently high so that numerical problems will
-                not get in our way */
-                Ekin   = physlib_Ekin_gamma(p->mass[i], gamma);
-                vnorm  = physlib_vnorm_gamma(gamma);
-                v_perp = phys_vperp_gc(vnorm, v_par);
-            } else {
-                /* gamma is too close to one (1) and using the relativistic
-                formulas will result in a negative argument of the square root,
-                leading into a -NaN which poops the party. */
-                Ekin = p->ppar[i]*p->ppar[i]/(2*p->mass[i]) + p->mu[i]*B;
-                vnorm = sqrt( (p->ppar[i]/p->mass[i])*(p->ppar[i]/p->mass[i]) + 2*p->mu[i]*B/p->mass[i] );
-                v_perp = sqrt( 2 * p->mu[i]*B/p->mass[i] );
-            }
+            Ekin = p->ppar[i]*p->ppar[i]/(2*p->mass[i]) + p->mu[i]*B;
+            vnorm = sqrt( (p->ppar[i]/p->mass[i])*(p->ppar[i]/p->mass[i]) + 2*p->mu[i]*B/p->mass[i] );
+            v_perp = sqrt( 2 * p->mu[i]*B/p->mass[i] );
 
             P_phi  = phys_ptoroid_gc(p->charge[i], p->r[i], p->ppar[i], psi, B,
                                      p->B_phi[i]);
-            xi     = physlib_gc_xi(p->mass[i], p->mu[i], p->ppar[i], B);
             gyrof  = phys_gyrofreq_ppar(p->mass[i], p->charge[i], p->mu[i],
                                         p->ppar[i], B);
             real q_safe = 1.0;
