@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
     /* Total number of markers to be simulated */
     int n_tot;
     /* Marker input struct */
-    input_particle* p;
+    input_particle* p = (input_particle*) NULL;
 
     /* Read input from the HDF5 file */
     if( hdf5_interface_read_input(&sim,
@@ -165,7 +165,9 @@ int main(int argc, char** argv) {
     /* Initialize marker states array ps and free marker input p */
     int n_proc; /* Number of markers allocated for this MPI process */
     particle_state* ps;
+    ps = (particle_state*) NULL;
     if( prepare_markers(&sim, n_tot, p, &ps, &n_proc) ) {
+        print_err("Marker initialization failed.\n");
         goto CLEANUP_FAILURE;
     }
 
@@ -176,6 +178,7 @@ int main(int argc, char** argv) {
     char qid[11];
     hdf5_generate_qid(qid);
     if( write_rungroup(&sim, ps, n_tot, qid) ) {
+        print_err("Could not write run group.\n");
         goto CLEANUP_FAILURE;
     }
 
@@ -198,9 +201,11 @@ int main(int argc, char** argv) {
     boozer_free(&sim.boozer_data);
     mhd_free(&sim.mhd_data);
     asigma_free(&sim.asigma_data);
+    rffield_free(&sim.rffield_data);
 
     /* Write output and clean */
     if( write_output(&sim, pout, n_gathered) ) {
+        print_err("Could not write output.\n");
         goto CLEANUP_FAILURE;
     }
     diag_free(&sim.diag_data);
@@ -217,10 +222,12 @@ int main(int argc, char** argv) {
 
 /* GOTO this block to free resources in case simulation crashes */
 CLEANUP_FAILURE:
+
+    print_err("Clearing at exit.\n");
     mpi_interface_finalize();
-    free(p);
-    free(ps);
-    free(pout);
+    if(p != NULL) free(p);
+    if(ps != NULL) free(ps);
+    if(pout != NULL) free(pout);
     abort();
     return 1;
 }
