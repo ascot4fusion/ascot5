@@ -114,7 +114,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
                                 &sim->boozer_data, &sim->mhd_data);
             }
             else {
-                step_fo_vpa(&p, hin, &sim->B_data, &sim->E_data, &sim->rffield_data);
+                step_fo_vpa_full(&p, hin, &sim->B_data, &sim->E_data, &sim->rffield_data);
             }
         }
 
