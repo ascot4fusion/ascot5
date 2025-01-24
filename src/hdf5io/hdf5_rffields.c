@@ -15,7 +15,6 @@
 #include "../rf_fields_fo.h"
 
 int hdf5_rffields_init(hid_t f, RF2D_fields* data, char* qid) {
-    char path[256];
     int err = 0;
 
     #ifdef RFPATH
@@ -30,6 +29,8 @@ int hdf5_rffields_init(hid_t f, RF2D_fields* data, char* qid) {
     real omega; // Frequency of the RF field
     int n_tor; // Toroidal mode number
     char tmp[256];
+
+    print_err("QID_RF = %s\n", qid);
 
     /* Read data */
     if( hdf5_read_int(RFPATH "nr", &n_r,
