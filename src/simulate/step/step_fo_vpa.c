@@ -212,6 +212,440 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
 
 
 /**
+ * @brief Integrate a full orbit step for a struct of particles with VPA
+ *
+ * The integration is performed for a struct of NSIMD particles using the
+ * volume preserving algorithm, as taken from https://doi.org/10.1016/j.jcp.2015.10.032.
+ * One could think as the VPA to the equivalent to the traditional Boris leapfrog 
+ * without phase correction, while this will be the equivalent to phase-corrected.
+ * The main difference is that while in `step_fo_vpa` the rotation part in the matrix
+ * exponential is approximated to second order, while here we keep the full rotation
+ * explicitly. 
+ *
+ * This algorithm is valid for neutral particles as well, in which case the
+ * motion reduces to ballistic motion where momentum remains constant.
+ *
+ * @param p particle_simd_fo struct that will be updated
+ * @param h pointer to array containing time steps
+ * @param Bdata pointer to magnetic field data
+ * @param Edata pointer to electric field data
+ */
+void step_fo_vpa_full(particle_simd_fo* p, real* h, B_field_data* Bdata,
+                      E_field_data* Edata, RF2D_fields* rffield_data) {
+    GPU_DATA_IS_MAPPED(h[0:p->n_mrk])
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for(int i = 0; i < p->n_mrk; i++) {
+        if(p->running[i]) {
+            a5err errflag = 0;
+
+            real R0   = p->r[i];
+            real z0   = p->z[i];
+            real t0   = p->time[i];
+            real mass = p->mass[i];
+
+            /* Convert velocity to cartesian coordinates */
+            real prpz[3] = {p->p_r[i], p->p_phi[i], p->p_z[i]};
+            real pxyz[3];
+            math_vec_rpz2xyz(prpz, pxyz, p->phi[i]);
+
+            real posrpz[3] = {p->r[i], p->phi[i], p->z[i]};
+            real posxyz0[3],posxyz[3];
+            math_rpz2xyz(posrpz, posxyz0);
+
+            /* Take a half step and evaluate fields at that position */
+            real gamma = physlib_gamma_pnorm(mass, math_norm(pxyz));
+            posxyz[0] = posxyz0[0] + pxyz[0] * h[i] / (2.0 * gamma * mass);
+            posxyz[1] = posxyz0[1] + pxyz[1] * h[i] / (2.0 * gamma * mass);
+            posxyz[2] = posxyz0[2] + pxyz[2] * h[i] / (2.0 * gamma * mass);
+
+            math_xyz2rpz(posxyz, posrpz);
+
+            real Brpz[3];
+            real Erpz[3];
+            if(!errflag) {
+                errflag = B_field_eval_B(Brpz, posrpz[0], posrpz[1], posrpz[2],
+                                         t0 + h[i]/2.0, Bdata);
+            }
+            if(!errflag) {
+                errflag = E_field_eval_E(Erpz, posrpz[0], posrpz[1], posrpz[2],
+                                         t0 + h[i]/2.0, Edata, Bdata);
+            }
+
+            // We add now the perturbation due to the wave fields.
+            real Ewave[3], Bwave[3];
+            if(!errflag) {
+                errflag = RF_field_eval(Ewave, Bwave, posrpz[0], posrpz[1],
+                                        posrpz[2], t0 + h[i]/2, rffield_data);
+                Erpz[0] += Ewave[0];
+                Erpz[1] += Ewave[1];
+                Erpz[2] += Ewave[2];
+                Brpz[0] += Bwave[0];
+                Brpz[1] += Bwave[1];
+                Brpz[2] += Bwave[2];
+            }
+
+            real fposxyz[3]; // final position in cartesian coordinates
+
+            if(!errflag) {
+                /* Electromagnetic fields to cartesian coordinates */
+                real Bxyz[3];
+                real Exyz[3];
+
+                math_vec_rpz2xyz(Brpz, Bxyz, posrpz[1]);
+                math_vec_rpz2xyz(Erpz, Exyz, posrpz[1]);
+                real Babs2 = Bxyz[0]*Bxyz[0] + Bxyz[1]*Bxyz[1] + Bxyz[2]*Bxyz[2];
+                real Babs = sqrt(Babs2);
+
+                /* Evaluate helper variable pminus */
+                real pminus[3];
+                real sigma = p->charge[i]*h[i]/2.0;
+                pminus[0] = pxyz[0] + sigma * Exyz[0];
+                pminus[1] = pxyz[1] + sigma * Exyz[1];
+                pminus[2] = pxyz[2] + sigma * Exyz[2];
+
+                /* Second helper variable pplus*/
+                real gamma_minus = physlib_gamma_pnorm(mass, math_norm(pminus));
+                real d = (p->charge[i]*h[i]/(p->mass[i] * gamma_minus));
+                real phase = d * Babs;
+
+                real Bunit[3] = {Bxyz[0]/Babs, Bxyz[1]/Babs, Bxyz[2]/Babs};
+                real tvec[3], svec[3];               
+
+                // We define the vector t as t = bunit x pminus
+                math_cross(pminus, Bunit, tvec);
+                // We define the vector s as s = bunit x t
+                math_cross(tvec, Bunit, svec);
+
+                // Generating the rotation on the momenta
+                real pplus[3];
+                pplus[0] = pminus[0] + sin(phase) * tvec[0] + (1.0 - cos(phase)) * svec[0];
+                pplus[1] = pminus[1] + sin(phase) * tvec[1] + (1.0 - cos(phase)) * svec[1];
+                pplus[2] = pminus[2] + sin(phase) * tvec[2] + (1.0 - cos(phase)) * svec[2];
+
+                real pfinal[3];
+                pfinal[0] = pplus[0] + sigma*Exyz[0];
+                pfinal[1] = pplus[1] + sigma*Exyz[1];
+                pfinal[2] = pplus[2] + sigma*Exyz[2];
+                
+                pxyz[0] = pfinal[0];
+                pxyz[1] = pfinal[1];
+                pxyz[2] = pfinal[2];
+            }
+
+            gamma = physlib_gamma_pnorm(mass, math_norm(pxyz));
+            fposxyz[0] = posxyz[0] + h[i] * pxyz[0] / (2.0 * gamma * mass);
+            fposxyz[1] = posxyz[1] + h[i] * pxyz[1] / (2.0 * gamma * mass);
+            fposxyz[2] = posxyz[2] + h[i] * pxyz[2] / (2.0 * gamma * mass);
+
+            if(!errflag) {
+                /* Back to cylindrical coordinates */
+                p->r[i] = sqrt(fposxyz[0]*fposxyz[0]+fposxyz[1]*fposxyz[1]);
+
+                /* phi is evaluated like this to make sure it is cumulative */
+                p->phi[i] += atan2(
+                    posxyz0[0] * fposxyz[1] - posxyz0[1] * fposxyz[0],
+                    posxyz0[0] * fposxyz[0] + posxyz0[1] * fposxyz[1] );
+                p->z[i] = fposxyz[2];
+
+                real cosp = cos(p->phi[i]);
+                real sinp = sin(p->phi[i]);
+                p->p_r[i]   =  pxyz[0] * cosp + pxyz[1] * sinp;
+                p->p_phi[i] = -pxyz[0] * sinp + pxyz[1] * cosp;
+                p->p_z[i]   =  pxyz[2];
+            }
+
+            /* Evaluate magnetic field (and gradient) and rho at new position */
+            real BdBrpz[15];
+            real psi[1];
+            real rho[2];
+            if(!errflag) {
+                errflag = B_field_eval_B_dB(BdBrpz, p->r[i], p->phi[i], p->z[i],
+                                            t0 + h[i], Bdata);
+            }
+            if(!errflag) {
+                errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i],
+                                           t0 + h[i], Bdata);
+            }
+            if(!errflag) {
+                errflag = B_field_eval_rho(rho, psi[0], Bdata);
+            }
+
+            if(!errflag) {
+                p->B_r[i]        = BdBrpz[0];
+                p->B_r_dr[i]     = BdBrpz[1];
+                p->B_r_dphi[i]   = BdBrpz[2];
+                p->B_r_dz[i]     = BdBrpz[3];
+
+                p->B_phi[i]      = BdBrpz[4];
+                p->B_phi_dr[i]   = BdBrpz[5];
+                p->B_phi_dphi[i] = BdBrpz[6];
+                p->B_phi_dz[i]   = BdBrpz[7];
+
+                p->B_z[i]        = BdBrpz[8];
+                p->B_z_dr[i]     = BdBrpz[9];
+                p->B_z_dphi[i]   = BdBrpz[10];
+                p->B_z_dz[i]     = BdBrpz[11];
+
+                p->rho[i] = rho[0];
+
+                /* Evaluate phi and theta angles so that they are cumulative */
+                real axisrz[2];
+                errflag = B_field_get_axis_rz(axisrz, Bdata, p->phi[i]);
+                p->theta[i] += atan2(   (R0-axisrz[0]) * (p->z[i]-axisrz[1])
+                                      - (z0-axisrz[1]) * (p->r[i]-axisrz[0]),
+                                        (R0-axisrz[0]) * (p->r[i]-axisrz[0])
+                                      + (z0-axisrz[1]) * (p->z[i]-axisrz[1]) );
+            }
+
+            /* Error handling */
+            if(errflag) {
+                p->err[i] = errflag;
+                p->running[i] = 0;
+            }
+        }
+    }
+}
+
+
+
+/**
+ * @brief Integrate a full orbit step for a struct of particles with VPA
+ *
+ * The integration is performed for a struct of NSIMD particles using the
+ * the Boris leapfrog method: this is just a test, so it will not likely be
+ * used in the final version.
+ * 
+ * Following: https://doi.org/10.1063/1.5051077
+ *
+ * This algorithm is valid for neutral particles as well, in which case the
+ * motion reduces to ballistic motion where momentum remains constant.
+ *
+ * @param p particle_simd_fo struct that will be updated
+ * @param h pointer to array containing time steps
+ * @param Bdata pointer to magnetic field data
+ * @param Edata pointer to electric field data
+ */
+void step_fo_vpa_borisA(particle_simd_fo* p, real* h, B_field_data* Bdata,
+                        E_field_data* Edata, RF2D_fields* rffield_data) {
+    GPU_DATA_IS_MAPPED(h[0:p->n_mrk])
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for(int i = 0; i < p->n_mrk; i++) {
+        if(p->running[i]) {
+            a5err errflag = 0;
+
+            real R0   = p->r[i];
+            real z0   = p->z[i];
+            real t0   = p->time[i];
+            real mass = p->mass[i];
+            real charge = p->charge[i];
+
+            /* Convert velocity to cartesian coordinates */
+            real prpz[3] = {p->p_r[i], p->p_phi[i], p->p_z[i]};
+            real pxyz[3];
+            math_vec_rpz2xyz(prpz, pxyz, p->phi[i]);
+
+            real posrpz[3] = {p->r[i], p->phi[i], p->z[i]};
+            real posxyz0[3],posxyz[3];
+            math_rpz2xyz(posrpz, posxyz0);
+
+            /* Take a half step and evaluate fields at that position */
+            posxyz[0] = posxyz0[0] + pxyz[0] * h[i] / (2.0 * mass);
+            posxyz[1] = posxyz0[1] + pxyz[1] * h[i] / (2.0 * mass);
+            posxyz[2] = posxyz0[2] + pxyz[2] * h[i] / (2.0 * mass);
+
+            math_xyz2rpz(posxyz, posrpz);
+
+            real Brpz[3];
+            real Erpz[3];
+            if(!errflag) {
+                errflag = B_field_eval_B(Brpz, posrpz[0], posrpz[1], posrpz[2],
+                                         t0 + h[i]/2.0, Bdata);
+            }
+            if(!errflag) {
+                errflag = E_field_eval_E(Erpz, posrpz[0], posrpz[1], posrpz[2],
+                                         t0 + h[i]/2.0, Edata, Bdata);
+            }
+
+            // We add now the perturbation due to the wave fields.
+            real Ewave[3], Bwave[3];
+            if(!errflag) {
+                errflag = RF_field_eval(Ewave, Bwave, posrpz[0], posrpz[1],
+                                        posrpz[2], t0 + h[i]/2, rffield_data);
+                Erpz[0] += Ewave[0];
+                Erpz[1] += Ewave[1];
+                Erpz[2] += Ewave[2];
+                Brpz[0] += Bwave[0];
+                Brpz[1] += Bwave[1];
+                Brpz[2] += Bwave[2];
+            }
+
+            real fposxyz[3]; // final position in cartesian coordinates
+
+            if(!errflag) {
+                /* Electromagnetic fields to cartesian coordinates */
+                real Bxyz[3];
+                real Exyz[3];
+
+                math_vec_rpz2xyz(Brpz, Bxyz, posrpz[1]);
+                math_vec_rpz2xyz(Erpz, Exyz, posrpz[1]);
+
+                // Evaluating the Boris leapfrog.
+                real pminus[3], pplus[3], pprime[3];
+                pminus[0] = pxyz[0] + 0.5*h[i]*Exyz[0]*charge;
+                pminus[1] = pxyz[1] + 0.5*h[i]*Exyz[1]*charge;
+                pminus[2] = pxyz[2] + 0.5*h[i]*Exyz[2]*charge;
+
+                // Evaluating the rotation angle.
+                real Bnorm = math_norm(Bxyz);
+                real Bhat[3] = {Bxyz[0]/Bnorm, Bxyz[1]/Bnorm, Bxyz[2]/Bnorm};
+                real BorisTheta = tan(charge*Bnorm*h[i]/(2*mass));
+                
+                // Building the rotation vector.
+                real tvec[3];
+                tvec[0] = BorisTheta*Bhat[0];
+                tvec[1] = BorisTheta*Bhat[1];
+                tvec[2] = BorisTheta*Bhat[2];
+
+                // Making the rotation.
+                pprime[0] = pminus[0] + (pminus[1]*tvec[2] - pminus[2]*tvec[1]);
+                pprime[1] = pminus[1] + (pminus[2]*tvec[0] - pminus[0]*tvec[2]);
+                pprime[2] = pminus[2] + (pminus[0]*tvec[1] - pminus[1]*tvec[0]);
+
+                // Evaluating the second half of the step.
+                real d = 2.0 / (1.0 + tvec[0]*tvec[0] + tvec[1]*tvec[1] + tvec[2]*tvec[2]);
+                pplus[0] = pminus[0] + d*(pprime[1]*tvec[2] - pprime[2]*tvec[1]);
+                pplus[1] = pminus[1] + d*(pprime[2]*tvec[0] - pprime[0]*tvec[2]);
+                pplus[2] = pminus[2] + d*(pprime[0]*tvec[1] - pprime[1]*tvec[0]);
+
+                /* Take the step */
+                pxyz[0] = pplus[0] + 0.5*h[i]*Exyz[0]*charge;
+                pxyz[1] = pplus[1] + 0.5*h[i]*Exyz[1]*charge;
+                pxyz[2] = pplus[2] + 0.5*h[i]*Exyz[2]*charge;
+            }
+
+            fposxyz[0] = posxyz[0] + h[i] * pxyz[0] / (2.0 * mass);
+            fposxyz[1] = posxyz[1] + h[i] * pxyz[1] / (2.0 * mass);
+            fposxyz[2] = posxyz[2] + h[i] * pxyz[2] / (2.0 * mass);
+
+            if(!errflag) {
+                /* Back to cylindrical coordinates */
+                p->r[i] = sqrt(fposxyz[0]*fposxyz[0]+fposxyz[1]*fposxyz[1]);
+
+                /* phi is evaluated like this to make sure it is cumulative */
+                p->phi[i] += atan2(
+                    posxyz0[0] * fposxyz[1] - posxyz0[1] * fposxyz[0],
+                    posxyz0[0] * fposxyz[0] + posxyz0[1] * fposxyz[1] );
+                p->z[i] = fposxyz[2];
+
+                real cosp = cos(p->phi[i]);
+                real sinp = sin(p->phi[i]);
+                p->p_r[i]   =  pxyz[0] * cosp + pxyz[1] * sinp;
+                p->p_phi[i] = -pxyz[0] * sinp + pxyz[1] * cosp;
+                p->p_z[i]   =  pxyz[2];
+            }
+
+            /* Evaluate magnetic field (and gradient) and rho at new position */
+            real BdBrpz[15];
+            real psi[1];
+            real rho[2];
+            if(!errflag) {
+                errflag = B_field_eval_B_dB(BdBrpz, p->r[i], p->phi[i], p->z[i],
+                                            t0 + h[i], Bdata);
+            }
+            if(!errflag) {
+                errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i],
+                                           t0 + h[i], Bdata);
+            }
+            if(!errflag) {
+                errflag = B_field_eval_rho(rho, psi[0], Bdata);
+            }
+
+            if(!errflag) {
+                p->B_r[i]        = BdBrpz[0];
+                p->B_r_dr[i]     = BdBrpz[1];
+                p->B_r_dphi[i]   = BdBrpz[2];
+                p->B_r_dz[i]     = BdBrpz[3];
+
+                p->B_phi[i]      = BdBrpz[4];
+                p->B_phi_dr[i]   = BdBrpz[5];
+                p->B_phi_dphi[i] = BdBrpz[6];
+                p->B_phi_dz[i]   = BdBrpz[7];
+
+                p->B_z[i]        = BdBrpz[8];
+                p->B_z_dr[i]     = BdBrpz[9];
+                p->B_z_dphi[i]   = BdBrpz[10];
+                p->B_z_dz[i]     = BdBrpz[11];
+
+                p->rho[i] = rho[0];
+
+                /* Evaluate phi and theta angles so that they are cumulative */
+                real axisrz[2];
+                errflag = B_field_get_axis_rz(axisrz, Bdata, p->phi[i]);
+                p->theta[i] += atan2(   (R0-axisrz[0]) * (p->z[i]-axisrz[1])
+                                      - (z0-axisrz[1]) * (p->r[i]-axisrz[0]),
+                                        (R0-axisrz[0]) * (p->r[i]-axisrz[0])
+                                      + (z0-axisrz[1]) * (p->z[i]-axisrz[1]) );
+            }
+
+            /* Error handling */
+            if(errflag) {
+                p->err[i] = errflag;
+                p->running[i] = 0;
+            }
+        }
+    }
+}
+
+/**
+ * @brief Integrate a full orbit step for a struct of particles with VPA
+ *
+ * The integration is performed for a struct of NSIMD particles using the
+ * a phase-corrected 4th order VPA integrator as described in:
+ * 
+ * Following: https://doi.org/10.1063/1.5051077
+ * 
+ * The approach, albeit being more computationally expensive, should provide
+ * better long-term stability of the evolution.
+ *
+ * This algorithm is valid for neutral particles as well, in which case the
+ * motion reduces to ballistic motion where momentum remains constant.
+ *
+ * @param p particle_simd_fo struct that will be updated
+ * @param h pointer to array containing time steps
+ * @param Bdata pointer to magnetic field data
+ * @param Edata pointer to electric field data
+ */
+void step_fo_vpa_4th(particle_simd_fo* p, real* h, B_field_data* Bdata,
+                     E_field_data* Edata, RF2D_fields* rffield_data){
+    // Coefficients for the 4th order VPA integrator
+    // 1. Yoshida's composition.
+    const real a1 = 1.0 / (2.0 - pow(2.0, 1.0/3.0));
+    const real a2 = 1.0 - 2.0 * a1;
+
+    // 2. Suzuki's composition.
+    const real b1 = 1.0 / (4.0 - pow(4.0, 1.0/3.0));
+    const real b2 = b1;
+    const real b3 = 1-2*(b1+b2);
+
+    const real stages[] = {b1, b2, b3, b2, b1};
+
+    // Some temporal variables.
+    real *hin_new = (real*)malloc(sizeof(real)*p->n_mrk);
+
+    // The integration relies on using the VPA integrator in different
+    // steps than the full step, but guided by the coefficients a for the 
+    // Yoshida's composition and b for the Suzuki's composition.
+    for(int istage = 0; istage < 5; istage++) {
+        for(int i = 0; i < p->n_mrk; i++) {
+            hin_new[i] = h[i] * stages[istage];
+        }
+        step_fo_vpa_full(p, hin_new, Bdata, Edata, rffield_data);
+    }
+    
+    free(hin_new);
+}
+
+/**
  * @brief Integrate a full orbit step with VPA and MHd modes present.
  *
  * Same as previous method but with MHD present.
