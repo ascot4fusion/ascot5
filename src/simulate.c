@@ -214,13 +214,11 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
         {
             /* Update progress until simulation is complete.             */
             /* Trim .h5 from filename and replace it with _<QID>.stdout  */
-            if(id == 0) {
-                char filename[519], outfn[256];
-                strcpy(outfn, sim->hdf5_out);
-                outfn[strlen(outfn)-3] = '\0';
-                sprintf(filename, "%s_%s.stdout", outfn, sim->qid);
-                sim_monitor(filename, &pq.n, &pq.finished);
-            }
+            char filename[519], outfn[256];
+            strcpy(outfn, sim->hdf5_out);
+            outfn[strlen(outfn)-3] = '\0';
+            sprintf(filename, "%s_%s.stdout", outfn, sim->qid);
+            sim_monitor(filename, &pq.n, &pq.finished);
         }
     }
 #endif
@@ -280,13 +278,11 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
             #pragma omp section
             {
                 /* Trim .h5 from filename and replace it with _<qid>.stdout */
-                if(id == 0) {
-                    char filename[519], outfn[256];
-                    strcpy(outfn, sim->hdf5_out);
-                    outfn[strlen(outfn)-3] = '\0';
-                    sprintf(filename, "%s_%s.stdout", outfn, sim->qid);
-                    sim_monitor(filename, &pq.n, &pq.finished);
-                }
+                char filename[519], outfn[256];
+                strcpy(outfn, sim->hdf5_out);
+                outfn[strlen(outfn)-3] = '\0';
+                sprintf(filename, "%s_%s.stdout", outfn, sim->qid);
+                sim_monitor(filename, &pq.n, &pq.finished);
             }
         }
 #endif
@@ -366,8 +362,7 @@ void sim_monitor(char* filename, volatile int* n, volatile int* finished) {
                     "estimated time to finish: %.2f h\n", finished_temp, n_temp,
                     100*fracprog, timespent/3600, (1/fracprog-1)*timespent/3600);
         }
-        fflush(f);
-        //sleep(A5_PRINTPROGRESSINTERVAL);
+        sleep(A5_PRINTPROGRESSINTERVAL);
     }
 
     fprintf(f, "Simulation finished.\n");
