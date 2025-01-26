@@ -34,7 +34,12 @@
 #include "gctransform.h"
 #include "asigma.h"
 
-void sim_monitor(char* filename, volatile int* n, volatile int* finished);
+#ifdef MPI
+#include <mpi.h>
+#endif
+
+void sim_monitor(char* filename, volatile int* n, volatile int* finished,
+                 sim_data* sim);
 
 /**
  * @brief Execute marker simulation
@@ -218,7 +223,7 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
             strcpy(outfn, sim->hdf5_out);
             outfn[strlen(outfn)-3] = '\0';
             sprintf(filename, "%s_%s.stdout", outfn, sim->qid);
-            sim_monitor(filename, &pq.n, &pq.finished);
+            sim_monitor(filename, &pq.n, &pq.finished, sim);
         }
     }
 #endif
@@ -282,7 +287,7 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
                 strcpy(outfn, sim->hdf5_out);
                 outfn[strlen(outfn)-3] = '\0';
                 sprintf(filename, "%s_%s.stdout", outfn, sim->qid);
-                sim_monitor(filename, &pq.n, &pq.finished);
+                sim_monitor(filename, &pq.n, &pq.finished, sim);
             }
         }
 #endif
@@ -329,13 +334,26 @@ void simulate_init(sim_data* sim) {
  * @param n pointer to number of total markers in simulation queue
  * @param finished pointer to number of finished markers in simulation queue
  */
-void sim_monitor(char* filename, volatile int* n, volatile int* finished) {
+void sim_monitor(char* filename, volatile int* n, volatile int* finished, sim_data* sim) {
+
+    int error = 0;
+    
     /* Open a file for writing simulation progress */
-    FILE *f = fopen(filename, "w");
-    if (f == NULL) {
-        print_out(VERBOSE_DEBUG,
-                  "Warning. %s could not be opened for progress updates.\n",
-                  filename);
+    FILE *f = NULL;
+    if(sim->mpi_rank == sim->mpi_root) {
+        f = fopen(filename, "w");
+        if (f == NULL) error = 1;
+    }
+
+#ifdef MPI
+    /* Broadcast error flag to all processes */
+    MPI_Bcast(&error, 1, MPI_INT, sim->mpi_root, MPI_COMM_WORLD);
+#endif
+
+    if(error) {
+        print_out0(VERBOSE_DEBUG, sim->mpi_rank, sim->mpi_root,
+                   "Warning. %s could not be opened for progress updates.\n",
+                   filename);
         return;
     }
 
@@ -344,8 +362,22 @@ void sim_monitor(char* filename, volatile int* n, volatile int* finished) {
     int n_temp, finished_temp; /* Use these to store volatile variables so that
                                   their value does not change during one loop */
     while(stopflag) {
+        // Performing a reading of the volatile value.
         n_temp = *n;
-        finished_temp = *finished;
+        finished_temp = *finished; 
+
+        // We need to combine all the data from the different MPI processes.
+#ifdef MPI
+        int tmp_glob;
+        MPI_Allreduce(&n_temp, &tmp_glob, 1, MPI_INT, MPI_SUM, 
+                   MPI_COMM_WORLD);
+        n_temp = tmp_glob;
+
+        MPI_Allreduce(&finished_temp, &tmp_glob, 1, MPI_INT, MPI_SUM,
+                      MPI_COMM_WORLD);
+        finished_temp = tmp_glob;
+#endif
+
         real fracprog = ((real) finished_temp)/n_temp;
         real timespent = (A5_WTIME)-time_sim_started;
 
@@ -353,18 +385,23 @@ void sim_monitor(char* filename, volatile int* n, volatile int* finished) {
             stopflag = 0;
         }
 
-        if(fracprog == 0) {
-            fprintf(f, "No marker has finished simulation yet. "
-                    "Time spent: %.2f h\n", timespent/3600);
-        }
-        else {
-            fprintf(f, "Progress: %d/%d, %.2f %%. Time spent: %.2f h, "
-                    "estimated time to finish: %.2f h\n", finished_temp, n_temp,
-                    100*fracprog, timespent/3600, (1/fracprog-1)*timespent/3600);
+        if(sim->mpi_rank == sim->mpi_root){
+            if(fracprog == 0) {
+                fprintf(f, "No marker has finished simulation yet. "
+                        "Time spent: %.2f h\n", timespent/3600);
+            }
+            else {
+                fprintf(f, "Progress: %d/%d, %.2f %%. Time spent: %.2f h, "
+                        "estimated time to finish: %.2f h\n", finished_temp, n_temp,
+                        100*fracprog, timespent/3600, (1/fracprog-1)*timespent/3600);
+            }
+            fflush(f);
         }
         sleep(A5_PRINTPROGRESSINTERVAL);
     }
 
-    fprintf(f, "Simulation finished.\n");
-    fclose(f);
+    if(sim->mpi_rank == sim->mpi_root) {
+        fprintf(f, "Simulation finished.\n");
+        fclose(f);
+    }
 }
