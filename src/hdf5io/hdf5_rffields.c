@@ -9,7 +9,6 @@
 #include <hdf5.h>
 #include <hdf5_hl.h>
 #include "../ascot5.h"
-#include "../print.h"
 #include "hdf5_helpers.h"
 #include "hdf5_rffields.h"
 #include "../rf_fields_fo.h"
@@ -29,8 +28,6 @@ int hdf5_rffields_init(hid_t f, RF2D_fields* data, char* qid) {
     real omega; // Frequency of the RF field
     int n_tor; // Toroidal mode number
     char tmp[256];
-
-    print_err("QID_RF = %s\n", qid);
 
     /* Read data */
     if( hdf5_read_int(RFPATH "nr", &n_r,
