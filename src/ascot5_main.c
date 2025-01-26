@@ -487,6 +487,7 @@ int read_arguments(int argc, char** argv, sim_data* sim) {
     sim->qid_mhd[0]     = '\0';
     sim->qid_asigma[0]  = '\0';
     sim->qid_nbi[0]     = '\0';
+    sim->qid_rffield[0] = '\0';
 
     /* Read user input */
     int c;
