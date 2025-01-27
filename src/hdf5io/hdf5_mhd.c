@@ -97,6 +97,13 @@ int hdf5_mhd_read_stat(hid_t f, mhd_stat_data* data, char* qid) {
 
     int err = mhd_stat_init(data, nmode, nrho, rhomin, rhomax, moden, modem,
                             amplitude_nm, omega_nm, phase_nm, alpha, phi);
+    free(moden);
+    free(modem);
+    free(omega_nm);
+    free(phase_nm);
+    free(amplitude_nm);
+    free(phi);
+    free(alpha);
     return err;
 }
 
@@ -157,5 +164,12 @@ int hdf5_mhd_read_nonstat(hid_t f, mhd_nonstat_data* data, char* qid) {
     int err = mhd_nonstat_init(data, nmode, nrho, ntime, rhomin, rhomax,
                                tmin, tmax, moden, modem, amplitude_nm,
                                omega_nm, phase_nm, alpha, phi);
+    free(moden);
+    free(modem);
+    free(omega_nm);
+    free(phase_nm);
+    free(amplitude_nm);
+    free(phi);
+    free(alpha);
     return err;
 }

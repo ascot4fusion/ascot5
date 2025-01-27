@@ -100,6 +100,21 @@ int diag_init(diag_data* data, int Nmrk) {
  * @param data diagnostics data
  */
 void diag_free(diag_data* data) {
+    if(data->dist5D_collect) {
+        dist_5D_free(&data->dist5D);
+    }
+    if(data->dist6D_collect) {
+        dist_6D_free(&data->dist6D);
+    }
+    if(data->distrho5D_collect) {
+        dist_rho5D_free(&data->distrho5D);
+    }
+    if(data->distrho6D_collect) {
+        dist_rho6D_free(&data->distrho6D);
+    }
+    if(data->distCOM_collect) {
+        dist_COM_free(&data->distCOM);
+    }
     if(data->diagorb_collect) {
         diag_orb_free(&data->diagorb);
     }

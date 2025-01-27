@@ -104,8 +104,8 @@ void diag_orb_init(diag_orb_data* data) {
             break;
     }
 
-    data->mrk_pnt = malloc( data->Nmrk*sizeof(integer) );
-    data->mrk_recorded = malloc( data->Nmrk*sizeof(real) );
+    data->mrk_pnt = (integer*) malloc( data->Nmrk*sizeof(integer) );
+    data->mrk_recorded = (real*) malloc( data->Nmrk*sizeof(real) );
 
     memset(data->mrk_pnt, 0, data->Nmrk*sizeof(integer));
     memset(data->mrk_recorded, 0, data->Nmrk*sizeof(real));
@@ -119,6 +119,83 @@ void diag_orb_init(diag_orb_data* data) {
 void diag_orb_free(diag_orb_data* data){
     free(data->mrk_pnt);
     free(data->mrk_recorded);
+
+    if(data->mode == DIAG_ORB_POINCARE) {
+        free(data->pncrid);
+        free(data->pncrdi);
+    }
+    switch(data->record_mode) {
+
+        case simulate_mode_fo:
+            free(data->mileage);
+            free(data->r);
+            free(data->phi);
+            free(data->z);
+            free(data->p_r);
+            free(data->p_phi);
+            free(data->p_z);
+            free(data->weight);
+            free(data->charge );
+            free(data->rho);
+            free(data->theta);
+            free(data->B_r);
+            free(data->B_phi);
+            free(data->B_z);
+            free(data->simmode);
+            break;
+
+        case simulate_mode_gc:
+            free(data->mileage);
+            free(data->r);
+            free(data->phi);
+            free(data->z);
+            free(data->ppar);
+            free(data->mu);
+            free(data->zeta);
+            free(data->weight);
+            free(data->charge );
+            free(data->rho);
+            free(data->theta);
+            free(data->B_r);
+            free(data->B_phi);
+            free(data->B_z);
+            free(data->simmode);
+            break;
+
+        case simulate_mode_ml:
+            free(data->mileage);
+            free(data->r);
+            free(data->phi);
+            free(data->z);
+            free(data->rho);
+            free(data->theta);
+            free(data->B_r);
+            free(data->B_phi);
+            free(data->B_z);
+            free(data->simmode);
+            break;
+
+        case simulate_mode_hybrid:
+            free(data->mileage);
+            free(data->r);
+            free(data->phi);
+            free(data->z);
+            free(data->p_r);
+            free(data->p_phi);
+            free(data->p_z);
+            free(data->ppar);
+            free(data->mu);
+            free(data->zeta);
+            free(data->weight);
+            free(data->charge );
+            free(data->rho);
+            free(data->theta);
+            free(data->B_r);
+            free(data->B_phi);
+            free(data->B_z);
+            free(data->simmode);
+            break;
+    }
 }
 
 /**

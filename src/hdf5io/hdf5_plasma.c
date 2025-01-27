@@ -126,6 +126,7 @@ int hdf5_plasma_read_1D(hid_t f, plasma_1D_data* data, char* qid) {
     free(Ti);
     free(ne);
     free(ni);
+    free(rho);
     free(znum);
     free(anum);
     free(mass);
