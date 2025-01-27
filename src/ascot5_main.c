@@ -156,7 +156,7 @@ int main(int argc, char** argv) {
         print_out0(VERBOSE_MINIMAL, sim.mpi_rank, sim.mpi_root,
                    "\nInput reading or initializing failed.\n"
                    "See stderr for details.\n");
-        mpi_interface_finalize();
+        mpi_interface_finalize(1);
         abort();
         return 1;
     };
@@ -208,15 +208,15 @@ int main(int argc, char** argv) {
     free(pout);
 
     print_out0(VERBOSE_MINIMAL, sim.mpi_rank, sim.mpi_root, "\nDone.\n");
-    mpi_interface_finalize();
+    mpi_interface_finalize(0);
     return 0;
 
 /* GOTO this block to free resources in case simulation crashes */
 CLEANUP_FAILURE:
-    mpi_interface_finalize();
     free(p);
     free(ps);
     free(pout);
+    mpi_interface_finalize(1);
     abort();
     return 1;
 }

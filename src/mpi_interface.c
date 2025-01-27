@@ -55,9 +55,14 @@ void mpi_interface_init(int argc, char** argv, int* mpi_rank, int* mpi_size,
  * This function finalizes the MPI environment, to be called at the end of
  * execution.
  */
-void mpi_interface_finalize() {
+void mpi_interface_finalize(int err) {
 #ifdef MPI
-    MPI_Finalize();
+    if(err) {
+        MPI_Abort(MPI_COMM_WORLD, err);
+    }
+    else {
+        MPI_Finalize();
+    }
 #endif
 }
 
