@@ -85,9 +85,7 @@ double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
                              real t3[3]);
 DECLARE_TARGET_END
 
-DECLARE_TARGET
 void wall_3d_init_tree(wall_3d_data* w, real* offload_array);
-DECLARE_TARGET_END
 DECLARE_TARGET
 int wall_3d_tri_in_cube(real t1[3], real t2[3], real t3[3], real bb1[3],
                         real bb2[3]);
