@@ -93,6 +93,8 @@ void mhd_nonstat_free(mhd_nonstat_data* data) {
     free(data->phase_nm);
     free(data->omega_nm);
     free(data->amplitude_nm);
+    free(data->phi_nm);
+    free(data->alpha_nm);
 }
 
 /**

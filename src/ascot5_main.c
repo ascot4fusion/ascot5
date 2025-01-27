@@ -168,9 +168,6 @@ int main(int argc, char** argv) {
         goto CLEANUP_FAILURE;
     }
 
-    /* Initialize diagnostics offload data */
-    diag_init(&sim.diag_data, n_tot);
-
     /* Write run group and inistate */
     char qid[11];
     hdf5_generate_qid(qid);
