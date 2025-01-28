@@ -140,12 +140,9 @@ void mpi_gather_particlestate(
         for(int i = 1; i < mpi_size; i++) {
             mpi_my_particles(&start_index, &n, n_tot, i, mpi_size);
 
-            real* realdata;
-            realdata = malloc(n_real * n * sizeof(realdata));
-            integer* intdata;
-            intdata = malloc(n_int * n * sizeof(intdata));
-            a5err* errdata;
-            errdata = malloc(n_err * n * sizeof(intdata));
+            real* realdata = (real*) malloc(n_real * n * sizeof(realdata));
+            integer* intdata = (integer*) malloc(n_int * n * sizeof(intdata));
+            a5err* errdata = (a5err*) malloc(n_err * n * sizeof(intdata));
 
             MPI_Recv(realdata, n_real*n, mpi_type_real, i, 0,
                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -303,34 +300,37 @@ void mpi_gather_diag(diag_data* data, int ntotal, int mpi_rank, int mpi_size,
     if(data->dist5D_collect) {
         MPI_Reduce(
             mpi_rank == mpi_root ? MPI_IN_PLACE : data->dist5D.histogram,
-            data->dist5D.histogram, data->dist5D.step_6 * data->dist5D.n_r,
-            MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+            data->dist5D.histogram,
+            data->dist5D.step_6 * data->dist5D.n_r,
+            mpi_type_real, MPI_SUM, mpi_root, MPI_COMM_WORLD);
     }
     if(data->dist6D_collect) {
         MPI_Reduce(
             mpi_rank == mpi_root ? MPI_IN_PLACE : data->dist6D.histogram,
-            data->dist6D.histogram, data->dist6D.step_7 * data->dist6D.n_r,
-            MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+            mpi_rank == mpi_root ? NULL : data->dist6D.histogram,
+            data->dist6D.step_7 * data->dist6D.n_r,
+            mpi_type_real, MPI_SUM, mpi_root, MPI_COMM_WORLD);
     }
     if(data->distrho5D_collect) {
         MPI_Reduce(
             mpi_rank == mpi_root ? MPI_IN_PLACE : data->distrho5D.histogram,
-            data->distrho5D.histogram,
+            mpi_rank == mpi_root ? NULL : data->distrho5D.histogram,
             data->distrho5D.step_6 * data->distrho5D.n_rho,
-            MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+            mpi_type_real, MPI_SUM, mpi_root, MPI_COMM_WORLD);
     }
     if(data->distrho6D_collect) {
         MPI_Reduce(
             mpi_rank == mpi_root ? MPI_IN_PLACE : data->distrho6D.histogram,
-            data->distrho6D.histogram,
+            mpi_rank == mpi_root ? NULL : data->distrho6D.histogram,
             data->distrho6D.step_7*data->distrho6D.n_rho,
-            MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+            mpi_type_real, MPI_SUM, mpi_root, MPI_COMM_WORLD);
     }
     if(data->distCOM_collect) {
         MPI_Reduce(
             mpi_rank == mpi_root ? MPI_IN_PLACE : data->distCOM.histogram,
-            data->distCOM.histogram, data->distCOM.step_2 * data->distCOM.n_mu,
-            MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+            mpi_rank == mpi_root ? NULL : data->distCOM.histogram,
+            data->distCOM.step_2 * data->distCOM.n_mu,
+            mpi_type_real, MPI_SUM, mpi_root, MPI_COMM_WORLD);
     }
 
     if(data->diagorb_collect) {

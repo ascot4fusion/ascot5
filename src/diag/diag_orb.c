@@ -120,6 +120,7 @@ void diag_orb_free(diag_orb_data* data){
     free(data->mrk_pnt);
     free(data->mrk_recorded);
 
+    free(data->id);
     if(data->mode == DIAG_ORB_POINCARE) {
         free(data->pncrid);
         free(data->pncrdi);

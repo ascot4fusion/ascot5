@@ -33,8 +33,7 @@ int dist_COM_init(dist_COM_data* data) {
     data->step_2 = n_Ptor * n_Ekin;
     data->step_1 = n_Ptor;
 
-    data->histogram = calloc( data->n_mu * data->n_Ptor * data->n_Ekin,
-                              sizeof(real) );
+    data->histogram = calloc(data->step_2 * (size_t)data->n_mu, sizeof(real));
     return data->histogram == NULL;
 }
 
