@@ -14,17 +14,13 @@
 void simulate_copy_to_gpu(sim_data* sim) {
   	GPU_MAP_TO_DEVICE(sim[0:1])
 
-    switch(sim->wall_data.type) {
-    case wall_type_2D:
+    if (sim->wall_data.type == wall_type_2D) {
       GPU_MAP_TO_DEVICE(
 			sim->wall_data.w2d.wall_r[0:sim->wall_data.w2d.n],sim->wall_data.w2d.wall_z[0:sim->wall_data.w2d.n] )
-      break;
-    case wall_type_3D:
+    }
+    else if (sim->wall_data.type == wall_type_3D) {
       GPU_MAP_TO_DEVICE(
 			sim->wall_data.w3d.wall_tris[0:sim->wall_data.w3d.n*9+9],sim->wall_data.w3d.tree_array[0:sim->wall_data.w3d.tree_array_size] )
-      break;
-    default:
-      break;
     }
 
     if(sim->diag_data.dist5D_collect) {
@@ -52,24 +48,18 @@ void simulate_copy_to_gpu(sim_data* sim) {
 			sim->diag_data.distCOM.histogram[0:sim->diag_data.distCOM.n_mu*sim->diag_data.distCOM.n_Ekin*sim->diag_data.distCOM.n_Ptor] )
     }
 
-
-  switch(sim->E_data.type) {
-
-    case E_field_type_1DS:
+    if (sim->E_data.type == E_field_type_1DS) {
       GPU_MAP_TO_DEVICE(
 			sim->E_data.E1DS,sim->E_data.E1DS.dV,sim->E_data.E1DS.dV.c[0:sim->E_data.E1DS.dV.n_x*NSIZE_COMP1D] )
-      break;
-    case E_field_type_TC:
+    }	
+    else if (sim->E_data.type == E_field_type_TC) {
       GPU_MAP_TO_DEVICE(
 			sim->E_data.ETC,sim->E_data.ETC.Exyz[0:1] )
-      break;
-    default:
-      break;
     }
 
-    switch(sim->plasma_data.type) {
+    /* switch(sim->plasma_data.type) { */
 
-    case plasma_type_1D:
+    if(sim->plasma_data.type == plasma_type_1D) {
       GPU_MAP_TO_DEVICE(
 		      sim->plasma_data.plasma_1D.mass       [0:MAX_SPECIES],\
 		      sim->plasma_data.plasma_1D.charge     [0:MAX_SPECIES],\
@@ -78,9 +68,8 @@ void simulate_copy_to_gpu(sim_data* sim) {
 		      sim->plasma_data.plasma_1D.rho        [0:sim->plasma_data.plasma_1D.n_rho],\
 		      sim->plasma_data.plasma_1D.temp       [0:sim->plasma_data.plasma_1D.n_rho*sim->plasma_data.plasma_1D.n_species], \
   		      sim->plasma_data.plasma_1D.dens       [0:sim->plasma_data.plasma_1D.n_rho*sim->plasma_data.plasma_1D.n_species] )
-      break;
-
-      case plasma_type_1Dt:
+    }
+    else if (sim->plasma_data.type == plasma_type_1Dt) {
 	GPU_MAP_TO_DEVICE(
 		      sim->plasma_data.plasma_1Dt.mass      [0:MAX_SPECIES],\
 		      sim->plasma_data.plasma_1Dt.charge    [0:MAX_SPECIES],\
@@ -90,9 +79,8 @@ void simulate_copy_to_gpu(sim_data* sim) {
 		      sim->plasma_data.plasma_1Dt.temp      [0:sim->plasma_data.plasma_1Dt.n_time*sim->plasma_data.plasma_1Dt.n_rho*sim->plasma_data.plasma_1Dt.n_species],\
 		      sim->plasma_data.plasma_1Dt.dens      [0:sim->plasma_data.plasma_1Dt.n_rho*sim->plasma_data.plasma_1Dt.n_species*sim->plasma_data.plasma_1Dt.n_time],\
 		      sim->plasma_data.plasma_1Dt.time      [0:sim->plasma_data.plasma_1Dt.n_time] )
-      break;
-
-      case plasma_type_1DS:
+    }
+    else if (sim->plasma_data.type == plasma_type_1DS) {
 	GPU_MAP_TO_DEVICE(
 		      sim->plasma_data.plasma_1DS.mass      [0:MAX_SPECIES],\
 		      sim->plasma_data.plasma_1DS.charge    [0:MAX_SPECIES],\
@@ -105,35 +93,29 @@ void simulate_copy_to_gpu(sim_data* sim) {
 	for (int i=0;i<MAX_SPECIES;i++) {
 	  GPU_MAP_TO_DEVICE(
 			    sim->plasma_data.plasma_1DS.dens[i].c[0:sim->plasma_data.plasma_1DS.dens[i].n_x*NSIZE_COMP1D] )
-    }
-      break;
-
-      default:
-      break;
+	}
     }
 
-    switch(sim->B_data.type) {
-
-    case B_field_type_GS:
+    if(sim->B_data.type == B_field_type_GS) {
       GPU_MAP_TO_DEVICE(
 			sim->B_data.BGS.psi_coeff[0:13] )
-      break;
-    case B_field_type_2DS:
+    }
+    else if (sim->B_data.type == B_field_type_2DS) {
       GPU_MAP_TO_DEVICE(
 		      sim->B_data.B2DS.psi,    sim->B_data.B2DS.psi.c    [0:sim->B_data.B2DS.psi.n_x   *sim->B_data.B2DS.psi.n_y                          *NSIZE_COMP2D],\
   		      sim->B_data.B2DS.B_r,    sim->B_data.B2DS.B_r.c    [0:sim->B_data.B2DS.B_r.n_x   *sim->B_data.B2DS.B_r.n_y                          *NSIZE_COMP2D],\
 		      sim->B_data.B2DS.B_phi,  sim->B_data.B2DS.B_phi.c  [0:sim->B_data.B2DS.B_phi.n_x *sim->B_data.B2DS.B_phi.n_y                        *NSIZE_COMP2D],\
 		      sim->B_data.B2DS.B_z,    sim->B_data.B2DS.B_z.c    [0:sim->B_data.B2DS.B_z.n_x   *sim->B_data.B2DS.B_z.n_y                          *NSIZE_COMP2D] )
-      break;
-    case B_field_type_3DS:
+    }
+    else if (sim->B_data.type == B_field_type_3DS) {
       GPU_MAP_TO_DEVICE(
 			sim->B_data.B3DS.psi,    sim->B_data.B3DS.psi.c    [0:sim->B_data.B3DS.psi.n_x   *sim->B_data.B3DS.psi.n_y                          *NSIZE_COMP2D],	\
 			sim->B_data.B3DS.B_r,    sim->B_data.B3DS.B_r.c    [0:sim->B_data.B3DS.B_r.n_x   *sim->B_data.B3DS.B_r.n_y   *sim->B_data.B3DS.B_r.n_z   *NSIZE_COMP3D],	\
 			sim->B_data.B3DS.B_phi,  sim->B_data.B3DS.B_phi.c  [0:sim->B_data.B3DS.B_phi.n_x *sim->B_data.B3DS.B_phi.n_y *sim->B_data.B3DS.B_phi.n_z *NSIZE_COMP3D],	\
 			sim->B_data.B3DS.B_z,    sim->B_data.B3DS.B_z.c    [0:sim->B_data.B3DS.B_z.n_x   *sim->B_data.B3DS.B_z.n_y   *sim->B_data.B3DS.B_z.n_z   *NSIZE_COMP3D] )
 
-      break;
-    case B_field_type_STS:
+    }
+    else if (sim->B_data.type == B_field_type_STS) {
       GPU_MAP_TO_DEVICE(
 			sim->B_data.BSTS.axis_r, sim->B_data.BSTS.axis_r.c [0:sim->B_data.BSTS.axis_r.n_x                                                           ], \
 			sim->B_data.BSTS.axis_z, sim->B_data.BSTS.axis_z.c [0:sim->B_data.BSTS.axis_z.n_x                                                           ],	\
@@ -141,13 +123,10 @@ void simulate_copy_to_gpu(sim_data* sim) {
 			sim->B_data.BSTS.B_r,    sim->B_data.BSTS.B_r.c    [0:sim->B_data.BSTS.B_r.n_x   *sim->B_data.BSTS.B_r.n_y   *sim->B_data.BSTS.B_r.n_z   *NSIZE_COMP3D],	\
 			sim->B_data.BSTS.B_z,    sim->B_data.BSTS.B_z.c    [0:sim->B_data.BSTS.B_z.n_x   *sim->B_data.BSTS.B_z.n_y   *sim->B_data.BSTS.B_z.n_z   *NSIZE_COMP3D],	\
 			sim->B_data.BSTS.B_phi,  sim->B_data.BSTS.B_phi.c  [0:sim->B_data.BSTS.B_phi.n_x *sim->B_data.BSTS.B_phi.n_y *sim->B_data.BSTS.B_phi.n_z *NSIZE_COMP3D] )
-      break;
-    case B_field_type_TC:
+    }
+    else if (sim->B_data.type == B_field_type_TC) {
       GPU_MAP_TO_DEVICE(
 			sim->B_data.BTC.B[0:3],sim->B_data.BTC.dB[0:9] )
-      break;
-    default:
-      break;
     }
 }
 
