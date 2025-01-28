@@ -4,6 +4,7 @@
  **/
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "../../offload.h"
 #include "../../ascot5.h"
 #include "../../math.h"
