@@ -286,6 +286,7 @@ void dist_5D_update_gc(dist_5D_data* dist, particle_simd_gc* p_f,
             }
             else {
                 ok[i] = 0;
+                weight[i] = 0;
             }
         }
     }
