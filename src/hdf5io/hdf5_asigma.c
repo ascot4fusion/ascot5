@@ -122,6 +122,7 @@ int hdf5_asigma_read_loc(hid_t f, asigma_loc_data* data, char* qid) {
     free(a1);
     free(z2);
     free(a2);
+    free(sigma);
     free(reactype);
     free(emin);
     free(emax);

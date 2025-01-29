@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
         print_out0(VERBOSE_MINIMAL, sim.mpi_rank, sim.mpi_root,
                    "\nInput reading or initializing failed.\n"
                    "See stderr for details.\n");
-        mpi_interface_finalize();
+        mpi_interface_finalize(1);
         abort();
         return 1;
     };
@@ -170,9 +170,6 @@ int main(int argc, char** argv) {
         print_err("Marker initialization failed.\n");
         goto CLEANUP_FAILURE;
     }
-
-    /* Initialize diagnostics offload data */
-    diag_init(&sim.diag_data, n_tot);
 
     /* Write run group and inistate */
     char qid[11];
@@ -217,17 +214,15 @@ int main(int argc, char** argv) {
     free(pout);
 
     print_out0(VERBOSE_MINIMAL, sim.mpi_rank, sim.mpi_root, "\nDone.\n");
-    mpi_interface_finalize();
+    mpi_interface_finalize(0);
     return 0;
 
 /* GOTO this block to free resources in case simulation crashes */
 CLEANUP_FAILURE:
-
-    print_err("Clearing at exit.\n");
-    mpi_interface_finalize();
-    if(p != NULL) free(p);
-    if(ps != NULL) free(ps);
-    if(pout != NULL) free(pout);
+    if(p!= NULL) free(p);
+    if(ps!= NULL) free(ps);
+    if(pout!= NULL) free(pout);
+    mpi_interface_finalize(1);
     abort();
     return 1;
 }

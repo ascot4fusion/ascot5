@@ -48,9 +48,7 @@ int dist_6D_init(dist_6D_data* data) {
     data->step_2 = n_q * n_time;
     data->step_1 = n_q;
 
-    data->histogram = calloc(  data->n_time * data->n_pr * data->n_pphi
-                             * data->n_pz * data->n_z * data->n_phi * data->n_r,
-                             sizeof(real) );
+    data->histogram = calloc(data->step_7 * (size_t)data->n_r, sizeof(real));
     return data->histogram == NULL;
 }
 
