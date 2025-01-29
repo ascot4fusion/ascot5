@@ -10,8 +10,6 @@
 #include "../physlib.h"
 #include "dist_5D.h"
 #include "../particle.h"
-#include "../print.h"
-#include <mpi.h>
 
 /**
  * @brief Function for calculating the index in the histogram array
@@ -42,7 +40,6 @@ int dist_5D_init(dist_5D_data* data) {
     size_t n_ppara = (size_t)(data->n_ppara);
     size_t n_z     = (size_t)(data->n_z);
     size_t n_phi   = (size_t)(data->n_phi);
-    size_t n_r     = (size_t)(data->n_r);
     data->step_6 = n_q * n_time * n_pperp * n_ppara * n_z * n_phi;
     data->step_5 = n_q * n_time * n_pperp * n_ppara * n_z;
     data->step_4 = n_q * n_time * n_pperp * n_ppara;
@@ -50,76 +47,8 @@ int dist_5D_init(dist_5D_data* data) {
     data->step_2 = n_q * n_time;
     data->step_1 = n_q;
 
-    size_t n_elements = data->step_6 * n_r;
-    int error = 1;
-
-    // Checking that the number of elements makes sense:
-    if(n_q == 0 || n_time == 0 || n_pperp == 0 || n_ppara == 0 || n_z == 0
-       || n_phi == 0 || n_r == 0) {
-#ifdef MPI
-        int core_id;
-        MPI_Comm_rank(MPI_COMM_WORLD, &core_id);
-        print_err("#%d: Error: 5D distribution has zero bins\n",
-                  core_id);
-        error = 1;
-#else
-        print_err("Error: 5D distribution has zero bins\n");
-        error = 1;
-        return 1;
-#endif
-    }
-
-#ifdef MPI
-    MPI_Allreduce(MPI_IN_PLACE, &error, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-    if(error) return 1;
-#endif
-
-    // Checking if we are overflowing the size_t type:
-    if(n_elements / n_r != data->step_6) {
-#ifdef MPI
-        int core_id;
-        MPI_Comm_rank(MPI_COMM_WORLD, &core_id);
-        print_err("#%d: Error: 5D distribution has too many bins\n",
-                  core_id);
-        error = 1;
-#else
-        print_err("Error: 5D distribution has too many bins\n");
-        error = 1;
-        return 1;
-#endif
-    }
-
-#ifdef MPI
-    MPI_Allreduce(MPI_IN_PLACE, &error, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-    if(error) return 1;
-#endif
-
-    // Allocating memory for the histogram:
-    // data->histogram = calloc(  data->n_time * data->n_pperp * data->n_ppara
-    //                          * data->n_z * data->n_phi * data->n_r,
-    //                          sizeof(real) );
-    data->histogram = (real*) malloc(n_elements * sizeof(real));
-    if(data->histogram == NULL) {
-#ifdef MPI
-        int core_id;
-        MPI_Comm_rank(MPI_COMM_WORLD, &core_id);
-        print_err("#%d: Error: Could not allocate memory for 5D distribution\n",
-                  core_id);
-        error = 1;
-#else
-        print_err("Error: Could not allocate memory for 5D distribution\n");
-        error = 1;
-        return 1;
-#endif
-    }
-
-#ifdef MPI
-    MPI_Allreduce(MPI_IN_PLACE, &error, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-    if(error) return 1;
-#endif
-
-    memset(data->histogram, 0, n_elements * sizeof(real));
-    return 0;
+    data->histogram = calloc(data->step_6 * (size_t)data->n_r, sizeof(real));
+    return data->histogram == NULL;
 }
 
 /**
@@ -286,7 +215,6 @@ void dist_5D_update_gc(dist_5D_data* dist, particle_simd_gc* p_f,
             }
             else {
                 ok[i] = 0;
-                weight[i] = 0;
             }
         }
     }
