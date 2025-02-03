@@ -4,8 +4,8 @@ import numpy as np
 import unyt
 import ctypes
 
-from a5py.ascot5io import State, Orbits, Dist
-from a5py.ascot5io.dist import DistData
+from a5py.data import State, Orbits, Dist
+from a5py.data.dist import DistData
 from .runmixin import RunMixin
 from .bbnbi5 import BBNBIMixin
 

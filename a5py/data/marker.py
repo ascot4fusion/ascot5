@@ -5,8 +5,9 @@ import numpy as np
 import h5py
 import unyt
 
-from .coreio.treedata import DataGroup
-from .coreio.fileapi import read_data, add_group, write_data
+
+class DataGroup():
+    pass
 
 from a5py.routines.plotting import openfigureifnoaxes
 from a5py.physlib import parseunits

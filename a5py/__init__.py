@@ -25,7 +25,7 @@ except RuntimeError:
 
 from .ascotpy.libascot   import _LIBASCOT
 
-from .ascot5io import Ascot5IO
+from .data import Ascot5IO
 from .ascotpy  import Ascotpy
 
 from .exceptions         import *

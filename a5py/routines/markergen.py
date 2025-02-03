@@ -3,8 +3,8 @@
 import numpy as np
 import unyt
 
-from a5py.ascot5io.marker import Marker
-from a5py.ascot5io.dist import DistData
+from a5py.data.marker import Marker
+from a5py.data.dist import DistData
 from a5py import physlib
 
 class MarkerGenerator():

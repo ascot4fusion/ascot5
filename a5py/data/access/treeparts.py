@@ -54,6 +54,8 @@ from .metadata import MetaData, MetaDataHolder
 from .dataholder import Format
 from .immutablestorage import ImmutableStorage
 
+
+#pylint: disable=too-few-public-methods
 class LeafFactory(Protocol):
     """Signature for leaf factory methods (used in type hints)."""
 
@@ -132,7 +134,7 @@ class TreeManager():
             with node._modify_attributes():
                 node._treemanager = self
 
-        self.storedin = {}
+        self.storedin: Dict[Leaf, Format] = {}
         self.hdf5manager: Optional[HDF5Manager] = None
         if hdf5file:
             filename, file_exists = hdf5file
@@ -162,7 +164,7 @@ class TreeManager():
 
         active, qids, variants = self.hdf5manager.read_node("root")
         for qid, variant in zip(qids, variants):
-            date, note, inputqids = self.hdf5manager.read_output(qid, variant)
+            date, note, inputqids = self.hdf5manager.read_run(qid, variant)
             leaf = self.enter_run(
                 MetaData(qid=qid, date=date, note=note, variant=variant),
                 [],
@@ -179,7 +181,6 @@ class TreeManager():
             activate: bool=False,
             dryrun: bool = False,
             store_hdf5: Optional[bool] = None,
-            **kwargs,
             ) -> Leaf:
         """Create and add a new input variant to this tree.
 
@@ -214,7 +215,7 @@ class TreeManager():
         AscotIOException
             If unable to add or store the leaf.
         """
-        leaf = self.leaf_factory(meta, **kwargs)
+        leaf = self.leaf_factory(meta)
         for existing_leaf in (self.inputs + self.outputs):
             if existing_leaf.qid == leaf.qid:
                 raise AscotIOException(
@@ -346,7 +347,7 @@ class TreeManager():
             self.storedin[leaf] = Format.HDF5
         return leaf
 
-    def destroy_leaf(self, leaf: Leaf, repack: bool = None) -> None:
+    def destroy_leaf(self, leaf: Leaf, repack: Optional[bool] = None) -> None:
         """Destroy a single leaf.
 
         Parameters
@@ -396,7 +397,7 @@ class TreeManager():
         """
         try:
             category = metadata.get_input_category(leaf.variant)
-        except:
+        except ValueError:
             category = "root"
         self.nodes[category]._activate_leaf(leaf)
         if self.hdf5manager and self.storedin[leaf] == Format.HDF5:
@@ -434,7 +435,7 @@ class TreeManager():
         """
         try:
             category = metadata.get_input_category(leaf.variant)
-        except:
+        except ValueError:
             category = "root"
         self.nodes[category]._organize()
         if self.hdf5manager and self.storedin[leaf] == Format.HDF5:
@@ -479,7 +480,7 @@ class Leaf(MetaDataHolder):
         if self._treemanager:
             self._treemanager.activate_leaf(self)
 
-    def destroy(self, repack: bool = True) -> None:
+    def destroy(self, *, repack: bool = True) -> None:
         """Remove this data permanently.
 
         Parameters
@@ -551,9 +552,8 @@ class ImmutableNode(ImmutableStorage):
     def __repr__(self) -> str:
         """Return a string representation of this object."""
         return (
-            f"<{self.__class__.__name__}(root={self._name}, "
-            f"qids={self._qids}, tags={self._tags}, active={self._active!r}, "
-            f"frozen={self._frozen})>"
+            f"<{self.__class__.__name__}(qids={self._qids}, tags={self._tags}, "
+            f"active={self._active!r}, frozen={self._frozen})>"
             )
 
     def __contains__(self, key: Union[str, Leaf]) -> bool:
@@ -728,7 +728,7 @@ class ImmutableNode(ImmutableStorage):
                 )
         return self._active
 
-    def destroy(self, repack: bool = False) -> None:
+    def destroy(self, *, repack: bool = False, **kwargs) -> None:
         """Remove all data belonging to this node permanently.
 
         Parameters
@@ -739,6 +739,7 @@ class ImmutableNode(ImmutableStorage):
             Repacking has some overhead but without it only the references to
             the data, not the data itself, are removed in the file.
         """
+        _ = kwargs # kwargs are required only for subclasses to have kw args
         if self._treemanager:
             for qid in list(self._qids):
                 leaf = self[f"q{qid}"]

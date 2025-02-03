@@ -5,8 +5,8 @@ import h5py
 import unyt
 import a5py.physlib as physlib
 
-from .coreio import fileapi
-from .coreio.treedata import DataContainer
+class DataContainer():
+    pass
 
 class State(DataContainer):
     """Marker initial and final phase-space positions and related quantities.

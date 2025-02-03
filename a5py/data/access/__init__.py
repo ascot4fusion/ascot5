@@ -4,9 +4,21 @@ The user interface is provided by `Tree` instance and `InputVariant` instances.
 The latter two provide also the interface between the actual data (whose storage
 is specified by `Format` and the data objects.
 """
-from .tree import Tree
-from .variants import InputVariant
+from typing import Protocol
 
+from .tree import Tree
+from .treeparts import TreeManager
+from .variants import InputVariant
 from .dataholder import Format
 
-__all__  = ["Tree", "InputVariant", "Format"]
+
+#pylint: disable=too-few-public-methods
+class TreeCreateClassMixin(Protocol):
+    """Base class for mixin classes that introduce create* methods.
+
+    This class suppresses linter warnings by providing access to the
+    `_treemanager` attribute of the child (main) class.
+    """
+    _treemanager: TreeManager
+
+__all__  = ["Tree", "TreeCreateClassMixin", "InputVariant", "Format"]

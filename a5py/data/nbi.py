@@ -9,8 +9,8 @@ import unyt
 
 from a5py.routines.plotting import openfigureifnoaxes
 
-from .coreio.fileapi import add_group
-from .coreio.treedata import DataGroup
+class DataGroup():
+    pass
 
 class Injector():
     """A single injector made up of beamlets

@@ -1,6 +1,7 @@
-"""Interface for accessing data in ASCOT5 HDF5 files.
-"""
-from .bfield  import B_TC, B_GS, B_2DS, B_3DS, B_3DST, B_STS
+"""Interface for accessing data in ASCOT5 HDF5 files."""
+from typing import Dict, List, Any, Optional
+
+from .bfield0  import B_GS, B_3DS, B_3DST, B_STS
 from .efield  import E_TC, E_1DS, E_3D, E_3DS, E_3DST
 from .marker  import Marker, Prt, GC, FL
 from .plasma  import plasma_1D, plasma_1DS, plasma_1Dt
@@ -18,9 +19,13 @@ from .transcoef  import Transcoef
 from .dist import Dist_5D, Dist_6D, Dist_rho5D, Dist_rho6D, Dist_COM, Dist
 from .reaction import Reaction
 
-from .coreio.fileapi import INPUTGROUPS
-from .coreio.treeview import RootNode, InputNode, ResultNode
-from .coreio.treedata import DataGroup
+from .access import Tree, InputVariant
+from .access.treeparts import Leaf
+from .access.metadata import MetaData
+from .bfield import (
+    CreateBTCMixin, CreateB2DSMixin, B_TC, B_2DS,
+)
+
 from a5py.routines.runmixin import RunMixin
 from a5py.routines.afsi5 import AfsiMixin
 from a5py.routines.bbnbi5 import BBNBIMixin
@@ -53,7 +58,9 @@ HDF5TOOBJ = {
 """Dictionary connecting group names in HDF5 file to corresponding data objects.
 """
 
-class Ascot5IO(RootNode):
+class Ascot5IO(
+    Tree, CreateBTCMixin,
+    ):
     """Entry node for accessing data in the HDF5 file.
 
     Initializing this node builds rest of the tree. This object and its child
@@ -133,6 +140,32 @@ class Ascot5IO(RootNode):
        data.ls()
     """
 
+    @classmethod
+    def _leaf_factory(
+        cls,
+        meta: MetaData,
+        inputs: Optional[Dict[str, InputVariant]] = None,
+        diagnostics: Optional[List] = None,
+        ) -> Leaf:
+        """Create `Leaf` instances of different variety.
+
+        Override this method to create specific `Leaf` instances that are stored
+        in this tree. This function is automatically called when using the
+        `_add_input_dataset` and `_add_simulation_output` methods. This base
+        implementation simply creates a generic `Leaf` instance.
+        """
+        #if(meta.variant in metadata.run_variants
+        #    and (inputs is not None and diagnostics is not None) ):
+        #    return RunVariant(
+        #        **meta._asdict(), inputs=inputs, diagnostics=diagnostics,
+        #        **kwargs,
+        #    )
+        match meta.variant:
+            case "B_TC":
+                Variant = B_TC
+
+        return Variant(meta.qid, meta.date, meta.note)
+
     def _create_inputgroup(self, path, h5):
         """Create an input group to be added to the treeview.
 
@@ -200,7 +233,7 @@ class Ascot5IO(RootNode):
 
         This method can be used in two ways to write input data.
 
-        1. From :mod:`ascot5io` choose the input type and find what is requested
+        1. From :mod:`data` choose the input type and find what is requested
            by the corresponding ``write_hdf5`` function to write inputs
            explicitly.
 
@@ -272,22 +305,22 @@ class Ascot5IO(RootNode):
         """
         Template(self._ascot).showtemplate(template)
 
-class InputGroup(InputNode):
+class InputGroup(InputVariant):
     """Node containing input data groups.
     """
     pass
 
-class RunGroup(ResultNode, RunMixin):
+class RunGroup(RunMixin):
     """Node containing results and methods to process them.
     """
     pass
 
-class AfsiGroup(ResultNode, AfsiMixin):
+class AfsiGroup(AfsiMixin):
     """Node containing AFSI results and methods to process them.
     """
     pass
 
-class BBNBIGroup(ResultNode, BBNBIMixin):
+class BBNBIGroup(BBNBIMixin):
     """Node containing BBNBI results and methods to process them.
     """
     pass

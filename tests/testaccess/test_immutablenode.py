@@ -14,13 +14,13 @@ from .conftest import (
     )
 
 
-@pytest.fixture()
-def treemanager():
+@pytest.fixture(name="treemanager")
+def fixture_treemanager():
     return MagicMock()
 
 
-@pytest.fixture()
-def node(treemanager):
+@pytest.fixture(name="node")
+def fixture_node(treemanager):
     """Set a mock tree manager that tests may use."""
     node = ImmutableNode()
     node._treemanager = treemanager

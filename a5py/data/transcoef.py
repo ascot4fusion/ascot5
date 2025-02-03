@@ -3,7 +3,8 @@
 import numpy as np
 import h5py
 
-from .coreio.treedata import DataContainer
+class DataContainer():
+    pass
 
 class Transcoef(DataContainer):
     """Object representing transport coefficient data.

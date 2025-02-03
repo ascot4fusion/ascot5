@@ -10,8 +10,8 @@ import xmlschema
 
 import xml.etree.ElementTree as ET
 
-from .coreio.fileapi import add_group
-from .coreio.treedata import DataGroup
+class DataGroup():
+    pass
 
 class Opt(DataGroup):
     """Simulation options.

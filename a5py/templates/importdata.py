@@ -8,7 +8,7 @@ from scipy.interpolate import RegularGridInterpolator,griddata,NearestNDInterpol
 
 from a5py.physlib import cocos as cocosmod
 from a5py.physlib import species as physlibspecies
-from a5py.ascot5io.wall import wall_3D
+from a5py.data.wall import wall_3D
 
 try:
     import adas

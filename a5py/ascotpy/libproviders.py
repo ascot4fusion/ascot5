@@ -12,8 +12,7 @@ import numpy.ctypeslib as npctypes
 
 import a5py.physlib.analyticequilibrium as psifun
 
-from a5py.ascot5io.coreio import fileapi
-from .libascot import _LIBASCOT, PTR_ARR, PTR_INT
+from .libascot import _LIBASCOT
 if _LIBASCOT:
     from a5py.ascotpy import ascot2py
 
@@ -49,7 +48,6 @@ class LibProviders():
         ValueError
             If no match was found.
         """
-        from a5py.ascot5io import HDF5TOOBJ
         leastmissing = [None] * 100
         leastunknown = [None] * 100
         bestmatch = None

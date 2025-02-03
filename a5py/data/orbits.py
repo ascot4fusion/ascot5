@@ -5,9 +5,8 @@ import h5py
 import unyt
 import a5py.physlib as physlib
 
-from .coreio import fileapi
-from .coreio.treedata import DataContainer
-
+class DataContainer():
+    pass
 
 class Orbits(DataContainer):
     """Orbit diagnostics that collect marker phase-space coordinates and related

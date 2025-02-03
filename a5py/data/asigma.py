@@ -5,8 +5,9 @@ The data consists either of cross-sections or rate coefficients.
 import h5py
 import numpy as np
 
-from .coreio.fileapi import add_group
-from .coreio.treedata import DataGroup
+
+class DataGroup():
+    pass
 
 class Asigma_loc(DataGroup):
     """Local atomic data.

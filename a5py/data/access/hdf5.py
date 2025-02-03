@@ -31,11 +31,9 @@ Attributes are used to store metadata within the groups:
 - Run variants have attributes named <input category> for each input category
   used in the simulation, and it contains QID of the input variant used.
 """
-from __future__ import annotations
-
 import os
 import tempfile
-from typing import List, Dict, Tuple, Optional, Union
+from typing import List, Dict, Tuple, Optional
 
 import h5py
 import unyt
@@ -142,7 +140,7 @@ class HDF5Interface(h5py.File):
 
     def get_datagroup(
             self, node: str, name: str,
-            ) -> Union[Tuple[str, str], Tuple[str, str, Dict[str, str]]]:
+            ) -> Tuple[str, str] | Tuple[str, str, Dict[str, str]]:
         """Get metadata from a data group.
 
         Parameters
@@ -160,9 +158,15 @@ class HDF5Interface(h5py.File):
             User-defined note of the data.
         additional_attrs** : Dict[str, str]
             Any additional attributes.
+
+        Raises
+        ------
+        IOError
+            If failed to read date or note from the file.
         """
         group = self[node][name]
         additional_attrs = {}
+        date, note = None, None
         for attr, value in group.attrs.items():
             if attr == "date":
                 date = value.decode("utf-8")
@@ -170,12 +174,14 @@ class HDF5Interface(h5py.File):
                 note = value.decode("utf-8")
             else:
                 additional_attrs[attr] = value.decode("utf-8")
+        if date is None or note is None:
+            raise IOError("Failed to read date and note from the file.")
         if not additional_attrs:
             return date, note
         return date, note, additional_attrs
 
     def write_datasets(
-            self, path: str, data: Union[np.array, unyt.unyt_array],
+            self, path: str, data: Dict[str, np.ndarray | unyt.unyt_array],
             ) -> None:
         """Write datasets to a group.
 
@@ -197,15 +203,20 @@ class HDF5Interface(h5py.File):
 
     def read_datasets(
             self, path: str, name: Optional[str] = None,
-            ) -> Dict[str, Union[np.array, unyt.unyt_array]]:
+            ) -> Dict[str, np.ndarray | unyt.unyt_array]:
         """Read datasets from a group.
 
-         Parameters
+        Parameters
         ----------
         path : str
             Path to the group where the datasets belong to.
         name : str, optional
             Instead of reading all datasets, read only this one.
+
+        Returns
+        -------
+        data : Dict[str, np.ndarray | unyt.unyt_array]
+            Datasets that were read.
         """
         def read_dataset(dataset):
             """Read dataset with associated units."""
@@ -215,6 +226,8 @@ class HDF5Interface(h5py.File):
                 )
             except KeyError:
                 units = 1
+            if dataset.shape == ():
+                return dataset[()] * units
             return dataset[:] * units
 
         group = self[path]
@@ -327,7 +340,7 @@ class HDF5Manager():
         """
         with HDF5Interface(self.filename) as h5:
             if node == "root":
-               h5.set_node("results", active)
+                h5.set_node("results", active)
             else:
                 h5.set_node(node, active)
 
@@ -389,9 +402,14 @@ class HDF5Manager():
         """
         name = f"{variant}_{qid}"
         with HDF5Interface(self.filename) as h5:
-            date, note, usedinputs = h5.get_datagroup("results", name)
+            date, note, *usedinputs = h5.get_datagroup("results", name)
+            if not usedinputs:
+                raise IOError(
+                    "Could not read run metadata: the file does not contain "
+                    "references to inputs."
+                )
         usedinputs = {
-            category: qid for category, qid in usedinputs.items() if qid
+            category: qid for category, qid in usedinputs[0].items() if qid
             }
         return date, note, list(usedinputs.values())
 
@@ -485,8 +503,8 @@ class HDF5Manager():
             self,
             qid: str,
             variant: str,
-            data: Dict[str, Union[np.array, unyt.unyt_array]],
-            subpath: str = None,
+            data: Dict[str, np.ndarray | unyt.unyt_array],
+            subpath: Optional[str] = None,
             ) -> None:
         """Write datasets to a data group.
 
@@ -518,7 +536,7 @@ class HDF5Manager():
             variant: str,
             name: Optional[str] = None,
             subpath: Optional[str] = None,
-            ) -> Dict[str, Union[np.array, unyt.unyt_array]]:
+            ) -> Dict[str, np.ndarray | unyt.unyt_array]:
         """Read the data from the HDF5 file.
 
         Parameters

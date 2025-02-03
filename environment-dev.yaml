@@ -49,4 +49,4 @@ dependencies:
     - clang==15.*
     - ctypeslib2
     - desc-opt
-    - netCDF4	
+    - netCDF4

@@ -2,9 +2,11 @@
 and iii) which don't fit anywhere else.
 """
 import re
+from datetime import datetime
+from typing import Tuple, List, Union
+
 import numpy as np
 import unyt
-from typing import List, Union
 
 
 Scalar = Union[int, float]
@@ -17,7 +19,7 @@ Numerical = Union[Scalar, ArrayLike]
 """Type of numerical data."""
 
 
-def format2universaldate(date):
+def format2universaldate(date : datetime) -> str:
     """Convert a datetime object to a string in the format ASCOT5 uses.
 
     Parameters
@@ -34,7 +36,12 @@ def format2universaldate(date):
     return date.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def validate_variables(variables, names, shape, dtype):
+def validate_variables(
+        variables : List[Numerical] | Numerical,
+        names : List[str] | str,
+        shape : List[Tuple[int]] | Tuple[int],
+        dtype : List[str] | str,
+        ) -> List[Numerical] | Numerical:
     """Validate the shape and dtype of multiple variables.
 
     This function checks that a variable can be inferred to have the expected
@@ -66,7 +73,8 @@ def validate_variables(variables, names, shape, dtype):
     """
     if not isinstance(variables, list):
         variables = [variables]
-        names = [names]
+        if not isinstance(names, list):
+            names = [names]
     if not isinstance(shape, list):
         shape = [shape] * len(variables)
     if not isinstance(dtype, list):
@@ -74,10 +82,10 @@ def validate_variables(variables, names, shape, dtype):
 
     cast_variables = []
     for var, name, expshape, exptype in zip(variables, names, shape, dtype):
+        varshape = var.shape
         try:
-            varshape = var.shape
             var = np.reshape(var, expshape)
-        except ValueError as e:
+        except ValueError:
             raise ValueError(
                 f"Argument {name} has incompatible shape {varshape}, "
                 f"expected: {expshape}."
@@ -97,13 +105,24 @@ def validate_variables(variables, names, shape, dtype):
     return tuple(cast_variables)
 
 
-def decorate(string, color=None, bold=False, underline=False):
+def decorate(
+        string: str,
+        color: str | None = None,
+        bold: bool = False,
+        underline: bool = False,
+        ) -> str:
     """Make text underlined, bold, and/or colourful.
 
     Parameters
     ----------
     string : str
         String to be decorated.
+    color : {"green", "purple"}, optional
+        Color the text.
+    bold : bool, optional
+        Bold the text.
+    underline : bool, optional
+        Underline the text.
 
     Returns
     -------
@@ -129,12 +148,12 @@ def decorate(string, color=None, bold=False, underline=False):
     else:
         color = ""
 
-    bold = effects["bold"] if bold else ""
-    underline = effects["underline"] if underline else ""
-    return f"{bold}{underline}{color}{string}{effects["reset"]}"
+    bolded = effects["bold"] if bold else ""
+    underlined = effects["underline"] if underline else ""
+    return f"{bolded}{underlined}{color}{string}{effects['reset']}"
 
 
-def undecorate(string):
+def undecorate(string: str) -> str:
     """Remove decorations (ANSI escape sequences) from a string.
 
     Parameters

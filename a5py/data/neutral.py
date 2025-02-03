@@ -5,8 +5,8 @@ Neutral data is used in simulations with atomic reactions enabled.
 import numpy as np
 import h5py
 
-from .coreio.fileapi import add_group
-from .coreio.treedata import DataGroup
+class DataGroup():
+    pass
 
 class N0_1D(DataGroup):
     """Constant-on-flux-surfaces neutral profile.

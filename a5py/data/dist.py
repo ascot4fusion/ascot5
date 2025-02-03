@@ -8,7 +8,8 @@ from scipy.interpolate import griddata, RectBivariateSpline
 from a5py import physlib
 import a5py.routines.plotting as a5plt
 
-from .coreio.treedata import DataContainer
+class DataContainer():
+    pass
 
 class DistData():
     """Distribution data object.

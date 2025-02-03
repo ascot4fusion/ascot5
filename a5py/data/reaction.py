@@ -4,8 +4,9 @@ import numpy as np
 import h5py
 import unyt
 
-from .coreio import fileapi
-from .coreio.treedata import DataContainer
+class DataContainer():
+    pass
+
 
 class Reaction(DataContainer):
     """Class contining the stored fusion reaction data in AFSI run.

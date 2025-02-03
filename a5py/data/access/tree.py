@@ -9,10 +9,8 @@ treeparts.py. Here we define the following classes:
   data.
 - Tree: The root node of the tree and the entry point.
 """
-from __future__ import annotations
-
 import warnings
-from typing import Tuple, List, Dict, Any, Union, Optional
+from typing import Tuple, List, Dict, Any, Optional
 
 from ...exceptions import AscotIOException
 from ... import utils
@@ -80,7 +78,7 @@ class InputCategory(ImmutableNode):
             print(contents)
         return contents
 
-    def destroy(self, repack: bool = True) -> None:
+    def destroy(self, repack: bool = True, **kwargs) -> None:
         """Remove all inputs and data within this category permanently.
 
         Parameters
@@ -92,7 +90,7 @@ class InputCategory(ImmutableNode):
             the data, not the data itself, are removed in the file.
         """
         # This function overriden only to update the docstring.
-        super().destroy(repack=repack)
+        super().destroy(repack=repack, **kwargs)
 
 
 class RunVariant(ImmutableStorage, Leaf):
@@ -236,7 +234,7 @@ class RunVariant(ImmutableStorage, Leaf):
             contents += utils.decorate(f"{leaf.variant.ljust(10)} {leaf.qid}",
                                        bold=True)
             contents += f" {leaf.date}"
-            contents += f"\n{"".ljust(8)}{leaf.note}\n"
+            contents += f"\n{''.ljust(8)}{leaf.note}\n"
 
         return contents
 
@@ -251,7 +249,7 @@ class RunVariant(ImmutableStorage, Leaf):
         """
         print(self._get_decorated_contents())
 
-    def ls(self, show:bool=False) -> str:
+    def ls(self, show: bool = False) -> str:
         """Get a string representation of the contents.
 
         Deprecated. Use `show_contents()` or `contents` instead.
@@ -310,8 +308,8 @@ class Tree(ImmutableNode):
     @classmethod
     def _leaf_factory(
         cls, meta: MetaData,
-        inputs: Optional[Dict[str, Leaf]]=None,
-        diagnostics: Optional[List]=None,
+        inputs: Optional[Dict[str, Leaf]] = None,
+        diagnostics: Optional[List] = None,
         **kwargs: Any,
         ) -> Leaf:
         """Create `Leaf` instances of different variety.
@@ -321,12 +319,12 @@ class Tree(ImmutableNode):
         `_add_input_dataset` and `_add_simulation_output` methods. This base
         implementation simply creates a generic `Leaf` instance.
         """
-        if( meta.variant in metadata.run_variants
+        if(meta.variant in metadata.run_variants
             and (inputs is not None and diagnostics is not None) ):
             return RunVariant(
                 **meta._asdict(), inputs=inputs, diagnostics=diagnostics,
                 **kwargs,
-                )
+            )
         return Leaf(**meta._asdict())
 
     def _get_decorated_contents(self) -> str:
@@ -356,7 +354,7 @@ class Tree(ImmutableNode):
         def print_note(leaf):
             if not leaf:
                 return ""
-            return f"\n{"".ljust(10)}\"{leaf.note}\"\n"
+            return f"\n{''.ljust(10)}\"{leaf.note}\"\n"
 
         def print_title(title):
             return utils.decorate(
@@ -401,7 +399,7 @@ class Tree(ImmutableNode):
         """
         print(self._get_decorated_contents())
 
-    def ls(self, show: bool=False) -> str:
+    def ls(self, show: bool = False) -> str:
         """Get a string representation of the contents.
 
         Deprecated. Use `show_contents()` or `contents` instead.
@@ -427,7 +425,7 @@ class Tree(ImmutableNode):
             print(contents)
         return contents
 
-    def activate(self, data: Union[Leaf, str]) -> None:
+    def activate(self, data: Leaf | str) -> None:
         """Mark data as active.
 
         Parameters
@@ -436,28 +434,30 @@ class Tree(ImmutableNode):
             Data to be activated (or it's QID or name).
         """
         if self._treemanager:
+            if isinstance(data, str):
+                data = self._treemanager.get_leaf(data)
             self._treemanager.activate_leaf(data)
 
     def destroy(
-            self, data: Union[Leaf, str] = "results", repack: bool = True,
+            self, *, repack: bool = True, data: Leaf | str = "results", **kwargs,
             ) -> None:
         """Remove data permanently.
 
         Parameters
         ----------
-        data : `Leaf` or str or None
-            Data to be removed (or it's QID or name or entire category).
-
-            The default value removes all results.
         repack : bool, optional
             Repack the HDF5 file reducing the size of the file on disk.
 
             Repacking has some overhead but without it only the references to
             the data, not the data itself, are removed in the file.
+        data : `Leaf` or str or None
+            Data to be removed (or it's QID or name or entire category).
+
+            The default value removes all results.
         """
         if data == "results":
-            super().destroy(repack=repack)
-        elif data in metadata.input_categories:
+            super().destroy(repack=repack, **kwargs)
+        elif isinstance(data, str) and data in metadata.input_categories:
             self[data].destroy(repack=repack)
         else:
             qid = metadata.get_qid(data)
