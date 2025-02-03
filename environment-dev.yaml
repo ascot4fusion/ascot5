@@ -6,7 +6,7 @@ dependencies:
   - make
   - glib
   - libgomp
-  - python>=3.10
+  - python==3.10
   - hdf5=*=*openmp*
   - mpi=*=*openmp*
   - zlib

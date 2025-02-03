@@ -14,8 +14,9 @@ and time. MHD_STAT assumes only psi dependency, making the interpolation
 import h5py
 import numpy as np
 
-from .coreio.fileapi import add_group
-from .coreio.treedata import DataGroup
+class DataGroup():
+    pass
+
 
 class MHD_STAT(DataGroup):
     """Stationary MHD eigenfunctions.

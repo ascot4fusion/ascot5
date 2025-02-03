@@ -6,8 +6,8 @@ is used.
 import h5py
 import numpy as np
 
-from .coreio.fileapi import add_group
-from .coreio.treedata import DataGroup
+class DataGroup():
+    pass
 
 class Boozer(DataGroup):
     """Mapping between cylindrical and Boozer coordinates assuming that psi

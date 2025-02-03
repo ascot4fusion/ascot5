@@ -2,15 +2,19 @@
 import pytest
 import unyt
 import numpy as np
-import a5py.physlib as physlib
 
+import a5py.physlib as physlib
 from a5py.exceptions import AscotUnitWarning
 
-@pytest.fixture(params=[
-     "float", "int", "[float]", "[int]", "ndarray([int])", "ndarray([float])",
-     "unyt_array([int])", "unyt_array([float])",
-     ])
-def value(request):
+
+@pytest.fixture(
+        name="value",
+        params=[
+            "float", "int", "[float]", "[int]", "ndarray([int])",
+            "ndarray([float])", "unyt_array([int])", "unyt_array([float])",
+            ],
+        )
+def fixture_value(request):
     """Fixture providing arrays of different types."""
     match request.param:
         case "float":

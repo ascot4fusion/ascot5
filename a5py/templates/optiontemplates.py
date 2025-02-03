@@ -1,6 +1,6 @@
 """Options templates for various simulations
 """
-from a5py.ascot5io.options import Opt
+from a5py.data.options import Opt
 
 class OptionTemplates():
     """All options templates.

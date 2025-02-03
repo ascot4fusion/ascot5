@@ -12,8 +12,8 @@ import h5py
 import numpy as np
 import unyt
 
-from .coreio.fileapi import add_group
-from .coreio.treedata import DataGroup
+class DataGroup():
+    pass
 
 import a5py.physlib as physlib
 from a5py.routines.plotting import pv

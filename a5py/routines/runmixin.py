@@ -18,8 +18,8 @@ import unyt
 from a5py.exceptions import AscotNoDataException
 
 import a5py.routines.plotting as a5plt
-from a5py.ascot5io import Marker, State, Orbits, Dist
-from a5py.ascot5io.dist import DistMoment
+from a5py.data import Marker, State, Orbits, Dist
+from a5py.data.dist import DistMoment
 import a5py.physlib as physlib
 from a5py.routines.distmixin import DistMixin
 

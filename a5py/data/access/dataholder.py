@@ -1,11 +1,9 @@
 """Common interface to access data independently from how it is stored."""
-from __future__ import annotations
-
+import ctypes
 from enum import Enum
-from typing import Type, TypeVar
+from typing import Dict, TypeVar
 from abc import ABC, abstractmethod
 
-import ctypes
 import numpy as np
 
 T = TypeVar('T', bound='DataHolder')
@@ -13,12 +11,13 @@ T = TypeVar('T', bound='DataHolder')
 
 class Format(Enum):
     """Data storage formats."""
-    HDF5 = 1
+    HDF5: int = 1
     """Data is stored in HDF5 file."""
-    CSTRUCT = 2
+    CSTRUCT: int = 2
     """Data is stored in memory using C struct and offload arrays."""
 
 
+# pylint: disable=too-few-public-methods
 class DataHolder(ABC):
     """An abstract base class to abstract the data storage.
 
@@ -50,60 +49,102 @@ class DataHolder(ABC):
         data is amended.
     """
 
-    def __init__(self, struct, *args, **kwargs) -> None:
+    def __init__(self, struct : ctypes.Structure, *args, **kwargs) -> None:
         """Initialize an object that does not yet contain any data.
 
         Parameters
         ----------
         struct : ctypes.Structure
-            The struct defining the data stored in C.
+            Python wrapper for the C header corresponding to this data.
         """
         super().__init__(*args, **kwargs)
-        self._format = Format.CSTRUCT
-        self._struct_ = struct
-        self._offload_array_ = None
-        self._int_offload_array_ = None
-        self._offload_array_count = 0
-        self._int_offload_array_count = 0
+        self._format: Format = Format.CSTRUCT
+        self._struct_: ctypes.Structure = struct
+        self._offload_array_: ctypes.Array[ctypes.c_double]
+        self._int_offload_array_: ctypes.Array[ctypes.c_int64]
+        self._offload_array_count: int = 0
+        self._int_offload_array_count: int = 0
 
-    def _append_offload_array(self, *data):
-        """Append data to the offload array."""
-        if not len(data):
+    def _allocate_offload_arrays(self, doublesize: int, intsize: int) -> None:
+        """Allocate the offload array(s).
+
+        Parameters
+        ----------
+        doublesize : int
+            Number of elements to allocate in the offload array.
+        intsize : int
+            Number of elements to allocate in the integer offload array.
+        """
+        if doublesize:
+            if self._struct_.offload_array_size is None:
+                raise ValueError("The offload array is already allocated.")
+            self._offload_array_ = (ctypes.c_double * doublesize)()
+        self._struct_.offload_array_size = doublesize
+
+        if intsize:
+            if self._struct_.offload_array_size is None:
+                raise ValueError("The int offload array is already allocated.")
+            self._int_offload_array_ = (ctypes.c_int64 * intsize)()
+        self._struct_.int_offload_array_size = intsize
+
+    def _append_offload_array(self, *data: np.ndarray) -> None:
+        """Append data to the offload array.
+
+        Parameters
+        ----------
+        *data : np.ndarray
+            Array(s) to append.
+        """
+        if len(data) == 0:
             self._offload_array_count = 0
             return
         for datum in data:
-            DOUBLE = ctypes.sizeof(ctypes.c_double)
+            double = ctypes.sizeof(ctypes.c_double)
             if(   self._offload_array_count + datum.nbytes
-                > DOUBLE * self._struct_.offload_array_size ):
+                > double * self._struct_.offload_array_size ):
                 raise ValueError(
                     f"The data does not fit into the offload array "
                     f"(size={self._struct_.offload_array_size}, "
-                    f"counter={self._offload_array_count // DOUBLE}, "
-                    F"data={datum.nbytes // DOUBLE})"
+                    f"counter={self._offload_array_count // double}, "
+                    F"data={datum.nbytes // double})"
                     )
 
             pointer = ctypes.byref(self._offload_array_, self._offload_array_count)
             ctypes.memmove(pointer, datum.ctypes.data, datum.nbytes)
             self._offload_array_count += datum.nbytes
 
-    def _slice_offload_array(self, start, end):
-        """Return a copied slice of the offload array."""
+    def _slice_offload_array(self, start: int, end: int) -> np.ndarray:
+        """Return a copied slice of the offload array.
+
+        Parameters
+        ----------
+        start : int
+            Start index of the slice (inclusive).
+        end : int
+            End index of the slice (non-inclusive).
+        """
         return np.ctypeslib.as_array(self._offload_array_[start:end]).copy()
 
-    def _append_int_offload_array(self, *data):
-        """Append data to the integer offload array."""
-        if not len(data):
+    def _append_int_offload_array(self, *data: np.ndarray) -> None:
+        """Append data to the integer offload array.
+
+        Parameters
+        ----------
+        *data : np.ndarray
+            Array(s) to append.
+        """
+        if len(data) == 0:
             self._int_offload_array_count = 0
             return
         for datum in data:
-            INT32 = ctypes.sizeof(ctypes.c_int32)
+            int32 = ctypes.sizeof(ctypes.c_int32)
             if(   self._int_offload_array_count + datum.nbytes
-                > INT32 * self._struct_.int_offload_array_size ):
+                > int32 * self._struct_.int_offload_array_size ):
                 raise ValueError(
                     f"The data does not fit into the offload array "
                     f"(size={self._struct_.int_offload_array_size}, "
-                    f"counter={self._int_offload_array_count // INT32}, "
-                    F"data={datum.nbytes // INT32})"
+                    f"counter={self._int_offload_array_count // int32}, "
+                    F"data={datum.nbytes // int32})"
                     )
 
             pointer = ctypes.byref(
@@ -112,23 +153,24 @@ class DataHolder(ABC):
             ctypes.memmove(pointer, datum.ctypes.data, datum.nbytes)
             self._int_offload_array_count += datum.nbytes
 
-    def _slice_int_offload_array(self, start, end):
-        """Return a copied slice of the integer offload array."""
+    def _slice_int_offload_array(self, start: int, end: int) -> np.ndarray:
+        """Return a copied slice of the integer offload array.
+
+        Parameters
+        ----------
+        start : int
+            Start index of the slice (inclusive).
+        end : int
+            End index of the slice (non-inclusive).
+        """
         return np.ctypeslib.as_array(self._int_offload_array_[start:end]).copy()
 
     @abstractmethod
-    def _export_hdf5(self, *args, **kwargs):
+    def _export_hdf5(self) -> None:
         """Export the data to the HDF5 file."""
-        pass
 
     @abstractmethod
-    def export(cls, *args, **kwargs):
-        """Export the data to `nd.array`s."""
+    def export(self) -> Dict[str, np.ndarray]:
+        """Return a dictionary with sufficient data to duplicate this instance.
+        """
         return {}
-
-    @classmethod
-    def init_hdf5(cls: Type[T]) -> T:
-        """Initialize an instance from HDF5 file."""
-        obj = cls()
-        obj._format = Format.HDF5
-        return obj

@@ -6,8 +6,8 @@ diagnostics enabled. This includes BBNBI5 and ASCOT-BMC.
 import h5py
 import numpy as np
 
-from .coreio.fileapi import add_group
-from .coreio.treedata import DataGroup
+class DataGroup():
+    pass
 
 import a5py.routines.plotting as a5plt
 from a5py.physlib.species import speciesdict

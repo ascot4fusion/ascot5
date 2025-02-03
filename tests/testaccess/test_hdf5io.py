@@ -19,17 +19,17 @@ from .conftest import (
     )
 
 
-@pytest.fixture
-def interface():
-    "Create temporary file."
+@pytest.fixture(name="interface")
+def fixture_interface():
+    """Open a file."""
     interface = HDF5Interface(FNTEST)
     yield interface
     interface.close()
     os.unlink(FNTEST)
 
 
-@pytest.fixture
-def testfile():
+@pytest.fixture(name="testfile")
+def fixture_testfile():
     """Write a file with one input and one output."""
     with HDF5Interface(FNTEST) as h5:
         h5.set_node(CATEGORY, QID1)
@@ -46,8 +46,8 @@ def testfile():
     os.unlink(FNTEST)
 
 
-@pytest.fixture
-def emptyfile():
+@pytest.fixture(name="emptyfile")
+def fixture_emptyfile():
     yield FNEMPTY
     try:
         os.unlink(FNEMPTY)
@@ -55,8 +55,8 @@ def emptyfile():
         pass
 
 
-@pytest.fixture
-def hdf5manager():
+@pytest.fixture(name="hdf5manager")
+def fixture_hdf5manager():
     """Prepare a mock of HDF5Manager that manages a (immutable) file with
     fixed datasets."""
     hdf5manager = MagicMock()
@@ -73,14 +73,14 @@ def hdf5manager():
         return (DATE, NOTE)
     hdf5manager.read_input.side_effect = read_input
 
-    def read_output(qid, var):
+    def read_run(qid, var):
         return (DATE, NOTE, [QID1])
-    hdf5manager.read_output.side_effect = read_output
+    hdf5manager.read_run.side_effect = read_run
     return hdf5manager
 
 
-@pytest.fixture
-def tree():
+@pytest.fixture(name="tree")
+def fixture_tree():
     """Create an empty tree."""
     return Tree()
 
@@ -433,7 +433,7 @@ def test_destroy_data(tree, hdf5manager, repack, method):
         case "node":
             tree.destroy(repack=repack)
         case "tree":
-            tree.destroy(QID2, repack=repack)
+            tree.destroy(data=QID2, repack=repack)
     hdf5manager.remove_variant.assert_called_once_with(QID2, OUTPUTVAR)
     if repack:
         hdf5manager.repack.assert_called_once()
@@ -445,7 +445,7 @@ def test_destroy_data(tree, hdf5manager, repack, method):
         case "node":
             tree[CATEGORY].destroy(repack=repack)
         case "tree":
-            tree.destroy(QID1, repack=repack)
+            tree.destroy(data=QID1, repack=repack)
     hdf5manager.remove_variant.assert_called_once_with(QID1, INPUTVAR)
     if repack:
         hdf5manager.repack.assert_called_once()
@@ -456,7 +456,7 @@ def test_destroy_input_inuse(tree, hdf5manager):
     tree._treemanager.hdf5manager = hdf5manager
     tree._treemanager.init_from_hdf5()
     try:
-        tree.destroy(QID1)
+        tree.destroy(data=QID1)
     except AscotIOException:
         pass
     hdf5manager.remove_variant.assert_not_called()

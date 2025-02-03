@@ -8,8 +8,9 @@ accomplish this is to use E_TC input.
 import h5py
 import numpy as np
 
-from .coreio.fileapi import add_group
-from .coreio.treedata import DataGroup
+class DataGroup():
+    pass
+
 
 class E_TC(DataGroup):
     """Uniform electric field in Cartesian basis.

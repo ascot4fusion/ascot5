@@ -18,20 +18,20 @@ from .conftest import (
     )
 
 
-@pytest.fixture()
-def tree():
+@pytest.fixture(name="tree")
+def fixture_tree():
     """Create empty tree."""
     return Tree()
 
 
-@pytest.fixture()
-def diagnostic():
+@pytest.fixture(name="diagnostic")
+def fixture_diagnostic():
     """Create mock diagnostic."""
     return MagicMock()
 
 
-@pytest.fixture()
-def inputA():
+@pytest.fixture(name="inputA")
+def fixture_inputA():
     """Create input of category A."""
     return Leaf(
         qid=QID1,
@@ -41,8 +41,8 @@ def inputA():
     )
 
 
-@pytest.fixture()
-def inputB():
+@pytest.fixture(name="inputB")
+def fixture_inputB():
     """Create input of category B."""
     return Leaf(
         qid=QID2,
@@ -52,8 +52,8 @@ def inputB():
     )
 
 
-@pytest.fixture()
-def runvariant(diagnostic, inputA, inputB):
+@pytest.fixture(name="runvariant")
+def fixture_runvariant(diagnostic, inputA, inputB):
     """Create a run variant."""
     return RunVariant(
         inputs={"wall":inputA, "bfield":inputB},
@@ -180,7 +180,7 @@ def test_tree_add_identical_qid(tree):
         tree._treemanager.enter_run(meta, [], [QID2])
 
 
-def test_tree_data(tree):
+def test_tree_data(tree: Tree):
     """Test removing data."""
     meta = MetaData(qid=QID1, date=DATE, note=NOTE, variant=INPUTVAR)
     data = tree._treemanager.enter_input(meta)
@@ -188,11 +188,11 @@ def test_tree_data(tree):
     output = tree._treemanager.enter_run(meta, [], [QID1])
 
     with pytest.raises(AscotIOException):
-        tree.destroy(data)
+        tree.destroy(data=data)
 
-    tree.destroy(output)
+    tree.destroy(data=output)
     assert output not in tree
-    tree.destroy(data.qid)
+    tree.destroy(data=data)
     assert data not in tree[CATEGORY]
 
 

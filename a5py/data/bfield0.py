@@ -17,8 +17,8 @@ actual extrema of the interpolation scheme.
 import h5py
 import numpy as np
 
-from .coreio.fileapi import add_group
-from .coreio.treedata import DataGroup
+class DataGroup():
+    pass
 
 import a5py.physlib.analyticequilibrium as psifun
 

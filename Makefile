@@ -1,4 +1,4 @@
-.PHONY: doc
+.PHONY: doc, tests
 
 ascot5_main:
 	$(MAKE) -C src ascot5_main
@@ -19,6 +19,16 @@ ascot2py.py:
 	$(MAKE) -C src ascot2py.py
 	python3 .setcdllascot2py.py
 	mv src/ascot2py.py a5py/ascotpy/ascot2py.py
+
+ascot5: libascot
+	pip install -e .
+
+lint:
+	pylint --generated-members=unyt.*
+	mypy --follow-imports=silent --disable-error-code=import-untyped
+
+tests:
+	pytest -s -v
 
 doc:
 	$(MAKE) -C src doc

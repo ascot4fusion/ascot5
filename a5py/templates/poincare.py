@@ -7,8 +7,8 @@ import copy
 from scipy.interpolate import interp1d
 from scipy.integrate import solve_ivp
 
-from a5py.ascot5io.marker  import Marker
-from a5py.ascot5io.options import Opt
+from a5py.data.marker  import Marker
+from a5py.data.options import Opt
 from a5py.physlib import parseunits
 from a5py.exceptions import *
 
