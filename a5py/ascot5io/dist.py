@@ -613,7 +613,7 @@ class Dist(DataContainer):
         ppa, ppe = np.meshgrid(dist.abscissa("ppar"), dist.abscissa("pperp"))
         pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
         ekin  = (physlib.gamma_momentum(mass, pnorm) - 1) * mass * unyt.c**2
-        dist._multiply(ekin.reshape(ppa.shape), "ppar", "pperp")
+        dist._multiply(ekin.reshape(ppa.shape).T, "ppar", "pperp")
         dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
         moment.add_ordinates(
             energydensity=dist.histogram().to("J") / moment.volume)
@@ -643,7 +643,7 @@ class Dist(DataContainer):
                                dist.abscissa("pperp"))
         pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
         vnorm = physlib.velocity_momentum(mass, pnorm)
-        dist._multiply(vnorm.reshape(ppa.shape)**2 * mass / 3, "ppar", "pperp")
+        dist._multiply(vnorm.reshape(ppa.T.shape)**2 * mass / 3, "ppar", "pperp")
         dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
         moment.add_ordinates(pressure=dist.histogram().to("J") / moment.volume)
 
