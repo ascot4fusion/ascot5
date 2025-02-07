@@ -35,7 +35,7 @@ jobs:
       - name: Install a5py
         run: python -m pip install -e .[doc]
 
-      - uses: actions/download-artifact@main
+      - uses: actions/download-artifact@4
         with:
           name: code
 
@@ -80,4 +80,4 @@ jobs:
     steps:
       - name: Publish
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4
