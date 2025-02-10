@@ -249,6 +249,10 @@ class Ascot(Ascotpy):
                     # It is simply passed forward to _init()
                     pass
                 elif args[inp] and not inp in self.data:
+                    if inp == 'rffield':
+                        # rffield is optional
+                        args[inp] = None
+                        continue
                     # Requested data not present
                     raise AscotIOException("Input \"" + inp + "\" not present.")
                 elif initall and inp in self.data:
