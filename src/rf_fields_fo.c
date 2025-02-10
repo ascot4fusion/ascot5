@@ -143,12 +143,12 @@ a5err RF_field_eval(real E[3], real B[3], real r, real phi,\
 
     // Interpolating the values.
     for(int k = 0; k < 12; k++){
-        interperr = interp2Dcomp_eval_f(&interpolated[k], rffield_data->introbj[k], r, z);
-        if(interperr){
-            E[0] = 0.0; E[1] = 0.0; E[2] = 0.0;
-            B[0] = 0.0; B[1] = 0.0; B[2] = 0.0;
-            return 0; 
-        }
+        interperr += interp2Dcomp_eval_f(&interpolated[k], rffield_data->introbj[k], r, z);
+    }
+    if(interperr){
+        E[0] = 0.0; E[1] = 0.0; E[2] = 0.0;
+        B[0] = 0.0; B[1] = 0.0; B[2] = 0.0;
+        return 0; 
     }
 
     // Computing the actual electric and magnetic waves.
