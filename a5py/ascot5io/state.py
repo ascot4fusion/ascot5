@@ -76,7 +76,7 @@ class State(DataContainer):
     def RHOMAX(self):
         """Maximum radial coordinate (rho) reached.
         """
-        return _RHOMAX
+        return State._RHOMAX
 
     @property
     def POLMAX(self):
