@@ -228,7 +228,9 @@ class DistData():
                 continue
 
             idx = abscissae[k]
-            if isinstance(idx, slice):
+            if idx is None:
+                ds   = np.diff(dist.abscissa_edges(k))
+            elif isinstance(idx, slice):
                 ds   = np.diff(dist.abscissa_edges(k))
                 mask = np.zeros(ds.shape)
                 mask[idx] = 1
