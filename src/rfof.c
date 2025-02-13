@@ -213,25 +213,36 @@ void rfof_resonance_check_and_kick_gc(
             /* NOTE: It is possible that the use of (multiple) physlib
                functions to evalutate some quantity introduces some error which,
                at least when cumulated, grows intolerable.                    */
-            real psi, B, Ekin, vnorm, P_phi, v_par, v_perp, gyrof,
+            real psi, B, Ekin, vnorm, P_phi, xi, v_par, v_perp, gyrof,
             tauB;
             B_field_eval_psi(&psi, p->r[i], p->phi[i], p->z[i], p->time[i],
                              Bdata);
             psi *= CONST_2PI; // librfof is COCOS 13
             B = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
-            v_par = p->ppar[i]/p->mass[i];
-            Ekin = p->ppar[i]*p->ppar[i]/(2*p->mass[i]) + p->mu[i]*B;
+            //gamma  = physlib_gamma_ppar(p->mass[i], p->mu[i], p->ppar[i], B);
+            //Ekin   = physlib_Ekin_gamma(p->mass[i], gamma);
+            //vnorm  = physlib_vnorm_gamma(gamma);
+
+	    // The relativisti formulas above did not work too well for low speeds
+	    v_par = p->ppar[i]/p->mass[i];
+	    Ekin = p->ppar[i]*p->ppar[i]/(2*p->mass[i]) + p->mu[i]*B;
             vnorm = sqrt( (p->ppar[i]/p->mass[i])*(p->ppar[i]/p->mass[i]) + 2*p->mu[i]*B/p->mass[i] );
             v_perp = sqrt( 2 * p->mu[i]*B/p->mass[i] );
 
-            P_phi  = phys_ptoroid_gc(p->charge[i], p->r[i], p->ppar[i], psi, B,
+
+	    P_phi  = phys_ptoroid_gc(p->charge[i], p->r[i], p->ppar[i], psi, B,
                                      p->B_phi[i]);
             gyrof  = phys_gyrofreq_ppar(p->mass[i], p->charge[i], p->mu[i],
                                         p->ppar[i], B);
             real q_safe = 1.0;
             real majR = 1.65;   // For now AUG
             real minR = 0.6;    // AUG
-            tauB = CONST_2PI*q_safe*p->r[i]/fabs(v_par)*sqrt(2*majR/minR);
+
+	    // This tauB formula does not work near the bounce points of a banana
+	    //tauB = CONST_2PI*q_safe*p->r[i]/v_par*sqrt(2*majR/minR);
+
+	    // => Disable tauB for now. (Note: tauB not in use in RFOF-ASCOT4 either)
+	    tauB = -999.0;
             real vdriftRho      = 0; // Assuming this is not needed in librfof
             real acceleration   = 1.0;
             int is_accelerated  = 0;
