@@ -142,13 +142,37 @@ a5err RF_field_eval(real E[3], real B[3], real r, real phi,\
 
 
     // Interpolating the values.
+    /* Original code:
+    // This does not work properly yet, probably due to the pointer
+    // aliasing that is not being properly transferred to GPU (?)
     for(int k = 0; k < 12; k++){
         interperr += interp2Dcomp_eval_f(&interpolated[k], rffield_data->introbj[k], r, z);
     }
     if(interperr){
         E[0] = 0.0; E[1] = 0.0; E[2] = 0.0;
         B[0] = 0.0; B[1] = 0.0; B[2] = 0.0;
-        return 0; 
+        return 0;
+    }
+    */
+
+    // Manual, un-aliased interpolation:
+    interperr += interp2Dcomp_eval_f(&interpolated[0],  &rffield_data->Er_real,   r, z);
+    interperr += interp2Dcomp_eval_f(&interpolated[1],  &rffield_data->Er_imag,   r, z);
+    interperr += interp2Dcomp_eval_f(&interpolated[2],  &rffield_data->Ephi_real, r, z);
+    interperr += interp2Dcomp_eval_f(&interpolated[3],  &rffield_data->Ephi_imag, r, z);
+    interperr += interp2Dcomp_eval_f(&interpolated[4],  &rffield_data->Ez_real,   r, z);
+    interperr += interp2Dcomp_eval_f(&interpolated[5],  &rffield_data->Ez_imag,   r, z);
+    interperr += interp2Dcomp_eval_f(&interpolated[6],  &rffield_data->Br_real,   r, z);
+    interperr += interp2Dcomp_eval_f(&interpolated[7],  &rffield_data->Br_imag,   r, z);
+    interperr += interp2Dcomp_eval_f(&interpolated[8],  &rffield_data->Bphi_real, r, z);
+    interperr += interp2Dcomp_eval_f(&interpolated[9],  &rffield_data->Bphi_imag, r, z);
+    interperr += interp2Dcomp_eval_f(&interpolated[10], &rffield_data->Bz_real,   r, z);
+    interperr += interp2Dcomp_eval_f(&interpolated[11], &rffield_data->Bz_imag,   r, z);
+
+    if(interperr){
+        E[0] = 0.0; E[1] = 0.0; E[2] = 0.0;
+        B[0] = 0.0; B[1] = 0.0; B[2] = 0.0;
+        return 0;
     }
 
     // Computing the actual electric and magnetic waves.
