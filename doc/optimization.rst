@@ -119,7 +119,7 @@ OpenMP provides directives that serve as "hints" for the compiler on how to para
 Compilers commonly used in HPC clusters universally support multithreading.
 
 Unlike MPI processes, threads share memory, and the workload is dynamically balanced through the marker queueing system.
-To optimize performance, the number of threads should match the number of physical cores available per processor, assuming a single MPI process is deployed per node (otherwise, set ``Nthreads = Ncores / Nprocesses``).
+To optimize performance, the number of threads should match the number of physical cores available per node, assuming a single MPI process is deployed per node (otherwise, set ``Nthreads = Ncores / Nprocesses``).
 Some processors support hyperthreading, allowing a single physical core to execute multiple threads in parallel (logical cores).
 You can set the number of threads using the ``OMP_NUM_THREADS`` environment variable:
 
@@ -158,10 +158,6 @@ Vectorization (CPU)
 During the simulation, a group of markers belonging to the same thread is represented using a struct of arrays, where each array corresponds to a coordinate and the index within the array identifies which marker it belongs to.
 The purpose of this struct is to locate markers in contiguous memory, enabling efficient vector operations on them.
 These vector operations are executed within SIMD (Single Instruction Multiple Data) loops.
-
-The number of markers within a vector is specified by the compiler flag NSIMD, which should be set to 8 for modern processors that support avx512 instructions.
-Note that setting NSIMD=1 effectively disables vectorization.
-It is also important to consider that vectorization introduces overhead; thus, one should not expect a linear increase in simulation efficiency with a higher NSIMD value, unlike the behavior observed with threads or processes.
 
 The number of markers within a vector is specified by the compiler flag ``NSIMD``, which should be set to 8 for modern processors that support ``avx512`` instructions.
 Note that setting ``NSIMD=1`` effectively disables vectorization.
