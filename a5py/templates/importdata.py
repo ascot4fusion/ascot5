@@ -984,12 +984,19 @@ class ImportData():
         # the Boozer magnetic coordinates to the cylindrical coordinates.
         names = ['Er', 'Ez', 'Ephi', 'Br', 'Bz', 'Bphi']
         psigrid = ds.Poloidal_flux.values / (2*np.pi) # Funny COCOS factor :)))
-        thetagrid = np.linspace(0, 2*np.pi, ds.theta.size)
+        thetagrid = np.linspace(0, 2*np.pi, ds.theta.size, endpoint=False)
+        dtheta = thetagrid[1] - thetagrid[0]
         out = {}
         for ii, iname in enumerate(names):
             for jj in ['_re', '_im']:
                 tmp = ds[iname + jj].values
-                intrp = RectBivariateSpline(psigrid, thetagrid, tmp)
+
+                # We will enforce the periodicity along the theta direction by patching
+                # the end of tmp with the beginning and the beginning with the flipped end.
+                # We will use the value npadding = 4 to make sure a smooth interpolation.
+                tmp2 = np.concatenate((tmp[:, -4:], tmp,  tmp[:, :4]), axis=1)
+                thetagrid2 = np.concatenate((-dtheta*np.arange(4,0,-1), thetagrid, thetagrid[-1]+dtheta*np.arange(1,5)))
+                intrp = RectBivariateSpline(psigrid, thetagrid2, tmp2)
 
                 out[iname + jj] = np.zeros((nr, nz))
                 out[iname + jj][flags] = intrp(-psi[flags].flatten(),
