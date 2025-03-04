@@ -1310,25 +1310,30 @@ class ImportData():
         phi = np.deg2rad(np.linspace(phimin, phimax, nphi, endpoint=False))  # rad
 
         # magnetic axis
-        grid_axis = dscg.LinearGrid(rho=0.0, zeta=phi, NFP=eq.NFP)
+        grid_axis = dscg.LinearGrid(rho=0.0, zeta=nphi, NFP=1)
         data_axis = eq.compute(["R", "Z"], grid=grid_axis)
         axis_r = data_axis["R"]  # m
         axis_z = data_axis["Z"]  # m
         psi0 = 0  # Wb
 
         # boundary
-        grid_bdry = dscg.LinearGrid(rho=1.0, theta=theta, zeta=phi, NFP=eq.NFP)
-        data_bdry = eq.compute(["R", "Z"], grid=grid_bdry)
-        bdry_r = data_bdry["R"]
-        bdry_z = data_bdry["Z"]
-
-        # boundary
-        grid_bdry = dscg.LinearGrid(rho=1.0, theta=theta, zeta=phi, NFP=eq.NFP)
-        data_bdry = eq.compute(["R", "Z"], grid=grid_bdry)
-        rmin = np.min(data_bdry["R"])  # m
-        rmax = np.max(data_bdry["R"])  # m
-        zmin = np.min(data_bdry["Z"])  # m
-        zmax = np.max(data_bdry["Z"])  # m
+        grid = dscg.LinearGrid(rho=1.0, theta=ntheta, zeta=nphi,
+                               NFP=1, sym=False,endpoint=True)
+        data = eq.compute(["R", "Z"], grid=grid)
+        theta_2D = grid.nodes[:, 1].reshape((grid.num_zeta, grid.num_theta),
+                                            order="C").T
+        phi_2D = grid.nodes[:, 2].reshape((grid.num_zeta, grid.num_theta),
+                                          order="C").T
+        bdry_r = data["R"].reshape((grid.num_zeta, grid.num_theta),
+                                   order="C").T
+        bdry_z = data["Z"].reshape((grid.num_zeta, grid.num_theta),
+                                   order="C").T
+        
+        # boundaries
+        rmin = np.min(bdry_r)  # m
+        rmax = np.max(bdry_r)  # m
+        zmin = np.min(bdry_z)  # m
+        zmax = np.max(bdry_z)  # m
         psi1 = eq.Psi  # Wb
 
         # output domain
