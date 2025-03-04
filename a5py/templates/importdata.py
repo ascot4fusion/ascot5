@@ -30,7 +30,7 @@ except:
 
 #for vmec_field and extender_field
 try:
-    from netCDF4 as nc
+    import netCDF4 as nc
 except:
     nc = None
 
@@ -746,14 +746,16 @@ class ImportData():
 
             pls = {"nrho":rho.size, "rho":rho, "mass":mass, "charge":charge,
                    "anum":anum, "znum":znum, "nion":nion,
+                   "vtor":np.zeros((rho.size,1)),
                    "etemperature":Te, "itemperature":Ti,
                    "edensity":ne, "idensity":ni}
         else:
             # Data is read already and only needs to be extrapolated
             pls["ne"] = interp(pls["rho"], pls["ne"], nmin)
-            interp(pls["rho"], pls["Te"], Tmin)
-            interp(pls["rho"], pls["Ti"], Tmin)
-            interp(pls["rho"], pls["ni"], nmin)
+            pls["Te"] = interp(pls["rho"], pls["Te"], Tmin)
+            pls["Ti"] = interp(pls["rho"], pls["Ti"], Tmin)
+            pls["ni"] = interp(pls["rho"], pls["ni"], nmin)
+            pls["vtor"] = interp(pls["rho"], pls["vtor"], pls["vtor"][-1])
             pls["rho"]  = rho
             pls["nrho"] = rho.size
 

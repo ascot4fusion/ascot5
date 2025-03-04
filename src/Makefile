@@ -24,6 +24,11 @@ ifeq ($(SINGLEPRECISION),1)
 	DEFINES+=-DSINGLEPRECISION
 endif
 
+ifeq ($(RFOF),1)
+	DEFINES+=-DRFOF
+	CFLAGS+=-lgfortran -lquadmath -lxml2 -lrfof
+endif
+
 ifeq ($(MPI),1)
 	DEFINES+=-DMPI
 	CC=h5pcc
@@ -167,7 +172,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
 	E_field.h wall.h simulate.h diag.h offload.h boozer.h mhd.h \
 	random.h print.h hdf5_interface.h suzuki.h nbi.h biosaw.h \
-	asigma.h boschhale.h mpi_interface.h libascot_mem.h bbnbi5.h
+	asigma.h boschhale.h mpi_interface.h libascot_mem.h bbnbi5.h rfof.h
 
 OBJS= math.o list.o octree.o error.o \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
@@ -177,6 +182,7 @@ OBJS= math.o list.o octree.o error.o \
 	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
 	E_field.o wall.o simulate.o diag.o boozer.o mhd.o \
 	random.o print.o hdf5_interface.o suzuki.o nbi.o biosaw.o \
+	asigma.o mpi_interface.o boschhale.o bbnbi5.o rfof.o \
 	asigma.o mpi_interface.o boschhale.o bbnbi5.o
 
 BINS=test_math test_nbi test_bsearch \
@@ -259,7 +265,7 @@ ASCOT2PY_HEADERFILES=ascot5.h particle.h mpi_interface.h endcond.h simulate.h  \
 	$(ASIGMAHEADERS) $(N0HEADERS) $(MHDHEADERS) hdf5_interface.h           \
 	libascot_mem.h diag.h B_field.h E_field.h wall.h plasma.h neutral.h    \
 	boozer.h mhd.h nbi.h asigma.h afsi.h ascot5_main.h biosaw.h boschhale.h\
-	bbnbi5.h
+	bbnbi5.h rfof.h
 
 ascot2py.py : libascot.so
 	$(eval CLANGOMP=$(shell clang --print-resource-dir)) \

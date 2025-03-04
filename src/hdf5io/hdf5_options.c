@@ -94,6 +94,12 @@ int hdf5_options_read(hid_t file, sim_data* sim, char* qid){
     if( hdf5_read_double(OPTPATH "ENABLE_ATOMIC", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     sim->enable_atomic = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "ENABLE_ICRH", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->enable_icrh = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "ENABLE_ALDFORCE", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->enable_aldforce = (int)tempfloat;
     if( hdf5_read_double(OPTPATH "DISABLE_FIRSTORDER_GCTRANS", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     sim->disable_gctransform = (int)tempfloat;

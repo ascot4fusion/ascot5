@@ -79,9 +79,13 @@ int hdf5_wall_read_2D(hid_t f, wall_2d_data* data, char* qid) {
     if( hdf5_read_double(WPATH "r", r, f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(WPATH "z", z, f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    int err = wall_2d_init(data, nelements, r, z);
+    int* flag = (int*) malloc(nelements * sizeof(int));
+    if( hdf5_read_int(WPATH "flag", flag,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    int err = wall_2d_init(data, nelements, r, z, flag);
     free(r);
     free(z);
+    free(flag);
     return err;
 }
 
@@ -114,10 +118,14 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_data* data, char* qid) {
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(WPATH "z1z2z3", z1z2z3,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
+    int* flag = (int*) malloc(nelements * sizeof(int));
+    if( hdf5_read_int(WPATH "flag", flag,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    int err = wall_3d_init(data, nelements, x1x2x3, y1y2y3, z1z2z3);
+    int err = wall_3d_init(data, nelements, x1x2x3, y1y2y3, z1z2z3, flag);
     free(x1x2x3);
     free(y1y2y3);
     free(z1z2z3);
+    free(flag);
     return err;
 }

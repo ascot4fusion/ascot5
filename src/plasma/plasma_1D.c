@@ -24,7 +24,7 @@
  */
 int plasma_1D_init(plasma_1D_data* data, int nrho, int nion, real* rho,
                    int* anum, int* znum, real* mass, real* charge,
-                   real* Te, real* Ti, real* ne, real* ni) {
+                   real* Te, real* Ti, real* ne, real* ni, real* vtor) {
 
     data->n_rho = nrho;
     data->n_species = nion + 1;
@@ -42,10 +42,12 @@ int plasma_1D_init(plasma_1D_data* data, int nrho, int nion, real* rho,
         data->charge[i] = charge[i];
     }
     data->rho = (real*) malloc( nrho*sizeof(real) );
+    data->vtor = (real*) malloc( nrho*sizeof(real) );
     data->temp = (real*) malloc( 2*nrho*sizeof(real) );
     data->dens = (real*) malloc( (nion+1)*nrho*sizeof(real) );
     for(int i = 0; i < data->n_rho; i++) {
         data->rho[i] = rho[i];
+        data->vtor[i] = vtor[i];
         data->temp[i] = Te[i];
         data->temp[nrho + i] = Ti[i];
         data->dens[i] = ne[i];
@@ -79,6 +81,9 @@ int plasma_1D_init(plasma_1D_data* data, int nrho, int nion, real* rho,
               -1, CONST_M_E/CONST_U,
               data->dens[0], data->dens[nrho - 1],
               data->temp[0] / CONST_E, data->temp[nrho-1] / CONST_E);
+    print_out(VERBOSE_IO, "Toroidal rotation [rad/s] at Min/Max rho: "
+              "%1.2le/%1.2le\n",
+              data->vtor[0], data->vtor[nrho - 1]);
     real quasineutrality = 0;
     for(int k = 0; k < nrho; k++) {
         real ele_qdens = data->dens[k] * CONST_E;
@@ -91,6 +96,8 @@ int plasma_1D_init(plasma_1D_data* data, int nrho, int nion, real* rho,
     }
     print_out(VERBOSE_IO, "Quasi-neutrality is (electron / ion charge density)"
               " %.2f\n", 1+quasineutrality);
+    print_out(VERBOSE_IO, "Toroidal rotation [rad/s] at Min/Max rho: "
+              "%1.2le/%1.2le\n", data->vtor[0], data->vtor[nrho - 1]);
     return 0;
 }
 
@@ -119,6 +126,7 @@ void plasma_1D_offload(plasma_1D_data* data) {
         data->mass[0:data->n_species], data->charge[0:data->n_species], \
         data->anum[0:data->n_species-1], data->znum[0:data->n_species-1], \
         data->rho[0:data->n_rho], data->temp[0:2*data->n_rho], \
+        data->vtor[0:data->n_rho], \
         data->dens[0:data->n_rho*data->n_species]
     )
 }
@@ -254,5 +262,34 @@ a5err plasma_1D_eval_densandtemp(real* dens, real* temp, real rho,
         }
     }
 
+    return err;
+}
+
+/**
+ * @brief Evalate plasma flow along the field lines
+ *
+ * @param vflow pointer where the flow value is stored [m/s]
+ * @param rho particle rho coordinate [1]
+ * @param r particle R coordinate [m]
+ * @param pls_data pointer to plasma data
+ */
+a5err plasma_1D_eval_flow(real* vflow, real rho, real r,
+                          plasma_1D_data* pls_data) {
+    a5err err = 0;
+    if(rho < pls_data->rho[0]) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
+    }
+    else if(rho >= pls_data->rho[pls_data->n_rho-1]) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
+    }
+    else {
+        int i_rho = 0;
+        while(i_rho < pls_data->n_rho-1 && pls_data->rho[i_rho] <= rho) {
+            i_rho++;
+        }
+        i_rho--;
+        *vflow = pls_data->vtor[i_rho];
+    }
+    *vflow *= r;
     return err;
 }

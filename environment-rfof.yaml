@@ -1,0 +1,24 @@
+name: ascot-rfof
+channels:
+  - conda-forge
+dependencies:
+  - fortran-compiler
+  - c-compiler
+  - make
+  - libxml2
+  - pkg-config
+  - libgomp
+  - python>=3.10
+  - hdf5
+  - zlib
+  - setuptools
+  - pip
+  - ipython
+  - numpy
+  - scipy
+  - h5py
+  - unyt==2.9.5
+  - wurlitzer
+  - matplotlib
+  - pyvista
+  - freeqdsk

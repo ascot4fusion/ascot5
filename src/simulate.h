@@ -21,6 +21,7 @@
 #include "diag.h"
 #include "random.h"
 #include "simulate/mccc/mccc.h"
+#include "rfof.h"
 
 /**
  * @brief Simulaton modes
@@ -66,12 +67,13 @@ typedef struct {
     asigma_data asigma_data;   /**< Atomic sigma data interface               */
     nbi_data nbi_data;         /**< Neutral beam injection data interface     */
     diag_data diag_data;       /**< Diagnostics data interface                */
+    rfof_data rfof_data;       /**< Void pointers to ICRH wave field and input
+                                    parameters Fortran structs.               */
 
     /* Metadata */
     random_data random_data;   /**< Random number generator                   */
     mccc_data mccc_data;       /**< Tabulated special functions and collision
                                     operator parameters                       */
-
     /* Options - general */
     int sim_mode;        /**< Which simulation mode is used                   */
     int enable_ada;      /**< Is adaptive time-step used                      */
@@ -98,6 +100,8 @@ typedef struct {
     int enable_clmbcol;        /**< Are Coulomb collisions enabled            */
     int enable_mhd;            /**< Are MHD modes enabled                     */
     int enable_atomic;         /**< Are atomic reactions enabled              */
+    int enable_icrh;           /**< Is RFOF enabled                           */
+    int enable_aldforce;       /**< Is radiation reaction force enabled       */
     int disable_gctransform;   /**< Disables first order velocity terms in
                                     guiding center transformation             */
     int disable_energyccoll;   /**< Disables energy component from Coulomb
@@ -109,18 +113,18 @@ typedef struct {
     int reverse_time;          /**< Set time running backwards in simulation  */
 
     /* Options - end conditions */
-    int endcond_active;       /**< Bit array notating active end conditions  */
-    real endcond_lim_simtime; /**< Simulation time limit [s]                 */
-    real endcond_max_mileage; /**< Maximum simulation duration [s]           */
-    real endcond_max_cputime; /**< Maximum wall-clock time [s]               */
-    real endcond_min_rho;     /**< Minimum rho limit                         */
-    real endcond_max_rho;     /**< Maximum rho limit                         */
-    real endcond_min_ekin;    /**< Fixed minimum kinetic energy limit [J]    */
-    real endcond_min_thermal; /**< Thermal minimum energy limit is this
-                                   parameter times local thermal energy      */
-    real endcond_max_tororb;  /**< Maximum limit for toroidal distance [rad] */
-    real endcond_max_polorb;  /**< Maximum limit for poloidal distance [rad] */
-    int endcond_torandpol;    /**< Flag whether both tor and pol must be met */
+    int endcond_active;        /**< Bit array notating active end conditions  */
+    real endcond_lim_simtime;  /**< Simulation time limit [s]                 */
+    real endcond_max_mileage;  /**< Maximum simulation duration [s]           */
+    real endcond_max_cputime;  /**< Maximum wall-clock time [s]               */
+    real endcond_min_rho;      /**< Minimum rho limit                         */
+    real endcond_max_rho;      /**< Maximum rho limit                         */
+    real endcond_min_ekin;     /**< Fixed minimum kinetic energy limit [J]    */
+    real endcond_min_thermal;  /**< Thermal minimum energy limit is this
+                                    parameter times local thermal energy      */
+    real endcond_max_tororb;   /**< Maximum limit for toroidal distance [rad] */
+    real endcond_max_polorb;   /**< Maximum limit for poloidal distance [rad] */
+    int endcond_torandpol;     /**< Flag whether both tor and pol must be met */
 
     /* Metadata */
     char hdf5_in[256];     /**< Name of the input HDF5 file  */

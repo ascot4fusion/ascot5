@@ -32,6 +32,7 @@
 #include "simulate/mccc/mccc.h"
 #include "gctransform.h"
 #include "asigma.h"
+#include "rfof.h"
 
 void sim_monitor(char* filename, volatile int* n, volatile int* finished);
 
@@ -94,6 +95,7 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     /*    respective init functions.                                          */
     /*                                                                        */
     /**************************************************************************/
+
     simulate_init(sim);
 
 #ifdef GPU
@@ -295,6 +297,10 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     /**************************************************************************/
     free(pq.p);
 
+    /**************************************************************************/
+    /* 8. Execution returns to host where this function was called.           */
+    /*                                                                        */
+    /**************************************************************************/
     print_out(VERBOSE_NORMAL, "Simulation complete.\n");
 }
 
@@ -312,7 +318,6 @@ void simulate_init(sim_data* sim) {
         gctransform_setorder(0);
     }
     asigma_extrapolate(sim->enable_atomic==2);
-
 }
 
 /**
@@ -362,7 +367,8 @@ void sim_monitor(char* filename, volatile int* n, volatile int* finished) {
         else {
             fprintf(f, "Progress: %d/%d, %.2f %%. Time spent: %.2f h, "
                     "estimated time to finish: %.2f h\n", finished_temp, n_temp,
-                    100*fracprog, timespent/3600, (1/fracprog-1)*timespent/3600);
+                    100*fracprog, timespent/3600,
+                    (1/fracprog-1)*timespent/3600);
         }
         fflush(f);
         //sleep(A5_PRINTPROGRESSINTERVAL);

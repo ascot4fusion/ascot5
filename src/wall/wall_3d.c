@@ -11,6 +11,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include "../ascot5.h"
 #include "wall_3d.h"
@@ -37,14 +38,12 @@ void wall_3d_init_octree(wall_3d_data* w);
 
  * The default octree depth is defined by macro WALL_OCTREE_DEPTH in wall_3d.h.
  *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
- * @param int_offload_array pointer to offload array containing integers
+ * @param data pointer to data struct
  *
  * @return zero if initialization succeeded
  */
 int wall_3d_init(wall_3d_data* data, int nelements, real* x1x2x3, real* y1y2y3,
-                 real* z1z2z3) {
+                 real* z1z2z3, int* flag) {
 
     /* The data is to be in the format
      *  [x1 y1 z1 x2 y2 z2 x3 y3 z3; ... ]
@@ -104,6 +103,9 @@ int wall_3d_init(wall_3d_data* data, int nelements, real* x1x2x3, real* y1y2y3,
               data->xmin, data->xmax, data->ymin,
               data->ymax, data->zmin, data->zmax);
 
+    data->flag = (int*)malloc(nelements * sizeof(int));
+    memcpy(data->flag, flag, data->n * sizeof(int));
+
     return 0;
 }
 
@@ -124,6 +126,7 @@ void wall_3d_free(wall_3d_data* data) {
  */
 void wall_3d_offload(wall_3d_data* data) {
     GPU_MAP_TO_DEVICE(
+        data->wall_flag[0:data->n],
         data->wall_tris[0:data->n*9],
         data->tree_array[0:data->tree_array_size]
     )
@@ -214,6 +217,9 @@ void wall_3d_init_tree(wall_3d_data* w, real* offload_array) {
  *
  * Constructs the octree array by iterating through all wall triangles and
  * placing them into an octree structure
+ *
+ * Note that this function allocates extra space at the end of the tree_array
+ * to store wall element flags.
  *
  * @param w pointer to wall data
  * @param offload_array the offload array
