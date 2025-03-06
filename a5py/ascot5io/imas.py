@@ -816,6 +816,8 @@ class plasma_1d(a5imas):
         warnings.warn("Reading plasma rotation not yet implemented and is assumed to be zero")
         vtor = edensity * 0
 
+        warnings.warn("Reading plasma rotation not yet implemented and is assumed to be zero")
+        vtor = edensity * 0
 
         rho_tor = p1d.grid.rho_tor
 
@@ -841,7 +843,6 @@ class plasma_1d(a5imas):
             return p
 
         if equilibrium_ids is None:
-            import warnings
             warnings.warn("Cannot convert rho_pol to rho_tor as no equilibrium ids provided as a parameter")
             p = {
                 "nrho"         : nrho,
@@ -855,6 +856,7 @@ class plasma_1d(a5imas):
                 "etemperature" : etemperature,
                 "edensity"     : edensity,
                 "rho_tor"      : rho_tor,
+                "vtor"         : vtor,
             }
 
             return p
