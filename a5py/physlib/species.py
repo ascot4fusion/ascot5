@@ -14,8 +14,9 @@ speciesdict = {
     "C12"   : ( 12,  6,  6*unyt.e,  12.011*unyt.amu),
     "Ne20"  : ( 20, 10, 10*unyt.e,  19.992*unyt.amu),
     "Ar40"  : ( 40, 18, 18*unyt.e,  39.962*unyt.amu),
-    "Ni59"  : ( 59, 28, 28*unyt.e,  58.934*unyt.amu),  # https://pubchem.ncbi.nlm.nih.gov/compound/Nickel-59
+    "Ni59"  : ( 59, 28, 28*unyt.e,  58.934*unyt.amu),
     "Xe132" : (132, 54, 54*unyt.e, 131.904*unyt.amu),
+    "W183"  : (183, 74, 74*unyt.e, 182.950*unyt.amu),
     "W184"  : (184, 74, 74*unyt.e, 183.950*unyt.amu),
 }
 
