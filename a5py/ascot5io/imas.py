@@ -2,6 +2,7 @@ import numpy as np
 import scipy.constants as constants
 from a5py.physlib import species, pol2cart, cart2pol_vec
 import unyt
+import warnings
 from types import SimpleNamespace
 
 class a5imas:
@@ -10,7 +11,7 @@ class a5imas:
     def __init__(self):
         self.ids_name = "ids" #This should be overwritten by dervied classes
 
-    def open(self, user, tokamak, version, shot, run, occurrence=0):
+    def open(self, user, tokamak, version, shot, run, occurrence=0, backend=None, path=None):
 
         # Put this inside the function, not to disturb usage where imas is not available
         import imas
@@ -29,6 +30,8 @@ class a5imas:
                                 'shot'       : shot,
                                 'run'        : run,
                                 'occurrence' : occurrence,
+                                'backend'    : backend,
+                                'path'       : path,
                                 'ids_name'   : self.ids_name }
 
         if hasattr(imas, 'ids'):
@@ -61,7 +64,9 @@ class a5imas:
 
             from imas.imasdef import MDSPLUS_BACKEND
             from imas.imasdef import CLOSEST_SAMPLE
-            self.DB = imas.DBEntry(MDSPLUS_BACKEND, tokamak, shot, run, user_name=user)
+            #self.DB = imas.DBEntry(MDSPLUS_BACKEND, tokamak, shot, run, user_name=user)
+            self.DB = imas.DBEntry("imas:"+str(self.ids_coordinates["backend"])
+                                   +"?path="+str(self.ids_coordinates["path"]), mode="r")
             self.DB.open()
             self.ids = SimpleNamespace()
             setattr(self.ids,self.ids_name, self.DB.get_slice(self.ids_name, time, CLOSEST_SAMPLE))
@@ -87,12 +92,12 @@ class a5imas:
                                      'run' : "undefined", 'occurrence' : "undefined",
                                      'ids_name': self.ids_name }
 
-    def read(self, user, tokamak, version, shot, run, occurrence=0 ):
+    def read(self, user, tokamak, version, shot, run, occurrence=0, backend=None, path=None, **kwargs):
         """
         Open the IDS database and parse the data and then close it.
         """
-        self.open( user, tokamak, version, shot, run, occurrence )
-        result = self.parse()
+        self.open( user, tokamak, version, shot, run, occurrence, backend=backend, path=path )
+        result = self.parse(**kwargs)
         self.close()
 
         return result
@@ -695,7 +700,7 @@ class marker(a5imas):
         out['charge']= np.ones_like(out['weight'].v,dtype=float) * unyt.e* source.species.ion.z_ion
         out['mass']  = np.ones_like(out['weight'].v,dtype=float) * species.autodetect(
             int(source.species.ion.element[0].a),
-            int(source.species.ion.element[0].z_n) )[3]#/unyt.kg
+            int(source.species.ion.element[0].z_n) )["mass"]#/unyt.kg
 
 
         # From parameters (outside the source)
@@ -799,7 +804,7 @@ class plasma_1d(a5imas):
             znum[i]       = p1d.ion[i].element[iElement].z_n
             anum[i]       = p1d.ion[i].element[iElement].a
             charge[i]     = znum[i] * unyt.e
-            mass[i]       = species.autodetect( int( anum[i] ), int( znum[i]) )[3] / unyt.amu # Mass should be in AMU
+            mass[i]       = species.autodetect( int( anum[i] ), int( znum[i]) )["mass"] / unyt.amu # Mass should be in AMU
             idensity[:,i] = p1d.ion[i].density_thermal
 
 
@@ -815,6 +820,8 @@ class plasma_1d(a5imas):
         edensity     = p1d.electrons.density
         etemperature = p1d.electrons.temperature
 
+        warnings.warn("Reading plasma rotation not yet implemented and is assumed to be zero")
+        vtor = edensity * 0
 
         rho_tor = p1d.grid.rho_tor
 
@@ -822,7 +829,6 @@ class plasma_1d(a5imas):
         # https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/ids/ids2plasmaEqWallSimu.F90#L281
 
         if equilibrium_ids is None:
-            import warnings
             warnings.warn("Cannot convert rho_pol to rho_tor as no equilibrium ids provided as a parameter")
             p = {
                 "nrho"         : nrho,
@@ -836,6 +842,7 @@ class plasma_1d(a5imas):
                 "etemperature" : etemperature,
                 "edensity"     : edensity,
                 "rho_tor"      : rho_tor,
+                "vtor"         : vtor,
             }
 
             return p
@@ -855,6 +862,7 @@ class plasma_1d(a5imas):
             "etemperature" : etemperature,
             "edensity"     : edensity,
             "rho"          : rho,
+            "vtor"         : vtor,
         }
 
         return p
