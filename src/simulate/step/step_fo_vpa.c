@@ -19,6 +19,29 @@
 #include "../../rf_fields_fo.h"
 #include "step_fo_vpa.h"
 
+
+/**
+ * @brief Set the function to push the particles
+ * 
+ * Selects among the different solver functions available.
+ * 
+ * @param solver string with the name of the solver
+ * @return void
+ */
+void set_push_function(push_fo_fnt** ptr, char* solver) {
+    if(strcmp(solver, "VPA") == 0) {
+        *ptr = &step_fo_vpa;
+    } else if(strcmp(solver, "VPA PHASE CORRECTED") == 0) {
+        *ptr = &step_fo_vpa_full;
+    } else if(strcmp(solver, "BORIS LEAP FROG") == 0) {
+        *ptr = &step_fo_vpa_borisA;
+    } else if(strcmp(solver, "VPA 4TH ORDER") == 0) {
+        *ptr = &step_fo_vpa_4th;
+    } else {
+        *ptr = &step_fo_vpa_full;
+    }
+}
+
 /**
  * @brief Integrate a full orbit step for a struct of particles with VPA
  *

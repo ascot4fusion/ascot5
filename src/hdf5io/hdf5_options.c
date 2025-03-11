@@ -61,6 +61,26 @@ int hdf5_options_read(hid_t file, sim_data* sim, char* qid){
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     sim->record_mode = (int)tempfloat;
 
+    // If we have that the user defined the full-orbit case, we will
+    // read the solver name and set the function pointer accordingly.
+    if(sim->sim_mode == 1) {
+        tempfloat = 0;
+        char solver[256];
+        if( hdf5_read_double(OPTPATH "FULL_ORBIT_SOLVER", &tempfloat,
+                             file, qid, __FILE__, __LINE__) ) {tempfloat=1;}
+        if(tempfloat == 1){
+            strcpy(solver, "VPA");
+        }else if(tempfloat == 2){
+            strcpy(solver, "VPA PHASE CORRECTED");
+        }else if(tempfloat == 3){
+            strcpy(solver, "BORIS LEAP FROG");
+        }else if(tempfloat == 4){
+            strcpy(solver, "VPA 4TH ORDER");
+        }else{
+            strcpy(solver, "VPA PHASE CORRECTED");
+        }
+    }
+
 
     if( hdf5_read_double(OPTPATH "FIXEDSTEP_USE_USERDEFINED", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}

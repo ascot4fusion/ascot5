@@ -22,6 +22,7 @@
 #include "random.h"
 #include "rf_fields_fo.h"
 #include "simulate/mccc/mccc.h"
+#include "simulate/step/step_fo_vpa.h"
 
 /**
  * @brief Simulaton modes
@@ -73,6 +74,9 @@ typedef struct {
     random_data random_data;   /**< Random number generator                   */
     mccc_data mccc_data;       /**< Tabulated special functions and collision
                                     operator parameters                       */
+    char full_orbit_solver[256]; /**< Name of the solver used for full orbit
+                                      integration                              */
+    push_fo_fnt push_fo;       /**< Function pointer to the solver function   */
 
     /* Options - general */
     int sim_mode;        /**< Which simulation mode is used                   */

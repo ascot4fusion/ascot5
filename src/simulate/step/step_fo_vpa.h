@@ -12,7 +12,11 @@
 #include "../../rf_fields_fo.h"
 
 // Defining the a type that describes a generic function to push the particles.
-typedef void (*push_fo_fnt)(particle_simd_fo*, real*, B_field_data*, E_field_data*, RF2D_fields*);
+typedef void (*push_fo_fnt)(particle_simd_fo*, real*, B_field_data*, 
+                            E_field_data*, RF2D_fields*);
+
+// Setting the solver.
+void set_push_function(push_fo_fnt**ptrchar, char* solver);
 
 // 2nd order integrators, without phase correction.
 void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
