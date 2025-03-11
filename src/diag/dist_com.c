@@ -56,6 +56,17 @@ void dist_COM_offload(dist_COM_data* data) {
 }
 
 /**
+ * @brief Onload data back to the host.
+ *
+ * @param data pointer to the data struct
+ */
+void dist_COM_onload(dist_COM_data* data) {
+    GPU_UPDATE_FROM_DEVICE(
+        data->histogram[0:data->n_mu*data->n_Ekin*data->n_Ptor]
+        )
+}
+
+/**
  * @brief Update the histogram from full-orbit markers
  *
  * @param dist pointer to distribution parameter struct

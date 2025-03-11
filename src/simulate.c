@@ -295,6 +295,8 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     /**************************************************************************/
     free(pq.p);
 
+    diag_onload(&sim->diag_data);
+
     print_out(VERBOSE_NORMAL, "Simulation complete.\n");
 }
 
