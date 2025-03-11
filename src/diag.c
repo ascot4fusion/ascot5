@@ -147,6 +147,29 @@ void diag_offload(diag_data* data) {
 }
 
 /**
+ * @brief Onload data back to the host.
+ *
+ * @param data pointer to the data struct
+ */
+void diag_onload(diag_data* data) {
+    if(data->dist5D_collect) {
+        dist_5D_onload(&data->dist5D);
+    }
+    if(data->dist6D_collect) {
+        dist_6D_onload(&data->dist6D);
+    }
+    if(data->distrho5D_collect) {
+        dist_rho5D_onload(&data->distrho5D);
+    }
+    if(data->distrho6D_collect) {
+        dist_rho6D_onload(&data->distrho6D);
+    }
+    if(data->distCOM_collect) {
+        dist_COM_onload(&data->distCOM);
+    }
+}
+
+/**
  * @brief Collects diagnostics when marker represents a particle
  *
  * @param data diagnostics data struct

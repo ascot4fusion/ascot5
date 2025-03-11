@@ -40,6 +40,7 @@ typedef struct {
 int diag_init(diag_data* data, int Nmrk);
 void diag_free(diag_data* data);
 void diag_offload(diag_data* data);
+void diag_onload(diag_data* data);
 
 void diag_sum(diag_data* data1, diag_data* data2);
 
