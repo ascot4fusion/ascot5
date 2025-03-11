@@ -54,6 +54,7 @@ typedef struct {
 int dist_rho5D_init(dist_rho5D_data* data);
 void dist_rho5D_free(dist_rho5D_data* data);
 void dist_rho5D_offload(dist_rho5D_data* data);
+void dist_rho5D_onload(dist_rho5D_data* data);
 void dist_rho5D_update_fo(dist_rho5D_data* dist, particle_simd_fo* p_f,
                           particle_simd_fo* p_i);
 void dist_rho5D_update_gc(dist_rho5D_data* dist, particle_simd_gc* p_f,
