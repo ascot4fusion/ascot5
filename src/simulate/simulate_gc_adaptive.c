@@ -64,6 +64,13 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     real hout_col[NSIMD]  __memalign__;
     real hout_rfof[NSIMD] __memalign__;
     real hnext[NSIMD]     __memalign__;
+    real* dE_rfof_1darrays_increment[NSIMD] __memalign__; /* Given to RFOF as input
+                                                              and filled by RFOF
+                                                              during every step.
+                                                              These are added to
+                                                              dE_rfof_2darrays
+                                                              if the step was succesful
+                                                              and otherwise discarded. */
 
     /* Flag indicateing whether a new marker was initialized */
     int cycle[NSIMD]     __memalign__;
@@ -186,7 +193,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         /* Performs the ICRH kick if in resonance. */
         if(sim->enable_icrh) {
             rfof_resonance_check_and_kick_gc(
-                &p, hin, hout_rfof, &rfof_mrk, &sim->rfof_data, &sim->B_data);
+                &p, hin, hout_rfof, &rfof_mrk, &sim->rfof_data, &sim->B_data,
+                dE_rfof_1darrays_increment);
 
             /* Check whether time step was rejected */
             #pragma omp simd

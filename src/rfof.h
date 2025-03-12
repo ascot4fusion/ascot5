@@ -56,7 +56,7 @@ void rfof_clear_history(rfof_marker* rfof_mrk, int imrk);
 
 void rfof_resonance_check_and_kick_gc(
     particle_simd_gc* p, real* hin, real* hout_rfof, rfof_marker* rfof_mrk,
-    rfof_data* rfof_data, B_field_data* Bdata);
+    rfof_data* rfof_data, B_field_data* Bdata, real** de_rfof_during_step);
 
 void rfof_eval_rf_wave(
     real* e_plus_real, real* e_minus_real, real* e_plus_imag,
