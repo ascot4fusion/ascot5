@@ -47,7 +47,8 @@ void __ascot5_icrh_routines_MOD_call_set_marker_pointers(void** cptr_marker,
 void __ascot5_icrh_routines_MOD_call_rf_kick(double*time, double*dtin,
     int* mpi_rank, void** cptr_marker, void** cptr_mem, void** cptr_rfglobal,
     void** cptr_rfdiagno, void** cptr_rfof_input, int* mem_shape_i,
-    int* mem_shape_j, int *err, rfof_output* out);
+    int* mem_shape_j, int *err, rfof_output* out,
+    real** cptr_de_rfof_during_step);
 
 void __ascot5_icrh_routines_MOD_call_reset_res_mem(void** rfof_mem_pointer,
     int* mem_shape_i, int* mem_shape_j);
@@ -205,7 +206,7 @@ void rfof_clear_history(rfof_marker* rfof_mrk, int i) {
  */
 void rfof_resonance_check_and_kick_gc(
     particle_simd_gc* p, real* hin, real* hout, rfof_marker* rfof_mrk,
-    rfof_data* rfof_data, B_field_data* Bdata) {
+    rfof_data* rfof_data, B_field_data* Bdata, real** de_rfof_during_step) {
 #ifdef RFOF
     for(int i=0; i<NSIMD; i++) {
         if(p->id[i] > 0 && p->running[i]) {
@@ -309,13 +310,23 @@ void rfof_resonance_check_and_kick_gc(
             int mpi_rank = 0; // RFOF does not work with MPI yet
 
 
+            //printf("NSIMD_i = %d\t kutsutaan rf_kick rfof.c:ssä\n", i);
+
             /* Ready to kick some ash (if in resonance) */
             __ascot5_icrh_routines_MOD_call_rf_kick(
                 &(p->time[i]), &(hin[i]), &mpi_rank,
                 &(rfof_mrk->p[i]), &(rfof_mrk->history_array[i]),
                 &(rfof_data->rfglobal), &(rfof_mrk->diag_array[i]),
                 &(rfof_data->rfof_input_params), &(rfof_mrk->nrow[i]),
-                &(rfof_mrk->ncol[i]), &err, &rfof_data_pack);
+                &(rfof_mrk->ncol[i]), &err, &rfof_data_pack, (de_rfof_during_step[i]));
+
+            //printf("NSIMD_i = %d\t kutsuttiin rf_kick rfof.c:ssä\n", i);
+
+            /*
+            for (int k = 0; k < rfof_mrk->nrow[i]*rfof_mrk->ncol[i]; k++) {
+                printf("de_rfof[%d] = %e\n",k,de_rfof_during_step[i][k]);
+            }
+            */
 
             /* Most marker phase-space coordinates are updated automatically
              * via the pointers in rfof_mrk except ppar which we update here */
