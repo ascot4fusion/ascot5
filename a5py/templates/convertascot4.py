@@ -298,6 +298,11 @@ class Ascot4Templates():
             tmp = list(map(float,fh.readline().split()))
             phi0       = tmp[0]
             nSector    = int(tmp[1])
+
+            # For future reference: the first and last data points in the phi
+            # direction are different in the input data. Consequently, nPhi is
+            # the number of grid points AND the number of intervals (classic
+            # fence post problem)
             nPhi       = int(tmp[2])
             nCoil      = int(tmp[3])
             zeroAtCoil = int(tmp[4])
@@ -342,19 +347,15 @@ class Ascot4Templates():
             data["zmin"] = z[0]
             data["zmax"] = z[-1]
             return ("B_2DS", data)
-
-        data["br"] = data["br"][:,:-1,:]
-        data["bphi"] = data["bphi"][:,:-1,:]
-        data["bz"] = data["bz"][:,:-1,:]
         data["b_nr"]     = nr
         data["b_rmin"]   = r[0]
         data["b_rmax"]   = r[-1]
         data["b_nz"]     = nz
         data["b_zmin"]   = z[0]
         data["b_zmax"]   = z[-1]
-        data["b_nphi"]   = nPhi-1
+        data["b_nphi"]   = nPhi
         data["b_phimin"] = phi[0]
-        data["b_phimax"] = phi[-1]
+        data["b_phimax"] = phi[-1]     #THIS IS SUPPOSED TO BE (PHIMIN + 360)
 
         if interpolate_psi0:
             from scipy.interpolate import RegularGridInterpolator
