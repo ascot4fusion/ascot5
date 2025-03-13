@@ -571,8 +571,8 @@ void mpi_gather_diag_RFOF(rfof_data* rfof_data, int mpi_rank, int mpi_size,
         rfof_data->n_waves * rfof_data->n_modes,
         mpi_type_real, MPI_SUM, mpi_root, MPI_COMM_WORLD);
     MPI_Reduce(
-        mpi_rank == mpi_root ? MPI_IN_PLACE : rfof_data->summed_timesteps,
-        rfof_data->summed_timesteps,
+        mpi_rank == mpi_root ? MPI_IN_PLACE : &rfof_data->summed_timesteps,
+        &rfof_data->summed_timesteps,
         1,
         mpi_type_real, MPI_SUM, mpi_root, MPI_COMM_WORLD);
 #endif
