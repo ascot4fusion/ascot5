@@ -380,9 +380,10 @@ int offload_and_simulate(
 
     mpi_gather_diag(&sim->diag_data, n_tot,
                     sim->mpi_rank, sim->mpi_size, sim->mpi_root);
-
-    mpi_gather_diag_RFOF(&sim->rfof_data, sim->mpi_rank, sim->mpi_size,
-        sim->mpi_root);
+    if (sim->enable_icrh) {
+        mpi_gather_diag_RFOF(&sim->rfof_data, sim->mpi_rank, sim->mpi_size,
+            sim->mpi_root);
+    }
 
 
 
