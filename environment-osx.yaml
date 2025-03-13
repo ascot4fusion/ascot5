@@ -1,14 +1,12 @@
-name: ascot-dev
+name: ascot-osx
 channels:
   - conda-forge
 dependencies:
   - c-compiler
   - make
   - glib
-  - llvm-openmp
   - python>=3.10
-  - hdf5=*=*openmp*
-  - mpi=*=*openmp*
+  - hdf5
   - zlib
   - setuptools
   - pip
@@ -16,7 +14,6 @@ dependencies:
   - numpy
   - scipy
   - h5py
-  - mpi4py
   - xmlschema
   - unyt
   - wurlitzer
@@ -37,12 +34,12 @@ dependencies:
   - sphinx-gallery
   - sphinx-design
   - sphinxcontrib-mermaid
-  - clang==15.*
-  - clang-tools==15.*
-  - libclang==15.*
-  - llvm-openmp==15.*
-  - libsanitizer
+  - clang==17.*
+  - clang-tools==17*
+  - libclang==17.*
+  - llvm-openmp==17.*
   - pylint
   - pip:
-    - clang==15.*
-    - ctypeslib2
+    - libclang==17.*
+    # PR branch for macos + clang-16+ support
+    - ctypeslib2 @ git+https://github.com/dgarnier/ctypeslib.git@anon_union_macos

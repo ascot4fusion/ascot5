@@ -55,9 +55,14 @@ void mpi_interface_init(int argc, char** argv, int* mpi_rank, int* mpi_size,
  * This function finalizes the MPI environment, to be called at the end of
  * execution.
  */
-void mpi_interface_finalize() {
+void mpi_interface_finalize(int err) {
 #ifdef MPI
-    MPI_Finalize();
+    if(err) {
+        MPI_Abort(MPI_COMM_WORLD, err);
+    }
+    else {
+        MPI_Finalize();
+    }
 #endif
 }
 
@@ -135,12 +140,9 @@ void mpi_gather_particlestate(
         for(int i = 1; i < mpi_size; i++) {
             mpi_my_particles(&start_index, &n, n_tot, i, mpi_size);
 
-            real* realdata;
-            realdata = malloc(n_real * n * sizeof(realdata));
-            integer* intdata;
-            intdata = malloc(n_int * n * sizeof(intdata));
-            a5err* errdata;
-            errdata = malloc(n_err * n * sizeof(intdata));
+            real* realdata = (real*) malloc(n_real * n * sizeof(realdata));
+            integer* intdata = (integer*) malloc(n_int * n * sizeof(intdata));
+            a5err* errdata = (a5err*) malloc(n_err * n * sizeof(intdata));
 
             MPI_Recv(realdata, n_real*n, mpi_type_real, i, 0,
                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -285,40 +287,176 @@ void mpi_gather_particlestate(
  * Distributions are summed and orbit data is appended to the root process
  * diagnostics array.
  *
- * @param data diagnostics offload data
- * @param offload_array pointer to diagnostics offload array
+ * @param data diagnostics data
  * @param ntotal total number of markers in the simulation
  * @param mpi_rank rank of this MPI process
  * @param mpi_size total number of MPI processes
  * @param mpi_root rank of the root process
  */
-void mpi_gather_diag(diag_offload_data* data, real* offload_array, int ntotal,
-                     int mpi_rank, int mpi_size, int mpi_root) {
+void mpi_gather_diag(diag_data* data, int ntotal, int mpi_rank, int mpi_size,
+                     int mpi_root) {
 #ifdef MPI
 
-    if(data->dist5D_collect || data->distrho5D_collect
-       || data->dist6D_collect || data->distrho6D_collect) {
-        if(mpi_rank == mpi_root) {
-            MPI_Reduce(MPI_IN_PLACE, offload_array,
-                data->offload_dist_length, mpi_type_real, MPI_SUM,
-                0, MPI_COMM_WORLD);
-        } else {
-            MPI_Reduce(offload_array, offload_array,
-                data->offload_dist_length, mpi_type_real, MPI_SUM,
-                0, MPI_COMM_WORLD);
-        }
+    if(data->dist5D_collect) {
+        MPI_Reduce(
+            mpi_rank == mpi_root ? MPI_IN_PLACE : data->dist5D.histogram,
+            data->dist5D.histogram,
+            data->dist5D.step_6 * data->dist5D.n_r,
+            mpi_type_real, MPI_SUM, mpi_root, MPI_COMM_WORLD);
+    }
+    if(data->dist6D_collect) {
+        MPI_Reduce(
+            mpi_rank == mpi_root ? MPI_IN_PLACE : data->dist6D.histogram,
+            mpi_rank == mpi_root ? NULL : data->dist6D.histogram,
+            data->dist6D.step_7 * data->dist6D.n_r,
+            mpi_type_real, MPI_SUM, mpi_root, MPI_COMM_WORLD);
+    }
+    if(data->distrho5D_collect) {
+        MPI_Reduce(
+            mpi_rank == mpi_root ? MPI_IN_PLACE : data->distrho5D.histogram,
+            mpi_rank == mpi_root ? NULL : data->distrho5D.histogram,
+            data->distrho5D.step_6 * data->distrho5D.n_rho,
+            mpi_type_real, MPI_SUM, mpi_root, MPI_COMM_WORLD);
+    }
+    if(data->distrho6D_collect) {
+        MPI_Reduce(
+            mpi_rank == mpi_root ? MPI_IN_PLACE : data->distrho6D.histogram,
+            mpi_rank == mpi_root ? NULL : data->distrho6D.histogram,
+            data->distrho6D.step_7*data->distrho6D.n_rho,
+            mpi_type_real, MPI_SUM, mpi_root, MPI_COMM_WORLD);
+    }
+    if(data->distCOM_collect) {
+        MPI_Reduce(
+            mpi_rank == mpi_root ? MPI_IN_PLACE : data->distCOM.histogram,
+            mpi_rank == mpi_root ? NULL : data->distCOM.histogram,
+            data->distCOM.step_2 * data->distCOM.n_mu,
+            mpi_type_real, MPI_SUM, mpi_root, MPI_COMM_WORLD);
     }
 
     if(data->diagorb_collect) {
+        size_t nreal = ntotal*data->diagorb.Npnt * sizeof(real);
         if(mpi_rank == mpi_root) {
+            data->diagorb.id = realloc(data->diagorb.id, nreal);
+            data->diagorb.mileage = realloc(data->diagorb.mileage, nreal);
+            data->diagorb.r = realloc(data->diagorb.r, nreal);
+            data->diagorb.phi = realloc(data->diagorb.phi, nreal);
+            data->diagorb.z = realloc(data->diagorb.z, nreal);
+            if(data->diagorb.record_mode == DIAG_ORB_FO) {
+                data->diagorb.p_r = realloc(data->diagorb.p_r, nreal);
+                data->diagorb.p_phi = realloc(data->diagorb.p_phi, nreal);
+                data->diagorb.p_z = realloc(data->diagorb.p_z, nreal);
+            }
+            if(data->diagorb.record_mode == DIAG_ORB_GC) {
+                data->diagorb.ppar = realloc(data->diagorb.ppar, nreal);
+                data->diagorb.mu = realloc(data->diagorb.mu, nreal);
+                data->diagorb.zeta = realloc(data->diagorb.zeta, nreal);
+            }
+            if(data->diagorb.record_mode != DIAG_ORB_ML) {
+                data->diagorb.charge = realloc(data->diagorb.charge, nreal);
+            }
+            data->diagorb.weight = realloc(data->diagorb.weight, nreal);
+            data->diagorb.rho = realloc(data->diagorb.rho, nreal);
+            data->diagorb.theta = realloc(data->diagorb.theta, nreal);
+            data->diagorb.B_r = realloc(data->diagorb.B_r, nreal);
+            data->diagorb.B_phi = realloc(data->diagorb.B_phi, nreal);
+            data->diagorb.B_z = realloc(data->diagorb.B_z, nreal);
+            data->diagorb.simmode = realloc(data->diagorb.simmode, nreal);
+            if(data->diagorb.mode == DIAG_ORB_POINCARE) {
+                data->diagorb.pncrid = realloc(data->diagorb.pncrid, nreal);
+                data->diagorb.pncrdi = realloc(data->diagorb.pncrdi, nreal);
+            }
             for(int i = 1; i < mpi_size; i++) {
                 int start_index, n;
                 mpi_my_particles(&start_index, &n, ntotal, i, mpi_size);
-
-                for(int j = 0; j < data->diagorb.Nfld; j++) {
-                    MPI_Recv(&offload_array[data->offload_diagorb_index
-                                        +j*data->diagorb.Nmrk*data->diagorb.Npnt
-                                        +start_index*data->diagorb.Npnt],
+                MPI_Recv(
+                    &data->diagorb.id[start_index*data->diagorb.Npnt],
+                    n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(
+                    &data->diagorb.mileage[start_index*data->diagorb.Npnt],
+                    n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(
+                    &data->diagorb.r[start_index*data->diagorb.Npnt],
+                    n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(
+                    &data->diagorb.phi[start_index*data->diagorb.Npnt],
+                    n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(
+                    &data->diagorb.z[start_index*data->diagorb.Npnt],
+                    n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                if(data->diagorb.record_mode == DIAG_ORB_FO) {
+                    MPI_Recv(
+                        &data->diagorb.p_r[start_index*data->diagorb.Npnt],
+                        n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    MPI_Recv(
+                        &data->diagorb.p_phi[start_index*data->diagorb.Npnt],
+                        n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    MPI_Recv(
+                        &data->diagorb.p_z[start_index*data->diagorb.Npnt],
+                        n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                }
+                if(data->diagorb.record_mode == DIAG_ORB_GC) {
+                    MPI_Recv(
+                        &data->diagorb.ppar[start_index*data->diagorb.Npnt],
+                        n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    MPI_Recv(
+                        &data->diagorb.mu[start_index*data->diagorb.Npnt],
+                        n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    MPI_Recv(
+                        &data->diagorb.zeta[start_index*data->diagorb.Npnt],
+                        n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                }
+                if(data->diagorb.record_mode != DIAG_ORB_ML) {
+                    MPI_Recv(
+                        &data->diagorb.charge[start_index*data->diagorb.Npnt],
+                        n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                }
+                MPI_Recv(
+                    &data->diagorb.weight[start_index*data->diagorb.Npnt],
+                    n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(
+                    &data->diagorb.rho[start_index*data->diagorb.Npnt],
+                    n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(
+                    &data->diagorb.theta[start_index*data->diagorb.Npnt],
+                    n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(
+                    &data->diagorb.B_r[start_index*data->diagorb.Npnt],
+                    n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(
+                    &data->diagorb.B_phi[start_index*data->diagorb.Npnt],
+                    n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(
+                    &data->diagorb.B_z[start_index*data->diagorb.Npnt],
+                    n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(
+                    &data->diagorb.simmode[start_index*data->diagorb.Npnt],
+                    n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                    MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                if(data->diagorb.mode == DIAG_ORB_POINCARE) {
+                    MPI_Recv(
+                        &data->diagorb.pncrid[start_index*data->diagorb.Npnt],
+                        n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    MPI_Recv(
+                        &data->diagorb.pncrdi[start_index*data->diagorb.Npnt],
                         n*data->diagorb.Npnt, mpi_type_real, i, 0,
                         MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 }
@@ -327,42 +465,93 @@ void mpi_gather_diag(diag_offload_data* data, real* offload_array, int ntotal,
         else {
             int start_index, n;
             mpi_my_particles(&start_index, &n, ntotal, mpi_rank, mpi_size);
-
-            for(int j = 0; j < data->diagorb.Nfld; j++) {
-                MPI_Send(&offload_array[data->offload_diagorb_index
-                                      +j*data->diagorb.Nmrk*data->diagorb.Npnt],
-                n*data->diagorb.Npnt, mpi_type_real, 0, 0, MPI_COMM_WORLD);
+            MPI_Send(data->diagorb.id, n*data->diagorb.Npnt,
+                     mpi_type_real, 0, 0, MPI_COMM_WORLD);
+            MPI_Send(data->diagorb.mileage, n*data->diagorb.Npnt,
+                     mpi_type_real, 0, 0, MPI_COMM_WORLD);
+            MPI_Send(data->diagorb.r, n*data->diagorb.Npnt,
+                     mpi_type_real, 0, 0, MPI_COMM_WORLD);
+            MPI_Send(data->diagorb.phi, n*data->diagorb.Npnt,
+                     mpi_type_real, 0, 0, MPI_COMM_WORLD);
+            MPI_Send(data->diagorb.z, n*data->diagorb.Npnt,
+                     mpi_type_real, 0, 0, MPI_COMM_WORLD);
+            if(data->diagorb.record_mode == DIAG_ORB_FO) {
+                MPI_Send(data->diagorb.p_r, n*data->diagorb.Npnt,
+                        mpi_type_real, 0, 0, MPI_COMM_WORLD);
+                MPI_Send(data->diagorb.p_phi, n*data->diagorb.Npnt,
+                        mpi_type_real, 0, 0, MPI_COMM_WORLD);
+                MPI_Send(data->diagorb.p_z, n*data->diagorb.Npnt,
+                        mpi_type_real, 0, 0, MPI_COMM_WORLD);
+            }
+            if(data->diagorb.record_mode == DIAG_ORB_GC) {
+                MPI_Send(data->diagorb.ppar, n*data->diagorb.Npnt,
+                        mpi_type_real, 0, 0, MPI_COMM_WORLD);
+                MPI_Send(data->diagorb.mu, n*data->diagorb.Npnt,
+                        mpi_type_real, 0, 0, MPI_COMM_WORLD);
+                MPI_Send(data->diagorb.zeta, n*data->diagorb.Npnt,
+                        mpi_type_real, 0, 0, MPI_COMM_WORLD);
+            }
+            if(data->diagorb.record_mode != DIAG_ORB_ML) {
+                MPI_Send(data->diagorb.charge, n*data->diagorb.Npnt,
+                        mpi_type_real, 0, 0, MPI_COMM_WORLD);
+            }
+            MPI_Send(data->diagorb.weight, n*data->diagorb.Npnt,
+                        mpi_type_real, 0, 0, MPI_COMM_WORLD);
+            MPI_Send(data->diagorb.rho, n*data->diagorb.Npnt,
+                     mpi_type_real, 0, 0, MPI_COMM_WORLD);
+            MPI_Send(data->diagorb.theta, n*data->diagorb.Npnt,
+                     mpi_type_real, 0, 0, MPI_COMM_WORLD);
+            MPI_Send(data->diagorb.B_r, n*data->diagorb.Npnt,
+                     mpi_type_real, 0, 0, MPI_COMM_WORLD);
+            MPI_Send(data->diagorb.B_phi, n*data->diagorb.Npnt,
+                     mpi_type_real, 0, 0, MPI_COMM_WORLD);
+            MPI_Send(data->diagorb.B_z, n*data->diagorb.Npnt,
+                     mpi_type_real, 0, 0, MPI_COMM_WORLD);
+            MPI_Send(data->diagorb.simmode, n*data->diagorb.Npnt,
+                     mpi_type_real, 0, 0, MPI_COMM_WORLD);
+            if(data->diagorb.mode == DIAG_ORB_POINCARE) {
+                MPI_Send(data->diagorb.pncrid, n*data->diagorb.Npnt,
+                        mpi_type_real, 0, 0, MPI_COMM_WORLD);
+                MPI_Send(data->diagorb.pncrdi, n*data->diagorb.Npnt,
+                        mpi_type_real, 0, 0, MPI_COMM_WORLD);
             }
         }
     }
 
     if(data->diagtrcof_collect) {
-        /* 3 fields for transport coefficients, id, D, K */
-        int nfield = 3;
 
         if(mpi_rank == mpi_root) {
+            data->diagtrcof.id = realloc(
+                data->diagtrcof.id, ntotal*data->diagtrcof.Nmrk*sizeof(int)
+                );
+            data->diagtrcof.Kcoef = realloc(
+                data->diagtrcof.Kcoef, ntotal*data->diagtrcof.Nmrk*sizeof(real)
+                );
+            data->diagtrcof.Dcoef = realloc(
+                data->diagtrcof.Dcoef,
+                ntotal*data->diagtrcof.Nmrk*sizeof(real)
+                );
             for(int i = 1; i < mpi_size; i++) {
                 int start_index, n;
                 mpi_my_particles(&start_index, &n, ntotal, i, mpi_size);
 
-                for(int j = 0; j < nfield; j++) {
-                    MPI_Recv(&offload_array[data->offload_diagtrcof_index
-                                        +j*data->diagtrcof.Nmrk
-                                        +start_index],
-                        n, mpi_type_real, i, 0,
-                        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                }
+                MPI_Recv(&data->diagtrcof.id[start_index], n, mpi_type_integer,
+                         i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(&data->diagtrcof.Kcoef[start_index], n, mpi_type_real,
+                         i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(&data->diagtrcof.Dcoef[start_index], n, mpi_type_real,
+                         i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             }
         }
         else {
             int start_index, n;
             mpi_my_particles(&start_index, &n, ntotal, mpi_rank, mpi_size);
-
-            for(int j = 0; j < nfield; j++) {
-                MPI_Send(&offload_array[data->offload_diagtrcof_index
-                                      +j*data->diagtrcof.Nmrk],
-                n, mpi_type_real, 0, 0, MPI_COMM_WORLD);
-            }
+            MPI_Send(data->diagtrcof.id, n, mpi_type_integer,
+                     0, 0, MPI_COMM_WORLD);
+            MPI_Send(data->diagtrcof.Kcoef, n, mpi_type_real,
+                     0, 0, MPI_COMM_WORLD);
+            MPI_Send(data->diagtrcof.Dcoef, n, mpi_type_real,
+                     0, 0, MPI_COMM_WORLD);
         }
     }
 

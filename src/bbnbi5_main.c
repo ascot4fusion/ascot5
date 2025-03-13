@@ -28,7 +28,7 @@
 #include "diag.h"
 #include "bbnbi5.h"
 
-int bbnbi_read_arguments(int argc, char** argv, sim_offload_data* sim,
+int bbnbi_read_arguments(int argc, char** argv, sim_data* sim,
                          int* nprt, real* t1, real* t2);
 
 /**
@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
     /* Read and parse command line arguments */
     int nprt;    /* Number of markers to be generated in total */
     real t1, t2; /* Markers are initialized in this time-spawn */
-    sim_offload_data sim;
+    sim_data sim;
     if(bbnbi_read_arguments(argc, argv, &sim, &nprt, &t1, &t2) != 0) {
         abort();
         return 1;
@@ -58,22 +58,10 @@ int main(int argc, char** argv) {
                "Tag %s\nBranch %s\n\n", GIT_VERSION, GIT_BRANCH);
 
     /* Read data needed for bbnbi simulation */
-    real* nbi_offload_array;
-    real* B_offload_array;
-    real* plasma_offload_array;
-    real* neutral_offload_array;
-    real* wall_offload_array;
-    int*  wall_int_offload_array;
-    real* asigma_offload_array;
-    real* diag_offload_array;
     if( hdf5_interface_read_input(&sim, hdf5_input_bfield | hdf5_input_plasma |
                                   hdf5_input_neutral | hdf5_input_wall |
                                   hdf5_input_asigma | hdf5_input_nbi |
                                   hdf5_input_options,
-                                  &B_offload_array, NULL, &plasma_offload_array,
-                                  &neutral_offload_array, &wall_offload_array,
-                                  &wall_int_offload_array, NULL, NULL,
-                                  &asigma_offload_array, &nbi_offload_array,
                                   NULL, NULL) ) {
         print_out0(VERBOSE_MINIMAL, sim.mpi_rank, sim.mpi_root,
                    "Input initialization failed\n");
@@ -82,22 +70,18 @@ int main(int argc, char** argv) {
     }
 
     /* Disable diagnostics that are not supported */
-    sim.diag_offload_data.diagorb_collect   = 0;
-    sim.diag_offload_data.diagtrcof_collect = 0;
+    sim.diag_data.diagorb_collect   = 0;
+    sim.diag_data.diagtrcof_collect = 0;
 
     /* Initialize diagnostics */
-    if( diag_init_offload(&sim.diag_offload_data, &diag_offload_array, 0) ) {
+    if( diag_init(&sim.diag_data, 0) ) {
         print_out0(VERBOSE_MINIMAL, sim.mpi_rank, sim.mpi_root,
                        "\nFailed to initialize diagnostics.\n"
                        "See stderr for details.\n");
             abort();
             return 1;
     }
-    real diag_offload_array_size = sim.diag_offload_data.offload_array_length
-        * sizeof(real) / (1024.0*1024.0);
-    print_out0(VERBOSE_IO, sim.mpi_rank, sim.mpi_root,
-               "Initialized diagnostics, %.1f MB.\n", diag_offload_array_size);
-    simulate_init_offload(&sim);
+    simulate_init(&sim);
 
     /* QID for this run */
     char qid[11];
@@ -111,7 +95,7 @@ int main(int argc, char** argv) {
             print_out0(VERBOSE_MINIMAL, sim.mpi_rank, sim.mpi_root,
                        "\nInitializing output failed.\n"
                        "See stderr for details.\n");
-            /* Free offload data and terminate */
+            /* Free data and terminate */
             abort();
             return 1;
         }
@@ -120,10 +104,7 @@ int main(int argc, char** argv) {
 
     /* Inject markers from the injectors and trace them */
     particle_state* p;
-    bbnbi_simulate(
-        &sim, nprt, t1, t2, B_offload_array, plasma_offload_array,
-        neutral_offload_array, wall_offload_array, wall_int_offload_array,
-        asigma_offload_array, nbi_offload_array, &p, diag_offload_array);
+    bbnbi_simulate(&sim, nprt, t1, t2, &p);
 
     /* Write output */
     if(sim.mpi_rank == sim.mpi_root) {
@@ -138,8 +119,7 @@ int main(int argc, char** argv) {
         print_out0(VERBOSE_NORMAL, sim.mpi_rank, sim.mpi_root,
                    "\nMarker state written.\n");
 
-        hdf5_interface_write_diagnostics(
-            &sim, diag_offload_array, sim.hdf5_out);
+        hdf5_interface_write_diagnostics(&sim);
     }
     print_out0(VERBOSE_MINIMAL, sim.mpi_rank, sim.mpi_root, "\nDone\n");
 
@@ -158,14 +138,14 @@ int main(int argc, char** argv) {
  *
  * @param argc argument count as given to main()
  * @param argv argument vector as given to main()
- * @param sim pointer to offload data struct
+ * @param sim pointer to the data struct
  * @param nprt pointer to integer where number of markers is stored
  * @param t1 pointer to store beginning of time interval
  * @param t2 pointer to store end of the time interval
  *
  * @return Zero if success
  */
-int bbnbi_read_arguments(int argc, char** argv, sim_offload_data* sim,
+int bbnbi_read_arguments(int argc, char** argv, sim_data* sim,
                          int* nprt, real* t1, real* t2) {
     struct option longopts[] = {
         {"in",       required_argument, 0,  1},

@@ -25,160 +25,61 @@
 #include "Bfield/B_TC.h"
 
 /**
- * @brief Load magnetic field data and prepare parameters
+ * @brief Free allocated resources
  *
- * This function fills the relevant magnetic field offload struct with
- * parameters and allocates and fills the offload array. Sets offload
- * array length in the offload struct.
- *
- * The offload data has to have a type when this function is called as it should
- * be set when the offload data is constructed from inputs.
- *
- * This function is host only.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
- *
- * @return Zero if initialization succeeded
+ * @param data pointer to data struct
  */
-int B_field_init_offload(B_field_offload_data* offload_data,
-                         real** offload_array) {
-    int err = 0;
-    switch(offload_data->type) {
-
+void B_field_free(B_field_data* data) {
+    switch(data->type) {
         case B_field_type_GS:
-            err = B_GS_init_offload(&(offload_data->BGS), offload_array);
-            offload_data->offload_array_length =
-                offload_data->BGS.offload_array_length;
+            B_GS_free(&(data->BGS));
             break;
 
         case B_field_type_2DS:
-            err = B_2DS_init_offload(&(offload_data->B2DS), offload_array);
-            offload_data->offload_array_length =
-                offload_data->B2DS.offload_array_length;
+            B_2DS_free(&(data->B2DS));
             break;
 
         case B_field_type_3DS:
-            err = B_3DS_init_offload(&(offload_data->B3DS), offload_array);
-            offload_data->offload_array_length =
-                offload_data->B3DS.offload_array_length;
+            B_3DS_free(&(data->B3DS));
             break;
 
         case B_field_type_STS:
-            err = B_STS_init_offload(&(offload_data->BSTS), offload_array);
-            offload_data->offload_array_length =
-                offload_data->BSTS.offload_array_length;
+            B_STS_free(&(data->BSTS));
             break;
 
         case B_field_type_TC:
-            err = B_TC_init_offload(&(offload_data->BTC), offload_array);
-            offload_data->offload_array_length =
-                offload_data->BTC.offload_array_length;
-            break;
-
-        default:
-            /* Unregonized input. Produce error. */
-            print_err("Error: Unregonized magnetic field type.");
-            err = 1;
-            break;
-    }
-
-    if(!err) {
-        print_out(VERBOSE_IO, "Estimated memory usage %.1f MB\n",
-                  offload_data->offload_array_length
-                  * sizeof(real) / (1024.0*1024.0) );
-    }
-
-    return err;
-}
-
-/**
- * @brief Free offload array and reset parameters
- *
- * This function deallocates the offload_array.
- *
- * This function is host only.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
- */
-void B_field_free_offload(B_field_offload_data* offload_data,
-                          real** offload_array) {
-    switch(offload_data->type) {
-        case B_field_type_GS:
-            B_GS_free_offload(&(offload_data->BGS), offload_array);
-            break;
-
-        case B_field_type_2DS:
-            B_2DS_free_offload(&(offload_data->B2DS), offload_array);
-            break;
-
-        case B_field_type_3DS:
-            B_3DS_free_offload(&(offload_data->B3DS), offload_array);
-            break;
-
-        case B_field_type_STS:
-            B_STS_free_offload(&(offload_data->BSTS), offload_array);
-            break;
-
-        case B_field_type_TC:
-            B_TC_free_offload(&(offload_data->BTC), offload_array);
+            B_TC_free(&(data->BTC));
             break;
     }
 }
 
 /**
- * @brief Initialize magnetic field data struct on target
+ * @brief Offload data to the accelerator.
  *
- * This function copies the magnetic field parameters from the offload struct
- * to the struct on target and sets the magnetic field data pointers to correct
- * offsets in the offload array.
- *
- * @param Bdata pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array offload array
- *
- * @return Zero if initialization succeeded
+ * @param data pointer to the data struct
  */
-int B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
-                  real* offload_array) {
-    int err = 0;
-
-    switch(offload_data->type) {
+void B_field_offload(B_field_data* data) {
+    switch(data->type) {
         case B_field_type_GS:
-            B_GS_init(
-                &(Bdata->BGS), &(offload_data->BGS), offload_array);
+            B_GS_offload(&(data->BGS));
             break;
 
         case B_field_type_2DS:
-            B_2DS_init(
-                &(Bdata->B2DS), &(offload_data->B2DS), offload_array);
+            B_2DS_offload(&(data->B2DS));
             break;
 
         case B_field_type_3DS:
-            B_3DS_init(
-                &(Bdata->B3DS), &(offload_data->B3DS), offload_array);
+            B_3DS_offload(&(data->B3DS));
             break;
 
         case B_field_type_STS:
-            B_STS_init(
-                &(Bdata->BSTS), &(offload_data->BSTS), offload_array);
+            B_STS_offload(&(data->BSTS));
             break;
 
         case B_field_type_TC:
-            B_TC_init(
-                &(Bdata->BTC), &(offload_data->BTC), offload_array);
-            break;
-
-        default:
-            /* Unregonized input. Produce error. */
-            print_err("Error: Unregonized magnetic field type.\n");
-            err = 1;
+            B_TC_offload(&(data->BTC));
             break;
     }
-    Bdata->type = offload_data->type;
-
-    return err;
 }
 
 /**
@@ -350,8 +251,9 @@ a5err B_field_eval_rho(real rho[2], real psi, B_field_data* Bdata) {
             break;
 
         case B_field_type_TC:
-            psi0 = Bdata->BTC.psival;
-            psi1 = 2.0;
+            psi0 = Bdata->BTC.psival - Bdata->BTC.rhoval * Bdata->BTC.rhoval;
+            psi1 = Bdata->BTC.psival - Bdata->BTC.rhoval * Bdata->BTC.rhoval
+                   + 1.0;
             break;
 
         default:
@@ -592,7 +494,7 @@ a5err B_field_eval_B_dB(real B_dB[15], real r, real phi, real z, real t,
  *
  * @param rz pointer where axis R and z [m] values will be stored
  * @param Bdata pointer to magnetic field data struct
- * @param phi phi coordinate [deg]
+ * @param phi phi coordinate [rad]
  *
  * @return Magnetic axis R-coordinate [m]
  */

@@ -30,24 +30,32 @@
 #include "B_TC.h"
 
 /**
- * @brief Initialize magnetic field offload data
+ * @brief Initialize magnetic field data
  *
- * The offload data struct is very simple and contains only the necessary fields
- * which are all initialized when the data is read (except
- * B_TC.offload_array_length). The offload array is not required at all.
- * Therefore, this function only sets the offload_array_length to zero, assigns
- * a NULL pointer to offload_array, and prints sanity checks so that user may
- * verify that data was initialized succesfully.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
+ * @param data pointer to the data struct
+ * @param axisr value returned when quering magnetic axis R coordinate [m]
+ * @param axisz value returned when quering magnetic axis z coordinate [m]
+ * @param psival value returned when quering magnetic flux [Vs/m]
+ * @param rhoval value returned when quering normalized poloidal flux [1]
+ * @param B magnetic field at origo [B_x, B_y, B_z] [T]
+ * @param dB magnetic field Jacobian [dB_x/dx, dB_x/dy, dB_x/dz, dB_y/dx,
+ *        dB_y/dy, dB_y/dz, dB_z/dx, dB_z/dy, dB_z/dz] [T/m]
  *
  * @return zero to indicate success
  */
-int B_TC_init_offload(B_TC_offload_data* offload_data, real** offload_array) {
-    // No initialization done
-    offload_data->offload_array_length = 0;
-    *offload_array = NULL;
+int B_TC_init(B_TC_data* data, real axisr, real axisz, real psival, real rhoval,
+              real B[3], real dB[9]) {
+
+    data->axisr = axisr;
+    data->axisz = axisz;
+    data->psival = psival;
+    data->rhoval = rhoval;
+    data->B[0] = B[0];
+    data->B[1] = B[1];
+    data->B[2] = B[2];
+    for(int i = 0; i < 9; i++) {
+        data->dB[i] = dB[i];
+    }
 
     print_out(VERBOSE_IO,
               "\nTrivial cartesian magnetic field (B_TC)\n"
@@ -59,45 +67,30 @@ int B_TC_init_offload(B_TC_offload_data* offload_data, real** offload_array) {
               "dB_x/dx = %.3f dB_x/dy = %.3f B_x/dz = %.3f\n"
               "dB_y/dx = %.3f dB_y/dy = %.3f B_y/dz = %.3f\n"
               "dB_z/dx = %.3f dB_z/dy = %.3f B_z/dz = %.3f\n",
-              offload_data->axisr, offload_data->axisz,
-              offload_data->psival, offload_data->rhoval,
-              offload_data->B[0],  offload_data->B[1],  offload_data->B[2],
-              offload_data->dB[0], offload_data->dB[1], offload_data->dB[2],
-              offload_data->dB[3], offload_data->dB[4], offload_data->dB[5],
-              offload_data->dB[6], offload_data->dB[7], offload_data->dB[8]);
+              data->axisr, data->axisz,
+              data->psival, data->rhoval,
+              data->B[0],  data->B[1],  data->B[2],
+              data->dB[0], data->dB[1], data->dB[2],
+              data->dB[3], data->dB[4], data->dB[5],
+              data->dB[6], data->dB[7], data->dB[8]);
 
     return 0;
 }
 
 /**
- * @brief Free offload array
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @brief Free allocated resources
  */
-void B_TC_free_offload(B_TC_offload_data* offload_data,
-                       real** offload_array) {
-    free(*offload_array);
-    *offload_array = NULL;
+void B_TC_free(B_TC_data* data) {
+    // No resources were dynamically allocated
 }
 
 /**
- * @brief Initialize magnetic field data struct on target
+ * @brief Offload data to the accelerator.
  *
- * @param Bdata pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array offload array
+ * @param data pointer to the data struct
  */
-void B_TC_init(B_TC_data* Bdata, B_TC_offload_data* offload_data,
-               real* offload_array) {
-    Bdata->rhoval = offload_data->rhoval;
-    Bdata->psival = offload_data->psival;
-    Bdata->axisr = offload_data->axisr;
-    Bdata->axisz = offload_data->axisz;
-
-    Bdata->B  = offload_data->B;
-    Bdata->dB = offload_data->dB;
-
+void B_TC_offload(B_TC_data* data) {
+    GPU_MAP_TO_DEVICE( data->B[0:3], data->dB[0:9] )
 }
 
 /**

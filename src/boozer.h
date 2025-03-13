@@ -11,20 +11,7 @@
 #include "spline/interp.h"
 
 /**
- * @brief offload data for maps between boozer and cylindrical coordinates
- */
-typedef struct {
-    int  npsi;     /**< Number of psi grid points for other fields            */
-    real psi_min;  /**< Minimum psi in other fields                           */
-    real psi_max;  /**< Maximum psi in other fields                           */
-    int  ntheta;   /**< number of boozer theta grid points                    */
-    int  nthetag;  /**< number of geometric theta grid points                 */
-    int  nrzs;     /**< number of elements in rs and zs                       */
-    int  offload_array_length; /**< Number of elements in offload_array       */
-} boozer_offload_data;
-
-/**
- * @brief Boozer parameters on the target
+ * @brief Data for mapping between the cylindrical and Boozer coordinates
  */
 typedef struct {
     real psi_min;  /**< Minimum psi in other fields                           */
@@ -39,14 +26,11 @@ typedef struct {
     interp2D_data theta_psithetageom; /**< boozer_theta(psi,thetag)           */
 } boozer_data;
 
-int boozer_init_offload(boozer_offload_data* offload_data,
-                        real** offload_array);
-void boozer_free_offload(boozer_offload_data* offload_data,
-                         real** offload_array);
-
-void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
-                 real* offload_array);
-
+int boozer_init(boozer_data* data, int npsi, real psi_min, real psi_max,
+                int ntheta, int nthetag, real* nu, real* theta,
+                int nrzs, real* rs, real* zs);
+void boozer_free(boozer_data* data);
+void boozer_offload(boozer_data* data);
 DECLARE_TARGET_SIMD_UNIFORM(Bdata, boozerdata)
 a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside, real r,
                                real phi, real z, B_field_data* Bdata,

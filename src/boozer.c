@@ -14,146 +14,82 @@
 #include "spline/interp.h"
 
 /**
- * @brief Load Boozer data and prepare parameters for offload.
- *
- * This function fills the boozer offload struct with parameters and allocates
- * and fills the offload array. Sets offload array length in the offload struct.
- *
- * The offload data struct should be fully initialized before calling this
- * function and offload array should hold the input data in order
- * [psi, nu, theta_bzr]. This function fits splines to input data, reallocates
- * the offload array and stores spline coefficients there.
+ * @brief Initialize boozer coordinate transformation
  *
  * Multidimensional arrays must be stored as
- * - nu(psi_i, thetabzr_j)        = array[j*npsi + i]
- * - theta_bzr(psi_i, thetageo_j) = array[j*npsi + i]
- * - psi(R_i, z_j)                = array[j*nR + i]
+ * - nu(psi_i, theta_j)     = array[j*npsi + i]
+ * - theta(psi_i, thetag_j) = array[j*npsi + i]
  *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param data pointer to the data struct
+ * @param npsi Number of psi grid points in `nu` and `theta` data
+ * @param psi_min minimum value in the psi grid
+ * @param psi_max maximum value in the psi grid
+ * @param ntheta number of boozer theta grid points in `nu` data
+ * @param nthetag number of geometric theta grid points in `theta` data
+ * @param nu the difference between cylindrical angle phi and toroidal boozer
+ *           coordinate zeta, phi = zeta + nu [rad]
+ * @param theta the boozer poloidal angle [rad]
+ * @param nrzs the number of elements in `rs` and `zs`
+ * @param rs separatrix contour R coordinates [m]
+ * @param zs separatrix contour z coordinates [m]
  *
  * @return zero if initialization succeeded.
  */
-int boozer_init_offload(boozer_offload_data* offload_data,
-                        real** offload_array) {
+int boozer_init(boozer_data* data, int npsi, real psi_min, real psi_max,
+                int ntheta, int nthetag, real* nu, real* theta,
+                int nrzs, real* rs, real* zs) {
 
     int err = 0;
-
-    /* Size of 2D grids and 1D data */
-    int nusize      = offload_data->npsi * offload_data->ntheta;
-    int thetasize   = offload_data->npsi * offload_data->nthetag;
-    int contoursize = offload_data->nrzs;
-
-    /* Grid limits for theta_bzr and theta_geo grids */
     real THETAMIN = 0;
     real THETAMAX = CONST_2PI;
-    real padding = (4.0*CONST_2PI)/(offload_data->nthetag-2*4.0 -1);
+    real padding = ( 4.0*CONST_2PI ) / ( nthetag - 2*4.0 - 1 );
+    data->psi_min = psi_min;
+    data->psi_max = psi_max;
 
-    /* Allocate array for storing coefficients (which later replaces the
-       offload array) and contour points */
-    real* coeff_array = (real*)malloc( ( ( nusize + thetasize)
-                                         * NSIZE_COMP2D + 2*contoursize )
-                                       * sizeof(real) );
+    err = interp2Dcomp_setup(&data->nu_psitheta, nu, npsi, ntheta,
+                             NATURALBC, PERIODICBC, psi_min, psi_max,
+                             THETAMIN, THETAMAX);
+    err = interp2Dcomp_setup(&data->theta_psithetageom, theta, npsi, nthetag,
+                             NATURALBC, NATURALBC, psi_min, psi_max,
+                             THETAMIN-padding, THETAMAX+padding);
 
-    /* Evaluate and store coefficients */
-
-    /* nu */
-    err += interp2Dcomp_init_coeff(
-            &coeff_array[0],
-            &(*offload_array)[0],
-            offload_data->npsi, offload_data->ntheta,
-            NATURALBC, PERIODICBC,
-            offload_data->psi_min, offload_data->psi_max,
-            THETAMIN, THETAMAX);
-
-    /* theta_bzr */
-    err += interp2Dcomp_init_coeff(
-            &coeff_array[nusize * NSIZE_COMP2D],
-            &(*offload_array)[nusize],
-            offload_data->npsi, offload_data->nthetag,
-            NATURALBC, NATURALBC,
-            offload_data->psi_min, offload_data->psi_max,
-            THETAMIN-padding, THETAMAX+padding);
-
-    for(int i = 0; i < contoursize; i++) {
-        coeff_array[(nusize + thetasize)*NSIZE_COMP2D + i] =
-            (*offload_array)[nusize + thetasize + i];
-        coeff_array[(nusize + thetasize)*NSIZE_COMP2D + contoursize + i] =
-            (*offload_array)[nusize + thetasize + contoursize + i];
+    data->nrzs = nrzs;
+    data->rs = (real*) malloc( nrzs * sizeof(real) );
+    data->zs = (real*) malloc( nrzs * sizeof(real) );
+    for(int i = 0; i < nrzs; i++) {
+        data->rs[i] = rs[i];
+        data->zs[i] = zs[i];
     }
-
-    free(*offload_array);
-    *offload_array = coeff_array;
-    offload_data->offload_array_length = (nusize + thetasize)
-                                         * NSIZE_COMP2D + 2 * contoursize;
 
     /* Print some sanity check on data */
     print_out(VERBOSE_IO, "\nBoozer input\n");
     print_out(VERBOSE_IO, "psi grid: n = %4.d min = %3.3f max = %3.3f\n",
-              offload_data->npsi,
-              offload_data->psi_min, offload_data->psi_max);
-    print_out(VERBOSE_IO, "thetageo grid: n = %4.d\n", offload_data->nthetag);
-    print_out(VERBOSE_IO, "thetabzr grid: n = %4.d\n", offload_data->ntheta);
+              npsi, psi_min, psi_max);
+    print_out(VERBOSE_IO, "thetageo grid: n = %4.d\n", nthetag);
+    print_out(VERBOSE_IO, "thetabzr grid: n = %4.d\n", ntheta);
 
     return err;
 }
 
 /**
- * @brief Initialize boozer data struct on target
+ * @brief Free allocated resources
  *
- * @param boozerdata pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
+ * @param data pointer to the data struct
  */
-void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
-                 real* offload_array) {
-
-    boozerdata->psi_min  = offload_data->psi_min;
-    boozerdata->psi_max  = offload_data->psi_max;
-
-    /* Grid limits for theta_bzr and theta_geo grids*/
-    real THETAMIN = 0;
-    real THETAMAX = CONST_2PI;
-    real padding = (4.0*CONST_2PI)/(offload_data->nthetag-2*4.0-1);
-
-    /* Size of 1D and 2D input data arrays */
-    int nusize      = offload_data->npsi * offload_data->ntheta * NSIZE_COMP2D;
-    int thetasize   = offload_data->npsi * offload_data->nthetag * NSIZE_COMP2D;
-    int contoursize = offload_data->nrzs;
-
-    /* Initialize splines */
-    interp2Dcomp_init_spline(&boozerdata->nu_psitheta,
-                             &(offload_array[0]),
-                             offload_data->npsi,
-                             offload_data->ntheta,
-                             NATURALBC, PERIODICBC,
-                             offload_data->psi_min,
-                             offload_data->psi_max,
-                             THETAMIN, THETAMAX);
-
-    interp2Dcomp_init_spline(&boozerdata->theta_psithetageom,
-                             &(offload_array[nusize]),
-                             offload_data->npsi,
-                             offload_data->nthetag,
-                             NATURALBC, NATURALBC,
-                             offload_data->psi_min,
-                             offload_data->psi_max,
-                             THETAMIN-padding, THETAMAX+padding);
-
-    boozerdata->rs   = &(offload_array[nusize + thetasize]);
-    boozerdata->zs   = &(offload_array[nusize + thetasize + contoursize]);
-    boozerdata->nrzs = offload_data->nrzs;
+void boozer_free(boozer_data* data) {
+    free(data->rs);
+    free(data->zs);
+    free(data->nu_psitheta.c);
+    free(data->theta_psithetageom.c);
 }
 
 /**
- * @brief Free offload array
+ * @brief Offload data to the accelerator.
  *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param data pointer to the data struct
  */
-void boozer_free_offload(boozer_offload_data* offload_data,
-                         real** offload_array) {
-    free(*offload_array);
+void boozer_offload(boozer_data* data) {
+    // TODO: Implement
 }
 
 /**

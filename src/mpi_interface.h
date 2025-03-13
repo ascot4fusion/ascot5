@@ -21,7 +21,7 @@
 void mpi_interface_barrier();
 void mpi_interface_init(int argc, char** argv, int* mpi_rank, int* mpi_size,
                         int* mpi_root);
-void mpi_interface_finalize();
+void mpi_interface_finalize(int err);
 void mpi_my_particles(int* start_index, int* n, int ntotal, int mpi_rank,
                       int mpi_size);
 void mpi_gather_particlestate(particle_state* ps, particle_state** psgathered,
@@ -30,7 +30,7 @@ void mpi_gather_particlestate(particle_state* ps, particle_state** psgathered,
 void mpi_gather_particlestate(
     particle_state* ps, particle_state** ps_gather, int* n_gather, int n_tot,
     int mpi_rank, int mpi_size, int mpi_root);
-void mpi_gather_diag(diag_offload_data* data, real* offload_array, int ntotal,
-                     int mpi_rank, int mpi_size, int mpi_root);
+void mpi_gather_diag(diag_data* data, int ntotal, int mpi_rank, int mpi_size,
+                     int mpi_root);
 
 #endif

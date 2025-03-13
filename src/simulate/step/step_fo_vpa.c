@@ -4,7 +4,7 @@
  **/
 #include <math.h>
 #include <stdio.h>
-#include "../../offload_acc_omp.h"
+#include "../../offload.h"
 #include "../../ascot5.h"
 #include "../../math.h"
 #include "../../consts.h"

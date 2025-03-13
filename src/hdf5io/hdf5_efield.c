@@ -28,10 +28,8 @@
 
 #define EPATH /**< Macro that is used to store paths to data groups */
 
-int hdf5_efield_read_1DS(hid_t f, E_1DS_offload_data* offload_data,
-                         real** offload_array, char* qid);
-int hdf5_efield_read_TC(hid_t f, E_TC_offload_data* offload_data,
-                        real** offload_array, char* qid);
+int hdf5_efield_read_1DS(hid_t f, E_1DS_data* data, char* qid);
+int hdf5_efield_read_TC(hid_t f, E_TC_data* data, char* qid);
 
 /**
  * @brief Read electric field data from HDF5 file
@@ -47,39 +45,26 @@ int hdf5_efield_read_TC(hid_t f, E_TC_offload_data* offload_data,
  *
  * @param f HDF5 file identifier for a file which is opened and closed outside
  *          of this function
- * @param offload_data pointer to offload data struct which is initialized here
- * @param offload_array pointer to offload array which is allocated and
- *                      initialized here
+ * @param data pointer to the data struct which is initialized here
  * @param qid QID of the data that is to be read
  *
  * @return zero if reading and initialization succeeded
  */
-int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data,
-                             real** offload_array, char* qid) {
+int hdf5_efield_init(hid_t f, E_field_data* data, char* qid) {
     char path[256];
     int err = 1;
 
     /* Read data the QID corresponds to */
-
     hdf5_gen_path("/efield/E_TC_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
-        offload_data->type = E_field_type_TC;
-        err = hdf5_efield_read_TC(f, &(offload_data->ETC),
-                                  offload_array, qid);
+        data->type = E_field_type_TC;
+        err = hdf5_efield_read_TC(f, &data->ETC, qid);
     }
-
     hdf5_gen_path("/efield/E_1DS_XXXXXXXXXX", qid, path);
     if(hdf5_find_group(f, path) == 0) {
-        offload_data->type = E_field_type_1DS;
-        err = hdf5_efield_read_1DS(f, &(offload_data->E1DS),
-                                   offload_array, qid);
+        data->type = E_field_type_1DS;
+        err = hdf5_efield_read_1DS(f, &data->E1DS, qid);
     }
-
-    /* Initialize if data was read succesfully */
-    if(!err) {
-        err = E_field_init_offload(offload_data, offload_array);
-    }
-
     return err;
 }
 
@@ -87,41 +72,32 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data,
  * @brief Read E1DS electric field data from HDF5 file.
  *
  * @param f HDF5 file from which data is read
- * @param offload_data pointer to offload data
- * @param offload_array pointer to offload array
+ * @param data pointer to the data
  * @param qid QID of the data
  *
  * @return Zero if reading succeeded
  */
-int hdf5_efield_read_1DS(hid_t f, E_1DS_offload_data* offload_data,
-                         real** offload_array, char* qid) {
+int hdf5_efield_read_1DS(hid_t f, E_1DS_data* data, char* qid) {
     #undef EPATH
     #define EPATH "/efield/E_1DS_XXXXXXXXXX/"
 
-    if( hdf5_read_int(EPATH "nrho", &(offload_data->n_rho),
+    int nrho;
+    real rhomin, rhomax, reff;
+    if( hdf5_read_int(EPATH "nrho", &nrho,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(EPATH "rhomin", &(offload_data->rho_min),
+    if( hdf5_read_double(EPATH "rhomin", &rhomin,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(EPATH "rhomax", &(offload_data->rho_max),
+    if( hdf5_read_double(EPATH "rhomax", &rhomax,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    /* Allocate n_rho space for dV/drho */
-    *offload_array = (real*) malloc(offload_data->n_rho*sizeof(real));
-
-    if( hdf5_read_double(EPATH "dvdrho", *offload_array,
+    if( hdf5_read_double(EPATH "reff", &reff,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    /* Effective minor radius */
-    real r_eff;
-    if( hdf5_read_double(EPATH "reff", &(r_eff),
+    real* dvdrho = (real*) malloc( nrho*sizeof(real) );
+    if( hdf5_read_double(EPATH "dvdrho", dvdrho,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    /* Scale derivatives by effective minor radius */
-    for(int i = 0; i < offload_data->n_rho; i++) {
-        (*offload_array)[i] = r_eff * (*offload_array)[i];
-    }
-
-    return 0;
+    int err = E_1DS_init(data, nrho, rhomin, rhomax, reff, dvdrho);
+    free(dvdrho);
+    return err;
 }
 
 /**
@@ -136,22 +112,18 @@ int hdf5_efield_read_1DS(hid_t f, E_1DS_offload_data* offload_data,
  *
  * @param f HDF5 file identifier for a file which is opened and closed outside
  *          of this function
- * @param offload_data pointer to offload data struct which is allocated here
- * @param offload_array pointer to offload array but no data is stored there so
- *                      it is not allocated and NULL pointer is returned instead
+ * @param data pointer to the data struct which is allocated here
  * @param qid QID of the B_TC field that is to be read
  *
  * @return zero if reading succeeded
  */
-int hdf5_efield_read_TC(hid_t f, E_TC_offload_data* offload_data,
-                        real** offload_array, char* qid) {
+int hdf5_efield_read_TC(hid_t f, E_TC_data* data, char* qid) {
     #undef EPATH
     #define EPATH "/efield/E_TC_XXXXXXXXXX/"
 
-    *offload_array = NULL;
-
-    if( hdf5_read_double(EPATH "exyz", offload_data->Exyz,
+    real exyz[3];
+    if( hdf5_read_double(EPATH "exyz", exyz,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    return 0;
+    int err = E_TC_init(data, exyz);
+    return err;
 }

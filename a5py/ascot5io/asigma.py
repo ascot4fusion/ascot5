@@ -142,11 +142,11 @@ class Asigma_loc(DataGroup):
             a corresponding type.
         """
         N_reac    = 1
-        z_1       = 1 + np.zeros(N_reac, dtype=int)
-        a_1       = 1 + np.zeros(N_reac, dtype=int)
-        z_2       = 1 + np.zeros(N_reac, dtype=int)
-        a_2       = 1 + np.zeros(N_reac, dtype=int)
-        reac_type = 6 + np.zeros(N_reac, dtype=int)
+        z_1       = 0 + np.zeros(N_reac, dtype=int)
+        a_1       = 0 + np.zeros(N_reac, dtype=int)
+        z_2       = 0 + np.zeros(N_reac, dtype=int)
+        a_2       = 0 + np.zeros(N_reac, dtype=int)
+        reac_type = 7 + np.zeros(N_reac, dtype=int)
         N_E       = 3    + np.zeros(N_reac, dtype=int)
         E_min     = 1e3  + np.zeros(N_reac, dtype=float)
         E_max     = 1e4  + np.zeros(N_reac, dtype=float)

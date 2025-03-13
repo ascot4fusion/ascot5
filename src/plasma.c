@@ -31,135 +31,41 @@
 #include "consts.h"
 
 /**
- * @brief Load plasma data and prepare parameters
+ * @brief Free allocated resources
  *
- * This function fills the relevant plasma offload struct with parameters and
- * allocates and fills the offload array. Sets offload array length in the
- * offload struct.
- *
- * The offload data has to have a type when this function is called as it should
- * be set when the offload data is constructed from inputs.
- *
- * This function is host only.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
- *
- * @return zero if initialization succeeded
+ * @param data pointer to the data struct
  */
-int plasma_init_offload(plasma_offload_data* offload_data,
-                        real** offload_array) {
-    int err = 0;
-
-    switch(offload_data->type) {
-
+void plasma_free(plasma_data* data) {
+    switch(data->type) {
         case plasma_type_1D:
-            err = plasma_1D_init_offload(&(offload_data->plasma_1D),
-                                         offload_array);
-            offload_data->offload_array_length =
-                offload_data->plasma_1D.offload_array_length;
+            plasma_1D_free(&data->plasma_1D);
             break;
-
         case plasma_type_1Dt:
-            err = plasma_1Dt_init_offload(&(offload_data->plasma_1Dt),
-                                          offload_array);
-            offload_data->offload_array_length =
-                offload_data->plasma_1Dt.offload_array_length;
+            plasma_1Dt_free(&data->plasma_1Dt);
             break;
-
         case plasma_type_1DS:
-            err = plasma_1DS_init_offload(&(offload_data->plasma_1DS),
-                                          offload_array);
-            offload_data->offload_array_length =
-                offload_data->plasma_1DS.offload_array_length;
-            break;
-
-        default:
-            /* Unregonized input. Produce error. */
-            print_err("Error: Unregonized plasma data type.");
-            err = 1;
-            break;
-    }
-    if(!err) {
-        print_out(VERBOSE_IO, "Estimated memory usage %.1f MB\n",
-                  offload_data->offload_array_length
-                  * sizeof(real) / (1024.0*1024.0) );
-    }
-
-    return err;
-}
-
-/**
- * @brief Free offload array and reset parameters
- *
- * This function deallocates the offload_array.
- *
- * This function is host only.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
- */
-void plasma_free_offload(plasma_offload_data* offload_data,
-                            real** offload_array) {
-    switch(offload_data->type) {
-        case plasma_type_1D:
-            plasma_1D_free_offload(
-                &(offload_data->plasma_1D), offload_array);
-            break;
-
-        case plasma_type_1Dt:
-            plasma_1Dt_free_offload(
-                &(offload_data->plasma_1Dt), offload_array);
-            break;
-
-        case plasma_type_1DS:
-            plasma_1DS_free_offload(
-                &(offload_data->plasma_1DS), offload_array);
+            plasma_1DS_free(&data->plasma_1DS);
             break;
     }
 }
 
 /**
- * @brief Initialize plasma data struct on target
+ * @brief Offload data to the accelerator.
  *
- * This function copies the plasma parameters from the offload struct to the
- * struct on target and sets the plasma data pointers to correct offsets in the
- * offload array.
- *
- * @param pls_data pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
- *
- * @return zero if initialization succeeded
+ * @param data pointer to the data struct
  */
-int plasma_init(plasma_data* pls_data, plasma_offload_data* offload_data,
-                real* offload_array) {
-    int err = 0;
-    switch(offload_data->type) {
+void plasma_offload(plasma_data* data) {
+    switch(data->type) {
         case plasma_type_1D:
-            plasma_1D_init(&(pls_data->plasma_1D),
-                           &(offload_data->plasma_1D), offload_array);
+            plasma_1D_offload(&data->plasma_1D);
             break;
-
         case plasma_type_1Dt:
-            plasma_1Dt_init(&(pls_data->plasma_1Dt),
-                            &(offload_data->plasma_1Dt), offload_array);
+            plasma_1Dt_offload(&data->plasma_1Dt);
             break;
-
         case plasma_type_1DS:
-            plasma_1DS_init(&(pls_data->plasma_1DS),
-                            &(offload_data->plasma_1DS), offload_array);
-            break;
-
-        default:
-            /* Unregonized input. Produce error. */
-            print_err("Error: Unregonized plasma data type.");
-            err = 1;
+            plasma_1DS_offload(&data->plasma_1DS);
             break;
     }
-    pls_data->type = offload_data->type;
-
-    return err;
 }
 
 /**

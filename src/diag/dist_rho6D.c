@@ -29,83 +29,56 @@ size_t dist_rho6D_index(int i_rho, int i_theta, int i_phi, int i_pr, int i_pphi,
 }
 
 /**
- * @brief Frees the offload data
+ * @brief Initializes distribution data
  */
-void dist_rho6D_free_offload(dist_rho6D_offload_data* offload_data) {
-    offload_data->n_rho     = 0;
-    offload_data->min_rho   = 0;
-    offload_data->max_rho   = 0;
-    offload_data->n_theta   = 0;
-    offload_data->min_theta = 0;
-    offload_data->max_theta = 0;
-    offload_data->n_phi     = 0;
-    offload_data->min_phi   = 0;
-    offload_data->max_phi   = 0;
-    offload_data->n_pr      = 0;
-    offload_data->min_pr    = 0;
-    offload_data->max_pr    = 0;
-    offload_data->n_pphi    = 0;
-    offload_data->min_pphi  = 0;
-    offload_data->max_pphi  = 0;
-    offload_data->n_pz      = 0;
-    offload_data->min_pz    = 0;
-    offload_data->max_pz    = 0;
+int dist_rho6D_init(dist_rho6D_data* data) {
+
+    size_t n_q     = (size_t)(data->n_q);
+    size_t n_time  = (size_t)(data->n_time);
+    size_t n_pz    = (size_t)(data->n_pz);
+    size_t n_pphi  = (size_t)(data->n_pphi);
+    size_t n_pr    = (size_t)(data->n_pr);
+    size_t n_phi   = (size_t)(data->n_phi);
+    size_t n_theta = (size_t)(data->n_theta);
+    data->step_7 = n_q * n_time * n_pz * n_pphi * n_pr * n_phi * n_theta;
+    data->step_6 = n_q * n_time * n_pz * n_pphi * n_pr * n_phi;
+    data->step_5 = n_q * n_time * n_pz * n_pphi * n_pr;
+    data->step_4 = n_q * n_time * n_pz * n_pphi;
+    data->step_3 = n_q * n_time * n_pz;
+    data->step_2 = n_q * n_time;
+    data->step_1 = n_q;
+
+    data->histogram = calloc(data->step_7 * (size_t)data->n_rho, sizeof(real));
+    return data->histogram == NULL;
 }
 
 /**
- * @brief Initializes distribution from offload data
+ * @brief Free allocated resources
  */
-void dist_rho6D_init(dist_rho6D_data* dist_data,
-                     dist_rho6D_offload_data* offload_data,
-                     real* offload_array) {
-    dist_data->n_rho     = offload_data->n_rho;
-    dist_data->min_rho   = offload_data->min_rho;
-    dist_data->max_rho   = offload_data->max_rho;
+void dist_rho6D_free(dist_rho6D_data* data) {
+    free(data->histogram);
+}
 
-    dist_data->n_theta   = offload_data->n_theta;
-    dist_data->min_theta = offload_data->min_theta;
-    dist_data->max_theta = offload_data->max_theta;
+/**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void dist_rho6D_offload(dist_rho6D_data* data) {
+    GPU_MAP_TO_DEVICE(
+        data->histogram[0:data->n_rho*data->n_theta*data->n_phi*data->n_pr*data->n_pphi*data->n_pz*data->n_time*data->n_q]
+    )
+}
 
-    dist_data->n_phi     = offload_data->n_phi;
-    dist_data->min_phi   = offload_data->min_phi;
-    dist_data->max_phi   = offload_data->max_phi;
-
-    dist_data->n_pr      = offload_data->n_pr;
-    dist_data->min_pr    = offload_data->min_pr;
-    dist_data->max_pr    = offload_data->max_pr;
-
-    dist_data->n_pphi    = offload_data->n_pphi;
-    dist_data->min_pphi  = offload_data->min_pphi;
-    dist_data->max_pphi  = offload_data->max_pphi;
-
-    dist_data->n_pz      = offload_data->n_pz;
-    dist_data->min_pz    = offload_data->min_pz;
-    dist_data->max_pz    = offload_data->max_pz;
-
-    dist_data->n_time    = offload_data->n_time;
-    dist_data->min_time  = offload_data->min_time;
-    dist_data->max_time  = offload_data->max_time;
-
-    dist_data->n_q       = offload_data->n_q;
-    dist_data->min_q     = offload_data->min_q;
-    dist_data->max_q     = offload_data->max_q;
-
-    size_t n_q     = (size_t)(dist_data->n_q);
-    size_t n_time  = (size_t)(dist_data->n_time);
-    size_t n_pz    = (size_t)(dist_data->n_pz);
-    size_t n_pphi  = (size_t)(dist_data->n_pphi);
-    size_t n_pr    = (size_t)(dist_data->n_pr);
-    size_t n_phi   = (size_t)(dist_data->n_phi);
-    size_t n_theta = (size_t)(dist_data->n_theta);
-    dist_data->step_7 = n_q * n_time * n_pz * n_pphi * n_pr * n_phi * n_theta;
-    dist_data->step_6 = n_q * n_time * n_pz * n_pphi * n_pr * n_phi;
-    dist_data->step_5 = n_q * n_time * n_pz * n_pphi * n_pr;
-    dist_data->step_4 = n_q * n_time * n_pz * n_pphi;
-    dist_data->step_3 = n_q * n_time * n_pz;
-    dist_data->step_2 = n_q * n_time;
-    dist_data->step_1 = n_q;
-
-    dist_data->histogram = &offload_array[0];
+/**
+ * @brief Onload data back to the host.
+ *
+ * @param data pointer to the data struct
+ */
+void dist_rho6D_onload(dist_rho6D_data* data) {
+    GPU_UPDATE_FROM_DEVICE(
+        data->histogram[0:data->n_rho*data->n_theta*data->n_phi*data->n_pr*data->n_pphi*data->n_pz*data->n_time*data->n_q]
+        )
 }
 
 /**

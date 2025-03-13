@@ -44,10 +44,10 @@ For questions related to the code or physics, please join our `Slack channel <ht
   gallery
 
 .. toctree::
-  :caption: Code Development
+  :caption: The Code
   :hidden:
 
-  parallel
+  optimization
   testing
   developing
 

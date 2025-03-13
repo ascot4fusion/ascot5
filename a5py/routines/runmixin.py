@@ -462,8 +462,14 @@ class RunMixin(DistMixin):
         avg = np.sum(val[1:]*ds) / np.sum(ds)
         return mileage-mileage[0], r, z, val, avg
 
-    def getwall_figuresofmerit(self):
+    def getwall_figuresofmerit(self, flags=None):
         """Get peak power load and other 0D quantities related to wall loads.
+
+        Parameters
+        ----------
+        flags : array_like, optional
+            Filter output to include only the elements whose flag is in this
+            list (the values can either be integers or strings).
 
         Returns
         -------
@@ -472,12 +478,12 @@ class RunMixin(DistMixin):
         pload : float
             Peak power load.
         """
-        wetted, area, edepo, pdepo, iangle = self.getwall_loads()
+        _, area, edepo, _, _ = self.getwall_loads(flags=flags)
         wetted_total = np.sum(area)
         energy_peak  = np.amax(edepo/area)
         return wetted_total, energy_peak
 
-    def getwall_loads(self, weights=True, p_ids=None):
+    def getwall_loads(self, weights=True, p_ids=None, flags=None):
         """Get wall loads and associated quantities.
 
         This method does not return loads on all wall elements (as usually most
@@ -494,9 +500,11 @@ class RunMixin(DistMixin):
 
             Dropping weights is useful to check how many markers hit a tile
             which tells us how good the statistics are.
-
         p_ids : array_like, optional
-            Calculate wall loads only for the particles with the given indices.
+            Calculate wall loads only for the particles with the given IDs.
+        flags : str, int, or array_like, optional
+            Filter output to include only the elements whose flag is in this
+            list (the values can either be integers or strings).
 
         Returns
         -------
@@ -521,6 +529,21 @@ class RunMixin(DistMixin):
         ids, energy, weight, pr, pphi, pz, pnorm, phi = self.getstate(
             "walltile", "ekin", "weight", "pr", "pphi", "pz", "pnorm", "phi",
             state="end", mode="prt", endcond="wall", ids=p_ids)
+        if flags is not None:
+            w = self.wall.read()
+            flag = w["flag"]
+            labels = w["labels"]
+            if not isinstance(flags, list):
+                flags = [flags]
+            mask = np.array([
+                labels[f] if f in labels else f for f in flags
+            ])
+            idx = np.where(np.isin(flag[ids-1], mask))[0]
+            ids, energy, weight, pr, pphi, pz, pnorm, phi = (
+                ids[idx], energy[idx], weight[idx], pr[idx], pphi[idx],
+                pz[idx], pnorm[idx], phi[idx]
+            )
+
         energy.convert_to_units("J")
         eunit = (energy.units * weight.units)
         try:
@@ -582,12 +605,10 @@ class RunMixin(DistMixin):
 
         Parameters
         ----------
-            w_indices : array_like, optional
-                List of triangle indecies for which the 3D mesh is made.
-
-            p_ids : array_like, optional
-                List of particle ids for which the wall loads are calculated.
-
+        w_indices : array_like, optional
+            List of triangle indices for which the 3D mesh is made.
+        p_ids : array_like, optional
+            List of particle ids for which the wall loads are calculated.
 
         Returns
         -------
@@ -601,8 +622,8 @@ class RunMixin(DistMixin):
             - "mload" marker load in units of markers
             - "iangle" angle of incidence (the angle between power flux and
               the surface normal) in deg
+            - "label" flag of the wall element
         """
-
         wallmesh = pv.PolyData(
             *self.wall.noderepresentation(w_indices=w_indices))
         ids, area, eload, pload, iangle = self.getwall_loads(p_ids=p_ids)
@@ -610,10 +631,8 @@ class RunMixin(DistMixin):
         _, _, _, mload, _ = self.getwall_loads(weights=False, p_ids=p_ids)
         ids = ids - 1 # Convert IDs to indices
 
-        #here possible area filter to ids, TBI
-        #filt_area = area > threshold
-        n_tri = self.wall.getNumberOfElements()
-
+        w = self.wall.read()
+        n_tri, flag = w["nelements"], w["flag"]
         wall_f = np.arange(n_tri, dtype=int)
         if w_indices is not None:
             wall_f = wall_f[w_indices]
@@ -627,10 +646,10 @@ class RunMixin(DistMixin):
         iangle_tot = np.zeros((n_tri, )) + np.nan
         iangle_tot[ids] = iangle
 
-        ntriangle = wallmesh.n_faces
-        wallmesh.cell_data["pload"]  = pload_tot[wall_f]
-        wallmesh.cell_data["eload"]  = eload_tot[wall_f]
-        wallmesh.cell_data["mload"]  = mload_tot[wall_f]
+        wallmesh.cell_data["label"] = flag[wall_f]
+        wallmesh.cell_data["pload"] = pload_tot[wall_f]
+        wallmesh.cell_data["eload"] = eload_tot[wall_f]
+        wallmesh.cell_data["mload"] = mload_tot[wall_f]
         wallmesh.cell_data["iangle"] = iangle_tot[wall_f]
         return wallmesh
 
@@ -761,6 +780,8 @@ class RunMixin(DistMixin):
             Dist.toroidalcurrent(self._root._ascot, mass, dist, out)
         if "parallelcurrent" in moments:
             Dist.parallelcurrent(self._root._ascot, mass, dist, out)
+        if "currentdrive" in moments:
+            Dist.parallelcurrent(self._root._ascot, mass, dist, out, drive=True)
         if "pressure" in moments:
             Dist.pressure(mass, dist, out)
         if "powerdep" in moments:
@@ -1383,7 +1404,8 @@ class RunMixin(DistMixin):
                        cax=cax)
 
     @a5plt.openfigureifnoaxes(projection=None)
-    def plotwall_convergence(self, qnt, nmin=1000, nsample=10, axes=None):
+    def plotwall_convergence(self, qnt, nmin=1000, nsample=10, axes=None,
+                             flags=None):
         """Plot convergence of losses by subsampling the results.
 
         This function works by picking randomly a subset of
@@ -1401,6 +1423,9 @@ class RunMixin(DistMixin):
             Number of markers in the smallest sample.
         nsample : int, optional
             Number of samples.
+        flags : array_like, optional
+            Filter output to include only the elements whose flag is in this
+            list (the values can either be integers or strings).
         axes : :obj:`~matplotlib.axes.Axes`, optional
             The axes where figure is plotted or otherwise new figure is created.
         """
@@ -1417,23 +1442,38 @@ class RunMixin(DistMixin):
         rng = np.random.default_rng()
         for i, n in enumerate(nsubset):
             idx = rng.choice(ntotal, replace=False, size=n)
-
+            ids0  = ids[idx]
+            lost0 = lost[idx]
             if qnt == 'lostpower':
-                val[i] = np.sum((lost*weight*ekin.to('J'))[idx]) \
-                    * wtotal / np.sum(weight[idx])
+                if flags is None:
+                    val[i] = ( np.sum((lost*weight*ekin.to('J'))[idx])
+                        * wtotal / np.sum(weight[idx])
+                    )
+                else:
+                    _, area, loads, _, _ = self.getwall_loads(
+                        weights=True, p_ids=ids0[lost0], flags=flags,
+                    )
+                    val[i] = (
+                        np.sum( loads * area ) * wtotal / np.sum(weight[idx])
+                    )
                 axes.set_ylabel('Lost power [W]')
             elif qnt == 'peakload':
-                ids0  = ids[idx]
-                lost0 = lost[idx]
-                _, area, loads, _, _ = self.getwall_loads(weights=True, p_ids=ids0[lost0])
+                _, area, loads, _, _ = self.getwall_loads(
+                    weights=True, p_ids=ids0[lost0], flags=flags,
+                    )
                 val[i] = np.amax(loads/area) * wtotal / np.sum(weight[idx])
                 axes.set_ylabel(r'Peak load [W/m$^2$]')
+            else:
+                raise ValueError(
+                    f"Unrecognized quantity: {qnt}. Recognized quantities are:"
+                    f" lostpower, peakload."
+                    )
 
         axes.set_xscale('log')
         axes.set_xlabel('Number of markers')
         axes.plot(nsubset, val)
 
-    def plotwall_loadvsarea(self, axes=None):
+    def plotwall_loadvsarea(self, flags=None, axes=None):
         """Plot histogram showing area affected by at least a given load.
 
         Parameters
@@ -1441,7 +1481,7 @@ class RunMixin(DistMixin):
         axes : :obj:`~matplotlib.axes.Axes`, optional
             The axes where figure is plotted or otherwise new figure is created.
         """
-        _, area, eload, _, _ = self.getwall_loads()
+        _, area, eload, _, _ = self.getwall_loads(flags=flags)
         a5plt.loadvsarea(area, eload/area, axes=axes)
 
     @a5plt.openfigureifnoaxes(projection=None)
@@ -1623,7 +1663,7 @@ class RunMixin(DistMixin):
 
         Parameters
         ----------
-        qnt : {'eload', 'pload', 'iangle'}, optional
+        qnt : {'eload', 'pload', 'iangle', 'label'}, optional
             Quantity to plot.
         getaxis : (float, float) or callable
             Location of the magnetic or geometrical axis which is used to
@@ -1654,25 +1694,33 @@ class RunMixin(DistMixin):
         cax : :obj:`~matplotlib.axes.Axes`, optional
             The color bar axes or otherwise taken from the main axes.
         """
-        wetted, area, edepo, pdepo, iangle = self.getwall_loads()
         d = self.wall.read()
-        nelement = wetted.size
-        if qnt == 'eload':
-            color = edepo/area
-            clabel = r"Wall load [W/m$^2$]"
-            if cmap is None: cmap = 'Reds'
-        if qnt == 'pload':
-            color = pdepo/area
-            clabel = r"Particle flux [prt s$^{-1}$m$^{-2}$]"
-            if cmap is None: cmap = 'Reds'
-        elif qnt == 'iangle':
-            color = iangle
-            clabel = r"Angle of incidence [deg]"
+        if qnt == 'label':
+            nelement = d["nelements"]
+            x1x2x3 = d["x1x2x3"]
+            y1y2y3 = d["y1y2y3"]
+            z1z2z3 = d["z1z2z3"]
+            color = d["flag"].ravel()
+            clabel = r"Label"
             if cmap is None: cmap = 'viridis'
-
-        x1x2x3   = d["x1x2x3"][wetted-1]
-        y1y2y3   = d["y1y2y3"][wetted-1]
-        z1z2z3   = d["z1z2z3"][wetted-1]
+        else:
+            wetted, area, edepo, pdepo, iangle = self.getwall_loads()
+            nelement = wetted.size
+            x1x2x3 = d["x1x2x3"][wetted-1]
+            y1y2y3 = d["y1y2y3"][wetted-1]
+            z1z2z3 = d["z1z2z3"][wetted-1]
+            if qnt == 'eload':
+                color = edepo/area
+                clabel = r"Wall load [W/m$^2$]"
+                if cmap is None: cmap = 'Reds'
+            elif qnt == 'pload':
+                color = pdepo/area
+                clabel = r"Particle flux [prt s$^{-1}$m$^{-2}$]"
+                if cmap is None: cmap = 'Reds'
+            elif qnt == 'iangle':
+                color = iangle
+                clabel = r"Angle of incidence [deg]"
+                if cmap is None: cmap = 'viridis'
 
         # Toroidal angle for each vertex
         tor = np.rad2deg( np.arctan2( y1y2y3, x1x2x3 ))

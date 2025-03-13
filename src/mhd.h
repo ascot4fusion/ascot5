@@ -20,9 +20,6 @@
 
 /**
  * @brief MHD input types
- *
- * MHD types are used in the MHD interface (mhd.c) to direct function calls to
- * correct MHD instances. Each MHD instance must have a corresponding type.
  */
 typedef enum mhd_type {
     mhd_type_stat,   /**< MHD where mode amplitude does not depend on time */
@@ -30,29 +27,10 @@ typedef enum mhd_type {
 } mhd_type;
 
 /**
- * @brief MHD offload data
- *
- * This struct holds data necessary for offloading. The struct is initialized in
- * mhd_init_offload().
- *
- * The intended usage is that only single offload data is used at the time, and
- * the type of the data is declared with the "type" field.
- */
-typedef struct {
-    mhd_type type;                   /**< MHD type wrapped by this struct     */
-    mhd_stat_offload_data stat;      /**< Stat field or NULL if not active    */
-    mhd_nonstat_offload_data nonstat;/**< Nonstat field or NULL if not active */
-    int offload_array_length;        /**< Allocated offload array length      */
-} mhd_offload_data;
-
-/**
  * @brief MHD simulation data
  *
- * This struct holds data necessary for simulation. The struct is initialized
- * from the mhd_offload_data in mhd_init().
- *
- * The intended usage is that only single mhd_data is used at the time, and
- * the type of the data is declared with the "type" field.
+ * The intended usage is that only single type of data is used at a time. This
+ * is declared using the `type` field.
  */
 typedef struct {
     mhd_type type;            /**< MHD type wrapped by this struct     */
@@ -60,13 +38,8 @@ typedef struct {
     mhd_nonstat_data nonstat; /**< Nonstat field or NULL if not active */
 } mhd_data;
 
-int mhd_init_offload(mhd_offload_data* offload_data,
-                     real** offload_array);
-void mhd_free_offload(mhd_offload_data* offload_data,
-                      real** offload_array);
-
-int mhd_init(mhd_data* data, mhd_offload_data* offload_data,
-             real* offload_array);
+void mhd_free(mhd_data* data);
+void mhd_offload(mhd_data* data);
 DECLARE_TARGET_SIMD_UNIFORM(boozerdata, mhddata, Bdata, includemode)
 a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
                int includemode, boozer_data* boozerdata, mhd_data* mhddata,

@@ -19,7 +19,6 @@
 #include "../endcond.h"
 #include "../math.h"
 #include "../consts.h"
-#include "../copytogpu.h"
 #include "simulate_fo_fixed.h"
 #include "step/step_fo_vpa.h"
 #include "mccc/mccc.h"
@@ -48,8 +47,10 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i);
  * @param mrk_array_size size of particle arrays
  */
 void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
-    int cycle[mrk_array_size];// Indicates whether a new marker was initialized
-    real hin[mrk_array_size];// Time step
+    // Indicates whether a new marker was initialized
+    int* cycle = (int*) malloc(mrk_array_size*sizeof(int));
+    // Time-step
+    real* hin = (real*) malloc(mrk_array_size*sizeof(real));
 
     real cputime, cputime_last; // Global cpu time: recent and previous record
 
@@ -59,7 +60,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     particle_allocate_fo(&p0, mrk_array_size);
 
     /* Init dummy markers */
-    for(int i=0; i< mrk_array_size; i++) {
+    for(int i = 0; i < mrk_array_size; i++) {
         p.id[i] = -1;
         p.running[i] = 0;
     }
@@ -72,7 +73,6 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     for(int i = 0; i < mrk_array_size; i++) {
         if(cycle[i] > 0) {
             hin[i] = simulate_fo_fixed_inidt(sim, &p, i);
-
         }
     }
 
@@ -86,18 +86,15 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
      * - Check for end condition(s)
      * - Update diagnostics
      */
-    particle_simd_fo *p_ptr = &p;
-    particle_simd_fo *p0_ptr = &p0;
-    real rnd[3*mrk_array_size];
-
-    particle_offload_fo(p_ptr);
-    particle_offload_fo(p0_ptr);
+    particle_offload_fo(&p);
+    particle_offload_fo(&p0);
+    real* rnd = (real*) malloc(3*mrk_array_size*sizeof(real));
     GPU_MAP_TO_DEVICE(hin[0:mrk_array_size], rnd[0:3*mrk_array_size])
     while(n_running > 0) {
         /* Store marker states */
         GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < p.n_mrk; i++) {
-            particle_copy_fo(p_ptr, i, p0_ptr, i);
+            particle_copy_fo(&p, i, &p0, i);
         }
         /*************************** Physics **********************************/
 
@@ -116,7 +113,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
                                 &sim->boozer_data, &sim->mhd_data);
             }
             else {
-                step_fo_vpa(p_ptr, hin, &sim->B_data, &sim->E_data);
+                step_fo_vpa(&p, hin, &sim->B_data, &sim->E_data);
             }
         }
 
@@ -131,11 +128,11 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         /* Euler-Maruyama for Coulomb collisions */
         if(sim->enable_clmbcol) {
             random_normal_simd(&sim->random_data, 3*p.n_mrk, rnd);
-            mccc_fo_euler(p_ptr, hin, &sim->plasma_data, &sim->mccc_data, rnd);
+            mccc_fo_euler(&p, hin, &sim->plasma_data, &sim->mccc_data, rnd);
         }
         /* Atomic reactions */
         if(sim->enable_atomic) {
-            atomic_fo(p_ptr, hin, &sim->plasma_data, &sim->neutral_data,
+            atomic_fo(&p, hin, &sim->plasma_data, &sim->neutral_data,
                       &sim->random_data, &sim->asigma_data);
         }
         /**********************************************************************/
@@ -154,12 +151,12 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         cputime_last = cputime;
 
         /* Check possible end conditions */
-        endcond_check_fo(p_ptr, p0_ptr, sim);
+        endcond_check_fo(&p, &p0, sim);
 
         /* Update diagnostics */
         if(!(sim->record_mode)) {
             /* Record particle coordinates */
-            diag_update_fo(&sim->diag_data, &sim->B_data, p_ptr, p0_ptr);
+            diag_update_fo(&sim->diag_data, &sim->B_data, &p, &p0);
         }
         else {
             /* Instead of particle coordinates we record guiding center */
@@ -195,7 +192,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         GPU_PARALLEL_LOOP_ALL_LEVELS_REDUCTION(n_running)
         for(int i = 0; i < p.n_mrk; i++)
         {
-            if(p_ptr->running[i] > 0) n_running++;
+            if(p.running[i] > 0) n_running++;
         }
 #else
         n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
@@ -212,9 +209,13 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     }
     /* All markers simulated! */
 #ifdef GPU
-    simulate_fo_fixed_copy_from_gpu(sim, p_ptr);
+    GPU_MAP_FROM_DEVICE(sim[0:1])
+    particle_onload_fo(&p);
     n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
 #endif
+    free(cycle);
+    free(hin);
+    free(rnd);
 }
 
 /**

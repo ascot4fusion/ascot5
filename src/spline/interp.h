@@ -26,8 +26,8 @@
  */
 #ifndef INTERP_H
 #define INTERP_H
-#include "../offload_acc_omp.h"
 #include "../ascot5.h"
+#include "../offload.h"
 #include "../error.h"
 
 /**
@@ -164,6 +164,18 @@ void interp3Dexpl_init_spline(interp3D_data* str, real* c,
                               real x_min, real x_max,
                               real y_min, real y_max,
                               real z_min, real z_max);
+
+int interp1Dcomp_setup(interp1D_data* str, real* f, int n_x, int bc_x,
+                       real x_min, real x_max);
+
+int interp2Dcomp_setup(interp2D_data* str, real* f, int n_x, int n_y,
+                       int bc_x, int bc_y, real x_min, real x_max,
+                       real y_min, real y_max);
+
+int interp3Dcomp_setup(interp3D_data* str, real* f,
+                       int n_x, int n_y, int n_z, int bc_x, int bc_y, int bc_z,
+                       real x_min, real x_max, real y_min, real y_max,
+                       real z_min, real z_max);
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp1Dcomp_eval_f(real* f, interp1D_data* str, real x);

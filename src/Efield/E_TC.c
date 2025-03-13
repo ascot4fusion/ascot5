@@ -17,55 +17,39 @@
 /**
  * @brief Initialize electric field data and check inputs
  *
- * The offload data struct must have the following fields initialized:
- * - E_TC_offload_data.Exyz
- *
- * There is nothing left to initialize.
- *
- * Instead this function only prints values of electric field components as a
- * sanity check.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param data pointer to the data struct
+ * @param exyz electric field vector on cartesian basis [V/m]
  *
  * @return Zero to indicate initialization succeeded
  */
-int E_TC_init_offload(E_TC_offload_data* offload_data,
-                       real** offload_array) {
-    // Do no initialization
-    offload_data->offload_array_length = 0;
-    *offload_array = NULL;
+int E_TC_init(E_TC_data* data, real exyz[3]) {
+
+    data->Exyz[0] = exyz[0];
+    data->Exyz[1] = exyz[1];
+    data->Exyz[2] = exyz[2];
 
     print_out(VERBOSE_IO, "\nTrivial Cartesian electric field (E_TC)\n");
     print_out(VERBOSE_IO, "E_x = %le, E_y = %le, E_z = %le\n",
-              offload_data->Exyz[0], offload_data->Exyz[1],
-              offload_data->Exyz[2]);
-
+              data->Exyz[0], data->Exyz[1], data->Exyz[2]);
     return 0;
 }
 
 /**
- * @brief Free offload array and return null pointer
+ * @brief Free allocated resources
  *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param data pointer to the data struct
  */
-void E_TC_free_offload(E_TC_offload_data* offload_data,
-                       real** offload_array) {
-    free(*offload_array);
-    *offload_array = NULL;
+void E_TC_free(E_TC_data* data) {
+    // No resources were allocated
 }
 
 /**
- * @brief Initialize electric field simulation data
+ * @brief Offload data to the accelerator.
  *
- * @param Edata pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
+ * @param data pointer to the data struct
  */
-void E_TC_init(E_TC_data* Edata, E_TC_offload_data* offload_data,
-               real* offload_array) {
-    Edata->Exyz = offload_data->Exyz;
+void E_TC_offload(E_TC_data* data) {
+    GPU_MAP_TO_DEVICE( data->Exyz[0:3] )
 }
 
 /**

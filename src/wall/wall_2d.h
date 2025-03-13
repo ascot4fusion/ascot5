@@ -5,15 +5,7 @@
 #ifndef WALL_2D_H
 #define WALL_2D_H
 #include "../ascot5.h"
-#include "../offload_acc_omp.h"
-
-/**
- * @brief 2D wall offload data
- */
-typedef struct {
-    int n;                    /**< Number of points in the wall polygon */
-    int offload_array_length; /**< Length of the offload array          */
-} wall_2d_offload_data;
+#include "../offload.h"
 
 /**
  * @brief 2D wall data parameters
@@ -26,13 +18,9 @@ typedef struct {
     real* wall_z;   /**< z coordinates for the wall polygon points      */
 } wall_2d_data;
 
-int wall_2d_init_offload(wall_2d_offload_data* offload_data,
-                         real** offload_array);
-void wall_2d_free_offload(wall_2d_offload_data* offload_data,
-                          real** offload_array);
-
-void wall_2d_init(wall_2d_data* w, wall_2d_offload_data* offload_data,
-                  real* offload_array);
+int wall_2d_init(wall_2d_data* data, int nelements, real* r, real* z);
+void wall_2d_free(wall_2d_data* data);
+void wall_2d_offload(wall_2d_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(w)
 int wall_2d_inside(real r, real z, wall_2d_data* w);
 DECLARE_TARGET_END

@@ -34,19 +34,14 @@
 
 #define BPATH /**< Macro that is used to store paths to data groups */
 
-int hdf5_bfield_read_2DS(hid_t f, B_2DS_offload_data* offload_data,
-                         real** offload_array, char* qid);
-int hdf5_bfield_read_3DS(hid_t f, B_3DS_offload_data* offload_data,
-                         real** offload_array, char* qid);
-int hdf5_bfield_read_STS(hid_t f, B_STS_offload_data* offload_data,
-                         real** offload_array, char* qid);
-int hdf5_bfield_read_TC(hid_t f, B_TC_offload_data* offload_data,
-                        real** offload_array, char* qid);
-int hdf5_bfield_read_GS(hid_t f, B_GS_offload_data* offload_data,
-                        real** offload_array, char* qid);
+int hdf5_bfield_read_2DS(hid_t f, B_2DS_data* data, char* qid);
+int hdf5_bfield_read_3DS(hid_t f, B_3DS_data* data, char* qid);
+int hdf5_bfield_read_STS(hid_t f, B_STS_data* data, char* qid);
+int hdf5_bfield_read_TC(hid_t f, B_TC_data* data, char* qid);
+int hdf5_bfield_read_GS(hid_t f, B_GS_data* data, char* qid);
 
 /**
- * @brief Initialize magnetic field offload data from HDF5 file
+ * @brief Initialize magnetic field data from HDF5 file
  *
  * This function determines to which type of magnetic field the given QID
  * corresponds to, and calls the corresponding reading routine. The read data is
@@ -59,15 +54,12 @@ int hdf5_bfield_read_GS(hid_t f, B_GS_offload_data* offload_data,
  *
  * @param f HDF5 file identifier for a file which is opened and closed outside
  *          of this function
- * @param offload_data pointer to offload data struct which is initialized here
- * @param offload_array pointer to offload array which is allocated and
- *                      initialized here
+ * @param data pointer to data struct which is initialized here
  * @param qid QID of the data that is to be read
  *
  * @return zero if reading and initialization succeeded
  */
-int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data,
-                             real** offload_array, char* qid) {
+int hdf5_bfield_init(hid_t f, B_field_data* data, char* qid) {
 
     char path[256]; // Storage array required for hdf5_gen_path() calls
     int err = 1;    // Error flag which is nullified if data is read succesfully
@@ -76,42 +68,32 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data,
 
     hdf5_gen_path("/bfield/B_TC_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
-        offload_data->type = B_field_type_TC;
-        err = hdf5_bfield_read_TC(f, &(offload_data->BTC),
-                                  offload_array, qid);
+        data->type = B_field_type_TC;
+        err = hdf5_bfield_read_TC(f, &(data->BTC), qid);
     }
 
     hdf5_gen_path("/bfield/B_GS_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
-        offload_data->type = B_field_type_GS;
-        err = hdf5_bfield_read_GS(f, &(offload_data->BGS),
-                                  offload_array, qid);
+        data->type = B_field_type_GS;
+        err = hdf5_bfield_read_GS(f, &(data->BGS), qid);
     }
 
     hdf5_gen_path("/bfield/B_2DS_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
-        offload_data->type = B_field_type_2DS;
-        err = hdf5_bfield_read_2DS(f, &(offload_data->B2DS),
-                                   offload_array, qid);
+        data->type = B_field_type_2DS;
+        err = hdf5_bfield_read_2DS(f, &(data->B2DS), qid);
     }
 
     hdf5_gen_path("/bfield/B_3DS_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
-        offload_data->type = B_field_type_3DS;
-        err = hdf5_bfield_read_3DS(f, &(offload_data->B3DS),
-                                   offload_array, qid);
+        data->type = B_field_type_3DS;
+        err = hdf5_bfield_read_3DS(f, &(data->B3DS), qid);
     }
 
     hdf5_gen_path("/bfield/B_STS_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
-        offload_data->type = B_field_type_STS;
-        err = hdf5_bfield_read_STS(f, &(offload_data->BSTS),
-                                   offload_array, qid);
-    }
-
-    /* Initialize if data was read succesfully */
-    if(!err) {
-        err = B_field_init_offload(offload_data, offload_array);
+        data->type = B_field_type_STS;
+        err = hdf5_bfield_read_STS(f, &(data->BSTS), qid);
     }
 
     return err;
@@ -146,61 +128,62 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data,
  *
  * @param f HDF5 file identifier for a file which is opened and closed outside
  *          of this function
- * @param offload_data pointer to offload data struct which is allocated here
- * @param offload_array pointer to offload array which is allocated here and
- *                      used to store psi, B_R, B_phi, and B_z values as
- *                      required by B_2DS_init_offload()
+ * @param data pointer to data struct which is allocated here
  * @param qid QID of the B_2DS field that is to be read
  *
  * @return zero if reading succeeded
  */
-int hdf5_bfield_read_2DS(hid_t f, B_2DS_offload_data* offload_data,
-                         real** offload_array, char* qid) {
+int hdf5_bfield_read_2DS(hid_t f, B_2DS_data* data, char* qid) {
     #undef BPATH
     #define BPATH "/bfield/B_2DS_XXXXXXXXXX/"
 
     /* Read and initialize psi and magnetic field Rz-grid */
-    if( hdf5_read_int(BPATH "nr", &(offload_data->n_r),
+    int n_r, n_z;
+    real r_min, r_max, z_min, z_max;
+    if( hdf5_read_int(BPATH "nr", &n_r,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(BPATH "nz", &(offload_data->n_z),
+    if( hdf5_read_int(BPATH "nz", &n_z,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "rmin", &(offload_data->r_min),
+    if( hdf5_read_double(BPATH "rmin", &r_min,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "rmax", &(offload_data->r_max),
+    if( hdf5_read_double(BPATH "rmax", &r_max,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "zmin", &(offload_data->z_min),
+    if( hdf5_read_double(BPATH "zmin", &z_min,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "zmax", &(offload_data->z_max),
+    if( hdf5_read_double(BPATH "zmax", &z_max,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    /* Allocate offload_array; psi and each component (B_R, B_phi, B_z) has
-     * size = n_r*n_z */
-    int B_size = offload_data->n_r * offload_data->n_z;
-    *offload_array = (real*) malloc(4 * B_size * sizeof(real));
 
     /* Read psi and B values */
-    if( hdf5_read_double(BPATH "psi", &(*offload_array)[0*B_size],
+    real* psi = (real*)malloc(n_r*n_z*sizeof(real));
+    real* br = (real*)malloc(n_r*n_z*sizeof(real));
+    real* bphi = (real*)malloc(n_r*n_z*sizeof(real));
+    real* bz = (real*)malloc(n_r*n_z*sizeof(real));
+    if( hdf5_read_double(BPATH "psi", psi,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "br", &(*offload_array)[1*B_size],
+    if( hdf5_read_double(BPATH "br", br,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "bphi", &(*offload_array)[2*B_size],
+    if( hdf5_read_double(BPATH "bphi", bphi,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "bz", &(*offload_array)[3*B_size],
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    /* Read the poloidal flux (psi) values at magnetic axis and separatrix. */
-    if( hdf5_read_double(BPATH "psi0", &(offload_data->psi0),
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "psi1", &(offload_data->psi1),
+    if( hdf5_read_double(BPATH "bz", bz,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    /* Read magnetic axis R and z coordinates */
-    if( hdf5_read_double(BPATH "axisr", &(offload_data->axis_r),
+    real psi0, psi1, axisr, axisz;
+    if( hdf5_read_double(BPATH "psi0", &psi0,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "axisz", &(offload_data->axis_z),
+    if( hdf5_read_double(BPATH "psi1", &psi1,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "axisr", &axisr,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "axisz", &axisz,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    return 0;
+    int err =  B_2DS_init(data, n_r, r_min, r_max, n_z, z_min, z_max,
+                          axisr, axisz, psi0, psi1, psi, br, bphi, bz);
+    free(psi);
+    free(br);
+    free(bphi);
+    free(bz);
+    return err;
 }
 
 /**
@@ -245,91 +228,94 @@ int hdf5_bfield_read_2DS(hid_t f, B_2DS_offload_data* offload_data,
  *
  * @param f HDF5 file identifier for a file which is opened and closed outside
  *          of this function
- * @param offload_data pointer to offload data struct which is allocated here
- * @param offload_array pointer to offload array which is allocated here and
- *                      used to store psi, B_R, B_phi, and B_z values as
- *                      required by B_3DS_init_offload()
+ * @param data pointer to data struct which is allocated here
  * @param qid QID of the B_3DS field that is to be read
  *
  * @return zero if reading succeeded
  */
-int hdf5_bfield_read_3DS(hid_t f, B_3DS_offload_data* offload_data,
-                         real** offload_array, char* qid) {
+int hdf5_bfield_read_3DS(hid_t f, B_3DS_data* data, char* qid) {
     #undef BPATH
     #define BPATH "/bfield/B_3DS_XXXXXXXXXX/"
 
     /* Read and initialize magnetic field Rpz-grid */
-    if( hdf5_read_int(BPATH "b_nr", &(offload_data->Bgrid_n_r),
+    int b_n_r, b_n_phi, b_n_z;
+    real b_r_min, b_r_max, b_phi_min, b_phi_max, b_z_min, b_z_max;
+    if( hdf5_read_int(BPATH "b_nr", &b_n_r,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(BPATH "b_nz", &(offload_data->Bgrid_n_z),
+    if( hdf5_read_int(BPATH "b_nz", &b_n_z,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "b_rmin", &(offload_data->Bgrid_r_min),
+    if( hdf5_read_double(BPATH "b_rmin", &b_r_min,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "b_rmax", &(offload_data->Bgrid_r_max),
+    if( hdf5_read_double(BPATH "b_rmax", &b_r_max,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "b_zmin", &(offload_data->Bgrid_z_min),
+    if( hdf5_read_double(BPATH "b_zmin", &b_z_min,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "b_zmax", &(offload_data->Bgrid_z_max),
+    if( hdf5_read_double(BPATH "b_zmax", &b_z_max,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    if( hdf5_read_int(BPATH "b_nphi", &(offload_data->Bgrid_n_phi),
+    if( hdf5_read_int(BPATH "b_nphi", &b_n_phi,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "b_phimin", &(offload_data->Bgrid_phi_min),
+    if( hdf5_read_double(BPATH "b_phimin", &b_phi_min,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "b_phimax", &(offload_data->Bgrid_phi_max),
+    if( hdf5_read_double(BPATH "b_phimax", &b_phi_max,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     // Convert to radians
-    offload_data->Bgrid_phi_min = math_deg2rad(offload_data->Bgrid_phi_min);
-    offload_data->Bgrid_phi_max = math_deg2rad(offload_data->Bgrid_phi_max);
+    b_phi_min = math_deg2rad(b_phi_min);
+    b_phi_max = math_deg2rad(b_phi_max);
 
     /* Read and initialize psi field Rz-grid */
-    if( hdf5_read_int(BPATH "psi_nr", &(offload_data->psigrid_n_r),
+    int p_n_r, p_n_z;
+    real p_r_min, p_r_max, p_z_min, p_z_max;
+    if( hdf5_read_int(BPATH "psi_nr", &p_n_r,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(BPATH "psi_nz", &(offload_data->psigrid_n_z),
+    if( hdf5_read_int(BPATH "psi_nz", &p_n_z,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "psi_rmin", &(offload_data->psigrid_r_min),
+    if( hdf5_read_double(BPATH "psi_rmin", &p_r_min,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "psi_rmax", &(offload_data->psigrid_r_max),
+    if( hdf5_read_double(BPATH "psi_rmax", &p_r_max,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "psi_zmin", &(offload_data->psigrid_z_min),
+    if( hdf5_read_double(BPATH "psi_zmin", &p_z_min,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "psi_zmax", &(offload_data->psigrid_z_max),
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    /* Allocate offload_array storing psi and the three components of B */
-    int psi_size = offload_data->psigrid_n_r*offload_data->psigrid_n_z;
-    int B_size = offload_data->Bgrid_n_r * offload_data->Bgrid_n_z
-        * offload_data->Bgrid_n_phi;
-
-    *offload_array = (real*) malloc((psi_size + 3 * B_size) * sizeof(real));
-    offload_data->offload_array_length = psi_size + 3 * B_size;
-
-    /* Read psi */
-    if( hdf5_read_double(BPATH "psi", &(*offload_array)[3*B_size],
+    if( hdf5_read_double(BPATH "psi_zmax", &p_z_max,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    /* Read the magnetic field */
-    if( hdf5_read_double(BPATH "br", &(*offload_array)[0*B_size],
+    /* Read psi and B values */
+    real* psi = (real*)malloc(p_n_r*p_n_z*sizeof(real));
+    real* br = (real*)malloc(b_n_r*b_n_phi*b_n_z*sizeof(real));
+    real* bphi = (real*)malloc(b_n_r*b_n_phi*b_n_z*sizeof(real));
+    real* bz = (real*)malloc(b_n_r*b_n_phi*b_n_z*sizeof(real));
+    if( hdf5_read_double(BPATH "psi", psi,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "bphi", &(*offload_array)[1*B_size],
+    if( hdf5_read_double(BPATH "br", br,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "bz", &(*offload_array)[2*B_size],
+    if( hdf5_read_double(BPATH "bphi", bphi,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "bz", bz,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Read the poloidal flux (psi) values at magnetic axis and separatrix. */
-    if( hdf5_read_double(BPATH "psi0", &(offload_data->psi0),
+    real psi0, psi1, axisr, axisz;
+    if( hdf5_read_double(BPATH "psi0", &psi0,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "psi1", &(offload_data->psi1),
+    if( hdf5_read_double(BPATH "psi1", &psi1,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Read magnetic axis R and z coordinates */
-    if( hdf5_read_double(BPATH "axisr", &(offload_data->axis_r),
+    if( hdf5_read_double(BPATH "axisr", &axisr,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "axisz", &(offload_data->axis_z),
+    if( hdf5_read_double(BPATH "axisz", &axisz,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    return 0;
+    int err = B_3DS_init(data, p_n_r, p_r_min, p_r_max, p_n_z, p_z_min, p_z_max,
+                         b_n_r, b_r_min, b_r_max, b_n_phi, b_phi_min, b_phi_max,
+                         b_n_z, b_z_min, b_z_max, axisr, axisz, psi0, psi1,
+                         psi, br, bphi, bz);
+    free(psi);
+    free(br);
+    free(bphi);
+    free(bz);
+    return err;
 }
 
 /**
@@ -384,121 +370,124 @@ int hdf5_bfield_read_3DS(hid_t f, B_3DS_offload_data* offload_data,
  *
  * @param f HDF5 file identifier for a file which is opened and closed outside
  *          of this function
- * @param offload_data pointer to offload data struct which is allocated here
- * @param offload_array pointer to offload array which is allocated here and
- *                      used to store psi, B_R, B_phi, B_z, axis_r, and axis_z
- *                      values as required by B_STS_init_offload()
+ * @param data pointer to data struct which is allocated here
  * @param qid QID of the B_STS field that is to be read
  *
  * @return zero if reading succeeded
  */
-int hdf5_bfield_read_STS(hid_t f, B_STS_offload_data* offload_data,
-                                 real** offload_array, char* qid) {
+int hdf5_bfield_read_STS(hid_t f, B_STS_data* data, char* qid) {
     #undef BPATH
     #define BPATH "/bfield/B_STS_XXXXXXXXXX/"
 
     /* Read and initialize magnetic field Rpz-grid */
-    if( hdf5_read_int(BPATH "b_nr", &(offload_data->Bgrid_n_r),
+    int b_n_r, b_n_phi, b_n_z;
+    real b_r_min, b_r_max, b_z_min, b_z_max, b_phi_min, b_phi_max;
+    if( hdf5_read_int(BPATH "b_nr", &b_n_r,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(BPATH "b_nz", &(offload_data->Bgrid_n_z),
+    if( hdf5_read_int(BPATH "b_nz", &b_n_z,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "b_rmin", &(offload_data->Bgrid_r_min),
+    if( hdf5_read_double(BPATH "b_rmin", &b_r_min,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "b_rmax", &(offload_data->Bgrid_r_max),
+    if( hdf5_read_double(BPATH "b_rmax", &b_r_max,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "b_zmin", &(offload_data->Bgrid_z_min),
+    if( hdf5_read_double(BPATH "b_zmin", &b_z_min,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "b_zmax", &(offload_data->Bgrid_z_max),
+    if( hdf5_read_double(BPATH "b_zmax", &b_z_max,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    if( hdf5_read_int(BPATH "b_nphi", &(offload_data->Bgrid_n_phi),
+    if( hdf5_read_int(BPATH "b_nphi", &b_n_phi,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "b_phimin", &(offload_data->Bgrid_phi_min),
+    if( hdf5_read_double(BPATH "b_phimin", &b_phi_min,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "b_phimax", &(offload_data->Bgrid_phi_max),
+    if( hdf5_read_double(BPATH "b_phimax", &b_phi_max,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     // Convert to radians
-    offload_data->Bgrid_phi_min = math_deg2rad(offload_data->Bgrid_phi_min);
-    offload_data->Bgrid_phi_max = math_deg2rad(offload_data->Bgrid_phi_max);
+    b_phi_min = math_deg2rad(b_phi_min);
+    b_phi_max = math_deg2rad(b_phi_max);
 
     /* Read and initialize psi field Rpz-grid */
-    if( hdf5_read_int(BPATH "psi_nr", &(offload_data->psigrid_n_r),
+    int p_n_r, p_n_phi, p_n_z;
+    real p_r_min, p_r_max, p_z_min, p_z_max, p_phi_min, p_phi_max;
+    if( hdf5_read_int(BPATH "psi_nr", &p_n_r,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(BPATH "psi_nz", &(offload_data->psigrid_n_z),
+    if( hdf5_read_int(BPATH "psi_nz", &p_n_z,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "psi_rmin", &(offload_data->psigrid_r_min),
+    if( hdf5_read_double(BPATH "psi_rmin", &p_r_min,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "psi_rmax", &(offload_data->psigrid_r_max),
+    if( hdf5_read_double(BPATH "psi_rmax", &p_r_max,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "psi_zmin", &(offload_data->psigrid_z_min),
+    if( hdf5_read_double(BPATH "psi_zmin", &p_z_min,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "psi_zmax", &(offload_data->psigrid_z_max),
+    if( hdf5_read_double(BPATH "psi_zmax", &p_z_max,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    if( hdf5_read_int(BPATH "psi_nphi", &(offload_data->psigrid_n_phi),
+    if( hdf5_read_int(BPATH "psi_nphi", &p_n_phi,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "psi_phimin",
-                         &(offload_data->psigrid_phi_min),
+    if( hdf5_read_double(BPATH "psi_phimin", &p_phi_min,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "psi_phimax",
-                         &(offload_data->psigrid_phi_max),
+    if( hdf5_read_double(BPATH "psi_phimax", &p_phi_max,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     // Convert to radians
-    offload_data->psigrid_phi_min = math_deg2rad(offload_data->psigrid_phi_min);
-    offload_data->psigrid_phi_max = math_deg2rad(offload_data->psigrid_phi_max);
+    p_phi_min = math_deg2rad(p_phi_min);
+    p_phi_max = math_deg2rad(p_phi_max);
 
     /* Read and initialize magnetic axis phi-grid */
-    if( hdf5_read_int(BPATH "axis_nphi", &(offload_data->n_axis),
+    int naxis;
+    real axis_min, axis_max;
+    if( hdf5_read_int(BPATH "axis_nphi", &naxis,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "axis_phimin", &(offload_data->axis_min),
+    if( hdf5_read_double(BPATH "axis_phimin", &axis_min,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "axis_phimax", &(offload_data->axis_max),
+    if( hdf5_read_double(BPATH "axis_phimax", &axis_max,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     // Convert to radians
-    offload_data->axis_min = math_deg2rad(offload_data->axis_min);
-    offload_data->axis_max = math_deg2rad(offload_data->axis_max);
+    axis_min = math_deg2rad(axis_min);
+    axis_max = math_deg2rad(axis_max);
 
-    /* Allocate offload_array storing psi and the three components of B */
-    int psi_size = offload_data->psigrid_n_r*offload_data->psigrid_n_z
-        * offload_data->psigrid_n_phi;
-    int B_size = offload_data->Bgrid_n_r * offload_data->Bgrid_n_z
-        * offload_data->Bgrid_n_phi;
-    int axis_size = offload_data->n_axis;
-
-    *offload_array = (real*) malloc((psi_size + 3 * B_size + 2 * axis_size)
-                                    * sizeof(real));
-    offload_data->offload_array_length = psi_size + 3 * B_size + 2 * axis_size;
-
-    /* Read the magnetic field */
-    if( hdf5_read_double(BPATH "br", &(*offload_array)[0*B_size],
+    /* Read the poloidal flux (psi) values at magnetic axis and separatrix. */
+    real psi0, psi1;
+    if( hdf5_read_double(BPATH "psi0", &psi0,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "bphi", &(*offload_array)[1*B_size],
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "bz", &(*offload_array)[2*B_size],
+    if( hdf5_read_double(BPATH "psi1", &psi1,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    /* Read psi */
-    if( hdf5_read_double(BPATH "psi", &(*offload_array)[3*B_size],
+    /* Read the magnetic field and psi */
+    real* psi = (real*)malloc(p_n_r*p_n_phi*p_n_z*sizeof(real));
+    real* br = (real*)malloc(b_n_r*b_n_phi*b_n_z*sizeof(real));
+    real* bphi = (real*)malloc(b_n_r*b_n_phi*b_n_z*sizeof(real));
+    real* bz = (real*)malloc(b_n_r*b_n_phi*b_n_z*sizeof(real));
+    if( hdf5_read_double(BPATH "br", br,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "bphi", bphi,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "bz", bz,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "psi", psi,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Read the magnetic axis */
-    if( hdf5_read_double(BPATH "axisr",
-                         &(*offload_array)[3*B_size + psi_size],
+    real* axisr = (real*)malloc(naxis*sizeof(real));
+    real* axisz = (real*)malloc(naxis*sizeof(real));
+    if( hdf5_read_double(BPATH "axisr", axisr,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "axisz",
-                         &(*offload_array)[3*B_size + psi_size + axis_size],
+    if( hdf5_read_double(BPATH "axisz", axisz,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
+    int err = B_STS_init(data, p_n_r, p_r_min, p_r_max,
+                         p_n_phi, p_phi_min, p_phi_max, p_n_z, p_z_min, p_z_max,
+                         b_n_r, b_r_min, b_r_max, b_n_phi, b_phi_min, b_phi_max,
+                         b_n_z, b_z_min, b_z_max, naxis, axis_min, axis_max,
+                         axisr, axisz, psi0, psi1, psi, br, bphi, bz);
+    free(psi);
+    free(br);
+    free(bphi);
+    free(bz);
+    free(axisr);
+    free(axisz);
 
-    /* Read the poloidal flux (psi) values at magnetic axis and separatrix. */
-    if( hdf5_read_double(BPATH "psi0", &(offload_data->psi0),
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "psi1", &(offload_data->psi1),
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    return 0;
+    return err;
 }
 
 /**
@@ -523,33 +512,30 @@ int hdf5_bfield_read_STS(hid_t f, B_STS_offload_data* offload_data,
  *
  * @param f HDF5 file identifier for a file which is opened and closed outside
  *          of this function
- * @param offload_data pointer to offload data struct which is allocated here
- * @param offload_array pointer to offload array but no data is stored there so
- *                      it is not allocated and NULL pointer is returned instead
+ * @param data pointer to offload data struct which is allocated here
  * @param qid QID of the B_TC field that is to be read
  *
  * @return zero if reading succeeded
  */
-int hdf5_bfield_read_TC(hid_t f, B_TC_offload_data* offload_data,
-                        real** offload_array, char* qid) {
+int hdf5_bfield_read_TC(hid_t f, B_TC_data* data, char* qid) {
     #undef BPATH
     #define BPATH "/bfield/B_TC_XXXXXXXXXX/"
 
-    if( hdf5_read_double(BPATH "axisr", &(offload_data->axisr),
+    real axisr, axisz, psival, rhoval, B[3], dB[9];
+    if( hdf5_read_double(BPATH "axisr", &axisr,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "axisz", &(offload_data->axisz),
+    if( hdf5_read_double(BPATH "axisz", &axisz,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "psival", &(offload_data->psival),
+    if( hdf5_read_double(BPATH "psival", &psival,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "rhoval", &(offload_data->rhoval),
+    if( hdf5_read_double(BPATH "rhoval", &rhoval,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "bxyz", offload_data->B,
+    if( hdf5_read_double(BPATH "bxyz", B,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "jacobian", offload_data->dB,
+    if( hdf5_read_double(BPATH "jacobian", dB,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    *offload_array = NULL;
-    return 0;
+    int err = B_TC_init(data, axisr, axisz, psival, rhoval, B, dB);
+    return err;
 }
 
 /**
@@ -574,49 +560,48 @@ int hdf5_bfield_read_TC(hid_t f, B_TC_offload_data* offload_data,
  *
  * @param f HDF5 file identifier for a file which is opened and closed outside
  *          of this function
- * @param offload_data pointer to offload data struct which is allocated here
- * @param offload_array pointer to offload array but no data is stored there so
- *                      it is not allocated and NULL pointer is returned instead
+ * @param data pointer to data struct which is allocated here
  * @param qid QID of the B_GS field that is to be read
  *
  * @return zero if reading succeeded
  */
-int hdf5_bfield_read_GS(hid_t f, B_GS_offload_data* offload_data,
-                        real** offload_array, char* qid) {
+int hdf5_bfield_read_GS(hid_t f, B_GS_data* data, char* qid) {
     #undef BPATH
     #define BPATH "/bfield/B_GS_XXXXXXXXXX/"
 
     /* Equilibrium */
-    if( hdf5_read_double(BPATH "r0", &(offload_data->R0),
+    real R0, z0, raxis, zaxis, B_phi0, psi0, psi1, psi_mult, psi_coeff[14];
+    if( hdf5_read_double(BPATH "r0", &R0,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "z0", &(offload_data->z0),
+    if( hdf5_read_double(BPATH "z0", &z0,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "raxis", &(offload_data->raxis),
+    if( hdf5_read_double(BPATH "raxis", &raxis,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "zaxis", &(offload_data->zaxis),
+    if( hdf5_read_double(BPATH "zaxis", &zaxis,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "bphi0", &(offload_data->B_phi0),
+    if( hdf5_read_double(BPATH "bphi0", &B_phi0,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "psi0", &(offload_data->psi0),
+    if( hdf5_read_double(BPATH "psi0", &psi0,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "psi1", &(offload_data->psi1),
+    if( hdf5_read_double(BPATH "psi1", &psi1,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "psimult", &(offload_data->psi_mult),
+    if( hdf5_read_double(BPATH "psimult", &psi_mult,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "coefficients", offload_data->psi_coeff,
+    if( hdf5_read_double(BPATH "coefficients", psi_coeff,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Ripple */
-    if( hdf5_read_double(BPATH "delta0", &(offload_data->delta0),
+    int Nripple;
+    real delta0, alpha0, a0;
+    if( hdf5_read_double(BPATH "delta0", &delta0,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "alpha0", &(offload_data->alpha0),
+    if( hdf5_read_double(BPATH "alpha0", &alpha0,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "a0", &(offload_data->a0),
+    if( hdf5_read_double(BPATH "a0", &a0,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(BPATH "nripple", &(offload_data->Nripple),
+    if( hdf5_read_int(BPATH "nripple", &Nripple,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    *offload_array = NULL;
-
-    return 0;
+    int err = B_GS_init(data, R0, z0, raxis, zaxis, B_phi0, psi0, psi1,
+                        psi_mult, psi_coeff, Nripple, a0, alpha0, delta0);
+    return err;
 }

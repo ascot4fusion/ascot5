@@ -22,126 +22,61 @@
 /**
  * @brief Initialize local file atomic data and check inputs
  *
- * Before calling this function, the offload struct is expected to be fully
- * initialized.
- *
- * The offload array is expected to hold atomic data as
- *
- *   [0*N_reac] = min value of energy abscissa [eV]
- *   [1*N_reac] = max value of energy abscissa [eV]
- *   [2*N_reac] = min value of density abscissa [m^-3]
- *   [3*N_reac] = max value of density abscissa [m^-3]
- *   [4*N_reac] = min value of temperature abscissa [eV]
- *   [5*N_reac] = max value of temperature abscissa [eV]
- *   [6*N_reac] = reaction probability data [(depends on reaction data type)]
- *
- * Each piece of data listed above is repeated for each reaction included.
- * Hence the N_reac interval between the 6 first pieces of data. The memory
- * space required for the last, reaction probability data, depends on the
- * dimensionality of the abscissae. The memory requirement for the reaction
- * data of the i_reac:th reaction is N_E[i_reac]*N_n[i_reac]*N_T[i_reac].
- *
- * This function initializes splines to atomic reaction data, thus increasing
- * the length of the offload array, and prints some values as sanity checks.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param data pointer to the data struct
  *
  * @return zero if initialization success
  */
-int asigma_loc_init_offload(asigma_loc_offload_data* offload_data,
-                            real** offload_array) {
+int asigma_loc_init(asigma_loc_data* data, int nreac,
+                    int* z1, int* a1, int* z2, int* a2, int* reactype,
+                    int* ne, real* emin, real* emax,
+                    int* nn, real* nmin, real* nmax,
+                    int* nT, real* Tmin, real* Tmax, real* sigma) {
+
     int err = 0;
-    int N_reac = offload_data->N_reac;
+    data->N_reac = nreac;
+    data->z_1 = (int*) malloc( nreac * sizeof(int) );
+    data->a_1 = (int*) malloc( nreac * sizeof(int) );
+    data->z_2 = (int*) malloc( nreac * sizeof(int) );
+    data->a_2 = (int*) malloc( nreac * sizeof(int) );
+    data->reac_type = (int*) malloc( nreac * sizeof(int) );
+    data->sigma = (interp1D_data*) malloc( nreac * sizeof(interp1D_data) );
+    data->sigmav = (interp2D_data*) malloc( nreac * sizeof(interp2D_data) );
+    data->BMSsigmav = (interp3D_data*) malloc( nreac * sizeof(interp3D_data) );
+    for(int i_reac = 0; i_reac < nreac; i_reac++) {
+        data->z_1[i_reac] = z1[i_reac];
+        data->a_1[i_reac] = a1[i_reac];
+        data->z_2[i_reac] = z2[i_reac];
+        data->a_2[i_reac] = a2[i_reac];
+        data->reac_type[i_reac] = reactype[i_reac];
 
-    /* Find how much space is needed for the output array */
-    int temp_arr_length =  6 * N_reac;
-    for(int i_reac = 0; i_reac < N_reac; i_reac++) {
-        int N_E = offload_data->N_E[i_reac];
-        int N_n = offload_data->N_n[i_reac];
-        int N_T = offload_data->N_T[i_reac];
-        int dim = (N_E > 1) + (N_n > 1) + (N_T > 1);
+        /* Initialize spline struct according to dimensionality of
+           reaction data (and mark reaction availability) */
+        int dim = (ne[i_reac] > 1) + (nn[i_reac] > 1) + (nT[i_reac] > 1);
+        real* pos = sigma;
         switch(dim) {
             case 1:
-                temp_arr_length += N_E * NSIZE_COMP1D;
+                err = interp1Dcomp_setup(&data->sigma[i_reac], pos,
+                                         ne[i_reac], NATURALBC,
+                                         emin[i_reac], emax[i_reac]);
+                pos += ne[i_reac];
                 break;
-
             case 2:
-                temp_arr_length += N_E * N_T * NSIZE_COMP2D;
+                err = interp2Dcomp_setup(&data->sigmav[i_reac], pos,
+                                         ne[i_reac], nT[i_reac],
+                                         NATURALBC, NATURALBC,
+                                         emin[i_reac], emax[i_reac],
+                                         Tmin[i_reac], Tmax[i_reac]);
+                pos += ne[i_reac] * nT[i_reac];
                 break;
-
             case 3:
-                temp_arr_length += N_E * N_n * N_T * NSIZE_COMP3D;
+                err = interp3Dcomp_setup(&data->BMSsigmav[i_reac], pos,
+                                         ne[i_reac], nn[i_reac], nT[i_reac],
+                                         NATURALBC, NATURALBC, NATURALBC,
+                                         emin[i_reac], emax[i_reac],
+                                         nmin[i_reac], nmax[i_reac],
+                                         Tmin[i_reac], Tmax[i_reac]);
+                pos += ne[i_reac] * nn[i_reac] * nT[i_reac];
                 break;
-
-            default:
-                /* Unrecognized dimensionality. Produce error. */
-                print_err("Error: Unrecognized abscissa dimensionality\n");
-                err = 1;
-                break;
-        }
-    }
-    real* temp_array = (real*) malloc(temp_arr_length*sizeof(real));
-
-    /* Helper pointers to keep track of the current memory positions in the
-       reaction data parts of the arrays */
-    real * temp_arr_pos    = temp_array + 6 * N_reac;
-    real * offload_arr_pos = *offload_array + 6 * N_reac;
-
-    /* Copy over reaction identifiers and abscissae parameters, and evaluate
-       spline coefficients according to dimensionality of reaction data */
-    for(int i_reac = 0; i_reac < N_reac; i_reac++) {
-        int N_E = offload_data->N_E[i_reac];
-        int N_n = offload_data->N_n[i_reac];
-        int N_T = offload_data->N_T[i_reac];
-        int dim = (N_E > 1) + (N_n > 1) + (N_T > 1);
-
-        real E_min = (*offload_array)[0*N_reac+i_reac];
-        real E_max = (*offload_array)[1*N_reac+i_reac];
-        real n_min = (*offload_array)[2*N_reac+i_reac];
-        real n_max = (*offload_array)[3*N_reac+i_reac];
-        real T_min = (*offload_array)[4*N_reac+i_reac];
-        real T_max = (*offload_array)[5*N_reac+i_reac];
-        temp_array[ 0*N_reac+i_reac] = E_min;
-        temp_array[ 1*N_reac+i_reac] = E_max;
-        temp_array[ 2*N_reac+i_reac] = n_min;
-        temp_array[ 3*N_reac+i_reac] = n_max;
-        temp_array[ 4*N_reac+i_reac] = T_min;
-        temp_array[ 5*N_reac+i_reac] = T_max;
-        switch(dim) {
-            case 1:
-                err += interp1Dcomp_init_coeff(
-                    temp_arr_pos, offload_arr_pos,
-                    N_E,
-                    NATURALBC,
-                    E_min, E_max);
-                temp_arr_pos    += N_E * NSIZE_COMP1D;
-                offload_arr_pos += N_E;
-                break;
-
-            case 2:
-                err += interp2Dcomp_init_coeff(
-                    temp_arr_pos, offload_arr_pos,
-                    N_E, N_T,
-                    NATURALBC, NATURALBC,
-                    E_min, E_max,
-                    T_min, T_max);
-                temp_arr_pos    += N_E * N_T * NSIZE_COMP2D;
-                offload_arr_pos += N_E * N_T;
-                break;
-
-            case 3:
-                err += interp3Dcomp_init_coeff(
-                    temp_arr_pos, offload_arr_pos,
-                    N_E, N_n, N_T,
-                    NATURALBC, NATURALBC, NATURALBC,
-                    E_min, E_max,
-                    n_min, n_max,
-                    T_min, T_max);
-                temp_arr_pos    += N_E * N_n * N_T * NSIZE_COMP3D;
-                offload_arr_pos += N_E * N_n * N_T;
-                break;
-
             default:
                 /* Unrecognized dimensionality. Produce error. */
                 print_err("Error: Unrecognized abscissa dimensionality\n");
@@ -150,16 +85,9 @@ int asigma_loc_init_offload(asigma_loc_offload_data* offload_data,
         }
     }
 
-    free(*offload_array);
-    *offload_array = temp_array;
-    offload_data->offload_array_length = temp_arr_length;
-
-    if(err) {
-        return err;
-    }
-
-    print_out(VERBOSE_IO,"\nFound data for %d atomic reactions:\n", N_reac);
-    for(int i_reac = 0; i_reac < N_reac; i_reac++) {
+    print_out(VERBOSE_IO, "\nFound data for %d atomic reactions:\n",
+              data->N_reac);
+    for(int i_reac = 0; i_reac < data->N_reac; i_reac++) {
         print_out(VERBOSE_IO,
               "Reaction number / Total number of reactions = %d / %d\n"
               "  Reactant species Z_1 / A_1, Z_2 / A_2     = %d / %d, %d / %d\n"
@@ -169,120 +97,49 @@ int asigma_loc_init_offload(asigma_loc_offload_data* offload_data,
               "  Number of energy grid points              = %d\n"
               "  Number of density grid points             = %d\n"
               "  Number of temperature grid points         = %d\n",
-              i_reac+1, N_reac,
-              offload_data->z_1[i_reac], offload_data->a_1[i_reac],
-              offload_data->z_2[i_reac], offload_data->a_2[i_reac],
-              (*offload_array)[0 * N_reac + i_reac],
-              (*offload_array)[1 * N_reac + i_reac],
-              (*offload_array)[2 * N_reac + i_reac],
-              (*offload_array)[3 * N_reac + i_reac],
-              (*offload_array)[4 * N_reac + i_reac],
-              (*offload_array)[5 * N_reac + i_reac],
-              offload_data->N_E[i_reac],
-              offload_data->N_n[i_reac],
-              offload_data->N_T[i_reac]);
+              i_reac+1, data->N_reac, data->z_1[i_reac], data->a_1[i_reac],
+              data->z_2[i_reac], data->a_2[i_reac], emin[i_reac], emax[i_reac],
+              nmin[i_reac], nmax[i_reac], Tmin[i_reac], Tmax[i_reac],
+              ne[i_reac], nn[i_reac], nT[i_reac]);
     }
 
-    return 0;
+    return err;
 }
 
 /**
- * @brief Free offload array and reset parameters
+ * @brief Free allocated resources
  *
- * This function deallocates the offload_array.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param offload_data pointer to the data struct
 */
-void asigma_loc_free_offload(asigma_loc_offload_data* offload_data,
-                             real** offload_array) {
-    free(*offload_array);
-    *offload_array = NULL;
-}
-
-/**
- * @brief Initialize atomic reaction data struct on target
- *
- * This function copies atomic reaction data from the offload struct
- * and the offload array to the struct on the target, and uses
- * interp?Dcomp_init_spline() functions to initialize the precalculated
- * spline parameters of the reaction data in the spline structs within
- * the data struct on the target.
- *
- * @param asigma_data pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
- */
-void asigma_loc_init(
-    asigma_loc_data* asigma_data, asigma_loc_offload_data* offload_data,
-    real* offload_array) {
-    /* Copy over number of reactions and store it in a helper variable */
-    int N_reac =  offload_data->N_reac;
-    asigma_data->N_reac = N_reac;
-
-    /* Helper pointer to keep track of position in offload array */
-    real* offload_arr_pos = offload_array + 6 * N_reac;
-
-    /* Copy data from offload array to atomic sigma struct,
-       initialize spline structs and determine reaction availability */
-    for(int i_reac = 0; i_reac < N_reac; i_reac++) {
-
-        /* Reaction identifiers */
-        asigma_data->z_1[i_reac] = offload_data->z_1[i_reac];
-        asigma_data->a_1[i_reac] = offload_data->a_1[i_reac];
-        asigma_data->z_2[i_reac] = offload_data->z_2[i_reac];
-        asigma_data->a_2[i_reac] = offload_data->a_2[i_reac];
-        asigma_data->reac_type[i_reac] = offload_data->reac_type[i_reac];
-
-        /* Initialize spline struct according to dimensionality of
-           reaction data (and mark reaction availability) */
-        int  N_E   = offload_data->N_E[i_reac];
-        real E_min = offload_array[0*N_reac+i_reac];
-        real E_max = offload_array[1*N_reac+i_reac];
-        int  N_n   = offload_data->N_n[i_reac];
-        real n_min = offload_array[2*N_reac+i_reac];
-        real n_max = offload_array[3*N_reac+i_reac];
-        int  N_T   = offload_data->N_T[i_reac];
-        real T_min = offload_array[4*N_reac+i_reac];
-        real T_max = offload_array[5*N_reac+i_reac];
-        int  dim   = (N_E > 1) + (N_n > 1) + (N_T > 1);
-        switch(dim) {
-            case 1:
-                interp1Dcomp_init_spline(
-                    &(asigma_data->sigma[i_reac]), offload_arr_pos,
-                    N_E,
-                    NATURALBC,
-                    E_min, E_max);
-                offload_arr_pos += N_E *NSIZE_COMP1D;
-                break;
-
-            case 2:
-                interp2Dcomp_init_spline(
-                    &(asigma_data->sigmav[i_reac]), offload_arr_pos,
-                    N_E, N_T,
-                    NATURALBC, NATURALBC,
-                    E_min, E_max,
-                    T_min, T_max);
-                offload_arr_pos += N_E * N_T * NSIZE_COMP2D;
-                break;
-
-            case 3:
-                interp3Dcomp_init_spline(
-                    &(asigma_data->BMSsigmav[i_reac]), offload_arr_pos,
-                    N_E, N_n, N_T,
-                    NATURALBC, NATURALBC, NATURALBC,
-                    E_min, E_max,
-                    n_min, n_max,
-                    T_min, T_max);
-                offload_arr_pos += N_E * N_n * N_T * NSIZE_COMP3D;
-                break;
-
-            default:
-                /* Unrecognized dimensionality. Produce error. */
-                print_err("Error: Unrecognized abscissa dimensionality\n");
-                break;
+void asigma_loc_free(asigma_loc_data* data) {
+    for(int i_reac = 0; i_reac < data->N_reac; i_reac++) {
+        if(data->reac_type[i_reac] == sigma_CX) {
+            free(data->sigma[i_reac].c);
+        }
+        else if(data->reac_type[i_reac] == sigmav_CX) {
+            free(data->sigmav[i_reac].c);
+        }
+        else if(data->reac_type[i_reac] == sigmav_BMS) {
+            free(data->BMSsigmav[i_reac].c);
         }
     }
+    free(data->z_1);
+    free(data->a_1);
+    free(data->z_2);
+    free(data->a_2);
+    free(data->reac_type);
+    free(data->sigma);
+    free(data->sigmav);
+    free(data->BMSsigmav);
+}
+
+/**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void asigma_loc_offload(asigma_loc_data* data) {
+    // TODO: Implement
 }
 
 /**
@@ -570,7 +427,7 @@ a5err asigma_loc_eval_bms(
                 int interperr = \
                         interp3Dcomp_eval_f(
                             &sigmav, &asigma_data->BMSsigmav[i_reac],
-                            E_eV/anum[i_spec], znum[i_spec] * n_i[i_spec], T_e);
+                            E_eV/a_1, znum[i_spec] * n_i[i_spec], T_e);
 
                 /* Interpolation error means the data has to be extrapolated */
                 if(interperr) {

@@ -36,125 +36,141 @@
 /**
  * @brief Initialize 1DS plasma data and check inputs
  *
- * Before calling this function, the offload struct is expected to be fully
- * initialized.
- *
- * The offload array is expected to hold plasma data as
- *   &(*offload_array)[n_rho*0] = electron temperature
- *   &(*offload_array)[n_rho*1] = ion temperature
- *   &(*offload_array)[n_rho*2] = electron density
- *   &(*offload_array)[n_rho*3] = ion density
- *
- * This function initializes splines to plasma profiles and prints some values
- * as sanity checks.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param data pointer to the data struct
  *
  * @return zero if initialization succeeded
  */
-int plasma_1DS_init_offload(plasma_1DS_offload_data* offload_data,
-                            real** offload_array) {
-
-    /* Spline initialization */
+int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
+                    int nion, int* anum, int* znum, real* mass, real* charge,
+                    real* Te, real* Ti, real* ne, real* ni) {
     int err = 0;
-    int n_rho     = offload_data->n_rho;
-    int n_species = offload_data->n_species;
+    data->n_species = nion + 1;
+    data->anum = (int*) malloc( nion*sizeof(int) );
+    data->znum = (int*) malloc( nion*sizeof(int) );
+    data->mass = (real*) malloc( (nion+1)*sizeof(real) );
+    data->charge = (real*) malloc( (nion+1)*sizeof(real) );
+    for(int i = 0; i < data->n_species; i++) {
+        if(i < nion) {
+            data->znum[i] = znum[i];
+            data->anum[i] = anum[i];
+        }
+        data->mass[i] = mass[i];
+        data->charge[i] = charge[i];
+    }
 
-    /* Allocate enough space for two temperature and n_species density arrays */
-    real* coeff_array = (real*) malloc((2 + n_species) * NSIZE_COMP1D
-                                       * n_rho * sizeof(real));
-
-    for(int i=0; i< ((2 + n_species)*n_rho); i++) {
+    real* Te_scaled = (real*) malloc( nrho*sizeof(real) );
+    real* Ti_scaled = (real*) malloc( nrho*sizeof(real) );
+    real* ne_scaled = (real*) malloc( nrho*sizeof(real) );
+    real* ni_scaled = (real*) malloc( nion*nrho*sizeof(real) );
+    for(int i=0; i < nrho; i++) {
 #if PLASMA_1DS_NONEG == PLASMA_1DS_LOG
-        (*offload_array)[i] = log( (*offload_array)[i]);
+        Te_scaled[i] = log(Te[i]);
+        Ti_scaled[i] = log(Ti[i]);
+        ne_scaled[i] = log(ne[i]);
+        for(int j = 0; j < nion; j++) {
+            ni_scaled[j*nrho + i] = log(ni[j*nrho + i]);
+        }
 #elif PLASMA_1DS_NONEG == PLASMA_1DS_SQRT
-        (*offload_array)[i] = sqrt( (*offload_array)[i] );
+        Te_scaled[i] = sqrt(Te[i]);
+        Ti_scaled[i] = sqrt(Ti[i]);
+        ne_scaled[i] = sqrt(ne[i]);
+        for(int j = 0; j < nion; j++) {
+            ni_scaled[j*nrho + i] = sqrt(ni[j*nrho + i]);
+        }
 #endif
     }
-
-    /* Evaluate spline coefficients */
-
-    /* Te */
-    err += interp1Dcomp_init_coeff(
-        coeff_array + 0*n_rho*NSIZE_COMP1D,
-        *offload_array + 0*n_rho,
-        offload_data->n_rho, NATURALBC,
-        offload_data->rho_min, offload_data->rho_max);
-
-    /* Ti */
-    err += interp1Dcomp_init_coeff(
-        coeff_array + 1*n_rho*NSIZE_COMP1D,
-        *offload_array + 1*n_rho,
-        offload_data->n_rho, NATURALBC,
-        offload_data->rho_min, offload_data->rho_max);
-
-    /* Densities */
-    for(int i=0; i < n_species; i++) {
-        err += interp1Dcomp_init_coeff(
-            coeff_array + (2 +i)*n_rho*NSIZE_COMP1D,
-            *offload_array + (2 + i)*n_rho,
-            offload_data->n_rho, NATURALBC,
-            offload_data->rho_min, offload_data->rho_max);
-    }
-
+    err = interp1Dcomp_setup(&data->temp[0], Te_scaled, nrho, NATURALBC,
+                             rhomin, rhomax);
     if(err) {
-        free(coeff_array);
-        return err;
+        print_err("Error: Failed to initialize splines.\n");
+        free(Te_scaled);
+        free(Ti_scaled);
+        free(ne_scaled);
+        free(ni_scaled);
+        return 1;
+    }
+    err = interp1Dcomp_setup(&data->temp[1], Ti_scaled, nrho, NATURALBC,
+                             rhomin, rhomax);
+    if(err) {
+        print_err("Error: Failed to initialize splines.\n");
+        free(Te_scaled);
+        free(Ti_scaled);
+        free(ne_scaled);
+        free(ni_scaled);
+        return 1;
     }
 
-    free(*offload_array);
-    *offload_array = coeff_array;
-    offload_data->offload_array_length = (2 + n_species) * NSIZE_COMP1D * n_rho;
+    data->dens = (interp1D_data*) malloc(data->n_species*sizeof(interp1D_data));
+    err = interp1Dcomp_setup(&data->dens[0], ne_scaled, nrho, NATURALBC,
+                             rhomin, rhomax);
+    if(err) {
+        print_err("Error: Failed to initialize splines.\n");
+        free(Te_scaled);
+        free(Ti_scaled);
+        free(ne_scaled);
+        free(ni_scaled);
+        free(data->dens);
+        return 1;
+    }
+    for(int i = 0; i < nion; i++) {
+        err = interp1Dcomp_setup(&data->dens[i+1], &ni_scaled[i*nrho],
+                                 nrho, NATURALBC, rhomin, rhomax);
+        if(err) {
+            print_err("Error: Failed to initialize splines.\n");
+            free(Te_scaled);
+            free(Ti_scaled);
+            free(ne_scaled);
+            free(ni_scaled);
+            free(data->dens);
+            return 1;
+        }
+    }
+    free(Te_scaled);
+    free(Ti_scaled);
+    free(ne_scaled);
+    free(ni_scaled);
 
-    /* Initialize the data so that we can perform sanity checks */
-    real temp0, temp1, dens0, dens1;
-    plasma_1DS_data plsdata;
-    plasma_1DS_init(&plsdata, offload_data, *offload_array);
-
-    int n_ions = n_species - 1;
     print_out(VERBOSE_IO, "\n1D plasma profiles (P_1DS)\n");
     print_out(VERBOSE_IO,
               "Min rho = %1.2le, Max rho = %1.2le,"
               " Number of rho grid points = %d,"
               " Number of ion species = %d\n",
-              offload_data->rho_min, offload_data->rho_max, n_rho, n_ions);
+              rhomin, rhomax, nrho, nion);
     print_out(VERBOSE_IO,
               "Species Z/A  charge [e]/mass [amu] Density [m^-3] at Min/Max rho"
               "    Temperature [eV] at Min/Max rho\n");
-    for(int i=0; i < n_ions; i++) {
-        plasma_1DS_eval_temp(&temp0, offload_data->rho_min, i+1, &plsdata);
-        plasma_1DS_eval_temp(&temp1, offload_data->rho_max, i+1, &plsdata);
-        plasma_1DS_eval_dens(&dens0, offload_data->rho_min, i+1, &plsdata);
-        plasma_1DS_eval_dens(&dens1, offload_data->rho_max, i+1, &plsdata);
+    real T0, T1, n0, n1;
+    for(int i=0; i < nion; i++) {
+        plasma_1DS_eval_temp(&T0, rhomin, i+1, data);
+        plasma_1DS_eval_temp(&T1, rhomax, i+1, data);
+        plasma_1DS_eval_dens(&n0, rhomin, i+1, data);
+        plasma_1DS_eval_dens(&n1, rhomax, i+1, data);
         print_out(VERBOSE_IO,
                   " %3d  /%3d   %3d  /%7.3f             %1.2le/%1.2le     "
                   "           %1.2le/%1.2le       \n",
-                  offload_data->znum[i], offload_data->anum[i],
-                  (int)round(offload_data->charge[i+1]/CONST_E),
-                  offload_data->mass[i+1]/CONST_U,
-                  dens0, dens1, temp0 / CONST_E, temp1 / CONST_E);
+                  data->znum[i], data->anum[i],
+                  (int)round(data->charge[i+1]/CONST_E),
+                  data->mass[i+1]/CONST_U,
+                  n0, n1, T0 / CONST_E, T1 / CONST_E);
     }
 
-    plasma_1DS_eval_temp(&temp0, offload_data->rho_min, 0, &plsdata);
-    plasma_1DS_eval_temp(&temp1, offload_data->rho_max, 0, &plsdata);
-    plasma_1DS_eval_dens(&dens0, offload_data->rho_min, 0, &plsdata);
-    plasma_1DS_eval_dens(&dens1, offload_data->rho_max, 0, &plsdata);
+    plasma_1DS_eval_temp(&T0, rhomin, 0, data);
+    plasma_1DS_eval_temp(&T1, rhomax, 0, data);
+    plasma_1DS_eval_dens(&n0, rhomin, 0, data);
+    plasma_1DS_eval_dens(&n1, rhomax, 0, data);
     print_out(VERBOSE_IO,
               "[electrons]  %3d  /%7.3f             %1.2le/%1.2le          "
               "      %1.2le/%1.2le       \n", -1, CONST_M_E/CONST_U,
-              dens0, dens1, temp0 / CONST_E, temp1 / CONST_E);
+              n0, n1, T0 / CONST_E, T1 / CONST_E);
     real quasineutrality = 0;
-    for(int k = 0; k <n_rho; k++) {
-        real rho = offload_data->rho_min
-            + k * (offload_data->rho_max - offload_data->rho_min) / (n_rho - 1);
-
+    for(int k = 0; k < nrho; k++) {
+        real rho = rhomin + k * (rhomax - rhomin) / (nrho - 1);
         real ele_qdens;
-        plasma_1DS_eval_dens(&ele_qdens, rho, 0, &plsdata);
+        plasma_1DS_eval_dens(&ele_qdens, rho, 0, data);
         real ion_qdens = 0;
-        for(int i=0; i < n_ions; i++) {
-            plasma_1DS_eval_dens(&dens0, rho, i+1, &plsdata);
-            ion_qdens += dens0;
+        for(int i=0; i < nion; i++) {
+            plasma_1DS_eval_dens(&n0, rho, i+1, data);
+            ion_qdens += n0;
         }
         quasineutrality = fmax( quasineutrality,
                                 fabs( 1 - ion_qdens / ele_qdens ) );
@@ -166,58 +182,36 @@ int plasma_1DS_init_offload(plasma_1DS_offload_data* offload_data,
 }
 
 /**
- * @brief Free offload array and reset parameters
+ * @brief Free allocated resources
  *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param data pointer to the data struct
  */
-void plasma_1DS_free_offload(plasma_1DS_offload_data* offload_data,
-                             real** offload_array) {
-    free(*offload_array);
-    *offload_array = NULL;
+void plasma_1DS_free(plasma_1DS_data* data) {
+    free(data->mass);
+    free(data->charge);
+    free(data->anum);
+    free(data->znum);
+    for(int i = 0; i < data->n_species; i++) {
+        free(data->dens[i].c);
+    }
+    free(data->dens);
 }
 
 /**
- * @brief Initialize magnetic field data struct on target
+ * @brief Offload data to the accelerator.
  *
- * This function copies the magnetic field parameters from the offload struct
- * to the struct on target and sets the plasma data pointers to
- * correct offsets in the offload array.
- *
- * @param plasma_data pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
+ * @param data pointer to the data struct
  */
-void plasma_1DS_init(plasma_1DS_data* plasma_data,
-                     plasma_1DS_offload_data* offload_data,
-                     real* offload_array) {
-    plasma_data->n_species = offload_data->n_species;
-
-    for(int i = 0; i < plasma_data->n_species; i++) {
-        plasma_data->mass[i]   = offload_data->mass[i];
-        plasma_data->charge[i] = offload_data->charge[i];
-        plasma_data->znum[i]   = offload_data->znum[i];
-        plasma_data->anum[i]   = offload_data->anum[i];
-    }
-
-    int n_rho = offload_data->n_rho;
-    interp1Dcomp_init_spline(&(plasma_data->temp[0]),
-                             &(offload_array[0*n_rho]),
-                             offload_data->n_rho, NATURALBC,
-                             offload_data->rho_min,
-                             offload_data->rho_max);
-    interp1Dcomp_init_spline(&(plasma_data->temp[1]),
-                             &(offload_array[1*n_rho*NSIZE_COMP1D]),
-                             offload_data->n_rho, NATURALBC,
-                             offload_data->rho_min,
-                             offload_data->rho_max);
-
-    for(int i=0; i<offload_data->n_species; i++) {
-        interp1Dcomp_init_spline(&(plasma_data->dens[i]),
-                                 &(offload_array[(2+i)*n_rho*NSIZE_COMP1D]),
-                                 offload_data->n_rho, NATURALBC,
-                                 offload_data->rho_min,
-                                 offload_data->rho_max);
+void plasma_1DS_offload(plasma_1DS_data* data) {
+    GPU_MAP_TO_DEVICE(
+        data->mass[0:data->n_species], data->charge[0:data->n_species], \
+        data->anum[0:data->n_species-1], data->znum[0:data->n_species-1], \
+        data->temp[0:2], data->dens[0:data->n_species], \
+        data->temp[0].c[0:data->temp[0].n_x*NSIZE_COMP1D], \
+        data->temp[1].c[0:data->temp[1].n_x*NSIZE_COMP1D]
+    )
+    for (int i = 0; i < data->n_species; i++) {
+        GPU_MAP_TO_DEVICE( data->dens[i].c[0:data->dens[i].n_x*NSIZE_COMP1D] )
     }
 }
 

@@ -243,8 +243,6 @@ class wall_3D(DataGroup):
     can use this to model FILD.
     """
 
-    number_of_elements = None
-
     def read(self):
         """Read data from HDF5 file.
 
@@ -264,49 +262,25 @@ class wall_3D(DataGroup):
                 if key == "nelements":
                     out[key] = int(out[key])
 
-            nTriangles = out['x1x2x3'].shape[0]
-            self.number_of_elements = nTriangles
-
-            if path+'/flag' in f:
-                flagAttrs = ['flagIdStrings','flagIdList']
-                for s in flagAttrs:
-                    if s in f[ path+'/flag' ].attrs:
-                        out[s] = f[ path+'/flag' ].attrs.get(s)
-
-        if not 'flag' in out:
-            out['flag'] = np.zeros(shape=(nTriangles,),dtype=int)
-
-        if 'flagIdStrings' in out:
-            # We need to decode the bytearrays into strings.
-            s=[]
-            for S in out['flagIdStrings']:
-                if not isinstance(S,str):
-                    s.append(S.decode('utf-8'))
-                else:
-                    s.append(S)
-                out['flagIdStrings']=s
-        else:
-            # Generate some flag names.
-            out['flagIdList']=np.unique(out['flag'])
-            out['flagIdStrings']=[]
-            for fl in out['flagIdList']:
-                out['flagIdStrings'].append('Flag {}'.format(fl))
-
+            if "flagIdStrings" in f[path+"/flag"].attrs:
+                flagnames = f[path+"/flag"].attrs.get("flagIdStrings")
+                flagintegers = f[path+"/flag"].attrs.get("flagIdList")
+                labels = {
+                    s.decode('utf-8'):i for s, i in zip(flagnames, flagintegers)
+                    }
+                out["labels"] = labels
+            else:
+                out["labels"] = {}
         return out
-
-    def getNumberOfElements(self):
-        if self.number_of_elements is None:
-            self.read()
-        return self.number_of_elements
 
     def getwalloutline(self, z=0):
         """Return minimum and maximum wall R-coordinates as a function of phi
-        at the given toroidal plane.
+        at the given z=const. plane.
 
         Parameters
         ----------
-        phigrid : array_like
-            Toroidal coordinates.
+        z : float
+            Defines the z=const. plane.
 
         Returns
         -------
@@ -390,32 +364,6 @@ class wall_3D(DataGroup):
 
         return (vertices, faces)
 
-    def remove_small_triangles(self,maximumAreaToRemove=0.0,data=None):
-        "The modification happens in-place. No deep copy is made!"
-
-        if data is None:
-            w = self.read()
-        else:
-            w = data
-
-        A = self.area(data=w)
-
-        keep =  ( A > maximumAreaToRemove )
-
-        fields = ["x1x2x3","y1y2y3","z1z2z3"]
-        for f in fields:
-            w[f] = w[f][keep,:]
-        w['flag'] = w['flag'][keep]
-
-        nOld = w['n'][:]
-        nNew = len(w['flag'])
-        w['n'][:]         = nNew
-        w['nelements'][:] = nNew
-
-        print('Removing {}/{} triangles'.format(nOld-nNew,nOld))
-
-        return w
-
     def area(self, normal=False, data=None):
         """Calculate wall element area.
 
@@ -463,44 +411,72 @@ class wall_3D(DataGroup):
         nvec /= np.sqrt(np.sum(nvec**2, axis=0))
         return area, nvec
 
-    def getAspointsAndVertices(self, removeDuplcatePoints=True):
-        a5wall = self.read()
-        nTriangles = self.number_of_elements
+    def barycenters(self, cartesian=True, data=None):
+        """Calculate wall element barycenter.
 
-        # Create an array
-        points = np.zeros(shape=(3*nTriangles,3))
+        Parameters
+        ----------
+        data : dict, optional
+            Dictionary with the wall data. If ``None``, the data is read from
+            the file.
+        cartesian : bool, optional
+            If True, the barycenters will be returned in cartesian coordinates: x,y,z
+            If False, the barycenters will be returned in cylindrical coordinates: r,phi(rad),z
 
-        points[ ::3,0]=a5wall['x1x2x3'][:,0]
-        points[1::3,0]=a5wall['x1x2x3'][:,1]
-        points[2::3,0]=a5wall['x1x2x3'][:,2]
-        points[ ::3,1]=a5wall['y1y2y3'][:,0]
-        points[1::3,1]=a5wall['y1y2y3'][:,1]
-        points[2::3,1]=a5wall['y1y2y3'][:,2]
-        points[ ::3,2]=a5wall['z1z2z3'][:,0]
-        points[1::3,2]=a5wall['z1z2z3'][:,1]
-        points[2::3,2]=a5wall['z1z2z3'][:,2]
-
-
-        vertices = np.reshape( np.arange(0,3*nTriangles,1,dtype=int), (nTriangles,3) )
-
-        if not removeDuplcatePoints:
-            return points,vertices
-
-        points,vertices = self._removeDuplicatePoints(points,vertices)
-        return points,vertices
-
-    def _removeDuplicatePoints(self,points,vertices):
+        Returns
+        -------
+        barycenters : array_like, (nelement,3)
+            Barycenter of the wall elements.
         """
-        Remove duplicate points from points and vertices representation.
-        """
+        if data is None:
+            w = self.read()
+        else:
+            w = data
 
-        upoints,inverse = np.unique(points, return_index=False,
-                                    return_inverse=True, axis=0)
+        x1x2x3 = w["x1x2x3"]
+        y1y2y3 = w["y1y2y3"]
+        z1z2z3 = w["z1z2z3"]
+        ntriangle = x1x2x3.shape[0]
 
+        vertices  = np.zeros((ntriangle*3,3), dtype="f8")
 
-        uvertices = inverse[vertices]
+        vertices[0::3,0] = x1x2x3[:,0]
+        vertices[0::3,1] = y1y2y3[:,0]
+        vertices[0::3,2] = z1z2z3[:,0]
+        vertices[1::3,0] = x1x2x3[:,1]
+        vertices[1::3,1] = y1y2y3[:,1]
+        vertices[1::3,2] = z1z2z3[:,1]
+        vertices[2::3,0] = x1x2x3[:,2]
+        vertices[2::3,1] = y1y2y3[:,2]
+        vertices[2::3,2] = z1z2z3[:,2]
 
-        return upoints,uvertices
+        # Reshape the array so that each row contains the vertices of one triangle
+        reshaped_array = vertices.reshape(-1, 3, 3)
+        # Calculate the barycenter for each triangle
+        barycenters = np.mean(reshaped_array, axis=1)
+        if not cartesian:
+            # Convert barycenter to cylindrical basis
+            def cartesian_to_cylindrical(x, y, z):
+                """
+                Convert Cartesian coordinates to cylindrical coordinates.
+
+                Parameters
+                ----------
+                x: X coordinate
+                y: Y coordinate
+                z: Z coordinate
+
+                Returns
+                -------
+                Tuple containing (r, phi, z)
+                """
+                r = np.sqrt(x**2 + y**2)
+                phi = np.arctan2(y, x)
+                return r, phi, z
+
+            barycenters = np.array([cartesian_to_cylindrical(x, y, z) for x, y, z in barycenters])
+
+        return barycenters
 
     def getwallcontour(self, phi=0*unyt.deg):
         """Return a cross section of the wall with a given poloidal plane.
@@ -545,110 +521,9 @@ class wall_3D(DataGroup):
         import pyvista as pv
         return pv.PolyData( *self.noderepresentation() )
 
-    def toVtk(self):
-        import a5py.wall.a5vtkwall
-
-        a5VTKwall = a5py.wall.a5vtkwall.a5VtkWall()
-
-        a5VTKwall.fromA5wall(self)
-
-        W=self.read()
-
-        # Add index of running triangle number
-        a5VTKwall.addIndex(setAsActive=True)
-
-        # Add coloring based on flags. (Get's activated only if there are more
-        # than one flag.
-        a5VTKwall.addFlag(W['flag'],W['flagIdList'],W['flagIdStrings'])
-
-        return a5VTKwall
-
-
-    def append(self,newWall,data=None):
-        """
-        Returns the wall with newWall["x1x2x3], newWall["y1y2y3"], newWall["z1z2z3"], newWall["flag"] to the existing triangles.
-        If data=None (or not given) reads the old triangles from file.
-        """
-        if data is None:
-            w = self.read()
-        else:
-            w = data
-
-        fields = ["x1x2x3","y1y2y3","z1z2z3","flag"]
-        for f in fields:
-            #print('Field "{}" has the shapes (data,newWall):'.format(f))
-            #print(w[f].shape, newWall[f].shape)
-            if(len(w[f].shape)==1):
-                if( len(newWall[f]) != len(newWall[f].ravel()) ):
-                    raise Exception("Wrong size field {}".format(f))
-                w[f] = np.concatenate( (w[f], newWall[f].ravel() ), axis=0 )
-            else:
-                w[f] = np.concatenate( (w[f], newWall[f]         ), axis=0 )
-
-        w['n'] = w['n'] + newWall['n']
-
-        return w
-
-
-    def move_component(self, movement, direction, component):
-        """
-        @Params:
-        filename    Filename where the wall will be saved.
-        movement    How much the component is moved in metres
-        direction    Which direction the component is moved [x, y, z]
-        component     Bool array of the points of a component
-        wall         Wall object where the wall is copied from, if left empty active
-        wall from filename will be used
-
-        @return the new wall data
-        """
-        rwall = self.read()
-
-        #Movement in metres
-        t = movement/np.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2)
-
-        rwall['x1x2x3'][component,:] += t*direction[0]
-        rwall['y1y2y3'][component,:] += t*direction[1]
-        rwall['z1z2z3'][component,:] += t*direction[2]
-
-        new_rwall = {'x1x2x3':rwall['x1x2x3'],'y1y2y3':rwall['y1y2y3'],
-                     'z1z2z3':rwall['z1z2z3'],
-                     'desc':'ICRHmv{}m'.format(movement),
-            'flag':rwall['flag'], 'flagIdList':rwall['flagIdList'],
-            'flagIdStrings':rwall['flagIdStrings'], 'nelements':rwall['n']}
-
-        return new_rwall
-
-    def set_flags( self, names, indexes):
-        '''
-        @Params:
-        names       list of strings containing names of various flags
-        indexes     which flag indexes (zero indexed, last index value not included) correspond to each flag, list of tuples
-
-        example with 1000 triangles:
-                 names   = ['foo','bar','baz']
-                 indexes = [(0,10), (10,100), (100,1000)]
-
-        @return the new wall data
-        '''
-        W = self.read()
-
-        flagIdList    = []
-        flagIdStrings = []
-
-        for i,name in enumerate(names):
-            W['flag'][indexes[i][0]:(indexes[i][1])] = i
-            flagIdList.append(i)
-            flagIdStrings.append(name)
-
-        W['flagIdList']    = np.array(  flagIdList )
-        W['flagIdStrings'] = flagIdStrings
-        return W
-
-
     @staticmethod
     def write_hdf5(fn, nelements, x1x2x3, y1y2y3, z1z2z3, flag=None,
-                   flagIdList=None, flagIdStrings=None, desc=None):
+                   labels=None, desc=None):
         """Write input data to the HDF5 file.
 
         Parameters
@@ -664,11 +539,10 @@ class wall_3D(DataGroup):
         z1z2z3 : array_like (nelements,3)
             Each triangle's vertices' z coordinates [m].
         flag : array_like (nelements,1), optional
-            Integer array depicting the wall component of each triangle.
-        flagIdList : array_like (nUniqueFlags), optional
-            List of keys (int) of the flagIdStrings.
-        flagIdStrings : array_like (nUniqueFlags), optional
-            List of values (str) of the flagIdStrings.
+            Integer specifying to which group (e.g. wall component) a triangle
+            belongs to.
+        labels : dict[str,int], optional
+            Human readable labels for the flag values.
         desc : str, optional
             Input description.
 
@@ -716,17 +590,6 @@ class wall_3D(DataGroup):
         group  = "wall_3D"
         gname  = ""
 
-        # Convert strings to the favorite format
-        if flagIdStrings is not None:
-            strlen = 0
-            for s in flagIdStrings:
-                if len(s) >  strlen:
-                    strlen = len(s)
-            fids = np.empty( shape=(len(flagIdStrings),),
-                             dtype='|S{}'.format(strlen) )
-            for istr,s in enumerate(flagIdStrings):
-                fids[istr]=s
-
         with h5py.File(fn, "a") as f:
             g = add_group(f, parent, group, desc=desc)
             gname = g.name.split("/")[-1]
@@ -735,14 +598,13 @@ class wall_3D(DataGroup):
             g.create_dataset('x1x2x3', (nelements,3), data=x1x2x3, dtype='f8')
             g.create_dataset('y1y2y3', (nelements,3), data=y1y2y3, dtype='f8')
             g.create_dataset('z1z2z3', (nelements,3), data=z1z2z3, dtype='f8')
-
             fl = g.create_dataset('flag', (nelements,1), data=flag, dtype='i4')
-            if flagIdList is not None and flagIdStrings is not None:
-                flagIdList = np.array(flagIdList)
-                fl.attrs.create(name='flagIdList', data=flagIdList, dtype='i4')
-                fl.attrs.create(name='flagIdStrings', data=fids,
-                                dtype=h5py.string_dtype(encoding='utf-8',
-                                                        length=None))
+
+            if labels is not None:
+                flagstring = [np.bytes_(s) for s in labels.keys()]
+                flaginteger = np.fromiter(labels.values(), dtype="i4")
+                fl.attrs["flagIdList"] = flaginteger
+                fl.attrs["flagIdStrings"] = flagstring
 
         return gname
 

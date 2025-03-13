@@ -47,48 +47,24 @@ void bbnbi_inject_markers(particle_state* p, int nprt, int ngenerated, real t0,
  * This function initializes neutrals and traces them until they have ionized or
  * hit the wall.
  *
- * @param sim pointer to the simulation offload data structure
+ * @param sim pointer to the simulation data structure
  * @param nprt number of markers to be injected
  * @param t1 time instant when the injector is turned on
  * @param t2 time instant when the injector is turned off
- * @param B_offload_array pointer to the magnetic field data
- * @param plasma_offload_array pointer to the plasma data
- * @param neutral_offload_array pointer to the neutral data
- * @param wall_offload_array pointer to the wall data
- * @param wall_int_offload_array pointer to the wall int data
- * @param asigma_offload_array pointer to the atomic sigma data
- * @param nbi_offload_array pointer to the nbi data
  * @param p pointer to the marker array which is allocated here
- * @param diag_offload_array pointer to the diagnostics data
  */
 void bbnbi_simulate(
-    sim_offload_data* sim, int nprt, real t1, real t2, real* B_offload_array,
-    real* plasma_offload_array, real* neutral_offload_array,
-    real* wall_offload_array, int* wall_int_offload_array,
-    real* asigma_offload_array, real* nbi_offload_array, particle_state** p,
-    real* diag_offload_array) {
+    sim_data* sim, int nprt, real t1, real t2, particle_state** p) {
 
     /* Initialize input data */
-    sim_data sim_data;
-    sim_init(&sim_data, sim);
-    random_init(&sim_data.random_data, time(NULL));
-    B_field_init(&sim_data.B_data, &sim->B_offload_data, B_offload_array);
-    plasma_init(&sim_data.plasma_data, &sim->plasma_offload_data,
-                plasma_offload_array);
-    neutral_init(&sim_data.neutral_data, &sim->neutral_offload_data,
-                 neutral_offload_array);
-    wall_init(&sim_data.wall_data, &sim->wall_offload_data, wall_offload_array,
-              wall_int_offload_array);
-    asigma_init(&sim_data.asigma_data, &sim->asigma_offload_data,
-                asigma_offload_array);
-    nbi_init(&sim_data.nbi_data, &sim->nbi_offload_data, nbi_offload_array);
-    diag_init(&sim_data.diag_data, &sim->diag_offload_data, diag_offload_array);
+    simulate_init(sim);
+    random_init(&sim->random_data, time(NULL));
 
     /* Calculate total NBI power so that we can distribute markers along
      * the injectors according to their power */
     real total_power = 0;
-    for(int i=0; i < sim_data.nbi_data.ninj; i++) {
-        total_power += sim_data.nbi_data.inj[i].power;
+    for(int i=0; i < sim->nbi_data.ninj; i++) {
+        total_power += sim->nbi_data.inj[i].power;
     }
 
     /* Initialize particle struct */
@@ -96,11 +72,11 @@ void bbnbi_simulate(
 
     /* Generate markers at the injectors */
     int nprt_generated = 0;
-    for(int i = 0; i < sim_data.nbi_data.ninj; i++) {
+    for(int i = 0; i < sim->nbi_data.ninj; i++) {
 
         /* Number of markers generated is proportional to NBI power */
-        int nprt_inj = ( sim_data.nbi_data.inj[i].power / total_power ) * nprt;
-        if(i == sim_data.nbi_data.ninj-1) {
+        int nprt_inj = ( sim->nbi_data.inj[i].power / total_power ) * nprt;
+        if(i == sim->nbi_data.ninj-1) {
             /* All "remaining" markers goes to the last injector to avoid any
              * rounding issues */
             nprt_inj = nprt - nprt_generated;
@@ -109,7 +85,7 @@ void bbnbi_simulate(
         /* Generates markers at the injector location and traces them until
          * they enter the region with magnetic field data */
         bbnbi_inject_markers(&((*p)[nprt_generated]), nprt_inj, nprt_generated,
-                             t1, t2, &(sim_data.nbi_data.inj[i]), &sim_data);
+                             t1, t2, &(sim->nbi_data.inj[i]), sim);
 
         nprt_generated += nprt_inj;
         print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,
@@ -134,7 +110,7 @@ void bbnbi_simulate(
 
     /* Trace neutrals until they are ionized or lost to the wall */
     #pragma omp parallel
-    bbnbi_trace_markers(&pq, &sim_data);
+    bbnbi_trace_markers(&pq, sim);
 }
 
 /**

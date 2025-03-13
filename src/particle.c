@@ -1725,41 +1725,86 @@ a5err particle_input_ml_to_state(particle_ml* p, particle_state* ps,
  */
 void particle_offload_fo(particle_simd_fo* p) {
     GPU_MAP_TO_DEVICE(
-		p[0:1],\
+        p[0:1],\
         p->running   [0:p->n_mrk],\
         p->r         [0:p->n_mrk],\
-		p->phi       [0:p->n_mrk],\
-		p->p_r       [0:p->n_mrk],\
-		p->p_phi     [0:p->n_mrk],\
-		p->p_z       [0:p->n_mrk],\
-		p->mileage   [0:p->n_mrk],\
-		p->z         [0:p->n_mrk],\
-		p->charge    [0:p->n_mrk],\
-		p->mass      [0:p->n_mrk],\
-		p->B_r       [0:p->n_mrk],\
-		p->B_r_dr    [0:p->n_mrk],\
-		p->B_r_dphi  [0:p->n_mrk],\
-		p->B_r_dz    [0:p->n_mrk],\
-		p->B_phi     [0:p->n_mrk],\
-		p->B_phi_dr  [0:p->n_mrk],\
-		p->B_phi_dphi[0:p->n_mrk],\
-		p->B_phi_dz  [0:p->n_mrk],\
-		p->B_z       [0:p->n_mrk],\
-		p->B_z_dr    [0:p->n_mrk],\
-		p->B_z_dphi  [0:p->n_mrk],\
-		p->B_z_dz    [0:p->n_mrk],\
-		p->rho       [0:p->n_mrk],\
-		p->theta     [0:p->n_mrk],\
-		p->err       [0:p->n_mrk],\
-		p->time      [0:p->n_mrk],\
-		p->weight    [0:p->n_mrk],\
-		p->cputime   [0:p->n_mrk],\
-		p->id        [0:p->n_mrk],\
-		p->endcond   [0:p->n_mrk],\
-		p->walltile  [0:p->n_mrk],\
-		p->index     [0:p->n_mrk],\
-		p->znum      [0:p->n_mrk],\
-		p->anum      [0:p->n_mrk],\
-		p->bounces   [0:p->n_mrk]
+        p->phi       [0:p->n_mrk],\
+        p->p_r       [0:p->n_mrk],\
+        p->p_phi     [0:p->n_mrk],\
+        p->p_z       [0:p->n_mrk],\
+        p->mileage   [0:p->n_mrk],\
+        p->z         [0:p->n_mrk],\
+        p->charge    [0:p->n_mrk],\
+        p->mass      [0:p->n_mrk],\
+        p->B_r       [0:p->n_mrk],\
+        p->B_r_dr    [0:p->n_mrk],\
+        p->B_r_dphi  [0:p->n_mrk],\
+        p->B_r_dz    [0:p->n_mrk],\
+        p->B_phi     [0:p->n_mrk],\
+        p->B_phi_dr  [0:p->n_mrk],\
+        p->B_phi_dphi[0:p->n_mrk],\
+        p->B_phi_dz  [0:p->n_mrk],\
+        p->B_z       [0:p->n_mrk],\
+        p->B_z_dr    [0:p->n_mrk],\
+        p->B_z_dphi  [0:p->n_mrk],\
+        p->B_z_dz    [0:p->n_mrk],\
+        p->rho       [0:p->n_mrk],\
+        p->theta     [0:p->n_mrk],\
+        p->err       [0:p->n_mrk],\
+        p->time      [0:p->n_mrk],\
+        p->weight    [0:p->n_mrk],\
+        p->cputime   [0:p->n_mrk],\
+        p->id        [0:p->n_mrk],\
+        p->endcond   [0:p->n_mrk],\
+        p->walltile  [0:p->n_mrk],\
+        p->index     [0:p->n_mrk],\
+        p->znum      [0:p->n_mrk],\
+        p->anum      [0:p->n_mrk],\
+        p->bounces   [0:p->n_mrk]
+    )
+}
+
+/**
+ * @brief Onload particle struct from the GPU.
+ *
+ * @param p pointer to the particle struct to be onloaded.
+ */
+void particle_onload_fo(particle_simd_fo* p) {
+    GPU_UPDATE_FROM_DEVICE(
+        p->running   [0:p->n_mrk],\
+        p->r         [0:p->n_mrk],\
+        p->phi       [0:p->n_mrk],\
+        p->p_r       [0:p->n_mrk],\
+        p->p_phi     [0:p->n_mrk],\
+        p->p_z       [0:p->n_mrk],\
+        p->mileage   [0:p->n_mrk],\
+        p->z         [0:p->n_mrk],\
+        p->charge    [0:p->n_mrk],\
+        p->mass      [0:p->n_mrk],\
+        p->B_r       [0:p->n_mrk],\
+        p->B_r_dr    [0:p->n_mrk],\
+        p->B_r_dphi  [0:p->n_mrk],\
+        p->B_r_dz    [0:p->n_mrk],\
+        p->B_phi     [0:p->n_mrk],\
+        p->B_phi_dr  [0:p->n_mrk],\
+        p->B_phi_dphi[0:p->n_mrk],\
+        p->B_phi_dz  [0:p->n_mrk],\
+        p->B_z       [0:p->n_mrk],\
+        p->B_z_dr    [0:p->n_mrk],\
+        p->B_z_dphi  [0:p->n_mrk],\
+        p->B_z_dz    [0:p->n_mrk],\
+        p->rho       [0:p->n_mrk],\
+        p->theta     [0:p->n_mrk],\
+        p->err       [0:p->n_mrk],\
+        p->time      [0:p->n_mrk],\
+        p->weight    [0:p->n_mrk],\
+        p->cputime   [0:p->n_mrk],\
+        p->id        [0:p->n_mrk],\
+        p->endcond   [0:p->n_mrk],\
+        p->walltile  [0:p->n_mrk],\
+        p->index     [0:p->n_mrk],\
+        p->znum      [0:p->n_mrk],\
+        p->anum      [0:p->n_mrk],\
+        p->bounces   [0:p->n_mrk]
     )
 }

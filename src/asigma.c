@@ -47,100 +47,29 @@ void asigma_extrapolate(int extrapolate) {
 }
 
 /**
- * @brief Load atomic reaction data and prepare parameters
+ * @brief Free allocated resources
  *
- * This function fills the relevant atomic sigma offload struct with parameters
- * and allocates and fills the offload array. Sets offload array length in the
- * offload struct.
- *
- * The offload data has to have a type when this function is called as it should
- * be set when the offload data is constructed from inputs.
- *
- * This function is host only.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
- *
- * @return zero if initialization succeeded
+ * @param data pointer to the data struct
  */
-int asigma_init_offload(asigma_offload_data* offload_data,
-                        real** offload_array) {
-    int err = 0;
-
-    switch(offload_data->type) {
-
+void asigma_free(asigma_data* data) {
+    switch(data->type) {
         case asigma_type_loc:
-            err = asigma_loc_init_offload(&(offload_data->asigma_loc),
-                                          offload_array);
-            offload_data->offload_array_length =
-                offload_data->asigma_loc.offload_array_length;
-            break;
-
-        default:
-            /* Unrecognized input. Produce error. */
-            print_err("Error: Unrecognized atomic reaction data type.");
-            err = 1;
-            break;
-    }
-    if(!err) {
-        print_out(VERBOSE_IO, "Estimated memory usage %.1f MB\n",
-                  offload_data->offload_array_length
-                  * sizeof(real) / (1024.0*1024.0) );
-    }
-
-    return err;
-}
-
-/**
- * @brief Free offload array and reset parameters
- *
- * This function deallocates the offload_array.
- *
- * This function is host only.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
- */
-void asigma_free_offload(asigma_offload_data* offload_data,
-                         real** offload_array) {
-    switch(offload_data->type) {
-        case asigma_type_loc:
-            asigma_loc_free_offload(&(offload_data->asigma_loc), offload_array);
+            asigma_loc_free(&data->asigma_loc);
             break;
     }
 }
 
 /**
- * @brief Initializes atomic reaction data struct on target
+ * @brief Offload data to the accelerator.
  *
- * This function copies some atomic reaction parameters from the offload
- * struct to the struct on target and sets the atomic reaction data pointers
- * to correct offsets in the offload array.
- *
- * @param asigma_data pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
- *
- * @return zero if initialization succeeded
+ * @param data pointer to the data struct
  */
-int asigma_init(asigma_data* asigma_data, asigma_offload_data* offload_data,
-                real* offload_array) {
-    int err = 0;
-    switch(offload_data->type) {
+void asigma_offload(asigma_data* data) {
+    switch(data->type) {
         case asigma_type_loc:
-            asigma_loc_init(&(asigma_data->asigma_loc),
-                            &(offload_data->asigma_loc), offload_array);
-            break;
-
-        default:
-            /* Unrecognized input. Produce error. */
-            print_err("Error: Unrecognized atomic reaction data type.");
-            err = 1;
+            asigma_loc_offload(&data->asigma_loc);
             break;
     }
-    asigma_data->type = offload_data->type;
-
-    return err;
 }
 
 /**

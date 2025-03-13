@@ -2099,8 +2099,8 @@ class PhysTest():
         etemp = 2e3  * np.ones((nrho, 1))
         idens = 1e19 * np.ones((nrho, 1))
         itemp = 2e3  * np.ones((nrho, 1))
-        edens[rho>=1]   = 1
-        idens[rho>=1,:] = 1
+        edens[rho>1]   = 1
+        idens[rho>1,:] = 1
 
         pls = {
             "nrho" : nrho, "nion" : 1, "rho" : rho,

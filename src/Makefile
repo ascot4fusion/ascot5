@@ -62,13 +62,35 @@ else ifeq ($(RANDOM),LCG)
 	DEFINES+=-DRANDOM_LCG
 endif
 
+CFLAGS+=-Wall -fPIC -std=c11 -D_XOPEN_SOURCE=700 $(DEFINES) $(FLAGS)
+
 ifeq ($(DEBUG),1)
 	CFLAGS+=-g -fsanitize=address
 else
 	CFLAGS+=-O2
 endif
-CFLAGS+=-lm -Wall -fPIC -std=c11 -D_XOPEN_SOURCE=700 \
-	$(DEFINES) $(FLAGS)
+
+ifeq ($(CC), $(filter $(CC), h5cc h5pcc))
+	CFLAGS += -shlib
+endif
+
+UNAME_S := $(shell uname -s)
+
+# macOS-specific adjustments
+ifeq ($(UNAME_S),Darwin)
+	CFLAGS+=-D_DARWIN_C_SOURCE
+	H5_INCLUDES=$(shell dirname $(shell which h5cc))/../include
+	CLANG2PY_ARGS=$(CFLAGS) -I$(H5_INCLUDES)
+endif
+# Linux/other OS adjustments
+ifeq ($(UNAME_S),Linux)
+libascot.so: CFLAGS+=-fPIC -shared
+	CFLAGS+=-lm
+	ifdef CONDA_PREFIX
+		CLANG2PY_ARGS=-I$(CONDA_PREFIX)/include/ \
+		  -I$(CONDA_PREFIX)/x86_64-conda-linux-gnu/sysroot/usr/include/
+	endif
+endif
 
 # Write CFLAGS and CC to a file to be included into output
 $(shell echo "#define CFLAGS " $(CFLAGS) > compiler_flags.h)
@@ -145,8 +167,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
 	E_field.h wall.h simulate.h diag.h offload.h boozer.h mhd.h \
 	random.h print.h hdf5_interface.h suzuki.h nbi.h biosaw.h \
-	asigma.h boschhale.h mpi_interface.h libascot_mem.h copytogpu.h \
-	bbnbi5.h
+	asigma.h boschhale.h mpi_interface.h libascot_mem.h bbnbi5.h
 
 OBJS= math.o list.o octree.o error.o \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
@@ -154,9 +175,9 @@ OBJS= math.o list.o octree.o error.o \
 	$(PLSOBJS) $(N0OBJS) $(MHDOBJS) $(ASIGMAOBJS) $(LINTOBJS) \
 	$(SPLINEOBJS) \
 	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
-	E_field.o wall.o simulate.o diag.o offload.o boozer.o mhd.o \
+	E_field.o wall.o simulate.o diag.o boozer.o mhd.o \
 	random.o print.o hdf5_interface.o suzuki.o nbi.o biosaw.o \
-	asigma.o mpi_interface.o boschhale.o copytogpu.o bbnbi5.o
+	asigma.o mpi_interface.o boschhale.o bbnbi5.o
 
 BINS=test_math test_nbi test_bsearch \
 	test_wall_2d test_plasma test_random \
@@ -169,16 +190,6 @@ all: $(BINS)
 
 libascot: libascot.so
 	true
-
-libascot.so: CFLAGS+=-fPIC -shared
-
-ifeq ($(CC),h5cc)
-libascot.so: CFLAGS+=-shlib
-endif
-
-ifeq ($(CC),h5pcc)
-libascot.so: CFLAGS+=-shlib
-endif
 
 libascot.so: libascot.o ascot5_main.o libascot_mem.o afsi.o bbnbi5.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
@@ -205,9 +216,6 @@ test_math: $(UTESTDIR)test_math.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_wall_2d: $(UTESTDIR)test_wall_2d.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
-
-test_offload: $(UTESTDIR)test_offload.o
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_E: $(UTESTDIR)test_E.o $(OBJS)
@@ -256,8 +264,7 @@ ASCOT2PY_HEADERFILES=ascot5.h particle.h mpi_interface.h endcond.h simulate.h  \
 ascot2py.py : libascot.so
 	$(eval CLANGOMP=$(shell clang --print-resource-dir)) \
 	clang2py -l libascot.so -o $@ $(ASCOT2PY_HEADERFILES) \
-		--clang-args="-I$(CLANGOMP)/include/ -I$(CONDA_PREFIX)/include/\
-		  -I$(CONDA_PREFIX)/x86_64-conda-linux-gnu/sysroot/usr/include/"
+		--clang-args="$(CLANG2PY_ARGS) -I$(CLANGOMP)/include/"
 
 clean:
 	@rm -f *.o *.so *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o \

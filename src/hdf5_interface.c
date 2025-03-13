@@ -44,35 +44,13 @@ int hdf5_get_active_qid(hid_t f, const char* group, char qid[11]);
  *
  * @param sim pointer to simulation offload struct
  * @param input_active bitflags for input types to read
- * @param B_offload_array pointer to magnetic field offload array
- * @param E_offload_array pointer to electric field offload array
- * @param plasma_offload_array pointer to plasma data offload array
- * @param neutral_offload_array pointer to neutral data offload array
- * @param wall_offload_array pointer to wall offload array
- * @param wall_int_offload_array pointer to wall integer offload array
- * @param boozer_offload_array pointer to boozer offload array
- * @param mhd_offload_array pointer to mhd offload array
- * @param asigma_offload_array pointer to atomic offload array
- * @param nbi_offload_array pointer to neutral beam injector data offload array
  * @param p pointer to marker offload data
  * @param n_markers pointer to integer notating how many markers were read
  *
  * @return zero if reading and initialization succeeded
  */
-int hdf5_interface_read_input(sim_offload_data* sim,
-                              int input_active,
-                              real** B_offload_array,
-                              real** E_offload_array,
-                              real** plasma_offload_array,
-                              real** neutral_offload_array,
-                              real** wall_offload_array,
-                              int**  wall_int_offload_array,
-                              real** boozer_offload_array,
-                              real** mhd_offload_array,
-                              real** asigma_offload_array,
-                              real** nbi_offload_array,
-                              input_particle** p,
-                              int* n_markers){
+int hdf5_interface_read_input(sim_data* sim, int input_active,
+                              input_particle** p, int* n_markers){
 
     print_out(VERBOSE_IO, "\nReading and initializing input.\n");
 
@@ -128,8 +106,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         }
         strcpy(sim->qid_bfield, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-        if( hdf5_bfield_init_offload(f, &(sim->B_offload_data),
-                                     B_offload_array, qid) ) {
+        if( hdf5_bfield_init(f, &sim->B_data, qid) ) {
             print_err("Error: Failed to initialize magnetic field.\n");
             return 1;
         }
@@ -151,8 +128,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         }
         strcpy(sim->qid_efield, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-        if( hdf5_efield_init_offload(f, &(sim->E_offload_data),
-                                     E_offload_array, qid) ) {
+        if( hdf5_efield_init(f, &sim->E_data, qid) ) {
             print_err("Error: Failed to initialize electric field.\n");
             return 1;
         }
@@ -174,8 +150,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         }
         strcpy(sim->qid_plasma, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-        if( hdf5_plasma_init_offload(f, &(sim->plasma_offload_data),
-                                     plasma_offload_array, qid) ) {
+        if( hdf5_plasma_init(f, &(sim->plasma_data), qid) ) {
             print_err("Error: Failed to initialize plasma data.\n");
             return 1;
         }
@@ -197,8 +172,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         }
         strcpy(sim->qid_neutral, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-        if( hdf5_neutral_init_offload(f, &(sim->neutral_offload_data),
-                                      neutral_offload_array, qid) ) {
+        if( hdf5_neutral_init(f, &sim->neutral_data, qid) ) {
             print_err("Error: Failed to initialize neutral data.\n");
             return 1;
         }
@@ -220,9 +194,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         }
         strcpy(sim->qid_wall, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-        if( hdf5_wall_init_offload(f, &(sim->wall_offload_data),
-                                   wall_offload_array, wall_int_offload_array,
-                                   qid) ) {
+        if( hdf5_wall_init(f, &sim->wall_data, qid) ) {
             print_err("Error: Failed to initialize wall.\n");
             return 1;
         }
@@ -244,8 +216,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         }
         strcpy(sim->qid_boozer, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-        if( hdf5_boozer_init_offload(f, &(sim->boozer_offload_data),
-                                     boozer_offload_array, qid) ) {
+        if( hdf5_boozer_init(f, &sim->boozer_data, qid) ) {
             print_err("Error: Failed to read boozer input.\n");
             return 1;
         }
@@ -267,8 +238,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         }
         strcpy(sim->qid_mhd, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-        if( hdf5_mhd_init_offload(f, &(sim->mhd_offload_data),
-                                  mhd_offload_array, qid) ) {
+        if( hdf5_mhd_init(f, &sim->mhd_data, qid) ) {
             print_err("Error: Failed to read MHD input.\n");
             return 1;
         }
@@ -290,8 +260,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         }
         strcpy(sim->qid_asigma, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-        if( hdf5_asigma_init_offload(f, &(sim->asigma_offload_data),
-                                     asigma_offload_array, qid) ) {
+        if( hdf5_asigma_init(f, &sim->asigma_data, qid) ) {
             print_err("Error: Failed to initialize atomic reaction data.\n");
             return 1;
         }
@@ -313,8 +282,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         }
         strcpy(sim->qid_nbi, qid);
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-        if( hdf5_nbi_init_offload(f, &(sim->nbi_offload_data),
-                                  nbi_offload_array, qid) ) {
+        if( hdf5_nbi_init(f, &sim->nbi_data, qid) ) {
             print_err("Error: Failed to initialize NBI data.\n");
             return 1;
         }
@@ -365,13 +333,13 @@ int hdf5_interface_read_input(sim_offload_data* sim,
  * attributes in the run group. Also the date and empty "details" fields
  * are written.
  *
- * @param sim pointer to simulation offload struct
+ * @param sim pointer to simulation struct
  * @param qid qid of this run
  * @param run type of this run
  *
  * @return Zero if initialization succeeded
  */
-int hdf5_interface_init_results(sim_offload_data* sim, char* qid, char* run) {
+int hdf5_interface_init_results(sim_data* sim, char* qid, char* run) {
 
     /* Create new file for the output if one does not yet exist. */
     hid_t fout = hdf5_create(sim->hdf5_out);
@@ -568,18 +536,16 @@ int hdf5_interface_write_state(char* fn, char* state, integer n,
 /**
  * @brief Write diagnostics to HDF5 output
  *
- * @param sim pointer to simulation offload data
- * @param diag_offload_array diagnostics offload array
+ * @param sim pointer to simulation data
  * @param out HDF5 output filename
  *
  * @return Zero if diagnostics were written succesfully
  */
-int hdf5_interface_write_diagnostics(sim_offload_data* sim,
-                                     real* diag_offload_array, char* out) {
+int hdf5_interface_write_diagnostics(sim_data* sim) {
     char path[256]; /* For storing dataset names */
     print_out(VERBOSE_IO, "\nWriting diagnostics output.\n");
 
-    hid_t f = hdf5_open(out);
+    hid_t f = hdf5_open(sim->hdf5_out);
     if(f < 0) {
         print_err("Error: File not found.\n");
         return 1;
@@ -618,71 +584,57 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
         print_err("Error: Run group not found.\n");
     }
 
-    if(sim->diag_offload_data.dist5D_collect) {
+    if(sim->diag_data.dist5D_collect) {
         print_out(VERBOSE_IO, "\nWriting 5D distribution.\n");
-        int idx = sim->diag_offload_data.offload_dist5D_index;
         sprintf(path, "%sdist5d", run);
-        if( hdf5_dist_write_5D(f, path, &sim->diag_offload_data.dist5D,
-                               &diag_offload_array[idx]) ) {
+        if( hdf5_dist_write_5D(f, path, &sim->diag_data.dist5D) ) {
             print_err("Warning: 5D distribution could not be written.\n");
         }
     }
 
-    if(sim->diag_offload_data.dist6D_collect) {
+    if(sim->diag_data.dist6D_collect) {
         print_out(VERBOSE_IO, "\nWriting 6D distribution.\n");
-        int idx = sim->diag_offload_data.offload_dist6D_index;
         sprintf(path, "%sdist6d", run);
-        if( hdf5_dist_write_6D(f, path, &sim->diag_offload_data.dist6D,
-                               &diag_offload_array[idx]) ) {
+        if( hdf5_dist_write_6D(f, path, &sim->diag_data.dist6D) ) {
             print_err("Warning: 6D distribution could not be written.\n");
         }
     }
-    if(sim->diag_offload_data.distrho5D_collect) {
+    if(sim->diag_data.distrho5D_collect) {
         print_out(VERBOSE_IO, "\nWriting rho 5D distribution.\n");
-        int idx = sim->diag_offload_data.offload_distrho5D_index;
         sprintf(path, "%sdistrho5d", run);
-        if( hdf5_dist_write_rho5D(f, path, &sim->diag_offload_data.distrho5D,
-                                  &diag_offload_array[idx]) ) {
+        if( hdf5_dist_write_rho5D(f, path, &sim->diag_data.distrho5D) ) {
             print_err("Warning: rho 5D distribution could not be written.\n");
         }
     }
 
-    if(sim->diag_offload_data.distrho6D_collect) {
+    if(sim->diag_data.distrho6D_collect) {
         print_out(VERBOSE_IO, "\nWriting rho 6D distribution.\n");
-        int idx = sim->diag_offload_data.offload_distrho6D_index;
         sprintf(path, "%sdistrho6d", run);
-        if( hdf5_dist_write_rho6D(f, path, &sim->diag_offload_data.distrho6D,
-                                  &diag_offload_array[idx]) ) {
+        if( hdf5_dist_write_rho6D(f, path, &sim->diag_data.distrho6D) ) {
             print_err("Warning: rho 6D distribution could not be written.\n");
         }
     }
 
-    if(sim->diag_offload_data.distCOM_collect) {
+    if(sim->diag_data.distCOM_collect) {
         print_out(VERBOSE_IO, "\nWriting COM distribution.\n");
-        int idx = sim->diag_offload_data.offload_distCOM_index;
         sprintf(path, "%sdistcom", run);
-        if( hdf5_dist_write_COM( f, path, &sim->diag_offload_data.distCOM,
-                                 &diag_offload_array[idx]) ) {
+        if( hdf5_dist_write_COM( f, path, &sim->diag_data.distCOM) ) {
             print_err("Warning: COM distribution could not be written.\n");
         }
     }
 
-    if(sim->diag_offload_data.diagorb_collect) {
+    if(sim->diag_data.diagorb_collect) {
         print_out(VERBOSE_IO, "Writing orbit diagnostics.\n");
-        int idx = sim->diag_offload_data.offload_diagorb_index;
         sprintf(path, "%sorbit", run);
-        if( hdf5_orbit_write(f, path, &sim->diag_offload_data.diagorb,
-                             &diag_offload_array[idx]) ) {
+        if( hdf5_orbit_write(f, path, &sim->diag_data.diagorb) ) {
             print_err("Warning: Orbit diagnostics could not be written.\n");
         }
     }
 
-    if(sim->diag_offload_data.diagtrcof_collect) {
+    if(sim->diag_data.diagtrcof_collect) {
         print_out(VERBOSE_IO, "Writing transport coefficient diagnostics.\n");
-        int idx = sim->diag_offload_data.offload_diagtrcof_index;
         sprintf(path, "%stranscoef", run);
-        if( hdf5_transcoef_write(f, path, &sim->diag_offload_data.diagtrcof,
-                                 &diag_offload_array[idx]) ) {
+        if( hdf5_transcoef_write(f, path, &sim->diag_data.diagtrcof) ) {
             print_err("Warning: Coefficients could not be written.\n");
         }
     }
@@ -732,7 +684,7 @@ void hdf5_generate_qid(char* qid) {
     /* Seed random number generator with current time */
     struct timespec ts;
 #ifdef __MACH__
-    clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+    clock_gettime(CLOCK_MONOTONIC, &ts);
 #else
     clock_gettime(CLOCK_REALTIME, &ts);
 #endif

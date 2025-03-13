@@ -153,6 +153,39 @@ void interp2Dcomp_init_spline(interp2D_data* str, real* c,
 }
 
 /**
+ * @brief Set up splines to interpolate 2D scalar data.
+ *
+ * This function is equivalent to calling both `interp2Dcomp_init_coeff` and
+ * `interp2Dcomp_init_spline`.
+ *
+ * @param str pointer to spline to be initialized
+ * @param f 2D data to be interpolated
+ * @param n_x number of data points in the x direction
+ * @param n_y number of data points in the y direction
+ * @param bc_x boundary condition for x axis
+ * @param bc_y boundary condition for y axis
+ * @param x_min minimum value of the x axis
+ * @param x_max maximum value of the x axis
+ * @param y_min minimum value of the y axis
+ * @param y_max maximum value of the y axis
+ *
+ * @return zero if initialization succeeded
+ */
+int interp2Dcomp_setup(interp2D_data* str, real* f,
+                       int n_x, int n_y, int bc_x, int bc_y,
+                       real x_min, real x_max, real y_min, real y_max) {
+    real* c = (real*) malloc(n_y*n_x*NSIZE_COMP2D*sizeof(real));
+    int err = interp2Dcomp_init_coeff(c, f, n_x, n_y, bc_x, bc_y, x_min, x_max,
+                                      y_min, y_max);
+    if(err) {
+        return err;
+    }
+    interp2Dcomp_init_spline(str, c, n_x, n_y, bc_x, bc_y, x_min, x_max,
+                             y_min, y_max);
+    return 0;
+}
+
+/**
  * @brief Evaluate interpolated value of a 2D field
  *
  * This function evaluates the interpolated value of a 2D scalar field using

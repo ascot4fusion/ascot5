@@ -17,15 +17,12 @@
  *
  * @param f HDF5 file identifier for a file which is opened and closed outside
  *          of this function
- * @param offload_data pointer to offload data struct which is initialized here
- * @param offload_array pointer to offload array which is allocated and
- *                      initialized here
+ * @param data pointer to the data struct which is initialized here
  * @param qid QID of the data that is to be read
  *
  * @return zero if reading and initialization succeeded
  */
-int hdf5_nbi_init_offload(hid_t f, nbi_offload_data* offload_data,
-                          real** offload_array, char* qid) {
+int hdf5_nbi_init(hid_t f, nbi_data* data, char* qid) {
 
     char path[256]; // Storage array required for hdf5_gen_path() calls
 
@@ -41,94 +38,108 @@ int hdf5_nbi_init_offload(hid_t f, nbi_offload_data* offload_data,
     #define NBIPATH "/nbi/nbi_XXXXXXXXXX/"
     /// @endcond
 
-    if( hdf5_read_int(NBIPATH "ninj", &(offload_data->ninj),
+    int ninj;
+    if( hdf5_read_int(NBIPATH "ninj", &ninj,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
+    data->ninj = ninj;
 
     /* Loop over injectors twice: first time we initialize offload data */
-    offload_data->offload_array_length = 0;
-    for(int i = 0; i < offload_data->ninj; i++) {
+    int nbeamlet_total = 0;
+    int* id = (int*) malloc( ninj*sizeof(int) );
+    int* anum = (int*) malloc( ninj*sizeof(int) );
+    int* znum = (int*) malloc( ninj*sizeof(int) );
+    int* nbeamlet = (int*) malloc( ninj*sizeof(int) );
+    real* mass = (real*) malloc( ninj*sizeof(real) );
+    real* power = (real*) malloc( ninj*sizeof(real) );
+    real* efrac = (real*) malloc( 3*ninj*sizeof(real) );
+    real* energy = (real*) malloc( ninj*sizeof(real) );
+    real* div_h = (real*) malloc( ninj*sizeof(real) );
+    real* div_v = (real*) malloc( ninj*sizeof(real) );
+    real* div_halo_h = (real*) malloc( ninj*sizeof(real) );
+    real* div_halo_v = (real*) malloc( ninj*sizeof(real) );
+    real* div_halo_frac = (real*) malloc( ninj*sizeof(real) );
+    for(int i = 0; i < ninj; i++) {
         sprintf(path, NBIPATH "inj%d/%s", i+1, "ids");
-        if( hdf5_read_int(path, &(offload_data->id[i]),
+        if( hdf5_read_int(path, &id[i],
                           f, qid, __FILE__, __LINE__) ) {return 1;}
 
         sprintf(path, NBIPATH "inj%d/%s", i+1, "nbeamlet");
-        if( hdf5_read_int(path, &(offload_data->n_beamlet[i]),
+        if( hdf5_read_int(path, &nbeamlet[i],
                           f, qid, __FILE__, __LINE__) ) {return 1;}
 
-        offload_data->offload_array_length += 6*offload_data->n_beamlet[i];
-
         sprintf(path, NBIPATH "inj%d/%s", i+1, "power");
-        if( hdf5_read_double(path, &(offload_data->power[i]),
+        if( hdf5_read_double(path, &power[i],
                              f, qid, __FILE__, __LINE__) ) {return 1;}
         sprintf(path, NBIPATH "inj%d/%s", i+1, "energy");
-        if( hdf5_read_double(path, &(offload_data->energy[i]),
+        if( hdf5_read_double(path, &energy[i],
                              f, qid, __FILE__, __LINE__) ) {return 1;}
         sprintf(path, NBIPATH "inj%d/%s", i+1, "efrac");
-        if( hdf5_read_double(path, &(offload_data->efrac[i*3]),
+        if( hdf5_read_double(path, &efrac[i*3],
                              f, qid, __FILE__, __LINE__) ) {return 1;}
 
         sprintf(path, NBIPATH "inj%d/%s", i+1, "divh");
-        if( hdf5_read_double(path, &(offload_data->div_h[i]),
+        if( hdf5_read_double(path, &div_h[i],
                              f, qid, __FILE__, __LINE__) ) {return 1;}
         sprintf(path, NBIPATH "inj%d/%s", i+1, "divv");
-        if( hdf5_read_double(path, &(offload_data->div_v[i]),
+        if( hdf5_read_double(path, &div_v[i],
                              f, qid, __FILE__, __LINE__) ) {return 1;}
         sprintf(path, NBIPATH "inj%d/%s", i+1, "divhalofrac");
-        if( hdf5_read_double(path, &(offload_data->div_halo_frac[i]),
+        if( hdf5_read_double(path, &div_halo_frac[i],
                              f, qid, __FILE__, __LINE__) ) {return 1;}
         sprintf(path, NBIPATH "inj%d/%s", i+1, "divhaloh");
-        if( hdf5_read_double(path, &(offload_data->div_halo_h[i]),
+        if( hdf5_read_double(path, &div_halo_h[i],
                              f, qid, __FILE__, __LINE__) ) {return 1;}
         sprintf(path, NBIPATH "inj%d/%s", i+1, "divhalov");
-        if( hdf5_read_double(path, &(offload_data->div_halo_v[i]),
+        if( hdf5_read_double(path, &div_halo_v[i],
                              f, qid, __FILE__, __LINE__) ) {return 1;}
 
         sprintf(path, NBIPATH "inj%d/%s", i+1, "anum");
-        if( hdf5_read_int(path, &(offload_data->anum[i]),
+        if( hdf5_read_int(path, &anum[i],
                           f, qid, __FILE__, __LINE__) ) {return 1;}
         sprintf(path, NBIPATH "inj%d/%s", i+1, "znum");
-        if( hdf5_read_int(path, &(offload_data->znum[i]),
+        if( hdf5_read_int(path, &znum[i],
                           f, qid, __FILE__, __LINE__) ) {return 1;}
         sprintf(path, NBIPATH "inj%d/%s", i+1, "mass");
-        if( hdf5_read_double(path, &(offload_data->mass[i]),
+        if( hdf5_read_double(path, &mass[i],
                              f, qid, __FILE__, __LINE__) ) {return 1;}
 
         /* Conver to SI */
-        offload_data->energy[i] *= CONST_E;
-        offload_data->mass[i]   *= CONST_U;
+        energy[i] *= CONST_E;
+        mass[i]   *= CONST_U;
+
+        nbeamlet_total += 6 * nbeamlet[i];
     }
 
     /* In second loop we now initialize the offload array which we are
      * able to allocate now */
-    *offload_array = (real*)malloc(
-        offload_data->offload_array_length * sizeof(real) );
+    real* beamlet_xyz = (real*) malloc( nbeamlet_total * sizeof(real) );
     int idx = 0;
-    for(int i = 0; i < offload_data->ninj; i++) {
-        int nbeamlet = offload_data->n_beamlet[i];
+    for(int i = 0; i < data->ninj; i++) {
+        int n = nbeamlet[i];
         sprintf(path, NBIPATH "inj%d/%s", i+1, "beamletx");
-        if( hdf5_read_double(path, &(*offload_array)[idx + 0*nbeamlet],
+        if( hdf5_read_double(path, &beamlet_xyz[idx + 0*n],
                              f, qid, __FILE__, __LINE__) ) {return 1;}
         sprintf(path, NBIPATH "inj%d/%s", i+1, "beamlety");
-        if( hdf5_read_double(path, &(*offload_array)[idx + 1*nbeamlet],
+        if( hdf5_read_double(path, &beamlet_xyz[idx + 1*n],
                              f, qid, __FILE__, __LINE__) ) {return 1;}
         sprintf(path, NBIPATH "inj%d/%s", i+1, "beamletz");
-        if( hdf5_read_double(path, &(*offload_array)[idx + 2*nbeamlet],
+        if( hdf5_read_double(path, &beamlet_xyz[idx + 2*n],
                              f, qid, __FILE__, __LINE__) ) {return 1;}
         sprintf(path, NBIPATH "inj%d/%s", i+1, "beamletdx");
-        if( hdf5_read_double(path, &(*offload_array)[idx + 3*nbeamlet],
+        if( hdf5_read_double(path, &beamlet_xyz[idx + 3*n],
                              f, qid, __FILE__, __LINE__) ) {return 1;}
         sprintf(path, NBIPATH "inj%d/%s", i+1, "beamletdy");
-        if( hdf5_read_double(path, &(*offload_array)[idx + 4*nbeamlet],
+        if( hdf5_read_double(path, &beamlet_xyz[idx + 4*n],
                              f, qid, __FILE__, __LINE__) ) {return 1;}
         sprintf(path, NBIPATH "inj%d/%s", i+1, "beamletdz");
-        if( hdf5_read_double(path, &(*offload_array)[idx + 5*nbeamlet],
+        if( hdf5_read_double(path, &beamlet_xyz[idx + 5*n],
                              f, qid, __FILE__, __LINE__) ) {return 1;}
-        idx += 6*nbeamlet;
+        idx += 6*n;
     }
 
     /* Initialize the data */
-    if( nbi_init_offload(offload_data, offload_array) ) {
-        return 1;
-    }
-    return 0;
+    int err = nbi_init(data, ninj, id, anum, znum, mass, power, efrac, energy,
+                       div_h, div_v, div_halo_v, div_halo_h, div_halo_frac,
+                       nbeamlet, beamlet_xyz);
+    return err;
 }

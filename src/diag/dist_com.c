@@ -22,49 +22,48 @@ size_t dist_COM_index(int i_mu, int i_Ekin, int i_Ptor, size_t step_2,
 }
 
 /**
- * @brief Frees the offload data
+ * @brief Initializes distribution data
  *
- * @param offload_data pointer to offload data struct
+ * @param data pointer to data struct
  */
-void dist_COM_free_offload(dist_COM_offload_data* offload_data) {
-    offload_data->n_mu       = 0;
-    offload_data->min_mu     = 0;
-    offload_data->max_mu     = 0;
-    offload_data->n_Ekin     = 0;
-    offload_data->min_Ekin   = 0;
-    offload_data->max_Ekin   = 0;
-    offload_data->n_Ptor     = 0;
-    offload_data->min_Ptor   = 0;
-    offload_data->max_Ptor   = 0;
+int dist_COM_init(dist_COM_data* data) {
+
+    size_t n_Ptor = (size_t)(data->n_Ptor);
+    size_t n_Ekin = (size_t)(data->n_Ekin);
+    data->step_2 = n_Ptor * n_Ekin;
+    data->step_1 = n_Ptor;
+
+    data->histogram = calloc(data->step_2 * (size_t)data->n_mu, sizeof(real));
+    return data->histogram == NULL;
 }
 
 /**
- * @brief Initializes distribution from offload data
+ * @brief Free allocated resources
  *
- * @param dist_data pointer to data struct
- * @param offload_data pointer to offload data struct
- * @param offload_array offload array
+ * @param data pointer to the data struct
  */
-void dist_COM_init(dist_COM_data* dist_data,
-                   dist_COM_offload_data* offload_data, real* offload_array) {
-    dist_data->n_mu       = offload_data->n_mu;
-    dist_data->min_mu     = offload_data->min_mu;
-    dist_data->max_mu     = offload_data->max_mu;
+void dist_COM_free(dist_COM_data* data) {
+    free(data->histogram);
+}
 
-    dist_data->n_Ekin     = offload_data->n_Ekin;
-    dist_data->min_Ekin   = offload_data->min_Ekin;
-    dist_data->max_Ekin   = offload_data->max_Ekin;
+/**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void dist_COM_offload(dist_COM_data* data) {
+    GPU_MAP_TO_DEVICE( data->histogram[0:data->n_mu*data->n_Ekin*data->n_Ptor] )
+}
 
-    dist_data->n_Ptor     = offload_data->n_Ptor;
-    dist_data->min_Ptor   = offload_data->min_Ptor;
-    dist_data->max_Ptor   = offload_data->max_Ptor;
-
-    size_t n_Ptor = (size_t)(dist_data->n_Ptor);
-    size_t n_Ekin = (size_t)(dist_data->n_Ekin);
-    dist_data->step_2 = n_Ptor * n_Ekin;
-    dist_data->step_1 = n_Ptor;
-
-    dist_data->histogram = &offload_array[0];
+/**
+ * @brief Onload data back to the host.
+ *
+ * @param data pointer to the data struct
+ */
+void dist_COM_onload(dist_COM_data* data) {
+    GPU_UPDATE_FROM_DEVICE(
+        data->histogram[0:data->n_mu*data->n_Ekin*data->n_Ptor]
+        )
 }
 
 /**

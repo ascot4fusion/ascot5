@@ -33,102 +33,67 @@
 #include "../spline/interp.h"
 
 /**
- * @brief Initialize magnetic field offload data
+ * @brief Initialize magnetic field data
  *
- * This function takes pre-initialized offload data struct and offload array as
- * inputs. The data is used to fill rest of the offload struct and to construct
- * bicubic splines whose coefficients are stored in re-allocated offload array.
- *
- * The offload data struct must have the following fields initialized:
- * - B_2DS_offload_data.n_r
- * - B_2DS_offload_data.n_z
- * - B_2DS_offload_data.r_min
- * - B_2DS_offload_data.r_max
- * - B_2DS_offload_data.z_min
- * - B_2DS_offload_data.z_max
- * - B_2DS_offload_data.psi0
- * - B_2DS_offload_data.psi1
- * - B_2DS_offload_data.axis_r
- * - B_2DS_offload_data.axis_z
- *
- * B_2DS_offload_data.offload_array_length is set here.
- *
- * The offload array must contain the following data:
- * - offload_array[            j*n_r + i] = psi(R_i, z_j)   [V*s*m^-1]
- * - offload_array[  n_r*n_z + j*n_r + i] = B_R(R_i, z_j)   [T]
- * - offload_array[2*n_r*n_z + j*n_r + i] = B_phi(R_i, z_j) [T]
- * - offload_array[3*n_r*n_z + j*n_r + i] = B_z(R_i, z_j)   [T]
- *
- * Sanity checks are printed if data was initialized succesfully.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array which is reallocated here
+ * @param n_r number of r grid points
+ * @param r_min minimum R coordinate in the grid [m]
+ * @param r_max maximum R coordinate in the grid [m]
+ * @param n_z number of z grid points
+ * @param z_min minimum z coordinate in the grid [m]
+ * @param z_max maximum z coordinate in the grid [m]
+ * @param axis_r R coordinate of magnetic axis [m]
+ * @param axis_z z coordinate of magnetic axis [m]
+ * @param psi0 poloidal flux at magnetic axis [Vs/m]
+ * @param psi1 poloidal flux at separatrix [Vs/m]
+ * @param psi poloidal flux psi(R_i,z_j) = arr[j*n_r + i] [Vs/m]
+ * @param B_r Magnetic field R component B_r(R_i,z_j) = arr[j*n_r + i] [T]
+ * @param B_phi Magnetic field phi component B_phi(R_i,z_j) = arr[j*n_r + i] [T]
+ * @param B_z Magnetic field z component B_z(R_i,z_j) = arr[j*n_r + i] [T]
  *
  * @return zero if initialization succeeded
  */
-int B_2DS_init_offload(B_2DS_offload_data* offload_data,
-                       real** offload_array) {
+int B_2DS_init(B_2DS_data* data,
+               int n_r, real r_min, real r_max,
+               int n_z, real z_min, real z_max,
+               real axis_r, real axis_z, real psi0, real psi1,
+               real* psi, real* B_r, real* B_phi, real* B_z) {
 
-    /* Spline initialization */
     int err = 0;
-    int datasize = offload_data->n_r*offload_data->n_z;
+    data->psi0   = psi0;
+    data->psi1   = psi1;
+    data->axis_r = axis_r;
+    data->axis_z = axis_z;
 
-    /* Allocate enough space to store four 2D arrays */
-    real* coeff_array = (real*) malloc(4*NSIZE_COMP2D*datasize*sizeof(real));
-    real* psi   = &(coeff_array[0*datasize*NSIZE_COMP2D]);
-    real* B_r   = &(coeff_array[1*datasize*NSIZE_COMP2D]);
-    real* B_phi = &(coeff_array[2*datasize*NSIZE_COMP2D]);
-    real* B_z   = &(coeff_array[3*datasize*NSIZE_COMP2D]);
-
-    /* Evaluate spline coefficients */
-    err += interp2Dcomp_init_coeff(
-        psi, *offload_array + 0*datasize,
-        offload_data->n_r, offload_data->n_z,
-        NATURALBC, NATURALBC,
-        offload_data->r_min, offload_data->r_max,
-        offload_data->z_min, offload_data->z_max);
-
-    err += interp2Dcomp_init_coeff(
-        B_r, *offload_array + 1*datasize,
-        offload_data->n_r, offload_data->n_z,
-        NATURALBC, NATURALBC,
-        offload_data->r_min, offload_data->r_max,
-        offload_data->z_min, offload_data->z_max);
-
-    err += interp2Dcomp_init_coeff(
-        B_phi, *offload_array + 2*datasize,
-        offload_data->n_r, offload_data->n_z,
-        NATURALBC, NATURALBC,
-        offload_data->r_min, offload_data->r_max,
-        offload_data->z_min, offload_data->z_max);
-
-    err += interp2Dcomp_init_coeff(
-        B_z, *offload_array + 3*datasize,
-        offload_data->n_r, offload_data->n_z,
-        NATURALBC, NATURALBC,
-        offload_data->r_min, offload_data->r_max,
-        offload_data->z_min, offload_data->z_max);
-
+    /* Set up the splines */
+    err = interp2Dcomp_setup(&data->psi, psi, n_r, n_z, NATURALBC, NATURALBC,
+                             r_min, r_max, z_min, z_max);
     if(err) {
         print_err("Error: Failed to initialize splines.\n");
-        return err;
+        return 1;
+    }
+    err = interp2Dcomp_setup(&data->B_r, B_r, n_r, n_z, NATURALBC, NATURALBC,
+                             r_min, r_max, z_min, z_max);
+    if(err) {
+        print_err("Error: Failed to initialize splines.\n");
+        return 1;
+    }
+    err = interp2Dcomp_setup(&data->B_phi, B_phi, n_r, n_z,
+                             NATURALBC, NATURALBC, r_min, r_max, z_min, z_max);
+    if(err) {
+        print_err("Error: Failed to initialize splines.\n");
+        return 1;
+    }
+    err = interp2Dcomp_setup(&data->B_z, B_z, n_r, n_z, NATURALBC, NATURALBC,
+                             r_min, r_max, z_min, z_max);
+    if(err) {
+        print_err("Error: Failed to initialize splines.\n");
+        return 1;
     }
 
-    /* Free offload array and and replace it with the coefficient array */
-    free(*offload_array);
-    *offload_array = coeff_array;
-    offload_data->offload_array_length = 4*NSIZE_COMP2D*datasize;
-
-    /* Initialization complete. Check that the data seem valid. */
-
     /* Evaluate psi and magnetic field on axis for checks */
-    B_2DS_data Bdata;
-    B_2DS_init(&Bdata, offload_data, *offload_array);
     real psival[1], Bval[3];
-    err = B_2DS_eval_psi(psival, offload_data->axis_r, 0, offload_data->axis_z,
-                         &Bdata);
-    err = B_2DS_eval_B(Bval, offload_data->axis_r, 0, offload_data->axis_z,
-                       &Bdata);
+    err = B_2DS_eval_psi(psival, data->axis_r, 0, data->axis_z, data);
+    err = B_2DS_eval_B(Bval, data->axis_r, 0, data->axis_z, data);
     if(err) {
         print_err("Error: Initialization failed.\n");
         return err;
@@ -143,84 +108,40 @@ int B_2DS_init_offload(B_2DS_offload_data* offload_data,
               "%3.3f (evaluated)\n%3.3f (given)\n"
               "Magnetic field on axis:\n"
               "B_R = %3.3f B_phi = %3.3f B_z = %3.3f\n",
-              offload_data->n_r,
-              offload_data->r_min, offload_data->r_max,
-              offload_data->n_z,
-              offload_data->z_min, offload_data->z_max,
-              offload_data->axis_r, offload_data->axis_z,
-              psival[0], offload_data->psi0,
+              n_r, r_min, r_max,
+              n_z, z_min, z_max,
+              data->axis_r, data->axis_z,
+              psival[0], data->psi0,
               Bval[0], Bval[1], Bval[2]);
 
     return err;
 }
 
 /**
- * @brief Free offload array
+ * @brief Free allocated resources
  *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param data pointer to data struct
  */
-void B_2DS_free_offload(B_2DS_offload_data* offload_data,
-                        real** offload_array) {
-    free(*offload_array);
-    *offload_array = NULL;
+void B_2DS_free(B_2DS_data* data) {
+    free(data->psi.c);
+    free(data->B_r.c);
+    free(data->B_phi.c);
+    free(data->B_z.c);
 }
 
 /**
- * @brief Initialize magnetic field data struct on target
+ * @brief Offload data to the accelerator.
  *
- * @param Bdata pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array offload array
+ * @param data pointer to the data struct
  */
-void B_2DS_init(B_2DS_data* Bdata, B_2DS_offload_data* offload_data,
-                real* offload_array) {
-
-    int splinesize = NSIZE_COMP2D * offload_data->n_r * offload_data->n_z;
-
-    /* Initialize target data struct */
-    Bdata->psi0   = offload_data->psi0;
-    Bdata->psi1   = offload_data->psi1;
-    Bdata->axis_r = offload_data->axis_r;
-    Bdata->axis_z = offload_data->axis_z;
-
-    /* Copy parameters and assign pointers to offload array to initialize the
-       spline structs */
-    interp2Dcomp_init_spline(&Bdata->psi, &(offload_array[0*splinesize]),
-                             offload_data->n_r,
-                             offload_data->n_z,
-                             NATURALBC, NATURALBC,
-                             offload_data->r_min,
-                             offload_data->r_max,
-                             offload_data->z_min,
-                             offload_data->z_max);
-
-    interp2Dcomp_init_spline(&Bdata->B_r, &(offload_array[1*splinesize]),
-                             offload_data->n_r,
-                             offload_data->n_z,
-                             NATURALBC, NATURALBC,
-                             offload_data->r_min,
-                             offload_data->r_max,
-                             offload_data->z_min,
-                             offload_data->z_max);
-
-    interp2Dcomp_init_spline(&Bdata->B_phi, &(offload_array[2*splinesize]),
-                             offload_data->n_r,
-                             offload_data->n_z,
-                             NATURALBC, NATURALBC,
-                             offload_data->r_min,
-                             offload_data->r_max,
-                             offload_data->z_min,
-                             offload_data->z_max);
-
-    interp2Dcomp_init_spline(&Bdata->B_z, &(offload_array[3*splinesize]),
-                             offload_data->n_r,
-                             offload_data->n_z,
-                             NATURALBC, NATURALBC,
-                             offload_data->r_min,
-                             offload_data->r_max,
-                             offload_data->z_min,
-                             offload_data->z_max);
+void B_2DS_offload(B_2DS_data* data) {
+    GPU_MAP_TO_DEVICE(
+        data->psi, data->B_r, data->B_phi, data->B_z, \
+        data->psi.c[0:data->psi.n_x*data->psi.n_y*NSIZE_COMP2D], \
+        data->B_r.c[0:data->B_r.n_x*data->B_r.n_y*NSIZE_COMP2D], \
+        data->B_phi.c[0:data->B_phi.n_x *data->B_phi.n_y*NSIZE_COMP2D], \
+        data->B_z.c[0:data->B_z.n_x*data->B_z.n_y*NSIZE_COMP2D]
+    )
 }
 
 /**

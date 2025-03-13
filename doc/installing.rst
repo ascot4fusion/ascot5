@@ -109,7 +109,8 @@ Installation
 
                cd ascot5
                pip install -e .
-               make ascot5_main -j MPI=1 # Also bbnbi5 if needed
+               make ascot5_main -j MPI=1
+               make libascot -j MPI=1
 
          See :ref:`here<Compiling>` for tips on how to compile the code on different platforms.
 
@@ -119,6 +120,14 @@ Installation
 
             <module loads and exports here>
             source activate /path/to/ascot5env
+
+         *GPU* To compile the code for the NVIDIA GPU nodes, you'll need ``nvc`` compiler:
+
+         .. code-block:: bash
+
+            make ascot5_main -j GPU=1 ACC=1 CC=nvc
+
+         Currently AMD GPUs are not supported.
 
    .. tab-item:: Developers
 

@@ -8,7 +8,7 @@
 #include "../simulate.h"
 #include <hdf5.h>
 
-int hdf5_options_read(hid_t f, sim_offload_data* sim, char* qid);
+int hdf5_options_read(hid_t f, sim_data* sim, char* qid);
 
 #define TOROIDAL_ANGLE_FILLER_VALUE 361 /**< Dummy value in poincare init */
 #define POLOIDAL_ANGLE_FILLER_VALUE 361 /**< Dummy value in poincare init */

@@ -4,44 +4,10 @@
  */
 #ifndef B_STS_H
 #define B_STS_H
-#include "../offload_acc_omp.h"
+#include "../offload.h"
 #include "../ascot5.h"
 #include "../linint/linint.h"
 #include "../spline/interp.h"
-
-/**
- * @brief stellarator magnetic field parameters on the host
- */
-typedef struct {
-    int psigrid_n_r;       /**< Number of R grid points in psi data           */
-    int psigrid_n_z;       /**< Number of z grid points in psi data           */
-    int psigrid_n_phi;     /**< Number of phi grid points in psi data         */
-    real psigrid_r_min;    /**< Minimum R grid point in psi data [m]          */
-    real psigrid_r_max;    /**< Maximum R grid point in psi data [m]          */
-    real psigrid_z_min;    /**< Minimum z grid point in psi data [m]          */
-    real psigrid_z_max;    /**< Maximum z grid point in psi data [m]          */
-    real psigrid_phi_min;  /**< Minimum phi grid point in psi data [rad]      */
-    real psigrid_phi_max;  /**< Maximum phi grid point in psi data [rad]      */
-
-    int Bgrid_n_r;       /**< Number of R grid points in B data               */
-    int Bgrid_n_z;       /**< Number of z grid points in B data               */
-    int Bgrid_n_phi;     /**< Number of phi grid points in B data             */
-    real Bgrid_r_min;    /**< Minimum R coordinate in the grid in B data [m]  */
-    real Bgrid_r_max;    /**< Maximum R coordinate in the grid in B data [m]  */
-    real Bgrid_z_min;    /**< Minimum z coordinate in the grid in B data [m]  */
-    real Bgrid_z_max;    /**< Maximum z coordinate in the grid in B data [m]  */
-    real Bgrid_phi_min;  /**< Minimum phi grid point in B data [rad]          */
-    real Bgrid_phi_max;  /**< Maximum phi grid point in B data [rad]          */
-
-    real psi0;           /**< Poloidal flux value at magnetic axis [V*s*m^-1] */
-    real psi1;           /**< Poloidal flux value at separatrix [V*s*m^-1]    */
-    int offload_array_length; /**< Number of elements in offload_array        */
-
-    int n_axis;          /**< Number of phi grid points in axis data          */
-    real axis_min;       /**< Minimum phi grid point in axis data [rad]       */
-    real axis_max;       /**< Maximum phi grid point in axis data [rad]       */
-    real axis_grid;      /**< phi grid interval in axis data [rad]            */
-} B_STS_offload_data;
 
 /**
  * @brief stellarator magnetic field parameters on the target
@@ -57,11 +23,18 @@ typedef struct {
     interp3D_data B_z;   /**< 3D B_z interpolation data struct                */
 } B_STS_data;
 
-int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array);
-void B_STS_free_offload(B_STS_offload_data* offload_data, real** offload_array);
-
-void B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
-               real* offload_array);
+int B_STS_init(B_STS_data* data,
+               int p_n_r, real p_r_min, real p_r_max,
+               int p_n_phi, real p_phi_min, real p_phi_max,
+               int p_n_z, real p_z_min, real p_z_max,
+               int b_n_r, real b_r_min, real b_r_max,
+               int b_n_phi, real b_phi_min, real b_phi_max,
+               int b_n_z, real b_z_min, real b_z_max,
+               int naxis, real axis_min, real axis_max,
+               real* axis_r, real* axis_z, real psi0, real psi1,
+               real* psi, real* B_r, real* B_phi, real* B_z);
+void B_STS_free(B_STS_data* data);
+void B_STS_offload(B_STS_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err B_STS_eval_psi(real* psi, real r, real phi, real z, B_STS_data* Bdata);
 DECLARE_TARGET_END

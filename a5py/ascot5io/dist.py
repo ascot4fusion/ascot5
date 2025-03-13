@@ -684,7 +684,7 @@ class Dist(DataContainer):
             toroidalcurrent=(dist.histogram() / moment.volume).to("A/m**2"))
 
     @staticmethod
-    def parallelcurrent(ascot, mass, dist, moment):
+    def parallelcurrent(ascot, mass, dist, moment, drive=False):
         """Calculate parallel current density.
 
         Parameters
@@ -693,7 +693,10 @@ class Dist(DataContainer):
             Distribution from where the moments are calculated.
         moment : class:`DistMoment`
             Moment data used in calculation and where the result is stored.
+        drive : bool, optional
+            Calculate current drive instead.
         """
+        Z = dist.abscissa("charge")[0] / unyt.e
         dist = dist.integrate(copy=True, charge=dist.abscissa("charge"),
                               ppar=dist.abscissa("ppar"))
         integrate = {}
@@ -708,8 +711,31 @@ class Dist(DataContainer):
         dist.integrate(**integrate)
         dist._distribution *= 1/mass
 
-        moment.add_ordinates(
-            parallelcurrent=(dist.histogram() / moment.volume).to("A/m**2"))
+        if(drive):
+            rho, zeff, ne, te, rminor = ascot.input_eval(
+                moment.rc, moment.phic, moment.zc, 0,
+                "rho", "zeff", "ne", "te", "rminor"
+                )
+            clogee = 31.3 - np.log(np.sqrt(ne/unyt.m**3)/(te/unyt.eV))
+            q, _, _, ftrap = ascot.input_eval_safetyfactor(
+                rho, return_ftrap=True)
+            aspectratio = np.sqrt(moment.rc/rminor)
+            F = Z/zeff
+            nu_eff = (  1.779e-55 * unyt.J**2 * unyt.m**2 * q * moment.rc * ne
+                      * clogee / (te**2 * aspectratio**(-3/2)))
+            X = ftrap / (1 + ( 1 - 0.1*ftrap ) * np.sqrt(nu_eff)
+                           + 0.5 * ( 1 -  ftrap ) * nu_eff / zeff )
+            zeffplusone = zeff+1
+            G = (  ( 1 + 1.4 / zeffplusone ) * X
+                 - (1.9 / zeffplusone) * X**2
+                 + (0.3 / zeffplusone) * X**3
+                 + (0.2 / zeffplusone) * X**4
+                 )
+            jpar = (dist.histogram() / moment.volume).to("A/m**2")
+            moment.add_ordinates(currentdrive=(1 - F *(1 - G))*jpar)
+        else:
+            moment.add_ordinates(
+                parallelcurrent=(dist.histogram() / moment.volume).to("A/m**2"))
 
     @staticmethod
     def powerdep(ascot, mass, dist, moment):

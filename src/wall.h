@@ -10,16 +10,12 @@
 #define WALL_H
 
 #include "ascot5.h"
-#include "offload_acc_omp.h"
+#include "offload.h"
 #include "wall/wall_2d.h"
 #include "wall/wall_3d.h"
 
 /**
  * @brief Wall model types
- *
- * Wall model types are used in the magnetic wall interface (wall.c) to direct
- * function calls to correct wall model instances. Each wall model instance must
- * have a corresponding type.
  */
 typedef enum wall_type {
     wall_type_2D, /**< Axisymmetric wall model consisting of single contour */
@@ -27,30 +23,10 @@ typedef enum wall_type {
 } wall_type;
 
 /**
- * @brief Wall model offload data
- *
- * This struct holds data necessary for offloading. The struct is initialized in
- * wall_init_offload().
- *
- * The intended usage is that only single offload data is used at the time, and
- * the type of the data is declared with the "type" field.
- */
-typedef struct {
-    wall_type type;               /**< Wall model type wrapped by this struct */
-    wall_2d_offload_data w2d;     /**< 2D model or NULL if not active         */
-    wall_3d_offload_data w3d;     /**< 3D model or NULL if not active         */
-    int offload_array_length;     /**< Allocated offload array length         */
-    int int_offload_array_length; /**< Allocated int offload array length     */
-} wall_offload_data;
-
-/**
  * @brief Wall model simulation data
  *
- * This struct holds data necessary for simulation. The struct is initialized
- * from the wall_offload_data in wall_init().
- *
- * The intended usage is that only single wall_data is used at the time, and
- * the type of the data is declared with the "type" field.
+ * The intended usage is that only single type of data is used at a time. This
+ * is declared using the `type` field.
  */
 typedef struct {
     wall_type type;   /**< Wall model type wrapped by this struct */
@@ -58,14 +34,8 @@ typedef struct {
     wall_3d_data w3d; /**< 3D model or NULL if not active         */
 } wall_data;
 
-int wall_init_offload(wall_offload_data* offload_data, real** offload_array,
-                      int** int_offload_array);
-void wall_free_offload(wall_offload_data* offload_data, real** offload_array,
-                       int** int_offload_array);
-
-int wall_init(wall_data* w, wall_offload_data* offload_data,
-              real* offload_array, int* int_offload_array);
-
+void wall_free(wall_data* data);
+void wall_offload(wall_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(w)
 int wall_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
                   wall_data* w, real* w_coll);

@@ -22,186 +22,170 @@
 
 #define NPATH /**< Macro that is used to store paths to data groups */
 
-int hdf5_neutral_read_1D(hid_t f, N0_1D_offload_data* offload_data,
-                         real** offload_array, char* qid);
-int hdf5_neutral_read_3D(hid_t f, N0_3D_offload_data* offload_data,
-                         real** offload_array, char* qid);
+int hdf5_neutral_init_1D(hid_t f, N0_1D_data* data, char* qid);
+int hdf5_neutral_init_3D(hid_t f, N0_3D_data* data, char* qid);
 
 /**
  * @brief Initialize neutral data from HDF5 file
  *
  * @param f HDF5 file identifier for a file which is opened and closed outside
  *          of this function
- * @param offload_data pointer to offload data struct which is initialized here
- * @param offload_array pointer to offload array which is allocated and
- *                      initialized here
+ * @param data pointer to the data struct which is initialized here
  * @param qid QID of the data that is to be read
  *
  * @return zero if reading and initialization succeeded
  */
-int hdf5_neutral_init_offload(hid_t f, neutral_offload_data* offload_data,
-                              real** offload_array, char* qid) {
+int hdf5_neutral_init(hid_t f, neutral_data* data, char* qid) {
 
     char path[256];
     int err = 1;
 
     /* Read data the QID corresponds to */
-
     hdf5_gen_path("/neutral/N0_1D_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
-        offload_data->type = neutral_type_1D;
-        err = hdf5_neutral_read_1D(f, &(offload_data->N01D),
-                                   offload_array, qid);
+        data->type = neutral_type_1D;
+        err = hdf5_neutral_init_1D(f, &(data->N01D), qid);
     }
-
     hdf5_gen_path("/neutral/N0_3D_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
-        offload_data->type = neutral_type_3D;
-        err = hdf5_neutral_read_3D(f, &(offload_data->N03D),
-                                   offload_array, qid);
+        data->type = neutral_type_3D;
+        err = hdf5_neutral_init_3D(f, &(data->N03D), qid);
+    }
+    return err;
+}
+
+/**
+ * @brief Load 1D neutral data from HDF5 file and initialize it
+ *
+ * @param f hdf5 file identifier
+ * @param data pointer to the data struct
+ * @param qid QID of the data that is to be read
+ *
+ * @return zero on success
+ */
+int hdf5_neutral_init_1D(hid_t f, N0_1D_data* data, char* qid) {
+    #undef NPATH
+    #define NPATH "/neutral/N0_1D_XXXXXXXXXX/"
+
+    /* Read and initialize rho coordinate */
+    int n_rho;
+    real rho_min, rho_max;
+    if( hdf5_read_int(NPATH "nrho", &n_rho,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(NPATH "rhomin", &rho_min,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(NPATH "rhomax", &rho_max,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    /* Read n_species, anum, znum and distribution type */
+    int n_species;
+    if( hdf5_read_int(NPATH "nspecies", &n_species,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    int* anum = (int*) malloc(n_species * sizeof(int));
+    int* znum = (int*) malloc(n_species * sizeof(int));
+    int* maxwellian = (int*) malloc(n_species * sizeof(int));
+    if( hdf5_read_int(NPATH "anum", anum,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(NPATH "znum", znum,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(NPATH "maxwellian", maxwellian,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    /* Read the neutral density and temperature */
+    real* density = (real*) malloc(n_species*n_rho*sizeof(real));
+    real* temperature = (real*) malloc(n_species*n_rho*sizeof(real));
+    if( hdf5_read_double(NPATH "density", density,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(NPATH "temperature", temperature,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    for(int i = 0; i < n_species * n_rho; i++) {
+        temperature[i] = temperature[i] * CONST_E;
     }
 
-    /* Initialize if data was read succesfully */
-    if(!err) {
-        err = neutral_init_offload(offload_data, offload_array);
-    }
+    int err = N0_1D_init(data, n_rho, rho_min, rho_max, n_species, anum, znum,
+                         maxwellian, density, temperature);
+    free(anum);
+    free(znum);
+    free(maxwellian);
+    free(density);
+    free(temperature);
 
     return err;
 }
 
 /**
- * @brief Load neutral data from HDF5 file and prepare parameters
- *
- * This function reads the 1D neutral data from file f, fills the
- * offload struct with parameters and allocates and fills the offload array.
+ * @brief Load 3D neutral data from HDF5 file and initialize it
  *
  * @param f hdf5 file identifier
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param data pointer to the data struct
  * @param qid QID of the data that is to be read
  *
  * @return zero on success
  */
-int hdf5_neutral_read_1D(hid_t f, N0_1D_offload_data* offload_data,
-                         real** offload_array, char* qid) {
-    #undef NPATH
-    #define NPATH "/neutral/N0_1D_XXXXXXXXXX/"
-
-    /* Read and initialize rho coordinate */
-    if( hdf5_read_int(NPATH "nrho", &(offload_data->n_rho),
-                      f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(NPATH "rhomin", &(offload_data->rho_min),
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(NPATH "rhomax", &(offload_data->rho_max),
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    /* Read n_species, anum, znum and distribution type */
-    if( hdf5_read_int(NPATH "nspecies", &(offload_data->n_species),
-                      f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(NPATH "anum", offload_data->anum,
-                      f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(NPATH "znum", offload_data->znum,
-                      f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(NPATH "maxwellian", offload_data->maxwellian,
-                      f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    int N0_size = offload_data->n_rho;
-    int T0_size = offload_data->n_rho;
-
-    *offload_array = (real*) malloc(offload_data->n_species
-                                    * (N0_size + T0_size)
-                                    * sizeof(real));
-
-    /* Pointers to beginning of different data series to make code more
-     * readable */
-    real* n0 = &(*offload_array)[0];
-    real* t0 = &(*offload_array)[offload_data->n_species * N0_size];
-
-    /* Read the neutral density and temperature */
-    if( hdf5_read_double(NPATH "density", n0,
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(NPATH "temperature", t0,
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    for(int i = 0; i < offload_data->n_species * T0_size; i++) {
-        t0[i] = t0[i] * CONST_E;
-    }
-
-    return 0;
-}
-
-/**
- * @brief Load neutral data from HDF5 file and prepare parameters
- *
- * This function reads the 3D neutral data from file f, fills the
- * offload struct with parameters and allocates and fills the offload array.
- *
- * @param f hdf5 file identifier
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
- * @param qid QID of the data that is to be read
- *
- * @return zero on success
- */
-int hdf5_neutral_read_3D(hid_t f, N0_3D_offload_data* offload_data,
-                         real** offload_array, char* qid) {
+int hdf5_neutral_init_3D(hid_t f, N0_3D_data* data, char* qid) {
     #undef NPATH
     #define NPATH "/neutral/N0_3D_XXXXXXXXXX/"
 
     /* Read and initialize Rpz-grid */
-    if( hdf5_read_int(NPATH "nr", &(offload_data->n_r),
+    int n_r, n_phi, n_z;
+    real r_min, r_max, phi_min, phi_max, z_min, z_max;
+    if( hdf5_read_int(NPATH "nr", &n_r,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(NPATH "nphi", &(offload_data->n_phi),
+    if( hdf5_read_int(NPATH "nphi", &n_phi,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(NPATH "nz", &(offload_data->n_z),
+    if( hdf5_read_int(NPATH "nz", &n_z,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(NPATH "rmin", &(offload_data->r_min),
+    if( hdf5_read_double(NPATH "rmin", &r_min,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(NPATH "rmax", &(offload_data->r_max),
+    if( hdf5_read_double(NPATH "rmax", &r_max,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(NPATH "phimin", &(offload_data->phi_min),
+    if( hdf5_read_double(NPATH "phimin", &phi_min,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(NPATH "phimax", &(offload_data->phi_max),
+    if( hdf5_read_double(NPATH "phimax", &phi_max,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(NPATH "zmin", &(offload_data->z_min),
+    if( hdf5_read_double(NPATH "zmin", &z_min,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(NPATH "zmax", &(offload_data->z_max),
+    if( hdf5_read_double(NPATH "zmax", &z_max,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Convert to radians */
-    offload_data->phi_max = math_deg2rad(offload_data->phi_max);
-    offload_data->phi_min = math_deg2rad(offload_data->phi_min);
+    phi_max = math_deg2rad(phi_max);
+    phi_min = math_deg2rad(phi_min);
 
     /* Read n_species, anum, znum and distribution type */
-    if( hdf5_read_int(NPATH "nspecies", &(offload_data->n_species),
+    int n_species;
+    if( hdf5_read_int(NPATH "nspecies", &n_species,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(NPATH "anum", offload_data->anum,
+    int* anum = (int*) malloc(n_species * sizeof(int));
+    int* znum = (int*) malloc(n_species * sizeof(int));
+    int* maxwellian = (int*) malloc(n_species * sizeof(int));
+    if( hdf5_read_int(NPATH "anum", anum,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(NPATH "znum", offload_data->znum,
+    if( hdf5_read_int(NPATH "znum", znum,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(NPATH "maxwellian", offload_data->maxwellian,
+    if( hdf5_read_int(NPATH "maxwellian", maxwellian,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    int N0_size = offload_data->n_r * offload_data->n_phi * offload_data->n_z;
-    int T0_size = offload_data->n_r * offload_data->n_phi * offload_data->n_z;
-
-    *offload_array = (real*) malloc(
-        offload_data->n_species * (N0_size + T0_size) * sizeof(real));
-
-    /* Pointers to beginning of different data series to make code more
-     * readable */
-    real* n0 = &(*offload_array)[0];
-    real* t0 = &(*offload_array)[offload_data->n_species * N0_size];
 
     /* Read the neutral density and temperature */
-    if( hdf5_read_double(NPATH "density", n0,
+    real* density = (real*) malloc(n_species*n_r*n_phi*n_z*sizeof(real));
+    real* temperature = (real*) malloc(n_species*n_r*n_phi*n_z*sizeof(real));
+    if( hdf5_read_double(NPATH "density", density,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(NPATH "temperature", t0,
+    if( hdf5_read_double(NPATH "temperature", temperature,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    for(int i = 0; i < offload_data->n_species * T0_size; i++) {
-        t0[i] = t0[i] * CONST_E;
+    for(int i = 0; i < n_species*n_r*n_phi*n_z; i++) {
+        temperature[i] = temperature[i] * CONST_E;
     }
 
-    return 0;
+    int err = N0_3D_init(data, n_r, r_min, r_max, n_phi, phi_min, phi_max,
+                         n_z, z_min, z_max, n_species, anum, znum, maxwellian,
+                         density, temperature);
+    free(anum);
+    free(znum);
+    free(maxwellian);
+    free(density);
+    free(temperature);
+    return err;
 }

@@ -310,10 +310,10 @@ class Ascot4Templates():
             r = np.linspace(r1, r2, nr)
             z = np.linspace(z1, z2, nz)
             if(nPhi > 1):
-                dphi = 360.0 / ( nSector * nPhi )
-                phi = np.linspace(phi0 + dphi * 0.5,
-                                  phi0 + 360.0 / nSector - dphi * 0.5,
-                                  nPhi)
+                dphi = 360 / ( nSector * nPhi )
+                phi = np.linspace(
+                    phi0, phi0 + 360 / nSector, nPhi,
+                )
 
             phimap_tor = np.array(
                 [int(float(number)) for number in fh.readline().split()])
@@ -343,13 +343,16 @@ class Ascot4Templates():
             data["zmax"] = z[-1]
             return ("B_2DS", data)
 
+        data["br"] = data["br"][:,:-1,:]
+        data["bphi"] = data["bphi"][:,:-1,:]
+        data["bz"] = data["bz"][:,:-1,:]
         data["b_nr"]     = nr
         data["b_rmin"]   = r[0]
         data["b_rmax"]   = r[-1]
         data["b_nz"]     = nz
         data["b_zmin"]   = z[0]
         data["b_zmax"]   = z[-1]
-        data["b_nphi"]   = nPhi
+        data["b_nphi"]   = nPhi-1
         data["b_phimin"] = phi[0]
         data["b_phimax"] = phi[-1]
 

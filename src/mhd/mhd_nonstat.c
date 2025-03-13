@@ -14,141 +14,96 @@
 #include "mhd_nonstat.h"
 
 /**
- * @brief Load MHD data and prepare parameters for offload.
+ * @brief Load MHD data
  *
- * This function fills the MHD offload struct with parameters and allocates
- * and fills the offload array. Sets offload array length in the offload struct.
- *
- * It is assumed that the offload_data struct is completely filled before
- * calling this function (except for the offload_array_length and rhogrid).
- * Furthermore, offload array should contain following data:
- *
- * - offload_array[j*nrho + i] : alpha(mode_j, rho_i).
- * - offload_array[n_modes*nrho + j*nrho + i] : phi(mode_j, rho_i).
- *
- * 1D splines are constructed here and stored to offload array which is
- * reallocated.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param offload_data pointer to data struct
  *
  * @return zero if initialization succeeded.
  */
-int mhd_nonstat_init_offload(mhd_nonstat_offload_data* offload_data,
-                             real** offload_array) {
+int mhd_nonstat_init(mhd_nonstat_data* data, int nmode, int nrho, int ntime,
+                     real rhomin, real rhomax, real tmin, real tmax,
+                     int* moden, int* modem, real* amplitude_nm,
+                     real* omega_nm, real* phase_nm, real* alpha, real* phi) {
 
-    /* Allocate array for storing 2D spline coefficients for two quantities
-     * for each mode                                                         */
-    real* coeff_array = (real*)malloc(2 * NSIZE_COMP2D * offload_data->n_modes
-                                      * offload_data->nrho * offload_data->ntime
-                                      * sizeof(real));
+    int err = 0;
+    data->n_modes = nmode;
+    data->rho_min = rhomin;
+    data->rho_max = rhomax;
+    data->nmode = (int*) malloc(nmode * sizeof(int));
+    data->mmode = (int*) malloc(nmode * sizeof(int));
+    data->omega_nm = (real*) malloc(nmode * sizeof(real));
+    data->phase_nm = (real*) malloc(nmode * sizeof(real));
+    data->amplitude_nm = (real*) malloc(nmode * sizeof(real));
+    data->phi_nm = (interp2D_data*) malloc(nmode * sizeof(interp2D_data));
+    data->alpha_nm = (interp2D_data*) malloc(nmode * sizeof(interp2D_data));
+    for(int i = 0; i < nmode; i++) {
+        data->nmode[i] = moden[i];
+        data->mmode[i] = modem[i];
+        data->omega_nm[i] = omega_nm[i];
+        data->phase_nm[i] = phase_nm[i];
+        data->amplitude_nm[i] = amplitude_nm[i];
 
-    /* Go through all modes, and evaluate and store coefficients for each */
-    int err      = 0;
-    int datasize = offload_data->nrho * offload_data->ntime;
-    int n_modes  = offload_data->n_modes;
-    for(int j=0; j<offload_data->n_modes; j++) {
-
-        /* alpha_nm */
-        err += interp2Dcomp_init_coeff(
-            &coeff_array[NSIZE_COMP2D * datasize * j],
-            &(*offload_array)[j*datasize],
-            offload_data->nrho, offload_data->ntime,
-            NATURALBC, NATURALBC,
-            offload_data->rho_min,
-            offload_data->rho_max,
-            offload_data->t_min,
-            offload_data->t_max);
-
-        /* phi_nm */
-        err += interp2Dcomp_init_coeff(
-            &coeff_array[NSIZE_COMP2D * datasize * (n_modes + j)],
-            &(*offload_array)[(n_modes + j)*datasize],
-            offload_data->nrho,
-            offload_data->ntime,
-            NATURALBC, NATURALBC,
-            offload_data->rho_min,
-            offload_data->rho_max,
-            offload_data->t_min,
-            offload_data->t_max);
+        err = interp2Dcomp_setup(&data->alpha_nm[i], &alpha[i*nrho*ntime],
+                                 nrho, ntime, NATURALBC, NATURALBC,
+                                 rhomin, rhomax, tmin, tmax);
+        if(err) {
+            print_err("Error: Failed to initialize splines.\n");
+            return err;
+        }
+        err = interp2Dcomp_setup(&data->phi_nm[i], &phi[i*nrho*ntime],
+                                 nrho, ntime, NATURALBC, NATURALBC,
+                                 rhomin, rhomax, tmin, tmax);
+        if(err) {
+            print_err("Error: Failed to initialize splines.\n");
+            return err;
+        }
     }
-
-    free(*offload_array);
-    *offload_array = coeff_array;
-    offload_data->offload_array_length = 2 * NSIZE_COMP2D
-        * offload_data->n_modes * offload_data->nrho * offload_data->ntime;
 
     /* Print some sanity check on data */
     print_out(VERBOSE_IO, "\nMHD input (non-stationary)\n");
     print_out(VERBOSE_IO, "Grid: nrho = %4.d rhomin = %3.3f rhomax = %3.3f\n",
-              offload_data->nrho,
-              offload_data->rho_min, offload_data->rho_max);
+              nrho, data->rho_min, data->rho_max);
     print_out(VERBOSE_IO, "      ntime = %4.d tmin = %3.3f tmax = %3.3f\n",
-              offload_data->ntime,
-              offload_data->t_min, offload_data->t_max);
+              ntime, tmin, tmax);
 
     print_out(VERBOSE_IO, "\nModes:\n");
-    for(int j=0; j<n_modes; j++) {
+    for(int i = 0; i < nmode; i++) {
         print_out(VERBOSE_IO,
                   "(n,m) = (%2.d,%2.d) Amplitude = %3.3g Frequency = %3.3g"
                   " Phase = %3.3g\n",
-                  offload_data->nmode[j], offload_data->mmode[j],
-                  offload_data->amplitude_nm[j], offload_data->omega_nm[j],
-                  offload_data->phase_nm[j]);
+                  data->nmode[i], data->mmode[i], data->amplitude_nm[i],
+                  data->omega_nm[i], data->phase_nm[i]);
     }
 
     return err;
 }
 
 /**
- * @brief Free offload array
+ * @brief Free allocated resources
  *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param data pointer to the data struct
  */
-void mhd_nonstat_free_offload(mhd_nonstat_offload_data* offload_data,
-                              real** offload_array) {
-    free(*offload_array);
+void mhd_nonstat_free(mhd_nonstat_data* data) {
+    for(int i = 0; i < data->n_modes; i++) {
+        free(data->phi_nm[i].c);
+        free(data->alpha_nm[i].c);
+    }
+    free(data->nmode);
+    free(data->mmode);
+    free(data->phase_nm);
+    free(data->omega_nm);
+    free(data->amplitude_nm);
+    free(data->phi_nm);
+    free(data->alpha_nm);
 }
 
 /**
- * @brief Initialize MHD data struct on target
+ * @brief Offload data to the accelerator.
  *
- * @param mhddata pointer to data struct on target
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
+ * @param data pointer to the data struct
  */
-void mhd_nonstat_init(mhd_nonstat_data* mhddata,
-                      mhd_nonstat_offload_data* offload_data,
-                      real* offload_array) {
-
-    mhddata->n_modes = offload_data->n_modes;
-
-    int n_modes  = offload_data->n_modes;
-    int datasize = NSIZE_COMP2D * offload_data->nrho * offload_data->ntime;
-
-    for(int j=0; j<mhddata->n_modes; j++) {
-        mhddata->nmode[j]        = offload_data->nmode[j];
-        mhddata->mmode[j]        = offload_data->mmode[j];
-        mhddata->amplitude_nm[j] = offload_data->amplitude_nm[j];
-        mhddata->omega_nm[j]     = offload_data->omega_nm[j];
-        mhddata->phase_nm[j]     = offload_data->phase_nm[j];
-
-        interp2Dcomp_init_spline(&(mhddata->alpha_nm[j]),
-                                 &(offload_array[j*datasize]),
-                                 offload_data->nrho, offload_data->ntime,
-                                 NATURALBC, PERIODICBC,
-                                 offload_data->rho_min, offload_data->rho_max,
-                                 offload_data->t_min, offload_data->t_max);
-
-        interp2Dcomp_init_spline(&(mhddata->phi_nm[j]),
-                                 &(offload_array[(n_modes + j)*datasize]),
-                                 offload_data->nrho, offload_data->ntime,
-                                 NATURALBC, PERIODICBC,
-                                 offload_data->rho_min, offload_data->rho_max,
-                                 offload_data->t_min, offload_data->t_max);
-
-    }
+void mhd_nonstat_offload(mhd_nonstat_data* data) {
+    //TODO: Implement
 }
 
 /**

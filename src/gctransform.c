@@ -29,7 +29,7 @@
  * a nonuniform magnetic field", E. Hirvijoki et. al.
  * https://arxiv.org/pdf/1412.1966.pdf
  */
-#include "offload_acc_omp.h"
+#include "offload.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
