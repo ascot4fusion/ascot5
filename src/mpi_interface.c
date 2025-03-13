@@ -565,7 +565,6 @@ void mpi_gather_diag_RFOF(rfof_data* rfof_data, int mpi_rank, int mpi_size,
     int mpi_root) {
 #ifdef MPI
 #ifdef RFOF
-if(sim->enable_icrh) {
     MPI_Reduce(
         mpi_rank == mpi_root ? MPI_IN_PLACE : rfof_data->dE_RFOF_modes_and_waves,
         rfof_data->dE_RFOF_modes_and_waves,
@@ -576,7 +575,6 @@ if(sim->enable_icrh) {
         rfof_data->summed_timesteps,
         1,
         mpi_type_real, MPI_SUM, mpi_root, MPI_COMM_WORLD);
-}
 #endif
 #endif
 }
