@@ -9,6 +9,7 @@
 #include <mpi.h>
 #endif
 #include "diag.h"
+#include "rfof.h"
 #include "particle.h"
 
 /** @brief ASCOT integer in MPI standard */
@@ -32,5 +33,7 @@ void mpi_gather_particlestate(
     int mpi_rank, int mpi_size, int mpi_root);
 void mpi_gather_diag(diag_data* data, int ntotal, int mpi_rank, int mpi_size,
                      int mpi_root);
+void mpi_gather_diag_RFOF(rfof_data* rfof_data, int mpi_rank, int mpi_size,
+int mpi_root);
 
 #endif

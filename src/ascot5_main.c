@@ -200,15 +200,14 @@ int main(int argc, char** argv) {
     mhd_free(&sim.mhd_data);
     asigma_free(&sim.asigma_data);
 
-    if(sim.enable_icrh) {
-        rfof_free(&sim.rfof_data);
-    }
-
     /* Write output and clean */
     if( write_output(&sim, pout, n_gathered) ) {
         goto CLEANUP_FAILURE;
     }
     diag_free(&sim.diag_data);
+    if(sim.enable_icrh) {
+        rfof_free(&sim.rfof_data);
+    }
 
     /* Display marker summary and free marker arrays */
     if(sim.mpi_rank == sim.mpi_root) {
@@ -360,6 +359,15 @@ int offload_and_simulate(
     real t_sim_start = omp_get_wtime();
     simulate(n_proc, pin, sim);
 
+    printf("SIMULATION DONED\n");
+    printf("simroot = %d\n", sim->mpi_root);
+    printf("simsize = %d\n", sim->mpi_size);
+    printf("simrank = %d\n", sim->mpi_rank);
+    for (int i = 0; i < sim->rfof_data.n_waves*sim->rfof_data.n_modes; i++) {
+        printf("i = %d, E = %e\n", i, sim->rfof_data.dE_RFOF_modes_and_waves[i]);
+    }
+    printf("dt_tot = %e\n", sim->rfof_data.summed_timesteps);
+
     mpi_interface_barrier();
     real t_sim_end = omp_get_wtime();
     print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,
@@ -372,6 +380,21 @@ int offload_and_simulate(
 
     mpi_gather_diag(&sim->diag_data, n_tot,
                     sim->mpi_rank, sim->mpi_size, sim->mpi_root);
+
+    mpi_gather_diag_RFOF(&sim->rfof_data, sim->mpi_rank, sim->mpi_size,
+        sim->mpi_root);
+
+
+
+    print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,
+            "=======================================\nAFTER COMBINING THE DATA FROM ALL MPI PROCESSES\nsummed dt over all MPI processes = %.3e\n",
+            sim->rfof_data.summed_timesteps);
+
+    for (int i = 0; i < sim->rfof_data.n_waves*sim->rfof_data.n_modes; i++) {
+        print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,"i = %d, E = %e\n", i, sim->rfof_data.dE_RFOF_modes_and_waves[i]);
+    }
+    print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,"=========================\n");
+
     return 0;
 }
 
@@ -401,9 +424,9 @@ int write_output(sim_data* sim, particle_state* ps, int n_tot){
                    "Endstate written.\n");
     }
 
-    /* Combine diagnostic data and write it to HDF5 file */
+    /* Write diagnostics data to the HDF5 file */
     print_out0(VERBOSE_MINIMAL, sim->mpi_rank, sim->mpi_root,
-                   "\nCombining and writing diagnostics.\n");
+                   "\nWriting diagnostics.\n");
     int err_writediag = 0;
 
     if(sim->mpi_rank == sim->mpi_root) {
