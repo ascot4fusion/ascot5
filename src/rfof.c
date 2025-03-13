@@ -30,7 +30,7 @@ typedef struct rfof_output {
 #ifdef RFOF
 void __ascot5_icrh_routines_MOD_call_initev_excl_marker_stuff(
     const char* xml_filename, int **xml_filename_len, void** cptr_rfglobal,
-    void** cptr_rfof_input_params);
+    void** cptr_rfof_input_params, int* n_waves, int* n_modes);
 void __ascot5_icrh_routines_MOD_call_initialise_res_mem(void** cptr_mem,
     int* cptr_mem_shape_i, int* cptr_mem_shape_j, void** cptr_rfglobal,
     void** cptr_rfof_input_param);
@@ -48,7 +48,7 @@ void __ascot5_icrh_routines_MOD_call_rf_kick(double*time, double*dtin,
     int* mpi_rank, void** cptr_marker, void** cptr_mem, void** cptr_rfglobal,
     void** cptr_rfdiagno, void** cptr_rfof_input, int* mem_shape_i,
     int* mem_shape_j, int *err, rfof_output* out,
-    real** cptr_de_rfof_during_step);
+    real* cptr_de_rfof_during_step);
 
 void __ascot5_icrh_routines_MOD_call_reset_res_mem(void** rfof_mem_pointer,
     int* mem_shape_i, int* mem_shape_j);
@@ -86,9 +86,19 @@ void rfof_init(rfof_data* rfof_data) {
     const char xml_filename[128] = RFOF_CODEPARAM_XML;
     int xml_filename_len = strlen(xml_filename);
     int*xml_filename_len_ptr = &xml_filename_len;
+    int n_waves = -999;
+    int n_modes = -999;
     __ascot5_icrh_routines_MOD_call_initev_excl_marker_stuff(xml_filename,
         &xml_filename_len_ptr, &(rfof_data->rfglobal),
-        &(rfof_data->rfof_input_params));
+        &(rfof_data->rfof_input_params), &n_waves, &n_modes);
+    rfof_data->n_waves = n_waves;
+    rfof_data->n_modes = n_modes;
+
+    rfof_data->summed_timesteps = 0.0;
+
+    /* Allocate memory for the 1d array that contains the accumulated energy
+    changes for each wave and each mode in each wave */
+    rfof_data->dE_RFOF_modes_and_waves = (real*)calloc(n_waves * n_modes, sizeof(real));
 #endif
 }
 
@@ -181,6 +191,39 @@ void rfof_clear_history(rfof_marker* rfof_mrk, int i) {
         &rfof_mrk->history_array[i], &rfof_mrk->nrow[i], &rfof_mrk->ncol[i]);
 #endif
 }
+
+
+void rfof_update_energy_array_of_the_process(rfof_data* rfof_data,
+    real** energy_arrays_for_NSIMD_markers,
+    real* accumulated_time_for_NSIMD_markers, int* cycle_array) {
+#ifdef RFOF
+    /* Update the RFOF energy and time data in the rfof_data struct for those
+     markers that reached the end condition just not */
+        for (int i = 0; i < NSIMD; i++){
+            if (cycle_array[i] != 0) {
+                #pragma omp critical
+                {
+                    rfof_data->summed_timesteps += accumulated_time_for_NSIMD_markers[i];
+                    accumulated_time_for_NSIMD_markers[i] = 0.0;
+                }
+
+                #pragma omp critical
+                {
+                    for (int j = 0; j < rfof_data->n_waves*rfof_data->n_modes; j++) {
+                        if (!isnan(energy_arrays_for_NSIMD_markers[i][j]-energy_arrays_for_NSIMD_markers[i][j])) {
+                            rfof_data->dE_RFOF_modes_and_waves[j] += energy_arrays_for_NSIMD_markers[i][j];
+                            energy_arrays_for_NSIMD_markers[i][j] = 0.0;
+                        }
+                    }
+                }
+            }
+        }
+#endif
+}
+
+
+
+
 
 /**
  * @brief Check if the marker is in resonance and apply kick

@@ -70,16 +70,17 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
                                                     which store the dE_ICRH for
                                                     each mode in each wave while
                                                     the simulation loop is
-                                                    running. (Cannot be summed
-                                                    over NSIMD because of a race
-                                                    condition.  */
+                                                    running. Includes the effect
+                                                    of marker weights */
     real* dE_rfof_1darrays_increment[NSIMD] __memalign__; /* Given to RFOF as input
                                                               and filled by RFOF
                                                               during every step.
                                                               These are added to
                                                               dE_rfof_2darrays
                                                               if the step was succesful
-                                                              and otherwise discarded. */
+                                                              and otherwise discarded. Does not include
+                                                              the effect of
+                                                              marker weights */
     real h_ALL_summed[NSIMD] __memalign__; /* All succesfull time steps summed
                                               over all markers. Not reseted when
                                               a new marker is taken from the
@@ -132,16 +133,6 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         dE_rfof_1darrays_increment[i] = dummy_array2;
     }
 
-    /* Create also a single 2D (sic) array where all the energy increments are summed
-       over NSIMD at the very end. */
-    real** dE_tot_rfof = (real**)malloc(n_RF_waves * sizeof(real*));
-    for(int RFOFwave_index = 0; RFOFwave_index < n_RF_waves; RFOFwave_index++) {
-        // Allocate n_RF_modes columns
-        dE_tot_rfof[RFOFwave_index] = (real*)malloc(n_RF_modes * sizeof(real));
-        for(int RFOFmode_index = 0; RFOFmode_index < n_RF_modes; RFOFmode_index++) {
-            dE_tot_rfof[RFOFwave_index][RFOFmode_index] = 0.0;
-        }
-    }
 
     /* Determine simulation time-step */
     #pragma omp simd
@@ -258,10 +249,8 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
                         /* Here we store the RF energy per mode */
                         for(int RFOFwave_index = 0; RFOFwave_index < n_RF_waves; RFOFwave_index++) {
                             for(int RFOFmode_index = 0; RFOFmode_index < n_RF_modes; RFOFmode_index++) {
-
-                                // EI RIITÄ ETTÄ TÄÄLLÄ LISÄTÄÄN PAIKALLISESTI TÄNNE. TÄMÄ EI TOIMI USEALLA THREADILLA.
-                                // NÄMÄ PITÄÄ ALLOKOIDA JO ENNEN KUIN KUTSUTAAN EDES SIMULATE_GC_FIXEDIÄ!!!
-                                dE_rfof_1darrays[i][n_RF_modes*RFOFwave_index + RFOFmode_index] += dE_rfof_1darrays_increment[i][n_RF_modes*RFOFwave_index + RFOFmode_index];// de sillä aallolla ja sillä moodilla
+                                // Take the marker weight into account here
+                                dE_rfof_1darrays[i][n_RF_modes*RFOFwave_index + RFOFmode_index] += p.weight[i]*dE_rfof_1darrays_increment[i][n_RF_modes*RFOFwave_index + RFOFmode_index];
                             }
                         }
                         h_ALL_summed[i] += hin[i];
@@ -293,6 +282,13 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         /* Update running particles */
         n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 
+        /* Update RFOF accumulated power diagnostics for markers that reached
+        end condition */
+        if (sim->enable_icrh) {
+            rfof_update_energy_array_of_the_process(&sim->rfof_data,
+                dE_rfof_1darrays, h_ALL_summed, cycle);
+        }
+
         /* Determine simulation time-step */
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
@@ -314,46 +310,11 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
     if(sim->enable_icrh) {
         rfof_tear_down(&rfof_mrk);
 
-        // TODO: Include dE_tot_rfof somewhere in the diagnostics
-
-        /* Finally, add the contribution of the NSIMD dE icrh together to get
-        the total dE_OCRH matrix. Note, one cannot do this inside the
-        parallelised for loop because of a race condition. */
-        real total_mileages_summed = 0.0;
-        printf("===========================================================\n");
-        printf("RFOF dE statistics:\n");
-        for(int i = 0; i < NSIMD; i++) {
-            total_mileages_summed += h_ALL_summed[i];
-            for(int RFOFwave_index = 0; RFOFwave_index < n_RF_waves; RFOFwave_index++) {
-                for(int RFOFmode_index = 0; RFOFmode_index < n_RF_modes; RFOFmode_index++) {
-                    //printf("lopussa de_rfof_1darrays[%d][%d] = %.3e\n", i, n_RF_modes*RFOFwave_index + RFOFmode_index, dE_rfof_1darrays[i][n_RF_modes*RFOFwave_index + RFOFmode_index]);
-                    dE_tot_rfof[RFOFwave_index][RFOFmode_index] += dE_rfof_1darrays[i][n_RF_modes*RFOFwave_index + RFOFmode_index];
-                }
-            }
-        }
-        //täytyy kertoa lopullinen summa vielä hiukkasen painolla sillä muuten se
-        // ei vastaa koko jakauman absorboimaa energiaa. Toisaalta, jos ollaan kiinnostuneita
-        // tehosta, niin myös mileage pitäisi kertoa painolla, ja tällöin on saman tekevää
-        //otetaanko painoa mukaan ollenkaan MIKÄLI PAINO ON SAMA KAIKILLE
-        printf("\nMileages summed = %10.4e\n", total_mileages_summed);
-        printf("n_RF_waves = %d\n",n_RF_waves);
-        printf("n_RF_modes = %d\n",n_RF_modes);
-        printf("paino: %e\n",paino);
-        for(int RFOFwave_index = 0; RFOFwave_index < n_RF_waves; RFOFwave_index++) {
-            for(int RFOFmode_index = 0; RFOFmode_index < n_RF_modes; RFOFmode_index++) {
-                printf("wave = %3d, mode = %3d, dE_tot = %10.4e, dP_tot = %10.4e\n", RFOFwave_index, RFOFmode_index, dE_tot_rfof[RFOFwave_index][RFOFmode_index], (dE_tot_rfof[RFOFwave_index][RFOFmode_index]/total_mileages_summed));
-                printf("wave = %3d, mode = %3d, dE_tot*w = %10.4e, dE*w/t_tot = %10.4e\n", RFOFwave_index, RFOFmode_index, paino*dE_tot_rfof[RFOFwave_index][RFOFmode_index], paino*(dE_tot_rfof[RFOFwave_index][RFOFmode_index]/total_mileages_summed));
-            }
-        }
-        printf("\n===========================================================\n");
-
-        //Deallocate all RFOFpower-related diagnostics structures
+        //Deallocate the temporary RFOFpower-related diagnostics structures
         for (int i = 0; i < NSIMD; i++) {
             free(dE_rfof_1darrays[i]);
             free(dE_rfof_1darrays_increment[i]);
-            de_tot_rfof[i];
         }
-        free(de_tot_rfof);
     }
 }
 

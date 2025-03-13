@@ -557,3 +557,26 @@ void mpi_gather_diag(diag_data* data, int ntotal, int mpi_rank, int mpi_size,
 
 #endif
 }
+
+
+
+
+void mpi_gather_diag_RFOF(rfof_data* rfof_data, int mpi_rank, int mpi_size,
+    int mpi_root) {
+#ifdef MPI
+#ifdef RFOF
+if(sim->enable_icrh) {
+    MPI_Reduce(
+        mpi_rank == mpi_root ? MPI_IN_PLACE : rfof_data->dE_RFOF_modes_and_waves,
+        rfof_data->dE_RFOF_modes_and_waves,
+        rfof_data->n_waves * rfof_data->n_modes,
+        mpi_type_real, MPI_SUM, mpi_root, MPI_COMM_WORLD);
+    MPI_Reduce(
+        mpi_rank == mpi_root ? MPI_IN_PLACE : rfof_data->summed_timesteps,
+        rfof_data->summed_timesteps,
+        1,
+        mpi_type_real, MPI_SUM, mpi_root, MPI_COMM_WORLD);
+}
+#endif
+#endif
+}

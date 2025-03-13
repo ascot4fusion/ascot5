@@ -36,6 +36,11 @@ typedef struct {
     void* rfof_input_params; /**< Pointer to rfof_input_param struct on
                                   the fortran side                 */
     void* rfglobal;          /**< Wave field; same for all markers */
+    int n_waves;   /**< Number of waves in RFOF; same as nrow in rfof_marker. */
+    int n_modes;   /**< Number of modes in RFOF; same as ncol in rfof_marker. */
+    real* dE_RFOF_modes_and_waves; /**< Energy changes due to each wave and mode
+                                        of RFOF.                              */
+    real summed_timesteps;      /**< Sum of all the timesteps of all markers. */
 } rfof_data;
 
 void rfof_init(rfof_data* rfof);
@@ -53,6 +58,8 @@ void rfof_set_up(rfof_marker* rfof_mrk, rfof_data* rfof_data);
 void rfof_tear_down(rfof_marker* rfof_mrk);
 
 void rfof_clear_history(rfof_marker* rfof_mrk, int imrk);
+
+void rfof_update_energy_array_of_the_process(rfof_data* rfof_data, real** energy_arrays_for_NSIMD_markers, real* accumulated_time_for_NSIMD_markers, int* cycle_array);
 
 void rfof_resonance_check_and_kick_gc(
     particle_simd_gc* p, real* hin, real* hout_rfof, rfof_marker* rfof_mrk,
