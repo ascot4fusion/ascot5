@@ -275,6 +275,7 @@ void wall_3d_init_octree(wall_3d_data* w) {
         list_size += list_int_size(tri_list[i]);
     }
     w->tree_array = (int*) malloc((2*ncell + list_size)*sizeof(int));
+    w->tree_array_size = 2*ncell + list_size;
 
     int next_empty_list = ncell;
     for(i = 0; i < ncell; i++) {
