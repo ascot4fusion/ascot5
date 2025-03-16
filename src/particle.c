@@ -109,9 +109,10 @@ void particle_allocate_fo(particle_simd_fo* p_fo, int nmrk){
 
     p_fo->running = malloc(nmrk * sizeof(p_fo->running));
 
-    p_fo->err   = malloc(nmrk * sizeof(p_fo->err)  );
-    p_fo->index = malloc(nmrk * sizeof(p_fo->index));
-    p_fo->n_mrk = nmrk;
+    p_fo->err           = malloc(nmrk * sizeof(p_fo->err)  );
+    p_fo->index         = malloc(nmrk * sizeof(p_fo->index));
+    p_fo->initialIndex = malloc(nmrk * sizeof(p_fo->initialIndex));
+    p_fo->n_mrk         = nmrk;
 }
 
 
@@ -1300,48 +1301,50 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
  * @param j  index for the output slot
  */
 void particle_copy_fo(particle_simd_fo* p1, int i, particle_simd_fo* p2, int j) {
-        p2->r[j]          = p1->r[i];
-        p2->phi[j]        = p1->phi[i];
-        p2->z[j]          = p1->z[i];
-        p2->p_r[j]        = p1->p_r[i];
-        p2->p_phi[j]      = p1->p_phi[i];
-        p2->p_z[j]        = p1->p_z[i];
+        p2->r[j]            = p1->r[i];
+        p2->phi[j]          = p1->phi[i];
+        p2->z[j]            = p1->z[i];
+        p2->p_r[j]          = p1->p_r[i];
+        p2->p_phi[j]        = p1->p_phi[i];
+        p2->p_z[j]          = p1->p_z[i];
 
-        p2->time[j]       = p1->time[i];
-        p2->mileage[j]    = p1->mileage[i];
-        p2->cputime[j]    = p1->cputime[i];
-        p2->rho[j]        = p1->rho[i];
-        p2->weight[j]     = p1->weight[i];
-        p2->cputime[j]    = p1->cputime[i];
-        p2->rho[j]        = p1->rho[i];
-        p2->theta[j]      = p1->theta[i];
+        p2->time[j]         = p1->time[i];
+        p2->mileage[j]      = p1->mileage[i];
+        p2->cputime[j]      = p1->cputime[i];
+        p2->rho[j]          = p1->rho[i];
+        p2->weight[j]       = p1->weight[i];
+        p2->cputime[j]      = p1->cputime[i];
+        p2->err[j]          = p1->err[i];
+        p2->theta[j]        = p1->theta[i];
+        p2->initialIndex[j] = p1->initialIndex[i];
+        p2->index[j]        = p1->index[i];
+	
+        p2->mass[j]         = p1->mass[i];
+        p2->charge[j]       = p1->charge[i];
+        p2->znum[j]         = p1->znum[i];
+        p2->anum[j]         = p1->anum[i];
 
-        p2->mass[j]       = p1->mass[i];
-        p2->charge[j]     = p1->charge[i];
-        p2->znum[j]       = p1->znum[i];
-        p2->anum[j]       = p1->anum[i];
+        p2->id[j]           = p1->id[i];
+        p2->bounces[j]      = p1->bounces[i];
+        p2->running[j]      = p1->running[i];
+        p2->endcond[j]      = p1->endcond[i];
+        p2->walltile[j]     = p1->walltile[i];
 
-        p2->id[j]         = p1->id[i];
-        p2->bounces[j]    = p1->bounces[i];
-        p2->running[j]    = p1->running[i];
-        p2->endcond[j]    = p1->endcond[i];
-        p2->walltile[j]   = p1->walltile[i];
+        p2->B_r[j]          = p1->B_r[i];
+        p2->B_phi[j]        = p1->B_phi[i];
+        p2->B_z[j]          = p1->B_z[i];
 
-        p2->B_r[j]        = p1->B_r[i];
-        p2->B_phi[j]      = p1->B_phi[i];
-        p2->B_z[j]        = p1->B_z[i];
+        p2->B_r_dr[j]       = p1->B_r_dr[i];
+        p2->B_r_dphi[j]     = p1->B_r_dphi[i];
+        p2->B_r_dz[j]       = p1->B_r_dz[i];
 
-        p2->B_r_dr[j]     = p1->B_r_dr[i];
-        p2->B_r_dphi[j]   = p1->B_r_dphi[i];
-        p2->B_r_dz[j]     = p1->B_r_dz[i];
+        p2->B_phi_dr[j]     = p1->B_phi_dr[i];
+        p2->B_phi_dphi[j]   = p1->B_phi_dphi[i];
+        p2->B_phi_dz[j]     = p1->B_phi_dz[i];
 
-        p2->B_phi_dr[j]   = p1->B_phi_dr[i];
-        p2->B_phi_dphi[j] = p1->B_phi_dphi[i];
-        p2->B_phi_dz[j]   = p1->B_phi_dz[i];
-
-        p2->B_z_dr[j]     = p1->B_z_dr[i];
-        p2->B_z_dphi[j]   = p1->B_z_dphi[i];
-        p2->B_z_dz[j]     = p1->B_z_dz[i];
+        p2->B_z_dr[j]       = p1->B_z_dr[i];
+        p2->B_z_dphi[j]     = p1->B_z_dphi[i];
+        p2->B_z_dz[j]       = p1->B_z_dz[i];
 }
 
 /**
@@ -1807,4 +1810,8 @@ void particle_onload_fo(particle_simd_fo* p) {
         p->anum      [0:p->n_mrk],\
         p->bounces   [0:p->n_mrk]
     )
+}
+
+void hin_copy_fo(real* hin1, int i, real* hin2, int j) {
+        hin2[j]          = hin1[i];
 }

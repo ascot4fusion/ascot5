@@ -71,7 +71,7 @@
  * @param sim pointer to simulation data struct
  */
 void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
-                      sim_data* sim) {
+                      sim_data* sim, int n_running_ref) {
 
     /* Note which end conditions are set as active.
        Only these ones are checked */
@@ -88,7 +88,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
     int active_ioniz     = sim->endcond_active & endcond_ioniz;
 
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for(int i = 0; i < p_f->n_mrk; i++) {
+    for(int i = 0; i < n_running_ref; i++) {
         if(p_f->running[i]) {
 
             /* Update bounces if pitch changed sign */

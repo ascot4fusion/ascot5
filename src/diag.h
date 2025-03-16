@@ -44,7 +44,7 @@ void diag_offload(diag_data* data);
 void diag_sum(diag_data* data1, diag_data* data2);
 
 void diag_update_fo(diag_data* data, B_field_data* Bdata, particle_simd_fo* p_f,
-                    particle_simd_fo* p_i);
+                    particle_simd_fo* p_i, int n_running_ref);
 
 void diag_update_gc(diag_data* data, B_field_data* Bdata, particle_simd_gc* p_f,
                     particle_simd_gc* p_i);

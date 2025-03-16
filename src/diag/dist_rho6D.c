@@ -82,10 +82,10 @@ void dist_rho6D_offload(dist_rho6D_data* data) {
  * @param p_f pointer to SIMD particle struct at the end of time step
  */
 void dist_rho6D_update_fo(dist_rho6D_data* dist, particle_simd_fo* p_f,
-                          particle_simd_fo* p_i) {
+                          particle_simd_fo* p_i, int n_running_ref) {
 
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for(int i = 0; i < p_f->n_mrk; i++) {
+    for(int i = 0; i < n_running_ref; i++) {
         if(p_f->running[i]) {
 
             int i_rho = floor((p_f->rho[i] - dist->min_rho)

@@ -83,10 +83,10 @@ void dist_5D_offload(dist_5D_data* data) {
  * @param p_i pointer to SIMD particle struct at the start of current time step
  */
 void dist_5D_update_fo(dist_5D_data* dist, particle_simd_fo* p_f,
-                       particle_simd_fo* p_i) {
+                       particle_simd_fo* p_i, int n_running_ref) {
 
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for(int i = 0; i < p_f->n_mrk; i++) {
+    for(int i = 0; i < n_running_ref; i++) {
         if(p_f->running[i]) {
             real i_r = floor((p_f->r[i] - dist->min_r)
                      / ((dist->max_r - dist->min_r)/dist->n_r));

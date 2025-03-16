@@ -55,7 +55,7 @@ int dist_rho5D_init(dist_rho5D_data* data);
 void dist_rho5D_free(dist_rho5D_data* data);
 void dist_rho5D_offload(dist_rho5D_data* data);
 void dist_rho5D_update_fo(dist_rho5D_data* dist, particle_simd_fo* p_f,
-                          particle_simd_fo* p_i);
+                          particle_simd_fo* p_i, int n_running_ref);
 void dist_rho5D_update_gc(dist_rho5D_data* dist, particle_simd_gc* p_f,
                           particle_simd_gc* p_i);
 

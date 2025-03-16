@@ -1,4 +1,6 @@
 CC=h5cc
+CUDAC=nvcc
+
 LFLAGS=
 
 ifdef TRAP_FPE
@@ -26,13 +28,17 @@ endif
 
 ifeq ($(MPI),1)
 	DEFINES+=-DMPI
-	CC=h5pcc
+	CC=mpicc
 endif
 
 ifneq ($(CC),h5cc)
 	ifneq ($(CC),h5pcc)
-		CFLAGS+=-lhdf5 -lhdf5_hl
+		CFLAGS+=-L$(HDF5_ROOT)/lib -I$(HDF5_ROOT)/include  -lhdf5 -lhdf5_hl
 	endif
+endif
+
+ifdef PACK_COEF
+	DEFINES+=-DPACK_COEF=$(PACK_COEF)
 endif
 
 ifeq ($(GPU),1)
@@ -169,7 +175,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	random.h print.h hdf5_interface.h suzuki.h nbi.h biosaw.h \
 	asigma.h boschhale.h mpi_interface.h libascot_mem.h bbnbi5.h
 
-OBJS= math.o list.o octree.o error.o \
+OBJS= math.o list.o octree.o error.o csort.o \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
 	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS) $(HDF5IOOBJS) \
 	$(PLSOBJS) $(N0OBJS) $(MHDOBJS) $(ASIGMAOBJS) $(LINTOBJS) \
@@ -250,6 +256,9 @@ test_spline: $(UTESTDIR)test_spline.o $(OBJS)
 
 test_asigma: $(UTESTDIR)test_asigma.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
+
+%.o: %.cu $(HEADERS) Makefile
+	@$(CUDAC) -c -o $@ $<
 
 %.o: %.c $(HEADERS) Makefile
 	$(CC) -c -o $@ $< $(CFLAGS)

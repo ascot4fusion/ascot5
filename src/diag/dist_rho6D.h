@@ -60,7 +60,7 @@ int dist_rho6D_init(dist_rho6D_data* dist_data);
 void dist_rho6D_free(dist_rho6D_data* dist_data);
 void dist_rho6D_offload(dist_rho6D_data* dist_data);
 void dist_rho6D_update_fo(dist_rho6D_data* dist, particle_simd_fo* p_f,
-                          particle_simd_fo* p_i);
+                          particle_simd_fo* p_i, int n_running_ref);
 void dist_rho6D_update_gc(dist_rho6D_data* dist, particle_simd_gc* p_f,
                           particle_simd_gc* p_i);
 

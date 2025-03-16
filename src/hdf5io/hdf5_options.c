@@ -210,7 +210,7 @@ int hdf5_options_read(hid_t file, sim_data* sim, char* qid){
     diag->distCOM_collect = (int)tempfloat;
     if( hdf5_read_double(OPTPATH "ENABLE_ORBITWRITE", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    diag->diagorb_collect = (int)tempfloat;
+    diag->diagorb_collect = 0;//(int)tempfloat;
     if( hdf5_read_double(OPTPATH "ENABLE_TRANSCOEF", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     diag->diagtrcof_collect = (int)tempfloat;

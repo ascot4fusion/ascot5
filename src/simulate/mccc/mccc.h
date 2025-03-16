@@ -35,7 +35,7 @@ typedef struct {
 void mccc_init(mccc_data* mdata, int include_energy, int include_pitch,
                int include_gcdiff);
 void mccc_fo_euler(particle_simd_fo* p, real* h,  plasma_data* pdata,
-                   mccc_data* mdata, real* rnd);
+                   mccc_data* mdata, real* rnd, int n_running_ref);
 void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
                    plasma_data* pdata, mccc_data* mdata, real* rnd);
 void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,

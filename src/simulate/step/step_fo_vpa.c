@@ -33,10 +33,10 @@
  * @param Edata pointer to electric field data
  */
 void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
-                 E_field_data* Edata) {
+                 E_field_data* Edata, int n_running_ref) {
     GPU_DATA_IS_MAPPED(h[0:p->n_mrk])
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for(int i = 0; i < p->n_mrk; i++) {
+      for(int i = 0; i < n_running_ref; i++) {
         if(p->running[i]) {
             a5err errflag = 0;
 
