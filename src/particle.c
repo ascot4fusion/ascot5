@@ -111,7 +111,7 @@ void particle_allocate_fo(particle_simd_fo* p_fo, int nmrk){
 
     p_fo->err           = malloc(nmrk * sizeof(p_fo->err)  );
     p_fo->index         = malloc(nmrk * sizeof(p_fo->index));
-    p_fo->initialIndex = malloc(nmrk * sizeof(p_fo->initialIndex));
+    p_fo->initialIndex  = malloc(nmrk * sizeof(p_fo->initialIndex));
     p_fo->n_mrk         = nmrk;
 }
 
@@ -1763,7 +1763,8 @@ void particle_offload_fo(particle_simd_fo* p) {
         p->index     [0:p->n_mrk],\
         p->znum      [0:p->n_mrk],\
         p->anum      [0:p->n_mrk],\
-        p->bounces   [0:p->n_mrk]
+        p->bounces   [0:p->n_mrk],\
+        p->initialIndex[0:p->n_mrk]
     )
 }
 
@@ -1808,7 +1809,8 @@ void particle_onload_fo(particle_simd_fo* p) {
         p->index     [0:p->n_mrk],\
         p->znum      [0:p->n_mrk],\
         p->anum      [0:p->n_mrk],\
-        p->bounces   [0:p->n_mrk]
+        p->bounces   [0:p->n_mrk],\
+        p->initialIndex[0:p->n_mrk]
     )
 }
 

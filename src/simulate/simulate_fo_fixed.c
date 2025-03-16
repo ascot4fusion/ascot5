@@ -63,6 +63,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     particle_simd_fo pbis;  // This array holds current states after sorting
     particle_allocate_fo(&p, mrk_array_size);
     particle_allocate_fo(&p0, mrk_array_size);
+    particle_allocate_fo(&pbis, mrk_array_size);
 
     /* Init dummy markers */
     for(int i = 0; i < mrk_array_size; i++) {
