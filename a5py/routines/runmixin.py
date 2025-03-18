@@ -14,6 +14,7 @@ try:
 except ImportError:
     warnings.warn("Could not import pyvista. 3D wall plotting disabled.")
 import unyt
+from scipy.spatial import cKDTree
 
 from a5py.exceptions import AscotNoDataException
 
@@ -1484,6 +1485,45 @@ class RunMixin(DistMixin):
         _, area, eload, _, _ = self.getwall_loads(flags=flags)
         a5plt.loadvsarea(area, eload/area, axes=axes)
 
+
+    @a5plt.openfigureifnoaxes(projection=None)
+    def plotwall_poloidalslice(self, r, z, data=None, axes=None):
+        """Project points onto the closest segments and sum the values for each
+        segment.
+
+        Parameters
+        ----------
+        r : array-like
+            R-coordinates of the curve.
+        z : array-like
+            z-coordinates of the curve.
+        """
+        w = self.wall.read()
+        ri = np.sqrt(  np.mean(w["x1x2x3"], axis=1)**2
+                     + np.mean(w["y1y2y3"], axis=1)**2 )
+        zi = np.mean(w["z1z2z3"], axis=1)
+        ri = ri[data[0]-1]
+        zi = zi[data[0]-1]
+        ci = data[1]
+        n_segments = len(r) - 1
+        c = np.zeros(n_segments)
+
+        # Midpoints of each segment
+        midpoints = np.column_stack([(r[:-1] + r[1:]) / 2, (z[:-1] + z[1:]) / 2])
+
+        # Build KDTree for efficient nearest neighbor search
+        tree = cKDTree(midpoints)
+        # Find closest segment midpoint for each point
+        distances, indices = tree.query(np.column_stack([ri, zi]))
+
+        # Sum ci values to the corresponding segment
+        np.add.at(c, indices, ci)
+        a5plt.line2d([r], [z], c=[c],
+                     bbox=[np.amin(r), np.amax(r), np.amin(z), np.amax(z),
+                           0, np.amax(c)], axes=axes)
+        print(c)
+
+
     @a5plt.openfigureifnoaxes(projection=None)
     def plotwall_2D_parametrized(self, axes=None, particle_load=False,
                                  ref_indices=None, colors=None, xlabel=None,
@@ -1663,8 +1703,14 @@ class RunMixin(DistMixin):
 
         Parameters
         ----------
-        qnt : {'eload', 'pload', 'iangle', 'label'}, optional
+        qnt : {'eload', 'pload', 'iangle', 'label'} or tuple [int, float],
+        optional
             Quantity to plot.
+
+            One can also provide a tuple instead to plot a quantity that is
+            not predefined (e.g. sputtering yield). In this case the tuple
+            should consists of wallids and the associated value of the quantity
+            for that tile.
         getaxis : (float, float) or callable
             Location of the magnetic or geometrical axis which is used to
             determine the poloidal angle.
@@ -1703,7 +1749,7 @@ class RunMixin(DistMixin):
             color = d["flag"].ravel()
             clabel = r"Label"
             if cmap is None: cmap = 'viridis'
-        else:
+        elif isinstance(qnt, str):
             wetted, area, edepo, pdepo, iangle = self.getwall_loads()
             nelement = wetted.size
             x1x2x3 = d["x1x2x3"][wetted-1]
@@ -1721,6 +1767,15 @@ class RunMixin(DistMixin):
                 color = iangle
                 clabel = r"Angle of incidence [deg]"
                 if cmap is None: cmap = 'viridis'
+        else:
+            wetted = qnt[0]
+            nelement = wetted.size
+            x1x2x3 = d["x1x2x3"][wetted-1]
+            y1y2y3 = d["y1y2y3"][wetted-1]
+            z1z2z3 = d["z1z2z3"][wetted-1]
+            color = np.array(qnt[1])
+            clabel = r""
+            if cmap is None: cmap = 'Reds'
 
         # Toroidal angle for each vertex
         tor = np.rad2deg( np.arctan2( y1y2y3, x1x2x3 ))
