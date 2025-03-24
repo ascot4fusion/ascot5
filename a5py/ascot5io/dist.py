@@ -642,10 +642,39 @@ class Dist(DataContainer):
         ppa, ppe = np.meshgrid(dist.abscissa("ppar"),
                                dist.abscissa("pperp"))
         pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
-        vnorm = physlib.velocity_momentum(mass, pnorm)
-        dist._multiply(vnorm.reshape(ppa.T.shape)**2 * mass / 3, "ppar", "pperp")
-        dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
-        moment.add_ordinates(pressure=dist.histogram().to("J") / moment.volume)
+        vnorm = physlib.velocity_momentum(mass, pnorm).reshape(ppa.shape)
+        vpa = ppa * vnorm / pnorm.reshape(ppa.shape)
+        vpe = ppe * vnorm / pnorm.reshape(ppa.shape)
+        d = dist._copy()
+        d._multiply(vpa.T, "ppar", "pperp")
+        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
+        upa = d.histogram()
+        d = dist._copy()
+        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
+        n = d.histogram()
+        upa /= n
+        upa[n==0] = 0
+        d = dist._copy()
+        d._multiply(vpa.T**2, "ppar", "pperp")
+        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
+        vpa2 = d.histogram()
+        d = dist._copy()
+        d._multiply(vpa.T, "ppar", "pperp")
+        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
+        vpa = d.histogram()
+        Ppa = mass*(vpa2 - 2*vpa*upa + upa**2) / 3
+        d = dist._copy()
+        d._multiply(vpe.T**2, "ppar", "pperp")
+        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
+        vpe2 = d.histogram()
+        d = dist._copy()
+        d._multiply(vpe.T, "ppar", "pperp")
+        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
+        vpe = d.histogram()
+        Ppe = mass*vpe2 / 3
+        moment.add_ordinates(
+            pressure=np.sqrt(Ppa**2+2*Ppe**2).to("J") / moment.volume
+        )
 
     @staticmethod
     def toroidalcurrent(ascot, mass, dist, moment):
