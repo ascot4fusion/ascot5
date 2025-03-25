@@ -437,9 +437,9 @@ class Afsi():
             exi=False,
             )
         prod2 = self._init_histogram(
-            beam2.abscissa_edges("r"),
-            beam2.abscissa_edges("phi").to("rad"),
-            beam2.abscissa_edges("z"),
+            beam1.abscissa_edges("r"),
+            beam1.abscissa_edges("phi").to("rad"),
+            beam1.abscissa_edges("z"),
             ppar2,
             pperp2,
             charge=q2,
