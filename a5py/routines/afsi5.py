@@ -299,18 +299,30 @@ class Afsi():
         self._ascot.input_init(bfield=True, plasma=True)
         nspec, _, _, anums, znums = self._ascot.input_getplasmaspecies()
         ispecies = np.nan
-        for i in range(nspec):
+        for i in np.arange(nspec):
             if( swap and anum1 == anums[i] and znum1 == znums[i] ):
                 ispecies = i
+                react1 = ispecies
+                react2 = self._init_dist_5d(beam)
             if( not swap and anum2 == anums[i] and znum2 == znums[i] ):
                 ispecies = i
+                react2 = ispecies
+                react1 = self._init_dist_5d(beam)
         if np.isnan(ispecies):
             self._ascot.input_free(bfield=True, plasma=True)
             raise ValueError("Reactant species not present in plasma input.")
 
-        dist = self._init_dist_5d(beam)
-        react1 = self._init_afsi_data(dist_thermal=ispecies)
-        react2 = self._init_afsi_data(dist_5D=dist)
+        mult = 1.0
+        r, z, phi = ( beam.abscissa_edges("r"), beam.abscissa_edges("z"),
+                      beam.abscissa_edges("phi").to("rad") )
+        phic, rc, zc = np.meshgrid(1.5*phi[:-1]-0.5*phi[1:],
+                                       1.5*r[:-1]-0.5*r[1:],
+                                       1.5*z[:-1]-0.5*z[1:])
+        vol = ( rc * np.diff(r[:2]) * np.diff(z[:2]) * np.diff(phi[:2]) )
+        afsi = self._init_afsi_data(
+            react1=react1, react2=react2, reaction=reaction, mult=mult,
+            r=rc, phi=phic, z=zc, vol=vol,
+            )
 
         prod1 = self._init_histogram(
             beam.abscissa_edges("r"),
@@ -331,15 +343,9 @@ class Afsi():
             exi=False,
             )
 
-        mult = 1.0
-        if swap:
-            _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
-                               react1, react2, mult, prod1, prod2,
-                               )
-        else:
-            _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
-                               react2, react1, mult, prod1, prod2,
-                               )
+        _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim),
+                            ctypes.byref(afsi), nmc, prod1, prod2,
+                            )
         self._ascot.input_free(bfield=True, plasma=True)
 
         # Reload Ascot
@@ -401,16 +407,25 @@ class Afsi():
         q2 = np.round(qprod2.to("e").v)
 
         self._ascot.input_init(bfield=True, plasma=True)
-        dist1 = self._init_dist_5d(beam1)
 
-        react1 = self._init_afsi_data(dist_5D=dist1)
+        r, z, phi = ( beam1.abscissa_edges("r"), beam1.abscissa_edges("z"),
+                      beam1.abscissa_edges("phi").to("rad") )
+        phic, rc, zc = np.meshgrid(1.5*phi[:-1]-0.5*phi[1:],
+                                       1.5*r[:-1]-0.5*r[1:],
+                                       1.5*z[:-1]-0.5*z[1:])
+        vol = ( rc * np.diff(r[:2]) * np.diff(z[:2]) * np.diff(phi[:2]) )
+
+        react1 = self._init_dist_5d(beam1)
         if beam2 is not None:
-            dist2  = self._init_dist_5d(beam2)
-            react2 = self._init_afsi_data(dist_5D=dist2)
+            react2 = self._init_dist_5d(beam2)
             mult = 1.0
         else:
             react2 = react1
             mult = 0.5
+        afsi = self._init_afsi_data(
+            react1=react1, react2=react2, reaction=reaction, mult=mult,
+            r=rc, phi=phic, z=zc, vol=vol,
+            )
 
         prod1 = self._init_histogram(
             beam1.abscissa_edges("r"),
@@ -422,17 +437,16 @@ class Afsi():
             exi=False,
             )
         prod2 = self._init_histogram(
-            beam1.abscissa_edges("r"),
-            beam1.abscissa_edges("phi").to("rad"),
-            beam1.abscissa_edges("z"),
+            beam2.abscissa_edges("r"),
+            beam2.abscissa_edges("phi").to("rad"),
+            beam2.abscissa_edges("z"),
             ppar2,
             pperp2,
             charge=q2,
             exi=False,
             )
-
-        _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim), reaction, nmc,
-                           react1, react2, mult, prod1, prod2,
+        _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim),
+                           ctypes.byref(afsi), nmc, prod1, prod2,
                            )
 
         self._ascot.input_free(bfield=True, plasma=True)
