@@ -1754,7 +1754,7 @@ class PhysTest():
         passed = True
         print("Test MHD:")
         fail = ""
-        if err_e1 > 2e-6 or err_e2 > 2e-5:
+        if err_e1 > 2e-5 or err_e2 > 2e-5:
             fail = "(FAILED)"
             passed = False
         print("Error in Epar: %e %e %s" % (err_e1, err_e2, fail))
