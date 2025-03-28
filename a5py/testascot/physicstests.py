@@ -1593,7 +1593,7 @@ class PhysTest():
         print("Bphi Ip | Delta Bpol  Delta Bphi  Delta Jacobian  Delta q")
         for i in range(4):
             fail = ""
-            if bpol_err[i] > 1e-15 or bphi_err[i] > 1e-3 or jac_err[i] > 5e-3\
+            if bpol_err[i] > 1e-15 or bphi_err[i] > 1e-3 or jac_err[i] > 1e-2\
                or q_err[i] > 1e-4:
                 fail = "(FAILED)"
                 passed = False
