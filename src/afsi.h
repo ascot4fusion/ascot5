@@ -11,41 +11,36 @@
 #include "simulate.h"
 #include "random.h"
 #include "boschhale.h"
-#include "diag/dist_5D.h"
+#include "diag/hist.h"
 
 /**
- * @brief Structure for passing in 2D thermal temperature and density
+ * @brief Valid momentum space basis.
  */
-typedef struct {
-    int n_r;          /**< number of r bins       */
-    real min_r;       /**< value of lowest r bin  */
-    real max_r;       /**< value of highest r bin */
-
-    int n_phi;        /**< number of r bins       */
-    real min_phi;     /**< value of lowest r bin  */
-    real max_phi;     /**< value of highest r bin */
-
-    int n_z;          /**< number of z bins       */
-    real min_z;       /**< value of lowest z bin  */
-    real max_z;       /**< value of highest z bin */
-
-    real* temperature; /**< pointer to start of histogram array */
-    real* density;     /**< pointer to start of histogram array */
-} afsi_thermal_data;
+typedef enum {
+    PPARPPERP,
+    EKINXI
+} mom_space_basis;
 
 /**
  * @brief Wrapper around input data structures
  */
 typedef struct {
-    int type;                        /**< Distribution type (1:5D, 2:thermal) */
-    dist_5D_data* dist_5D;           /**< Distribution data                   */
-    afsi_thermal_data* dist_thermal; /**< Thermal data                        */
+    int type1;          /**< Distribution type (1:beam, 2:thermal)            */
+    int type2;          /**< Distribution type (1:beam, 2:thermal)            */
+    int thermal1;       /**< Thermal species index for reactant 1             */
+    int thermal2;       /**< Thermal species index for reactant 2             */
+    histogram* beam1;   /**< Distribution data for reactant 1                 */
+    histogram* beam2;   /**< Distribution data for reactant 2                 */
+    real* r;            /**< Radial coordinate at the grid center [m]         */
+    real* phi;          /**< Toroidal coordinate at the grid center [rad]     */
+    real* z;            /**< Axial coordinate at the grid center [m]          */
+    real* vol;          /**< Grid cell volume [m^3]                           */
+    size_t volshape[3]; /**< Dimensions of r, phi, z, and volume              */
+    Reaction reaction;  /**< The fusion reaction that is modelled             */
+    real mult;          /**< Multiplication factor which is 0.5 if species is
+                             interacting with itself, 1.0 otherwise           */
 } afsi_data;
 
-void afsi_run(sim_data* sim, Reaction reaction, int n,
-              afsi_data* react1, afsi_data* react2, real mult,
-              dist_5D_data* prod1, dist_5D_data* prod2);
-void afsi_test_dist(dist_5D_data* dist1);
-void afsi_test_thermal();
-
+void afsi_run(sim_data* sim, afsi_data* data, int n,
+              histogram* prod1, histogram* prod2);
 #endif

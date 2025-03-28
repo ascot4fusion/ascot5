@@ -11,8 +11,9 @@
 #include "../../particle.h"
 
 void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
-                 E_field_data* Edata);
-void step_fo_vpa_mhd(particle_simd_fo* p, real* h, B_field_data* Bdata,
-                     E_field_data* Edata, boozer_data* boozer, mhd_data* mhd);
+                 E_field_data* Edata, int aldforce);
+void step_fo_vpa_mhd(
+    particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data* Edata,
+    boozer_data* boozer, mhd_data* mhd, int aldforce);
 
 #endif

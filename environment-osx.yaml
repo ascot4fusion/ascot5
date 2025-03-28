@@ -41,5 +41,7 @@ dependencies:
   - pylint
   - pip:
     - libclang==17.*
+    - desc-opt
+    - netCDF4
     # PR branch for macos + clang-16+ support
     - ctypeslib2 @ git+https://github.com/dgarnier/ctypeslib.git@anon_union_macos

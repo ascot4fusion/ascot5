@@ -33,9 +33,61 @@ def convert(fn):
     subprocess.call(["cp", fn, fnout])
 
     for i in range(1,int(ver)):
-        print("\nUpdating file to version %s.%d (if necessary)\n" % (ver,i+1))
+        print("\nUpdating file to version 5.%d (if necessary)\n" % (i+1))
         fun = "_convert%dto%d" % (i,i+1)
         globals()[fun](fnout)
+
+def _convert5to6(fn):
+    """Update version 5 HDF5 to version 6.
+
+    - Adds flags to 2D wall
+    - Adds vtor to all plasma inputs
+    - Adds options for ICRH and ALD force
+    """
+    with h5py.File(fn, "a") as h5:
+        for wall in _loopchild(h5, "wall"):
+            if "wall_2D" in wall:
+                g = h5["wall"][wall]
+                if not "flag" in g:
+                    print("Adding flags to %s" % wall)
+                    nelements = int(g["nelements"][:])
+                    flag = np.zeros(shape=(nelements,1), dtype=int)
+                    g.create_dataset("flag", (nelements,1), data=flag,
+                                     dtype="i4")
+        for plasma in _loopchild(h5, "plasma"):
+            if "plasma_1D" in plasma:
+                g = h5["plasma"][plasma]
+                if not "vtor" in g:
+                    print("Adding vtor to %s" % plasma)
+                    nrho = int(g["nrho"][:])
+                    vtor = np.zeros(shape=(nrho,1), dtype=float)
+                    g.create_dataset("vtor", (nrho,1), data=vtor,
+                                     dtype="f8")
+            if "plasma_1DS" in plasma:
+                g = h5["plasma"][plasma]
+                if not "vtor" in g:
+                    print("Adding vtor to %s" % plasma)
+                    nrho = int(g["nrho"][:])
+                    vtor = np.zeros(shape=(nrho,1), dtype=float)
+                    g.create_dataset("vtor", (nrho,1), data=vtor,
+                                     dtype="f8")
+            if "plasma_1Dt" in plasma:
+                g = h5["plasma"][plasma]
+                if not "vtor" in g:
+                    print("Adding vtor to %s" % plasma)
+                    nrho, ntime = int(g["nrho"][:]), int(g["ntime"][:])
+                    vtor = np.zeros(shape=(nrho,ntime), dtype=float)
+                    g.create_dataset("vtor", (nrho,ntime), data=vtor,
+                                     dtype="f8")
+
+        for opt in _loopchild(h5, "options"):
+            grp = h5["options"][opt]
+            if not "ENABLE_ICRH" in grp:
+                print("Adding ENABLE_ICRH to %s" % opt)
+                grp.create_dataset("ENABLE_ICRH", (1,), data=0, dtype='i8')
+            if not "ENABLE_ALDFORCE" in grp:
+                print("Adding ENABLE_ALDFORCE to %s" % opt)
+                grp.create_dataset("ENABLE_ALDFORCE", (1,), data=0, dtype='i8')
 
 def _convert4to5(fn):
     """Update version 4 HDF5 to version 5.

@@ -194,28 +194,31 @@ void libascot_B_field_rhotheta2rz(
             continue;
         }
 
-        real x = 1e-1;
-        real rj, zj;
+        real a = 0.0, b = 5.0;
         real costh = cos(theta[j]);
         real sinth = sin(theta[j]);
         for(int i=0; i<maxiter; i++) {
-            rj = axisrz[0] + x * costh;
-            zj = axisrz[1] + x * sinth;
-            if( B_field_eval_rho_drho(rhodrho, rj, phi[j], zj, &sim->B_data) ) {
-                break;
+	    real c = 0.5*(a + b);
+	    real rj = axisrz[0] + c * costh;
+            real zj = axisrz[1] + c * sinth;
+	    if(rj < 0) {
+	        b = c;
+		continue;
+	    }
+	    if( B_field_eval_rho_drho(rhodrho, rj, phi[j], zj, &sim->B_data) ) {
+	        b = c;
+                continue;
             }
             if( fabs(rho[j] - rhodrho[0]) < tol ) {
                 r[j] = rj;
                 z[j] = zj;
                 break;
             }
-
-            real drhodx = costh * rhodrho[1] + sinth * rhodrho[3];
-            x = x - (rhodrho[0] - rho[j]) / drhodx;
-            if( x < 0 ) {
-                /* Try again starting closer from the axis */
-                x = (x + (rhodrho[0] - rho[j]) / drhodx) / 2;
-            }
+	    if( rho[j] < rhodrho[0]) {
+	        b = c;
+	    } else {
+	        a = c;
+	    }
         }
     }
 }
@@ -359,6 +362,7 @@ void libascot_B_field_gradient_descent_3d(
     }
 }
 
+
 /**
  * @brief Evaluate electric field vector at given coordinates.
  *
@@ -377,7 +381,7 @@ void libascot_E_field_eval_E(
     real* ER, real* Ephi, real* Ez) {
 
     #pragma omp parallel for
-    for(int k = 0; k < Neval; k++) {
+        for(int k = 0; k < Neval; k++) {
         real E[3];
         if( E_field_eval_E(E, R[k], phi[k], z[k], t[k],
                            &sim->E_data, &sim->B_data) ) {
@@ -927,4 +931,93 @@ void libascot_eval_ratecoeff(
         }
     }
 
+}
+
+/**
+ * @brief Evaluate ICRH electric field and the resonance condition.
+ *
+ * The evaluated electric field consists of left-hand (+) and right-hand (-)
+ * circularly polarized components. The circularly polarised components are
+ * notorious of their negatice effects on the mental health of their consumers.
+ * In the context of this function, they have the following definitions:
+ * E_plus_real = Re{E_LH ( cos( phase(E_LH) ) + i sin( phase(E_LH) ) } and
+ * E_minus_real = Re{E_RH ( cos( phase(E_RH) ) - i sin( phase(E_RH) ) }.
+ * E_LH, E_RH and their phases are all real. Furthermore, E_LH is called E_+ and
+ * R_RH is called E_- in the context of RFOF and also more generally. Sometimes
+ * the definition E+- = E_x +- iE_y. It is seen that |E+| = sqrt(E+  E+*) where
+ * E+* is the complex conjugate. But because E+*=E-, one has
+ * |E+| = sqrt(E+  E-) = |E-|. This is obviously not the case in this function,
+ * as the magnitudes are different but this definition is also used sometimes.
+ *
+ * The resonance condition is given by
+ *
+ * omega_wave - n * omega_gyro - k_parallel * v_parallel - k_perp dot v_drift
+ * = 0. Whether the Doppler shift (k_par v_par) or/and the drift term
+ * (k_per v_drif) is used, is specified in the rfof_codeparam.xml. The drift
+ * has not yet been implemented (Jan 2025).
+ *
+ * @param sim_offload_data initialized simulation offload data struct
+ * @param B_offload_array initialized magnetic field offload data
+ * @param E_offload_array initialized electric field offload data
+ * @param Neval number of evaluation points.
+ * @param R R coordinates of the evaluation points [m].
+ * @param phi phi coordinates of the evaluation points [rad].
+ * @param z z coordinates of the evaluation points [m].
+ * @param t time coordinates of the evaluation points [s].
+ * @param mass test particle mass (for computing resonance) [kg].
+ * @param q test particle charge (for computing resonance) [C].
+ * @param vpar test particle parallel velocity (for computing resonance) [m/s].
+ * @param Eplus_real Real part of the right-handed electric field component of
+ *                   the wave [V/m]. (See comment above!)
+ * @param Eminus_real Real part of the left-handed electric field component of
+ *                    the wave [V/m]. (See comment above!)
+ * @param Eplus_imag Imaginary part of the right-handed electric field component
+ *                   of the wave [V/m]. (See comment above!)
+ * @param Eminus_imag Imaginary part of the left-handed electric field
+ *                    component of the wave [V/m]. (See comment above!)
+ * @param res_cond value of the resonance condition where zero is the resonance
+ * [dimensionless].
+ */
+void libascot_eval_rfof(
+    sim_data* sim, real* B_offload_array, int Neval,
+    real* R, real* phi, real* z, real* t, real mass, real q, real vpar,
+    real* Eplus_real, real* Eminus_real, real* Eplus_imag, real* Eminus_imag,
+    real* res_cond) {
+
+    #pragma omp parallel
+    {
+        /* The function that evaluates resonance condition takes an RFOF marker
+        * as an input. However, only the R and vpar values are actually used.
+        * Therefore, we initialize a dummy marker and adjust only the values of
+        * R and vpar. */
+        rfof_marker rfof_mrk;
+        int dummy_int   = 1;
+        real dummy_real = -999.0;  /*-999.0 to be on the safe side */
+        rfof_set_up(&rfof_mrk, &sim->rfof_data);
+
+        #pragma omp for
+        for(int k = 0; k < Neval; k++) {
+            real B[3];
+            if( B_field_eval_B(B, R[k], phi[k], z[k], t[k], &sim->B_data) ) {
+                continue;
+            }
+            real B_magn = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+            real gyrofreq = q * B_magn / mass;
+            rfof_set_marker_manually(&rfof_mrk, &dummy_int,
+                &dummy_real, &(R[k]), &dummy_real, &dummy_real, &dummy_real,
+                &dummy_real, &dummy_real, &dummy_real, &dummy_real, &dummy_real,
+                &dummy_real, &vpar, &dummy_real, &gyrofreq, &dummy_real,
+                &dummy_real, &dummy_int, &dummy_int);
+
+            int nharm; /* For storing return value which is not used */
+            rfof_eval_resonance_function(
+                &(res_cond[k]), &nharm, &rfof_mrk, &sim->rfof_data);
+
+            // TODO: this should return a non-zero value for failed evaluations
+            rfof_eval_rf_wave(
+                &(Eplus_real[k]), &(Eminus_real[k]), &(Eplus_imag[k]),
+                &(Eminus_imag[k]), R[k], z[k], &sim->rfof_data);
+        }
+        rfof_tear_down(&rfof_mrk);
+    }
 }
