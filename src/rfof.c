@@ -113,6 +113,7 @@ void rfof_free(rfof_data* rfof) {
     __ascot5_icrh_routines_MOD_call_deallocate_rfof_input_param(
         &rfof->rfof_input_params);
     __ascot5_icrh_routines_MOD_call_deallocate_rfglobal(&rfof->rfglobal);
+    free(rfof->dE_RFOF_modes_and_waves);
 #endif
 }
 
@@ -257,7 +258,7 @@ void rfof_resonance_check_and_kick_gc(
             /* NOTE: It is possible that the use of (multiple) physlib
                functions to evalutate some quantity introduces some error which,
                at least when cumulated, grows intolerable.                    */
-            real psi, B, Ekin, vnorm, P_phi, xi, v_par, v_perp, gyrof,
+            real psi, B, Ekin, vnorm, P_phi, v_par, v_perp, gyrof,
             tauB;
             B_field_eval_psi(&psi, p->r[i], p->phi[i], p->z[i], p->time[i],
                              Bdata);
@@ -267,27 +268,35 @@ void rfof_resonance_check_and_kick_gc(
             //Ekin   = physlib_Ekin_gamma(p->mass[i], gamma);
             //vnorm  = physlib_vnorm_gamma(gamma);
 
-	    // The relativisti formulas above did not work too well for low speeds
-	    v_par = p->ppar[i]/p->mass[i];
-	    Ekin = p->ppar[i]*p->ppar[i]/(2*p->mass[i]) + p->mu[i]*B;
+	        /* The relativisti formulas above did not work too well for low
+            speeds but started introducing numerical errors. Hence, assume
+            non-relativistic speeds. */
+	        v_par = p->ppar[i]/p->mass[i];
+	        Ekin = p->ppar[i]*p->ppar[i]/(2*p->mass[i]) + p->mu[i]*B;
             vnorm = sqrt( (p->ppar[i]/p->mass[i])*(p->ppar[i]/p->mass[i]) + 2*p->mu[i]*B/p->mass[i] );
             v_perp = sqrt( 2 * p->mu[i]*B/p->mass[i] );
 
 
-	    P_phi  = phys_ptoroid_gc(p->charge[i], p->r[i], p->ppar[i], psi, B,
-                                     p->B_phi[i]);
+	        P_phi  = phys_ptoroid_gc(p->charge[i], p->r[i], p->ppar[i], psi, B,
+                p->B_phi[i]);
             gyrof  = phys_gyrofreq_ppar(p->mass[i], p->charge[i], p->mu[i],
                                         p->ppar[i], B);
-            real q_safe = 1.0;
-            real majR = 1.65;   // For now AUG
-            real minR = 0.6;    // AUG
 
-	    // This tauB formula does not work near the bounce points of a banana
-	    //tauB = CONST_2PI*q_safe*p->r[i]/v_par*sqrt(2*majR/minR);
 
-	    // => Disable tauB for now. (Note: tauB not in use in RFOF-ASCOT4 either)
-	    tauB = -999.0;
-            real vdriftRho      = 0; // Assuming this is not needed in librfof
+            /* This tauB formula does not work near the bounce points of a
+            banana */
+	        //real q_safe = 1.0;
+            //real majR = 1.65;   // For now AUG
+            //real minR = 0.6;    // AUG
+	        //tauB = CONST_2PI*q_safe*p->r[i]/v_par*sqrt(2*majR/minR);
+	        /* => Disable tauB for now. (Note: tauB not in use in RFOF-ASCOT4
+            either) */
+	        tauB = -999.0;
+
+            real vdriftRho      = 0; /* As per Seppo, there should be a bug in
+                                        RFOF related to this drift velocity;
+                                        thus, this drift velocity should be zero
+                                        for now. */
             real acceleration   = 1.0;
             int is_accelerated  = 0;
             int is_preallocated = 1;
@@ -350,10 +359,8 @@ void rfof_resonance_check_and_kick_gc(
             };
 
             int err = 0;
-            int mpi_rank = 0; // RFOF does not work with MPI yet
+            int mpi_rank = 0; // RFOF does not do anything MPI-specific for now
 
-
-            //printf("NSIMD_i = %d\t kutsutaan rf_kick rfof.c:ssä\n", i);
 
             /* Ready to kick some ash (if in resonance) */
             __ascot5_icrh_routines_MOD_call_rf_kick(
@@ -363,13 +370,6 @@ void rfof_resonance_check_and_kick_gc(
                 &(rfof_data->rfof_input_params), &(rfof_mrk->nrow[i]),
                 &(rfof_mrk->ncol[i]), &err, &rfof_data_pack, (de_rfof_during_step[i]));
 
-            //printf("NSIMD_i = %d\t kutsuttiin rf_kick rfof.c:ssä\n", i);
-
-            /*
-            for (int k = 0; k < rfof_mrk->nrow[i]*rfof_mrk->ncol[i]; k++) {
-                printf("de_rfof[%d] = %e\n",k,de_rfof_during_step[i][k]);
-            }
-            */
 
             /* Most marker phase-space coordinates are updated automatically
              * via the pointers in rfof_mrk except ppar which we update here */
