@@ -160,7 +160,8 @@ void dist_5D_update_fo(dist_5D_data* dist, particle_simd_fo* p_f,
 
 #ifndef GPU
     for(int i = 0; i < p_f->n_mrk; i++) {
-        if(p_f->running[i]) {
+        if(p_f->running[i] && index[i] >= 0 &&
+            index[i] < dist->step_6 * dist->n_r) {
             GPU_ATOMIC
             dist->histogram[index[i]] += weight[i];
         }
