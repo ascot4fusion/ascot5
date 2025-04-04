@@ -82,6 +82,13 @@ void hist_offload(histogram* data) {
  */
 void hist_update_fo(histogram* hist, particle_simd_fo* p_f,
                     particle_simd_fo* p_i) {
+#ifdef GPU
+    size_t index;
+    real weight;
+#else
+    size_t index[NSIMD];
+    real weight[NSIMD];
+#endif
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < p_f->n_mrk; i++) {
         hist_axis* axis;
@@ -160,14 +167,32 @@ void hist_update_fo(histogram* hist, particle_simd_fo* p_f,
         axis = &hist->axes[0];
         size_t i0 = math_bin_index(p_f->r[i], axis->n, axis->min, axis->max);
 
+#ifdef GPU
         size_t* n = hist->strides;
-        size_t index =  i0*n[0]  + i1*n[1]   + i2*n[2]   + i3*n[3]   + i4*n[4]
-                     +  i5*n[5]  + i6*n[6]   + i7*n[7]   + i8*n[8]   + i9*n[9]
-                     + i10*n[10] + i11*n[11] + i12*n[12] + i13*n[13] + i14*n[14]
-                     + i15;
+        index =  i0*n[0]  + i1*n[1]   + i2*n[2]   + i3*n[3]   + i4*n[4]
+             +  i5*n[5]  + i6*n[6]   + i7*n[7]   + i8*n[8]   + i9*n[9]
+             + i10*n[10] + i11*n[11] + i12*n[12] + i13*n[13] + i14*n[14]
+             + i15;
+        weight = p_f->weight[i];
         GPU_ATOMIC
         hist->bins[index] += p_f->weight[i];
+#else
+        size_t* n = hist->strides;
+        index[i] = i0*n[0]  + i1*n[1]   + i2*n[2]   + i3*n[3]   + i4*n[4]
+        +  i5*n[5]  + i6*n[6]   + i7*n[7]   + i8*n[8]   + i9*n[9]
+        + i10*n[10] + i11*n[11] + i12*n[12] + i13*n[13] + i14*n[14]
+        + i15;
+        weight[i] = p_f->weight[i];
+#endif
     }
+#ifndef GPU
+    for(int i = 0; i < p_f->n_mrk; i++) {
+        if(p_f->running[i]) {
+            GPU_ATOMIC
+            hist->bins[index[i]] += weight[i];
+        }
+    }
+#endif
 }
 
 /**
