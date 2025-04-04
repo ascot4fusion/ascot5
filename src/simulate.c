@@ -214,7 +214,7 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
         {
             /* Update progress until simulation is complete.             */
             /* Trim .h5 from filename and replace it with _<QID>.stdout  */
-            if(id == 0) {
+            if(sim->mpi_rank == sim->mpi_root) {
                 char filename[519], outfn[256];
                 strcpy(outfn, sim->hdf5_out);
                 outfn[strlen(outfn)-3] = '\0';
@@ -280,7 +280,7 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
             #pragma omp section
             {
                 /* Trim .h5 from filename and replace it with _<qid>.stdout */
-                if(id == 0) {
+                if(sim->mpi_rank == sim->mpi_root) {
                     char filename[519], outfn[256];
                     strcpy(outfn, sim->hdf5_out);
                     outfn[strlen(outfn)-3] = '\0';
