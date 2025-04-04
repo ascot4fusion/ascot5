@@ -151,7 +151,6 @@ void dist_6D_update_fo(dist_6D_data* dist, particle_simd_fo* p_f,
         }
     }
 #ifndef GPU
-    GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < p_f->n_mrk; i++) {
         if(p_f->running[i]) {
             GPU_ATOMIC
