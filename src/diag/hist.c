@@ -187,7 +187,7 @@ void hist_update_fo(histogram* hist, particle_simd_fo* p_f,
     }
 #ifndef GPU
     for(int i = 0; i < p_f->n_mrk; i++) {
-        if(p_f->running[i]) {
+        if(p_f->running[i] && index[i] >= 0 && index[i] < hist->nbin) {
             GPU_ATOMIC
             hist->bins[index[i]] += weight[i];
         }

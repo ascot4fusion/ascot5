@@ -122,7 +122,8 @@ void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
     }
 #ifndef GPU
     for(int i = 0; i < p_f->n_mrk; i++) {
-        if(p_f->running[i]) {
+        if(p_f->running[i] && index[i] >= 0 &&
+            index[i] < dist->step_2 * dist->n_mu) {
             GPU_ATOMIC
             dist->histogram[index[i]] += weight[i];
         }
