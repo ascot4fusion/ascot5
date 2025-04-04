@@ -85,6 +85,14 @@ void dist_rho5D_offload(dist_rho5D_data* data) {
 void dist_rho5D_update_fo(dist_rho5D_data* dist, particle_simd_fo* p_f,
                           particle_simd_fo* p_i) {
 
+#ifdef GPU
+    size_t index;
+    real weight;
+#else
+    size_t index[NSIMD];
+    real weight[NSIMD];
+#endif
+
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < p_f->n_mrk; i++) {
         if(p_f->running[i]) {
@@ -149,6 +157,15 @@ void dist_rho5D_update_fo(dist_rho5D_data* dist, particle_simd_fo* p_f,
             }
         }
     }
+#ifndef GPU
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for(int i = 0; i < p_f->n_mrk; i++) {
+        if(p_f->running[i]) {
+            GPU_ATOMIC
+            dist->histogram[index[i]] += weight[i];
+        }
+    }
+#endif
 }
 
 /**
