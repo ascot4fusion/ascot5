@@ -138,14 +138,21 @@ void dist_rho6D_update_fo(dist_rho6D_data* dist, particle_simd_fo* p_f,
                i_pz   >= 0 && i_pz   <= dist->n_pz - 1   &&
                i_time >= 0 && i_time <= dist->n_time - 1 &&
                i_q    >= 0 && i_q    <= dist->n_q - 1      ) {
-                real weight = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
-                size_t index = dist_rho6D_index(
+#ifdef GPU
+                index = dist_rho6D_index(
                     i_rho, i_theta, i_phi, i_pr, i_pphi, i_pz,
                     i_time, i_q, dist->step_7, dist->step_6, dist->step_5,
                     dist->step_4, dist->step_3, dist->step_2, dist->step_1);
-
-	            GPU_ATOMIC
+                weight = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
+                GPU_ATOMIC
                 dist->histogram[index] += weight;
+#else
+                index[i] = dist_rho6D_index(
+                    i_rho, i_theta, i_phi, i_pr, i_pphi, i_pz,
+                    i_time, i_q, dist->step_7, dist->step_6, dist->step_5,
+                    dist->step_4, dist->step_3, dist->step_2, dist->step_1);
+                weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
+#endif
             }
         }
     }
