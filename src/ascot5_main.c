@@ -359,14 +359,17 @@ int offload_and_simulate(
     real t_sim_start = omp_get_wtime();
     simulate(n_proc, pin, sim);
 
-    printf("SIMULATION DONED\n");
-    printf("simroot = %d\n", sim->mpi_root);
-    printf("simsize = %d\n", sim->mpi_size);
-    printf("simrank = %d\n", sim->mpi_rank);
-    for (int i = 0; i < sim->rfof_data.n_waves*sim->rfof_data.n_modes; i++) {
-        printf("i = %d, E = %e\n", i, sim->rfof_data.dE_RFOF_modes_and_waves[i]);
+
+    if (sim->enable_icrh) {
+        printf("SIMULATION DONED\n");
+        printf("simroot = %d\n", sim->mpi_root);
+        printf("simsize = %d\n", sim->mpi_size);
+        printf("simrank = %d\n", sim->mpi_rank);
+        for (int i = 0; i < sim->rfof_data.n_waves*sim->rfof_data.n_modes; i++) {
+            printf("i = %d, E = %e\n", i, sim->rfof_data.dE_RFOF_modes_and_waves[i]);
+        }
+        printf("dt_tot = %e\n", sim->rfof_data.summed_timesteps);
     }
-    printf("dt_tot = %e\n", sim->rfof_data.summed_timesteps);
 
     mpi_interface_barrier();
     real t_sim_end = omp_get_wtime();
@@ -386,15 +389,16 @@ int offload_and_simulate(
     }
 
 
-
-    print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,
+    if (sim->enable_icrh) {
+        print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,
             "=======================================\nAFTER COMBINING THE DATA FROM ALL MPI PROCESSES\nsummed dt over all MPI processes = %.3e\n",
             sim->rfof_data.summed_timesteps);
 
-    for (int i = 0; i < sim->rfof_data.n_waves*sim->rfof_data.n_modes; i++) {
-        print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,"i = %d, E = %e\n", i, sim->rfof_data.dE_RFOF_modes_and_waves[i]);
+        for (int i = 0; i < sim->rfof_data.n_waves*sim->rfof_data.n_modes; i++) {
+            print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,"i = %d, E = %e\n", i, sim->rfof_data.dE_RFOF_modes_and_waves[i]);
+        }
+        print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,"=========================\n");
     }
-    print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,"=========================\n");
 
     return 0;
 }

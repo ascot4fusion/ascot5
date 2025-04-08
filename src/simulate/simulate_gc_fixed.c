@@ -124,14 +124,16 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 
 
     /* TODO: Make a separate loop for now but should later combine */
-    #pragma omp simd
-    for(int i = 0; i < NSIMD; i++) {
-        // Allocate n_RF_waves rows
-        real* dummy_array = (real*)malloc(n_RF_waves * n_RF_modes * sizeof(real));
-        real* dummy_array2 = (real*)malloc(n_RF_waves * n_RF_modes * sizeof(real));
-        dE_rfof_1darrays[i] = dummy_array;
-        dE_rfof_1darrays_increment[i] = dummy_array2;
+    if(sim->enable_icrh) {
+        //#pragma omp simd
+        for(int i = 0; i < NSIMD; i++) {
+            real* dummy_array  = (real*)calloc(n_RF_waves * n_RF_modes, sizeof(real));
+            real* dummy_array2 = (real*)calloc(n_RF_waves * n_RF_modes, sizeof(real));
+            dE_rfof_1darrays[i] = dummy_array;
+            dE_rfof_1darrays_increment[i] = dummy_array2;
+        }
     }
+
 
 
     /* Determine simulation time-step */
