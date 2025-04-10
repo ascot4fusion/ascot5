@@ -216,8 +216,8 @@ void rfof_update_energy_array_of_the_process(rfof_data* rfof_data,
                         // As a safety measure, NaNs are excluded here.
                         if (!isnan(energy_arrays_for_NSIMD_markers[i][j]-energy_arrays_for_NSIMD_markers[i][j])) {
                             rfof_data->dE_RFOF_modes_and_waves[j] += energy_arrays_for_NSIMD_markers[i][j];
-                            energy_arrays_for_NSIMD_markers[i][j] = 0.0;
                         }
+                        energy_arrays_for_NSIMD_markers[i][j] = 0.0;
                     }
                 }
             }

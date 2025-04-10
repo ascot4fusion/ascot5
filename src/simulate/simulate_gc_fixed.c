@@ -251,8 +251,11 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
                         /* Here we store the RF energy per mode */
                         for(int RFOFwave_index = 0; RFOFwave_index < n_RF_waves; RFOFwave_index++) {
                             for(int RFOFmode_index = 0; RFOFmode_index < n_RF_modes; RFOFmode_index++) {
-                                // Take the marker weight into account here
-                                dE_rfof_1darrays[i][n_RF_modes*RFOFwave_index + RFOFmode_index] += p.weight[i]*dE_rfof_1darrays_increment[i][n_RF_modes*RFOFwave_index + RFOFmode_index];
+                                // Do not add NaNs
+                                if (!isnan(dE_rfof_1darrays_increment[i][n_RF_modes*RFOFwave_index + RFOFmode_index] - dE_rfof_1darrays_increment[i][n_RF_modes*RFOFwave_index + RFOFmode_index])) {
+                                    // Take the marker weight into account here
+                                    dE_rfof_1darrays[i][n_RF_modes*RFOFwave_index + RFOFmode_index] += p.weight[i]*dE_rfof_1darrays_increment[i][n_RF_modes*RFOFwave_index + RFOFmode_index];
+                                }
                             }
                         }
                         h_ALL_summed[i] += hin[i];
