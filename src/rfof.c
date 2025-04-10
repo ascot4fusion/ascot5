@@ -47,7 +47,7 @@ void __ascot5_icrh_routines_MOD_call_set_marker_pointers(void** cptr_marker,
 void __ascot5_icrh_routines_MOD_call_rf_kick(double*time, double*dtin,
     int* mpi_rank, void** cptr_marker, void** cptr_mem, void** cptr_rfglobal,
     void** cptr_rfdiagno, void** cptr_rfof_input, int* mem_shape_i,
-    int* mem_shape_j, int *err, rfof_output* out,
+    int* mem_shape_j, int *rfof_err, rfof_output* out,
     real* cptr_de_rfof_during_step);
 
 void __ascot5_icrh_routines_MOD_call_reset_res_mem(void** rfof_mem_pointer,
@@ -202,15 +202,18 @@ void rfof_update_energy_array_of_the_process(rfof_data* rfof_data,
      markers that reached the end condition just not */
         for (int i = 0; i < NSIMD; i++){
             if (cycle_array[i] != 0) {
+                // Add the particle's summed dt to the MPI process sum
                 #pragma omp critical
                 {
                     rfof_data->summed_timesteps += accumulated_time_for_NSIMD_markers[i];
                     accumulated_time_for_NSIMD_markers[i] = 0.0;
                 }
 
+                // Add the particle's summed E's to the MPI process sum
                 #pragma omp critical
                 {
                     for (int j = 0; j < rfof_data->n_waves*rfof_data->n_modes; j++) {
+                        // As a safety measure, NaNs are excluded here.
                         if (!isnan(energy_arrays_for_NSIMD_markers[i][j]-energy_arrays_for_NSIMD_markers[i][j])) {
                             rfof_data->dE_RFOF_modes_and_waves[j] += energy_arrays_for_NSIMD_markers[i][j];
                             energy_arrays_for_NSIMD_markers[i][j] = 0.0;
@@ -254,14 +257,16 @@ void rfof_resonance_check_and_kick_gc(
 #ifdef RFOF
     for(int i=0; i<NSIMD; i++) {
         if(p->id[i] > 0 && p->running[i]) {
+            a5err errflag = 0;
+
             /* Evaluate derived quantities needed by librfof */
             /* NOTE: It is possible that the use of (multiple) physlib
                functions to evalutate some quantity introduces some error which,
                at least when cumulated, grows intolerable.                    */
             real psi, B, Ekin, vnorm, P_phi, v_par, v_perp, gyrof,
             tauB;
-            B_field_eval_psi(&psi, p->r[i], p->phi[i], p->z[i], p->time[i],
-                             Bdata);
+            errflag = B_field_eval_psi(&psi, p->r[i], p->phi[i], p->z[i],
+                p->time[i], Bdata);
             psi *= CONST_2PI; // librfof is COCOS 13
             B = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
             //gamma  = physlib_gamma_ppar(p->mass[i], p->mu[i], p->ppar[i], B);
@@ -358,7 +363,7 @@ void rfof_resonance_check_and_kick_gc(
                 .RFdt = 0.0,
             };
 
-            int err = 0;
+            int rfof_err = 0;
             int mpi_rank = 0; // RFOF does not do anything MPI-specific for now
 
 
@@ -368,7 +373,8 @@ void rfof_resonance_check_and_kick_gc(
                 &(rfof_mrk->p[i]), &(rfof_mrk->history_array[i]),
                 &(rfof_data->rfglobal), &(rfof_mrk->diag_array[i]),
                 &(rfof_data->rfof_input_params), &(rfof_mrk->nrow[i]),
-                &(rfof_mrk->ncol[i]), &err, &rfof_data_pack, (de_rfof_during_step[i]));
+                &(rfof_mrk->ncol[i]), &rfof_err, &rfof_data_pack,
+                (de_rfof_during_step[i]));
 
 
             /* Most marker phase-space coordinates are updated automatically
@@ -376,7 +382,7 @@ void rfof_resonance_check_and_kick_gc(
             p->ppar[i] = p->ppar[i] + p->mass[i]*(rfof_data_pack.dvpar);
 
 
-            if (err == 7) {
+            if (rfof_err == 7) {
                 /* Overshot the resonance. Mark the suggested time-step as
                  * negative to inform ASCOT to retry the time step */
                 hout[i] = -rfof_data_pack.RFdt;
@@ -384,6 +390,12 @@ void rfof_resonance_check_and_kick_gc(
                 /* Interaction was successful. The suggested time-step is
                  * a guess how long till the marker enters the resonance */
                 hout[i] = rfof_data_pack.RFdt;
+            }
+
+            /* Error handling */
+            if(errflag) {
+                p->err[i]     = errflag;
+                p->running[i] = 0;
             }
         }
    }
