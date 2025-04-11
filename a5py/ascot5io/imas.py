@@ -596,14 +596,14 @@ class marker(a5imas):
 
         out={'n':n}
         for f in fields:
-            out[f] = np.array([],dtype=srcs[0][f].dtype)
+            out[f] = np.array([],dtype=srcs[0][f].dtype)*s[f].units
             for s in srcs:
                 if s is None:
                     continue
                 out[f] = np.concatenate( (out[f],s[f]) )
             #if f!='vr':
             #print(f)
-            out[f]*=s[f].units
+            #out[f]*=s[f].units
         out['ids']   = np.arange(1,n+1,dtype=int)
 
         #print(srcs[0]['vr'])
@@ -695,7 +695,7 @@ class marker(a5imas):
         out['charge']= np.ones_like(out['weight'].v,dtype=float) * unyt.e* source.species.ion.z_ion
         out['mass']  = np.ones_like(out['weight'].v,dtype=float) * species.autodetect(
             int(source.species.ion.element[0].a),
-            int(source.species.ion.element[0].z_n) )[3]#/unyt.kg
+            int(source.species.ion.element[0].z_n) )["mass"]#/unyt.kg
 
 
         # From parameters (outside the source)
@@ -799,7 +799,7 @@ class plasma_1d(a5imas):
             znum[i]       = p1d.ion[i].element[iElement].z_n
             anum[i]       = p1d.ion[i].element[iElement].a
             charge[i]     = znum[i] * unyt.e
-            mass[i]       = species.autodetect( int( anum[i] ), int( znum[i]) )[3] / unyt.amu # Mass should be in AMU
+            mass[i]       = species.autodetect( int( anum[i] ), int( znum[i]) )['mass'] / unyt.amu # Mass should be in AMU
             idensity[:,i] = p1d.ion[i].density_thermal
 
 
