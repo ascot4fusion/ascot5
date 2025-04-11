@@ -964,22 +964,27 @@ class wall_3d(a5imas):
 
         nelements = xyz.shape[0]
         flag      = np.ones( (nelements,1) ) * description_ggd_index
-        w = {
-            "x1x2x3"         : xyz[:,:,0],
-            "y1y2y3"         : xyz[:,:,1],
-            "z1z2z3"         : xyz[:,:,2],
-            "nelements"      : [[nelements]],
-            "flag"           : flag,
-            "flagIdList"     : flag,
-            "flagIdStrings"  : ["IMAS 3D-wall ids u:{} db:{} v:{} s:{} r:{} o:{} desc:{} grid:{} sp:{}".format(
+        flagIdList= np.unique(flag)
+        flagIdStrings= []
+        for f in flagIdList:
+            flagIdStrings.append("IMAS 3D-wall ids u:{} db:{} v:{} s:{} r:{} o:{} desc:{} grid:{} sp:{}".format(
                 self.ids_coordinates['user'],
                 self.ids_coordinates['tokamak'],
                 self.ids_coordinates['version'],
                 self.ids_coordinates['shot'],
                 self.ids_coordinates['run'],
                 self.ids_coordinates['occurrence'],
-                description_ggd_index,grid_ggd_index,space_index )],
+                description_ggd_index,grid_ggd_index,space_index ))
+        labels    =  dict( zip(  flagIdStrings, flagIdList ) )
 
+
+        w = {
+            "x1x2x3"         : xyz[:,:,0],
+            "y1y2y3"         : xyz[:,:,1],
+            "z1z2z3"         : xyz[:,:,2],
+            "nelements"      : [[nelements]],
+            "flag"           : flag,
+            "labels"         : labels,
         }
 
         return w
