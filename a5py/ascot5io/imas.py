@@ -601,14 +601,14 @@ class marker(a5imas):
 
         out={'n':n}
         for f in fields:
-            out[f] = np.array([],dtype=srcs[0][f].dtype)
+            out[f] = np.array([],dtype=srcs[0][f].dtype)*s[f].units
             for s in srcs:
                 if s is None:
                     continue
                 out[f] = np.concatenate( (out[f],s[f]) )
             #if f!='vr':
             #print(f)
-            out[f]*=s[f].units
+            #out[f]*=s[f].units
         out['ids']   = np.arange(1,n+1,dtype=int)
 
         #print(srcs[0]['vr'])
