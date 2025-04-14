@@ -797,12 +797,17 @@ class plasma_1d(a5imas):
         charge = np.zeros_like(anum)
         mass   = np.zeros_like(anum)
         idensity = np.zeros(shape=(nrho,nion))
+        ivtor  = np.zeros_like(idensity)
         for i in range(nion):
             znum[i]       = p1d.ion[i].element[iElement].z_n
             anum[i]       = p1d.ion[i].element[iElement].a
             charge[i]     = znum[i] * unyt.e
-            mass[i]       = species.autodetect( int( anum[i] ), int( znum[i]) )["mass"] / unyt.amu # Mass should be in AMU
+            #print( species.autodetect( int( anum[i] ), int( znum[i]) ) )
+            print( species.autodetect( int( anum[i] ), int( znum[i]) ) )
+            mass[i]       = species.autodetect( int( anum[i] ), int( znum[i]) )['mass'] / unyt.amu # Mass should be in AMU
             idensity[:,i] = p1d.ion[i].density_thermal
+            if len(p1d.ion[i].rotation_frequency_tor) > 0:
+                ivtor[:,i]    = p1d.ion[i].rotation_frequency_tor # [rad.s^-1]
 
         # Try species-averaged T_i
         if len(p1d.t_i_average) > 0 :
@@ -810,6 +815,11 @@ class plasma_1d(a5imas):
         else:
             # As a backup solution, use T_i of species 0 (iIonTemp)
             itemperature = p1d.ion[iIonTemp].temperature
+
+        # take the mean of toroidal velocities
+        # This is probably all wrong, but as long as they are all zeroes, who cares?
+        vtor = ivtor.mean(axis=1)
+
 
         edensity     = p1d.electrons.density
         etemperature = p1d.electrons.temperature
@@ -823,25 +833,6 @@ class plasma_1d(a5imas):
 
         # https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/ids/ids2plasmabkg.F90
         # https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/ids/ids2plasmaEqWallSimu.F90#L281
-        if equilibrium_ids is None:
-            warnings.warn("Cannot convert rho_pol to rho_tor as no equilibrium ids provided as a parameter")
-            p = {
-                "nrho"         : nrho,
-                "nion"         : nion,
-                "anum"         : anum,
-                "znum"         : znum,
-                "mass"         : mass,
-                "charge"       : charge,
-                "itemperature" : itemperature,
-                "idensity"     : idensity,
-                "etemperature" : etemperature,
-                "edensity"     : edensity,
-                "rho_tor"      : rho_tor,
-                "vtor"         : vtor,
-            }
-
-            return p
-
         if equilibrium_ids is None:
             warnings.warn("Cannot convert rho_pol to rho_tor as no equilibrium ids provided as a parameter")
             p = {
