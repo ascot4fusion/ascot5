@@ -253,7 +253,7 @@ If you are using ASCOT5 in a cluster that is not listed here, feel free to amend
 
          .. code-block:: bash
 
-            module load zlib/1.3.1-GCCcore-13.3.0 Szip/2.1.1-GCCcore-13.2.0  HDF5/1.14.3-gompi-2023b IMAS-AL-Python/5.4.0-foss-2023b-DD-4.0.0 IPython/8.17.2-GCCcore-13.2.0
+            module load zlib/1.3.1-GCCcore-13.3.0 Szip/2.1.1-GCCcore-13.2.0  HDF5/1.14.3-gompi-2023b IMAS-AL-Python/5.3.1-foss-2023b-DD-3.42.0 IPython/8.17.2-GCCcore-13.2.0 
 
             make libascot CC=h5pcc FLAGS="-foffload=disable" MPI=0 -j
 
