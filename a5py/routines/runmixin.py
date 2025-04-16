@@ -760,8 +760,8 @@ class RunMixin(DistMixin):
             v1, v2, v3 = np.meshgrid(
                 p[1:] - p[:-1], r[1:]**2 - r[:-1]**2, z[1:] - z[:-1])
             volume = 0.5 * v1 * v2 * v3
-            r, phi, z = np.meshgrid(
-                dist.abscissa("r"), dist.abscissa("phi"), dist.abscissa("z"))
+            phi, r, z = np.meshgrid(
+                dist.abscissa("phi"), dist.abscissa("r"), dist.abscissa("z"))
             out = DistMoment(
                 dist.abscissa_edges("r"), dist.abscissa_edges("phi"),
                 dist.abscissa_edges("z"), r, phi, z, area, volume, rhodist)
