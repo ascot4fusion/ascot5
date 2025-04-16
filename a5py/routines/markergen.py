@@ -19,6 +19,94 @@ class MarkerGenerator():
     def __init__(self, ascot):
         self._ascot = ascot
 
+    def generate_6d(self, nmrk, mass, charge, anum, znum, particledist, pcoord, markerdist=None, mode='prt', minweight=0, return_dists=False):
+
+        if markerdist is None:
+            markerdist = particledist
+        # Number of markers successfully generated
+        ngen      = 0
+        # Cell indices of generated markers
+        icell     = np.zeros((nmrk,), dtype="i8")
+
+        # Generate a number random for each marker, and when that marker is put
+        # in the first cell where rand > threshold.
+        threshold = np.append(0, np.cumsum(markerdist.distribution().ravel()))
+        threshold /= threshold[-1]
+        while ngen < nmrk:
+            if ngen == 0: rejected = np.s_[:]
+            icell[rejected] = \
+                np.digitize( np.random.rand(nmrk-ngen,), bins=threshold ) - 1
+
+            # Each marker is given a weight that corresponds to number of
+            # physical particles in that cell, divided by the number of markers
+            # in that cell
+            _, idx, counts = \
+                np.unique(icell, return_inverse=True, return_counts=True)
+            weight = particledist.histogram().ravel()[icell] / counts[idx]
+
+            # Reject based on the minweight
+            rejected = weight < minweight
+            ngen = np.sum(~rejected)
+
+        # Shuffle markers just in case the order they were created is biased
+        idx = np.arange(nmrk)
+        np.random.shuffle(idx)
+        icell  = icell[idx]
+        weight = weight[idx].ravel()
+
+        # Init marker species using 6d function
+        mrk = Marker.generate_6d(mode, n=nmrk, pcoord = pcoord)
+        mrk["anum"][:]   = anum
+        mrk["znum"][:]   = znum
+        mrk["mass"][:]   = mass
+        mrk["charge"][:] = charge
+        mrk["weight"][:] = weight
+
+        # Randomize initial coordinates
+        ic1, ic2, ic3, ip1, ip2, ip3 = \
+            np.unravel_index(icell, markerdist.distribution().shape)
+
+        def randomize(edges, idx):
+            """Picks a random value between [edges[idx+1], edges[idx]]
+            """
+            return edges[idx] \
+                + (edges[idx+1] - edges[idx]) * np.random.rand(idx.size,)
+
+        if set(['r', 'phi', 'z', 'pr', 'pphi', 'ptheta']).issubset(markerdist.abscissae):
+            mrk["r"]    = randomize(markerdist.abscissa_edges("r"), ic1)
+            mrk["phi"]    = randomize(markerdist.abscissa_edges("phi"), ic2)
+            mrk["z"]    = randomize(markerdist.abscissa_edges("z"), ic3)
+            mrk["pr"] = randomize(markerdist.abscissa_edges("pr"), ip1)
+            mrk["pphi"] = randomize(markerdist.abscissa_edges("pphi"), ip2)
+            mrk["ptheta"] = randomize(markerdist.abscissa_edges("ptheta"), ip3)
+
+        elif set(['r', 'phi', 'z', 'px', 'py', 'pz']).issubset(markerdist.abscissae):
+            mrk["r"]    = randomize(markerdist.abscissa_edges("r"), ic1)
+            mrk["phi"]    = randomize(markerdist.abscissa_edges("phi"), ic2)
+            mrk["z"]    = randomize(markerdist.abscissa_edges("z"), ic3)
+            mrk["px"] = randomize(markerdist.abscissa_edges("px"), ip1)
+            mrk["py"] = randomize(markerdist.abscissa_edges("py"), ip2)
+            mrk["pz"] = randomize(markerdist.abscissa_edges("pz"), ip3)
+
+        elif set(['r', 'phi', 'z', 'prho', 'pphi', 'pz']).issubset(markerdist.abscissae):
+            mrk["r"]    = randomize(markerdist.abscissa_edges("r"), ic1)
+            mrk["phi"]    = randomize(markerdist.abscissa_edges("phi"), ic2)
+            mrk["z"]    = randomize(markerdist.abscissa_edges("z"), ic3)
+            mrk["prho"] = randomize(markerdist.abscissa_edges("prho"), ip1)
+            mrk["pphi"] = randomize(markerdist.abscissa_edges("pphi"), ip2)
+            mrk["pz"] = randomize(markerdist.abscissa_edges("pz"), ip3)
+
+        else:
+            raise ValueError("Spatial abscissae basis not found form the "\
+                        "distribution.")
+
+        if not return_dists:
+            return mrk
+
+        return mrk#, mrkdist, prtdist
+
+
+
     def generate(self, nmrk, mass, charge, anum, znum, particledist,
                  markerdist=None, mode='gc', minweight=0, return_dists=False):
         """Generate weighted markers from marker and particle distributions.

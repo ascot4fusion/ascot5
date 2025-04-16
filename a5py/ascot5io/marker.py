@@ -152,6 +152,70 @@ class Marker(DataGroup):
                            ylabel=r"Pitch [$p_\parallel/p$]",
                            axes=axes)
 
+    # TODO: Modify this function for 6d neutrons
+    @staticmethod
+    def generate_6d(mrktype, n, pcoord,species=None):
+        """Generate dummy marker input of given type and species.
+
+        Parameters
+        ----------
+        mrktype : {"prt", "gc", "fl"}
+            Type of marker input to be created.
+        n : int
+            Number of markers.
+        species : str, optional
+            Marker species to initialize anum, znum, mass, and charge.
+
+        Returns
+        -------
+        mrk : dict
+            Markers parameters that can be supplied to :meth:`Prt.write_hdf5`,
+            :meth:`GC.write_hdf5` or :meth:`FL.write_hdf5` depending on
+            ``mrktype`` value.
+        """
+        mrk = {
+            "n"      : n,
+            "ids"    : ( 1 + np.arange(n) ),
+            "r"      : np.zeros((n,))*unyt.m,
+            "z"      : np.zeros((n,))*unyt.m,
+            "phi"    : np.zeros((n,))*unyt.deg,
+            "weight" : np.ones((n,)),
+            "time"   : np.zeros((n,))*unyt.s,
+        }
+        if species is None:
+            species = {"mass":1*unyt.amu, "charge":1*unyt.e, "anum":1, "znum":1}
+        else:
+            species = getspecies(species)
+
+        if mrktype == "prt":
+            mrk["mass"]   = species["mass"] * np.ones((n,))
+            mrk["charge"] = species["charge"] * np.ones((n,), dtype=np.int16)
+            mrk["anum"]   = species["anum"]   * np.ones((n,), dtype=np.int16)
+            mrk["znum"]   = species["znum"]   * np.ones((n,), dtype=np.int16)
+            mrk["mass"]   = species["mass"] * np.ones((n,))
+            mrk["charge"] = species["charge"] * np.ones((n,), dtype=np.int16)
+            mrk["anum"]   = species["anum"]   * np.ones((n,), dtype=np.int16)
+            mrk["znum"]   = species["znum"]   * np.ones((n,), dtype=np.int16)
+            if (pcoord == "cartesian"):
+                mrk["px"]     = np.zeros((n,)) * unyt.kg*unyt.m/unyt.s
+                mrk["py"]     = np.zeros((n,)) * unyt.kg*unyt.m/unyt.s
+                mrk["pz"]   = np.zeros((n,)) * unyt.kg*unyt.m/unyt.s
+            elif (pcoord == "spherical"):
+                mrk["pr"]     = np.zeros((n,)) * unyt.kg*unyt.m/unyt.s
+                mrk["pphi"]     = np.zeros((n,)) * unyt.kg*unyt.m/unyt.s
+                mrk["ptheta"]   = np.zeros((n,)) * unyt.kg*unyt.m/unyt.s
+            elif (pcoord == "cylindrical"):
+                mrk["prho"]     = np.zeros((n,)) * unyt.kg*unyt.m/unyt.s
+                mrk["pphi"]     = np.zeros((n,)) * unyt.kg*unyt.m/unyt.s
+                mrk["pz"]   = np.zeros((n,)) * unyt.kg*unyt.m/unyt.s
+            else:
+                raise ValueError("pcoord is not cartesian, spherical, or cylindrical")
+        else:
+            raise ValueError("mrktype is not prt")
+
+        return mrk
+
+
     @openfigureifnoaxes(projection=None)
     def plot_scatter_rz(self, ascotpy=None, weighted=False,
                          axes=None, markersize=0.5, alpha=1.0):
