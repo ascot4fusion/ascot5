@@ -244,6 +244,59 @@ def process_momentum(dist_6d, dist_5d, plot_title, pcoord):
     print(f"Figure saved plots/updated_momentum/{plot_title}.png")
 
 
+
+def generate_markers(a5, dist, n_markers, pcoordinate, bins):
+    # Generate markers
+    anum   = 1
+    znum   = 0
+    mass   = 1.0087*unyt.amu
+    charge = 0*unyt.e
+    mrk = a5.markergen.generate_6d(n_markers, mass, charge, anum, znum, dist, mode="prt", pcoord=pcoordinate)
+    if (pcoordinate == "cartesian"):
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(14, 5), sharey=True)
+        ax1.hist(mrk["px"].v, bins = bins)
+        ax1.set_xlabel("px")
+        ax2.hist(mrk["py"].v, bins = bins)
+        ax2.set_xlabel("py")
+        ax3.hist(mrk["pz"].v, bins = bins)
+        ax3.set_xlabel("pz")
+        
+    return mrk
+
+def mrk_to_serpent(mrk, bins):
+    px = mrk["px"]
+    py = mrk["py"]
+    pz = mrk["pz"]
+    r = mrk["r"]
+    phi = mrk["phi"]
+    z = mrk["z"]
+    x,y,z = cylindrical_to_cartesian(r, phi, z)
+    ekin = ((px**2+py**2+pz**2)/(2*1.674927471e-27*unyt.kg)).to("MeV")
+    dir_vec = unit_vector(np.column_stack((px, py, pz)))
+    fig = plt.figure(figsize = (18,4))
+    ax1 = fig.add_subplot(1,4,1)
+    ax1.hist(ekin.v, bins = bins)
+    ax1.set_xlabel("Energy [MeV]")
+    plt.axvline(x = 14.1, c = "black")
+
+    ax2 = fig.add_subplot(1, 4, 2)
+    ax2.hist(dir_vec.v[:, 0], bins=bins)
+    ax2.set_xlabel("x-dir")
+
+    # Third subplot sharing y-axis with ax2
+    ax3 = fig.add_subplot(1, 4, 3, sharey=ax2)
+    ax3.hist(dir_vec.v[:, 1], bins=bins)
+    ax3.set_xlabel("y-dir")
+
+    # Fourth subplot sharing y-axis with ax2
+    ax4 = fig.add_subplot(1, 4, 4, sharey=ax2)
+    ax4.hist(dir_vec.v[:, 2], bins=bins)
+    ax4.set_xlabel("z-dir")
+
+    plt.show()
+    return ekin, dir_vec,x,y,z
+
+
 def main(args):
     input_file = args[1]
     n_samples = int(args[2])
