@@ -144,7 +144,7 @@ class a5imas:
         else:
             self.DB.close()
 
-    def fill_mandatory(self,time=[0.0])
+    def fill_mandatory(self,time=[0.0]):
         # mandatory
         ids.ids_properties.homogeneous_time = 1
         ids.time = np.array(time)
@@ -157,6 +157,12 @@ class a5imas:
 
 
     def fill_species(self,target_species,anum,znum,charge):
+        raise NotImplementedError()
+
+    def fill_code(self,target_code,metadata):
+        """
+        Fills in the code version information
+        """
         raise NotImplementedError()
 
 
@@ -1443,6 +1449,8 @@ class dist(a5imas):
             
         self.fill_mandatory()
 
+        self.fill_code(metadata)
+        
         species = runobject.getspecies()
         anum = species['anum']
         znum = species['znum']
@@ -1467,4 +1475,6 @@ class dist(a5imas):
             charge = TODO_DISTRIBUTION_CHARGES[iDistribution]
             self.fill_species(d.species,anum,znum,charge)
 
-        
+            # If is_delta_f=1, then the distribution represents the deviation from a Maxwellian;
+            # is_delta_f=0, then the distribution represents all particles, i.e. the full-f solution {constant}
+            d.is_delta_f = 1 
