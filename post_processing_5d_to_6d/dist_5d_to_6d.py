@@ -10,6 +10,8 @@ import time
 import sys
 
 
+"""Helper functions to convert 5D distribution (r,phi,z,ppar,pperp) to 6D Cartesian distribution"""
+
 def unit_vector(v):
     """Calculate the unit vector of a given vector."""
     if (v.ndim == 1):
@@ -18,9 +20,6 @@ def unit_vector(v):
     elif (v.ndim == 2):
         magnitude = np.linalg.norm(v, axis = 1)
         return v / magnitude[:,np.newaxis]
-    elif (v.ndim == 4):
-        magnitude = np.linalg.norm(v, axis = 0)
-        return v / magnitude
     else:
         raise ValueError("Vector must be 1D or 2D")
 
@@ -47,6 +46,7 @@ def magnetic_field_cylindrical_to_cartesian(B_r, B_phi, B_z, phi):
     B_y = B_r * np.sin(phi) + B_phi * np.cos(phi)
     return B_x, B_y, B_z
 
+# Not used in the code
 def cartesian_to_spherical2(x, y, z):
     # Calculate spherical coordinates
     rho = np.sqrt(x**2 + y**2 + z**2)
@@ -95,7 +95,7 @@ def bfield_momentum_to_MeV(ppar, pperp):
     return e.to("MeV")
 
 
-def calculate_3d_momentum_grid_samples(ppar, pperp, r, phi, z, b_vec, n_samples, pcoord):
+def calculate_3d_momentum(ppar, pperp, r, phi, z, b_vec, n_samples, pcoord):
     bhat = unit_vector(b_vec.T)
     # Arbitrary basis vector along the z-axis
     e1 = np.array([0, 0, 1])
@@ -180,7 +180,7 @@ def dist_5d_to_6d_momentumloop_general(dist_5d, n_samples, a5, pcoord, np1, np2,
     for ippar, ppar in enumerate(ppar_values):
         for ipperp, pperp in enumerate(pperp_values):
             particles_weight = np.tile(dist_5d.histogram()[:,:,:,ippar,ipperp,0,0].ravel(), n_samples)
-            p1, p2, p3 = calculate_3d_momentum_grid_samples(ppar, pperp,r_grid, phi_grid, z_grid, np.array([bx, by, bz]), n_samples, pcoord)
+            p1, p2, p3 = calculate_3d_momentum(ppar, pperp,r_grid, phi_grid, z_grid, np.array([bx, by, bz]), n_samples, pcoord)
             ip1_grid = (np.digitize(p1, p1_edges)-1).ravel()
             ip2_grid = (np.digitize(p2, p2_edges)-1).ravel()
             ip3_grid = (np.digitize(p3, p3_edges)-1).ravel()
@@ -202,8 +202,7 @@ def dist_5d_to_6d_momentumloop_general(dist_5d, n_samples, a5, pcoord, np1, np2,
 
 
 
-
-def process_momentum(dist_6d, dist_5d, plot_title, pcoord):
+def process_momentum(dist_6d, dist_5d, plot_title, pcoord, save_path=None):
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(14, 5), sharey=True)
 
     if (pcoord == "cartesian"):
@@ -214,7 +213,9 @@ def process_momentum(dist_6d, dist_5d, plot_title, pcoord):
         px_dist_6d.plot(axes=ax1)
         py_dist_6d.plot(axes=ax2)
         pz_dist_6d.plot(axes=ax3)
-
+        fig.suptitle("Momentum distribution components", fontsize = 13)
+        plt.tight_layout()
+        plt.show()
     elif (pcoord == "cylindrical"):
         prho_dist_6d  = dist_6d.integrate(copy=True,  r=np.s_[:], z=np.s_[:], phi=np.s_[:], pz=np.s_[:], pphi=np.s_[:] )
         pphi_dist_6d  = dist_6d.integrate(copy=True,  r=np.s_[:], z=np.s_[:], phi=np.s_[:], prho=np.s_[:], pz=np.s_[:] )
@@ -232,20 +233,19 @@ def process_momentum(dist_6d, dist_5d, plot_title, pcoord):
         pr_dist_6d.plot(axes=ax1)
         pphi_dist_6d.plot(axes=ax2)
         ptheta_dist_6d.plot(axes=ax3)
-
+    
     else:
         raise ValueError("Unknown coordinate")
+    ax1.set_xlim(-1.3e-19, 1.3e-19)
+    ax2.set_xlim(-1.3e-19, 1.3e-19)
+    ax3.set_xlim(-1.3e-19, 1.3e-19)
+    if save_path != None:
+        fig.savefig(f"{save_path}/{plot_title}.png")
+        print(f"Figure saved {save_path}/{plot_title}.png")
 
 
-    ax1.set_xlim(-1.5e-19, 1.5e-19)
-    ax2.set_xlim(-1.5e-19, 1.5e-19)
-    ax3.set_xlim(-1.5e-19, 1.5e-19)
-    plt.savefig(f"plots/updated_momentum/{plot_title}.png")
-    print(f"Figure saved plots/updated_momentum/{plot_title}.png")
 
-
-
-def generate_markers(a5, dist, n_markers, pcoordinate, bins):
+def generate_markers(a5, dist, n_markers, pcoordinate, bins, save_path=None):
     # Generate markers
     anum   = 1
     znum   = 0
@@ -255,72 +255,157 @@ def generate_markers(a5, dist, n_markers, pcoordinate, bins):
     if (pcoordinate == "cartesian"):
         fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(14, 5), sharey=True)
         ax1.hist(mrk["px"].v, bins = bins)
-        ax1.set_xlabel("px")
+        ax1.set_xlabel("px", fontsize = 13)
         ax2.hist(mrk["py"].v, bins = bins)
-        ax2.set_xlabel("py")
+        ax2.set_xlabel("py",fontsize = 13)
         ax3.hist(mrk["pz"].v, bins = bins)
-        ax3.set_xlabel("pz")
-        
+        ax3.set_xlabel("pz",fontsize = 13)
+        fig.suptitle("Components of sampled marker momentum distributions", fontsize = 13)
+        plt.tight_layout()
+        plt.show()
+        if save_path != None:
+            fig.savefig(f"{save_path}/sampled_markers_cartesian.png")
+            print(f"Figure saved {save_path}/sampled_markers_cartesian.png")   
     return mrk
 
-def mrk_to_serpent(mrk, bins):
-    px = mrk["px"]
-    py = mrk["py"]
-    pz = mrk["pz"]
-    r = mrk["r"]
-    phi = mrk["phi"]
-    z = mrk["z"]
-    x,y,z = cylindrical_to_cartesian(r, phi, z)
-    ekin = ((px**2+py**2+pz**2)/(2*1.674927471e-27*unyt.kg)).to("MeV")
+def mrk_to_serpent(mrk, bins, save_path = None, plot = True):
+    px, py, pz = mrk["px"], mrk["py"], mrk["pz"]
+    r, phi, z = mrk["r"], mrk["phi"], mrk["z"]
+    x, y, z = cylindrical_to_cartesian(r, phi, z)
+    
+    m_n = 1.674927471e-27 * unyt.kg
+    ekin = ((px**2 + py**2 + pz**2) / (2 * m_n)).to("MeV")
     dir_vec = unit_vector(np.column_stack((px, py, pz)))
-    fig = plt.figure(figsize = (18,4))
-    ax1 = fig.add_subplot(1,4,1)
-    ax1.hist(ekin.v, bins = bins)
-    ax1.set_xlabel("Energy [MeV]")
-    plt.axvline(x = 14.1, c = "black")
+    fig = plt.figure(figsize=(18, 8))  # Increase height to fit second row
 
-    ax2 = fig.add_subplot(1, 4, 2)
+    # First row
+    ax1 = fig.add_subplot(2, 3, 5)
+    ax1.hist(ekin.v, bins=bins)
+    ax1.set_xlabel("Energy [MeV]",fontsize = 13)
+    plt.axvline(x=14.1, c="black")
+
+    ax2 = fig.add_subplot(2, 3, 1)
     ax2.hist(dir_vec.v[:, 0], bins=bins)
-    ax2.set_xlabel("x-dir")
+    ax2.set_xlabel("x-dir",fontsize = 13)
 
-    # Third subplot sharing y-axis with ax2
-    ax3 = fig.add_subplot(1, 4, 3, sharey=ax2)
+    ax3 = fig.add_subplot(2, 3, 2, sharey=ax2)
     ax3.hist(dir_vec.v[:, 1], bins=bins)
-    ax3.set_xlabel("y-dir")
+    ax3.set_xlabel("y-dir",fontsize = 13)
 
-    # Fourth subplot sharing y-axis with ax2
-    ax4 = fig.add_subplot(1, 4, 4, sharey=ax2)
+    ax4 = fig.add_subplot(2, 3, 3, sharey=ax2)
     ax4.hist(dir_vec.v[:, 2], bins=bins)
-    ax4.set_xlabel("z-dir")
+    ax4.set_xlabel("z-dir", fontsize = 13)
 
+    # Second row – example additional plot
+    ax5 = fig.add_subplot(2, 3, 4)
+    ax5.scatter(x, z)  # Replace weight.v with the desired data
+    ax5.set_xlabel("x",  fontsize = 13)
+    ax5.set_ylabel("z",  fontsize = 13)
+    fig.suptitle("Serpent marker distributions", fontsize = 13)
+    
+    hist1, _, _ = np.histogram2d(r, z)
+    ax6 = fig.add_subplot(2, 3, 6)
+    im1 = ax6.imshow(hist1.T, origin="lower", extent=[r.min(), r.max(), z.min(), z.max()], cmap="hot", aspect="auto")
+    plt.colorbar(im1, ax=ax6)
+    ax6.set_xlabel("x",  fontsize = 13)
+    ax6.set_ylabel("z",  fontsize = 13)
+    plt.tight_layout()
     plt.show()
+    
+    isotropic_dir = isotropic_directions_rejection(len(px))
+    plot_direction_vectors(isotropic_dir, dir_vec, bins = 40)
+    
+    
+    if save_path != None:
+        fig.savefig(f"{save_path}/sampled_serpent_markers.png")
+        print(f"Figure saved {save_path}/sampled_serpent_markers.png")
     return ekin, dir_vec,x,y,z
 
+# TODO: Check if this isotropic sampling is ok
+def sample_isotropic_directions(n_samples):
+    phi = np.random.uniform(0, 2 * np.pi, n_samples)       # Azimuthal angle
+    cos_theta = np.random.uniform(-1, 1, n_samples)        # Cosine of polar angle
+    sin_theta = np.sqrt(1 - cos_theta**2)
 
-def main(args):
-    input_file = args[1]
-    n_samples = int(args[2])
-    run_title = args[3]
-    a5 = Ascot(input_file)
+    x = sin_theta * np.cos(phi)
+    y = sin_theta * np.sin(phi)
+    z = cos_theta
 
+    directions = np.vstack((x, y, z)).T  # Shape (n_samples, 3)
+    
+    return directions
+
+
+
+def plot_direction_vectors(analytical_directions, sampled_directions, bins=50):
+    fig, axes = plt.subplots(3, 2, figsize=(10, 8), sharey='row')
+
+    labels = ['x-dir', 'y-dir', 'z-dir']
+
+    for i in range(3):
+        # Analytical in left column
+        axes[i, 0].hist(analytical_directions[:, i], bins=bins, alpha=0.7, color='tab:blue')
+        axes[i, 0].set_xlabel(labels[i], fontsize=12)
+        if i == 0:
+            axes[i, 0].set_title("Analytical", fontsize=13)
+
+        # Sampled in right column
+        axes[i, 1].hist(sampled_directions[:, i], bins=bins, alpha=0.7, color='tab:orange')
+        axes[i, 1].set_xlabel(labels[i], fontsize=12)
+        if i == 0:
+            axes[i, 1].set_title("Sampled from 6D dist.", fontsize=13)
+    plt.suptitle("Components of unit direction vectors")
+    plt.tight_layout()
+    plt.show()
+
+
+def isotropic_directions_rejection(n, rng=np.random.default_rng()):
+    """
+    Generate `n` isotropic direction vectors uniformly distributed over the unit sphere.
+
+    Parameters:
+        n (int): Number of direction vectors to generate.
+        rng: numpy random generator instance (default: np.random.default_rng())
+
+    Returns:
+        directions (np.ndarray): Array of shape (n, 3) with unit direction vectors.
+    """
+    directions = np.empty((n, 3))
+    i = 0
+    while i < n:
+        rand1 = 2.0 * rng.random() - 1.0
+        rand2 = 2.0 * rng.random() - 1.0
+        C1 = rand1**2 + rand2**2
+        if C1 > 1.0:
+            continue
+
+        rand3 = 2.0 * rng.random() - 1.0
+        C2 = np.sqrt(1.0 - rand3**2)
+
+        u = C2 * (rand1**2 - rand2**2) / C1
+        v = C2 * 2.0 * rand1 * rand2 / C1
+        w = rand3
+
+        directions[i] = [u, v, w]
+        i += 1
+    return directions
+
+# TODO: Add possibility to make afsi run before 6D conversion
+def iter_analytical_5D(a5, rmin,rmax,nr, phimin,phimax, nphi, zmin, zmax, nz, nppar, npperp, nsamples = 1000, pparmin=-1.1e-19, pparmax = 1.1e-19, pperpmin = 0, pperpmax = 1.1e-19, desc = None):
+    # Feed the parameters correctly
+    r = np.linspace(rmin, rmax, nr)
+    z = np.linspace(-1.1, 1.1, nz)
+    phi = np.linspace(-0.1, 0.1, nphi)
+    ppar = np.linspace(-1.1e-19, 1.1e-19, nppar)
+    pperp = np.linspace(0, 1.1e-19, npperp)
+    a5.afsi.thermal(
+    "DT_He4n", nmc=nsamples, r=r, z=z,phi=phi,
+    ppar1=ppar, pperp1=pperp, ppar2=ppar, pperp2=pperp
+    )
     dist_5d = a5.data.active.getdist("prod2")
-    for coord in ["cartesian", "cylindrical", "spherical"]:
-        dist_6d_file = f"hist6d_{run_title}_{coord}.npy"
-        start_time = time.time()
-        print(f"N samples {n_samples}")
-        dist_6d = dist_5d_to_6d_momentumloop_general(dist_5d, n_samples, a5, pcoord=coord, np1 = 101, np2=101, np3 = 101)
-        print(f"Saving distribution to a file {dist_6d_file}")
-        np.save(dist_6d_file, dist_6d.histogram())
-        print("Processing distribution data")
-        plot_title = f"{run_title}_{coord}"
-        process_momentum(dist_6d, dist_5d, plot_title, coord)
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        print(f"Elapsed time: {elapsed_time/(60):.2f} minutes")
-        print(f"6D distribution shape: {dist_6d._distribution.shape}, abscissae {dist_6d.abscissae}")
-        print("Distribution saved")
-
-if __name__ == "__main__":
-    main(sys.argv)
-
+    if desc == None:
+        desc = f"R{nr}_Z{nz}_ppar{nppar}_pperp{npperp}"
+        a5.data.active.set_desc(desc)
+    return dist_5d, a5
+    
 
