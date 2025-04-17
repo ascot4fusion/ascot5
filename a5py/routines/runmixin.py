@@ -2169,3 +2169,22 @@ class RunMixin(DistMixin):
                           a5=a5,
                           skipshow=skipshow,
                           **kwargs)
+
+    def getsimmode(self):
+        """
+        Get the simulation mode in use.
+        (At the time of writing this comment:
+         - 1 Gyro-orbit
+         - 2 Guiding center
+         - 3 Hybrid
+         - 4 Magnetic field lines )
+        """
+        raise NotImplementedError()
+
+    def getsimmode(self):
+        """
+        Return a dictionary that describes the current plasma species that is
+        simulated, with the following minimum keys: 'anum', 'znum'.
+        """
+        raise NotImplementedError()
+        return { 'anum': 3, 'znum': 4 }

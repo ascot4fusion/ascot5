@@ -144,12 +144,20 @@ class a5imas:
         else:
             self.DB.close()
 
+    def fill_mandatory(self,time=[0.0])
+        # mandatory
+        ids.ids_properties.homogeneous_time = 1
+        ids.time = np.array(time)
 
 
     def description_string(self):
         c = self.ids_coordinates
         s = "DB:{} USER:{} IDS:{} SHOT:{} RUN:{} OCCUR:{}"
         return s.format(c['tokamak'], c['user'], c['ids_name'], c['shot'], c['run'], c['occurrence'])
+
+
+    def fill_species(self,target_species,anum,znum,charge):
+        raise NotImplementedError()
 
 
 class B_STS(a5imas):
@@ -355,7 +363,12 @@ class B_STS(a5imas):
         return B
 
     def write(self, B, user, tokamak, version, shot, run, metadata={}):
+        self.create( user, tokamak, version, shot, run)
+        self.fill(B, metadata)
+        self.write_data_entry()
 
+    def fill(self, B, metadata={}):
+        
         # Check that all arrays have same size
         if B['b_nr']   != B['psi_nr']:
             raise ValueError('b_nr != psi_nr')
@@ -384,16 +397,13 @@ class B_STS(a5imas):
         nGrids = 2
         index_ggd = 0
 
-        self.create( user, tokamak, version, shot, run)
 
         if 'ids_comment' in metadata :
             self.ids.ids_properties.comment = metadata['ids_comment']
         else:
             self.ids.ids_properties.comment = "equilibrium IDS for testing"
 
-        # mandatory
-        self.ids.ids_properties.homogeneous_time = 1
-        self.ids.time = np.array([0.0])
+        self.fill_mandatory()
 
         
         # Fill data
@@ -534,7 +544,6 @@ class B_STS(a5imas):
         ggd.b_field_tor[0].values = B['bphi'].flatten(order='F')
 
         
-        self.write_data_entry()
                                  
 class marker(a5imas):
 
@@ -966,9 +975,11 @@ class wall_3d(a5imas):
                 self.ids_coordinates['run'],
                 self.ids_coordinates['occurrence'],
                 description_ggd_index,grid_ggd_index,space_index ))
+#        print(flagIdList)
+#        print(flagIdStrings)
         labels    =  dict( zip(  flagIdStrings, flagIdList ) )
 
-
+        
         w = {
             "x1x2x3"         : xyz[:,:,0],
             "y1y2y3"         : xyz[:,:,1],
@@ -1038,9 +1049,6 @@ class wall_3d(a5imas):
         else:
             ids.ids_properties.comment = "wall IDS saved by ASCOT5 imas.py"
 
-        # mandatory
-        ids.ids_properties.homogeneous_time = 1
-        ids.time = np.array([0.0])
 
 
         index_description_ggd = 0
@@ -1130,8 +1138,12 @@ class wall_3d(a5imas):
         return nodes+1,edges+1,faces+1
 
     def write(self, w, user, tokamak, version, shot, run, metadata={}):
-
         self.create( user, tokamak, version, shot, run)
+        self.fill(w, metadata)
+        self.write_data_entry()
+
+    def fill(self, w, metadata={}):
+
 
         n = w['nelements'][0][0]
         xyz=np.zeros( (n, 3, 3) )
@@ -1144,7 +1156,6 @@ class wall_3d(a5imas):
         self.fill_wall_3d_ids(self.ids,xyz,metadata=metadata)
 
                                        
-        self.write_data_entry()
                                  
 
     def fill_wall_3d_ids(self,ids,xyz,metadata={}):
@@ -1405,3 +1416,55 @@ class B_2DS(a5imas):
     def _pol2tor(self,rho_pol):
 
         return np.interp( rho_pol, self.poltor_rho_pol, self.poltor_rho_tor)
+
+
+class dist(a5imas):
+
+    def __init__(self):
+        super().__init__()
+        self.ids_name = "distribution"
+
+    def write(self, user, tokamak, version, shot, run, dist5d=None, dist5drho=None, metadata={} ):
+        self.create( user, tokamak, version, shot, run)
+        self.fill(dist5d,dist5drho)
+        self.write_data_entry()
+
+    def fill(self,runobject,metadata={}):
+        '''
+        The distributions are the '5d' and '5drho distributions you get from the runobject Ascot.data.run_xxxxxxxxx.getdist('5d')
+        Thus, e.g. runobject=Ascot.data.run_xxxxxxxxx
+        '''
+        timeIndex = 0
+
+        if 'ids_comment' in metadata :
+            ids.ids_properties.comment = metadata['ids_comment']
+        else:
+            ids.ids_properties.comment = "distribution IDS for testing"
+            
+        self.fill_mandatory()
+
+        species = runobject.getspecies()
+        anum = species['anum']
+        znum = species['znum']
+        
+        # Defines how to interpret the spatial coordinates:
+        #    1 = given at the actual particle birth point;
+        #    2 = given at the gyro centre of the birth point {constant}
+        # Corresponds to vrun.getsimmode()=1 --> gyro_type=1
+        #                vrun.getsimmode()=2 --> gyro_type=2
+
+        gyro_type = runobject.getsimmode()
+        if gyro_type == 1 or gyro_type == 2 :
+                d.gyro_type = gyro_type
+        else:
+            raise ValueError("Unsupported gyro_type from runobject.getsimmode(): '{}' (should be 1 or 2).".format(gyro_type))
+
+        for iDistribution in range(len(TODO_LOOP_OVER_CHARGES_IN_DISTRIBUTION)):
+        
+            d = self.ids.distribution[iDistribution]
+
+            # Find the current charge state from the distribution
+            charge = TODO_DISTRIBUTION_CHARGES[iDistribution]
+            self.fill_species(d.species,anum,znum,charge)
+
+        
