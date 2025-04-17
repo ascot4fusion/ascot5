@@ -376,6 +376,8 @@ class VirtualDist(Dist):
         self._histogram = dist.histogram
         if disttype == "5d":
             names = ["r", "phi", "z", "ppar", "pperp", "time", "charge"]
+        if disttype == "rho5d":
+            names = ["rho", "theta", "phi", "ppar", "pperp", "time", "charge"]
 
         self._abscissa_edges = {}
         for n in names:
@@ -391,6 +393,16 @@ class VirtualDist(Dist):
                 case "z":
                     self._abscissa_edges[n] = \
                         np.linspace(dist.min_z, dist.max_z, dist.n_z+1) * unyt.m
+                case "rho":
+                    self._abscissa_edges[n] = \
+                        np.linspace(dist.min_rho, dist.max_rho, dist.n_rho+1) \
+                            * unyt.dimensionless
+                case "theta":
+                    self._abscissa_edges[n] = \
+                        np.linspace(
+                            dist.min_theta, dist.max_theta, dist.n_theta+1
+                            ) * unyt.rad
+                    self._abscissa_edges[n].convert_to_units('deg')
                 case "ppar":
                     self._abscissa_edges[n] = \
                         np.linspace(dist.min_ppara, dist.max_ppara,
