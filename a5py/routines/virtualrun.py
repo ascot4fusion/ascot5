@@ -60,6 +60,8 @@ class VirtualRun(RunMixin):
             self._orbit = VirtualOrbits(ascot, ascot._nmrk, diagorb)
         if dist5d is not None:
             self._dist5d = VirtualDist("5d", dist5d)
+        if dist5drho is not None:
+            self._distrho5d = VirtualDist("rho5d", dist5drho)
 
 class VirtualBBNBIRun(BBNBIMixin):
     """Virtual :class:`BBNBIGroup` whose data exists solely in the memory.
