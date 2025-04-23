@@ -620,7 +620,7 @@ class marker(a5imas):
             for s in srcs:
                 if s is None:
                     continue
-                out[f] = np.concatenate( (out[f],s[f]) )
+                out[f] = np.concatenate( (out[f],s[f]) )*s[f].units
             #if f!='vr':
             #print(f)
             #out[f]*=s[f].units
