@@ -30,7 +30,7 @@ class MarkerGenerator():
 
         # Generate a number random for each marker, and when that marker is put
         # in the first cell where rand > threshold.
-        threshold = np.append(0, np.cumsum(markerdist.distribution().ravel()))
+        threshold = np.append(0, np.cumsum(markerdist.histogram().ravel()))
         threshold /= threshold[-1]
         while ngen < nmrk:
             if ngen == 0: rejected = np.s_[:]

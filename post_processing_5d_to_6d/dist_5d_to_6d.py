@@ -21,7 +21,7 @@ def unit_vector(v):
         magnitude = np.linalg.norm(v, axis = 1)
         return v / magnitude[:,np.newaxis]
     else:
-        raise ValueError("Vector must be 1D or 2D")
+        raise ValueError(f"Input vector must be either 1D or 2D, but got {v.ndim}D")
 
 def cylindrical_to_cartesian(r, phi, z):
     phi_rad = np.radians(phi.value)*unyt.dimensionless
@@ -42,6 +42,21 @@ def spherical_to_cartesian(r, phi, theta):
 
 
 def magnetic_field_cylindrical_to_cartesian(B_r, B_phi, B_z, phi):
+    """
+    Convert a magnetic field vector from cylindrical coordinates to Cartesian coordinates.
+
+    Parameters:
+        B_r (float or np.ndarray): Radial component of the magnetic field in cylindrical coordinates.
+        B_phi (float or np.ndarray): Azimuthal component of the magnetic field in cylindrical coordinates.
+        B_z (float or np.ndarray): Axial (z) component of the magnetic field in cylindrical coordinates.
+        phi (float or np.ndarray): Azimuthal angle in radians.
+
+    Returns:
+        tuple: A tuple (B_x, B_y, B_z) representing the magnetic field components in Cartesian coordinates:
+            - B_x (float or np.ndarray): x-component of the magnetic field.
+            - B_y (float or np.ndarray): y-component of the magnetic field.
+            - B_z (float or np.ndarray): z-component of the magnetic field (unchanged from input).
+    """
     B_x = B_r * np.cos(phi) - B_phi * np.sin(phi)
     B_y = B_r * np.sin(phi) + B_phi * np.cos(phi)
     return B_x, B_y, B_z
@@ -96,6 +111,21 @@ def bfield_momentum_to_MeV(ppar, pperp):
 
 
 def calculate_3d_momentum(ppar, pperp, r, phi, z, b_vec, n_samples, pcoord):
+    """
+    Compute 3D momentum vectors from parallel and perpendicular components
+    with respect to the local magnetic field direction.
+
+    Parameters:
+        ppar (ndarray): Parallel momentum (n_positions,)
+        pperp (ndarray): Perpendicular momentum (n_positions,)
+        r, phi, z (ndarray): Position arrays (n_positions,)
+        b_vec (ndarray): Magnetic field vectors (3, n_positions)
+        n_samples (int): Number of gyro-angle samples per position
+        pcoord (str): Output coordinate system ('cartesian', 'spherical', or 'cylindrical')
+
+    Returns:
+        Momentum components in the selected coordinate system.
+    """
     bhat = unit_vector(b_vec.T)
     # Arbitrary basis vector along the z-axis
     e1 = np.array([0, 0, 1])
@@ -129,13 +159,12 @@ def calculate_3d_momentum(ppar, pperp, r, phi, z, b_vec, n_samples, pcoord):
         phi_tiled = np.reshape(np.tile(phi, n_samples),(phi.shape[0], n_samples))
         z_tiled = np.reshape(np.tile(z, n_samples),(z.shape[0], n_samples))
         pr, pphi, ptheta = cartesian_to_spherical(r_tiled, phi_tiled, z_tiled, px, py, pz)
-        #e_kin = (p**2/(2*1.674927471e-27*unyt.kg)).to("MeV")
         return pr, pphi, ptheta
     elif (pcoord == "cylindrical"):
         prho, pphi, pz = cartesian_to_cylindrical(px, py, pz, np.reshape(np.tile(phi, n_samples),(phi.shape[0], n_samples)))
         return prho, pphi, pz
     else:
-        raise ValueError("Unknown coordinate")
+        raise ValueError(f"Unknown coordinate: {pcoord}")
 
 
 def dist_5d_to_6d_momentumloop_general(dist_5d, n_samples, a5, pcoord, np1, np2, np3):
@@ -153,10 +182,14 @@ def dist_5d_to_6d_momentumloop_general(dist_5d, n_samples, a5, pcoord, np1, np2,
     time_values = dist_5d.abscissa("time")
 
     # Do p edges need to be changed in some situations?
-    p1_edges = np.linspace(-2e-19, 2e-19, np1)*ppar_edges.units
-    p2_edges = np.linspace(-2e-19, 2e-19, np2)*ppar_edges.units
-    p3_edges = np.linspace(-2e-19, 2e-19, np3)*ppar_edges.units
-    hist_6d_arr = np.empty((len(r_edges)-1, len(phi_edges)-1, len(z_edges)-1, len(p1_edges)-1, len(p2_edges)-1, len(p3_edges)-1), dtype=np.float64)
+    p1_min, p1_max = ppar_edges.min()*2, ppar_edges.max()*2
+    p2_min, p2_max = ppar_edges.min()*2, ppar_edges.max()*2
+    p3_min, p3_max = ppar_edges.min()*2, ppar_edges.max()*2
+
+    p1_edges = np.linspace(p1_min, p1_max, np1)# * ppar_edges.units
+    p2_edges = np.linspace(p2_min, p2_max, np2)# * ppar_edges.units
+    p3_edges = np.linspace(p3_min, p3_max, np3)# * ppar_edges.units
+    hist_6d_arr = np.zeros((len(r_edges)-1, len(phi_edges)-1, len(z_edges)-1, len(p1_edges)-1, len(p2_edges)-1, len(p3_edges)-1), dtype=np.float64)
 
     r_grid, phi_grid, z_grid = np.meshgrid(r_values, phi_values, z_values, indexing='ij')
     # Let's ravel the grid
@@ -177,15 +210,16 @@ def dist_5d_to_6d_momentumloop_general(dist_5d, n_samples, a5, pcoord, np1, np2,
     ir_grid = np.tile(ir_grid, n_samples)
     iphi_grid = np.tile(iphi_grid, n_samples)
     iz_grid = np.tile(iz_grid, n_samples)
+    dist_5d  = dist_5d.integrate(copy=True,  charge=np.s_[:], time=np.s_[:] )
     for ippar, ppar in enumerate(ppar_values):
         for ipperp, pperp in enumerate(pperp_values):
-            particles_weight = np.tile(dist_5d.histogram()[:,:,:,ippar,ipperp,0,0].ravel(), n_samples)
+            particles_weight = np.tile(dist_5d.histogram()[:,:,:,ippar,ipperp].ravel(), n_samples)
             p1, p2, p3 = calculate_3d_momentum(ppar, pperp,r_grid, phi_grid, z_grid, np.array([bx, by, bz]), n_samples, pcoord)
             ip1_grid = (np.digitize(p1, p1_edges)-1).ravel()
             ip2_grid = (np.digitize(p2, p2_edges)-1).ravel()
             ip3_grid = (np.digitize(p3, p3_edges)-1).ravel()
             np.add.at(hist_6d_arr, (ir_grid, iphi_grid, iz_grid, ip1_grid, ip2_grid, ip3_grid), (particles_weight/n_samples).v )
-            if (itn % 100 == 0):
+            if (itn % 500 == 0):
                     print(f"Iteration {itn}")
             itn += 1
     if (pcoord == "spherical"):
@@ -202,7 +236,7 @@ def dist_5d_to_6d_momentumloop_general(dist_5d, n_samples, a5, pcoord, np1, np2,
 
 
 
-def process_momentum(dist_6d, dist_5d, plot_title, pcoord, save_path=None):
+def process_momentum(dist_6d, plot_title, pcoord, save_path=None):
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(14, 5), sharey=True)
 
     if (pcoord == "cartesian"):
@@ -268,13 +302,14 @@ def generate_markers(a5, dist, n_markers, pcoordinate, bins, save_path=None):
             print(f"Figure saved {save_path}/sampled_markers_cartesian.png")   
     return mrk
 
-def mrk_to_serpent(mrk, bins, save_path = None, plot = True):
+def mrk_to_serpent(mrk, bins, save_path = None):
     px, py, pz = mrk["px"], mrk["py"], mrk["pz"]
     r, phi, z = mrk["r"], mrk["phi"], mrk["z"]
     x, y, z = cylindrical_to_cartesian(r, phi, z)
     
     m_n = 1.674927471e-27 * unyt.kg
     ekin = ((px**2 + py**2 + pz**2) / (2 * m_n)).to("MeV")
+    print(f"Mean energy {np.mean(ekin.v):.3f} MeV, std {np.std(ekin.v):.3f} MeV")
     dir_vec = unit_vector(np.column_stack((px, py, pz)))
     fig = plt.figure(figsize=(18, 8))  # Increase height to fit second row
 
@@ -286,15 +321,15 @@ def mrk_to_serpent(mrk, bins, save_path = None, plot = True):
 
     ax2 = fig.add_subplot(2, 3, 1)
     ax2.hist(dir_vec.v[:, 0], bins=bins)
-    ax2.set_xlabel("x-dir",fontsize = 13)
+    ax2.set_xlabel("u",fontsize = 13)
 
     ax3 = fig.add_subplot(2, 3, 2, sharey=ax2)
     ax3.hist(dir_vec.v[:, 1], bins=bins)
-    ax3.set_xlabel("y-dir",fontsize = 13)
+    ax3.set_xlabel("v",fontsize = 13)
 
     ax4 = fig.add_subplot(2, 3, 3, sharey=ax2)
     ax4.hist(dir_vec.v[:, 2], bins=bins)
-    ax4.set_xlabel("z-dir", fontsize = 13)
+    ax4.set_xlabel("w", fontsize = 13)
 
     # Second row – example additional plot
     ax5 = fig.add_subplot(2, 3, 4)
@@ -340,7 +375,7 @@ def sample_isotropic_directions(n_samples):
 def plot_direction_vectors(analytical_directions, sampled_directions, bins=50):
     fig, axes = plt.subplots(3, 2, figsize=(10, 8), sharey='row')
 
-    labels = ['x-dir', 'y-dir', 'z-dir']
+    labels = ['u', 'v', 'w']
 
     for i in range(3):
         # Analytical in left column
@@ -394,10 +429,10 @@ def isotropic_directions_rejection(n, rng=np.random.default_rng()):
 def iter_analytical_5D(a5, rmin,rmax,nr, phimin,phimax, nphi, zmin, zmax, nz, nppar, npperp, nsamples = 1000, pparmin=-1.1e-19, pparmax = 1.1e-19, pperpmin = 0, pperpmax = 1.1e-19, desc = None):
     # Feed the parameters correctly
     r = np.linspace(rmin, rmax, nr)
-    z = np.linspace(-1.1, 1.1, nz)
-    phi = np.linspace(-0.1, 0.1, nphi)
-    ppar = np.linspace(-1.1e-19, 1.1e-19, nppar)
-    pperp = np.linspace(0, 1.1e-19, npperp)
+    z = np.linspace(zmin, zmax, nz)
+    phi = np.linspace(phimin, phimax, nphi)
+    ppar = np.linspace(pparmin, pparmax, nppar)
+    pperp = np.linspace(pperpmin,pperpmax, npperp)
     a5.afsi.thermal(
     "DT_He4n", nmc=nsamples, r=r, z=z,phi=phi,
     ppar1=ppar, pperp1=pperp, ppar2=ppar, pperp2=pperp
