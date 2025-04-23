@@ -159,10 +159,19 @@ class a5imas:
     def fill_species(self,target_species,anum,znum,charge):
         raise NotImplementedError()
 
-    def fill_code(self,target_code,metadata):
+    def fill_code(self,target_code,vrun):
         """
         Fills in the code version information
         """
+        codeversion = vrun.getcodeversion()
+        for field in ['name','description','commit','version','repository']:
+            setattr( target_code, field, codeversion[field] )
+
+        # List of the code specific parameters in XML format
+        target_code.parameters  = vrun.get_code_parameters()
+
+        #Output flag : 0 means the run is successful, other values mean some difficulty has been encountered, the exact meaning is then code specific. Negative values mean the result shall not be used. {dynamic}
+        target_code.output_flag = vrun.get_run_success()
         raise NotImplementedError()
 
 
@@ -170,7 +179,7 @@ class B_STS(a5imas):
     ''' Read stellarator 3D magnetic field with the conventions laid out in:
         git@github.com:sjjamsa/imas-ggd-b3d.git
 
-        Returns a dict modelled after write_hdf5() in  B_STS.py 
+        Returns a dict modelled after write_hdf5() in  B_STS.py
     '''
 
     def __init__(self):
