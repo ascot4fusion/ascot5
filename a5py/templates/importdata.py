@@ -6,9 +6,11 @@ import copy
 
 from scipy.interpolate import RegularGridInterpolator,griddata,NearestNDInterpolator
 
+import a5py.physlib as physlib
 from a5py.physlib import cocos as cocosmod
 from a5py.physlib import species as physlibspecies
 from a5py.ascot5io.wall import wall_3D
+from a5py.ascot5io.nbi import Injector
 
 try:
     import adas
@@ -19,6 +21,12 @@ try:
     from freeqdsk import geqdsk
 except ImportError:
     geqdsk = None
+
+#for nbi_waveforms.yaml
+try:
+    from ruamel.yaml import YAML
+except:
+    YAML = None
 
 #for desc_field
 try:
@@ -751,11 +759,22 @@ class ImportData():
                    "edensity":ne, "idensity":ni}
         else:
             # Data is read already and only needs to be extrapolated
-            pls["ne"] = interp(pls["rho"], pls["ne"], nmin)
-            pls["Te"] = interp(pls["rho"], pls["Te"], Tmin)
-            pls["Ti"] = interp(pls["rho"], pls["Ti"], Tmin)
-            pls["ni"] = interp(pls["rho"], pls["ni"], nmin)
-            pls["vtor"] = interp(pls["rho"], pls["vtor"], pls["vtor"][-1])
+            pls["edensity"] = interp(
+                    pls["rho"].ravel(), pls["edensity"][:,0], nmin
+                )
+            pls["etemperature"] = interp(
+                    pls["rho"].ravel(), pls["etemperature"][:,0], Tmin
+                )
+            pls["itemperature"] = interp(
+                    pls["rho"].ravel(), pls["itemperature"][:,0], Tmin
+                )
+            densities = np.zeros((rho.size, pls["nion"]))
+            for i in range(pls["nion"]):
+                densities[:, i] = interp(
+                    pls["rho"].ravel(), pls["idensity"][:,i], nmin
+                )
+            pls["idensity"] = densities
+            pls["vtor"] = interp(pls["rho"].ravel(), pls["vtor"].ravel(), pls["vtor"][-1])
             pls["rho"]  = rho
             pls["nrho"] = rho.size
 
@@ -961,7 +980,6 @@ class ImportData():
             angle theta, toroidal angle phi, poloidal mode number xm, and
             toroidal mode number xn
         """
-        
         ns  = rmnc.shape[0]
         xmt = xm*theta[:,None]
         xnz = xn*phi[:,None]
@@ -986,12 +1004,12 @@ class ImportData():
            `s_full = np.linspace(0, 1, ns) # full mesh`
            `s_half = np.insert(s_full[0:-1] + 0.5 / (ns - 1),0,np.nan) # half mesh`
 
-        The interpolation/extrapolation scheme to convert from the half mesh 
-        to the full meshis adapted from Hirshman et al. 1990: 
+        The interpolation/extrapolation scheme to convert from the half mesh
+        to the full meshis adapted from Hirshman et al. 1990:
            https://doi.org/10.1016/0021-9991(90)90259-4.
 
         The toroidal magnetic flux is saved in the VMEC output as the variable `phi`
-    
+
         In B_STS B_STS_eval_rho defines psi as:
         `rho[0] = sqrt( (psi - Bdata->psi0) / delta );`
         So psi is the toroidal magnetic flux.
@@ -1016,9 +1034,11 @@ class ImportData():
         nz : int, optional
            Number of vertical coordinate Z grid points. Default = 100.
         psipad : float, optional
-           Padding to slightly alter flux on axis. 
+           Padding to slightly alter flux on axis.
         extrapolate : boolean, optional
-            Whether to extrapolate the magnetic field outside LCFS (nearest extrapolation) or not. Without extrapolation B is set to zero outside LCFS. Default = True.
+            Whether to extrapolate the magnetic field outside LCFS (nearest
+            extrapolation) or not. Without extrapolation B is set to zero
+            outside LCFS. Default = True.
 
         Returns
         -------
@@ -1044,7 +1064,7 @@ class ImportData():
            - `'bphi'`: toroidal magnetic field B_phi(R,phi,Z) (T)
            - `'bz'`: vertical magnetic field B_Z(R,phi,Z) (T)
         """
-        
+
         # read VMEC NetCDF file
         if not nc: raise ImportError("Package netCDF4 not found")
         data = nc.Dataset(ncfile)
@@ -1063,8 +1083,13 @@ class ImportData():
 
         # toroidal angle array
         # note phi should start at 0 and end on 360, inclusive
+<<<<<<< HEAD
         phi = np.deg2rad(np.linspace(phimin, phimax, nphi, endpoint=True))  # rad
    
+=======
+        phi = np.deg2rad(np.linspace(phimin, phimax, nphi, endpoint=False))  # rad
+
+>>>>>>> 2d2af4ee (Template for injectors and fixed issues with plasma template)
         # derivatives
         rumns = rmnc * (-1 * xm)  # drmn*cos(m*u-n*v)/du = -m*rmn*sin(m*u-n*v)
         zumnc = zmns * (xm)  # dzmn*sin(m*u-n*v)/du = m*zmn*cos(m*u-n*v)
@@ -1130,7 +1155,7 @@ class ImportData():
         r_1d = np.linspace(rmin, rmax, nr)  # m
         z_1d = np.linspace(zmin, zmax, nz)  # m
         z_2d, r_2d = np.meshgrid(z_1d, r_1d)
-    
+
         # toroidal magnetic flux
         psi0 = psi_1d[0]  # axis
         psi1 = psi_1d[-1]  # LCFS
@@ -1178,7 +1203,7 @@ class ImportData():
                 filled_data = data.copy()
                 filled_data[np.where(np.isnan(data))]=0
             br[:,:,i] = filled_data
-       
+
             data = bz[:,:,i]
             if extrapolate:
                 mask = np.where(~np.isnan(data))
@@ -1261,7 +1286,7 @@ class ImportData():
         Notes
         -----
         The toroidal magnetic flux is saved in the DESC output as the variable `Psi`
-    
+
         In B_STS B_STS_eval_rho defines psi as:
         `rho[0] = sqrt( (psi - Bdata->psi0) / delta );`
         So psi is the toroidal magnetic flux.
@@ -1348,7 +1373,6 @@ class ImportData():
                                    order="C").T
         bdry_z = data["Z"].reshape((grid.num_zeta, grid.num_theta),
                                    order="C").T
-        
         # boundaries
         rmin = np.min(bdry_r)  # m
         rmax = np.max(bdry_r)  # m
@@ -1374,7 +1398,7 @@ class ImportData():
                 L=eq.L_grid, M=eq.M_grid, N=0, NFP=eq.NFP, node_pattern="linear")
             grid._nodes[:, 2] = phi[k]
             data = eq.compute(["R", "Z", "psi", "B_R", "B_phi", "B_Z"], grid=grid)
-            
+
             # interpolate data inside DESC domain
             psi[:, :, k] = griddata(
                 (data["R"], data["Z"]),
@@ -1459,18 +1483,18 @@ class ImportData():
         Notes
         -----
         The toroidal magnetic flux is saved in the VMEC output as the variable `phi`
-        
+
         In B_STS B_STS_eval_rho defines psi as:
         `rho[0] = sqrt( (psi - Bdata->psi0) / delta );`
         So psi is the toroidal magnetic flux.
 
         Psi values outside the LCFS are defined as psi1, so while markers may exist in the
         vacuum region (beyond LCFS) the mapping to the rho variable will not be valid
-        as the rho=1 everywhere in the vacuum region. 
+        as the rho=1 everywhere in the vacuum region.
 
         The magnetic field (Br,Bphi,Bz) is defined via the EXTENDER input file while the
-        toroidal flux (psi) is supplied via the VMEC input. Care should be taken to 
-        make sure that the VMEC psi calculations agree with EXTENDER for rho<1. 
+        toroidal flux (psi) is supplied via the VMEC input. Care should be taken to
+        make sure that the VMEC psi calculations agree with EXTENDER for rho<1.
 
         EXTENDER input is assumed to cover one field period!!
 
@@ -1509,24 +1533,23 @@ class ImportData():
            - `'bphi'`: toroidal magnetic field B_phi(R,phi,Z) (T)
            - `'bz'`: vertical magnetic field B_Z(R,phi,Z) (T)
         """
-        
         # load NetCDF data
         if not nc: raise ImportError("Package netCDF4 not found")
         vmec = nc.Dataset(ncfile)
         extender = nc.Dataset(extfile)
-    
+
         # array dimenstions
         nr = int(extender.variables["ir"].getValue())
         nz = int(extender.variables["jz"].getValue())
         nphi = int(extender.variables["kp"].getValue())
         nfp = int(extender.variables["nfp"].getValue())
-   
+
         # coordinate bounds (m)
         rmin = float(extender.variables["rmin"].getValue())
         rmax = float(extender.variables["rmax"].getValue())
         zmin = float(extender.variables["zmin"].getValue())
         zmax = float(extender.variables["zmax"].getValue())
-    
+
         # magnetic field (T)
         br = np.array(extender.variables["br_001"])
         bphi = np.array(extender.variables["bp_001"])
@@ -1535,7 +1558,7 @@ class ImportData():
         # poloidal and toroidal angles (rad)
         theta = np.linspace(0, 2 * np.pi, ntheta, endpoint=True)
         phi = np.linspace(0, 2 * np.pi / nfp, nphi, endpoint=False)
-    
+
         # VMEC spectral coefficients
         xm = np.array(vmec.variables["xm"])  # poloidal mode numbers
         xn = np.array(vmec.variables["xn"])  # toroidal mode numbers
@@ -1552,14 +1575,14 @@ class ImportData():
         axisz = z_grid[0, 0, :]
 
         #get lcfs (m)
-        lcfs_r = r_grid[-1, :, :] 
+        lcfs_r = r_grid[-1, :, :]
         lcfs_z = z_grid[-1, :, :]
 
         # toroidal magnetic flux (Wb)
         psi0 = psi_1d[0] #axis
         psi1 = psi_1d[-1] #LCFS
         psi_2d = np.tile(psi_1d, (ntheta, 1)).T
-    
+
         # R,Z interpolation points (m)
         r_1d = np.linspace(rmin, rmax, nr)
         z_1d = np.linspace(zmin, zmax, nz)
@@ -1575,14 +1598,14 @@ class ImportData():
                 (r_2d, z_2d),
                 fill_value=psi1,
             )
-    
+
         # close NetCDF data
         vmec.close()
         extender.close()
-    
+
         # change order from [R,Z,phi] to [phi,Z,R] for below
         psi = np.transpose(psi, (2, 1, 0))
-    
+
         # repeat for each field period
         phidum = phi
         for i in range(1,nfp):
@@ -1595,7 +1618,7 @@ class ImportData():
         bphi = np.tile(bphi, (nfp, 1, 1))
         bz = np.tile(bz, (nfp, 1, 1))
         psi = np.tile(psi, (nfp, 1, 1))
-       
+
         # repeat endpoint phi=0 == phi=360
         phi = np.append(phi,2*np.pi)
         nphi = len(phi)
@@ -1605,7 +1628,7 @@ class ImportData():
         bphi = np.append(bphi, bphi[0, :, :][None, :], axis=0)
         bz = np.append(bz, bz[0, :, :][None, :], axis=0)
         psi = np.append(psi, psi[0, :, :][None, :], axis=0)
-    
+
         #dumb way to append to lcfs endpoint
         dumx,dumy = lcfs_r.shape
         new_lcfsr = np.zeros([dumx,dumy+1])
@@ -1627,7 +1650,7 @@ class ImportData():
         if psipad != 0.0:
             print('Warning: Padding psi0 with',psipad)
             psi0 += psipad
-    
+
         out = {
             "axis_phimin": 0,  # deg
             "axis_phimax": np.rad2deg(phi[-1]),  # deg
@@ -1664,10 +1687,139 @@ class ImportData():
 
         return out
 
-
     @staticmethod
     def extender_sts(ncfile, extfile, **kwargs):
         data = ImportData.extender_field(ncfile, extfile, **kwargs)
         data.pop("rlcfs", None)
         data.pop("zlcfs", None)
         return ("B_STS", data)
+
+    def import_nbi_waveforms(self, fn="nbi_waveforms.yaml"):
+        """Import NBI geometry from a YAML file.
+
+        This format contains data identical to what is found in IMAS IDS.
+        However, the NBI data is fixed in IDS, meaning that it cannot be
+        modified to e.g. scan different beam tilting angles. Storing the data in
+        YAML file instead allows one to easily modify the beam geometry.
+
+        Parameters
+        ----------
+        fn : str, optional
+            Name of the YAML file.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        yaml = YAML()
+        with open(fn, "r") as f:
+            data = yaml.load(f)
+
+        nunit = data["nunit"]
+        nbeamletgroup = data["nbeamletgroup"]
+
+        injectors = [None] * nunit
+
+
+
+        dynamic_variables = data["dynamic_variables"]
+        for unit in np.arange(nunit):
+            injectors[unit] = {}
+            prefix = f"unit[{unit}]."
+            var_map_beam = {
+                "anum":"species.a",
+                "znum":"species.z_n",
+                "power":"power_launched.data",
+                "energy":"energy.data",
+                "efraction":"beam_current_fraction.data",
+                "pfraction":"beam_power_fraction.data",
+                }
+            for var, idsname in var_map_beam.items():
+                injectors[unit][var] = dynamic_variables[prefix + idsname]
+            injectors[unit]["efraction"] = (
+                np.array(injectors[unit]["efraction"]).ravel()
+            )
+
+        static_variables = data["static_variables"]
+        for unit in np.arange(nunit):
+            var_map_beamletgroup = {
+                "direction":"direction",
+                "halofraction":"divergence_component[0].particles_fraction",
+                "divv":"divergence_component[0].vertical",
+                "divh":"divergence_component[0].horizontal",
+                "halodivv":"divergence_component[1].vertical",
+                "halodivh":"divergence_component[1].horizontal",
+            }
+            var_map_beamlet = {
+                "r":"beamlets.positions.r",
+                "phi":"beamlets.positions.phi",
+                "z":"beamlets.positions.z",
+                "angles":"beamlets.angles",
+                "tangencyradii":"beamlets.tangency_radii",
+            }
+            for var in var_map_beamlet.keys():
+                injectors[unit][var] = np.array([])
+            for group in np.arange(nbeamletgroup):
+                prefix = f"unit[{unit}].beamlets_group[{group}]."
+                for var, idsname in var_map_beamletgroup.items():
+                    injectors[unit][var] = static_variables[prefix + idsname]
+                for var, idsname in var_map_beamlet.items():
+                    injectors[unit][var] = np.append(
+                        injectors[unit][var],
+                        static_variables[prefix + idsname]
+                    )
+
+        injs = []
+        for unit in np.arange(nunit):
+            xyz = physlib.pol2cart(
+                    injectors[unit]["r"],
+                    injectors[unit]["phi"],
+                    injectors[unit]["z"],
+                )
+            beta = np.arccos(
+                injectors[unit]["tangencyradii"] / injectors[unit]["r"]
+                )
+            alpha = (
+                np.pi + injectors[unit]["phi"]
+                - injectors[unit]["direction"] * ( 0.5 * np.pi - beta )
+            )
+
+            # Fixing origo to the beamlet position, we can calculate the beam
+            # center line vector from spherical coordinates
+            dxyz = physlib.sph2cart(
+                r=1.0,
+                phi=alpha,
+                theta=np.pi/2 - injectors[unit]["angles"],
+            )
+
+            species = physlibspecies.autodetect(
+                injectors[unit]["anum"], injectors[unit]["znum"]
+                )
+            injs.append(
+                Injector(
+                    unit+1,
+                    injectors[unit]["anum"],
+                    injectors[unit]["znum"],
+                    species["mass"],
+                    injectors[unit]["energy"],
+                    injectors[unit]["efraction"],
+                    injectors[unit]["power"],
+                    injectors[unit]["divh"],
+                    injectors[unit]["divv"],
+                    injectors[unit]["halofraction"],
+                    injectors[unit]["halodivh"],
+                    injectors[unit]["halodivv"],
+                    xyz[0].size,
+                    xyz[0],
+                    xyz[1],
+                    xyz[2],
+                    dxyz[0],
+                    dxyz[1],
+                    dxyz[2]
+                )
+            )
+        return ("nbi", {"ninj":nunit, "injectors":injs})

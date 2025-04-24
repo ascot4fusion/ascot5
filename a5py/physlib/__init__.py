@@ -16,14 +16,22 @@ c     = unyt.c
 eps_0 = unyt.eps_0
 
 def cart2pol(x, y, z=None):
-    """Cartesian x coordinate from cylindrical coordinates.
+    """Convert a point in cartesian coordinates to polar coordinates.
     """
     return np.sqrt(x**2 + y**2), np.arctan2(y, x) * unyt.rad, z
 
 def pol2cart(r, phi, z=None):
-    """Cartesian x coordinate from cylindrical coordinates.
+    """Convert a point in polar coordinates to cartesian coordinates.
     """
     return r * np.cos(phi), r * np.sin(phi), z
+
+def sph2cart(r, phi, theta):
+    """Convert a point in spherical coordinates to cartesian coordinates.
+    """
+    x = r * np.sin(theta) * np.cos(phi)
+    y = r * np.sin(theta) * np.sin(phi)
+    z = r * np.cos(theta)
+    return x, y, z
 
 def pol2cart_vec(vr,r,vphi,phi,vz=None,z=None):
     vx = vr * np.cos(phi) - vphi * np.sin(phi)
