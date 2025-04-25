@@ -950,11 +950,13 @@ class ImportData():
         if xr is None:
             raise ImportError("xarray package is required to load the RF data")
         
-        inp = self._ascot.input_initialized()
-        if ("boozer" not in inp):
-            raise AscotInitException("boozer coordinates not initialized")
-        if ("bfield" not in inp):
-            raise AscotInitException("magnetic field not initialized")
+        # inp = self._ascot.input_initialized()
+        # if ("boozer" not in inp):
+        #     raise AscotInitException("boozer coordinates not initialized")
+        # if ("bfield" not in inp):
+        #     raise AscotInitException("magnetic field not initialized")
+        self._ascot._requireinit("bfield")
+        self._ascot._requireinit("boozer")
         
         # Opening the dataset: it contains the electromagnetic field 
         # components in real and imaginary parts but described in a
