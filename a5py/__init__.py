@@ -147,7 +147,7 @@ class Ascot(Ascotpy):
                 if _LIBASCOT:
                     self._sim.hdf5_in = inputfile.encode('UTF-8')
             except:
-                self.inputfile = None
+                self._inputfile = None
                 self.data = Ascot5IO(self)
                 if _LIBASCOT:
                     self._sim.hdf5_in = "".encode('UTF-8')
