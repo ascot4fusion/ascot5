@@ -371,7 +371,7 @@ void sim_monitor(char* filename, volatile int* n, volatile int* finished) {
                     (1/fracprog-1)*timespent/3600);
         }
         fflush(f);
-        //sleep(A5_PRINTPROGRESSINTERVAL);
+        sleep(A5_PRINTPROGRESSINTERVAL);
     }
 
     fprintf(f, "Simulation finished.\n");
