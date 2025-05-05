@@ -560,9 +560,9 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
         if(!err && p->p.mass <= 0) {
             err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
         }
-        if(!err && p->p.weight <= 0) {
-            err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
-        }
+        // if(!err && p->p.weight <= 0) {
+        //     err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
+        // }
         if(!err && p->p.id <= 0) {
             err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
         }
@@ -588,9 +588,9 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
         if(!err && p->p_gc.mass <= 0)       {
             err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
         }
-        if(!err && p->p_gc.weight <= 0)     {
-            err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
-        }
+        // if(!err && p->p_gc.weight <= 0)     {
+        //     err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
+        // }
         if(!err && p->p_gc.id <= 0)         {
             err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
         }
@@ -607,9 +607,9 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
         if(!err && p->p_ml.r <= 0) {
             err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
         }
-        if(!err && p->p_ml.weight <= 0) {
-            err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
-        }
+        // if(!err && p->p_ml.weight <= 0) {
+        //     err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
+        // }
         if(!err && p->p_ml.id <= 0) {
             err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
         }
