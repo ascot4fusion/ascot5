@@ -20,7 +20,7 @@ class InputVariant(Leaf, DataHolder):
     def _read_hdf5(self, *names):
         """Read dataset from HDF5 file.
 
-        This is just a helper method which can be called when implementing the
+        This is a helper method which can be called when implementing the
         properties in subclasses.
 
         Parameters
@@ -148,9 +148,9 @@ def validate_parameters(
     variables = []
     for name, unit in zip(names, units):
         variables.append(
-            physlib.match_units(parameters[name], unit, strip=True)
+            physlib.match_units(parameters[name], unit, strip=False)
         )
-    utils.validate_variables(variables, names, shape, dtype)
+    variables = utils.validate_variables(variables, names, shape, dtype)
     for name, val in zip(names, variables):
         parameters[name] = val
     return parameters

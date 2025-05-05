@@ -101,7 +101,7 @@ def validate_variables(
                 )
         cast_variables.append(var)
     if len(cast_variables) == 1:
-        return cast_variables[0]
+        return [cast_variables[0]]
     return tuple(cast_variables)
 
 

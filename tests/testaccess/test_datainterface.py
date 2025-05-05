@@ -35,8 +35,8 @@ class Pointcloud(InputVariant):
             ("volume", ctypes.c_double),
             ("weight", ctypes.c_double),
             ("dirvec", ctypes.c_double * 3),
-            ("offload_array_size", ctypes.c_size_t),
-            ("int_offload_array_size", ctypes.c_size_t),
+            ("xcoords", ctypes.c_size_t),
+            ("ycoords", ctypes.c_size_t),
             ]
 
     def __init__(self):
@@ -50,49 +50,62 @@ class Pointcloud(InputVariant):
         """Number of points."""
         if self._format == Format.HDF5:
             return self._read_hdf5("xcoords").size
-        return self._struct_.Npoint
+        elif self._format == Format.CSTRUCT:
+            return self._struct_.Npoint
+        return self._npoint
 
     @property
     def volume(self):
         """Volume of the cloud."""
         if self._format == Format.HDF5:
             return self._read_hdf5("volume")
-        return self._struct_.volume * unyt.m**3
+        elif self._format == Format.CSTRUCT:
+            return self._struct_volume * unyt.m**3
+        return self._volume
 
     @property
     def weight(self):
         """Weight of the cloud."""
         if self._format == Format.HDF5:
             return self._read_hdf5("weight")
-        return self._struct_.weight * unyt.kg
+        elif self._format == Format.CSTRUCT:
+            return self._struct_.weight * unyt.kg
+        return self._weight
 
     @property
     def dirvec(self):
         """Cloud direction."""
         if self._format == Format.HDF5:
             return self._read_hdf5("directionvector")
-        return self._from_struct_("dirvec")
+        elif self._format == Format.CSTRUCT:
+            return self._from_struct_("dirvec")
+        return self._dirvec.copy()
 
     @property
     def x(self):
         """Array of x-coordinates."""
         if self._format == Format.HDF5:
             return self._read_hdf5("xcoords")
-        return self._slice_offload_array(0, self.npoint) * unyt.m
+        elif self._format == Format.CSTRUCT:
+            return self._slice_array("xcoords", 0, self.npoint) * unyt.m
+        return self._x.copy()
 
     @property
     def y(self):
         """Array of y-coordinates."""
         if self._format == Format.HDF5:
             return self._read_hdf5("ycoords")
-        slice_ = (self.npoint, 2*self.npoint)
-        return self._slice_offload_array(*slice_) * unyt.m
+        elif self._format == Format.CSTRUCT:
+            return self._slice_array("ycoords", 0, self.npoint) * unyt.m
+        return self._y.copy()
 
     def _export_hdf5(self):
         """Export data to HDF5 file."""
         if self._format == Format.HDF5:
             raise AscotIOException("Data is already in stored in the file.")
         data = self.export()
+        data["xcoords"] = data.pop("x")
+        data["ycoords"] = data.pop("y")
         data["directionvector"] = data.pop("dirvec")
         self._treemanager.hdf5manager.write_datasets(
             self.qid, self.variant, data,
@@ -105,8 +118,8 @@ class Pointcloud(InputVariant):
         data = {
             "volume":self.volume,
             "dirvec":self.dirvec,
-            "xcoords":self.x,
-            "ycoords":self.y,
+            "x":self.x,
+            "y":self.y,
             "weight":self.weight,
         }
         return data
@@ -116,8 +129,8 @@ class Pointcloud(InputVariant):
 def create_pointcloud(
         volume: utils.ArrayLike | None = None,
         dirvec: utils.ArrayLike | None = None,
-        xcoords: utils.ArrayLike | None = None,
-        ycoords: utils.ArrayLike | None = None,
+        x: utils.ArrayLike | None = None,
+        y: utils.ArrayLike | None = None,
         weight: Optional[utils.ArrayLike] = None,
         ) -> Pointcloud:
     """Creates a point cloud instance.
@@ -125,13 +138,11 @@ def create_pointcloud(
     This mimics the factory methods creating the actual data objects. Inputs
     should be checked in these methods.
     """
-    parameters = variants.parse_parameters(
-        volume, dirvec, xcoords, ycoords, weight,
-        )
-    ncoord = 1 if parameters["xcoords"] is None else parameters["xcoords"].size
-    variants.validate_required_parameters(
+    parameters = variants.parse_parameters(volume, dirvec, x, y, weight)
+    ncoord = 1 if parameters["x"] is None else parameters["x"].size
+    parameters = variants.validate_required_parameters(
             parameters,
-            names=["volume", "dirvec", "xcoords", "ycoords"],
+            names=["volume", "dirvec", "x", "y"],
             units=["m**3", "1", "m", "m"],
             shape=[(), (3,), (ncoord,), (ncoord,)],
             dtype="f8",
@@ -139,64 +150,33 @@ def create_pointcloud(
                 0, np.array([1, 0, 0]), np.ones((1,)), np.ones((1,)),
                 ],
         )
-    variants.validate_optional_parameters(
+    parameters = variants.validate_optional_parameters(
         parameters, ["weight"], ["kg"], [()], "f8",
         [(parameters["volume"] * unyt.kg / unyt.m**3).v],
     )
     obj = Pointcloud()
+    obj._x = parameters["x"]
+    obj._y = parameters["y"]
+    obj._npoint = ncoord
+    obj._volume = parameters["volume"]
+    obj._weight = parameters["weight"]
+    obj._dirvec = parameters["dirvec"]
+    for immutable in ["x", "y", "dirvec"]:
+        getattr(obj, f"_{immutable}").flags.writeable = False
 
-    obj._struct_.Npoint = ncoord
-    obj._struct_.volume = parameters["volume"]
-    obj._struct_.weight = parameters["weight"]
-    obj._struct_.dirvec[:] = parameters["dirvec"]
-
-    offload_array_size = parameters["xcoords"].size + parameters["ycoords"].size
-    obj._allocate_offload_arrays(offload_array_size, intsize=0)
-    obj._append_offload_array(parameters["xcoords"], parameters["ycoords"])
     return obj
 
 
-@pytest.fixture(name="testdata")
-def fixture_testdata():
-    """Test data for point cloud initialization."""
-    Data = namedtuple(
-        "data", ["xcoords", "ycoords", "dirvec", "volume", "weight"]
-        )
-    return Data(
-        np.array([1.0, 2.0, 3.0, 4.0]),
-        np.array([-1.0, -2.0, -3.0, -4.0]),
-        np.array([1/np.sqrt(2), -1/np.sqrt(2), 0]),
-        -5.0,
-        2.0,
-        )
-
-
 @pytest.fixture(name="testdatadict")
-def fixture_testdatadict(testdata):
-    """Test data for creating point clouds in dictionary format + with units."""
+def fixture_testdatadict():
+    """Test data for creating point clouds in dictionary format."""
     return {
-        "volume":testdata.volume*unyt.m**3,
-        "dirvec":testdata.dirvec,
-        "xcoords":testdata.xcoords*unyt.m,
-        "ycoords":testdata.ycoords*unyt.m,
-        "weight":testdata.weight*unyt.kg,
+        "volume":-5.0*unyt.m**3,
+        "dirvec":np.array([1/np.sqrt(2), -1/np.sqrt(2), 0]),
+        "x":np.array([1.0, 2.0, 3.0, 4.0])*unyt.m,
+        "y":np.array([-1.0, -2.0, -3.0, -4.0])*unyt.m,
+        "weight":2.0*unyt.kg,
         }
-
-
-@pytest.fixture(name="pointcloud")
-def fixture_pointcloud(testdata):
-    """Create point cloud from test data."""
-    pc = Pointcloud()
-
-    pc._struct_.Npoint = testdata.xcoords.size
-    pc._struct_.volume = testdata.volume
-    pc._struct_.weight = testdata.weight
-    pc._struct_.dirvec[:] = testdata.dirvec
-
-    offload_array_size = testdata.xcoords.size + testdata.ycoords.size
-    pc._allocate_offload_arrays(offload_array_size, intsize=0)
-    pc._append_offload_array(testdata.xcoords, testdata.ycoords)
-    return pc
 
 
 @pytest.fixture(name="hdf5manager")
@@ -206,49 +186,43 @@ def fixture_hdf5manager():
     os.unlink(FNEMPTY)
 
 
-def test_init_and_access(pointcloud, testdata):
-    """Test that initialized properties yield correct data."""
-    pc = pointcloud
-    assert pc.npoint == 4
-    assert pc.volume.v == testdata.volume
-    assert np.allclose(pc.x.v, testdata.xcoords)
-    assert np.allclose(pc.y.v, testdata.ycoords)
-    assert np.allclose(pc.dirvec, testdata.dirvec)
-
-
-def test_struct_data_is_immutable(pointcloud):
-    """Test that properties are immutable and return values that are copies."""
-    value_to_ensure_data_is_copied = 10.0
-    pc = pointcloud
-
-    pc.dirvec[0] = value_to_ensure_data_is_copied
-    assert pc.dirvec[0] != value_to_ensure_data_is_copied
-    copied_value = pc.dirvec[0]
-    pc._struct_.dirvec[0] = value_to_ensure_data_is_copied
-    assert pc.dirvec[0] == value_to_ensure_data_is_copied
-    assert copied_value != value_to_ensure_data_is_copied
-    copied_value = pc.x[0]
-    pc._offload_array_[0] = value_to_ensure_data_is_copied
-    assert pc.x[0].v == value_to_ensure_data_is_copied
-    assert copied_value != value_to_ensure_data_is_copied
-
-    with pytest.raises(AttributeError):
-        pc.volume = np.array([1.0]) * unyt.m**3
-    with pytest.raises(AttributeError):
-        pc.dirvec = np.array([1,0,0])
-    with pytest.raises(AttributeError):
-        pc.x = np.array([1.0, 2.0, 3.0, 4.0]) * unyt.m
-
-
 def test_create(testdatadict):
     """Test the create method."""
     pc = create_pointcloud(**testdatadict)
     assert pc.npoint == 4
     assert np.allclose(pc.volume.v, testdatadict["volume"].v)
     assert np.allclose(pc.weight.v, testdatadict["weight"].v)
-    assert np.allclose(pc.x.v, testdatadict["xcoords"].v)
-    assert np.allclose(pc.y.v, testdatadict["ycoords"].v)
+    assert np.allclose(pc.x.v, testdatadict["x"].v)
+    assert np.allclose(pc.y.v, testdatadict["y"].v)
     assert np.allclose(pc.dirvec, testdatadict["dirvec"])
+
+
+def test_cannot_modify_inputparams(testdatadict):
+    """Test that the input parameters have become immutable once the object is
+       created.
+    """
+    testdatadict["dirvec"][0] = 10
+    assert testdatadict["dirvec"][0] == 10
+    pc = create_pointcloud(**testdatadict)
+    with pytest.raises(ValueError):
+        pc._dirvec[0] = 10
+
+
+def test_struct_data_is_immutable(testdatadict):
+    """Test that properties are immutable and return values that are copies."""
+    value_to_ensure_data_is_copied = 10.0
+    pc = create_pointcloud(**testdatadict)
+
+    pc.dirvec[0] = value_to_ensure_data_is_copied
+    assert pc.dirvec[0] != value_to_ensure_data_is_copied
+    with pytest.raises(ValueError):
+        pc._dirvec[0] = value_to_ensure_data_is_copied
+    with pytest.raises(AttributeError):
+        pc.volume = np.array([1.0]) * unyt.m**3
+    with pytest.raises(AttributeError):
+        pc.dirvec = np.array([1,0,0])
+    with pytest.raises(AttributeError):
+        pc.x = np.array([1.0, 2.0, 3.0, 4.0]) * unyt.m
 
 
 def test_create_different_but_acceptable_units(testdatadict):
@@ -268,26 +242,24 @@ def test_create_not_acceptable_units(testdatadict):
 
 
 @pytest.mark.parametrize(
-        "coords", [[1,2,3], 1, np.array([[1,2,3]]), np.array([[1,2,3]]).T],
-        ids=["list", "single element", "2D array", "2D array transposed"],
-        )
+    "coords", ([1,2,3], 1, np.array([[1,2,3]]), np.array([[1,2,3]]).T),
+    ids=("list", "single element", "2D array", "2D array transposed"),
+)
 def test_create_different_but_acceptable_shape(testdatadict, coords):
     """Test the create method when using different shape as expected."""
-    testdatadict["xcoords"] = coords
-    testdatadict["ycoords"] = coords
+    testdatadict["x"] = coords
+    testdatadict["y"] = coords
     pc = create_pointcloud(**testdatadict)
     assert np.allclose(pc.x.v, np.asarray(coords).ravel())
 
 
-def test_create_inacceptable_or_inconsistent_shape(testdatadict):
+@pytest.mark.parametrize(
+    "faultydata", ({"y": [1, 2]}, {"volume": [1, 2]}),
+    ids=("y inconsistent with x", "volume has invalid shape")
+)
+def test_create_inacceptable_or_inconsistent_shape(testdatadict, faultydata):
     """Test the create method when parameters are inconsistent or incorrect."""
-    testdatadict["xcoords"] = [1, 2, 3]
-    testdatadict["ycoords"] = [1, 2]
-    with pytest.raises(ValueError):
-        _ = create_pointcloud(**testdatadict)
-
-    testdatadict["ycoords"] = [1, 2, 3]
-    testdatadict["volume"] = [1,2]
+    testdatadict.update(faultydata)
     with pytest.raises(ValueError):
         _ = create_pointcloud(**testdatadict)
 
@@ -331,9 +303,9 @@ def test_init_hdf5(testdatadict):
         _, _ = qid, variant
         match key:
             case "xcoords":
-                return testdatadict["xcoords"]
+                return testdatadict["x"]
             case "ycoords":
-                return testdatadict["ycoords"]
+                return testdatadict["y"]
             case "volume":
                 return testdatadict["volume"]
             case "directionvector":
@@ -346,11 +318,11 @@ def test_init_hdf5(testdatadict):
     pc._treemanager = MagicMock()
     pc._treemanager.hdf5manager = hdf5manager
 
-    assert all( np.isclose(pc.x, testdatadict["xcoords"], atol=0*unyt.m) )
-    assert all( np.isclose(pc.y, testdatadict["ycoords"], atol=0*unyt.m) )
+    assert all( np.isclose(pc.x, testdatadict["x"], atol=0*unyt.m) )
+    assert all( np.isclose(pc.y, testdatadict["y"], atol=0*unyt.m) )
     assert all( np.isclose(pc.dirvec, testdatadict["dirvec"], atol=0) )
     assert np.isclose(pc.volume, testdatadict["volume"], atol=0*unyt.m**3)
-    assert pc.npoint == testdatadict["xcoords"].size
+    assert pc.npoint == testdatadict["x"].size
 
 
 def test_export_hdf5(testdatadict, hdf5manager):
