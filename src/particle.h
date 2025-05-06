@@ -303,7 +303,7 @@ typedef struct {
     real* B_z_dz;     /**< dB_z/dz at marker pos. [T/m]    */
 
     /* Quantities used in diagnostics */
-    int bounces;  /**< Number of times pitch sign changed */
+    int* bounces;  /**< Number of times pitch sign changed */
     real* weight;  /**< Marker weight                      */
     real* cputime; /**< Marker wall-clock time [s]         */
     real* rho;     /**< Marker rho coordinate              */
@@ -389,7 +389,7 @@ typedef struct {
 
 
 void particle_allocate_fo(particle_simd_fo* p_fo, int nmrk);
-void particle_allocate_gc(particle_simd_fo* p_fo, int nmrk);
+void particle_allocate_gc(particle_simd_gc* p_gc, int nmrk);
 void particle_to_fo_dummy(particle_simd_fo* p_fo, int j);
 void particle_to_gc_dummy(particle_simd_gc* p_gc, int j);
 void particle_to_fo_dummy(particle_simd_fo* p_fo, int j);
@@ -414,8 +414,8 @@ a5err particle_input_ml_to_state(particle_ml* p, particle_state* ps,
 
 void particle_offload_fo(particle_simd_fo* p);
 void particle_onload_fo(particle_simd_fo* p);
-void particle_offload_gc(particle_simd_fo* p);
-void particle_onload_gc(particle_simd_fo* p);
+void particle_offload_gc(particle_simd_gc* p);
+void particle_onload_gc(particle_simd_gc* p);
 
 DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo,

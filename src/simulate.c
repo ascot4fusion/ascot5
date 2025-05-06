@@ -195,7 +195,7 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
                 }
                 else {
                     OMP_PARALLEL_CPU_ONLY
-                    simulate_gc_fixed(&pq, sim);
+                    simulate_gc_fixed(&pq, sim, n_queue_size);
                 }
             }
             else if(pq.n > 0 && sim->sim_mode == simulate_mode_fo) {

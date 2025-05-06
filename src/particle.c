@@ -120,51 +120,51 @@ void particle_allocate_fo(particle_simd_fo* p_fo, int nmrk){
  * Size used for memory allocation is NSIMD for CPU run and the total number
  * of particles for GPU.
  *
- * @param p_fo marker struct to allocate
+ * @param p_gc marker struct to allocate
  * @param nmrk the number of markers that the struct represents
  */
-void particle_allocate_gc(particle_simd_fo* p_fo, int nmrk){
+void particle_allocate_gc(particle_simd_gc* p_gc, int nmrk){
     /* Physical coordinates and parameters */
-    p_fo->r = malloc(nmrk * sizeof(p_fo->r)  );
-    p_fo->phi = malloc(nmrk * sizeof(p_fo->phi)  );
-    p_fo->z = malloc(nmrk * sizeof(p_fo->z)  );
-    p_fo->ppar = malloc(nmrk * sizeof(p_fo->ppar)  );
-    p_fo->mu = malloc(nmrk * sizeof(p_fo->mu)  );
-    p_fo->zeta = malloc(nmrk * sizeof(p_fo->zeta)  );
-    p_fo->mass = malloc(nmrk * sizeof(p_fo->mass)  );
-    p_fo->charge = malloc(nmrk * sizeof(p_fo->charge)  );
-    p_fo->time = malloc(nmrk * sizeof(p_fo->time)  );
+    p_gc->r = malloc(nmrk * sizeof(p_gc->r)  );
+    p_gc->phi = malloc(nmrk * sizeof(p_gc->phi)  );
+    p_gc->z = malloc(nmrk * sizeof(p_gc->z)  );
+    p_gc->ppar = malloc(nmrk * sizeof(p_gc->ppar)  );
+    p_gc->mu = malloc(nmrk * sizeof(p_gc->mu)  );
+    p_gc->zeta = malloc(nmrk * sizeof(p_gc->zeta)  );
+    p_gc->mass = malloc(nmrk * sizeof(p_gc->mass)  );
+    p_gc->charge = malloc(nmrk * sizeof(p_gc->charge)  );
+    p_gc->time = malloc(nmrk * sizeof(p_gc->time)  );
 
     /* Magnetic field data */
-    p_fo->B_r = malloc(nmrk * sizeof(p_fo->B_r)  );
-    p_fo->B_phi = malloc(nmrk * sizeof(p_fo->B_phi)  );
-    p_fo->B_z = malloc(nmrk * sizeof(p_fo->B_z)  );
-    p_fo->B_r_dr = malloc(nmrk * sizeof(p_fo->B_r_dr)  );
-    p_fo->B_phi_dr = malloc(nmrk * sizeof(p_fo->B_phi_dr)  );
-    p_fo->B_z_dr = malloc(nmrk * sizeof(p_fo->B_z_dr)  );
-    p_fo->B_r_dphi = malloc(nmrk * sizeof(p_fo->B_r_dphi)  );
-    p_fo->B_phi_dphi = malloc(nmrk * sizeof(p_fo->B_phi_dphi)  );
-    p_fo->B_z_dphi = malloc(nmrk * sizeof(p_fo->B_z_dphi)  );
-    p_fo->B_r_dz = malloc(nmrk * sizeof(p_fo->B_r_dz)  );
-    p_fo->B_phi_dz = malloc(nmrk * sizeof(p_fo->B_phi_dz)  );
-    p_fo->B_z_dz = malloc(nmrk * sizeof(p_fo->B_z_dz)  );
+    p_gc->B_r = malloc(nmrk * sizeof(p_gc->B_r)  );
+    p_gc->B_phi = malloc(nmrk * sizeof(p_gc->B_phi)  );
+    p_gc->B_z = malloc(nmrk * sizeof(p_gc->B_z)  );
+    p_gc->B_r_dr = malloc(nmrk * sizeof(p_gc->B_r_dr)  );
+    p_gc->B_phi_dr = malloc(nmrk * sizeof(p_gc->B_phi_dr)  );
+    p_gc->B_z_dr = malloc(nmrk * sizeof(p_gc->B_z_dr)  );
+    p_gc->B_r_dphi = malloc(nmrk * sizeof(p_gc->B_r_dphi)  );
+    p_gc->B_phi_dphi = malloc(nmrk * sizeof(p_gc->B_phi_dphi)  );
+    p_gc->B_z_dphi = malloc(nmrk * sizeof(p_gc->B_z_dphi)  );
+    p_gc->B_r_dz = malloc(nmrk * sizeof(p_gc->B_r_dz)  );
+    p_gc->B_phi_dz = malloc(nmrk * sizeof(p_gc->B_phi_dz)  );
+    p_gc->B_z_dz = malloc(nmrk * sizeof(p_gc->B_z_dz)  );
 
     /* Quantities used in diagnostics */
-    p_fo->bounces = malloc(nmrk * sizeof(p_fo->bounces)  );
-    p_fo->weight = malloc(nmrk * sizeof(p_fo->weight)  );
-    p_fo->cputime = malloc(nmrk * sizeof(p_fo->cputime)  );
-    p_fo->rho = malloc(nmrk * sizeof(p_fo->rho)  );
-    p_fo->theta = malloc(nmrk * sizeof(p_fo->theta)  );
-    p_fo->id = malloc(nmrk * sizeof(p_fo->id)  );
-    p_fo->endcond = malloc(nmrk * sizeof(p_fo->endcond)  );
-    p_fo->walltile = malloc(nmrk * sizeof(p_fo->walltile)  );
+    p_gc->bounces = malloc(nmrk * sizeof(p_gc->bounces));
+    p_gc->weight = malloc(nmrk * sizeof(p_gc->weight)  );
+    p_gc->cputime = malloc(nmrk * sizeof(p_gc->cputime)  );
+    p_gc->rho = malloc(nmrk * sizeof(p_gc->rho)  );
+    p_gc->theta = malloc(nmrk * sizeof(p_gc->theta)  );
+    p_gc->id = malloc(nmrk * sizeof(p_gc->id)  );
+    p_gc->endcond = malloc(nmrk * sizeof(p_gc->endcond)  );
+    p_gc->walltile = malloc(nmrk * sizeof(p_gc->walltile)  );
 
     /* Meta data */
-    p_fo->mileage = malloc(nmrk * sizeof(p_fo->mileage)  );
-    p_fo->running = malloc(nmrk * sizeof(p_fo->running)  );
-    p_fo->err = malloc(nmrk * sizeof(p_fo->err)  );
-    p_fo->index = malloc(nmrk * sizeof(p_fo->index)  );
-    p_fo->n_mrk = nmrk;
+    p_gc->mileage = malloc(nmrk * sizeof(p_gc->mileage)  );
+    p_gc->running = malloc(nmrk * sizeof(p_gc->running)  );
+    p_gc->err = malloc(nmrk * sizeof(p_gc->err)  );
+    p_gc->index = malloc(nmrk * sizeof(p_gc->index)  );
+    p_gc->n_mrk = nmrk;
 }
 
 /**
@@ -1867,7 +1867,7 @@ void particle_onload_fo(particle_simd_fo* p) {
  *
  * @param p pointer to the particle struct to be offloaded.
  */
-void particle_offload_gc(particle_simd_fo* p) {
+void particle_offload_gc(particle_simd_gc* p) {
     GPU_MAP_TO_DEVICE(
         p[0:1],\
         p->r          [0:p->n_mrk],\
@@ -1911,7 +1911,7 @@ void particle_offload_gc(particle_simd_fo* p) {
  *
  * @param p pointer to the particle struct to be onloaded.
  */
-void particle_onload_gc(particle_simd_fo* p) {
+void particle_onload_gc(particle_simd_gc* p) {
     GPU_UPDATE_FROM_DEVICE(
         p->r          [0:p->n_mrk],\
         p->phi        [0:p->n_mrk],\
