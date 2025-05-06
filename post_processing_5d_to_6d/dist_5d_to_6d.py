@@ -145,13 +145,13 @@ def calculate_3d_momentum(ppar, pperp, r, phi, z, b_vec, n_samples, pcoord):
     e1 = e1[:,:,np.newaxis]
     e2 = e2[:,:,np.newaxis]
     # Does the sign matter (charge thing with alphas)?
-    perphat[:,:,0] = s * e1[:,0,:] + c * e2[:,0,:];
-    perphat[:,:,1] = s * e1[:,1,:] + c * e2[:,1,:];
-    perphat[:,:,2] = s * e1[:,2,:] + c * e2[:,2,:];
+    perphat[:,:,0] = s * e1[:,0,:] + c * e2[:,0,:]
+    perphat[:,:,1] = s * e1[:,1,:] + c * e2[:,1,:]
+    perphat[:,:,2] = s * e1[:,2,:] + c * e2[:,2,:]
 
-    px = (ppar * bhat[:,0])[:, np.newaxis] + pperp * perphat[:,:,0];
-    py = (ppar * bhat[:,1])[:, np.newaxis] + pperp * perphat[:,:,1];
-    pz = (ppar * bhat[:,2])[:, np.newaxis] + pperp * perphat[:,:,2];
+    px = (ppar * bhat[:,0])[:, np.newaxis] + pperp * perphat[:,:,0]
+    py = (ppar * bhat[:,1])[:, np.newaxis] + pperp * perphat[:,:,1]
+    pz = (ppar * bhat[:,2])[:, np.newaxis] + pperp * perphat[:,:,2]
     if (pcoord == "cartesian"):
         return px, py, pz
     elif (pcoord == "spherical"):
@@ -166,6 +166,27 @@ def calculate_3d_momentum(ppar, pperp, r, phi, z, b_vec, n_samples, pcoord):
     else:
         raise ValueError(f"Unknown coordinate: {pcoord}")
 
+def check_minmax(px,py,pz, pxmin, pxmax, pymin, pymax, pzmin, pzmax, zetas, zeta):
+    
+    if px.min()<pxmin:
+        pxmin = px.min()
+        zetas[0] = zeta[np.argmin(px)]
+    if px.max() > pxmax:
+        pxmax = px.max()
+        zetas[1] = zeta[np.argmax(px)]
+    if py.min()<pymin:
+        pymin = py.min()
+        zetas[2] = zeta[np.argmin(py)]
+    if py.max() > pymax:
+        pymax = py.max()
+        zetas[3] = zeta[np.argmax(py)]
+    if pz.min()<pzmin:
+        pzmin = pz.min()
+        zetas[4] = zeta[np.argmin(pz)]
+    if pz.max() > pzmax:
+        pzmax = pz.max()
+        zetas[5] = zeta[np.argmax(pz)]
+    return pxmin, pxmax, pymin, pymax, pzmin, pzmax, zetas
 
 def dist_5d_to_6d_momentumloop_general(dist_5d, n_samples, a5, pcoord, np1, np2, np3):
     print(f"Shape of 5D distribution {dist_5d.distribution().shape}, abscissae {dist_5d.abscissae}")
@@ -181,10 +202,133 @@ def dist_5d_to_6d_momentumloop_general(dist_5d, n_samples, a5, pcoord, np1, np2,
     #pperp_edges = dist_5d.abscissa_edges("pperp")
     time_values = dist_5d.abscissa("time")
 
+    padding = 1.1
     # Do p edges need to be changed in some situations?
-    p1_min, p1_max = ppar_edges.min()*2, ppar_edges.max()*2
-    p2_min, p2_max = ppar_edges.min()*2, ppar_edges.max()*2
-    p3_min, p3_max = ppar_edges.min()*2, ppar_edges.max()*2
+    p1_min, p1_max = ppar_edges.min()*padding, ppar_edges.max()*padding
+    p2_min, p2_max = ppar_edges.min()*padding, ppar_edges.max()*padding
+    p3_min, p3_max = ppar_edges.min()*padding, ppar_edges.max()*padding
+
+    p1_edges = np.linspace(p1_min, p1_max, np1)# * ppar_edges.units
+    p2_edges = np.linspace(p2_min, p2_max, np2)# * ppar_edges.units
+    p3_edges = np.linspace(p3_min, p3_max, np3)# * ppar_edges.units
+    
+    # p1_edges = np.histogram_bin_edges(ppar_edges*padding, np1)# * ppar_edges.units
+    # p2_edges = np.histogram_bin_edges(ppar_edges*padding, np2)# * ppar_edges.units
+    # p3_edges = np.histogram_bin_edges(ppar_edges*padding, np3)# * ppar_edges.units
+    
+    hist_6d_arr = np.zeros((len(r_edges)-1, len(phi_edges)-1, len(z_edges)-1, len(p1_edges)-1, len(p2_edges)-1, len(p3_edges)-1), dtype=np.float64)
+
+    r_grid, phi_grid, z_grid = np.meshgrid(r_values, phi_values, z_values, indexing='ij')
+    # Let's ravel the grid
+    r_grid = r_grid.ravel()
+    phi_grid = phi_grid.ravel()
+    z_grid = z_grid.ravel()
+    ir_grid = np.digitize(r_grid, r_edges)-1
+    iphi_grid = np.digitize(phi_grid, phi_edges)-1
+    iz_grid = np.digitize(z_grid, z_edges)-1 
+
+    a5.input_init(bfield=True)
+    br, bphi, bz = a5.input_eval(r_grid, phi_grid, z_grid, time_values, 'br', 'bphi', 'bz')
+    a5.input_free()
+    bx, by, bz = magnetic_field_cylindrical_to_cartesian(br, bphi, bz, phi_grid)
+    print(f"Iterations: {len(ppar_values)*len(pperp_values)}")
+    itn = 0
+
+    # pxmin = 0
+    # pxmax = 0
+    # pymin = 0
+    # pymax = 0
+    # pzmin = 0
+    # pzmax = 0
+    # zetas = np.zeros(6)
+
+    ir_grid = np.tile(ir_grid, n_samples)
+    iphi_grid = np.tile(iphi_grid, n_samples)
+    iz_grid = np.tile(iz_grid, n_samples)
+    dist_5d  = dist_5d.integrate(copy=True,  charge=np.s_[:], time=np.s_[:] )
+    for ippar, ppar in enumerate(ppar_values):
+        for ipperp, pperp in enumerate(pperp_values):
+            particles_weight = np.tile(dist_5d.histogram()[:,:,:,ippar,ipperp].ravel(), n_samples)
+            p1, p2, p3 = calculate_3d_momentum(ppar, pperp,r_grid, phi_grid, z_grid, np.array([bx, by, bz]), n_samples, pcoord)
+
+            # pxmin, pxmax, pymin, pymax, pzmin, pzmax, zetas = check_minmax(p1,p2,p3, pxmin, pxmax, pymin, pymax, pzmin, pzmax, zetas, zeta)
+
+            ip1_grid = (np.digitize(p1, p1_edges)-1).ravel()
+            ip2_grid = (np.digitize(p2, p2_edges)-1).ravel()
+            ip3_grid = (np.digitize(p3, p3_edges)-1).ravel()
+            np.add.at(hist_6d_arr, (ir_grid, iphi_grid, iz_grid, ip1_grid, ip2_grid, ip3_grid), (particles_weight/n_samples).v )
+            if (itn % 50 == 0):
+                    print(f"Iteration {itn}")
+            itn += 1
+    if (pcoord == "spherical"):
+        dist_6d = DistData(hist_6d_arr, r=r_edges, phi = phi_edges, z=z_edges, pr = p1_edges, pphi = p2_edges, ptheta = p3_edges)
+    elif (pcoord == "cartesian"):
+        dist_6d = DistData(hist_6d_arr, r=r_edges, phi = phi_edges, z=z_edges, px = p1_edges, py = p2_edges, pz = p3_edges)
+    elif (pcoord == "cylindrical"):
+        dist_6d = DistData(hist_6d_arr, r=r_edges, phi = phi_edges, z=z_edges, prho = p1_edges, pphi = p2_edges, pz = p3_edges)
+    else:
+        raise ValueError("Unsupported coordinate system")
+
+    print(f"6D distribution shape:, {dist_6d._distribution.shape}")
+
+    # print(f"absolute min and max in px, py, pz: {pxmin, pxmax, pymin, pymax, pzmin, pzmax}")
+    # print(f"corresponding angle: {zetas[0], zetas[1], zetas[2], zetas[3], zetas[4], zetas[5]}")
+    return dist_6d
+
+def dist_5d_to_6d_momentumloop_ekin_pitch(dist_5d, n_samples, a5, pcoord, np1, np2, np3, nppar, npperp):
+    
+    time_values = dist_5d.abscissa("time")
+    dist_5d  = dist_5d.integrate(copy=True,  charge=np.s_[:], time=np.s_[:] )
+    r_edges = dist_5d.abscissa_edges("r")
+    r_values = dist_5d.abscissa("r")
+    phi_edges = dist_5d.abscissa_edges("phi")
+    phi_values = dist_5d.abscissa("phi")
+    z_edges = dist_5d.abscissa_edges("z")
+    z_values = dist_5d.abscissa("z")
+    ekin_values = dist_5d.abscissa("ekin")
+    pitch_values = dist_5d.abscissa("pitch")
+
+    eV_to_J = 1.60218e-19
+    mass = 1.674927471e-27*unyt.kg
+    ekin_grid, pitch_grid = np.meshgrid(ekin_values, pitch_values, indexing='ij')
+    # Compute total momentum from ekin
+    momentum = np.sqrt(2 * mass * ekin_grid * eV_to_J)
+    ppar = momentum * pitch_grid
+    pperp = momentum * np.sqrt(1 - pitch_grid**2)    
+    
+    # ppar_edges = np.linspace(ppar.min()*1.2, ppar.max()*1.2 ,nppar)
+    # pperp_edges = np.linspace(pperp.min()*1.2, pperp.max()*1.2 ,npperp)
+
+    ppar_edges = np.histogram_bin_edges(ppar ,bins=nppar)
+    pperp_edges = np.histogram_bin_edges(pperp ,bins=npperp)
+
+    # ppar_edges = np.concatenate([np.linspace(ppar.min(), -3e-20*ppar.units, int(round((nppar - 1) / 4))), np.linspace(-2.8e-20*ppar.units, 2.8e-20*ppar.units, int(nppar - 2 * round((nppar - 1) / 4))), np.linspace(3e-20*ppar.units, ppar.max(), int(round((nppar - 1) / 4)))])
+    # pperp_edges = np.histogram_bin_edges(pperp ,bins=npperp)
+
+    new_shape = (len(r_edges)-1, len(phi_edges)-1, len(z_edges)-1, len(ppar_edges)-1, len(pperp_edges)-1)
+    new_dist = np.zeros(new_shape)
+    for ekin_idx in range(len(ekin_values)):
+        for pitch_idx in range(len(pitch_values)):
+            ppar_val = ppar[ekin_idx, pitch_idx]
+            pperp_val = pperp[ekin_idx, pitch_idx]
+            
+            # Find new bin indices
+            i_ppar = np.digitize(ppar_val,ppar_edges) - 1
+            i_pperp = np.digitize(pperp_val, pperp_edges) - 1
+            
+            new_dist[:,:,:,i_ppar,i_pperp] += dist_5d.histogram()[:,:,:,ekin_idx,pitch_idx]
+
+    dist_5d = DistData(new_dist, r=r_edges, phi = phi_edges, z=z_edges, ppar = ppar_edges, pperp = pperp_edges)
+    print(f"Shape of 5D distribution {dist_5d.distribution().shape}, abscissae {dist_5d.abscissae}")
+    ppar_values = dist_5d.abscissa("ppar")
+    pperp_values = dist_5d.abscissa("pperp")
+    ppar_edges = dist_5d.abscissa_edges("ppar")
+
+    padding = 1.1
+    # Do p edges need to be changed in some situations?
+    p1_min, p1_max = ppar_edges.min()*padding, ppar_edges.max()*padding
+    p2_min, p2_max = ppar_edges.min()*padding, ppar_edges.max()*padding
+    p3_min, p3_max = ppar_edges.min()*padding, ppar_edges.max()*padding
 
     p1_edges = np.linspace(p1_min, p1_max, np1)# * ppar_edges.units
     p2_edges = np.linspace(p2_min, p2_max, np2)# * ppar_edges.units
@@ -207,19 +351,29 @@ def dist_5d_to_6d_momentumloop_general(dist_5d, n_samples, a5, pcoord, np1, np2,
     print(f"Iterations: {len(ppar_values)*len(pperp_values)}")
     itn = 0
 
+    # pxmin = 0
+    # pxmax = 0
+    # pymin = 0
+    # pymax = 0
+    # pzmin = 0
+    # pzmax = 0
+    # zetas = np.zeros(6)
+
     ir_grid = np.tile(ir_grid, n_samples)
     iphi_grid = np.tile(iphi_grid, n_samples)
     iz_grid = np.tile(iz_grid, n_samples)
-    dist_5d  = dist_5d.integrate(copy=True,  charge=np.s_[:], time=np.s_[:] )
     for ippar, ppar in enumerate(ppar_values):
         for ipperp, pperp in enumerate(pperp_values):
             particles_weight = np.tile(dist_5d.histogram()[:,:,:,ippar,ipperp].ravel(), n_samples)
             p1, p2, p3 = calculate_3d_momentum(ppar, pperp,r_grid, phi_grid, z_grid, np.array([bx, by, bz]), n_samples, pcoord)
+
+            # pxmin, pxmax, pymin, pymax, pzmin, pzmax, zetas = check_minmax(p1,p2,p3, pxmin, pxmax, pymin, pymax, pzmin, pzmax, zetas, zeta)
+
             ip1_grid = (np.digitize(p1, p1_edges)-1).ravel()
             ip2_grid = (np.digitize(p2, p2_edges)-1).ravel()
             ip3_grid = (np.digitize(p3, p3_edges)-1).ravel()
             np.add.at(hist_6d_arr, (ir_grid, iphi_grid, iz_grid, ip1_grid, ip2_grid, ip3_grid), (particles_weight/n_samples).v )
-            if (itn % 500 == 0):
+            if (itn % 50 == 0):
                     print(f"Iteration {itn}")
             itn += 1
     if (pcoord == "spherical"):
@@ -232,6 +386,9 @@ def dist_5d_to_6d_momentumloop_general(dist_5d, n_samples, a5, pcoord, np1, np2,
         raise ValueError("Unsupported coordinate system")
 
     print(f"6D distribution shape:, {dist_6d._distribution.shape}")
+
+    # print(f"absolute min and max in px, py, pz: {pxmin, pxmax, pymin, pymax, pzmin, pzmax}")
+    # print(f"corresponding angle: {zetas[0], zetas[1], zetas[2], zetas[3], zetas[4], zetas[5]}")
     return dist_6d
 
 
@@ -442,5 +599,33 @@ def iter_analytical_5D(a5, rmin,rmax,nr, phimin,phimax, nphi, zmin, zmax, nz, np
         desc = f"R{nr}_Z{nz}_ppar{nppar}_pperp{npperp}"
         a5.data.active.set_desc(desc)
     return dist_5d, a5
-    
 
+def iter_6D_markers(a5, rmin,rmax,nr, phimin,phimax, nphi, zmin, zmax, nz, nppar, npperp, nsamples = 100000, pparmin=-1.1e-19, pparmax = 1.1e-19, pperpmin = 0, pperpmax = 1.1e-19, desc = None):
+    # Feed the parameters correctly
+    r = np.linspace(rmin, rmax, nr)
+    z = np.linspace(zmin, zmax, nz)
+    phi = np.linspace(phimin, phimax, nphi)
+    ppar = np.linspace(pparmin, pparmax, nppar)
+    pperp = np.linspace(pperpmin,pperpmax, npperp)
+    prod1vx, prod1vy, prod1vz, prod2vx, prod2vy, prod2vz = a5.afsi.thermal_6D(
+    "DT_He4n", nmc=nsamples, r=r, z=z,phi=phi,
+    ppar1=ppar, pperp1=pperp, ppar2=ppar, pperp2=pperp
+    )
+    
+    return prod2vx, prod2vy, prod2vz
+    
+def iter_analytical_5D_ekin_pitch(a5, rmin,rmax,nr, phimin,phimax, nphi, zmin, zmax, nz, nekin, npitch, nsamples = 100000, desc = None):
+    r = np.linspace(rmin, rmax, nr)
+    z = np.linspace(zmin, zmax, nz)
+    phi = np.linspace(phimin, phimax, nphi)
+    ekin=np.linspace(12.1e6, 16.1e6, nekin)
+    pitch=np.linspace(-1, 1, npitch)
+    a5.afsi.thermal(
+    "DT_He4n", nmc=nsamples, r=r, z=z,phi=phi,
+    ekin1=ekin, pitch1=pitch, ekin2=ekin, pitch2=pitch
+    )
+    dist_5d = a5.data.active.getdist("prod2")
+    if desc == None:
+        desc = f"R{nr}_Z{nz}_ekin{nekin}_pitch{npitch}"
+    a5.data.active.set_desc(desc)
+    return dist_5d, a5
