@@ -190,8 +190,8 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
             if(pq.n > 0 && (sim->sim_mode == simulate_mode_gc
                         || sim->sim_mode == simulate_mode_hybrid)) {
                 if(sim->enable_ada) {
-                    OMP_PARALLEL_CPU_ONLY
-                    simulate_gc_adaptive(&pq, sim);
+		  //GPU_TEMP OMP_PARALLEL_CPU_ONLY
+		      //GPU_TEMP                    simulate_gc_adaptive(&pq, sim);
                 }
                 else {
                     OMP_PARALLEL_CPU_ONLY

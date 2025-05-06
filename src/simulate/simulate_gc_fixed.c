@@ -43,17 +43,20 @@ real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i);
  * @param pq particles to be simulated
  * @param sim simulation data
  */
-void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
-    int cycle[NSIMD]  __memalign__; // Flag indigating whether a new marker was initialized
-    real hin[NSIMD]  __memalign__;  // Time step
-
+void simulate_gc_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
+    int* cycle = (int*) malloc(mrk_array_size*sizeof(int)); /* Flag indigating whether a new marker
+                                                              was initialized */
+    real* hin = (real*) malloc(mrk_array_size*sizeof(real));/* Time step given as an input into the
+                                                                integrators. Almost always default.*/
     real cputime, cputime_last; // Global cpu time: recent and previous record
 
     particle_simd_gc p;  // This array holds current states
     particle_simd_gc p0; // This array stores previous states
-
+    particle_allocate_gc(&p, mrk_array_size);
+    particle_allocate_gc(&p0, mrk_array_size);
+    
     /* Init dummy markers */
-    for(int i=0; i< NSIMD; i++) {
+    for(int i=0; i< mrk_array_size; i++) {
         p.id[i] = -1;
         p.running[i] = 0;
     }
@@ -63,7 +66,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 
     /* Determine simulation time-step */
     #pragma omp simd
-    for(int i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < mrk_array_size; i++) {
         if(cycle[i] > 0) {
             hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
         }

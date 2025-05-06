@@ -274,53 +274,54 @@ typedef struct {
  */
 typedef struct {
     /* Physical coordinates and parameters */
-    real r[NSIMD] __memalign__;      /**< Guiding center R coordinate [m]     */
-    real phi[NSIMD] __memalign__;    /**< Guiding center phi coordinate [phi] */
-    real z[NSIMD] __memalign__;      /**< Guiding center z coordinate [m]     */
-    real ppar[NSIMD] __memalign__;   /**< Parallel momentum [kg m/s]          */
-    real mu[NSIMD] __memalign__;     /**< Magnetic moment [J/T]               */
-    real zeta[NSIMD] __memalign__;   /**< Gyroangle [rad]                     */
-    real mass[NSIMD] __memalign__;   /**< Mass [kg]                           */
-    real charge[NSIMD] __memalign__; /**< Charge [C]                          */
-    real time[NSIMD] __memalign__;   /**< Marker simulation time [s]          */
+    real* r;      /**< Guiding center R coordinate [m]     */
+    real* phi;    /**< Guiding center phi coordinate [phi] */
+    real* z;      /**< Guiding center z coordinate [m]     */
+    real* ppar;   /**< Parallel momentum [kg m/s]          */
+    real* mu;     /**< Magnetic moment [J/T]               */
+    real* zeta;   /**< Gyroangle [rad]                     */
+    real* mass;   /**< Mass [kg]                           */
+    real* charge; /**< Charge [C]                          */
+    real* time;   /**< Marker simulation time [s]          */
 
     /* Magnetic field data */
-    real B_r[NSIMD] __memalign__;        /**< Magnetic field R component at
+    real* B_r;        /**< Magnetic field R component at
                                               marker position [T]             */
-    real B_phi[NSIMD] __memalign__;      /**< Magnetic field phi component at
+    real* B_phi;      /**< Magnetic field phi component at
                                               marker position [T]             */
-    real B_z[NSIMD] __memalign__;        /**< Magnetic field z component at
+    real* B_z;        /**< Magnetic field z component at
                                               marker position [T]             */
 
-    real B_r_dr[NSIMD] __memalign__;     /**< dB_R/dR at marker pos. [T/m]    */
-    real B_phi_dr[NSIMD] __memalign__;   /**< dB_phi/dR at marker pos. [T/m]  */
-    real B_z_dr[NSIMD] __memalign__;     /**< dB_z/dR at marker pos. [T/m]    */
-    real B_r_dphi[NSIMD] __memalign__;   /**< dB_R/dphi at marker pos. [T/m]  */
-    real B_phi_dphi[NSIMD] __memalign__; /**< dB_phi/dphi at marker pos. [T/m]*/
-    real B_z_dphi[NSIMD] __memalign__;   /**< dB_z/dphi at marker pos. [T/m]  */
-    real B_r_dz[NSIMD] __memalign__;     /**< dB_R/dz at marker pos. [T/m]    */
-    real B_phi_dz[NSIMD] __memalign__;   /**< dB_phi/dz at marker pos. [T/m]  */
-    real B_z_dz[NSIMD] __memalign__;     /**< dB_z/dz at marker pos. [T/m]    */
+    real* B_r_dr;     /**< dB_R/dR at marker pos. [T/m]    */
+    real* B_phi_dr;   /**< dB_phi/dR at marker pos. [T/m]  */
+    real* B_z_dr;     /**< dB_z/dR at marker pos. [T/m]    */
+    real* B_r_dphi;   /**< dB_R/dphi at marker pos. [T/m]  */
+    real* B_phi_dphi; /**< dB_phi/dphi at marker pos. [T/m]*/
+    real* B_z_dphi;   /**< dB_z/dphi at marker pos. [T/m]  */
+    real* B_r_dz;     /**< dB_R/dz at marker pos. [T/m]    */
+    real* B_phi_dz;   /**< dB_phi/dz at marker pos. [T/m]  */
+    real* B_z_dz;     /**< dB_z/dz at marker pos. [T/m]    */
 
     /* Quantities used in diagnostics */
-    int bounces[NSIMD] __memalign__;  /**< Number of times pitch sign changed */
-    real weight[NSIMD] __memalign__;  /**< Marker weight                      */
-    real cputime[NSIMD] __memalign__; /**< Marker wall-clock time [s]         */
-    real rho[NSIMD] __memalign__;     /**< Marker rho coordinate              */
-    real theta[NSIMD] __memalign__;   /**< Marker poloidal coordinate [rad]   */
+    int bounces;  /**< Number of times pitch sign changed */
+    real* weight;  /**< Marker weight                      */
+    real* cputime; /**< Marker wall-clock time [s]         */
+    real* rho;     /**< Marker rho coordinate              */
+    real* theta;   /**< Marker poloidal coordinate [rad]   */
 
-    integer id[NSIMD] __memalign__;       /**< Unique ID for the marker       */
-    integer endcond[NSIMD] __memalign__;  /**< Marker end condition           */
-    integer walltile[NSIMD] __memalign__; /**< ID of walltile if marker has
+    integer* id;       /**< Unique ID for the marker       */
+    integer* endcond;  /**< Marker end condition           */
+    integer* walltile; /**< ID of walltile if marker has
                                                hit the wall                   */
 
     /* Meta data */
-    real mileage[NSIMD] __memalign__;    /**< Duration this marker has been
+    real* mileage;    /**< Duration this marker has been
                                               simulated [s]                   */
-    integer running[NSIMD] __memalign__; /**< Indicates whether this marker is
+    integer* running; /**< Indicates whether this marker is
                                               currently simulated (1) or not  */
-    a5err err[NSIMD] __memalign__;       /**< Error flag, zero if no error    */
-    integer index[NSIMD] __memalign__;   /**< Marker index at marker queue    */
+    a5err* err;       /**< Error flag, zero if no error    */
+    integer* index;   /**< Marker index at marker queue    */
+    size_t n_mrk;     /**< How many markers this struct contains */
 } particle_simd_gc;
 
 /**
@@ -388,6 +389,7 @@ typedef struct {
 
 
 void particle_allocate_fo(particle_simd_fo* p_fo, int nmrk);
+void particle_allocate_gc(particle_simd_fo* p_fo, int nmrk);
 void particle_to_fo_dummy(particle_simd_fo* p_fo, int j);
 void particle_to_gc_dummy(particle_simd_gc* p_gc, int j);
 void particle_to_fo_dummy(particle_simd_fo* p_fo, int j);
@@ -412,6 +414,8 @@ a5err particle_input_ml_to_state(particle_ml* p, particle_state* ps,
 
 void particle_offload_fo(particle_simd_fo* p);
 void particle_onload_fo(particle_simd_fo* p);
+void particle_offload_gc(particle_simd_fo* p);
+void particle_onload_gc(particle_simd_fo* p);
 
 DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo,

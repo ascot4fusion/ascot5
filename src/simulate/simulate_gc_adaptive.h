@@ -9,6 +9,6 @@
 #include "../simulate.h"
 #include "../particle.h"
 
-void simulate_gc_adaptive(particle_queue* pq, sim_data* sim);
+//GPU_TEMP void simulate_gc_adaptive(particle_queue* pq, sim_data* sim);
 
 #endif
