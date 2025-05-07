@@ -164,84 +164,61 @@ void dist_rho5D_update_fo(dist_rho5D_data* dist, particle_simd_fo* p_f,
  */
 void dist_rho5D_update_gc(dist_rho5D_data* dist, particle_simd_gc* p_f,
                           particle_simd_gc* p_i) {
-    real phi[NSIMD];
-    real theta[NSIMD];
-    real pperp[NSIMD];
 
-    int i_rho[NSIMD];
-    int i_phi[NSIMD];
-    int i_theta[NSIMD];
-    int i_ppara[NSIMD];
-    int i_pperp[NSIMD];
-    int i_time[NSIMD];
-    int i_q[NSIMD];
-
-    int ok[NSIMD];
-    real weight[NSIMD];
-
-    #pragma omp simd
-    for(int i = 0; i < NSIMD; i++) {
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for(int i = 0; i < p_f->n_mrk; i++) {
         if(p_f->running[i]) {
 
-            i_rho[i] = floor((p_f->rho[i] - dist->min_rho)
+            int i_rho = floor((p_f->rho[i] - dist->min_rho)
                              / ((dist->max_rho - dist->min_rho)/dist->n_rho));
 
-            phi[i] = fmod(p_f->phi[i], 2*CONST_PI);
-            if(phi[i] < 0) {
-                phi[i] = phi[i] + 2*CONST_PI;
+            real phi = fmod(p_f->phi[i], 2*CONST_PI);
+            if(phi < 0) {
+                phi = phi + 2*CONST_PI;
             }
-            i_phi[i] = floor((phi[i] - dist->min_phi)
+            int i_phi = floor((phi - dist->min_phi)
                              / ((dist->max_phi - dist->min_phi)/dist->n_phi));
 
-            theta[i] = fmod(p_f->theta[i], 2*CONST_PI);
-            if(theta[i] < 0) {
-                theta[i] = theta[i] + 2*CONST_PI;
+            real theta = fmod(p_f->theta[i], 2*CONST_PI);
+            if(theta < 0) {
+                theta = theta + 2*CONST_PI;
             }
-            i_theta[i] = floor((theta[i] - dist->min_theta)
+            int i_theta = floor((theta - dist->min_theta)
                                / ((dist->max_theta - dist->min_theta)
                                   / dist->n_theta));
 
-            i_ppara[i] = floor((p_f->ppar[i] - dist->min_ppara)
+            int i_ppara = floor((p_f->ppar[i] - dist->min_ppara)
                        / ((dist->max_ppara - dist->min_ppara) / dist->n_ppara));
 
-            pperp[i] = sqrt(2 * sqrt(  p_f->B_r[i]   * p_f->B_r[i]
+            real pperp = sqrt(2 * sqrt(  p_f->B_r[i]   * p_f->B_r[i]
                                      + p_f->B_phi[i] * p_f->B_phi[i]
                                      + p_f->B_z[i]   * p_f->B_z[i] )
                             * p_f->mu[i] * p_f->mass[i]);
-            i_pperp[i] = floor((pperp[i] - dist->min_pperp)
+            int i_pperp = floor((pperp - dist->min_pperp)
                                / ((dist->max_pperp - dist->min_pperp)
                                   / dist->n_pperp));
 
-            i_time[i] = floor((p_f->time[i] - dist->min_time)
+            int i_time = floor((p_f->time[i] - dist->min_time)
                           / ((dist->max_time - dist->min_time) / dist->n_time));
 
-            i_q[i] = floor((p_f->charge[i]/CONST_E - dist->min_q)
+            int i_q = floor((p_f->charge[i]/CONST_E - dist->min_q)
                            / ((dist->max_q - dist->min_q) / dist->n_q));
 
-            if(i_rho[i]   >= 0 && i_rho[i]   <= dist->n_rho - 1   &&
-               i_phi[i]   >= 0 && i_phi[i]   <= dist->n_phi - 1   &&
-               i_theta[i] >= 0 && i_theta[i] <= dist->n_theta - 1 &&
-               i_ppara[i] >= 0 && i_ppara[i] <= dist->n_ppara - 1 &&
-               i_pperp[i] >= 0 && i_pperp[i] <= dist->n_pperp - 1 &&
-               i_time[i]  >= 0 && i_time[i]  <= dist->n_time - 1  &&
-               i_q[i]     >= 0 && i_q[i]     <= dist->n_q - 1       ) {
-                ok[i] = 1;
-                weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
-            }
-            else {
-                ok[i] = 0;
-            }
-        }
-    }
-
-    for(int i = 0; i < NSIMD; i++) {
-        if(p_f->running[i] && ok[i]) {
-            size_t index = dist_rho5D_index(
-                i_rho[i], i_theta[i], i_phi[i], i_ppara[i], i_pperp[i],
-                i_time[i], i_q[i], dist->step_6, dist->step_5, dist->step_4,
+            if(i_rho   >= 0 && i_rho   <= dist->n_rho - 1   &&
+               i_phi   >= 0 && i_phi   <= dist->n_phi - 1   &&
+               i_theta >= 0 && i_theta <= dist->n_theta - 1 &&
+               i_ppara >= 0 && i_ppara <= dist->n_ppara - 1 &&
+               i_pperp >= 0 && i_pperp <= dist->n_pperp - 1 &&
+               i_time  >= 0 && i_time  <= dist->n_time - 1  &&
+               i_q     >= 0 && i_q     <= dist->n_q - 1       ) {
+	      real weight = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
+	      size_t index = dist_rho5D_index(
+                i_rho, i_theta, i_phi, i_ppara, i_pperp,
+                i_time, i_q, dist->step_6, dist->step_5, dist->step_4,
                 dist->step_3, dist->step_2, dist->step_1);
-            #pragma omp atomic
-            dist->histogram[index] += weight[i];
+	      GPU_ATOMIC
+	      dist->histogram[index] += weight;
+            }
         }
     }
 }
