@@ -125,8 +125,8 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 
         /* Euler-Maruyama method for collisions */
         if(sim->enable_clmbcol) {
-            real rnd[5*NSIMD];
-            random_normal_simd(&sim->random_data, 5*NSIMD, rnd);
+	  real rnd[5*p.n_mrk];
+            random_normal_simd(&sim->random_data, 5*p.n_mrk, rnd);
             mccc_gc_euler(&p, hin, &sim->B_data, &sim->plasma_data,
                           &sim->mccc_data, rnd);
         }
@@ -136,8 +136,8 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 
         /* Update simulation and cpu times */
         cputime = A5_WTIME;
-        #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
+        GPU_PARALLEL_LOOP_ALL_LEVELS
+        for(int i = 0; i < p.n_mrk; i++) {
             if(p.running[i]) {
                 p.time[i]    += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) ) * hin[i];
                 p.mileage[i] += hin[i];
@@ -167,7 +167,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 #ifndef GPU
         /* Determine simulation time-step */
         #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
+        for(int i = 0; i < p.n_mrk; i++) {
             if(cycle[i] > 0) {
                 hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
             }
@@ -177,6 +177,14 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     }
 
     /* All markers simulated! */
+#ifdef GPU
+    GPU_MAP_FROM_DEVICE(sim[0:1])
+    particle_onload_gc(&p);
+    n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
+#endif
+    free(cycle);
+    free(hin);
+    free(rnd);
 
 }
 

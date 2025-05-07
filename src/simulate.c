@@ -97,8 +97,8 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     simulate_init(sim);
 
 #ifdef GPU
-    if(sim->sim_mode != 1) {
-        print_err("Only GO mode ported to GPU. Please set SIM_MODE=1.");
+    if((sim->sim_mode != 1) && (sim->sim_mode != 2)) {
+        print_err("Only GO and GC mode ported to GPU. Please set SIM_MODE=1 or 2.");
         exit(1);
     }
     if(sim->record_mode) {
@@ -123,6 +123,12 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
             "ENABLE_TRANSCOEF=1 not ported to GPU. Please disable it.");
         exit(1);
     }
+    if(sim->enable_clmbcol && sim->sim_mode == 2) {
+        print_err(
+            "Collision not ported to GPU for GC. Please disable it.");
+        exit(1);
+    }
+    
 #endif
 
     diag_init(&sim->diag_data, n_particles);
