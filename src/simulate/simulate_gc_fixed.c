@@ -264,12 +264,11 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
                     //Restore hin now when not needed anymore for book keeping
 		            hin[i] = hin_default[i];
                 }
-                /* If using RFOF, nullify the energy increments regardless of whether
-                the step was successful or not. */
+                /* If using RFOF, nullify the energy increments regardless of
+                whether the step was successful or not. */
                 if(sim->enable_icrh){
                     for(int RFOFwave_index = 0; RFOFwave_index < n_RF_waves; RFOFwave_index++) {
                         for(int RFOFmode_index = 0; RFOFmode_index < n_RF_modes; RFOFmode_index++) {
-                            //Eihän tässä kertolaskussa ole hitto tietenkään mitään järkeä jos se ensimmäinen indeksi on nolla niin sillon on ihan saman mitä se toinen on
                             dE_rfof_1darrays_increment[i][n_RF_modes*RFOFwave_index + RFOFmode_index] = 0.0;
                         }
                     }

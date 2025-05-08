@@ -216,6 +216,8 @@ void rfof_update_energy_array_of_the_process(rfof_data* rfof_data,
                         // As a safety measure, NaNs are excluded here.
                         if (!isnan(energy_arrays_for_NSIMD_markers[i][j]-energy_arrays_for_NSIMD_markers[i][j])) {
                             rfof_data->dE_RFOF_modes_and_waves[j] += energy_arrays_for_NSIMD_markers[i][j];
+                        } else {
+                            printf("Trying to update accumulated RF energy with a nan\n");
                         }
                         energy_arrays_for_NSIMD_markers[i][j] = 0.0;
                     }
@@ -287,6 +289,30 @@ void rfof_resonance_check_and_kick_gc(
             gyrof  = phys_gyrofreq_ppar(p->mass[i], p->charge[i], p->mu[i],
                                         p->ppar[i], B);
 
+            // Check for negative values and nans
+            if (Ekin < 0 || isnan(Ekin)){
+                printf("----------------------------------\nNONPHYSICAL Ekin = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n",Ekin,p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+            }
+
+            if (p->mu[i] < 0 || isnan(p->mu[i])){
+                printf("----------------------------------\nNONPHYSICAL mu = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n",p->mu[i],p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+            }
+
+            if (B < 0 || isnan(B)){
+                printf("----------------------------------\nNONPHYSICAL B = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n", B, p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+            }
+
+            if (vnorm < 0 || isnan(vnorm)){
+                printf("----------------------------------\nNONPHYSICAL vnorm = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n", vnorm, p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+            }
+
+            if (v_perp < 0 || isnan(v_perp)){
+                printf("----------------------------------\nNONPHYSICAL v_perp = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n", v_perp, p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+            }
+
+            if (gyrof < 0 || isnan(gyrof)){
+                printf("----------------------------------\nNONPHYSICAL gyrof = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n", gyrof, p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+            }
 
             /* This tauB formula does not work near the bounce points of a
             banana */
@@ -366,6 +392,7 @@ void rfof_resonance_check_and_kick_gc(
             int rfof_err = 0;
             int mpi_rank = 0; // RFOF does not do anything MPI-specific for now
 
+            real old_mu = p->mu[i];
 
             /* Ready to kick some ash (if in resonance) */
             __ascot5_icrh_routines_MOD_call_rf_kick(
@@ -375,6 +402,42 @@ void rfof_resonance_check_and_kick_gc(
                 &(rfof_data->rfof_input_params), &(rfof_mrk->nrow[i]),
                 &(rfof_mrk->ncol[i]), &rfof_err, &rfof_data_pack,
                 (de_rfof_during_step[i]));
+
+            if (p->mu[i] <= 0.0 || isnan(p->mu[i])) {
+                printf("\nAt time = %.3e, mrk_id = %ld\n",p->time[i], p->id[i]);
+                printf("after kick, mu = %.3e\n", p->mu[i]);
+                printf("before kick, mu was %.3e\n", old_mu);
+            }
+
+            if (Ekin < 0 || isnan(Ekin)){
+                printf("\nAfter kick\n");
+                printf("----------------------------------\nNONPHYSICAL Ekin = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n",Ekin,p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+            }
+
+            if (p->mu[i] < 0 || isnan(p->mu[i])){
+                printf("\nAfter kick\n");
+                printf("----------------------------------\nNONPHYSICAL mu = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n",p->mu[i],p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+            }
+
+            if (B < 0 || isnan(B)){
+                printf("\nAfter kick\n");
+                printf("----------------------------------\nNONPHYSICAL B = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n", B, p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+            }
+
+            if (vnorm < 0 || isnan(vnorm)){
+                printf("\nAfter kick\n");
+                printf("----------------------------------\nNONPHYSICAL vnorm = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n", vnorm, p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+            }
+
+            if (v_perp < 0 || isnan(v_perp)){
+                printf("\nAfter kick\n");
+                printf("----------------------------------\nNONPHYSICAL v_perp = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n", v_perp, p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+            }
+
+            if (gyrof < 0 || isnan(gyrof)){
+                printf("\nAfter kick\n");
+                printf("----------------------------------\nNONPHYSICAL gyrof = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n", gyrof, p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+            }
 
 
             /* Most marker phase-space coordinates are updated automatically

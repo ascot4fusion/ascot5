@@ -523,18 +523,24 @@ a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
         x1 = -(str->n_x-1)*x1;
     }
     else if( str->bc_x == NATURALBC && !(x >= str->x_min && x <= str->x_max) ) {
+        printf("Error with x\n");
+        printf("x = %.3e, xmin = %.3e, xmax = %.3e\n", x, str->x_min, str->x_max);
         err = 1;
     }
     if( str->bc_y == PERIODICBC && i_y == str->n_y-1 ) {
         y1 = -(str->n_y-1)*y1;
     }
     else if( str->bc_y == NATURALBC && !(y >= str->y_min && y <= str->y_max) ) {
+        printf("Error with y\n");
+        printf("y = %.3e, ymin = %.3e, ymax = %.3e\n", y, str->y_min, str->y_max);
         err = 1;
     }
     if( str->bc_z == PERIODICBC && i_z == str->n_z-1 ) {
         z1 = -(str->n_z-1)*z1;
     }
     else if( str->bc_z == NATURALBC && !(z >= str->z_min && z <= str->z_max) ) {
+        printf("Error with z\n");
+        printf("z = %.3e, zmin = %.3e, zmax = %.3e\n", z, str->z_min, str->z_max);
         err = 1;
     }
 
