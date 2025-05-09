@@ -20,7 +20,8 @@ typedef unsigned long int a5err;
  * @brief Enum type for indicating which file error originated from.
  *
  * Assign unique value for each type just in case. Do not use zero! Please use
- * running numbering and put the latest entry last.
+ * running numbering and put the latest entry last. As per the top comment in
+ * error.c, there should be at most 32 files.
  */
 typedef enum error_file {
     EF_MCCC_WIENER       =   1, /**< Error is from mccc_wiener.c              */
@@ -50,7 +51,8 @@ typedef enum error_file {
     EF_ATOMIC            =  25, /**< Error is from atomic.c                   */
     EF_ASIGMA            =  26, /**< Error is from asigma.c                   */
     EF_ASIGMA_LOC        =  27, /**< Error is from asigma_loc.c               */
-    EF_SUZUKI            =  28  /**< Error is from suzuki.c                   */
+    EF_SUZUKI            =  28, /**< Error is from suzuki.c                   */
+    EF_RFOF              =  29  /**< Error is form rfof.c                     */
 }error_file;
 
 /**
