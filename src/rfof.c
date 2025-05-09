@@ -290,28 +290,60 @@ void rfof_resonance_check_and_kick_gc(
                                         p->ppar[i], B);
 
             // Check for negative values and nans
-            if (Ekin < 0 || isnan(Ekin)){
-                printf("----------------------------------\nNONPHYSICAL Ekin = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n",Ekin,p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+            if (isnan(p->ppar[i])){
+                printf("\nBefore kick\n");
+                printf("----------------------------------\nNONPHYSICAL ppar = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n",p->ppar[i],p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+                if (!errflag){
+                    errflag = error_raise( ERR_MARKER_UNPHYSICAL, __LINE__, EF_RFOF );
+                }
             }
 
             if (p->mu[i] < 0 || isnan(p->mu[i])){
+                printf("\nBefore kick\n");
                 printf("----------------------------------\nNONPHYSICAL mu = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n",p->mu[i],p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+                if (!errflag){
+                    errflag = error_raise( ERR_MARKER_UNPHYSICAL, __LINE__, EF_RFOF );
+                }
+            }
+
+            if (Ekin < 0 || isnan(Ekin)){
+                printf("\nBefore kick\n");
+                printf("----------------------------------\nNONPHYSICAL Ekin = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n",Ekin,p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+                if (!errflag){
+                    errflag = error_raise( ERR_MARKER_UNPHYSICAL, __LINE__, EF_RFOF );
+                }
             }
 
             if (B < 0 || isnan(B)){
+                printf("\nBefore kick\n");
                 printf("----------------------------------\nNONPHYSICAL B = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n", B, p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+                if (!errflag){
+                    errflag = error_raise( ERR_MARKER_UNPHYSICAL, __LINE__, EF_RFOF );
+                }
             }
 
             if (vnorm < 0 || isnan(vnorm)){
+                printf("\nBefore kick\n");
                 printf("----------------------------------\nNONPHYSICAL vnorm = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n", vnorm, p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+                if (!errflag){
+                    errflag = error_raise( ERR_MARKER_UNPHYSICAL, __LINE__, EF_RFOF );
+                }
             }
 
             if (v_perp < 0 || isnan(v_perp)){
+                printf("\nBefore kick\n");
                 printf("----------------------------------\nNONPHYSICAL v_perp = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n", v_perp, p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+                if (!errflag){
+                    errflag = error_raise( ERR_MARKER_UNPHYSICAL, __LINE__, EF_RFOF );
+                }
             }
 
             if (gyrof < 0 || isnan(gyrof)){
+                printf("\nBefore kick\n");
                 printf("----------------------------------\nNONPHYSICAL gyrof = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n", gyrof, p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+                if (!errflag){
+                    errflag = error_raise( ERR_MARKER_UNPHYSICAL, __LINE__, EF_RFOF );
+                }
             }
 
             /* This tauB formula does not work near the bounce points of a
@@ -409,34 +441,60 @@ void rfof_resonance_check_and_kick_gc(
                 printf("before kick, mu was %.3e\n", old_mu);
             }
 
-            if (Ekin < 0 || isnan(Ekin)){
+            if (isnan(p->ppar[i])){
                 printf("\nAfter kick\n");
-                printf("----------------------------------\nNONPHYSICAL Ekin = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n",Ekin,p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+                printf("----------------------------------\nNONPHYSICAL ppar = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n",p->ppar[i],p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+                if (!errflag){
+                    errflag = error_raise( ERR_MARKER_UNPHYSICAL, __LINE__, EF_RFOF );
+                }
             }
 
             if (p->mu[i] < 0 || isnan(p->mu[i])){
                 printf("\nAfter kick\n");
                 printf("----------------------------------\nNONPHYSICAL mu = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n",p->mu[i],p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+                if (!errflag){
+                    errflag = error_raise( ERR_MARKER_UNPHYSICAL, __LINE__, EF_RFOF );
+                }
+            }
+
+            if (Ekin < 0 || isnan(Ekin)){
+                printf("\nAfter kick\n");
+                printf("----------------------------------\nNONPHYSICAL Ekin = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n",Ekin,p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+                if (!errflag){
+                    errflag = error_raise( ERR_MARKER_UNPHYSICAL, __LINE__, EF_RFOF );
+                }
             }
 
             if (B < 0 || isnan(B)){
                 printf("\nAfter kick\n");
                 printf("----------------------------------\nNONPHYSICAL B = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n", B, p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+                if (!errflag){
+                    errflag = error_raise( ERR_MARKER_UNPHYSICAL, __LINE__, EF_RFOF );
+                }
             }
 
             if (vnorm < 0 || isnan(vnorm)){
                 printf("\nAfter kick\n");
                 printf("----------------------------------\nNONPHYSICAL vnorm = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n", vnorm, p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+                if (!errflag){
+                    errflag = error_raise( ERR_MARKER_UNPHYSICAL, __LINE__, EF_RFOF );
+                }
             }
 
             if (v_perp < 0 || isnan(v_perp)){
                 printf("\nAfter kick\n");
                 printf("----------------------------------\nNONPHYSICAL v_perp = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n", v_perp, p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+                if (!errflag){
+                    errflag = error_raise( ERR_MARKER_UNPHYSICAL, __LINE__, EF_RFOF );
+                }
             }
 
             if (gyrof < 0 || isnan(gyrof)){
                 printf("\nAfter kick\n");
                 printf("----------------------------------\nNONPHYSICAL gyrof = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n", gyrof, p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+                if (!errflag){
+                    errflag = error_raise( ERR_MARKER_UNPHYSICAL, __LINE__, EF_RFOF );
+                }
             }
 
 

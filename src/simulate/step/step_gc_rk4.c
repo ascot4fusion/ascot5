@@ -153,6 +153,29 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
                 errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);
             }
 
+            //Added some temporary tests JS 9.5.
+            if(!errflag && isnan(y[0])) {
+                errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);
+            }
+            if(!errflag && isnan(y[1])) {
+                errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);
+            }
+            if(!errflag && isnan(y[2])) {
+                errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);
+            }
+            if(!errflag && isnan(y[3])) {
+                errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);
+            }
+            if(!errflag && isnan(y[4])) {
+                errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);
+            }
+            if(!errflag && isnan(y[5])) {
+                errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);
+            }
+
+            //replace if error checks with these
+            //errflag = ((errflag == 0) && (y[0] <= 0)) ? error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4) : errflag;
+
             /* Update gc phase space position */
             if(!errflag) {
                 p->r[i]    = y[0];

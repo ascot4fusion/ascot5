@@ -226,6 +226,25 @@ void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
                                     + Xin_xyz[1] * Xout_xyz[1] );
             }
 
+
+            //Added some temporary error checks
+            if (isnan(p->ppar[i])){
+                printf("\nAfter collision\n");
+                printf("----------------------------------\nNONPHYSICAL ppar = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.6e)\n-----------------------------\n",p->ppar[i],p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+                if (!errflag){
+                    errflag = error_raise( ERR_MARKER_UNPHYSICAL, __LINE__, EF_RFOF );
+                }
+            }
+
+            if (p->mu[i] < 0 || isnan(p->mu[i])){
+                printf("\nAfter collision\n");
+                printf("----------------------------------\nNONPHYSICAL mu = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.6e)\n-----------------------------\n",p->mu[i],p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
+                if (!errflag){
+                    errflag = error_raise( ERR_MARKER_UNPHYSICAL, __LINE__, EF_RFOF );
+                }
+            }
+
+
             /* Error handling */
             if(errflag) {
                 p->err[i]     = errflag;
