@@ -162,9 +162,9 @@ class Afsi():
                 )
             phic = phic.ravel()
         else:
-            phic, rc, zc = np.meshgrid(1.5*phi[:-1]-0.5*phi[1:],
-                                       1.5*r[:-1]-0.5*r[1:],
-                                       1.5*z[:-1]-0.5*z[1:])
+            phic, rc, zc = np.meshgrid(0.5*(phi[:-1]+phi[1:]),
+                                        0.5*(r[:-1]+r[1:]),
+                                        0.5*(z[:-1]+z[1:]))
             phic *= np.pi/180
             vol = ( rc * np.diff(r[:2]) * np.diff(z[:2]) * np.diff(phi[:2])
                        * np.pi/180 )
@@ -315,9 +315,9 @@ class Afsi():
         mult = 1.0
         r, z, phi = ( beam.abscissa_edges("r"), beam.abscissa_edges("z"),
                       beam.abscissa_edges("phi").to("rad") )
-        phic, rc, zc = np.meshgrid(1.5*phi[:-1]-0.5*phi[1:],
-                                       1.5*r[:-1]-0.5*r[1:],
-                                       1.5*z[:-1]-0.5*z[1:])
+        phic, rc, zc = np.meshgrid(0.5*(phi[:-1]+phi[1:]),
+                                        0.5*(r[:-1]+r[1:]),
+                                        0.5*(z[:-1]+z[1:]))
         vol = ( rc * np.diff(r[:2]) * np.diff(z[:2]) * np.diff(phi[:2]) )
         afsi = self._init_afsi_data(
             react1=react1, react2=react2, reaction=reaction, mult=mult,
@@ -410,9 +410,9 @@ class Afsi():
 
         r, z, phi = ( beam1.abscissa_edges("r"), beam1.abscissa_edges("z"),
                       beam1.abscissa_edges("phi").to("rad") )
-        phic, rc, zc = np.meshgrid(1.5*phi[:-1]-0.5*phi[1:],
-                                       1.5*r[:-1]-0.5*r[1:],
-                                       1.5*z[:-1]-0.5*z[1:])
+        phic, rc, zc = np.meshgrid(0.5*(phi[:-1]+phi[1:]),
+                                        0.5*(r[:-1]+r[1:]),
+                                        0.5*(z[:-1]+z[1:]))
         vol = ( rc * np.diff(r[:2]) * np.diff(z[:2]) * np.diff(phi[:2]) )
 
         react1 = self._init_dist_5d(beam1)
