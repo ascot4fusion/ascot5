@@ -188,7 +188,7 @@ def check_minmax(px,py,pz, pxmin, pxmax, pymin, pymax, pzmin, pzmax, zetas, zeta
         zetas[5] = zeta[np.argmax(pz)]
     return pxmin, pxmax, pymin, pymax, pzmin, pzmax, zetas
 
-def dist_5d_to_6d_momentumloop_general(dist_5d, n_samples, a5, pcoord, np1, np2, np3):
+def dist_5d_to_6d_momentumloop_general(dist_5d, n_samples, a5, pcoord, np1, np2, np3, padding = 1.05):
     print(f"Shape of 5D distribution {dist_5d.distribution().shape}, abscissae {dist_5d.abscissae}")
     r_edges = dist_5d.abscissa_edges("r")
     r_values = dist_5d.abscissa("r")
@@ -202,11 +202,10 @@ def dist_5d_to_6d_momentumloop_general(dist_5d, n_samples, a5, pcoord, np1, np2,
     #pperp_edges = dist_5d.abscissa_edges("pperp")
     time_values = dist_5d.abscissa("time")
 
-    padding = 1.1
-    # Do p edges need to be changed in some situations?
     p1_min, p1_max = ppar_edges.min()*padding, ppar_edges.max()*padding
     p2_min, p2_max = ppar_edges.min()*padding, ppar_edges.max()*padding
     p3_min, p3_max = ppar_edges.min()*padding, ppar_edges.max()*padding
+    print(f"px,py,pz grid max {p1_max:.2e}, min {p1_min:.2e}")
 
     p1_edges = np.linspace(p1_min, p1_max, np1)# * ppar_edges.units
     p2_edges = np.linspace(p2_min, p2_max, np2)# * ppar_edges.units
@@ -404,6 +403,10 @@ def process_momentum(dist_6d, plot_title, pcoord, save_path=None):
         px_dist_6d.plot(axes=ax1)
         py_dist_6d.plot(axes=ax2)
         pz_dist_6d.plot(axes=ax3)
+        px_min, px_max = dist_6d.abscissa("px").min(), dist_6d.abscissa("px").max()
+        ax1.set_xlim(px_min, px_max)
+        ax2.set_xlim(px_min, px_max)
+        ax3.set_xlim(px_min, px_max)
         fig.suptitle("Momentum distribution components", fontsize = 13)
         plt.tight_layout()
         plt.show()
@@ -427,9 +430,7 @@ def process_momentum(dist_6d, plot_title, pcoord, save_path=None):
     
     else:
         raise ValueError("Unknown coordinate")
-    ax1.set_xlim(-1.3e-19, 1.3e-19)
-    ax2.set_xlim(-1.3e-19, 1.3e-19)
-    ax3.set_xlim(-1.3e-19, 1.3e-19)
+
     if save_path != None:
         fig.savefig(f"{save_path}/{plot_title}.png")
         print(f"Figure saved {save_path}/{plot_title}.png")
