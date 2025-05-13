@@ -211,10 +211,6 @@ def dist_5d_to_6d_momentumloop_general(dist_5d, n_samples, a5, pcoord, np1, np2,
     p2_edges = np.linspace(p2_min, p2_max, np2)# * ppar_edges.units
     p3_edges = np.linspace(p3_min, p3_max, np3)# * ppar_edges.units
     
-    # p1_edges = np.histogram_bin_edges(ppar_edges*padding, np1)# * ppar_edges.units
-    # p2_edges = np.histogram_bin_edges(ppar_edges*padding, np2)# * ppar_edges.units
-    # p3_edges = np.histogram_bin_edges(ppar_edges*padding, np3)# * ppar_edges.units
-    
     hist_6d_arr = np.zeros((len(r_edges)-1, len(phi_edges)-1, len(z_edges)-1, len(p1_edges)-1, len(p2_edges)-1, len(p3_edges)-1), dtype=np.float64)
 
     r_grid, phi_grid, z_grid = np.meshgrid(r_values, phi_values, z_values, indexing='ij')
@@ -232,14 +228,6 @@ def dist_5d_to_6d_momentumloop_general(dist_5d, n_samples, a5, pcoord, np1, np2,
     bx, by, bz = magnetic_field_cylindrical_to_cartesian(br, bphi, bz, phi_grid)
     print(f"Iterations: {len(ppar_values)*len(pperp_values)}")
     itn = 0
-
-    # pxmin = 0
-    # pxmax = 0
-    # pymin = 0
-    # pymax = 0
-    # pzmin = 0
-    # pzmax = 0
-    # zetas = np.zeros(6)
 
     ir_grid = np.tile(ir_grid, n_samples)
     iphi_grid = np.tile(iphi_grid, n_samples)
@@ -349,14 +337,6 @@ def dist_5d_to_6d_momentumloop_ekin_pitch(dist_5d, n_samples, a5, pcoord, np1, n
     bx, by, bz = magnetic_field_cylindrical_to_cartesian(br, bphi, bz, phi_grid)
     print(f"Iterations: {len(ppar_values)*len(pperp_values)}")
     itn = 0
-
-    # pxmin = 0
-    # pxmax = 0
-    # pymin = 0
-    # pymax = 0
-    # pzmin = 0
-    # pzmax = 0
-    # zetas = np.zeros(6)
 
     ir_grid = np.tile(ir_grid, n_samples)
     iphi_grid = np.tile(iphi_grid, n_samples)
