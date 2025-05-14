@@ -25,10 +25,16 @@
 /** Random number generator used by AFSI */
 random_data rdata;
 
-void afsi_compute_product_momenta_2d(
-    int i, real m1, real m2, real mprod1, real mprod2, real Q, int prodmomspace,
+void afsi_compute_product_velocities_3d(
+    int i, real m1, real m2, real mprod1, real mprod2, real Q,
     real* ppara1, real* pperp1, real* ppara2, real* pperp2, real* vcom2,
-    real* prod1_p1, real* prod1_p2, real* prod2_p1, real* prod2_p2);
+    real* vprod1, real* vprod2);
+void afsi_compute_product_momenta_2d(
+    int i, real mprod1, real mprod2, int prodmomspace,
+    real* vprod1, real* vprod2, real* prod1_p1, real* prod1_p2,
+    real* prod2_p1, real* prod2_p2);
+void afsi_store_particle_data(int i, real* rvec, real* phivec,
+     real* zvec, real* vprod2, real mprod2, real* prod2);
 void afsi_sample_reactant_momenta_2d(
     sim_data* sim, afsi_data* afsi, real mass1, real mass2,
     real vol, int nsample, size_t i0, size_t i1, size_t i2,
@@ -154,10 +160,17 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
                 }
                 for(size_t i = 0; i < n; i++) {
                     real vcom2;
-                    afsi_compute_product_momenta_2d(
-                        i, m1, m2, mprod1, mprod2, Q, prod_mom_space,
+                    real vprod1[3];
+                    real vprod2[3];
+
+                    afsi_compute_product_velocities_3d(
+                        i, m1, m2, mprod1, mprod2, Q,
                         ppara1, pperp1, ppara2, pperp2, &vcom2,
-                        prod1_p1, prod1_p2, prod2_p1, prod2_p2);
+                        vprod1, vprod2);
+                    
+                    afsi_compute_product_momenta_2d(i, mprod1, mprod2, prod_mom_space,
+                        vprod1, vprod2,  prod1_p1, prod1_p2, prod2_p1, prod2_p2);
+                    
                     real E = 0.5 * ( m1 * m2 ) / ( m1 + m2 ) * vcom2;
 
                     real weight = density1 * density2 * sqrt(vcom2)
@@ -288,6 +301,90 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
     print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "\nDone\n");
 }
 
+void afsi_run_new(sim_data* sim, afsi_data* afsi, int n,
+                real* rvec, real* phivec, real* zvec, real* prod2) {
+    /* QID for this run */
+    // char qid[11];
+    // hdf5_generate_qid(qid);
+    // strcpy(sim->qid, qid);
+
+    int mpi_rank = 0, mpi_root = 0; /* AFSI does not support MPI */
+    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "AFSI5\n");
+    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
+        "Tag %s\nBranch %s\n\n", GIT_VERSION, GIT_BRANCH);
+
+    random_init(&rdata, time((NULL)));
+    // strcpy(sim->hdf5_out, sim->hdf5_in);
+    simulate_init(sim);
+
+    // if( hdf5_interface_init_results(sim, qid, "afsi") ) {
+    //     print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
+    //             "\nInitializing output failed.\n"
+    //             "See stderr for details.\n");
+    //     /* Free data and terminate */
+    //     abort();
+    // }
+
+    real m1, q1, m2, q2, mprod1, qprod1, mprod2, qprod2, Q;
+    boschhale_reaction(
+    afsi->reaction, &m1, &q1, &m2, &q2,
+    &mprod1, &qprod1, &mprod2, &qprod2, &Q);
+    
+    real time = 0.0;
+    #pragma omp parallel for
+    for(size_t i0 = 0; i0 < afsi->volshape[0]; i0++) {
+        real* ppara1 = (real*) malloc(n*sizeof(real));
+        real* pperp1 = (real*) malloc(n*sizeof(real));
+        real* ppara2 = (real*) malloc(n*sizeof(real));
+        real* pperp2 = (real*) malloc(n*sizeof(real));
+
+        for(size_t i1 = 0; i1 < afsi->volshape[1]; i1++) {
+            for(size_t i2 = 0; i2 < afsi->volshape[2]; i2++) {
+                size_t spatial_index = i0*afsi->volshape[1]*afsi->volshape[2]
+                                    + i1*afsi->volshape[2] + i2;
+                real r = afsi->r[spatial_index];
+                real z = afsi->z[spatial_index];
+                real phi = afsi->phi[spatial_index];
+                real vol = afsi->vol[spatial_index];
+                
+                real psi, rho[2];
+                if(B_field_eval_psi(&psi, r, phi, z, time, &sim->B_data) ||
+                    B_field_eval_rho(rho, psi, &sim->B_data) ) {
+                    continue;
+                }
+
+                real density1, density2;
+                afsi_sample_reactant_momenta_2d(
+                    sim, afsi, m1, m2, vol, n, i0, i1, i2,
+                    r, phi, z, time, rho[0],
+                    &density1, ppara1, pperp1, &density2, ppara2, pperp2);
+                if(density1 == 0 || density2 == 0) {
+                    continue;
+                }
+                for(size_t i = 0; i < n; i++) {
+                    real vcom2;
+                    real vprod1[3];
+                    real vprod2[3];
+
+                    afsi_compute_product_velocities_3d(
+                        i, m1, m2, mprod1, mprod2, Q,
+                        ppara1, pperp1, ppara2, pperp2, &vcom2,
+                        vprod1, vprod2);
+                    
+                    afsi_store_particle_data(i, rvec, phivec, zvec, vprod2, mprod2, prod2);
+                    
+                }
+            }
+        }
+        free(ppara1);
+        free(ppara2);
+        free(pperp1);
+        free(pperp2);
+    }
+
+    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "\nDone\n");
+}
+
 /**
  * @brief Compute momenta of reaction products.
  *
@@ -307,10 +404,11 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
  * @param pparaprod2 array where parallel momentum of product 2 is stored.
  * @param pperpprod2 array where perpendicular momentum of product 2 is stored.
  */
-void afsi_compute_product_momenta_2d(
-    int i, real m1, real m2, real mprod1, real mprod2, real Q, int prodmomspace,
+
+void afsi_compute_product_velocities_3d(
+    int i, real m1, real m2, real mprod1, real mprod2, real Q,
     real* ppara1, real* pperp1, real* ppara2, real* pperp2, real* vcom2,
-    real* prod1_p1, real* prod1_p2, real* prod2_p1, real* prod2_p2) {
+    real* vprod1, real* vprod2) {
 
     real rn1 = CONST_2PI * random_uniform(&rdata);
     real rn2 = CONST_2PI * random_uniform(&rdata);
@@ -355,13 +453,48 @@ void afsi_compute_product_momenta_2d(
     v2_cm[2] = vnorm * cos(theta);
 
     // Products' velocities in lab frame
-    real vprod1[3], vprod2[3];
     vprod1[0] = -(mprod2/mprod1) * v2_cm[0] + v_cm[0];
     vprod1[1] = -(mprod2/mprod1) * v2_cm[1] + v_cm[1];
     vprod1[2] = -(mprod2/mprod1) * v2_cm[2] + v_cm[2];
     vprod2[0] = v2_cm[0] + v_cm[0];
     vprod2[1] = v2_cm[1] + v_cm[1];
     vprod2[2] = v2_cm[2] + v_cm[2];
+}
+
+void afsi_store_particle_data(int i, real* rvec, real* phivec, real* zvec, real* vprod2, real mprod2, real* prod2){
+
+    // Compute the magnitude of the velocity of prod2
+    real vprod2_magnitude = sqrt(vprod2[0] * vprod2[0] +
+    vprod2[1] * vprod2[1] +
+    vprod2[2] * vprod2[2]);
+
+    // Compute the kinetic energy of prod2
+    real energy_prod2 = 0.5 * mprod2 * vprod2_magnitude * vprod2_magnitude;
+
+    // Normalize vprod2 to get the direction vector
+    real u = vprod2[0] / vprod2_magnitude;
+    real v = vprod2[1] / vprod2_magnitude;
+    real w = vprod2[2] / vprod2_magnitude;
+
+    // Sample the coordinates in the bin
+    real r = rvec[0] + (rvec[1] - rvec[0]) * random_uniform(rdata);
+    real phi = phivec[0] + (phivec[1] - phivec[0]) * random_uniform(rdata);
+    real z = zvec[0] + (zvec[1] - zvec[0]) * random_uniform(rdata);
+
+    // Store the sampled coordinates, directions and energy in the prod2 array
+    prod2[i * 7 + 0] = r; 
+    prod2[i * 7 + 1] = phi; 
+    prod2[i * 7 + 2] = z; 
+    prod2[i * 7 + 3] = u; 
+    prod2[i * 7 + 4] = v;
+    prod2[i * 7 + 5] = w;
+    prod2[i * 7 + 6] = energy_prod2*6241506479963.2; // Convert to MeV
+}
+
+void afsi_compute_product_momenta_2d(
+    int i, real mprod1, real mprod2, int prodmomspace,
+    real* vprod1, real* vprod2, real* prod1_p1, real* prod1_p2,
+    real* prod2_p1, real* prod2_p2) {
 
     if(prodmomspace == PPARPPERP) {
         prod1_p1[i] = vprod1[2] * mprod1;
