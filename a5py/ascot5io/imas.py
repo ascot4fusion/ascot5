@@ -4,6 +4,7 @@ from a5py.physlib import species, pol2cart, cart2pol_vec
 import unyt
 import warnings
 from types import SimpleNamespace
+import warnings
 
 class a5imas:
 
@@ -120,11 +121,15 @@ class a5imas:
         #data_entry.open()
         self.data_entry.create()
 
+
+        # get the right imas datastructure
         if self.ids_name == 'wall':
             #ids = data_entry.get(ids_name,occurrence)
             self.ids = imas.wall()
         elif self.ids_name == 'equilibrium':
             self.ids = imas.equilibrium()
+        elif self.ids_name == 'distributions':
+            self.ids = imas.distributions()
         else:
             raise NotImplementedError("The ids {} has not been implemented in ascot5 imas.py create().".format(self.ids_name))
             # Probably easy enough to implement another ids "newids":
@@ -146,8 +151,8 @@ class a5imas:
 
     def fill_mandatory(self,time=[0.0]):
         # mandatory
-        ids.ids_properties.homogeneous_time = 1
-        ids.time = np.array(time)
+        self.ids.ids_properties.homogeneous_time = 1
+        self.ids.time = np.array(time)
 
 
     def description_string(self):
@@ -157,23 +162,65 @@ class a5imas:
 
 
     def fill_species(self,target_species,anum,znum,charge):
-        raise NotImplementedError()
 
-    def fill_code(self,target_code,vrun):
+        sp = species.autodetect(anum, znum, charge)
+
+        if sp['name']=='e':
+            target_species.type.index         = 1
+            target_species.type.name          = "electron"
+            target_species.type.description   = "Electron"
+        elif round(charge) == 0:
+            target_species.type.index         = 4
+            target_species.type.name          = "neutral"
+            target_species.type.description   = "Neutral species in a single/average state; refer to neutral-structure"
+        else:
+            target_species.type.index         = 2
+            target_species.type.name          = "ion"
+            target_species.type.description   = "Ion species in a single/average state; refer to ion-structure"
+
+        if target_species.type.index == 1 or target_species.type.index == 2:
+            # ions or electrons
+            
+            # We assume single nucleus for our ions. (len(element)==1 && atoms_n==1)
+            target_species.ion.element[0].a       = sp['mass']
+            target_species.ion.element[0].z_n     = sp['znum']
+            target_species.ion.element[0].atoms_n = 1
+            target_species.z_ion                  = sp['charge']
+        else:
+            # We assume single nucleus for our neutrals. (len(element)==1 && atoms_n==1)
+            target_species.neutral.element[0].a       = sp['mass']
+            target_species.neutral.element[0].z_n     = sp['znum']
+            target_species.neutral.element[0].atoms_n = 1
+            target_species.z_ion                      = sp['charge']
+
+        
+    def fill_code(self,target_code,runobject):
         """
         Fills in the code version information
         """
-        codeversion = vrun.getcodeversion()
+        codeversion = runobject.getcodeversion()
         for field in ['name','description','commit','version','repository']:
             setattr( target_code, field, codeversion[field] )
 
         # List of the code specific parameters in XML format
-        target_code.parameters  = vrun.get_code_parameters()
-
+        options  = runobject.options.read()
+        # convert parameters into XML
+        warnings.warn('NOT IMPLEMENTED code parameters to XML [TODO_KONSTA<--SIMPPA]')
+        xml_string=str(options)
+        target_code.parameters = xml_string 
+        
         #Output flag : 0 means the run is successful, other values mean some difficulty has been encountered, the exact meaning is then code specific. Negative values mean the result shall not be used. {dynamic}
-        target_code.output_flag = vrun.get_run_success()
-        raise NotImplementedError()
+        target_code.output_flag = runobject.get_run_success()
 
+        
+    def fill_grid_rz(self,target_grid,r,z):
+
+        target_grid.type.index        = 0
+        target_grid.type.name         = "rectangular RZ"
+        target_grid.type.description  = "Rectangular grid in the (R,Z) coordinates;"
+        
+        target_grid.r = r
+        target_grid.z = z
 
 class B_STS(a5imas):
     ''' Read stellarator 3D magnetic field with the conventions laid out in:
@@ -1410,7 +1457,6 @@ class B_2DS(a5imas):
 
         #TODO, ! If rho_tor doesn't start from 0.000, extrapolate
         if rho_tor[0] > 0:
-            import warnings
             warnings.warn("Rho tor-profile does not start from 0.0000, this may be a problem. It was extrapolated in ASCOT4, but has not been implemented in ASCOT5.")
 
 
@@ -1435,32 +1481,32 @@ class B_2DS(a5imas):
         return np.interp( rho_pol, self.poltor_rho_pol, self.poltor_rho_tor)
 
 
-class dist(a5imas):
+class distributions(a5imas):
 
     def __init__(self):
         super().__init__()
-        self.ids_name = "distribution"
+        self.ids_name = "distributions"
 
-    def write(self, user, tokamak, version, shot, run, dist5d=None, dist5drho=None, metadata={} ):
+    def write(self, user, tokamak, version, shot, run, runobject, metadata={} ):
         self.create( user, tokamak, version, shot, run)
-        self.fill(dist5d,dist5drho)
+        self.fill(runobject,metadata)
         self.write_data_entry()
 
     def fill(self,runobject,metadata={}):
         '''
         The distributions are the '5d' and '5drho distributions you get from the runobject Ascot.data.run_xxxxxxxxx.getdist('5d')
-        Thus, e.g. runobject=Ascot.data.run_xxxxxxxxx
+        Thus, e.g. runobject=Ascot.data.run_xxxxxxxxx or a vrun
         '''
         timeIndex = 0
 
         if 'ids_comment' in metadata :
-            ids.ids_properties.comment = metadata['ids_comment']
+            self.ids.ids_properties.comment = metadata['ids_comment']
         else:
-            ids.ids_properties.comment = "distribution IDS for testing"
+            self.ids.ids_properties.comment = "distributions IDS for testing"
             
         self.fill_mandatory()
 
-        self.fill_code(metadata)
+        self.fill_code(self.ids.code,runobject)
         
         species = runobject.getspecies()
         anum = species['anum']
@@ -1469,23 +1515,75 @@ class dist(a5imas):
         # Defines how to interpret the spatial coordinates:
         #    1 = given at the actual particle birth point;
         #    2 = given at the gyro centre of the birth point {constant}
-        # Corresponds to vrun.getsimmode()=1 --> gyro_type=1
-        #                vrun.getsimmode()=2 --> gyro_type=2
+        # Corresponds to runobject.getsimmode()=1 --> gyro_type=1
+        #                runobject.getsimmode()=2 --> gyro_type=2
 
         gyro_type = runobject.getsimmode()
-        if gyro_type == 1 or gyro_type == 2 :
-                d.gyro_type = gyro_type
-        else:
+        if not (gyro_type == 1 or gyro_type == 2) :
             raise ValueError("Unsupported gyro_type from runobject.getsimmode(): '{}' (should be 1 or 2).".format(gyro_type))
 
-        for iDistribution in range(len(TODO_LOOP_OVER_CHARGES_IN_DISTRIBUTION)):
-        
-            d = self.ids.distribution[iDistribution]
 
-            # Find the current charge state from the distribution
-            charge = TODO_DISTRIBUTION_CHARGES[iDistribution]
-            self.fill_species(d.species,anum,znum,charge)
+        if '5d' in runobject.getdist_list()[0]:
+            d5d = runobject.getdist('5d')
+            charges5d = d5d.abscissa('charge')
+        else:
+            charges5d = []
+
+        
+        warnings.warn("SKIPPING rho5d for debugging")
+        if '******rho5d******' in runobject.getdist_list()[0]:
+            drho5d = runobject.getdist('rho5d')
+            chargesrho5d = drho5d.abscissa('charge')
+        else:
+            chargesrho5d = []
+
+        
+        # To append the distributions one after each other
+        distoffset = 0
+        
+        
+        ###########
+        # dist 5d #
+        ###########
+        for iDistribution in range(len(charges5d)):
+        
+            d = self.ids.distribution[ iDistribution + distoffset ]
+
 
             # If is_delta_f=1, then the distribution represents the deviation from a Maxwellian;
             # is_delta_f=0, then the distribution represents all particles, i.e. the full-f solution {constant}
             d.is_delta_f = 1 
+
+            d.gyro_type = gyro_type
+
+            charge = charges5d[iDistribution]
+            self.fill_species(d.species,anum,znum,charge)
+
+            prof2d = d.profiles_2d[timeIndex]
+            self.fill_grid_rz( prof2d.grid, r=d5d.abscissa('r'), z=d5d.abscissa('z') )
+
+            warnings.warn("""5D distribution output still WIP; fill in e.g. profiles_2d:
+density --> density_fast
+toroidalcurrent --> current_fast_phi
+pressure --> pressure_fast
+electronpowerdep --> collisions.electrons.powerthermal
+
+The following may not be useful:
+parallelcurrent : Parallel current
+chargedensity : Charge density
+energydensity : Energy density
+powerdep : Total deposited power
+ionpowerdep : Power deposited to ions (should be per species)
+"""            
+        distoffset += len(charges5d)
+
+        ##############
+        # dist rho5d #
+        ##############
+        warnings.warn("Rho distribution output not implemented")
+
+        for iDistribution in range(len(chargesrho5d)):
+        
+            d = self.ids.distribution[ iDistribution + distoffset ]
+
+        distoffset += len(chargesrho5d)

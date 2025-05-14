@@ -2179,14 +2179,15 @@ class RunMixin(DistMixin):
          - 3 Hybrid
          - 4 Magnetic field lines )
         """
-        raise NotImplementedError()
+        warnings.warn('Not implemented yet [TODO_KONSTA<--SIMPPA]')
+        return 1
 
     def getspecies(self):
         """
         Return a dictionary that describes the current plasma species that is
         simulated, with the following minimum keys: 'anum', 'znum'.
         """
-        raise NotImplementedError()
+        warnings.warn('Not implemented yet [TODO_KONSTA<--SIMPPA]')
         return { 'anum': 3, 'znum': 4 }
 
     def getcodeversion(self):
@@ -2198,7 +2199,8 @@ class RunMixin(DistMixin):
         'version':      Unique version (tag) of software
         'repository':   URL of software repository
         """
-        raise NotImplementedError()
+
+        warnings.warn('Not implemented yet [TODO_KONSTA<--SIMPPA]')
         return {
             'name': "ascot5",
             'description': "monte carlo particle following",
@@ -2206,3 +2208,11 @@ class RunMixin(DistMixin):
             'version': "",
             'repository':"",
             }
+
+    def get_run_success(self):
+        """
+        Output flag : 0 means the run is successful, other values mean some difficulty has been encountered
+        Negative values mean the result shall not be used.
+        """
+        warnings.warn('Not implemented yet [TODO_KONSTA<--SIMPPA]')
+        return 0
