@@ -96,12 +96,12 @@ def autodetect(anum, znum, charge=None):
     Returns
     -------
     data : dict
-        Contains "anum", "znum", "charge", and "mass".
+        Contains "anum", "znum", "charge", "mass", and "name".
     """
-    for v in speciesdict.values():
+    for key,v in speciesdict.itmes():
         if anum == v[0] and znum == v[1]:
             if charge is None:
                 charge = v[2]
-            return {"anum":v[0], "znum":v[1], "charge":charge, "mass":v[3]}
+            return {"anum":v[0], "znum":v[1], "charge":charge, "mass":v[3], "name": key}
 
     raise ValueError(f"Unknown species anum={anum} znum={znum}")
