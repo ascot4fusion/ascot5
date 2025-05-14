@@ -303,27 +303,9 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
 
 void afsi_run_new(sim_data* sim, afsi_data* afsi, int n,
                 real* rvec, real* phivec, real* zvec, real* prod2) {
-    /* QID for this run */
-    // char qid[11];
-    // hdf5_generate_qid(qid);
-    // strcpy(sim->qid, qid);
-
-    int mpi_rank = 0, mpi_root = 0; /* AFSI does not support MPI */
-    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "AFSI5\n");
-    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
-        "Tag %s\nBranch %s\n\n", GIT_VERSION, GIT_BRANCH);
 
     random_init(&rdata, time((NULL)));
-    // strcpy(sim->hdf5_out, sim->hdf5_in);
     simulate_init(sim);
-
-    // if( hdf5_interface_init_results(sim, qid, "afsi") ) {
-    //     print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
-    //             "\nInitializing output failed.\n"
-    //             "See stderr for details.\n");
-    //     /* Free data and terminate */
-    //     abort();
-    // }
 
     real m1, q1, m2, q2, mprod1, qprod1, mprod2, qprod2, Q;
     boschhale_reaction(
@@ -381,8 +363,6 @@ void afsi_run_new(sim_data* sim, afsi_data* afsi, int n,
         free(pperp1);
         free(pperp2);
     }
-
-    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "\nDone\n");
 }
 
 /**

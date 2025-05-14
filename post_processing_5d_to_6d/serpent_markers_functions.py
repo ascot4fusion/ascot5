@@ -9,6 +9,8 @@ def fill_output_file(file, dist_5d, a5, samples_per_bin):
     z_edges = dist_5d.abscissa_edges("z")
     phi_edges = dist_5d.abscissa_edges("phi")
 
+    results = []
+
     it = 0
     for ir in range(len(r_edges)-1):
         # Get the r bin edges
@@ -26,13 +28,15 @@ def fill_output_file(file, dist_5d, a5, samples_per_bin):
                 zmax_bin = z_edges[iz+1]
                 # call afsi for each bin
                 prod2  = iter_6D_markers(a5, rmin_bin,rmax_bin, phimin_bin, phimax_bin, zmin_bin, zmax_bin, nsamples=n_samples_bin)
+                if prod2.size !=0:
+                    results.append(prod2)
                 it = it+1
-                print(it)
+                if it % 100 == 0:
+                    print(it)
                 # Save the results
-                np.savetxt(file, prod2, fmt='%1.6f')  # write the array
-                file.write('\n')
+    prod2_full = np.vstack(results)
+    np.savetxt(file, prod2_full, fmt='%1.6f')  # write the array
     
-    return
 
 def samples_in_bin(dist_5d, n_samples):
 
@@ -109,5 +113,3 @@ def plot_markers(output_path):
     plt.title("en")
     plt.xlabel("Energy [MeV]")
     plt.show()
-
-    return
