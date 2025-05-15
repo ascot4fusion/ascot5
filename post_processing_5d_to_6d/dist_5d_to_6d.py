@@ -440,6 +440,72 @@ def generate_markers(a5, dist, n_markers, pcoordinate, bins, save_path=None):
             print(f"Figure saved {save_path}/sampled_markers_cartesian.png")   
     return mrk
 
+def spatial_dist(a5, rmin,rmax,nr, phimin,phimax, nphi, zmin, zmax, nz, nsamples, pparmin=-1.1e-19, pparmax = 1.1e-19, pperpmin = 0, pperpmax = 1.1e-19, desc = None):
+    r = np.linspace(rmin, rmax, nr+1)
+    z = np.linspace(zmin, zmax, nz+1)
+    phi = np.linspace(phimin, phimax, nphi+1)
+    ppar = np.linspace(pparmin, pparmax, 2)
+    pperp = np.linspace(pperpmin,pperpmax, 2)
+    a5.afsi.thermal(
+        "DT_He4n", nmc=nsamples, r=r, z=z,phi=phi,
+        ppar1=ppar, pperp1=pperp, ppar2=ppar, pperp2=pperp)
+    dist = a5.data.active.getdist("prod2")
+    if desc == None:
+        a5.data.active.set_desc(f"R{nr}_PHI_{nphi}_Z{nz}_ppar1_pperp1")
+    dist.integrate(ppar=np.s_[:], pperp=np.s_[:], time=np.s_[:], charge=np.s_[:])
+    return dist
+
+def plot_serpent_marker_arr(markers, bins = 20):
+    if type(markers) == str:
+        markers = np.load(markers)
+    r = markers[:, 0]
+    phi  = markers[:, 1]
+    z = markers[:, 2]
+    u = markers[:, 3]
+    v = markers[:, 4]
+    w = markers[:, 5]
+    ekin = markers[:, 6]
+    fig = plt.figure(figsize=(18, 8))  # Increase height to fit second row
+
+    # First row
+    ax1 = fig.add_subplot(2, 3, 5)
+    ax1.hist(ekin, bins=bins)
+    ax1.set_xlabel("Energy [MeV]",fontsize = 13)
+    plt.axvline(x=14.1, c="black")
+
+    ax2 = fig.add_subplot(2, 3, 1)
+    ax2.hist(u, bins=bins)
+    ax2.set_xlabel("u",fontsize = 13)
+
+    ax3 = fig.add_subplot(2, 3, 2, sharey=ax2)
+    ax3.hist(v, bins=bins)
+    ax3.set_xlabel("v",fontsize = 13)
+
+    ax4 = fig.add_subplot(2, 3, 3, sharey=ax2)
+    ax4.hist(w, bins=bins)
+    ax4.set_xlabel("w", fontsize = 13)
+
+    # Second row – example additional plot
+    ax5 = fig.add_subplot(2, 3, 4)
+    ax5.scatter(r, z)  # Replace weight.v with the desired data
+    ax5.set_xlabel("r",  fontsize = 13)
+    ax5.set_ylabel("z",  fontsize = 13)
+    fig.suptitle("Serpent marker distributions", fontsize = 13)
+    
+    hist1, _, _ = np.histogram2d(r, z)
+    ax6 = fig.add_subplot(2, 3, 6)
+    im1 = ax6.imshow(hist1.T, origin="lower", extent=[r.min(), r.max(), z.min(), z.max()], cmap="hot", aspect="auto")
+    plt.colorbar(im1, ax=ax6)
+    ax6.set_xlabel("r",  fontsize = 13)
+    ax6.set_ylabel("z",  fontsize = 13)
+    plt.tight_layout()
+    plt.show()
+    
+    isotropic_dir = isotropic_directions_rejection(len(u))
+    plot_direction_vectors(isotropic_dir, np.column_stack((u,v,w)), bins = bins)
+
+
+
 def mrk_to_serpent(mrk, bins, save_path = None):
     px, py, pz = mrk["px"], mrk["py"], mrk["pz"]
     r, phi, z = mrk["r"], mrk["phi"], mrk["z"]
