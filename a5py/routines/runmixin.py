@@ -17,6 +17,7 @@ import unyt
 from scipy.spatial import cKDTree
 
 from a5py.exceptions import AscotNoDataException
+from a5py.ascot5io.coreio.fileapi import VERSION
 
 import a5py.routines.plotting as a5plt
 from a5py.ascot5io import Marker, State, Orbits, Dist
@@ -2171,48 +2172,72 @@ class RunMixin(DistMixin):
                           **kwargs)
 
     def getsimmode(self):
-        """
-        Get the simulation mode in use.
-        (At the time of writing this comment:
+        """Return the simulation mode that was used to run the simulation.
+
          - 1 Gyro-orbit
          - 2 Guiding center
          - 3 Hybrid
          - 4 Magnetic field lines )
+
+        Returns
+        -------
+        mode : int
+            The simulation mode.
         """
-        warnings.warn('Not implemented yet [TODO_KONSTA<--SIMPPA]')
-        return 1
+        self._require("options")
+        return self.options.read()["SIMMODE"]
 
     def getspecies(self):
+        """Return the test particle species that was used in the simulation.
+
+        Returns
+        -------
+        species : dict
+            Dictionary with the following keys:
+            'anum' : int
+                Atomic number of the test particle-
+            'znum' : int
+                Charge number of the test particle.
         """
-        Return a dictionary that describes the current plasma species that is
-        simulated, with the following minimum keys: 'anum', 'znum'.
-        """
-        warnings.warn('Not implemented yet [TODO_KONSTA<--SIMPPA]')
-        return { 'anum': 3, 'znum': 4 }
+        anum, znum = self.getstate("anum", "znum")
+        return {"anum": anum[0], "znum": znum[0]}
 
     def getcodeversion(self):
-        """
-        Returns a dictionary that describes the current code version, including at least the following keys (values as strings):
-        'name':         Name of software
-        'description':  Short description of the software (type, purpose)
-        'commit':       Unique commit reference of software
-        'version':      Unique version (tag) of software
-        'repository':   URL of software repository
-        """
+        """Return version of the code that was used to run the simulation.
 
-        warnings.warn('Not implemented yet [TODO_KONSTA<--SIMPPA]')
+        Returns
+        -------
+        version : dict
+            Dictionary with the following keys:
+            'name' : str
+                Name of the software.
+            'description' : str
+                Short description of the software (type, purpose).
+            'commit' : str
+                Unique commit reference of the software.
+            'version' : str
+                Unique version (tag) of the software.
+            'repository' : str
+                URL of the software repository.
+        """
         return {
-            'name': "ascot5",
-            'description': "monte carlo particle following",
-            'commit': "",
-            'version': "",
-            'repository':"",
+            "name": "ascot5",
+            "description": "monte carlo particle following",
+            "commit": str(VERSION),
+            "version": str(VERSION),
+            "repository":"github.com/ascot4fusion/ascot5",
             }
 
     def get_run_success(self):
+        """Assess if the run was successful.
+
+        Returns
+        -------
+        success : int
+            Zero if the run was successful.
         """
-        Output flag : 0 means the run is successful, other values mean some difficulty has been encountered
-        Negative values mean the result shall not be used.
-        """
-        warnings.warn('Not implemented yet [TODO_KONSTA<--SIMPPA]')
-        return 0
+        try:
+            self._require("_endstate")
+            return 0
+        except AscotNoDataException:
+            return -1

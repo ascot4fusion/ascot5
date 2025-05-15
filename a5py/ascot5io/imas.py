@@ -180,7 +180,7 @@ class a5imas:
 
         if target_species.type.index == 1 or target_species.type.index == 2:
             # ions or electrons
-            
+
             # We assume single nucleus for our ions. (len(element)==1 && atoms_n==1)
             target_species.ion.element[0].a       = sp['mass']
             target_species.ion.element[0].z_n     = sp['znum']
@@ -193,7 +193,7 @@ class a5imas:
             target_species.neutral.element[0].atoms_n = 1
             target_species.z_ion                      = sp['charge']
 
-        
+
     def fill_code(self,target_code,runobject):
         """
         Fills in the code version information
@@ -203,22 +203,20 @@ class a5imas:
             setattr( target_code, field, codeversion[field] )
 
         # List of the code specific parameters in XML format
-        options  = runobject.options.read()
         # convert parameters into XML
-        warnings.warn('NOT IMPLEMENTED code parameters to XML [TODO_KONSTA<--SIMPPA]')
-        xml_string=str(options)
-        target_code.parameters = xml_string 
-        
+        _, xml_string = runobject.options.schema(runobject.options.read())
+        target_code.parameters = xml_string
+
         #Output flag : 0 means the run is successful, other values mean some difficulty has been encountered, the exact meaning is then code specific. Negative values mean the result shall not be used. {dynamic}
         target_code.output_flag = runobject.get_run_success()
 
-        
+
     def fill_grid_rz(self,target_grid,r,z):
 
         target_grid.type.index        = 0
         target_grid.type.name         = "rectangular RZ"
         target_grid.type.description  = "Rectangular grid in the (R,Z) coordinates;"
-        
+
         target_grid.r = r
         target_grid.z = z
 
@@ -292,11 +290,11 @@ class B_STS(a5imas):
 
         ldata = nR * nphi * nz
         if  len( ggd.b_field_r[   0 ].values) != ldata :
-             raise ValueError("B_R size does not match R,phi,z size") 
+             raise ValueError("B_R size does not match R,phi,z size")
         if  len( ggd.b_field_tor[   0 ].values) != ldata :
-             raise ValueError("B_tor size does not match R,phi,z size") 
+             raise ValueError("B_tor size does not match R,phi,z size")
         if  len( ggd.b_field_z[   0 ].values) != ldata :
-             raise ValueError("B_z size does not match R,phi,z size") 
+             raise ValueError("B_z size does not match R,phi,z size")
 
         B_R   = np.reshape( ggd.b_field_r[   0 ].values, newshape=shape, order=order )
         B_tor = np.reshape( ggd.b_field_tor[ 0 ].values, newshape=shape, order=order )
@@ -304,21 +302,21 @@ class B_STS(a5imas):
 
         if len( ggd.psi ) > 0 :
             if  len( ggd.psi[   0 ].values) != ldata :
-                raise ValueError("psi data size does not match R,phi,z size") 
+                raise ValueError("psi data size does not match R,phi,z size")
             psi_arr   = np.reshape( ggd.psi[   0 ].values, newshape=shape, order=order )
         else:
             psi_arr   = None
 
         if len( ggd.phi) > 0 :
             if  len( ggd.phi[   0 ].values) != ldata :
-                raise ValueError("phi data size does not match R,phi,z size") 
+                raise ValueError("phi data size does not match R,phi,z size")
             phi_arr   = np.reshape( ggd.phi[   0 ].values, newshape=shape, order=order )
         else:
             phi_arr   = None
 
         if len( ggd.theta) > 0 :
             if  len( ggd.theta[   0 ].values) != ldata :
-                raise ValueError("theta data size does not match R,phi,z size") 
+                raise ValueError("theta data size does not match R,phi,z size")
             theta_arr = np.reshape( ggd.theta[ 0 ].values, newshape=shape, order=order )
         else:
             theta_arr = None
@@ -403,8 +401,8 @@ class B_STS(a5imas):
         B["axis_phimax"]=      np.array([Pmax   ])
         B["axis_nphi"]  =      np.array([nP     ])
 
-        B["axisr"]      =      axis_R 
-        B["axisz"]      =      axis_z 
+        B["axisr"]      =      axis_R
+        B["axisz"]      =      axis_z
 
         # For the 3D-arrays, the required dimension order is (r,phi,z)
         B["br"]         =      B_R
@@ -430,7 +428,7 @@ class B_STS(a5imas):
         self.write_data_entry()
 
     def fill(self, B, metadata={}):
-        
+
         # Check that all arrays have same size
         if B['b_nr']   != B['psi_nr']:
             raise ValueError('b_nr != psi_nr')
@@ -452,8 +450,8 @@ class B_STS(a5imas):
                 B['b_phimin'] != B['axis_phimin'] or
                 B['b_phimax'] != B['axis_phimax']   ):
             raise ValueError('b/psi/axis r/z/phi min/max do not match Expecting identical grids.')
-                
-        
+
+
         index_grids_ggd = 0
         index_time_slice = 0
         nGrids = 2
@@ -467,7 +465,7 @@ class B_STS(a5imas):
 
         self.fill_mandatory()
 
-        
+
         # Fill data
 
         if len( self.ids.grids_ggd ) <= index_grids_ggd :
@@ -526,21 +524,21 @@ class B_STS(a5imas):
         for i in range(nz):
             grid.space[2].objects_per_dimension[0].object[i].geometry = np.array( [z[i]  ] )
             grid.space[2].objects_per_dimension[0].object[i].nodes = np.array([i+1])
-            
+
         # Todo... edges, sub-spaces
 
-            
+
         # The magnetic axis grid
         grid = self.ids.grids_ggd[index_grids_ggd].grid[1]
 
         grid.identifier.index = 1
         grid.identifier.description = 'magnetic axis'
 
-        
-        nSpaces = 1 
+
+        nSpaces = 1
         if len(grid.space) < nSpaces:
             grid.space.resize(nSpaces)
-       
+
         grid.space[0].identifier.index = 1
         grid.space[0].coordinates_type = np.array([4, 6, 5])
 
@@ -550,7 +548,7 @@ class B_STS(a5imas):
         # nodes
         if len(grid.space[0].objects_per_dimension) < objdims :
             grid.space[0].objects_per_dimension.resize(2)
-            
+
         if len(grid.space[0].objects_per_dimension[0].object) != nPhi:
             grid.space[0].objects_per_dimension[0].object.resize(nPhi)
 
@@ -564,7 +562,7 @@ class B_STS(a5imas):
             grid.space[0].objects_per_dimension[1].object.resize(1)
 
         grid.space[0].objects_per_dimension[1].object[0].nodes = np.arange( 1, nPhi+1, dtype=int )
-            
+
 
         if len(grid.grid_subset) < 1:
             grid.grid_subset.resize(1)
@@ -1006,12 +1004,12 @@ class wall_3d(a5imas):
         description_ggd_index = 0
         grid_ggd_index        = 0
         space_index           = 0
-        
-        
+
+
         desc_ggd = self.ids.wall.description_ggd[description_ggd_index]
         grid_ggd = desc_ggd.grid_ggd[grid_ggd_index]
         space    = grid_ggd.space[space_index]
-        
+
         if not np.all( space.coordinates_type == np.array([1, 2, 3]) ):
             raise ValueError("Space coordinates not [1,2,3] in IMAS (3d)wall ids u:{} db:{} v:{} s:{} r:{} o:{} desc:{} grid:{} sp:{}".format(
                 user,tokamak,version,shot,run,occurrence,description_ggd_index,grid_ggd_index,space_index ))
@@ -1022,9 +1020,9 @@ class wall_3d(a5imas):
 
 
         # Convert 3D wall data to ASCOT5 format
-                             
+
         xyz = self.get_xyz(node_coordinates,tria_indexes)
-        
+
 
         nelements = xyz.shape[0]
         flag      = np.ones( (nelements,1) ) * description_ggd_index
@@ -1043,7 +1041,7 @@ class wall_3d(a5imas):
 #        print(flagIdStrings)
         labels    =  dict( zip(  flagIdStrings, flagIdList ) )
 
-        
+
         w = {
             "x1x2x3"         : xyz[:,:,0],
             "y1y2y3"         : xyz[:,:,1],
@@ -1087,7 +1085,7 @@ class wall_3d(a5imas):
         '''
         Parse out triangle corner coordinates. Assume one based indexing in the input (first = 1).
 
-        Returns  xyz[ntri,3,3], where the last dimension [ntri,ncorn,:]  is x,y,z. 
+        Returns  xyz[ntri,3,3], where the last dimension [ntri,ncorn,:]  is x,y,z.
 
 
         '''
@@ -1102,12 +1100,12 @@ class wall_3d(a5imas):
         return xyz
 
     def fill_wall_3d_ids(self,xyz,metadata={}):
-        
+
         # Let's first do the conversion
         nodes,edges,faces = self.xyz_to_nodes_edges_faces(xyz)
 
         ids = self.ids
-        
+
         if 'ids_comment' in metadata :
             ids.ids_properties.comment = metadata['ids_comment']
         else:
@@ -1162,7 +1160,7 @@ class wall_3d(a5imas):
 
     def xyz_to_nodes_edges_faces(self,xyz):
         '''
-        Input must be xyz[ntri,3,3], where the last dimension [ntri,ncorn,:]  is x,y,z. 
+        Input must be xyz[ntri,3,3], where the last dimension [ntri,ncorn,:]  is x,y,z.
         '''
 
         #remove duplicate nodes?
@@ -1198,7 +1196,7 @@ class wall_3d(a5imas):
         if remove_duplicate_edges :
             edges = np.unique(edges,axis=0)
 
-        # remember to edges++ and faces++ to get one-based indexing 
+        # remember to edges++ and faces++ to get one-based indexing
         return nodes+1,edges+1,faces+1
 
     def write(self, w, user, tokamak, version, shot, run, metadata={}):
@@ -1215,12 +1213,10 @@ class wall_3d(a5imas):
         xyz[:,:,0] = w['x1x2x3'][:,:]
         xyz[:,:,1] = w['y1y2y3'][:,:]
         xyz[:,:,2] = w['z1z2z3'][:,:]
-                                       
+
         # Save the data
         self.fill_wall_3d_ids(self.ids,xyz,metadata=metadata)
 
-                                       
-                                 
 
     def fill_wall_3d_ids(self,ids,xyz,metadata={}):
 
@@ -1284,7 +1280,7 @@ class wall_3d(a5imas):
 
     def xyz_to_nodes_edges_faces(self,xyz):
         '''
-        Input must be xyz[ntri,3,3], where the last dimension [ntri,ncorn,:]  is x,y,z. 
+        Input must be xyz[ntri,3,3], where the last dimension [ntri,ncorn,:]  is x,y,z.
         '''
 
         #remove duplicate nodes?
@@ -1320,7 +1316,7 @@ class wall_3d(a5imas):
         if remove_duplicate_edges :
             edges = np.unique(edges,axis=0)
 
-        # remember to edges++ and faces++ to get one-based indexing 
+        # remember to edges++ and faces++ to get one-based indexing
         return nodes+1,edges+1,faces+1
 
 
@@ -1503,15 +1499,15 @@ class distributions(a5imas):
             self.ids.ids_properties.comment = metadata['ids_comment']
         else:
             self.ids.ids_properties.comment = "distributions IDS for testing"
-            
+
         self.fill_mandatory()
 
         self.fill_code(self.ids.code,runobject)
-        
+
         species = runobject.getspecies()
         anum = species['anum']
         znum = species['znum']
-        
+
         # Defines how to interpret the spatial coordinates:
         #    1 = given at the actual particle birth point;
         #    2 = given at the gyro centre of the birth point {constant}
@@ -1529,7 +1525,7 @@ class distributions(a5imas):
         else:
             charges5d = []
 
-        
+
         warnings.warn("SKIPPING rho5d for debugging")
         if '******rho5d******' in runobject.getdist_list()[0]:
             drho5d = runobject.getdist('rho5d')
@@ -1537,22 +1533,22 @@ class distributions(a5imas):
         else:
             chargesrho5d = []
 
-        
+
         # To append the distributions one after each other
         distoffset = 0
-        
-        
+
+
         ###########
         # dist 5d #
         ###########
         for iDistribution in range(len(charges5d)):
-        
+
             d = self.ids.distribution[ iDistribution + distoffset ]
 
 
             # If is_delta_f=1, then the distribution represents the deviation from a Maxwellian;
             # is_delta_f=0, then the distribution represents all particles, i.e. the full-f solution {constant}
-            d.is_delta_f = 1 
+            d.is_delta_f = 1
 
             d.gyro_type = gyro_type
 
@@ -1574,7 +1570,7 @@ chargedensity : Charge density
 energydensity : Energy density
 powerdep : Total deposited power
 ionpowerdep : Power deposited to ions (should be per species)
-"""            
+"""
         distoffset += len(charges5d)
 
         ##############
@@ -1583,7 +1579,7 @@ ionpowerdep : Power deposited to ions (should be per species)
         warnings.warn("Rho distribution output not implemented")
 
         for iDistribution in range(len(chargesrho5d)):
-        
+
             d = self.ids.distribution[ iDistribution + distoffset ]
 
         distoffset += len(chargesrho5d)

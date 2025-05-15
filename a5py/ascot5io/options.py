@@ -1655,7 +1655,12 @@ class Opt(DataGroup):
             {doc('TRANSCOEF_RECORDRHO', 'IntegerBinary')}
             </xs:schema>""")
         schema = xmlschema.XMLSchema(xsd)
-        if opt is None: opt = Opt.get_default()
+        opt_default = Opt.get_default()
+        if opt is None:
+            opt = opt_default
+        opt_ordered = {k: opt[k] for k in opt_default if k in opt}
+        opt = opt_ordered
+
         opt_hierarchy = {
             "SIMULATION_MODE_AND_TIMESTEP":{}, "END_CONDITIONS":{},
             "PHYSICS":{}, "DISTRIBUTIONS":{}, "ORBIT_WRITE":{},
@@ -1673,6 +1678,7 @@ class Opt(DataGroup):
                 grp = "ORBIT_WRITE"
             elif k == "ENABLE_TRANSCOEF":
                 grp = "TRANSPORT_COEFFICIENT"
+            print(k)
             opt_hierarchy[grp][k] = v
 
         data = json.dumps({"parameters":opt_hierarchy})
