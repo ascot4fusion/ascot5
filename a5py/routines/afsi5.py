@@ -39,6 +39,52 @@ class Afsi():
     def __init__(self, ascot):
         self._ascot = ascot
 
+    def spatial_dist(self, rmin,rmax,nr, phimin,phimax, nphi, zmin, zmax, nz, nsamples, pparmin=-1.1e-19, pparmax = 1.1e-19, pperpmin = 0, pperpmax = 1.1e-19, desc = None):
+        r = np.linspace(rmin, rmax, nr+1)
+        z = np.linspace(zmin, zmax, nz+1)
+        phi = np.linspace(phimin, phimax, nphi+1)
+        ppar = np.linspace(pparmin, pparmax, 2)
+        pperp = np.linspace(pperpmin,pperpmax, 2)
+        self.thermal(
+        "DT_He4n", nmc=nsamples, r=r, z=z,phi=phi,
+        ppar1=ppar, pperp1=pperp, ppar2=ppar, pperp2=pperp)
+        dist_5d = self.data.active.getdist("prod2")
+        if desc == None:
+            self.data.active.set_desc(f"R{nr}_PHI_{nphi}_Z{nz}_ppar1_pperp1")
+        spat_dist = dist_5d.integrate(ppar=np.s_[:], pperp=np.s_[:], time=np.s_[:], charge=np.s_[:])
+        return spat_dist
+    
+    def markers_per_spatial_bin(self, spatial_dist, n_samples):
+        spatial_hist = spatial_dist.histogram()
+        prob_3d = spatial_hist/np.sum(spatial_hist)
+        prob_flat = prob_3d.flatten()
+        samples_per_bin_flat = np.random.multinomial(n_samples, prob_flat)
+        samples_per_bin = samples_per_bin_flat.reshape(prob_3d.shape)
+        return samples_per_bin
+    
+    def generate_6d_markers(self, spatial_dist, n_markers, marker_file = None):
+        markers_per_bin_grid = self.markers_per_spatial_bin(spatial_dist, n_markers)
+        markers = []
+        r_edges = spatial_dist.abscissa_edges("r")
+        z_edges = spatial_dist.abscissa_edges("z")
+        phi_edges = spatial_dist.abscissa_edges("phi")
+        for ir in range(len(r_edges)-1):
+            for iphi in range(len(phi_edges)-1):
+                for iz in range(len(z_edges)-1):
+                    n_per_bin = markers_per_bin_grid[ir,iphi,iz]
+                    rbin = np.array([r_edges[ir], r_edges[ir+1]])
+                    phibin = np.array([phi_edges[iphi], phi_edges[iphi+1]])
+                    zbin = np.array([z_edges[iz], z_edges[iz+1]])
+                    markers_per_bin = self.thermal_3D("DT_He4n", nmc=n_per_bin, r=rbin, phi=phibin, z=zbin)
+                    if markers_per_bin.size !=0:
+                        markers.append(markers_per_bin)
+        
+        markers = np.vstack(markers)
+        if marker_file is not None:
+            np.save(marker_file, markers) 
+        return markers
+        
+
     def thermal_3D(
             self,
             reaction,
