@@ -440,15 +440,22 @@ def generate_markers(a5, dist, n_markers, pcoordinate, bins, save_path=None):
             print(f"Figure saved {save_path}/sampled_markers_cartesian.png")   
     return mrk
 
-def spatial_dist(a5, rmin,rmax,nr, phimin,phimax, nphi, zmin, zmax, nz, nsamples, pparmin=-1.1e-19, pparmax = 1.1e-19, pperpmin = 0, pperpmax = 1.1e-19, desc = None):
+def spatial_dist(a5, rmin,rmax,nr, phimin,phimax, nphi, zmin, zmax, nz, nsamples, reaction, beam = None, pparmin=-1.1e-19, pparmax = 1.1e-19, pperpmin = 0, pperpmax = 1.1e-19, desc = None):
     r = np.linspace(rmin, rmax, nr+1)
     z = np.linspace(zmin, zmax, nz+1)
     phi = np.linspace(phimin, phimax, nphi+1)
     ppar = np.linspace(pparmin, pparmax, 2)
     pperp = np.linspace(pperpmin,pperpmax, 2)
-    a5.afsi.thermal(
-        "DT_He4n", nmc=nsamples, r=r, z=z,phi=phi,
-        ppar1=ppar, pperp1=pperp, ppar2=ppar, pperp2=pperp)
+
+    if beam is None:
+        a5.afsi.thermal(
+            reaction, nmc=nsamples, r=r, z=z,phi=phi,
+            ppar1=ppar, pperp1=pperp, ppar2=ppar, pperp2=pperp)
+    else:
+        a5.afsi.beamthermal(
+            reaction, beam, swap=True,
+            ppar1=ppar, pperp1=pperp, ppar2=ppar, pperp2=pperp)
+        
     dist = a5.data.active.getdist("prod2")
     if desc == None:
         a5.data.active.set_desc(f"R{nr}_PHI_{nphi}_Z{nz}_ppar1_pperp1")
@@ -471,7 +478,7 @@ def plot_serpent_marker_arr(markers, bins = 20):
     ax1 = fig.add_subplot(2, 3, 5)
     ax1.hist(ekin, bins=bins)
     ax1.set_xlabel("Energy [MeV]",fontsize = 13)
-    plt.axvline(x=14.1, c="black")
+    # plt.axvline(x=14.1, c="black")
 
     ax2 = fig.add_subplot(2, 3, 1)
     ax2.hist(u, bins=bins)
@@ -630,7 +637,7 @@ def isotropic_directions_rejection(n, rng=np.random.default_rng()):
     return directions
 
 # TODO: Add possibility to make afsi run before 6D conversion
-def iter_analytical_5D(a5, rmin,rmax,nr, phimin,phimax, nphi, zmin, zmax, nz, nppar, npperp, nsamples = 1000, pparmin=-1.1e-19, pparmax = 1.1e-19, pperpmin = 0, pperpmax = 1.1e-19, desc = None):
+def iter_analytical_5D(a5, rmin,rmax,nr, phimin,phimax, nphi, zmin, zmax, nz, nppar=101, npperp=51, nsamples = 1000, pparmin=-1.1e-19, pparmax = 1.1e-19, pperpmin = 0, pperpmax = 1.1e-19, desc = None):
     # Feed the parameters correctly
     r = np.linspace(rmin, rmax, nr)
     z = np.linspace(zmin, zmax, nz)
@@ -643,7 +650,7 @@ def iter_analytical_5D(a5, rmin,rmax,nr, phimin,phimax, nphi, zmin, zmax, nz, np
     )
     dist_5d = a5.data.active.getdist("prod2")
     if desc == None:
-        desc = f"R{nr}_Z{nz}_ppar{nppar}_pperp{npperp}"
+        desc = f"thermalR{nr}_Z{nz}_ppar{nppar}_pperp{npperp}"
         a5.data.active.set_desc(desc)
     return dist_5d, a5
 
