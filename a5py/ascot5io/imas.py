@@ -1558,19 +1558,21 @@ class distributions(a5imas):
             prof2d = d.profiles_2d[timeIndex]
             self.fill_grid_rz( prof2d.grid, r=d5d.abscissa('r'), z=d5d.abscissa('z') )
 
-            warnings.warn("""5D distribution output still WIP; fill in e.g. profiles_2d:
-density --> density_fast
-toroidalcurrent --> current_fast_phi
-pressure --> pressure_fast
-electronpowerdep --> collisions.electrons.powerthermal
-
-The following may not be useful:
-parallelcurrent : Parallel current
-chargedensity : Charge density
-energydensity : Energy density
-powerdep : Total deposited power
-ionpowerdep : Power deposited to ions (should be per species)
-"""
+            warningtext = (
+                "5D distribution output still WIP; fill in e.g. profiles_2d:\n"
+                "density --> density_fast\n"
+                "toroidalcurrent --> current_fast_phi\n"
+                "pressure --> pressure_fast\n"
+                "electronpowerdep --> collisions.electrons.powerthermal\n"
+                "\n"
+                "The following may not be useful:\n"
+                "parallelcurrent : Parallel current\n"
+                "chargedensity : Charge density\n"
+                "energydensity : Energy density\n"
+                "powerdep : Total deposited power\n"
+                "ionpowerdep : Power deposited to ions (should be per species)\n"
+            )
+            warnings.warn(warningtext)
         distoffset += len(charges5d)
 
         ##############
