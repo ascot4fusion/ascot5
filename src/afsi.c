@@ -302,7 +302,8 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
 }
 
 void afsi_run_new(sim_data* sim, afsi_data* afsi, int n,
-                real* rvec, real* phivec, real* zvec, real* prod2) {
+                real* rvec, real* phivec, real* zvec, real* prod2, 
+                int i0, int i1, int i2) {
 
     random_init(&rdata, time((NULL)));
     simulate_init(sim);
@@ -313,56 +314,47 @@ void afsi_run_new(sim_data* sim, afsi_data* afsi, int n,
     &mprod1, &qprod1, &mprod2, &qprod2, &Q);
     
     real time = 0.0;
-    #pragma omp parallel for
-    for(size_t i0 = 0; i0 < afsi->volshape[0]; i0++) {
-        real* ppara1 = (real*) malloc(n*sizeof(real));
-        real* pperp1 = (real*) malloc(n*sizeof(real));
-        real* ppara2 = (real*) malloc(n*sizeof(real));
-        real* pperp2 = (real*) malloc(n*sizeof(real));
+    real* ppara1 = (real*) malloc(n*sizeof(real));
+    real* pperp1 = (real*) malloc(n*sizeof(real));
+    real* ppara2 = (real*) malloc(n*sizeof(real));
+    real* pperp2 = (real*) malloc(n*sizeof(real));
 
-        for(size_t i1 = 0; i1 < afsi->volshape[1]; i1++) {
-            for(size_t i2 = 0; i2 < afsi->volshape[2]; i2++) {
-                size_t spatial_index = i0*afsi->volshape[1]*afsi->volshape[2]
-                                    + i1*afsi->volshape[2] + i2;
-                real r = afsi->r[spatial_index];
-                real z = afsi->z[spatial_index];
-                real phi = afsi->phi[spatial_index];
-                real vol = afsi->vol[spatial_index];
-                
-                real psi, rho[2];
-                if(B_field_eval_psi(&psi, r, phi, z, time, &sim->B_data) ||
-                    B_field_eval_rho(rho, psi, &sim->B_data) ) {
-                    continue;
-                }
-
-                real density1, density2;
-                afsi_sample_reactant_momenta_2d(
-                    sim, afsi, m1, m2, vol, n, i0, i1, i2,
-                    r, phi, z, time, rho[0],
-                    &density1, ppara1, pperp1, &density2, ppara2, pperp2);
-                if(density1 == 0 || density2 == 0) {
-                    continue;
-                }
-                for(size_t i = 0; i < n; i++) {
-                    real vcom2;
-                    real vprod1[3];
-                    real vprod2[3];
-
-                    afsi_compute_product_velocities_3d(
-                        i, m1, m2, mprod1, mprod2, Q,
-                        ppara1, pperp1, ppara2, pperp2, &vcom2,
-                        vprod1, vprod2);
-                    
-                    afsi_store_particle_data(i, rvec, phivec, zvec, vprod2, mprod2, prod2);
-                    
-                }
-            }
-        }
-        free(ppara1);
-        free(ppara2);
-        free(pperp1);
-        free(pperp2);
+        
+    real r = afsi->r[0];
+    real z = afsi->z[0];
+    real phi = afsi->phi[0];
+    real vol = afsi->vol[0];
+    
+    real psi, rho[2];
+    if(B_field_eval_psi(&psi, r, phi, z, time, &sim->B_data) ||
+        B_field_eval_rho(rho, psi, &sim->B_data) ) {
+        return;
     }
+
+    real density1, density2;
+    afsi_sample_reactant_momenta_2d(
+        sim, afsi, m1, m2, vol, n, i0, i1, i2,
+        r, phi, z, time, rho[0],
+        &density1, ppara1, pperp1, &density2, ppara2, pperp2);
+    if(density1 == 0 || density2 == 0) {
+        return;
+    }
+    for(size_t i = 0; i < n; i++) {
+        real vcom2;
+        real vprod1[3];
+        real vprod2[3];
+        
+        afsi_compute_product_velocities_3d(
+            i, m1, m2, mprod1, mprod2, Q,
+            ppara1, pperp1, ppara2, pperp2, &vcom2,
+            vprod1, vprod2);
+        
+        afsi_store_particle_data(i, rvec, phivec, zvec, vprod2, mprod2, prod2);
+    }
+    free(ppara1);
+    free(ppara2);
+    free(pperp1);
+    free(pperp2);
 }
 
 /**
@@ -389,9 +381,9 @@ void afsi_compute_product_velocities_3d(
     int i, real m1, real m2, real mprod1, real mprod2, real Q,
     real* ppara1, real* pperp1, real* ppara2, real* pperp2, real* vcom2,
     real* vprod1, real* vprod2) {
-
-    real rn1 = CONST_2PI * random_uniform(&rdata);
-    real rn2 = CONST_2PI * random_uniform(&rdata);
+    
+    real rn1 = CONST_2PI * random_uniform(rdata);
+    real rn2 = CONST_2PI * random_uniform(rdata);
 
     real v1x = cos(rn1) * pperp1[i] / m1;
     real v1y = sin(rn1) * pperp1[i] / m1;

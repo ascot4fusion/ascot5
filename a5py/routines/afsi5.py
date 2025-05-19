@@ -62,43 +62,56 @@ class Afsi():
         samples_per_bin = samples_per_bin_flat.reshape(prob_3d.shape)
         return samples_per_bin
     
-    def generate_6d_markers(self, spatial_dist, n_markers, marker_file = None):
+    def generate_6d_markers(self, spatial_dist, n_markers, reaction, marker_file = None, beam = None):
         markers_per_bin_grid = self.markers_per_spatial_bin(spatial_dist, n_markers)
+        if beam is not None:
+            beamdist = self._init_dist_5d(beam)
         markers = []
         r_edges = spatial_dist.abscissa_edges("r")
         z_edges = spatial_dist.abscissa_edges("z")
         phi_edges = spatial_dist.abscissa_edges("phi")
+        it = 0
         for ir in range(len(r_edges)-1):
+            rbin = np.array([r_edges[ir], r_edges[ir+1]])
             for iphi in range(len(phi_edges)-1):
+                phibin = np.array([phi_edges[iphi], phi_edges[iphi+1]])
                 for iz in range(len(z_edges)-1):
                     n_per_bin = markers_per_bin_grid[ir,iphi,iz]
-                    rbin = np.array([r_edges[ir], r_edges[ir+1]])
-                    phibin = np.array([phi_edges[iphi], phi_edges[iphi+1]])
                     zbin = np.array([z_edges[iz], z_edges[iz+1]])
-                    markers_per_bin = self.thermal_3D("DT_He4n", nmc=n_per_bin, r=rbin, phi=phibin, z=zbin)
+                    if beam is None:
+                        markers_per_bin = self.products_6D(reaction, nmc=n_per_bin, r=rbin, phi=phibin, z=zbin)
+                    else:
+                        markers_per_bin = self.products_6D(reaction, nmc=n_per_bin, r=rbin, phi=phibin, z=zbin, beam=beamdist, ir=ir, iphi=iphi, iz=iz)
+                    it = it +1
                     if markers_per_bin.size !=0:
                         markers.append(markers_per_bin)
-        
+                    if it % 100 == 0:
+                        print(it)
         markers = np.vstack(markers)
         if marker_file is not None:
             np.save(marker_file, markers) 
         return markers
         
 
-    def thermal_3D(
+    def products_6D(
             self,
             reaction,
             r=None,
             phi=None,
             z=None,
             nmc=1000,
+            beam = None,
+            swap=True,
+            ir = 0,
+            iphi = 0,
+            iz = 0,
             ):
         if phi is None:
             phi = np.array([0, 360])
         self._ascot.input_init(bfield=True, plasma=True)
         phic, rc, zc = np.meshgrid(0.5*(phi[:-1]+phi[1:]),
                                        0.5*(r[:-1]+r[1:]),
-                                       0.5*(z[:-1]+z[1:]))
+                                       0.5*(z[:-1]+z[1:]))       
         phic *= np.pi/180
         vol = ( rc * np.diff(r[:2]) * np.diff(z[:2]) * np.diff(phi[:2])* np.pi/180 )
 
@@ -113,19 +126,38 @@ class Afsi():
         q2 = np.round(qprod2.to("e").v)
 
         nspec, _, _, anums, znums = self._ascot.input_getplasmaspecies()
-        ispecies1, ispecies2 = np.nan, np.nan
-        for i in np.arange(nspec):
-            if( anum1 == anums[i] and znum1 == znums[i] ):
-                ispecies1 = i
-            if( anum2 == anums[i] and znum2 == znums[i] ):
-                ispecies2 = i
-        if np.isnan(ispecies1) or np.isnan(ispecies2):
-            self._ascot.input_free(bfield=True, plasma=True)
-            raise ValueError("Reactant species not present in plasma input.")
-        mult = 0.5 if ispecies1 == ispecies2 else 1.0
+       
+        if beam is None:
+            ispecies1, ispecies2 = np.nan, np.nan
+            for i in np.arange(nspec):
+                if( anum1 == anums[i] and znum1 == znums[i] ):
+                    ispecies1 = i
+                    react1 = ispecies1
+                if( anum2 == anums[i] and znum2 == znums[i] ):
+                    ispecies2 = i
+                    react2 = ispecies2
+            if np.isnan(ispecies1) or np.isnan(ispecies2):
+                self._ascot.input_free(bfield=True, plasma=True)
+                raise ValueError("Reactant species not present in plasma input.")
+            mult = 0.5 if ispecies1 == ispecies2 else 1.0
+        else:
+            ispecies = np.nan
+            for i in np.arange(nspec):
+                if( swap and anum1 == anums[i] and znum1 == znums[i] ):
+                    ispecies = i
+                    react1 = ispecies
+                    react2 = beam
+                if( not swap and anum2 == anums[i] and znum2 == znums[i] ):
+                    ispecies = i
+                    react2 = ispecies
+                    react1 = beam
+            if np.isnan(ispecies):
+                self._ascot.input_free(bfield=True, plasma=True)
+                raise ValueError("Reactant species not present in plasma input.")
+            mult = 1.0
 
         afsi = self._init_afsi_data(
-            react1=ispecies1, react2=ispecies2, reaction=reaction, mult=mult,
+            react1=react1, react2=react2, reaction=reaction, mult=mult,
             r=rc, phi=phic, z=zc, vol=vol,
             )
         
@@ -134,7 +166,7 @@ class Afsi():
         _LIBASCOT.afsi_run_new(ctypes.byref(self._ascot._sim), ctypes.byref(afsi),
                                nmc, r.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), phi.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
                                 z.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), prod2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                                )
+                                ir, iphi, iz)
         
         self._ascot.input_free(bfield=True, plasma=True)
 
@@ -340,90 +372,6 @@ class Afsi():
         # Reload Ascot
         self._ascot.file_load(self._ascot.file_getpath())
         return prod1, prod2
-
-
-    def beamthermal_3D(
-                self,
-                reaction,
-                beam,
-                swap=False,
-                ppar1=None,
-                pperp1=None,
-                ppar2=None,
-                pperp2=None,
-                nmc=1000,
-                ):
-        
-        self._ascot.input_init(bfield=True, plasma=True)
-        ppar1 = 1.3e-19 * np.linspace(-1., 1., 80) if ppar1 is None else ppar1
-        pperp1 = np.linspace(0, 1.3e-19, 40) if pperp1 is None else pperp1
-        ppar2 = 1.3e-19 * np.linspace(-1., 1., 80) if ppar2 is None else ppar2
-        pperp2 = np.linspace(0, 1.3e-19, 40) if pperp2 is None else pperp2
-        
-        m1, q1, m2, q2, _, qprod1, _, qprod2, _ = self.reactions(reaction)
-        reactions = {v: k for k, v in AFSI_REACTIONS.items()}
-        reaction = reactions[reaction]
-
-        anum1 = np.round(m1.to("amu").v)
-        anum2 = np.round(m2.to("amu").v)
-        znum1 = np.round(q1.to("e").v)
-        znum2 = np.round(q2.to("e").v)
-        q1 = np.round(qprod1.to("e").v)
-        q2 = np.round(qprod2.to("e").v)
-
-        nspec, _, _, anums, znums = self._ascot.input_getplasmaspecies()
-        ispecies = np.nan
-
-        for i in np.arange(nspec):
-            if( swap and anum1 == anums[i] and znum1 == znums[i] ):
-                ispecies = i
-                react1 = ispecies
-                react2 = self._init_dist_5d(beam)
-            if( not swap and anum2 == anums[i] and znum2 == znums[i] ):
-                ispecies = i
-                react2 = ispecies
-                react1 = self._init_dist_5d(beam)
-        if np.isnan(ispecies):
-            self._ascot.input_free(bfield=True, plasma=True)
-            raise ValueError("Reactant species not present in plasma input.")
-
-        mult = 1.0
-        # TODO r, z and phi have to be taken from beam using the index from the outer for loop (before calling afsi) because this works for 1 bin only
-        r, z, phi = ( beam.abscissa_edges("r"), beam.abscissa_edges("z"),
-                      beam.abscissa_edges("phi").to("rad") )
-        phic, rc, zc = np.meshgrid(0.5*(phi[:-1]+phi[1:]),
-                                       0.5*(r[:-1]+r[1:]),
-                                       0.5*(z[:-1]+z[1:]))
-        vol = ( rc * np.diff(r[:2]) * np.diff(z[:2]) * np.diff(phi[:2]) )
-
-        afsi = self._init_afsi_data(
-            react1=react1, react2=react2, reaction=reaction, mult=mult,
-            r=rc, phi=phic, z=zc, vol=vol,
-            )
-        
-        prod1vx = np.zeros(nmc)
-        prod1vy = np.zeros(nmc)
-        prod1vz = np.zeros(nmc)
-        prod2vx = np.zeros(nmc)
-        prod2vy = np.zeros(nmc)
-        prod2vz = np.zeros(nmc)
-
-    # TODO need to change afsi_run_new input to accept the beam distribution
-
-        _LIBASCOT.afsi_run_new(ctypes.byref(self._ascot._sim), ctypes.byref(afsi),
-                            nmc, prod1vx.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                                prod1vy.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                                prod1vz.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                                prod2vx.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                                prod2vy.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                                prod2vz.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
-        
-        self._ascot.input_free(bfield=True, plasma=True)
-
-        # Reload Ascot
-        self._ascot.file_load(self._ascot.file_getpath())
-
-        return prod1vx, prod1vy, prod1vz, prod2vx, prod2vy, prod2vz
 
 
     def beamthermal(
