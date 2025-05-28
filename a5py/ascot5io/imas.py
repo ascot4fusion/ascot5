@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.constants as constants
 from a5py.physlib import species, pol2cart, cart2pol_vec
+from a5py.ascot5io import options
 import unyt
 import warnings
 from types import SimpleNamespace
@@ -206,9 +207,7 @@ class a5imas:
 
         # List of the code specific parameters in XML format
         # convert parameters into XML
-        warnings.warn('Not implemented yet [TODO_KONSTA<--SIMPPA]')
-        # _, xml_string = runobject.options.schema(runobject.options.read())
-        xml_string='<xml>placeholder</xml>'
+        _, xml_string = options.Opt.schema(runobject.options.read())
         target_code.parameters = xml_string
 
         #Output flag : 0 means the run is successful, other values mean some difficulty has been encountered, the exact meaning is then code specific. Negative values mean the result shall not be used. {dynamic}

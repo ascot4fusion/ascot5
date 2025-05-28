@@ -2185,7 +2185,7 @@ class RunMixin(DistMixin):
             The simulation mode.
         """
         self._require("options")
-        return self.options.read()["SIMMODE"]
+        return self.options.read()["SIM_MODE"]
 
     def getspecies(self):
         """Return the test particle species that was used in the simulation.

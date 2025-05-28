@@ -13,6 +13,7 @@ import a5py.ascot5io.imas
 import a5py.ascot5io.wall
 from   a5py.ascotpy import ascot2py
 from   a5py.ascot5io.marker import Marker
+from a5py.ascot5io import options
 from a5py.templates.optiontemplates import OptionTemplates
 import numpy as np
 from types import SimpleNamespace
@@ -25,7 +26,7 @@ np.float=float
 
 #g2diy/iter/134173/17799
 
-def distsource_run(distr_sour,wall2d,wall3d,equil_b3d):
+def distsource_run(distr_sour,wall2d,wall3d,equil_b3d,optionsxml):
     ids=SimpleNamespace()
     #username='g2diy'
     #machine='iter'
@@ -193,12 +194,13 @@ def distsource_run(distr_sour,wall2d,wall3d,equil_b3d):
 
     print('generating options')
     #a5.data.create_input("options tutorial")
-    opt = OptionTemplates().options_tutorial()
+    #opt = OptionTemplates().options_tutorial()[1]
 
     #print('Reading options')
     #opt = a5.data.options.active.read()
     print('providing options')
-    a5.simulation_initoptions(**opt[1])
+    opt = options.Opt.convert_xml(optionsxml)
+    a5.simulation_initoptions(**opt)
 
 
 
