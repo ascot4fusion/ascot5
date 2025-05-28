@@ -183,17 +183,17 @@ class a5imas:
 
             # We assume single nucleus for our ions. (len(element)==1 && atoms_n==1)
             target_species.ion.element.resize(1)
-            target_species.ion.element[0].a       = sp['mass']
-            target_species.ion.element[0].z_n     = sp['znum']
+            target_species.ion.element[0].a       = float(sp['mass'])
+            target_species.ion.element[0].z_n     = float(sp['znum'])
             target_species.ion.element[0].atoms_n = 1
-            target_species.z_ion                  = sp['charge']
+            target_species.z_ion                  = float(sp['charge'])
         else:
             # We assume single nucleus for our neutrals. (len(element)==1 && atoms_n==1)
             target_species.neutral.element.resize(1)
-            target_species.neutral.element[0].a       = sp['mass']
-            target_species.neutral.element[0].z_n     = sp['znum']
+            target_species.neutral.element[0].a       = float(sp['mass'])
+            target_species.neutral.element[0].z_n     = float(sp['znum'])
             target_species.neutral.element[0].atoms_n = 1
-            target_species.z_ion                      = sp['charge']
+            target_species.z_ion                      = float(sp['charge'])
 
 
     def fill_code(self,target_code,runobject):
@@ -212,7 +212,10 @@ class a5imas:
         target_code.parameters = xml_string
 
         #Output flag : 0 means the run is successful, other values mean some difficulty has been encountered, the exact meaning is then code specific. Negative values mean the result shall not be used. {dynamic}
-        target_code.output_flag = runobject.get_run_success()
+        # - output_flag : np.ndarray 1D with int)
+        # Output flag : 0 means the run is successful, other values mean some difficulty has been encountered, the exact meaning is then code specific. Negative values mean the result shall not be used.
+        target_code.output_flag = np.array( [runobject.get_run_success()] )
+
 
 
     def fill_grid_rz(self,target_grid,r,z):
@@ -221,8 +224,8 @@ class a5imas:
         target_grid.type.name         = "rectangular RZ"
         target_grid.type.description  = "Rectangular grid in the (R,Z) coordinates;"
 
-        target_grid.r = r
-        target_grid.z = z
+        target_grid.r = np.array(r) #unyt arrays do not fit into imas
+        target_grid.z = np.array(z)
 
 class B_STS(a5imas):
     ''' Read stellarator 3D magnetic field with the conventions laid out in:
@@ -1509,8 +1512,8 @@ class distributions(a5imas):
         self.fill_code(self.ids.code,runobject)
 
         species = runobject.getspecies()
-        anum = species['anum']
-        znum = species['znum']
+        anum = float(species['anum'])
+        znum = float(species['znum'])
 
         # Defines how to interpret the spatial coordinates:
         #    1 = given at the actual particle birth point;
