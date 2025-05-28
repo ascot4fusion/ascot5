@@ -1684,10 +1684,11 @@ class Opt(DataGroup):
         data = json.dumps({"parameters":opt_hierarchy})
         xml = xmlschema.from_json(data, schema=schema, preserve_root=True)
 
+        # Write to file, if requested
         if fnxsd is not None:
             with open(fnxsd, 'w') as f:
                 f.writelines(xsd)
         if fnxml is not None:
             ET.ElementTree(xml).write(fnxml)
 
-        return schema, xml
+        return schema, ET.tostring(xml, encoding='unicode')
