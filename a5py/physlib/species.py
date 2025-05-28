@@ -98,7 +98,7 @@ def autodetect(anum, znum, charge=None):
     data : dict
         Contains "anum", "znum", "charge", "mass", and "name".
     """
-    for key,v in speciesdict.itmes():
+    for key,v in speciesdict.items():
         if anum == v[0] and znum == v[1]:
             if charge is None:
                 charge = v[2]

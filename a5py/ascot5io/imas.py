@@ -182,12 +182,14 @@ class a5imas:
             # ions or electrons
 
             # We assume single nucleus for our ions. (len(element)==1 && atoms_n==1)
+            target_species.ion.element.resize(1)
             target_species.ion.element[0].a       = sp['mass']
             target_species.ion.element[0].z_n     = sp['znum']
             target_species.ion.element[0].atoms_n = 1
             target_species.z_ion                  = sp['charge']
         else:
             # We assume single nucleus for our neutrals. (len(element)==1 && atoms_n==1)
+            target_species.neutral.element.resize(1)
             target_species.neutral.element[0].a       = sp['mass']
             target_species.neutral.element[0].z_n     = sp['znum']
             target_species.neutral.element[0].atoms_n = 1
@@ -204,7 +206,9 @@ class a5imas:
 
         # List of the code specific parameters in XML format
         # convert parameters into XML
-        _, xml_string = runobject.options.schema(runobject.options.read())
+        warnings.warn('Not implemented yet [TODO_KONSTA<--SIMPPA]')
+        # _, xml_string = runobject.options.schema(runobject.options.read())
+        xml_string='<xml>placeholder</xml>'
         target_code.parameters = xml_string
 
         #Output flag : 0 means the run is successful, other values mean some difficulty has been encountered, the exact meaning is then code specific. Negative values mean the result shall not be used. {dynamic}
@@ -1514,7 +1518,9 @@ class distributions(a5imas):
         # Corresponds to runobject.getsimmode()=1 --> gyro_type=1
         #                runobject.getsimmode()=2 --> gyro_type=2
 
-        gyro_type = runobject.getsimmode()
+        warnings.warn('Not implemented yet [TODO_KONSTA<--SIMPPA]')
+        #gyro_type = runobject.getsimmode()
+        gyro_type = 1
         if not (gyro_type == 1 or gyro_type == 2) :
             raise ValueError("Unsupported gyro_type from runobject.getsimmode(): '{}' (should be 1 or 2).".format(gyro_type))
 
@@ -1543,6 +1549,7 @@ class distributions(a5imas):
         ###########
         for iDistribution in range(len(charges5d)):
 
+            self.ids.distribution.resize( 1 + iDistribution + distoffset ) # indexing starts from 0, but counting from 1, thus +1
             d = self.ids.distribution[ iDistribution + distoffset ]
 
 
@@ -1555,6 +1562,7 @@ class distributions(a5imas):
             charge = charges5d[iDistribution]
             self.fill_species(d.species,anum,znum,charge)
 
+            prof2d = d.profiles_2d.resize(timeIndex+1)
             prof2d = d.profiles_2d[timeIndex]
             self.fill_grid_rz( prof2d.grid, r=d5d.abscissa('r'), z=d5d.abscissa('z') )
 
