@@ -241,6 +241,13 @@ def distsource_run(distr_sour,wall2d,wall3d,equil_b3d):
     #print("writing output h5")
     #M.write_output_h5()
 
+    print("saving output ids")
+    dist = a5py.ascot5io.imas.distributions()
+    dist.fill(runobject=vrun, metadata={} )
+
+    distributions_ids=dist.ids
+
+
     print("freeing memory")
     #M.free_c()
     a5.simulation_free(diagnostics=True)
@@ -248,8 +255,10 @@ def distsource_run(distr_sour,wall2d,wall3d,equil_b3d):
     #print("finalizing MPI")
     #M.finalize()
 
+
     print('Finished test')
 
+    return distributions_ids
 
     #print('Stopping test')
     #quit()
