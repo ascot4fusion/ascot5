@@ -26,7 +26,8 @@ np.float=float
 
 #g2diy/iter/134173/17799
 
-def distsource_run(distr_sour,wall2d,wall3d,equil_b3d,optionsxml):
+
+def distsource_run(distr_sour,wall2d,wall3d,equil_b3d,distributions,optionsxml):
     ids=SimpleNamespace()
     #username='g2diy'
     #machine='iter'
@@ -243,11 +244,20 @@ def distsource_run(distr_sour,wall2d,wall3d,equil_b3d,optionsxml):
     #print("writing output h5")
     #M.write_output_h5()
 
-    print("saving output ids")
-    dist = a5py.ascot5io.imas.distributions()
-    dist.fill(runobject=vrun, metadata={} )
 
-    distributions_ids=dist.ids
+    # This could be done only for RANK=0
+
+    print("saving output ids distributions")
+    dist = a5py.ascot5io.imas.distributions()
+
+    # Add a reference to distributions into the dist object.
+    # (dist.ids=distributions)
+    dist.setIds(distributions)
+
+    # Fill in the data from ASCOT internal datastructures into dist.ids
+    dist.fill(runobject=vrun_output, metadata={} )
+
+
 
 
     print("freeing memory")
@@ -260,7 +270,6 @@ def distsource_run(distr_sour,wall2d,wall3d,equil_b3d,optionsxml):
 
     print('Finished test')
 
-    return distributions_ids
 
     #print('Stopping test')
     #quit()
