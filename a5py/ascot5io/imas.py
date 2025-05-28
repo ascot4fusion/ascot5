@@ -1568,6 +1568,16 @@ class distributions(a5imas):
             prof2d = d.profiles_2d[timeIndex]
             self.fill_grid_rz( prof2d.grid, r=d5d.abscissa('r'), z=d5d.abscissa('z') )
 
+            ascot_names= ['density','toroidalcurrent','pressure','electronpowerdep']
+            imas_names = ['density_fast']#,'current_fast_phi','pressure_fast'] #,'collisions.electrons.powerthermal']
+
+            # Set each one of the profiles2d
+            for iname in range(len(imas_names)):
+                moment   = runobject.getdist_moments( runobject.getdist('5d'),ascot_names[iname])
+                ordinate = moment.ordinate(ascot_names[iname], toravg=True) # average in phi-direction
+                setattr(prof2d,imas_names[iname],np.array(ordinate))
+
+
             warningtext = (
                 "5D distribution output still WIP; fill in e.g. profiles_2d:\n"
                 "density --> density_fast\n"
