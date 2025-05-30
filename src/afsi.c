@@ -24,7 +24,6 @@
 
 /** Random number generator used by AFSI */
 random_data rdata;
-
 void afsi_compute_product_velocities_3d(
     int i, real m1, real m2, real mprod1, real mprod2, real Q,
     real* ppara1, real* pperp1, real* ppara2, real* pperp2, real* vcom2,
@@ -33,8 +32,8 @@ void afsi_compute_product_momenta_2d(
     int i, real mprod1, real mprod2, int prodmomspace,
     real* vprod1, real* vprod2, real* prod1_p1, real* prod1_p2,
     real* prod2_p1, real* prod2_p2);
-void afsi_store_particle_data(int i, real* rvec, real* phivec,
-     real* zvec, real* vprod2, real mprod2, real* prod2);
+void afsi_store_particle_data(int i, int part_until_cell, real* rvec, real* phivec, 
+    real* zvec, real* vprod2, real mprod2, real* prod2);
 void afsi_sample_reactant_momenta_2d(
     sim_data* sim, afsi_data* afsi, real mass1, real mass2,
     real vol, int nsample, size_t i0, size_t i1, size_t i2,
@@ -343,18 +342,102 @@ void afsi_run_new(sim_data* sim, afsi_data* afsi, int n,
         real vcom2;
         real vprod1[3];
         real vprod2[3];
-        
+
         afsi_compute_product_velocities_3d(
             i, m1, m2, mprod1, mprod2, Q,
             ppara1, pperp1, ppara2, pperp2, &vcom2,
             vprod1, vprod2);
         
-        afsi_store_particle_data(i, rvec, phivec, zvec, vprod2, mprod2, prod2);
+        afsi_store_particle_data(i, 0, rvec, phivec, zvec, vprod2, mprod2, prod2);
     }
     free(ppara1);
     free(ppara2);
     free(pperp1);
     free(pperp2);
+}
+
+void afsi_run_new_loop(sim_data* sim, afsi_data* afsi,
+                real* rvec, real* phivec, real* zvec, int64_t* mark_per_bin, real* prod2) {
+
+    random_init(&rdata, time((NULL)));
+    simulate_init(sim);
+
+    real m1, q1, m2, q2, mprod1, qprod1, mprod2, qprod2, Q;
+    boschhale_reaction(
+    afsi->reaction, &m1, &q1, &m2, &q2,
+    &mprod1, &qprod1, &mprod2, &qprod2, &Q);
+    
+    real time = 0.0;
+
+    size_t n_cells = afsi->volshape[0] * afsi->volshape[1] * afsi->volshape[2];
+    size_t* offsets = malloc(n_cells * sizeof(size_t));
+    offsets[0] = 0;
+    for (size_t idx = 1; idx < n_cells; ++idx) {
+        offsets[idx] = offsets[idx-1] + mark_per_bin[idx-1];
+    }
+
+    #pragma omp parallel for
+    for(size_t i0 = 0; i0 < afsi->volshape[0]; i0++) {
+        real rbin[2];
+        rbin[0] = rvec[i0];
+        rbin[1] = rvec[i0+1];
+        for (size_t i1 = 0; i1 < afsi->volshape[1]; i1++){
+            real phibin[2];
+            phibin[0] = phivec[i1];
+            phibin[1] = phivec[i1+1];
+            for (size_t i2 = 0; i2 < afsi->volshape[2]; i2++){
+                size_t spatial_index = i0*afsi->volshape[1]*afsi->volshape[2]
+                                     + i1*afsi->volshape[2] + i2;
+                real r = afsi->r[spatial_index];
+                real z = afsi->z[spatial_index];
+                real phi = afsi->phi[spatial_index];
+                real vol = afsi->vol[spatial_index];
+
+                int n = (int)mark_per_bin[spatial_index];
+                if (n==0) continue;
+                
+                size_t offset = offsets[spatial_index];
+                real* ppara1 = (real*) malloc(n*sizeof(real));
+                real* pperp1 = (real*) malloc(n*sizeof(real));
+                real* ppara2 = (real*) malloc(n*sizeof(real));
+                real* pperp2 = (real*) malloc(n*sizeof(real));
+                
+                real zbin[2];
+                zbin[0] = zvec[i2];
+                zbin[1] = zvec[i2+1];
+                real psi, rho[2];
+                if(B_field_eval_psi(&psi, r, phi, z, time, &sim->B_data) ||
+                    B_field_eval_rho(rho, psi, &sim->B_data) ) {
+                    continue;
+                }
+
+                real density1, density2;
+                afsi_sample_reactant_momenta_2d(
+                    sim, afsi, m1, m2, vol, n, i0, i1, i2,
+                    r, phi, z, time, rho[0],
+                    &density1, ppara1, pperp1, &density2, ppara2, pperp2);
+                if(density1 == 0 || density2 == 0) {
+                    continue;
+                }
+                for(size_t i = 0; i < n; i++) {
+                    real vcom2;
+                    real vprod1[3];
+                    real vprod2[3];
+
+                    afsi_compute_product_velocities_3d(
+                        i, m1, m2, mprod1, mprod2, Q,
+                        ppara1, pperp1, ppara2, pperp2, &vcom2,
+                        vprod1, vprod2);
+                    afsi_store_particle_data(i, offset ,rbin, phibin, zbin, vprod2, mprod2, prod2);
+                }
+                free(ppara1);
+                free(ppara2);
+                free(pperp1);
+                free(pperp2);
+            }
+        }
+    }
+    free(offsets);
 }
 
 /**
@@ -433,7 +516,7 @@ void afsi_compute_product_velocities_3d(
     vprod2[2] = v2_cm[2] + v_cm[2];
 }
 
-void afsi_store_particle_data(int i, real* rvec, real* phivec, real* zvec, real* vprod2, real mprod2, real* prod2){
+void afsi_store_particle_data(int i, int part_until_cell, real* rvec, real* phivec, real* zvec, real* vprod2, real mprod2, real* prod2){
 
     // Compute the magnitude of the velocity of prod2
     real vprod2_magnitude = sqrt(vprod2[0] * vprod2[0] +
@@ -452,15 +535,14 @@ void afsi_store_particle_data(int i, real* rvec, real* phivec, real* zvec, real*
     real r = rvec[0] + (rvec[1] - rvec[0]) * random_uniform(rdata);
     real phi = phivec[0] + (phivec[1] - phivec[0]) * random_uniform(rdata);
     real z = zvec[0] + (zvec[1] - zvec[0]) * random_uniform(rdata);
-
     // Store the sampled coordinates, directions and energy in the prod2 array
-    prod2[i * 7 + 0] = r; 
-    prod2[i * 7 + 1] = phi; 
-    prod2[i * 7 + 2] = z; 
-    prod2[i * 7 + 3] = u; 
-    prod2[i * 7 + 4] = v;
-    prod2[i * 7 + 5] = w;
-    prod2[i * 7 + 6] = energy_prod2*6241506479963.2; // Convert to MeV
+    prod2[(part_until_cell + i) * 7 + 0] = r; 
+    prod2[(part_until_cell + i) * 7 + 1] = phi; 
+    prod2[(part_until_cell + i) * 7 + 2] = z; 
+    prod2[(part_until_cell + i) * 7 + 3] = u; 
+    prod2[(part_until_cell + i) * 7 + 4] = v;
+    prod2[(part_until_cell + i) * 7 + 5] = w;
+    prod2[(part_until_cell + i) * 7 + 6] = energy_prod2*6241506479963.2; // Convert to MeV
 }
 
 void afsi_compute_product_momenta_2d(

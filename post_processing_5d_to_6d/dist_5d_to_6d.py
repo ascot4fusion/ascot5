@@ -441,13 +441,14 @@ def generate_markers(a5, dist, n_markers, pcoordinate, bins, save_path=None):
     return mrk
 
 def spatial_dist(a5, rmin,rmax,nr, phimin,phimax, nphi, zmin, zmax, nz, nsamples, reaction, beam = None, pparmin=-1.1e-19, pparmax = 1.1e-19, pperpmin = 0, pperpmax = 1.1e-19, desc = None):
-    r = np.linspace(rmin, rmax, nr+1)
-    z = np.linspace(zmin, zmax, nz+1)
-    phi = np.linspace(phimin, phimax, nphi+1)
+    
     ppar = np.linspace(pparmin, pparmax, 2)
     pperp = np.linspace(pperpmin,pperpmax, 2)
 
     if beam is None:
+        r = np.linspace(rmin, rmax, nr+1)
+        z = np.linspace(zmin, zmax, nz+1)
+        phi = np.linspace(phimin, phimax, nphi+1)
         a5.afsi.thermal(
             reaction, nmc=nsamples, r=r, z=z,phi=phi,
             ppar1=ppar, pperp1=pperp, ppar2=ppar, pperp2=pperp)
@@ -461,6 +462,66 @@ def spatial_dist(a5, rmin,rmax,nr, phimin,phimax, nphi, zmin, zmax, nz, nsamples
         a5.data.active.set_desc(f"R{nr}_PHI_{nphi}_Z{nz}_ppar1_pperp1")
     dist.integrate(ppar=np.s_[:], pperp=np.s_[:], time=np.s_[:], charge=np.s_[:])
     return dist
+
+def maxwellian_beam(a5, n_total_samples):
+    r = np.linspace(4.3, 8.3, 21)
+    z = np.linspace(-2.0, 2.0, 21)
+    phi = np.linspace(-10, 10, 2)
+    ppar = np.linspace(-1.1e-19, 1.1e-19, 2)
+    pperp = np.linspace(0, 1.1e-19, 2)
+    a5.afsi.thermal(
+        "DT_He4n", nmc=10000, r=r, z=z,phi=phi,
+        ppar1=ppar, pperp1=pperp, ppar2=ppar, pperp2=pperp)
+    spat_dist = a5.data.active.getdist("prod1")
+    r_grid, phi_grid, z_grid = np.meshgrid(spat_dist.abscissa("r"), spat_dist.abscissa("phi"), spat_dist.abscissa("z"), indexing='ij')
+    a5.input_init(bfield=True)
+    a5.input_init(plasma=True)
+    time = spat_dist.abscissa("time")
+    spat_dist.integrate(time = np.s_[:], charge = np.s_[:], ppar = np.s_[:], pperp = np.s_[:])
+
+    samples_per_bin = a5.afsi.markers_per_spatial_bin(spat_dist, n_total_samples)
+    
+    ne = a5.input_eval(r_grid, phi_grid, z_grid, time, 'ne').reshape(samples_per_bin.shape)
+    te = a5.input_eval(r_grid, phi_grid, z_grid, time, 'te').reshape(samples_per_bin.shape)
+    te = te.to("J")
+
+    mass = a5.afsi.reactions('DT_He4n')[0][0]
+    r_edges = spat_dist.abscissa_edges("r")
+    phi_edges = spat_dist.abscissa_edges("phi")
+    z_edges = spat_dist.abscissa_edges("z")
+
+
+    ppara_samples = np.zeros(n_total_samples)
+    pperp_samples = np.zeros(n_total_samples)
+    ekin_samples = np.zeros(n_total_samples)
+    r_samples = np.zeros(n_total_samples)
+    phi_samples = np.zeros(n_total_samples)
+    z_samples = np.zeros(n_total_samples)
+    idx = 0
+    for i in range(samples_per_bin.shape[0]):
+        for j in range(samples_per_bin.shape[1]):
+            for k in range(samples_per_bin.shape[2]):
+                n_samples = samples_per_bin[i,j,k]
+                for n in range(n_samples):
+                    r = randomize(r_edges,i)
+                    phi = randomize(phi_edges,j)
+                    z = randomize(z_edges,k)
+                    r_samples[idx] = r
+                    phi_samples[idx] = phi
+                    z_samples[idx] = z
+                    r1 = np.random.uniform()
+                    r2 = np.random.uniform()
+                    r3 = np.cos(0.5 * np.random.uniform() * np.pi)
+                    e = -te[i,j,k] * (np.log(r1) + np.log(r2) * r3 ** 2)
+                    ekin_samples[idx] = e
+                    r4 = 1.0 - 2.0 * np.random.uniform()
+                    pperp_samples[idx] = np.sqrt((1.0 - r4 ** 2) * 2.0 * e * mass)
+                    ppara_samples[idx] = r4 * np.sqrt(2.0 * e * mass)
+                    idx +=1
+    bins_5d = [spat_dist.abscissa_edges("r").v, spat_dist.abscissa_edges("phi").v, spat_dist.abscissa_edges("z").v,np.linspace(ppara_samples.min(),ppara_samples.max(), 81), np.linspace(pperp_samples.min(), pperp_samples.max(), 41)]
+    hist_5d, edges_5d = np.histogramdd(np.column_stack((r_samples,phi_samples, z_samples, ppara_samples, pperp_samples)), bins=bins_5d)
+    maxwellian_dist_5d = DistData(hist_5d[:,:,:,:,:, np.newaxis, np.newaxis], r=edges_5d[0]*unyt.m, phi = edges_5d[1]*unyt.degree, z=edges_5d[2]*unyt.m, ppar = edges_5d[3]*unyt.kg*unyt.m/unyt.s, pperp = edges_5d[4]*unyt.kg*unyt.m/unyt.s, time = np.array([0,1])*unyt.s, charge = np.array([1,2])*unyt.e)
+    return maxwellian_dist_5d
 
 def plot_serpent_marker_arr(markers, bins = 20):
     if type(markers) == str:
@@ -511,7 +572,40 @@ def plot_serpent_marker_arr(markers, bins = 20):
     isotropic_dir = isotropic_directions_rejection(len(u))
     plot_direction_vectors(isotropic_dir, np.column_stack((u,v,w)), bins = bins)
 
+    # nbins_r = 100
+    # nbins_z = 100
+    # r_bins = np.linspace(r.min(), r.max(), nbins_r + 1)
+    # z_bins = np.linspace(z.min(), z.max(), nbins_z + 1)
 
+    # H, r_edges, z_edges = np.histogram2d(r, z, bins=[r_bins, z_bins], weights=ekin)
+
+    # counts, _, _ = np.histogram2d(r, z, bins=[r_bins, z_bins])
+
+    # with np.errstate(invalid='ignore', divide='ignore'):
+    #     avg_energy = H / counts
+    #     avg_energy[np.isnan(avg_energy)] = 0
+
+    # plt.figure(figsize=(8, 6))
+
+    # plt.imshow(
+    #     H.T,
+    #     extent=[r_edges[0], r_edges[-1], z_edges[0], z_edges[-1]],
+    #     origin='lower',
+    #     aspect='auto',
+    #     cmap='viridis'
+    # )
+    # plt.colorbar(label='Average Energy [MeV or keV]')
+    # plt.xlabel('r')
+    # plt.ylabel('z')
+    # plt.title('Energy Distribution in r-z Section')
+    # plt.show()
+
+
+def randomize(edges, idx):
+            """Picks a random value between [edges[idx+1], edges[idx]]
+            """
+            return edges[idx] \
+                + (edges[idx+1] - edges[idx]) * np.random.rand()
 
 def mrk_to_serpent(mrk, bins, save_path = None):
     px, py, pz = mrk["px"], mrk["py"], mrk["pz"]

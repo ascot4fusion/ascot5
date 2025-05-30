@@ -47,6 +47,8 @@ void afsi_run(sim_data* sim, afsi_data* data, int n,
 void afsi_run_new(sim_data* sim, afsi_data* afsi, int n,
             real* rvec, real* phivec, real* zvec, real* prod2,
             int i0, int i1, int i2);
+void afsi_run_new_loop(sim_data* sim, afsi_data* afsi,
+                real* rvec, real* phivec, real* zvec, int64_t* mark_per_bin, real* prod2);
 #endif
 
 
