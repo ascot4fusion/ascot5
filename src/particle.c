@@ -421,7 +421,7 @@ int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
 
     /* Loop over markers.
      * A SIMD loop is not possible as we modify the queue. */
-    for(int i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < p->n_mrk; i++) {
 
         /* First check whether we should pick a new marker */
         int newmarker = 0;
@@ -478,7 +478,7 @@ int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
 
     int n_running = 0;
     #pragma omp simd reduction(+:n_running)
-    for(int i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < p->n_mrk; i++) {
         n_running += p->running[i];
     }
 
