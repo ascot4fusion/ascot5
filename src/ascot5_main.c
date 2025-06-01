@@ -369,6 +369,7 @@ int offload_and_simulate(
             printf("i = %d, E = %e\n", i, sim->rfof_data.dE_RFOF_modes_and_waves[i]);
         }
         printf("dt_tot = %e\n", sim->rfof_data.summed_timesteps);
+        printf("#kicks = %d\n", sim->rfof_data.total_num_kicks);
     }
 
     mpi_interface_barrier();
@@ -397,6 +398,7 @@ int offload_and_simulate(
         for (int i = 0; i < sim->rfof_data.n_waves*sim->rfof_data.n_modes; i++) {
             print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,"i = %d, E = %e\n", i, sim->rfof_data.dE_RFOF_modes_and_waves[i]);
         }
+        print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,"#kicks = %d\n", sim->rfof_data.total_num_kicks);
         print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,"=========================\n");
     }
 

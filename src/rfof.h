@@ -41,6 +41,7 @@ typedef struct {
     real* dE_RFOF_modes_and_waves; /**< Energy changes due to each wave and mode
                                         of RFOF.                              */
     real summed_timesteps;      /**< Sum of all the timesteps of all markers. */
+    int total_num_kicks;     /**< Total number of kicks given to all markers. */
 } rfof_data;
 
 void rfof_init(rfof_data* rfof);
@@ -59,11 +60,15 @@ void rfof_tear_down(rfof_marker* rfof_mrk);
 
 void rfof_clear_history(rfof_marker* rfof_mrk, int imrk);
 
-void rfof_update_energy_array_of_the_process(rfof_data* rfof_data, real** energy_arrays_for_NSIMD_markers, real* accumulated_time_for_NSIMD_markers, int* cycle_array);
+void rfof_update_diag_of_this_process(rfof_data* rfof_data,
+    real** energy_arrays_for_NSIMD_markers,
+    real* accumulated_time_for_NSIMD_markers, int* cycle_array,
+    int* kicks_for_NSIMD_markers);
 
 void rfof_resonance_check_and_kick_gc(
     particle_simd_gc* p, real* hin, real* hout_rfof, rfof_marker* rfof_mrk,
-    rfof_data* rfof_data, B_field_data* Bdata, real** de_rfof_during_step);
+    rfof_data* rfof_data, B_field_data* Bdata, real** de_rfof_during_step,
+    int* kicks_for_NSIMD_markers);
 
 void rfof_eval_rf_wave(
     real* e_plus_real, real* e_minus_real, real* e_plus_imag,

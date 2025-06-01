@@ -39,16 +39,16 @@ void __ascot5_icrh_routines_MOD_call_initialise_diagnostics(
 
 void __ascot5_icrh_routines_MOD_call_set_marker_pointers(void** cptr_marker,
     int** id, real** weight, real** R, real** phi, real** z, real** psi,
-    real** charge, real** mass, real** Ekin, real** velocity, real** mu,
-    real** pphicanonical, real** vpar, real** vperp, real** gyrof, real** tauB,
-    real** vdriftRho, real** acc, int* isOrbitTimeAccelerated,
+    real** charge, real** mass, real** Ekin, real** Etot, real** velocity,
+    real** mu, real** pphicanonical, real** vpar, real** vperp, real** gyrof,
+    real** tauB, real** vdriftRho, real** acc, int* isOrbitTimeAccelerated,
     int* is_already_allocated);
 
 void __ascot5_icrh_routines_MOD_call_rf_kick(double*time, double*dtin,
     int* mpi_rank, void** cptr_marker, void** cptr_mem, void** cptr_rfglobal,
     void** cptr_rfdiagno, void** cptr_rfof_input, int* mem_shape_i,
     int* mem_shape_j, int *rfof_err, rfof_output* out,
-    real* cptr_de_rfof_during_step);
+    real* cptr_de_rfof_during_step, int* kicks_for_NSIMD_markers);
 
 void __ascot5_icrh_routines_MOD_call_reset_res_mem(void** rfof_mem_pointer,
     int* mem_shape_i, int* mem_shape_j);
@@ -77,7 +77,7 @@ void __ascot5_icrh_routines_MOD_print_mem_stuff(void** mem_pointer);
  * @brief Initialise input data.
  *
  * Reads the ICRH (RFOF) inputs (xml, xsd, ASCII) and initialises the wave
- * field.
+ * field. In other words, initialises the stuff that is common to all markers.
  *
  * @param rfof_data pointer to the RFOF data structure
  */
@@ -86,8 +86,8 @@ void rfof_init(rfof_data* rfof_data) {
     const char xml_filename[128] = RFOF_CODEPARAM_XML;
     int xml_filename_len = strlen(xml_filename);
     int*xml_filename_len_ptr = &xml_filename_len;
-    int n_waves = -999;
-    int n_modes = -999;
+    int n_waves;
+    int n_modes;
     __ascot5_icrh_routines_MOD_call_initev_excl_marker_stuff(xml_filename,
         &xml_filename_len_ptr, &(rfof_data->rfglobal),
         &(rfof_data->rfof_input_params), &n_waves, &n_modes);
@@ -99,6 +99,8 @@ void rfof_init(rfof_data* rfof_data) {
     /* Allocate memory for the 1d array that contains the accumulated energy
     changes for each wave and each mode in each wave */
     rfof_data->dE_RFOF_modes_and_waves = (real*)calloc(n_waves * n_modes, sizeof(real));
+
+    rfof_data->total_num_kicks = 0;
 #endif
 }
 
@@ -118,9 +120,12 @@ void rfof_free(rfof_data* rfof) {
 }
 
 /**
- * @brief Initialises resonance history, diagnostics, and the marker struct
+ * @brief Initialises resonance history, diagnostics, and the marker struct.
  *
- * This function is to be called before the simulation loop.
+ *
+ * This function is to be called before the simulation loop. It initialises the
+ * marker-specific stuff in contrast to rfof_init(), that initialises the
+ * common stuff.
  *
  * @param rfof_mrk pointer to the local RFOF marker data
  * @param rfof pointer to the shared RFOF data
@@ -139,7 +144,7 @@ void rfof_set_up(rfof_marker* rfof_mrk, rfof_data* rfof) {
         int is_already_allocated = 0;
         __ascot5_icrh_routines_MOD_call_set_marker_pointers(
             &(rfof_mrk->p[i]), &iptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr,
-            &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr,
+            &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr, &ptr,
             &is_accelerated, &is_already_allocated);
 
         /* Initialize resonance history */
@@ -194,9 +199,9 @@ void rfof_clear_history(rfof_marker* rfof_mrk, int i) {
 }
 
 
-void rfof_update_energy_array_of_the_process(rfof_data* rfof_data,
+void rfof_update_diag_of_this_process(rfof_data* rfof_data,
     real** energy_arrays_for_NSIMD_markers,
-    real* accumulated_time_for_NSIMD_markers, int* cycle_array) {
+    real* accumulated_time_for_NSIMD_markers, int* cycle_array, int* kicks_for_NSIMD_markers) {
 #ifdef RFOF
     /* Update the RFOF energy and time data in the rfof_data struct for those
      markers that reached the end condition just not */
@@ -207,6 +212,8 @@ void rfof_update_energy_array_of_the_process(rfof_data* rfof_data,
                 {
                     rfof_data->summed_timesteps += accumulated_time_for_NSIMD_markers[i];
                     accumulated_time_for_NSIMD_markers[i] = 0.0;
+                    rfof_data->total_num_kicks += kicks_for_NSIMD_markers[i];
+                    kicks_for_NSIMD_markers[i] = 0;
                 }
 
                 // Add the particle's summed E's to the MPI process sum
@@ -255,7 +262,8 @@ void rfof_update_energy_array_of_the_process(rfof_data* rfof_data,
  */
 void rfof_resonance_check_and_kick_gc(
     particle_simd_gc* p, real* hin, real* hout, rfof_marker* rfof_mrk,
-    rfof_data* rfof_data, B_field_data* Bdata, real** de_rfof_during_step) {
+    rfof_data* rfof_data, B_field_data* Bdata, real** de_rfof_during_step,
+    int* kicks_for_NSIMD_markers) {
 #ifdef RFOF
     for(int i=0; i<NSIMD; i++) {
         if(p->id[i] > 0 && p->running[i]) {
@@ -266,23 +274,28 @@ void rfof_resonance_check_and_kick_gc(
                functions to evalutate some quantity introduces some error which,
                at least when cumulated, grows intolerable.                    */
             real psi, B, Ekin, vnorm, P_phi, v_par, v_perp, gyrof,
-            tauB;
+            tauB, gamma, Etot;
             errflag = B_field_eval_psi(&psi, p->r[i], p->phi[i], p->z[i],
                 p->time[i], Bdata);
             psi *= CONST_2PI; // librfof is COCOS 13
             B = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
-            //gamma  = physlib_gamma_ppar(p->mass[i], p->mu[i], p->ppar[i], B);
-            //Ekin   = physlib_Ekin_gamma(p->mass[i], gamma);
-            //vnorm  = physlib_vnorm_gamma(gamma);
 
-	        /* The relativisti formulas above did not work too well for low
-            speeds but started introducing numerical errors. Hence, assume
-            non-relativistic speeds. */
-	        v_par = p->ppar[i]/p->mass[i];
-	        Ekin = p->ppar[i]*p->ppar[i]/(2*p->mass[i]) + p->mu[i]*B;
             vnorm = sqrt( (p->ppar[i]/p->mass[i])*(p->ppar[i]/p->mass[i]) + 2*p->mu[i]*B/p->mass[i] );
-            v_perp = sqrt( 2 * p->mu[i]*B/p->mass[i] );
-
+            if (vnorm > 100000.0) {
+                // Use relativistic formulas
+                gamma  = physlib_gamma_ppar(p->mass[i], p->mu[i], p->ppar[i], B);
+                v_par = p->ppar[i]/(p->mass[i]*gamma);
+                Ekin   = physlib_Ekin_gamma(p->mass[i], gamma);
+                Etot = Ekin;
+                vnorm  = physlib_vnorm_gamma(gamma);
+                v_perp = sqrt( 2 * p->mu[i]*B/(p->mass[i]*gamma*gamma) );
+            } else {
+                // Relativistic formulas have numerical error at low speeds
+                v_par = p->ppar[i]/p->mass[i];
+                Ekin = p->ppar[i]*p->ppar[i]/(2*p->mass[i]) + p->mu[i]*B;
+                Etot = Ekin;
+                v_perp = sqrt( 2 * p->mu[i]*B/p->mass[i] );
+            }
 
 	        P_phi  = phys_ptoroid_gc(p->charge[i], p->r[i], p->ppar[i], psi, B,
                 p->B_phi[i]);
@@ -375,6 +388,7 @@ void rfof_resonance_check_and_kick_gc(
             real* mass_ptr      = &(p->mass[i]);
             real* mu_ptr        = &(p->mu[i]);
             real* Ekin_ptr      = &Ekin;
+            real* Etot_ptr      = &Etot;
             real* psi_ptr       = &psi;
             real* speed_ptr     = &vnorm;
             real* P_phi_ptr     = &P_phi;
@@ -397,6 +411,7 @@ void rfof_resonance_check_and_kick_gc(
                 &(charge_ptr),
                 &(mass_ptr),
                 &(Ekin_ptr),
+                &(Etot_ptr),
                 &(speed_ptr),
                 &(mu_ptr),
                 &(P_phi_ptr),
@@ -433,14 +448,14 @@ void rfof_resonance_check_and_kick_gc(
                 &(rfof_data->rfglobal), &(rfof_mrk->diag_array[i]),
                 &(rfof_data->rfof_input_params), &(rfof_mrk->nrow[i]),
                 &(rfof_mrk->ncol[i]), &rfof_err, &rfof_data_pack,
-                (de_rfof_during_step[i]));
+                (de_rfof_during_step[i]), &(kicks_for_NSIMD_markers[i]));
 
-            if (p->mu[i] <= 0.0 || isnan(p->mu[i])) {
-                printf("\nAt time = %.3e, mrk_id = %ld\n",p->time[i], p->id[i]);
-                printf("after kick, mu = %.3e\n", p->mu[i]);
-                printf("before kick, mu was %.3e\n", old_mu);
-            }
+            /* Marker magnetic moment is updated automatically
+             * via the pointers in rfof_mrk but ppar is not. */
+            p->ppar[i] = p->ppar[i] + p->mass[i]*(rfof_data_pack.dvpar);
 
+            /* Check that the marker is sensible after the kick. Check also the
+            other fields given to RFOF, like EKin */
             if (isnan(p->ppar[i])){
                 printf("\nAfter kick\n");
                 printf("----------------------------------\nNONPHYSICAL ppar = %.5e at t=%.3e (id=%ld)\n (r,z,phi)=(%.3e, %.3e, %.3e)\n-----------------------------\n",p->ppar[i],p->mileage[i], p->id[i], p->r[i], p->z[i], p->phi[i]);
@@ -498,9 +513,6 @@ void rfof_resonance_check_and_kick_gc(
             }
 
 
-            /* Most marker phase-space coordinates are updated automatically
-             * via the pointers in rfof_mrk except ppar which we update here */
-            p->ppar[i] = p->ppar[i] + p->mass[i]*(rfof_data_pack.dvpar);
 
 
             if (rfof_err == 7) {
@@ -562,9 +574,11 @@ void rfof_set_marker_manually(rfof_marker* rfof_mrk, int* id,
     real bigR = 2.0;
     real tauB_target = CONST_2PI*(*charge)*(bigR)/(*vpar);
     real* tauB = &tauB_target;
+    real Etot_val = *Ekin;
+    real *Etot = &Etot_val;
     __ascot5_icrh_routines_MOD_call_set_marker_pointers(
         &rfof_mrk->p[0], &id, &weight, &R, &phi, &z, &psi, &charge, &mass,
-        &Ekin, &vnorm, &mu, &Pphi, &vpar, &vperp, &gyrof, &tauB, &vdriftRho, &acc,
+        &Ekin, &Etot, &vnorm, &mu, &Pphi, &vpar, &vperp, &gyrof, &tauB, &vdriftRho, &acc,
         is_accelerated, is_already_allocated);
 #endif
 }

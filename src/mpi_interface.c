@@ -575,6 +575,11 @@ void mpi_gather_diag_RFOF(rfof_data* rfof_data, int mpi_rank, int mpi_size,
         &rfof_data->summed_timesteps,
         1,
         mpi_type_real, MPI_SUM, mpi_root, MPI_COMM_WORLD);
+    MPI_Reduce(
+        mpi_rank == mpi_root ? MPI_IN_PLACE : &rfof_data->total_num_kicks,
+        &rfof_data->total_num_kicks,
+        1,
+        mpi_type_int, MPI_SUM, mpi_root, MPI_COMM_WORLD);
 #endif
 #endif
 }

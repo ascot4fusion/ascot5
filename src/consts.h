@@ -23,7 +23,7 @@
 #define CONST_C  299792458.0
 
 /** @brief Speed of light squared [m^2/s^2]                                   */
-#define CONST_C2 89875517873681760.0
+#define CONST_C2 89875517873681764.0
 
 /** @brief Speed of light to power of three [m^3/s^3]                         */
 #define CONST_C3 26944002417373989539335912.0

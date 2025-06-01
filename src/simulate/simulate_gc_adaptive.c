@@ -71,6 +71,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                                                               dE_rfof_2darrays
                                                               if the step was succesful
                                                               and otherwise discarded. */
+    int num_kicks_array[NSIMD] __memalign__; /* Number of RF kicks given to
+                                               the markers currently simulated*/
 
     /* Flag indicateing whether a new marker was initialized */
     int cycle[NSIMD]     __memalign__;
@@ -88,6 +90,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     for(int i=0; i< NSIMD; i++) {
         p.id[i] = -1;
         p.running[i] = 0;
+        num_kicks_array[i] = 0;
     }
 
     /* Initialize running particles */
@@ -194,7 +197,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         if(sim->enable_icrh) {
             rfof_resonance_check_and_kick_gc(
                 &p, hin, hout_rfof, &rfof_mrk, &sim->rfof_data, &sim->B_data,
-                dE_rfof_1darrays_increment);
+                dE_rfof_1darrays_increment, num_kicks_array);
 
             /* Check whether time step was rejected */
             #pragma omp simd

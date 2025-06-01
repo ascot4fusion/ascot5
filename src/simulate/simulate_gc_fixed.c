@@ -85,6 +85,8 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
                                               over all markers. Not reseted when
                                               a new marker is taken from the
                                               queue. */
+    int num_kicks_array[NSIMD] __memalign__; /* Number of RF kicks given for
+                                                the markers currently simulated*/
 
 
     real cputime, cputime_last; // Global cpu time: recent and previous record
@@ -110,9 +112,6 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         rfof_set_up(&rfof_mrk, &sim->rfof_data);
     }
 
-    /* Toimii vain jos kaikilla on sama paino ja ensimmäisellä paikalla ylipäätään
-    on edes markeri. */
-    real paino = p.weight[0];
 
     //Tässä ei nyt oikein ole mitään järkeä tässä että on monta kun nämähän luvut
     // pitää olla samat hiukkasesta riippumattta. Kanssa ei ole järkeä siinä, että
@@ -131,6 +130,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
             real* dummy_array2 = (real*)calloc(n_RF_waves * n_RF_modes, sizeof(real));
             dE_rfof_1darrays[i] = dummy_array;
             dE_rfof_1darrays_increment[i] = dummy_array2;
+            num_kicks_array[i] = 0;
         }
     }
 
@@ -207,7 +207,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         if(sim->enable_icrh) {
             rfof_resonance_check_and_kick_gc(
                 &p, hin, hout_rfof, &rfof_mrk, &sim->rfof_data, &sim->B_data,
-                dE_rfof_1darrays_increment);
+                dE_rfof_1darrays_increment, num_kicks_array);
 
             /* Check whether time step was rejected */
             #pragma omp simd
@@ -289,8 +289,8 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         /* Update RFOF accumulated power diagnostics for markers that reached
         end condition */
         if (sim->enable_icrh) {
-            rfof_update_energy_array_of_the_process(&sim->rfof_data,
-                dE_rfof_1darrays, h_ALL_summed, cycle);
+            rfof_update_diag_of_this_process(&sim->rfof_data,
+                dE_rfof_1darrays, h_ALL_summed, cycle, num_kicks_array);
         }
 
         /* Determine simulation time-step */
