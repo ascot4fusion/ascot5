@@ -35,12 +35,14 @@ void afsi_sample_reactant_momenta_2d(
     real r, real phi, real z, real time, real rho,
     real* density1, real* ppara1, real* pperp1,
     real* density2, real* ppara2, real* pperp2);
-void afsi_sample_beam_2d(histogram* hist, real mass, real vol, int nsample,
-                         size_t i0, size_t i1, size_t i2, real* density, real* ppara,
-                         real* pperp);
-void afsi_sample_thermal_2d(sim_data* sim, int ispecies, real mass, int nsample,
-                            real r, real phi, real z, real time, real rho,
-                            real* density, real* pppara, real* ppperp);
+void afsi_sample_beam_2d(
+    histogram* hist, real mass, real vol, int nsample,
+    size_t i0, size_t i1, size_t i2, real* density,
+    real* ppara, real* pperp);
+void afsi_sample_thermal_2d(
+    sim_data* sim, int ispecies, real mass, int nsample,
+    real r, real phi, real z, real time, real rho,
+    real* density, real* pppara, real* ppperp);
 
 /**
  * @brief Calculate fusion source from two arbitrary ion distributions
@@ -477,7 +479,7 @@ void afsi_sample_beam_2d(histogram* hist, real mass, real vol, int nsample,
         for(size_t j = 0; j < hist->axes[p1coord].n*hist->axes[p2coord].n; j++) {
             if(cumdist[j] > r) {
                 if(mom_space == PPARPPERP) {
-                    ppara[i] = hist->axes[5].min + (j / hist->axes[6].n + 0.5)
+                    ppara[i] = hist->axes[5].min + (j / hist->axes[5].n + 0.5)
                         * (hist->axes[5].max - hist->axes[5].min) / hist->axes[5].n;
                     pperp[i] = hist->axes[6].min + (j % hist->axes[6].n + 0.5)
                         * (hist->axes[6].max - hist->axes[6].min) / hist->axes[6].n;
