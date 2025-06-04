@@ -563,7 +563,8 @@ void afsi_compute_product_momenta_2d(
 
         real vnorm2 = math_norm(vprod2);
         prod2_p2[i] = vprod2[2] / vnorm2;
-        prod2_p1[i] = physlib_Ekin_gamma(mprod2, physlib_gamma_vnorm(vnorm2));
+        /*Classical momentum equation provides more realistic neutron distribution*/
+        prod2_p1[i] = 0.5*mprod2*vnorm2*vnorm2/*physlib_Ekin_gamma(mprod2, physlib_gamma_vnorm(vnorm2));*/
     }
 }
 
