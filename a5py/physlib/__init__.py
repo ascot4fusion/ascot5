@@ -6,6 +6,7 @@ import scipy.constants as constants
 import warnings
 from functools import wraps
 
+from . import species
 from a5py.exceptions import AscotUnitWarning
 
 e     = constants.elementary_charge * unyt.C

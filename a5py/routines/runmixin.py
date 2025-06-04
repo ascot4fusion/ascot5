@@ -2198,9 +2198,11 @@ class RunMixin(DistMixin):
                 Atomic number of the test particle-
             'znum' : int
                 Charge number of the test particle.
+            'mass' : float
+                Mass of the test particle.
         """
-        anum, znum = self.getstate("anum", "znum")
-        return {"anum": anum[0], "znum": znum[0]}
+        anum, znum, mass = self.getstate("anum", "znum", "mass")
+        return {"anum":anum[0], "znum":znum[0], "mass":mass[0]}
 
     def getcodeversion(self):
         """Return version of the code that was used to run the simulation.

@@ -4,10 +4,11 @@ from .analyticalinputs import AnalyticalInputs
 from .optiontemplates  import OptionTemplates
 from .poincare  import PoincareTemplates
 from .importdata import ImportData
+from .imasinterface import ImportImas
 from .convertascot4 import Ascot4Templates
 
 class Template(AnalyticalInputs, OptionTemplates, PoincareTemplates,
-                ImportData, Ascot4Templates):
+                ImportData, ImportImas, Ascot4Templates):
     """Class for creating input data from templates or imported data.
 
     The templates are constructed by calling :meth:`construct` and specifying
@@ -26,6 +27,7 @@ class Template(AnalyticalInputs, OptionTemplates, PoincareTemplates,
         self._templates += getmethods(OptionTemplates)
         self._templates += getmethods(PoincareTemplates)
         self._templates += getmethods(ImportData)
+        self._templates += getmethods(ImportImas)
         self._templates += getmethods(Ascot4Templates)
 
     def usetemplate(self, template, **kwargs):

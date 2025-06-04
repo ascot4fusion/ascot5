@@ -1018,6 +1018,16 @@ class Opt(DataGroup):
 
         return out
 
+    def toxml(self):
+        """Convert options to string in XML format.
+
+        Returns
+        -------
+        opt : str
+            String in XML format containing the options parameters.
+        """
+        return Opt.schema(self.read())[1]
+
     def new(self, desc=None, **kwargs):
         """Write new options with updated parameters.
 
@@ -1684,9 +1694,8 @@ class Opt(DataGroup):
         data = json.dumps({"parameters":opt_hierarchy})
         xml = xmlschema.from_json(data, schema=schema, preserve_root=True)
 
-        # Write to file, if requested
         if fnxsd is not None:
-            with open(fnxsd, 'w') as f:
+            with open(fnxsd, "w") as f:
                 f.writelines(xsd)
         if fnxml is not None:
             ET.ElementTree(xml).write(fnxml)

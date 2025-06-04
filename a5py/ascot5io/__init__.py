@@ -26,6 +26,8 @@ from a5py.routines.afsi5 import AfsiMixin
 from a5py.routines.bbnbi5 import BBNBIMixin
 from a5py.templates import Template
 
+from a5py.templates.imasinterface import ExportIMAS
+
 HDF5TOOBJ = {
     "B_TC" : B_TC, "B_GS" : B_GS, "B_2DS" : B_2DS, "B_3DS" : B_3DS,
     "B_3DST" : B_3DST, "B_STS" : B_STS,
@@ -277,7 +279,7 @@ class InputGroup(InputNode):
     """
     pass
 
-class RunGroup(ResultNode, RunMixin):
+class RunGroup(ResultNode, RunMixin, ExportIMAS):
     """Node containing results and methods to process them.
     """
     pass

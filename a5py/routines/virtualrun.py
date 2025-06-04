@@ -8,12 +8,13 @@ from a5py.ascot5io import State, Orbits, Dist
 from a5py.ascot5io.dist import DistData
 from .runmixin import RunMixin
 from .bbnbi5 import BBNBIMixin
+from a5py.templates.imasinterface import ExportIMAS
 
 from a5py.ascotpy.libascot import _LIBASCOT
 if _LIBASCOT:
     import a5py.ascotpy.ascot2py as ascot2py
 
-class VirtualRun(RunMixin):
+class VirtualRun(RunMixin, ExportIMAS):
     """Virtual :class:`RunGroup` whose data exists solely in the memory.
     """
 
