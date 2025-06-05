@@ -24,6 +24,8 @@ def cart2pol(x, y, z=None):
 def pol2cart(r, phi, z=None):
     """Convert a point in polar coordinates to cartesian coordinates.
     """
+    if z is None:
+        return r * np.cos(phi), r * np.sin(phi)
     return r * np.cos(phi), r * np.sin(phi), z
 
 def sph2cart(r, phi, theta):

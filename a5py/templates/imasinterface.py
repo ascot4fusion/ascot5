@@ -24,6 +24,7 @@ import unyt
 import numpy as np
 
 import a5py.physlib as physlib
+from a5py.ascot5io.nbi import Injector
 
 try:
     import imas
@@ -453,8 +454,8 @@ class ImportImas():
             "psi_zmin":z[0],
             "psi_zmax":z[-1],
             "psi_nz":nz,
-            "axis_phimin":phi[0],
-            "axis_phimax":phi[-1],
+            "axis_phimin":axis_phi[0],
+            "axis_phimax":axis_phi[-1],
             "axis_nphi":axis_nphi,
             "axisr":axis_r,
             "axisz":axis_z,
@@ -555,7 +556,10 @@ class ImportImas():
         }
         return "wall_3D", w
 
-    def imas_plasma(self, equilibrium_ids=None, core_profiles_ids=None):
+    def imas_plasma(
+            self, equilibrium_ids=None, core_profiles_ids=None, psi0=None,
+            psi1=None
+            ):
         """Import plasma profiles from IMAS IDS.
 
         The data in IDS is tabulated with respect to rho_tor, which is why
@@ -567,6 +571,14 @@ class ImportImas():
             The IDS database object which contains the equilibrium data.
         core_profiles_ids : imas.ids_base.IDSBase
             The IDS database object which contains the core profiles.
+        psi0 : float, optional
+            The value of psi at the magnetic axis.
+
+            Might be needed to normalize psi grid.
+        psi1 : float, optional
+            The value of psi at the plasma boundary.
+
+            Might be needed to normalize psi grid.
 
         Returns
         -------
@@ -577,12 +589,34 @@ class ImportImas():
             a corresponding type.
         """
         iElement  = 0
-
         profiles_1d = core_profiles_ids.profiles_1d[_TIMEINDEX]
+        grid = profiles_1d.grid
+        eqprof = equilibrium_ids.time_slice[_TIMEINDEX].profiles_1d
+        if (grid.rho_pol_norm):
+            rho = grid.rho_pol_norm
+        elif len(grid.psi) and grid.psi_magnetic_axis != grid.psi_boundary:
+            rho = np.sqrt(
+                (grid.psi - grid.psi_magnetic_axis) /
+                (grid.psi_boundary - grid.psi_magnetic_axis)
+                )
+        elif len(grid.psi):
+            psi = grid.psi / ( 2*np.pi )
+            rho = np.sqrt( (psi - psi0) / (psi1 - psi0) )
+            print(psi1, psi0)
+            print(psi)
+        elif len(grid.rho_tor) and len(eqprof.rho_tor) and len(eqprof.psi_norm):
+            rho = np.interp(grid.rho_tor, eqprof.rho_tor, eqprof.psi_norm)
+        elif len(grid.rho_tor) and len(eqprof.rho_tor) and len(eqprof.psi):
+            psi = np.interp(grid.rho_tor, eqprof.rho_tor, eqprof.psi) / ( 2*np.pi )
+            rho = np.sqrt( (psi - psi0) / (psi1 - psi0) )
+        else:
+            raise ValueError(
+                "No sufficient data to initialize radial grid."
+            )
 
-        nrho, nion = len(profiles_1d.grid.rho_tor), len(profiles_1d.ion)
+        nrho, nion = rho.size, len(profiles_1d.ion)
         anum = np.array([
-            profiles_1d.ion[i].element[iElement].a for i in range(nion)
+            int(profiles_1d.ion[i].element[iElement].a) for i in range(nion)
         ])
         znum = np.array([
             profiles_1d.ion[i].element[iElement].z_n for i in range(nion)
@@ -613,10 +647,6 @@ class ImportImas():
                 profiles_1d.ion[i].rotation_frequency_tor
             )
         vtor = ivtor.mean(axis=1)
-
-        rho_tor = profiles_1d.grid.rho_tor
-
-        rho = equilibrium_ids.tor2pol(rho_tor)
         pls = {
             "rho":rho,
             "nrho":nrho,
@@ -653,7 +683,7 @@ class ImportImas():
         time = distribution_sources_ids.time[_TIMEINDEX]
         for source in distribution_sources_ids.source:
             markers = source.markers[_TIMEINDEX]
-            if len(markers) <= 0:
+            if len(markers.weights) == 0:
                 continue
             if(not _SPECIES_TYPE[source.species.type.index]
                in ["ion", "ion_state"]):
@@ -745,131 +775,76 @@ class ImportImas():
             a corresponding type.
         """
         nunit = len(nbi_ids.unit)
-        injectors = [None] * nunit
-        for unit, injector in enumerate(nbi_ids.unit):
-            injectors[unit] = {}
-            var_map_beam = {
-                "anum":"species.a",
-                "znum":"species.z_n",
-                "power":"power_launched.data",
-                "energy":"energy.data",
-                "efraction":"beam_current_fraction.data",
-                "pfraction":"beam_power_fraction.data",
-                }
-            for var, idsname in var_map_beam.items():
-                injectors[unit][var] = getattr(injector, idsname)
-            injectors[unit]["efraction"] = (
-                np.array(injectors[unit]["efraction"]).ravel()
-            )
-            species = physlib.species.autodetect(anum, znum)
-
-            # Each beamlet group consist of beamlets that have identical divergence
-            # (and maybe the focal point as well)
-            halo_frac, div_v, div_h, halo_div_v, halo_div_h = [], [], [], [], []
-
-            # Individual coordinates for each beamlet
-            x, y, z, dx, dy, dz = [], [], [], [], [], []
-            for beamletgroup in injector.beamlets_group:
-                # Direction of the beam seen from above the torus: -1 = CW; 1 = C-CW
-                beam_direction = beamletgroup.direction
-
-                # The beam profile consists of two Gaussians: the main beam and the halo
-                # part, each with their own divergencies.
-                f1, f2 = (
-                    beamletgroup.divergence_component[0].particles_fraction,
-                    beamletgroup.divergence_component[1].particles_fraction
-                    )
-                halo_frac.append( f2 / ( f1 + f2 ) )
-                div_v.append(beamletgroup.divergence_component[0].vertical)
-                div_h.append(beamletgroup.divergence_component[0].horizontal)
-                halo_div_v.append(beamletgroup.divergence_component[1].vertical)
-                halo_div_h.append(beamletgroup.divergence_component[1].horizontal)
-
-                xyz = cylindrical2cartesian(
-                    beamletgroup.beamlets.positions.phi,
-                    beamletgroup.beamlets.positions.z,
-                    beamletgroup.beamlets.positions.r,
-                )
-                x.append(xyz[0])
-                y.append(xyz[1])
-                z.append(xyz[2])
-
-                # We use (beamlet specific) tangency radius and inclination angle to
-                # compute the 3D direction vector that specifies the beam center line.
-                # Tangency radius is the major radius where the central line of an NBI
-                # unit is tangent to a circle around the torus. Inclination angle is the
-                # angle between horizontal plane and the beam central line.
-                tangency_radius, inclination_angle = (
-                    beamletgroup.beamlets.tangency_radii,
-                    beamletgroup.beamlets.angles,
-                    )
-
-                tangency_point_phi_coordinate = (
-                    np.array(beamletgroup.beamlets.positions.phi)
-                    + beam_direction * np.arcsin(tangency_radius / beamletgroup.beamlets.positions.r)
-                    )
-                # Moving the origo to beamlet position, we can calculate the beam
-                # center line vector using spherical coordinates
-                dx0, dy0, dz0 = spherical2cartesian(
-                    inclination_angle, np.pi - tangency_point_phi_coordinate
-                )
-                dx.append(dx0)
-                dy.append(dy0)
-                dz.append(dz0)
-
-            x = np.array([x]).ravel()
-            y = np.array([y]).ravel()
-            z = np.array([z]).ravel()
-            dx = np.array([dx]).ravel()
-            dy = np.array([dy]).ravel()
-            dz = np.array([dz]).ravel()
-            injs.append(Injector(i, anum, znum, species["mass"], energy, powerfrac, power, div_h[0], div_v[0],
-                    halo_frac[0], halo_div_h[0], halo_div_v[0], x.size,
-                                x, y, z, dx, dy, dz))
         injs = []
-        for unit in np.arange(nunit):
-            xyz = physlib.pol2cart(
-                    injectors[unit]["r"],
-                    injectors[unit]["phi"],
-                    injectors[unit]["z"],
+        for unit, injector in enumerate(nbi_ids.unit):
+            inj = {
+                "anum":injector.species.a,
+                "znum":injector.species.z_n,
+                "power":injector.power_launched.data,
+                "energy":injector.energy.data,
+                "efrac":injector.beam_current_fraction.data.ravel(),
+                "powerfrac":injector.beam_power_fraction.data.ravel(),
+            }
+            inj["mass"] = physlib.species.autodetect(
+                inj["anum"], inj["znum"])["mass"]
+
+            divergence = injector.beamlets_group[0].divergence_component
+            f1, f2 = (
+                divergence[0].particles_fraction,
+                divergence[1].particles_fraction
                 )
-            beta = np.arccos(
-                injectors[unit]["tangencyradii"] / injectors[unit]["r"]
-                )
-            alpha = (
-                np.pi + injectors[unit]["phi"]
-                - injectors[unit]["direction"] * ( 0.5 * np.pi - beta )
+            inj.update({
+                "divh":divergence[0].horizontal,
+                "divv":divergence[0].vertical,
+                "halofraction":f2 / ( f1 + f2 ),
+                "halodivh":divergence[1].horizontal,
+                "halodivv":divergence[1].vertical,
+            })
+
+            r, phi, z, tangencyradii, angles = (
+                np.array([]), np.array([]), np.array([]), np.array([]),
+                np.array([])
             )
+            direction = injector.beamlets_group[0].direction
+            for beamletgroup in injector.beamlets_group:
+                r, z, phi, tangencyradii, angles = (
+                    np.append(r, beamletgroup.beamlets.positions.r),
+                    np.append(z, beamletgroup.beamlets.positions.z),
+                    np.append(phi, beamletgroup.beamlets.positions.phi),
+                    np.append(tangencyradii, beamletgroup.beamlets.tangency_radii),
+                    np.append(angles, beamletgroup.beamlets.angles),
+                )
+
+            x, y = physlib.pol2cart(r, phi)
+            beta = np.arccos(tangencyradii / r)
+            alpha = np.pi + phi - direction * ( 0.5 * np.pi - beta )
 
             # Fixing origo to the beamlet position, we can calculate the beam
             # center line vector from spherical coordinates
             dxyz = physlib.sph2cart(
                 r=1.0,
                 phi=alpha,
-                theta=np.pi/2 - injectors[unit]["angles"],
+                theta=np.pi/2 - angles,
             )
 
-            species = physlib.species.autodetect(
-                injectors[unit]["anum"], injectors[unit]["znum"]
-                )
             injs.append(
                 Injector(
                     unit+1,
-                    injectors[unit]["anum"],
-                    injectors[unit]["znum"],
-                    species["mass"],
-                    injectors[unit]["energy"],
-                    injectors[unit]["efraction"],
-                    injectors[unit]["power"],
-                    injectors[unit]["divh"],
-                    injectors[unit]["divv"],
-                    injectors[unit]["halofraction"],
-                    injectors[unit]["halodivh"],
-                    injectors[unit]["halodivv"],
-                    xyz[0].size,
-                    xyz[0],
-                    xyz[1],
-                    xyz[2],
+                    inj["anum"],
+                    inj["znum"],
+                    inj["mass"],
+                    inj["energy"],
+                    inj["efrac"],
+                    inj["power"],
+                    inj["divh"],
+                    inj["divv"],
+                    inj["halofraction"],
+                    inj["halodivh"],
+                    inj["halodivv"],
+                    x.size,
+                    x,
+                    y,
+                    z,
                     dxyz[0],
                     dxyz[1],
                     dxyz[2]
