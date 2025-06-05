@@ -568,12 +568,12 @@ void mpi_gather_diag_RFOF(rfof_data* rfof_data, int mpi_rank, int mpi_size,
     MPI_Reduce(
         mpi_rank == mpi_root ? MPI_IN_PLACE : rfof_data->dE_RFOF_modes_and_waves,
         rfof_data->dE_RFOF_modes_and_waves,
-        rfof_data->n_waves * rfof_data->n_modes,
+        rfof_data->n_waves * rfof_data->n_modes * rfof_data->num_rfof_time_bins,
         mpi_type_real, MPI_SUM, mpi_root, MPI_COMM_WORLD);
     MPI_Reduce(
-        mpi_rank == mpi_root ? MPI_IN_PLACE : &rfof_data->summed_timesteps,
-        &rfof_data->summed_timesteps,
-        1,
+        mpi_rank == mpi_root ? MPI_IN_PLACE : rfof_data->summed_timesteps,
+        rfof_data->summed_timesteps,
+        rfof_data->num_rfof_time_bins,
         mpi_type_real, MPI_SUM, mpi_root, MPI_COMM_WORLD);
     MPI_Reduce(
         mpi_rank == mpi_root ? MPI_IN_PLACE : &rfof_data->total_num_kicks,

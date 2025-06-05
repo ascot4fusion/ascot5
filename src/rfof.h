@@ -40,8 +40,10 @@ typedef struct {
     int n_modes;   /**< Number of modes in RFOF; same as ncol in rfof_marker. */
     real* dE_RFOF_modes_and_waves; /**< Energy changes due to each wave and mode
                                         of RFOF.                              */
-    real summed_timesteps;      /**< Sum of all the timesteps of all markers. */
+    real* summed_timesteps;      /**< Sum of all the timesteps of all markers.
+                                    Divided into num_rfof_time_bins time bins.*/
     int total_num_kicks;     /**< Total number of kicks given to all markers. */
+    int num_rfof_time_bins; /**< Number of time bins for the energy diagnostic*/
 } rfof_data;
 
 void rfof_init(rfof_data* rfof);
@@ -62,7 +64,7 @@ void rfof_clear_history(rfof_marker* rfof_mrk, int imrk);
 
 void rfof_update_diag_of_this_process(rfof_data* rfof_data,
     real** energy_arrays_for_NSIMD_markers,
-    real* accumulated_time_for_NSIMD_markers, int* cycle_array,
+    real** accumulated_time_for_NSIMD_markers, int* cycle_array,
     int* kicks_for_NSIMD_markers);
 
 void rfof_resonance_check_and_kick_gc(

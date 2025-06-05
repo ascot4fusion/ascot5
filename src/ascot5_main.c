@@ -365,10 +365,12 @@ int offload_and_simulate(
         printf("simroot = %d\n", sim->mpi_root);
         printf("simsize = %d\n", sim->mpi_size);
         printf("simrank = %d\n", sim->mpi_rank);
-        for (int i = 0; i < sim->rfof_data.n_waves*sim->rfof_data.n_modes; i++) {
+        for (int i = 0; i < sim->rfof_data.n_waves*sim->rfof_data.n_modes*sim->rfof_data.num_rfof_time_bins; i++) {
             printf("i = %d, E = %e\n", i, sim->rfof_data.dE_RFOF_modes_and_waves[i]);
         }
-        printf("dt_tot = %e\n", sim->rfof_data.summed_timesteps);
+        for (int i = 0; i < sim->rfof_data.num_rfof_time_bins; i++){
+            printf("dt_tot = %e\n", sim->rfof_data.summed_timesteps[i]);
+        }
         printf("#kicks = %d\n", sim->rfof_data.total_num_kicks);
     }
 
@@ -392,10 +394,13 @@ int offload_and_simulate(
 
     if (sim->enable_icrh) {
         print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,
-            "=======================================\nAFTER COMBINING THE DATA FROM ALL MPI PROCESSES\nsummed dt over all MPI processes = %.3e\n",
-            sim->rfof_data.summed_timesteps);
+            "=======================================\nAFTER COMBINING THE DATA FROM ALL MPI PROCESSES\nsummed dt over all MPI processes:\n");
+        for (int i = 0; i < sim->rfof_data.num_rfof_time_bins; i++) {
+            print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,
+            "i = %d, %.5e\n", i, sim->rfof_data.summed_timesteps[i]);
+        }
 
-        for (int i = 0; i < sim->rfof_data.n_waves*sim->rfof_data.n_modes; i++) {
+        for (int i = 0; i < sim->rfof_data.n_waves*sim->rfof_data.n_modes*sim->rfof_data.num_rfof_time_bins; i++) {
             print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,"i = %d, E = %e\n", i, sim->rfof_data.dE_RFOF_modes_and_waves[i]);
         }
         print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,"#kicks = %d\n", sim->rfof_data.total_num_kicks);

@@ -93,14 +93,13 @@ void rfof_init(rfof_data* rfof_data) {
         &(rfof_data->rfof_input_params), &n_waves, &n_modes);
     rfof_data->n_waves = n_waves;
     rfof_data->n_modes = n_modes;
-
-    rfof_data->summed_timesteps = 0.0;
+    rfof_data->num_rfof_time_bins = 20; //hard-coded for now
+    rfof_data->total_num_kicks = 0;
 
     /* Allocate memory for the 1d array that contains the accumulated energy
     changes for each wave and each mode in each wave */
-    rfof_data->dE_RFOF_modes_and_waves = (real*)calloc(n_waves * n_modes, sizeof(real));
-
-    rfof_data->total_num_kicks = 0;
+    rfof_data->dE_RFOF_modes_and_waves = (real*)calloc(n_waves * n_modes * rfof_data->num_rfof_time_bins, sizeof(real));
+    rfof_data->summed_timesteps = (real*)calloc(rfof_data->num_rfof_time_bins, sizeof(real));
 #endif
 }
 
@@ -116,6 +115,7 @@ void rfof_free(rfof_data* rfof) {
         &rfof->rfof_input_params);
     __ascot5_icrh_routines_MOD_call_deallocate_rfglobal(&rfof->rfglobal);
     free(rfof->dE_RFOF_modes_and_waves);
+    free(rfof->summed_timesteps);
 #endif
 }
 
@@ -201,17 +201,20 @@ void rfof_clear_history(rfof_marker* rfof_mrk, int i) {
 
 void rfof_update_diag_of_this_process(rfof_data* rfof_data,
     real** energy_arrays_for_NSIMD_markers,
-    real* accumulated_time_for_NSIMD_markers, int* cycle_array, int* kicks_for_NSIMD_markers) {
+    real** accumulated_time_for_NSIMD_markers, int* cycle_array, int* kicks_for_NSIMD_markers) {
 #ifdef RFOF
     /* Update the RFOF energy and time data in the rfof_data struct for those
-     markers that reached the end condition just not */
+     markers that reached the end condition just now */
         for (int i = 0; i < NSIMD; i++){
             if (cycle_array[i] != 0) {
                 // Add the particle's summed dt to the MPI process sum
                 #pragma omp critical
                 {
-                    rfof_data->summed_timesteps += accumulated_time_for_NSIMD_markers[i];
-                    accumulated_time_for_NSIMD_markers[i] = 0.0;
+                    //Go through all the RF time bins
+                    for (int j = 0; j < rfof_data->num_rfof_time_bins; j++){
+                        rfof_data->summed_timesteps[j] += accumulated_time_for_NSIMD_markers[i][j];
+                        accumulated_time_for_NSIMD_markers[i][j] = 0.0;
+                    }
                     rfof_data->total_num_kicks += kicks_for_NSIMD_markers[i];
                     kicks_for_NSIMD_markers[i] = 0;
                 }
@@ -219,7 +222,7 @@ void rfof_update_diag_of_this_process(rfof_data* rfof_data,
                 // Add the particle's summed E's to the MPI process sum
                 #pragma omp critical
                 {
-                    for (int j = 0; j < rfof_data->n_waves*rfof_data->n_modes; j++) {
+                    for (int j = 0; j < rfof_data->n_waves*rfof_data->n_modes*rfof_data->num_rfof_time_bins; j++) {
                         // As a safety measure, NaNs are excluded here.
                         if (!isnan(energy_arrays_for_NSIMD_markers[i][j]-energy_arrays_for_NSIMD_markers[i][j])) {
                             rfof_data->dE_RFOF_modes_and_waves[j] += energy_arrays_for_NSIMD_markers[i][j];

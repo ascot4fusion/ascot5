@@ -81,7 +81,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
                                                               and otherwise discarded. Does not include
                                                               the effect of
                                                               marker weights */
-    real h_ALL_summed[NSIMD] __memalign__; /* All succesfull time steps summed
+    real* h_ALL_summed[NSIMD] __memalign__; /* All succesfull time steps summed
                                               over all markers. Not reseted when
                                               a new marker is taken from the
                                               queue. */
@@ -102,7 +102,6 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         p.running[i] = 0;
         hout_rfof[i] = DUMMY_TIMESTEP_VAL;
         hnext_recom[i] = DUMMY_TIMESTEP_VAL;
-        h_ALL_summed[i] = 0.0;
     }
 
     /* Initialize running particles */
@@ -126,10 +125,12 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
     if(sim->enable_icrh) {
         //#pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
-            real* dummy_array  = (real*)calloc(n_RF_waves * n_RF_modes, sizeof(real));
+            real* dummy_array  = (real*)calloc(n_RF_waves * n_RF_modes * sim->rfof_data.num_rfof_time_bins, sizeof(real));
             real* dummy_array2 = (real*)calloc(n_RF_waves * n_RF_modes, sizeof(real));
+            real* dummy_array3 = (real*)calloc(sim->rfof_data.num_rfof_time_bins, sizeof(real));
             dE_rfof_1darrays[i] = dummy_array;
             dE_rfof_1darrays_increment[i] = dummy_array2;
+            h_ALL_summed[i] = dummy_array3;
             num_kicks_array[i] = 0;
         }
     }
@@ -249,16 +250,27 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
                         /* For P_ICRH, total time and ICRH energy change needed
                         per wave mode. Total time is already in p.mileage. */
                         /* Here we store the RF energy per mode */
+
+                        //Figure out the time bin index
+                        int RF_time_bin_index = (int)floor(p.time[i]/sim->endcond_max_mileage*sim->rfof_data.num_rfof_time_bins);
+
+                        // (This only applies to the very last time step)
+                        if (p.time[i] >= sim->endcond_max_mileage) {
+                            RF_time_bin_index = sim->rfof_data.num_rfof_time_bins-1;
+                        }
+
                         for(int RFOFwave_index = 0; RFOFwave_index < n_RF_waves; RFOFwave_index++) {
                             for(int RFOFmode_index = 0; RFOFmode_index < n_RF_modes; RFOFmode_index++) {
                                 // Do not add NaNs
                                 if (!isnan(dE_rfof_1darrays_increment[i][n_RF_modes*RFOFwave_index + RFOFmode_index] - dE_rfof_1darrays_increment[i][n_RF_modes*RFOFwave_index + RFOFmode_index])) {
                                     // Take the marker weight into account here
-                                    dE_rfof_1darrays[i][n_RF_modes*RFOFwave_index + RFOFmode_index] += p.weight[i]*dE_rfof_1darrays_increment[i][n_RF_modes*RFOFwave_index + RFOFmode_index];
+                                    dE_rfof_1darrays[i][n_RF_waves * n_RF_modes * RF_time_bin_index + n_RF_modes*RFOFwave_index + RFOFmode_index] += p.weight[i]*dE_rfof_1darrays_increment[i][n_RF_modes*RFOFwave_index + RFOFmode_index];
+                                } else {
+                                    printf("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\ni = %d, for Wave = %d, mode = %d, GOT NAN, dE = %.5e\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n", i, RFOFwave_index, RFOFmode_index, dE_rfof_1darrays_increment[i][n_RF_modes*RFOFwave_index + RFOFmode_index]);
                                 }
                             }
                         }
-                        h_ALL_summed[i] += hin[i];
+                        h_ALL_summed[i][RF_time_bin_index] += hin[i];
                     }
 
                     //Restore hin now when not needed anymore for book keeping
@@ -318,6 +330,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         for (int i = 0; i < NSIMD; i++) {
             free(dE_rfof_1darrays[i]);
             free(dE_rfof_1darrays_increment[i]);
+            free(h_ALL_summed[i]);
         }
     }
 }
