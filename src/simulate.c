@@ -123,11 +123,6 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
             "ENABLE_TRANSCOEF=1 not ported to GPU. Please disable it.");
         exit(1);
     }
-    if(sim->enable_clmbcol && sim->sim_mode == 2) {
-        print_err(
-            "Collision not ported to GPU for GC. Please disable it.");
-        exit(1);
-    }
     
 #endif
 

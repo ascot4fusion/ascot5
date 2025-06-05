@@ -84,8 +84,8 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
      */
     particle_offload_gc(&p);
     particle_offload_gc(&p0);
-    real* rnd = (real*) malloc(3*mrk_array_size*sizeof(real));
-    GPU_MAP_TO_DEVICE(hin[0:mrk_array_size], rnd[0:3*mrk_array_size])
+    real* rnd = (real*) malloc(5*mrk_array_size*sizeof(real));
+    GPU_MAP_TO_DEVICE(hin[0:mrk_array_size], rnd[0:5*mrk_array_size])
     while(n_running > 0) {
 
         /* Store marker states */
@@ -125,7 +125,6 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 
         /* Euler-Maruyama method for collisions */
         if(sim->enable_clmbcol) {
-	  real rnd[5*p.n_mrk];
             random_normal_simd(&sim->random_data, 5*p.n_mrk, rnd);
             mccc_gc_euler(&p, hin, &sim->B_data, &sim->plasma_data,
                           &sim->mccc_data, rnd);
