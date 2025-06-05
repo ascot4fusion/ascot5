@@ -3332,9 +3332,15 @@ try:
 except AttributeError:
     pass
 try:
-    afsi_run_new = _libraries['libascot.so'].afsi_run_new
-    afsi_run_new.restype = None
-    afsi_run_new.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.POINTER(struct_c__SA_afsi_data), ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+    afsi_run_rejection = _libraries['libascot.so'].afsi_run_rejection
+    afsi_run_rejection.restype = None
+    afsi_run_rejection.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.POINTER(struct_c__SA_afsi_data), ctypes.c_int32, real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    afsi_run_new_loop = _libraries['libascot.so'].afsi_run_new_loop
+    afsi_run_new_loop.restype = None
+    afsi_run_new_loop.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.POINTER(struct_c__SA_afsi_data), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int64), ctypes.POINTER(ctypes.c_double)]
 except AttributeError:
     pass
 try:
@@ -3413,10 +3419,11 @@ __all__ = \
     'N0_3D_init', 'N0_3D_offload', 'PHI', 'PPAR', 'PPARPPERP',
     'PPERP', 'PPHI', 'PR', 'PTOR', 'PZ', 'R', 'RHO', 'Reaction',
     'SIMULATION_MODE', 'THETA', 'TIME', 'XI', 'Z', 'a5err',
-    'afsi_data', 'afsi_run', 'afsi_run_new', 'asigma_data',
-    'asigma_eval_bms', 'asigma_eval_cx', 'asigma_eval_sigma',
-    'asigma_eval_sigmav', 'asigma_extrapolate', 'asigma_free',
-    'asigma_loc_data', 'asigma_loc_eval_bms', 'asigma_loc_eval_cx',
+    'afsi_data', 'afsi_run', 'afsi_run_new_loop',
+    'afsi_run_rejection', 'asigma_data', 'asigma_eval_bms',
+    'asigma_eval_cx', 'asigma_eval_sigma', 'asigma_eval_sigmav',
+    'asigma_extrapolate', 'asigma_free', 'asigma_loc_data',
+    'asigma_loc_eval_bms', 'asigma_loc_eval_cx',
     'asigma_loc_eval_sigma', 'asigma_loc_eval_sigmav',
     'asigma_loc_free', 'asigma_loc_init', 'asigma_loc_offload',
     'asigma_offload', 'asigma_reac_type', 'asigma_type',

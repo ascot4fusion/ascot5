@@ -24,6 +24,7 @@
 
 /** Random number generator used by AFSI */
 random_data rdata;
+
 void afsi_compute_product_velocities_3d(
     int i, real m1, real m2, real mprod1, real mprod2, real Q,
     real* ppara1, real* pperp1, real* ppara2, real* pperp2, real* vcom2,
@@ -32,8 +33,8 @@ void afsi_compute_product_momenta_2d(
     int i, real mprod1, real mprod2, int prodmomspace,
     real* vprod1, real* vprod2, real* prod1_p1, real* prod1_p2,
     real* prod2_p1, real* prod2_p2);
-void afsi_store_particle_data(int i, int part_until_cell, real* rvec, real* phivec, 
-    real* zvec, real* vprod2, real mprod2, real* prod2);
+void afsi_store_particle_data(int i, real* rvec, real* phivec,
+     real* zvec, real* vprod2, real mprod2, real* prod2);
 void afsi_sample_reactant_momenta_2d(
     sim_data* sim, afsi_data* afsi, real mass1, real mass2,
     real vol, int nsample, size_t i0, size_t i1, size_t i2,
@@ -48,6 +49,21 @@ void afsi_sample_thermal_2d(
     sim_data* sim, int ispecies, real mass, int nsample,
     real r, real phi, real z, real time, real rho,
     real* density, real* pppara, real* ppperp);
+void afsi_sample_beam_2d(histogram* hist, real mass, real vol, int nsample,
+                         size_t i0, size_t i1, size_t i2, real* density, real* ppara,
+                         real* pperp);
+void afsi_sample_thermal_2d(sim_data* sim, int ispecies, real mass, int nsample,
+                            real r, real phi, real z, real time, real rho,
+                            real* density, real* pppara, real* ppperp);
+void afsi_sample_reactant_momenta_2d_alt(
+    sim_data* sim, afsi_data* afsi, real mass1, real mass2, real vol,
+    int nsample, size_t i0, size_t i1, size_t i2,
+    real r, real phi, real z, real time, real rho, real* cumdist,
+    real* density1, real* ppara1, real* pperp1,
+    real* density2, real* ppara2, real* pperp2);
+void afsi_sample_beam_2d_alt(histogram* hist, real mass, real vol, int nsample,
+                         size_t i0, size_t i1, size_t i2, real* cumdist,
+                         real* density, real* ppara, real* pperp);
 
 /**
  * @brief Calculate fusion source from two arbitrary ion distributions
@@ -300,9 +316,8 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
     print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "\nDone\n");
 }
 
-void afsi_run_new(sim_data* sim, afsi_data* afsi, int n,
-                real* rvec, real* phivec, real* zvec, real* prod2, 
-                int i0, int i1, int i2) {
+void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n, real Smax, real* cumdist_all,
+                real* rvec, real* phivec, real* zvec, real* prod2) {
 
     random_init(&rdata, time((NULL)));
     simulate_init(sim);
@@ -313,47 +328,64 @@ void afsi_run_new(sim_data* sim, afsi_data* afsi, int n,
     &mprod1, &qprod1, &mprod2, &qprod2, &Q);
     
     real time = 0.0;
-    real* ppara1 = (real*) malloc(n*sizeof(real));
-    real* pperp1 = (real*) malloc(n*sizeof(real));
-    real* ppara2 = (real*) malloc(n*sizeof(real));
-    real* pperp2 = (real*) malloc(n*sizeof(real));
+    real rmin = rvec[0], rmax = rvec[afsi->volshape[0]-1];
+    real phimin = phivec[0], phimax = phivec[afsi->volshape[1]-1];
+    real zmin = zvec[0], zmax = zvec[afsi->volshape[2]-1];
+    int n_accepted = 0 ;
+    int n_samples = 1; 
 
-        
-    real r = afsi->r[0];
-    real z = afsi->z[0];
-    real phi = afsi->phi[0];
-    real vol = afsi->vol[0];
-    
-    real psi, rho[2];
-    if(B_field_eval_psi(&psi, r, phi, z, time, &sim->B_data) ||
-        B_field_eval_rho(rho, psi, &sim->B_data) ) {
-        return;
-    }
+    while (n_accepted < n){
+        real r = rmin + (rmax - rmin) * random_uniform(rdata);
+        real phi = phimin + (phimax - phimin) * random_uniform(rdata);
+        real z = zmin + (zmax - zmin) * random_uniform(rdata);
 
-    real density1, density2;
-    afsi_sample_reactant_momenta_2d(
-        sim, afsi, m1, m2, vol, n, i0, i1, i2,
-        r, phi, z, time, rho[0],
-        &density1, ppara1, pperp1, &density2, ppara2, pperp2);
-    if(density1 == 0 || density2 == 0) {
-        return;
-    }
-    for(size_t i = 0; i < n; i++) {
-        real vcom2;
-        real vprod1[3];
-        real vprod2[3];
+        size_t i0 = math_bin_index(r, afsi->volshape[0], rmin, rmax);
+        size_t i1 = 0;
+        size_t i2 = math_bin_index(z, afsi->volshape[2], zmin, zmax);
+        size_t spatial_index = i0*afsi->volshape[1]*afsi->volshape[2]
+                                     + i1*afsi->volshape[2] + i2;
+        real vol = afsi->vol[spatial_index];
 
+        real psi, rho[2];
+        if (B_field_eval_psi(&psi, r, phi, z, time, &sim->B_data) ||
+            B_field_eval_rho(rho, psi, &sim->B_data)) {
+            continue;
+        }
+
+        real density1, density2;
+        real ppara1, pperp1, ppara2, pperp2;
+
+        afsi_sample_reactant_momenta_2d_alt(
+                    sim, afsi, m1, m2, vol, n_samples, i0, i1, i2,
+                    r, phi, z, time, rho[0], cumdist_all,
+                    &density1, &ppara1, &pperp1, &density2, &ppara2, &pperp2);
+                if(density1 == 0 || density2 == 0) {
+                    continue;
+                }
+
+        real vcom2, vprod1[3], vprod2[3];
         afsi_compute_product_velocities_3d(
-            i, m1, m2, mprod1, mprod2, Q,
-            ppara1, pperp1, ppara2, pperp2, &vcom2,
+            0, m1, m2, mprod1, mprod2, Q,
+            &ppara1, &pperp1, &ppara2, &pperp2, &vcom2,
             vprod1, vprod2);
+
+        real E = 0.5 * (m1 * m2) / (m1 + m2) * vcom2;
+        real source = density1 * density2 * sqrt(vcom2) * boschhale_sigma(afsi->reaction, E);
+        real u  =random_uniform(rdata);
         
-        afsi_store_particle_data(i, 0, rvec, phivec, zvec, vprod2, mprod2, prod2);
+        if (u < source / Smax) {
+            real rbin[2] = {r, r}; 
+            real phibin[2] = {phi, phi};
+            real zbin[2] = {z, z};
+            afsi_store_particle_data(n_accepted, 0, rbin, phibin, zbin, vprod2, mprod2, prod2);
+            n_accepted++;
+            if (n_accepted % 5000 == 0) {
+                printf("Accepted particle %d\n", n_accepted);
+            }
+        }
     }
-    free(ppara1);
-    free(ppara2);
-    free(pperp1);
-    free(pperp2);
+
+    
 }
 
 void afsi_run_new_loop(sim_data* sim, afsi_data* afsi,
@@ -428,6 +460,7 @@ void afsi_run_new_loop(sim_data* sim, afsi_data* afsi,
                         i, m1, m2, mprod1, mprod2, Q,
                         ppara1, pperp1, ppara2, pperp2, &vcom2,
                         vprod1, vprod2);
+
                     afsi_store_particle_data(i, offset ,rbin, phibin, zbin, vprod2, mprod2, prod2);
                 }
                 free(ppara1);
@@ -516,7 +549,7 @@ void afsi_compute_product_velocities_3d(
     vprod2[2] = v2_cm[2] + v_cm[2];
 }
 
-void afsi_store_particle_data(int i, int part_until_cell, real* rvec, real* phivec, real* zvec, real* vprod2, real mprod2, real* prod2){
+void afsi_store_particle_data(int i, real* rvec, real* phivec, real* zvec, real* vprod2, real mprod2, real* prod2){
 
     // Compute the magnitude of the velocity of prod2
     real vprod2_magnitude = sqrt(vprod2[0] * vprod2[0] +
@@ -535,14 +568,15 @@ void afsi_store_particle_data(int i, int part_until_cell, real* rvec, real* phiv
     real r = rvec[0] + (rvec[1] - rvec[0]) * random_uniform(rdata);
     real phi = phivec[0] + (phivec[1] - phivec[0]) * random_uniform(rdata);
     real z = zvec[0] + (zvec[1] - zvec[0]) * random_uniform(rdata);
+
     // Store the sampled coordinates, directions and energy in the prod2 array
-    prod2[(part_until_cell + i) * 7 + 0] = r; 
-    prod2[(part_until_cell + i) * 7 + 1] = phi; 
-    prod2[(part_until_cell + i) * 7 + 2] = z; 
-    prod2[(part_until_cell + i) * 7 + 3] = u; 
-    prod2[(part_until_cell + i) * 7 + 4] = v;
-    prod2[(part_until_cell + i) * 7 + 5] = w;
-    prod2[(part_until_cell + i) * 7 + 6] = energy_prod2*6241506479963.2; // Convert to MeV
+    prod2[i * 7 + 0] = r; 
+    prod2[i * 7 + 1] = phi; 
+    prod2[i * 7 + 2] = z; 
+    prod2[i * 7 + 3] = u; 
+    prod2[i * 7 + 4] = v;
+    prod2[i * 7 + 5] = w;
+    prod2[i * 7 + 6] = energy_prod2*6241506479963.2; // Convert to MeV
 }
 
 void afsi_compute_product_momenta_2d(
@@ -563,8 +597,7 @@ void afsi_compute_product_momenta_2d(
 
         real vnorm2 = math_norm(vprod2);
         prod2_p2[i] = vprod2[2] / vnorm2;
-        /*Classical momentum equation provides more realistic neutron distribution*/
-        prod2_p1[i] = 0.5*mprod2*vnorm2*vnorm2; /*physlib_Ekin_gamma(mprod2, physlib_gamma_vnorm(vnorm2));*/
+        prod2_p1[i] = physlib_Ekin_gamma(mprod2, physlib_gamma_vnorm(vnorm2));
     }
 }
 
@@ -668,6 +701,7 @@ void afsi_sample_beam_2d(histogram* hist, real mass, real vol, int nsample,
             if(cumdist[j] > r) {
                 if(mom_space == PPARPPERP) {
                     ppara[i] = hist->axes[5].min + (j / hist->axes[5].n + 0.5)
+                    ppara[i] = hist->axes[5].min + (j / hist->axes[5].n + 0.5) // corrected the index hist->axes[5].n (it was 6) now better energy shape
                         * (hist->axes[5].max - hist->axes[5].min) / hist->axes[5].n;
                     pperp[i] = hist->axes[6].min + (j % hist->axes[6].n + 0.5)
                         * (hist->axes[6].max - hist->axes[6].min) / hist->axes[6].n;
@@ -726,5 +760,95 @@ void afsi_sample_thermal_2d(sim_data* sim, int ispecies, real mass, int nsample,
         r4 = 1.0 - 2 * random_uniform(&rdata);
         pperp[i] = sqrt( ( 1 - r4*r4 ) * 2 * E * mass);
         ppara[i] = r4 * sqrt(2 * E * mass);
+    }
+}
+void afsi_sample_beam_2d_alt(histogram* hist, real mass, real vol, int nsample,
+                         size_t i0, size_t i1, size_t i2, real* cumdist,
+                         real* density, real* ppara, real* pperp) {
+    int mom_space;
+    size_t p1coord, p2coord;
+    if(hist->axes[5].n) {
+        p1coord = 5;
+        p2coord = 6;
+        mom_space = PPARPPERP;
+    }
+    else if(hist->axes[10].n) {
+        p1coord = 10;
+        p2coord = 11;
+        mom_space = EKINXI;
+    }
+    else {
+        return;
+    }
+
+    
+
+    *density = 0.0;
+    for(size_t ip1 = 0; ip1 < hist->axes[p1coord].n; ip1++) {
+        for(size_t ip2 = 0; ip2 < hist->axes[p2coord].n; ip2++) {
+            size_t index = i0*hist->strides[0]
+                         + i1*hist->strides[1]
+                         + i2*hist->strides[2]
+                         + ip1*hist->strides[p1coord]
+                         + ip2*hist->strides[p2coord];
+            *density += hist->bins[index] / vol;
+        }
+    }
+    if(*density == 0) {
+        return;
+    }
+
+    for(size_t i = 0; i < nsample; i++) {
+        real r = random_uniform(rdata);
+        r *= cumdist[hist->axes[p1coord].n*hist->axes[p2coord].n-1];
+        for(size_t j = 0; j < hist->axes[p1coord].n*hist->axes[p2coord].n; j++) {
+            if(cumdist[j] > r) {
+                if(mom_space == PPARPPERP) {
+                    ppara[i] = hist->axes[5].min + (j / hist->axes[5].n + 0.5) // corrected the index hist->axes[5].n (it was 6) now better energy shape
+                        * (hist->axes[5].max - hist->axes[5].min) / hist->axes[5].n;
+                    pperp[i] = hist->axes[6].min + (j % hist->axes[6].n + 0.5)
+                        * (hist->axes[6].max - hist->axes[6].min) / hist->axes[6].n;
+                }
+                else {
+                    real ekin = hist->axes[10].min + (j / hist->axes[10].n + 0.5)
+                        * (hist->axes[10].max - hist->axes[10].min) / hist->axes[10].n;
+                    real pitch = hist->axes[11].min + (j / hist->axes[11].n + 0.5)
+                        * (hist->axes[11].max - hist->axes[11].min) / hist->axes[11].n;
+                    real gamma = physlib_gamma_Ekin(mass, ekin);
+                    real pnorm = sqrt(gamma * gamma - 1.0) * mass * CONST_C;
+                    ppara[i] = pitch * pnorm;
+                    pperp[i] = sqrt( 1.0 - pitch*pitch ) * pnorm;
+                }
+                break;
+            }
+        }
+    }
+}
+
+void afsi_sample_reactant_momenta_2d_alt(
+    sim_data* sim, afsi_data* afsi, real mass1, real mass2, real vol,
+    int nsample, size_t i0, size_t i1, size_t i2,
+    real r, real phi, real z, real time, real rho, real* cumdist_all,
+    real* density1, real* ppara1, real* pperp1,
+    real* density2, real* ppara2, real* pperp2) {
+    if(afsi->type1 == 1) {
+        size_t offset = (i0*afsi->volshape[1]*afsi->volshape[2]+ i1*afsi->volshape[2] + i2) * (afsi->beam1->axes[5].n*afsi->beam1->axes[6].n);
+        real* cumdist = &cumdist_all[offset];
+        afsi_sample_beam_2d_alt(afsi->beam1, mass1, vol, nsample, i0, i1, i2, cumdist,
+                            density1, ppara1, pperp1);
+    }
+    else if(afsi->type1 == 2) {
+        afsi_sample_thermal_2d(sim, afsi->thermal1, mass1, nsample, r, phi, z,
+                               time, rho, density1, ppara1, pperp1);
+    }
+    if(afsi->type2 == 1) {
+        size_t offset = (i0*afsi->volshape[1]*afsi->volshape[2]+ i1*afsi->volshape[2] + i2) * (afsi->beam1->axes[5].n*afsi->beam1->axes[6].n);
+        real* cumdist = &cumdist_all[offset];
+        afsi_sample_beam_2d_alt(afsi->beam2, mass2, vol, nsample, i0, i1, i2, cumdist,
+                            density2, ppara2, pperp2);
+    }
+    else if(afsi->type2 == 2) {
+        afsi_sample_thermal_2d(sim, afsi->thermal2, mass2, nsample, r, phi, z,
+                               time, rho, density2, ppara2, pperp2);
     }
 }

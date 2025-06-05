@@ -39,6 +39,144 @@ class Afsi():
     def __init__(self, ascot):
         self._ascot = ascot
 
+    def estimate_max_fusion_rate(self, reaction, r, phi, z, vol, swap = False, beam = None):
+        r_grid, phi_grid, z_grid = np.meshgrid(r, phi, z, indexing='ij')
+        
+        self._ascot.input_init(bfield=True)
+        self._ascot.input_init(plasma=True)
+        m1, _, m2, _, _, _, _, _, _ = self.reactions(reaction)
+        te = self._ascot.input_eval(r_grid, phi_grid, z_grid, 0.0*unyt.s, 'te')
+        te = te[~(np.isnan(te))].max()
+        T_max_J = te.to("J")
+        thermal_dens = self._ascot.input_eval(r_grid, phi_grid, z_grid, 0.0*unyt.s, 'ne')
+        thermal_dens = thermal_dens[~(np.isnan(thermal_dens))].max()
+        if beam is None:
+            density1 = thermal_dens
+            density2 = density1
+            v_max1 = np.sqrt(2 * T_max_J / m1)
+            v_max2 = np.sqrt(2 * T_max_J / m2)
+        else:
+            ppar = beam.integrate(copy = True, r=np.s_[:], phi=np.s_[:], z=np.s_[:], pperp=np.s_[:])
+            pperp = beam.integrate(copy = True, r=np.s_[:], phi=np.s_[:], z=np.s_[:], ppar=np.s_[:])
+            ppar_max = beam.abscissa("ppar")[np.argmax(ppar)]
+            pperp_max = beam.abscissa("pperp")[np.argmax(pperp)]
+            rpzhist = beam.integrate(copy = True, ppar=np.s_[:], pperp=np.s_[:], charge=np.s_[:], time = np.s_[:]).histogram()
+            density1 = (rpzhist/vol).max()
+            density2 = thermal_dens
+            if not swap:
+                v_max2 = np.sqrt(2 * T_max_J / m2)
+                v_max1 = np.sqrt(ppar_max**2+pperp_max**2)/m1
+            else:
+                v_max1 = np.sqrt(2 * T_max_J / m1)
+                v_max2 = np.sqrt(ppar_max**2+pperp_max**2)/m2
+        
+        v_rel_max = v_max1 + v_max2
+        mu = (m1 * m2) / (m1 + m2)
+        E_rel = 0.5 * mu * v_rel_max**2
+
+        reactions = {v: k for k, v in AFSI_REACTIONS.items()}
+        reaction = reactions[reaction]
+        sigma = _LIBASCOT.boschhale_sigma(ctypes.c_uint32(reaction), ctypes.c_double(E_rel))
+        S_max = density1 * density2 * v_rel_max * sigma*unyt.m**2
+        return S_max
+    
+    def get_cumdist(self, beam):
+        beam.integrate(time=np.s_[:], charge=np.s_[:])
+        hist = beam.histogram()
+        nr, nphi, nz, nppar, npperp = hist.shape
+
+        cumdist_all = np.zeros((nr, nphi, nz, nppar * npperp))
+
+        for ir in range(nr):
+            for iphi in range(nphi):
+                for iz in range(nz):
+                    hist_cell = hist[ir, iphi, iz, :, :] 
+                    hist_flat = hist_cell.flatten()
+                    cumdist_all[ir, iphi, iz, :] = np.cumsum(hist_flat)
+        return cumdist_all
+    
+    def generate_markers_rejection(self,  n_markers, reaction, r, phi, z, marker_file = None, beam = None):
+        if beam is None:
+            markers = self.products_6D_rejection(reaction, nmc=n_markers, r=r, phi=phi, z=z)
+        else:
+            r, z, phi = ( beam.abscissa_edges("r"), beam.abscissa_edges("z"),
+                      beam.abscissa_edges("phi") ) 
+            markers = self.products_6D_rejection(reaction, nmc=n_markers, r=r, phi=phi, z=z, beam=beam)
+        if marker_file is not None:
+            np.save(marker_file, markers)
+        return markers
+    
+    def products_6D_rejection(self, reaction, r = None, phi = None, z = None, nmc=1000, beam=None, swap = False):
+        self._ascot.input_init(bfield=True, plasma=True)
+
+        m1, q1, m2, q2, _, qprod1, _, qprod2, _ = self.reactions(reaction)
+        
+        anum1 = np.round(m1.to("amu").v)
+        anum2 = np.round(m2.to("amu").v)
+        znum1 = np.round(q1.to("e").v)
+        znum2 = np.round(q2.to("e").v)
+        q1 = np.round(qprod1.to("e").v)
+        q2 = np.round(qprod2.to("e").v)
+
+        phic, rc, zc = np.meshgrid(0.5*(phi[:-1]+phi[1:]),
+                                       0.5*(r[:-1]+r[1:]),
+                                       0.5*(z[:-1]+z[1:]))
+        phic *= np.pi/180
+        vol = ( rc * np.diff(r[:2]) * np.diff(z[:2]) * np.diff(phi[:2]) )
+        vol = ( rc * np.diff(r[:2]) * np.diff(z[:2]) * np.diff(phi[:2])* np.pi/180 )
+
+        nspec, _, _, anums, znums = self._ascot.input_getplasmaspecies()
+       
+        if beam is None:
+            ispecies1, ispecies2 = np.nan, np.nan
+            Smax = self.estimate_max_fusion_rate(reaction, r, phi, z, vol)
+            for i in np.arange(nspec):
+                if( anum1 == anums[i] and znum1 == znums[i] ):
+                    ispecies1 = i
+                    react1 = ispecies1
+                if( anum2 == anums[i] and znum2 == znums[i] ):
+                    ispecies2 = i
+                    react2 = ispecies2
+            if np.isnan(ispecies1) or np.isnan(ispecies2):
+                self._ascot.input_free(bfield=True, plasma=True)
+                raise ValueError("Reactant species not present in plasma input.")
+            mult = 0.5 if ispecies1 == ispecies2 else 1.0
+        else:
+            ispecies = np.nan
+            Smax = self.estimate_max_fusion_rate(reaction, r, phi, z, vol, beam = beam)
+            for i in np.arange(nspec):
+                if( swap and anum1 == anums[i] and znum1 == znums[i] ):
+                    ispecies = i
+                    react1 = ispecies
+                    react2 = self._init_dist_5d(beam)
+                if( not swap and anum2 == anums[i] and znum2 == znums[i] ):
+                    ispecies = i
+                    react2 = ispecies
+                    react1 = self._init_dist_5d(beam)
+            if np.isnan(ispecies):
+                self._ascot.input_free(bfield=True, plasma=True)
+                raise ValueError("Reactant species not present in plasma input.")
+            mult = 1.0
+
+        reactions = {v: k for k, v in AFSI_REACTIONS.items()}
+        reaction = reactions[reaction]
+        afsi = self._init_afsi_data(
+        react1=react1, react2=react2, reaction=reaction, mult=mult,
+        r=rc, phi=phic, z=zc, vol=vol)
+
+        cumdist_all = self.get_cumdist(beam) if beam is not None else np.zeros(1)
+
+        prod2 = np.zeros((nmc, 7), dtype=np.float64)
+        _LIBASCOT.afsi_run_rejection(ctypes.byref(self._ascot._sim), ctypes.byref(afsi), nmc, ctypes.c_double(Smax), cumdist_all.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                                    r.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), phi.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                                    z.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), prod2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+        
+        self._ascot.input_free(bfield=True, plasma=True)
+
+        self._ascot.file_load(self._ascot.file_getpath())
+
+        return prod2
+
     def spatial_dist(self, rmin,rmax,nr, phimin,phimax, nphi, zmin, zmax, nz, nsamples, pparmin=-1.1e-19, pparmax = 1.1e-19, pperpmin = 0, pperpmax = 1.1e-19, desc = None):
         r = np.linspace(rmin, rmax, nr+1)
         z = np.linspace(zmin, zmax, nz+1)
@@ -64,55 +202,23 @@ class Afsi():
     
     def generate_6d_markers(self, spatial_dist, n_markers, reaction, marker_file = None, beam = None):
         markers_per_bin_grid = self.markers_per_spatial_bin(spatial_dist, n_markers)
-        if beam is not None:
-            beamdist = self._init_dist_5d(beam)
-        markers = []
-        r_edges = spatial_dist.abscissa_edges("r")
-        z_edges = spatial_dist.abscissa_edges("z")
-        phi_edges = spatial_dist.abscissa_edges("phi")
-        it = 0
-        for ir in range(len(r_edges)-1):
-            rbin = np.array([r_edges[ir], r_edges[ir+1]])
-            for iphi in range(len(phi_edges)-1):
-                phibin = np.array([phi_edges[iphi], phi_edges[iphi+1]])
-                for iz in range(len(z_edges)-1):
-                    n_per_bin = markers_per_bin_grid[ir,iphi,iz]
-                    zbin = np.array([z_edges[iz], z_edges[iz+1]])
-                    if beam is None:
-                        markers_per_bin = self.products_6D(reaction, nmc=n_per_bin, r=rbin, phi=phibin, z=zbin)
-                    else:
-                        markers_per_bin = self.products_6D(reaction, nmc=n_per_bin, r=rbin, phi=phibin, z=zbin, beam=beamdist, ir=ir, iphi=iphi, iz=iz)
-                    it = it +1
-                    if markers_per_bin.size !=0:
-                        markers.append(markers_per_bin)
-                    if it % 100 == 0:
-                        print(it)
-        markers = np.vstack(markers)
-        if marker_file is not None:
-            np.save(marker_file, markers)
-            np.savetxt("post_processing_5d_to_6d/neutrondist.txt", markers) 
-        return markers
-    
-    def generate_6d_markers_faster(self, spatial_dist, n_markers, reaction, marker_file = None, beam = None):
-        markers_per_bin_grid = self.markers_per_spatial_bin(spatial_dist, n_markers)
         
         if beam is None:
             r_edges = spatial_dist.abscissa_edges("r")
             z_edges = spatial_dist.abscissa_edges("z")
             phi_edges = spatial_dist.abscissa_edges("phi")
-            markers = self.products_6D_faster(reaction, nmc=n_markers, r=r_edges, phi=phi_edges, z=z_edges, markers_per_bin_grid=markers_per_bin_grid)
+            markers = self.products_6D(reaction, nmc=n_markers, r=r_edges, phi=phi_edges, z=z_edges, markers_per_bin_grid=markers_per_bin_grid)
         else:
             r_edges = beam.abscissa_edges("r")
             z_edges = beam.abscissa_edges("z")
             phi_edges = beam.abscissa_edges("phi")
-            markers = self.products_6D_faster(reaction, nmc=n_markers, r=r_edges, phi=phi_edges, z=z_edges, beam=beam, markers_per_bin_grid=markers_per_bin_grid)
+            markers = self.products_6D(reaction, nmc=n_markers, r=r_edges, phi=phi_edges, z=z_edges, beam=beam, markers_per_bin_grid=markers_per_bin_grid)
 
         if marker_file is not None:
             np.save(marker_file, markers)
-            #np.savetxt("post_processing_5d_to_6d/neutrondist.txt", markers)
         return markers
     
-    def products_6D_faster(
+    def products_6D(
             self,
             reaction,
             r=None,
@@ -183,88 +289,6 @@ class Afsi():
                                 r.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), phi.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
                                 z.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), markers_per_bin_grid.ctypes.data_as(ctypes.POINTER(ctypes.c_int64)),
                                 prod2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
-        
-        self._ascot.input_free(bfield=True, plasma=True)
-
-        # Reload Ascot
-        self._ascot.file_load(self._ascot.file_getpath())
-
-        return prod2
-    
-    def products_6D(
-            self,
-            reaction,
-            r=None,
-            phi=None,
-            z=None,
-            nmc=1000,
-            beam = None,
-            swap=False,
-            ir = 0,
-            iphi = 0,
-            iz = 0,
-            ):
-        if phi is None:
-            phi = np.array([0, 360])
-        self._ascot.input_init(bfield=True, plasma=True)
-        phic, rc, zc = np.meshgrid(0.5*(phi[:-1]+phi[1:]),
-                                       0.5*(r[:-1]+r[1:]),
-                                       0.5*(z[:-1]+z[1:]))       
-        phic *= np.pi/180
-        vol = ( rc * np.diff(r[:2]) * np.diff(z[:2]) * np.diff(phi[:2])* np.pi/180 )
-
-        m1, q1, m2, q2, _, qprod1, _, qprod2, _ = self.reactions(reaction)
-        reactions = {v: k for k, v in AFSI_REACTIONS.items()}
-        reaction = reactions[reaction]
-        anum1 = np.round(m1.to("amu").v)
-        anum2 = np.round(m2.to("amu").v)
-        znum1 = np.round(q1.to("e").v)
-        znum2 = np.round(q2.to("e").v)
-        q1 = np.round(qprod1.to("e").v)
-        q2 = np.round(qprod2.to("e").v)
-
-        nspec, _, _, anums, znums = self._ascot.input_getplasmaspecies()
-       
-        if beam is None:
-            ispecies1, ispecies2 = np.nan, np.nan
-            for i in np.arange(nspec):
-                if( anum1 == anums[i] and znum1 == znums[i] ):
-                    ispecies1 = i
-                    react1 = ispecies1
-                if( anum2 == anums[i] and znum2 == znums[i] ):
-                    ispecies2 = i
-                    react2 = ispecies2
-            if np.isnan(ispecies1) or np.isnan(ispecies2):
-                self._ascot.input_free(bfield=True, plasma=True)
-                raise ValueError("Reactant species not present in plasma input.")
-            mult = 0.5 if ispecies1 == ispecies2 else 1.0
-        else:
-            ispecies = np.nan
-            for i in np.arange(nspec):
-                if( swap and anum1 == anums[i] and znum1 == znums[i] ):
-                    ispecies = i
-                    react1 = ispecies
-                    react2 = beam
-                if( not swap and anum2 == anums[i] and znum2 == znums[i] ):
-                    ispecies = i
-                    react2 = ispecies
-                    react1 = beam
-            if np.isnan(ispecies):
-                self._ascot.input_free(bfield=True, plasma=True)
-                raise ValueError("Reactant species not present in plasma input.")
-            mult = 1.0
-
-        afsi = self._init_afsi_data(
-            react1=react1, react2=react2, reaction=reaction, mult=mult,
-            r=rc, phi=phic, z=zc, vol=vol,
-            )
-        
-        prod2 = np.zeros((nmc, 7), dtype=np.float64)
-
-        _LIBASCOT.afsi_run_new(ctypes.byref(self._ascot._sim), ctypes.byref(afsi),
-                               nmc, r.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), phi.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                                z.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), prod2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                                ir, iphi, iz)
         
         self._ascot.input_free(bfield=True, plasma=True)
 
@@ -740,8 +764,9 @@ class Afsi():
             nbin.ctypes.data_as(ctypes.POINTER(ctypes.c_size_t))
             )
         d = dist.histogram().ravel()
-        for i in range(data.nbin):
-            data.bins[i] = d[i]
+        ctypes.memmove(data.bins, d.ctypes.data, d.nbytes)
+        # for i in range(data.nbin):
+        #     data.bins[i] = d[i]
         return data
 
     def _init_histogram(self, *args, charge=None, time=None, exi=False,
