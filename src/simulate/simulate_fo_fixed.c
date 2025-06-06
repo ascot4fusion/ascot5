@@ -116,6 +116,8 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
             else {
                 step_fo_vpa(&p, hin, &sim->B_data, &sim->E_data,
                             sim->enable_aldforce);
+                //step_fo_boris(&p, hin, &sim->B_data, &sim->E_data);
+                //step_fo_vay(&p, hin, &sim->B_data, &sim->E_data);
             }
         }
 
