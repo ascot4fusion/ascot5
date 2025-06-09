@@ -7,6 +7,7 @@ import itertools
 from scipy.interpolate import griddata, RectBivariateSpline
 from a5py import physlib
 import a5py.routines.plotting as a5plt
+from findiff import Diff
 
 from .coreio.treedata import DataContainer
 
@@ -252,6 +253,40 @@ class DistData():
             delattr(dist, "_" + k)
 
         if copy: return dist
+    
+    def derivative(self, abscissa, copy=True):
+        """Calculate the derivative of the distribution.
+
+        Parameters
+        ----------
+        abscissa : str
+            Name of the coordinate with respect to which the derivative is
+            calculated.
+        copy : bool, optional
+            Retain original distribution and return a copy which is derived.
+
+        Returns
+        -------
+        dist : :class:`DistData`
+            The derived distribution if ``copy=True``.
+        """
+        if not hasattr(self, "_" + abscissa):
+            raise ValueError("Unknown abscissa: " + abscissa)
+        
+        # Checking which is the axis to take the derivative.
+        dim = self.abscissae.index(abscissa)
+        dx = self.abscissa_edges(abscissa)[1] - self.abscissa_edges(abscissa)[0]
+
+        d_x = Diff(dim, acc=4)
+        d_x.set_grid({dim: dx.value})
+
+        dist = self if not copy else self._copy()
+
+        # Calculate the derivative
+        dist._distribution = d_x(dist.distribution())
+        dist._distribution /= dx.units
+
+        return dist
 
     def interpolate(self, **coordinates):
         """Perform (N-dim) linear interpolation on the distribution.
@@ -340,7 +375,7 @@ class DistData():
         logscale: bool, optional
             Whether the plot is in logarithmic scale.
         """
-        x = None; y = None;
+        x = None; y = None
         for key in self.abscissae:
             val = self.abscissa_edges(key)
             if val.size > 2:
@@ -613,9 +648,9 @@ class Dist(DataContainer):
                     integrate[k] = np.s_[:]
         dist = dist.integrate(copy = True, **integrate)
         ppa, ppe = np.meshgrid(dist.abscissa("ppar"), dist.abscissa("pperp"))
-        pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
+        pnorm = np.sqrt(ppa**2 + ppe**2)
         ekin  = (physlib.gamma_momentum(mass, pnorm) - 1) * mass * unyt.c**2
-        dist._multiply(ekin.reshape(ppa.shape), "ppar", "pperp")
+        dist._multiply(ekin.T, "ppar", "pperp")
         dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
         moment.add_ordinates(
             energydensity=dist.histogram().to("J") / moment.volume)
@@ -644,10 +679,61 @@ class Dist(DataContainer):
         ppa, ppe = np.meshgrid(dist.abscissa("ppar"),
                                dist.abscissa("pperp"))
         pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
-        vnorm = physlib.velocity_momentum(mass, pnorm)
-        dist._multiply(vnorm.reshape(ppa.shape)**2 * mass / 3, "ppar", "pperp")
-        dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
-        moment.add_ordinates(pressure=dist.histogram().to("J") / moment.volume)
+        vnorm = physlib.velocity_momentum(mass, pnorm).reshape(ppa.shape)
+
+        # Computing the parallel and perpendicular velocities of the
+        # grid.
+        vpa = ppa * vnorm / pnorm.reshape(ppa.shape)
+        vpe = ppe * vnorm / pnorm.reshape(ppa.shape)
+
+        # Evaluation of the average parallel velocity -
+        # aka, the fluid velocity of the fast-ions.
+        d = dist._copy()
+        d._multiply(vpa.T, "ppar", "pperp")
+        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
+        vpafluid = d.histogram()
+        upa = vpafluid.copy()
+        d = dist._copy()
+        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
+        n = d.histogram() # Number density.
+        upa /= n
+        upa[n==0] = 0
+
+        # Evaluation of the average perpendicular velocity -
+        # aka, the fluid velocity of the fast-ions.
+        d = dist._copy()
+        d._multiply(vpe.T, "ppar", "pperp")
+        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
+        vpefluid = d.histogram()
+        upe = vpefluid.copy() 
+        upe /= n
+        upe[n==0] = 0
+
+        # We evaluate now the squared of the momentum, 
+        # which will be used to calculate the pressure.
+        d = dist._copy()
+        d._multiply(vpa.T**2, "ppar", "pperp")
+        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
+        vpafluid2 = d.histogram()
+        d = dist._copy()
+        d._multiply(vpe.T**2, "ppar", "pperp")
+        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
+        vpefluid2 = d.histogram()
+
+        # We can now compute the parallel and perpendicular pressures.
+        # In general, when considering the gyrotropy approximation (?), 
+        # the perpendicular pressure part does not contain the correction
+        # due to the bulk velocity of the fast-ions.
+        Ppa = mass*(vpafluid2 - 2*vpafluid*upa + upa**2)
+        Ppe = mass*vpefluid2/2
+        pscalar = (Ppa + 2*Ppe)/3
+      
+        moment.add_ordinates(
+            prs_para = (Ppa.to("J") / moment.volume).to("kPa"),
+            prs_perp = (Ppe.to("J") / moment.volume).to("kPa"),
+            pressure = (pscalar.to("J") / moment.volume).to("kPa"),
+            Upara = upa.to("m/s"),
+        )
 
     @staticmethod
     def toroidalcurrent(ascot, mass, dist, moment):
