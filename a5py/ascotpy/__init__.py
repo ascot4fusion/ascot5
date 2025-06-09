@@ -666,6 +666,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         axes.set_xlabel("R [m]")
         axes.set_ylabel("z [m]")
 
+        return r, z
+
     def get_plasmaquantities(self):
         """Return species present in plasma input.
         """
