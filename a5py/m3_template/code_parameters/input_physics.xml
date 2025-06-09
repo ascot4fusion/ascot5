@@ -1,0 +1,31 @@
+<parameters>
+
+    <!-- INPUT/OUTPUT SHOT NUMBER -->
+    <shot> 131024 </shot>
+
+    <!-- INPUT RUN NUMBER -->
+    <run_in> 1 </run_in>
+
+    <!-- OUTPUT RUN NUMBER -->
+    <run_out> 10 </run_out>
+
+    <!-- NUMBER OF TIMES THE MULTIPLICATION FACTOR IS APPLIED -->
+    <ntimes> 2 </ntimes>
+
+    <!-- MULTIPLICATION FACTOR FOR THE MAJOR RADIUS -->
+    <multiplication_factor> 1.5 </multiplication_factor>
+
+    <!-- INPUT DATABASE NAME TO READ FROM EXTERNAL DATABASE -->
+    <input_db>public</input_db>
+
+    <!-- INPUT MACHINE NAME TO READ FROM EXTERNAL DATABASE -->
+    <input_machine>iter</input_machine>
+
+    <!-- LOCAL DATABASE NAME TO WRITE INTO LOCAL IMAS DATABASE -->
+    <local_db>user_environment_variable</local_db>
+
+    <!-- LOCAL MACHINE NAME TO WRITE INTO LOCAL IMAS DATABASE -->
+    <local_machine>iter</local_machine>
+
+</parameters>
+

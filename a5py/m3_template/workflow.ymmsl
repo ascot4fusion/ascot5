@@ -1,0 +1,41 @@
+ymmsl_version: v0.1
+
+model:
+    name: ascot_test
+    components:
+        macro: macro
+        ascot: ascot_implementation
+    conduits:
+        macro.equilibrium_3d_out: ascot.equilibrium_3d_in
+        macro.equilibrium_out: ascot.equilibrium_in
+        macro.core_profiles_out: ascot.core_profiles_in
+        macro.distribution_sources_out: ascot.distribution_sources_in
+        macro.wall2d_out: ascot.wall2d_in
+        macro.wall3d_out: ascot.wall3d_in
+        ascot.distributions_out: macro.distributions_in
+
+implementations:
+    macro:
+        executable: python
+        args:
+         -  ${TEST_DIR}/macro/test_macro.py
+    ascot_implementation:
+        execution_model: openmpi
+        executable: python
+        args:
+         - ${TEST_DIR}/micro/test_micro.py
+
+resources:
+    macro:
+        threads: 1
+    ascot:
+        mpi_processes: 1
+        #mpi_processes: 4
+        # threads: 1
+
+settings:
+    macro.t_max: 1.0
+    macro.dt: 1.0
+    muscle_remote_log_level: DEBUG
+    # CHANGE IT TO YOUR PATH!
+    code_parameters_file: /gss_efgw_work/work/g2diy/git_repos/psnc_git/imasification/ascot5_interface/m3_template/code_parameters/input_physics.xml
