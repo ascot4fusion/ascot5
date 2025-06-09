@@ -24,7 +24,7 @@ def ascot_main(equilibrium_3d_in, equilibrium_in, distribution_sources_in, core_
     # print('=======================================')
     # print('START OF PHYSICS CODE')
 
-    distsource_run(equilibrium_3d_in, equilibrium_in, distribution_sources_in, core_profiles_in, wall2d_in, wall3d_in)
+    distsource_run(equilibrium_3d_in, equilibrium_in, distribution_sources_in, core_profiles_in, wall2d_in, wall3d_in,distributions_out, code_parameters)
 
     
     print('rank, size', rank, size)
