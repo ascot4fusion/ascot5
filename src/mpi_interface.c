@@ -301,7 +301,7 @@ void mpi_gather_diag(diag_data* data, int ntotal, int mpi_rank, int mpi_size,
         MPI_Reduce(
             mpi_rank == mpi_root ? MPI_IN_PLACE : data->dist5D.histogram,
             data->dist5D.histogram,
-            data->dist5D.step_6 * data->dist5D.n_r,
+            data->dist5D.step_6 * (size_t) data->dist5D.n_r,
             mpi_type_real, MPI_SUM, mpi_root, MPI_COMM_WORLD);
     }
     if(data->dist6D_collect) {
