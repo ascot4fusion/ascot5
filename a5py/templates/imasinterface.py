@@ -181,8 +181,12 @@ def read_ids(
                 raise ValueError(f"Unknown query key: {key}")
     try: # AL5
         with imas.DBEntry(path, mode="r") as imas_entry:
+            try: # IMAS-Py
+                interp = imas.ids_defs.CLOSEST_INTERP
+            except: # Python access layer
+                interp = imas.imasdef.CLOSEST_SAMPLE
             ids = imas_entry.get_slice(
-                ids_name, time_requested, imas.imasdef.CLOSEST_SAMPLE
+                ids_name, time_requested, interp, autoconvert=False,
                 )
     except AttributeError: # Legacy AL3/4
         if isinstance(query, str):
@@ -286,13 +290,12 @@ class ImportImas():
             RZGRID_INDEX = 1
             for index, profile in enumerate(profiles_2d):
                 if  profile.grid_type.index == RZGRID_INDEX:
-                    psi = profiles_2d[index].psi
-                    rzgrid = profiles_2d[index].grid
-
+                    psi = profile.psi
+                    rzgrid = profile.grid
                     try:
-                        bphi = profiles_2d[index].b_field_phi
+                        bphi = profile.b_field_tor
                     except ValueError:
-                        bphi = profiles_2d[index].b_field_tor
+                        bphi = profile.b_field_phi
                     return psi, bphi, rzgrid
             raise IOError(
                 "No rectangular (R,z) grid found in `equilibrium` IDS "
@@ -599,11 +602,6 @@ class ImportImas():
                 (grid.psi - grid.psi_magnetic_axis) /
                 (grid.psi_boundary - grid.psi_magnetic_axis)
                 )
-        elif len(grid.psi):
-            psi = grid.psi / ( 2*np.pi )
-            rho = np.sqrt( (psi - psi0) / (psi1 - psi0) )
-            print(psi1, psi0)
-            print(psi)
         elif len(grid.rho_tor) and len(eqprof.rho_tor) and len(eqprof.psi_norm):
             rho = np.interp(grid.rho_tor, eqprof.rho_tor, eqprof.psi_norm)
         elif len(grid.rho_tor) and len(eqprof.rho_tor) and len(eqprof.psi):
@@ -630,8 +628,8 @@ class ImportImas():
             )
         charge = znum * unyt.e
 
-        edensity = profiles_1d.electrons.density / unyt.m**3
-        idensity = np.zeros(shape=(nrho,nion)) / unyt.m**3
+        edensity = profiles_1d.electrons.density #/ unyt.m**3
+        idensity = np.zeros(shape=(nrho,nion)) #/ unyt.m**3
         for i in range(nion):
             idensity[:,i] = profiles_1d.ion[i].density_thermal
 
@@ -647,20 +645,27 @@ class ImportImas():
                 profiles_1d.ion[i].rotation_frequency_tor
             )
         vtor = ivtor.mean(axis=1)
+        valid_ions = idensity[0, :] > 10
+        idensity = idensity[:, valid_ions]
+        nion = idensity.shape[1]
         pls = {
             "rho":rho,
             "nrho":nrho,
             "nion":nion,
             "vtor":vtor,
-            "anum":anum,
-            "znum":znum,
-            "mass":mass,
-            "charge":charge,
+            "anum":anum[valid_ions],
+            "znum":znum[valid_ions],
+            "mass":mass[valid_ions],
+            "charge":charge[valid_ions],
             "idensity":idensity,
             "edensity":edensity,
             "itemperature":itemperature,
             "etemperature":etemperature,
         }
+
+        pls = self._ascot.data.create_input(
+            "import plasma profiles", dryrun=True, pls=pls, extrapolate=3.0
+        )
         return "plasma_1D", pls
 
     def imas_marker(self, distribution_sources_ids=None):
@@ -685,7 +690,7 @@ class ImportImas():
             markers = source.markers[_TIMEINDEX]
             if len(markers.weights) == 0:
                 continue
-            if(not _SPECIES_TYPE[source.species.type.index]
+            if(not _SPECIES_TYPE[int(source.species.type.index)]
                in ["ion", "ion_state"]):
                 warnings.warn(
                     "Skipping a source with species type: "
@@ -697,7 +702,7 @@ class ImportImas():
             n = len(markers.weights)
             mrk = {}
             indices = np.array([x.index for x in markers.coordinate_identifier ])
-            if _GYRO_TYPE[source.gyro_type] == "actual":
+            if _GYRO_TYPE[int(source.gyro_type)] == "actual":
                 for field in ["r", "z", "phi", "vx", "vy", "vz"]:
                     units = unyt.unyt_quantity.from_string(
                         _COORDINATE_IDENTIFIERS[field][1]
@@ -711,7 +716,7 @@ class ImportImas():
                     physlib.cart2pol_vec(mrk["vx"], x, mrk["vy"], y)
                 )
                 del mrk["vx"], mrk["vy"]
-            elif _GYRO_TYPE[source.gyro_type] == "gyrocentre":
+            elif _GYRO_TYPE[int(source.gyro_type)] == "gyrocentre":
                 for field in ["r", "z", "phi", "energy_kinetic", "pitch"]:
                     units = unyt.unyt_quantity.from_string(
                         _COORDINATE_IDENTIFIERS[field][1]
@@ -737,25 +742,24 @@ class ImportImas():
                 "time":time * np.ones((n,), dtype="f8") * unyt.s,
                 "anum":anum * np.ones((n,), dtype="i8"),
                 "znum":znum * np.ones((n,), dtype="i8"),
-                "mass":mass * np.ones((n,), dtype="f8") * unyt.s,
-                "charge":charge * np.ones((n,), dtype="f8") * unyt.s,
+                "mass":mass * np.ones((n,), dtype="f8"),
+                "charge":charge * np.ones((n,), dtype="f8"),
                 "weight":np.array(markers.weights) * unyt.particles / unyt.s,
             })
             for key, value in mrk.items():
                 if not key in mrk_all:
                     mrk_all[key] = value
                 elif key == "n":
-                    mrk_all[key] = value
+                    mrk_all[key] += value
                 elif key == "ids":
                     ids = mrk_all[key][-1]
                     mrk_all[key] = np.concatenate((mrk_all[key], ids + value))
                 else:
                     mrk_all[key] = np.concatenate((mrk_all[key], value))
-
             del mrk
 
-        mrk_type = "Prt" if _GYRO_TYPE[source.gyro_type] == "actual" else "GC"
-
+        mrk_all["phi"] = mrk_all["phi"].to("deg")
+        mrk_type = "Prt" if _GYRO_TYPE[int(source.gyro_type)] == "actual" else "GC"
         return mrk_type, mrk_all
 
     def imas_nbi(self, nbi_ids=None):
@@ -793,12 +797,15 @@ class ImportImas():
                 divergence[0].particles_fraction,
                 divergence[1].particles_fraction
                 )
+            # Ascot defines divergence as 1/e folding in power whereas in IDS it
+            # is 1/e folding in intensity. The difference is sqrt(2).
+            fix_divergence = np.sqrt(2)
             inj.update({
-                "divh":divergence[0].horizontal,
-                "divv":divergence[0].vertical,
+                "divh":divergence[0].horizontal*fix_divergence,
+                "divv":divergence[0].vertical*fix_divergence,
                 "halofraction":f2 / ( f1 + f2 ),
-                "halodivh":divergence[1].horizontal,
-                "halodivv":divergence[1].vertical,
+                "halodivh":divergence[1].horizontal*fix_divergence,
+                "halodivv":divergence[1].vertical*fix_divergence,
             })
 
             r, phi, z, tangencyradii, angles = (

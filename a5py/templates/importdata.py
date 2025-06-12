@@ -760,13 +760,13 @@ class ImportData():
         else:
             # Data is read already and only needs to be extrapolated
             pls["edensity"] = interp(
-                    pls["rho"].ravel(), pls["edensity"][:,0], nmin
+                    pls["rho"].ravel(), pls["edensity"].ravel(), nmin
                 )
             pls["etemperature"] = interp(
-                    pls["rho"].ravel(), pls["etemperature"][:,0], Tmin
+                    pls["rho"].ravel(), pls["etemperature"].ravel(), Tmin
                 )
             pls["itemperature"] = interp(
-                    pls["rho"].ravel(), pls["itemperature"][:,0], Tmin
+                    pls["rho"].ravel(), pls["itemperature"].ravel(), Tmin
                 )
             densities = np.zeros((rho.size, pls["nion"]))
             for i in range(pls["nion"]):
