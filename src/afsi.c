@@ -328,9 +328,10 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n, real Smax, real* 
     &mprod1, &qprod1, &mprod2, &qprod2, &Q);
     
     real time = 0.0;
-    real rmin = rvec[0], rmax = rvec[afsi->volshape[0]-1];
-    real phimin = phivec[0], phimax = phivec[afsi->volshape[1]-1];
-    real zmin = zvec[0], zmax = zvec[afsi->volshape[2]-1];
+    real rmin = rvec[0], rmax = rvec[afsi->volshape[0]];
+    real phimin = phivec[0], phimax = phivec[afsi->volshape[1]];
+    real zmin = zvec[0], zmax = zvec[afsi->volshape[2]];
+    
     int n_accepted = 0 ;
     int n_samples = 1; 
 
@@ -338,9 +339,8 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n, real Smax, real* 
         real r = rmin + (rmax - rmin) * random_uniform(rdata);
         real phi = phimin + (phimax - phimin) * random_uniform(rdata);
         real z = zmin + (zmax - zmin) * random_uniform(rdata);
-
         size_t i0 = math_bin_index(r, afsi->volshape[0], rmin, rmax);
-        size_t i1 = 0;
+        size_t i1 = math_bin_index(phi, afsi->volshape[1], phimin, phimax);
         size_t i2 = math_bin_index(z, afsi->volshape[2], zmin, zmax);
         size_t spatial_index = i0*afsi->volshape[1]*afsi->volshape[2]
                                      + i1*afsi->volshape[2] + i2;
@@ -379,9 +379,6 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n, real Smax, real* 
             real zbin[2] = {z, z};
             afsi_store_particle_data(n_accepted, 0, rbin, phibin, zbin, vprod2, mprod2, prod2);
             n_accepted++;
-            if (n_accepted % 5000 == 0) {
-                printf("Accepted particle %d\n", n_accepted);
-            }
         }
     }
 

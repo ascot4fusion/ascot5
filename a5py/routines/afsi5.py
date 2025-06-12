@@ -56,10 +56,27 @@ class Afsi():
             v_max1 = np.sqrt(2 * T_max_J / m1)
             v_max2 = np.sqrt(2 * T_max_J / m2)
         else:
-            ppar = beam.integrate(copy = True, r=np.s_[:], phi=np.s_[:], z=np.s_[:], pperp=np.s_[:])
-            pperp = beam.integrate(copy = True, r=np.s_[:], phi=np.s_[:], z=np.s_[:], ppar=np.s_[:])
-            ppar_max = beam.abscissa("ppar")[np.argmax(ppar)]
-            pperp_max = beam.abscissa("pperp")[np.argmax(pperp)]
+            ppar = beam.integrate(copy = True, r=np.s_[:], phi=np.s_[:], z=np.s_[:], pperp=np.s_[:], time=np.s_[:], charge=np.s_[:]).histogram()
+            pperp = beam.integrate(copy = True, r=np.s_[:], phi=np.s_[:], z=np.s_[:], ppar=np.s_[:], time=np.s_[:], charge=np.s_[:]).histogram()
+
+            ## Still not sure if it's better taking the last populated bin or the 99.9% quantile
+
+            # ppar_idx = np.nonzero(ppar.histogram())[0]
+            # ppar_max_idx = ppar_idx[-1]
+            # ppar_max = beam.abscissa("ppar")[ppar_max_idx]
+
+            # pperp_idx = np.nonzero(pperp.histogram())[0]
+            # pperp_max_idx = pperp_idx[-1]
+            # pperp_max = beam.abscissa("pperp")[pperp_max_idx]
+
+            ppar_cdf = np.cumsum(ppar) / np.sum(ppar)
+            quantile_idx = np.searchsorted(ppar_cdf, 0.999)
+            ppar_max = beam.abscissa("ppar")[quantile_idx]
+
+            pperp_cdf = np.cumsum(pperp) / np.sum(pperp)
+            quantile_idx = np.searchsorted(pperp_cdf, 0.999)
+            pperp_max = beam.abscissa("pperp")[quantile_idx]
+
             rpzhist = beam.integrate(copy = True, ppar=np.s_[:], pperp=np.s_[:], charge=np.s_[:], time = np.s_[:]).histogram()
             density1 = (rpzhist/vol).max()
             density2 = thermal_dens
@@ -73,7 +90,6 @@ class Afsi():
         v_rel_max = v_max1 + v_max2
         mu = (m1 * m2) / (m1 + m2)
         E_rel = 0.5 * mu * v_rel_max**2
-
         reactions = {v: k for k, v in AFSI_REACTIONS.items()}
         reaction = reactions[reaction]
         sigma = _LIBASCOT.boschhale_sigma(ctypes.c_uint32(reaction), ctypes.c_double(E_rel))
@@ -216,6 +232,7 @@ class Afsi():
 
         if marker_file is not None:
             np.save(marker_file, markers)
+            np.savetxt("post_processing_5d_to_6d/neutrondist.txt", markers)
         return markers
     
     def products_6D(
