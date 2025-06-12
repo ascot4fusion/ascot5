@@ -68,8 +68,8 @@ class VirtualBBNBIRun(BBNBIMixin):
     """Virtual :class:`BBNBIGroup` whose data exists solely in the memory.
     """
 
-    def __init__(self, ascot, nmrk, state, options, diag_offload_array,
-                 dist5d=None, dist5drho=None):
+    def __init__(self, ascot, nmrk, state, options, dist5d=None,
+                 dist5drho=None):
         """Initialize fields that allow this instance to replicate
         :class:`BBNBIGroup` behavior.
 
