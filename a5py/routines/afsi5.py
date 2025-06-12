@@ -232,7 +232,6 @@ class Afsi():
 
         if marker_file is not None:
             np.save(marker_file, markers)
-            np.savetxt("post_processing_5d_to_6d/neutrondist.txt", markers)
         return markers
     
     def products_6D(
