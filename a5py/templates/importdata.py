@@ -972,7 +972,7 @@ class ImportData():
         return f
 
     @staticmethod
-    def vmec_field(self,ncfile,phimin=0,phimax=361,nphi=361,ntheta=120,
+    def vmec_field(self,ncfile,phimin=0,phimax=360,nphi=361,ntheta=120,
                    nr=100,nz=100,psipad=0.0):
         """Load magnetic field data from a VMEC equilibrium.
 
@@ -1062,7 +1062,7 @@ class ImportData():
 
         # toroidal angle array
         # note phi should start at 0 and end on 360, inclusive
-        phi = np.deg2rad(np.linspace(phimin, phimax, nphi, endpoint=False))  # rad
+        phi = np.deg2rad(np.linspace(phimin, phimax, nphi, endpoint=True))  # rad
    
         # derivatives
         rumns = rmnc * (-1 * xm)  # drmn*cos(m*u-n*v)/du = -m*rmn*sin(m*u-n*v)
@@ -1234,7 +1234,7 @@ class ImportData():
         return out
 
     @staticmethod
-    def desc_field(h5file,phimin=0,phimax=361,nphi=361,ntheta=120,
+    def desc_field(h5file,phimin=0,phimax=360,nphi=361,ntheta=120,
                    nr=100,nz=100,psipad=0.0):
         """Load magnetic field data from a DESC equilibrium.
 
@@ -1307,7 +1307,7 @@ class ImportData():
 
         # toroidal angle array
         # note: phi should start at 0 and end on 360, inclusive
-        phi = np.deg2rad(np.linspace(phimin, phimax, nphi, endpoint=False))  # rad
+        phi = np.deg2rad(np.linspace(phimin, phimax, nphi, endpoint=True))  # rad
 
         # magnetic axis
         grid_axis = dscg.LinearGrid(rho=0.0, zeta=nphi, NFP=1)
