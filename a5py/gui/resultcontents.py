@@ -719,7 +719,7 @@ class Dists(ContentTab):
             dist.integrate(**integrate)
 
             self.plot.clear()
-            run.plotdist(dist, axes=self.plot.axes)
+            dist.plot(axes=self.plot.axes)
             self.plot.draw()
 
         self.plotbutton.configure(command=plot)
