@@ -705,9 +705,6 @@ class Dist(DataContainer):
         d._multiply(vpe.T, "ppar", "pperp")
         d.integrate(ppar=np.s_[:], pperp=np.s_[:])
         vpefluid = d.histogram()
-        upe = vpefluid.copy() 
-        upe /= n
-        upe[n==0] = 0
 
         # We evaluate now the squared of the momentum, 
         # which will be used to calculate the pressure.
@@ -721,10 +718,10 @@ class Dist(DataContainer):
         vpefluid2 = d.histogram()
 
         # We can now compute the parallel and perpendicular pressures.
-        # In general, when considering the gyrotropy approximation (?), 
+        # In general, when considering the gyrotropic approximation (?), 
         # the perpendicular pressure part does not contain the correction
         # due to the bulk velocity of the fast-ions.
-        Ppa = mass*(vpafluid2 - 2*vpafluid*upa + upa**2)
+        Ppa = mass*(vpafluid2 - n*upa**2)
         Ppe = mass*vpefluid2/2
         pscalar = (Ppa + 2*Ppe)/3
       
