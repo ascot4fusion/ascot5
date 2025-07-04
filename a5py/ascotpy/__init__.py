@@ -587,10 +587,14 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         else:
             return [out[q] for q in qnt]
 
-    def input_plotrz(self, r, z, qnt, phi=0*unyt.deg, t=0*unyt.s,
-                     clim=None, cmap=None, axes=None, cax=None):
+    def input_plotrz(self, r, z, qnt, phi=0*unyt.deg, t=0*unyt.s, rhomax=None,
+                     clim=None, cmap=None, axes=None, cax=None,
+                     drawcontours=False, contourvalues=None, contourcolors=None,
+                     contourlinestyles="-", contourlinewidths=None,
+                     labelfontsize=10):
         """Plot input quantity on a (R, z) plane at given coordinates.
 
+        With drawcontours=True, draws also the contourlines.
         To plot quantity on a logarithmic scale (base 10), add "log" in
         the name of the quantity e.g. "log ne".
 
@@ -606,20 +610,36 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             Toroidal coordinate where data is evaluated.
         t : float, optional
             Time coordinate where data is evaluated.
+        rhomax : float, optional
+            Do not plot (R, z) points for which rho > rhomax
         clim : list [float, float], optional
             Minimum and maximum color range values.
         axes : :obj:`~matplotlib.axes.Axes`, optional
             The axes where figure is plotted or otherwise new figure is created.
         cax : :obj:`~matplotlib.axes.Axes`, optional
             The color bar axes or otherwise taken from the main axes.
+        drawcontours : boolean, optional
+            If true, draws contourlines on top of the heatmap.
+        contourvalues : list [float], optional
+            Which contour lines to draw. Leave empty for automatic selection
+        contourcolors : str or list[str], optional
+            Colors of the contour lines. By giving a list, one can match the
+            colors with the contourvalues (see above).
+        contourlinestyles : str or list[str], optional
+            Linestyle of the contour lines -- as the reader might have guessed.
+            By giving a list, one can match the styles with the contourvalues (
+            see above).
+        contourlinewidths : float or list[float], optional
+            You can probably guess. By giving a list, one can match the widths
+            with the contourvalues (see above).
+        labelfontsize : float, optional
+            Font size of the labels that indicate contour values.
         """
         logscale = False
         if "log" in qnt:
             qnt = qnt.replace("log", "").strip()
             logscale = True
 
-        out = np.squeeze(self.input_eval(r, phi, z, t, qnt, grid=True)[:,0,:,0])
-        diverging = np.nanmin(out)*np.nanmax(out) < 0 # If data has both -+ vals
         try:
             r = r.v
         except AttributeError:
@@ -628,10 +648,34 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             z = z.v
         except AttributeError:
             pass
+        out = np.squeeze(self.input_eval(r*unyt.m, phi, z*unyt.m, t, qnt,
+                                         grid=True)[:,0,:,0])
+        diverging = np.nanmin(out)*np.nanmax(out) < 0 # If data has both -+ vals
+
+        # Handle possible maximum rho value
+        if not rhomax==None and rhomax <= 0:
+            print(f"Negative rhomax given ({rhomax:.2e}) to input_plotrz(). Ignoring rhomax.")
+            rhomax=None
+        if not rhomax==None:
+            # Throw away values for which rho > rhomax
+
+            # Get rho at these points and set correspondin data to nan
+            rho_vec = np.squeeze(self.input_eval(r*unyt.m, phi, z*unyt.m, t,
+                                                 "rho", grid=True)[:,0,:,0]).v
+            ind_ignore = rho_vec > rhomax
+            out[ind_ignore] = np.nan
+
         a5plt.mesh2d(r, z, out.v, diverging=diverging, logscale=logscale,
                      axesequal=True, xlabel="R [m]", ylabel="z [m]",
                      clabel=qnt + " [" + str(out.units) + "]", clim=clim,
                      cmap=cmap, axes=axes, cax=cax)
+        if drawcontours:
+            a5plt.contour2d(r, z, out.v, contours=contourvalues, xlabel="R [m]",
+                            ylabel="z [m]", axesequal=True,
+                            colors=contourcolors,
+                            linestyles=contourlinestyles,
+                            linewidths=contourlinewidths, axes=axes,
+                            contourlabels=True, labelfontsize=labelfontsize)
 
     @openfigureifnoaxes(projection=None)
     def input_plotrhocontour(self, rho=1.0, phi=0*unyt.deg, t=0*unyt.s,

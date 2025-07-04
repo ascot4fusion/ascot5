@@ -628,12 +628,20 @@ def mesh2d(x, y, z, logscale=False, diverging=False, xlabel=None, ylabel=None,
     cbar.set_label(clabel)
 
 @openfigureifnoaxes(projection=None)
-def contour2d(x, y, z, contours, xlabel=None, ylabel=None, axesequal=False,
-              colors=None, linestyles=None, linewidths=None, axes=None):
+def contour2d(x, y, z, contours=None, xlabel=None, ylabel=None, axesequal=False,
+              colors=None, linestyles=None, linewidths=None, axes=None,
+              contourlabels=False, labelfontsize=10):
     """Plot contour on 2D plane.
     """
-    axes.contour(x, y, z.T, contours, colors=colors, linestyles=linestyles,
+    if contours==None:
+        # The level argument needs to be left out if the contour levels are not
+        # specified
+        cs = axes.contour(x, y, z.T, colors=colors, linestyles=linestyles,
                  linewidths=linewidths)
+    else:
+        cs = axes.contour(x, y, z.T, contours, colors=colors, linestyles=linestyles,
+                 linewidths=linewidths)
+    if contourlabels: axes.clabel(cs, inline=True, fontsize=labelfontsize)
     axes.set_xlabel(xlabel)
     axes.set_ylabel(ylabel)
     if axesequal:
