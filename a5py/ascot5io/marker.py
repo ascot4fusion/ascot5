@@ -9,6 +9,7 @@ from .coreio.treedata import DataGroup
 from .coreio.fileapi import read_data, add_group, write_data
 
 from a5py.routines.plotting import openfigureifnoaxes
+from a5py.routines.plotting import hist2d
 from a5py.physlib import parseunits
 from a5py.physlib.species import species as getspecies
 
@@ -74,7 +75,7 @@ class Marker(DataGroup):
 
         rho = self.eval_rho(ascotpy)
         phi = self.eval_phi(ascotpy)
-        plot_histogram(rho, xbins=rbins, y=phi, ybins=pbins,
+        hist2d(rho, xbins=rbins, y=phi, ybins=pbins,
                        weights=weights,
                        logscale=False, xlabel="Normalized poloidal flux",
                        ylabel="Toroidal angle [deg]",
@@ -96,14 +97,14 @@ class Marker(DataGroup):
         energy = self.eval_energy(ascotpy)
         if energy is None:
             # Field lines don't have energy
-            plot_histogram(x=pitch, xbins=pbins, weights=weights,
+            hist2d(x=pitch, xbins=pbins, weights=weights,
                            logscale=False, xlabel=r"Pitch [$p_\parallel/p$]",
                            axes=axes)
         else:
             energy = np.log10(energy.to("eV"))
-            plot_histogram(energy, xbins=ebins, y=pitch, ybins=pbins,
+            hist2d(energy, xbins=ebins, y=pitch, ybins=pbins,
                            weights=weights,
-                           logscale=False, xlabel="Energy [eV]",
+                           logscale=False, xlabel="log10(Energy [eV])",
                            ylabel=r"Pitch [$p_\parallel/p$]",
                            axes=axes)
 
@@ -329,6 +330,19 @@ class GC(Marker):
         with self as h5:
             pitch = read_data(h5, "pitch")
         return pitch
+
+    def eval_rho(self, ascotpy):
+        with self as h5:
+            r = read_data(h5, "r")
+            phi = read_data(h5, "phi")
+            z = read_data(h5, "z")
+        rho = ascotpy.input_eval(r, phi, z, 0, "rho")
+        return rho
+
+    def eval_phi(self, ascotpy):
+        with self as h5:
+            phi = read_data(h5, "phi")
+        return phi
 
     @staticmethod
     @parseunits(strip=True, mass="amu", charge="e", r="m", phi="deg", z="m",

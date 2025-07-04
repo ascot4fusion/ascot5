@@ -508,7 +508,10 @@ def hist2d(x, y, xbins=None, ybins=None, weights=None, xlog="linear",
     if logscale: norm = mpl.colors.LogNorm()
 
     if weights is not None:
-        weights = weights.v # Cannot have units in weights yet in 2D histogram
+        try:
+            weights = weights.v # Cannot have units in weights yet in 2D histogram
+        except AttributeError:
+            pass
     h,_,_,m = axes.hist2d(x, y, bins=[xbins, ybins], weights=weights, norm=norm)
 
     cbar = plt.colorbar(m, ax=axes, cax=cax)

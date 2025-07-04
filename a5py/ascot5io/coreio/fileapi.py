@@ -630,6 +630,8 @@ def read_data(group, name):
     unit = 1
     if "unit" in group[name].attrs.keys():
         unit_str = group[name].attrs["unit"]
+        if unit_str.lower() == "ev":
+            unit_str = "eV"
         unit     = unyt.Unit(unit_str)
 
     return group[name][:].ravel() * unit
