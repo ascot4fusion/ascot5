@@ -614,6 +614,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             Do not plot (R, z) points for which rho > rhomax
         clim : list [float, float], optional
             Minimum and maximum color range values.
+        cmap : str, optional
+            Colormap.
         axes : :obj:`~matplotlib.axes.Axes`, optional
             The axes where figure is plotted or otherwise new figure is created.
         cax : :obj:`~matplotlib.axes.Axes`, optional
@@ -709,6 +711,102 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
 
         axes.set_xlabel("R [m]")
         axes.set_ylabel("z [m]")
+
+    def input_plotphitheta(self, phi, theta, rho, qnt, t=0*unyt.s,
+                     clim=None, cmap=None, axes=None, cax=None,
+                     drawcontours=False, contourvalues=None, contourcolors=None,
+                     contourlinestyles="-", contourlinewidths=None,
+                     labelfontsize=10):
+        """Plot input quantity on a (phi, theta) surface at given rho.
+
+        With drawcontours=True, draws also the contourlines.
+        To plot quantity on a logarithmic scale (base 10), add "log" in
+        the name of the quantity e.g. "log ne".
+
+        Parameters
+        ----------
+        phi : array_like (nphi,)
+            phi abscissa where data is evaluated and plotted.
+        theta : array_like (ntheta,)
+            theta abscissa where data is evaluated and plotted.
+        rho : float, optional
+            Rho co-ordinate of the flux surface.
+        qnt : str
+            Name of the plotted quantity.
+        t : float, optional
+            Time coordinate where data is evaluated.
+        clim : list [float, float], optional
+            Minimum and maximum color range values.
+        cmap : str, optional
+            Colormap.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        cax : :obj:`~matplotlib.axes.Axes`, optional
+            The color bar axes or otherwise taken from the main axes.
+        drawcontours : boolean, optional
+            If true, draws contourlines on top of the heatmap.
+        contourvalues : list [float], optional
+            Which contour lines to draw. Leave empty for automatic selection
+        contourcolors : str or list[str], optional
+            Colors of the contour lines. By giving a list, one can match the
+            colors with the contourvalues (see above).
+        contourlinestyles : str or list[str], optional
+            Linestyle of the contour lines -- as the reader might have guessed.
+            By giving a list, one can match the styles with the contourvalues (
+            see above).
+        contourlinewidths : float or list[float], optional
+            You can probably guess. By giving a list, one can match the widths
+            with the contourvalues (see above).
+        labelfontsize : float, optional
+            Font size of the labels that indicate contour values.
+        """
+        logscale = False
+        if "log" in qnt:
+            qnt = qnt.replace("log", "").strip()
+            logscale = True
+
+        try:
+            phi = phi.v
+        except AttributeError:
+            pass
+        try:
+            theta = theta.v
+        except AttributeError:
+            pass
+
+        # phi and theta inputs are abscissae 1d arrays. We need to make them
+        # into a grid and transform them into a pair of 1d arrays containing all
+        # grid points where we wnat to plot
+        phiphi, thetatheta = np.meshgrid(phi,theta)
+        phi_grid1d = phiphi.ravel(); theta_grid1d = thetatheta.ravel()
+
+        # Map the (phi,theta,rho) to (R,z)
+        rho_grid1d = np.ones(len(phi_grid1d))*rho
+        r_grid1d, z_grid1d = self.input_rhotheta2rz(rho_grid1d,
+                                                    theta_grid1d*unyt.deg,
+                                                    phi_grid1d*unyt.deg, t)
+
+        # Get the value of the qnt into a long 1d array
+        out_grid1d = self.input_eval(r_grid1d, phi_grid1d*unyt.deg, z_grid1d,
+                                     t, qnt)
+
+        # Go from raveled array to 2d
+        out = out_grid1d.reshape(len(phi), len(theta), order="F")
+
+        diverging = np.nanmin(out)*np.nanmax(out) < 0 # If data has both -+ vals
+
+        a5plt.mesh2d(phi, theta, out.v, diverging=diverging, logscale=logscale,
+                     axesequal=True, xlabel="phi [deg]", ylabel="theta [deg]",
+                     clabel=qnt + " [" + str(out.units) + "]", clim=clim,
+                     cmap=cmap, axes=axes, cax=cax)
+
+        if drawcontours:
+            a5plt.contour2d(phi, theta, out.v, contours=contourvalues, xlabel="phi [deg]",
+                            ylabel="theta [deg]", axesequal=True,
+                            colors=contourcolors,
+                            linestyles=contourlinestyles,
+                            linewidths=contourlinewidths, axes=axes,
+                            contourlabels=True, labelfontsize=labelfontsize)
 
     def get_plasmaquantities(self):
         """Return species present in plasma input.
