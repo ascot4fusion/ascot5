@@ -811,7 +811,9 @@ def line3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
         lc.set_array(c[i][1:])
         line = axes.add_collection(lc)
     smap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
-    plt.colorbar(smap, ax=axes, cax=cax)
+    cbar = plt.colorbar(smap, ax=axes, cax=cax)
+    if clabel is not None:
+        cbar.set_label(clabel)
 
 @openfigureifnoaxes(projection=None)
 def poincare(x, y, ids, connlen=None, xlim=None, ylim=None, xlabel=None,

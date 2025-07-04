@@ -1268,11 +1268,11 @@ class RunMixin(DistMixin):
         bbox = [xmin, xmax, ymin, ymax, None, None]
         if z is not None:
             zc, zlog, zmin, zmax = parsevals(zc, zlog, zlabel, z)
-            zlabel + " [" + str(zc[0].units) + "]"
+            zlabel += " [" + str(zc[0].units) + "]"
             bbox = [xmin, xmax, ymin, ymax, zmin, zmax, None, None]
         if c is not None:
             cc, clog, bbox[-2], bbox[-1] = parsevals(cc, clog, clabel, c)
-            clabel + " [" + str(cc[0].units) + "]"
+            clabel += " [" + str(cc[0].units) + "]"
 
         if z is None:
             a5plt.line2d(xc, yc, c=cc, xlog=xlog, ylog=ylog, clog=clog,
