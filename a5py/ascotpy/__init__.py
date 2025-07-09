@@ -729,7 +729,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             phi abscissa where data is evaluated and plotted.
         theta : array_like (ntheta,)
             theta abscissa where data is evaluated and plotted.
-        rho : float, optional
+        rho : float
             Rho co-ordinate of the flux surface.
         qnt : str
             Name of the plotted quantity.
@@ -807,6 +807,95 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                             linestyles=contourlinestyles,
                             linewidths=contourlinewidths, axes=axes,
                             contourlabels=True, labelfontsize=labelfontsize)
+
+    def input_plotfluxsurface3d(self, rho, phi, theta, qnt=None, t=0*unyt.s,
+                     clim=None, cmap=None, axes=None, cax=None, meshalpha = 0.6,
+                     tri_lc=None, tri_lw=0.4, opacity=0.8):
+        """Plot a flux surface or, given qnt, a quantity on a flux surface in 3D.
+
+        To plot quantity on a logarithmic scale (base 10), add "log" in
+        the name of the quantity e.g. "log ne".
+
+        Parameters
+        ----------
+        rho : float
+            Rho co-ordinate of the flux surface.
+        phi : array_like (nphi,)
+            phi abscissa where data is evaluated and plotted.
+        theta : array_like (ntheta,)
+            theta abscissa where data is evaluated and plotted.
+        qnt : str, optional
+            Name of the plotted quantity. E.g. "bnorm"
+        t : float, optional
+            Time coordinate where data is evaluated.
+        clim : list [float, float], optional
+            Minimum and maximum color range values.
+        cmap : str, optional
+            Colormap.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        cax : :obj:`~matplotlib.axes.Axes`, optional
+            The color bar axes or otherwise taken from the main axes.
+        meshalpha: float, optional
+            A parameter used when generating the triangles for the surface. For
+            more info, see "alphashape" and "alpha parameter".
+        tri_lc: str, optional
+            Color of the mesh triangle edges. By default, edges are invisible.
+        tri_lw: float, optional
+            Width of the mesh triangle edges. To enable edges, set also tri_lc.
+        opacity: float, optional
+            Opacity of the drawn surface (0: transparent, 1: opaque).
+        """
+        try:
+            phi = phi.v
+        except AttributeError:
+            pass
+        try:
+            theta = theta.v
+        except AttributeError:
+            pass
+
+        # phi and theta inputs are abscissae 1d arrays. We need to make them
+        # into a grid and transform them into a pair of 1d arrays containing all
+        # grid points where we wnat to plot
+        phiphi, thetatheta = np.meshgrid(phi,theta)
+        phi_grid1d = phiphi.ravel(); theta_grid1d = thetatheta.ravel()
+
+        # Map the (phi,theta,rho) to (R,z)
+        rho_grid1d = np.ones(len(phi_grid1d))*rho
+        r_grid1d, z_grid1d = self.input_rhotheta2rz(rho_grid1d,
+                                                    theta_grid1d*unyt.deg,
+                                                    phi_grid1d*unyt.deg, t)
+        # Map (R, phi) to (x,y)
+        x_grid1d = np.cos(phi_grid1d*np.pi/180)*r_grid1d
+        y_grid1d = np.sin(phi_grid1d*np.pi/180)*r_grid1d
+
+        # Draw surface with or without quantity giving the color
+        if not qnt==None:
+            # Get the value of the qnt into a long 1d array
+            logscale = False
+            if "log" in qnt:
+                qnt = qnt.replace("log", "").strip()
+                logscale = True
+            out_grid1d = self.input_eval(r_grid1d, phi_grid1d*unyt.deg, z_grid1d,
+                                        t, qnt)
+            # If data has both -+ vals
+            diverging = np.nanmin(out_grid1d)*np.nanmax(out_grid1d) < 0
+
+            a5plt.surface3d(x_grid1d, y_grid1d, z_grid1d, qnt_grid1d=out_grid1d,
+                            diverging=diverging, logscale=logscale,
+                            axesequal=True, xlabel="x [m]", ylabel="y [m]",
+                            zlabel="z [m]",
+                            clabel=qnt + " [" + str(out_grid1d.units) + "]",
+                            clim=clim, cmap=cmap,  axes=axes, cax=cax,
+                            meshalpha=meshalpha, tri_lc=tri_lc, tri_lw=tri_lw,
+                            opacity=opacity)
+        else:
+            a5plt.surface3d(x_grid1d, y_grid1d, z_grid1d, axesequal=True,
+                            xlabel="x [m]", ylabel="y [m]", zlabel="z [m]",
+                            clim=clim, cmap=cmap,  axes=axes, cax=cax,
+                            meshalpha=meshalpha, tri_lc=tri_lc, tri_lw=tri_lw,
+                            opacity=opacity)
 
     def get_plasmaquantities(self):
         """Return species present in plasma input.

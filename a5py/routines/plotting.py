@@ -26,6 +26,15 @@ except ImportError:
     warnings.warn("Could not import pyvista. 3D wall plotting disabled.")
     pv = None
 
+try:
+    from scipy.spatial import cKDTree
+    import alphashape
+except ImportError:
+    warnings.warn(
+        "Could not import cKDTree and alphashape. "
+        "3D surface plotting disabled."
+    )
+
 from functools import wraps
 
 def setpaperstyle(latex=True):
@@ -817,6 +826,127 @@ def line3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
     cbar = plt.colorbar(smap, ax=axes, cax=cax)
     if clabel is not None:
         cbar.set_label(clabel)
+
+@openfigureifnoaxes(projection="3d")
+def surface3d(x_grid1d, y_grid1d, z_grid1d, qnt_grid1d=None, diverging=False,
+              logscale=False, axesequal=False, xlabel=None, ylabel=None,
+              zlabel=None, clabel=None, clim=None, cmap=None, axes=None,
+              cax=None, meshalpha=0.6, tri_lc="gray", tri_lw=0.3, opacity=0.8):
+    """
+    Make a 3D surface plot from 1D coordinate arrays and optional quantity values.
+
+    Parameters
+    ----------
+    x_grid1d : array_like (n,)
+        X-coordinates of the surface points.
+    y_grid1d : array_like (n,)
+        Y-coordinates of the surface points.
+    z_grid1d : array_like (n,)
+        Z-coordinates of the surface points.
+    qnt_grid1d : array_like (n,), optional
+        Quantity values associated with each point, used for coloring the surface.
+    diverging : bool, optional
+        Use a diverging colormap centered at zero.
+    logscale : bool, optional
+        Apply logarithmic scaling to the colormap.
+    axesequal : bool, optional
+        Set 3D axes to have equal scaling.
+    xlabel : str, optional
+        Label for the x-axis.
+    ylabel : str, optional
+        Label for the y-axis.
+    zlabel : str, optional
+        Label for the z-axis.
+    clabel : str, optional
+        Label for the colorbar.
+    clim : [float, float], optional
+        Limits for the colormap [min, max].
+    cmap : str or Colormap, optional
+        The colormap to use for surface coloring.
+    axes : :obj:`~matplotlib.axes._subplots.Axes3D`, optional
+        The 3D axes to plot on, or None to create a new figure and axes.
+    cax : :obj:`~matplotlib.axes.Axes`, optional
+        Axes to draw the colorbar on, or None to place it next to the main axes.
+    meshalpha : float, optional
+        A parameter used when generating the triangles (google: alpha shape).
+    tri_lc : str or color, optional
+        Color of triangle edges.
+    tri_lw : float, optional
+        Line width of triangle edges.
+    opacity : float, optional
+        Overall opacity of the surface (0: transparent, 1: opaque).
+    """
+
+
+    # Put co-ordinate triplets into 2d array and throw away nans
+    points = np.vstack((x_grid1d, y_grid1d, z_grid1d)).T
+    mask = ~np.isnan(points).any(axis=1)
+    points = points[mask]
+    if not qnt_grid1d==None: quantity = qnt_grid1d[mask]
+
+    # Create the triangles
+    alpha_shape = alphashape.alphashape(points, meshalpha)
+    triangles = np.array(list(alpha_shape.faces))
+    vertices = np.array(alpha_shape.vertices)
+
+    # Get the surface color from the desired quantity
+    if not qnt_grid1d==None:
+        tree = cKDTree(points)
+        _, idx = tree.query(vertices, k=1)
+        vertex_quantity = quantity[idx]
+        triangle_colors = vertex_quantity[triangles].mean(axis=1) #average of vertex
+
+        if clim is None: clim = [None, None]
+        if clim[0] is None:
+            clim[0] = np.nanmin(triangle_colors)
+        if clim[1] is None:
+            clim[1] = np.nanmax(triangle_colors)
+
+        if logscale:
+            if diverging:
+                if cmap == None: cmap = "bwr"
+                norm = mpl.colors.SymLogNorm(linthresh=10, linscale=1.0,
+                                    vmin=clim[0], vmax=clim[1], base=10)
+            else:
+                if cmap == None: cmap = "viridis"
+                if clim[0] <=0: clim[0] = np.min(quantity[quantity>0])
+                norm = mpl.colors.LogNorm(vmin=clim[0], vmax=clim[1])
+        else:
+            if diverging:
+                if cmap == None: cmap = "bwr"
+                norm = mpl.colors.CenteredNorm(halfrange=np.amax(np.abs(clim)))
+            else:
+                if cmap == None: cmap = "viridis"
+                norm = mpl.colors.Normalize(vmin=clim[0], vmax=clim[1])
+
+        colors = mpl.cm.viridis(norm(triangle_colors))
+    else:
+        # No qnt given for coloring => plot just the flux surface
+        colors = "purple" # Magneticfield itself is purple, everyone knows that.
+
+    # Plotting
+    mesh = mpl_toolkits.mplot3d.art3d.Poly3DCollection(
+        vertices[triangles], facecolors=colors, edgecolor=tri_lc, lw=tri_lw,
+        alpha=opacity)
+
+    if axes==None:
+        fig = plt.figure()
+        axes = fig.add_subplot(111, projection='3d')
+    axes.add_collection3d(mesh)
+
+    axes.set_xlim(vertices[:,0].min(), vertices[:,0].max())
+    axes.set_ylim(vertices[:,1].min(), vertices[:,1].max())
+    axes.set_zlim(vertices[:,2].min(), vertices[:,2].max())
+    axes.set_xlabel(xlabel)
+    axes.set_ylabel(ylabel)
+    axes.set_zlabel(zlabel)
+
+    if axesequal:
+        axes.set_aspect("equal", adjustable="box")
+
+    if not qnt_grid1d==None:
+        plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=axes,
+                 cax=cax, shrink=0.5, label=clabel)
 
 @openfigureifnoaxes(projection=None)
 def poincare(x, y, ids, connlen=None, xlim=None, ylim=None, xlabel=None,
