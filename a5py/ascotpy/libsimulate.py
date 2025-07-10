@@ -46,7 +46,7 @@ class LibSimulate():
             opt = self.data.options.active.read()
 
         # Simulation mode options
-        self._sim.sim_mode    = int(opt["SIM_MODE"]);
+        self._sim.sim_mode    = int(opt["SIM_MODE"])
         self._sim.enable_ada  = int(opt["ENABLE_ADAPTIVE"])
         self._sim.record_mode = int(opt["RECORD_MODE"])
 
