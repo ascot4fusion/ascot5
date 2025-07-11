@@ -839,11 +839,11 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         meshalpha: float, optional
             A parameter used when generating the triangles for the surface. For
             more info, see "alphashape" and "alpha parameter".
-        tri_lc: str, optional
+        tri_lc : str, optional
             Color of the mesh triangle edges. By default, edges are invisible.
-        tri_lw: float, optional
+        tri_lw : float, optional
             Width of the mesh triangle edges. To enable edges, set also tri_lc.
-        opacity: float, optional
+        opacity : float, optional
             Opacity of the drawn surface (0: transparent, 1: opaque).
         """
         try:
@@ -896,6 +896,124 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                             clim=clim, cmap=cmap,  axes=axes, cax=cax,
                             meshalpha=meshalpha, tri_lc=tri_lc, tri_lw=tri_lw,
                             opacity=opacity)
+
+
+    def input_plotcontoursurface3d(self, qnt, isovalue, xmin, xmax, ymin, ymax,
+                                   zmin, zmax, pointspermeterx=10,
+                                   pointspermetery=10, pointspermeterz=10,
+                                   t=0*unyt.s, max_rho=1.0, ax=None, c=0.135,
+                                   delta=None, tri_lc=None, tri_lw=0.4,
+                                   opacity=0.8, reltol=0.01, axscatter=None,
+                                   surfcolor="blue"):
+        """
+        Plot a 3D contour surface of the specified quantity at a given isovalue.
+
+        If there are holes in you surface, try lowering input parameter c or
+        increasing reltol.
+
+        Parameters
+        ----------
+        qnt : str
+            Name of the quantity whose contour surface is drawn (e.g., "bnorm").
+        isovalue : float
+            Value of the quantity at which to generate the isosurface.
+        xmin, xmax : float
+            Minimum and maximum bounds along the x-axis.
+        ymin, ymax : float
+            Minimum and maximum bounds along the y-axis.
+        zmin, zmax : float
+            Minimum and maximum bounds along the z-axis.
+        pointspermeterx, pointspermetery, pointspermeterz : int, optional
+            Number of grid points along the x, y, and z directions per meter.
+            Ideally, use uniform grid spacing in all directions.
+        t : float or unyt_quantity, optional
+            Time coordinate at which the data is evaluated. Default is 0 seconds.
+        max_rho : float, optional
+            Maximum `rho` until (surface outside this is not drawn)
+        ax : matplotlib.axes.Axes, optional
+            Matplotlib 3D axes to plot on. If None, a new figure and axes are
+            created.
+        c : float, optional
+            Scaling parameter for the grid spacing or contour thresholding.
+            Default is 0.135.
+        delta : float or None, optional
+            Characteristic grid spacing. Ideally, use uniform grid of points.
+        tri_lc : str or None, optional
+            Color of the mesh triangle edges. If None, edges are invisible.
+        tri_lw : float, optional
+            Width of the mesh triangle edges. Default is 0.4.
+        opacity : float, optional
+            Opacity of the drawn surface. (0: transparent, 1: opaque)
+        reltol : float, optional
+            Relative tolerance for isosurface extraction. Default is 0.01.
+        axscatter : 3D axes, optional
+            If given, plots the grid points of the surface on these axes. This
+            can be useful especially when verifying that the the plotted surface
+            is sensible.
+        """
+
+        nx = max(int(pointspermeterx*(xmax-xmin)), 1)
+        ny = max(int(pointspermetery*(ymax-ymin)), 1)
+        nz = max(int(pointspermeterz*(zmax-zmin)), 1)
+
+        # Construct a grid of points
+        x = np.linspace(xmin, xmax, nx)
+        y = np.linspace(ymin, ymax, ny)
+        z = np.linspace(zmin, zmax, nz)
+        xx, yy, zz = np.meshgrid(x, y, z, indexing='ij')
+        x1d = xx.ravel(); y1d = yy.ravel(); z1d = zz.ravel()
+        points = np.column_stack((x1d, y1d, z1d))
+
+        # R and phi co-ordinates needed because we call input_eval()
+        r1d = np.sqrt(x1d**2 + y1d**2)
+        phi1d = np.mod(np.arctan2(y1d, x1d), 2 * np.pi)
+
+        # Evaluate qnt and rho in all grid points
+        qnt_grid1d, rho1d = self.input_eval(r1d * unyt.m, phi1d * unyt.rad, z1d * unyt.m, t, qnt, "rho")
+
+        # If not given, calculate delta, the average grid spacing
+        if delta==None:
+            delta = (xmax-xmin)/nx
+
+        # This parameter specifies the inverse of the size of triangles that are
+        # kept. Consequently, it should be inversely proportional to the grid
+        # spacing. You don't want to throw away too small triangles because the
+        # surface then starts to have holes. On the other hand, you want to
+        # throw away the largest triangles because otherwise there will be
+        # artificial connections/triangles in places where there should be no
+        # surface at all. The severity of this problem greatly depends on the
+        # surface. The parameter c has been defined for fine tuning. You may try
+        # to adjust it manually to get better results.
+        meshalpha=c*1/delta
+
+        #This is the tolerance when discarding points outside the contour
+        #surface. If the grid spacing is larger you must have a larger tolerance
+        # to avoid holes. Feel free to adjust the reltol if you think you can
+        # find a more suitable value.
+        tol = reltol*delta
+
+        # Throw away points that are not on the contour surface. Also throw away
+        # points outside max_rho
+        mask = (
+            (rho1d < max_rho)
+            & (qnt_grid1d >= (1.0 - tol) * isovalue)
+            & (qnt_grid1d <= (1.0 + tol) * isovalue)
+        )
+        surface_points = points[mask]
+
+        # Plot the surface
+        a5plt.surface3d(surface_points[:,0], surface_points[:,1],
+                        surface_points[:,2], axesequal=True, xlabel="x [m]",
+                        ylabel="y [m]", zlabel="z [m]", axes=ax,
+                        meshalpha=meshalpha, tri_lc=tri_lc, tri_lw=tri_lw,
+                        opacity=opacity, surfacecolor=surfcolor)
+
+        # Scatter plot for sanity check (you can verify if there are
+        # sufficiently many points)
+        if not axscatter==None:
+            a5plt.scatter3d(surface_points[:,0], surface_points[:,1],
+                            surface_points[:,2], xlabel="x [m]", ylabel="y [m]",
+                            zlabel="z [m]", markersize=1, axesequal=True, axes=axscatter)
 
     def get_plasmaquantities(self):
         """Return species present in plasma input.

@@ -307,7 +307,8 @@ def scatter2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
 @openfigureifnoaxes(projection="3d")
 def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
               clog="linear", xlabel=None, ylabel=None, zlabel=None, clabel=None,
-              cint=None, cmap=None, axesequal=False, axes=None, cax=None):
+              cint=None, cmap=None, axesequal=False, axes=None, cax=None,
+              markersize=6.0):
     """Make a scatter plot in 3D+1 where color can be one dimension.
 
     For better performance this function uses matplotlib's plot function instead
@@ -351,6 +352,8 @@ def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
         The axes where figure is plotted or otherwise new figure is created.
     cax : :obj:`~matplotlib.axes.Axes`, optional
         The color bar axes or otherwise taken from the main axes.
+    markersize: float, optional
+        Sets the size of the markers. Bigger number, bigger marker.
     """
     axes.set_xscale(xlog)
     axes.set_yscale(ylog)
@@ -358,11 +361,24 @@ def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
     axes.set_xlabel(xlabel)
     axes.set_ylabel(ylabel)
     axes.set_zlabel(zlabel)
-    if axesequal: axes.set_aspect("equal", adjustable="box")
+    if axesequal:
+        # axesequal=True requires manually setting symmetric axis limits;
+        # set_aspect("equal") alone does not enforce equal scaling in 3D.
+        all_points = np.array([x, y, z])
+        mins = np.min(all_points, axis=1)
+        maxs = np.max(all_points, axis=1)
+        centers = (mins + maxs) / 2
+        max_range = (maxs - mins).max() / 2
+
+        axes.set_xlim(centers[0] - max_range, centers[0] + max_range)
+        axes.set_ylim(centers[1] - max_range, centers[1] + max_range)
+        axes.set_zlim(centers[2] - max_range, centers[2] + max_range)
+        axes.set_aspect("equal", adjustable="box")
 
     if c is None or isinstance(c, str):
         # Simple plot with a single color
-        axes.plot(x, y, z, color=c, linestyle="None", marker="o")
+        axes.plot(x, y, z, color=c, linestyle="None", marker="o",
+                  markersize=markersize)
         return
 
     # Sort inputs by color values and then find the indices that divide the
@@ -391,7 +407,7 @@ def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
     for i in range(nc):
         i2 = idx[i+1]
         axes.plot(x[i1:i2], y[i1:i2], z[i1:i2], color=cmap(i/nc),
-                  linestyle="None", marker="o")
+                  linestyle="None", marker="o", markersize=markersize)
         i1 = i2
 
     # Make colorbar with where color scale has the intervals
@@ -831,9 +847,14 @@ def line3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
 def surface3d(x_grid1d, y_grid1d, z_grid1d, qnt_grid1d=None, diverging=False,
               logscale=False, axesequal=False, xlabel=None, ylabel=None,
               zlabel=None, clabel=None, clim=None, cmap=None, axes=None,
-              cax=None, meshalpha=0.6, tri_lc="gray", tri_lw=0.3, opacity=0.8):
+              cax=None, meshalpha=0.6, tri_lc="gray", tri_lw=0.3, opacity=0.8,
+              surfacecolor="purple"):
     """
     Make a 3D surface plot from 1D coordinate arrays and optional quantity values.
+
+    You may encounter "WARNING:root:Singular matrix. Likely caused by all points
+    lying in an N-1 space." or two but, as the name suggests, it is just a
+    warning.
 
     Parameters
     ----------
@@ -875,8 +896,10 @@ def surface3d(x_grid1d, y_grid1d, z_grid1d, qnt_grid1d=None, diverging=False,
         Line width of triangle edges.
     opacity : float, optional
         Overall opacity of the surface (0: transparent, 1: opaque).
+    surfacecolor : str, optional
+        If no qnt is given, this color is used. By default purple because
+        magneticfield itself is purple, everyone knows that.
     """
-
 
     # Put co-ordinate triplets into 2d array and throw away nans
     points = np.vstack((x_grid1d, y_grid1d, z_grid1d)).T
@@ -922,7 +945,7 @@ def surface3d(x_grid1d, y_grid1d, z_grid1d, qnt_grid1d=None, diverging=False,
         colors = mpl.cm.viridis(norm(triangle_colors))
     else:
         # No qnt given for coloring => plot just the flux surface
-        colors = "purple" # Magneticfield itself is purple, everyone knows that.
+        colors = surfacecolor
 
     # Plotting
     mesh = mpl_toolkits.mplot3d.art3d.Poly3DCollection(
