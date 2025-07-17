@@ -931,7 +931,7 @@ class ImportData():
                "weight":weight, "time":np.zeros((nmrk,))}
 
         return ("prt", prt)
-
+    @staticmethod
     def costransform(theta, phi, rmnc, xm, xn):
         """Cosine transform for VMEC coefficients
 
@@ -950,7 +950,7 @@ class ImportData():
             f[i,:,:] = (np.matmul(rmnc[i,:]*np.cos(xmt), np.cos(xnz).T)
                         + np.matmul(rmnc[i,:]*np.sin(xmt), np.sin(xnz).T))
         return f
-
+    @staticmethod
     def sintransform(theta, phi, rmnc, xm, xn):
         """Sine transform for VMEC coefficients
 
@@ -970,10 +970,9 @@ class ImportData():
             f[i,:,:] = (np.matmul(rmnc[i,:]*np.sin(xmt), np.cos(xnz).T)
                         - np.matmul(rmnc[i,:]*np.cos(xmt), np.sin(xnz).T))
         return f
-
     @staticmethod
-    def vmec_field(self,ncfile,phimin=0,phimax=361,nphi=361,ntheta=120,
-                   nr=100,nz=100,psipad=0.0):
+    def vmec_field(ncfile,gtype="B_STS",phimin=0,phimax=361,nphi=361,ntheta=120,
+                   nr=100,nz=100,psipad=0.0, ):
         """Load magnetic field data from a VMEC equilibrium.
 
         Notes
@@ -1099,14 +1098,14 @@ class ImportData():
         bsupvmnc[-1, midx_o] = w3 * bsupvmnc[-1, midx_o] - bsupvmnc[-2, midx_o]
 
         # inverse Fourier transform to (s,u,v) coordinates
-        r_grid = self.costransform(theta, phi, rmnc, xm, xn)  # R (m)
-        z_grid = self.sintransform(theta, phi, zmns, xm, xn)  # Z (m)
-        ru_grid = self.sintransform(theta, phi, rumns, xm, xn)  # dR/du (m/rad)
-        zu_grid = self.costransform(theta, phi, zumnc, xm, xn)  # dZ/du (m/rad)
-        rv_grid = self.sintransform(theta, phi, rvmns, xm, xn)  # dR/dv (m/rad)
-        zv_grid = self.costransform(theta, phi, zvmnc, xm, xn)  # dZ/dv (m/rad)
-        bu_grid = self.costransform(theta, phi, bsupumnc, xm_nyq, xn_nyq)  # B^u (T)
-        bv_grid = self.costransform(theta, phi, bsupvmnc, xm_nyq, xn_nyq)  # B^v (T)
+        r_grid = ImportData.costransform(theta, phi, rmnc, xm, xn)  # R (m)
+        z_grid = ImportData.sintransform(theta, phi, zmns, xm, xn)  # Z (m)
+        ru_grid = ImportData.sintransform(theta, phi, rumns, xm, xn)  # dR/du (m/rad)
+        zu_grid = ImportData.costransform(theta, phi, zumnc, xm, xn)  # dZ/du (m/rad)
+        rv_grid = ImportData.sintransform(theta, phi, rvmns, xm, xn)  # dR/dv (m/rad)
+        zv_grid = ImportData.costransform(theta, phi, zvmnc, xm, xn)  # dZ/dv (m/rad)
+        bu_grid = ImportData.costransform(theta, phi, bsupumnc, xm_nyq, xn_nyq)  # B^u (T)
+        bv_grid = ImportData.costransform(theta, phi, bsupvmnc, xm_nyq, xn_nyq)  # B^v (T)
 
         # magnetic axis
         axis_r = r_grid[0, 0, :]  # m
@@ -1203,8 +1202,8 @@ class ImportData():
             "axis_nphi": nphi,
             "axisr": axis_r,  # m
             "axisz": axis_z,  # m
-            "rlcfs": lcfs_r,  # m
-            "zlcfs": lcfs_z,  # m
+            #"rlcfs": lcfs_r,  # m
+            #"zlcfs": lcfs_z,  # m
             "b_rmin": rmin,  # m
             "b_rmax": rmax,  # m
             "b_nr": nr,
@@ -1231,7 +1230,7 @@ class ImportData():
             "psi_nphi": nphi,
         }
 
-        return out
+        return (gtype, out)
 
     @staticmethod
     def desc_field(h5file,phimin=0,phimax=361,nphi=361,ntheta=120,
