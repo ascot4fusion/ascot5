@@ -716,7 +716,9 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                      clim=None, cmap=None, axes=None, cax=None,
                      drawcontours=False, contourvalues=None, contourcolors=None,
                      contourlinestyles="-", contourlinewidths=None,
-                     labelfontsize=10):
+                     labelfontsize=10, drawbfielddir=False,
+                     bfieldlinecolor="black", bfieldlinedensity=0.5,
+                     blinewidth=1.0, blinelength=50.0):
         """Plot input quantity on a (phi, theta) surface at given rho.
 
         With drawcontours=True, draws also the contourlines.
@@ -759,6 +761,19 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             with the contourvalues (see above).
         labelfontsize : float, optional
             Font size of the labels that indicate contour values.
+        drawbfielddir : boolean, optional
+            Draw the direction of the bfield on top of the figure as
+            streamlines. This makes sense only in a tokamak geometry since the
+            poloidal plane is a contant phi plane. If drawfielddir true, one
+            must have theta and phi go from 0 to 360.
+        bfieldlinecolor : str, optional
+            Color of the bfield lines if drawbfielddir=True.
+        bfieldlinedensity : float, optional
+            Density of the bfield lines.
+        blinewidth : float, optional
+            Width of the bfield lines.
+        blinelength : float, optional
+            Length of the bfield lines.
         """
         logscale = False
         if "log" in qnt:
@@ -787,26 +802,88 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                                                     phi_grid1d*unyt.deg, t)
 
         # Get the value of the qnt into a long 1d array
-        out_grid1d = self.input_eval(r_grid1d, phi_grid1d*unyt.deg, z_grid1d,
+        qnt_grid1d = self.input_eval(r_grid1d, phi_grid1d*unyt.deg, z_grid1d,
                                      t, qnt)
 
         # Go from raveled array to 2d
-        out = out_grid1d.reshape(len(phi), len(theta), order="F")
+        qnt_grid2d = qnt_grid1d.reshape(len(phi), len(theta), order="F")
 
-        diverging = np.nanmin(out)*np.nanmax(out) < 0 # If data has both -+ vals
+        diverging = np.nanmin(qnt_grid2d)*np.nanmax(qnt_grid2d) < 0 # If data has both -+ vals
 
-        a5plt.mesh2d(phi, theta, out.v, diverging=diverging, logscale=logscale,
+        a5plt.mesh2d(phi, theta, qnt_grid2d.v, diverging=diverging, logscale=logscale,
                      axesequal=True, xlabel="phi [deg]", ylabel="theta [deg]",
-                     clabel=qnt + " [" + str(out.units) + "]", clim=clim,
+                     clabel=qnt + " [" + str(qnt_grid2d.units) + "]", clim=clim,
                      cmap=cmap, axes=axes, cax=cax)
 
+
         if drawcontours:
-            a5plt.contour2d(phi, theta, out.v, contours=contourvalues, xlabel="phi [deg]",
-                            ylabel="theta [deg]", axesequal=True,
-                            colors=contourcolors,
+            a5plt.contour2d(phi, theta, qnt_grid2d.v, contours=contourvalues,
+                            xlabel="phi [deg]", ylabel="theta [deg]",
+                            axesequal=True, colors=contourcolors,
                             linestyles=contourlinestyles,
                             linewidths=contourlinewidths, axes=axes,
                             contourlabels=True, labelfontsize=labelfontsize)
+
+
+        if drawbfielddir:
+            # Evaluate the magnitude of the poloidal component
+            br, bz, bphi = self.input_eval(r_grid1d, phi_grid1d*unyt.deg,
+                                           z_grid1d, t, "br", "bz", "bphi")
+            br=br.v; bz=bz.v; bphi=bphi.v
+            bpolmag = np.sqrt(br**2 + bz**2)
+
+            # To determine whether the poloidal component rotates clockwise or
+            # anti-clockwise, we need to know where the magnetic axis is.
+            out = self._eval_bfield(1*unyt.m, phi_grid1d, 1*unyt.m, t,
+                                    evalaxis=True)
+            axisr = out["axisr"]
+            axisz = out["axisz"]
+
+            # We now get the bpol sign from the sign of the cross product
+            # "r cross Bpol", where r points from the magnetic axis to the (R,z)
+            # location we are considering.
+            dr = r_grid1d-axisr     # r distance from the magnetic axis
+            dz = z_grid1d-axisz     # z
+            bpol_sign = np.sign(dr*bz - dz*br)
+
+            # Get bpol
+            bpol = bpol_sign*bpolmag
+
+            # Arrange Bphi and Bpol into 2d arrays
+            nphi = len(phi)
+            ntheta = len(theta)
+            Bphi_2d = bphi.reshape((ntheta, nphi), order='F')
+            Btheta_2d = bpol.reshape((ntheta, nphi), order='F')
+
+            # Before making the streamline plot of Bphi and Bpol, we need to
+            # normalise them with their respective lengths.
+
+            # Get the poloidal length (circumference) in different phi slices
+            R2d = r_grid1d.reshape((ntheta,nphi))
+            z2d = z_grid1d.reshape((ntheta,nphi))
+            # Distances (each column is some phi value. Rows need to be summed
+            # together to get the total arc length on that phi value (column))
+            dl_poldir = np.sqrt((R2d[1:,:] - R2d[:-1,:])**2 +
+                                (z2d[1:,:] - z2d[:-1,:])**2)
+            pol_circumference = np.sum(dl_poldir, axis=0)
+
+            # Get the toroidal length (circumference) in different theta slices
+            x_grid1d = np.cos(phi_grid1d*np.pi/180)*r_grid1d
+            y_grid1d = np.sin(phi_grid1d*np.pi/180)*r_grid1d
+            x2d = x_grid1d.reshape((ntheta,nphi))
+            y2d = y_grid1d.reshape((ntheta,nphi))
+            dl_tordir = np.sqrt((x2d[:,1:] - x2d[:,:-1])**2 +
+                                (y2d[:,1:] - y2d[:,:-1])**2)
+            tor_circumference = np.sum(dl_tordir, axis=1)
+
+            # Scale Bphi and Bpol with the respective circumferences
+            Bphi_2d_scaled = Bphi_2d/tor_circumference[:,np.newaxis]
+            Btheta_2d_scaled = Btheta_2d/pol_circumference[np.newaxis,:]
+
+            axes.streamplot(phi, theta, Bphi_2d_scaled.v, Btheta_2d_scaled.v,
+                            color=bfieldlinecolor, density=bfieldlinedensity,
+                            linewidth=blinewidth, maxlength=blinelength)
+
 
     def input_plotfluxsurface3d(self, rho, phi, theta, qnt=None, t=0*unyt.s,
                      clim=None, cmap=None, axes=None, cax=None, meshalpha = 0.6,
