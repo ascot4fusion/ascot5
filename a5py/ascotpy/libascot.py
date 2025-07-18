@@ -174,13 +174,13 @@ class LibAscot:
                 out["psidr"], out["psidphi"], out["psidz"])
 
         if evalaxis:
-            out["axisr"] = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.m
-            out["axisz"] = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.m
+            out["axisr"] = (np.zeros(phi.shape, dtype="f8") + np.nan) * unyt.m
+            out["axisz"] = (np.zeros(phi.shape, dtype="f8") + np.nan) * unyt.m
 
             fun = _LIBASCOT.libascot_B_field_get_axis
             fun.restype  = None
             fun.argtypes = [PTR_SIM, ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL]
-
+            Neval=phi.size
             fun(ctypes.byref(self._sim), Neval, phi, out["axisr"], out["axisz"])
 
         return out
