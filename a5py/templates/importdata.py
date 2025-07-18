@@ -924,7 +924,9 @@ class ImportData():
         return ("prt", prt)
     
     def import_toric2spiral2ascot(self, fn=None, power_scaling: float=1.0,
-                                  nr: int=100, nz: int=101):
+                                  nr: int=100, nz: int=101,
+                                  omega_sign: float=1.0,
+                                  ntor_sign: float=1.0):
         """Import toroidal magnetic field from TORIC.
 
         This will read the RZ electric and magnetic fields in cylindrical
@@ -1016,8 +1018,8 @@ class ImportData():
             del out[iname + '_im']
 
         # We load also the frequency and the toroidal mode number.
-        out["omega"] = ds.frequency.values * 2*np.pi
-        out["ntor"] = ds.n_tor.values
+        out["omega"] = omega_sign * ds.frequency.values * 2*np.pi
+        out["ntor"] = ntor_sign * ds.n_tor.values
         out["rmin"] = rmin
         out["rmax"] = rmax
         out["zmin"] = zmin
