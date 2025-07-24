@@ -1224,10 +1224,10 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             # Determine the bounding box
             th = np.linspace(0, 2*np.pi, 1000)
             rhoc, thc, phic = np.meshgrid(1.0*unyt.dimensionless, th,
-                                          np.append(phimin, phimax),
+                                          unyt.unyt_array([phimin, phimax]),
                                           indexing="ij" )
             rc, zc = self.input_rhotheta2rz(
-                rhoc.ravel(), thc.ravel(), phic.ravel(), t)
+                rhoc.ravel(), thc.ravel()*unyt.rad, phic.ravel(), t)
             bbox = np.ones((4,)) * unyt.m
             bbox[0] = np.nanmin(rc)
             bbox[1] = np.nanmax(rc)
