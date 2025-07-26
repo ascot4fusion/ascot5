@@ -278,7 +278,7 @@ class plasma_1DS(DataGroup):
             temperaturelim = [np.amin(pls["itemperature"]), 1e3,
                               np.amax(pls["itemperature"])]
 
-        rho = np.linspace(pls['rhomin'], pls['rhomax'], pls['nrho'])
+        rho = np.linspace(pls['rhomin'][0], pls['rhomax'][0], pls['nrho'])
         a5plt.radialprofile(
             rho, ndens, y2=[pls['etemperature'], pls['itemperature']],
             xlim=rholim, y1lim=densitylim, y2lim=temperaturelim,
