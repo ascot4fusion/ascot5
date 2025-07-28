@@ -45,8 +45,7 @@ void afsi_run(sim_data* sim, afsi_data* data, int n,
               histogram* prod1, histogram* prod2);
 void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n, real Smax, real* cumdist_all,
                 real* rvec, real* phivec, real* zvec, real* prod2);
-void afsi_run_new_loop(sim_data* sim, afsi_data* afsi,
-                real* rvec, real* phivec, real* zvec, int64_t* mark_per_bin, real* prod2);
+
 #endif
 
 

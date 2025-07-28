@@ -24,17 +24,17 @@
 
 /** Random number generator used by AFSI */
 random_data rdata;
-
+void B_field_cyl_to_cartesian(real* B_cart, real* B_cyl, real r, real phi);
 void afsi_compute_product_velocities_3d(
     int i, real m1, real m2, real mprod1, real mprod2, real Q,
     real* ppara1, real* pperp1, real* ppara2, real* pperp2, real* vcom2,
-    real* vprod1, real* vprod2);
+    real* B_cyl, int not_transformed_vel, real* vprod1, real* vprod2);
 void afsi_compute_product_momenta_2d(
     int i, real mprod1, real mprod2, int prodmomspace,
     real* vprod1, real* vprod2, real* prod1_p1, real* prod1_p2,
     real* prod2_p1, real* prod2_p2);
-void afsi_store_particle_data(int i, real* rvec, real* phivec,
-     real* zvec, real* vprod2, real mprod2, real* prod2);
+void afsi_store_particle_data(int i, real* rvec, real* phivec, 
+    real* zvec, real* vprod2, real mprod2, real* prod2);
 void afsi_sample_reactant_momenta_2d(
     sim_data* sim, afsi_data* afsi, real mass1, real mass2,
     real vol, int nsample, size_t i0, size_t i1, size_t i2,
@@ -177,12 +177,14 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
                     real vcom2;
                     real vprod1[3];
                     real vprod2[3];
+                    real B_cyl[3] = {0.0, 0.0, 0.0}; // dummy element not needed in this case
+                    int not_transformed_vel = 1; // flag to avoid using B-field aligned transformation
 
                     afsi_compute_product_velocities_3d(
                         i, m1, m2, mprod1, mprod2, Q,
                         ppara1, pperp1, ppara2, pperp2, &vcom2,
-                        vprod1, vprod2);
-                    
+                        B_cyl, not_transformed_vel, vprod1, vprod2);
+
                     afsi_compute_product_momenta_2d(i, mprod1, mprod2, prod_mom_space,
                         vprod1, vprod2,  prod1_p1, prod1_p2, prod2_p1, prod2_p2);
                     
@@ -316,6 +318,20 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
     print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "\nDone\n");
 }
 
+/**
+ * @brief Calculate fusion source from two arbitrary ion distributions using rejection sampling.
+ *
+ * Stores in prod2 the sampled neutrons in a form suitable for the use in neutronic Monte Carlo codes.
+ *
+ * @param sim pointer to simulation data
+ * @param reaction fusion reaction type, see the description
+ * @param n number of Monte Carlo samples to be used
+ * @param react1 reactant 1 distribution data
+ * @param react2 reactant 2 distribution data
+ * @param mult factor by which the output is scaled
+ * @param prod2 (n*9) array to store the sampled neutrons.
+ */
+
 void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n, real Smax, real* cumdist_all,
                 real* rvec, real* phivec, real* zvec, real* prod2) {
 
@@ -334,6 +350,7 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n, real Smax, real* 
     
     int n_accepted = 0 ;
     int n_samples = 1; 
+    int not_transformed_vel = 0; // flag to use B-field aligned transformation
 
     while (n_accepted < n){
         real r = rmin + (rmax - rmin) * random_uniform(rdata);
@@ -346,13 +363,16 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n, real Smax, real* 
                                      + i1*afsi->volshape[2] + i2;
         real vol = afsi->vol[spatial_index];
 
-        real psi, rho[2];
+        real psi, rho[2], B_cyl[3];
         if (B_field_eval_psi(&psi, r, phi, z, time, &sim->B_data) ||
-            B_field_eval_rho(rho, psi, &sim->B_data)) {
+            B_field_eval_rho(rho, psi, &sim->B_data) || B_field_eval_B(B_cyl, r, phi, z, time, &sim->B_data)) {
             continue;
-        }
+        }   
 
-        real density1, density2;
+        real B_cart[3];
+        B_field_cyl_to_cartesian(B_cart, B_cyl, r, phi);
+
+        real density1, density2;    
         real ppara1, pperp1, ppara2, pperp2;
 
         afsi_sample_reactant_momenta_2d_alt(
@@ -364,9 +384,10 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n, real Smax, real* 
                 }
 
         real vcom2, vprod1[3], vprod2[3];
+        
         afsi_compute_product_velocities_3d(
             0, m1, m2, mprod1, mprod2, Q,
-            &ppara1, &pperp1, &ppara2, &pperp2, &vcom2,
+            &ppara1, &pperp1, &ppara2, &pperp2, &vcom2, B_cyl, not_transformed_vel,
             vprod1, vprod2);
 
         real E = 0.5 * (m1 * m2) / (m1 + m2) * vcom2;
@@ -377,7 +398,7 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n, real Smax, real* 
             real rbin[2] = {r, r}; 
             real phibin[2] = {phi, phi};
             real zbin[2] = {z, z};
-            afsi_store_particle_data(n_accepted, 0, rbin, phibin, zbin, vprod2, mprod2, prod2);
+            afsi_store_particle_data(n_accepted, rbin, phibin, zbin, vprod2, mprod2, prod2);
             n_accepted++;
         }
     }
@@ -385,127 +406,75 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n, real Smax, real* 
     
 }
 
-void afsi_run_new_loop(sim_data* sim, afsi_data* afsi,
-                real* rvec, real* phivec, real* zvec, int64_t* mark_per_bin, real* prod2) {
-
-    random_init(&rdata, time((NULL)));
-    simulate_init(sim);
-
-    real m1, q1, m2, q2, mprod1, qprod1, mprod2, qprod2, Q;
-    boschhale_reaction(
-    afsi->reaction, &m1, &q1, &m2, &q2,
-    &mprod1, &qprod1, &mprod2, &qprod2, &Q);
-    
-    real time = 0.0;
-
-    size_t n_cells = afsi->volshape[0] * afsi->volshape[1] * afsi->volshape[2];
-    size_t* offsets = malloc(n_cells * sizeof(size_t));
-    offsets[0] = 0;
-    for (size_t idx = 1; idx < n_cells; ++idx) {
-        offsets[idx] = offsets[idx-1] + mark_per_bin[idx-1];
-    }
-
-    #pragma omp parallel for
-    for(size_t i0 = 0; i0 < afsi->volshape[0]; i0++) {
-        real rbin[2];
-        rbin[0] = rvec[i0];
-        rbin[1] = rvec[i0+1];
-        for (size_t i1 = 0; i1 < afsi->volshape[1]; i1++){
-            real phibin[2];
-            phibin[0] = phivec[i1];
-            phibin[1] = phivec[i1+1];
-            for (size_t i2 = 0; i2 < afsi->volshape[2]; i2++){
-                size_t spatial_index = i0*afsi->volshape[1]*afsi->volshape[2]
-                                     + i1*afsi->volshape[2] + i2;
-                real r = afsi->r[spatial_index];
-                real z = afsi->z[spatial_index];
-                real phi = afsi->phi[spatial_index];
-                real vol = afsi->vol[spatial_index];
-
-                int n = (int)mark_per_bin[spatial_index];
-                if (n==0) continue;
-                
-                size_t offset = offsets[spatial_index];
-                real* ppara1 = (real*) malloc(n*sizeof(real));
-                real* pperp1 = (real*) malloc(n*sizeof(real));
-                real* ppara2 = (real*) malloc(n*sizeof(real));
-                real* pperp2 = (real*) malloc(n*sizeof(real));
-                
-                real zbin[2];
-                zbin[0] = zvec[i2];
-                zbin[1] = zvec[i2+1];
-                real psi, rho[2];
-                if(B_field_eval_psi(&psi, r, phi, z, time, &sim->B_data) ||
-                    B_field_eval_rho(rho, psi, &sim->B_data) ) {
-                    continue;
-                }
-
-                real density1, density2;
-                afsi_sample_reactant_momenta_2d(
-                    sim, afsi, m1, m2, vol, n, i0, i1, i2,
-                    r, phi, z, time, rho[0],
-                    &density1, ppara1, pperp1, &density2, ppara2, pperp2);
-                if(density1 == 0 || density2 == 0) {
-                    continue;
-                }
-                for(size_t i = 0; i < n; i++) {
-                    real vcom2;
-                    real vprod1[3];
-                    real vprod2[3];
-
-                    afsi_compute_product_velocities_3d(
-                        i, m1, m2, mprod1, mprod2, Q,
-                        ppara1, pperp1, ppara2, pperp2, &vcom2,
-                        vprod1, vprod2);
-
-                    afsi_store_particle_data(i, offset ,rbin, phibin, zbin, vprod2, mprod2, prod2);
-                }
-                free(ppara1);
-                free(ppara2);
-                free(pperp1);
-                free(pperp2);
-            }
-        }
-    }
-    free(offsets);
-}
-
 /**
- * @brief Compute momenta of reaction products.
+ * @brief Compute velocities of reaction products.
  *
  * @param i marker index on input velocity and output momentum arrays.
  * @param m1 mass of reactant 1 [kg].
  * @param m2 mass of reactant 2 [kg].
- * @param mprod1 mass of product 1 [kg].
- * @param mprod2 mass of product 2 [kg].
  * @param Q energy released in the reaction [eV].
  * @param ppara1 the parallel momentum of react1
  * @param pperp1 the perpendicular momentum of react1
  * @param ppara2 the parallel momentum of react2
  * @param pperp2 the perpendicular momentum of react2
  * @param vcom2 pointer for storing relative velocity of i'th reactants
- * @param pparaprod1 array where parallel momentum of product 1 is stored.
- * @param pperpprod1 array where perpendicular momentum of product 1 is stored.
- * @param pparaprod2 array where parallel momentum of product 2 is stored.
- * @param pperpprod2 array where perpendicular momentum of product 2 is stored.
+ * @param B magnetic field in cylindrical coordinates.
+ * @param not_transformed_vel flag to indicate if the velocities are not transformed to B-field aligned coordinates.
+ * @param vprod1 array where velocity of product 1 is stored.
+ * @param vprod2 array where velocity of product 2 is stored.
  */
 
 void afsi_compute_product_velocities_3d(
     int i, real m1, real m2, real mprod1, real mprod2, real Q,
     real* ppara1, real* pperp1, real* ppara2, real* pperp2, real* vcom2,
-    real* vprod1, real* vprod2) {
+    real* B, int not_transformed_vel, real* vprod1, real* vprod2) {
     
     real rn1 = CONST_2PI * random_uniform(rdata);
     real rn2 = CONST_2PI * random_uniform(rdata);
+    real v1x, v1y, v1z, v2x, v2y, v2z;
 
-    real v1x = cos(rn1) * pperp1[i] / m1;
-    real v1y = sin(rn1) * pperp1[i] / m1;
-    real v1z = ppara1[i] / m1;
+    if (not_transformed_vel){
+        v1x = cos(rn1) * pperp1[i] / m1;
+        v1y = sin(rn1) * pperp1[i] / m1;
+        v1z = ppara1[i] / m1;
 
-    real v2x = cos(rn2) * pperp2[i] / m2;
-    real v2y = sin(rn2) * pperp2[i] / m2;
-    real v2z = ppara2[i] / m2;
+        v2x = cos(rn2) * pperp2[i] / m2;
+        v2y = sin(rn2) * pperp2[i] / m2;
+        v2z = ppara2[i] / m2;
+    } else {
+        real Bmag = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+        real bx = B[0] / Bmag;
+        real by = B[1] / Bmag;
+        real bz = B[2] / Bmag;
+        
+        real ex1, ey1, ez1;
+        ex1 = -by;
+        ey1 = bx;
+        ez1 = 0.0;
 
+        real e1mag = sqrt(ex1*ex1 + ey1*ey1 + ez1*ez1);
+        ex1 /= e1mag;
+        ey1 /= e1mag;
+        ez1 /= e1mag;
+
+        real ex2 = by * ez1 - bz * ey1;
+        real ey2 = bz * ex1 - bx * ez1;
+        real ez2 = bx * ey1 - by * ex1;
+
+        real e2mag = sqrt(ex2*ex2 + ey2*ey2 + ez2*ez2);
+        ex2 /= e2mag;
+        ey2 /= e2mag;
+        ez2 /= e2mag;
+
+        v1x = ppara1[i] / m1 * bx + pperp1[i] / m1 * (cos(rn1) * ex1 + sin(rn1) * ex2);
+        v1y = ppara1[i] / m1 * by + pperp1[i] / m1 * (cos(rn1) * ey1 + sin(rn1) * ey2);
+        v1z = ppara1[i] / m1 * bz + pperp1[i] / m1 * (cos(rn1) * ez1 + sin(rn1) * ez2);
+
+        v2x = ppara2[i] / m2 * bx + pperp2[i] / m2 * (cos(rn2) * ex1 + sin(rn2) * ex2);
+        v2y = ppara2[i] / m2 * by + pperp2[i] / m2 * (cos(rn2) * ey1 + sin(rn2) * ey2);
+        v2z = ppara2[i] / m2 * bz + pperp2[i] / m2 * (cos(rn2) * ez1 + sin(rn2) * ez2);
+    }
+    
     *vcom2 =   (v1x - v2x) * (v1x - v2x)
              + (v1y - v2y) * (v1y - v2y)
              + (v1z - v2z) * (v1z - v2z);
@@ -546,6 +515,18 @@ void afsi_compute_product_velocities_3d(
     vprod2[2] = v2_cm[2] + v_cm[2];
 }
 
+/**
+ * @brief Store sampled particle data in the prod2 array.
+ *
+ * @param i index of the particle being stored.
+ * @param rvec array with radial coordinates [m].
+ * @param phivec array with azimuthal coordinates [rad].
+ * @param zvec array with vertical coordinates [m].
+ * @param vprod2 array with velocity of product 2 [m/s].
+ * @param mprod2 mass of product 2 [kg].
+ * @param prod2 array where the sampled particle data is stored.
+ */
+
 void afsi_store_particle_data(int i, real* rvec, real* phivec, real* zvec, real* vprod2, real mprod2, real* prod2){
 
     // Compute the magnitude of the velocity of prod2
@@ -567,14 +548,44 @@ void afsi_store_particle_data(int i, real* rvec, real* phivec, real* zvec, real*
     real z = zvec[0] + (zvec[1] - zvec[0]) * random_uniform(rdata);
 
     // Store the sampled coordinates, directions and energy in the prod2 array
-    prod2[i * 7 + 0] = r; 
-    prod2[i * 7 + 1] = phi; 
-    prod2[i * 7 + 2] = z; 
-    prod2[i * 7 + 3] = u; 
-    prod2[i * 7 + 4] = v;
-    prod2[i * 7 + 5] = w;
-    prod2[i * 7 + 6] = energy_prod2*6241506479963.2; // Convert to MeV
+    prod2[(i) * 9 + 0] = r; 
+    prod2[(i) * 9 + 1] = phi; 
+    prod2[(i) * 9 + 2] = z; 
+    prod2[(i) * 9 + 3] = u; 
+    prod2[(i) * 9 + 4] = v;
+    prod2[(i) * 9 + 5] = w;
+    prod2[(i) * 9 + 6] = energy_prod2*6241506479963.2; // Convert to MeV
 }
+
+/**
+ * @brief Compute momenyta of reaction products.
+ *
+ * @param i marker index on input velocity and output momentum arrays.
+ * @param mprod1 mass of product 1 [kg].
+ * @param mprod2 mass of product 2 [kg].
+ * @param prodmomspace momentum space type, either PPARPPERP or EKINXI.
+ * @param vprod1 array with velocity of product 1.
+ * @param vprod2 array with velocity of product 2.
+ * @param prod1_p1 array where parallel momentum of product 1 is stored.
+ * @param prod1_p2 array where perpendicular momentum of product 1 is stored.
+ * @param prod2_p1 array where parallel momentum of product 2 is stored.
+ * @param prod2_p2 array where perpendicular momentum of product 2 is stored.
+ */
+
+/**
+ * @brief Compute momenyta of reaction products.
+ *
+ * @param i marker index on input velocity and output momentum arrays.
+ * @param mprod1 mass of product 1 [kg].
+ * @param mprod2 mass of product 2 [kg].
+ * @param prodmomspace momentum space type, either PPARPPERP or EKINXI.
+ * @param vprod1 array with velocity of product 1.
+ * @param vprod2 array with velocity of product 2.
+ * @param prod1_p1 array where parallel momentum of product 1 is stored.
+ * @param prod1_p2 array where perpendicular momentum of product 1 is stored.
+ * @param prod2_p1 array where parallel momentum of product 2 is stored.
+ * @param prod2_p2 array where perpendicular momentum of product 2 is stored.
+ */
 
 void afsi_compute_product_momenta_2d(
     int i, real mprod1, real mprod2, int prodmomspace,
@@ -599,7 +610,7 @@ void afsi_compute_product_momenta_2d(
 }
 
 /**
- * @brief Sample velocities from reactant distributions.
+ * @brief Sample momenta from reactant distributions.
  *
  * @param react1 reactant 1 distribution data.
  * @param react2 reactant 2 distribution data.
@@ -759,6 +770,72 @@ void afsi_sample_thermal_2d(sim_data* sim, int ispecies, real mass, int nsample,
         ppara[i] = r4 * sqrt(2 * E * mass);
     }
 }
+
+/**
+ * @brief Sample momenta from reactant distributions. Alternative version for rejection sampling
+ *
+ * @param react1 reactant 1 distribution data.
+ * @param react2 reactant 2 distribution data.
+ * @param m1 mass of reactant 1 [kg].
+ * @param m2 mass of reactant 2 [kg].
+ * @param n number of samples.
+ * @param iR R index of the distribution cell where sampling is done.
+ * @param iphi phi index of the distribution cell where sampling is done.
+ * @param iz z index of the distribution cell where sampling is done.
+ * @param r radial coordinate [m].
+ * @param phi azimuthal coordinate [rad].
+ * @param z vertical coordinate [m].
+ * @param time time [s].
+ * @param rho plasma density [m^-3].
+ * @param cumdist_all array with cumulative distribution function values for all cells.
+ * 
+ * @param density1 array where the density of react1 will be stored
+ * @param density2 array where the density of react2 will be stored
+ * @param ppara1 array where the parallel momentum of react1 will be stored
+ * @param pperp1 array where the perpendicular momentum of react1 will be stored
+ * @param ppara2 array where the parallel momentum of react2 will be stored
+ * @param pperp2 array where the perpendicular momentum of react2 will be stored
+ */
+
+void afsi_sample_reactant_momenta_2d_alt(
+    sim_data* sim, afsi_data* afsi, real mass1, real mass2, real vol,
+    int nsample, size_t i0, size_t i1, size_t i2,
+    real r, real phi, real z, real time, real rho, real* cumdist_all,
+    real* density1, real* ppara1, real* pperp1,
+    real* density2, real* ppara2, real* pperp2) {
+    if(afsi->type1 == 1) {
+        size_t offset = (i0*afsi->volshape[1]*afsi->volshape[2]+ i1*afsi->volshape[2] + i2) * (afsi->beam1->axes[5].n*afsi->beam1->axes[6].n);
+        real* cumdist = &cumdist_all[offset];
+        afsi_sample_beam_2d_alt(afsi->beam1, mass1, vol, nsample, i0, i1, i2, cumdist,
+                            density1, ppara1, pperp1);
+    }
+    else if(afsi->type1 == 2) {
+        afsi_sample_thermal_2d(sim, afsi->thermal1, mass1, nsample, r, phi, z,
+                               time, rho, density1, ppara1, pperp1);
+    }
+    if(afsi->type2 == 1) {
+        size_t offset = (i0*afsi->volshape[1]*afsi->volshape[2]+ i1*afsi->volshape[2] + i2) * (afsi->beam1->axes[5].n*afsi->beam1->axes[6].n);
+        real* cumdist = &cumdist_all[offset];
+        afsi_sample_beam_2d_alt(afsi->beam2, mass2, vol, nsample, i0, i1, i2, cumdist,
+                            density2, ppara2, pperp2);
+    }
+    else if(afsi->type2 == 2) {
+        afsi_sample_thermal_2d(sim, afsi->thermal2, mass2, nsample, r, phi, z,
+                               time, rho, density2, ppara2, pperp2);
+    }
+}
+
+/**
+ * @brief Sample ppara and pperp from a 5D distribution. Alternative version for rejection sampling.
+ *
+ * @param dist pointer to the distribution data.
+ * @param nsample number of values to be sampled.
+ * @param spatial_index spatial index where sampling is done.
+ * @param cumdist pointer to the starting point of cumulative distribution function values for the current spatial index.
+ * @param ppara pointer to array where sampled parallel momenta are stored.
+ * @param pperp pointer to array where sampled perpedicular momenta are stored.
+ */
+
 void afsi_sample_beam_2d_alt(histogram* hist, real mass, real vol, int nsample,
                          size_t i0, size_t i1, size_t i2, real* cumdist,
                          real* density, real* ppara, real* pperp) {
@@ -822,30 +899,16 @@ void afsi_sample_beam_2d_alt(histogram* hist, real mass, real vol, int nsample,
     }
 }
 
-void afsi_sample_reactant_momenta_2d_alt(
-    sim_data* sim, afsi_data* afsi, real mass1, real mass2, real vol,
-    int nsample, size_t i0, size_t i1, size_t i2,
-    real r, real phi, real z, real time, real rho, real* cumdist_all,
-    real* density1, real* ppara1, real* pperp1,
-    real* density2, real* ppara2, real* pperp2) {
-    if(afsi->type1 == 1) {
-        size_t offset = (i0*afsi->volshape[1]*afsi->volshape[2]+ i1*afsi->volshape[2] + i2) * (afsi->beam1->axes[5].n*afsi->beam1->axes[6].n);
-        real* cumdist = &cumdist_all[offset];
-        afsi_sample_beam_2d_alt(afsi->beam1, mass1, vol, nsample, i0, i1, i2, cumdist,
-                            density1, ppara1, pperp1);
-    }
-    else if(afsi->type1 == 2) {
-        afsi_sample_thermal_2d(sim, afsi->thermal1, mass1, nsample, r, phi, z,
-                               time, rho, density1, ppara1, pperp1);
-    }
-    if(afsi->type2 == 1) {
-        size_t offset = (i0*afsi->volshape[1]*afsi->volshape[2]+ i1*afsi->volshape[2] + i2) * (afsi->beam1->axes[5].n*afsi->beam1->axes[6].n);
-        real* cumdist = &cumdist_all[offset];
-        afsi_sample_beam_2d_alt(afsi->beam2, mass2, vol, nsample, i0, i1, i2, cumdist,
-                            density2, ppara2, pperp2);
-    }
-    else if(afsi->type2 == 2) {
-        afsi_sample_thermal_2d(sim, afsi->thermal2, mass2, nsample, r, phi, z,
-                               time, rho, density2, ppara2, pperp2);
-    }
+/**
+ * @brief Convert magnetic field from cylindrical to Cartesian coordinates.
+ *
+ * @param B_cart pointer to the output Cartesian magnetic field vector.
+ * @param B_cyl pointer to the input cylindrical magnetic field vector.
+ * @param r radial coordinate in cylindrical coordinates [m].
+ * @param phi azimuthal coordinate in cylindrical coordinates [rad].
+ */
+void B_field_cyl_to_cartesian(real* B_cart, real* B_cyl, real r, real phi){
+    B_cart[0] = B_cyl[0] * cos(phi) - B_cyl[1] * sin(phi);
+    B_cart[1] = B_cyl[0] * sin(phi) + B_cyl[1] * cos(phi);
+    B_cart[2] = B_cyl[2];
 }
