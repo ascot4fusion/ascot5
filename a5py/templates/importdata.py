@@ -1019,7 +1019,7 @@ class ImportData():
 
         # We load also the frequency and the toroidal mode number.
         out["omega"] = omega_sign * ds.frequency.values * 2*np.pi
-        out["ntor"] = ntor_sign * ds.n_tor.values
+        out["ntor"] = int(ntor_sign * ds.n_tor.values)
         out["rmin"] = rmin
         out["rmax"] = rmax
         out["zmin"] = zmin
