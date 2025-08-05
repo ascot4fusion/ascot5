@@ -339,8 +339,8 @@ class LibProviders():
             new_kwargs['rmax'] = kwargs['rmax']
             new_kwargs['zmin'] = kwargs['zmin']
             new_kwargs['zmax'] = kwargs['zmax']
-            new_kwargs['omega'] = kwargs['omega']
-            new_kwargs['ntor'] = kwargs['ntor']
+            new_kwargs['omega'] = ctypes.c_double(kwargs['omega'])
+            new_kwargs['ntor'] = ctypes.c_int32(kwargs['ntor'])
             
         elif 'Er_real' in kwargs:
             for name in list_of_names:
