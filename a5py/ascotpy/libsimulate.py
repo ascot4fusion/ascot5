@@ -125,6 +125,7 @@ class LibSimulate():
         diag.distCOM_collect   = int(opt["ENABLE_DIST_COM"]) * 0   # Not impl.
         diag.diagtrcof_collect = int(opt["ENABLE_TRANSCOEF"]) * 0  # Not impl.
         diag.diagorb_collect   = int(opt["ENABLE_ORBITWRITE"])
+        diag.diagene_collect   = int(opt["ENABLE_ENERGY_TRANSFER_DIAG"])
 
         diagorb = diag.diagorb
         diagorb.mode          = int(opt["ORBITWRITE_MODE"])
@@ -421,7 +422,14 @@ class LibSimulate():
 
         # Initialize diagnostics array and endstate
         self._endstate = ctypes.pointer(_get_struct_class("particle_state")())
-        ascot2py.diag_init(ctypes.byref(self._sim.diag_data), self._nmrk)
+        # ascot2py.diag_init(ctypes.byref(self._sim.diag_data), self._nmrk)
+
+        # if self._sim.diag_data.diagene_collect:
+        #     ascot2py.diag_energy_exchange_init(
+        #         ctypes.byref(self._sim.diag_data.diagene), n_proc,
+        #         ctypes.byref(self._sim.boozer_data), ctypes.byref(self._sim.B_data),
+        #         ctypes.byref(self._sim.mhd_data.stat), ctypes.byref(self._sim.plasma_data))
+
         self._diag_occupied = True
 
         # Simulate and print stdout/stderr if requested

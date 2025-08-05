@@ -295,7 +295,7 @@ void mpi_gather_particlestate(
  */
 void mpi_gather_diag(diag_data* data, int ntotal, int mpi_rank, int mpi_size,
                      int mpi_root) {
-#ifdef MPI
+#if defined(MPI) && !defined(NO_DIAG_MPI)
 
     if(data->dist5D_collect) {
         MPI_Reduce(

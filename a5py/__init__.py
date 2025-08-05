@@ -388,6 +388,13 @@ class Ascot(Ascotpy):
             
         if (opt["SIM_MODE"] in (2, 3)) and 'rffields' in self.data:
             msg += ["Error: RF fields not supported for field-line or GC markers"]
+        
+        if opt['ENABLE_ENERGY_TRANSFER_DIAG'] and (opt['SIM_MODE'] == 3):
+            msg += ["Error: Energy transfer diagnostic not supported for field-line model"]
+        
+        if opt["ENABLE_ENERGY_TRANSFER_DIAG"] and (3 * self.data.marker.active.read()["n"] * 8 > high_memory_consumption):
+            msg += ["Warning: Energy transfer diagnostic memory consumption high (~" +
+                    str(int(3 * self.data.marker.active.read()["n"] * 8 / 1e9)) + "Gb)"]
 
         return msg
 

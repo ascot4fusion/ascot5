@@ -52,5 +52,15 @@ a5err mhd_stat_perturbations(
     int includemode, boozer_data* boozerdata, mhd_stat_data* mhddata,
     B_field_data* Bdata);
 
+DECLARE_TARGET_SIMD_UNIFORM(mhddata, mode)
+a5err mhd_stat_eval_potentials(real *alpha, real *phi, real psi, int mode,
+                               mhd_stat_data* mhddata);
+
+DECLARE_TARGET_SIMD_UNIFORM(boozerdata, mhddata, Bdata, pertonly, includemode)
+a5err mhd_stat_eval_perturbations_dt(real pert_field[14], real r, real phi, real z,
+                                     real t, int pertonly, int includemode,
+                                     boozer_data* boozerdata, mhd_stat_data* mhddata,
+                                     B_field_data* Bdata);
+
 
 #endif

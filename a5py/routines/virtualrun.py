@@ -18,7 +18,7 @@ class VirtualRun(RunMixin):
     """
 
     def __init__(self, ascot, nmrk, inistate, endstate, options, markers,
-                 diagorb=None, dist5d=None, dist5drho=None):
+                 diagorb=None, dist5d=None, dist5drho=None, energy_transfer=None):
         """Initialize fields that allow this instance to replicate
         :class:`RunGroup` behavior.
 
@@ -60,6 +60,9 @@ class VirtualRun(RunMixin):
             self._orbit = VirtualOrbits(ascot, ascot._nmrk, diagorb)
         if dist5d is not None:
             self._dist5d = VirtualDist("5d", dist5d)
+
+        if energy_transfer is not None:
+            self.energy_transfer = VirtualEnergyTransfer(energy_transfer)
 
 class VirtualBBNBIRun(BBNBIMixin):
     """Virtual :class:`BBNBIGroup` whose data exists solely in the memory.
@@ -367,6 +370,20 @@ class VirtualOrbits():
                 _val("z", mask=mask), time[mask], *[q])
 
         return Orbits._getactual(mass, time, connlen, mode, _val, _eval, *qnt)
+
+class VirtualEnergyTransfer():
+    """
+    Interfaces the energy transfer diagnostic from the C code to Python.
+    """
+    def __init__(self, energy_transfer):
+        """Initialize the energy transfer diagnostic.
+
+        Parameters
+        ----------
+        energy_transfer : ctypes.Structure
+            The energy transfer diagnostic structure from the C code.
+        """
+        self.energy_transfer = energy_transfer
 
 class VirtualDist(Dist):
     """Distribution shared by C and Python.

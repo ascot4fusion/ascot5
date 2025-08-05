@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <hdf5.h>
 #include <hdf5_hl.h>
+#include <string.h>
 #include "../ascot5.h"
 #include "../consts.h"
 #include "../diag.h"
@@ -234,6 +235,10 @@ int hdf5_options_read(hid_t file, sim_data* sim, char* qid){
     if( hdf5_read_double(OPTPATH "ENABLE_TRANSCOEF", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     diag->diagtrcof_collect = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "ENABLE_ENERGY_TRANSFER_DIAG", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    diag->diagene_collect = (int)tempfloat;
+
 
     /* Read individual diagnostics data */
     if(diag->dist5D_collect) {

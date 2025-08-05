@@ -49,3 +49,42 @@ class OptionTemplates():
              "ORBITWRITE_NPOINT":100, "ORBITWRITE_INTERVAL":0,}
         )
         return ("opt", out)
+    
+    def options_gctracer(self, tmax: float, npoints=200):
+        """Generate options to trace markers for a fixed number of orbits.
+
+        Collisionless orbits are traced only for a single poloidal transit,
+        and their orbits are recorded.
+
+        Parameters
+        ----------
+        tmax : float
+            Maximum simulation time in seconds.
+        npoints : int, optional
+            Number of points to record in the orbit. Default is 200.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        out = Opt.get_default()
+        out.update({
+            "ENABLE_ORBIT_FOLLOWING":1,
+            "ENABLE_ORBITWRITE": 1,
+            "ORBITWRITE_MODE":1,
+            "ORBITWRITE_INTERVAL": tmax / npoints,
+            "ORBITWRITE_TOROIDALANGLES":0.0,
+            "ORBITWRITE_POLOIDALANGLES":0.0,
+            "ORBITWRITE_NPOINT": npoints,
+            "ENDCOND_MAX_POLOIDALORBS":1,
+            "ENDCOND_MAX_TOROIDALORBS":1000,
+            "ENDCOND_MAXORBS":1,
+            "SIM_MODE":2,
+            "ENABLE_ADAPTIVE":1,
+            "ENDCOND_MAX_MILEAGE": tmax,
+        })
+        return ("opt", out)

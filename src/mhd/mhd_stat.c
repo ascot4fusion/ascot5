@@ -311,3 +311,246 @@ a5err mhd_stat_perturbations(real pert_field[7], real r, real phi, real z,
 
     return err;
 }
+
+/**
+ * @brief Evaluate perturbed fields Btilde, Etilde and potential Phi explicitly,
+ * and its time derivatives.
+ *
+ * The values are stored in the given array as
+ * - pert_field[0] = BtildeR
+ * - pert_field[1] = BtildePhi
+ * - pert_field[2] = BtildeZ
+ * - pert_field[3] = EtildeR
+ * - pert_field[4] = EtildePhi
+ * - pert_field[5] = EtildeZ
+ * - pert_field[6] = Phi
+ * - pert_field[7] = dBtildeR/dt
+ * - pert_field[8] = dBtildePhi/dt
+ * - pert_field[9] = dBtildeZ/dt
+ * - pert_field[10] = dEtildeR/dt
+ * - pert_field[11] = dEtildePhi/dt
+ * - pert_field[12] = dEtildeZ/dt
+ * - pert_field[13] = dPhi/dt
+ *
+ * Only the perturbation values for the magnetic field are returned if
+ * pertonly=1, otherwise, the total perturbed field is returned. This is done to
+ * avoid double evaluation of the magnetic field e.g. in field line tracing.
+ * For electric field only the perturbation component is returned always.
+ *
+ * @param pert_field perturbation field components
+ * @param r R coordinate [m]
+ * @param phi phi coordinate [rad]
+ * @param z z coordinate [m]
+ * @param t time coordinate [s]
+ * @param pertonly flag whether to return the whole field or only perturbation
+ * @param includemode mode number to include or MHD_INCLUDE_ALL
+ * @param boozerdata pointer to boozer data
+ * @param mhddata pointer to mhd data
+ * @param Bdata pointer to magnetic field data
+ *
+ * @return Non-zero a5err value if evaluation failed, zero otherwise
+ */
+a5err mhd_stat_eval_perturbations_dt(real pert_field[14], real r, real phi, real z,
+                                    real t, int pertonly, int includemode,
+                                    boozer_data* boozerdata, mhd_stat_data* mhddata,
+                                    B_field_data* Bdata){
+    a5err err = 0;
+    real ptz[12];
+    real gradalpha[3];
+    real gradphipot[3];
+    real gradalpha_dt[3];
+    real gradphipot_dt[3];
+    real phipot, phipot_dt;
+    real alpha, alpha_dt, alpha_dt2;
+    int isinside;
+    if(!err) {
+        err = boozer_eval_psithetazeta(ptz, &isinside, r, phi, z, Bdata,
+                                       boozerdata);
+    }
+    real rho[2];
+    if(!err && isinside) {
+        err = B_field_eval_rho(rho, ptz[0], Bdata);
+    }
+    
+    real B_dB[15];
+    if(!err) {
+        err = B_field_eval_B_dB(B_dB, r, phi, z, t, Bdata);
+    }
+
+    /* Get interpolated values */
+    real a_da[3], phi_dphi[3];
+    int interperr = 0;
+    interperr += interp1Dcomp_eval_df(a_da, &(mhddata->alpha_nm[includemode]),
+                                        rho[0]);
+    interperr += interp1Dcomp_eval_df(phi_dphi, &(mhddata->phi_nm[includemode]),
+                                        rho[0]);
+    if(interperr) {
+        a_da[0] = 0;
+        a_da[1] = 0;
+        a_da[2] = 0;
+        phi_dphi[0] = 0;
+        phi_dphi[1] = 0;
+        phi_dphi[2] = 0;
+    }
+
+    /* The interpolation returns dx/drho but we require dx/dpsi.
+        * The second order derivatives are not needed anywhere */
+    a_da[1]     *= rho[1];
+    phi_dphi[1] *= rho[1];
+
+    /* These are used frequently, so store them in separate variables */
+    real mhdarg = mhddata->nmode[includemode] * ptz[8]
+        - mhddata->mmode[includemode] * ptz[4]
+        - mhddata->omega_nm[includemode] * t
+        + mhddata->phase_nm[includemode];
+    real sinmhd = sin(mhdarg);
+    real cosmhd = cos(mhdarg);
+
+    /* Getting the potentials */
+    alpha  =     a_da[0] * mhddata->amplitude_nm[includemode] * cosmhd;
+    phipot = phi_dphi[0] * mhddata->amplitude_nm[includemode] * cosmhd;
+
+    /* Time derivatives */
+    alpha_dt =     a_da[0] * mhddata->amplitude_nm[includemode]
+        * mhddata->omega_nm[includemode] * sinmhd;
+    phipot_dt = phi_dphi[0] * mhddata->amplitude_nm[includemode]
+        * mhddata->omega_nm[includemode] * sinmhd;
+
+    /* Second time derivative: the sign comes from the -omega*t term in the sin() */
+    real omega_nm2 = mhddata->omega_nm[includemode] * mhddata->omega_nm[includemode];
+    alpha_dt2 =  -  a_da[0] * mhddata->amplitude_nm[includemode]
+        * omega_nm2 * cosmhd;
+
+    /* R component of gradients */
+    gradalpha[0] = mhddata->amplitude_nm[includemode]
+        * (  a_da[1] * ptz[1] * cosmhd
+            + a_da[0] * mhddata->mmode[includemode] * ptz[5] * sinmhd
+            - a_da[0] * mhddata->nmode[includemode] * ptz[9] * sinmhd);
+    gradphipot[0] = mhddata->amplitude_nm[includemode]
+        * (   phi_dphi[1] * ptz[1] * cosmhd
+            + phi_dphi[0] * mhddata->mmode[includemode] * ptz[5] * sinmhd
+            - phi_dphi[0] * mhddata->nmode[includemode] * ptz[9] * sinmhd);
+
+    /* phi component of gradients */
+    gradalpha[1] = (1/r) * mhddata->amplitude_nm[includemode]
+        * (  a_da[1] * ptz[2] * cosmhd
+            + a_da[0] * mhddata->mmode[includemode] * ptz[6]  * sinmhd
+            - a_da[0] * mhddata->nmode[includemode] * ptz[10] * sinmhd);
+    gradphipot[1] = (1/r) * mhddata->amplitude_nm[includemode]
+        * (   phi_dphi[1] * ptz[2] * cosmhd
+            + phi_dphi[0] * mhddata->mmode[includemode] * ptz[6]  * sinmhd
+            - phi_dphi[0] * mhddata->nmode[includemode] * ptz[10] * sinmhd);
+
+    /* z component of gradients */
+    gradalpha[2] = mhddata->amplitude_nm[includemode]
+        * (   a_da[1] * ptz[3] * cosmhd
+            + a_da[0] * mhddata->mmode[includemode] * ptz[7]  * sinmhd
+            - a_da[0] * mhddata->nmode[includemode] * ptz[11] * sinmhd);
+    gradphipot[2] = mhddata->amplitude_nm[includemode]
+        * (   phi_dphi[1] * ptz[3] * cosmhd
+            + phi_dphi[0] * mhddata->mmode[includemode] * ptz[7]  * sinmhd
+            - phi_dphi[0] * mhddata->nmode[includemode] * ptz[11] * sinmhd);
+
+    /* Time derivatives of gradients */
+    /* R component of gradients */
+    gradalpha_dt[0] = mhddata->amplitude_nm[includemode] * mhddata->omega_nm[includemode]
+        * (  a_da[1] * ptz[1] * sinmhd
+            - a_da[0] * mhddata->mmode[includemode] * ptz[5] * cosmhd
+            + a_da[0] * mhddata->nmode[includemode] * ptz[9] * cosmhd);
+
+    gradphipot_dt[0] = mhddata->amplitude_nm[includemode] * mhddata->omega_nm[includemode]
+        * (   phi_dphi[1] * ptz[1] * sinmhd
+            - phi_dphi[0] * mhddata->mmode[includemode] * ptz[5] * cosmhd
+            + phi_dphi[0] * mhddata->nmode[includemode] * ptz[9] * cosmhd);
+
+    /* phi component of gradients */
+    gradalpha_dt[1] = (1/r) * mhddata->amplitude_nm[includemode] * mhddata->omega_nm[includemode]
+        * (  a_da[1] * ptz[2] * sinmhd
+            - a_da[0] * mhddata->mmode[includemode] * ptz[6]  * cosmhd
+            + a_da[0] * mhddata->nmode[includemode] * ptz[10] * cosmhd);
+
+    gradphipot_dt[1] = (1/r) * mhddata->amplitude_nm[includemode] * mhddata->omega_nm[includemode]
+        * (   phi_dphi[1] * ptz[2] * sinmhd
+            - phi_dphi[0] * mhddata->mmode[includemode] * ptz[6]  * cosmhd
+            + phi_dphi[0] * mhddata->nmode[includemode] * ptz[10] * cosmhd);
+
+    /* z component of gradients */
+    gradalpha_dt[2] = mhddata->amplitude_nm[includemode] * mhddata->omega_nm[includemode]
+        * (   a_da[1] * ptz[3] * sinmhd
+            - a_da[0] * mhddata->mmode[includemode] * ptz[7]  * cosmhd
+            + a_da[0] * mhddata->nmode[includemode] * ptz[11] * cosmhd);
+
+    gradphipot_dt[2] = mhddata->amplitude_nm[includemode] * mhddata->omega_nm[includemode]
+        * (   phi_dphi[1] * ptz[3] * sinmhd
+            - phi_dphi[0] * mhddata->mmode[includemode] * ptz[7]  * cosmhd
+            + phi_dphi[0] * mhddata->nmode[includemode] * ptz[11] * cosmhd);
+    real B[3];
+    B[0] = B_dB[0];
+    B[1] = B_dB[4];
+    B[2] = B_dB[8];
+
+    real curlB[3];
+    curlB[0] = B_dB[10]/r - B_dB[7];
+    curlB[1] = B_dB[3] - B_dB[9];
+    curlB[2] = (B[1] - B_dB[2])/r + B_dB[5];
+
+    real gradalphacrossB[3];
+    math_cross(gradalpha, B, gradalphacrossB);
+
+    real gradalphadt_x_B[3];
+    math_cross(gradalpha_dt, B, gradalphadt_x_B);
+
+    /** Fields */
+    pert_field[0] = alpha*curlB[0] + gradalphacrossB[0];
+    pert_field[1] = alpha*curlB[1] + gradalphacrossB[1];
+    pert_field[2] = alpha*curlB[2] + gradalphacrossB[2];
+
+    pert_field[3] = -gradphipot[0] - B[0]*alpha_dt;
+    pert_field[4] = -gradphipot[1] - B[1]*alpha_dt;
+    pert_field[5] = -gradphipot[2] - B[2]*alpha_dt;
+    pert_field[6] = phipot;
+
+    /** Instantaneous field evolution */
+    pert_field[7] = alpha_dt * curlB[0] + gradalphadt_x_B[0];
+    pert_field[8] = alpha_dt * curlB[1] + gradalphadt_x_B[1];
+    pert_field[9] = alpha_dt * curlB[2] + gradalphadt_x_B[2];
+    pert_field[10] = - gradphipot_dt[0] - B[0]*alpha_dt2;
+    pert_field[11] = - gradphipot_dt[1] - B[1]*alpha_dt2;
+    pert_field[12] = - gradphipot_dt[2] - B[2]*alpha_dt2;
+    pert_field[13] = phipot_dt;
+
+    if(!pertonly) {
+        pert_field[0] += B[0];
+        pert_field[1] += B[1];
+        pert_field[2] += B[2];
+    }
+
+    return err;                                    
+}
+
+/**
+ * @brief Evaluate the potentials alpha and phi at a given psi value
+ *
+ * The values are stored in the given array as:
+ * - alpha_nm[0] = alpha
+ * - phi_nm[0] = phi
+ *
+ * @param alpha alpha value at the position where psi is evaluated
+ * @param phi phi value at the position where psi is evaluated
+ * @param psi psi value for which the potentials are evaluated
+ * @param mode mode index to evaluate
+ * @param mhddata pointer to mhd data
+ *
+ * @return Non-zero a5err value if evaluation failed, zero otherwise
+ */
+a5err mhd_stat_eval_potentials(real *alpha, real *phi, real psi, int mode,
+                                mhd_stat_data* mhddata) {
+    a5err err = 0;
+
+    if(psi )
+
+    err += interp1Dcomp_eval_f(alpha, &(mhddata->alpha_nm[mode]), psi);
+    err += interp1Dcomp_eval_f(phi, &(mhddata->phi_nm[mode]), psi);
+
+    return err;
+}

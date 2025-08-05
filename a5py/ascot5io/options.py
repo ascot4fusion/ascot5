@@ -138,6 +138,7 @@ class Opt(DataGroup):
         self._OPT_TRANSCOEF_INTERVAL         = 0.0
         self._OPT_TRANSCOEF_NAVG             = 5
         self._OPT_TRANSCOEF_RECORDRHO        = 0
+        self._OPT_ENABLE_ENERGY_TRANSFER_DIAG = 0
 
     @property
     def _SIM_MODE(self):
@@ -855,6 +856,15 @@ class Opt(DataGroup):
         meters.
         """
         return self._OPT_TRANSCOEF_RECORDRHO
+    
+    @property
+    def _ENABLE_ENERGY_TRANSFER_DIAG(self):
+        """Enable energy transfer diagnostics.
+
+        - 0 Energy transfer diagnostics are not collected
+        - 1 Energy transfer diagnostics are collected
+        """
+        return self._OPT_ENABLE_ENERGY_TRANSFER_DIAG
 
     def read(self):
         """Read data from HDF5 file.
@@ -894,7 +904,10 @@ class Opt(DataGroup):
 
         for o in defopt.keys():
             if o not in out:
-                raise ValueError("Missing parameter: " + o)
+                if o == 'ENABLE_ENERGY_TRANSFER_DIAG':
+                    out['ENABLE_ENERGY_TRANSFER_DIAG'] = 0
+                else:
+                    raise ValueError("Missing parameter: " + o)
 
         return out
 
@@ -976,6 +989,8 @@ class Opt(DataGroup):
                     out.extend(makebanner("ORBIT WRITE"))
                 elif name == "ENABLE_TRANSCOEF":
                     out.extend(makebanner("TRANSPORT COEFFICIENT"))
+                elif name == "ENABLE_ENERGY_TRANSFER_DIAG":
+                    out.extend(makebanner("ENERGY TRANSFER DIAGNOSTICS"))
 
                 # Clean docstrings a little bit by removing extra whispace and
                 # empty lines.
