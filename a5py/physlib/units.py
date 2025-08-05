@@ -3,6 +3,7 @@ import warnings
 
 import unyt
 import numpy as np
+import inspect
 
 def parseunits(strip=False, **units):
     """Prepare arguments that are expected to have physical units.
@@ -36,9 +37,8 @@ def parseunits(strip=False, **units):
     def actualdecorator(fun):
         """Parse fun arguments that are expected to have units.
         """
-        argnames = list(fun.__code__.co_varnames)
-        if "self" in argnames:
-            argnames.remove("self")
+        sig = inspect.signature(fun)
+        argnames = [k for k in sig.parameters if k != 'self']
 
         def checkandstrip(val, unit, name, assignedunits):
             """Check units of a given argument and strip if needed.
@@ -65,19 +65,19 @@ def parseunits(strip=False, **units):
         def wrapper(*args, **kwargs):
             """Replace args and kwargs with parsed arguments when necessary.
             """
-            parsedargs = [None]*len(args)
-            assignedunits = {} # Dimensionless units with assigned units
-            for i, name in enumerate(argnames):
-                if i == len(args): break
+            bound_args = inspect.signature(fun).bind(*args, **kwargs)
+            bound_args.apply_defaults()
+            
+            assignedunits = {}
+            for name, val in bound_args.arguments.items():
                 if name in units:
-                    parsedargs[i] = checkandstrip(args[i], units[name],
-                                                  name, assignedunits)
-                else:
-                    parsedargs[i] = args[i]
-            for name, val in kwargs.items():
-                if name in units:
-                    kwargs[name] = checkandstrip(kwargs[name], units[name],
-                                                 name, assignedunits)
+                    bound_args.arguments[name] = checkandstrip(val, units[name], name, assignedunits)
+
+            # for name, val in kwargs.items():
+            #     if name in units:
+            #         kwargs[name] = checkandstrip(kwargs[name], units[name],
+            #                                      name, assignedunits)
+
             if len(assignedunits) > 0:
                 msg1 = "Argument(s) "
                 msg2 = " given without dimensions (assumed "
@@ -87,7 +87,7 @@ def parseunits(strip=False, **units):
                 msg = msg1[:-2] + msg2[:-2] + ")"
                 warnings.warn(msg, UserWarning)
 
-            return fun(*parsedargs, **kwargs)
+            return fun(*bound_args.args, **bound_args.kwargs)
 
         return wrapper
 
