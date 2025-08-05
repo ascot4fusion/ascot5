@@ -18,7 +18,7 @@
 #include "../../particle.h"
 #include "../../rf_fields_fo.h"
 #include "step_fo_vpa.h"
-
+#include <string.h>
 
 /**
  * @brief Set the function to push the particles
