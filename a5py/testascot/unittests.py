@@ -799,7 +799,11 @@ class TestMoments(unittest.TestCase):
                                                   state="ini")
         ef, tf = a5.data.active.getstate("ekin", "mileage", state="end")
         dt = np.diff(time, prepend=0)
-        dt = dt*unyt.s
+
+        # In the online test, dt seems to have units of s already, whereas, when
+        # running locally, dt has no units
+        oldunit = dt.units
+        dt = dt/oldunit*unyt.s
 
         k, nu = a5.input_eval_collcoefs(
             mass[0], charge[0], r, phi, z, time, vnorm, "k", "nu",
