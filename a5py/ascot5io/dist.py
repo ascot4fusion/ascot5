@@ -639,41 +639,52 @@ class Dist(DataContainer):
                 if k not in ["r", "z", "phi", "pperp", "ppar"]:
                     integrate[k] = np.s_[:]
         dist = dist.integrate(copy = True, **integrate)
-        ppa, ppe = np.meshgrid(dist.abscissa("ppar"),
-                               dist.abscissa("pperp"))
+        ppa, ppe = np.meshgrid(dist.abscissa("ppar"), dist.abscissa("pperp"),
+                               indexing="ij")
         pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
         vnorm = physlib.velocity_momentum(mass, pnorm).reshape(ppa.shape)
         vpa = ppa * vnorm / pnorm.reshape(ppa.shape)
         vpe = ppe * vnorm / pnorm.reshape(ppa.shape)
-        d = dist._copy()
-        d._multiply(vpa.T, "ppar", "pperp")
-        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
-        upa = d.histogram()
+
+        # Evaluate density (zeroth velocity moment)
         d = dist._copy()
         d.integrate(ppar=np.s_[:], pperp=np.s_[:])
-        n = d.histogram()
-        upa /= n
-        upa[n==0] = 0
+        N = d.histogram()      # Number of particles _per bin_ (not per volume)
+
+        # Evaluate first N<vpar>, then divide by number of particles per bin, N,
+        # to get <vpar>
         d = dist._copy()
-        d._multiply(vpa.T**2, "ppar", "pperp")
+        d._multiply(vpa, "ppar", "pperp")
         d.integrate(ppar=np.s_[:], pperp=np.s_[:])
-        vpa2 = d.histogram()
+        Nvpa_avg = d.histogram()   # numb. particles per bin times <v>
+        vpa_avg = Nvpa_avg/N
+        vpa_avg[N==0] = 0
+
+        # Get N<vpar^2>
         d = dist._copy()
-        d._multiply(vpa.T, "ppar", "pperp")
+        d._multiply(vpa**2, "ppar", "pperp")
         d.integrate(ppar=np.s_[:], pperp=np.s_[:])
-        vpa = d.histogram()
-        Ppa = mass*(vpa2 - 2*vpa*upa + upa**2) / 3
+        Nvpa2_avg = d.histogram()
+
+        # parallel pressure = m(n<vpar^2> - n<vpar>^2). Divide by volume per
+        # bin because N has units of particles per bin
+        Ppa = mass*(Nvpa2_avg-N*vpa_avg**2)/moment.volume
+        Ppa[N == 0] = 0         # Just to be sure
+        Ppa /= unyt.particles   # to get rid of the "particles"
+
+        # Get N<vper^2>
         d = dist._copy()
-        d._multiply(vpe.T**2, "ppar", "pperp")
+        d._multiply(vpe**2, "ppar", "pperp")
         d.integrate(ppar=np.s_[:], pperp=np.s_[:])
-        vpe2 = d.histogram()
-        d = dist._copy()
-        d._multiply(vpe.T, "ppar", "pperp")
-        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
-        vpe = d.histogram()
-        Ppe = mass*vpe2 / 3
+        Nvpe2_avg = d.histogram()
+
+        #Ppe = mass*(Nvpe2_avg-N*vpe_avg**2)/moment.volume
+        Ppe = mass*Nvpe2_avg/moment.volume
+        Ppe[N == 0] = 0         # Just to be sure
+        Ppe /= unyt.particles
+
         moment.add_ordinates(
-            pressure=np.sqrt(Ppa**2+2*Ppe**2).to("J") / moment.volume
+            pressure=1/3*(Ppa+2*Ppe).to("J/m**3")
         )
 
     @staticmethod

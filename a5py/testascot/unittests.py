@@ -790,11 +790,11 @@ class TestMoments(unittest.TestCase):
 
         rho, r, z, phi, psi, weight, time,  \
         charge, energy, vphi, vnorm, vpar,  \
-        mass, p, pitch, bnorm, bphi, ppar = \
+        mass, p, pitch, bnorm, bphi, ppar, vperp = \
             a5.data.active.getorbit("rho", "r", "z", "phi", "psi", "weight",
                                     "mileage", "charge", "ekin", "vphi",
                                     "vnorm", "vpar", "mass", "pnorm", "pitch",
-                                    "bnorm", "bphi", "ppar")
+                                    "bnorm", "bphi", "ppar", "vperp")
         ei, psii, Pphii = a5.data.active.getstate("ekin", "psi", "pphi",
                                                   state="ini")
         ef, tf = a5.data.active.getstate("ekin", "mileage", state="end")
@@ -822,11 +822,17 @@ class TestMoments(unittest.TestCase):
 
         a5.input_free()
 
+        # Despite of the misleading names, these correspond to the integrated
+        # quantities, e.g. energydensity is energy density integrated over space
+        # and time, in other words, the total kinetic energy
         mrkdist = {}
         mrkdist["density"]          = weight * dt
         mrkdist["chargedensity"]    = weight * charge * dt
         mrkdist["energydensity"]    = weight * (energy * dt).to("J*s")
-        mrkdist["pressure"]         = weight * (mass * vnorm**2*dt).to("J*s")/3
+        vparmean = np.mean(vpar)
+        parpres = weight *(mass*(vpar-vparmean)**2*dt).to("J*s")
+        perppres = weight *(mass*vperp**2*dt).to("J*s")
+        mrkdist["pressure"] = (parpres + 2*perppres)/3
         mrkdist["toroidalcurrent"]  = weight * ( charge * vphi * dt ).to("A*s*m")
         mrkdist["parallelcurrent"]  = weight * ( charge * vpar * dt ).to("A*s*m")
         mrkdist["powerdep"]         = weight * dEtot_d.to("J")
@@ -837,12 +843,19 @@ class TestMoments(unittest.TestCase):
         mrkdist["canmomtorque"]     = weight * -charge * dPphi
 
         print(weight[0]*tf)
-        print(((ef-ei)*weight[0]).to("W"))
+        print(f"sum(E_end - E_ini) = {((ef-ei)*weight[0]).to("W"):}")
+        print("="*100)
+        print(f"rzphimom.volume = {np.sum(mom.volume):f}")
+        print(f"rhomom.volume = {np.sum(rhomom.volume):f}")
+        print("Ordinate\nintegrated")
+        print(f"{"over space":<18s}|{"rhomom":<34s}|{"mom":<34s}|{"mrkdist":<34s}")
+        print("_"*120)
         for o in ordinates:
             a1 = np.sum(rhomom.ordinate(o) * rhomom.volume)
             a2 = np.sum(mom.ordinate(o) * mom.volume)
             a3 = np.sum(mrkdist[o])
-            print(o, a1, a2, a3)
+
+            print(f"{o:18s}|{a1.v:<21.15e} {str(a1.units):12s} {a2.v:<21.15e} {str(a2.units):12s} {a3.v:<21.15e} {str(a3.units):12s}")
 
 class TestPlotting(unittest.TestCase):
 
