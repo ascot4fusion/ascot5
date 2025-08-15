@@ -4,6 +4,7 @@ import copy
 import numpy as np
 import h5py
 import unyt
+import warnings
 
 from .coreio.treedata import DataGroup
 from .coreio.fileapi import read_data, add_group, write_data
@@ -96,7 +97,7 @@ class Marker(DataGroup):
 
     @openfigureifnoaxes(projection=None)
     def plot_hist_rhophi(self, ascotpy, rbins=10, pbins=10, weighted=False,
-                         axes=None):
+                         axes=None, logscale=False):
         """
         Plot marker rho-phi histogram
         """
@@ -106,9 +107,21 @@ class Marker(DataGroup):
 
         rho = self.eval_rho(ascotpy)
         phi = self.eval_phi()
+        nan_rho_mask = np.isnan(rho)
+        N_nans_in_rho = np.sum(nan_rho_mask)
+        N_markers = len(rho)
+        if N_nans_in_rho > 0:
+            warnings.warn(
+                f"\nNot showing {N_nans_in_rho:d} markers ({100.0*N_nans_in_rho/N_markers:.4f} % of all) that had rho=nan.\n"
+                "Verify the correctness of your psi input and consider "
+                "recalculating psi0 using input_findpsi0."
+            )
+            rho = rho[~nan_rho_mask]
+            phi = phi[~nan_rho_mask]
+            if weighted: weights = weights[~nan_rho_mask]
         hist2d(rho, xbins=rbins, y=phi, ybins=pbins,
                        weights=weights,
-                       logscale=False, xlabel="Normalized poloidal flux",
+                       logscale=logscale, xlabel="Normalized poloidal flux",
                        ylabel="Toroidal angle [deg]",
                        axes=axes)
 
