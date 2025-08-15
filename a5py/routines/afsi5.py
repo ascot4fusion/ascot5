@@ -158,7 +158,7 @@ class Afsi():
             theta = np.array([0, 180, 360]) if theta is None else theta
             vol, rc, phic, zc = self._ascot.input_rhovolume(
                 nrho=rho.size, ntheta=theta.size, nphi=phi.size, method="prism",
-                return_coords=True,
+                return_coords=True, minrho=rho[0], maxrho=rho[-1], minphi=phi[0], maxphi=phi[-1], mintheta=theta[0], maxtheta=theta[-1]
                 )
             phic = phic.ravel()
         else:

@@ -1105,7 +1105,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
 
     def input_rhovolume(self, nrho=10, ntheta=360, nphi=10, method="mc",
                         tol=1e-1, t=0*unyt.s, return_area=False,
-                        return_coords=False):
+                        return_coords=False, minrho=0, maxrho=1, minphi=0, maxphi=360, mintheta=0, maxtheta=360):
         """Evaluate flux surface volumes.
 
         Parameters
@@ -1160,9 +1160,9 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                 + " were given", (nrho, ntheta, nphi))
 
         # Grid edges and area and volume of the grid cells
-        rho    = np.linspace(0, 1,   nrho) * unyt.dimensionless
-        phi    = np.linspace(0, 2*np.pi, nphi) * unyt.rad
-        theta  = np.linspace(0, 2*np.pi, ntheta) * unyt.rad
+        rho    = np.linspace(minrho, maxrho,   nrho) * unyt.dimensionless
+        phi    = np.linspace(minphi, maxphi/180*np.pi, nphi) * unyt.rad
+        theta  = np.linspace(mintheta, maxtheta/180*np.pi, ntheta) * unyt.rad
         area   = np.zeros((nrho-1, ntheta-1, nphi-1)) * unyt.m**2
         volume = np.zeros((nrho-1, ntheta-1, nphi-1)) * unyt.m**3
 
