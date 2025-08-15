@@ -808,7 +808,7 @@ class LibAscot:
 
     @parseunits(psi1="Wb", phi="rad", phimin="rad", phimax="rad")
     def input_findpsi0(self, psi1, phi=0.0*unyt.rad, nphi=None, phimin=None,
-                       phimax=None):
+                       phimax=None, manual_pad=1e-9):
         """Find poloidal flux on axis value numerically.
 
         Before this function is called, the magnetic field data should contain
@@ -848,6 +848,11 @@ class LibAscot:
             Maximum of the phi interval.
 
             Needed for 3D fields.
+        manual_pad : float, optional
+            The magnitude of manual paddin that is applied to psi0 afterwards.
+            None by default but can be used when the default padding has not
+            been enough. This could manifest itself, e.g., as errors when
+            converting (rho,phi,theta) to (R,z) near the magnetic axis.
 
         Returns
         -------
@@ -900,6 +905,12 @@ class LibAscot:
 
             if np.isnan(psi[0]):
                 raise RuntimeError("Failed to converge.")
+
+            # Add manual padding
+            if psi1 > 0:
+                psi -= manual_pad*unyt.Wb
+            else:
+                psi += manual_pad*unyt.Wb
 
             return (rz[0], rz[1], psi)
         elif nphi is not None and phimin is not None and phimax is not None:
@@ -956,6 +967,12 @@ class LibAscot:
                 rzphiconverged[i,:] = rzphi
 
                 psi *= np.nan    #reset for next iteration
+
+            # Add manual padding
+            if psi1 > 0:
+                psiconverged -= manual_pad*unyt.Wb
+            else:
+                psiconverged += manual_pad*unyt.Wb
 
             return (rzphiconverged[:,0]*unyt.m, rzphiconverged[:,2],
                     rzphiconverged[:,1]*unyt.m, psiconverged[:])

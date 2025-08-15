@@ -1139,6 +1139,18 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             Return also the area on (R, z) plane.
         return_coords : bool, optional
             Return also the (R, phi, z) coordinates for grid center points.
+        minrho : float, optional
+            minimum value of rho
+        maxrho : float, optional
+            maximum value of rho
+        minphi : float, optional
+            minimum value of phi (in degrees)
+        maxphi : float, optional
+            maximum value of phi (in degrees)
+        mintheta : float, optional
+            minimum value of theta (in degrees)
+        maxtheta : float, optional
+            maximum value of theta (in degrees)
 
         Returns
         -------
