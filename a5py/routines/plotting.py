@@ -216,7 +216,8 @@ def getmathtextsciformatter(format):
 @openfigureifnoaxes(projection=None)
 def scatter2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
               xlabel=None, ylabel=None, clabel=None, cint=9, cmap=None,
-              axesequal=False, axes=None, cax=None):
+              axesequal=False, axes=None, cax=None, markersize=6.0, alpha=1.0,
+              title=None):
     """Make a scatter plot in 2D+1 where color can be one dimension.
 
     For better performance this function uses matplotlib's plot function instead
@@ -254,16 +255,24 @@ def scatter2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
         The axes where figure is plotted or otherwise new figure is created.
     cax : :obj:`~matplotlib.axes.Axes`, optional
         The color bar axes or otherwise taken from the main axes.
+    markersize : float, optional
+        size of the drawn markers
+    alpha : float, optional
+        Transparency (0: transparent, 1:opaque)
+    title : str, optional
+        title for the axes
     """
     axes.set_xscale(xlog)
     axes.set_yscale(ylog)
     axes.set_xlabel(xlabel)
     axes.set_ylabel(ylabel)
     if axesequal: axes.set_aspect("equal", adjustable="box")
+    if title is not None: axes.set_title(title)
 
     if c is None or isinstance(c, str):
         # Simple plot with a single color
-        axes.plot(x, y, color=c, linestyle="None", marker="o")
+        axes.plot(x, y, color=c, linestyle="None", marker="o",
+                  markersize=markersize, alpha=alpha)
         return
 
     # Sort inputs by color values and then find the indices that divide the
@@ -289,7 +298,7 @@ def scatter2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
     for i in range(nc):
         i2 = idx[i+1]
         axes.plot(x[i1:i2], y[i1:i2], color=cmap(i/nc), linestyle="None",
-                  marker="o")
+                  marker="o", markersize=markersize, alpha=alpha)
         i1 = i2
 
     # Make colorbar with where color scale has the intervals
@@ -297,7 +306,7 @@ def scatter2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
     smap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
     cbar = plt.colorbar(smap, ax=axes, cax=cax)
     ticks = []
-    for b in cint.v:
+    for b in cint:
         log = np.floor(np.log10(np.abs(b)))
         mul = b / 10**log
         ticks.append(r"$%.2f\times 10^{%.0f}$" % (mul, log))
@@ -308,7 +317,7 @@ def scatter2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
 def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
               clog="linear", xlabel=None, ylabel=None, zlabel=None, clabel=None,
               cint=None, cmap=None, axesequal=False, axes=None, cax=None,
-              markersize=6.0):
+              markersize=6.0, alpha=1.0, title=None):
     """Make a scatter plot in 3D+1 where color can be one dimension.
 
     For better performance this function uses matplotlib's plot function instead
@@ -354,6 +363,10 @@ def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
         The color bar axes or otherwise taken from the main axes.
     markersize: float, optional
         Sets the size of the markers. Bigger number, bigger marker.
+    alpha : float, optional
+        Transparency (0: transparent, 1:opaque)
+    title : str, optional
+        title for the axes
     """
     axes.set_xscale(xlog)
     axes.set_yscale(ylog)
@@ -375,10 +388,12 @@ def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
         axes.set_zlim(centers[2] - max_range, centers[2] + max_range)
         axes.set_aspect("equal", adjustable="box")
 
+    if title is not None: axes.set_title(title)
+
     if c is None or isinstance(c, str):
         # Simple plot with a single color
         axes.plot(x, y, z, color=c, linestyle="None", marker="o",
-                  markersize=markersize)
+                  markersize=markersize, alpha=alpha)
         return
 
     # Sort inputs by color values and then find the indices that divide the
@@ -407,7 +422,8 @@ def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
     for i in range(nc):
         i2 = idx[i+1]
         axes.plot(x[i1:i2], y[i1:i2], z[i1:i2], color=cmap(i/nc),
-                  linestyle="None", marker="o", markersize=markersize)
+                  linestyle="None", marker="o", markersize=markersize,
+                  alpha=alpha)
         i1 = i2
 
     # Make colorbar with where color scale has the intervals
@@ -416,7 +432,7 @@ def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
     cbar = plt.colorbar(smap, ax=axes, cax=cax)
 
     ticks = []
-    for b in cint.v:
+    for b in cint:
         log = np.floor(np.log10(np.abs(b)))
         mul = b / 10**log
         ticks.append(r"$%.2f\times 10^{%.0f}$" % (mul, log))
@@ -544,7 +560,7 @@ def hist2d(x, y, xbins=None, ybins=None, weights=None, xlog="linear",
 
 @openfigureifnoaxes(projection=None)
 def mesh1d(x, y, log=False, xlabel=None, ylabel=None, axes=False,
-           logscale=False):
+           logscale=False, label=None):
     """Plot 1D distribution.
 
     Parameters
@@ -561,6 +577,8 @@ def mesh1d(x, y, log=False, xlabel=None, ylabel=None, axes=False,
         The axes where figure is plotted or otherwise new figure is created.
     logscale: bool, optional
         Whether the plot is in logarithmic scale.
+    label : str, optional
+        Label if you are using a legend.
     """
     xc = np.zeros((y.size*2,))
     xc[1:-1:2] = x[1:-1]
@@ -576,7 +594,7 @@ def mesh1d(x, y, log=False, xlabel=None, ylabel=None, axes=False,
     axes.set_xlim(x[0], x[-1])
     if logscale:
         axes.set_yscale('log')
-    axes.plot(xc, yc)
+    axes.plot(xc, yc,label=label)
 
 @openfigureifnoaxes(projection=None)
 def mesh2d(x, y, z, logscale=False, diverging=False, xlabel=None, ylabel=None,
@@ -905,7 +923,7 @@ def surface3d(x_grid1d, y_grid1d, z_grid1d, qnt_grid1d=None, diverging=False,
     points = np.vstack((x_grid1d, y_grid1d, z_grid1d)).T
     mask = ~np.isnan(points).any(axis=1)
     points = points[mask]
-    if not qnt_grid1d==None: quantity = qnt_grid1d[mask]
+    if qnt_grid1d is not None: quantity = qnt_grid1d[mask]
 
     # Create the triangles
     alpha_shape = alphashape.alphashape(points, meshalpha)
@@ -913,7 +931,7 @@ def surface3d(x_grid1d, y_grid1d, z_grid1d, qnt_grid1d=None, diverging=False,
     vertices = np.array(alpha_shape.vertices)
 
     # Get the surface color from the desired quantity
-    if not qnt_grid1d==None:
+    if qnt_grid1d is not None:
         tree = cKDTree(points)
         _, idx = tree.query(vertices, k=1)
         vertex_quantity = quantity[idx]
@@ -952,7 +970,7 @@ def surface3d(x_grid1d, y_grid1d, z_grid1d, qnt_grid1d=None, diverging=False,
         vertices[triangles], facecolors=colors, edgecolor=tri_lc, lw=tri_lw,
         alpha=opacity)
 
-    if axes==None:
+    if axes is None:
         fig = plt.figure()
         axes = fig.add_subplot(111, projection='3d')
     axes.add_collection3d(mesh)
@@ -967,7 +985,7 @@ def surface3d(x_grid1d, y_grid1d, z_grid1d, qnt_grid1d=None, diverging=False,
     if axesequal:
         axes.set_aspect("equal", adjustable="box")
 
-    if not qnt_grid1d==None:
+    if qnt_grid1d is not None:
         plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=axes,
                  cax=cax, shrink=0.5, label=clabel)
 
@@ -1435,7 +1453,7 @@ def radialprofile(x, y1, y2=None, xlim=None, y1lim=None, y2lim=None,
     axleftlog.yaxis.set_ticks_position('left')
 
     axleftlog.tick_params(axis='y', which='minor', left=False)
-    axleftlin.yaxis.set_major_formatter(getmathtextsciformatter("%1.0e"))
+    axleftlin.yaxis.set_major_formatter(getmathtextsciformatter("%1.1e"))
 
     axleftlog.set_xlabel(xlabel)
     plt.setp(axleftlin.get_xticklabels(), visible=False)
