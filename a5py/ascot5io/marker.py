@@ -9,7 +9,7 @@ from .coreio.treedata import DataGroup
 from .coreio.fileapi import read_data, add_group, write_data
 
 from a5py.routines.plotting import openfigureifnoaxes
-from a5py.routines.plotting import hist2d
+from a5py.routines.plotting import hist2d, scatter2d, scatter3d
 from a5py.physlib import parseunits
 from a5py.physlib.species import species as getspecies
 
@@ -63,6 +63,37 @@ class Marker(DataGroup):
         mrk["n"] = pick.size
         return mrk
 
+    def eval_rho(self, ascotpy):
+        with self as h5:
+            r = read_data(h5, "r")
+            phi = read_data(h5, "phi")
+            z = read_data(h5, "z")
+        rho = ascotpy.input_eval(r, phi, z, 0, "rho")
+        return rho
+
+    def eval_r(self):
+        with self as h5:
+            r = read_data(h5, "r")
+        return r
+
+    def eval_phi(self):
+        with self as h5:
+            phi = read_data(h5, "phi")
+        return phi
+
+    def eval_z(self):
+        with self as h5:
+            z = read_data(h5, "z")
+        return z
+
+    def eval_rphiz(self):
+        """A function for those who are on a tight schedule."""
+        with self as h5:
+            r = read_data(h5, "r")
+            phi = read_data(h5, "phi")
+            z = read_data(h5, "z")
+        return (r, phi, z)
+
     @openfigureifnoaxes(projection=None)
     def plot_hist_rhophi(self, ascotpy, rbins=10, pbins=10, weighted=False,
                          axes=None):
@@ -74,7 +105,7 @@ class Marker(DataGroup):
             weights = self.read()["weight"]
 
         rho = self.eval_rho(ascotpy)
-        phi = self.eval_phi(ascotpy)
+        phi = self.eval_phi()
         hist2d(rho, xbins=rbins, y=phi, ybins=pbins,
                        weights=weights,
                        logscale=False, xlabel="Normalized poloidal flux",
@@ -107,6 +138,74 @@ class Marker(DataGroup):
                            logscale=False, xlabel="log10(Energy [eV])",
                            ylabel=r"Pitch [$p_\parallel/p$]",
                            axes=axes)
+
+    @openfigureifnoaxes(projection=None)
+    def plot_scatter_rz(self, ascotpy=None, weighted=False,
+                         axes=None, markersize=0.5, alpha=1.0):
+        """
+        Plot marker inistates in an (R,z) plane. If weighted, markers are coloured based on
+        their weight.
+
+        Parameters
+        ----------
+        ascotpy : Ascot object, optional
+            Not needed for GC.
+        weighted : boolean, optional
+            If true, points are coloured based on weight.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            If you think you have better axes.
+        markersize : float, optional
+            Size of scatter plot markers.
+        alpha : float, optional
+            Transparency parameter (0: transparent, 1: opaque)
+        """
+        weights = None
+        clabel=None
+        if weighted:
+            weights = self.read()["weight"]
+            clabel="marker weight [particles/s]"
+
+        (r, phi, z) = self.eval_rphiz()
+        scatter2d(x=r, y=z, c=weights, xlabel="R [m]",
+                  ylabel="z [m]", clabel=clabel, axes=axes,
+                  markersize=markersize, axesequal=True, alpha=alpha,
+                  title="Initial marker locations")
+
+
+    @openfigureifnoaxes(projection="3d")
+    def plot_scatter_xyz(self, ascotpy=None, weighted=False,
+                         axes=None, markersize=0.5, alpha=1.0):
+        """
+        Plot marker inistates in 3d. If weighted, markers are coloured based on
+        their weight.
+
+        Parameters
+        ----------
+        ascotpy : Ascot object, optional
+            Not needed for GC.
+        weighted : boolean, optional
+            If true, points are coloured based on weight.
+        axes : :obj:`~matplotlib.axes._subplots.Axes3D`, optional
+            If you think you have better axes.
+        markersize : float, optional
+            Size of scatter plot markers.
+        alpha : float, optional
+            Transparency parameter (0: transparent, 1: opaque)
+        """
+        weights = None
+        clabel=None
+        if weighted:
+            weights = self.read()["weight"]
+            clabel="marker weight [particles/s]"
+
+        (r, phi, z) = self.eval_rphiz()
+        x = r*np.cos(phi)
+        y = r*np.sin(phi)
+        scatter3d(x, y, z, c=weights, xlabel="x [m]",
+                  ylabel="y [m]", zlabel="z [m]", clabel=clabel, axes=axes,
+                  markersize=markersize, axesequal=True, alpha=alpha,
+                  title="Initial marker locations")
+
 
     @staticmethod
     def generate(mrktype, n, species=None):
@@ -331,18 +430,6 @@ class GC(Marker):
             pitch = read_data(h5, "pitch")
         return pitch
 
-    def eval_rho(self, ascotpy):
-        with self as h5:
-            r = read_data(h5, "r")
-            phi = read_data(h5, "phi")
-            z = read_data(h5, "z")
-        rho = ascotpy.input_eval(r, phi, z, 0, "rho")
-        return rho
-
-    def eval_phi(self, ascotpy):
-        with self as h5:
-            phi = read_data(h5, "phi")
-        return phi
 
     @staticmethod
     @parseunits(strip=True, mass="amu", charge="e", r="m", phi="deg", z="m",
