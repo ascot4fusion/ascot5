@@ -559,7 +559,7 @@ def hist2d(x, y, xbins=None, ybins=None, weights=None, xlog="linear",
     cbar.set_label(clabel)
 
 @openfigureifnoaxes(projection=None)
-def mesh1d(x, y, log=False, xlabel=None, ylabel=None, axes=False,
+def mesh1d(x, y, xlabel=None, ylabel=None, axes=None,
            logscale=False, label=None):
     """Plot 1D distribution.
 
@@ -567,7 +567,7 @@ def mesh1d(x, y, log=False, xlabel=None, ylabel=None, axes=False,
     ----------
     x : array_like (nx,)
         Abscissa edges for the x-axis.
-    z : array_like (nx-1,)
+    y : array_like (nx-1,)
         Data to be plotted.
     xlabel : str, optional
         Label for the x-axis.

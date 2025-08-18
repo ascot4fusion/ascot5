@@ -587,6 +587,48 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         else:
             return [out[q] for q in qnt]
 
+    def input_plotalongaxis(self, qnt, nphi=None, phimin=0, phimax=360,
+                            t=0.0*unyt.s, axes=None):
+        """Plot qnt on the magnetic axis as a function of phi.
+
+
+        By default plots qnt in the phigrid of the axis inputs.
+        However, if nphi is given, qnt is plotted against
+        np.linspace(phimin, phimax, nphi)[:-1]
+
+        Parameters
+        ----------
+        qnt : str
+            Name of the quantity to be plotted along the magnetic axis.
+        nphi : int, optional
+            number of phi points for plotting
+        phimin : float, optional
+            Minimum phi value at which qnt is plotted.
+        phimax : float, optional
+            "Maximum" phivalua for the plot. See the comment above parameters.
+        """
+
+        if nphi is None:
+            # Phivec corresponds to the points where the axis input is given.
+            b = self.data.bfield.active.read()
+            phi_vec = np.linspace(b["axis_phimin"][0],b["axis_phimax"][0],
+                                  b["axis_nphi"][0]+1)[:-1]*unyt.deg
+            qnt_vec = np.empty(b["axis_nphi"][0])
+            axisr = b["axisr"]*unyt.m
+            axisz = b["axisz"]*unyt.m
+        else:
+            # Phivev is calculated based on the given resolution, nphi
+            phi_vec = np.linspace(phimin, phimax, nphi+1)[:-1]*unyt.deg
+            qnt_vec = np.empty(nphi)
+            dummyarray = np.ones(nphi)
+            out = self._eval_bfield(
+                dummyarray, phi_vec.to("rad").v, dummyarray, t, evalaxis=True)
+            axisr = out["axisr"]    # these are already in unyt.m
+            axisz = out["axisz"]    # these are already in unyt.m
+        qnt_vec = self.input_eval(axisr, phi_vec, axisz, t, qnt)
+        a5plt.line2d([phi_vec], [qnt_vec], xlabel="phi [deg]",
+                     ylabel=f"{qnt:s} [{str(qnt_vec.units):s}]", axes=axes)
+
     def input_plotrz(self, r, z, qnt, phi=0*unyt.deg, t=0*unyt.s, rhomax=None,
                      clim=None, cmap=None, axes=None, cax=None,
                      drawcontours=False, contourvalues=None, contourcolors=None,

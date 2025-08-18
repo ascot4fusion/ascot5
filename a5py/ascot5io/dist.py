@@ -485,7 +485,7 @@ class DistMoment:
                 ordinates.append(k[10:])
         return ordinates
 
-    def plot(self, ordinate, axes=None, cax=None, logscale=False):
+    def plot(self, ordinate, axes=None, cax=None, logscale=False, label=None):
         """Plot radial or (R,z) profile of a distribution moment.
 
         The plotted profile is the average of (theta, phi) or phi depending
@@ -508,7 +508,8 @@ class DistMoment:
             ylabel += " [" + str(ordinate.units) + "]"
             a5plt.mesh1d(self.rho, ordinate,
                          xlabel="Normalized poloidal flux",
-                         ylabel=ylabel, axes=axes, logscale=logscale)
+                         ylabel=ylabel, axes=axes, logscale=logscale,
+                         label=label)
         else:
             clabel = ordinate
             ordinate = self.ordinate(ordinate, toravg=True)
