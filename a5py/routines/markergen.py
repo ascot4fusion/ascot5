@@ -239,7 +239,7 @@ class MarkerGenerator():
 
             if mode == 'gc':
                 pnorm = np.sqrt(ppa**2 + ppe**2)
-                mrk["energy"] = (0.5*pnorm**2/mrk["mass"].to("kg")).to("eV") #physlib.energy_momentum(mass, pnorm).to("eV")
+                mrk["energy"] = (0.5 * pnorm**2 / mass).to("eV") #physlib.energy_momentum(mass, pnorm).to("eV")
                 mrk["pitch"]  = ppa / pnorm
                 mrk['zeta']   = 2 * np.pi * np.random.rand(mrk['n'])
             elif mode == 'prt':

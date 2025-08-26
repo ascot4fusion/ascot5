@@ -525,7 +525,7 @@ def maxwellian_beam(a5, n_total_samples):
 
 def plot_serpent_marker_arr(markers, bins = 20):
     if type(markers) == str:
-        markers = np.load(markers)
+        markers = np.load(markers, allow_pickle=True)
     r = markers[:, 0]
     phi  = markers[:, 1]
     z = markers[:, 2]
@@ -569,8 +569,8 @@ def plot_serpent_marker_arr(markers, bins = 20):
     plt.tight_layout()
     plt.show()
     
-    isotropic_dir = isotropic_directions_rejection(len(u))
-    plot_direction_vectors(isotropic_dir, np.column_stack((u,v,w)), bins = bins)
+    # isotropic_dir = isotropic_directions_rejection(len(u))
+    # plot_direction_vectors(isotropic_dir, np.column_stack((u,v,w)), bins = bins)
 
     # nbins_r = 100
     # nbins_z = 100

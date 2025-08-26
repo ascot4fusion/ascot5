@@ -3334,7 +3334,7 @@ except AttributeError:
 try:
     afsi_run_rejection = _libraries['libascot.so'].afsi_run_rejection
     afsi_run_rejection.restype = None
-    afsi_run_rejection.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.POINTER(struct_c__SA_afsi_data), ctypes.c_int32, real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+    afsi_run_rejection.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.POINTER(struct_c__SA_afsi_data), ctypes.c_int32, real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
 except AttributeError:
     pass
 try:

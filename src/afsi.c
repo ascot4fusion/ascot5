@@ -33,8 +33,8 @@ void afsi_compute_product_momenta_2d(
     int i, real mprod1, real mprod2, int prodmomspace,
     real* vprod1, real* vprod2, real* prod1_p1, real* prod1_p2,
     real* prod2_p1, real* prod2_p2);
-void afsi_store_particle_data(int i, real* rvec, real* phivec, 
-    real* zvec, real* vprod2, real mprod2, real* prod2);
+void afsi_store_particle_data(int i, real r, real phi, real z, 
+    real* vprod2, real mprod2, real* prod2, int cartesian);
 void afsi_sample_reactant_momenta_2d(
     sim_data* sim, afsi_data* afsi, real mass1, real mass2,
     real vol, int nsample, size_t i0, size_t i1, size_t i2,
@@ -325,15 +325,15 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
  *
  * @param sim pointer to simulation data
  * @param reaction fusion reaction type, see the description
- * @param n number of Monte Carlo samples to be used
+ * @param n Total number of Monte Carlo samples required for output
  * @param react1 reactant 1 distribution data
  * @param react2 reactant 2 distribution data
  * @param mult factor by which the output is scaled
  * @param prod2 (n*9) array to store the sampled neutrons.
  */
 
-void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n, real Smax, real* cumdist_all,
-                real* rvec, real* phivec, real* zvec, real* prod2) {
+void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n, 
+                real Smax, real* cumdist_all, real* prod2) {
 
     random_init(&rdata, time((NULL)));
     simulate_init(sim);
@@ -344,13 +344,14 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n, real Smax, real* 
     &mprod1, &qprod1, &mprod2, &qprod2, &Q);
     
     real time = 0.0;
-    real rmin = rvec[0], rmax = rvec[afsi->volshape[0]];
-    real phimin = phivec[0], phimax = phivec[afsi->volshape[1]];
-    real zmin = zvec[0], zmax = zvec[afsi->volshape[2]];
-    
+    real rmin = afsi->r[0], rmax = afsi->r[afsi->volshape[0]];
+    real phimin = afsi->phi[0], phimax = afsi->phi[afsi->volshape[1]];
+    real zmin = afsi->z[0], zmax = afsi->z[afsi->volshape[2]];
+
     int n_accepted = 0 ;
     int n_samples = 1; 
-    int not_transformed_vel = 0; // flag to use B-field aligned transformation
+    int not_transformed_vel = 0; // 0 -> to use B-field aligned transformation, 1 -> vz always aligned with pparall, not physical for neutronics sim.
+    int cartesian = 1; // 1 -> spatial coordinate in cartesian ref frame, good for serpent. 0 -> cylindrical coord, good to visualize results.
 
     while (n_accepted < n){
         real r = rmin + (rmax - rmin) * random_uniform(rdata);
@@ -364,20 +365,21 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n, real Smax, real* 
         real vol = afsi->vol[spatial_index];
 
         real psi, rho[2], B_cyl[3];
-        if (B_field_eval_psi(&psi, r, phi, z, time, &sim->B_data) ||
+        real phirad = phi * CONST_PI / 180.0;
+        if (B_field_eval_psi(&psi, r, phirad, z, time, &sim->B_data) ||
             B_field_eval_rho(rho, psi, &sim->B_data) || B_field_eval_B(B_cyl, r, phi, z, time, &sim->B_data)) {
             continue;
         }   
 
         real B_cart[3];
-        B_field_cyl_to_cartesian(B_cart, B_cyl, r, phi);
+        B_field_cyl_to_cartesian(B_cart, B_cyl, r, phirad);
 
         real density1, density2;    
         real ppara1, pperp1, ppara2, pperp2;
 
         afsi_sample_reactant_momenta_2d_alt(
                     sim, afsi, m1, m2, vol, n_samples, i0, i1, i2,
-                    r, phi, z, time, rho[0], cumdist_all,
+                    r, phirad, z, time, rho[0], cumdist_all,
                     &density1, &ppara1, &pperp1, &density2, &ppara2, &pperp2);
                 if(density1 == 0 || density2 == 0) {
                     continue;
@@ -395,10 +397,7 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n, real Smax, real* 
         real u  =random_uniform(rdata);
         
         if (u < source / Smax) {
-            real rbin[2] = {r, r}; 
-            real phibin[2] = {phi, phi};
-            real zbin[2] = {z, z};
-            afsi_store_particle_data(n_accepted, rbin, phibin, zbin, vprod2, mprod2, prod2);
+            afsi_store_particle_data(n_accepted, r, phirad, z, vprod2, mprod2, prod2, cartesian);
             n_accepted++;
         }
     }
@@ -436,7 +435,7 @@ void afsi_compute_product_velocities_3d(
     if (not_transformed_vel){
         v1x = cos(rn1) * pperp1[i] / m1;
         v1y = sin(rn1) * pperp1[i] / m1;
-        v1z = ppara1[i] / m1;
+        v1z = ppara1[i] / m1; 
 
         v2x = cos(rn2) * pperp2[i] / m2;
         v2y = sin(rn2) * pperp2[i] / m2;
@@ -527,7 +526,7 @@ void afsi_compute_product_velocities_3d(
  * @param prod2 array where the sampled particle data is stored.
  */
 
-void afsi_store_particle_data(int i, real* rvec, real* phivec, real* zvec, real* vprod2, real mprod2, real* prod2){
+void afsi_store_particle_data(int i, real r, real phi, real z, real* vprod2, real mprod2, real* prod2, int cartesian){
 
     // Compute the magnitude of the velocity of prod2
     real vprod2_magnitude = sqrt(vprod2[0] * vprod2[0] +
@@ -535,26 +534,31 @@ void afsi_store_particle_data(int i, real* rvec, real* phivec, real* zvec, real*
     vprod2[2] * vprod2[2]);
 
     // Compute the kinetic energy of prod2
+    // real energy_prod2 = physlib_Ekin_gamma(mprod2, physlib_gamma_vnorm(vprod2_magnitude));
     real energy_prod2 = 0.5 * mprod2 * vprod2_magnitude * vprod2_magnitude;
 
     // Normalize vprod2 to get the direction vector
     real u = vprod2[0] / vprod2_magnitude;
     real v = vprod2[1] / vprod2_magnitude;
     real w = vprod2[2] / vprod2_magnitude;
-
-    // Sample the coordinates in the bin
-    real r = rvec[0] + (rvec[1] - rvec[0]) * random_uniform(rdata);
-    real phi = phivec[0] + (phivec[1] - phivec[0]) * random_uniform(rdata);
-    real z = zvec[0] + (zvec[1] - zvec[0]) * random_uniform(rdata);
-
-    // Store the sampled coordinates, directions and energy in the prod2 array
-    prod2[(i) * 9 + 0] = r; 
-    prod2[(i) * 9 + 1] = phi; 
-    prod2[(i) * 9 + 2] = z; 
-    prod2[(i) * 9 + 3] = u; 
-    prod2[(i) * 9 + 4] = v;
-    prod2[(i) * 9 + 5] = w;
-    prod2[(i) * 9 + 6] = energy_prod2*6241506479963.2; // Convert to MeV
+    
+    if (cartesian){
+        prod2[(i) * 7 + 0] = r * cos(phi) * 100;
+        prod2[(i) * 7 + 1] = r * sin(phi) * 100; 
+        prod2[(i) * 7 + 2] = z * 100; 
+        prod2[(i) * 7 + 3] = u; 
+        prod2[(i) * 7 + 4] = v;
+        prod2[(i) * 7 + 5] = w;
+        prod2[(i) * 7 + 6] = energy_prod2*6241506479963.2; // Convert to MeV
+    } else {
+        prod2[(i) * 7 + 0] = r; 
+        prod2[(i) * 7 + 1] = phi * 180.0 / CONST_PI; 
+        prod2[(i) * 7 + 2] = z; 
+        prod2[(i) * 7 + 3] = u; 
+        prod2[(i) * 7 + 4] = v;
+        prod2[(i) * 7 + 5] = w;
+        prod2[(i) * 7 + 6] = energy_prod2*6241506479963.2; // Convert to MeV
+    }    
 }
 
 /**
@@ -708,8 +712,7 @@ void afsi_sample_beam_2d(histogram* hist, real mass, real vol, int nsample,
         for(size_t j = 0; j < hist->axes[p1coord].n*hist->axes[p2coord].n; j++) {
             if(cumdist[j] > r) {
                 if(mom_space == PPARPPERP) {
-                    ppara[i] = hist->axes[5].min + (j / hist->axes[5].n + 0.5)
-                    ppara[i] = hist->axes[5].min + (j / hist->axes[5].n + 0.5) // corrected the index hist->axes[5].n (it was 6) now better energy shape
+                    ppara[i] = hist->axes[5].min + (j / hist->axes[6].n + 0.5) // it was already correct with hist->axes[6] fix it again
                         * (hist->axes[5].max - hist->axes[5].min) / hist->axes[5].n;
                     pperp[i] = hist->axes[6].min + (j % hist->axes[6].n + 0.5)
                         * (hist->axes[6].max - hist->axes[6].min) / hist->axes[6].n;
@@ -717,7 +720,7 @@ void afsi_sample_beam_2d(histogram* hist, real mass, real vol, int nsample,
                 else {
                     real ekin = hist->axes[10].min + (j / hist->axes[10].n + 0.5)
                         * (hist->axes[10].max - hist->axes[10].min) / hist->axes[10].n;
-                    real pitch = hist->axes[11].min + (j / hist->axes[11].n + 0.5)
+                    real pitch = hist->axes[11].min + (j / hist->axes[11].n + 0.5) 
                         * (hist->axes[11].max - hist->axes[11].min) / hist->axes[11].n;
                     real gamma = physlib_gamma_Ekin(mass, ekin);
                     real pnorm = sqrt(gamma * gamma - 1.0) * mass * CONST_C;
@@ -878,7 +881,7 @@ void afsi_sample_beam_2d_alt(histogram* hist, real mass, real vol, int nsample,
         for(size_t j = 0; j < hist->axes[p1coord].n*hist->axes[p2coord].n; j++) {
             if(cumdist[j] > r) {
                 if(mom_space == PPARPPERP) {
-                    ppara[i] = hist->axes[5].min + (j / hist->axes[5].n + 0.5) // corrected the index hist->axes[5].n (it was 6) now better energy shape
+                    ppara[i] = hist->axes[5].min + (j / hist->axes[6].n + 0.5)  
                         * (hist->axes[5].max - hist->axes[5].min) / hist->axes[5].n;
                     pperp[i] = hist->axes[6].min + (j % hist->axes[6].n + 0.5)
                         * (hist->axes[6].max - hist->axes[6].min) / hist->axes[6].n;
@@ -886,7 +889,7 @@ void afsi_sample_beam_2d_alt(histogram* hist, real mass, real vol, int nsample,
                 else {
                     real ekin = hist->axes[10].min + (j / hist->axes[10].n + 0.5)
                         * (hist->axes[10].max - hist->axes[10].min) / hist->axes[10].n;
-                    real pitch = hist->axes[11].min + (j / hist->axes[11].n + 0.5)
+                    real pitch = hist->axes[11].min + (j / hist->axes[11].n + 0.5) 
                         * (hist->axes[11].max - hist->axes[11].min) / hist->axes[11].n;
                     real gamma = physlib_gamma_Ekin(mass, ekin);
                     real pnorm = sqrt(gamma * gamma - 1.0) * mass * CONST_C;

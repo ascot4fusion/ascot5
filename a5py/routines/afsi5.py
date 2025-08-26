@@ -61,13 +61,21 @@ class Afsi():
             ppar = beam.integrate(copy = True, r=np.s_[:], phi=np.s_[:], z=np.s_[:], pperp=np.s_[:], time=np.s_[:], charge=np.s_[:]).histogram()
             pperp = beam.integrate(copy = True, r=np.s_[:], phi=np.s_[:], z=np.s_[:], ppar=np.s_[:], time=np.s_[:], charge=np.s_[:]).histogram()
 
-            ppar_cdf = np.cumsum(ppar) / np.sum(ppar)
-            quantile_idx = np.searchsorted(ppar_cdf, 0.999)
-            ppar_max = beam.abscissa("ppar")[quantile_idx]
+            # ppar_cdf = np.cumsum(ppar) / np.sum(ppar)
+            # quantile_idx = np.searchsorted(ppar_cdf, 0.999)
+            # ppar_max = beam.abscissa("ppar")[quantile_idx]
 
-            pperp_cdf = np.cumsum(pperp) / np.sum(pperp)
-            quantile_idx = np.searchsorted(pperp_cdf, 0.999)
-            pperp_max = beam.abscissa("pperp")[quantile_idx]
+            ppar_idxs = np.nonzero(ppar)
+            ppar_values = beam.abscissa("ppar")[ppar_idxs]
+            ppar_max = np.max(np.absolute(ppar_values))
+
+            # pperp_cdf = np.cumsum(pperp) / np.sum(pperp)
+            # quantile_idx = np.searchsorted(pperp_cdf, 0.999)
+            # pperp_max = beam.abscissa("pperp")[quantile_idx]
+
+            pperp_idxs = np.nonzero(pperp)
+            pperp_values = beam.abscissa("pperp")[pperp_idxs]
+            pperp_max = np.max(np.absolute(pperp_values))
 
             rpzhist = beam.integrate(copy = True, ppar=np.s_[:], pperp=np.s_[:], charge=np.s_[:], time = np.s_[:]).histogram()
             density1 = (rpzhist/vol).max()
@@ -103,15 +111,18 @@ class Afsi():
                     cumdist_all[ir, iphi, iz, :] = np.cumsum(hist_flat)
         return cumdist_all
     
-    def generate_markers_rejection(self,  n_markers, reaction, r, phi, z, marker_file = None, beam = None):
+    def generate_markers_rejection(self,  n_markers, reaction, r = None, phi = None, z = None, marker_file = None, beam = None):
+        if r is None or phi is None or z is None:
+            raise ValueError("r, phi, and z must be given to generate 6D markers.") 
         if beam is None:
             markers = self.products_6D_rejection(reaction, nmc=n_markers, r=r, phi=phi, z=z)
         else:
-            r, z, phi = ( beam.abscissa_edges("r"), beam.abscissa_edges("z"),
-                      beam.abscissa_edges("phi") ) 
             markers = self.products_6D_rejection(reaction, nmc=n_markers, r=r, phi=phi, z=z, beam=beam)
         if marker_file is not None:
-            np.save(marker_file, markers)
+            mrk_array = np.zeros((n_markers, 9))
+            mrk_array[:, :7] = markers
+            mrk_array[:,7] = 1.0
+            mrk_array.astype('float64').tofile(marker_file + '.bin')
         return markers
     
     def products_6D_rejection(self, reaction, r = None, phi = None, z = None, nmc=1000, beam=None, swap = False):
@@ -132,7 +143,6 @@ class Afsi():
                                        0.5*(r[:-1]+r[1:]),
                                        0.5*(z[:-1]+z[1:]))
         phic *= np.pi/180
-        vol = ( rc * np.diff(r[:2]) * np.diff(z[:2]) * np.diff(phi[:2]) )
         vol = ( rc * np.diff(r[:2]) * np.diff(z[:2]) * np.diff(phi[:2])* np.pi/180 )
 
         nspec, _, _, anums, znums = self._ascot.input_getplasmaspecies()
@@ -172,15 +182,15 @@ class Afsi():
         reaction = reactions[reaction]
         afsi = self._init_afsi_data(
         react1=react1, react2=react2, reaction=reaction, mult=mult,
-        r=rc, phi=phic, z=zc, vol=vol)
+        r=r, phi=phi, z=z, vol=vol)
 
         cumdist_all = self.get_cumdist(beam) if beam is not None else np.zeros(1)
-
-        prod2 = np.zeros((nmc, 9), dtype=np.float64)
-        prod2[:,8] = 1.0
+        prod2 = np.zeros((nmc, 7), dtype=np.float64)
+        # prod2 = np.zeros((nmc, 9), dtype=np.float64)
+        # prod2[:,8] = 1.0
+        
         _LIBASCOT.afsi_run_rejection(ctypes.byref(self._ascot._sim), ctypes.byref(afsi), nmc, ctypes.c_double(Smax), cumdist_all.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                                    r.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), phi.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                                    z.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), prod2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+                                    prod2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
         
         self._ascot.input_free(bfield=True, plasma=True)
 
