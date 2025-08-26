@@ -31,9 +31,9 @@ typedef struct {
     int thermal2;       /**< Thermal species index for reactant 2             */
     histogram* beam1;   /**< Distribution data for reactant 1                 */
     histogram* beam2;   /**< Distribution data for reactant 2                 */
-    real* r;            /**< Radial coordinate at the grid center [m]         */
-    real* phi;          /**< Toroidal coordinate at the grid center [rad]     */
-    real* z;            /**< Axial coordinate at the grid center [m]          */
+    real* r;            /**< Radial coordinate at the grid center [m] -- When input for afsi_run_rejection is the radial bin edges  */
+    real* phi;          /**< Toroidal coordinate at the grid center [rad] -- When input for afsi_run_rejection is the toroidal bin edges    */
+    real* z;            /**< Axial coordinate at the grid center [m] -- When input for afsi_run_rejection is the axial bin edges         */
     real* vol;          /**< Grid cell volume [m^3]                           */
     size_t volshape[3]; /**< Dimensions of r, phi, z, and volume              */
     Reaction reaction;  /**< The fusion reaction that is modelled             */
@@ -44,7 +44,7 @@ typedef struct {
 void afsi_run(sim_data* sim, afsi_data* data, int n,
               histogram* prod1, histogram* prod2);
 void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n, real Smax, real* cumdist_all,
-                real* rvec, real* phivec, real* zvec, real* prod2);
+                real* prod2);
 
 #endif
 
