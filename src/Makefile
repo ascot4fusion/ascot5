@@ -43,11 +43,11 @@ endif
 ifeq ($(GPU),1)
 	DEFINES+=-DGPU
 	RANDOM=LCG
-	CFLAGS+=-c++libs -cuda
 	ifeq ($(ACC), 1)
+		CFLAGS+=-c++libs -cuda
 		CFLAGS+=-acc -Mnoopenmp
 	else ifeq ($(OMP), 1)
-		CFLAGS+=-mp=gpu -fopenmp
+		CFLAGS+=-fopenmp
 		DEFINES+=-D_OPENMP
 	endif
 else
