@@ -73,7 +73,7 @@ void hist_free(histogram* data) {
  */
 void hist_offload(histogram* data) {
     GPU_MAP_TO_DEVICE(
-        data->axes[0:HIST_ALLDIM], data->bins[0:data->nbin],
+        data->axes[0:HIST_ALLDIM], data->bins[0:data->nbin]
     )
 }
 
