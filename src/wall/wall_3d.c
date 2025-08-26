@@ -126,8 +126,8 @@ void wall_3d_free(wall_3d_data* data) {
  */
 void wall_3d_offload(wall_3d_data* data) {
     GPU_MAP_TO_DEVICE(
-        data->wall_flag[0:data->n],
-        data->wall_tris[0:data->n*9],
+        data->flag[0:data->n],\
+        data->wall_tris[0:data->n*9],\
         data->tree_array[0:data->tree_array_size]
     )
 }
