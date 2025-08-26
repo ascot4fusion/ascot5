@@ -241,11 +241,30 @@ If you are using ASCOT5 in a cluster that is not listed here, feel free to amend
 
       .. card::
 
+	 For parallel version with MPI:
+
          .. code-block:: bash
 
-            module load GCCcore/11.3.0 zlib/1.2.12-GCCcore-11.3.0 binutils/2.38-GCCcore-11.3.0 intel-compilers/2022.1.0 numactl/2.0.14-GCCcore-11.3.0 UCX/1.12.1-GCCcore-11.3.0 impi/2021.6.0-intel-compilers-2022.1.0 iimpi/2022a Szip/2.1.1-GCCcore-11.3.0 HDF5/1.13.1-iimpi-2022a
+            module load zlib/1.3.1-GCCcore-13.3.0 Szip/2.1.1-GCCcore-13.2.0  HDF5/1.14.4.3-gompi-2023b
 
-            make ascot5_main CC=h5pcc FLAGS=-qno-openmp-offload -diag-disable 3180
+            make ascot5_main CC=h5pcc FLAGS="-foffload=disable"
+
+         For serial version and with IMAS support (under development):
+
+         .. code-block:: bash
+
+            module load zlib/1.3.1-GCCcore-13.3.0 Szip/2.1.1-GCCcore-13.2.0  HDF5/1.14.3-gompi-2023b IMAS-AL-Python/5.4.0-foss-2023b-DD-4.0.0 IPython/8.17.2-GCCcore-13.2.0
+
+            make libascot CC=h5pcc FLAGS="-foffload=disable" MPI=0 -j
+
+            python -m venv --system-site-packages ~/ascot5_venv
+
+            source ~/ascot5_venv/bin/activate
+
+            pip install -e .
+
+            pip install matplotlib pyvista
+
 
    .. tab-item:: Lac8 at TCV
 

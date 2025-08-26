@@ -20,7 +20,7 @@
 #include "../E_field.h"
 #include "../boozer.h"
 #include "../mhd.h"
-
+#include "../rfof.h"
 #include "../plasma.h"
 #include "simulate_gc_adaptive.h"
 #include "step/step_gc_cashkarp.h"
@@ -59,10 +59,11 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
     /* Current time step, suggestions for the next time step and next time
      * step                                                                */
-    real hin[NSIMD]      __memalign__;
-    real hout_orb[NSIMD] __memalign__;
-    real hout_col[NSIMD] __memalign__;
-    real hnext[NSIMD]    __memalign__;
+    real hin[NSIMD]       __memalign__;
+    real hout_orb[NSIMD]  __memalign__;
+    real hout_col[NSIMD]  __memalign__;
+    real hout_rfof[NSIMD] __memalign__;
+    real hnext[NSIMD]     __memalign__;
 
     /* Flag indicateing whether a new marker was initialized */
     int cycle[NSIMD]     __memalign__;
@@ -75,6 +76,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     particle_simd_gc p;  // This array holds current states
     particle_simd_gc p0; // This array stores previous states
 
+    rfof_marker rfof_mrk; // RFOF specific data
+
     for(int i=0; i< NSIMD; i++) {
         p.id[i] = -1;
         p.running[i] = 0;
@@ -82,6 +85,10 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
     /* Initialize running particles */
     int n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
+
+    if(sim->enable_icrh) {
+        rfof_set_up(&rfof_mrk, &sim->rfof_data);
+    }
 
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
@@ -104,7 +111,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
      * - Check whether time step was accepted
      *   - NO:  revert to initial state and ignore the end of the loop
      *          (except CPU_TIME_MAX end condition if this is implemented)
-     *   - YES: update particle time, clean redundant Wiener processes, and proceed
+     *   - YES: update particle time, clean redundant Wiener processes, and
+     *          proceed
      * - Check for end condition(s)
      * - Update diagnostics
      */
@@ -114,9 +122,10 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
             particle_copy_gc(&p, i, &p0, i);
-            hout_orb[i] = DUMMY_TIMESTEP_VAL;
-            hout_col[i] = DUMMY_TIMESTEP_VAL;
-            hnext[i]    = DUMMY_TIMESTEP_VAL;
+            hout_orb[i]  = DUMMY_TIMESTEP_VAL;
+            hout_col[i]  = DUMMY_TIMESTEP_VAL;
+            hout_rfof[i] = DUMMY_TIMESTEP_VAL;
+            hnext[i]     = DUMMY_TIMESTEP_VAL;
         }
 
         /*************************** Physics **********************************/
@@ -132,18 +141,20 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         /* Cash-Karp method for orbit-following */
         if(sim->enable_orbfol) {
             if(sim->enable_mhd) {
-                step_gc_cashkarp_mhd(&p, hin, hout_orb, tol_orb,
-                                     &sim->B_data, &sim->E_data,
-                                     &sim->boozer_data, &sim->mhd_data);
+                step_gc_cashkarp_mhd(
+                    &p, hin, hout_orb, tol_orb, &sim->B_data, &sim->E_data,
+                    &sim->boozer_data, &sim->mhd_data, sim->enable_aldforce);
             }
             else {
-                step_gc_cashkarp(&p, hin, hout_orb, tol_orb,
-                                 &sim->B_data, &sim->E_data);
+                step_gc_cashkarp(
+                    &p, hin, hout_orb, tol_orb, &sim->B_data, &sim->E_data,
+                    sim->enable_aldforce);
             }
             /* Check whether time step was rejected */
             #pragma omp simd
             for(int i = 0; i < NSIMD; i++) {
-                /* Switch sign of the time-step again if it was reverted earlier */
+                /* Switch sign of the time-step again if it was reverted earlier
+                */
                 if(sim->reverse_time) {
                     hout_orb[i] = -hout_orb[i];
                     hin[i]      = -hin[i];
@@ -167,7 +178,22 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
             for(int i = 0; i < NSIMD; i++) {
                 if(p.running[i] && hout_col[i] < 0){
                     p.running[i] = 0;
-                    hnext[i] = hout_col[i];
+                    hnext[i] =  hout_col[i];
+                }
+            }
+        }
+
+        /* Performs the ICRH kick if in resonance. */
+        if(sim->enable_icrh) {
+            rfof_resonance_check_and_kick_gc(
+                &p, hin, hout_rfof, &rfof_mrk, &sim->rfof_data, &sim->B_data);
+
+            /* Check whether time step was rejected */
+            #pragma omp simd
+            for(int i = 0; i < NSIMD; i++) {
+                if(p.running[i] && hout_rfof[i] < 0){
+                    p.running[i] = 0;
+                    hnext[i] =  hout_rfof[i];
                 }
             }
         }
@@ -191,26 +217,26 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                     }
                 }
 
-                /* Retrieve marker states in case time step was rejected */
+                /* Retrieve marker states in case time step was rejected      */
                 if(hnext[i] < 0) {
                     particle_copy_gc(&p0, i, &p, i);
-
-                    hin[i] = -hnext[i];
                 }
                 if(p.running[i]){
 
                     /* Advance time (if time step was accepted) and determine
                        next time step */
                     if(hnext[i] < 0){
-                        /* Time step was rejected, use the suggestion given by
-                           integrator */
+                        /* if hnext < 0, you screwed up and had to copy the
+                        previous state. Therefore, let us use the suggestion
+                        given by the integrator when retaking the failed step.*/
                         hin[i] = -hnext[i];
                     }
                     else {
                         p.time[i] += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) )
                             * hin[i];
                         p.mileage[i] += hin[i];
-
+                        /* In case the time step was succesful, pick the
+                        smallest recommended value for the next step */
                         if(hnext[i] > hout_orb[i]) {
                             /* Use time step suggested by the orbit-following
                                integrator */
@@ -220,6 +246,10 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                             /* Use time step suggested by the collision
                                integrator */
                             hnext[i] = hout_col[i];
+                        }
+                        if(hnext[i] > hout_rfof[i]) {
+                            /* Use time step suggested by RFOF */
+                            hnext[i] = hout_rfof[i];
                         }
                         if(hnext[i] == 1.0) {
                             /* Time step is unchanged (happens when no physics
@@ -257,12 +287,20 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                     /* Re-allocate array storing the Wiener processes */
                     mccc_wiener_initialize(&(wienarr[i]), p.time[i]);
                 }
+                if(sim->enable_icrh) {
+                    /* Reset icrh (rfof) resonance memory matrix. */
+                    rfof_clear_history(&rfof_mrk, i);
+                }
             }
         }
     }
 
     /* All markers simulated! */
 
+    /* Deallocate rfof structs */
+    if(sim->enable_icrh) {
+        rfof_tear_down(&rfof_mrk);
+    }
 }
 
 /**
@@ -300,7 +338,8 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
         /* Value calculated from collision frequency */
         if(sim->enable_clmbcol) {
             real nu = 1;
-            //mccc_collfreq_gc(p, &sim->B_data, &sim->plasma_data, sim->coldata, &nu, i);
+            /*mccc_collfreq_gc(p, &sim->B_data, &sim->plasma_data,
+                sim->coldata, &nu, i); */
 
             /* Only small angle collisions so divide this by 100 */
             real colltime = 1/(100*nu);

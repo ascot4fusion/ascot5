@@ -20,11 +20,12 @@ typedef struct {
     int* znum;     /**< ion species charge number                    */
     interp1D_data temp[2]; /**< electron and ion temperature interpolation    */
     interp1D_data* dens;   /**< electron and ion density interpolation structs*/
+    interp1D_data vtor[0]; /**< toroidal rotation interpolation struct        */
 } plasma_1DS_data;
 
 int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
                     int nion, int* anum, int* znum, real* mass, real* charge,
-                    real* Te, real* Ti, real* ne, real* ni);
+                    real* Te, real* Ti, real* ne, real* ni, real* vtor);
 void plasma_1DS_free(plasma_1DS_data* data);
 void plasma_1DS_offload(plasma_1DS_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
@@ -39,5 +40,8 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
 a5err plasma_1DS_eval_densandtemp(real* dens, real* temp, real rho,
                                   plasma_1DS_data* pls_data);
 DECLARE_TARGET_END
-
+GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
+a5err plasma_1DS_eval_flow(real* vflow, real rho, real r,
+                           plasma_1DS_data* pls_data);
+DECLARE_TARGET_END
 #endif

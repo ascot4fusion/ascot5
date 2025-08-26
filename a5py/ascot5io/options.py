@@ -72,6 +72,8 @@ class Opt(DataGroup):
         self._OPT_ENABLE_COULOMB_COLLISIONS  = 0
         self._OPT_ENABLE_MHD                 = 0
         self._OPT_ENABLE_ATOMIC              = 0
+        self._OPT_ENABLE_ICRH                = 0
+        self._OPT_ENABLE_ALDFORCE            = 0
         self._OPT_DISABLE_FIRSTORDER_GCTRANS = 0
         self._OPT_DISABLE_ENERGY_CCOLL       = 0
         self._OPT_DISABLE_PITCH_CCOLL        = 0
@@ -375,6 +377,28 @@ class Opt(DataGroup):
             outside the reaction data domain.
         """
         return self._OPT_ENABLE_ATOMIC
+
+    @property
+    def _ENABLE_ICRH(self):
+        """Enable ion cyclotron resonance heating operator that transfers
+        energy ("kicks") to ions when they are on the resonance
+
+        The code must be compiled with RFOF=1 and the RFOF library must be
+        present in order to use the ICRH operator.
+        """
+        return self._OPT_ENABLE_ICRH
+
+    @property
+    def _ENABLE_ALDFORCE(self):
+        """Enable radiation reaction force (synchrotron losses)
+
+        The radiation reaction force (a.k.a. Abraham-Lorentz-Dirac or ALD force)
+        causes charged particles to lose energy via radiation. The losses are
+        proportional to the particle energy and inversely proportional to the
+        particle mass, making this option mostly relevant for (runaway)
+        electrons.
+        """
+        return self._OPT_ENABLE_ALDFORCE
 
     @property
     def _DISABLE_FIRSTORDER_GCTRANS(self):
@@ -1452,6 +1476,8 @@ class Opt(DataGroup):
                         <xs:element ref="ENABLE_COULOMB_COLLISIONS"/>
                         <xs:element ref="ENABLE_MHD"/>
                         <xs:element ref="ENABLE_ATOMIC"/>
+                        <xs:element ref="ENABLE_ICRH"/>
+                        <xs:element ref="ENABLE_ALDFORCE"/>
                         <xs:element ref="DISABLE_FIRSTORDER_GCTRANS"/>
                         <xs:element ref="DISABLE_ENERGY_CCOLL"/>
                         <xs:element ref="DISABLE_PITCH_CCOLL"/>
@@ -1464,6 +1490,8 @@ class Opt(DataGroup):
             {doc('ENABLE_COULOMB_COLLISIONS',  'IntegerBinary')}
             {doc('ENABLE_MHD',                 'IntegerBinary')}
             {doc('ENABLE_ATOMIC',              'Integer012')}
+            {doc('ENABLE_ICRH',                'IntegerBinary')}
+            {doc('ENABLE_ALDFORCE',            'IntegerBinary')}
             {doc('DISABLE_FIRSTORDER_GCTRANS', 'IntegerBinary')}
             {doc('DISABLE_ENERGY_CCOLL',       'IntegerBinary')}
             {doc('DISABLE_PITCH_CCOLL',        'IntegerBinary')}

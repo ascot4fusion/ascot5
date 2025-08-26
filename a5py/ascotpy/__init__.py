@@ -12,7 +12,7 @@ import a5py.routines.plotting as a5plt
 from a5py.routines.plotting import openfigureifnoaxes, plt
 from a5py.exceptions import AscotInitException
 
-from .libascot    import LibAscot, _LIBASCOT, _get_struct_class
+from .libascot    import LibAscot, _LIBASCOT, PTR_RFOF, _get_struct_class
 from .libsimulate import LibSimulate
 from .libproviders import LibProviders
 
@@ -246,6 +246,25 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             qid = getattr(self._sim, "qid_" + inp)
             if qid == Ascotpy.DUMMY_QID:
                 raise AscotInitException(inp + " is not initialized")
+
+    def input_init_rfof(self):
+        """
+        """
+        if self._rfof_initialized:
+            raise AscotInitException("RFOF input is already initialized")
+        fun = _LIBASCOT.rfof_init_offload
+        fun.restype  = None
+        fun.argtypes = [PTR_RFOF]
+        fun(ctypes.byref(self._sim.rfof_data))
+        self._rfof_initialized = True
+
+    def input_free_rfof(self):
+        """
+        """
+        if not self._rfof_initialized:
+            raise AscotInitException("RFOF input is not initialized")
+
+        self._rfof_initialized = False
 
     def input_initialized(self):
         """Get inputs that are currently initialized.
@@ -729,6 +748,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         r, z = self.input_rhotheta2rz(
             rhoc.ravel(), thc.ravel(), p.ravel(), t)
         del thc, rhoc
+        r = np.reshape(r, p.shape)
+        z = np.reshape(z, p.shape)
 
         def integrate_prism(rho, theta, phimin, phimax):
             """Integrate volume by dividing it into prisms.

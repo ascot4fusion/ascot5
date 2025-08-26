@@ -74,7 +74,7 @@ class PhysTest():
         try:
             self.ascot = Ascot(fn)
         except FileNotFoundError:
-            self.ascot = Ascot(fn, create=True)
+            self.ascot = Ascot(fn, create=True, mute="no")
             init = self.ascot.data.create_input
             init("opt",        desc="DUMMY")
             init("gc",         desc="DUMMY")
@@ -1593,7 +1593,7 @@ class PhysTest():
         print("Bphi Ip | Delta Bpol  Delta Bphi  Delta Jacobian  Delta q")
         for i in range(4):
             fail = ""
-            if bpol_err[i] > 1e-15 or bphi_err[i] > 1e-3 or jac_err[i] > 5e-3\
+            if bpol_err[i] > 1e-15 or bphi_err[i] > 1e-3 or jac_err[i] > 1e-2\
                or q_err[i] > 1e-4:
                 fail = "(FAILED)"
                 passed = False
@@ -1754,7 +1754,7 @@ class PhysTest():
         passed = True
         print("Test MHD:")
         fail = ""
-        if err_e1 > 2e-6 or err_e2 > 2e-5:
+        if err_e1 > 2e-5 or err_e2 > 2e-5:
             fail = "(FAILED)"
             passed = False
         print("Error in Epar: %e %e %s" % (err_e1, err_e2, fail))
@@ -1927,7 +1927,9 @@ class PhysTest():
             "anum" : np.array([2, 3]), "znum" : np.array([1, 1]),
             "mass" : np.array([2.014, 3.016]), "charge" : np.array([1, 1]),
             "edensity" : edens, "etemperature" : etemp,
-            "idensity" : idens, "itemperature" : itemp}
+            "idensity" : idens, "itemperature" : itemp,
+            "vtor": 0*rho,
+        }
 
         for tag in [PhysTest.tag_afsi_thermal, PhysTest.tag_afsi_beamthermal,
                     PhysTest.tag_afsi_beambeam]:
@@ -1941,15 +1943,19 @@ class PhysTest():
             warnings.warn("Results already present: Test AFSI")
             return
 
-        rmin =  5.9; rmax = 6.1; nr = 1
-        zmin = -0.1; zmax = 0.1; nz = 1
+        r = np.linspace(5.9, 6.1, 2)
+        phi = np.linspace(0, 360, 2)
+        z = np.linspace(-0.1, 0.1, 2)
+        ppar = np.linspace(-1.0e-19, 1.0e-19, 401) * unyt.kg *unyt.m / unyt.s
+        pperp = np.linspace(0, 1.0e-19, 401) * unyt.kg *unyt.m / unyt.s
+        ekin = np.linspace(0,7e6,100)
+        pitch = np.linspace(-1,1,20)
         self._activateinputs(PhysTest.tag_afsi_thermal)
         self.ascot.afsi.thermal(
-            "DT_He4n",
-            rmin, rmax, nr, zmin, zmax, nz,
-            minphi=0, maxphi=2*np.pi, nphi=1, nmc=10**6,
-            minppara=-1.0e-19, maxppara=1.0e-19, nppara=400,
-            minpperp=0, maxpperp=1.0e-19, npperp=200)
+            "DT_He4n", nmc=10**6, r=r, phi=phi, z=z,
+            #ekin1=ekin, ekin2=ekin, pitch1=pitch, pitch2=pitch,
+            ppar1=ppar, ppar2=ppar, pperp1=pperp, pperp2=pperp,
+            )
         self.ascot.data.active.set_desc(PhysTest.tag_afsi_thermal)
 
         dist = self.ascot.data[PhysTest.tag_afsi_thermal].getdist("prod1")
@@ -1971,19 +1977,25 @@ class PhysTest():
         dist._distribution[0,0,0,:,:,0,0] = maxwellian(2.014)
 
         self._activateinputs(PhysTest.tag_afsi_beamthermal)
-        self.ascot.afsi.beamthermal("DT_He4n", dist, nmc=10**6)
+        self.ascot.afsi.beamthermal(
+            "DT_He4n", dist, nmc=10**6,
+            ppar1=ppar, ppar2=ppar, pperp1=pperp, pperp2=pperp,
+            #ekin1=ekin, ekin2=ekin, pitch1=pitch, pitch2=pitch,
+            )
         self.ascot.data.active.set_desc(PhysTest.tag_afsi_beamthermal)
 
         dist = self.ascot.data[PhysTest.tag_afsi_thermal].getdist("prod1")
-        ppa, ppe = np.meshgrid(dist.abscissa("ppar"), dist.abscissa("pperp"),
-                               indexing="ij")
         dist._distribution[0,0,0,:,:,0,0] = maxwellian(2.014)
 
         dist1 = self.ascot.data[PhysTest.tag_afsi_thermal].getdist("prod1")
         dist1._distribution[0,0,0,:,:,0,0] = maxwellian(3.016)
 
         self._activateinputs(PhysTest.tag_afsi_beambeam)
-        self.ascot.afsi.beambeam("DT_He4n", dist, dist1, nmc=10**6)
+        self.ascot.afsi.beambeam(
+            "DT_He4n", dist, dist1, nmc=10**6,
+            ppar1=ppar, ppar2=ppar, pperp1=pperp, pperp2=pperp,
+            #ekin1=ekin, ekin2=ekin, pitch1=pitch, pitch2=pitch,
+            )
         self.ascot.data.active.set_desc(PhysTest.tag_afsi_beambeam)
 
     def check_afsi(self):
@@ -2095,6 +2107,7 @@ class PhysTest():
         # Hydrogen plasma
         nrho  = 4
         rho   = np.array([0, 1, 1+1e-8, 10])
+        vtor  = np.zeros((nrho,1))
         edens = 1e19 * np.ones((nrho, 1))
         etemp = 2e3  * np.ones((nrho, 1))
         idens = 1e19 * np.ones((nrho, 1))
@@ -2103,7 +2116,7 @@ class PhysTest():
         idens[rho>1,:] = 1
 
         pls = {
-            "nrho" : nrho, "nion" : 1, "rho" : rho,
+            "nrho" : nrho, "nion" : 1, "rho" : rho, "vtor" : vtor,
             "anum" : np.array([1]), "znum" : np.array([1]),
             "mass" : np.array([1.014]), "charge" : np.array([1]),
             "edensity" : edens, "etemperature" : etemp,

@@ -96,6 +96,14 @@ void dist_rho5D_onload(dist_rho5D_data* data) {
 void dist_rho5D_update_fo(dist_rho5D_data* dist, particle_simd_fo* p_f,
                           particle_simd_fo* p_i) {
 
+#ifdef GPU
+    size_t index;
+    real weight;
+#else
+    size_t index[NSIMD];
+    real weight[NSIMD];
+#endif
+
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < p_f->n_mrk; i++) {
         if(p_f->running[i]) {
@@ -150,16 +158,33 @@ void dist_rho5D_update_fo(dist_rho5D_data* dist, particle_simd_fo* p_f,
                i_pperp >= 0 && i_pperp <= dist->n_pperp - 1 &&
                i_time  >= 0 && i_time  <= dist->n_time - 1  &&
                i_q     >= 0 && i_q     <= dist->n_q - 1       ) {
-                real weight = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
-                size_t index = dist_rho5D_index(
+#ifdef GPU
+                index = dist_rho5D_index(
                     i_rho, i_theta, i_phi, i_ppara, i_pperp,
                     i_time, i_q, dist->step_6, dist->step_5, dist->step_4,
                     dist->step_3, dist->step_2, dist->step_1);
-	            GPU_ATOMIC
+                weight = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
+                GPU_ATOMIC
                 dist->histogram[index] += weight;
+#else
+                index[i] = dist_rho5D_index(
+                    i_rho, i_theta, i_phi, i_ppara, i_pperp,
+                    i_time, i_q, dist->step_6, dist->step_5, dist->step_4,
+                    dist->step_3, dist->step_2, dist->step_1);
+                weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
+#endif
             }
         }
     }
+#ifndef GPU
+    for(int i = 0; i < p_f->n_mrk; i++) {
+        if(p_f->running[i] && index[i] >= 0 &&
+            index[i] < dist->step_6 * dist->n_rho) {
+            GPU_ATOMIC
+            dist->histogram[index[i]] += weight[i];
+        }
+    }
+#endif
 }
 
 /**
