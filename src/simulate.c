@@ -297,8 +297,6 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     /**************************************************************************/
     free(pq.p);
 
-    diag_onload(&sim->diag_data);
-
     /**************************************************************************/
     /* 8. Execution returns to host where this function was called.           */
     /*                                                                        */
