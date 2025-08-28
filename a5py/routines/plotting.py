@@ -165,11 +165,18 @@ def openfigureifnoaxes(projection="rectilinear"):
             """Create a new figure if axes is None and pass *args and **kwargs
             for the plotter.
             """
+
+            # Sometimes you don't want to give axes, but you want to call
+            # several plotting functions for the same axes. Hence, you need to
+            # skip plt.show() initially.
+            skipshow = kwargs.pop("skipshow", False)
             if axes is None:
                 fig  = plt.figure()
                 axes = fig.add_subplot(111, projection=projection)
-                plotfun(*args, axes=axes, **kwargs)
-                plt.show()
+                result = plotfun(*args, axes=axes, **kwargs)
+                if not skipshow:
+                    plt.show()
+                return result
             else:
                 if projection != None and axes.name != projection:
                     raise ValueError(
@@ -213,11 +220,22 @@ def getmathtextsciformatter(format):
 
     return MathTextSciFormatter(format)
 
+def show():
+    return plt.show()
+
+def legend():
+    return plt.legend()
+
+def tight_layout(axes):
+    fig = axes.get_figure()
+    return fig.tight_layout()
+
 @openfigureifnoaxes(projection=None)
 def scatter2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
               xlabel=None, ylabel=None, clabel=None, cint=9, cmap=None,
-              axesequal=False, axes=None, cax=None, markersize=6.0, alpha=1.0,
-              title=None):
+              axesequal=False, axes=None, cax=None, marker="o", markersize=6.0,
+              markerfacecolor=None, alpha=1.0,
+              title=None, label=None, skipshow=False):
     """Make a scatter plot in 2D+1 where color can be one dimension.
 
     For better performance this function uses matplotlib's plot function instead
@@ -257,10 +275,16 @@ def scatter2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
         The color bar axes or otherwise taken from the main axes.
     markersize : float, optional
         size of the drawn markers
+    markerfacecolor : str, optional
+        color with which the drawn markers are filled
     alpha : float, optional
         Transparency (0: transparent, 1:opaque)
     title : str, optional
         title for the axes
+    label : str, optional
+        label for the legend
+    skipshow : bool, optional
+        Skip plt.show() if True. Only used by the decorator when no axes given.
     """
     axes.set_xscale(xlog)
     axes.set_yscale(ylog)
@@ -271,9 +295,10 @@ def scatter2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
 
     if c is None or isinstance(c, str):
         # Simple plot with a single color
-        axes.plot(x, y, color=c, linestyle="None", marker="o",
-                  markersize=markersize, alpha=alpha)
-        return
+        axes.plot(x, y, color=c, linestyle="None", marker=marker,
+                  markersize=markersize, alpha=alpha,
+                  markerfacecolor=markerfacecolor, label=label)
+        return axes
 
     # Sort inputs by color values and then find the indices that divide the
     # color range in given intervals
@@ -298,7 +323,8 @@ def scatter2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
     for i in range(nc):
         i2 = idx[i+1]
         axes.plot(x[i1:i2], y[i1:i2], color=cmap(i/nc), linestyle="None",
-                  marker="o", markersize=markersize, alpha=alpha)
+                  marker=marker, markersize=markersize, alpha=alpha,
+                  markerfacecolor=markerfacecolor, label=label)
         i1 = i2
 
     # Make colorbar with where color scale has the intervals
@@ -312,6 +338,7 @@ def scatter2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
         ticks.append(r"$%.2f\times 10^{%.0f}$" % (mul, log))
     cbar.ax.set_yticklabels(ticks)
     cbar.set_label(clabel)
+    return axes
 
 @openfigureifnoaxes(projection="3d")
 def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
@@ -702,7 +729,8 @@ def arrows2d():
 @openfigureifnoaxes(projection=None)
 def line2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
            xlabel=None, ylabel=None, clabel=None, bbox=None,
-           cmap=None, axesequal=False, axes=None, cax=None):
+           cmap=None, axesequal=False, axes=None, cax=None, marker=None,
+           markerfacecolor=None, title=None,label=None, skipshow=False):
     """Plot line segments in 2D.
 
     x : array_like
@@ -731,17 +759,27 @@ def line2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
         The axes where figure is plotted or otherwise new figure is created.
     cax : :obj:`~matplotlib.axes.Axes`, optional
         The color bar axes or otherwise taken from the main axes.
+    marker : str, optional
+        Marker type.
+    markerfacecolor : str, optional
+        Color of the marker face.
+    title : str, optional
+        Title of the figure.
+    skipshow : bool, optional
+        Flag to skip the show function. Only used by the openfigureifnoaxes decorator.
     """
     axes.set_xscale(xlog)
     axes.set_yscale(ylog)
     axes.set_xlabel(xlabel)
     axes.set_ylabel(ylabel)
+    axes.set_title(title)
     if axesequal: axes.set_aspect("equal", adjustable="box")
     if c is None or isinstance(c, str):
         # Simple plot with a single color
         for i in range(len(x)):
-            axes.plot(x[i], y[i], color=c)
-        return
+            axes.plot(x[i], y[i], color=c, marker=marker,
+                      markerfacecolor=markerfacecolor,label=label)
+        return axes
 
     if bbox is None:
         bbox = "[xmin, xmax, ymin, ymax, cmin, cmax]"
@@ -773,6 +811,7 @@ def line2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
     smap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
     cax = plt.colorbar(smap, ax=axes, cax=cax)
     cax.ax.set_ylabel(clabel, rotation=90, labelpad=10)
+    return axes
 
 @openfigureifnoaxes(projection="3d")
 def line3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
@@ -1398,7 +1437,7 @@ def momentumpolargrid(pnorm_edges, pitch_edges, axes=None):
 @openfigureifnoaxes(projection=None)
 def radialprofile(x, y1, y2=None, xlim=None, y1lim=None, y2lim=None,
                   xlabel=None, y1label=None, y2label=None, y1legends=None,
-                  y2legends=None, axes=None):
+                  y2legends=None, axes=None, tightlayout=True, title=None):
     """Plot 1D profiles on axes that can have two y-axes and the y-axis combines
     both linear and logarithmic scale.
 
@@ -1435,9 +1474,14 @@ def radialprofile(x, y1, y2=None, xlim=None, y1lim=None, y2lim=None,
         Number of legend values must be the same as the number of ``y2``.
     axes : :obj:`~matplotlib.axes.Axes`, optional
         The axes where figure is plotted or otherwise new figure is created.
+    tightlayout : bool, optional
+        Whether to use tight layout.
+    title : str, optional
+        Title of the figure.
     """
     if y1lim is None: raise ValueError("y1lim must be provided")
     if xlim is not None: axes.set_xlim(xlim)
+    axes.set_title(title)
 
     # Create linear left axis
     axleftlin = axes
@@ -1524,6 +1568,9 @@ def radialprofile(x, y1, y2=None, xlim=None, y1lim=None, y2lim=None,
     legend1 = plt.legend(handles1, y1legends, loc='upper left',
                          bbox_to_anchor=(0.6,3.1), frameon=False)
     axleftlog.add_artist(legend1)
+    fig = axes.figure
+    if tightlayout:
+        fig.tight_layout()
 
     return axleftlin, axrightlin, axleftlog, axrightlog
 

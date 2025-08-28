@@ -629,6 +629,211 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         a5plt.line2d([phi_vec], [qnt_vec], xlabel="phi [deg]",
                      ylabel=f"{qnt:s} [{str(qnt_vec.units):s}]", axes=axes)
 
+    def input_check_bfield_seam(self,
+                                qnt,
+                                r=None,
+                                z=None,
+                                axes=None,
+                                centremostpercentage=10,
+                                diff=True,
+                                forceplot=False,
+                                n_centremost_elements_for_fit=None,
+                                plot_spline_interpolated=False,
+                                ):
+        """
+        Tries to check if an (R,z) plane is missing near the "seam" of the
+        bfield input.
+
+        This function is intended to be used to verify that the correct number
+        of (R,z) planes is provided when using a stellarator bfield input. To
+        recap, psi and Bfield components should be given at the points
+        np.linspace(phimin, phimax, nphi+1)[:-1]. (It is possible to
+        independently specify phimin, phimax and nphi for both psi and the
+        bfield components.)
+
+        If an (R,z) plane might be missing, plots qnt as a function of phi,
+        evaluated only at the grid points where the input is given.
+
+        Parameters
+        ----------
+        qnt : str
+            One of the following: {"psi", "br", "bphi", "bz"}
+        r : float, optional
+            R coordinate where data is evaluated. (The functions uses the R
+            value of the input that is closest to this requested one) [m]
+        z : float, optional
+            z coordinate where data is evaluated. (The functions uses the z
+            value of the input that is closest to this requested one) [m]
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        centremostpercentage : float, optional
+            Percentage of the grid closest to the requested r and z.
+            (Default is 10, i.e. 5 % of the grid on either side)
+        diff : bool, optional
+            If True, plots np.diff(qnt)/np.diff(phi) instead of qnt. A possible
+            kink may be more clearly visible in the diff(qnt) plot.
+        forceplot : bool, optional
+            If True, plots the requested quantity even if no (R,z) plane is
+            deemed missing.
+        n_centremost_elements_for_fit : int, optional
+            Number of elements from the centre of the quantity array to use for
+            least square sum fitting a polynomial. Default is None, in which
+            case the whole array, consisting of 'centremostpercentage', is used.
+        plot_spline_interpolated : bool, optional
+            If True, plots the spline interpolated version of qnt.
+        """
+
+        if qnt not in ["psi", "br", "bphi", "bz"]:
+            raise ValueError("qnt must be one of the "
+                             "following: {\"psi\", \"br\", \"bphi\", \"bz\"}")
+        b = self.data.bfield.active.read()
+
+        # Since psi and bfield may have been given in different grids, take
+        # explicitly the corresponding grid
+        if qnt == "psi":
+            name = "psi"
+        else:
+            name = "b"
+        dataphimin = b[name+"_phimin"][0]; dataphimax = b[name+"_phimax"][0]
+        datanr, datanphi, datanz = b[qnt].shape
+        phi_vec = np.linspace(dataphimin, dataphimax, datanphi+1)[:-1]
+        dphi = (dataphimax-dataphimin)/(datanphi)
+        datarmin = b[name+"_rmin"][0]; datarmax = b[name+"_rmax"][0]
+        datazmin = b[name+"_zmin"][0]; datazmax = b[name+"_zmax"][0]
+
+        # If r or z co-ordinates are given, get qnt at those
+        if r is not None:
+            rmidindex = int((r-datarmin)/(datarmax-datarmin)*datanr)
+        else:
+            rmidindex = int(datanr/2)
+        # Update r to be the actual r that we are using
+        r = np.linspace(datarmin, datarmax, datanr)[rmidindex]
+
+        if z is not None:
+            zmidindex = int((z-datazmin)/(datazmax-datazmin)*datanz)
+        else:
+            zmidindex = int(datanz/2)
+        # Update z to be the actual r that we are using
+        z = np.linspace(datazmin, datazmax, datanz)[zmidindex]
+
+        qntarray = b[qnt][rmidindex,:,zmidindex]
+
+        # Shift phi_vec values so that the middle of the array correstponds
+        # to the "seam" of the input, that is, phi=phimin is put in the middle
+        n_elements_rolled = int(datanphi/2)
+        phi_vec = phi_vec - n_elements_rolled*dphi
+        qntarray = np.roll(qntarray, n_elements_rolled)
+
+        # Select only the centremost points
+        frac_points_to_keep = 0.01*centremostpercentage
+        start_index = int(datanphi * (1 - frac_points_to_keep) / 2)
+        end_index   = datanphi - start_index
+        phi_vec = phi_vec[start_index:end_index]
+        qntarray = qntarray[start_index:end_index]
+
+        # If diff, plot instead np.diff(qnt)
+        if diff:
+            qntarray = np.diff(qntarray)   #/np.mean(qntarray)  # normalised diff
+            diff_phi = np.diff(phi_vec)
+            qntarray = qntarray/diff_phi
+            phi_vec = 0.5*(phi_vec[:-1] + phi_vec[1:])
+            ylabel = f"diff({qnt:s})/d phi"
+        else:
+            ylabel = qnt
+
+        # Take only the points closest to the seam
+        if n_centremost_elements_for_fit is not None:
+            def centremost(arr, n):
+                """Return n centremost elements of a 1D numpy array."""
+                length = len(arr)
+                if n > length:
+                    raise ValueError("You requested more elements for the fit" \
+                    f" than the input data has inside " \
+                    f"centremostpercentage={centremostpercentage:.1f} %. There" \
+                    f" are {len(qntarray):d} elements, while you requested" \
+                    f" {n:d}. Please, either reduce " \
+                    "'n_centremost_elements_for_fit' or increase " \
+                    "'centremostpercentage'.")
+                start = (length - n) // 2
+                end = start + n
+                return arr[start:end]
+            qntforfit = centremost(qntarray, n_centremost_elements_for_fit)
+            phiforfit = centremost(phi_vec, n_centremost_elements_for_fit)
+        else:
+            qntforfit = qntarray
+            phiforfit = phi_vec
+
+        # Fit a polynomial. Third order seems to work well.
+        poly_order = 3
+        fit = np.polyfit(phiforfit, qntforfit, poly_order)
+        fitfunc = np.poly1d(fit)
+
+        # Evaluate the vertical distance between qntarray and the polynomial
+        qnt_vertical_distance = np.abs(qntforfit - fitfunc(phiforfit))
+        qnt_vertical_distance_avg = np.mean(qnt_vertical_distance)
+        qnt_vertical_distance_normalised = qnt_vertical_distance/qnt_vertical_distance_avg
+
+        # If normalised deviation above threshold, the input point may cause a kink
+        problemeatic_points_indices = qnt_vertical_distance_normalised > 2.0
+        n_problematic_points = np.sum(problemeatic_points_indices)
+        if n_problematic_points > 0:
+            warnings.warn(f"{n_problematic_points:d} potentially problematic " \
+                          f"points in the {qnt:s} input found near the 'seam'" \
+                          " in phi direction.")
+
+        # If kink found, plot the figure for the user to double check
+        if n_problematic_points or forceplot:
+            axes = a5plt.line2d([phi_vec],
+                                [qntarray],
+                                axes=axes,
+                                marker="o",
+                                markerfacecolor="none",
+                                title=f"R = {r:.2f} m, z = {z:.2f} m",
+                                label="input data", skipshow=True)
+
+            # Plot also the spline-interpolated values to assess how well the
+            # splines handle the data
+            if plot_spline_interpolated:
+                phi_high_res = np.linspace(phi_vec[0],phi_vec[-1],100)
+                high_res_qnt = self.input_eval(r, phi_high_res, z, 0, qnt)
+                if diff:
+                    phi_hr_diff = np.diff(phi_high_res)
+                    phi_high_res = 0.5*(phi_high_res[:-1] + phi_high_res[1:])
+                    high_res_qnt = np.diff(high_res_qnt)
+                    high_res_qnt = high_res_qnt/phi_hr_diff
+                axes = a5plt.line2d([phi_high_res], [high_res_qnt], axes=axes,
+                            label="interpolated", skipshow=True)
+
+            # Plot the polynomial fit to verify that it is sensible
+            phi_high_res_centre = np.linspace(phiforfit[0], phiforfit[-1], 50)
+            axes = a5plt.line2d([phi_high_res_centre],
+                                [fitfunc(phi_high_res_centre)],
+                                axes=axes,
+                                title=f"R = {r:.2f} m, z = {z:.2f} m",
+                                label=f"lsq fit, polynomial order {poly_order:d}",
+                                c="k",
+                                skipshow=True,
+                                )
+
+            # Circle problematic input points with red
+            a5plt.scatter2d(phiforfit[problemeatic_points_indices],
+                            qntforfit[problemeatic_points_indices],
+                            c="r",
+                            axes=axes,
+                            xlabel="phi [deg]",
+                            ylabel=ylabel,
+                            marker="o",
+                            markersize=20,
+                            markerfacecolor="none",
+                            label="Potentially problematic points",
+                            skipshow=True,
+                            )
+
+            a5plt.tight_layout(axes=axes)
+            a5plt.legend()
+            a5plt.show()
+
+
     def input_plotrz(self, r, z, qnt, phi=0*unyt.deg, t=0*unyt.s, rhomax=None,
                      clim=None, cmap=None, axes=None, cax=None,
                      drawcontours=False, contourvalues=None, contourcolors=None,
