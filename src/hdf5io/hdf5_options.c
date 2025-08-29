@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <hdf5.h>
 #include <hdf5_hl.h>
+#include <string.h>
 #include "../ascot5.h"
 #include "../consts.h"
 #include "../diag.h"
@@ -19,6 +20,7 @@
 #include "../simulate.h"
 #include "hdf5_helpers.h"
 #include "hdf5_options.h"
+#include <string.h>
 #define OPTPATH /**< Macro that is used to store paths to data groups */
 
 int hdf5_options_read_dist5D(hid_t file, dist_5D_data* dist, char* qid);
@@ -114,6 +116,9 @@ int hdf5_options_read(hid_t file, sim_data* sim, char* qid){
     if( hdf5_read_double(OPTPATH "ENABLE_ATOMIC", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     sim->enable_atomic = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "ENABLE_RF", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->enable_rf = (int)tempfloat;
     if( hdf5_read_double(OPTPATH "DISABLE_FIRSTORDER_GCTRANS", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     sim->disable_gctransform = (int)tempfloat;

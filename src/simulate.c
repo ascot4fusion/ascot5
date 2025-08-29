@@ -22,7 +22,7 @@
 #include "neutral.h"
 #include "B_field.h"
 #include "E_field.h"
-#include "rf_fields_fo.h"
+#include "icrh/RFlib.h"
 #include "random.h"
 #include "simulate.h"
 #include "print.h"
@@ -142,7 +142,19 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     mhd_offload(&sim->mhd_data);
     asigma_offload(&sim->asigma_data);
     diag_offload(&sim->diag_data);
-    RF2D_offload(&sim->rffield_data);
+    RF_fields_offload(&sim->rffield_data);
+
+    if(sim->enable_rf && (sim->rffield_data.type != RF_NONE)) {
+        if(sim->sim_mode==simulate_mode_gc && (sim->rffield_data.type != RF2D_GC_STIX)) {
+            print_err("Error: Only Stix diffusion can be used for the RF fields in GC mode.\n");
+            exit(1);
+        }
+
+        if(sim->sim_mode==simulate_mode_fo && (sim->rffield_data.type == RF2D_GC_STIX)) {
+            print_err("Error: Stix diffusion operator cannot be used with full-orbit model.\n");
+            exit(1);
+        }
+    }
 
     /**************************************************************************/
     /* 2. Meta data (e.g. random number generator) is initialized.            */

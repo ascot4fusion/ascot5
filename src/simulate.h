@@ -20,7 +20,6 @@
 #include "nbi.h"
 #include "diag.h"
 #include "random.h"
-#include "rf_fields_fo.h"
 #include "simulate/mccc/mccc.h"
 #include "simulate/step/step_fo_vpa.h"
 
@@ -68,7 +67,7 @@ typedef struct {
     asigma_data asigma_data;   /**< Atomic sigma data interface               */
     nbi_data nbi_data;         /**< Neutral beam injection data interface     */
     diag_data diag_data;       /**< Diagnostics data interface                */
-    RF2D_fields rffield_data;       /**< RF field data interface                   */
+    RF_fields rffield_data;       /**< RF field data interface                   */
 
     /* Metadata */
     random_data random_data;   /**< Random number generator                   */
@@ -101,6 +100,7 @@ typedef struct {
     int enable_clmbcol;        /**< Are Coulomb collisions enabled            */
     int enable_mhd;            /**< Are MHD modes enabled                     */
     int enable_atomic;         /**< Are atomic reactions enabled              */
+    int enable_rf;             /**< Is RF enabled                             */
     int disable_gctransform;   /**< Disables first order velocity terms in
                                     guiding center transformation             */
     int disable_energyccoll;   /**< Disables energy component from Coulomb

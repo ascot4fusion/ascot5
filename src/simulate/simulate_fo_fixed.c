@@ -15,7 +15,7 @@
 #include "../diag.h"
 #include "../B_field.h"
 #include "../E_field.h"
-#include "../rf_fields_fo.h"
+#include "../icrh/RFlib.h"
 #include "../plasma.h"
 #include "../endcond.h"
 #include "../math.h"
@@ -248,13 +248,13 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
             phys_gyrofreq_pnorm(p->mass[i], p->charge[i], pnorm, Bnorm);
         h = gyrotime/sim->fix_gyrodef_nstep;
 
-        if(sim->rffield_data.initialized == 1){
-            real rf_time = 2.0 * CONST_PI / sim->rffield_data.omega;
-            rf_time /= sim->fix_gyrodef_nstep; // Divide by number of steps per gyrotime
-            if(h > rf_time){
-                h = rf_time;
-            }
-        }
+        // if(sim->rffield_data.initialized == 1){
+        //     real rf_time = 2.0 * CONST_PI / sim->rffield_data.omega;
+        //     rf_time /= sim->fix_gyrodef_nstep; // Divide by number of steps per gyrotime
+        //     if(h > rf_time){
+        //         h = rf_time;
+        //     }
+        // }
     }
     return h;
 }
