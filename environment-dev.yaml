@@ -43,6 +43,7 @@ dependencies:
   - llvm-openmp==15.*
   - libsanitizer
   - pylint
+  - gsl
   - pip:
     - clang==15.*
     - ctypeslib2

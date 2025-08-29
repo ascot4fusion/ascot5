@@ -62,7 +62,7 @@ else ifeq ($(RANDOM),LCG)
 	DEFINES+=-DRANDOM_LCG
 endif
 
-CFLAGS+=-Wall -fPIC -std=c11 -D_XOPEN_SOURCE=700 $(DEFINES) $(FLAGS)
+CFLAGS+=-Wall -fPIC -std=c11 -D_XOPEN_SOURCE=700 -lgsl -lgslcblas -lm $(DEFINES) $(FLAGS)
 
 ifeq ($(DEBUG),1)
 	CFLAGS+=-g -fsanitize=address
@@ -86,9 +86,14 @@ endif
 ifeq ($(UNAME_S),Linux)
 libascot.so: CFLAGS+=-fPIC -shared
 	CFLAGS+=-lm
+	CFLAGS+=-I$(CONDA_PREFIX)/x86_64-conda-linux-gnu/sysroot/usr/include/gsl/
+	CFLAGS+=-I$(shell dirname $(shell which h5cc))/../include
+
 	ifdef CONDA_PREFIX
 		CLANG2PY_ARGS=-I$(CONDA_PREFIX)/include/ \
 		  -I$(CONDA_PREFIX)/x86_64-conda-linux-gnu/sysroot/usr/include/
+		  -isystem=$(CONDA_PREFIX)/include/ \
+		  -isystem=$(CONDA_PREFIX)/x86_64-conda-linux-gnu/sysroot/usr/include/
 	endif
 endif
 
@@ -156,6 +161,10 @@ SPLINEHEADERS = $(wildcard $(SPLINEDIR)spline.h $(SPLINEDIR)interp.h)
 SPLINEOBJS = $(patsubst %.c,%.o,$(wildcard $(SPLINEDIR)spline*.c \
 	$(SPLINEDIR)interp*.c))
 
+RFDIR = icrh/
+RFHEADERS = $(wildcard $(RFDIR)*.h)
+RFOBJS = $(patsubst %.c,%.o,$(wildcard $(RFDIR)*.c))
+
 UTESTDIR = unit_tests/
 DOCDIR = doc/
 
@@ -163,8 +172,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) \
 	$(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) $(HDF5IOHEADERS) \
 	$(PLSHEADERS) $(N0HEADERS) $(MHDHEADERS) $(ASIGMAHEADERS) \
-	$(LINTHEADERS) $(SPLINEHEADERS) \
-	rf_fields_fo.h \
+	$(LINTHEADERS) $(SPLINEHEADERS) $(RFHEADERS) \
 	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
 	E_field.h wall.h simulate.h diag.h offload.h boozer.h mhd.h \
 	random.h print.h hdf5_interface.h suzuki.h nbi.h biosaw.h \
@@ -174,7 +182,7 @@ OBJS= math.o list.o octree.o error.o \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
 	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS) $(HDF5IOOBJS) \
 	$(PLSOBJS) $(N0OBJS) $(MHDOBJS) $(ASIGMAOBJS) $(LINTOBJS) \
-	$(SPLINEOBJS) rf_fields_fo.o \
+	$(SPLINEOBJS) $(RFOBJS) \
 	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
 	E_field.o wall.o simulate.o diag.o boozer.o mhd.o \
 	random.o print.o hdf5_interface.o suzuki.o nbi.o biosaw.o \
@@ -260,7 +268,7 @@ ASCOT2PY_HEADERFILES=ascot5.h particle.h mpi_interface.h endcond.h simulate.h  \
 	$(ASIGMAHEADERS) $(N0HEADERS) $(MHDHEADERS) hdf5_interface.h           \
 	libascot_mem.h diag.h B_field.h E_field.h wall.h plasma.h neutral.h    \
 	boozer.h mhd.h nbi.h asigma.h afsi.h ascot5_main.h biosaw.h boschhale.h\
-	bbnbi5.h rf_fields_fo.h
+	bbnbi5.h $(RFHEADERS)
 
 ascot2py.py : libascot.so
 	$(eval CLANGOMP=$(shell clang --print-resource-dir)) \
@@ -272,6 +280,6 @@ clean:
 		$(MCCCDIR)*.o $(HDF5IODIR)*.o $(PLSDIR)*.o $(DIAGDIR)*.o \
 		$(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o $(MHDDIR)*.o \
 		$(N0DIR)*.o $(ASIGMADIR)*.o $(LINTDIR)*.o $(SPLINEDIR)*.o \
-	        $(UTESTDIR)*.o *.pyc
+		$(RFDIR)*.o $(UTESTDIR)*.o *.pyc
 	@rm -rf $(DOCDIR)
 	@rm -f gitver.h
