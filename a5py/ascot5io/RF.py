@@ -495,7 +495,7 @@ class RF2D_Stix(DataGroup):
         nz = Eplus_re.shape[1]
 
         parent = "RF"
-        group  = "RF_STIX_2D"
+        group  = "RF2D_Stix"
         gname  = ""
         with h5py.File(fn, "a") as f:
             g = add_group(f, parent, group, desc=desc)
