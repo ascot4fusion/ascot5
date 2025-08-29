@@ -23,7 +23,7 @@ a5err RF3D_fields_init_from_file(RF3D_fields* rffield_data, hid_t f, char* qid){
     #ifdef RFPATH
     #undef RFPATH
     #endif
-    #define RFPATH "/RF/RF_FO_3D_XXXXXXXXXX/" 
+    #define RFPATH "/RF/RF3D_XXXXXXXXXX/" 
 
     a5err err = 0; // Error flag
 

@@ -568,9 +568,15 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             b = np.sqrt(b["br"]**2 + b["bphi"]**2 + b["bz"]**2)
             out["db/b (mhd)"] = bpert/b
         
-        if any(q in qnt for q in ["er_rf2d", "ephi_rf2d", "ez_rf2d",
-                                  "br_rf2d", "bphi_rf2d", "bz_rf2d"]):
+        if any(q in qnt for q in ["er_rf", "ephi_rf", "ez_rf",
+                                  "br_rf", "bphi_rf", "bz_rf"]):
             out.update(self._eval_rffields(r, phi, z, t))
+        if any(q in qnt for q in ["eplus_re", "plus_im", "eminus_re",
+                                  "eminus_im", "kperp_rf"]):
+            args = [q in qnt for q in ["eplus_re", "plus_im", "eminus_re",
+                                       "eminus_im", "kperp_rf"]]
+            raise NotImplementedError(
+                f"Quantity evaluation of {args} not yet implemented")
 
         ni = ["ni" + str(i+1) for i in range(99)]
         ti = ["ti" + str(i+1) for i in range(99)]

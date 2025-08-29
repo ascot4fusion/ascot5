@@ -386,8 +386,8 @@ class Ascot(Ascotpy):
             msg += ["Warning: rho6D distribution memory consumption high (~" +
                     str(int(rtp * p3d * 8 / 1e9)) + "Gb)"]
             
-        if (opt["SIM_MODE"] in (2, 3)) and 'rffields' in self.data:
-            msg += ["Error: RF fields not supported for field-line or GC markers"]
+        if (opt["SIM_MODE"] == 3) and 'RF' in self.data:
+            msg += ["Error: RF fields not supported for field-line markers"]
 
         return msg
 

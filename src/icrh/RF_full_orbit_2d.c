@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <hdf5.h>
 #include "../ascot5.h"
 #include "../error.h"
 #include "../print.h"
@@ -21,7 +22,7 @@ a5err RF2D_fields_init_from_file(RF2D_fields* rffield_data, hid_t f, char* qid){
     #ifdef RFPATH
     #undef RFPATH
     #endif
-    #define RFPATH "/RF/RF_FO_2D_XXXXXXXXXX/" 
+    #define RFPATH "/RF/RF2D_XXXXXXXXXX/" 
 
     a5err err = 0; // Error flag
 

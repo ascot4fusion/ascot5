@@ -272,7 +272,6 @@ class B_GS(DataGroup):
                 "coefficients":coefficients, "nripple":1, "a0":2, "alpha0":2,
                 "delta0":0.05}
 
-
 class B_2DS(DataGroup):
     """Axisymmetric tokamak field interpolated with splines.
 

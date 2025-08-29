@@ -14,6 +14,7 @@
 #include "../ascot5.h"
 #include "../error.h"
 #include "../spline/interp.h"
+#include <hdf5.h>
 
 
 // Defining the object structure of the RF fields.

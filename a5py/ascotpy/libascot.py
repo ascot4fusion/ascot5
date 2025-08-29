@@ -564,7 +564,7 @@ class LibAscot:
         RuntimeError
             If evaluation in libascot.so failed.
         """
-        self._requireinit("rffield")
+        self._requireinit("RF")
         Neval = r.size
         out = {}
         E_unit = unyt.V / unyt.m

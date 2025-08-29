@@ -11,6 +11,7 @@
 #include "RF_full_orbit_3d.h"
 #include "RF2D_gc_stix.h"
 #include "RF_stix_particle_history.h"
+#include <hdf5.h>
 
 typedef enum RF_type{
     RF_NONE,
