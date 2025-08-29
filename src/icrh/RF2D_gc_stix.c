@@ -25,8 +25,6 @@
 
 #define M_PI 3.14159265358979323846
 
-// Defining the external functions.
-extern real Airy_Ai(real x); // Real-value of the Airy function.
 /**
  * @brief Initializes the RF2D_gc_stix structure with data from an HDF5 file.
  *
@@ -70,7 +68,7 @@ a5err RF2D_gc_stix_init_from_file(RF2D_gc_stix* stix_data, hid_t f, char* qid,
     #ifdef RFPATHSTIX
     #undef RFPATHSTIX
     #endif
-    #define RFPATHSTIX "/RF/RF_STIX_2D_XXXXXXXXXX/" 
+    #define RFPATHSTIX "/RF/RF2D_Stix_XXXXXXXXXX/" 
 
     // Internal parameters to store temporarily what 
     // we read from the HDF5 file
