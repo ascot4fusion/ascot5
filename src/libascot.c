@@ -25,8 +25,8 @@
 #include "asigma.h"
 #include "consts.h"
 #include "physlib.h"
-#include "rf_fields_fo.h"
 #include "gctransform.h"
+#include "icrh/RFlib.h"
 
 #include "simulate/mccc/mccc_coefs.h"
 
@@ -952,14 +952,14 @@ void libascot_rffield_eval_fields(sim_data* sim, int Neval,
             real* R, real* phi, real* z, real* t, 
             real* ER, real* Ephi, real* Ez,
             real* BR, real* Bphi, real* Bz){
-    if(sim->rffield_data.initialized == 0) return; // RF data not initialized
+    if(sim->enable_rf == 0) return; // RF data not initialized
 
     real E[3], B[3];
     a5err err;
 
     #pragma omp parallel for private(E, B, err)
     for(int k = 0; k < Neval; k++) {
-        err = RF_field_eval(E, B, R[k], phi[k], z[k], t[k], &sim->rffield_data) ;
+        err = RF_fields_eval(E, B, R[k], phi[k], z[k], t[k], &sim->rffield_data) ;
         if( err ) continue;
         ER[k]   = E[0];
         Ephi[k] = E[1];

@@ -198,7 +198,7 @@ int main(int argc, char** argv) {
     boozer_free(&sim.boozer_data);
     mhd_free(&sim.mhd_data);
     asigma_free(&sim.asigma_data);
-    rffield_free(&sim.rffield_data);
+    RF_fields_free(&sim.rffield_data);
 
     /* Write output and clean */
     if( write_output(&sim, pout, n_gathered) ) {
