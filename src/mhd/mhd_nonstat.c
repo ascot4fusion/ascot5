@@ -1,6 +1,6 @@
 /**
  * @file mhd_nonstat.c
- * @brief Module for evaluating MHD parameters.
+ * @brief Module for evaluating dynamic MHD eigenfunctions.
  */
 #include <stdlib.h>
 #include "../ascot5.h"
@@ -16,7 +16,21 @@
 /**
  * @brief Load MHD data
  *
- * @param offload_data pointer to data struct
+ * @param data pointer to the data struct
+ * @param nmode number of modes
+ * @param nrho number of rho grid points
+ * @param ntime number of time grid points
+ * @param rhomin minimum rho value in the grid
+ * @param rhomax maximum rho value in the grid
+ * @param tmin minimum time value in the grid
+ * @param tmax maximum time value in the grid
+ * @param moden toroidal mode numbers
+ * @param modem poloidal mode numbers
+ * @param amplitude_nm amplitude of each mode
+ * @param omega_nm toroidal frequency of each mode [rad/s]
+ * @param phase_nm phase of each mode [rad]
+ * @param alpha magnetic perturbation eigenfunctions
+ * @param phi electric perturbation eigenfunctions
  *
  * @return zero if initialization succeeded.
  */
@@ -26,15 +40,15 @@ int mhd_nonstat_init(mhd_nonstat_data* data, int nmode, int nrho, int ntime,
                      real* omega_nm, real* phase_nm, real* alpha, real* phi) {
 
     int err = 0;
-    data->n_modes = nmode;
-    data->rho_min = rhomin;
-    data->rho_max = rhomax;
-    data->nmode = (int*) malloc(nmode * sizeof(int));
-    data->mmode = (int*) malloc(nmode * sizeof(int));
-    data->omega_nm = (real*) malloc(nmode * sizeof(real));
-    data->phase_nm = (real*) malloc(nmode * sizeof(real));
+    data->n_modes      = nmode;
+    data->rho_min      = rhomin;
+    data->rho_max      = rhomax;
+    data->nmode        = (int*) malloc(nmode * sizeof(int));
+    data->mmode        = (int*) malloc(nmode * sizeof(int));
+    data->omega_nm     = (real*) malloc(nmode * sizeof(real));
+    data->phase_nm     = (real*) malloc(nmode * sizeof(real));
     data->amplitude_nm = (real*) malloc(nmode * sizeof(real));
-    data->phi_nm = (interp2D_data*) malloc(nmode * sizeof(interp2D_data));
+    data->phi_nm   = (interp2D_data*) malloc(nmode * sizeof(interp2D_data));
     data->alpha_nm = (interp2D_data*) malloc(nmode * sizeof(interp2D_data));
     for(int i = 0; i < nmode; i++) {
         data->nmode[i] = moden[i];
@@ -43,38 +57,13 @@ int mhd_nonstat_init(mhd_nonstat_data* data, int nmode, int nrho, int ntime,
         data->phase_nm[i] = phase_nm[i];
         data->amplitude_nm[i] = amplitude_nm[i];
 
-        err = interp2Dcomp_setup(&data->alpha_nm[i], &alpha[i*nrho*ntime],
-                                 nrho, ntime, NATURALBC, NATURALBC,
-                                 rhomin, rhomax, tmin, tmax);
-        if(err) {
-            print_err("Error: Failed to initialize splines.\n");
-            return err;
-        }
-        err = interp2Dcomp_setup(&data->phi_nm[i], &phi[i*nrho*ntime],
-                                 nrho, ntime, NATURALBC, NATURALBC,
-                                 rhomin, rhomax, tmin, tmax);
-        if(err) {
-            print_err("Error: Failed to initialize splines.\n");
-            return err;
-        }
+        err += interp2Dcomp_setup(&data->alpha_nm[i], &alpha[i*nrho*ntime],
+                                  nrho, ntime, NATURALBC, NATURALBC,
+                                  rhomin, rhomax, tmin, tmax);
+        err += interp2Dcomp_setup(&data->phi_nm[i], &phi[i*nrho*ntime],
+                                  nrho, ntime, NATURALBC, NATURALBC,
+                                  rhomin, rhomax, tmin, tmax);
     }
-
-    /* Print some sanity check on data */
-    print_out(VERBOSE_IO, "\nMHD input (non-stationary)\n");
-    print_out(VERBOSE_IO, "Grid: nrho = %4.d rhomin = %3.3f rhomax = %3.3f\n",
-              nrho, data->rho_min, data->rho_max);
-    print_out(VERBOSE_IO, "      ntime = %4.d tmin = %3.3f tmax = %3.3f\n",
-              ntime, tmin, tmax);
-
-    print_out(VERBOSE_IO, "\nModes:\n");
-    for(int i = 0; i < nmode; i++) {
-        print_out(VERBOSE_IO,
-                  "(n,m) = (%2.d,%2.d) Amplitude = %3.3g Frequency = %3.3g"
-                  " Phase = %3.3g\n",
-                  data->nmode[i], data->mmode[i], data->amplitude_nm[i],
-                  data->omega_nm[i], data->phase_nm[i]);
-    }
-
     return err;
 }
 

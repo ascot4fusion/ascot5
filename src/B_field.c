@@ -32,23 +32,23 @@
 void B_field_free(B_field_data* data) {
     switch(data->type) {
         case B_field_type_GS:
-            B_GS_free(&(data->BGS));
+            B_GS_free(data->BGS);
             break;
 
         case B_field_type_2DS:
-            B_2DS_free(&(data->B2DS));
+            B_2DS_free(data->B2DS);
             break;
 
         case B_field_type_3DS:
-            B_3DS_free(&(data->B3DS));
+            B_3DS_free(data->B3DS);
             break;
 
         case B_field_type_STS:
-            B_STS_free(&(data->BSTS));
+            B_STS_free(data->BSTS);
             break;
 
         case B_field_type_TC:
-            B_TC_free(&(data->BTC));
+            B_TC_free(data->BTC);
             break;
     }
 }
@@ -61,23 +61,23 @@ void B_field_free(B_field_data* data) {
 void B_field_offload(B_field_data* data) {
     switch(data->type) {
         case B_field_type_GS:
-            B_GS_offload(&(data->BGS));
+            B_GS_offload(data->BGS);
             break;
 
         case B_field_type_2DS:
-            B_2DS_offload(&(data->B2DS));
+            B_2DS_offload(data->B2DS);
             break;
 
         case B_field_type_3DS:
-            B_3DS_offload(&(data->B3DS));
+            B_3DS_offload(data->B3DS);
             break;
 
         case B_field_type_STS:
-            B_STS_offload(&(data->BSTS));
+            B_STS_offload(data->BSTS);
             break;
 
         case B_field_type_TC:
-            B_TC_offload(&(data->BTC));
+            B_TC_offload(data->BTC);
             break;
     }
 }
@@ -105,23 +105,23 @@ a5err B_field_eval_psi(real* psi, real r, real phi, real z, real t,
 
     switch(Bdata->type) {
         case B_field_type_GS:
-            err = B_GS_eval_psi(psi, r, phi, z, &(Bdata->BGS));
+            err = B_GS_eval_psi(psi, r, phi, z, Bdata->BGS);
             break;
 
         case B_field_type_2DS:
-            err = B_2DS_eval_psi(psi, r, phi, z, &(Bdata->B2DS));
+            err = B_2DS_eval_psi(psi, r, phi, z, Bdata->B2DS);
             break;
 
         case B_field_type_3DS:
-            err = B_3DS_eval_psi(psi, r, phi, z, &(Bdata->B3DS));
+            err = B_3DS_eval_psi(psi, r, phi, z, Bdata->B3DS);
             break;
 
         case B_field_type_STS:
-            err = B_STS_eval_psi(psi, r, phi, z, &(Bdata->BSTS));
+            err = B_STS_eval_psi(psi, r, phi, z, Bdata->BSTS);
             break;
 
         case B_field_type_TC:
-            err = B_TC_eval_psi(psi, r, phi, z, &(Bdata->BTC));
+            err = B_TC_eval_psi(psi, r, phi, z, Bdata->BTC);
             break;
 
         default:
@@ -169,23 +169,23 @@ a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z, real t,
 
     switch(Bdata->type) {
         case B_field_type_GS:
-            err = B_GS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BGS));
+            err = B_GS_eval_psi_dpsi(psi_dpsi, r, phi, z, Bdata->BGS);
             break;
 
         case B_field_type_2DS:
-            err = B_2DS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->B2DS));
+            err = B_2DS_eval_psi_dpsi(psi_dpsi, r, phi, z, Bdata->B2DS);
             break;
 
         case B_field_type_3DS:
-            err = B_3DS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->B3DS));
+            err = B_3DS_eval_psi_dpsi(psi_dpsi, r, phi, z, Bdata->B3DS);
             break;
 
         case B_field_type_STS:
-            err = B_STS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BSTS));
+            err = B_STS_eval_psi_dpsi(psi_dpsi, r, phi, z, Bdata->BSTS);
             break;
 
         case B_field_type_TC:
-            err = B_TC_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BTC));
+            err = B_TC_eval_psi_dpsi(psi_dpsi, r, phi, z, Bdata->BTC);
             break;
 
         default:
@@ -231,28 +231,28 @@ a5err B_field_eval_rho(real rho[2], real psi, B_field_data* Bdata) {
     real psi0 = 0.0, psi1 = 1.0;
     switch(Bdata->type) {
         case B_field_type_GS:
-            psi0 = Bdata->BGS.psi0;
-            psi1 = Bdata->BGS.psi1;
+            psi0 = Bdata->BGS->psi0;
+            psi1 = Bdata->BGS->psi1;
             break;
 
         case B_field_type_2DS:
-            psi0 = Bdata->B2DS.psi0;
-            psi1 = Bdata->B2DS.psi1;
+            psi0 = Bdata->B2DS->psi0;
+            psi1 = Bdata->B2DS->psi1;
             break;
 
         case B_field_type_3DS:
-            psi0 = Bdata->B3DS.psi0;
-            psi1 = Bdata->B3DS.psi1;
+            psi0 = Bdata->B3DS->psi0;
+            psi1 = Bdata->B3DS->psi1;
             break;
 
         case B_field_type_STS:
-            psi0 = Bdata->BSTS.psi0;
-            psi1 = Bdata->BSTS.psi1;
+            psi0 = Bdata->BSTS->psi0;
+            psi1 = Bdata->BSTS->psi1;
             break;
 
         case B_field_type_TC:
-            psi0 = Bdata->BTC.psival - Bdata->BTC.rhoval * Bdata->BTC.rhoval;
-            psi1 = Bdata->BTC.psival - Bdata->BTC.rhoval * Bdata->BTC.rhoval
+            psi0 = Bdata->BTC->psival - Bdata->BTC->rhoval * Bdata->BTC->rhoval;
+            psi1 = Bdata->BTC->psival - Bdata->BTC->rhoval * Bdata->BTC->rhoval
                    + 1.0;
             break;
 
@@ -315,23 +315,23 @@ a5err B_field_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
 
     switch(Bdata->type) {
         case B_field_type_GS:
-            err = B_GS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BGS));
+            err = B_GS_eval_rho_drho(rho_drho, r, phi, z, Bdata->BGS);
             break;
 
         case B_field_type_2DS:
-            err = B_2DS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->B2DS));
+            err = B_2DS_eval_rho_drho(rho_drho, r, phi, z, Bdata->B2DS);
             break;
 
         case B_field_type_3DS:
-            err = B_3DS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->B3DS));
+            err = B_3DS_eval_rho_drho(rho_drho, r, phi, z, Bdata->B3DS);
             break;
 
         case B_field_type_STS:
-            err = B_STS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BSTS));
+            err = B_STS_eval_rho_drho(rho_drho, r, phi, z, Bdata->BSTS);
             break;
 
         case B_field_type_TC:
-            err = B_TC_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BTC));
+            err = B_TC_eval_rho_drho(rho_drho, r, phi, z, Bdata->BTC);
             break;
 
         default:
@@ -377,23 +377,23 @@ a5err B_field_eval_B(real B[3], real r, real phi, real z, real t,
 
     switch(Bdata->type) {
         case B_field_type_GS:
-            err = B_GS_eval_B(B, r, phi, z, &(Bdata->BGS));
+            err = B_GS_eval_B(B, r, phi, z, Bdata->BGS);
             break;
 
         case B_field_type_2DS:
-            err = B_2DS_eval_B(B, r, phi, z, &(Bdata->B2DS));
+            err = B_2DS_eval_B(B, r, phi, z, Bdata->B2DS);
             break;
 
         case B_field_type_3DS:
-            err = B_3DS_eval_B(B, r, phi, z, &(Bdata->B3DS));
+            err = B_3DS_eval_B(B, r, phi, z, Bdata->B3DS);
             break;
 
         case B_field_type_STS:
-            err = B_STS_eval_B(B, r, phi, z, &(Bdata->BSTS));
+            err = B_STS_eval_B(B, r, phi, z, Bdata->BSTS);
             break;
 
         case B_field_type_TC:
-            err = B_TC_eval_B(B, r, phi, z, &(Bdata->BTC));
+            err = B_TC_eval_B(B, r, phi, z, Bdata->BTC);
             break;
 
         default:
@@ -452,23 +452,23 @@ a5err B_field_eval_B_dB(real B_dB[15], real r, real phi, real z, real t,
 
     switch(Bdata->type) {
         case B_field_type_GS:
-            err = B_GS_eval_B_dB(B_dB, r, phi, z, &(Bdata->BGS));
+            err = B_GS_eval_B_dB(B_dB, r, phi, z, Bdata->BGS);
             break;
 
         case B_field_type_2DS:
-            err = B_2DS_eval_B_dB(B_dB, r, phi, z, &(Bdata->B2DS));
+            err = B_2DS_eval_B_dB(B_dB, r, phi, z, Bdata->B2DS);
             break;
 
         case B_field_type_3DS:
-            err = B_3DS_eval_B_dB(B_dB, r, phi, z, &(Bdata->B3DS));
+            err = B_3DS_eval_B_dB(B_dB, r, phi, z, Bdata->B3DS);
             break;
 
         case B_field_type_STS:
-            err = B_STS_eval_B_dB(B_dB, r, phi, z, &(Bdata->BSTS));
+            err = B_STS_eval_B_dB(B_dB, r, phi, z, Bdata->BSTS);
             break;
 
         case B_field_type_TC:
-            err = B_TC_eval_B_dB(B_dB, r, phi, z, &(Bdata->BTC));
+            err = B_TC_eval_B_dB(B_dB, r, phi, z, Bdata->BTC);
             break;
 
         default:
@@ -503,23 +503,23 @@ a5err B_field_get_axis_rz(real rz[2], B_field_data* Bdata, real phi) {
 
     switch(Bdata->type) {
         case B_field_type_GS:
-            err = B_GS_get_axis_rz(rz, &(Bdata->BGS));
+            err = B_GS_get_axis_rz(rz, Bdata->BGS);
             break;
 
         case B_field_type_2DS:
-            err = B_2DS_get_axis_rz(rz, &(Bdata->B2DS));
+            err = B_2DS_get_axis_rz(rz, Bdata->B2DS);
             break;
 
         case B_field_type_3DS:
-            err = B_3DS_get_axis_rz(rz, &(Bdata->B3DS));
+            err = B_3DS_get_axis_rz(rz, Bdata->B3DS);
             break;
 
         case B_field_type_STS:
-            err = B_STS_get_axis_rz(rz, &(Bdata->BSTS), phi);
+            err = B_STS_get_axis_rz(rz, Bdata->BSTS, phi);
             break;
 
         case B_field_type_TC:
-            err = B_TC_get_axis_rz(rz, &(Bdata->BTC));
+            err = B_TC_get_axis_rz(rz, Bdata->BTC);
             break;
 
         default:

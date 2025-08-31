@@ -54,7 +54,7 @@ void asigma_extrapolate(int extrapolate) {
 void asigma_free(asigma_data* data) {
     switch(data->type) {
         case asigma_type_loc:
-            asigma_loc_free(&data->asigma_loc);
+            asigma_loc_free(data->asigma_loc);
             break;
     }
 }
@@ -67,7 +67,7 @@ void asigma_free(asigma_data* data) {
 void asigma_offload(asigma_data* data) {
     switch(data->type) {
         case asigma_type_loc:
-            asigma_loc_offload(&data->asigma_loc);
+            asigma_loc_offload(data->asigma_loc);
             break;
     }
 }
@@ -101,7 +101,7 @@ a5err asigma_eval_sigma(
         case asigma_type_loc:
             err = asigma_loc_eval_sigma(
                 sigma, z_1, a_1, z_2, a_2, E_coll_per_amu, reac_type,
-                ASIGMA_EXTRAPOLATE, &(asigma_data->asigma_loc));
+                ASIGMA_EXTRAPOLATE, asigma_data->asigma_loc);
             break;
 
         default:
@@ -152,7 +152,7 @@ a5err asigma_eval_sigmav(
         case asigma_type_loc:
             err = asigma_loc_eval_sigmav(
                 sigmav, z_1, a_1, m_1, z_2, a_2, E, T_e, T_0, n_i,
-                reac_type, ASIGMA_EXTRAPOLATE, &(asigma_data->asigma_loc));
+                reac_type, ASIGMA_EXTRAPOLATE, asigma_data->asigma_loc);
             break;
 
         default:
@@ -198,7 +198,7 @@ a5err asigma_eval_cx(
         case asigma_type_loc:
             err = asigma_loc_eval_cx(
                     ratecoeff, z_1, a_1, E, mass, nspec, znum, anum, T_0, n_0,
-                    ASIGMA_EXTRAPOLATE, &(asigma_data->asigma_loc));
+                    ASIGMA_EXTRAPOLATE, asigma_data->asigma_loc);
             break;
 
         default:
@@ -244,7 +244,7 @@ a5err asigma_eval_bms(
         case asigma_type_loc:
             err = asigma_loc_eval_bms(
                     ratecoeff, z_1, a_1, E, mass, nion, znum, anum, T_e, n_i,
-                    ASIGMA_EXTRAPOLATE, &(asigma_data->asigma_loc));
+                    ASIGMA_EXTRAPOLATE, asigma_data->asigma_loc);
             break;
 
         default:

@@ -83,12 +83,9 @@ int hdf5_neutral_init_1D(hid_t f, N0_1D_data* data, char* qid) {
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     int* anum = (int*) malloc(n_species * sizeof(int));
     int* znum = (int*) malloc(n_species * sizeof(int));
-    int* maxwellian = (int*) malloc(n_species * sizeof(int));
     if( hdf5_read_int(NPATH "anum", anum,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(NPATH "znum", znum,
-                      f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(NPATH "maxwellian", maxwellian,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Read the neutral density and temperature */
@@ -104,10 +101,9 @@ int hdf5_neutral_init_1D(hid_t f, N0_1D_data* data, char* qid) {
     }
 
     int err = N0_1D_init(data, n_rho, rho_min, rho_max, n_species, anum, znum,
-                         maxwellian, density, temperature);
+                         density, temperature);
     free(anum);
     free(znum);
-    free(maxwellian);
     free(density);
     free(temperature);
 
@@ -159,12 +155,9 @@ int hdf5_neutral_init_3D(hid_t f, N0_3D_data* data, char* qid) {
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     int* anum = (int*) malloc(n_species * sizeof(int));
     int* znum = (int*) malloc(n_species * sizeof(int));
-    int* maxwellian = (int*) malloc(n_species * sizeof(int));
     if( hdf5_read_int(NPATH "anum", anum,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(NPATH "znum", znum,
-                      f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(NPATH "maxwellian", maxwellian,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Read the neutral density and temperature */
@@ -180,11 +173,10 @@ int hdf5_neutral_init_3D(hid_t f, N0_3D_data* data, char* qid) {
     }
 
     int err = N0_3D_init(data, n_r, r_min, r_max, n_phi, phi_min, phi_max,
-                         n_z, z_min, z_max, n_species, anum, znum, maxwellian,
+                         n_z, z_min, z_max, n_species, anum, znum,
                          density, temperature);
     free(anum);
     free(znum);
-    free(maxwellian);
     free(density);
     free(temperature);
     return err;

@@ -29,10 +29,10 @@
 void neutral_free(neutral_data* data) {
     switch(data->type) {
         case neutral_type_1D:
-            N0_1D_free(&data->N01D);
+            N0_1D_free(data->N01D);
             break;
         case neutral_type_3D:
-            N0_3D_free(&data->N03D);
+            N0_3D_free(data->N03D);
             break;
     }
 }
@@ -45,10 +45,10 @@ void neutral_free(neutral_data* data) {
 void neutral_offload(neutral_data* data) {
     switch(data->type) {
         case neutral_type_1D:
-            N0_1D_offload(&data->N01D);
+            N0_1D_offload(data->N01D);
             break;
         case neutral_type_3D:
-            N0_3D_offload(&data->N03D);
+            N0_3D_offload(data->N03D);
             break;
     }
 }
@@ -63,7 +63,7 @@ void neutral_offload(neutral_data* data) {
  * @param n0 pointer where neutral density is stored [m^-3]
  * @param rho normalized poloidal flux coordinate
  * @param r R coordinate [m]
- * @param phi phi coordinate [deg]
+ * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
  * @param t time coordinate [s]
  * @param ndata pointer to neutral density data struct
@@ -76,10 +76,10 @@ a5err neutral_eval_n0(real* n0, real rho, real r, real phi, real z, real t,
 
     switch(ndata->type) {
         case neutral_type_1D:
-            err = N0_1D_eval_n0(n0, rho, &(ndata->N01D));
+            err = N0_1D_eval_n0(n0, rho, ndata->N01D);
             break;
         case neutral_type_3D:
-            err = N0_3D_eval_n0(n0, r, phi, z, &(ndata->N03D));
+            err = N0_3D_eval_n0(n0, r, phi, z, ndata->N03D);
             break;
         default:
             /* Unregonized input. Produce error. */
@@ -102,10 +102,10 @@ a5err neutral_eval_n0(real* n0, real rho, real r, real phi, real z, real t,
  *
  * This is a SIMD function.
  *
- * @param t0 pointer where neutral temperature is stored [J]
+ * @param t0 pointer where neutral temperature is stored [eV]
  * @param rho normalized poloidal flux coordinate
  * @param r R coordinate [m]
- * @param phi phi coordinate [deg]
+ * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
  * @param t time coordinate [s]
  * @param ndata pointer to neutral temperature data struct
@@ -118,10 +118,10 @@ a5err neutral_eval_t0(real* t0, real rho, real r, real phi, real z, real t,
 
     switch(ndata->type) {
         case neutral_type_1D:
-            err = N0_1D_eval_t0(t0, rho, &(ndata->N01D));
+            err = N0_1D_eval_t0(t0, rho, ndata->N01D);
             break;
         case neutral_type_3D:
-            err = N0_3D_eval_t0(t0, r, phi, z, &(ndata->N03D));
+            err = N0_3D_eval_t0(t0, r, phi, z, ndata->N03D);
             break;
         default:
             /* Unregonized input. Produce error. */
@@ -152,10 +152,10 @@ int neutral_get_n_species(neutral_data* ndata) {
     int n = 0;
     switch(ndata->type) {
         case neutral_type_1D:
-            n = N0_1D_get_n_species(&(ndata->N01D));
+            n = N0_1D_get_n_species(ndata->N01D);
             break;
         case neutral_type_3D:
-            n = N0_3D_get_n_species(&(ndata->N03D));
+            n = N0_3D_get_n_species(ndata->N03D);
             break;
     }
 

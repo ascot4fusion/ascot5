@@ -25,70 +25,42 @@
 #include "diag/dist_com.h"
 #include "diag/diag_transcoef.h"
 #include "particle.h"
-
-void diag_arraysum(size_t start, size_t stop, real* array1, real* array2);
+#include "simulate.h"
 
 /**
  * @brief Initializes diagnostics data
  *
  * @param data diagnostics data
- * @param Nmrk number of markers in the simulation
+ * @param nmarkers number of markers in the simulation
  */
-int diag_init(diag_data* data, int Nmrk) {
+int diag_init(sim_data* sim, int nmarkers) {
 
-    if(data->diagorb_collect) {
-        data->diagorb.Nmrk = Nmrk;
-
-        switch(data->diagorb.record_mode) {
-
-            case simulate_mode_fo:
-                data->diagorb.Nfld = DIAG_ORB_FOFIELDS;
-                break;
-
-            case simulate_mode_gc:
-                data->diagorb.Nfld = DIAG_ORB_GCFIELDS;
-                break;
-
-            case simulate_mode_ml:
-                data->diagorb.Nfld = DIAG_ORB_MLFIELDS;
-                break;
-
-            case simulate_mode_hybrid:
-                data->diagorb.Nfld = DIAG_ORB_HYBRIDFIELDS;
-                break;
-
-        }
-    }
-    if(data->diagtrcof_collect) {
-        data->diagtrcof.Nmrk = Nmrk;
+    if(sim->params->collect_dist5d) {
+        dist_5D_init(sim->dist5d, sim->params);
     }
 
-    if(data->dist5D_collect) {
-        dist_5D_init(&data->dist5D);
+    if(sim->params->collect_dist6d) {
+        dist_6D_init(sim->dist6d);
     }
 
-    if(data->dist6D_collect) {
-        dist_6D_init(&data->dist6D);
+    if(sim->params->collect_dist5drho) {
+        dist_rho5D_init(sim->dist5drho);
     }
 
-    if(data->distrho5D_collect) {
-        dist_rho5D_init(&data->distrho5D);
+    if(sim->params->collect_dist6drho) {
+        dist_rho6D_init(sim->dist6drho);
     }
 
-    if(data->distrho6D_collect) {
-        dist_rho6D_init(&data->distrho6D);
+    if(sim->params->collect_distcom) {
+        dist_COM_init(sim->distcom);
     }
 
-    if(data->distCOM_collect) {
-        dist_COM_init(&data->distCOM);
+    if(sim->params->collect_orbit) {
+        diag_orb_init(sim->orbit, sim->params, nmarkers);
     }
 
-    if(data->diagorb_collect) {
-        diag_orb_init(&data->diagorb);
-    }
-
-    if(data->diagtrcof_collect) {
-        diag_transcoef_init(&data->diagtrcof);
+    if(sim->params->collect_transport_coefficient) {
+        diag_transcoef_init(sim->transport_coefficient, sim->params, nmarkers);
     }
 
     return 0;
@@ -99,27 +71,27 @@ int diag_init(diag_data* data, int Nmrk) {
  *
  * @param data diagnostics data
  */
-void diag_free(diag_data* data) {
-    if(data->dist5D_collect) {
-        dist_5D_free(&data->dist5D);
+void diag_free(sim_data* sim) {
+    if(sim->params->collect_dist5d) {
+        dist_5D_free(sim->dist5d);
     }
-    if(data->dist6D_collect) {
-        dist_6D_free(&data->dist6D);
+    if(sim->params->collect_dist6d) {
+        dist_6D_free(sim->dist6d);
     }
-    if(data->distrho5D_collect) {
-        dist_rho5D_free(&data->distrho5D);
+    if(sim->params->collect_dist5drho) {
+        dist_rho5D_free(sim->dist5drho);
     }
-    if(data->distrho6D_collect) {
-        dist_rho6D_free(&data->distrho6D);
+    if(sim->params->collect_dist6drho) {
+        dist_rho6D_free(sim->dist6drho);
     }
-    if(data->distCOM_collect) {
-        dist_COM_free(&data->distCOM);
+    if(sim->params->collect_distcom) {
+        dist_COM_free(sim->distcom);
     }
-    if(data->diagorb_collect) {
-        diag_orb_free(&data->diagorb);
+    if(sim->params->collect_orbit) {
+        diag_orb_free(sim->orbit, sim->params);
     }
-    if(data->diagtrcof_collect) {
-        diag_transcoef_free(&data->diagtrcof);
+    if(sim->params->collect_transport_coefficient) {
+        diag_transcoef_free(sim->transport_coefficient);
     }
 }
 
@@ -128,21 +100,21 @@ void diag_free(diag_data* data) {
  *
  * @param data pointer to the data struct
  */
-void diag_offload(diag_data* data) {
-    if(data->dist5D_collect) {
-        dist_5D_offload(&data->dist5D);
+void diag_offload(sim_data* sim) {
+    if(sim->params->collect_dist5d) {
+        dist_5D_offload(sim->dist5d);
     }
-    if(data->dist6D_collect) {
-        dist_6D_offload(&data->dist6D);
+    if(sim->params->collect_dist6d) {
+        dist_6D_offload(sim->dist6d);
     }
-    if(data->distrho5D_collect) {
-        dist_rho5D_offload(&data->distrho5D);
+    if(sim->params->collect_dist5drho) {
+        dist_rho5D_offload(sim->dist5drho);
     }
-    if(data->distrho6D_collect) {
-        dist_rho6D_offload(&data->distrho6D);
+    if(sim->params->collect_dist6drho) {
+        dist_rho6D_offload(sim->dist6drho);
     }
-    if(data->distCOM_collect) {
-        dist_COM_offload(&data->distCOM);
+    if(sim->params->collect_distcom) {
+        dist_COM_offload(sim->distcom);
     }
 }
 
@@ -156,28 +128,28 @@ void diag_offload(diag_data* data) {
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
  *        current time-step
  */
-void diag_update_fo(diag_data* data, B_field_data* Bdata, particle_simd_fo* p_f,
+void diag_update_fo(sim_data* sim, B_field_data* Bdata, particle_simd_fo* p_f,
                     particle_simd_fo* p_i) {
-    if(data->diagorb_collect) {
-        diag_orb_update_fo(&data->diagorb, p_f, p_i);
+    if(sim->params->collect_orbit) {
+        diag_orb_update_fo(sim->orbit, sim->params, p_f, p_i);
     }
-    if(data->dist5D_collect) {
-        dist_5D_update_fo(&data->dist5D, p_f, p_i);
+    if(sim->params->collect_dist5d) {
+        dist_5D_update_fo(sim->dist5d, sim->params, p_f, p_i);
     }
-    if(data->dist6D_collect) {
-        dist_6D_update_fo(&data->dist6D, p_f, p_i);
+    if(sim->params->collect_dist6d) {
+        dist_6D_update_fo(sim->dist6d, p_f, p_i);
     }
-    if(data->distrho5D_collect) {
-        dist_rho5D_update_fo(&data->distrho5D, p_f, p_i);
+    if(sim->params->collect_dist5drho) {
+        dist_rho5D_update_fo(sim->dist5drho, p_f, p_i);
     }
-    if(data->distrho6D_collect) {
-        dist_rho6D_update_fo(&data->distrho6D, p_f, p_i);
+    if(sim->params->collect_dist6drho) {
+        dist_rho6D_update_fo(sim->dist6drho, p_f, p_i);
     }
-    if(data->distCOM_collect){
-        dist_COM_update_fo(&data->distCOM, Bdata, p_f, p_i);
+    if(sim->params->collect_distcom){
+        dist_COM_update_fo(sim->distcom, Bdata, p_f, p_i);
     }
-    if(data->diagtrcof_collect){
-        diag_transcoef_update_fo(&data->diagtrcof, p_f, p_i);
+    if(sim->params->collect_transport_coefficient){
+        diag_transcoef_update_fo(sim->transport_coefficient, sim->params, p_f, p_i);
     }
 }
 
@@ -191,34 +163,28 @@ void diag_update_fo(diag_data* data, B_field_data* Bdata, particle_simd_fo* p_f,
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
  *        current time-step
  */
-void diag_update_gc(diag_data* data, B_field_data* Bdata, particle_simd_gc* p_f,
+void diag_update_gc(sim_data* sim, B_field_data* Bdata, particle_simd_gc* p_f,
                     particle_simd_gc* p_i) {
-    if(data->diagorb_collect) {
-        diag_orb_update_gc(&data->diagorb, p_f, p_i);
+    if(sim->params->collect_orbit) {
+        diag_orb_update_gc(sim->orbit, sim->params, p_f, p_i);
     }
-
-    if(data->dist5D_collect){
-        dist_5D_update_gc(&data->dist5D, p_f, p_i);
+    if(sim->params->collect_dist5d){
+        dist_5D_update_gc(sim->dist5d, sim->params, p_f, p_i);
     }
-
-    if(data->dist6D_collect){
-        dist_6D_update_gc(&data->dist6D, p_f, p_i);
+    if(sim->params->collect_dist6d){
+        dist_6D_update_gc(sim->dist6d, p_f, p_i);
     }
-
-    if(data->distrho5D_collect){
-        dist_rho5D_update_gc(&data->distrho5D, p_f, p_i);
+    if(sim->params->collect_dist5drho){
+        dist_rho5D_update_gc(sim->dist5drho, p_f, p_i);
     }
-
-    if(data->distrho6D_collect){
-        dist_rho6D_update_gc(&data->distrho6D, p_f, p_i);
+    if(sim->params->collect_dist6drho){
+        dist_rho6D_update_gc(sim->dist6drho, p_f, p_i);
     }
-
-    if(data->distCOM_collect){
-        dist_COM_update_gc(&data->distCOM, Bdata, p_f, p_i);
+    if(sim->params->collect_distcom){
+        dist_COM_update_gc(sim->distcom, Bdata, p_f, p_i);
     }
-
-    if(data->diagtrcof_collect){
-        diag_transcoef_update_gc(&data->diagtrcof, p_f, p_i);
+    if(sim->params->collect_transport_coefficient){
+        diag_transcoef_update_gc(sim->transport_coefficient, sim->params, p_f, p_i);
     }
 }
 
@@ -233,100 +199,12 @@ void diag_update_gc(diag_data* data, B_field_data* Bdata, particle_simd_gc* p_f,
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
  *        current time-step
  */
-void diag_update_ml(diag_data* data, particle_simd_ml* p_f,
+void diag_update_ml(sim_data* sim, particle_simd_ml* p_f,
                     particle_simd_ml* p_i) {
-    if(data->diagorb_collect) {
-        diag_orb_update_ml(&data->diagorb, p_f, p_i);
+    if(sim->params->collect_orbit) {
+        diag_orb_update_ml(sim->orbit, sim->params, p_f, p_i);
     }
-
-    if(data->diagtrcof_collect){
-        diag_transcoef_update_ml(&data->diagtrcof, p_f, p_i);
-    }
-}
-
-/**
- * @brief Sum offload data arrays as one
- *
- * The data in both arrays have identical order so distributions can be summed
- * trivially. For orbits and transport coefficients the first array already have
- * space for appending the orbit data from the second array, so we only need to
- * move those elements.
- *
- * @param data pointer to diagnostics data struct
- * @param array1 the array to which array2 is summed
- * @param array2 the array which is to be summed
- */
-void diag_sum(diag_data* data1, diag_data* data2) {
-    if(data1->diagorb_collect) {
-    }
-
-    if(data1->diagtrcof_collect) {
-    }
-
-    if(data1->dist5D_collect){
-        size_t stop = (size_t)(data1->dist5D.n_r) * (size_t)(data1->dist5D.n_z)
-            * (size_t)(data1->dist5D.n_ppara) * (size_t)(data1->dist5D.n_pperp)
-            * (size_t)(data1->dist5D.n_time) * (size_t)(data1->dist5D.n_q);
-        diag_arraysum(0, stop, data1->dist5D.histogram,
-                      data2->dist5D.histogram);
-    }
-
-    if(data1->dist6D_collect){
-        size_t stop = (size_t)(data1->dist6D.n_r)
-            * (size_t)(data1->dist6D.n_phi)
-            * (size_t)(data1->dist6D.n_z) * (size_t)(data1->dist6D.n_pr)
-            * (size_t)(data1->dist6D.n_pphi) * (size_t)(data1->dist6D.n_pz)
-            * (size_t)(data1->dist6D.n_time) * (size_t)(data1->dist6D.n_q);
-        diag_arraysum(0, stop, data1->dist6D.histogram,
-                      data2->dist6D.histogram);
-    }
-
-    if(data1->distrho5D_collect){
-        size_t stop = (size_t)(data1->distrho5D.n_rho)
-            * (size_t)(data1->distrho5D.n_theta)
-            * (size_t)(data1->distrho5D.n_phi)
-            * (size_t)(data1->distrho5D.n_ppara)
-            * (size_t)(data1->distrho5D.n_pperp)
-            * (size_t)(data1->distrho5D.n_time)
-            * (size_t)(data1->distrho5D.n_q);
-        diag_arraysum(0, stop, data1->distrho5D.histogram,
-                      data2->distrho5D.histogram);
-    }
-
-    if(data1->distrho6D_collect){
-        size_t stop = (size_t)(data1->distrho6D.n_rho)
-            * (size_t)(data1->distrho6D.n_theta)
-            * (size_t)(data1->distrho6D.n_phi)
-            * (size_t)(data1->distrho6D.n_pr)
-            * (size_t)(data1->distrho6D.n_pphi)
-            * (size_t)(data1->distrho6D.n_pz)
-            * (size_t)(data1->distrho6D.n_time)
-            * (size_t)(data1->distrho6D.n_q);
-        diag_arraysum(0, stop, data1->distrho6D.histogram,
-                      data2->distrho6D.histogram);
-    }
-
-    if(data1->distCOM_collect){
-        size_t stop = (size_t)(data1->distCOM.n_mu)
-            * (size_t)(data1->distCOM.n_Ekin) * (size_t)(data1->distCOM.n_Ptor);
-        diag_arraysum(0, stop, data1->dist6D.histogram,
-                      data2->dist6D.histogram);
-    }
-}
-
-/**
- * @brief Simple helper function for summing elements of two arrays of same size
- *
- * This function is indented for summing distribution ordinates. Indexing starts
- * from 1 and indices given as arguments are inclusive.
- *
- * @param start index to array element where summation begins
- * @param stop index to array element where summation ends
- * @param array1 pointer to array where array2 is summed to
- * @param array2 pointer to array which is to be summed
- */
-void diag_arraysum(size_t start, size_t stop, real* array1, real* array2) {
-    for(size_t i = start; i < stop; i++) {
-        array1[i] += array2[i];
+    if(sim->params->collect_transport_coefficient){
+        diag_transcoef_update_ml(sim->transport_coefficient, sim->params, p_f, p_i);
     }
 }

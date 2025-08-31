@@ -15,21 +15,19 @@
  *
  * These bit masks are used to mark specific end condition as being active.
  */
-enum ENDCOND_FLAG {
-    endcond_tlim   = 0x1,   /**< Simulation time limit   */
-    endcond_emin   = 0x2,   /**< Minimum energy          */
-    endcond_therm  = 0x4,   /**< Thermalized             */
-    endcond_wall   = 0x8,   /**< Wall collision          */
-    endcond_rhomin = 0x10,  /**< Minimum rho             */
-    endcond_rhomax = 0x20,  /**< Maximum rho             */
-    endcond_polmax = 0x40,  /**< Poloidal limit          */
-    endcond_tormax = 0x80,  /**< Toroidal limit          */
-    endcond_cpumax = 0x100, /**< Wall time exceeded      */
-    endcond_hybrid = 0x200, /**< Hybrid mode condition   */
-    endcond_neutr  = 0x400, /**< Neutralized             */
-    endcond_ioniz  = 0x800  /**< Ionized                 */
+extern const unsigned int endcond_tlim;
+extern const unsigned int endcond_emin;
+extern const unsigned int endcond_therm;
+extern const unsigned int endcond_wall;
+extern const unsigned int endcond_rhomin;
+extern const unsigned int endcond_rhomax;
+extern const unsigned int endcond_polmax;
+extern const unsigned int endcond_tormax;
+extern const unsigned int endcond_cpumax;
+extern const unsigned int endcond_hybrid;
+extern const unsigned int endcond_neutr;
+extern const unsigned int endcond_ioniz;
 
-};
 
 void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
                       sim_data* sim);
@@ -37,8 +35,4 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                       sim_data* sim);
 void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
                       sim_data* sim);
-
-void endcond_parse(int endcond, int* endconds);
-void endcond_parse2str(int endcond, char* str);
-
 #endif

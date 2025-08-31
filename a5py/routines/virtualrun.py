@@ -4,8 +4,8 @@ import numpy as np
 import unyt
 import ctypes
 
-from a5py.data import State, Orbits, Dist
-from a5py.data.dist import DistData
+#from a5py.data import State, Orbits, Dist
+#from a5py.data.dist import DistData
 from .runmixin import RunMixin
 from .bbnbi5 import BBNBIMixin
 
@@ -368,7 +368,7 @@ class VirtualOrbits():
 
         return Orbits._getactual(mass, time, connlen, mode, _val, _eval, *qnt)
 
-class VirtualDist(Dist):
+class VirtualDist():#Dist
     """Distribution shared by C and Python.
     """
 

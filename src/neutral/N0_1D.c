@@ -17,58 +17,45 @@
  * @brief Initialize data
  *
  * @param data pointer to data struct
- * @param n_rho number of r grid points in the data
- * @param rho_min minimum r coordinate in the grid in the data [m]
- * @param rho_max maximum r coordinate in the grid in the data [m]
+ * @param n_rho number of rho grid points in the data
+ * @param rho_min minimum rho coordinate in the grid in the data [1]
+ * @param rho_max maximum rho coordinate in the grid in the data [1]
  * @param n_species number of neutral species
  * @param anum neutral species mass number
  * @param znum neutral species charge number
- * @param maxwellian is the species distribution Maxwellian or monoenergetic
+ * @param density neutral species-wise density [m^-3]
+ * @param temperature neutral species-wise temperature [J]
  *
  * @return zero if initialization succeeded
  */
 int N0_1D_init(N0_1D_data* data, int n_rho, real rho_min, real rho_max,
-               int n_species, int* anum, int* znum, int* maxwellian,
+               int n_species, int* anum, int* znum,
                real* density, real* temperature) {
 
     data->n_species = n_species;
     data->anum = (int*) malloc(n_species * sizeof(int));
     data->znum = (int*) malloc(n_species * sizeof(int));
-    data->maxwellian = (int*) malloc(n_species * sizeof(int));
     data->n0 = (linint1D_data*) malloc( n_species * sizeof(linint1D_data) );
     data->t0 = (linint1D_data*) malloc( n_species * sizeof(linint1D_data) );
+    int err = 0;
     for(int i = 0; i < data->n_species; i++) {
         data->anum[i] = anum[i];
         data->znum[i] = znum[i];
-        data->maxwellian[i] = maxwellian[i];
 
         real* c = (real*) malloc(n_rho * sizeof(real));
+        err += c == NULL ? 1 : 0;
         for(int i = 0; i < n_rho; i++) {
             c[i] = density[i];
         }
         linint1D_init(&data->n0[i], c, n_rho, NATURALBC, rho_min, rho_max);
         c = (real*) malloc(n_rho * sizeof(real));
+        err += c == NULL ? 1 : 0;
         for(int i = 0; i < n_rho; i++) {
             c[i] = temperature[i];
         }
         linint1D_init(&data->t0[i], c, n_rho, NATURALBC, rho_min, rho_max);
     }
-
-    print_out(VERBOSE_IO, "\n1D neutral density and temperature (N0_1D)\n");
-    print_out(VERBOSE_IO,
-              "Grid:  nrho = %4.d   rhomin = %3.3f   rhomax = %3.3f\n",
-              n_rho, rho_min, rho_max);
-    print_out(VERBOSE_IO, " Number of neutral species = %d\n", data->n_species);
-    print_out(VERBOSE_IO, "Species Z/A   (Maxwellian)\n");
-    for(int i=0; i < data->n_species; i++) {
-        print_out(VERBOSE_IO,
-                  "      %3d/%3d (%1d)    \n",
-                  (int)(data->znum[i]),
-                  (int)(data->anum[i]),
-                  (int)(data->maxwellian[i]));
-    }
-
-    return 0;
+    return err;
 }
 
 /**
@@ -79,10 +66,9 @@ int N0_1D_init(N0_1D_data* data, int n_rho, real rho_min, real rho_max,
 void N0_1D_free(N0_1D_data* data) {
     free(data->anum);
     free(data->znum);
-    free(data->maxwellian);
     for(int i = 0; i < data->n_species; i++) {
-        free(data->n0->c);
-        free(data->t0->c);
+        free(data->n0[i].c);
+        free(data->t0[i].c);
     }
     free(data->n0);
     free(data->t0);
@@ -103,7 +89,7 @@ void N0_1D_offload(N0_1D_data* data) {
  * This function evaluates the neutral density at the given coordinates using
  * linear interpolation on the 1D neutral density data.
  *
- * @param n0 n0 value will be stored in n0[0]
+ * @param n0 pointer where neutral density is stored [m^-3]
  * @param rho normalized poloidal flux coordinate
  * @param ndata pointer to neutral data struct
  *
@@ -129,9 +115,8 @@ a5err N0_1D_eval_n0(real* n0, real rho, N0_1D_data* ndata) {
  * This function evaluates the neutral temperature at the given coordinates
  * using linear interpolation on the 1D neutral temperature data.
  *
- * @param t0 t0 value will be stored in t0[0]
+ * @param t0 pointer where neutral temperature is stored [J]
  * @param rho normalized poloidal flux coordinate
- * @param ndata pointer to neutral data struct
  *
  * @return zero if evaluation succeeded
  */

@@ -18,6 +18,7 @@
  * @brief 1D spline electric field parameters on the target
  */
 typedef struct {
+    real reff;         /**< Effective minor radius [m] */
     interp1D_data dV;  /**< dV_drho 1D linear interpolation struct */
 } E_1DS_data;
 

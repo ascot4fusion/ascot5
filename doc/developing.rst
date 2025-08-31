@@ -535,7 +535,3 @@ Here are some long-term goals on how ASCOT5 should look like in the future:
 - Possibility to import inputs and run simulations via GUI.
 
 - Code is packaged via Conda with a minimal loss in performance.
-
-=====================================
-`C API <_static/doxygen/index.html>`_
-=====================================

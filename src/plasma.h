@@ -30,10 +30,10 @@ typedef enum plasma_type {
  * is declared using the `type` field.
  */
 typedef struct {
-    plasma_type type;           /**< Plasma data type wrapped by this struct */
-    plasma_1D_data plasma_1D;   /**< 1D data or NULL if not active           */
-    plasma_1Dt_data plasma_1Dt; /**< 1D data or NULL if not active           */
-    plasma_1DS_data plasma_1DS; /**< 1DS data or NULL if not active          */
+    plasma_1D_data* plasma_1D;   /**< 1D data or NULL if not active           */
+    plasma_1Dt_data* plasma_1Dt; /**< 1D data or NULL if not active           */
+    plasma_1DS_data* plasma_1DS; /**< 1DS data or NULL if not active          */
+    plasma_type type;            /**< Plasma data type wrapped by this struct */
 } plasma_data;
 
 void plasma_free(plasma_data* data);

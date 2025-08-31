@@ -59,7 +59,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 
     real cputime, cputime_last; // Global cpu time: recent and previous record
 
-    real tol = sim->ada_tol_orbfol;
+    real tol = sim->params->adaptive_tolerance_orbit;
     int i;
 
     particle_simd_ml p;  // This array holds current states
@@ -109,19 +109,19 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
         /*************************** Physics **********************************/
 
         /* Cash-Karp method for orbit-following */
-        if(sim->enable_orbfol) {
+        if(sim->params->enable_orbit_following) {
 
             /* Set time-step negative if tracing backwards in time */
             #pragma omp simd
             for(i = 0; i < NSIMD; i++) {
-                if(sim->reverse_time) {
+                if(sim->params->reverse_time) {
                     hin[i]  = -hin[i];
                 }
             }
 
-            if(sim->enable_mhd) {
+            if(sim->params->enable_mhd) {
                 step_ml_cashkarp_mhd(&p, hin, hout, tol, &sim->B_data,
-                                     &sim->boozer_data, &sim->mhd_data);
+                                     sim->boozer_data, &sim->mhd_data);
             }
             else {
                 step_ml_cashkarp(&p, hin, hout, tol, &sim->B_data);
@@ -131,7 +131,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
             #pragma omp simd
             for(i = 0; i < NSIMD; i++) {
                 /* Switch sign of the time-step again if it was reverted earlier */
-                if(sim->reverse_time) {
+                if(sim->params->reverse_time) {
                     hout[i] = -hout[i];
                     hin[i]  = -hin[i];
                 }
@@ -152,8 +152,8 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
             if(!p.err[i]) {
                 /* Check other time step limitations */
                 if(hnext[i] > 0) {
-                    real dphi = fabs(p0.phi[i]-p.phi[i]) / sim->ada_max_dphi;
-                    real drho = fabs(p0.rho[i]-p.rho[i]) / sim->ada_max_drho;
+                    real dphi = fabs(p0.phi[i]-p.phi[i]) / sim->params->adaptive_max_dphi;
+                    real drho = fabs(p0.rho[i]-p.rho[i]) / sim->params->adaptive_max_drho;
 
                     if(dphi > 1 && dphi > drho) {
                         hnext[i] = -hin[i]/dphi;
@@ -201,7 +201,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
         endcond_check_ml(&p, &p0, sim);
 
         /* Update diagnostics */
-        diag_update_ml(&sim->diag_data, &p, &p0);
+        diag_update_ml(sim, &p, &p0);
 
         /* Update running particles */
         n_running = particle_cycle_ml(pq, &p, &sim->B_data, cycle);

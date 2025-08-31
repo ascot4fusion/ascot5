@@ -8,39 +8,12 @@
 #include <stdlib.h>
 #include "../ascot5.h"
 #include "../particle.h"
+#include "../options.h"
 
 /**
  * @brief Histogram parameters
  */
 typedef struct {
-    int n_r;          /**< number of r bins                     */
-    real min_r;       /**< value of lowest r bin                */
-    real max_r;       /**< value of highest r bin               */
-
-    int n_phi;        /**< number of r bins                     */
-    real min_phi;     /**< value of lowest r bin                */
-    real max_phi;     /**< value of highest r bin               */
-
-    int n_z;          /**< number of z bins                     */
-    real min_z;       /**< value of lowest z bin                */
-    real max_z;       /**< value of highest z bin               */
-
-    int n_ppara;      /**< number of p_parallel bins            */
-    real min_ppara;   /**< value of lowest p_parallel bin       */
-    real max_ppara;   /**< value of highest p_parallel bin      */
-
-    int n_pperp;      /**< number of p_perpendicular bins       */
-    real min_pperp;   /**< value of lowest p_perpendicular bin  */
-    real max_pperp;   /**< value of highest p_perpendicular bin */
-
-    int n_time;       /**< number of r bins                     */
-    real min_time;    /**< value of lowest r bin                */
-    real max_time;    /**< value of highest r bin               */
-
-    int n_q;          /**< number of r bins                     */
-    real min_q;       /**< value of lowest r bin                */
-    real max_q;       /**< value of highest r bin               */
-
     size_t step_1;    /**< step for 2nd fastest running index   */
     size_t step_2;    /**< step for 3rd fastest running index   */
     size_t step_3;    /**< step for 4th fastest running index   */
@@ -55,12 +28,12 @@ size_t dist_5D_index(int i_r, int i_phi, int i_z, int i_ppara, int i_pperp,
                      int i_time, int i_q, size_t step_6, size_t step_5,
                      size_t step_4, size_t step_3, size_t step_2,
                      size_t step_1);
-int dist_5D_init(dist_5D_data* data);
+int dist_5D_init(dist_5D_data* data, sim_parameters* params);
 void dist_5D_free(dist_5D_data* data);
 void dist_5D_offload(dist_5D_data* data);
-void dist_5D_update_fo(dist_5D_data* dist, particle_simd_fo* p_f,
-                       particle_simd_fo* p_i);
-void dist_5D_update_gc(dist_5D_data* dist, particle_simd_gc* p_f,
-                       particle_simd_gc* p_i);
+void dist_5D_update_fo(dist_5D_data* dist, sim_parameters* params,
+                       particle_simd_fo* p_f, particle_simd_fo* p_i);
+void dist_5D_update_gc(dist_5D_data* dist, sim_parameters* params,
+                       particle_simd_gc* p_f, particle_simd_gc* p_i);
 
 #endif

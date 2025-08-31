@@ -1,219 +1,351 @@
-"""Input representing mapping from real-space to Boozer coordinates.
-
-This input is required in simulations where the input with MHD eigenfunctions
-is used.
+"""Defines :class:`BoozerMap` Boozer coordinate mapping input class and the
+corresponding factory method.
 """
-import h5py
+import ctypes
+from typing import Optional
+
+import unyt
 import numpy as np
+from numpy.ctypeslib import ndpointer
 
-class DataGroup():
-    pass
+from .access import variants, InputVariant, Format, TreeCreateClassMixin
+from .cstructs import interp2D_data
+from .. import utils
+from ..libascot import LIBASCOT
+from ..exceptions import AscotIOException
 
-class Boozer(DataGroup):
-    """Mapping between cylindrical and Boozer coordinates assuming that psi
-    is axisymmetric.
 
-    This input can be automatically created from tokamak field input.
-    """
+_NPADDING = 4
+"""How many indices are used to "pad" the Boozer poloidal angle data to extend
+it beoynd [0,2pi].
 
-    def read(self):
-        """Read data from HDF5 file.
+The Boozer poloidal angle is interpolated with splines. Since it is a periodic
+quantity, it would make sense to use the periodic boundary condition (in the
+axis corresponding to the geometrical poloidal angle) BUT that boundary quantity
+is for continuous quantities (whereas the Boozer poloidal angle is cyclic).
 
-        Returns
-        -------
-        data : dict
-            Data read from HDF5 stored in the same format as is passed to
-            :meth:`write_hdf5`.
-        """
-        fn   = self._root._ascot.file_getpath()
-        path = self._path
+Therefore we must use the natural boundary condition. Since this would make the
+splines inaccurate near the boundary, we instead add some extra values to both
+ends (where we never actually interpolate as they are outside the range [0,2pi])
+so that the interpolation happens far enough that the boundary condition doesn't
+have an effect. This value is the number of points that we add on both ends.
 
-        out = {}
-        with h5py.File(fn,"r") as f:
-            for key in f[path]:
-                out[key] = f[path][key][:]
-                if key in ["npsi", "ntheta", "nthetag", "nr", "nz", "nrzs"]:
-                    out[key] = int(out[key])
+Seeing how long this explanation is, there should be a better way to do this.
+"""
 
-        # (Remove padding to theta_psithetageom)
-        padding = 4
-        nthetag = int(out["nthetag"] - padding*2)
-        out["theta_psithetageom"] = out["theta_psithetageom"][padding:,:]
-        out["theta_psithetageom"] = out["theta_psithetageom"][:nthetag,:]
-        out["nthetag"] = nthetag
 
-        out["psi_rz"]             = np.transpose(out["psi_rz"])
-        out["theta_psithetageom"] = np.transpose(out["theta_psithetageom"])
-        out["nu_psitheta"]        = np.transpose(out["nu_psitheta"])
+class BoozerMap(InputVariant):
+    """Mapping between cylindrical and Boozer coordinates."""
 
-        return out
+    # pylint: disable=too-few-public-methods
+    class Struct(ctypes.Structure):
+        """Python wrapper for the struct in boozer.h."""
+        _pack_ = 1
+        _fields_ = [
+            ('psi_min', ctypes.c_double),
+            ('psi_max', ctypes.c_double),
+            ('rs', ctypes.POINTER(ctypes.c_double)),
+            ('zs', ctypes.POINTER(ctypes.c_double)),
+            ('nrzs', ctypes.c_int32),
+            ('PADDING_0', ctypes.c_ubyte * 4),
+            ('nu_psitheta', interp2D_data),
+            ('theta_psithetageom', interp2D_data),
+            ]
 
-    @staticmethod
-    def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
-                   zmin, zmax, nz, r0, z0, psi0, psi1, psi_rz,
-                   theta_psithetageom, nu_psitheta, nrzs, rs, zs, desc=None):
-        """Write input data to the HDF5 file.
 
-        Note: the data in theta_psithetageom is assummed to span the whole
-        interval (i.e. coinciding start and end points included) in the angular
-        axis. This is needed so that we can add "padding" to this dataset.
-        To be mores specic, the padding means that the dataset is artificially
-        extended in the angular space. This is needed so that ASCOT5 can use
-        the natural boundary condition when fitting the splines to the data:
-        the data is effectively periodic but the periodic condition would
-        assume x_end = x_ini when in fact x_end = x_ini + 2*pi e.g. for
-        theta_psithetageom.
+    def __init__(self, qid, date, note) -> None:
+        super().__init__(
+            qid=qid, date=date, note=note, variant="BoozerMap",
+            struct=BoozerMap.Struct(),
+            )
+        self._nthetag: unyt.unyt_array
+        self._nthetab: unyt.unyt_array
+        self._psigrid: unyt.unyt_array
+        self._separatrix: unyt.unyt_array
+        self._boozerpoloidal: unyt.unyt_array
+        self._boozertoroidal: unyt.unyt_array
 
-        Note that the nu_psitheta data is also periodic, but there it is valid
-        to use the natural boundary condition which sets y'' = 0 (the nu data is
-        has a local extrema at theta=0).
+    @property
+    def nthetag(self) -> int:
+        r"""Number of geometric poloidal angle grid values in the data."""
+        if self._staged:
+            return self._struct_.theta_psithetageom.n_y
+        if self._format == Format.HDF5:
+            return self._read_hdf5("nthetag")
+        return self._nthetag
+
+    @property
+    def nthetab(self) -> int:
+        r"""Number of Boozer poloidal angle grid values in the data."""
+        if self._staged:
+            return self._struct_.nu_psitheta.n_y
+        if self._format == Format.HDF5:
+            return self._read_hdf5("nthetab")
+        return self._nthetab
+
+    @property
+    def psigrid(self) -> unyt.unyt_array:
+        """Radial grid in psi in which the data is tabulated."""
+        if self._staged:
+            return np.linspace(
+                self._struct_.nu_psitheta.x_min,
+                self._struct_.nu_psitheta.x_max,
+                self._struct_.nu_psitheta.n_x
+                ) * unyt.dimensionless
+        if self._format == Format.HDF5:
+            nx, x0, x1 = self._read_hdf5("npsi", "psimin", "psimax")
+            return np.linspace(x0, x1, nx)
+        return self._psigrid.copy()
+
+    @property
+    def separatrix(self) -> unyt.unyt_array:
+        """Separatrix :math:`(R,z)` coordinates."""
+        if self._staged:
+            return np.stack(
+                (self._struct_.rs[: self._struct_.nrzs],
+                 self._struct_.zs[: self._struct_.nrzs],), axis=1,
+            ) * unyt.m
+        if self._format == Format.HDF5:
+            return np.stack(self._read_hdf5("rs", "zs"))
+        return self._separatrix.copy()
+
+    @property
+    def boozertoroidal(self):
+        """Boozer toroidal coordinates tabulated as a function of psi and
+        the poloidal Boozer angle."""
+        if self._staged:
+            return self._from_struct_("nu_psitheta", units="rad")
+        if self._format == Format.HDF5:
+            return self._read_hdf5("boozertoroidal")
+        return self._boozertoroidal.copy()
+
+    @property
+    def boozerpoloidal(self):
+        """Boozer poloidal coordinates tabulated as a function of psi and
+        the geometric poloidal angle."""
+        if self._staged:
+            data = self._from_struct_("theta_psithetageom", units="rad")
+            return data[:,_NPADDING:-_NPADDING]
+        if self._format == Format.HDF5:
+            return self._read_hdf5("boozerpoloidal")[:,_NPADDING:-_NPADDING]
+        return self._boozerpoloidal.copy()[:,_NPADDING:-_NPADDING]
+
+    def _export_hdf5(self):
+        """Export data to HDF5 file."""
+        if self._format == Format.HDF5:
+            raise AscotIOException("Data is already stored in the file.")
+        data = self.export()
+        self._treemanager.hdf5manager.write_datasets(
+            self.qid, self.variant, data,
+            )
+        self._format = Format.HDF5
+
+    def export(self):
+        data = {
+            "nthetag": self.nthetag,
+            "nthetab": self.nthetab,
+            "psigrid": self.psigrid,
+            "separatrix": self.separatrix,
+            "boozerpoloidal": self.boozerpoloidal,
+            "boozertoroidal": self.boozertoroidal,
+        }
+        return data
+
+    def stage(self):
+        init = LIBASCOT.boozer_init
+        init.restype = ctypes.c_int32
+        init.argtypes = [
+            ctypes.POINTER(__class__.Struct),
+            ctypes.c_int32,
+            ctypes.c_double,
+            ctypes.c_double,
+            ctypes.c_int32,
+            ctypes.c_int32,
+            ctypes.c_int32,
+            ndpointer(ctypes.c_double),
+            ndpointer(ctypes.c_double),
+            ctypes.c_int32,
+            ndpointer(ctypes.c_double),
+            ndpointer(ctypes.c_double),
+            ndpointer(ctypes.c_double),
+            ]
+        if not self._staged:
+            if init(
+                ctypes.byref(self._struct_),
+                self.exyz,
+            ):
+                raise AscotIOException("Failed to stage data.")
+            if self._format is Format.MEMORY:
+                del self._separatrix
+                del self._boozerpoloidal
+                del self._boozertoroidal
+            self._staged = True
+
+    def unstage(self):
+        free = LIBASCOT.boozer_free
+        free.restype = None
+        free.argtypes = [ctypes.POINTER(__class__.Struct)]
+
+        if self._staged:
+            if self._format is Format.MEMORY:
+                self._exyz = self.exyz
+            free(ctypes.byref(self._struct_))
+            self._staged = False
+
+
+# pylint: disable=too-few-public-methods
+class CreateBoozerMixin(TreeCreateClassMixin):
+    """Mixin class used by :class:`Data` to create :class:`BoozerMap` input."""
+
+    #pylint: disable=protected-access, too-many-arguments
+    def create_boozermap(
+            self,
+            psigrid: utils.ArrayLike | None = None,
+            nthetag: int | None = None,
+            nthetab: int | None = None,
+            boozerpoloidal: utils.ArrayLike | None = None,
+            boozertoroidal: utils.ArrayLike | None = None,
+            separatrix: utils.ArrayLike | None = None,
+            note: Optional[str] = None,
+            activate: bool = False,
+            dryrun: bool = False,
+            store_hdf5: Optional[bool] = None,
+            ) -> BoozerMap:
+        r"""Create an input that implements a mapping between the cylindrical
+        and the Boozer coordinates.
+
+        The mapping between the cylindrical and Boozer coordinates is required
+        in simulations where the input with MHD eigenfunctions is used.
+
+        Note that due to limitations of numerical method, the coordinate mapping
+        can be ill-defined close to the magnetic axis and near the separatrix.
+        Because of this, it makes sense to limit ``psigrid`` to only where the
+        mapping is valid. Markers are **not** aborted if they exit this region
+        as the code just assumes that there's no MHD present (but they are
+        aborted if the MHD data does not cover the whole ``psigrid``).
 
         Parameters
         ----------
-        fn : str
-            Full path to the HDF5 file.
-        psimin : float
-            Minimum psi grid value.
-        psimax : float
-            Maximum psi grid value.
-        npsi : int
-            Number of psi grid points.
-        ntheta : int
-            Number of boozer theta grid values.
+        psigrid : float
+            The uniform grid in psi in which the Boozer poloidal and toroidal
+            coordinates are tabulated.
         nthetag : int
-            Number of geometric theta grid values.
-        rmin : float
-            Minimum R grid value.
-        rmax : float
-            Maximum R grid value.
-        nr : int
-            Number of R grid points.
-        zmin : float
-            Minimum z grid value.
-        zmax : float
-            Maximum z grid value.
-        nz : int
-            Number of z grid points.
-        r0 : float
-            Magnetic axis R coordinate.
-        z0 : float
-            Magnetic axis z coordinate.
-        psi0 : float
-            Coordinate psi on axis.
-        psi1 : float
-            Coordinate psi on separatrix.
-        psi_rz : array_like (nr,nz)
-            Coordinate psi(R,z).
-        theta_psithetageom : array_like (npsi,nthetag)
-            Coordinate theta(psi, thetag).
-        nu_psitheta : array_like (npsi,ntheta)
-            nu(psi, theta).
-        nrsz : int
-            Number of separatrix Rz points.
-        rs : array_like (nrsz,1)
-            Separatrix R coordinates, start and end points should coincide.
-        zs : array_like (nrsz,1)
-            Separatrix z coordinates, start and end points should coincide.
-        desc : str, optional
-            Input's description.
+            Number of geometric poloidal angle (angle between a point and the
+            outer mid plane) grid values.
+        nthetab : int
+            Number of poloidal Boozer coordinate grid values.
+        boozerpoloidal : array_like (npsi, nthetag)
+            Boozer poloidal coordinates tabulated as a function of psi and
+            the geometric poloidal angle.
+        boozertoroidal : array_like (npsi, nthetab)
+            Boozer toroidal coordinates tabulated as a function of psi and
+            the poloidal Boozer angle.
+
+            To be specific, this is the difference between the Boozer toroidal
+            angle and the geometric toroidal angle, which depends only on
+            psi and the Boozer poloidal angle.
+        separatrix : array_like (n,2)
+            Separatrix :math:`(R,z)` coordinates where the first and last points
+            coincide.
+
+            Boozer coordinates are not defined outside the separatrix, so with
+            this we can separate the actual plasma region from e.g. the private
+            plasma region.
+        note : str, optional
+            A short note to document this data.
+
+            The first word of the note is converted to a tag which you can use
+            to reference the data.
+        activate : bool, optional
+            Set this input as active on creation.
+        dryrun : bool, optional
+            Do not add this input to the `data` structure or store it on disk.
+
+            Use this flag to modify the input manually before storing it.
+        store_hdf5 : bool, optional
+            Write this input to the HDF5 file if one has been specified when
+            `Ascot` was initialized.
 
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        inputdata : ~a5py.data.wall.BoozerMap
+            Freshly minted input data object.
 
-        Raises
-        ------
-        ValueError
-            If inputs were not consistent.
+        Notes
+        -----
+        During the simulation, the marker cylindrical coordinates are mapped to
+        straight-field line coordinates if the MHD perturbations are enabled.
+        This mapping is implemented only for stationary tokamak fields and we
+        further assume that the field is axisymmetric (but the code allows
+        mapping to be used in non-axisymmetric fields as well).
+
+        Our choice of the coordinate system are the Boozer coordinates
+        :math:`(\psi,\theta,\zeta)`[1]_, where :math:`\psi` is the normalized
+        poloidal flux, :math:`\theta` is the Boozer poloidal angle (which points
+        in same direction as the geometrical poloidal angle
+        :math:`\theta_\mathrm{geo}` i.e. counter-clockwise when looking at the
+        same direction as positive :math:`\hat{\phi}`), and
+        :math:`\zeta = \phi - \nu`, where :math:`\nu=\nu(\psi,\theta)`, is the
+        Boozer toroidal angle (with the same positive direction as the
+        cylindrical toroidal angle). Both Boozer angular coordinates have the
+        periodicity of :math:`2\pi`.
+
+        To faciliate the mapping in run-time, we precalculate
+        :math:`\theta(\psi,\theta_\mathrm{geo})` and :math:`\nu(\psi,\theta)`
+        in an uniform grid and use the tabulated values together with the
+        cubic-spline interpolation to perform the mapping. This is the purpose
+        of this input.
+
+        [1] For brevity, here we use :math:`\theta` for the Boozer poloidal
+            angle and :math:`\phi` for the Boozer toroidal angle. Normally these
+            symbols refer to the geometrical poloidal and toroidal angle,
+            respectively.
         """
-        if psi_rz.shape != (nr,nz):
-            raise ValueError("psi has invalid shape.")
-        if theta_psithetageom.shape != (npsi,nthetag):
-            raise ValueError("theta has invalid shape.")
-        if nu_psitheta.shape != (npsi,ntheta):
-            raise ValueError("nu has invalid shape.")
-        if rs.size != nrzs:
-            raise ValueError("Separatrix r has invalid shape.")
-        if zs.size != nrzs:
-            raise ValueError("Separatrix z has invalid shape.")
+        parameters = variants.parse_parameters(
+            psigrid, nthetag, nthetab, boozerpoloidal, boozertoroidal,
+            separatrix,
+        )
+        default_psigrid = np.linspace(0.0, 1.0, 10)
+        default_sep = np.stack(
+            (np.array([0.0, 1.0, 1.0, 0.0]), np.array([0.0, 0.0, 1.0, 1.0]))
+            )
+        npsi = (default_psigrid.size if parameters["psigrid"] is None
+             else parameters["psigrid"].size)
+        nsep = (default_sep.shape[1] if parameters["separatrix"] is None
+                else parameters["separatrix"].shape[0])
+        nthetag = (6 if parameters["nthetag"] is None
+                   else int(parameters["nthetag"]))
+        nthetab = (12 if parameters["nthetab"] is None
+                   else int(parameters["nthetab"]))
+        variants.validate_required_parameters(
+            parameters,
+            names=["psigrid", "boozerpoloidal", "boozertoroidal", "separatrix",
+                   "nthetag", "nthetab",],
+            units=["1", "rad", "rad", "m", "1", "1",],
+            shape=[(npsi,), (npsi, nthetag), (npsi, nthetab), (nsep, 2),
+                   (), ()],
+            dtype=["f8", "f8", "f8", "f8", "i4", "i4"],
+            default=[default_psigrid, np.zeros((npsi, nthetag)),
+                     np.zeros((npsi, nthetab)), default_sep, nthetag, nthetab,],
+        )
 
-        psi_rz             = np.transpose(psi_rz)
-        theta_psithetageom = np.transpose(theta_psithetageom)
-        nu_psitheta        = np.transpose(nu_psitheta)
+        # Extending boozerpoloidal data, see _PADDING for why we do it
+        data = np.copy(parameters["boozerpoloidal"]).T
+        parameters["boozerpoloidal"] = np.concatenate(
+            (data, data[-1,:] + data[1:_NPADDING+1,:]) )
+        parameters["boozerpoloidal"] = np.concatenate(
+            (data[int(nthetag-_NPADDING-1):-1,:] - data[-1,:],
+             parameters["boozerpoloidal"]) )
+        parameters["boozerpoloidal"] = parameters["boozerpoloidal"].T
 
-        parent = "boozer"
-        group  = "Boozer"
-        gname  = ""
+        meta = variants.new_metadata("BoozerMap", note=note)
+        obj = self._treemanager.enter_input(
+            meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
+            )
+        for parameter, value in parameters.items():
+            setattr(obj, f"_{parameter}", value)
+            getattr(obj, f"_{parameter}").flags.writeable = False
 
-        # Add padding to theta_psithetageom (see boozer.c for explanation)
-        padding = 4
-        data = np.copy(theta_psithetageom)
-        theta_psithetageom = np.concatenate(
-            (data, data[-1,:] + data[1:padding+1,:]) )
-        theta_psithetageom = np.concatenate(
-            (data[int(nthetag-padding-1):-1,:] - data[-1,:],
-             theta_psithetageom) )
-        nthetag += padding*2
-
-        with h5py.File(fn, "a") as f:
-            g = add_group(f, parent, group, desc=desc)
-            gname = g.name.split("/")[-1]
-
-            # grid specifications
-            g.create_dataset("psimin",  (1,), data=psimin,  dtype="f8")
-            g.create_dataset("psimax",  (1,), data=psimax,  dtype="f8")
-            g.create_dataset("npsi",    (1,), data=npsi,    dtype="i4")
-            g.create_dataset("ntheta",  (1,), data=ntheta,  dtype="i4")
-            g.create_dataset("nthetag", (1,), data=nthetag, dtype="i4")
-            g.create_dataset("rmin",    (1,), data=rmin,    dtype="f8")
-            g.create_dataset("rmax",    (1,), data=rmax,    dtype="f8")
-            g.create_dataset("nr",      (1,), data=nr,      dtype="i4")
-            g.create_dataset("zmin",    (1,), data=zmin,    dtype="f8")
-            g.create_dataset("zmax",    (1,), data=zmax,    dtype="f8")
-            g.create_dataset("nz",      (1,), data=nz,      dtype="i4")
-            g.create_dataset("r0",      (1,), data=r0,      dtype="f8")
-            g.create_dataset("z0",      (1,), data=z0,      dtype="f8")
-            g.create_dataset("nrzs",    (1,), data=nrzs,    dtype="i4")
-
-            # the outermost poloidal psi-surface contour
-            g.create_dataset("rs", (nrzs,), data=rs, dtype="f8")
-            g.create_dataset("zs", (nrzs,), data=zs, dtype="f8")
-
-            # psi data min and max values for normalization
-            g.create_dataset("psi0", (1,), data=psi0, dtype="f8")
-            g.create_dataset("psi1", (1,), data=psi1, dtype="f8")
-
-            # tabulated coordinates maps
-            g.create_dataset("psi_rz", (nz,nr), data=psi_rz, dtype="f8")
-            g.create_dataset("theta_psithetageom", (nthetag,npsi),
-                             data=theta_psithetageom, dtype="f8")
-            g.create_dataset("nu_psitheta", (ntheta,npsi),
-                             data=nu_psitheta, dtype="f8")
-
-        return gname
-
-    @staticmethod
-    def create_dummy():
-        """Create dummy data that has correct format and is valid, but can be
-        non-sensical.
-
-        This method is intended for testing purposes or to provide data whose
-        presence is needed but which is not actually used in simulation.
-
-        The dummy output is a very large rectangular wall.
-
-        Returns
-        -------
-        data : dict
-            Input data that can be passed to ``write_hdf5`` method of
-            a corresponding type.
-        """
-        rs = np.cos(np.linspace(0, 2*np.pi, 10))
-        zs = np.sin(np.linspace(0, 2*np.pi, 10))
-
-        return {"psimin":0, "psimax":1, "npsi":6, "ntheta":10, "nthetag":10,
-                "rmin":0.1, "rmax":10.0, "nr":5, "zmin":-10, "zmax":10, "nz":10,
-                "r0":5, "z0":0, "psi0":0, "psi1":1, "psi_rz":np.ones((5,10)),
-                "theta_psithetageom":np.ones((6,10)),
-                "nu_psitheta":np.ones((6,10)), "nrzs":10, "rs":rs, "zs":zs}
+        if store_hdf5:
+            obj._export_hdf5()
+        return obj

@@ -34,10 +34,10 @@
 void mhd_free(mhd_data* data) {
     switch(data->type) {
         case mhd_type_stat:
-            mhd_stat_free(&data->stat);
+            mhd_stat_free(data->stat);
             break;
         case mhd_type_nonstat:
-            mhd_nonstat_free(&data->nonstat);
+            mhd_nonstat_free(data->nonstat);
             break;
     }
 }
@@ -50,10 +50,10 @@ void mhd_free(mhd_data* data) {
 void mhd_offload(mhd_data* data) {
     switch(data->type) {
         case mhd_type_stat:
-            mhd_stat_offload(&data->stat);
+            mhd_stat_offload(data->stat);
             break;
         case mhd_type_nonstat:
-            mhd_nonstat_offload(&data->nonstat);
+            mhd_nonstat_offload(data->nonstat);
             break;
     }
 }
@@ -97,12 +97,12 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
 
         case mhd_type_stat:
             err = mhd_stat_eval(mhd_dmhd, r, phi, z, t, includemode,
-                                boozerdata, &(mhddata->stat), Bdata);
+                                boozerdata, mhddata->stat, Bdata);
             break;
 
         case mhd_type_nonstat:
             err = mhd_nonstat_eval(mhd_dmhd, r, phi, z, t, includemode,
-                                   boozerdata, &(mhddata->nonstat), Bdata);
+                                   boozerdata, mhddata->nonstat, Bdata);
             break;
 
         default:
@@ -155,13 +155,13 @@ a5err mhd_perturbations(real pert_field[7], real r, real phi, real z,
         case mhd_type_stat:
             err =  mhd_stat_perturbations(pert_field, r, phi, z, t, pertonly,
                                           includemode, boozerdata,
-                                          &(mhddata->stat), Bdata);
+                                          mhddata->stat, Bdata);
             break;
 
         case mhd_type_nonstat:
             err =  mhd_nonstat_perturbations(pert_field, r, phi, z, t, pertonly,
                                              includemode, boozerdata,
-                                             &(mhddata->nonstat), Bdata);
+                                             mhddata->nonstat, Bdata);
             break;
 
         default:
@@ -184,10 +184,10 @@ int mhd_get_n_modes(mhd_data* mhddata) {
     int val = 0;
     switch(mhddata->type) {
         case mhd_type_stat:
-            val = mhddata->stat.n_modes;
+            val = mhddata->stat->n_modes;
             break;
         case mhd_type_nonstat:
-            val = mhddata->nonstat.n_modes;
+            val = mhddata->nonstat->n_modes;
             break;
     }
     return val;
@@ -204,10 +204,10 @@ const int* mhd_get_nmode(mhd_data* mhddata) {
     const int* val = NULL;
     switch(mhddata->type) {
         case mhd_type_stat:
-            val = mhddata->stat.nmode;
+            val = mhddata->stat->nmode;
             break;
         case mhd_type_nonstat:
-            val = mhddata->nonstat.nmode;
+            val = mhddata->nonstat->nmode;
             break;
     }
     return val;
@@ -224,10 +224,10 @@ const int* mhd_get_mmode(mhd_data* mhddata) {
     const int* val = NULL;
     switch(mhddata->type) {
         case mhd_type_stat:
-            val = mhddata->stat.mmode;
+            val = mhddata->stat->mmode;
             break;
         case mhd_type_nonstat:
-            val = mhddata->nonstat.mmode;
+            val = mhddata->nonstat->mmode;
             break;
     }
     return val;
@@ -244,10 +244,10 @@ const real* mhd_get_amplitude(mhd_data* mhddata) {
     const real* val = NULL;
     switch(mhddata->type) {
         case mhd_type_stat:
-            val = mhddata->stat.amplitude_nm;
+            val = mhddata->stat->amplitude_nm;
             break;
         case mhd_type_nonstat:
-            val = mhddata->nonstat.amplitude_nm;
+            val = mhddata->nonstat->amplitude_nm;
             break;
     }
     return val;
@@ -264,10 +264,10 @@ const real* mhd_get_frequency(mhd_data* mhddata) {
     const real* val = NULL;
     switch(mhddata->type) {
         case mhd_type_stat:
-            val = mhddata->stat.omega_nm;
+            val = mhddata->stat->omega_nm;
             break;
         case mhd_type_nonstat:
-            val = mhddata->nonstat.omega_nm;
+            val = mhddata->nonstat->omega_nm;
             break;
     }
     return val;
@@ -284,10 +284,10 @@ const real* mhd_get_phase(mhd_data* mhddata) {
     const real* val = NULL;
     switch(mhddata->type) {
         case mhd_type_stat:
-            val = mhddata->stat.phase_nm;
+            val = mhddata->stat->phase_nm;
             break;
         case mhd_type_nonstat:
-            val = mhddata->nonstat.phase_nm;
+            val = mhddata->nonstat->phase_nm;
             break;
     }
     return val;

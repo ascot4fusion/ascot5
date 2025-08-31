@@ -1,88 +1,120 @@
 """List of commonly encountered marker species and their properties.
 """
-import unyt
+from typing import NamedTuple
 
-speciesdict = {
-    "e"     : (  0,  0, -1*unyt.e,   0.0005486*unyt.amu),
-    "n"     : (  1,  0,  0*unyt.e,   1.009*unyt.amu),
-    "H"     : (  1,  1,  1*unyt.e,   1.007*unyt.amu),
-    "D"     : (  2,  1,  1*unyt.e,   2.014*unyt.amu),
-    "T"     : (  3,  1,  1*unyt.e,   3.016*unyt.amu),
-    "He3"   : (  3,  2,  2*unyt.e,   3.016*unyt.amu),
-    "He4"   : (  4,  2,  2*unyt.e,   4.003*unyt.amu),
-    "Be9"   : (  9,  4,  4*unyt.e,   9.012*unyt.amu),
-    "C12"   : ( 12,  6,  6*unyt.e,  12.011*unyt.amu),
-    "Ne20"  : ( 20, 10, 10*unyt.e,  19.992*unyt.amu),
-    "Ar40"  : ( 40, 18, 18*unyt.e,  39.962*unyt.amu),
-    "Ni59"  : ( 59, 28, 28*unyt.e,  58.934*unyt.amu),
-    "Xe132" : (132, 54, 54*unyt.e, 131.904*unyt.amu),
-    "W183"  : (183, 74, 74*unyt.e, 182.950*unyt.amu),
-    "W184"  : (184, 74, 74*unyt.e, 183.950*unyt.amu),
+from unyt import e, amu
+
+
+class Species(NamedTuple):
+    anum: int
+    znum: int
+    charge: float
+    mass: float
+    """Named tuple containing species properties.
+
+    Attributes
+    ----------
+    anum : int
+        Atomic mass number.
+    znum : int
+        Charge number.
+    charge : unyt.quantity
+        Charge state of the species.
+    mass : unyt.quantity
+        Mass of the species.
+    """
+
+
+KNOWN_SPECIES = {
+    "e"     : Species(  0,  0, -1*e,   0.0005486*amu),
+    "n"     : Species(  1,  0,  0*e,   1.009*amu),
+    "H1"     : Species(  1,  1,  1*e,   1.007*amu),
+    "H2"     : Species(  2,  1,  1*e,   2.014*amu),
+    "H3"     : Species(  3,  1,  1*e,   3.016*amu),
+    "He3"   : Species(  3,  2,  2*e,   3.016*amu),
+    "He4"   : Species(  4,  2,  2*e,   4.003*amu),
+    "Be9"   : Species(  9,  4,  4*e,   9.012*amu),
+    "C12"   : Species( 12,  6,  6*e,  12.011*amu),
+    "Ne20"  : Species( 20, 10, 10*e,  19.992*amu),
+    "Ar40"  : Species( 40, 18, 18*e,  39.962*amu),
+    "Ni59"  : Species( 59, 28, 28*e,  58.934*amu),
+    "Xe132" : Species(132, 54, 54*e, 131.904*amu),
+    "W183"  : Species(183, 74, 74*e, 182.950*amu),
+    "W184"  : Species(184, 74, 74*e, 183.950*amu),
 }
+"""Names of the recognized species and their properties."""
 
-def species(name, charge=None):
-    """Retrieve anum, znum, mass, and charge based on the name of the species.
+
+def species2properties(name, charge=None):
+    """Retrieve nuclear properties (atomic mass number, charge number, mass,
+    and charge) based on the name of the particle species.
+
+    For electrons/positrons (anum=0, znum=0) and for neutrons (anum=1, znum=0).
 
     Parameters
     ----------
     name : str
         Name of the species.
-    charge : int, float
-        Charge state or otherwise the ion is assumed to be fully ionized.
+    charge : int, optional
+        Charge state.
+
+        If not provided, the ion is assumed to be fully ionized.
 
     Returns
     -------
-    data : dict
-        Contains "anum", "znum", "charge", and "mass".
+    species : Species
+        Named tuple containing species properties.
     """
     valid_options = []
     def checkadd(options):
         valid_options.extend(options)
         return options
 
-    data = None
+    species = None
     if name in checkadd(["e", "electron"]):
-        data = speciesdict["e"]
+        species = KNOWN_SPECIES["e"]
     elif name in checkadd(["n", "neutron"]):
-        data = speciesdict["n"]
-    elif name in checkadd(["H", "p", "proton", "H1"]):
-        data = speciesdict["H"]
-    elif name in checkadd(["D", "deuterium", "H2"]):
-        data = speciesdict["D"]
-    elif name in checkadd(["T", "tritium", "H3"]):
-        data = speciesdict["T"]
+        species = KNOWN_SPECIES["n"]
+    elif name in checkadd(["H1", "H", "p", "proton"]):
+        species = KNOWN_SPECIES["H1"]
+    elif name in checkadd(["H2", "D", "deuterium"]):
+        species = KNOWN_SPECIES["H2"]
+    elif name in checkadd(["H3", "T", "tritium"]):
+        species = KNOWN_SPECIES["H3"]
     elif name in checkadd(["He3", "helion"]):
-        data = speciesdict["He3"]
+        species = KNOWN_SPECIES["He3"]
     elif name in checkadd(["He4", "alpha"]):
-        data = speciesdict["He4"]
+        species = KNOWN_SPECIES["He4"]
     elif name in checkadd(["Be9"]):
-        data = speciesdict["Be9"]
+        species = KNOWN_SPECIES["Be9"]
     elif name in checkadd(["C12"]):
-        data = speciesdict["C12"]
+        species = KNOWN_SPECIES["C12"]
     elif name in checkadd(["Ne20"]):
-        data = speciesdict["Ne20"]
+        species = KNOWN_SPECIES["Ne20"]
     elif name in checkadd(["Ar40"]):
-        data = speciesdict["Ar40"]
+        species = KNOWN_SPECIES["Ar40"]
     elif name in checkadd(["Ni59"]):
-        data = speciesdict["Ni59"]
+        species = KNOWN_SPECIES["Ni59"]
     elif name in checkadd(["Xe132"]):
-        data = speciesdict["Xe132"]
+        species = KNOWN_SPECIES["Xe132"]
     elif name in checkadd(["W184"]):
-        data = speciesdict["W184"]
+        species = KNOWN_SPECIES["W184"]
     else:
-        spec = ", ".join(valid_options)
+        all_species_names = ", ".join(valid_options)
         raise ValueError(
-            f"Unknown species {name}. Known species are: {spec}"
+            f"Unknown species {name}. Known species are: {all_species_names}"
         )
 
-    data = {"anum":data[0], "znum":data[1], "charge":data[2], "mass":data[3]}
     if charge is not None:
-        data["charge"] = charge
+        if charge != int(charge):
+            raise ValueError("Charge must be an integer.")
+        species = Species(species.anum, species.znum, charge, species.mass)
+    return species
 
-    return data
 
-def autodetect(anum, znum, charge=None):
-    """Return species based on given anum and znum.
+def properties2species(anum ,znum):
+    """Identify the species and return its name based on the atomic mass number
+    and charge number.
 
     Parameters
     ----------
@@ -90,18 +122,41 @@ def autodetect(anum, znum, charge=None):
         Atomic mass number.
     znum : int
         Charge number.
-    charge : int, optional
-        Charge state of the returned species or fully ionized if None.
 
     Returns
     -------
-    data : dict
-        Contains "anum", "znum", "charge", and "mass".
+    name : str
+        Name of the species.
     """
-    for v in speciesdict.values():
-        if anum == v[0] and znum == v[1]:
-            if charge is None:
-                charge = v[2]
-            return {"anum":v[0], "znum":v[1], "charge":charge, "mass":v[3]}
+    for name, properties in KNOWN_SPECIES.items():
+        if anum == properties.anum and znum == properties.znum:
+            return name
+    raise ValueError(
+        f"Unknown species anum={anum} znum={znum}. See "
+        "a5py.physlib.KNOWN_SPECIES for a list of known species."
+        )
 
-    raise ValueError(f"Unknown species anum={anum} znum={znum}")
+
+def findmass(anum, znum):
+    """Identify the species and return its mass based on the atomic mass number
+    and charge number.
+
+    Parameters
+    ----------
+    anum : int
+        Atomic mass number.
+    znum : int
+        Charge number.
+
+    Returns
+    -------
+    mass : float
+        Mass of the species.
+    """
+    for properties in KNOWN_SPECIES.values():
+        if anum == properties.anum and znum == properties.znum:
+            return properties.mass
+    raise ValueError(
+        f"Unknown species anum={anum} znum={znum}. See "
+        "a5py.physlib.KNOWN_SPECIES for a list of known species."
+        )

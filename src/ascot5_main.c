@@ -358,7 +358,7 @@ int offload_and_simulate(
 
     /* Actual marker simulation happens here. */
     real t_sim_start = omp_get_wtime();
-    simulate(n_proc, pin, sim);
+    //simulate(n_proc, pin, sim);
 
     mpi_interface_barrier();
     real t_sim_end = omp_get_wtime();

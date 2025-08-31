@@ -1,181 +1,43 @@
 """Marker initial and final phase-space positions and related quantities.
 """
+import ctypes
 import numpy as np
-import h5py
 import unyt
 import a5py.physlib as physlib
 
-class DataContainer():
-    pass
+from .access import Diagnostic, Format
+from .marker.cstructs import allocate_particle_state, particle_state
+from .cstructs import free
 
-class State(DataContainer):
+
+class State(Diagnostic):
     """Marker initial and final phase-space positions and related quantities.
     """
 
-    # These end conditions are used internally so we define them as class
-    # variables. All end conditions are defined as properties so that they
-    # can have docstrings.
-    _NONE    = 0x1
-    _ABORTED = 0x2
-    _TLIM    = 0x4
-    _EMIN    = 0x8
-    _THERMAL = 0x10
-    _WALL    = 0x20
-    _RHOMIN  = 0x40
-    _RHOMAX  = 0x80
-    _POLMAX  = 0x100
-    _TORMAX  = 0x200
-    _CPUMAX  = 0x400
-    _HYBRID  = 0x800
-    _NEUTRAL = 0x1000
-    _IONIZED = 0x2000
+    def __init__(self, nmrk: int, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._struct_ = ctypes.POINTER(particle_state)()
+        self.nmrk = nmrk
 
-    @property
-    def ABORTED(self):
-        """Marker simulation terminated in an error.
-        """
-        return State._ABORTED
+    def stage(self):
+        """Allocate an empty array of marker states."""
+        n = self.n
+        if not self._staged:
+            self._struct_ = allocate_particle_state(n)
+            self._staged = True
 
-    @property
-    def NONE(self):
-        """No active end condition meaning the marker hasn't been simulated yet.
-        """
-        return State._NONE
+    def unstage(self):
+        """Write the marker state array to disk, if possible, and free
+        the resources."""
+        if self._staged:
+            if self._format is Format.MEMORY:
+                self._density = self.density
+                self._temperature = self.temperature
+            free(ctypes.byref(self._struct_))
+            self._staged = False
 
-    @property
-    def TLIM(self):
-        """Simulation time limit or maximum mileage reached.
-        """
-        return State._TLIM
-
-    @property
-    def EMIN(self):
-        """Minimum energy reached.
-        """
-        return State._EMIN
-
-    @property
-    def THERMAL(self):
-        """Local thermal energy reached.
-        """
-        return State._THERMAL
-
-    @property
-    def WALL():
-        """Marker intersected a wall element.
-        """
-        return State._WALL
-
-    @property
-    def RHOMIN(self):
-        """Minimum radial coordinate (rho) reached.
-        """
-        return State._RHOMIN
-
-    @property
-    def RHOMAX(self):
-        """Maximum radial coordinate (rho) reached.
-        """
-        return _RHOMAX
-
-    @property
-    def POLMAX(self):
-        """Maximum poloidal turns reached.
-        """
-        return State._POLMAX
-
-    @property
-    def TORMAX(self):
-        """Maximum toroidal turns reached.
-        """
-        return State._TORMAX
-
-    @property
-    def CPUMAX(self):
-        """Simulation for this marker exceeded the set CPU time.
-        """
-        return State._CPUMAX
-
-    @property
-    def HYBRID(self):
-        """Marker guiding center simulation terminated and the simulation
-        continue in gyro-orbit.
-        """
-        return State._HYBRID
-
-    @property
-    def NEUTRAL(self):
-        """Ion marker neutralized.
-        """
-        return State._NEUTRAL
-
-    @property
-    def IONIZED(self):
-        """Neutral marker ionized.
-        """
-        return State._IONIZED
-
-    def write_hdf5(self):
-        """Write state data in HDF5 file.
-
-        Parameters
-        ----------
-        fn : str
-        Full path to the HDF5 file.
-        """
-
-        gname = "results/" + run + "/" + name
-
-        fields = [("mass",      "amu"),
-                  ("time",      "s"),
-                  ("cputime",   "s"),
-                  ("weight",    "markers/s"),
-                  ("rprt",      "m"),
-                  ("phiprt",    "deg"),
-                  ("zprt",      "m"),
-                  ("prprt",     "kg*m/s"),
-                  ("pphiprt",   "kg*m/s"),
-                  ("pzprt",     "kg*m/s"),
-                  ("r",         "m"),
-                  ("phi",       "deg"),
-                  ("z",         "m"),
-                  ("mu",        "eV/T"),
-                  ("ppar",      "kg*m/s"),
-                  ("zeta",      "rad"),
-                  ("rho",       "1"),
-                  ("theta",     "deg"),
-                  ("ids",       "1"),
-                  ("walltile",  "1"),
-                  ("endcond",   "1"),
-                  ("anum",      "1"),
-                  ("znum",      "1"),
-                  ("charge",    "e"),
-                  ("errormsg",  "1"),
-                  ("errorline", "1"),
-                  ("errormod",  "1"),
-                  ("br",        "T"),
-                  ("bphi",      "T"),
-                  ("bz",        "T")]
-
-        N = data["ids"].size
-
-        with h5py.File(fn, "a") as f:
-            g = f.create_group(gname)
-
-            for field in fields:
-                ds = g.create_dataset(field[0], (N,1), data=data[field[0]],
-                                      dtype="f8")
-                ds.attrs["unit"] = field[1]
-
-    def read(self):
-        """Read raw state data to a dictionary.
-        """
-        out = {}
-        with self as f:
-            for key in f:
-                out[key] = f[key][:]
-
-        return out
+    def combine(self):
+        """Combines two into one (copy)."""
 
     def get(self, *qnt, mode="gc"):
         """Return marker quantity.

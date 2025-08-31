@@ -40,115 +40,196 @@
 #include "hdf5io/hdf5_mhd.h"
 
 
-/**
- * @brief Evaluate magnetic field vector and derivatives at given coordinates.
- *
- * @param sim simulation data struct
- * @param Neval number of evaluation points.
- * @param R R coordinates of the evaluation points [m].
- * @param phi phi coordinates of the evaluation points [rad].
- * @param z z coordinates of the evaluation points [m].
- * @param t time coordinates of the evaluation points [s].
- * @param BR output array [T].
- * @param Bphi output array [T].
- * @param Bz output array [T].
- * @param BR_dR output array [T].
- * @param BR_dphi output array [T].
- * @param BR_dz output array [T].
- * @param Bphi_dR output array [T].
- * @param Bphi_dphi output array [T].
- * @param Bphi_dz output array [T].
- * @param Bz_dR output array [T].
- * @param Bz_dphi output array [T].
- * @param Bz_dz output array [T].
- */
-void libascot_B_field_eval_B_dB(
-    sim_data* sim, int Neval,
-    real* R, real* phi, real* z, real* t, real* BR, real* Bphi, real* Bz,
-    real* BR_dR, real* BR_dphi, real* BR_dz, real* Bphi_dR, real* Bphi_dphi,
-    real* Bphi_dz, real* Bz_dR, real* Bz_dphi, real* Bz_dz) {
-
-    #pragma omp parallel for
-    for(int k = 0; k < Neval; k++) {
-        real B[15];
-        if( B_field_eval_B_dB(B, R[k], phi[k], z[k], t[k], &sim->B_data) ) {
-            continue;
-        }
-        BR[k]        = B[0];
-        Bphi[k]      = B[4];
-        Bz[k]        = B[8];
-        BR_dR[k]     = B[1];
-        BR_dphi[k]   = B[2];
-        BR_dz[k]     = B[3];
-        Bphi_dR[k]   = B[5];
-        Bphi_dphi[k] = B[6];
-        Bphi_dz[k]   = B[7];
-        Bz_dR[k]     = B[9];
-        Bz_dphi[k]   = B[10];
-        Bz_dz[k]     = B[11];
-    }
-}
+#define STORE(index, val, ptr) if ((ptr)) (ptr)[(index)] = (val)
+/** Store value in output array if the output array is allocated. */
 
 /**
- * @brief Evaluate normalized poloidal flux at given coordinates.
+ * @brief Interpolate input quantities at the given coordinates.
  *
- * @param sim simulation data struct
- * @param Neval number of evaluation points.
- * @param R R coordinates of the evaluation points [m].
- * @param phi phi coordinates of the evaluation points [rad].
- * @param z z coordinates of the evaluation points [m].
- * @param t time coordinates of the evaluation points [s].
- * @param rho output array for the normalized poloidal flux.
- * @param drhodpsi output array for normalized poloidal flux psi derivative.
- * @param psi output array for the poloidal flux [Wb].
- * @param dpsidr output array for the poloidal flux R derivative [Wb/m].
- * @param dpsidphi output array for the poloidal flux phi derivative [Wb/rad].
- * @param dpsidz output array for the poloidal flux z derivative [Wb/m].
+ * @param[in] bfield Magnetic field data.
+ * @param[in] efield Electric field data.
+ * @param[in] plasma plasma data.
+ * @param[in] neutral Neutral data.
+ * @param[in] boozer Boozer data.
+ * @param[in] mhd MHD data.
+ * @param[in] npnt Number of evaluation points.
+ * @param[in] modenumber Evaluate mhd perturbation only for this mode.
+ *
+ *        If modenumber < 0, evaluate all modes.
+ * @param[in] R R coordinates where the inputs are interpolated [m].
+ * @param[in] phi phi coordinates where the inputs are interpolated [rad].
+ * @param[in] z z coordinates where the inputs are interpolated [m].
+ * @param[in] t time coordinates where the inputs are interpolated [s].
+ * @param[out] B Magnetic field vector (Br, Bphi, Bz) [T].
+ * @param[out] Bjac Magnetic field Jacobian (dBr/dr, dBr/dphi, dBr/dz, dBphi/dr,
+ *             dBphi/dphi, dBphi/dz, dBz/dr, dBz/dphi, dBz/dz) [T/m].
+ * @param[out] psi Poloidal flux and its derivatives (psi, dpsi/dr, dpsi/dphi,
+ *             dpsi/dz) [Wb/rad, Wb/rad m].
+ * @param[out] rho Square root of the normalized poloidal flux and its
+ *             derivative (rho, drho/dpsi) [1, rad/Wb].
+ * @param[out] E Electric field vector (Er, Ephi, Ez) [V/m].
+ * @param[out] n Density of plasma species (ne, ni1, ni2, ...) [m^-3].
+ * @param[out] T Temperature of plasma species (Te, Ti) [eV].
+ * @param[out] n0 Density of neutral species (n1, n2, ...) [m^-3].
+ * @param[out] T0 Temperature of neutral species (T1, T2, ...) [eV].
+ * @param[out] theta Poloidal Boozer coordinate and its derivatives (theta,
+ *             dtheta/dr, dtheta/dphi, dtheta/dz) [rad, rad/m].
+ * @param[out] zeta output array [rad].
+ * @param[out] alpha Magnetic perturbation eigenfunction and its derivatives
+ *             (Phi, dPhi/dr, dPhi/dphi, dPhi/dz) [1]
+ * @param[out] Phi Electric perturbation eigenfunction and its derivatives
+ *             (Phi, dPhi/dr, dPhi/dphi, dPhi/dz) [1].
+ * @param[out] mhd_br Magnetic field perturbation components due to MHD
+ *             (Br, Bphi, Bz) [T].
+ * @param[out] mhd_er Electric field perturbation components due to MHD
+ *             (Er, Ephi, Ez) [V/m].
+ * @param[out] mhd_phi Electric field perturbation potential [V/m].
  */
-void libascot_B_field_eval_rho(
-    sim_data* sim, int Neval,
-    real* R, real* phi, real* z, real* t, real* rho, real* drhodpsi, real* psi,
-    real* dpsidr, real* dpsidphi, real* dpsidz) {
+void libascot_interpolate(
+    B_field_data* bfield, E_field_data* efield, plasma_data* plasma,
+    neutral_data* neutral, boozer_data* boozer, mhd_data* mhd,
+    //asigma_data* atomic,
+    int npnt, int modenumber,
+    real R[npnt], real phi[npnt], real z[npnt], real t[npnt],
+    real B[3][npnt], real Bjac[9][npnt], real psi[4][npnt], real rho[2][npnt],
+    real E[3][npnt],
+    real n[][npnt], real T[2][npnt], real n0[][npnt], real T0[][npnt],
+    real theta[4][npnt], real zeta[4][npnt],
+    real alpha[5][npnt], real Phi[5][npnt],
+    real mhd_b[3][npnt], real mhd_e[3][npnt], real mhd_phi[npnt]
+    ) {
 
+    int ONLY_PERTURBATIONS = 1;
     #pragma omp parallel for
-    for(int k = 0; k < Neval; k++) {
-        real rhoval[2], psival[4];
-        if( B_field_eval_psi_dpsi(psival, R[k], phi[k], z[k], t[k],
-                                  &sim->B_data) ) {
-            continue;
+    for(int k = 0; k < npnt; k++) {
+        real Bq[15], psival[4], rhoval[2], Eq[3], ns[MAX_SPECIES],
+            Ts[MAX_SPECIES], psithetazeta[12], pert_field[7], mhd_dmhd[10];
+        bool psi_valid = false, rho_valid = false;
+        int n_species, isinside;
+
+        if( bfield &&
+            !B_field_eval_B_dB(Bq, R[k], phi[k], z[k], t[k], bfield) ) {
+            STORE(0*npnt + k, Bq[0], *B);
+            STORE(1*npnt + k, Bq[4], *B);
+            STORE(2*npnt + k, Bq[8], *B);
+            STORE(0*npnt + k, Bq[1], *Bjac);
+            STORE(1*npnt + k, Bq[2], *Bjac);
+            STORE(2*npnt + k, Bq[3], *Bjac);
+            STORE(3*npnt + k, Bq[5], *Bjac);
+            STORE(4*npnt + k, Bq[6], *Bjac);
+            STORE(5*npnt + k, Bq[7], *Bjac);
+            STORE(6*npnt + k, Bq[9], *Bjac);
+            STORE(7*npnt + k, Bq[10], *Bjac);
+            STORE(8*npnt + k, Bq[11], *Bjac);
         }
-        psi[k]      = psival[0];
-        dpsidr[k]   = psival[1];
-        dpsidphi[k] = psival[2];
-        dpsidz[k]   = psival[3];
-        if( B_field_eval_rho(rhoval, psival[0], &sim->B_data) ) {
-            continue;
+        if( bfield &&
+            !B_field_eval_psi_dpsi(psival, R[k], phi[k], z[k], t[k], bfield) ) {
+            psi_valid = true;
+            STORE(0*npnt + k, psival[0], *psi);
+            STORE(0*npnt + k, psival[1], *psi);
+            STORE(0*npnt + k, psival[2], *psi);
+            STORE(0*npnt + k, psival[3], *psi);
         }
-        rho[k]      = rhoval[0];
-        drhodpsi[k] = rhoval[1];
+        if( bfield && psi_valid &&
+            !B_field_eval_rho(rhoval, psival[0], bfield) ) {
+            rho_valid = true;
+            STORE(0*npnt + k, rhoval[0], *rho);
+            STORE(1*npnt + k, rhoval[1], *rho);
+        }
+        if( efield && bfield &&
+            !E_field_eval_E(Eq, R[k], phi[k], z[k], t[k], efield, bfield) ) {
+            STORE(0*npnt + k, Eq[0], *E);
+            STORE(1*npnt + k, Eq[1], *E);
+            STORE(2*npnt + k, Eq[2], *E);
+        }
+        if(plasma) {
+            n_species = plasma_get_n_species(plasma);
+        }
+        if( plasma && rho_valid &&
+            !plasma_eval_densandtemp(ns, Ts, *rho[0], R[k], phi[k], z[k], t[k],
+                                     plasma) ) {
+            for(int i=0; i < n_species; i++) {
+                STORE(i*npnt + k, ns[i], *n);
+                STORE(i*npnt + k, Ts[i] / CONST_E, *T);
+            }
+        }
+        if(neutral) {
+            n_species = neutral_get_n_species(neutral);
+        }
+        if( neutral && rho_valid &&
+            !neutral_eval_n0(ns, *rho[0], R[k], phi[k], z[k], t[k], neutral) ) {
+            for(int i=0; i < n_species; i++) {
+                STORE(i*npnt + k, ns[i], *n0);
+            }
+        }
+        if( neutral && rho_valid &&
+            !neutral_eval_t0(Ts, *rho[0], R[k], phi[k], z[k], t[k], neutral) ) {
+            for(int i=0; i < n_species; i++) {
+                STORE(i*npnt + k, Ts[i], *T0);
+            }
+        }
+        if( boozer && bfield &&
+            !boozer_eval_psithetazeta(psithetazeta, &isinside, R[k], phi[k],
+                                      z[k], bfield, boozer) ) {
+            if(isinside) {
+                STORE(0*npnt + k, psithetazeta[4], *theta);
+                STORE(0*npnt + k, psithetazeta[8], *zeta);
+                STORE(1*npnt + k, psithetazeta[5], *theta);
+                STORE(2*npnt + k, psithetazeta[6], *theta);
+                STORE(3*npnt + k, psithetazeta[7], *theta);
+                STORE(1*npnt + k, psithetazeta[9], *zeta);
+                STORE(2*npnt + k, psithetazeta[10], *zeta);
+                STORE(3*npnt + k, psithetazeta[11], *zeta);
+            }
+        }
+        if( mhd && boozer && bfield &&
+            !mhd_eval(mhd_dmhd, R[k], phi[k], z[k], t[k], modenumber,
+                      boozer, mhd, bfield) ) {
+            STORE(0*npnt + k, mhd_dmhd[0], *alpha);
+            STORE(1*npnt + k, mhd_dmhd[2], *alpha);
+            STORE(2*npnt + k, mhd_dmhd[3], *alpha);
+            STORE(3*npnt + k, mhd_dmhd[4], *alpha);
+            STORE(4*npnt + k, mhd_dmhd[1], *alpha);
+            STORE(0*npnt + k, mhd_dmhd[5], *Phi);
+            STORE(1*npnt + k, mhd_dmhd[7], *Phi);
+            STORE(2*npnt + k, mhd_dmhd[8], *Phi);
+            STORE(3*npnt + k, mhd_dmhd[9], *Phi);
+            STORE(4*npnt + k, mhd_dmhd[6], *Phi);
+        }
+        if( mhd && boozer && bfield &&
+            !mhd_perturbations(
+                pert_field, R[k], phi[k], z[k], t[k], ONLY_PERTURBATIONS,
+                modenumber, boozer, mhd, bfield
+            ) ) {
+            STORE(0*npnt + k, pert_field[0], *mhd_b);
+            STORE(1*npnt + k, pert_field[1], *mhd_b);
+            STORE(2*npnt + k, pert_field[2], *mhd_b);
+            STORE(0*npnt + k, pert_field[3], *mhd_e);
+            STORE(1*npnt + k, pert_field[4], *mhd_e);
+            STORE(2*npnt + k, pert_field[5], *mhd_e);
+            STORE(0*npnt + k, pert_field[6], mhd_phi);
+        }
     }
 }
 
 /**
  * @brief Get magnetic axis at given coordinates.
  *
- * @param sim simulation data struct
- * @param Neval number of evaluation points.
+ * @param bfield Magnetic field data
+ * @param nphi Number of evaluation points.
  * @param phi phi coordinates of the evaluation points [rad].
  * @param Raxis output array for axis R coordinates.
- * @param zaxis output array for axis z coordinates.
  */
-void libascot_B_field_get_axis(
-    sim_data* sim, int Neval, real* phi, real* Raxis, real* zaxis) {
+void libascot_find_axis(
+    B_field_data* bfield, int nphi, real phi[nphi], real axisRz[2][nphi]) {
 
     #pragma omp parallel for
-    for(int k = 0; k < Neval; k++) {
+    for(int k = 0; k < nphi; k++) {
         real axisrz[2];
-        if( B_field_get_axis_rz(axisrz, &sim->B_data, phi[k]) ) {
-            continue;
+        if( !B_field_get_axis_rz(axisrz, bfield, phi[k]) ) {
+            axisRz[0][k] = axisrz[0];
+            axisRz[1][k] = axisrz[1];
         }
-        Raxis[k] = axisrz[0];
-        zaxis[k] = axisrz[1];
     }
 }
 
@@ -159,7 +240,7 @@ void libascot_B_field_get_axis(
  * a given position, the corresponding (R,z) values in the output arrays are
  * not altered.
  *
- * @param sim_data initialized simulation data struct
+ * @param bfield magnetic field data
  * @param Neval number of query points.
  * @param rho the square root of the normalized poloidal flux values.
  * @param theta poloidal angles [rad].
@@ -170,20 +251,19 @@ void libascot_B_field_get_axis(
  * @param r output array for R coordinates [m].
  * @param z output array for z coordinates [m].
  */
-void libascot_B_field_rhotheta2rz(
-    sim_data* sim, int Neval,
-    real* rho, real* theta, real* phi, real t, int maxiter, real tol,
-    real* r, real* z) {
+void libascot_rhotheta2rz(
+    B_field_data* bfield, int Neval, int maxiter, real tol, real t,
+    real* rho, real* theta, real* phi, real* r, real* z) {
 
     #pragma omp parallel for
     for(int j=0; j<Neval; j++) {
         real axisrz[2];
         real rhodrho[4];
-        if( B_field_get_axis_rz(axisrz, &sim->B_data, phi[j]) ) {
+        if( B_field_get_axis_rz(axisrz, bfield, phi[j]) ) {
             continue;
         }
         if( B_field_eval_rho_drho(rhodrho, axisrz[0], phi[j], axisrz[1],
-                                  &sim->B_data)) {
+                                  bfield)) {
             continue;
         }
         if( rhodrho[0] > rho[j] ) {
@@ -205,7 +285,7 @@ void libascot_B_field_rhotheta2rz(
 	        b = c;
 		continue;
 	    }
-	    if( B_field_eval_rho_drho(rhodrho, rj, phi[j], zj, &sim->B_data) ) {
+	    if( B_field_eval_rho_drho(rhodrho, rj, phi[j], zj, bfield) ) {
 	        b = c;
                 continue;
             }
@@ -228,7 +308,7 @@ void libascot_B_field_rhotheta2rz(
  *
  * Note that the psi value is not returned in case this algorithm fails.
  *
- * @param sim_data initialized simulation data struct
+ * @param bfield magnetic field data
  * @param psi value of psi on axis if this function did not fail
  * @param rz initial (R,z) position where also the result is stored
  * @param step the step size
@@ -237,9 +317,9 @@ void libascot_B_field_rhotheta2rz(
  * @param maxiter maximum number of iterations before failure
  * @param ascent if true the algorithm instead ascends to find psi0 (> psi1)
  */
-void libascot_B_field_gradient_descent(
-    sim_data* sim, real psi[1],
-    real rz[2], real step, real tol, int maxiter, int ascent) {
+void libascot_gradient_descent(
+    B_field_data* bfield, int maxiter, int ascent, real step, real tol,
+    real psi[1], real rz[2]) {
 
     if(ascent) {
         step = -1 * step;
@@ -247,12 +327,12 @@ void libascot_B_field_gradient_descent(
 
     real phi = 0.0, time = 0.0;
     real psidpsi[4], nextrz[2];
-    B_field_eval_psi_dpsi(psidpsi, rz[0], phi, rz[1], time, &sim->B_data);
+    B_field_eval_psi_dpsi(psidpsi, rz[0], phi, rz[1], time, bfield);
 
     int iter = 0;
     while(1) {
         if( B_field_eval_psi_dpsi(psidpsi, rz[0], phi, rz[1], time,
-                                  &sim->B_data) ) {
+                                  bfield) ) {
             break;
         }
         nextrz[0] = rz[0] - step * psidpsi[1];
@@ -267,7 +347,7 @@ void libascot_B_field_gradient_descent(
 
             // Add a bit of padding
             B_field_eval_psi_dpsi(
-                psidpsi, rz[0], phi, rz[1], time, &sim->B_data);
+                psidpsi, rz[0], phi, rz[1], time, bfield);
             psi[0] = psi[0] + (tol * psidpsi[1] + tol * psidpsi[3]);
             break;
         }
@@ -288,8 +368,7 @@ void libascot_B_field_gradient_descent(
  * inside a sector (phimin < phi < phimax). Not guaranteed to find the global
  * minimum inside the given sector.
  *
- * @param sim_offload_data initialized simulation offload data struct
- * @param B_offload_array initialized magnetic field offload data
+ * @param bfield magnetic field data
  * @param psi value of psi on axis if this function did not fail
  * @param rzphi initial (R,z,phi) position where also the result is stored
  * @param step the step size
@@ -298,10 +377,9 @@ void libascot_B_field_gradient_descent(
  * @param maxiter maximum number of iterations before failure
  * @param ascent if true the algorithm instead ascends to find psi0 (> psi1)
  */
-void libascot_B_field_gradient_descent_3d(
-    sim_data* sim, real psi[1],
-    real rzphi[3], real phimin, real phimax, real step, real tol, int maxiter,
-    int ascent) {
+void libascot_gradient_descent_3d(
+    B_field_data* bfield, int maxiter, int ascent, real phimin, real phimax,
+    real step, real tol, real psi[1], real rzphi[3]) {
 
     if(ascent) {
         step = -1 * step;
@@ -309,13 +387,12 @@ void libascot_B_field_gradient_descent_3d(
 
     real time = 0.0;
     real psidpsi[4], nextrzphi[3];
-    B_field_eval_psi_dpsi(psidpsi, rzphi[0], rzphi[2], rzphi[1], time,
-        &sim->B_data);
+    B_field_eval_psi_dpsi(psidpsi, rzphi[0], rzphi[2], rzphi[1], time, bfield);
 
     int iter = 0;
     while(1) {
         if( B_field_eval_psi_dpsi(psidpsi, rzphi[0], rzphi[2], rzphi[1], time,
-                                  &sim->B_data) ) {
+                                  bfield) ) {
             break;
         }
         nextrzphi[0] = rzphi[0] - step * psidpsi[1];          // R
@@ -345,7 +422,7 @@ void libascot_B_field_gradient_descent_3d(
 
             // Add a bit of padding
             B_field_eval_psi_dpsi(
-                psidpsi, rzphi[0], rzphi[2], rzphi[1], time, &sim->B_data);
+                psidpsi, rzphi[0], rzphi[2], rzphi[1], time, bfield);
             psi[0] = psi[0]
                 + (tol * ( psidpsi[1] + psidpsi[2]/rzphi[0] + psidpsi[3] ));
             break;
@@ -362,392 +439,6 @@ void libascot_B_field_gradient_descent_3d(
     }
 }
 
-
-/**
- * @brief Evaluate electric field vector at given coordinates.
- *
- * @param sim_data initialized simulation data struct
- * @param Neval number of evaluation points.
- * @param R R coordinates of the evaluation points [m].
- * @param phi phi coordinates of the evaluation points [rad].
- * @param z z coordinates of the evaluation points [m].
- * @param t time coordinates of the evaluation points [s].
- * @param ER output array [V/m].
- * @param Ephi output array [V/m].
- * @param Ez output array [V/m].
- */
-void libascot_E_field_eval_E(
-    sim_data* sim, int Neval, real* R, real* phi, real* z, real* t,
-    real* ER, real* Ephi, real* Ez) {
-
-    #pragma omp parallel for
-        for(int k = 0; k < Neval; k++) {
-        real E[3];
-        if( E_field_eval_E(E, R[k], phi[k], z[k], t[k],
-                           &sim->E_data, &sim->B_data) ) {
-            continue;
-        }
-        ER[k]   = E[0];
-        Ephi[k] = E[1];
-        Ez[k]   = E[2];
-    }
-}
-
-/**
- * @brief Get number of plasma species.
- *
- * @param @param sim_data initialized simulation data struct
- *
- * @return number of plasma species.
- */
-int libascot_plasma_get_n_species(sim_data* sim) {
-    return plasma_get_n_species(&sim->plasma_data);
-}
-
-/**
- * @brief Get mass and charge of all plasma species.
- *
- * @param sim_data initialized simulation data struct
- * @param mass mass output array [kg].
- * @param charge charge output array [C].
- * @param anum atomic mass number output array [1].
- * @param znum charge number output array [1].
- */
-void libascot_plasma_get_species_mass_and_charge(
-    sim_data* sim, real* mass, real* charge, int* anum, int* znum) {
-
-    int n_species = plasma_get_n_species(&sim->plasma_data);
-    const real* m = plasma_get_species_mass(&sim->plasma_data);
-    const real* q = plasma_get_species_charge(&sim->plasma_data);
-    const int* a  = plasma_get_species_anum(&sim->plasma_data);
-    const int* z  = plasma_get_species_znum(&sim->plasma_data);
-    mass[0]   = CONST_M_E;
-    charge[0] = -CONST_E;
-    anum[0]   = 0;
-    znum[0]   = 0;
-    for(int i=1; i<n_species; i++) {
-        mass[i]   = m[i];
-        charge[i] = q[i];
-        anum[i]   = a[i-1];
-        znum[i]   = z[i-1];
-    }
-}
-
-/**
- * @brief Evaluate plasma density and temperature at given coordinates.
- *
- * @param sim_data initialized simulation data struct
- * @param Neval number of evaluation points.
- * @param R R coordinates of the evaluation points [m].
- * @param phi phi coordinates of the evaluation points [rad].
- * @param z z coordinates of the evaluation points [m].
- * @param t time coordinates of the evaluation points [s].
- * @param dens output array [m^-3].
- * @param temp output array [eV].
- */
-void libascot_plasma_eval_background(
-    sim_data* sim, int Neval, real* R, real* phi, real* z, real* t,
-    real* dens, real* temp) {
-
-    int n_species = plasma_get_n_species(&sim->plasma_data);
-
-    #pragma omp parallel for
-    for(int k = 0; k < Neval; k++) {
-        real psi[1], rho[2], n[MAX_SPECIES], T[MAX_SPECIES];
-        if( B_field_eval_psi(psi, R[k], phi[k], z[k], t[k], &sim->B_data) ) {
-            continue;
-        }
-        if( B_field_eval_rho(rho, psi[0], &sim->B_data) ) {
-            continue;
-        }
-        if( plasma_eval_densandtemp(n, T, rho[0], R[k], phi[k], z[k], t[k],
-                                    &sim->plasma_data) ) {
-            continue;
-        }
-        for(int i=0; i<n_species; i++) {
-            dens[k + i*Neval] = n[i];
-            temp[k + i*Neval] = T[i]/CONST_E;
-        }
-    }
-}
-
-/**
- * @brief Evaluate neutral density at given coordinates.
- *
- * @param sim_data initialized simulation data struct
- * @param Neval number of evaluation points.
- * @param R R coordinates of the evaluation points [m].
- * @param phi phi coordinates of the evaluation points [rad].
- * @param z z coordinates of the evaluation points [m].
- * @param t time coordinates of the evaluation points [s].
- * @param dens output array [m^-3].
- */
-void libascot_neutral_eval_density(
-    sim_data* sim, int Neval, real* R, real* phi, real* z, real* t, real* dens) {
-
-    #pragma omp parallel for
-    for(int k = 0; k < Neval; k++) {
-        real psi[1], rho[2], n0[1];
-        if( B_field_eval_psi(psi, R[k], phi[k], z[k], t[k], &sim->B_data) ) {
-            continue;
-        }
-        if( B_field_eval_rho(rho, psi[0], &sim->B_data) ) {
-            continue;
-        }
-        if( neutral_eval_n0(n0, rho[0], R[k], phi[k], z[k], t[k],
-                            &sim->neutral_data) ) {
-            continue;
-        }
-        dens[k] = n0[0];
-    }
-}
-
-/**
- * @brief Evaluate boozer coordinates and derivatives.
- *
- * @param sim_data initialized simulation data struct
- * @param Neval number of evaluation points.
- * @param R R coordinates of the evaluation points [m].
- * @param phi phi coordinates of the evaluation points [rad].
- * @param z z coordinates of the evaluation points [m].
- * @param t time coordinates of the evaluation points [s].
- * @param psi output array
- * @param theta output array
- * @param zeta output array
- * @param dpsidr output array
- * @param dpsidphi output array
- * @param dpsidz output array
- * @param dthetadr output array
- * @param dthetadphi output array
- * @param dthetadz output array
- * @param dzetadr output array
- * @param dzetadphi output array
- * @param dzetadz output array
- * @param rho output array
- */
-void libascot_boozer_eval_psithetazeta(
-    sim_data* sim, int Neval,
-    real* R, real* phi, real* z, real* t, real* psi, real* theta, real* zeta,
-    real* dpsidr, real* dpsidphi, real* dpsidz, real* dthetadr,
-    real* dthetadphi, real* dthetadz, real* dzetadr, real* dzetadphi,
-    real* dzetadz, real* rho) {
-
-    #pragma omp parallel for
-    for(int k = 0; k < Neval; k++) {
-        int isinside;
-        real psithetazeta[12], rhoval[2];
-        if( boozer_eval_psithetazeta(psithetazeta, &isinside, R[k], phi[k],
-                                     z[k], &sim->B_data, &sim->boozer_data) ) {
-            continue;
-        }
-        if(!isinside) {
-            continue;
-        }
-        if( B_field_eval_rho(rhoval, psithetazeta[0], &sim->B_data) ) {
-            continue;
-        }
-        psi[k]        = psithetazeta[0];
-        theta[k]      = psithetazeta[4];
-        zeta[k]       = psithetazeta[8];
-        dpsidr[k]     = psithetazeta[1];
-        dpsidphi[k]   = psithetazeta[2];
-        dpsidz[k]     = psithetazeta[3];
-        dthetadr[k]   = psithetazeta[5];
-        dthetadphi[k] = psithetazeta[6];
-        dthetadz[k]   = psithetazeta[7];
-        dzetadr[k]    = psithetazeta[9];
-        dzetadphi[k]  = psithetazeta[10];
-        dzetadz[k]    = psithetazeta[11];
-        rho[k]        = rhoval[0];
-    }
-}
-
-/**
- * @brief Evaluate boozer coordinates related quantities.
- *
- * @param sim_data initialized simulation data struct
- * @param Neval number of evaluation points.
- * @param R R coordinates of the evaluation points [m].
- * @param phi phi coordinates of the evaluation points [rad].
- * @param z z coordinates of the evaluation points [m].
- * @param t time coordinates of the evaluation points [s].
- * @param qprof array for storing the (flux averaged) safety factor.
- * @param jac array for storing the coordinate Jacobian.
- * @param jacB2 array for storing the coordinate Jacobian multiplied with B^2.
- */
-void libascot_boozer_eval_fun(
-    sim_data* sim, int Neval, real* R, real* phi, real* z, real* t,
-    real* qprof, real* jac, real* jacB2) {
-
-    #pragma omp parallel for
-    for(int k = 0; k < Neval; k++) {
-        int isinside;
-        real psithetazeta[12], B[15];
-        if( boozer_eval_psithetazeta(psithetazeta, &isinside, R[k], phi[k],
-                                     z[k], &sim->B_data, &sim->boozer_data) ) {
-            continue;
-        }
-        if(!isinside) {
-            continue;
-        }
-        if( B_field_eval_B_dB(B, R[k], phi[k], z[k], t[k], &sim->B_data) ) {
-            continue;
-        }
-
-        real bvec[]      = {B[0], B[4], B[8]};
-        real gradpsi[]   = {psithetazeta[1],
-                            psithetazeta[2]/R[k],
-                            psithetazeta[3]};
-        real gradtheta[] = {psithetazeta[5],
-                            psithetazeta[6]/R[k],
-                            psithetazeta[7]};
-        real gradzeta[]  = {psithetazeta[9],
-                            psithetazeta[10]/R[k],
-                            psithetazeta[11]};
-
-        real veca[3], vecb[3];
-
-        math_cross(gradpsi, gradzeta, veca);
-        math_cross(gradpsi, gradtheta, vecb);
-        qprof[k] = (veca[1] - bvec[1]) / vecb[1];
-
-        math_cross(gradtheta, gradzeta, veca);
-        jac[k]   = -1.0 / math_dot(veca, gradpsi);
-        jacB2[k] = jac[k]*math_norm(bvec)*math_norm(bvec);
-    }
-}
-
-/**
- * @brief Get number of MHD modes.
- *
- * @param @param sim_data initialized simulation data struct
- *
- * @return number of MHD modes
- */
-int libascot_mhd_get_n_modes(sim_data* sim) {
-
-    return mhd_get_n_modes(&sim->mhd_data);
-}
-
-/**
- * @brief Get MHD mode amplitude, frequency, phase, and mode numbers
- *
- * @param sim_data initialized simulation data struct
- * @param nmode output array for toroidal mode number
- * @param mmode output array for poloidal mode number
- * @param amplitude output array for mode amplitude
- * @param omega output array for mode frequency
- * @param phase output array for mode phase
- */
-void libascot_mhd_get_mode_specs(
-    sim_data* sim, int* nmode, int* mmode, real* amplitude, real* omega,
-    real* phase) {
-
-    int n_modes   = mhd_get_n_modes(&sim->mhd_data);
-    const int* n  = mhd_get_nmode(&sim->mhd_data);
-    const int* m  = mhd_get_mmode(&sim->mhd_data);
-    const real* a = mhd_get_amplitude(&sim->mhd_data);
-    const real* o = mhd_get_frequency(&sim->mhd_data);
-    const real* p = mhd_get_phase(&sim->mhd_data);
-    for(int i=0; i<n_modes; i++) {
-        nmode[i]     = n[i];
-        mmode[i]     = m[i];
-        amplitude[i] = a[i];
-        omega[i]     = o[i];
-        phase[i]     = p[i];
-    }
-}
-
-/**
- * @brief Evaluate MHD perturbation potentials
- *
- * @param sim_data initialized simulation data struct
- * @param Neval number of evaluation points.
- * @param R R coordinates of the evaluation points [m].
- * @param phi phi coordinates of the evaluation points [rad].
- * @param z z coordinates of the evaluation points [m].
- * @param t time coordinates of the evaluation points [s].
- * @param includemode mode index to include or MHD_INCLUDE_ALL
- * @param alpha output array
- * @param dadr output array
- * @param dadphi output array
- * @param dadz output array
- * @param dadt output array
- * @param Phi output array
- * @param dPhidr output array
- * @param dPhidphi output array
- * @param dPhidz output array
- * @param dPhidt output array
- */
-void libascot_mhd_eval(
-    sim_data* sim, int Neval,
-    real* R, real* phi, real* z, real* t, int includemode,
-    real* alpha, real* dadr, real* dadphi, real* dadz, real* dadt, real* Phi,
-    real* dPhidr, real* dPhidphi, real* dPhidz, real* dPhidt) {
-
-    #pragma omp parallel for
-    for(int k = 0; k < Neval; k++) {
-        real mhd_dmhd[10];
-        if( mhd_eval(mhd_dmhd, R[k], phi[k], z[k], t[k], includemode,
-                     &sim->boozer_data, &sim->mhd_data, &sim->B_data) ) {
-            continue;
-        }
-        alpha[k]    = mhd_dmhd[0];
-        dadr[k]     = mhd_dmhd[2];
-        dadphi[k]   = mhd_dmhd[3];
-        dadz[k]     = mhd_dmhd[4];
-        dadt[k]     = mhd_dmhd[1];
-        Phi[k]      = mhd_dmhd[5];
-        dPhidr[k]   = mhd_dmhd[7];
-        dPhidphi[k] = mhd_dmhd[8];
-        dPhidz[k]   = mhd_dmhd[9];
-        dPhidt[k]   = mhd_dmhd[6];
-    }
-}
-
-/**
- * @brief Evaluate MHD perturbation EM-field components
- *
- * @param sim_data initialized simulation data struct
- * @param Neval number of evaluation points.
- * @param R R coordinates of the evaluation points [m].
- * @param phi phi coordinates of the evaluation points [rad].
- * @param z z coordinates of the evaluation points [m].
- * @param t time coordinates of the evaluation points [s].
- * @param includemode mode index to include or MHD_INCLUDE_ALL
- * @param mhd_br output array
- * @param mhd_bphi output array
- * @param mhd_bz output array
- * @param mhd_er output array
- * @param mhd_ephi output array
- * @param mhd_ez output array
- * @param mhd_phi output array
- */
-void libascot_mhd_eval_perturbation(
-    sim_data* sim, int Neval,
-    real* R, real* phi, real* z, real* t, int includemode, real* mhd_br,
-    real* mhd_bphi, real* mhd_bz, real* mhd_er, real* mhd_ephi, real* mhd_ez,
-    real* mhd_phi) {
-
-    int onlypert = 1;
-    #pragma omp parallel for
-    for(int k = 0; k < Neval; k++) {
-        real pert_field[7];
-        if( mhd_perturbations(pert_field, R[k], phi[k], z[k], t[k], onlypert,
-                              includemode, &sim->boozer_data, &sim->mhd_data,
-                              &sim->B_data) ) {
-            continue;
-        }
-        mhd_br[k]   = pert_field[0];
-        mhd_bphi[k] = pert_field[1];
-        mhd_bz[k]   = pert_field[2];
-        mhd_er[k]   = pert_field[3];
-        mhd_ephi[k] = pert_field[4];
-        mhd_ez[k]   = pert_field[5];
-        mhd_phi[k]  = pert_field[6];
-    }
-}
-
 /**
  * @brief Evaluate collision coefficients
  *
@@ -761,97 +452,85 @@ void libascot_mhd_eval_perturbation(
  * @param va test particle velocities at the evaluation point [m/s]
  * @param ma test particle mass [kg]
  * @param qa test particle charge [C]
- * @param F output array
- * @param Dpara output array
- * @param Dperp output array
- * @param K output array
- * @param nu output array
- * @param Q output array
- * @param dQ output array
- * @param dDpara output array
- * @param clog output array
- * @param mu0 output array
- * @param mu1 output array
- * @param dmu0 output array
+ * @param coefficients The collision coefficients (F, Dpara, Dperp, K, nu, Q,
+ *        dQ, dDpara, clog) [].
+ * @param clog The Coulomb logarithm.
+ * @param mu The special functions (mu0, mu1, dmu0)
  */
 void libascot_eval_collcoefs(
-    sim_data* sim, int Neval, real* R, real* phi, real* z, real* t,
-    int Nv, real* va, real ma, real qa, real* F, real* Dpara, real* Dperp,
-    real* K, real* nu, real* Q, real* dQ, real* dDpara, real* clog,
-    real* mu0, real* mu1, real* dmu0) {
+    B_field_data* bfield, plasma_data* plasma, int npnt, real ma, real qa,
+    real R[npnt], real phi[npnt], real z[npnt], real t[npnt], real va[npnt],
+    real coefficients[6][npnt], real clog[][npnt], real mu[3][npnt]) {
 
     /* Evaluate plasma parameters */
-    int n_species  = plasma_get_n_species(&sim->plasma_data);
-    const real* qb = plasma_get_species_charge(&sim->plasma_data);
-    const real* mb = plasma_get_species_mass(&sim->plasma_data);
+    int n_species  = plasma_get_n_species(plasma);
+    const real* qb = plasma_get_species_charge(plasma);
+    const real* mb = plasma_get_species_mass(plasma);
+    mccc_data mccc;
 
     #pragma omp parallel for
-    for(int k=0; k<Neval; k++) {
+    for(int k=0; k<npnt; k++) {
         real mufun[3] = {0., 0., 0.};
 
         /* Evaluate rho as it is needed to evaluate plasma parameters */
         real psi, rho[2];
-        if( B_field_eval_psi(&psi, R[k], phi[k], z[k], t[k], &sim->B_data) ) {
+        if( B_field_eval_psi(&psi, R[k], phi[k], z[k], t[k], bfield) ) {
             continue;
         }
-        if( B_field_eval_rho(rho, psi, &sim->B_data) ) {
+        if( B_field_eval_rho(rho, psi, bfield) ) {
             continue;
         }
 
         real nb[MAX_SPECIES], Tb[MAX_SPECIES];
         if( plasma_eval_densandtemp(nb, Tb, rho[0], R[k], phi[k], z[k], t[k],
-                                    &sim->plasma_data) ) {
+                                    plasma) ) {
             continue;
         }
 
-        /* Evaluate coefficients for different velocities */
-        for(int iv=0; iv<Nv; iv++) {
+        /* Loop through all plasma species */
+        for(int ib=0; ib<n_species; ib++) {
 
-            /* Loop through all plasma species */
-            for(int ib=0; ib<n_species; ib++) {
+            /* Coulomb logarithm */
+            real clogab[MAX_SPECIES];
+            mccc_coefs_clog(clogab, ma, qa, va[k], n_species, mb, qb, nb, Tb);
 
-                /* Coulomb logarithm */
-                real clogab[MAX_SPECIES];
-                mccc_coefs_clog(clogab, ma, qa, va[iv], n_species, mb, qb,
-                                nb, Tb);
+            /* Special functions */
+            real vb = sqrt( 2 * Tb[ib] / mb[ib] );
+            real x  = va[k] / vb;
+            mccc_coefs_mufun(mufun, x, &mccc);
 
-                /* Special functions */
-                real vb = sqrt( 2 * Tb[ib] / mb[ib] );
-                real x  = va[iv] / vb;
-                mccc_coefs_mufun(mufun, x, &sim->mccc_data);
+            /* Coefficients */
+            real Fb = mccc_coefs_F(
+                ma, qa, mb[ib], qb[ib], nb[ib], vb, clogab[ib], mufun[0]);
+            real Qb = mccc_coefs_Q(
+                ma, qa, mb[ib], qb[ib], nb[ib], vb, clogab[ib], mufun[0]);
+            real dQb = mccc_coefs_dQ(
+                ma, qa, mb[ib], qb[ib], nb[ib], vb, clogab[ib], mufun[2]);
+            real Dparab = mccc_coefs_Dpara(
+                ma, qa, va[k], qb[ib], nb[ib], vb, clogab[ib], mufun[0]);
+            real Dperpb = mccc_coefs_Dperp(
+                ma, qa, va[k], qb[ib], nb[ib], vb, clogab[ib], mufun[1]);
+            real dDparab = mccc_coefs_dDpara(
+                ma, qa, va[k], qb[ib], nb[ib], vb, clogab[ib], mufun[0],
+                mufun[2]);
+            real Kb = mccc_coefs_K(va[k], Dparab, dDparab, Qb);
+            real nub = mccc_coefs_nu(va[k], Dperpb);
 
-                /* Coefficients */
-                real Fb      = mccc_coefs_F(ma, qa, mb[ib], qb[ib], nb[ib], vb,
-                                            clogab[ib], mufun[0]);
-                real Qb      = mccc_coefs_Q(ma, qa, mb[ib], qb[ib], nb[ib], vb,
-                                            clogab[ib], mufun[0]);
-                real dQb     = mccc_coefs_dQ(ma, qa, mb[ib], qb[ib], nb[ib], vb,
-                                             clogab[ib], mufun[2]);
-                real Dparab  = mccc_coefs_Dpara(ma, qa, va[iv], qb[ib], nb[ib],
-                                                vb, clogab[ib], mufun[0]);
-                real Dperpb  = mccc_coefs_Dperp(ma, qa, va[iv], qb[ib], nb[ib],
-                                                vb, clogab[ib], mufun[1]);
-                real dDparab = mccc_coefs_dDpara(ma, qa, va[iv], qb[ib], nb[ib],
-                                                 vb, clogab[ib], mufun[0],
-                                                 mufun[2]);
-                real Kb      = mccc_coefs_K(va[iv], Dparab, dDparab, Qb);
-                real nub     = mccc_coefs_nu(va[iv], Dperpb);
-
-                /* Store requested quantities */
-                int idx = ib*Nv*Neval + Nv * k + iv;
-                if(mu0 != NULL)    { mu0[idx]    = mufun[0];   }
-                if(mu1 != NULL)    { mu1[idx]    = mufun[1];   }
-                if(dmu0 != NULL)   { dmu0[idx]   = mufun[2];   }
-                if(clog != NULL)   { clog[idx]   = clogab[ib]; }
-                if(F != NULL)      { F[idx]      = Fb;         }
-                if(Dpara != NULL)  { Dpara[idx]  = Dparab;     }
-                if(Dperp != NULL)  { Dperp[idx]  = Dperpb;     }
-                if(K != NULL)      { K[idx]      = Kb;         }
-                if(nu != NULL)     { nu[idx]     = nub;        }
-                if(Q != NULL)      { Q[idx]      = Qb;         }
-                if(dQ != NULL)     { dQ[idx]     = dQb;        }
-                if(dDpara != NULL) { dDpara[idx] = dDparab;    }
-            }
+            int idx = ib*npnt + k;
+            //STORE(n_species*npnt*0 + ib*npnt + k, mufun[0], **mu);
+            /**
+            if(mu0 != NULL)    { mu0[idx]    = mufun[0];   }
+            if(mu1 != NULL)    { mu1[idx]    = mufun[1];   }
+            if(dmu0 != NULL)   { dmu0[idx]   = mufun[2];   }
+            if(clog != NULL)   { clog[idx]   = clogab[ib]; }
+            if(F != NULL)      { F[idx]      = Fb;         }
+            if(Dpara != NULL)  { Dpara[idx]  = Dparab;     }
+            if(Dperp != NULL)  { Dperp[idx]  = Dperpb;     }
+            if(K != NULL)      { K[idx]      = Kb;         }
+            if(nu != NULL)     { nu[idx]     = nub;        }
+            if(Q != NULL)      { Q[idx]      = Qb;         }
+            if(dQ != NULL)     { dQ[idx]     = dQb;        }
+            if(dDpara != NULL) { dDpara[idx] = dDparab;    } */
         }
     }
 }
@@ -874,35 +553,34 @@ void libascot_eval_collcoefs(
  * @param ratecoeff output array where evaluated values are stored [1/m^2].
  */
 void libascot_eval_ratecoeff(
-    sim_data* sim,
+    B_field_data* bfield, plasma_data* plasma, neutral_data* neutral,
+    asigma_data* atomic,
     int Neval, real* R, real* phi, real* z, real* t, int Nv, real* va,
     int Aa, int Za, real ma, int reac_type, real* ratecoeff) {
 
-    const int* Zb = plasma_get_species_znum(&sim->plasma_data);
-    const int* Ab = plasma_get_species_anum(&sim->plasma_data);
-    int nion  = plasma_get_n_species(&sim->plasma_data) - 1;
-    int nspec = neutral_get_n_species(&sim->neutral_data);
+    const int* Zb = plasma_get_species_znum(plasma);
+    const int* Ab = plasma_get_species_anum(plasma);
+    int nion  = plasma_get_n_species(plasma) - 1;
+    int nspec = neutral_get_n_species(neutral);
 
     #pragma omp parallel for
     for (int k=0; k < Neval; k++) {
         real psi[1], rho[2], T0[1], n[MAX_SPECIES], T[MAX_SPECIES],
             n0[MAX_SPECIES];
-        if( B_field_eval_psi(psi, R[k], phi[k], z[k], t[k], &sim->B_data) ) {
+        if( B_field_eval_psi(psi, R[k], phi[k], z[k], t[k], bfield) ) {
             continue;
         }
-        if( B_field_eval_rho(rho, psi[0], &sim->B_data) ) {
+        if( B_field_eval_rho(rho, psi[0], bfield) ) {
             continue;
         }
         if( plasma_eval_densandtemp(n, T, rho[0], R[k], phi[k], z[k], t[k],
-                                    &sim->plasma_data) ) {
+                                    plasma) ) {
             continue;
         }
-        if( neutral_eval_t0(T0, rho[0], R[k], phi[k], z[k], t[k],
-                            &sim->neutral_data) ) {
+        if( neutral_eval_t0(T0, rho[0], R[k], phi[k], z[k], t[k], neutral) ) {
             continue;
         }
-        if( neutral_eval_n0(n0, rho[0], R[k], phi[k], z[k], t[k],
-                            &sim->neutral_data) ) {
+        if( neutral_eval_n0(n0, rho[0], R[k], phi[k], z[k], t[k], neutral) ) {
             continue;
         }
         for (int j=0; j < Nv; j++) {
@@ -911,16 +589,14 @@ void libascot_eval_ratecoeff(
             switch (reac_type) {
             case sigmav_CX:
                 if( asigma_eval_cx(
-                        &val, Za, Aa, E, ma, nspec, Zb, Ab, T0[0], n0,
-                        &sim->asigma_data) ) {
+                        &val, Za, Aa, E, ma, nspec, Zb, Ab, T0[0], n0, atomic) ) {
                     continue;
                 }
                 ratecoeff[Nv*k + j] = val;
                 break;
             case sigmav_BMS:
                 if( asigma_eval_bms(
-                        &val, Za, Aa, E, ma, nion, Zb, Ab, T[0], n,
-                        &sim->asigma_data) ) {
+                        &val, Za, Aa, E, ma, nion, Zb, Ab, T[0], n, atomic) ) {
                     continue;
                 }
                 ratecoeff[Nv*k + j] = val * n[0];
@@ -956,9 +632,8 @@ void libascot_eval_ratecoeff(
  * (k_per v_drif) is used, is specified in the rfof_codeparam.xml. The drift
  * has not yet been implemented (Jan 2025).
  *
- * @param sim_offload_data initialized simulation offload data struct
- * @param B_offload_array initialized magnetic field offload data
- * @param E_offload_array initialized electric field offload data
+ * @param bfield magnetic field data.
+ * @param rfof RFOF data.
  * @param Neval number of evaluation points.
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
@@ -968,18 +643,18 @@ void libascot_eval_ratecoeff(
  * @param q test particle charge (for computing resonance) [C].
  * @param vpar test particle parallel velocity (for computing resonance) [m/s].
  * @param Eplus_real Real part of the right-handed electric field component of
- *                   the wave [V/m]. (See comment above!)
+ *        the wave [V/m]. (See comment above!)
  * @param Eminus_real Real part of the left-handed electric field component of
- *                    the wave [V/m]. (See comment above!)
+ *        the wave [V/m]. (See comment above!)
  * @param Eplus_imag Imaginary part of the right-handed electric field component
- *                   of the wave [V/m]. (See comment above!)
+ *        of the wave [V/m]. (See comment above!)
  * @param Eminus_imag Imaginary part of the left-handed electric field
- *                    component of the wave [V/m]. (See comment above!)
+ *        component of the wave [V/m]. (See comment above!)
  * @param res_cond value of the resonance condition where zero is the resonance
- * [dimensionless].
+ *        [1].
  */
 void libascot_eval_rfof(
-    sim_data* sim, real* B_offload_array, int Neval,
+    B_field_data* bfield, rfof_data* rfof, int Neval,
     real* R, real* phi, real* z, real* t, real mass, real q, real vpar,
     real* Eplus_real, real* Eminus_real, real* Eplus_imag, real* Eminus_imag,
     real* res_cond) {
@@ -993,12 +668,12 @@ void libascot_eval_rfof(
         rfof_marker rfof_mrk;
         int dummy_int   = 1;
         real dummy_real = -999.0;  /*-999.0 to be on the safe side */
-        rfof_set_up(&rfof_mrk, &sim->rfof_data);
+        rfof_set_up(&rfof_mrk, rfof);
 
         #pragma omp for
         for(int k = 0; k < Neval; k++) {
             real B[3];
-            if( B_field_eval_B(B, R[k], phi[k], z[k], t[k], &sim->B_data) ) {
+            if( B_field_eval_B(B, R[k], phi[k], z[k], t[k], bfield) ) {
                 continue;
             }
             real B_magn = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
@@ -1011,12 +686,12 @@ void libascot_eval_rfof(
 
             int nharm; /* For storing return value which is not used */
             rfof_eval_resonance_function(
-                &(res_cond[k]), &nharm, &rfof_mrk, &sim->rfof_data);
+                &(res_cond[k]), &nharm, &rfof_mrk, rfof);
 
             // TODO: this should return a non-zero value for failed evaluations
             rfof_eval_rf_wave(
                 &(Eplus_real[k]), &(Eminus_real[k]), &(Eplus_imag[k]),
-                &(Eminus_imag[k]), R[k], z[k], &sim->rfof_data);
+                &(Eminus_imag[k]), R[k], z[k], rfof);
         }
         rfof_tear_down(&rfof_mrk);
     }

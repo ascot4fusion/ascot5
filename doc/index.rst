@@ -51,18 +51,13 @@ For questions related to the code or physics, please join our `Slack channel <ht
   testing
   developing
 
-.. toctree::
-   :hidden:
-
-   papi/a5py.rst
-
 Getting started
 ===============
 
 1. Follow the :ref:`installation<Installing>` instructions and :ref:`compile<Compiling>` the code.
 2. Have some quality time by going through :ref:`the introductory simulation</tutorials/introduction.ipynb>`.
 3. Familiarize yourself on how to generate :ref:`inputs<Preprocessing>` that you need, execute :ref:`simulations<Simulations>`, and post-process :ref:`the results<Postprocessing>`.
-   Here :ref:`the examples<Examples>` and :ref:`the physics<Physics>` documentation as well as :ref:`the Python API</papi/a5py.rst>` are good sources of help.
+   Here :ref:`the examples<Examples>` and :ref:`the physics<Physics>` are good sources of help.
 4. At some point you might also want to :ref:`publish<Citing>` your work or :ref:`contribute<Codingstyle>` to the code.
 
 Features

@@ -1,33 +1,6 @@
 /**
  * @file B_3DS.c
  * @brief 3D magnetic field with tricubic spline interpolation
- *
- * This module represents a magnetic field where data is given in \f$R\phi z\f$-
- * grid from which it is interpolated with tricubic splines.
- *
- * The magnetic field is evaluated from magnetic field strength \f$\mathbf{B}\f$
- * which may not be divergence free. However, \f$B_R\f$ and \f$B_z\f$ components
- * are also evaluated from poloidal magnetic flux \f$\psi(R,z)\f$ as
- *
- * \f{align*}{
- * B_R &= -\frac{1}{R}\frac{\partial\psi}{\partial z}\\
- * B_z &= \frac{1}{R}\frac{\partial\psi}{\partial R}
- * \f}
- *
- * The total field is then a sum of components interpolated directly from
- * \f$\mathbf{B}\f$ and components calculated via interpolated \f$\psi\f$.
- * Note that \f$\psi\f$ is assumed to be axisymmetric and is interpolated with
- * bicubic splines. \f$\psi\f$ and \f$\mathbf{B}\f$ are given in separate grids.
- *
- * This module does no extrapolation so if queried value is outside the
- * \f$Rz\f$-grid an error is thrown.
- *
- * The toroidal angle phi is treated as a periodic coordinate meaning that
- * B(phi) = B(phi + N*(b_phimax - b_phimin)) being N the periodic number.
- * Do note that to avoid duplicate data, the last points in phi axis in B data
- * are not at b_phimax, i.e. br[:,-1,:] != BR(phi=b_phimax). It is user's
- * responsibility to provide input whose \f$\phi\f$-grid makes sense (in
- * that it actually represents a periodic field).
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -39,27 +12,6 @@
 #include "B_3DS.h"
 #include "../spline/interp.h"
 
-int psigrid_n_r;     /**< Number of R grid points in psi data             */
-    int psigrid_n_z;     /**< Number of z grid points in psi data             */
-    real psigrid_r_min;  /**< Minimum R grid point in psi data [m]            */
-    real psigrid_r_max;  /**< Maximum R grid point in psi data [m]            */
-    real psigrid_z_min;  /**< Minimum z grid point in psi data [m]            */
-    real psigrid_z_max;  /**< Maximum z grid point in psi data [m]            */
-
-    int Bgrid_n_r;       /**< Number of R grid points in B data               */
-    int Bgrid_n_z;       /**< Number of z grid points in B data               */
-    real Bgrid_r_min;    /**< Minimum R coordinate in the grid in B data [m]  */
-    real Bgrid_r_max;    /**< Maximum R coordinate in the grid in B data [m]  */
-    real Bgrid_z_min;    /**< Minimum z coordinate in the grid in B data [m]  */
-    real Bgrid_z_max;    /**< Maximum z coordinate in the grid in B data [m]  */
-    int Bgrid_n_phi;     /**< Number of phi grid points in B data             */
-    real Bgrid_phi_min;  /**< Minimum phi grid point in B data [rad]          */
-    real Bgrid_phi_max;  /**< Maximum phi grid point in B data [rad]          */
-
-    real psi0;           /**< Poloidal flux value at magnetic axis [V*s*m^-1] */
-    real psi1;           /**< Poloidal flux value at separatrix [V*s*m^-1]    */
-    real axis_r;         /**< R coordinate of magnetic axis [m]               */
-    real axis_z;         /**< z coordinate of magnetic axis [m]               */
 /**
  * @brief Initialize magnetic field data
  *
@@ -119,67 +71,26 @@ int B_3DS_init(B_3DS_data* data,
     data->axis_z = axis_z;
 
     /* Set up the splines */
-    err = interp2Dcomp_setup(&data->psi, psi, p_n_r, p_n_z,
-                             NATURALBC, NATURALBC,
-                             p_r_min, p_r_max, p_z_min, p_z_max);
-    if(err) {
-        print_err("Error: Failed to initialize splines.\n");
-        return 1;
-    }
-    err = interp3Dcomp_setup(&data->B_r, B_r, b_n_r, b_n_phi, b_n_z,
-                             NATURALBC, PERIODICBC, NATURALBC,
-                             b_r_min, b_r_max, b_phi_min, b_phi_max,
-                             b_z_min, b_z_max);
-    if(err) {
-        print_err("Error: Failed to initialize splines.\n");
-        return 1;
-    }
-    err = interp3Dcomp_setup(&data->B_phi, B_phi, b_n_r, b_n_phi, b_n_z,
-                             NATURALBC, PERIODICBC, NATURALBC,
-                             b_r_min, b_r_max, b_phi_min, b_phi_max,
-                             b_z_min, b_z_max);
-    if(err) {
-        print_err("Error: Failed to initialize splines.\n");
-        return 1;
-    }
-    err = interp3Dcomp_setup(&data->B_z, B_z, b_n_r, b_n_phi, b_n_z,
-                             NATURALBC, PERIODICBC, NATURALBC,
-                             b_r_min, b_r_max, b_phi_min, b_phi_max,
-                             b_z_min, b_z_max);
-    if(err) {
-        print_err("Error: Failed to initialize splines.\n");
-        return 1;
-    }
+    err += interp2Dcomp_setup(&data->psi, psi, p_n_r, p_n_z,
+                              NATURALBC, NATURALBC,
+                              p_r_min, p_r_max, p_z_min, p_z_max);
+    err += interp3Dcomp_setup(&data->B_r, B_r, b_n_r, b_n_phi, b_n_z,
+                              NATURALBC, PERIODICBC, NATURALBC,
+                              b_r_min, b_r_max, b_phi_min, b_phi_max,
+                              b_z_min, b_z_max);
+    err += interp3Dcomp_setup(&data->B_phi, B_phi, b_n_r, b_n_phi, b_n_z,
+                              NATURALBC, PERIODICBC, NATURALBC,
+                              b_r_min, b_r_max, b_phi_min, b_phi_max,
+                              b_z_min, b_z_max);
+    err += interp3Dcomp_setup(&data->B_z, B_z, b_n_r, b_n_phi, b_n_z,
+                              NATURALBC, PERIODICBC, NATURALBC,
+                              b_r_min, b_r_max, b_phi_min, b_phi_max,
+                              b_z_min, b_z_max);
 
     /* Evaluate psi and magnetic field on axis for checks */
     real psival[1], Bval[3];
-    err = B_3DS_eval_psi(psival, data->axis_r, 0, data->axis_z, data);
-    err = B_3DS_eval_B(Bval, data->axis_r, 0, data->axis_z, data);
-    if(err) {
-        print_err("Error: Initialization failed.\n");
-        return err;
-    }
-
-    /* Print some sanity check on data */
-    printf("\n3D magnetic field (B_3DS)\n");
-    print_out(VERBOSE_IO, "Psi-grid: nR = %4.d Rmin = %3.3f m Rmax = %3.3f m\n",
-              p_n_r, p_r_min, p_r_max);
-    print_out(VERBOSE_IO, "      nz = %4.d zmin = %3.3f m zmax = %3.3f m\n",
-              p_n_z, p_z_min, p_z_max);
-    print_out(VERBOSE_IO, "B-grid: nR = %4.d Rmin = %3.3f m Rmax = %3.3f m\n",
-              b_n_r, b_r_min, b_r_max);
-    print_out(VERBOSE_IO, "      nz = %4.d zmin = %3.3f m zmax = %3.3f m\n",
-              b_n_z, b_z_min, b_z_max);
-    print_out(VERBOSE_IO, "nphi = %4.d phimin = %3.3f deg phimax = %3.3f deg\n",
-              b_n_phi, math_rad2deg(b_phi_min), math_rad2deg(b_phi_max));
-    print_out(VERBOSE_IO, "Psi at magnetic axis (%1.3f m, %1.3f m)\n",
-              data->axis_r, data->axis_z);
-    print_out(VERBOSE_IO, "%3.3f (evaluated)\n%3.3f (given)\n",
-              psival[0], data->psi0);
-    print_out(VERBOSE_IO, "Magnetic field on axis:\n"
-              "B_R = %3.3f B_phi = %3.3f B_z = %3.3f\n",
-              Bval[0], Bval[1], Bval[2]);
-
+    err += B_3DS_eval_psi(psival, data->axis_r, 0, data->axis_z, data);
+    err += B_3DS_eval_B(Bval, data->axis_r, 0, data->axis_z, data);
     return err;
 }
 

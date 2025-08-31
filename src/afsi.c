@@ -71,7 +71,7 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
 
     random_init(&rdata, time((NULL)));
     strcpy(sim->hdf5_out, sim->hdf5_in);
-    simulate_init(sim);
+    //simulate_init(sim);
 
     if( hdf5_interface_init_results(sim, qid, "afsi") ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,

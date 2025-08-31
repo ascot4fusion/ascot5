@@ -16,8 +16,22 @@
  * @brief Initialize 1Dt plasma data and check inputs
  *
  * @param data pointer to the data struct
+ * @param nrho number of rho grid points in the data
+ * @param nrho number of time grid points in the data
+ * @param nion number of ion species
+ * @param rho rho grid points in which data is tabulated [1]
+ * @param time time grid points in which data is tabulated [s]
+ * @param anum mass number of ions present in the plasma
+ * @param znum charge number of ions present in the plasma
+ * @param mass mass of ions present in the plasma [kg]
+ * @param charge charge of ions present in the plasma [C]
+ * @param Te electron temperature [J]
+ * @param Ti ion temperature [J]
+ * @param ne electron density [m^-3]
+ * @param ni density of ion species [m^-3]
+ * @param vtor toroidal rotation [rad/s]
  *
- * @return zero if initialization succes
+ * @return zero if initialization succeeded
  */
 int plasma_1Dt_init(plasma_1Dt_data* data, int nrho, int ntime, int nion,
                     real* rho, real* time, int* anum, int* znum, real* mass,
@@ -63,56 +77,6 @@ int plasma_1Dt_init(plasma_1Dt_data* data, int nrho, int ntime, int nion,
             }
         }
     }
-
-    print_out(VERBOSE_IO, "\n1D plasma profiles (P_1Dt)\n");
-    print_out(VERBOSE_IO,
-              "Min rho = %1.2le, Max rho = %1.2le,"
-              " Number of rho grid points = %d\n",
-              data->rho[0], data->rho[data->n_rho-1], data->n_rho);
-    print_out(VERBOSE_IO,
-              "Min time = %1.2le, Max time = %1.2le,"
-              " Number of time points = %d\n",
-              data->time[0], data->time[data->n_time-1], data->n_time);
-    print_out(VERBOSE_IO, "Number of ion species = %d\n", nion);
-    print_out(VERBOSE_IO,
-              "Species Z/A  charge [e]/mass [amu] "
-              "Density [m^-3] at Min/Max rho(t=t0)"
-              "  Temperature [eV] at Min/Max rho(t=t0)\n");
-    for(int i=0; i < nion; i++) {
-        print_out(VERBOSE_IO,
-                  " %3d  /%3d   %3d  /%7.3f             %1.2le/%1.2le     "
-                  "     %1.2le/%1.2le       \n",
-                  data->znum[i], data->anum[i],
-                  (int)round(data->charge[i+1]/CONST_E),
-                  data->mass[i+1]/CONST_U,
-                  data->dens[nrho*ntime + i*nrho],
-                  data->dens[nrho*ntime + (i+1)*nrho - 1],
-                  data->temp[ntime*nrho] / CONST_E,
-                  data->temp[ntime*nrho + nrho - 1] / CONST_E);
-    }
-    print_out(VERBOSE_IO,
-              "[electrons]  %3d  /%7.3f             %1.2le/%1.2le          "
-              "%1.2le/%1.2le       \n",
-              -1, CONST_M_E/CONST_U,
-              data->dens[0], data->dens[nrho-1],
-              data->temp[0] / CONST_E, data->temp[nrho-1] / CONST_E);
-    print_out(VERBOSE_IO, "Toroidal rotation [rad/s] at Min/Max rho: "
-              "%1.2le/%1.2le\n",
-              data->vtor[0], data->vtor[nrho-1]);
-    real quasineutrality = 0;
-    for(int k = 0; k < nrho; k++) {
-        real ele_qdens =
-            data->dens[ntime + nrho + k] * CONST_E;
-        real ion_qdens = 0;
-        for(int i=0; i < nion; i++) {
-            int idx = nrho*ntime + ntime + nrho * (2+1) + k;
-            ion_qdens += data->dens[idx] * data->charge[i+1];
-        }
-        quasineutrality = fmax( quasineutrality,
-                                fabs( 1 - ion_qdens / ele_qdens ) );
-    }
-    print_out(VERBOSE_IO, "Quasi-neutrality is (electron / ion charge density)"
-              " %.2f\n", 1+quasineutrality);
     return 0;
 }
 
@@ -154,9 +118,9 @@ void plasma_1Dt_offload(plasma_1Dt_data* data) {
  * This function evaluates the temperature of a plasma species at the given
  * radial coordinate using linear interpolation.
  *
- * @param temp pointer to where evaluated temperature [J] is stored
- * @param rho radial coordinate
- * @param t time instant
+ * @param temp pointer to where evaluated temperature is stored [J]
+ * @param rho radial coordinate [1]
+ * @param t time instant [s]
  * @param species index of plasma species
  * @param pls_data pointer to plasma data struct
  *
@@ -182,9 +146,9 @@ a5err plasma_1Dt_eval_temp(real* temp, real rho, real t, int species,
  * This function evaluates the density of a plasma species at the given
  * radial coordinate using linear interpolation.
  *
- * @param dens pointer to where evaluated density [m^-3] is stored
- * @param rho radial coordinate
- * @param t time instant
+ * @param dens pointer to where evaluated density is stored [m^-3]
+ * @param rho radial coordinate [1]
+ * @param t time instant [s]
  * @param species index of plasma species
  * @param pls_data pointer to plasma data struct
  *
@@ -209,10 +173,10 @@ a5err plasma_1Dt_eval_dens(real* dens, real rho, real t, int species,
  * This function evaluates the density and temperature of all plasma species at
  * the given radial coordinate using linear interpolation.
  *
- * @param dens pointer to where interpolated densities [m^-3] are stored
- * @param temp pointer to where interpolated temperatures [J] are stored
- * @param rho radial coordinate
- * @param t time instant
+ * @param dens pointer to where interpolated densities are stored [m^-3]
+ * @param temp pointer to where interpolated temperatures are stored [J]
+ * @param rho radial coordinate [1]
+ * @param t time instant [s]
  * @param pls_data pointer to plasma data struct
  *
  * @return zero if evaluation succeeded

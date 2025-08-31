@@ -1,27 +1,6 @@
 /**
  * @file B_2DS.c
  * @brief 2D magnetic field with bicubic spline interpolation
- *
- * This module represents a magnetic field where data is given in \f$Rz\f$-grid
- * from which it is interpolated with bicubic splines. The field is
- * axisymmetric.
- *
- * The magnetic field is evaluated from magnetic field strength \f$\mathbf{B}\f$
- * which may not be divergence free. However, \f$B_R\f$ and \f$B_z\f$ components
- * are also evaluated from poloidal magnetic flux \f$\psi\f$ as
- *
- * \f{align*}{
- * B_R &= -\frac{1}{R}\frac{\partial\psi}{\partial z}\\
- * B_z &= \frac{1}{R}\frac{\partial\psi}{\partial R}
- * \f}
- *
- * The total field is then a sum of components interpolated directly from
- * \f$\mathbf{B}\f$ and components calculated via interpolated \f$\psi\f$.
- *
- * This module does no extrapolation so if queried value is outside the
- * \f$Rz\f$-grid an error is thrown.
- *
- * @see B_field.c
  */
 #include <stdlib.h>
 #include <math.h>
@@ -65,55 +44,19 @@ int B_2DS_init(B_2DS_data* data,
     data->axis_z = axis_z;
 
     /* Set up the splines */
-    err = interp2Dcomp_setup(&data->psi, psi, n_r, n_z, NATURALBC, NATURALBC,
-                             r_min, r_max, z_min, z_max);
-    if(err) {
-        print_err("Error: Failed to initialize splines.\n");
-        return 1;
-    }
-    err = interp2Dcomp_setup(&data->B_r, B_r, n_r, n_z, NATURALBC, NATURALBC,
-                             r_min, r_max, z_min, z_max);
-    if(err) {
-        print_err("Error: Failed to initialize splines.\n");
-        return 1;
-    }
-    err = interp2Dcomp_setup(&data->B_phi, B_phi, n_r, n_z,
-                             NATURALBC, NATURALBC, r_min, r_max, z_min, z_max);
-    if(err) {
-        print_err("Error: Failed to initialize splines.\n");
-        return 1;
-    }
-    err = interp2Dcomp_setup(&data->B_z, B_z, n_r, n_z, NATURALBC, NATURALBC,
-                             r_min, r_max, z_min, z_max);
-    if(err) {
-        print_err("Error: Failed to initialize splines.\n");
-        return 1;
-    }
+    err += interp2Dcomp_setup(&data->psi, psi, n_r, n_z, NATURALBC, NATURALBC,
+                              r_min, r_max, z_min, z_max);
+    err += interp2Dcomp_setup(&data->B_r, B_r, n_r, n_z, NATURALBC, NATURALBC,
+                              r_min, r_max, z_min, z_max);
+    err += interp2Dcomp_setup(&data->B_phi, B_phi, n_r, n_z,
+                              NATURALBC, NATURALBC, r_min, r_max, z_min, z_max);
+    err += interp2Dcomp_setup(&data->B_z, B_z, n_r, n_z, NATURALBC, NATURALBC,
+                              r_min, r_max, z_min, z_max);
 
     /* Evaluate psi and magnetic field on axis for checks */
     real psival[1], Bval[3];
-    err = B_2DS_eval_psi(psival, data->axis_r, 0, data->axis_z, data);
-    err = B_2DS_eval_B(Bval, data->axis_r, 0, data->axis_z, data);
-    if(err) {
-        print_err("Error: Initialization failed.\n");
-        return err;
-    }
-
-    /* Print some sanity check on data */
-    print_out(VERBOSE_IO,
-              "\n2D magnetic field (B_2DS)\n"
-              "Grid: nR = %4.d Rmin = %3.3f Rmax = %3.3f\n"
-              "      nz = %4.d zmin = %3.3f zmax = %3.3f\n"
-              "Psi at magnetic axis (%1.3f m, %1.3f m)\n"
-              "%3.3f (evaluated)\n%3.3f (given)\n"
-              "Magnetic field on axis:\n"
-              "B_R = %3.3f B_phi = %3.3f B_z = %3.3f\n",
-              n_r, r_min, r_max,
-              n_z, z_min, z_max,
-              data->axis_r, data->axis_z,
-              psival[0], data->psi0,
-              Bval[0], Bval[1], Bval[2]);
-
+    err += B_2DS_eval_psi(psival, data->axis_r, 0, data->axis_z, data);
+    err += B_2DS_eval_B(Bval, data->axis_r, 0, data->axis_z, data);
     return err;
 }
 

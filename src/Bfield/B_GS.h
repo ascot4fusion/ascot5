@@ -20,8 +20,8 @@ typedef struct {
     real psi0;                /**< Poloidal flux at axis [V*s*m^-1]           */
     real psi1;                /**< Poloidal flux at separatrix [V*s*m^-1]     */
     real psi_mult;            /**< Psi multiplier                             */
-    real psi_coeff[14];       /**< Coefficients for evaluating psi
-                                   [c_1, c_2, ..., c_13, A]                   */
+    real psi_coeff[13];       /**< Coefficients for evaluating psi
+                                   [c_1, c_2, ..., c_12, A]                   */
     int Nripple;              /**< Number of toroidal field coils             */
     real a0;                  /**< Minor radius [m]                           */
     real alpha0;              /**< Ripple r-dependency, delta ~ (r/a0)^alpha0 */
@@ -29,7 +29,7 @@ typedef struct {
 } B_GS_data;
 
 int B_GS_init(B_GS_data* data, real R0, real z0, real raxis, real zaxis,
-              real B_phi0, real psi0, real psi1, real psi_mult, real c[14],
+              real B_phi0, real psi0, real psi1, real psi_mult, real c[13],
               int Nripple, real a0, real alpha0, real delta0);
 void B_GS_free(B_GS_data* data);
 void B_GS_offload(B_GS_data* data);

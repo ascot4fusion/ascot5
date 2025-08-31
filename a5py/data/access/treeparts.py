@@ -230,7 +230,7 @@ class TreeManager():
         category = metadata.get_input_category(leaf.variant)
         self.nodes[category]._add_leaf(leaf)
         leaf._treemanager = self
-        self.storedin[leaf] = Format.CSTRUCT
+        self.storedin[leaf] = Format.MEMORY
         if activate:
             leaf.activate()
         if store_hdf5 is None:
@@ -324,7 +324,7 @@ class TreeManager():
         self.outputs.append(leaf)
         self.nodes["root"]._add_leaf(leaf)
         leaf._treemanager = self
-        self.storedin[leaf] = Format.CSTRUCT
+        self.storedin[leaf] = Format.MEMORY
         if activate:
             leaf.activate()
         if store_hdf5:
@@ -569,7 +569,7 @@ class ImmutableNode(ImmutableStorage):
         contains : bool
             True if this node contains the leaf.
         """
-        if isinstance(key, Leaf):
+        if not isinstance(key, str):
             key = key.qqid
         return hasattr(self, key) or hasattr(self, f"q{key}")
 

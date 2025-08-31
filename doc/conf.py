@@ -7,6 +7,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../'))
+sys.path.append(os.path.abspath("_ext"))
 
 import a5py
 
@@ -14,7 +15,7 @@ import a5py
 project   = 'ASCOT5'
 copyright = '2023, Ascot Group'
 author    = 'Ascot Group'
-release   = a5py.ascot5io.coreio.fileapi.VERSION
+release   = a5py.data.access.metadata.VERSION
 
 # -- General configuration -----------------------------------------------------
 extensions = [
@@ -27,10 +28,13 @@ extensions = [
     'sphinx.ext.intersphinx',    # Link to external libraries
     'sphinx_gallery.load_style', # Examples thumbnails
     'sphinx_design',             # Tabs and other nice widgets
+    'sphinx_design_elements',    # Additional nice widgets such as tables
     'sphinxcontrib.mermaid',     # Graphs and diagrams
+    'options_table',             # Turns ASCOT5 options to RST table (home-made).
     ]
 
 exclude_patterns = []
+add_module_names = False            # Removes the "a5py..." path from class names
 numpydoc_xref_param_type    = True  # Automatically link str, array_like, etc.
 numpydoc_show_class_members = False # Removes table summarizing class methods
 
@@ -40,7 +44,7 @@ breathe_default_project = 'ascot5'
 
 intersphinx_mapping = {
     'python'    : ('https://docs.python.org/3', None),
-    'numpy'     : ('https://docs.scipy.org/doc/numpy', None),
+    'numpy'     : ('https://numpy.org/doc/stable/', None),
     'scipy'     : ('https://docs.scipy.org/doc/scipy/reference', None),
     'matplotlib': ('https://matplotlib.org/stable', None)}
 

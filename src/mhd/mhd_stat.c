@@ -1,6 +1,6 @@
 /**
  * @file mhd_stat.c
- * @brief MHD module for stationary amplitudes (eigenmodes).
+ * @brief MHD module for stationary eigenmodes.
  */
 #include <stdlib.h>
 #include "../ascot5.h"
@@ -16,7 +16,18 @@
 /**
  * @brief Load MHD data
  *
- * @param offload_data pointer to the data struct
+ * @param data pointer to the data struct
+ * @param nmode number of modes
+ * @param nrho number of rho grid points
+ * @param rhomin minimum rho value in the grid
+ * @param rhomax maximum rho value in the grid
+ * @param moden toroidal mode numbers
+ * @param modem poloidal mode numbers
+ * @param amplitude_nm amplitude of each mode
+ * @param omega_nm toroidal frequency of each mode [rad/s]
+ * @param phase_nm phase of each mode [rad]
+ * @param alpha magnetic perturbation eigenfunctions
+ * @param phi electric perturbation eigenfunctions
  *
  * @return zero if initialization succeeded.
  */
@@ -26,15 +37,15 @@ int mhd_stat_init(mhd_stat_data* data, int nmode, int nrho,
                   real* alpha, real* phi) {
 
     int err = 0;
-    data->n_modes = nmode;
-    data->rho_min = rhomin;
-    data->rho_max = rhomax;
-    data->nmode = (int*) malloc(nmode * sizeof(int));
-    data->mmode = (int*) malloc(nmode * sizeof(int));
-    data->omega_nm = (real*) malloc(nmode * sizeof(real));
-    data->phase_nm = (real*) malloc(nmode * sizeof(real));
+    data->n_modes      = nmode;
+    data->rho_min      = rhomin;
+    data->rho_max      = rhomax;
+    data->nmode        = (int*) malloc(nmode * sizeof(int));
+    data->mmode        = (int*) malloc(nmode * sizeof(int));
+    data->omega_nm     = (real*) malloc(nmode * sizeof(real));
+    data->phase_nm     = (real*) malloc(nmode * sizeof(real));
     data->amplitude_nm = (real*) malloc(nmode * sizeof(real));
-    data->phi_nm = (interp1D_data*) malloc(nmode * sizeof(interp1D_data));
+    data->phi_nm   = (interp1D_data*) malloc(nmode * sizeof(interp1D_data));
     data->alpha_nm = (interp1D_data*) malloc(nmode * sizeof(interp1D_data));
     for(int i = 0; i < nmode; i++) {
         data->nmode[i] = moden[i];
@@ -43,34 +54,11 @@ int mhd_stat_init(mhd_stat_data* data, int nmode, int nrho,
         data->phase_nm[i] = phase_nm[i];
         data->amplitude_nm[i] = amplitude_nm[i];
 
-        err = interp1Dcomp_setup(&data->alpha_nm[i], &alpha[i*nrho],
-                                 nrho, NATURALBC, rhomin, rhomax);
-        if(err) {
-            print_err("Error: Failed to initialize splines.\n");
-            return err;
-        }
-        err = interp1Dcomp_setup(&data->phi_nm[i], &phi[i*nrho],
-                                 nrho, NATURALBC, rhomin, rhomax);
-        if(err) {
-            print_err("Error: Failed to initialize splines.\n");
-            return err;
-        }
+        err += interp1Dcomp_setup(&data->alpha_nm[i], &alpha[i*nrho],
+                                  nrho, NATURALBC, rhomin, rhomax);
+        err += interp1Dcomp_setup(&data->phi_nm[i], &phi[i*nrho],
+                                  nrho, NATURALBC, rhomin, rhomax);
     }
-
-    /* Print some sanity check on data */
-    print_out(VERBOSE_IO, "\nMHD (stationary) input\n");
-    print_out(VERBOSE_IO, "Grid: nrho = %4.d rhomin = %3.3f rhomax = %3.3f\n",
-              nrho, data->rho_min, data->rho_max);
-
-    print_out(VERBOSE_IO, "\nModes:\n");
-    for(int i = 0; i < nmode; i++) {
-        print_out(VERBOSE_IO,
-                  "(n,m) = (%2.d,%2.d) Amplitude = %3.3g Frequency = %3.3g"
-                  " Phase = %3.3g\n",
-                  data->nmode[i], data->mmode[i], data->amplitude_nm[i],
-                  data->omega_nm[i], data->phase_nm[i]);
-    }
-
     return err;
 }
 

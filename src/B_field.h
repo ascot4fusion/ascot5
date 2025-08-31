@@ -25,11 +25,11 @@
  * instance must have a corresponding type.
  */
 typedef enum B_field_type {
+    B_field_type_TC,  /**< Trivial Cartesian magnetic field                 */
     B_field_type_GS,  /**< Analytic magnetic field                          */
     B_field_type_2DS, /**< Spline-interpolated axisymmetric  magnetic field */
     B_field_type_3DS, /**< Spline-interpolated 3D magnetic field            */
     B_field_type_STS, /**< Spline-interpolated stellarator magnetic field   */
-    B_field_type_TC   /**< Trivial Cartesian magnetic field                 */
 } B_field_type;
 
 /**
@@ -39,12 +39,12 @@ typedef enum B_field_type {
  * is declared using the `type` field.
  */
 typedef struct {
+    B_TC_data* BTC;    /**< TC field or NULL if not active             */
+    B_GS_data* BGS;    /**< GS field or NULL if not active             */
+    B_2DS_data* B2DS;  /**< 2DS field or NULL if not active            */
+    B_3DS_data* B3DS;  /**< 3DS field or NULL if not active            */
+    B_STS_data* BSTS;  /**< STS field or NULL if not active            */
     B_field_type type; /**< Magnetic field type wrapped by this struct */
-    B_GS_data BGS;     /**< GS field or NULL if not active             */
-    B_2DS_data B2DS;   /**< 2DS field or NULL if not active            */
-    B_3DS_data B3DS;   /**< 3DS field or NULL if not active            */
-    B_STS_data BSTS;   /**< STS field or NULL if not active            */
-    B_TC_data BTC;     /**< TC field or NULL if not active             */
 } B_field_data;
 
 void B_field_free(B_field_data* data);

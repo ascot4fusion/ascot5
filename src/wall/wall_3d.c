@@ -1,13 +1,6 @@
 /**
  * @file wall_3d.c
  * @brief 3D wall collision checks
- *
- * 3D wall model where wall consists of small triangles that form a surface
- * mesh. A wall collision happens when a marker intersects a wall triangle's
- * plane. During initialization, the computational model is divided into
- * smaller cell using octree, and wall triangles are divided according to
- * which cell(s) they inhabit. Collision checks are only made with respect to
- * triangles that are in the same cell as the marker.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,48 +17,37 @@ void wall_3d_init_octree(wall_3d_data* w);
 
 /**
  * @brief Initialize 3D wall data and check inputs
- *
- * Before calling this function, the offload struct is expected to hold
- * triangle positions as
- *
- * [x1_1, y1_1, z1_1, x2_1, y2_1, z2_1, x3_1, y3_1, z3_1,... ],
- *
- * where first index is for the triangle vertex and second for the triangle
- * itself.
- *
- * This function fill rest of the offload struct and constructs the octree,
- * while also printing some values as sanity check.
 
  * The default octree depth is defined by macro WALL_OCTREE_DEPTH in wall_3d.h.
  *
- * @param data pointer to data struct
+ * @param data pointer to the data struct
+ * @param nelements number of elements in the wall polygon
+ * @param vertices each triangle's vertices' (x,y,z) coordinates in an array as
+ *        [..., x1_i, y1_i, z1_i, x2_i, y2_i, z2_i, x3_i, y3_i, z3_i, ...]
+ * @param flag integer label for grouping wall elements together.
  *
  * @return zero if initialization succeeded
  */
-int wall_3d_init(wall_3d_data* data, int nelements, real* x1x2x3, real* y1y2y3,
-                 real* z1z2z3, int* flag) {
+int wall_3d_init(wall_3d_data* data, int nelements, real* vertices, int* flag) {
 
-    /* The data is to be in the format
-     *  [x1 y1 z1 x2 y2 z2 x3 y3 z3; ... ]
-     */
     data->n = nelements;
     data->wall_tris = (real*)malloc(9 * nelements * sizeof(real));
-    real xmin = x1x2x3[0], xmax = x1x2x3[0];
-    real ymin = y1y2y3[0], ymax = y1y2y3[0];
-    real zmin = z1z2z3[0], zmax = z1z2z3[0];
+    real xmin = vertices[0], xmax = vertices[0];
+    real ymin = vertices[1], ymax = vertices[1];
+    real zmin = vertices[2], zmax = vertices[2];
     for(int i = 0; i < nelements; i++) {
         for(int j = 0; j < 3; j++) {
-            data->wall_tris[i*9 + j*3 + 0] = x1x2x3[3*i+j];
-            data->wall_tris[i*9 + j*3 + 1] = y1y2y3[3*i+j];
-            data->wall_tris[i*9 + j*3 + 2] = z1z2z3[3*i+j];
+            data->wall_tris[i*9 + j*3 + 0] = vertices[i*9 + j*3 + 0];
+            data->wall_tris[i*9 + j*3 + 1] = vertices[i*9 + j*3 + 1];
+            data->wall_tris[i*9 + j*3 + 2] = vertices[i*9 + j*3 + 2];
 
             /* Find min & max values of the volume occupied by the wall */
-            xmin = fmin( xmin, x1x2x3[3*i+j] );
-            xmax = fmax( xmax, x1x2x3[3*i+j] );
-            ymin = fmin( ymin, y1y2y3[3*i+j] );
-            ymax = fmax( ymax, y1y2y3[3*i+j] );
-            zmin = fmin( zmin, z1z2z3[3*i+j] );
-            zmax = fmax( zmax, z1z2z3[3*i+j] );
+            xmin = fmin( xmin, vertices[i*9 + j*3 + 0] );
+            xmax = fmax( xmax, vertices[i*9 + j*3 + 0] );
+            ymin = fmin( ymin, vertices[i*9 + j*3 + 1] );
+            ymax = fmax( ymax, vertices[i*9 + j*3 + 1] );
+            zmin = fmin( zmin, vertices[i*9 + j*3 + 2] );
+            zmax = fmax( zmax, vertices[i*9 + j*3 + 2] );
         }
     }
 
@@ -92,17 +74,6 @@ int wall_3d_init(wall_3d_data* data, int nelements, real* x1x2x3, real* y1y2y3,
 
     data->depth = WALL_OCTREE_DEPTH;
     wall_3d_init_octree(data);
-
-    print_out(VERBOSE_IO, "\n3D wall model (wall_3D)\n");
-    print_out(VERBOSE_IO,
-              "Number of wall elements %d\n"
-              "Spanning xmin = %2.3f m, xmax = %2.3f m\n"
-              "         ymin = %2.3f m, ymax = %2.3f m\n"
-              "         zmin = %2.3f m, zmax = %2.3f m\n",
-              data->n,
-              data->xmin, data->xmax, data->ymin,
-              data->ymax, data->zmin, data->zmax);
-
     data->flag = (int*)malloc(nelements * sizeof(int));
     memcpy(data->flag, flag, data->n * sizeof(int));
 

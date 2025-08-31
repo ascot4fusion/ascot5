@@ -1,6 +1,8 @@
 /**
  * @file math.h
  * @brief Header file for math.c
+ *
+ * TODO convert these to static inline functions so that they can be tested
  */
 #ifndef MATH_H
 #define MATH_H
@@ -11,6 +13,7 @@
 
 /** @brief One degree in radians */
 #define math_degrad 0.0174532925199432957692
+
 /** @brief One radian in degrees */
 #define math_raddeg 57.295779513082320876798
 
@@ -139,6 +142,5 @@ DECLARE_TARGET_SIMD
 real* math_rsearch(const real key, const real* base, int num);
 DECLARE_TARGET_SIMD_UNIFORM(rv,zv,n)
 int math_point_in_polygon(real r, real z, real* rv, real* zv, int n);
-
 
 #endif

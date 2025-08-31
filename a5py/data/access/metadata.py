@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import random
 import datetime
+import importlib
 from typing import Tuple, Any, NamedTuple, Dict, Union
 from importlib.metadata import version as importlib_version
 
@@ -25,20 +26,6 @@ input_categories: Tuple[str, ...] = (
     "boozer", "mhd", "asigma", "nbi",
     )
 """All input categories."""
-
-data_variants: Dict[str, Union[str, Tuple[str, ...]]] = {
-    "bfield":("B_TC", "B_GS", "B_2DS", "B_3DS", "B_3DST", "B_STS"),
-    "efield":("E_TC", "E_1DS"),
-    "marker":("prt", "gc", "fl"),
-    "wall":("wall_2D", "wall_3D"),
-    "plasma":("plasma_1D", "plasma_1DS", "plasma_1Dt"),
-    "neutral":("N0_1D", "N0_3D"),
-    "boozer":("Boozer"),
-    "mhd":("MHD_STAT", "MHD_NONSTAT"),
-    "asigma":("asigma_loc"),
-    "nbi":("NBI"),
-}
-"""Data variants by category."""
 
 run_variants: Tuple[str, ...] = ("run", "afsi", "bbnbi")
 
@@ -221,8 +208,8 @@ def get_input_category(variant: str) -> str:
     ValueError
         If the variant is unknown.
     """
-    for category, variants in data_variants.items():
-        if variant in variants:
+    for category in input_categories:
+        if hasattr(importlib.import_module(f"a5py.data.{category}"), variant):
             return category
     raise ValueError(f"Unknown variant: {variant}")
 

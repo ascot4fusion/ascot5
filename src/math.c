@@ -205,7 +205,7 @@ real math_normal_rand(void) {
  * @param a argument
  * @param p power
  *
- * @return a^b
+ * @return a^p
  */
 int math_ipow(int a, int p) {
     int pow = 1;
@@ -458,6 +458,6 @@ double math_simpson_helper(double (*f)(double), double a, double b, double eps,
     if (bottom <= 0 || fabs(S2 - S) <= eps*fabs(S)) {
         return  S2 + (S2 - S)/15;
     }
-    return math_simpson_helper(f, a, c, eps, Sleft,  fa, fc, fd, bottom-1)
-        +math_simpson_helper(f, c, b, eps, Sright, fc, fb, fe, bottom-1);
+    return   math_simpson_helper(f, a, c, eps, Sleft,  fa, fc, fd, bottom-1)
+           + math_simpson_helper(f, c, b, eps, Sright, fc, fb, fe, bottom-1);
 }

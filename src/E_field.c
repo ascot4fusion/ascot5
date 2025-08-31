@@ -30,10 +30,10 @@
 void E_field_free(E_field_data* data) {
     switch(data->type) {
         case E_field_type_1DS:
-            E_1DS_free(&data->E1DS);
+            E_1DS_free(data->E1DS);
             break;
         case E_field_type_TC:
-            E_TC_free(&data->ETC);
+            E_TC_free(data->ETC);
             break;
     }
 }
@@ -46,10 +46,10 @@ void E_field_free(E_field_data* data) {
 void E_field_offload(E_field_data* data) {
     switch(data->type) {
         case E_field_type_1DS:
-            E_1DS_offload(&data->E1DS);
+            E_1DS_offload(data->E1DS);
             break;
         case E_field_type_TC:
-            E_TC_offload(&data->ETC);
+            E_TC_offload(data->ETC);
             break;
     }
 }
@@ -86,11 +86,11 @@ a5err E_field_eval_E(real E[3], real r, real phi, real z, real t,
     switch(Edata->type) {
 
         case E_field_type_1DS:
-            err = E_1DS_eval_E(E, r, phi, z, &(Edata->E1DS), Bdata);
+            err = E_1DS_eval_E(E, r, phi, z, Edata->E1DS, Bdata);
             break;
 
         case E_field_type_TC:
-            err = E_TC_eval_E(E, r, phi, z, &(Edata->ETC), Bdata);
+            err = E_TC_eval_E(E, r, phi, z, Edata->ETC, Bdata);
             break;
 
         default:

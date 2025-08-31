@@ -1,68 +1,6 @@
 /**
  * @file B_GS.c
  * @brief Analytic magnetic field
- *
- * This module implements a toroidal magnetic field based on an analytical
- * solution to the Grad-Shafranov equation [1].
- *
- * In this model, the poloidal flux psi is calculated as
- *
- * \f{align*}{
-   \psi(R,Z) =
-   &\psi_c [(1-A) (r^4/8)                                         \\
-   &+ A (r^2\log(r)/2)                                            \\
-   &+ c_0                                                         \\
-   &+ c_1 (r^2)                                                   \\
-   &+ c_2 (r^2\log(r) - z^2)                                      \\
-   &+ c_3 (r^4 - 4r^2z^2)                                         \\
-   &+ c_4 (3r^4\log(r) - 9r^2z^2 - 12r^2\log(r)z^2 + 2z^4)        \\
-   &+ c_5 (r^6 - 12r^4z^2 + 8r^2z^4)                              \\
-   &+ c_6 (8z^6 - 140r^2z^4 - 120r^2\log(r)z^4 + 180r^4\log(r)z^2
-                         + 75r^4z^2 - 15r^6\log(r))               \\
-   &+ c_7  (z)                                                    \\
-   &+ c_8  (zr^2)                                                 \\
-   &+ c_9  (z^3 - 3zr^2\log(r))                                   \\
-   &+ c_{10} (3zr^4 - 4z^3r^2)                                    \\
-   &+ c_{12} (8z^5 - 45zr^4 - 80z^3r^2\log(r) + 60zr^4\log(r)) ]
-   \f}
- *
- * where \f$c_i\f$ and \f$A\f$ are pre-calculated coefficients which can be
- * chosen so that realistic equilibria resembling different machines are
- * produced. The equilibrium can be non-symmetric with respect to magnetic
- * plane, and can have zero, one, or two X-points. \f$\psi_c\f$ is a scaling
- * constant, and \f$r = R/R_0\f$ \f$z = Z/R_0\f$. From \f$\psi\f$ the poloidal
- * magnetic field components can be evaluated from Grad-Shafranov relations
- *
- * \f{align*}{
-   B_R &= -\frac{1}{R}\frac{\partial\psi}{\partial z}\\
-   B_z &= \frac{1}{R}\frac{\partial\psi}{\partial R}
-   \f}
- *
- * and toroidal field is evaluated as
- *
- * \f{equation*}{
-   B_\phi = \frac{B_0R_0}{R}
-   \f}
- *
- * This module also includes the possibility to have an analytical model for
- * toroidal field ripple, which is used if ripple period \f$N>0\f$. The rippled
- * toroidal field is
- *
- * \f{equation*}{
-   \tilde{B}_\phi = B_\phi( 1 + \delta\cos(N\phi) )
-   \f}
- *
- * where
- * \f{equation*}{
-   \delta = \delta_0 \frac{r'}{a_0}^{\alpha_0}  e^{-\theta^2}
-   \f}
- *
- * and \f$\theta = \arctan(Z - z_0, R- R_0)\f$ and
- * \f$r' = \sqrt{(R-R_0)^2 + (Z-Z_0)^2}\f$.
- *
- * [1] A.J. Cerfon, J.P. Freidberg. "One size fits all" analytic solutions to
- *     the Grad-Shafranov equation. Physics of Plasmas 17 (3) (2010) 032502.
- *     http://scitation.aip.org/content/aip/journal/pop/17/3/10.1063/1.3328818
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -94,7 +32,7 @@
  * @return zero to indicate success
  */
 int B_GS_init(B_GS_data* data, real R0, real z0, real raxis, real zaxis,
-              real B_phi0, real psi0, real psi1, real psi_mult, real c[14],
+              real B_phi0, real psi0, real psi1, real psi_mult, real c[13],
               int Nripple, real a0, real alpha0, real delta0) {
 
     /* Evaluate psi and magnetic field on axis for checks */
@@ -114,32 +52,14 @@ int B_GS_init(B_GS_data* data, real R0, real z0, real raxis, real zaxis,
     data->delta0    = delta0;
     data->alpha0    = alpha0;
 
-    for(int i = 0; i < 14; i++) {
+    for(int i = 0; i < 13; i++) {
         data->psi_coeff[i] = c[i];
     }
 
     real psival[1], Bval[3];
     err = B_GS_eval_psi(psival, data->raxis, 0, data->zaxis, data);
-    err = B_GS_eval_B(Bval, data->raxis, 0, data->zaxis, data);
-    if(err) {
-        print_err("Error: Initialization failed.\n");
-        return err;
-    }
-
-    /* Print some sanity check on data */
-    print_out(VERBOSE_IO,
-              "\nAnalytical tokamak magnetic field (B_GS)\n"
-              "Psi at magnetic axis (%1.3f m, %1.3f m)\n"
-              "%3.3f (evaluated)\n%3.3f (given)\n"
-              "Magnetic field on axis:\n"
-              "B_R = %3.3f B_phi = %3.3f B_z = %3.3f\n"
-              "Number of toroidal field coils %d\n",
-              data->raxis, data->zaxis,
-              psival[0], data->psi0,
-              Bval[0], Bval[1], Bval[2],
-              data->Nripple);
-
-    return 0;
+    err += B_GS_eval_B(Bval, data->raxis, 0, data->zaxis, data);
+    return err;
 }
 
 /**

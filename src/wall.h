@@ -29,9 +29,9 @@ typedef enum wall_type {
  * is declared using the `type` field.
  */
 typedef struct {
-    wall_type type;   /**< Wall model type wrapped by this struct */
-    wall_2d_data w2d; /**< 2D model or NULL if not active         */
-    wall_3d_data w3d; /**< 3D model or NULL if not active         */
+    wall_2d_data* w2d; /**< 2D model or NULL if not active         */
+    wall_3d_data* w3d; /**< 3D model or NULL if not active         */
+    wall_type type;    /**< Wall model type wrapped by this struct */
 } wall_data;
 
 void wall_free(wall_data* data);

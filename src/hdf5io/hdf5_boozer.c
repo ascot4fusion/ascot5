@@ -67,7 +67,7 @@ int hdf5_boozer_init(hid_t f, boozer_data* data, char* qid) {
     if( hdf5_read_double(BOOZERPATH "zs", zs,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    int err = boozer_init(data, npsi, psimin, psimax, ntheta, nthetag,
+    int err = boozer_init(data, npsi, psimin, psimax, ntheta, nthetag, 4,
                           nu, theta, nrzs, rs, zs);
     free(rs);
     free(zs);

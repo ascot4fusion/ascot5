@@ -8,7 +8,7 @@ from typing import Protocol
 
 from .tree import Tree
 from .treeparts import TreeManager
-from .variants import InputVariant
+from .variants import InputVariant, RunVariant, Diagnostic
 from .dataholder import Format
 
 
@@ -21,4 +21,11 @@ class TreeCreateClassMixin(Protocol):
     """
     _treemanager: TreeManager
 
-__all__  = ["Tree", "TreeCreateClassMixin", "InputVariant", "Format"]
+__all__  = [
+    "Tree",
+    "Format",
+    "Diagnostic",
+    "RunVariant",
+    "InputVariant",
+    "TreeCreateClassMixin",
+    ]

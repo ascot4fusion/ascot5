@@ -16,6 +16,7 @@
  * @param nelements number of elements in the wall polygon
  * @param r R coordinates for the wall polygon points
  * @param z z coordinates for the wall polygon points
+ * @param flag integer label for grouping wall elements together.
  *
  * @return zero to indicate success
  */
@@ -37,11 +38,6 @@ int wall_2d_init(wall_2d_data* data, int nelements, real* r, real* z,
         data->wall_z[i] = z[i];
         data->flag[i] = flag[i];
     }
-
-    print_out(VERBOSE_IO, "\n2D wall model (wall_2D)\n");
-    print_out(VERBOSE_IO, "Number of wall elements = %d,"
-              " R extend = [%2.2f, %2.2f], z extend = [%2.2f, %2.2f]\n",
-              nelements, rmin, rmax, zmin, zmax);
     return 0;
 }
 
@@ -72,15 +68,11 @@ void wall_2d_offload(wall_2d_data* data) {
  * @brief Check if coordinates are within 2D polygon wall
  *
  * This function checks if the given coordinates are within the walls defined
- * by a 2D polygon using a modified axis crossing method [1]. Origin is moved
+ * by a 2D polygon using a modified axis crossing method Origin is moved
  * to the coordinates and the number of wall segments crossing the positive
- * r-axis are calculated. If this is odd, the point is inside the polygon.
+ * R-axis are calculated. If this is odd, the point is inside the polygon.
  *
- * [1] D.G. Alciatore, R. Miranda. A Winding Number and Point-in-Polygon
- *     Algorithm. Technical report, Colorado State University, 1995.
- *     https://www.engr.colostate.edu/~dga/documents/papers/point_in_polygon.pdf
- *
- * @param r r coordinate [m]
+ * @param r R coordinate [m]
  * @param z z coordinate [m]
  * @param w 2D wall data structure
  */

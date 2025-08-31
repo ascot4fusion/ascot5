@@ -15,14 +15,12 @@ typedef struct {
     int n_species;     /**< Number of neutral species                         */
     int* anum;         /**< Neutral species mass number                       */
     int* znum;         /**< Neutral species charge number                     */
-    int* maxwellian;   /**< Is species distribution Maxwellian or
-                            monoenergetic                                     */
     linint1D_data* n0; /**< Density interpolation struct for each species     */
     linint1D_data* t0; /**< Temperature intepolation struct for each species  */
 } N0_1D_data;
 
 int N0_1D_init(N0_1D_data* data, int n_rho, real rho_min, real rho_max,
-               int n_species, int* anum, int* znum, int* maxwellian,
+               int n_species, int* anum, int* znum,
                real* density, real* temperature);
 void N0_1D_free(N0_1D_data* data);
 void N0_1D_offload(N0_1D_data* data);

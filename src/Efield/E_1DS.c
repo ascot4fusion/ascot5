@@ -1,9 +1,6 @@
 /**
  * @file E_1DS.c
  * @brief 1D spline electric field evaluation functions
- *
- * Radial electric field evaluated from 1D profile. Exactly as E_1D but the
- * potential is evaluated with splines.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,25 +25,9 @@
  */
 int E_1DS_init(E_1DS_data* data, int nrho, real rhomin, real rhomax, real reff,
                real* dvdrho) {
-
-    int err = 0;
-    /* Scale derivatives by effective minor radius */
-    real* temp = (real*) malloc( nrho * sizeof(real) );
-    for(int i = 0; i < nrho; i++) {
-        temp[i] = reff * dvdrho[i];
-    }
-    err = interp1Dcomp_setup(&data->dV, dvdrho, nrho, NATURALBC,
+    data->reff = reff;
+    int err = interp1Dcomp_setup(&data->dV, dvdrho, nrho, NATURALBC,
                              rhomin, rhomax);
-    free(temp);
-    if(err) {
-        print_err("Error: Failed to initialize splines.\n");
-        return err;
-    }
-
-    /* Print some sanity check on data */
-    print_out(VERBOSE_IO, "\nRadial electric field (E_1DS)");
-    print_out(VERBOSE_IO, "(n_rho, rho_min, rho_max) = (%d, %le, %le)\n",
-              nrho, rhomin, rhomax);
     return err;
 }
 
@@ -93,7 +74,7 @@ a5err E_1DS_eval_E(real E[3], real r, real phi, real z, E_1DS_data* Edata,
     real rho_drho[4];
     err = B_field_eval_rho_drho(rho_drho, r, phi, z, Bdata);
     if(err) {
-        return error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_E_1DS );
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_E_1DS );
     }
     /* Convert partial derivative to gradient */
     rho_drho[2] = rho_drho[2]/r;
@@ -102,18 +83,16 @@ a5err E_1DS_eval_E(real E[3], real r, real phi, real z, E_1DS_data* Edata,
         E[0] = 0;
         E[1] = 0;
         E[2] = 0;
-        return err;
+    } else {
+        real dV;
+        interperr += interp1Dcomp_eval_f(&dV, &Edata->dV, rho_drho[0]);
+        E[0] = -dV * rho_drho[1] * Edata->reff;
+        E[1] = -dV * rho_drho[2] * Edata->reff;
+        E[2] = -dV * rho_drho[3] * Edata->reff;
+
+        if(interperr) {
+            err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_E_1DS );
+        }
     }
-    real dV;
-    interperr += interp1Dcomp_eval_f(&dV, &Edata->dV, rho_drho[0]);
-
-    E[0] = -dV * rho_drho[1];
-    E[1] = -dV * rho_drho[2];
-    E[2] = -dV * rho_drho[3];
-
-    if(interperr) {
-        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_E_1DS );
-    }
-
     return err;
 }

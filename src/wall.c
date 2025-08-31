@@ -29,11 +29,11 @@
 void wall_free(wall_data* data) {
     switch(data->type) {
         case wall_type_2D:
-            wall_2d_free(&data->w2d);
+            wall_2d_free(data->w2d);
             break;
 
         case wall_type_3D:
-            wall_3d_free(&data->w3d);
+            wall_3d_free(data->w3d);
             break;
     }
 }
@@ -46,11 +46,11 @@ void wall_free(wall_data* data) {
 void wall_offload(wall_data* data) {
     switch(data->type) {
         case wall_type_2D:
-            wall_2d_offload(&data->w2d);
+            wall_2d_offload(data->w2d);
             break;
 
         case wall_type_3D:
-            wall_3d_offload(&data->w3d);
+            wall_3d_offload(data->w3d);
             break;
     }
 }
@@ -82,13 +82,11 @@ int wall_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
     int ret = 0;
     switch(w->type) {
         case wall_type_2D:
-            ret = wall_2d_hit_wall(r1, phi1, z1, r2, phi2, z2, &(w->w2d),
-                                   w_coll);
+            ret = wall_2d_hit_wall(r1, phi1, z1, r2, phi2, z2, w->w2d, w_coll);
             break;
 
         case wall_type_3D:
-            ret = wall_3d_hit_wall(r1, phi1, z1, r2, phi2, z2, &(w->w3d),
-                                   w_coll);
+            ret = wall_3d_hit_wall(r1, phi1, z1, r2, phi2, z2, w->w3d, w_coll);
             break;
     }
     return ret;
@@ -105,11 +103,11 @@ int wall_get_n_elements(wall_data* w) {
     int ret = 0;
     switch(w->type) {
         case wall_type_2D:
-            ret = w->w2d.n;
+            ret = w->w2d->n;
             break;
 
         case wall_type_3D:
-            ret = w->w3d.n;
+            ret = w->w3d->n;
             break;
     }
     return ret;
@@ -127,11 +125,11 @@ int wall_get_flag(wall_data* w, int idx) {
     int flag = 0;
     switch(w->type) {
         case wall_type_2D:
-            flag = w->w2d.flag[idx];
+            flag = w->w2d->flag[idx];
             break;
 
         case wall_type_3D:
-            flag = w->w3d.flag[idx];
+            flag = w->w3d->flag[idx];
             break;
     }
     return flag;

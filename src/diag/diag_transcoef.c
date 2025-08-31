@@ -9,31 +9,33 @@
 #include "../ascot5.h"
 #include "../math.h"
 #include "../consts.h"
-#include "../simulate.h"
+#include "../options.h"
 #include "../particle.h"
 #include "diag_transcoef.h"
 
 DECLARE_TARGET_SIMD
 real diag_transcoef_check_omp_crossing(real fang, real iang);
 DECLARE_TARGET_SIMD_UNIFORM(data)
-void diag_transcoef_record(diag_transcoef_data* data, integer index,
-                           integer id, real rho, real r, real pitchsign,
-                           real t_f, real t_i, real theta_f, real theta_i);
-void diag_transcoef_process_and_clean(diag_transcoef_data* data,
-                                      integer index, integer id);
+void diag_transcoef_record(
+    diag_transcoef_data* data, integer index, integer id, real rho, real r,
+    real pitchsign, real t_f, real t_i, real theta_f, real theta_i,
+    int recordrho, double interval);
+void diag_transcoef_process_and_clean(
+    diag_transcoef_data* data, integer index, integer id, int navg);
 
 /**
  * @brief Initializes transport coefficient diagnostics data
  *
  * @param data transport coefficient diagnostics data struct
  */
-void diag_transcoef_init(diag_transcoef_data* data) {
-    data->id = (int*) malloc( data->Nmrk * sizeof(int) );
-    data->Kcoef = (real*) malloc( data->Nmrk * sizeof(real) );
-    data->Dcoef = (real*) malloc( data->Nmrk * sizeof(real) );
+void diag_transcoef_init(diag_transcoef_data* data, sim_parameters* params,
+                         size_t nmarkers) {
+    data->id = (int*) malloc( nmarkers * sizeof(int) );
+    data->Kcoef = (real*) malloc( nmarkers * sizeof(real) );
+    data->Dcoef = (real*) malloc( nmarkers * sizeof(real) );
 
-    data->datapoints = malloc( data->Nmrk*sizeof(diag_transcoef_link*) );
-    for(int i = 0; i < data->Nmrk; i++) {
+    data->datapoints = malloc( nmarkers * sizeof(diag_transcoef_link*) );
+    for(int i = 0; i < nmarkers; i++) {
         data->id[i] = -1;
         data->datapoints[i] = NULL;
     }
@@ -60,7 +62,7 @@ void diag_transcoef_free(diag_transcoef_data* data) {
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
  *        current time-step
  */
-void diag_transcoef_update_fo(diag_transcoef_data* data,
+void diag_transcoef_update_fo(diag_transcoef_data* data, sim_parameters* params,
                               particle_simd_fo* p_f, particle_simd_fo* p_i) {
 
     GPU_PARALLEL_LOOP_ALL_LEVELS
@@ -70,7 +72,8 @@ void diag_transcoef_update_fo(diag_transcoef_data* data,
         real pitchsign = 1 - 2*(math_dot(p, B) < 0);
         diag_transcoef_record(
             data, p_f->index[i], p_f->id[i], p_f->rho[i], p_f->r[i], pitchsign,
-            p_f->mileage[i], p_i->mileage[i], p_f->theta[i],  p_i->theta[i]);
+            p_f->mileage[i], p_i->mileage[i], p_f->theta[i],  p_i->theta[i],
+            params->record_rho_instead_of_r, params->margin);
     }
 
     /* If marker simulation was ended, process and clean the data */
@@ -80,7 +83,9 @@ void diag_transcoef_update_fo(diag_transcoef_data* data,
         if( p_f->id[i] < 1 || p_f->running[i] > 0 ) {
             continue;
         }
-        diag_transcoef_process_and_clean(data, p_f->index[i], p_f->id[i]);
+        diag_transcoef_process_and_clean(
+            data, p_f->index[i], p_f->id[i],
+            params->number_of_points_to_average);
     }
 }
 
@@ -93,14 +98,15 @@ void diag_transcoef_update_fo(diag_transcoef_data* data,
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
  *        current time-step
  */
-void diag_transcoef_update_gc(diag_transcoef_data* data,
+void diag_transcoef_update_gc(diag_transcoef_data* data, sim_parameters* params,
                               particle_simd_gc* p_f, particle_simd_gc* p_i) {
     #pragma omp simd
     for(int i=0; i < NSIMD; i++) {
         real pitchsign = 1 - 2*(p_f->ppar[i] < 0);
         diag_transcoef_record(
             data, p_f->index[i], p_f->id[i], p_f->rho[i], p_f->r[i], pitchsign,
-            p_f->mileage[i], p_i->mileage[i], p_f->theta[i],  p_i->theta[i]);
+            p_f->mileage[i], p_i->mileage[i], p_f->theta[i],  p_i->theta[i],
+            params->record_rho_instead_of_r, params->margin);
     }
 
 
@@ -112,7 +118,9 @@ void diag_transcoef_update_gc(diag_transcoef_data* data,
             continue;
         }
 
-        diag_transcoef_process_and_clean(data, p_f->index[i], p_f->id[i]);
+        diag_transcoef_process_and_clean(
+            data, p_f->index[i], p_f->id[i],
+            params->number_of_points_to_average);
     }
 }
 
@@ -125,14 +133,15 @@ void diag_transcoef_update_gc(diag_transcoef_data* data,
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
  *        current time-step
  */
-void diag_transcoef_update_ml(diag_transcoef_data* data,
+void diag_transcoef_update_ml(diag_transcoef_data* data, sim_parameters* params,
                               particle_simd_ml* p_f, particle_simd_ml* p_i) {
     #pragma omp simd
     for(int i=0; i < NSIMD; i++) {
         real pitchsign = 1 - 2*(p_f->pitch[i] < 0);
         diag_transcoef_record(
             data, p_f->index[i], p_f->id[i], p_f->rho[i], p_f->r[i], pitchsign,
-            p_f->mileage[i], p_i->mileage[i], p_f->theta[i],  p_i->theta[i]);
+            p_f->mileage[i], p_i->mileage[i], p_f->theta[i],  p_i->theta[i],
+            params->record_rho_instead_of_r, params->margin);
     }
 
 
@@ -143,7 +152,8 @@ void diag_transcoef_update_ml(diag_transcoef_data* data,
             continue;
         }
 
-        diag_transcoef_process_and_clean(data, p_f->index[i], p_f->id[i]);
+        diag_transcoef_process_and_clean(
+            data, p_f->index[i], p_f->id[i], params->number_of_points_to_average);
     }
 }
 
@@ -165,7 +175,8 @@ void diag_transcoef_update_ml(diag_transcoef_data* data,
  */
 void diag_transcoef_record(diag_transcoef_data* data, integer index,
                            integer id, real rho, real r, real pitchsign,
-                           real t_f, real t_i, real theta_f, real theta_i) {
+                           real t_f, real t_i, real theta_f, real theta_i,
+                           int recordrho, double interval) {
     /* Mask dummy markers */
     if( id > 0 ) {
 
@@ -180,7 +191,7 @@ void diag_transcoef_record(diag_transcoef_data* data, integer index,
             if( data->datapoints[index] == NULL ) {
                 record = diag_transcoef_check_omp_crossing(theta_f, theta_i);
             }
-            else if( t_f - data->datapoints[index]->time > data->interval ) {
+            else if( t_f - data->datapoints[index]->time > interval ) {
                 record = diag_transcoef_check_omp_crossing(theta_f, theta_i);
             }
         }
@@ -192,7 +203,7 @@ void diag_transcoef_record(diag_transcoef_data* data, integer index,
             newlink->time      = t_f;
             newlink->pitchsign = pitchsign;
 
-            if(data->recordrho) {
+            if(recordrho) {
                 newlink->rho   = rho;
             }
             else {
@@ -222,8 +233,8 @@ void diag_transcoef_record(diag_transcoef_data* data, integer index,
  * @param index marker index in the marker queue
  * @param id marker id
  */
-void diag_transcoef_process_and_clean(diag_transcoef_data* data,
-                                      integer index, integer id) {
+void diag_transcoef_process_and_clean(
+    diag_transcoef_data* data, integer index, integer id, int navg) {
 
     /* Count number of positive and negative crossings */
     int positive = 0, negative = 0;
@@ -250,9 +261,9 @@ void diag_transcoef_process_and_clean(diag_transcoef_data* data,
     }
 
     /* If there are enough datapoints, process them to K and D */
-    if(datasize > data->Navg) {
+    if(datasize > navg) {
         /* How many points we have after averaging data */
-        int navgpnt = ceil(datasize/data->Navg);
+        int navgpnt = ceil(datasize / navg);
         real* rho  = malloc(navgpnt*sizeof(real));
         real* time = malloc(navgpnt*sizeof(real));
 
@@ -265,9 +276,9 @@ void diag_transcoef_process_and_clean(diag_transcoef_data* data,
         rho[navgpnt-1]  = link->rho;
         time[navgpnt-1] = link->time;
 
-        int nextrapnts = datasize - navgpnt*data->Navg;
+        int nextrapnts = datasize - navgpnt*navg;
         if(nextrapnts == 0) {
-            nextrapnts = data->Navg;
+            nextrapnts = navg;
         }
         for(int k = 1; k < nextrapnts; k++) {
             link = link->prevlink;
@@ -284,7 +295,7 @@ void diag_transcoef_process_and_clean(diag_transcoef_data* data,
         for(int j = navgpnt-2; j > -1; j--) {
             rho[j]  = 0;
             time[j] = 0;
-            for(int k = 0; k < data->Navg; k++) {
+            for(int k = 0; k < navg; k++) {
                 link = link->prevlink;
                 while(link->pitchsign * sign < 0) {
                     link = link->prevlink;
@@ -292,8 +303,8 @@ void diag_transcoef_process_and_clean(diag_transcoef_data* data,
                 rho[j]  += link->rho;
                 time[j] += link->time;
             }
-            rho[j]  /= data->Navg;
-            time[j] /= data->Navg;
+            rho[j]  /= navg;
+            time[j] /= navg;
         }
 
         /* Evaluate coefficients */

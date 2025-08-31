@@ -8,6 +8,7 @@
 #include "../ascot5.h"
 #include "../consts.h"
 #include "../physlib.h"
+#include "../simulate.h"
 #include "dist_6D.h"
 #include "../gctransform.h"
 

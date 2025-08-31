@@ -1,24 +1,6 @@
 /**
  * @file B_TC.c
  * @brief Trivial Cartesian magnetic field
- *
- * Magnetic field whose Cartesian components \f$(B_x, B_y, B_z)\f$ have
- * user-defined values at the origo \f$(R,z) = (0,0)\f$, and constant Jacobian
- *
- * \f[
- * \begin{bmatrix}
- * \frac{\partial B_x}{\partial x}, &\frac{\partial B_x}{\partial y},
- * &\frac{\partial B_x}{\partial z} \\
- * \frac{\partial B_y}{\partial x}, &\frac{\partial B_y}{\partial y},
- * &\frac{\partial B_y}{\partial z} \\
- * \frac{\partial B_z}{\partial x}, &\frac{\partial B_z}{\partial y},
- * &\frac{\partial B_z}{\partial z}
- * \end{bmatrix}
- * \f]
- *
- * This magnetic field is intended to serve debugging and testing purposes.
- * Other values \f$\psi\f$, \f$\rho\f$ and magnetic axis coordinates have
- * fixed user-defined values.
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -26,7 +8,6 @@
 #include "../ascot5.h"
 #include "../math.h"
 #include "../error.h"
-#include "../print.h"
 #include "B_TC.h"
 
 /**
@@ -56,24 +37,6 @@ int B_TC_init(B_TC_data* data, real axisr, real axisz, real psival, real rhoval,
     for(int i = 0; i < 9; i++) {
         data->dB[i] = dB[i];
     }
-
-    print_out(VERBOSE_IO,
-              "\nTrivial cartesian magnetic field (B_TC)\n"
-              "Magnetic axis at (R,z) = (%.1f,%.1f)\n"
-              "psi = %.1f, rho = %.1f\n"
-              "Magnetic field at origo\n"
-              "B_x = %.3f B_y = %.3f B_z = %.3f\n"
-              "Magnetic field gradient\n"
-              "dB_x/dx = %.3f dB_x/dy = %.3f B_x/dz = %.3f\n"
-              "dB_y/dx = %.3f dB_y/dy = %.3f B_y/dz = %.3f\n"
-              "dB_z/dx = %.3f dB_z/dy = %.3f B_z/dz = %.3f\n",
-              data->axisr, data->axisz,
-              data->psival, data->rhoval,
-              data->B[0],  data->B[1],  data->B[2],
-              data->dB[0], data->dB[1], data->dB[2],
-              data->dB[3], data->dB[4], data->dB[5],
-              data->dB[6], data->dB[7], data->dB[8]);
-
     return 0;
 }
 

@@ -51,8 +51,8 @@ typedef enum asigma_reac_type {
  * from input data in asigma_init().
  */
 typedef struct {
-    asigma_type type; /**< Atomic reaction data type wrapped by this struct */
-    asigma_loc_data asigma_loc; /**< Local-files data or NULL if not active */
+    asigma_loc_data* asigma_loc; /**< Local-files data or NULL if not active */
+    asigma_type type;            /**< Atomic reaction data                   */
 } asigma_data;
 
 void asigma_free(asigma_data* data);

@@ -5,17 +5,60 @@ from typing import Tuple, Any
 import unyt
 import numpy as np
 
+from .. import cstructs
 from ... import utils
 from ... import physlib
 
 from . import metadata
 from .treeparts import Leaf, MetaData
-from .tree import RunVariant
+from .tree import Output
 from .dataholder import DataHolder
+
+NOTPARAMETERS = ["self", "note", "activate", "dryrun", "store_hdf5"]
+"""List of arguments that are passed to the `create_*` functions but which
+do not specify the actual data."""
+
+
+class RunVariant(Output):
+    """Base class for run variants."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class Diagnostic(DataHolder):
+    """Base class for diagnostics."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.leaf: Leaf
+
+    def _read_hdf5(self):
+        """"""
+        self.leaf._treemanager.hdf5manager.read_datasets()
+
+    def _export_hdf5(self):
+        return 0
+
+    def export(self):
+        return 0
+
+    def stage(self):
+        return 0
+
+    def unstage(self):
+        return 0
+
+    def setleaf(self, leaf: Leaf):
+        self.leaf = leaf
 
 
 class InputVariant(Leaf, DataHolder):
     """Base class for input variants."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._staged = False
 
     def _read_hdf5(self, *names):
         """Read dataset from HDF5 file.
@@ -43,7 +86,7 @@ class InputVariant(Leaf, DataHolder):
             return tuple(data)
         return hdf5manager.read_datasets(self.qid, self.variant, names[0])
 
-    def _from_struct_(self, name, shape=None, units=None):
+    def _from_struct_(self, name, shape=None, idx=None, units=None):
         """Return a copy of an array in struct.
 
         This is just a helper method which can be called when implementing the
@@ -55,6 +98,9 @@ class InputVariant(Leaf, DataHolder):
             Name of the array in struct.
         shape : tuple, optional
             Shape of the data.
+        idx : int, optional
+            In case the attribute is an array of structs, this is the index on
+            the array which is read.
         units : str, optional
             Units of the data.
 
@@ -64,10 +110,39 @@ class InputVariant(Leaf, DataHolder):
             A copy of the data.
         """
         unit = unyt.unyt_quantity.from_string(units) if units else 1
-        arr = np.ctypeslib.as_array(getattr(self._struct_, name)).copy()
+        attribute = getattr(self._struct_, name)
+        if idx is not None:
+            attribute = attribute[idx]
+        if isinstance(attribute, cstructs.linint1D_data):
+            s1 = attribute.n_x
+            arr = np.ctypeslib.as_array(attribute.c[:s1]).copy()
+            arr = arr.reshape((s1,))
+        elif isinstance(attribute, cstructs.linint3D_data):
+            s1, s2, s3 = attribute.n_x, attribute.n_y, attribute.n_z
+            arr = np.ctypeslib.as_array(attribute.c[:s1*s2*s3]).copy()
+            arr = arr.reshape((s1,s2,s3))
+        elif isinstance(attribute, cstructs.interp1D_data):
+            s1 = attribute.n_x
+            arr = np.ctypeslib.as_array(attribute.c[:s1*2:2]).copy()
+            arr = arr.reshape((s1,))
+        elif isinstance(attribute, cstructs.interp2D_data):
+            s1, s2 = attribute.n_x, attribute.n_y
+            arr = np.ctypeslib.as_array(attribute.c[:s1*s2*4:4]).copy()
+            arr = arr.reshape((s1,s2))
+        elif isinstance(attribute, cstructs.interp3D_data):
+            s1, s2, s3 = attribute.n_x, attribute.n_y, attribute.n_z
+            arr = np.ctypeslib.as_array(attribute.c[:s1*s2*s3*8:8]).copy()
+            arr = arr.reshape((s1,s2,s3))
+        else:
+            arr = np.ctypeslib.as_array(attribute, shape).copy()
         if shape is not None:
             arr = arr.reshape(shape)
         return arr * unit
+
+    def destroy(self):
+        if self._staged:
+            self.unstage()
+        self.destroy()
 
 
 def new_metadata(variant, note):
@@ -75,6 +150,26 @@ def new_metadata(variant, note):
     if note is None:
         note = default_note
     return MetaData(qid, date, note, variant)
+
+
+def get_parameternames():
+    """Get parameter names from the caller function.
+
+    Helper function to separate the parameters that specify input data from
+    the common parameters that are passed to the `create_*` functions.
+
+    Parameters
+    ----------
+    allparameters : list[str]
+        List of all parameters that are passed to the `create_*` function.
+
+    Returns
+    -------
+    names : list[str]
+        The names of the parameters.
+    """
+    names = inspect.currentframe().f_back.f_code.co_varnames
+    return [name for name in names if name not in NOTPARAMETERS]
 
 
 def parse_parameters(*args):
@@ -96,8 +191,7 @@ def parse_parameters(*args):
         The parsed input parameters.
     """
     names = inspect.currentframe().f_back.f_code.co_varnames
-    notparameters = ["self", "note", "activate", "dryrun", "store_hdf5"]
-    names = [name for name in names if name not in notparameters]
+    names = [name for name in names if name not in NOTPARAMETERS]
     def cast(x):
         """Ensure parameter is a numpy or unyt array."""
         return x if isinstance(x, unyt.unyt_array) else np.asarray(x)
@@ -120,6 +214,9 @@ def validate_parameters(
         order the parameters are given here.
     units : list[strings]
         Expected units.
+
+        Use empty strings for parameters where units don't apply (e.g. strings).
+        The unitless parameters must be listed last.
     shape : list[int]
         Expected shapes.
     dtype : list[str]
@@ -138,18 +235,28 @@ def validate_parameters(
         The validated parameters.
     """
     dummyvals = {}
+    flag_unitless_encountered = False
     for name, dummy, unit in zip(names, default, units):
         if parameters[name] is None:
-            dummyvals[name] = dummy * unyt.unyt_array.from_string(unit)
+            if unit == "":
+                dummyvals[name] = dummy
+                flag_unitless_encountered = True
+            else:
+                dummyvals[name] = dummy * unyt.unyt_array.from_string(unit)
+                if flag_unitless_encountered:
+                    raise ValueError(
+                        "Unitless parameters must be listed last."
+                    )
     if required and len(dummyvals) > 0 and len(dummyvals) < len(names):
         missing = ", ".join([f"{name}" for name in dummyvals])
         raise ValueError(f"Missing required parameter(s) {missing}")
     parameters.update(dummyvals)
     variables = []
     for name, unit in zip(names, units):
-        variables.append(
-            physlib.match_units(parameters[name], unit, strip=False)
-        )
+        if unit != "":
+            variables.append(
+                physlib.match_units(parameters[name], unit, strip=False)
+                )
     variables = utils.validate_variables(variables, names, shape, dtype)
     for name, val in zip(names, variables):
         parameters[name] = val
@@ -157,11 +264,17 @@ def validate_parameters(
 
 
 validate_required_parameters = (
-    lambda *args, **kwargs: validate_parameters(*args, **kwargs, required=True)
+    lambda parameters, names, units, shape, dtype, default:
+    validate_parameters(
+        parameters, names, units, shape, dtype, default, required=True
+    )
 )
 """Call `validate_parameters` assuming that the parameters are required."""
 
 validate_optional_parameters = (
-    lambda *args, **kwargs: validate_parameters(*args, **kwargs, required=False)
+    lambda parameters, names, units, shape, dtype, default:
+    validate_parameters(
+        parameters, names, units, shape, dtype, default, required=False
+    )
 )
 """Call `validate_parameters` assuming that the parameters are optional."""

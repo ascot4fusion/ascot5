@@ -122,7 +122,9 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_data* data, char* qid) {
     if( hdf5_read_int(WPATH "flag", flag,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    int err = wall_3d_init(data, nelements, x1x2x3, y1y2y3, z1z2z3, flag);
+    real* vertices;
+
+    int err = wall_3d_init(data, nelements, vertices, flag);
     free(x1x2x3);
     free(y1y2y3);
     free(z1z2z3);

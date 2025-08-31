@@ -101,41 +101,41 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         /* Set time-step negative if tracing backwards in time */
         GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < p.n_mrk; i++) {
-            if(sim->reverse_time) {
+            if(sim->params->reverse_time) {
                 hin[i]  = -hin[i];
             }
         }
 
         /* Volume preserving algorithm for orbit-following */
-        if(sim->enable_orbfol) {
-            if(sim->enable_mhd) {
+        if(sim->params->enable_orbit_following) {
+            if(sim->params->enable_mhd) {
                 step_fo_vpa_mhd(
-                    &p, hin, &sim->B_data, &sim->E_data, &sim->boozer_data,
-                    &sim->mhd_data, sim->enable_aldforce);
+                    &p, hin, &sim->B_data, &sim->E_data, sim->boozer_data,
+                    &sim->mhd_data, sim->params->enable_aldforce);
             }
             else {
                 step_fo_vpa(&p, hin, &sim->B_data, &sim->E_data,
-                            sim->enable_aldforce);
+                            sim->params->enable_aldforce);
             }
         }
 
         /* Switch sign of the time-step again if it was reverted earlier */
         GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < p.n_mrk; i++) {
-            if(sim->reverse_time) {
+            if(sim->params->reverse_time) {
                 hin[i]  = -hin[i];
             }
         }
 
         /* Euler-Maruyama for Coulomb collisions */
-        if(sim->enable_clmbcol) {
-            random_normal_simd(&sim->random_data, 3*p.n_mrk, rnd);
+        if(sim->params->enable_coulomb_collisions) {
+            random_normal_simd(sim->random_data, 3*p.n_mrk, rnd);
             mccc_fo_euler(&p, hin, &sim->plasma_data, &sim->mccc_data, rnd);
         }
         /* Atomic reactions */
-        if(sim->enable_atomic) {
+        if(sim->params->enable_atomic) {
             atomic_fo(&p, hin, &sim->plasma_data, &sim->neutral_data,
-                      &sim->random_data, &sim->asigma_data);
+                      sim->random_data, &sim->asigma_data);
         }
         /**********************************************************************/
 
@@ -145,7 +145,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < p.n_mrk; i++) {
             if(p.running[i]){
-                p.time[i]    += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) ) * hin[i];
+                p.time[i]    += ( 1.0 - 2.0 * ( sim->params->reverse_time > 0 ) ) * hin[i];
                 p.mileage[i] += hin[i];
                 p.cputime[i] += cputime - cputime_last;
             }
@@ -156,9 +156,9 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         endcond_check_fo(&p, &p0, sim);
 
         /* Update diagnostics */
-        if(!(sim->record_mode)) {
+        if(!(sim->params->record_mode)) {
             /* Record particle coordinates */
-            diag_update_fo(&sim->diag_data, &sim->B_data, &p, &p0);
+            diag_update_fo(sim, &sim->B_data, &p, &p0);
         }
         else {
             /* Instead of particle coordinates we record guiding center */
@@ -185,7 +185,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
                     gc_i.running[i] = 0;
                 }
             }
-            diag_update_gc(&sim->diag_data, &sim->B_data, &gc_f, &gc_i);
+            diag_update_gc(sim, &sim->B_data, &gc_f, &gc_i);
         }
 
         /* Update running particles */
@@ -238,8 +238,8 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
     real h;
 
     /* Value defined directly by user */
-    if(sim->fix_usrdef_use) {
-        h = sim->fix_usrdef_val;
+    if(sim->params->use_explicit_fixedstep) {
+        h = sim->params->explicit_fixedstep;
     }
     else {
       /* Value calculated from gyrotime */
@@ -247,7 +247,7 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
         real pnorm = math_normc( p->p_r[i], p->p_phi[i], p->p_z[i] );
         real gyrotime = CONST_2PI/
             phys_gyrofreq_pnorm(p->mass[i], p->charge[i], pnorm, Bnorm);
-        h = gyrotime/sim->fix_gyrodef_nstep;
+        h = gyrotime / sim->params->gyrodefined_fixedstep;
     }
 
     return h;

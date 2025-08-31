@@ -15,8 +15,6 @@ typedef struct {
     int n_species;     /**< Number of neutral species                         */
     int* anum;         /**< Neutral species mass number                       */
     int* znum;         /**< Neutral species charge number                     */
-    int* maxwellian;   /**< Is species distribution Maxwellian or
-                            monoenergetic                                     */
     linint3D_data* n0; /**< Density interpolation struct for each species     */
     linint3D_data* t0; /**< Temperature intepolation struct for each species  */
 } N0_3D_data;
@@ -25,7 +23,7 @@ int N0_3D_init(N0_3D_data* data,
                int n_r, real r_min, real r_max,
                int n_phi, real phi_min, real phi_max,
                int n_z, real z_min, real z_max,
-               int n_species, int* anum, int* znum, int* maxwellian,
+               int n_species, int* anum, int* znum,
                real* density, real* temperature);
 void N0_3D_free(N0_3D_data* data);
 void N0_3D_offload(N0_3D_data* data);

@@ -5,7 +5,7 @@ treeparts.py. Here we define the following classes:
 
 - InputCategory: A node containing all input variants that belong to same
   category.
-- RunVariant: Superclass for different run variants that contains the output
+- Output: Superclass for different run variants that contains the output
   data.
 - Tree: The root node of the tree and the entry point.
 """
@@ -93,7 +93,7 @@ class InputCategory(ImmutableNode):
         super().destroy(repack=repack, **kwargs)
 
 
-class RunVariant(ImmutableStorage, Leaf):
+class Output(ImmutableStorage, Leaf):
     """Leaf that contains data of a single simulation.
 
     Instances of this class contain all the metadata associated with the
@@ -317,11 +317,11 @@ class Tree(ImmutableNode):
         Override this method to create specific `Leaf` instances that are stored
         in this tree. This function is automatically called when using the
         `_add_input_dataset` and `_add_simulation_output` methods. This base
-        implementation simply creates a generic `Leaf` instance.
+        implementation simply creates a generic `Leaf` or `Output` instance.
         """
         if(meta.variant in metadata.run_variants
             and (inputs is not None and diagnostics is not None) ):
-            return RunVariant(
+            return Output(
                 **meta._asdict(), inputs=inputs, diagnostics=diagnostics,
                 **kwargs,
             )

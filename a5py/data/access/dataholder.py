@@ -13,9 +13,7 @@ class Format(Enum):
     """Data storage formats."""
     HDF5: int = 1
     """Data is stored in HDF5 file."""
-    CSTRUCT: int = 2
-    """Data is initialized and stored as C struct."""
-    MEMORY: int = 3
+    MEMORY: int = 2
     """Data is stored in memory."""
 
 
@@ -34,6 +32,8 @@ class DataHolder(ABC):
 
     Attributes
     ----------
+    _staged : bool
+        Whether the data is initialized in C.
     _format : Format
         The format in which the data is currently stored.
     _struct_ : ctypes.Structure
@@ -49,6 +49,7 @@ class DataHolder(ABC):
             Python wrapper for the C header corresponding to this data.
         """
         super().__init__(*args, **kwargs)
+        self._staged: bool = False
         self._format: Format = Format.MEMORY
         self._struct_: ctypes.Structure = struct
 
@@ -74,5 +75,23 @@ class DataHolder(ABC):
     @abstractmethod
     def export(self) -> Dict[str, np.ndarray]:
         """Return a dictionary with sufficient data to duplicate this instance.
+
+        Returns
+        -------
+        data : dict[str, np.ndarray or unyt.unyt_array]
+            Data that can be passed to the create method to duplicate this
+            instance.
         """
         return {}
+
+    @abstractmethod
+    def stage(self):
+        """Make this data ready for simulation or evaluation.
+
+        The memory consumption may increase significantly, so remember to
+        unstage afterwards with :meth:`unstage`.
+        """
+
+    @abstractmethod
+    def unstage(self):
+        """Undo the effect of :meth:`stage` and free consumed memory."""

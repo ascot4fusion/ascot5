@@ -83,7 +83,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
     /* Initialize running particles */
     int n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 
-    if(sim->enable_icrh) {
+    if(sim->params->enable_icrh) {
         rfof_set_up(&rfof_mrk, &sim->rfof_data);
     }
 
@@ -120,42 +120,42 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         /* Set time-step negative if tracing backwards in time */
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
-            if(sim->reverse_time) {
+            if(sim->params->reverse_time) {
                 hin[i]  = -hin[i];
             }
         }
 
         /* RK4 method for orbit-following */
-        if(sim->enable_orbfol) {
-            if(sim->enable_mhd) {
+        if(sim->params->enable_orbit_following) {
+            if(sim->params->enable_mhd) {
                 step_gc_rk4_mhd(
-                    &p, hin, &sim->B_data, &sim->E_data, &sim->boozer_data,
-                    &sim->mhd_data, sim->enable_aldforce);
+                    &p, hin, &sim->B_data, &sim->E_data, sim->boozer_data,
+                    &sim->mhd_data, sim->params->enable_aldforce);
             }
             else {
                 step_gc_rk4(&p, hin, &sim->B_data, &sim->E_data,
-                            sim->enable_aldforce);
+                            sim->params->enable_aldforce);
             }
         }
 
         /* Switch sign of the time-step again if it was reverted earlier */
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
-            if(sim->reverse_time) {
+            if(sim->params->reverse_time) {
                 hin[i]  = -hin[i];
             }
         }
 
         /* Euler-Maruyama method for collisions */
-        if(sim->enable_clmbcol) {
+        if(sim->params->enable_coulomb_collisions) {
             real rnd[5*NSIMD];
-            random_normal_simd(&sim->random_data, 5*NSIMD, rnd);
+            random_normal_simd(sim->random_data, 5*NSIMD, rnd);
             mccc_gc_euler(&p, hin, &sim->B_data, &sim->plasma_data,
                           &sim->mccc_data, rnd);
         }
 
         /* Performs the ICRH kick if in resonance. */
-        if(sim->enable_icrh) {
+        if(sim->params->enable_icrh) {
             rfof_resonance_check_and_kick_gc(
                 &p, hin, hout_rfof, &rfof_mrk, &sim->rfof_data, &sim->B_data);
 
@@ -194,7 +194,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
                     hnext_recom[i] = DUMMY_TIMESTEP_VAL;
                 } else {
                     // The step was successful
-                    p.time[i]    += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) ) * hin[i];
+                    p.time[i]    += ( 1.0 - 2.0 * ( sim->params->reverse_time > 0 ) ) * hin[i];
                     p.mileage[i] += hin[i];
                     p.cputime[i] += cputime - cputime_last;
                 }
@@ -206,7 +206,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         endcond_check_gc(&p, &p0, sim);
 
         /* Update diagnostics */
-        diag_update_gc(&sim->diag_data, &sim->B_data, &p, &p0);
+        diag_update_gc(sim, &sim->B_data, &p, &p0);
 
         /* Update running particles */
         n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
@@ -216,7 +216,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         for(int i = 0; i < NSIMD; i++) {
             if(cycle[i] > 0) {
                 hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
-                if(sim->enable_icrh) {
+                if(sim->params->enable_icrh) {
                     /* Reset icrh (rfof) resonance memory matrix. */
                     rfof_clear_history(&rfof_mrk, i);
                 }
@@ -228,7 +228,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
     /* All markers simulated! */
 
     /* Deallocate rfof structs */
-    if(sim->enable_icrh) {
+    if(sim->params->enable_icrh) {
         rfof_tear_down(&rfof_mrk);
     }
 }
@@ -250,8 +250,8 @@ real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i) {
     real h;
 
     /* Value defined directly by user */
-    if(sim->fix_usrdef_use) {
-        h = sim->fix_usrdef_val;
+    if(sim->params->use_explicit_fixedstep) {
+        h = sim->params->explicit_fixedstep;
     }
     else {
         /* Value calculated from gyrotime */
@@ -259,7 +259,7 @@ real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i) {
         real gyrotime = CONST_2PI /
             phys_gyrofreq_ppar(p->mass[i], p->charge[i],
                                p->mu[i], p->ppar[i], Bnorm);
-        h = gyrotime/sim->fix_gyrodef_nstep;
+        h = gyrotime/sim->params->gyrodefined_fixedstep;
     }
 
     return h;

@@ -1,10 +1,6 @@
 /**
  * @file E_TC.c
  * @brief Trivial Cartesian Electric field
- *
- * Electric field that has constant x, y, and z components. Note that this field
- * is defined in Cartesian coordinates and not cylindrical. This field is
- * intended for testing purposes and to act as a dummy input.
  */
 #include <stdlib.h>
 #include "../ascot5.h"
@@ -27,10 +23,6 @@ int E_TC_init(E_TC_data* data, real exyz[3]) {
     data->Exyz[0] = exyz[0];
     data->Exyz[1] = exyz[1];
     data->Exyz[2] = exyz[2];
-
-    print_out(VERBOSE_IO, "\nTrivial Cartesian electric field (E_TC)\n");
-    print_out(VERBOSE_IO, "E_x = %le, E_y = %le, E_z = %le\n",
-              data->Exyz[0], data->Exyz[1], data->Exyz[2]);
     return 0;
 }
 

@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include "../particle.h"
+#include "../options.h"
 
 #define DIAG_ORB_POINCARE 0      /**< Poincare mode flag                 */
 #define DIAG_ORB_INTERVAL 1      /**< Interval mode flag                 */
@@ -65,31 +66,19 @@ typedef struct{
     integer* mrk_pnt;     /**< Index of the last recorded point             */
     real* mrk_recorded;   /**< Last time (in seconds) a marker was updated  */
 
-    int mode;           /**< Defines condition for recording markers        */
-    int Npnt;           /**< Maximum number of points to keep recorded      */
-    int Nmrk;           /**< Number of markers to record                    */
-    int Nfld;           /**< Number of fields the record contains           */
-    real writeInterval; /**< Interval at which markers are recorded         */
-    int ntoroidalplots; /**< Number of toroidal Poincare planes             */
-    int npoloidalplots; /**< Number of poloidal Poincare planes             */
-    int nradialplots;   /**< Number of radial Poincare planes               */
-    int record_mode;    /**< Defines what fields are initialized            */
-    real toroidalangles[DIAG_ORB_MAXPOINCARES]; /**< Toroidal plane angles  */
-    real poloidalangles[DIAG_ORB_MAXPOINCARES]; /**< Poloidal plane angles  */
-    real radialdistances[DIAG_ORB_MAXPOINCARES];   /**< Radial plane angles */
 }diag_orb_data;
 
-void diag_orb_init(diag_orb_data* data);
+void diag_orb_init(diag_orb_data* data, sim_parameters* params, size_t nmarkers);
 
-void diag_orb_free(diag_orb_data* data);
+void diag_orb_free(diag_orb_data* data, sim_parameters* params);
 
-void diag_orb_update_fo(diag_orb_data* data,
+void diag_orb_update_fo(diag_orb_data* data, sim_parameters* params,
                         particle_simd_fo* p_f, particle_simd_fo* p_i);
 
-void diag_orb_update_gc(diag_orb_data* data,
+void diag_orb_update_gc(diag_orb_data* data, sim_parameters* params,
                         particle_simd_gc* p_f, particle_simd_gc* p_i);
 
-void diag_orb_update_ml(diag_orb_data* data,
+void diag_orb_update_ml(diag_orb_data* data, sim_parameters* params,
                         particle_simd_ml* p_f, particle_simd_ml* p_i);
 
 #endif

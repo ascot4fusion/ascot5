@@ -1,18 +1,232 @@
-"""Input data representing NBI.
-
-Neutral beam injectors are used by BBNBI to generate NBI-ion source and
-calculate shinethrough.
+"""Defines :class:`NbiBundle` neutral beam injection input class, the actual
+injector class :class:`Nbi`, and the corresponding factory method.
 """
-import numpy as np
-import h5py
+import ctypes
+from typing import Tuple, Optional
+
 import unyt
+import numpy as np
+from numpy.ctypeslib import ndpointer
 
-from a5py.routines.plotting import openfigureifnoaxes
+from .access import variants, InputVariant, Format, TreeCreateClassMixin
+from .. import utils
+from ..libascot import LIBASCOT
+from ..exceptions import AscotIOException
 
-class DataGroup():
-    pass
 
-class Injector():
+class NbiBundle(InputVariant):
+    """A bundle of neutral beam injectors."""
+
+    # pylint: disable=too-few-public-methods
+    class Struct(ctypes.Structure):
+        """Python wrapper for the struct in nbi.h."""
+        _pack_ = 1
+        _fields_ = [
+            ('id', ctypes.c_int32),
+            ('n_beamlet', ctypes.c_int32),
+            ('beamlet_x', ctypes.POINTER(ctypes.c_double)),
+            ('beamlet_y', ctypes.POINTER(ctypes.c_double)),
+            ('beamlet_z', ctypes.POINTER(ctypes.c_double)),
+            ('beamlet_dx', ctypes.POINTER(ctypes.c_double)),
+            ('beamlet_dy', ctypes.POINTER(ctypes.c_double)),
+            ('beamlet_dz', ctypes.POINTER(ctypes.c_double)),
+            ('power', ctypes.c_double),
+            ('energy', ctypes.c_double),
+            ('efrac', ctypes.c_double * 3),
+            ('div_h', ctypes.c_double),
+            ('div_v', ctypes.c_double),
+            ('div_halo_frac', ctypes.c_double),
+            ('div_halo_h', ctypes.c_double),
+            ('div_halo_v', ctypes.c_double),
+            ('anum', ctypes.c_int32),
+            ('znum', ctypes.c_int32),
+            ('mass', ctypes.c_double),
+            ]
+
+
+    def __init__(self, qid, date, note) -> None:
+        super().__init__(
+            qid=qid, date=date, note=note, variant="NbiBundle",
+            struct=NbiBundle.Struct(),
+            )
+        self._bxyz: unyt.unyt_array
+        self._axisrz: unyt.unyt_array
+        self._psival: unyt.unyt_array
+        self._rhoval: unyt.unyt_array
+        self._jacobian: unyt.unyt_array
+
+    @property
+    def bxyz(self) -> unyt.unyt_array:
+        """Magnetic field vector in Cartesian basis at origo."""
+        if self._format == Format.HDF5:
+            return self._read_hdf5("bxyz")
+        if self._format == Format.CSTRUCT:
+            return self._from_struct_("B", shape=(3,), units="T")
+        return self._bxyz.copy()
+
+    def _export_hdf5(self):
+        """Export data to HDF5 file."""
+        if self._format == Format.HDF5:
+            raise AscotIOException("Data is already stored in the file.")
+        data = self.export()
+        """ginj.create_dataset("ids",  (1,), data=inj.ids,  dtype="i4")
+        ginj.create_dataset("anum", (1,), data=inj.anum, dtype="i4")
+        ginj.create_dataset("znum", (1,), data=inj.znum, dtype="i4")
+        ginj.create_dataset("mass", (1,), data=inj.mass, dtype="f8")
+        ginj.create_dataset("divh", (1,), data=inj.divh, dtype="f8")
+        ginj.create_dataset("divv", (1,), data=inj.divv, dtype="f8")
+        ginj.create_dataset(
+            "divhalofrac", (1,), data=inj.divhalofrac, dtype="f8")
+        ginj.create_dataset(
+            "divhaloh",    (1,), data=inj.divhaloh,    dtype="f8")
+        ginj.create_dataset(
+            "divhalov",    (1,), data=inj.divhalov,    dtype="f8")
+        ginj.create_dataset(
+            "energy",      (1,), data=inj.energy,      dtype="f8")
+        ginj.create_dataset(
+            "efrac",       (3,), data=inj.efrac,       dtype="f8")
+        ginj.create_dataset(
+            "power",       (1,), data=inj.power,       dtype="f8")
+        ginj.create_dataset(
+            "nbeamlet",  (1,),        data=inj.nbeamlet,  dtype="i4")
+        ginj.create_dataset(
+            "beamletx",  (nbeamlet,), data=inj.beamletx,  dtype="f8")
+        ginj.create_dataset(
+            "beamlety",  (nbeamlet,), data=inj.beamlety,  dtype="f8")
+        ginj.create_dataset(
+            "beamletz",  (nbeamlet,), data=inj.beamletz,  dtype="f8")
+        ginj.create_dataset(
+            "beamletdx", (nbeamlet,), data=inj.beamletdx, dtype="f8")
+        ginj.create_dataset(
+            "beamletdy", (nbeamlet,), data=inj.beamletdy, dtype="f8")
+        ginj.create_dataset(
+            "beamletdz", (nbeamlet,), data=inj.beamletdz, dtype="f8")"""
+        self._treemanager.hdf5manager.write_datasets(
+            self.qid, self.variant, data,
+            )
+        self._format = Format.HDF5
+
+    def export(self):
+        data = {
+        }
+        return data
+
+    def stage(self):
+        init = LIBASCOT.NBI_init
+        init.restype = ctypes.c_int32
+        init.argtypes = [
+            ctypes.POINTER(__class__.Struct),
+            ndpointer(ctypes.c_double),
+            ]
+        if not self._staged:
+            if init(
+                ctypes.byref(self._struct_),
+                self.exyz,
+            ):
+                raise AscotIOException("Failed to stage data.")
+            if self._format is Format.MEMORY:
+                del self._exyz
+            self._staged = True
+
+    def unstage(self):
+        free = LIBASCOT.NBI_free
+        free.restype = None
+        free.argtypes = [ctypes.POINTER(__class__.Struct)]
+
+        if self._staged:
+            if self._format is Format.MEMORY:
+                self._exyz = self.exyz
+            free(ctypes.byref(self._struct_))
+            self._staged = False
+
+
+# pylint: disable=too-few-public-methods
+class CreateNbiMixin(TreeCreateClassMixin):
+    """Mixin class used by :class:`Data` to create :class:`NbiBundle` input."""
+
+    #pylint: disable=protected-access, too-many-arguments
+    def create_nbibundle(
+            self,
+            note: Optional[str] = None,
+            activate: bool = False,
+            dryrun: bool = False,
+            store_hdf5: Optional[bool] = None,
+            ) -> NbiBundle:
+        r"""Create one (or a bundle of) neutral beam injector(s).
+
+        This input is used by BBNBI to launch neutral particles to the plasma
+        and to generate NBI-ion source.
+
+        Markers generated from this input are not separable, i.e. they
+        are all treated as a single source. If you wish to have separate markers
+        for different injectors, you should create separate NBI inputs for
+        those.
+
+        Parameters
+        ----------
+        injectors : array of :class:`Injector`
+            Array of injectors used in this bundle.
+        note : str, optional
+            A short note to document this data.
+
+            The first word of the note is converted to a tag which you can use
+            to reference the data.
+        activate : bool, optional
+            Set this input as active on creation.
+        dryrun : bool, optional
+            Do not add this input to the `data` structure or store it on disk.
+
+            Use this flag to modify the input manually before storing it.
+        store_hdf5 : bool, optional
+            Write this input to the HDF5 file if one has been specified when
+            `Ascot` was initialized.
+
+        Returns
+        -------
+        inputdata : NbiBundle
+            Freshly minted input data object.
+
+        Notes
+        -----
+        A single injector consists of a number of beamlets that have common
+        weights (each beamlet produces the same number of particles) and
+        common properties such as energy, divergence, etc. When a neutral marker
+        is generated at the beamlet position, its velocity is diverted from the
+        beamlet direction vector randomly, with the divergence angle given by
+
+        .. math::
+        """
+        parameters = variants.parse_parameters(
+            bxyz, jacobian, axisrz, rhoval, psival,
+        )
+        variants.validate_required_parameters(
+            parameters,
+            names=["bxyz", "jacobian", "axisrz", "rhoval"],
+            units=["T", "T/m", "m", "1"],
+            shape=[(3,), (3,3), (2,), ()],
+            dtype="f8",
+            default=[
+                np.ones((3,)), np.zeros((3,3)), (1.0, 0.0), 0.5,
+                ],
+        )
+        variants.validate_optional_parameters(
+            parameters,
+            ["psival"], ["Wb/m"], [()], "f8", [parameters["rhoval"]],
+        )
+        meta = variants.new_metadata("B_TC", note=note)
+        obj = self._treemanager.enter_input(
+            meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
+            )
+        for parameter, value in parameters.items():
+            setattr(obj, f"_{parameter}", value)
+            getattr(obj, f"_{parameter}").flags.writeable = False
+
+        if store_hdf5:
+            obj._export_hdf5()
+        return obj
+
+
+class Nbi():
     """A single injector made up of beamlets
 
     Attributes
@@ -84,12 +298,23 @@ class Injector():
         self.divhaloh    = divhaloh
         self.divhalov    = divhalov
         self.nbeamlet    = nbeamlet
-        self.beamletx    = beamletx
-        self.beamlety    = beamlety
-        self.beamletz    = beamletz
-        self.beamletdx   = beamletdx
-        self.beamletdy   = beamletdy
-        self.beamletdz   = beamletdz
+        self._beamletx, self._beamlety, self._beamletz = (
+            beamletx, beamlety, beamletz
+            )
+        self._beamletdx, self._beamletdy, self._beamletdz = (
+            beamletdx, beamletdy, beamletdz
+            )
+
+    @property
+    def beamletxyz(self) -> np.ndarray:
+        """Beamlet locations in Cartesian coordinates.
+
+        Returns
+        -------
+        beamletxyz : np.ndarray, shape (nbeamlet, 3)
+            Beamlet locations in Cartesian coordinates.
+        """
+        return np.column_stack((self.beamletx, self.beamlety, self.beamletz))
 
     def plotbeamlets(self, view="3d", direction=True, axes=None):
         """Plot the beamlets of this injector.
@@ -153,42 +378,6 @@ class Injector():
                     axes.quiver(x, y, dx, dy)
             plot(axes=axes)
 
-class NBI(DataGroup):
-    """Object representing a bundle of injectors used as an input in BBNBI.
-
-    An injector bundle means that the particles generated from those with BBNBI
-    are not separable. If your work requires that the different NBI sources are
-    kept separate, then use different bundles for those (a bundle can consists
-    of a single injector). Otherwise it is more convenient to combine injectors
-    in a single bundle since it then produces a single BBNBI output.
-    """
-
-    def read(self):
-        """Read data from HDF5 file.
-
-        Returns
-        -------
-        data : dict
-            Data read from HDF5 stored in the same format as is passed to
-            :meth:`write_hdf5`.
-        """
-        fn   = self._root._ascot.file_getpath()
-        path = self._path
-
-        out = {}
-        with h5py.File(fn, "r") as f:
-            ninj = int(f[path]["ninj"][0])
-            out["injectors"] = [None] * ninj
-            for i in range(ninj):
-                kwargs = {}
-                inj = f[path + "/inj" + str(i+1)]
-                for key in inj:
-                    kwargs[key] = inj[key][:]
-                out["injectors"][i] = Injector(**kwargs)
-
-        out["ninj"] = ninj
-        return out
-
     @staticmethod
     def write_hdf5(fn, ninj, injectors, desc=None):
         """Write input data to the HDF5 file.
@@ -197,10 +386,7 @@ class NBI(DataGroup):
         ----------
         fn : str
             Full path to the HDF5 file.
-        ninj : int
-            Number of injectors.
-        injectors : array of :class:`Injector`
-            Array of injectors used in this bundle.
+        
         desc : str, optional
             Input description.
 
@@ -226,38 +412,7 @@ class NBI(DataGroup):
                 nbeamlet = inj.nbeamlet
                 ginj     = g.create_group("inj"+str(i+1))
 
-                ginj.create_dataset("ids",  (1,), data=inj.ids,  dtype="i4")
-                ginj.create_dataset("anum", (1,), data=inj.anum, dtype="i4")
-                ginj.create_dataset("znum", (1,), data=inj.znum, dtype="i4")
-                ginj.create_dataset("mass", (1,), data=inj.mass, dtype="f8")
-                ginj.create_dataset("divh", (1,), data=inj.divh, dtype="f8")
-                ginj.create_dataset("divv", (1,), data=inj.divv, dtype="f8")
-                ginj.create_dataset(
-                    "divhalofrac", (1,), data=inj.divhalofrac, dtype="f8")
-                ginj.create_dataset(
-                    "divhaloh",    (1,), data=inj.divhaloh,    dtype="f8")
-                ginj.create_dataset(
-                    "divhalov",    (1,), data=inj.divhalov,    dtype="f8")
-                ginj.create_dataset(
-                    "energy",      (1,), data=inj.energy,      dtype="f8")
-                ginj.create_dataset(
-                    "efrac",       (3,), data=inj.efrac,       dtype="f8")
-                ginj.create_dataset(
-                    "power",       (1,), data=inj.power,       dtype="f8")
-                ginj.create_dataset(
-                    "nbeamlet",  (1,),        data=inj.nbeamlet,  dtype="i4")
-                ginj.create_dataset(
-                    "beamletx",  (nbeamlet,), data=inj.beamletx,  dtype="f8")
-                ginj.create_dataset(
-                    "beamlety",  (nbeamlet,), data=inj.beamlety,  dtype="f8")
-                ginj.create_dataset(
-                    "beamletz",  (nbeamlet,), data=inj.beamletz,  dtype="f8")
-                ginj.create_dataset(
-                    "beamletdx", (nbeamlet,), data=inj.beamletdx, dtype="f8")
-                ginj.create_dataset(
-                    "beamletdy", (nbeamlet,), data=inj.beamletdy, dtype="f8")
-                ginj.create_dataset(
-                    "beamletdz", (nbeamlet,), data=inj.beamletdz, dtype="f8")
+                
 
         return gname
 
@@ -286,133 +441,3 @@ class NBI(DataGroup):
                 "div_halo_h":0.0, "div_halo_v":0.0,
                 "anum":1.0, "znum":1.0, "mass":1.0, "energy":1.0,
                 "efrac":[1,0,0], "power":1}
-
-    @staticmethod
-    def generate(r, phi, z, tanrad, focallen, dgrid, nbeamlet,
-                 anum, znum, mass, energy, efrac, power, div, tilt=None,
-                 tanz=None, divhalofrac=None, divhalo=None, ids=1, desc=None):
-        """Generate a generic injector.
-
-        The injector grid can be either circular or rectangular, and will be
-        randomly populated with beamlets with a common focus point.
-
-        The contents of this function can be used as a template for implementing
-        machine-specific injectors with an actual geometry.
-
-        Parameters
-        ----------
-        r : float
-            Injector center point R-coordinate [m].
-        phi : float
-            Injector center point phi-coordinate [deg].
-        z : float
-            Injector center point z-coordinate [m].
-        tanrad : float
-            Tangency radius of the injector centerline [m].
-        focallen : float
-            Distance to the focus point from the center of the grid
-        dgrid : float or array_like (2,)
-            Diameter of circular grid or width and height of rectangular grid
-        nbeamlet : int
-            Number of beamlets in this injector
-        anum : int
-            Mass number of injected species
-        znum : int
-            Nuclear charge number of injected species
-        mass : float
-            Mass of the injected species [amu]
-        energy : float
-            Full injection energy [eV]
-        efrac : array_like (3,)
-            Particle fractions for full, 1/2 and 1/3 energies
-        power : float
-            Injected power [W]
-        div : array_like (2,)
-            Horizontal and vertical divergences [rad]
-        tilt : float, optional
-            Vertical tilt angle of the beam centerline [deg]
-        tanz : float, optional
-            Vertical shift of the tangency radius point [m]
-        divhalofrac : float, optional
-            Fraction of particles with halo divergence
-        divhalo : float, optional
-            Horizontal and vertical divergences [rad]
-        ids : int, optional
-            Unique numerical identifier for this injector.
-
-        Returns
-        -------
-        inj : :class:`Injector`
-            A single injector.
-        """
-        phi    = phi * np.pi/180.0
-        phidir = np.pi + phi - np.arcsin(tanrad/r);
-        center = np.array([r * np.cos(phi), r * np.sin(phi), z])
-
-        unitd = np.array([np.cos(phidir), np.sin(phidir), 0.0])
-        unitz = np.array([0.0, 0.0, 1.0])
-        unith = np.cross(unitd, unitz)
-
-        if tilt is not None:
-            tilt = tilt * np.pi/180.0
-        elif tanz is not None:
-            tilt = tanz / r * np.cos(phidir)
-        else:
-            tilt = 0
-
-        focus = center + focallen * unitd + focallen * np.tan(tilt) * unitz
-
-        n = {}
-        n["ids"]       = ids
-        n["nbeamlet"]  = nbeamlet
-        n["beamletx"]  = np.zeros(nbeamlet)
-        n["beamlety"]  = np.zeros(nbeamlet)
-        n["beamletz"]  = np.zeros(nbeamlet)
-        n["beamletdx"] = np.zeros(nbeamlet)
-        n["beamletdy"] = np.zeros(nbeamlet)
-        n["beamletdz"] = np.zeros(nbeamlet)
-        n["divh"]      = div[0]
-        n["divv"]      = div[1]
-
-        if divhalofrac is not None:
-            n["divhalofrac"] = divhalofrac
-            n["divhaloh"]    = divhalo[0]
-            n["divhalov"]    = divhalo[1]
-        else:
-            n["divhalofrac"] = 0.0
-            n["divhaloh"]    = 1e-10
-            n["divhalov"]    = 1e-10
-
-        # Injected species
-        n["anum"]   = anum
-        n["znum"]   = znum
-        n["mass"]   = mass
-        n["energy"] = energy
-        n["efrac"]  = np.array(efrac)
-        n["power"]  = power
-
-        for i in range(nbeamlet):
-            if np.array(dgrid).size == 1:
-                # circular grid
-                d = np.inf
-                while d > 0.5 * dgrid:
-                    dx = 0.5 * dgrid * ( 2 * np.random.rand(1) - 1 )
-                    dy = 0.5 * dgrid * ( 2 * np.random.rand(1) - 1 )
-                    d  = np.sqrt(dx**2 + dy**2)
-            else:
-                # rectangular grid
-                dx = 0.5 * dgrid[0] * ( 2 * np.random.rand(1) - 1 )
-                dy = 0.5 * dgrid[1] * ( 2 * np.random.rand(1) - 1 )
-
-            beamletxyz = center + dx*unith + dy*unitz
-            dirxyz = focus - beamletxyz
-            dirxyz = dirxyz / np.linalg.norm(dirxyz)
-
-            n["beamletx"][i]  = beamletxyz[0]
-            n["beamlety"][i]  = beamletxyz[1]
-            n["beamletz"][i]  = beamletxyz[2]
-            n["beamletdx"][i] = dirxyz[0]
-            n["beamletdy"][i] = dirxyz[1]
-            n["beamletdz"][i] = dirxyz[2]
-
-        return Injector(**n)

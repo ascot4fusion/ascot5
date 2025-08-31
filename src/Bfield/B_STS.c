@@ -1,29 +1,6 @@
 /**
  * @file B_STS.c
  * @brief Stellarator magnetic field with cubic spline interpolation
- *
- * This module represents a magnetic field where data is given in \f$R\phi z\f$-
- * grid from which it is interpolated with tricubic splines.
- *
- * The magnetic field is evaluated from magnetic field strength \f$\mathbf{B}\f$
- * which may not be divergence free. The poloidal magnetic flux \f$\psi\f$ is
- * interpolated using tricubic splines as well. \f$\psi\f$ and \f$\mathbf{B}\f$
- * are given in separate grids.
- *
- * The magnetic axis location for stellarators varies with the \f$\phi\f$ angle
- * and is evaluated using linear interpolation.
- *
- * This module does no extrapolation so if queried value is outside the
- * \f$Rz\f$-grid an error is thrown. The \f$\phi\f$-grid is assumed to be
- * periodic. Periodic boundary conditions are used but it is user's
- * responsibility to provide input whose \f$\phi\f$-grid makes sense (in that it
- * actually represents a periodic field), i.e.,
- * \f$\phi_\mathrm{max}-\phi_\mathrm{min} = 2\pi/(N+1)\f$.  However, do note
- * that in this module \f$\phi_\mathrm{max}\f$ is not the "last" grid point but
- * the second last, e.g. if \f$\phi_\mathrm{min}=0\f$ and \f$n_\phi = 360\f$,
- * then \f$\phi_\mathrm{max}=359\f$ if periodicity is \f$N=0\f$.
- *
- * @see B_field.c linint1D.c
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -93,38 +70,22 @@ int B_STS_init(B_STS_data* data,
     int err = 0;
     data->psi0 = psi0;
     data->psi1 = psi1;
-    err = interp3Dcomp_setup(&data->psi, psi, p_n_r, p_n_phi, p_n_z,
+    err += interp3Dcomp_setup(&data->psi, psi, p_n_r, p_n_phi, p_n_z,
                              NATURALBC, PERIODICBC, NATURALBC,
                              p_r_min, p_r_max, p_phi_min, p_phi_max,
                              p_z_min, p_z_max);
-    if(err) {
-        print_err("Error: Failed to initialize splines.\n");
-        return 1;
-    }
-    interp3Dcomp_setup(
-        &data->B_r, B_r, b_n_r, b_n_phi, b_n_z,
-        NATURALBC, PERIODICBC, NATURALBC,
-        b_r_min, b_r_max, b_phi_min, b_phi_max, b_z_min, b_z_max);
-    if(err) {
-        print_err("Error: Failed to initialize splines.\n");
-        return 1;
-    }
-    interp3Dcomp_setup(
-        &data->B_phi, B_phi, b_n_r, b_n_phi, b_n_z,
-        NATURALBC, PERIODICBC, NATURALBC,
-        b_r_min, b_r_max, b_phi_min, b_phi_max, b_z_min, b_z_max);
-    if(err) {
-        print_err("Error: Failed to initialize splines.\n");
-        return 1;
-    }
-    interp3Dcomp_setup(
-        &data->B_z, B_z, b_n_r, b_n_phi, b_n_z,
-        NATURALBC, PERIODICBC, NATURALBC,
-        b_r_min, b_r_max, b_phi_min, b_phi_max, b_z_min, b_z_max);
-    if(err) {
-        print_err("Error: Failed to initialize splines.\n");
-        return 1;
-    }
+    err += interp3Dcomp_setup(&data->B_r, B_r, b_n_r, b_n_phi, b_n_z,
+                              NATURALBC, PERIODICBC, NATURALBC,
+                              b_r_min, b_r_max, b_phi_min, b_phi_max,
+                              b_z_min, b_z_max);
+    err += interp3Dcomp_setup(&data->B_phi, B_phi, b_n_r, b_n_phi, b_n_z,
+                              NATURALBC, PERIODICBC, NATURALBC,
+                              b_r_min, b_r_max, b_phi_min, b_phi_max, b_z_min,
+                              b_z_max);
+    err += interp3Dcomp_setup(&data->B_z, B_z, b_n_r, b_n_phi, b_n_z,
+                              NATURALBC, PERIODICBC, NATURALBC,
+                              b_r_min, b_r_max, b_phi_min, b_phi_max, b_z_min,
+                              b_z_max);
 
     real* c1 = (real*)malloc(naxis*sizeof(real));
     real* c2 = (real*)malloc(naxis*sizeof(real));
@@ -140,32 +101,6 @@ int B_STS_init(B_STS_data* data,
     err += B_STS_get_axis_rz(axis, data, 0);
     err += B_STS_eval_psi(psival, axis[0], 0, axis[1], data);
     err += B_STS_eval_B(Bval, axis[0], 0, axis[1], data);
-    if(err) {
-        print_err("Error: Initialization failed.\n");
-        return err;
-    }
-
-    printf("\nStellarator magnetic field (B_STS)\n");
-    print_out(VERBOSE_IO, "Psi-grid: nR = %4.d Rmin = %3.3f m Rmax = %3.3f m\n",
-              p_n_r, p_r_min, p_r_max);
-    print_out(VERBOSE_IO, "      nz = %4.d zmin = %3.3f m zmax = %3.3f m\n",
-              p_n_z, p_z_min, p_z_max);
-    print_out(VERBOSE_IO, "nphi = %4.d phimin = %3.3f deg phimax = %3.3f deg\n",
-              p_n_phi, math_rad2deg(p_phi_min), math_rad2deg(p_phi_max));
-    print_out(VERBOSE_IO, "B-grid: nR = %4.d Rmin = %3.3f m Rmax = %3.3f m\n",
-              b_n_r, b_r_min, b_r_max);
-    print_out(VERBOSE_IO, "      nz = %4.d zmin = %3.3f m zmax = %3.3f m\n",
-              b_n_z, b_z_min, b_z_max);
-    print_out(VERBOSE_IO, "nphi = %4.d phimin = %3.3f deg phimax = %3.3f deg\n",
-              b_n_phi, math_rad2deg(b_phi_min), math_rad2deg(b_phi_max));
-    print_out(VERBOSE_IO, "Psi at magnetic axis (phi=0) (%1.3f m, %1.3f m)\n",
-              axis[0], axis[1]);
-    print_out(VERBOSE_IO, "%3.3f (evaluated)\n%3.3f (given)\n",
-              psival[0], data->psi0);
-    print_out(VERBOSE_IO, "Magnetic field on axis:\n"
-              "B_R = %3.3f B_phi = %3.3f B_z = %3.3f\n",
-              Bval[0], Bval[1], Bval[2]);
-
     return 0;
 }
 

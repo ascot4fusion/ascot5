@@ -9,7 +9,7 @@
 #include <string.h>
 #include "../ascot5.h"
 #include "../consts.h"
-#include "../simulate.h"
+#include "../options.h"
 
 /**
  * @brief Initializes orbit diagnostics data.
@@ -23,15 +23,16 @@
  *
  * @param data orbit diagnostics data struct
  */
-void diag_orb_init(diag_orb_data* data) {
+void diag_orb_init(diag_orb_data* data, sim_parameters* params,
+                   size_t nmarkers) {
 
-    int step = data->Nmrk*data->Npnt;
+    int step = nmarkers*params->number_of_points_per_marker;
     data->id = (real*) calloc( step, sizeof(real) );
-    if(data->mode == DIAG_ORB_POINCARE) {
+    if(params->poincare) {
         data->pncrid = (real*) calloc( step, sizeof(real) );
         data->pncrdi = (real*) calloc( step, sizeof(real) );
     }
-    switch(data->record_mode) {
+    switch(params->simulation_mode) {
 
         case simulate_mode_fo:
             data->mileage = (real*) calloc( step, sizeof(real) );
@@ -104,11 +105,11 @@ void diag_orb_init(diag_orb_data* data) {
             break;
     }
 
-    data->mrk_pnt = (integer*) malloc( data->Nmrk*sizeof(integer) );
-    data->mrk_recorded = (real*) malloc( data->Nmrk*sizeof(real) );
+    data->mrk_pnt = (integer*) malloc( nmarkers*sizeof(integer) );
+    data->mrk_recorded = (real*) malloc( nmarkers*sizeof(real) );
 
-    memset(data->mrk_pnt, 0, data->Nmrk*sizeof(integer));
-    memset(data->mrk_recorded, 0, data->Nmrk*sizeof(real));
+    memset(data->mrk_pnt, 0, nmarkers*sizeof(integer));
+    memset(data->mrk_recorded, 0, nmarkers*sizeof(real));
 }
 
 /**
@@ -116,16 +117,16 @@ void diag_orb_init(diag_orb_data* data) {
  *
  * @param data orbit diagnostics data struct
  */
-void diag_orb_free(diag_orb_data* data){
+void diag_orb_free(diag_orb_data* data, sim_parameters* params){
     free(data->mrk_pnt);
     free(data->mrk_recorded);
 
     free(data->id);
-    if(data->mode == DIAG_ORB_POINCARE) {
+    if(params->poincare) {
         free(data->pncrid);
         free(data->pncrdi);
     }
-    switch(data->record_mode) {
+    switch(params->record_mode) {
 
         case simulate_mode_fo:
             free(data->mileage);
@@ -208,10 +209,10 @@ void diag_orb_free(diag_orb_data* data){
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
  *        current time-step
  */
-void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
-                        particle_simd_fo* p_i) {
+void diag_orb_update_fo(diag_orb_data* data, sim_parameters* params,
+                        particle_simd_fo* p_f, particle_simd_fo* p_i) {
 
-    if(data->mode == DIAG_ORB_INTERVAL) {
+    if(!params->poincare) {
 
         #pragma omp simd
         for(int i= 0; i < NSIMD; i++) {
@@ -221,10 +222,11 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
 
                 integer imrk   = p_f->index[i];
                 integer ipoint = data->mrk_pnt[imrk];
-                integer idx    = imrk * data->Npnt + ipoint;
+                integer idx    = imrk * params->number_of_points_per_marker
+                               + ipoint;
 
                 /* If this is the first time-step, record marker position. */
-                if( data->id[imrk * data->Npnt] == 0 ) {
+                if( data->id[imrk * params->number_of_points_per_marker] == 0 ) {
                     data->id[idx]     = (real)p_i->id[i];
                     data->mileage[idx]= p_i->mileage[i];
                     data->r[idx]      = p_i->r[i];
@@ -243,7 +245,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                     data->simmode[idx]= DIAG_ORB_FO;
 
                     ipoint++;
-                    if(ipoint == data->Npnt) {
+                    if(ipoint == params->number_of_points_per_marker) {
                         ipoint = 0;
                     }
                     data->mrk_pnt[imrk]      = ipoint;
@@ -252,10 +254,10 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
 
                 /* Record marker if enough time has passed from last record, or
                    if marker has met some end condition. */
-                real dt = data->mrk_recorded[imrk] + data->writeInterval
+                real dt = data->mrk_recorded[imrk] + params->interval
                     - p_f->mileage[i];
                 if( dt <= 0 || p_f->endcond[i] > 0 ) {
-                    idx = imrk * data->Npnt + ipoint;
+                    idx = imrk * params->number_of_points_per_marker + ipoint;
 
                     data->id[idx]     = (real)p_f->id[i];
                     data->mileage[idx]= p_f->mileage[i];
@@ -275,16 +277,16 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                     data->simmode[idx]= DIAG_ORB_FO;
 
                     ipoint++;
-                    if(ipoint == data->Npnt) {
+                    if(ipoint == params->number_of_points_per_marker) {
                         ipoint = 0;
                     }
-                    data->mrk_pnt[imrk]      = ipoint;
+                    data->mrk_pnt[imrk] = ipoint;
                     data->mrk_recorded[imrk] = p_f->mileage[i];
                 }
             }
         }
     }
-    else if(data->mode == DIAG_ORB_POINCARE) {
+    else {
 
         #pragma omp simd
         for(int i= 0; i < NSIMD; i++) {
@@ -294,15 +296,16 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                 real k;
                 integer imrk   = p_f->index[i];
                 integer ipoint = data->mrk_pnt[imrk];
-                integer idx    = imrk * data->Npnt + ipoint;
+                integer idx    = imrk * params->number_of_points_per_marker
+                               + ipoint;
 
                 /* Check and store toroidal crossings. */
-                for(int j=0; j < data->ntoroidalplots; j++) {
-                    k = diag_orb_check_plane_crossing(p_f->phi[i], p_i->phi[i],
-                                                      data->toroidalangles[j]);
+                for(int j=0; j < params->ntoroidalplots; j++) {
+                    k = diag_orb_check_plane_crossing(
+                        p_f->phi[i], p_i->phi[i], params->toroidal_angles[j]);
                     if(k) {
                         real d = 1-k;
-                        idx = imrk * data->Npnt + ipoint;
+                        idx = imrk * params->number_of_points_per_marker + ipoint;
                         data->id[idx]     = (real)p_f->id[i];
                         data->mileage[idx]= k*p_f->mileage[i]+ d*p_i->mileage[i];
                         data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
@@ -323,7 +326,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         data->simmode[idx]= DIAG_ORB_FO;
 
                         ipoint++;
-                        if(ipoint == data->Npnt) {
+                        if(ipoint == params->number_of_points_per_marker) {
                             ipoint = 0;
                         }
                         data->mrk_pnt[imrk]      = ipoint;
@@ -332,13 +335,12 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                 }
 
                 /* Check and store poloidal crossings. */
-                for(int j=0; j < data->npoloidalplots; j++) {
-                    k = diag_orb_check_plane_crossing(p_f->theta[i],
-                                                      p_i->theta[i],
-                                                      data->poloidalangles[j]);
+                for(int j=0; j < params->npoloidalplots; j++) {
+                    k = diag_orb_check_plane_crossing(
+                        p_f->theta[i], p_i->theta[i], params->poloidal_angles[j]);
                     if(k) {
                         real d = 1-k;
-                        idx = imrk * data->Npnt + ipoint;
+                        idx = imrk * params->number_of_points_per_marker + ipoint;
                         data->id[idx]     = (real)p_f->id[i];
                         data->mileage[idx]= k*p_f->mileage[i]+ d*p_i->mileage[i];
                         data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
@@ -354,12 +356,12 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
-                        data->pncrid[idx] = j + data->ntoroidalplots;
+                        data->pncrid[idx] = j + params->ntoroidalplots;
                         data->pncrdi[idx] = 1 - 2 * (p_f->theta[i] < p_i->theta[i]);
                         data->simmode[idx]= DIAG_ORB_FO;
 
                         ipoint++;
-                        if(ipoint == data->Npnt) {
+                        if(ipoint == params->number_of_points_per_marker) {
                             ipoint = 0;
                         }
                         data->mrk_pnt[imrk]      = ipoint;
@@ -368,13 +370,13 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                 }
 
                 /* Check and store radial crossings. */
-                for(int j=0; j < data->nradialplots; j++) {
-                    k = diag_orb_check_radial_crossing(p_f->rho[i],p_i->rho[i],
-                                                    data->radialdistances[j]);
+                for(int j=0; j < params->nradialplots; j++) {
+                    k = diag_orb_check_radial_crossing(
+                        p_f->rho[i],p_i->rho[i], params->radial_distances[j]);
                     if(k) {
                         real d = k;
                         k = 1-d;
-                        idx = imrk * data->Npnt + ipoint;
+                        idx = imrk * params->number_of_points_per_marker + ipoint;
                         data->id[idx]     = (real)p_f->id[i];
                         data->mileage[idx]= k*p_f->mileage[i]+ d*p_i->mileage[i];
                         data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
@@ -390,10 +392,10 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
-                        data->pncrid[idx] = j + data->ntoroidalplots + data->npoloidalplots;
+                        data->pncrid[idx] = j + params->ntoroidalplots + params->npoloidalplots;
                         data->pncrdi[idx] = 1 - 2 * (p_f->rho[i] < p_i->rho[i]);
                         ipoint++;
-                        if(ipoint == data->Npnt) {
+                        if(ipoint == params->number_of_points_per_marker) {
                             ipoint = 0;
                         }
                         data->mrk_pnt[imrk]      = ipoint;
@@ -414,10 +416,10 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
  *        current time-step
  */
-void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
-                        particle_simd_gc* p_i) {
+void diag_orb_update_gc(diag_orb_data* data, sim_parameters* params,
+                        particle_simd_gc* p_f, particle_simd_gc* p_i) {
 
-    if(data->mode == DIAG_ORB_INTERVAL) {
+    if(!params->poincare) {
         #pragma omp simd
         for(int i= 0; i < NSIMD; i++) {
 
@@ -425,10 +427,10 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
             if(p_f->id[i] > 0) {
                 integer imrk   = p_f->index[i];
                 integer ipoint = data->mrk_pnt[imrk];
-                integer idx    = imrk * data->Npnt + ipoint;
+                integer idx    = imrk * params->number_of_points_per_marker + ipoint;
 
                 /* If this is the first time-step, record marker position. */
-                if( data->id[imrk * data->Npnt] == 0 ) {
+                if( data->id[imrk * params->number_of_points_per_marker] == 0 ) {
                     data->id[idx]     = (real)(p_i->id[i]);
                     data->mileage[idx]= p_i->mileage[i];
                     data->r[idx]      = p_i->r[i];
@@ -447,7 +449,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                     data->simmode[idx]= DIAG_ORB_GC;
 
                     ipoint++;
-                    if(ipoint == data->Npnt) {
+                    if(ipoint == params->number_of_points_per_marker) {
                         ipoint = 0;
                     }
                     data->mrk_pnt[imrk]      = ipoint;
@@ -456,11 +458,11 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
 
                 /* Record marker if enough time has passed from last record, or
                    if marker has met some end condition. */
-                real dt = data->mrk_recorded[imrk] + data->writeInterval
+                real dt = data->mrk_recorded[imrk] + params->interval
                     - p_f->mileage[i];
 
                 if( dt <= 0 || p_f->endcond[i] > 0 ) {
-                                    idx = imrk * data->Npnt + ipoint;
+                    idx = imrk * params->number_of_points_per_marker + ipoint;
 
                     data->id[idx]     = (real)p_f->id[i];
                     data->mileage[idx]= p_f->mileage[i];
@@ -480,7 +482,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                     data->simmode[idx]= DIAG_ORB_GC;
 
                     ipoint++;
-                    if(ipoint == data->Npnt) {
+                    if(ipoint == params->number_of_points_per_marker) {
                         ipoint = 0;
                     }
                     data->mrk_pnt[imrk]      = ipoint;
@@ -489,7 +491,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
             }
         }
     }
-    else if(data->mode == DIAG_ORB_POINCARE) {
+    else {
         #pragma omp simd
         for(int i= 0; i < NSIMD; i++) {
             /* Mask dummy markers and those whose time-step was rejected. */
@@ -498,15 +500,15 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                 real k;
                 integer imrk   = p_f->index[i];
                 integer ipoint = data->mrk_pnt[imrk];
-                integer idx    = imrk * data->Npnt + ipoint;
+                integer idx    = imrk * params->number_of_points_per_marker + ipoint;
 
                 /* Check and store toroidal crossings. */
-                for(int j=0; j < data->ntoroidalplots; j++) {
-                    k = diag_orb_check_plane_crossing(p_f->phi[i], p_i->phi[i],
-                                                      data->toroidalangles[j]);
+                for(int j=0; j < params->ntoroidalplots; j++) {
+                    k = diag_orb_check_plane_crossing(
+                        p_f->phi[i], p_i->phi[i], params->toroidal_angles[j]);
                     if(k) {
                         real d = 1-k;
-                        idx = imrk * data->Npnt + ipoint;
+                        idx = imrk * params->number_of_points_per_marker + ipoint;
                         data->id[idx]     = (real)p_f->id[i];
                         data->mileage[idx]= k*p_f->mileage[i]+ d*p_i->mileage[i];
                         data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
@@ -527,7 +529,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         data->simmode[idx]= DIAG_ORB_GC;
 
                         ipoint++;
-                        if(ipoint == data->Npnt) {
+                        if(ipoint == params->number_of_points_per_marker) {
                             ipoint = 0;
                         }
                         data->mrk_pnt[imrk]      = ipoint;
@@ -536,13 +538,12 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                 }
 
                 /* Check and store poloidal crossings. */
-                for(int j=0; j < data->npoloidalplots; j++) {
-                    k = diag_orb_check_plane_crossing(p_f->theta[i],
-                                                      p_i->theta[i],
-                                                      data->poloidalangles[j]);
+                for(int j=0; j < params->npoloidalplots; j++) {
+                    k = diag_orb_check_plane_crossing(
+                        p_f->theta[i], p_i->theta[i], params->poloidal_angles[j]);
                     if(k) {
                         real d = 1-k;
-                        idx = imrk * data->Npnt + ipoint;
+                        idx = imrk * params->number_of_points_per_marker + ipoint;
                         data->id[idx]     = (real)p_f->id[i];
                         data->mileage[idx]= k*p_f->mileage[i]+ d*p_i->mileage[i];
                         data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
@@ -558,12 +559,12 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
-                        data->pncrid[idx] = j + data->ntoroidalplots;
+                        data->pncrid[idx] = j + params->ntoroidalplots;
                         data->pncrdi[idx] = 1 - 2 * (p_f->theta[i] < p_i->theta[i]);
                         data->simmode[idx]= DIAG_ORB_GC;
 
                         ipoint++;
-                        if(ipoint == data->Npnt) {
+                        if(ipoint == params->number_of_points_per_marker) {
                             ipoint = 0;
                         }
                         data->mrk_pnt[imrk]      = ipoint;
@@ -573,13 +574,12 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
 
 
                 /* Check and store radial crossings. */
-                for(int j=0; j < data->nradialplots; j++) {
-                    k = diag_orb_check_radial_crossing(p_f->rho[i],
-                                                      p_i->rho[i],
-                                                      data->radialdistances[j]);
+                for(int j=0; j < params->nradialplots; j++) {
+                    k = diag_orb_check_radial_crossing(
+                        p_f->rho[i], p_i->rho[i], params->radial_distances[j]);
                     if(k) {
                         real d = 1-k;
-                        idx = imrk * data->Npnt + ipoint;
+                        idx = imrk * params->number_of_points_per_marker + ipoint;
                         data->id[idx]     = (real)p_f->id[i];
                         data->mileage[idx]= k*p_f->mileage[i]+ d*p_i->mileage[i];
                         data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
@@ -596,11 +596,11 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
                         data->pncrid[idx] =
-                                j + data->ntoroidalplots + data->npoloidalplots;
+                                j + params->ntoroidalplots + params->npoloidalplots;
                         data->pncrdi[idx] = 1 - 2 * (p_f->rho[i] < p_i->rho[i]);
 
                         ipoint++;
-                        if(ipoint == data->Npnt) {
+                        if(ipoint == params->number_of_points_per_marker) {
                             ipoint = 0;
                         }
                         data->mrk_pnt[imrk]      = ipoint;
@@ -621,10 +621,10 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
  *        current time-step
  */
-void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
-                        particle_simd_ml* p_i) {
+void diag_orb_update_ml(diag_orb_data* data, sim_parameters* params,
+                        particle_simd_ml* p_f, particle_simd_ml* p_i) {
 
-    if(data->mode == DIAG_ORB_INTERVAL) {
+    if(!params->poincare) {
 
         #pragma omp simd
         for(int i= 0; i < NSIMD; i++) {
@@ -633,10 +633,10 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
             if(p_f->id[i] > 0) {
                 integer imrk   = p_f->index[i];
                 integer ipoint = data->mrk_pnt[imrk];
-                integer idx    = imrk * data->Npnt + ipoint;
+                integer idx    = imrk * params->number_of_points_per_marker + ipoint;
 
                 /* If this is the first time-step, record marker position. */
-                if( data->id[imrk * data->Npnt] == 0 ) {
+                if( data->id[imrk * params->number_of_points_per_marker] == 0 ) {
                     data->id[idx]      = (real)p_i->id[i];
                     data->mileage[idx] = p_i->mileage[i];
                     data->r[idx]       = p_i->r[i];
@@ -650,7 +650,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                     data->simmode[idx] = DIAG_ORB_ML;
 
                     ipoint++;
-                    if(ipoint == data->Npnt) {
+                    if(ipoint == params->number_of_points_per_marker) {
                         ipoint = 0;
                     }
                     data->mrk_pnt[imrk]      = ipoint;
@@ -659,10 +659,10 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
 
                 /* Record marker if enough time has passed from last record, or
                    if marker has met some end condition. */
-                real dt = data->mrk_recorded[imrk] + data->writeInterval
+                real dt = data->mrk_recorded[imrk] + params->interval
                     - p_f->mileage[i];
                 if( dt <= 0 || p_f->endcond[i] > 0 ) {
-                    idx = imrk * data->Npnt + ipoint;
+                    idx = imrk * params->number_of_points_per_marker + ipoint;
                     data->id[idx]      = (real)p_f->id[i];
                     data->mileage[idx] = p_f->mileage[i];
                     data->r[idx]       = p_f->r[i];
@@ -676,7 +676,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                     data->simmode[idx] = DIAG_ORB_ML;
 
                     ipoint++;
-                    if(ipoint == data->Npnt) {
+                    if(ipoint == params->number_of_points_per_marker) {
                         ipoint = 0;
                     }
                     data->mrk_pnt[imrk]      = ipoint;
@@ -685,7 +685,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
             }
         }
     }
-    else if(data->mode == DIAG_ORB_POINCARE) {
+    else {
         #pragma omp simd
         for(int i= 0; i < NSIMD; i++) {
             /* Mask dummy markers and thosw whose time-step was rejected. */
@@ -694,15 +694,15 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                 real k;
                 integer imrk   = p_f->index[i];
                 integer ipoint = data->mrk_pnt[imrk];
-                integer idx    = imrk * data->Npnt + ipoint;
+                integer idx    = imrk * params->number_of_points_per_marker + ipoint;
 
                 /* Check and store toroidal crossings. */
-                for(int j=0; j < data->ntoroidalplots; j++) {
-                    k = diag_orb_check_plane_crossing(p_f->phi[i], p_i->phi[i],
-                                                      data->toroidalangles[j]);
+                for(int j=0; j < params->ntoroidalplots; j++) {
+                    k = diag_orb_check_plane_crossing(
+                        p_f->phi[i], p_i->phi[i], params->toroidal_angles[j]);
                     if(k) {
                         real d = 1-k;
-                        idx = imrk * data->Npnt + ipoint;
+                        idx = imrk * params->number_of_points_per_marker + ipoint;
                         data->id[idx]     = (real)p_f->id[i];
                         data->mileage[idx]= k*p_f->mileage[i]+ d*p_i->mileage[i];
                         data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
@@ -718,7 +718,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                         data->simmode[idx]= DIAG_ORB_ML;
 
                         ipoint++;
-                        if(ipoint == data->Npnt) {
+                        if(ipoint == params->number_of_points_per_marker) {
                             ipoint = 0;
                         }
                         data->mrk_pnt[imrk]      = ipoint;
@@ -727,13 +727,12 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                 }
 
                 /* Check and store poloidal crossings. */
-                for(int j=0; j < data->npoloidalplots; j++) {
-                    k = diag_orb_check_plane_crossing(p_f->theta[i],
-                                                      p_i->theta[i],
-                                                      data->poloidalangles[j]);
+                for(int j=0; j < params->npoloidalplots; j++) {
+                    k = diag_orb_check_plane_crossing(
+                        p_f->theta[i], p_i->theta[i], params->poloidal_angles[j]);
                     if(k) {
                         real d = 1-k;
-                        idx = imrk * data->Npnt + ipoint;
+                        idx = imrk * params->number_of_points_per_marker + ipoint;
                         data->id[idx]     = (real)p_f->id[i];
                         data->mileage[idx]= k*p_f->mileage[i] + d*p_i->mileage[i];
                         data->r[idx]      = k*p_f->r[i]       + d*p_i->r[i];
@@ -744,12 +743,12 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                         data->B_r[idx]    = k*p_f->B_r[i]     + d*p_i->B_r[i];
                         data->B_phi[idx]  = k*p_f->B_phi[i]   + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]     + d*p_i->B_z[i];
-                        data->pncrid[idx] = j + data->ntoroidalplots;
+                        data->pncrid[idx] = j + params->ntoroidalplots;
                         data->pncrdi[idx] = 1 - 2 * (p_f->theta[i] < p_i->theta[i]);
                         data->simmode[idx]= DIAG_ORB_ML;
 
                         ipoint++;
-                        if(ipoint == data->Npnt) {
+                        if(ipoint == params->number_of_points_per_marker) {
                             ipoint = 0;
                         }
                         data->mrk_pnt[imrk]      = ipoint;
@@ -758,13 +757,12 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                 }
 
                 /* Check and store radial crossings. */
-                for(int j=0; j < data->nradialplots; j++) {
-                    k = diag_orb_check_radial_crossing(p_f->rho[i],
-                                                      p_i->rho[i],
-                                                      data->radialdistances[j]);
+                for(int j=0; j < params->nradialplots; j++) {
+                    k = diag_orb_check_radial_crossing(
+                        p_f->rho[i], p_i->rho[i], params->radial_distances[j]);
                     if(k) {
                         real d = 1-k;
-                        idx = imrk * data->Npnt + ipoint;
+                        idx = imrk * params->number_of_points_per_marker + ipoint;
                         data->id[idx]     = (real)p_f->id[i];
                         data->mileage[idx]= k*p_f->mileage[i] + d*p_i->mileage[i];
                         data->r[idx]      = k*p_f->r[i]       + d*p_i->r[i];
@@ -776,10 +774,10 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                         data->B_phi[idx]  = k*p_f->B_phi[i]   + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]     + d*p_i->B_z[i];
                         data->pncrid[idx] =
-                                j + data->ntoroidalplots + data->npoloidalplots;
+                                j + params->ntoroidalplots + params->npoloidalplots;
 
                         ipoint++;
-                        if(ipoint == data->Npnt) {
+                        if(ipoint == params->number_of_points_per_marker) {
                             ipoint = 0;
                         }
 

@@ -33,9 +33,9 @@ typedef enum mhd_type {
  * is declared using the `type` field.
  */
 typedef struct {
-    mhd_type type;            /**< MHD type wrapped by this struct     */
-    mhd_stat_data stat;       /**< Stat field or NULL if not active    */
-    mhd_nonstat_data nonstat; /**< Nonstat field or NULL if not active */
+    mhd_stat_data* stat;       /**< Stat field or NULL if not active    */
+    mhd_nonstat_data* nonstat; /**< Nonstat field or NULL if not active */
+    mhd_type type;             /**< MHD type wrapped by this struct     */
 } mhd_data;
 
 void mhd_free(mhd_data* data);

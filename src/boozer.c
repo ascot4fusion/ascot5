@@ -21,28 +21,28 @@
  * - theta(psi_i, thetag_j) = array[j*npsi + i]
  *
  * @param data pointer to the data struct
- * @param npsi Number of psi grid points in `nu` and `theta` data
+ * @param npsi Number of psi grid points in nu and theta data
  * @param psi_min minimum value in the psi grid
  * @param psi_max maximum value in the psi grid
- * @param ntheta number of boozer theta grid points in `nu` data
- * @param nthetag number of geometric theta grid points in `theta` data
+ * @param ntheta number of boozer theta grid points in nu data
+ * @param nthetag number of geometric theta grid points in theta data
  * @param nu the difference between cylindrical angle phi and toroidal boozer
  *           coordinate zeta, phi = zeta + nu [rad]
  * @param theta the boozer poloidal angle [rad]
- * @param nrzs the number of elements in `rs` and `zs`
+ * @param nrzs the number of elements in rs and zs
  * @param rs separatrix contour R coordinates [m]
  * @param zs separatrix contour z coordinates [m]
  *
  * @return zero if initialization succeeded.
  */
 int boozer_init(boozer_data* data, int npsi, real psi_min, real psi_max,
-                int ntheta, int nthetag, real* nu, real* theta,
+                int ntheta, int nthetag, int npadding, real* nu, real* theta,
                 int nrzs, real* rs, real* zs) {
 
     int err = 0;
     real THETAMIN = 0;
     real THETAMAX = CONST_2PI;
-    real padding = ( 4.0*CONST_2PI ) / ( nthetag - 2*4.0 - 1 );
+    real padding = ( npadding*CONST_2PI ) / ( nthetag - 2*npadding - 1 );
     data->psi_min = psi_min;
     data->psi_max = psi_max;
 
@@ -60,14 +60,6 @@ int boozer_init(boozer_data* data, int npsi, real psi_min, real psi_max,
         data->rs[i] = rs[i];
         data->zs[i] = zs[i];
     }
-
-    /* Print some sanity check on data */
-    print_out(VERBOSE_IO, "\nBoozer input\n");
-    print_out(VERBOSE_IO, "psi grid: n = %4.d min = %3.3f max = %3.3f\n",
-              npsi, psi_min, psi_max);
-    print_out(VERBOSE_IO, "thetageo grid: n = %4.d\n", nthetag);
-    print_out(VERBOSE_IO, "thetabzr grid: n = %4.d\n", ntheta);
-
     return err;
 }
 

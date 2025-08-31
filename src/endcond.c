@@ -54,10 +54,24 @@
 #include "endcond.h"
 #include "particle.h"
 #include "simulate.h"
+#include "options.h"
 #include "physlib.h"
 #include "consts.h"
 #include "math.h"
 #include "plasma.h"
+
+const unsigned int endcond_tlim   = (1u <<  0); /**< Simulation time limit                   */
+const unsigned int endcond_emin   = (1u <<  1); /**< Minimum energy                          */
+const unsigned int endcond_therm  = (1u <<  2); /**< Thermalized                             */
+const unsigned int endcond_wall   = (1u <<  3); /**< Wall collision                          */
+const unsigned int endcond_rhomin = (1u <<  4); /**< Minimum rho                             */
+const unsigned int endcond_rhomax = (1u <<  5); /**< Maximum rho                             */
+const unsigned int endcond_polmax = (1u <<  6); /**< Poloidal limit                          */
+const unsigned int endcond_tormax = (1u <<  7); /**< Toroidal limit                          */
+const unsigned int endcond_cpumax = (1u <<  8); /**< Wall time exceeded                      */
+const unsigned int endcond_hybrid = (1u <<  9); /**< Hybrid mode condition                   */
+const unsigned int endcond_neutr  = (1u << 10); /**< Neutralized                             */
+const unsigned int endcond_ioniz  = (1u << 11);  /**< Ionized                                 */
 
 /**
  * @brief Check end conditions for FO markers
@@ -72,20 +86,21 @@
  */
 void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                       sim_data* sim) {
+    sim_parameters* params = sim->params;
 
     /* Note which end conditions are set as active.
        Only these ones are checked */
-    int active_tlim      = sim->endcond_active & endcond_tlim;
-    int active_wall      = sim->endcond_active & endcond_wall;
-    int active_emin      = sim->endcond_active & endcond_emin;
-    int active_therm     = sim->endcond_active & endcond_therm;
-    int active_rhomax    = sim->endcond_active & endcond_rhomax;
-    int active_rhomin    = sim->endcond_active & endcond_rhomin;
-    int active_polmax    = sim->endcond_active & endcond_polmax;
-    int active_tormax    = sim->endcond_active & endcond_tormax;
-    int active_cpumax    = sim->endcond_active & endcond_cpumax;
-    int active_neutr     = sim->endcond_active & endcond_neutr;
-    int active_ioniz     = sim->endcond_active & endcond_ioniz;
+    int active_tlim   = params->endcond_active & endcond_tlim;
+    int active_wall   = params->endcond_active & endcond_wall;
+    int active_emin   = params->endcond_active & endcond_emin;
+    int active_therm  = params->endcond_active & endcond_therm;
+    int active_rhomax = params->endcond_active & endcond_rhomax;
+    int active_rhomin = params->endcond_active & endcond_rhomin;
+    int active_polmax = params->endcond_active & endcond_polmax;
+    int active_tormax = params->endcond_active & endcond_tormax;
+    int active_cpumax = params->endcond_active & endcond_cpumax;
+    int active_neutr  = params->endcond_active & endcond_neutr;
+    int active_ioniz  = params->endcond_active & endcond_ioniz;
 
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < p_f->n_mrk; i++) {
@@ -113,15 +128,15 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
 
             /* Check if the marker time exceeds simulation time */
             if(active_tlim) {
-                if(!sim->reverse_time && p_f->time[i] > sim->endcond_lim_simtime) {
+                if(!params->reverse_time && p_f->time[i] > params->lab_time_limit) {
                     p_f->endcond[i] |= endcond_tlim;
                     p_f->running[i] = 0;
                 }
-                if(sim->reverse_time && p_f->time[i] < sim->endcond_lim_simtime) {
+                if(params->reverse_time && p_f->time[i] < params->lab_time_limit) {
                     p_f->endcond[i] |= endcond_tlim;
                     p_f->running[i] = 0;
                 }
-                if(p_f->mileage[i] > sim->endcond_max_mileage) {
+                if(p_f->mileage[i] > params->max_mileage) {
                     p_f->endcond[i] |= endcond_tlim;
                     p_f->running[i] = 0;
                 }
@@ -167,11 +182,11 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                     Ti = 0;
                 }
 
-                if( active_emin && (ekin < sim->endcond_min_ekin) ) {
+                if( active_emin && (ekin < params->min_energy) ) {
                     p_f->endcond[i] |= endcond_emin;
                     p_f->running[i] = 0;
                 }
-                if( active_therm && (ekin < (sim->endcond_min_thermal * Ti)) ) {
+                if( active_therm && (ekin < (params->min_local_thermal_energy * Ti)) ) {
                     p_f->endcond[i] |= endcond_therm;
                     p_f->running[i] = 0;
                 }
@@ -179,13 +194,13 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
 
             /* Check if marker is not within the rho limits */
             if(active_rhomax) {
-                if(p_f->rho[i] > sim->endcond_max_rho) {
+                if(p_f->rho[i] > params->rho_coordinate_limits[1]) {
                     p_f->endcond[i] |= endcond_rhomax;
                     p_f->running[i] = 0;
                 }
             }
             if(active_rhomin) {
-                if(p_f->rho[i] < sim->endcond_min_rho) {
+                if(p_f->rho[i] < params->rho_coordinate_limits[0]) {
                     p_f->endcond[i] |= endcond_rhomin;
                     p_f->running[i] = 0;
                 }
@@ -194,32 +209,32 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
             /* Check if marker exceeds toroidal or poloidal limits */
             int maxorb = 0;
             if(active_tormax) {
-                if(fabs(p_f->phi[i]) > sim->endcond_max_tororb) {
+                if(fabs(p_f->phi[i]) > params->max_number_of_toroidal_orbits) {
                     maxorb |= endcond_tormax;
                 }
             }
             if(active_polmax) {
-                if(fabs(p_f->theta[i]) > sim->endcond_max_polorb) {
+                if(fabs(p_f->theta[i]) > params->max_number_of_poloidal_orbits) {
                     maxorb |= endcond_polmax;
                 }
                 else if( p_f->bounces[i] - 1 >=
-                         (int)(sim->endcond_max_polorb / CONST_2PI )) {
+                         (int)(params->max_number_of_poloidal_orbits / CONST_2PI )) {
                     maxorb |= endcond_polmax;
                 }
             }
-            if( sim->endcond_torandpol &&
+            if( params->require_both_tor_and_pol &&
                 maxorb & endcond_tormax && maxorb & endcond_polmax ) {
                 p_f->endcond[i] |= maxorb;
                 p_f->running[i] = 0;
             }
-            else if(!sim->endcond_torandpol && maxorb) {
+            else if(!params->require_both_tor_and_pol && maxorb) {
                 p_f->endcond[i] |= maxorb;
                 p_f->running[i] = 0;
             }
             /* Check if the time spent simulating this marker exceeds the
              * given limit*/
             if(active_cpumax) {
-                if(p_f->cputime[i] > sim->endcond_max_cputime) {
+                if(p_f->cputime[i] > params->max_real_time) {
                     p_f->endcond[i] |= endcond_cpumax;
                     p_f->running[i] = 0;
                 }
@@ -261,20 +276,20 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
  */
 void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
                       sim_data* sim) {
-    int i;
+    sim_parameters* params = sim->params;
 
-    int active_tlim      = sim->endcond_active & endcond_tlim;
-    int active_wall      = sim->endcond_active & endcond_wall;
-    int active_emin      = sim->endcond_active & endcond_emin;
-    int active_therm     = sim->endcond_active & endcond_therm;
-    int active_rhomax    = sim->endcond_active & endcond_rhomax;
-    int active_rhomin    = sim->endcond_active & endcond_rhomin;
-    int active_polmax    = sim->endcond_active & endcond_polmax;
-    int active_tormax    = sim->endcond_active & endcond_tormax;
-    int active_cpumax    = sim->endcond_active & endcond_cpumax;
+    int active_tlim   = params->endcond_active & endcond_tlim;
+    int active_wall   = params->endcond_active & endcond_wall;
+    int active_emin   = params->endcond_active & endcond_emin;
+    int active_therm  = params->endcond_active & endcond_therm;
+    int active_rhomax = params->endcond_active & endcond_rhomax;
+    int active_rhomin = params->endcond_active & endcond_rhomin;
+    int active_polmax = params->endcond_active & endcond_polmax;
+    int active_tormax = params->endcond_active & endcond_tormax;
+    int active_cpumax = params->endcond_active & endcond_cpumax;
 
     #pragma omp simd
-    for(i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
             /* Update bounces if pitch changed sign */
             if( p_i->ppar[i] * p_f->ppar[i] < 0 ) {
@@ -295,15 +310,15 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
 
             /* Check if the marker time exceeds simulation time */
             if(active_tlim) {
-                if(!sim->reverse_time && p_f->time[i] > sim->endcond_lim_simtime) {
+                if(!params->reverse_time && p_f->time[i] > params->lab_time_limit) {
                     p_f->endcond[i] |= endcond_tlim;
                     p_f->running[i] = 0;
                 }
-                if(sim->reverse_time && p_f->time[i] < sim->endcond_lim_simtime) {
+                if(params->reverse_time && p_f->time[i] < params->lab_time_limit) {
                     p_f->endcond[i] |= endcond_tlim;
                     p_f->running[i] = 0;
                 }
-                if(p_f->mileage[i] > sim->endcond_max_mileage) {
+                if(p_f->mileage[i] > params->max_mileage) {
                     p_f->endcond[i] |= endcond_tlim;
                     p_f->running[i] = 0;
                 }
@@ -345,11 +360,11 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
                     Ti = 0;
                 }
 
-                if(active_emin && (ekin < sim->endcond_min_ekin) ) {
+                if(active_emin && (ekin < params->min_energy) ) {
                     p_f->endcond[i] |= endcond_emin;
                     p_f->running[i] = 0;
                 }
-                if( active_therm && (ekin < (sim->endcond_min_thermal * Ti)) ) {
+                if( active_therm && (ekin < (params->min_local_thermal_energy * Ti)) ) {
                     p_f->endcond[i] |= endcond_therm;
                     p_f->running[i] = 0;
                 }
@@ -357,13 +372,13 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
 
             /* Check if marker is not within the rho limits */
             if(active_rhomax) {
-                if(p_f->rho[i] > sim->endcond_max_rho) {
+                if(p_f->rho[i] > params->rho_coordinate_limits[1]) {
                     p_f->endcond[i] |= endcond_rhomax;
                     p_f->running[i] = 0;
                 }
             }
             if(active_rhomin) {
-                if(p_f->rho[i] < sim->endcond_min_rho) {
+                if(p_f->rho[i] < params->rho_coordinate_limits[0]) {
                     p_f->endcond[i] |= endcond_rhomin;
                     p_f->running[i] = 0;
                 }
@@ -372,25 +387,25 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
             /* Check if marker exceeds toroidal or poloidal limits */
             int maxorb = 0;
             if(active_tormax) {
-                if(fabs(p_f->phi[i]) > sim->endcond_max_tororb) {
+                if(fabs(p_f->phi[i]) > params->max_number_of_toroidal_orbits) {
                     maxorb |= endcond_tormax;
                 }
             }
             if(active_polmax) {
-                if(fabs(p_f->theta[i]) > sim->endcond_max_polorb) {
+                if(fabs(p_f->theta[i]) > params->max_number_of_poloidal_orbits) {
                     maxorb |= endcond_polmax;
                 }
                 else if(p_f->bounces[i] - 1 >=
-                        (int)(sim->endcond_max_polorb / CONST_2PI)) {
+                        (int)(params->max_number_of_poloidal_orbits / CONST_2PI)) {
                     maxorb |= endcond_polmax;
                 }
             }
-            if( sim->endcond_torandpol &&
+            if( params->require_both_tor_and_pol &&
                 maxorb & endcond_tormax && maxorb & endcond_polmax ) {
                 p_f->endcond[i] |= maxorb;
                 p_f->running[i] = 0;
             }
-            else if(!sim->endcond_torandpol && maxorb) {
+            else if(!params->require_both_tor_and_pol && maxorb) {
                 p_f->endcond[i] |= maxorb;
                 p_f->running[i] = 0;
             }
@@ -398,7 +413,7 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
             /* Check if the time spent simulating this marker exceeds the
              * given limit*/
             if(active_cpumax) {
-                if(p_f->cputime[i] > sim->endcond_max_cputime) {
+                if(p_f->cputime[i] > params->max_real_time) {
                     p_f->endcond[i] |= endcond_cpumax;
                     p_f->running[i] = 0;
                 }
@@ -406,8 +421,8 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
 
             /* If hybrid mode is used, check whether this marker meets the hybrid
              * condition. */
-            if(sim->sim_mode == 3) {
-                if(p_f->rho[i] > sim->endcond_max_rho) {
+            if(params->simulation_mode == simulate_mode_hybrid) {
+                if(p_f->rho[i] > params->rho_coordinate_limits[1]) {
                     p_f->endcond[i] |= endcond_hybrid;
                     p_f->running[i] = 0;
                 }
@@ -434,30 +449,29 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
  */
 void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
                       sim_data* sim) {
-    int i;
-
-    int active_tlim      = sim->endcond_active & endcond_tlim;
-    int active_wall      = sim->endcond_active & endcond_wall;
-    int active_rhomax    = sim->endcond_active & endcond_rhomax;
-    int active_rhomin    = sim->endcond_active & endcond_rhomin;
-    int active_polmax    = sim->endcond_active & endcond_polmax;
-    int active_tormax    = sim->endcond_active & endcond_tormax;
-    int active_cpumax    = sim->endcond_active & endcond_cpumax;
+    sim_parameters* params = sim->params;
+    int active_tlim   = params->endcond_active & endcond_tlim;
+    int active_wall   = params->endcond_active & endcond_wall;
+    int active_rhomax = params->endcond_active & endcond_rhomax;
+    int active_rhomin = params->endcond_active & endcond_rhomin;
+    int active_polmax = params->endcond_active & endcond_polmax;
+    int active_tormax = params->endcond_active & endcond_tormax;
+    int active_cpumax = params->endcond_active & endcond_cpumax;
 
     #pragma omp simd
-    for(i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
             /* Check if the marker time exceeds simulation time */
             if(active_tlim) {
-                if(!sim->reverse_time && p_f->time[i] > sim->endcond_lim_simtime) {
+                if(!params->reverse_time && p_f->time[i] > params->lab_time_limit) {
                     p_f->endcond[i] |= endcond_tlim;
                     p_f->running[i] = 0;
                 }
-                if(sim->reverse_time && p_f->time[i] < sim->endcond_lim_simtime) {
+                if(params->reverse_time && p_f->time[i] < params->lab_time_limit) {
                     p_f->endcond[i] |= endcond_tlim;
                     p_f->running[i] = 0;
                 }
-                if(p_f->mileage[i] > sim->endcond_max_mileage) {
+                if(p_f->mileage[i] > params->max_mileage) {
                     p_f->endcond[i] |= endcond_tlim;
                     p_f->running[i] = 0;
                 }
@@ -479,13 +493,13 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
 
             /* Check if marker is not within the rho limits */
             if(active_rhomax) {
-                if(p_f->rho[i] > sim->endcond_max_rho) {
+                if(p_f->rho[i] > params->rho_coordinate_limits[1]) {
                     p_f->endcond[i] |= endcond_rhomax;
                     p_f->running[i] = 0;
                 }
             }
             if(active_rhomin) {
-                if(p_f->rho[i] < sim->endcond_min_rho) {
+                if(p_f->rho[i] < params->rho_coordinate_limits[0]) {
                     p_f->endcond[i] |= endcond_rhomin;
                     p_f->running[i] = 0;
                 }
@@ -494,21 +508,21 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
             /* Check if marker exceeds toroidal or poloidal limits */
             int maxorb = 0;
             if(active_tormax) {
-                if(fabs(p_f->phi[i]) > sim->endcond_max_tororb) {
+                if(fabs(p_f->phi[i]) > params->max_number_of_toroidal_orbits) {
                     maxorb |= endcond_tormax;
                 }
             }
             if(active_polmax) {
-                if(fabs(p_f->theta[i]) > sim->endcond_max_polorb) {
+                if(fabs(p_f->theta[i]) > params->max_number_of_poloidal_orbits) {
                     maxorb |= endcond_polmax;
                 }
             }
-            if( sim->endcond_torandpol &&
+            if( params->require_both_tor_and_pol &&
                 maxorb & endcond_tormax && maxorb & endcond_polmax ) {
                 p_f->endcond[i] |= maxorb;
                 p_f->running[i] = 0;
             }
-            else if(!sim->endcond_torandpol && maxorb) {
+            else if(!params->require_both_tor_and_pol && maxorb) {
                 p_f->endcond[i] |= maxorb;
                 p_f->running[i] = 0;
             }
@@ -516,91 +530,11 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
             /* Check if the time spent simulating this marker exceeds the
              * given limit*/
             if(active_cpumax) {
-                if(p_f->cputime[i] > sim->endcond_max_cputime) {
+                if(p_f->cputime[i] > params->max_real_time) {
                     p_f->endcond[i] |= endcond_cpumax;
                     p_f->running[i] = 0;
                 }
             }
         }
-    }
-}
-
-/**
- * @brief Split endcond to an array of end conditions
- *
- * This function splits the bit array end condition to an array
- * where the active end conditions are presented by numbers.
- * Number for each end condition are defined in this function.
- *
- * @param endcond bit array representing marker end conditions
- * @param endconds integer array large enough to hold all end conditions
- */
-void endcond_parse(int endcond, int* endconds) {
-    int i = 0;
-
-    if(endcond & endcond_tlim)   {endconds[i++] =  1;};
-    if(endcond & endcond_emin)   {endconds[i++] =  2;};
-    if(endcond & endcond_therm)  {endconds[i++] =  3;};
-    if(endcond & endcond_wall)   {endconds[i++] =  4;};
-    if(endcond & endcond_rhomin) {endconds[i++] =  5;};
-    if(endcond & endcond_rhomax) {endconds[i++] =  6;};
-    if(endcond & endcond_polmax) {endconds[i++] =  7;};
-    if(endcond & endcond_tormax) {endconds[i++] =  8;};
-    if(endcond & endcond_cpumax) {endconds[i++] =  9;};
-    if(endcond & endcond_hybrid) {endconds[i++] = 10;};
-    if(endcond & endcond_neutr)  {endconds[i++] = 11;};
-    if(endcond & endcond_ioniz)  {endconds[i++] = 12;};
-}
-
-/**
- * @brief Represent end condition in human-readable format
- *
- * This function takes end condition represented as integer, as given by
- * endcond_parse().
- *
- * @param endcond end condition integer representation
- * @param str end condition as human-readable string
- */
-void endcond_parse2str(int endcond, char* str) {
-    int endconds[32];
-    endcond_parse(endcond, endconds);
-
-    switch(endcond) {
-        case 1:
-            sprintf(str, "Sim time limit");
-            break;
-        case 2:
-            sprintf(str, "Min energy");
-            break;
-        case 3:
-            sprintf(str, "Thermalization");
-            break;
-        case 4:
-            sprintf(str, "Wall collision");
-            break;
-        case 5:
-            sprintf(str, "Min rho");
-            break;
-        case 6:
-            sprintf(str, "Max rho");
-            break;
-        case 7:
-            sprintf(str, "Max poloidal orbits");
-            break;
-        case 8:
-            sprintf(str, "Max toroidal orbits");
-            break;
-        case 9:
-            sprintf(str, "CPU time exceeded");
-            break;
-        case 10:
-            sprintf(str, "Hybrid condition");
-            break;
-        case 11:
-            sprintf(str, "Neutralization");
-            break;
-        case 12:
-            sprintf(str, "Ionization");
-            break;
     }
 }

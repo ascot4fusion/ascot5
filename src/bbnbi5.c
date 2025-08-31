@@ -57,7 +57,7 @@ void bbnbi_simulate(
     sim_data* sim, int nprt, real t1, real t2, particle_state** p) {
 
     /* Initialize input data */
-    simulate_init(sim);
+    //simulate_init(sim);
     random_init(&sim->random_data, time(NULL));
 
     /* Calculate total NBI power so that we can distribute markers along

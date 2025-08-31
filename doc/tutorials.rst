@@ -33,6 +33,7 @@ or you can convert these examples to ordinary Python scripts and execute them (e
 .. nbgallery::
    :hidden:
 
+   tutorials/access.ipynb
    tutorials/introduction.ipynb
    tutorials/orbits.ipynb
    tutorials/distributions.ipynb

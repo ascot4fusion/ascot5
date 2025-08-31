@@ -51,7 +51,7 @@ typedef enum error_file {
     EF_ASIGMA            =  26, /**< Error is from asigma.c                   */
     EF_ASIGMA_LOC        =  27, /**< Error is from asigma_loc.c               */
     EF_SUZUKI            =  28  /**< Error is from suzuki.c                   */
-}error_file;
+} error_file;
 
 /**
  * @brief Enum type for indicating type of error.
@@ -69,7 +69,7 @@ typedef enum error_type {
     ERR_INTEGRATION       =   7, /**< Integrating marker coordinates yield
                                       unphysical results                      */
     ERR_ATOMIC_EVALUATION =   8  /**< Failure when evaluating atomic reaction */
-}error_type;
+} error_type;
 
 /**
  * @brief Raise a new error

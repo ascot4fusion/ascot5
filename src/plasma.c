@@ -38,13 +38,13 @@
 void plasma_free(plasma_data* data) {
     switch(data->type) {
         case plasma_type_1D:
-            plasma_1D_free(&data->plasma_1D);
+            plasma_1D_free(data->plasma_1D);
             break;
         case plasma_type_1Dt:
-            plasma_1Dt_free(&data->plasma_1Dt);
+            plasma_1Dt_free(data->plasma_1Dt);
             break;
         case plasma_type_1DS:
-            plasma_1DS_free(&data->plasma_1DS);
+            plasma_1DS_free(data->plasma_1DS);
             break;
     }
 }
@@ -57,13 +57,13 @@ void plasma_free(plasma_data* data) {
 void plasma_offload(plasma_data* data) {
     switch(data->type) {
         case plasma_type_1D:
-            plasma_1D_offload(&data->plasma_1D);
+            plasma_1D_offload(data->plasma_1D);
             break;
         case plasma_type_1Dt:
-            plasma_1Dt_offload(&data->plasma_1Dt);
+            plasma_1Dt_offload(data->plasma_1Dt);
             break;
         case plasma_type_1DS:
-            plasma_1DS_offload(&data->plasma_1DS);
+            plasma_1DS_offload(data->plasma_1DS);
             break;
     }
 }
@@ -93,18 +93,17 @@ a5err plasma_eval_temp(real* temp, real rho, real r, real phi, real z, real t,
 
     switch(pls_data->type) {
         case plasma_type_1D:
-            err = plasma_1D_eval_temp(temp, rho, species,
-                                      &(pls_data->plasma_1D));
+            err = plasma_1D_eval_temp(temp, rho, species, pls_data->plasma_1D);
             break;
 
         case plasma_type_1Dt:
             err = plasma_1Dt_eval_temp(temp, rho, t, species,
-                                       &(pls_data->plasma_1Dt));
+                                       pls_data->plasma_1Dt);
             break;
 
         case plasma_type_1DS:
             err = plasma_1DS_eval_temp(temp, rho, species,
-                                       &(pls_data->plasma_1DS));
+                                       pls_data->plasma_1DS);
             break;
     }
     if(err) {
@@ -142,17 +141,17 @@ a5err plasma_eval_dens(real* dens, real rho, real r, real phi, real z, real t,
     switch(pls_data->type) {
         case plasma_type_1D:
             err = plasma_1D_eval_dens(dens, rho, species,
-                                      &(pls_data->plasma_1D));
+                                      pls_data->plasma_1D);
             break;
 
         case plasma_type_1Dt:
             err = plasma_1Dt_eval_dens(dens, rho, t, species,
-                                       &(pls_data->plasma_1Dt));
+                                       pls_data->plasma_1Dt);
             break;
 
         case plasma_type_1DS:
             err = plasma_1DS_eval_dens(dens, rho, species,
-                                       &(pls_data->plasma_1DS));
+                                       pls_data->plasma_1DS);
             break;
     }
 
@@ -191,17 +190,17 @@ a5err plasma_eval_densandtemp(real* dens, real* temp, real rho,
     switch(pls_data->type) {
         case plasma_type_1D:
             err = plasma_1D_eval_densandtemp(dens, temp,
-                                             rho, &(pls_data->plasma_1D));
+                                             rho, pls_data->plasma_1D);
             break;
 
         case plasma_type_1Dt:
             err = plasma_1Dt_eval_densandtemp(dens, temp,
-                                              rho, t, &(pls_data->plasma_1Dt));
+                                              rho, t, pls_data->plasma_1Dt);
             break;
 
         case plasma_type_1DS:
             err = plasma_1DS_eval_densandtemp(dens, temp,
-                                              rho, &(pls_data->plasma_1DS));
+                                              rho, pls_data->plasma_1DS);
             break;
 
         default:
@@ -241,17 +240,17 @@ a5err plasma_eval_flow(
     switch(pls_data->type) {
         case plasma_type_1D:
             err = plasma_1D_eval_flow(
-                vflow, rho, r, &(pls_data->plasma_1D));
+                vflow, rho, r, pls_data->plasma_1D);
             break;
 
         case plasma_type_1DS:
             err = plasma_1DS_eval_flow(
-                vflow, rho, r, &(pls_data->plasma_1DS));
+                vflow, rho, r, pls_data->plasma_1DS);
             break;
 
         case plasma_type_1Dt:
             err = plasma_1Dt_eval_flow(
-                vflow, rho, t, r, &(pls_data->plasma_1Dt));
+                vflow, rho, t, r, pls_data->plasma_1Dt);
             break;
 
         default:
@@ -285,15 +284,15 @@ int plasma_get_n_species(plasma_data* pls_data) {
     int n = 0;
     switch(pls_data->type) {
         case plasma_type_1D:
-            n = pls_data->plasma_1D.n_species;
+            n = pls_data->plasma_1D->n_species;
             break;
 
         case plasma_type_1Dt:
-            n = pls_data->plasma_1Dt.n_species;
+            n = pls_data->plasma_1Dt->n_species;
             break;
 
         case plasma_type_1DS:
-            n = pls_data->plasma_1DS.n_species;
+            n = pls_data->plasma_1DS->n_species;
             break;
     }
 
@@ -315,15 +314,15 @@ const real* plasma_get_species_mass(plasma_data* pls_data) {
     const real* mass = NULL;
     switch(pls_data->type) {
         case plasma_type_1D:
-            mass = pls_data->plasma_1D.mass;
+            mass = pls_data->plasma_1D->mass;
             break;
 
         case plasma_type_1Dt:
-            mass = pls_data->plasma_1Dt.mass;
+            mass = pls_data->plasma_1Dt->mass;
             break;
 
         case plasma_type_1DS:
-            mass = pls_data->plasma_1DS.mass;
+            mass = pls_data->plasma_1DS->mass;
             break;
     }
 
@@ -345,15 +344,15 @@ const real* plasma_get_species_charge(plasma_data* pls_data) {
     const real* charge = NULL;
     switch(pls_data->type) {
         case plasma_type_1D:
-            charge = pls_data->plasma_1D.charge;
+            charge = pls_data->plasma_1D->charge;
             break;
 
         case plasma_type_1Dt:
-            charge = pls_data->plasma_1Dt.charge;
+            charge = pls_data->plasma_1Dt->charge;
             break;
 
         case plasma_type_1DS:
-            charge = pls_data->plasma_1DS.charge;
+            charge = pls_data->plasma_1DS->charge;
             break;
     }
 
@@ -373,15 +372,15 @@ const int* plasma_get_species_znum(plasma_data* pls_data) {
     const int* znum = NULL;
     switch(pls_data->type) {
         case plasma_type_1D:
-            znum = pls_data->plasma_1D.znum;
+            znum = pls_data->plasma_1D->znum;
             break;
 
         case plasma_type_1Dt:
-            znum = pls_data->plasma_1Dt.znum;
+            znum = pls_data->plasma_1Dt->znum;
             break;
 
         case plasma_type_1DS:
-            znum = pls_data->plasma_1DS.znum;
+            znum = pls_data->plasma_1DS->znum;
             break;
     }
 
@@ -401,15 +400,15 @@ const int* plasma_get_species_anum(plasma_data* pls_data) {
     const int* anum = NULL;
     switch(pls_data->type) {
         case plasma_type_1D:
-            anum = pls_data->plasma_1D.anum;
+            anum = pls_data->plasma_1D->anum;
             break;
 
         case plasma_type_1Dt:
-            anum = pls_data->plasma_1Dt.anum;
+            anum = pls_data->plasma_1Dt->anum;
             break;
 
         case plasma_type_1DS:
-            anum = pls_data->plasma_1DS.anum;
+            anum = pls_data->plasma_1DS->anum;
             break;
     }
 

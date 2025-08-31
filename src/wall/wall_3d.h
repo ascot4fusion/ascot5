@@ -42,8 +42,7 @@ typedef struct {
     int tree_array_size; /* Number of elements in tree_array */
 } wall_3d_data;
 
-int wall_3d_init(wall_3d_data* data, int nelements, real* x1x2x3, real* y1y2y3,
-                 real* z1z2z3, int* flag);
+int wall_3d_init(wall_3d_data* data, int nelements, real* vertices, int* flag);
 void wall_3d_free(wall_3d_data* data);
 void wall_3d_offload(wall_3d_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(w)

@@ -28,9 +28,9 @@ typedef enum neutral_type {
  * is declared using the `type` field.
  */
 typedef struct {
-    neutral_type type; /**< Neutral data type wrapped by this struct */
-    N0_1D_data N01D;   /**< 1D field or NULL if not active           */
-    N0_3D_data N03D;   /**< 3D field or NULL if not active           */
+    N0_1D_data* N01D;   /**< 1D field or NULL if not active           */
+    N0_3D_data* N03D;   /**< 3D field or NULL if not active           */
+    neutral_type type;  /**< Neutral data type wrapped by this struct */
 } neutral_data;
 
 void neutral_free(neutral_data* data);

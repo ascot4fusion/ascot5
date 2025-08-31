@@ -34,9 +34,9 @@ typedef enum E_field_type {
  * is declared using the `type` field.
  */
 typedef struct {
-    E_field_type type; /**< Electric field type wrapped by this struct */
-    E_TC_data ETC;     /**< TC field or NULL if not active             */
-    E_1DS_data E1DS;   /**< 1DS field or NULL if not active            */
+    E_TC_data* ETC;     /**< TC field or NULL if not active             */
+    E_1DS_data* E1DS;   /**< 1DS field or NULL if not active            */
+    E_field_type type;  /**< Electric field type wrapped by this struct */
 } E_field_data;
 
 void E_field_free(E_field_data* data);
