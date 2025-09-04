@@ -18,6 +18,7 @@ ACCESS-LAYER-doc/python/5.4/index.html#/L>`_
 <https://sharepoint.iter.org/departments/POP/CM/IMDesign/Data%20Model/CI/\
 imas-3.42.0/html_documentation.html>`_
 """
+import operator
 import warnings
 
 import unyt
@@ -117,7 +118,7 @@ _MOMENTS = {
     "density":"density_fast",
     "toroidalcurrent":"current_fast_phi",
     "pressure":"pressure_fast",
-    "electronpowerdep":"collisions.electrons.powerthermal",
+    "electronpowerdep":"collisions.electrons.power_thermal",
 }
 """Mapping of ASCOT5 moment names to IMAS distribution names."""
 
@@ -301,7 +302,6 @@ class ImportImas():
                 "No rectangular (R,z) grid found in `equilibrium` IDS "
                 "(profiles_2d)"
             )
-
         profiles_2d, global_quantities = (
             equilibrium_ids.time_slice[_TIMEINDEX].profiles_2d,
             equilibrium_ids.time_slice[_TIMEINDEX].global_quantities,
@@ -329,13 +329,13 @@ class ImportImas():
             "psi":psi,
             "psi0":psi0,
             "psi1":psi1,
-            "bphi":bphi,
+            "bphi":np.array(bphi),
             "rmin":rmin,
             "rmax":rmax,
             "zmin":zmin,
             "zmax":zmax,
-            "axisr":axisr,
-            "axisz":axisz,
+            "axisr":float(axisr),
+            "axisz":float(axisz),
         }
         return "B_2DS", b2d
 
@@ -607,6 +607,9 @@ class ImportImas():
         elif len(grid.rho_tor) and len(eqprof.rho_tor) and len(eqprof.psi):
             psi = np.interp(grid.rho_tor, eqprof.rho_tor, eqprof.psi) / ( 2*np.pi )
             rho = np.sqrt( (psi - psi0) / (psi1 - psi0) )
+        elif len(grid.rho_tor_norm) and len(eqprof.rho_tor_norm) and len(eqprof.psi):
+            psi = np.interp(grid.rho_tor_norm, eqprof.rho_tor_norm, eqprof.psi) / ( 2*np.pi )
+            rho = np.sqrt( (psi - psi0) / (psi1 - psi0) )
         else:
             raise ValueError(
                 "No sufficient data to initialize radial grid."
@@ -619,6 +622,11 @@ class ImportImas():
         znum = np.array([
             profiles_1d.ion[i].element[iElement].z_n for i in range(nion)
         ])
+        idx_not_dummy = np.logical_and.reduce([anum>0, znum>0])
+        anum = anum[idx_not_dummy]
+        znum = znum[idx_not_dummy]
+        nion = anum.size
+
         mass = np.array([
             physlib.species.autodetect(a, z)["mass"] for a, z in zip(anum, znum)
         ]) / unyt.amu
@@ -664,7 +672,8 @@ class ImportImas():
         }
 
         pls = self._ascot.data.create_input(
-            "import plasma profiles", dryrun=True, pls=pls, extrapolate=3.0
+            "import plasma profiles", dryrun=True, pls=pls,
+            extrapolate=3.0, extrapolate_len=0.001
         )
         return "plasma_1D", pls
 
@@ -759,7 +768,7 @@ class ImportImas():
             del mrk
 
         mrk_all["phi"] = mrk_all["phi"].to("deg")
-        mrk_type = "Prt" if _GYRO_TYPE[int(source.gyro_type)] == "actual" else "GC"
+        mrk_type = "prt" if _GYRO_TYPE[int(source.gyro_type)] == "actual" else "gc"
         return mrk_type, mrk_all
 
     def imas_nbi(self, nbi_ids=None):
@@ -884,8 +893,11 @@ class ExportIMAS():
             Same object as the input parameter `distributions_ids` if it was
             given.
         """
+        TIME = 0.0
         SPECIES_TYPE_INV = {v: k for k, v in _SPECIES_TYPE.items()}
         if distributions_ids is None:
+            # Following works for the IMAS-Python
+            #distributions_ids = imas.IDSFactory().distributions()
             distributions_ids = imas.distributions_ids()
             distributions_ids.ids_properties.homogeneous_time = (
                 imas.imasdef.IDS_TIME_MODE_HOMOGENEOUS
@@ -925,34 +937,35 @@ class ExportIMAS():
             d.gyro_type = gyro_type
 
             if anum == 0:
-                species.type.index, species.type.name, species.type.description = (
+                d.species.type.index, d.species.type.name, d.species.type.description = (
                     SPECIES_TYPE_INV["electron"], "electron", "Electron"
                 )
             elif round(charge) == 0:
-                species.type.index, species.type.name, species.type.description = (
+                d.species.type.index, d.species.type.name, d.species.type.description = (
                     SPECIES_TYPE_INV["neutral"], "neutral",
                     "Neutral species in a single/average state; refer to "
                     "neutral-structure"
                 )
             else:
-                species.type.index, species.type.name, species.type.description = (
+                d.species.type.index, d.species.type.name, d.species.type.description = (
                     SPECIES_TYPE_INV["ion"], "ion",
                     "Ion species in a single/average state; refer to "
                     "ion-structure"
                 )
 
-            if _SPECIES_TYPE[species.type.index] in ["electron", "ion"]:
-                element = species.ion.element
+            if _SPECIES_TYPE[int(d.species.type.index)] in ["electron", "ion"]:
+                element = d.species.ion.element
             else:
-                element = species.neutral.element
+                element = d.species.neutral.element
             element.resize(1) # Note that we assume single nucleus species
             element[0].a, element[0].z_n, element[0].atoms_n = (
                 float(mass), float(znum), 1
             )
-            species.z_ion = float(charge)
+            d.species.ion.z_ion = float(charge)
 
             prof2d = d.profiles_2d.resize(_TIMEINDEX+1)
             prof2d = d.profiles_2d[_TIMEINDEX]
+            prof2d.time = np.array([TIME])
             _type = prof2d.grid.type
             _type.index, _type.name, _type.description = (
                 0,
@@ -966,7 +979,11 @@ class ExportIMAS():
             moment = self.getdist_moments(self.getdist("5d"), *_MOMENTS.keys())
             for ascotname, imasname in _MOMENTS.items():
                 ordinate = moment.ordinate(ascotname, toravg=True)
-                setattr(prof2d, imasname, np.array(ordinate))
+                if ascotname == "electronpowerdep":
+                    c = operator.attrgetter("collisions.electrons")(prof2d)
+                    c.power_thermal = np.array(ordinate)
+                else:
+                    setattr(prof2d, imasname, np.array(ordinate))
 
             warningtext = (
                 "5D distribution output still WIP; fill in e.g. profiles_2d:\n"

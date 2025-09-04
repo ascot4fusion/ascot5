@@ -2,6 +2,7 @@
 """
 import unyt
 
+
 speciesdict = {
     "e"     : (  0,  0, -1*unyt.e,   0.0005486*unyt.amu),
     "n"     : (  1,  0,  0*unyt.e,   1.009*unyt.amu),
@@ -10,11 +11,24 @@ speciesdict = {
     "T"     : (  3,  1,  1*unyt.e,   3.016*unyt.amu),
     "He3"   : (  3,  2,  2*unyt.e,   3.016*unyt.amu),
     "He4"   : (  4,  2,  2*unyt.e,   4.003*unyt.amu),
+    "Li6"   : (  6,  3,  3*unyt.e,   6.015*unyt.amu),
+    "Li7"   : (  7,  3,  3*unyt.e,   7.016*unyt.amu),
     "Be9"   : (  9,  4,  4*unyt.e,   9.012*unyt.amu),
+    "B10"   : ( 10,  5,  5*unyt.e,  10.012*unyt.amu),
+    "B11"   : ( 11,  5,  5*unyt.e,  11.009*unyt.amu),
     "C12"   : ( 12,  6,  6*unyt.e,  12.011*unyt.amu),
+    "C13"   : ( 13,  6,  6*unyt.e,  13.003*unyt.amu),
+    "N14"   : ( 14,  7,  7*unyt.e,  14.003*unyt.amu),
+    "N15"   : ( 15,  7,  7*unyt.e,  15.000*unyt.amu),
+    "O16"   : ( 16,  8,  8*unyt.e,  15.994*unyt.amu),
+    "O17"   : ( 17,  8,  8*unyt.e,  16.999*unyt.amu),
+    "O18"   : ( 18,  8,  8*unyt.e,  17.999*unyt.amu),
     "Ne20"  : ( 20, 10, 10*unyt.e,  19.992*unyt.amu),
+    "Ne22"  : ( 22, 10, 10*unyt.e,  21.991*unyt.amu),
+    "Ar36"  : ( 36, 18, 18*unyt.e,  35.967*unyt.amu),
     "Ar40"  : ( 40, 18, 18*unyt.e,  39.962*unyt.amu),
     "Ni59"  : ( 59, 28, 28*unyt.e,  58.934*unyt.amu),
+    "Sn118" : (118, 50, 50*unyt.e, 117.901*unyt.amu),
     "Xe132" : (132, 54, 54*unyt.e, 131.904*unyt.amu),
     "W183"  : (183, 74, 74*unyt.e, 182.950*unyt.amu),
     "W184"  : (184, 74, 74*unyt.e, 183.950*unyt.amu),
