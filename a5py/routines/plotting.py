@@ -468,7 +468,7 @@ def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
 
 @openfigureifnoaxes(projection=None)
 def hist1d(x, xbins=None, weights=None, xlog="linear", logscale=False,
-           xlabel=None, legend=None, axes=None):
+           xlabel=None, ylabel=None, title=None, legend=None, axes=None,skipshow=False, histtype="bar"):
     """Plot (stacked) marker histogram in 1D.
 
     Parameters
@@ -500,7 +500,9 @@ def hist1d(x, xbins=None, weights=None, xlog="linear", logscale=False,
     """
     axes.set_xlabel(xlabel)
     axes.set_xscale(xlog)
-    ylabel = "Markers per bin" if weights is None else "Particles per bin"
+    axes.set_title(title)
+    if ylabel is None:
+        ylabel = "Markers per bin" if weights is None else "Particles per bin"
     axes.set_ylabel(ylabel)
     if not logscale:
         axes.ticklabel_format(style="sci", axis="y", scilimits=(0,0))
@@ -514,8 +516,10 @@ def hist1d(x, xbins=None, weights=None, xlog="linear", logscale=False,
 
     # Plot and legend
     axes.hist(x, xbins, density=False, stacked=True, log=logscale,
-              weights=weights, rwidth=2)
-    axes.legend(legend, frameon=False)
+              weights=weights, rwidth=2, histtype=histtype)
+    if legend is not None:
+        axes.legend(legend, frameon=False)
+    return axes
 
 @openfigureifnoaxes(projection=None)
 def hist2d(x, y, xbins=None, ybins=None, weights=None, xlog="linear",

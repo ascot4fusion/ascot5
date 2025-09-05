@@ -1404,6 +1404,105 @@ class RunMixin(DistMixin):
                        markersize=markersize, axesequal=axesequal, axes=axes,
                        cax=cax)
 
+    def plot_lost_power(self, endcond,
+                        max_initial_rho=100,
+                        logscale=True,
+                        cumulative=True,
+                        axes=None,
+                        ):
+        """Plot the cumulative or non-cumulative lost power.
+
+        Parameters
+        ----------
+        endcond : str
+            Probably "rhomax" or "wall" or ["rhomax", "wall"].
+        max_initial_rho : float, optional
+            Maximum initial rho for the markers that are included. For instance,
+            if the markers are only simulated up to rho=1.0, it does not make
+            sense to count the ones that are initially outside rho=1.0 as lost.
+            Instead, you probably want to include just the markers that started
+            inside rho=1.0.
+        logscale : bool, optional
+            Whether to plot the cumulative or non-cumulative lost power in
+            logarithmic x-scale.
+        cumulative : bool, optional
+            Whether to plot the cumulative or non-cumulative lost power.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        """
+
+        # Get mileage, weight, and Ekin of markers that count as lost
+        ids_lost, lost_initial_rho = self.getstate("ids",
+                                                   "rho",
+                                                   state="ini",
+                                                   endcond=endcond,
+                                                   )
+        ids_lost = ids_lost[lost_initial_rho <= max_initial_rho]
+        mileage_lost, w_lost, ekin_lost = self.getstate("mileage",
+                                                        "weight",
+                                                        "ekin",
+                                                        state="end",
+                                                        ids=ids_lost)
+        ekin_lost = ekin_lost.to("MJ")
+
+        # Craft the time array
+        nbins=300
+        plot_max_time = np.amax(mileage_lost)*1.2
+        if logscale:
+            t_array= np.logspace(-8,
+                                 np.log10(plot_max_time),
+                                 nbins,
+                                 dtype=np.float64,
+                                 )
+            xlog="log"
+        else:
+            t_array= np.linspace(0,
+                                 plot_max_time,
+                                 nbins,
+                                 dtype=np.float64,
+                                 )
+            xlog="linear"
+
+
+        if cumulative:
+            cumulative_lost_power = np.zeros(nbins, dtype=np.float64)*unyt.MW
+            for i in range(nbins):
+                indices_to_sum = (mileage_lost < t_array[i])
+                cumulative_lost_power[i] = np.sum(ekin_lost[indices_to_sum]*w_lost[indices_to_sum])
+
+            axes = a5plt.line2d([t_array],
+                                [cumulative_lost_power],
+                                xlog=xlog,
+                                xlabel="Time [s]",
+                                ylabel=f"Cumulative power lost [{str(cumulative_lost_power.units):s}]",
+                                title=f"Run: \"{self.get_desc():s}\"",
+                                axes=axes, skipshow=True,
+                                )
+            axes.text(t_array[-1],
+                    cumulative_lost_power[-1],
+                    f" {cumulative_lost_power[-1]:.2e}",
+                    )
+            axes.grid(True)
+            axes.set_xlim([t_array[0], t_array[-1]])
+            a5plt.tight_layout(axes)
+            a5plt.show()
+        else:
+            ekin_lost_weighted = (ekin_lost*w_lost).to("MW")
+            axes = a5plt.hist1d(
+                x=mileage_lost,
+                xbins=t_array,
+                weights=ekin_lost_weighted,
+                xlog="log" if logscale else "linear",
+                xlabel="Time [s]",
+                ylabel=f"Lost power per bin [{str(ekin_lost_weighted.units):s}]",
+                title=f"Run: \"{self.get_desc():s}\"",
+                skipshow=True,
+                histtype="step",
+            )
+            axes.grid(True)
+            axes.set_xlim([t_array[0], t_array[-1]])
+            a5plt.show()
+
     @a5plt.openfigureifnoaxes(projection=None)
     def plotwall_convergence(self, qnt, nmin=1000, nsample=10, axes=None,
                              flags=None):
