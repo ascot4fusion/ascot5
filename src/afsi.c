@@ -344,9 +344,9 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n,
     &mprod1, &qprod1, &mprod2, &qprod2, &Q);
     
     real time = 0.0;
-    real rmin = afsi->r[0], rmax = afsi->r[afsi->volshape[0]];
-    real phimin = afsi->phi[0], phimax = afsi->phi[afsi->volshape[1]];
-    real zmin = afsi->z[0], zmax = afsi->z[afsi->volshape[2]];
+    real rmin = afsi->r[0], rmax = afsi->r[1];
+    real phimin = afsi->phi[0], phimax = afsi->phi[1];
+    real zmin = afsi->z[0], zmax = afsi->z[1];
 
     int n_accepted = 0 ;
     int n_samples = 1; 
@@ -356,16 +356,26 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n,
     while (n_accepted < n){
         real r = rmin + (rmax - rmin) * random_uniform(rdata);
         real phi = phimin + (phimax - phimin) * random_uniform(rdata);
+        if (phi < 0.0){
+            phi = phi + 360.0;
+        }
+        real phirad = phi * CONST_PI / 180.0;
         real z = zmin + (zmax - zmin) * random_uniform(rdata);
-        size_t i0 = math_bin_index(r, afsi->volshape[0], rmin, rmax);
-        size_t i1 = math_bin_index(phi, afsi->volshape[1], phimin, phimax);
-        size_t i2 = math_bin_index(z, afsi->volshape[2], zmin, zmax);
-        size_t spatial_index = i0*afsi->volshape[1]*afsi->volshape[2]
-                                     + i1*afsi->volshape[2] + i2;
-        real vol = afsi->vol[spatial_index];
+
+        size_t i0 = 0, i1 = 0, i2 = 0;
+        real vol = 1;
+
+        if (afsi->type1 == 1){
+            i0 = math_bin_index(r, afsi->beam1->axes[0].n, afsi->beam1->axes[0].min, afsi->beam1->axes[0].max);
+            i1 = math_bin_index(phirad, afsi->beam1->axes[1].n, afsi->beam1->axes[1].min, afsi->beam1->axes[1].max);
+            i2 = math_bin_index(z, afsi->beam1->axes[2].n, afsi->beam1->axes[2].min, afsi->beam1->axes[2].max);
+            size_t spatial_index = i0*afsi->volshape[1]*afsi->volshape[2]
+                                        + i1*afsi->volshape[2] + i2;
+            vol = afsi->vol[spatial_index];
+        }
 
         real psi, rho[2], B_cyl[3];
-        real phirad = phi * CONST_PI / 180.0;
+
         if (B_field_eval_psi(&psi, r, phirad, z, time, &sim->B_data) ||
             B_field_eval_rho(rho, psi, &sim->B_data) || B_field_eval_B(B_cyl, r, phi, z, time, &sim->B_data)) {
             continue;
@@ -389,7 +399,7 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n,
         
         afsi_compute_product_velocities_3d(
             0, m1, m2, mprod1, mprod2, Q,
-            &ppara1, &pperp1, &ppara2, &pperp2, &vcom2, B_cyl, not_transformed_vel,
+            &ppara1, &pperp1, &ppara2, &pperp2, &vcom2, B_cart, not_transformed_vel,
             vprod1, vprod2);
 
         real E = 0.5 * (m1 * m2) / (m1 + m2) * vcom2;
