@@ -1503,6 +1503,44 @@ class RunMixin(DistMixin):
             axes.set_xlim([t_array[0], t_array[-1]])
             a5plt.show()
 
+    def plot_powerdep_rhoprofile(self,
+                                 distribution,
+                                 axes=None,
+                                 ylim=[None,None],
+                                 ):
+        """Plot deposited power rho distribution (ion, electron, total).
+
+        Parameters
+        ----------
+        distribution : str
+            The name of the distribution to plot. {rho5d, rho6d}
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        ylim : list, optional
+            y-axis limits
+        """
+        dist = self.getdist(distribution)
+        moments = self.getdist_moments(dist,
+                                       "powerdep",
+                                        "ionpowerdep",
+                                        "electronpowerdep")
+
+        volume_vsrho = np.sum(moments.volume, axis=(1,2))
+        tot_sum = np.sum(moments.ordinate("powerdep", toravg=True, polavg=True)*volume_vsrho)
+        i_sum = np.sum(moments.ordinate("ionpowerdep", toravg=True, polavg=True)*volume_vsrho)
+        e_sum = np.sum(moments.ordinate("electronpowerdep", toravg=True, polavg=True)*volume_vsrho)
+
+        if axes is None:
+            fig, axes = a5plt.subplots()
+        moments.plot("powerdep", axes=axes, label=f"total ({tot_sum:.2e})")
+        moments.plot("ionpowerdep", axes=axes, label=f"ion ({i_sum:.2e})")
+        moments.plot("electronpowerdep", axes=axes, label=f"electron ({e_sum:.2e})")
+        axes.set_ylabel("power deposition [W/m**3]")
+        axes.legend()
+        axes.set_ylim(ylim)
+        a5plt.show()
+
+
     @a5plt.openfigureifnoaxes(projection=None)
     def plotwall_convergence(self, qnt, nmin=1000, nsample=10, axes=None,
                              flags=None):

@@ -843,7 +843,7 @@ class TestMoments(unittest.TestCase):
         mrkdist["canmomtorque"]     = weight * -charge * dPphi
 
         print(weight[0]*tf)
-        print(f"sum(E_end - E_ini) = {((ef-ei)*weight[0]).to("W"):}")
+        print(f"sum(E_end - E_ini) = {((ef-ei)*weight[0]).to('W'):}")
         print("="*100)
         print(f"rzphimom.volume = {np.sum(mom.volume):f}")
         print(f"rhomom.volume = {np.sum(rhomom.volume):f}")
