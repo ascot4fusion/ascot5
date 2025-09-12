@@ -16,7 +16,6 @@
 #include <stdio.h>
 #include <math.h>
 #include "ascot5.h"
-#include "print.h"
 #include "wall.h"
 #include "wall/wall_2d.h"
 #include "wall/wall_3d.h"

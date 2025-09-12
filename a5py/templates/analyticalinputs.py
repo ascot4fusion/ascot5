@@ -6,13 +6,12 @@ import unyt
 from scipy.interpolate import interpn
 from scipy.integrate   import quad
 
-from a5py.physlib import aeq
+from a5py.physlib import aeq, species2properties
 
 from .template import InputTemplate
 
 
 class PremadeMagneticField(InputTemplate):
-
 
     def __init__(self, ascot, field, axisymmetric=True, splines=False):
         """Create one of the premade magnetic fields.
@@ -192,60 +191,52 @@ def add_step_like_ripple(self, b2d=None, ncoil=12, rcoil=8.0,
     return ("B_3DS", out)
 
 
-def create_flat_plasma_profile(
-        density=10e20,
-        temperature=10e3,
-        vtor=0,
-        anum=1,
-        znum=1,
-        charge=1,
-        mass=1,
-        ):
-    """Create uniform single-species plasma that is flat inside the
-    separatrix but inexistent outside.
+class FlatPlasma(InputTemplate):
 
-    Parameters
-    ----------
-    density : float, optional
-        Plasma density.
-    temperature : float, optional
-        Plasma temperature.
-    vtor : float, optional
-        Toroidal flow.
-    anum : int, optional
-        Ion atomic number.
-    znum : int, optional
-        Ion charge number.
-    charge : int, optional
-        Ion charge.
-    mass : int, optional
-        Ion mass.
+    def __init__(
+            self,
+            ascot,
+            density=10e20*unyt.m**-3,
+            temperature=10e3*unyt.eV,
+            rotation=0.0*unyt.m/unyt.s,
+            species="H"
+            ):
+        """Create flat plasma density that is constant inside the separatrix
+        and (almost) zero elsewhere.
 
-    Returns
-    -------
-    gtype : str
-        Type of the generated input data.
-    data : dict
-        Input data that can be passed to ``write_hdf5`` method of
-        a corresponding type.
-    """
-    nrho   = 100
-    rho    = np.transpose( np.linspace(0, 10, nrho) )
-    prof   = np.ones((nrho, 1))
-    vflow  = vtor        * prof
-    edens  = density     * prof
-    etemp  = temperature * prof
-    idens  = density     * prof
-    itemp  = temperature * prof
-    edens[rho>1] = 1
-    idens[rho>1] = 1
+        Parameters
+        ----------
+        ascot : :class:`Ascot`
+            The Ascot object where the input will be created.
+        density : float, optional
+            Plasma density inside the separatrix.
+        temperature : float, optional
+            Plasma temperature (constant everywhere).
+        rotation : float, optional
+            Plasma rotation (constant everywhere).
+        species : str or [str], optional
+            Plasma ion species.
 
-    out = {"nrho" : nrho, "nion" : 1, "anum" : np.array([anum]),
-            "znum" : np.array([znum]), "mass" : np.array([mass]),
-            "charge" : np.array([charge]), "rho" : rho, "vtor" : vflow,
-            "edensity" : edens, "etemperature" : etemp, "idensity" : idens,
-            "itemperature" : itemp}
-    return ("plasma_1D", out)
+            Density of each species is chosen so that the charge density for
+            each species is equal.
+        """
+        if not isinstance(species, list) or not isinstance(species, tuple):
+            species = [species]
+
+        qtot = np.sum([species2properties(s).charge.v for s in species])
+        iondensity = np.ones((4,len(species))) * density
+        iondensity[2:,:] = 1.0
+        iondensity /= qtot
+        data = {
+            "rhogrid":np.array([0.0, 1.0, 1.05, 10.0]),
+            "species":species,
+            "iondensity":iondensity,
+            "iontemperature":np.array([temperature]*4),
+            "electrondensity":np.array([density, density, 1.0, 1.0]),
+            "electrontemperature":np.array([temperature]*4),
+            "rotation":np.array([rotation]*4),
+            }
+        super().__init__(ascot, "plasma1d", data)
 
 
 def create_flat_neutral_profile(self, density=10e20, temperature=10e3, anum=1, znum=1):

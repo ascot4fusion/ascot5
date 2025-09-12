@@ -4,7 +4,6 @@
  */
 #include <stdlib.h>
 #include "../ascot5.h"
-#include "../print.h"
 #include "../error.h"
 #include "../boozer.h"
 #include "../spline/interp.h"

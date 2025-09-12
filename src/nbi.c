@@ -4,7 +4,6 @@
  */
 #include <stdlib.h>
 #include <math.h>
-#include "print.h"
 #include "ascot5.h"
 #include "consts.h"
 #include "physlib.h"
@@ -60,32 +59,7 @@ int nbi_init(nbi_data* data, int ninj, int* id, int* anum, int* znum,
         }
         idx += 6 * n_beamlet;
     }
-
-    int err = 0;
-    print_out(VERBOSE_IO, "\nNBI input\n");
-    print_out(VERBOSE_IO, "Number of injectors %d:\n", data->ninj);
-    for(int i=0; i < data->ninj; i++) {
-        print_out(VERBOSE_IO, "\n  Injector ID %d (%d beamlets) Power: %1.1e\n",
-                  data->inj[i].id, data->inj[i].n_beamlet,
-                  data->inj[i].power);
-        print_out(VERBOSE_IO,
-                  "    Anum %d Znum %d mass %1.1e amu energy %1.1e eV\n",
-                  data->inj[i].anum, data->inj[i].znum,
-                  data->inj[i].mass / CONST_U, data->inj[i].energy / CONST_E);
-        print_out(VERBOSE_IO,
-                  "    Energy fractions: %1.1e (Full) %1.1e (1/2) %1.1e (1/3)\n",
-                  data->inj[i].efrac[0], data->inj[i].efrac[1],
-                  data->inj[i].efrac[2]);
-
-        /* Even if halo fraction is zero, the divergences should be nonzero
-           to avoid division by zero during evaluation. Do this after the
-           input has been printed as to not confuse the user */
-        if(data->inj[i].div_halo_frac == 0) {
-            data->inj[i].div_halo_h = 1e-10;
-            data->inj[i].div_halo_v = 1e-10;
-        }
-    }
-    return err;
+    return 0;
 }
 
 /**

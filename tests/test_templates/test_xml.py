@@ -8,10 +8,6 @@ def test_test():
     #print(make_simple_type("IntegerBinary", "xs:integer", min_val=0, max_val=1))
     #print(make_simple_type("FloatPositive", "xs:float", min_val=0.0, min_inclusive=False))
 
-    params = {
-    "SIM_MODE": "Integer1234",
-    "DT": "FloatPositive",
-    }
 
     #print(make_element_block("Simulation",
     #                        "Simulation mode and time-step",

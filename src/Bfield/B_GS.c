@@ -7,7 +7,6 @@
 #include <math.h>
 #include "../ascot5.h"
 #include "../consts.h"
-#include "../print.h"
 #include "../error.h"
 #include "B_GS.h"
 

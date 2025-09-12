@@ -11,7 +11,6 @@
 #include "../ascot5.h"
 #include "../error.h"
 #include "../consts.h"
-#include "../print.h"
 #include "plasma_1D.h"
 
 

@@ -8,23 +8,20 @@ import unyt
 import numpy as np
 
 from ..access import variants, InputVariant, Format, TreeCreateClassMixin
-from ... import utils
+from ... import utils, physlib
 from ...exceptions import AscotIOException
+
+from .state import MarkerState
 
 
 class GuidingCenterMarker(InputVariant):
     """Marker input in guiding-center (5D) phase-space."""
-
-    
-
 
     def __init__(self, qid, date, note) -> None:
         super().__init__(
             qid=qid, date=date, note=note, variant="GuidingCenterMarker",
             struct=GuidingCenterMarker.Struct(),
             )
-        self._rhogrid: unyt.unyt_array
-        self._dvdrho: unyt.unyt_array
 
     @property
     def rhogrid(self) -> unyt.unyt_array:
@@ -140,28 +137,42 @@ class CreateGuidingcenterMixin(TreeCreateClassMixin):
         inputdata : GuidingCenterMarker
             Freshly minted input data object.
         """
+        try:
+            physlib.species2properties(parameters["species"])
+        except KeyError as e:
+            raise e from None
         parameters = variants.parse_parameters(
-            ids, charge, r, phi, z, ekin, pitch, gyroangle, weight,
+            species, ids, charge, r, phi, z, ekin, pitch, gyroangle, weight,
+            time,
         )
-        default_rhogrid = np.linspace(0., 1., 3)
-        nrho = (default_rhogrid.size if parameters["rhogrid"] is None
-              else parameters["rhogrid"].size)
+        n = 1 if parameters["ids"] is None else parameters["ids"].size
         variants.validate_required_parameters(
             parameters,
             names=["ids", "charge", "r", "phi", "z", "ekin", "pitch",
                    "gyroangle", "weight",],
             units=["1", "1", "m", "deg", "m", "eV", "1", "rad",],
             shape=(n,),
+            dtype=["i8", "i4", "f8", "f8", "f8", "f8", "f8", "f8", "f8",],
+            default=[1, 1, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,],
+        )
+        variants.validate_optional_parameters(
+            parameters,
+            names=["time"],
+            units=["s"],
+            shape=(n,),
             dtype="f8",
-            default=[np.array([0., 1.]), np.zeros((2,)), 1.],
+            default=[0.0,],
         )
         meta = variants.new_metadata("GuidingCenterMarker", note=note)
         obj = self._treemanager.enter_input(
             meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
             )
-        for parameter, value in parameters.items():
-            setattr(obj, f"_{parameter}", value)
-            getattr(obj, f"_{parameter}").flags.writeable = False
+        obj._struct_ = (MarkerState.Structure * n)()
+        parameters.update({"id":parameters["ids"]})
+        del parameters["ids"]
+        for key in parameters.keys():
+            for i in range(n):
+                setattr(obj._struct_[i], key, parameters[key][i])
 
         if store_hdf5:
             obj._export_hdf5()

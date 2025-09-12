@@ -6,7 +6,6 @@
 #include "../ascot5.h"
 #include "../math.h"
 #include "../error.h"
-#include "../print.h"
 #include "../B_field.h"
 #include "E_TC.h"
 

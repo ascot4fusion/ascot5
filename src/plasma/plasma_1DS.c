@@ -6,7 +6,6 @@
 #include <math.h>
 #include <float.h>
 #include "../ascot5.h"
-#include "../print.h"
 #include "../error.h"
 #include "../consts.h"
 #include "../spline/interp.h"
@@ -82,7 +81,6 @@ int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
     err = interp1Dcomp_setup(&data->temp[0], Te_scaled, nrho, NATURALBC,
                              rhomin, rhomax);
     if(err) {
-        print_err("Error: Failed to initialize splines.\n");
         free(Te_scaled);
         free(Ti_scaled);
         free(ne_scaled);
@@ -92,7 +90,6 @@ int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
     err = interp1Dcomp_setup(&data->temp[1], Ti_scaled, nrho, NATURALBC,
                              rhomin, rhomax);
     if(err) {
-        print_err("Error: Failed to initialize splines.\n");
         free(Te_scaled);
         free(Ti_scaled);
         free(ne_scaled);
@@ -104,7 +101,6 @@ int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
     err = interp1Dcomp_setup(&data->dens[0], ne_scaled, nrho, NATURALBC,
                              rhomin, rhomax);
     if(err) {
-        print_err("Error: Failed to initialize splines.\n");
         free(Te_scaled);
         free(Ti_scaled);
         free(ne_scaled);
@@ -116,7 +112,6 @@ int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
         err = interp1Dcomp_setup(&data->dens[i+1], &ni_scaled[i*nrho],
                                  nrho, NATURALBC, rhomin, rhomax);
         if(err) {
-            print_err("Error: Failed to initialize splines.\n");
             free(Te_scaled);
             free(Ti_scaled);
             free(ne_scaled);
@@ -132,29 +127,12 @@ int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
 
     err = interp1Dcomp_setup(&data->vtor[0], vtor, nrho, NATURALBC,
                              rhomin, rhomax);
-
-    print_out(VERBOSE_IO, "\n1D plasma profiles (P_1DS)\n");
-    print_out(VERBOSE_IO,
-              "Min rho = %1.2le, Max rho = %1.2le,"
-              " Number of rho grid points = %d,"
-              " Number of ion species = %d\n",
-              rhomin, rhomax, nrho, nion);
-    print_out(VERBOSE_IO,
-              "Species Z/A  charge [e]/mass [amu] Density [m^-3] at Min/Max rho"
-              "    Temperature [eV] at Min/Max rho\n");
     real T0, T1, n0, n1, vtor0, vtor1;
     for(int i=0; i < nion; i++) {
         plasma_1DS_eval_temp(&T0, rhomin, i+1, data);
         plasma_1DS_eval_temp(&T1, rhomax, i+1, data);
         plasma_1DS_eval_dens(&n0, rhomin, i+1, data);
         plasma_1DS_eval_dens(&n1, rhomax, i+1, data);
-        print_out(VERBOSE_IO,
-                  " %3d  /%3d   %3d  /%7.3f             %1.2le/%1.2le     "
-                  "           %1.2le/%1.2le       \n",
-                  data->znum[i], data->anum[i],
-                  (int)round(data->charge[i+1]/CONST_E),
-                  data->mass[i+1]/CONST_U,
-                  n0, n1, T0 / CONST_E, T1 / CONST_E);
     }
 
     plasma_1DS_eval_temp(&T0, rhomin, 0, data);
@@ -163,10 +141,6 @@ int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
     plasma_1DS_eval_dens(&n1, rhomax, 0, data);
     plasma_1DS_eval_flow(&vtor0, rhomin, 1.0/CONST_2PI, data);
     plasma_1DS_eval_flow(&vtor1, rhomax, 1.0/CONST_2PI, data);
-    print_out(VERBOSE_IO,
-              "[electrons]  %3d  /%7.3f             %1.2le/%1.2le          "
-              "      %1.2le/%1.2le       \n", -1, CONST_M_E/CONST_U,
-              n0, n1, T0 / CONST_E, T1 / CONST_E);
     real quasineutrality = 0;
     for(int k = 0; k < nrho; k++) {
         real rho = rhomin + k * (rhomax - rhomin) / (nrho - 1);
@@ -180,10 +154,6 @@ int plasma_1DS_init(plasma_1DS_data* data, int nrho, real rhomin, real rhomax,
         quasineutrality = fmax( quasineutrality,
                                 fabs( 1 - ion_qdens / ele_qdens ) );
     }
-    print_out(VERBOSE_IO, "Quasi-neutrality is (electron / ion charge density)"
-              " %.2f\n", 1+quasineutrality);
-    print_out(VERBOSE_IO, "Toroidal rotation [rad/s] at Min/Max rho: "
-              "%1.2le/%1.2le\n", vtor0, vtor1);
 
     return 0;
 }

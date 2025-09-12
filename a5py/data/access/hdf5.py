@@ -33,16 +33,21 @@ Attributes are used to store metadata within the groups:
 """
 import os
 import tempfile
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, TYPE_CHECKING
 
 import h5py
 import unyt
 import numpy as np
 
-from . import metadata
-from . metadata import QIDLEN, MetaData
+from .leaf import QIDLEN, MetaData
 
-TreeContent = Tuple[ List[str], List[str], List[str], List[ List[str] ] ]
+if TYPE_CHECKING:
+    from .leaf import MetaData
+
+
+RESULTGROUP = "results"
+"""Name of the results group as it appears in HDF5 file."""
+
 
 class HDF5Interface(h5py.File):
     """Low level interface to HDF5.
@@ -51,17 +56,19 @@ class HDF5Interface(h5py.File):
     creates and removes groups and sets the given groups attributes.
     """
 
-    def __init__(self, filename):
+    def __init__(self, filename, mode):
         """Initialize HDF5Interface.
 
         Parameters
         ----------
         filename : str
             HDF5 file name.
+        mode : {"r", "a"}
+            File open mode ("r"ead or "a"ppend).
         """
-        super().__init__(filename, "a")
+        super().__init__(filename, mode)
 
-    def set_node(self, node: str, active: Optional[str] = None) -> None:
+    def set_node(self, node: str, active: Optional[str]=None) -> None:
         """Set metadata on a given node, creating the group if none exists.
 
         Parameters
@@ -76,7 +83,7 @@ class HDF5Interface(h5py.File):
         group = self[node]
 
         group.attrs["active"] = (
-            np.bytes_(active) if active
+            np.bytes_(active) if not active is None
             else group.attrs.get("active", np.bytes_(""))
             )
 
@@ -99,15 +106,15 @@ class HDF5Interface(h5py.File):
             self,
             node: str,
             name: str,
-            date: Optional[str] = None,
-            note: Optional[str] = None,
+            date: Optional[str]=None,
+            note: Optional[str]=None,
             **additional_attrs,
             ) -> None:
         """Set metadata on a data group, creating the group if none exists.
 
-        If any attributes specified in the parameters are None, the default
-        value is used when creating the group or the value is not changed if
-        the group exists.
+        If any attributes specified in the parameters are None, then empty
+        string is used when creating the group or the value is not changed if
+        the group exists already.
 
         Parameters
         ----------
@@ -156,7 +163,7 @@ class HDF5Interface(h5py.File):
             Date when the data was created.
         note : str
             User-defined note of the data.
-        additional_attrs** : Dict[str, str]
+        additional_attrs : Dict[str, str]
             Any additional attributes.
 
         Raises
@@ -176,6 +183,7 @@ class HDF5Interface(h5py.File):
                 additional_attrs[attr] = value.decode("utf-8")
         if date is None or note is None:
             raise IOError("Failed to read date and note from the file.")
+
         if not additional_attrs:
             return date, note
         return date, note, additional_attrs
@@ -202,7 +210,7 @@ class HDF5Interface(h5py.File):
                 dset.attrs["units"] = np.bytes_(value.units)
 
     def read_datasets(
-            self, path: str, name: Optional[str] = None,
+            self, path: str, name: Optional[str]=None,
             ) -> Dict[str, np.ndarray | unyt.unyt_array]:
         """Read datasets from a group.
 
@@ -251,7 +259,12 @@ class HDF5Manager():
         Name of the file which is managed.
     """
 
-    def __init__(self, filename: str, file_exists: bool) -> None:
+    def __init__(
+            self, root: str,
+            filename: str,
+            file_exists: bool,
+            input_categories: str,
+            ) -> None:
         """Initializes the managed file.
 
         1. Sets the active flag in the root to "" (if none exists).
@@ -274,29 +287,27 @@ class HDF5Manager():
             when one does not exist.
         """
         self.filename = filename
+        self.root = root
         if file_exists:
             if not os.path.isfile(filename):
-                raise FileNotFoundError(f"The file '{filename}' does not exist.")
+                raise FileNotFoundError(
+                    f"The file '{filename}' does not exist."
+                    )
             with h5py.File(filename, "a"):
                 pass
         else:
             if os.path.isfile(filename):
-                raise FileExistsError(f"The file '{filename}' already exists.")
+                raise FileExistsError(
+                    f"The file '{filename}' already exists."
+                    )
             with h5py.File(filename, "w"):
                 pass
 
-        with HDF5Interface(self.filename) as h5:
-            h5.set_node(node="results")
+        with HDF5Interface(self.filename, "a") as h5:
+            h5.set_node(node=RESULTGROUP)
 
-            input_dict = {}
-            for category in metadata.input_categories:
+            for category in input_categories:
                 h5.set_node(node=category)
-                input_dict[category] = ""
-
-            for run in h5:
-                if not run.startswith(metadata.run_variants):
-                    continue
-                h5.set_datagroup(node="results", name=run, **input_dict)
 
     def read_node(self, node: str) -> Tuple[str, List[str], List[str]]:
         """Return list of QIDs, variants, and the active QID for a given node.
@@ -316,15 +327,23 @@ class HDF5Manager():
             List of variants of the data belonging to this node in same order as
             `qids`.
         """
-        node = "results" if node == "root" else node
+        node = RESULTGROUP if node == self.root else node
         qids, variants = [], []
-        with HDF5Interface(self.filename) as h5:
+        with HDF5Interface(self.filename, "r") as h5:
             active = h5.get_node(node)
             for datagroup in h5[node]:
                 name = datagroup.split("/")[-1]
-                if name not in metadata.input_categories:
-                    qids.append(name[-QIDLEN:])
-                    variants.append(name[:-QIDLEN-1])
+
+                split = name.split("_")
+                is_variant = (
+                    len(split) == 2 and
+                    len(split[1]) == QIDLEN and
+                    split[1].isdigit()
+                )
+                if is_variant:
+                    variant, qid = split
+                    qids.append(qid)
+                    variants.append(variant)
 
         return active, qids, variants
 
@@ -338,13 +357,15 @@ class HDF5Manager():
         active : str, optional
             QID of the active data.
         """
-        with HDF5Interface(self.filename) as h5:
-            if node == "root":
-                h5.set_node("results", active)
-            else:
-                h5.set_node(node, active)
+        node = RESULTGROUP if node == self.root else node
+        with HDF5Interface(self.filename, "a") as h5:
+            h5.set_node(node, active)
 
-    def read_input(self, qid: str, variant: str) -> Tuple[str, str]:
+    def read_input(
+            self, qid: str,
+            variant: str,
+            category: str,
+            ) -> Tuple[str, str]:
         """Return date and note of this input variant.
 
         Parameters
@@ -362,26 +383,31 @@ class HDF5Manager():
             User-defined note on the data.
         """
         name = f"{variant}_{qid}"
-        category = metadata.get_input_category(variant)
-        with HDF5Interface(self.filename) as h5:
+        with HDF5Interface(self.filename, "r") as h5:
             return h5.get_datagroup(category, name)
 
-    def write_input(self, meta: MetaData) -> None:
+    def write_input(self, meta: MetaData, category: str) -> None:
         """Create an input variant with the given metadata.
+
+        If this is the first input in this node, the active flag will be set to
+        the QID of the input.
 
         Parameters
         ----------
         meta : MetaData
-            Input's metadata.
+            Input metadata.
+        category : str
+            Input category.
         """
         name = f"{meta.variant}_{meta.qid}"
-        category = metadata.get_input_category(meta.variant)
-        with HDF5Interface(self.filename) as h5:
+        with HDF5Interface(self.filename, "a") as h5:
             h5.set_datagroup(
                 node=category, name=name, date=meta.date, note=meta.note,
                 )
+            if h5.get_node(category) == "":
+                h5.set_node(category, meta.qid)
 
-    def read_run(self, qid: str, variant: str) -> Tuple[str, str, List[str]]:
+    def read_output(self, qid: str, variant: str) -> Tuple[str, str, List[str]]:
         """Return date, note, and list of input QIDs for this run variant.
 
         Parameters
@@ -401,41 +427,34 @@ class HDF5Manager():
             List of QIDs for the inputs used to produce the output.
         """
         name = f"{variant}_{qid}"
-        with HDF5Interface(self.filename) as h5:
-            date, note, *usedinputs = h5.get_datagroup("results", name)
+        with HDF5Interface(self.filename, "r") as h5:
+            date, note, usedinputs = h5.get_datagroup(RESULTGROUP, name)
             if not usedinputs:
                 raise IOError(
-                    "Could not read run metadata: the file does not contain "
+                    "Could not read output metadata: the file does not contain "
                     "references to inputs."
                 )
-        usedinputs = {
-            category: qid for category, qid in usedinputs[0].items() if qid
-            }
         return date, note, list(usedinputs.values())
 
-    def write_run(self, meta: MetaData, usedinputs: Dict[str, str]) -> None:
+    def write_output(self, meta: MetaData, usedinputs: Dict[str, str]) -> None:
         """Create a run variant with the given metadata.
 
         Parameters
         ----------
         meta : MetaData
-            Run's metadata.
+            Output metadata.
         usedinputs : Dict[str, str]
             Key-value pairs of input category and QID of the input used from
             that category in the simulation.
         """
         name = f"{meta.variant}_{meta.qid}"
-        for category in metadata.input_categories:
-            if category not in usedinputs:
-                usedinputs[category] = ""
-
-        with HDF5Interface(self.filename) as h5:
+        with HDF5Interface(self.filename, "a") as h5:
             h5.set_datagroup(
-                node="results", name=name, date=meta.date, note=meta.note,
+                node=RESULTGROUP, name=name, date=meta.date, note=meta.note,
                 **usedinputs,
                 )
 
-    def set_note(self, qid: str, variant: str, note: str) -> None:
+    def set_note(self, qid: str, variant: str, node: str, note: str) -> None:
         """Set the note attribute in a data.
 
         Parameters
@@ -448,15 +467,11 @@ class HDF5Manager():
             The new note.
         """
         name = f"{variant}_{qid}"
-        if variant in metadata.run_variants:
-            node = "results"
-        else:
-            node = metadata.get_input_category(variant)
-
-        with HDF5Interface(self.filename) as h5:
+        node = RESULTGROUP if node == self.root else node
+        with HDF5Interface(self.filename, "a") as h5:
             h5.set_datagroup(node, name, note=note)
 
-    def remove_variant(self, qid: str, variant: str) -> None:
+    def remove_variant(self, qid: str, variant: str, node: str) -> None:
         """Remove data from the file.
 
         Does not repack the file.
@@ -469,12 +484,8 @@ class HDF5Manager():
             Data variant.
         """
         name = f"{variant}_{qid}"
-        if variant in metadata.run_variants:
-            node = "results"
-        else:
-            node = metadata.get_input_category(variant)
-
-        with HDF5Interface(self.filename) as h5:
+        node = RESULTGROUP if node == self.root else node
+        with HDF5Interface(self.filename, "a") as h5:
             del h5[node][name]
 
     def repack(self) -> None:
@@ -499,43 +510,55 @@ class HDF5Manager():
         os.rename(tempfilename, self.filename)
         os.chmod(self.filename, permissions)
 
-    def write_datasets(
-            self,
-            qid: str,
-            variant: str,
-            data: Dict[str, np.ndarray | unyt.unyt_array],
-            subpath: Optional[str] = None,
+    def get_minimanager(self, node, variant, qid, subpath=None):
+        node = RESULTGROUP if node == self.root else node
+        path = f"/{node}/{variant}_{qid}"
+        if subpath:
+            path = f"{path}/{subpath}"
+        return HDF5MiniManager(self.filename, path)
+
+
+class HDF5MiniManager():
+    """Provides access to a single HDF5 group only."""
+
+    def __init__(self, filename, path):
+        self.filename = filename
+        self.path = path
+
+    def get_minimanager(self, group):
+        with HDF5Interface(self.filename, "a") as h5:
+            try:
+                h5[self.path].create_group(group)
+            except ValueError:
+                pass
+        return HDF5MiniManager(self.filename, f"{self.path}/{group}")
+
+    def get_children(self):
+        """Return names of any groups belonging to this group."""
+        with HDF5Interface(self.filename, "r") as h5:
+            return list(h5[self.path].keys())
+
+    def add_children(self, name):
+        """Add a group to this group."""
+        with HDF5Interface(self.filename, "a") as h5:
+            h5.add_group(self.path, name)
+
+    def write(
+            self, name, value,
             ) -> None:
         """Write datasets to a data group.
 
         Parameters
         ----------
-        qid : str
-            QID of the data.
-        variant : str
-            Data variant.
         data : dict[str, np.array or unyt.array]
             Name-value pairs of data to be written.
-        subpath : str, optional
-            Path within the data group if the data is located within a subgroup.
         """
-        if variant in metadata.run_variants:
-            path = f"results/{variant}_{qid}"
-        else:
-            category = metadata.get_input_category(variant)
-            path = f"{category}/{variant}_{qid}"
-        if subpath:
-            path += f"/{subpath}"
-        with HDF5Interface(self.filename) as h5:
-            h5.require_group(path)
-            h5.write_datasets(path, data)
+        with HDF5Interface(self.filename, "a") as h5:
+            h5.write_datasets(self.path, {name: value})
 
-    def read_datasets(
+    def read(
             self,
-            qid: str,
-            variant: str,
             name: Optional[str] = None,
-            subpath: Optional[str] = None,
             ) -> Dict[str, np.ndarray | unyt.unyt_array]:
         """Read the data from the HDF5 file.
 
@@ -547,8 +570,6 @@ class HDF5Manager():
             Data variant.
         name : str, optional
             Instead of reading all datasets, read only this one.
-        subpath : str, optional
-            Path within the data group if the data is located within a subgroup.
 
         Returns
         -------
@@ -556,12 +577,5 @@ class HDF5Manager():
             Name-value pairs of read data or just the value of the data if
             `name` was specified.
         """
-        if variant in metadata.run_variants:
-            path = f"results/{variant}_{qid}"
-        else:
-            category = metadata.get_input_category(variant)
-            path = f"{category}/{variant}_{qid}"
-        if subpath:
-            path += f"/{subpath}"
-        with HDF5Interface(self.filename) as h5:
-            return h5.read_datasets(path, name=name)
+        with HDF5Interface(self.filename, "r") as h5:
+            return h5.read_datasets(self.path, name=name)

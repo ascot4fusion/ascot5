@@ -16,7 +16,6 @@
 #include <stdio.h>
 #include "ascot5.h"
 #include "error.h"
-#include "print.h"
 #include "B_field.h"
 #include "Bfield/B_GS.h"
 #include "Bfield/B_2DS.h"

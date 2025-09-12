@@ -1,5 +1,10 @@
 CC=cc
-LFLAGS=
+
+SRC_DIR :=.
+BUILD_DIR := ../build
+OBJ_DIR := $(BUILD_DIR)/obj
+
+DEPFLAGS = -MMD -MP
 
 ifdef TRAP_FPE
 	DEFINES+=-DTRAP_FPE=$(TRAP_FPE)
@@ -10,23 +15,9 @@ ifdef NSIMD
 	DEFINES+=-DNSIMD=$(NSIMD)
 endif
 
-ifdef TARGET
-	DEFINES+=-DTARGET=$(TARGET)
-endif
-
-ifdef VERBOSE
-	DEFINES+=-DVERBOSE=$(VERBOSE)
-else
-	DEFINES+=-DVERBOSE=1
-endif
-
-ifeq ($(SINGLEPRECISION),1)
-	DEFINES+=-DSINGLEPRECISION
-endif
-
 ifeq ($(RFOF),1)
 	DEFINES+=-DRFOF
-	CFLAGS+=-lgfortran -lquadmath -lxml2 -lrfof
+	LDFLAGS+=-lgfortran -lquadmath -lxml2 -lrfof
 endif
 
 ifeq ($(GPU),1)
@@ -45,18 +36,18 @@ endif
 
 ifeq ($(RANDOM),MKL)
 	DEFINES+=-DRANDOM_MKL
-	CFLAGS+=-mkl
+	LDFLAGS+=-mkl
 	ifdef RANDOM_MKL_RNG
 		DEFINES+=-DRANDOM_MKL_RNG=$(RANDOM_MKL_RNG)
 	endif
 else ifeq ($(RANDOM),GSL)
 	DEFINES+=-DRANDOM_GSL
-	CFLAGS+=-lgsl -lgslcblas
+	LDFLAGS+=-lgsl -lgslcblas
 else ifeq ($(RANDOM),LCG)
 	DEFINES+=-DRANDOM_LCG
 endif
 
-CFLAGS+=-Wall -fPIC -std=c11 -D_XOPEN_SOURCE=700 $(DEFINES) $(FLAGS)
+CFLAGS+=-Wall -Wextra -fPIC -std=c11 -D_XOPEN_SOURCE=700 $(DEFINES) $(FLAGS)
 
 ifeq ($(DEBUG),1)
 	CFLAGS+=-g
@@ -69,138 +60,52 @@ UNAME_S := $(shell uname -s)
 # macOS-specific adjustments
 ifeq ($(UNAME_S),Darwin)
 	CFLAGS+=-D_DARWIN_C_SOURCE
-	CLANG2PY_ARGS=$(CFLAGS)
 endif
 # Linux/other OS adjustments
 ifeq ($(UNAME_S),Linux)
-libascot.so: CFLAGS+=-fPIC -shared
-	CFLAGS+=-lm
-	ifdef CONDA_PREFIX
-		CLANG2PY_ARGS=-I$(CONDA_PREFIX)/include/ \
-		  -I$(CONDA_PREFIX)/x86_64-conda-linux-gnu/sysroot/usr/include/
-	endif
+libascot.so: CFLAGS+=-fPIC
+	LDFLAGS+=-lm -shared
 endif
 
 # Write CFLAGS and CC to a file to be included into output
-$(shell echo "#define CFLAGS " $(CFLAGS) > compiler_flags.h)
-$(shell echo "#define CC " $(CC) >> compiler_flags.h)
+$(file >compiler_flags.h,#define CFLAGS "$(CFLAGS)")
 
 # Also store the version from current git tag or from VERSION file
 $(shell bash gitver.sh)
 
-SIMDIR = simulate/
-SIMHEADERS = $(wildcard $(SIMDIR)simulate*.h $(SIMDIR)atomic.h)
-SIMOBJS = $(patsubst %.c,%.o,$(wildcard $(SIMDIR)simulate*.c) $(SIMDIR)atomic.c)
+SRCS := $(shell find $(SRC_DIR) -name '*.c')
+SRCS := $(filter-out $(SRC_DIR)/test_ascot5.c, $(SRCS))
 
-STEPDIR = $(SIMDIR)step/
-STEPHEADERS = $(wildcard $(STEPDIR)step*.h)
-STEPOBJS = $(patsubst %.c,%.o,$(wildcard $(STEPDIR)step*.c))
+OBJS := $(patsubst $(SRC_DIR)/%, $(OBJ_DIR)/%, $(SRCS:.c=.o))
+DEPS := $(OBJS:.o=.d)
 
-MCCCDIR = $(SIMDIR)mccc/
-MCCCHEADERS = $(wildcard $(MCCCDIR)mccc*.h)
-MCCCOBJS = $(patsubst %.c,%.o,$(wildcard $(MCCCDIR)mccc*.c))
-
-DIAGDIR = diag/
-DIAGHEADERS = $(wildcard $(DIAGDIR)diag*.h $(DIAGDIR)dist*.h $(DIAGDIR)hist*.h)
-DIAGOBJS = $(patsubst %.c,%.o,$(wildcard $(DIAGDIR)diag*.c $(DIAGDIR)dist*.c \
-	$(DIAGDIR)hist.c))
-
-BFDIR = Bfield/
-BFHEADERS = $(wildcard $(BFDIR)B_*.h)
-BFOBJS = $(patsubst %.c,%.o,$(wildcard $(BFDIR)B_*.c))
-
-EFDIR = Efield/
-EFHEADERS = $(wildcard $(EFDIR)E_*.h)
-EFOBJS = $(patsubst %.c,%.o,$(wildcard $(EFDIR)E_*.c))
-
-PLSDIR = plasma/
-PLSHEADERS =  $(wildcard $(PLSDIR)plasma_*.h)
-PLSOBJS = $(patsubst %.c,%.o,$(wildcard $(PLSDIR)plasma_*.c))
-
-WALLDIR = wall/
-WALLHEADERS = $(wildcard $(WALLDIR)wall_*.h)
-WALLOBJS = $(patsubst %.c,%.o,$(wildcard $(WALLDIR)wall_*.c))
-
-HDF5IODIR = hdf5io/
-HDF5IOHEADERS = $(wildcard $(HDF5IODIR)hdf5*.h)
-HDF5IOOBJS = $(patsubst %.c,%.o,$(wildcard $(HDF5IODIR)hdf5*.c))
-
-N0DIR = neutral/
-N0HEADERS = $(wildcard $(N0DIR)N0_*.h)
-N0OBJS = $(patsubst %.c,%.o,$(wildcard $(N0DIR)N0_*.c))
-
-MHDDIR = mhd/
-MHDHEADERS = $(wildcard $(MHDDIR)mhd_*.h)
-MHDOBJS = $(patsubst %.c,%.o,$(wildcard $(MHDDIR)mhd_*.c))
-
-ASIGMADIR = asigma/
-ASIGMAHEADERS = $(wildcard $(ASIGMADIR)asigma_*.h)
-ASIGMAOBJS = $(patsubst %.c,%.o,$(wildcard $(ASIGMADIR)asigma_*.c))
-
-LINTDIR = linint/
-LINTHEADERS = $(wildcard $(LINTDIR)linint*.h)
-LINTOBJS = $(patsubst %.c,%.o,$(wildcard $(LINTDIR)linint*.c))
-
-SPLINEDIR = spline/
-SPLINEHEADERS = $(wildcard $(SPLINEDIR)spline.h $(SPLINEDIR)interp.h)
-SPLINEOBJS = $(patsubst %.c,%.o,$(wildcard $(SPLINEDIR)spline*.c \
-	$(SPLINEDIR)interp*.c))
-
-UTESTDIR = unit_tests/
 DOCDIR = doc/
-
-HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
-	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) \
-	$(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) \
-	$(PLSHEADERS) $(N0HEADERS) $(MHDHEADERS) $(ASIGMAHEADERS) \
-	$(LINTHEADERS) $(SPLINEHEADERS) \
-	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
-	E_field.h wall.h simulate.h diag.h offload.h boozer.h mhd.h \
-	random.h print.h suzuki.h nbi.h biosaw.h \
-	asigma.h boschhale.h libascot_mem.h rfof.h
-
-OBJS= math.o list.o octree.o error.o \
-	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
-	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS) \
-	$(PLSOBJS) $(N0OBJS) $(MHDOBJS) $(ASIGMAOBJS) $(LINTOBJS) \
-	$(SPLINEOBJS) \
-	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
-	E_field.o wall.o simulate.o diag.o boozer.o mhd.o \
-	random.o print.o suzuki.o nbi.o biosaw.o \
-	asigma.o boschhale.o rfof.o
-
 
 all: libascot doc
 
-libascot: libascot.so
+libascot: $(BUILD_DIR)/libascot.so
 	true
 
-libascot.so: libascot.o libascot_mem.o $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
+$(BUILD_DIR)/libascot.so: $(OBJS)
+	@mkdir -p $(dir $@)
+	$(CC) -shared -o $@ $^ $(LDFLAGS) -fopenmp
+
+$(BUILD_DIR)/test_ascot5: $(OBJS) $(OBJ_DIR)/test_ascot5.o
+	$(CC) -o $@ $^ $(LDFLAGS)
 
 doc:
 	doxygen Doxyfile
 
-%.o: %.c $(HEADERS) Makefile
-	$(CC) -c -o $@ $< $(CFLAGS)
-
-ASCOT2PY_HEADERFILES=ascot5.h particle.h mpi_interface.h endcond.h simulate.h  \
-	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) $(PLSHEADERS)  \
-	$(ASIGMAHEADERS) $(N0HEADERS) $(MHDHEADERS) hdf5_interface.h           \
-	libascot_mem.h diag.h B_field.h E_field.h wall.h plasma.h neutral.h    \
-	boozer.h mhd.h nbi.h asigma.h afsi.h biosaw.h boschhale.h\
-	bbnbi5.h rfof.h
-
-ascot2py.py : libascot.so
-	$(eval CLANGOMP=$(shell clang --print-resource-dir)) \
-	clang2py -l libascot.so -o $@ $(ASCOT2PY_HEADERFILES) \
-		--clang-args="$(CLANG2PY_ARGS) -I$(CLANGOMP)/include/"
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c Makefile
+	@mkdir -p $(dir $@)
+	$(CC) -c -o $@ $< $(CFLAGS) $(DEPFLAGS)
 
 clean:
-	@rm -f *.o *.so *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o \
-		$(MCCCDIR)*.o $(HDF5IODIR)*.o $(PLSDIR)*.o $(DIAGDIR)*.o \
-		$(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o $(MHDDIR)*.o \
-		$(N0DIR)*.o $(ASIGMADIR)*.o $(LINTDIR)*.o $(SPLINEDIR)*.o \
-	    $(UTESTDIR)*.o *.pyc
+	@rm -f $(BUILD_DIR)/libascot.so
+	@rm -rf $(OBJ_DIR)
 	@rm -rf $(DOCDIR)
 	@rm -f gitver.h
+
+.PHONY: all clean $(BUILD_DIR)/libascot.so
+
+-include $(DEPS)

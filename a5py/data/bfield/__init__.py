@@ -8,10 +8,31 @@ from .perturbed import Bfield3D, CreateBfield3DMixin
 from .stellarator import BfieldStellarator, CreateBfieldStellaratorMixin
 
 
+def with_use_method(cls):
+    # derive mapping from _fields_
+    mapping = {
+        f[0]: i for i, f in enumerate(cls._fields_)
+        if f[0] != "type"  # exclude the type field
+    }
+
+    def use(self, variant):
+        variant.stage()
+        for name in mapping:
+            if name == variant.variant:
+                setattr(self, name, ctypes.pointer(variant._struct_))
+                self.type = ctypes.c_uint32(mapping[name])
+                break
+        else:
+            raise ValueError(f"Unknown variant {variant.variant}")
+
+    cls.use = use
+    return cls
+
+
+@with_use_method
 class Bfield(ctypes.Structure):
     """Wrapper for the magnetic field data in libascot.so."""
 
-    _pack_ = 1
     _fields_ = [
         ('BTC', ctypes.POINTER(BfieldCartesian.Struct)),
         ('BGS', ctypes.POINTER(BfieldAnalytical.Struct)),
@@ -20,26 +41,6 @@ class Bfield(ctypes.Structure):
         ('BSTS', ctypes.POINTER(BfieldStellarator.Struct)),
         ('type', ctypes.c_uint32),
     ]
-
-    def use(self, variant, mpirank, mpisize):
-        """Initialize the pointer and set the type corresponding to the data."""
-        variant_vs_name_and_enum = {
-            "BfieldCartesian": ("BTC", 0),
-            "BfieldAnalytical": ("BGS", 1),
-            "Bfield2D": ("B2DS", 2),
-            "Bfield3D": ("B3DS", 3),
-            "BfieldStellarator": ("BSTS", 4),
-            }
-        if mpirank == 0:
-            variant.stage()
-            variant_name = variant.variant
-            variant_struct = variant._struct_
-        else:
-            variant_name = None
-            variant_struct = None
-        name, enum = variant_vs_name_and_enum[variant_name]
-        setattr(self, name, ctypes.pointer(variant_struct))
-        self.type = ctypes.c_uint32(enum)
 
 
 # pylint: disable=too-many-ancestors

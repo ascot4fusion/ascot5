@@ -11,7 +11,7 @@ from ..access import variants, InputVariant, Format, TreeCreateClassMixin
 from ... import utils
 from ...exceptions import AscotIOException
 
-from .cstructs import particle_state
+from .state import MarkerState
 
 class FieldlineMarker(InputVariant):
     """Marker input in magnetic field line (3D) phase-space."""
@@ -208,7 +208,7 @@ class CreateFieldlineMixin(TreeCreateClassMixin):
         obj = self._treemanager.enter_input(
             meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
             )
-        obj._struct_ = (particle_state * n)()
+        obj._struct_ = (MarkerState.Structure * n)()
         parameters.update({
             "id":parameters["ids"], "ppar":parameters["direction"]
             })

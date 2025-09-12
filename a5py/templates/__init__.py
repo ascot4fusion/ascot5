@@ -1,7 +1,10 @@
 """Package for generating inputs from templates and imported data.
 """
 
-from .analyticalinputs import PremadeMagneticField
+from .analyticalinputs import (
+    PremadeMagneticField,
+    FlatPlasma,
+    )
 from .optionsxml import make_simple_type, make_element_block, doc, make_schema
 
 def create_input(ascot, template, note=None, activate=False, dryrun=False, store_hdf5=False):
@@ -11,4 +14,5 @@ def create_input(ascot, template, note=None, activate=False, dryrun=False, store
 
 __all__ = [
     "PremadeMagneticField",
+    "FlatPlasma",
     ]

@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../ascot5.h"
-#include "../print.h"
 #include "../error.h"
 #include "../spline/interp.h"
 #include "../consts.h"
@@ -78,29 +77,9 @@ int asigma_loc_init(asigma_loc_data* data, int nreac,
                 pos += ne[i_reac] * nn[i_reac] * nT[i_reac];
                 break;
             default:
-                /* Unrecognized dimensionality. Produce error. */
-                print_err("Error: Unrecognized abscissa dimensionality\n");
                 err = 1;
                 break;
         }
-    }
-
-    print_out(VERBOSE_IO, "\nFound data for %d atomic reactions:\n",
-              data->N_reac);
-    for(int i_reac = 0; i_reac < data->N_reac; i_reac++) {
-        print_out(VERBOSE_IO,
-              "Reaction number / Total number of reactions = %d / %d\n"
-              "  Reactant species Z_1 / A_1, Z_2 / A_2     = %d / %d, %d / %d\n"
-              "  Min/Max energy                            = %1.2le / %1.2le\n"
-              "  Min/Max density                           = %1.2le / %1.2le\n"
-              "  Min/Max temperature                       = %1.2le / %1.2le\n"
-              "  Number of energy grid points              = %d\n"
-              "  Number of density grid points             = %d\n"
-              "  Number of temperature grid points         = %d\n",
-              i_reac+1, data->N_reac, data->z_1[i_reac], data->a_1[i_reac],
-              data->z_2[i_reac], data->a_2[i_reac], emin[i_reac], emax[i_reac],
-              nmin[i_reac], nmax[i_reac], Tmin[i_reac], Tmax[i_reac],
-              ne[i_reac], nn[i_reac], nT[i_reac]);
     }
 
     return err;

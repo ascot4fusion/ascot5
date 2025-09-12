@@ -20,7 +20,7 @@ class Asigma_loc(InputVariant):
     # pylint: disable=too-few-public-methods
     class Struct(ctypes.Structure):
         """Python wrapper for the struct in asigma_loc.h."""
-        _pack_ = 1
+        #_pack_ = 1
         _fields_ = [
             ('N_reac', ctypes.c_int32),
             ('PADDING_0', ctypes.c_ubyte * 4),

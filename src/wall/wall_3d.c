@@ -11,7 +11,6 @@
 #include "../math.h"
 #include "../list.h"
 #include "../octree.h"
-#include "../print.h"
 
 void wall_3d_init_octree(wall_3d_data* w);
 
@@ -198,11 +197,6 @@ void wall_3d_init_tree(wall_3d_data* w, real* offload_array) {
  *        which triangles
  */
 void wall_3d_init_octree(wall_3d_data* w) {
-    if (w->n > 1000000){
-        print_out(VERBOSE_NORMAL,
-                  "Starting to initialize 3D-wall octree with %d triangles.\n",
-                  w->n);
-    }
 
     /* Construct the octree and store triangles there */
     octree_node* tree;
@@ -221,9 +215,6 @@ void wall_3d_init_octree(wall_3d_data* w) {
         t3[1] = w->wall_tris[i*9+7];
         t3[2] = w->wall_tris[i*9+8];
         octree_add(tree, t1, t2, t3, i);
-        if (i%1000000==0 && i > 0){
-            print_out(VERBOSE_NORMAL, "  Adding triangle %10d/%d.\n",i,w->n);
-        }
     }
 
     /* Create lists for triangles in each grid square and fill the lists

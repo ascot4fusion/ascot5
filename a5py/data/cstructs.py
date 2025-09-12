@@ -11,7 +11,7 @@ ENUM = ctypes.c_uint32
 class linint1D_data(ctypes.Structure):
     """Python wrapper for the 1D linear-interpolator defined in linint.h."""
 
-    _pack_ = 1
+    #_pack_ = 1
     _fields_ = [
         ('n_x', ctypes.c_int32),
         ('bc_x', ctypes.c_int32),
@@ -25,7 +25,7 @@ class linint1D_data(ctypes.Structure):
 class linint3D_data(ctypes.Structure):
     """Python wrapper for the 3D linear-interpolator defined in linint.h."""
 
-    _pack_ = 1
+    #_pack_ = 1
     _fields_ = [
         ('n_x', ctypes.c_int32),
         ('n_y', ctypes.c_int32),
@@ -49,7 +49,7 @@ class linint3D_data(ctypes.Structure):
 class interp1D_data(ctypes.Structure):
     """Python wrapper for the 1D spline-interpolator defined in interp.h."""
 
-    _pack_ = 1
+    #_pack_ = 1
     _fields_ = [
         ('n_x', ctypes.c_int32),
         ('bc_x', ctypes.c_int32),
@@ -63,7 +63,7 @@ class interp1D_data(ctypes.Structure):
 class interp2D_data(ctypes.Structure):
     """Python wrapper for the 2D spline-interpolator defined in interp.h."""
 
-    _pack_ = 1
+    #_pack_ = 1
     _fields_ = [
         ('n_x', ctypes.c_int32),
         ('n_y', ctypes.c_int32),
@@ -82,7 +82,7 @@ class interp2D_data(ctypes.Structure):
 class interp3D_data(ctypes.Structure):
     """Python wrapper for the 3D spline-interpolator defined in interp.h."""
 
-    _pack_ = 1
+    #_pack_ = 1
     _fields_ = [
         ('n_x', ctypes.c_int32),
         ('n_y', ctypes.c_int32),

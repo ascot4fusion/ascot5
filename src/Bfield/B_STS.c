@@ -9,7 +9,6 @@
 #include "../math.h"
 #include "../ascot5.h"
 #include "../error.h"
-#include "../print.h"
 #include "../consts.h"
 #include "B_STS.h"
 #include "../linint/linint.h"

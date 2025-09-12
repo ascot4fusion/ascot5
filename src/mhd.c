@@ -19,7 +19,6 @@
 #include <stdlib.h>
 #include "ascot5.h"
 #include "error.h"
-#include "print.h"
 #include "mhd.h"
 #include "B_field.h"
 #include "boozer.h"

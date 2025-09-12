@@ -22,7 +22,6 @@
 #include "gitver.h"
 #include "math.h"
 #include "physlib.h"
-#include "print.h"
 #include "simulate.h"
 #include "endcond.h"
 #include "random.h"
@@ -88,8 +87,6 @@ void bbnbi_simulate(
                              t1, t2, &(sim->nbi_data.inj[i]), sim);
 
         nprt_generated += nprt_inj;
-        print_out0(VERBOSE_NORMAL, sim->mpi_rank, sim->mpi_root,
-                   "Generated %d markers for injector %d.\n", nprt_inj, i+1);
     }
 
     /* Place markers in a queue */
@@ -391,7 +388,7 @@ void bbnbi_trace_markers(particle_queue *pq, sim_data* sim) {
         }
 
         /* Update distributions for markers that finished */
-        diag_update_fo(&sim->diag_data, &sim->B_data, &pdiag, &p);
+        //diag_update_fo(&sim->diag_data, &sim->B_data, &pdiag, &p);
 
         /* Update running particles */
         n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);

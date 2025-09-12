@@ -1,60 +1,120 @@
-"""Routines that interpolate the input data."""
+"""Routines that interpolate or rely on interpolating the input data.
+
+Any algorithms that are not related to the simulation itself, but are still
+directly linked to libascot, should be defined here.
+"""
 import ctypes
 
 import unyt
 import numpy as np
 
-from ..libascot import LIBASCOT
-from .. import physlib
+from a5py.libascot import LIBASCOT
+from a5py import physlib
+
+from a5py.physlib.formulas import resolve_quantities, compute_quantities
+from a5py.data.bfield import Bfield
+from a5py.data.efield import Efield
+from a5py.data.plasma import Plasma
+from a5py.data.neutral import Neutral
+from a5py.data.boozer import BoozerMap
+from a5py.data.mhd import Mhd
+from .functions import init_fun, PTR_DOUBLE, PTR_INT
 
 
-def _init_return_arrays(shape, dtype="f8", units=None):
-    arr = np.zeros(shape, dtype=dtype) + np.nan
-    if units is None:
-        return arr
-    return arr * unyt.unyt_quantity.from_string(units)
+init_fun(
+    "libascot_interpolate",
+    ctypes.POINTER(Bfield),
+    ctypes.POINTER(Efield),
+    ctypes.POINTER(Plasma),
+    ctypes.POINTER(Neutral),
+    ctypes.POINTER(BoozerMap.Struct),
+    ctypes.POINTER(Mhd),
+    ctypes.c_int32,
+    ctypes.c_int32,
+    *([PTR_DOUBLE]*20)
+    )
 
-def _parse_coordinates(r, phi, z, t, grid=False):
+init_fun(
+    "libascot_find_axis",
+    ctypes.POINTER(Bfield),
+    ctypes.c_int32,
+    *([PTR_DOUBLE]*2)
+    )
 
-    r = r.astype(dtype="f8").ravel()
-    z = z.astype(dtype="f8").ravel()
-    t = t.astype(dtype="f8").ravel()
-    phi = phi.astype(dtype="f8").ravel().to("rad")
+init_fun(
+    "libascot_rhotheta2rz",
+    ctypes.POINTER(Bfield),
+    ctypes.c_int32,
+    ctypes.c_int32,
+    ctypes.c_double,
+    ctypes.c_double,
+    *([PTR_DOUBLE]*5)
+    )
 
-    if grid:
-        arrsize = (r.size, phi.size, z.size, t.size)
-        r, phi, z, t = np.meshgrid(r, phi, z, t, indexing="ij")
-        r   = r.ravel()
-        phi = phi.ravel()
-        z   = z.ravel()
-        t   = t.ravel()
-    else:
-        # Not a grid so check that dimensions are correct (and make
-        # single-valued vectors correct size)
-        arrsize = np.amax(np.array([r.size, phi.size, z.size, t.size]))
-        errmsg = "Input arrays have inconsistent sizes ({}, {}, {}, {})"
-        assert (r.size == 1 or r.size == arrsize) and  \
-            (phi.size == 1 or phi.size == arrsize) and \
-            (z.size == 1 or z.size == arrsize) and     \
-            (t.size == 1 or t.size == arrsize),        \
-            errmsg.format(r.size, phi.size, z.size, t.size)
+init_fun(
+    "libascot_gradient_descent",
+    ctypes.POINTER(Bfield),
+    ctypes.c_int32,
+    ctypes.c_int32,
+    ctypes.c_double,
+    ctypes.c_double,
+    *([PTR_DOUBLE]*2)
+    )
 
-        if r.size == 1:
-            r = r[0]*np.ones((arrsize,))
-        if phi.size == 1:
-            phi = phi[0]*np.ones((arrsize,))
-        if z.size == 1:
-            z = z[0]*np.ones((arrsize,))
-        if t.size == 1:
-            t = t[0]*np.ones((arrsize,))
+init_fun(
+    "libascot_gradient_descent_3d",
+    ctypes.POINTER(Bfield),
+    ctypes.c_int32,
+    ctypes.c_int32,
+    ctypes.c_double,
+    ctypes.c_double,
+    ctypes.c_double,
+    *([PTR_DOUBLE]*2)
+    )
 
-@physlib.parseunits(r="m", phi="deg", z="m", t="s")
-def input_eval(self, r, phi, z, t, *qnt, grid=False):
+
+qnt_mapping = {
+    "b": ("br", "bz", "bphi"),
+    "bjac": ("brdr", "brdphi", "brdz", "bphidr", "bphidphi", "bphidz",
+             "bzdr", "bzdphi", "bzdz"),
+    "psi": ("psi", "psidr", "psidphi", "psidz"),
+    "rho": ("rho", "rhodpsi"),
+    "e": ("er", "ez", "ephi"),
+    "n": ("ne", "ni"),
+    "t": ("te", "ti"),
+    "n0": ("n0",),
+    "t0": ("t0",),
+    "theta": ("theta", "dthetadr", "dthetadphi", "dthetadz"),
+    "zeta": ("zeta", "dzetadr", "dzetadphi", "dzetadz"),
+    "alpha": ("alpha", "alphadr", "alphadphi", "alphadz", "alphadt"),
+    "Phi": ("Phi", "dPhidr", "dPhidphi", "dPhidz", "dPhidt"),
+    "mhd_b": ("br_mhd", "bphi_mhd", "bz_mhd"),
+    "mhd_e": ("er_mhd", "ephi_mhd", "ez_mhd"),
+    "mhd_phi": ("phi", "dphidr", "dphidphi", "dphidz"),
+}
+
+
+@physlib.parse_units(r="m", phi="deg", z="m", t="s")
+def evaluate(
+    r,
+    phi,
+    z,
+    t,
+    *qnt,
+    grid=False,
+    bfield=None,
+    efield=None,
+    plasma=None,
+    neutral=None,
+    boozer=None,
+    mhd=None,
+    atomic=None,
+    nmode=0,
+    ):
     """Evaluate input quantities at given coordinates.
 
     This method uses ASCOT5 C-routines for evaluating inputs exactly as
-    they are evaluated during a simulation. See :meth:`input_eval_list` for
-    a complete list of available input and derived quantities.
+    they are evaluated during a simulation.
 
     Parameters
     ----------
@@ -80,184 +140,245 @@ def input_eval(self, r, phi, z, t, *qnt, grid=False):
         NaN is returned at those points where the evaluation failed.
 
         4D matrix is returned when grid=``True``.
-
-    Raises
-    ------
-    AssertionError
-        If required data has not been initialized.
-    RuntimeError
-        If evaluation in libascot.so failed.
     """
-    r, phi, z, t = _parse_coordinates()
+    r, phi, z, t = process_query_points(r, phi, z, t, grid)
+    available = []
+    for q in qnt_mapping.values():
+        available.extend(q)
+    available.extend(["r"])
+    fundamentals_needed, all_qnt = resolve_quantities(available, qnt)
+    if "r" in fundamentals_needed:
+        fundamentals_needed.remove("r")
+    fundamentals = interpolate(
+        r, phi, z, t, nmode, *fundamentals_needed, bfield=bfield, efield=efield,
+        plasma=plasma, neutral=neutral, boozer=boozer, mhd=mhd, atomic=atomic
+        )
+    fundamentals["r"] = r
+    evaluated = compute_quantities(fundamentals, all_qnt)
+    results = [evaluated[q] for q in qnt]
+    for i in range(len(results)):
+        try:
+            results[i] = results[i].to("A/m**2")
+        except:
+            pass
 
-    v = {}
-
-    bnorm = lambda bx, by, bz: np.sqrt(bx**2 + by**2 + bz**2)
-
-    # 2. Extract argument names
-    def get_args(func):
-        return inspect.signature(func).parameters.keys()
-
-    # 3. Evaluation using a values dictionary
-    def evaluate(func, values, key=None):
-        args = get_args(func)
-        arg_values = [values[arg] for arg in args]
-        result = func(*arg_values)
-        if key is None:
-            key = func.__name__ if hasattr(func, '__name__') else 'result'
-        values[key] = result
-        return result
-
-    def resolve_dependent_quantities(requested):
-        """Find which quantities are needed to compute the requested quantities.
-        """
-
-        out["jr"]    = (out["bzdphi"]/r - out["bphidz"]) / unyt.mu_0
-        out["jphi"]  = (out["brdz"] - out["bzdr"]) / unyt.mu_0
-        out["jz"]    = (out["bphi"]/r + out["bphidr"] - out["brdphi"]/r) \
-                        / unyt.mu_0
-        out["jnorm"] = np.sqrt(out["jr"]**2 + out["jphi"]**2 + out["jz"]**2)
-        out["gradbr"]   = (out["br"]*out["brdr"] + out["bphi"]*out["bphidr"]
-                            + out["bz"]*out["bzdr"]) / out["bnorm"]
-        out["gradbphi"] = (out["br"]*out["brdphi"]
-                            + out["bphi"]*out["bphidphi"]
-                            + out["bz"]*out["bzdphi"]) / (out["bnorm"]*r)
-        out["gradbz"]   = (out["br"]*out["brdz"] + out["bphi"]*out["bphidz"]
-                            + out["bz"]*out["bzdz"]) / out["bnorm"]
-        out["curlbr"]   = out["bzdphi"] / r - out["bphidz"]
-        out["curlbphi"] = out["brdz"] - out["bzdr"]
-        out["curlbz"]   = (out["bphi"] - out["brdphi"]) / r + out["bphidr"]
+    if len(results) == 1:
+        return results[0]
+    return results
 
 
-        resolved = set()
-        to_process = list(requested)
-        while to_process:
-            q = to_process.pop()
-            if q in resolved:
-                continue
-            required = deps_map.get(q, [])
-            to_process.extend(required)
-            resolved.add(q)
-        return resolved
+def init_return_array(shape, dtype="f8", units=None):
+    """Initialize an array with NaN values and given units.
 
-    def isin(*available):
-        return any(q in qnt for q in available)
+    This function is a shortcut to initialize suitable arrays to be passed to
+    libascot.
 
+    The library itself doesn't care about units, but the units don't
+    interfere with it so they can be added here already.
 
-    if isin("rho", "psi", "rhodpsi", "psidr", "psidphi", "psidz"):
-        v.update(**eval_bfield(r, phi, z, t, evalrho=True))
-    if isin("br", "bphi", "bz", "brdr", "brdphi", "brdz", "bphidr", "bphidphi",
-            "bphidz", "bzdr", "bzdphi", "bzdz", "divb", "bnorm", "jnorm", "jr",
-            "jphi", "jz", "gradbr", "gradbphi", "gradbz", "curlbr", "curlbphi",
-            "curlbz"):
-        v.update(**eval_bfield(r, phi, z, t, evalb=True))
-        out["jr"]    = (out["bzdphi"]/r - out["bphidz"]) / unyt.mu_0
-        out["jphi"]  = (out["brdz"] - out["bzdr"]) / unyt.mu_0
-        out["jz"]    = (out["bphi"]/r + out["bphidr"] - out["brdphi"]/r) \
-                        / unyt.mu_0
-        out["jnorm"] = np.sqrt(out["jr"]**2 + out["jphi"]**2 + out["jz"]**2)
-        out["gradbr"]   = (out["br"]*out["brdr"] + out["bphi"]*out["bphidr"]
-                            + out["bz"]*out["bzdr"]) / out["bnorm"]
-        out["gradbphi"] = (out["br"]*out["brdphi"]
-                            + out["bphi"]*out["bphidphi"]
-                            + out["bz"]*out["bzdphi"]) / (out["bnorm"]*r)
-        out["gradbz"]   = (out["br"]*out["brdz"] + out["bphi"]*out["bphidz"]
-                            + out["bz"]*out["bzdz"]) / out["bnorm"]
-        out["curlbr"]   = out["bzdphi"] / r - out["bphidz"]
-        out["curlbphi"] = out["brdz"] - out["bzdr"]
-        out["curlbz"]   = (out["bphi"] - out["brdphi"]) / r + out["bphidr"]
-    if any(q in qnt for q in ["axisr", "axisz", "rminor"]):
-        out.update(self._eval_bfield(r, phi, z, t, evalaxis=True))
-        out["rminor"] = np.sqrt(  ( out["axisr"] - r )**2
-                                + ( out["axisz"] - z )**2 )
-    if any(q in qnt for q in ["er", "ephi", "ez"]):
-        out.update(self._eval_efield(r, phi, z, t))
-    if any(q in qnt for q in ["n0"]):
-        out.update(self._eval_neutral(r, phi, z, t))
-    if any(q in qnt for q in ["psi (bzr)", "theta", "zeta", "dpsidr (bzr)",
-                                "dpsidphi (bzr)", "dpsidz (bzr)", "dthetadr",
-                                "dthetadphi", "dthetadz", "dzetadr",
-                                "dzetadphi", "dzetadz", "rho (bzr)"]):
-        out.update(self._eval_boozer(r, phi, z, t))
-    if any(q in qnt for q in ["qprof", "bjac", "bjacxb2"]):
-        out.update(self._eval_boozer(r, phi, z, t, evalfun=True))
-    if any(q in qnt for q in ["alphaeig", "phieig"]):
-        out.update(self._eval_mhd(r, phi, z, t, evalpot=True))
-    if any(q in qnt for q in ["mhd_br", "mhd_bphi", "mhd_bz", "mhd_er",
-                                "mhd_ephi", "mhd_ez", "mhd_phi"]):
-        out.update(self._eval_mhd(r, phi, z, t))
-    if any(q in qnt for q in ["db/b (mhd)"]):
-        bpert = self._eval_mhd(r, phi, z, t)
-        b = self._eval_bfield(r, phi, z, t, evalb=True)
-        bpert = np.sqrt(  bpert["mhd_br"]**2
-                        + bpert["mhd_bphi"]**2
-                        + bpert["mhd_bz"]**2)
-        b = np.sqrt(b["br"]**2 + b["bphi"]**2 + b["bz"]**2)
-        out["db/b (mhd)"] = bpert/b
-
-    ni = ["ni" + str(i+1) for i in range(99)]
-    ti = ["ti" + str(i+1) for i in range(99)]
-    if any(q in qnt for q in ["ne", "te", "zeff"] + ni + ti):
-        out.update(self._eval_plasma(r, phi, z, t))
-
-    for q in list(out.keys()):
-        if q not in qnt:
-            del out[q]
-        elif grid:
-            out[q] = np.reshape(out[q], arrsize)
-    if len(qnt) == 1:
-        return out[qnt[0]]
-    else:
-        return [out[q] for q in qnt]
-
-
-def eval_bfield(bfield, r, phi, z, t, evalb=False, evalrho=False, evalaxis=False):
-    """Evaluate magnetic field quantities at given coordinates.
+    NaN values are used in initialization since libascot doesn't produce an
+    error if data is interpolated outside the grid; it just doesn't return a
+    value there. This way the array will have NaNs where interpolation failed
+    and actual values otherwise.
 
     Parameters
     ----------
-    r : array_like, (n,)
-        R coordinates where data is evaluated [m].
-    phi : array_like (n,)
-        phi coordinates where data is evaluated [rad].
-    z : array_like (n,)
-        z coordinates where data is evaluated [m].
-    t : array_like (n,)
-        Time coordinates where data is evaluated [s].
-    evalb : bool, optional
-        Evaluate B_field_eval_B_dB.
-    evalrho : bool, optional
-        Evaluate B_field_eval_rho.
-    evalaxis : bool, optional
-        Evaluate B_field_get_axis.
+    shape : tuple of int
+        Shape of the array to be initialized.
+    dtype : str or np.dtype, optional
+        Data type of the array.
+    units : str or Unit, optional
+        Units of the array.
 
     Returns
     -------
-    out : dict [str, array_like (n,)]
-        Evaluated quantities in a dictionary.
-
-    Raises
-    ------
-    AssertionError
-        If required data has not been initialized.
-    RuntimeError
-        If evaluation in libascot.so failed.
+    arr : ndarray or unyt_array
+        Initialized array with NaN values and optional units.
     """
-    n, shape = r.size, r.shape
+    arr = np.full(shape, np.nan, dtype=dtype)
+    if units is None:
+        return arr
+    return unyt.unyt_array(arr, units)
 
-    v = {}
-    if evalb:
-        v.update(
-            **_init_return_arrays(
-                ("br", "bphi", "bz", "brdr", "brdphi", "brdz", "bphidr",
-                 "bphidphi", "bphidz", "bzdr", "bzdphi", "bzdz"),
-                [shape]*12,
-                ["f8"]*12,
-                ["T", "T", "T", "T/m", "T", "T/m", "T/m", "T", "T/m", "T/m",
-                 "T", "T/m"],
-            )
+
+def process_query_points(r, phi, z, t, grid):
+    r"""Process query points so that they can be passed to libascot.so.
+
+    This routine ensures the coordinates are double precision and in correct
+    units. If the coordinates form a grid, then return the grid point
+    coordinates. If not, then check that the coordinates have same size.
+
+    Parameters
+    ----------
+    r, phi, z, t : ndarray
+        Coordinates.
+    grid : bool
+        Flag indicating whether the coordinates form a grid.
+
+    Returns
+    -------
+    r, phi, z, t : ndarray
+        Processed coordinates.
+    """
+    def ensure_units_and_dtype(x, units):
+        return x.to(units).astype(dtype="f8")
+    r, phi, z, t = (
+        ensure_units_and_dtype(r, "m"),
+        ensure_units_and_dtype(phi, "rad"),
+        ensure_units_and_dtype(z, "m"),
+        ensure_units_and_dtype(t, "s")
         )
-        LIBASCOT.libascot_B_field_eval_B_dB(
-            ctypes.byref(bfield), n, r, phi, z, t, *list(v.values)
+
+    if grid:
+        if any(arr.squeeze().ndim > 1 for arr in (r, phi, z, t)):
+            raise ValueError("Grid inputs must be 1D arrays")
+        return np.meshgrid(
+            r.ravel(), phi.ravel(), z.ravel(), t.ravel(), indexing="ij"
             )
-    return v
+
+    shapes = [arr.shape for arr in (r, phi, z, t)]
+    nonsingletons = [s for s in shapes if s != ()]
+    if len(nonsingletons) > 1 and len(set(nonsingletons)) != 1:
+        raise ValueError(
+            f"Input arrays (r, phi, z, t) must have same shape or be singletons. "
+            f"Got {r.shape}, {phi.shape}, {z.shape}, {t.shape}."
+        )
+
+    arrshape = () if not len(nonsingletons) else nonsingletons[0]
+    def broadcast(arr):
+        if arr.size > 1:
+            return arr
+        return np.full(arrshape, arr.ravel()[0]) * arr.units
+    return tuple(broadcast(arr) for arr in (r, phi, z, t))
+
+
+def interpolate(r, phi, z, t, nmode, *qnt, **input_variants):
+    """Evaluates fundamental quantities at given coordinates.
+
+    Parameters
+    ----------
+    r, phi, z, t : ndarray
+        Coordinates.
+    nmode : int
+        Mode number.
+    *qnt : str
+        Quantities to evaluate (e.g., "br", "psi", "rho", ...).
+    **input_variants : dict
+        Input variants to be used in interpolation (bfield, efield, plasma,
+        neutral, boozer, mhd).
+
+    Returns
+    -------
+    dict[str, ndarray]
+        Mapping of requested quantities to evaluated arrays with units.
+    """
+    unit_mapping = {
+        "T": ("br", "bz", "bphi", "mhd_br", "mhd_bz", "mhd_bphi", "bphidphi",
+              "brdphi", "bzdphi",),
+        "T/m": ("brdr", "brdz", "bphidr", "bphidz", "bzdr", "bzdz",),
+        "V/m": ("er", "ez", "ephi", "mhd_er", "mhd_ez", "mhd_ephi",),
+        "Wb/rad": ("psi", "dpsidphi",),
+        "(Wb/rad)/m": ("dpsidr", "dpsidz",),
+        "1": ("rho",),
+        "1/(Wb/rad)": ("drhodpsi",),
+        "m**-3": ("ne", "ni", "n0",),
+        "eV": ("te", "ti", "t0",),
+    }
+
+
+    def init_return_arrays(qnt, query_shape, input_variants):
+        """Initialize return arrays.
+
+        Use NULL pointer for quantities that are not requested to avoid
+        unnecessary memory allocation. Some quantities are always evaluated
+        simultaneously (e.g. magnetic field components) so store them in the
+        same array for simpler handling.
+
+        The array shape is always (n_simultaneous, n_query_points) on the C
+        side, but we assume that the query arrays have the correct ordering so
+        that we can preserve their shape, i.e. the arrays are
+        (n_simultaneous, *query_shape). The special cases are plasma and neutral
+        evaluations where the array shape depends on the number of species.
+
+        This function also checks that all required inputs are present and
+        raises exception otherwise.
+        """
+        required_map = {
+            ("b", "bjac", "psi", "rho"): ["bfield"],
+            ("e",): ["bfield", "efield"],
+            ("n", "t"): ["bfield", "plasma"],
+            ("n0", "t0"): ["bfield", "neutral"],
+            ("theta", "zeta"): ["bfield", "boozer"],
+            ("alpha", "Phi", "mhd_b", "mhd_e", "mhd_phi"): ["bfield", "boozer", "mhd"],
+        }
+        return_arrays, required, nullpointer = {}, [], None
+        for name, subqnt in qnt_mapping.items():
+            qnt_not_requested = not any(q in subqnt for q in qnt)
+            if qnt_not_requested:
+                return_arrays[name] = nullpointer
+                continue
+
+            for keys, deps in required_map.items():
+                if name in keys and not deps in required:
+                    required.extend(deps)
+            for req in required:
+                if req not in input_variants or input_variants[req] is None:
+                    raise ValueError(
+                        f"Input variant {req} is required for this evaluation."
+                    )
+
+            if name == "n":
+                ns = len(input_variants["plasma"].species)
+                shape = (ns + 1, *query_shape)
+            elif name in ["n0", "t0"]:
+                ns = len(input_variants["neutral"].species)
+                shape = (ns, *query_shape)
+            else:
+                shape = (len(subqnt), *query_shape)
+            return_arrays[name] = init_return_array(shape, dtype="f8")
+        return return_arrays, required
+
+
+    def init_inputs(input_variants, required_inputs):
+        """Initialize input data structs (only those that are required)."""
+        inputs = {}
+        for inp in ["bfield", "efield", "plasma", "neutral", "boozer", "mhd"]:
+            val = input_variants.get(inp)
+            if val is not None and inp in required_inputs:
+                cls = globals()[inp.capitalize()]
+                interface = cls()
+                interface.use(val)
+                inputs[inp] = interface
+            else:
+                inputs[inp] = None
+        return inputs
+
+    def set_units(result):
+        for k, v in result.items():
+            for unit, quantity in unit_mapping.items():
+                if k in quantity:
+                    result[k] = unyt.unyt_array(v, unit)
+                    break
+
+    query_shape, query_size = r.shape, r.size
+    return_arrays, required_inputs = (
+        init_return_arrays(qnt, query_shape, input_variants)
+        )
+    inputs = init_inputs(input_variants, required_inputs)
+    ptrs = {
+        k: ctypes.byref(v) if v is not None else None for k, v in inputs.items()
+        }
+    LIBASCOT.libascot_interpolate(
+        ptrs["bfield"], ptrs["efield"], ptrs["plasma"], ptrs["neutral"],
+        ptrs["boozer"], ptrs["mhd"], query_size, nmode, r, phi, z, t,
+        *return_arrays.values()
+        )
+    result = {}
+    for qname in qnt:
+        for name, mapping in qnt_mapping.items():
+            if qname in mapping and name in return_arrays:
+                idx = mapping.index(qname)
+                result[qname] = return_arrays[name][idx]
+
+    set_units(result)
+    return result

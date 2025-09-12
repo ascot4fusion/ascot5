@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include "../ascot5.h"
 #include "../error.h"
-#include "../print.h"
 #include "../B_field.h"
 #include "../spline/interp.h"
 #include "E_1DS.h"

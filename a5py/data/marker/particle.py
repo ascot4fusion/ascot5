@@ -12,32 +12,17 @@ from ..access import variants, InputVariant, Format, TreeCreateClassMixin
 from ... import utils, physlib
 from ...exceptions import AscotIOException
 
-from .cstructs import (INPUT_PARTICLE_TYPE, input_particle,
-                       allocate_input_particles)
-
+from .state import MarkerState
 
 class ParticleMarker(InputVariant):
     """Marker input in particle (6D) phase-space."""
-
-    Struct = input_particle
 
 
     def __init__(self, qid, date, note) -> None:
         super().__init__(
             qid=qid, date=date, note=note, variant="ParticleMarker",
-            struct=ctypes.POINTER(input_particle)(),
+            struct=None,
             )
-        self._species: str
-        self._ids: unyt.unyt_array
-        self._charge: unyt.unyt_array
-        self._r: unyt.unyt_array
-        self._phi: unyt.unyt_array
-        self._z: unyt.unyt_array
-        self._vr: unyt.unyt_array
-        self._vphi: unyt.unyt_array
-        self._vz: unyt.unyt_array
-        self._weight: unyt.unyt_array
-        self._time: unyt.unyt_array
 
     @property
     def species(self) -> str:
@@ -45,62 +30,79 @@ class ParticleMarker(InputVariant):
         return self._species
 
     @property
-    def ids(self) -> unyt.unyt_array:
+    def ids(self) -> np.ndarray:
         """Unique identifier for each marker."""
-        return self._ids.copy()
+        if self._format == Format.HDF5:
+            return self._read_hdf5("ids")
 
-    @property
-    def charge(self) -> unyt.unyt_array:
-        """Charge state."""
-        return self._charge.copy()
+        out = np.zeros((len(self._struct_),))
+        for i in range(out.size):
+            out[i] = self._struct_[i].id
+        return out
 
     @property
     def r(self) -> unyt.unyt_array:
-        r"""Particle :math:`R` coordinate."""
+        r"""Field-line :math:`R` coordinate."""
         if self._format == Format.HDF5:
-            nrho, rho0, rho1 = self._read_hdf5("nrho", "rhomin", "rhomax")
-            return np.linspace(rho0, rho1, nrho)
-        return self._r.copy()
+            return self._read_hdf5("r")
+
+        out = np.zeros((len(self._struct_),)) * unyt.m
+        for i in range(out.size):
+            out[i] = self._struct_[i].r
+        return out
 
     @property
     def phi(self) -> unyt.unyt_array:
-        r"""Particle :math:`\phi` coordinate."""
-        return self._phi.copy()
+        r"""Field-line :math:`\phi` coordinate."""
+        if self._format == Format.HDF5:
+            return self._read_hdf5("phi")
+
+        out = np.zeros((len(self._struct_),)) * unyt.rad
+        for i in range(out.size):
+            out[i] = self._struct_[i].phi
+        return out.to("deg")
 
     @property
     def z(self) -> unyt.unyt_array:
-        r"""Particle :math:`z` coordinate."""
-        return self._z.copy()
+        r"""Field-line :math:`z` coordinate."""
+        if self._format == Format.HDF5:
+            return self._read_hdf5("z")
+
+        out = np.zeros((len(self._struct_),)) * unyt.m
+        for i in range(out.size):
+            out[i] = self._struct_[i].z
+        return out
 
     @property
-    def vr(self) -> unyt.unyt_array:
-        r"""Particle velocity :math:`R` component."""
-        return self._vr.copy()
+    def direction(self) -> unyt.unyt_array:
+        r"""Field-line direction (negative means opposite to the magnetic field
+        vector).
+        """
+        if self._format == Format.HDF5:
+            return self._read_hdf5("direction")
 
-    @property
-    def vphi(self) -> unyt.unyt_array:
-        r"""Particle velocity :math:`\phi` component."""
-        return self._vphi.copy()
-
-    @property
-    def vz(self) -> unyt.unyt_array:
-        r"""Particle velocity :math:`z` component."""
-        return self._vz.copy()
-
-    @property
-    def weight(self) -> unyt.unyt_array:
-        r"""Particle weight."""
-        return self._weight.copy()
+        out = np.zeros((len(self._struct_),)) * unyt.dimensionless
+        for i in range(out.size):
+            out[i] = self._struct_[i].ppar
+        return out
 
     @property
     def time(self) -> unyt.unyt_array:
-        r"""Particle time."""
-        return self._time.copy()
+        """Field-line time."""
+        if self._format == Format.HDF5:
+            return self._read_hdf5("time")
+
+        out = np.zeros((len(self._struct_),)) * unyt.s
+        for i in range(out.size):
+            out[i] = self._struct_[i].time
+        return out
 
     @property
     def n(self) -> int:
         """Number of markers."""
-        return self.ids.size
+        if self._format == Format.HDF5:
+            return self._read_hdf5("ids").size
+        return len(self._struct_)
 
     def _export_hdf5(self):
         """Export data to HDF5 file."""
@@ -127,34 +129,10 @@ class ParticleMarker(InputVariant):
         return data
 
     def stage(self):
-        n = self.n
-        self._struct_ = allocate_input_particles(n)
-        particle_type = INPUT_PARTICLE_TYPE["p"]
-        properties = physlib.species2properties(self.species)
-        anum, znum, mass = properties.anum, properties.znum, properties.mass
-        for i in range(n):
-            self._struct_[i].type = particle_type
-            self._struct_[i].p.anum = anum
-            self._struct_[i].p.znum = znum
-            self._struct_[i].p.mass = mass
-        for fieldname in ["ids", "r", "phi", "z", "vr", "vphi", "vz", "weight",
-                          "time"]:
-            structname = fieldname if fieldname != "ids" else "id"
-            field = getattr(self, fieldname)
-            for i in range(n):
-                setattr(self._struct_[i].p, structname, field[i])
-
-            if self._format == Format.MEMORY:
-                delattr(self, "_"+fieldname)
-            self._staged = True
+        pass
 
     def unstage(self):
-        if self._staged:
-            if self._format is Format.MEMORY:
-                self._density = self.density
-                self._temperature = self.temperature
-            free(ctypes.byref(self._struct_))
-            self._staged = False
+        pass
 
 
 # pylint: disable=too-few-public-methods
@@ -264,6 +242,44 @@ class CreateParticleMixin(TreeCreateClassMixin):
             setattr(obj, f"_{parameter}", value)
             if parameter is not "species":
                 getattr(obj, f"_{parameter}").flags.writeable = False
+
+        if store_hdf5:
+            obj._export_hdf5()
+        return obj
+
+        parameters = variants.parse_parameters(
+            ids, r, phi, z, direction, time,
+        )
+        n = 1 if parameters["ids"] is None else parameters["ids"].size
+        variants.validate_required_parameters(
+            parameters,
+            names=["ids", "r", "phi", "z",],
+            units=["1", "m", "deg", "m",],
+            shape=(n,),
+            dtype=["i8", "f8", "f8", "f8",],
+            default=[1, 1.0, 0.0, 0.0,],
+        )
+        variants.validate_optional_parameters(
+            parameters,
+            names=["direction", "time"],
+            units=["1", "s"],
+            shape=(n,),
+            dtype=["f8", "f8",],
+            default=[np.ones((n,)), np.ones((n,)),],
+        )
+        meta = variants.new_metadata("FieldlineMarker", note=note)
+        obj = self._treemanager.enter_input(
+            meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
+            )
+        obj._struct_ = (MarkerState.Structure * n)()
+        parameters.update({
+            "id":parameters["ids"], "ppar":parameters["direction"]
+            })
+        del parameters["ids"]
+        del parameters["direction"]
+        for key in parameters.keys():
+            for i in range(n):
+                setattr(obj._struct_[i], key, parameters[key][i])
 
         if store_hdf5:
             obj._export_hdf5()

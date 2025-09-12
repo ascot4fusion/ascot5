@@ -40,7 +40,7 @@ class BoozerMap(InputVariant):
     # pylint: disable=too-few-public-methods
     class Struct(ctypes.Structure):
         """Python wrapper for the struct in boozer.h."""
-        _pack_ = 1
+        #_pack_ = 1
         _fields_ = [
             ('psi_min', ctypes.c_double),
             ('psi_max', ctypes.c_double),

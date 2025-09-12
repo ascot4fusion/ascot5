@@ -4,9 +4,7 @@
  */
 #include <string.h>
 #include <math.h>
-#include <hdf5_hl.h>
 #include "ascot5.h"
-#include "print.h"
 #include "gitver.h"
 #include "math.h"
 #include "physlib.h"
@@ -16,10 +14,6 @@
 #include "simulate.h"
 #include "boschhale.h"
 #include "diag/hist.h"
-#include "hdf5_interface.h"
-#include "hdf5io/hdf5_helpers.h"
-#include "hdf5io/hdf5_dist.h"
-#include "hdf5io/hdf5_histogram.h"
 #include "afsi.h"
 
 /** Random number generator used by AFSI */
@@ -61,25 +55,19 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
               histogram* prod1, histogram* prod2) {
     /* QID for this run */
     char qid[11];
-    hdf5_generate_qid(qid);
-    strcpy(sim->qid, qid);
+    //hdf5_generate_qid(qid);
+    //strcpy(sim->qid, qid);
 
     int mpi_rank = 0, mpi_root = 0; /* AFSI does not support MPI */
-    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "AFSI5\n");
-    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
-               "Tag %s\nBranch %s\n\n", GIT_VERSION, GIT_BRANCH);
 
     random_init(&rdata, time((NULL)));
-    strcpy(sim->hdf5_out, sim->hdf5_in);
+    //strcpy(sim->hdf5_out, sim->hdf5_in);
     //simulate_init(sim);
 
-    if( hdf5_interface_init_results(sim, qid, "afsi") ) {
-        print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
-                   "\nInitializing output failed.\n"
-                   "See stderr for details.\n");
+    //if( hdf5_interface_init_results(sim, qid, "afsi") ) {
         /* Free data and terminate */
-        abort();
-    }
+        //abort();
+    //}
 
     real m1, q1, m2, q2, mprod1, qprod1, mprod2, qprod2, Q;
     boschhale_reaction(
@@ -214,6 +202,7 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
     int cprod1 = (int)rint(qprod1 / CONST_E);
     int cprod2 = (int)rint(qprod2 / CONST_E);
 
+    /*
     hid_t f = hdf5_open(sim->hdf5_out);
     if(f < 0) {
         print_err("Error: File not found.\n");
@@ -284,6 +273,7 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
     }
 
     print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "\nDone\n");
+    */
 }
 
 /**

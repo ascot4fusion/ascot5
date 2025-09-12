@@ -24,7 +24,6 @@
 #include <stdlib.h>
 #include "ascot5.h"
 #include "error.h"
-#include "print.h"
 #include "plasma.h"
 #include "plasma/plasma_1D.h"
 #include "plasma/plasma_1DS.h"

@@ -16,7 +16,6 @@
 #include <stdio.h>
 #include "ascot5.h"
 #include "error.h"
-#include "print.h"
 #include "neutral.h"
 #include "neutral/N0_1D.h"
 #include "neutral/N0_3D.h"

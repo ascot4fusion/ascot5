@@ -13,6 +13,14 @@ from .. import utils
 from ..libascot import LIBASCOT
 from ..exceptions import AscotIOException
 
+class NbiStruct(ctypes.Structure):
+    #_pack_ = 1
+    _fields_ = [
+        ('id', ctypes.c_int32),
+        ('dummy', ctypes.c_int32),
+        ('inj', ctypes.c_void_p),
+        ]
+
 
 class NbiBundle(InputVariant):
     """A bundle of neutral beam injectors."""
@@ -20,7 +28,7 @@ class NbiBundle(InputVariant):
     # pylint: disable=too-few-public-methods
     class Struct(ctypes.Structure):
         """Python wrapper for the struct in nbi.h."""
-        _pack_ = 1
+        #_pack_ = 1
         _fields_ = [
             ('id', ctypes.c_int32),
             ('n_beamlet', ctypes.c_int32),

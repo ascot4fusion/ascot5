@@ -52,14 +52,14 @@ class Options(InputVariant):
     class Struct(ctypes.Structure):
         """Python wrapper for the struct in options.h."""
         MAXPOINCARE = 32
-        _pack_ = 1
+        #_pack_ = 1
         _fields_ = [
             ("simulation_mode", ctypes.c_int),
             ("enable_adaptive", ctypes.c_int),
             ("record_mode", ctypes.c_int),
             ("use_explicit_fixedstep", ctypes.c_int),
             ("gyrodefined_fixedstep", ctypes.c_int),
-            ('PADDING_0', ctypes.c_ubyte * 4),
+            #('PADDING_0', ctypes.c_ubyte * 4),
             ("explicit_fixedstep", ctypes.c_double),
             ("adaptive_tolerance_orbit", ctypes.c_double),
             ("adaptive_tolerance_collisions", ctypes.c_double),
@@ -78,7 +78,7 @@ class Options(InputVariant):
             ("reverse_time", ctypes.c_int),
             ("endcond_active", ctypes.c_int),
             ("require_both_tor_and_pol", ctypes.c_int),
-            ('PADDING_1', ctypes.c_ubyte * 4),
+            #('PADDING_1', ctypes.c_ubyte * 4),
             ("lab_time_limit", ctypes.c_double),
             ("max_mileage", ctypes.c_double),
             ("max_real_time", ctypes.c_double),
@@ -113,7 +113,7 @@ class Options(InputVariant):
             ("pperp_bins", ctypes.c_int),
             ("time_bins", ctypes.c_int),
             ("charge_bins", ctypes.c_int),
-            ('PADDING_2', ctypes.c_ubyte * 4),
+            #('PADDING_2', ctypes.c_ubyte * 4),
             ("r_interval", ctypes.c_double * 2),
             ("phi_interval", ctypes.c_double * 2),
             ("z_interval", ctypes.c_double * 2),

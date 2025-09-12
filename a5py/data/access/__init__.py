@@ -6,26 +6,33 @@ is specified by `Format` and the data objects.
 """
 from typing import Protocol
 
-from .tree import Tree
-from .treeparts import TreeManager
-from .variants import InputVariant, RunVariant, Diagnostic
+from .leaf import Leaf, InputLeaf
+from .nodes import OutputLeaf
+from .tree import Tree, TreeManager
 from .dataholder import Format
+
+from .variants import InputVariant, RunVariant
 
 
 #pylint: disable=too-few-public-methods
-class TreeCreateClassMixin(Protocol):
-    """Base class for mixin classes that introduce create* methods.
+class CreateLeafMixin(Protocol):
+    """Base class for mixin classes that introduce ``create*`` methods.
 
     This class suppresses linter warnings by providing access to the
-    `_treemanager` attribute of the child (main) class.
+    ``_treemanager`` attribute of the child (main) class.
     """
     _treemanager: TreeManager
 
+
+TreeCreateClassMixin = CreateLeafMixin
+
+class Diagnostic():
+    pass
+
 __all__  = [
     "Tree",
+    "Leaf",
+    "OutputLeaf",
     "Format",
-    "Diagnostic",
-    "RunVariant",
-    "InputVariant",
-    "TreeCreateClassMixin",
+    "CreateLeafMixin",
     ]

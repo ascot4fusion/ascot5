@@ -1,4 +1,5 @@
 """Base classes for input and run variants."""
+import ctypes
 import inspect
 from typing import Tuple, Any
 
@@ -9,9 +10,9 @@ from .. import cstructs
 from ... import utils
 from ... import physlib
 
-from . import metadata
-from .treeparts import Leaf, MetaData
-from .tree import Output
+from . import leaf
+from .leaf import Leaf, MetaData
+from .nodes import OutputLeaf
 from .dataholder import DataHolder
 
 NOTPARAMETERS = ["self", "note", "activate", "dryrun", "store_hdf5"]
@@ -19,38 +20,27 @@ NOTPARAMETERS = ["self", "note", "activate", "dryrun", "store_hdf5"]
 do not specify the actual data."""
 
 
-class RunVariant(Output):
+class RunVariant(OutputLeaf):
     """Base class for run variants."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
 
-class Diagnostic(DataHolder):
+class Diagnostic():
     """Base class for diagnostics."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.leaf: Leaf
+        self._staged: bool = True
 
-    def _read_hdf5(self):
+    def read_hdf5(self, hdf5manager):
         """"""
-        self.leaf._treemanager.hdf5manager.read_datasets()
+        self._staged = False
 
-    def _export_hdf5(self):
-        return 0
-
-    def export(self):
-        return 0
-
-    def stage(self):
-        return 0
-
-    def unstage(self):
-        return 0
-
-    def setleaf(self, leaf: Leaf):
-        self.leaf = leaf
+    def write_hdf5(self, hdf5manager):
+        """"""
+        self._staged = False
 
 
 class InputVariant(Leaf, DataHolder):
@@ -146,7 +136,7 @@ class InputVariant(Leaf, DataHolder):
 
 
 def new_metadata(variant, note):
-    qid, date, default_note = metadata.generate_metadata()
+    qid, date, default_note = leaf.generate_metadata()
     if note is None:
         note = default_note
     return MetaData(qid, date, note, variant)

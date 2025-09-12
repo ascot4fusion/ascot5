@@ -25,19 +25,8 @@
 #include "asigma.h"
 #include "consts.h"
 #include "physlib.h"
-#include "gitver.h"
 
 #include "simulate/mccc/mccc_coefs.h"
-
-#include "hdf5_interface.h"
-#include "hdf5io/hdf5_helpers.h"
-#include "hdf5io/hdf5_bfield.h"
-#include "hdf5io/hdf5_efield.h"
-#include "hdf5io/hdf5_plasma.h"
-#include "hdf5io/hdf5_wall.h"
-#include "hdf5io/hdf5_neutral.h"
-#include "hdf5io/hdf5_boozer.h"
-#include "hdf5io/hdf5_mhd.h"
 
 
 #define STORE(index, val, ptr) if ((ptr)) (ptr)[(index)] = (val)
@@ -146,24 +135,25 @@ void libascot_interpolate(
             n_species = plasma_get_n_species(plasma);
         }
         if( plasma && rho_valid &&
-            !plasma_eval_densandtemp(ns, Ts, *rho[0], R[k], phi[k], z[k], t[k],
+            !plasma_eval_densandtemp(ns, Ts, rhoval[0], R[k], phi[k], z[k], t[k],
                                      plasma) ) {
+            STORE(0*npnt + k, Ts[0] / CONST_E, *T);
+            STORE(1*npnt + k, Ts[1] / CONST_E, *T);
             for(int i=0; i < n_species; i++) {
                 STORE(i*npnt + k, ns[i], *n);
-                STORE(i*npnt + k, Ts[i] / CONST_E, *T);
             }
         }
         if(neutral) {
             n_species = neutral_get_n_species(neutral);
         }
         if( neutral && rho_valid &&
-            !neutral_eval_n0(ns, *rho[0], R[k], phi[k], z[k], t[k], neutral) ) {
+            !neutral_eval_n0(ns, rhoval[0], R[k], phi[k], z[k], t[k], neutral) ) {
             for(int i=0; i < n_species; i++) {
                 STORE(i*npnt + k, ns[i], *n0);
             }
         }
         if( neutral && rho_valid &&
-            !neutral_eval_t0(Ts, *rho[0], R[k], phi[k], z[k], t[k], neutral) ) {
+            !neutral_eval_t0(Ts, rhoval[0], R[k], phi[k], z[k], t[k], neutral) ) {
             for(int i=0; i < n_species; i++) {
                 STORE(i*npnt + k, Ts[i], *T0);
             }

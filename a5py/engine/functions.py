@@ -26,7 +26,7 @@ def _ndpointerornull(*args, **kwargs):
     return type(base.__name__, (base,), {"from_param": classmethod(from_param)})
 
 
-def _init_fun(name, *argtypes, restype=None):
+def init_fun(name, *argtypes, restype=None):
     """Initialize function in libascot.so."""
     fun = getattr(LIBASCOT, name)
     fun.argtypes = argtypes
@@ -41,56 +41,7 @@ PTR_INT = _ndpointerornull(ctypes.c_int32, flags="C_CONTIGUOUS")
 """Int valued numpy array or None (NULL)."""
 
 
-_init_fun(
-    "libascot_interpolate",
-    ctypes.POINTER(Bfield),
-    ctypes.POINTER(Efield),
-    ctypes.POINTER(Plasma),
-    ctypes.POINTER(Neutral),
-    ctypes.POINTER(BoozerMap.Struct),
-    ctypes.POINTER(Mhd),
-    ctypes.c_int32,
-    ctypes.c_int32,
-    *([PTR_DOUBLE]*20)
-    )
 
-_init_fun(
-    "libascot_find_axis",
-    ctypes.POINTER(Bfield),
-    ctypes.c_int32,
-    *([PTR_DOUBLE]*2)
-    )
-
-_init_fun(
-    "libascot_rhotheta2rz",
-    ctypes.POINTER(Bfield),
-    ctypes.c_int32,
-    ctypes.c_int32,
-    ctypes.c_double,
-    ctypes.c_double,
-    *([PTR_DOUBLE]*5)
-    )
-
-_init_fun(
-    "libascot_gradient_descent",
-    ctypes.POINTER(Bfield),
-    ctypes.c_int32,
-    ctypes.c_int32,
-    ctypes.c_double,
-    ctypes.c_double,
-    *([PTR_DOUBLE]*2)
-    )
-
-_init_fun(
-    "libascot_gradient_descent_3d",
-    ctypes.POINTER(Bfield),
-    ctypes.c_int32,
-    ctypes.c_int32,
-    ctypes.c_double,
-    ctypes.c_double,
-    ctypes.c_double,
-    *([PTR_DOUBLE]*2)
-    )
 
 def get_enum_value(enum):
     return ctypes.c_uint.in_dll(LIBASCOT, enum).value

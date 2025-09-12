@@ -80,66 +80,6 @@ typedef struct {
 } particle_state;
 
 /**
- * @brief Particle input
- *
- * When particle marker data is read, this struct is created and filled. This
- * struct is then converted to a particle_state struct.
- */
-typedef struct {
-    real r;      /**< R coordinate [m]                    */
-    real phi;    /**< phi coordinate [rad]                */
-    real z;      /**< z coordinate [m]                    */
-    real p_r;    /**< Momentum R-component [kg m/s]       */
-    real p_phi;  /**< Momentum phi-component [kg m/s]     */
-    real p_z;    /**< Momentum z-component [kg m/s]       */
-    real mass;   /**< Mass [kg]                           */
-    real charge; /**< Charge [C]                          */
-    int  anum;   /**< Atomic mass number [1]              */
-    int  znum;   /**< Charge number [1]                   */
-    real weight; /**< Particle marker weight              */
-    real time;   /**< Particle marker simulation time [s] */
-    integer id;  /**< Unique ID for the particle marker   */
-} particle;
-
-/**
- * @brief Guiding center input
- *
- * When guiding center marker data is read, this struct is created and filled.
- * This struct is then converted to a particle_state struct.
- */
-typedef struct {
-    real r;      /**< R coordinate [m]                          */
-    real phi;    /**< phi coordinate [rad]                      */
-    real z;      /**< z coordinate [m]                          */
-    real energy; /**< Kinetic energy [J]                        */
-    real pitch;  /**< Pitch                                     */
-    real zeta;   /**< Gyroangle [rad]                           */
-    real mass;   /**< Mass [kg]                                 */
-    real charge; /**< Charge [C]                                */
-    int  anum;   /**< Atomic mass number [1]                    */
-    int  znum;   /**< Charge number [1]                         */
-    real weight; /**< Guiding center marker weight              */
-    real time;   /**< Guiding center marker simulation time [s] */
-    integer id;  /**< Unique ID for the guiding center marker   */
-} particle_gc;
-
-/**
- * @brief Field line input
- *
- * When field line marker data is read, this struct is created and filled. This
- * struct is then converted to a particle_state struct.
- */
-typedef struct {
-    real r;      /**< R coordinate [m]                      */
-    real phi;    /**< phi coordinate [rad]                  */
-    real z;      /**< z coordinate [m]                      */
-    real pitch;  /**< Direction                             */
-    real weight; /**< Field line marker weight              */
-    real time;   /**< Field line marker simulation time [s] */
-    integer id;  /**< Unique ID for the field line marker   */
-} particle_ml;
-
-/**
  * @brief Marker queue
  *
  * Each time a marker has finished simulation, a new marker is chosen from this
@@ -160,38 +100,6 @@ typedef struct {
                                 simulation                                   */
 } particle_queue;
 
-/**
- * @brief Marker types enum
- *
- * Used to indicate what marker type is stored in input_particle wrapper.
- */
-typedef enum input_particle_type {
-    input_particle_type_p,  /**< Type corresponding to particle struct       */
-    input_particle_type_gc, /**< Type corresponding to particle_gc struct    */
-    input_particle_type_ml, /**< Type corresponding to particle_ml struct    */
-    input_particle_type_s   /**< Type corresponding to particle_state struct */
-} input_particle_type;
-
-/**
- * @brief Wrapper for marker structs
- *
- * This struct wraps particle_state struct and all input structs. Reason is
- * because input data can have several marker types and with this wrapper only
- * a single array is required to store them. The same array can be used when
- * the input markers are turned into marker states.
- *
- * Only a single type is stored here indicated by the "type" field. Storing a
- * a new marker struct removes the old marker struct.
- */
-typedef struct {
-    input_particle_type type; /**< Type of data currently stored */
-    union {
-        particle p;           /**< Particle input                */
-        particle_gc p_gc;     /**< Guiding center input          */
-        particle_ml p_ml;     /**< Field line tracer input       */
-        particle_state p_s;   /**< Marker state                  */
-    };
-} input_particle;
 
 /**
  * @brief Struct representing NSIMD particle markers
@@ -400,15 +308,6 @@ int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
                       B_field_data* Bdata, int* cycle);
 int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
                       B_field_data* Bdata, int* cycle);
-
-void particle_input_to_state(input_particle* p, particle_state* ps,
-                             B_field_data* Bdata);
-a5err particle_input_p_to_state(particle* p, particle_state* ps,
-                                B_field_data* Bdata);
-a5err particle_input_gc_to_state(particle_gc* p, particle_state* ps,
-                                 B_field_data* Bdata);
-a5err particle_input_ml_to_state(particle_ml* p, particle_state* ps,
-                                 B_field_data* Bdata);
 
 void particle_offload_fo(particle_simd_fo* p);
 void particle_onload_fo(particle_simd_fo* p);

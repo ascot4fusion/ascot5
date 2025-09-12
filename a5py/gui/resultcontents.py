@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib.gridspec import GridSpec
 from .components import ContentTab, PlotFrame, NumEntry, DropdownMenu, Tickbox,\
     ToggleButton
-from a5py.routines.plotting import defaultcamera
+from a5py.plotting.plotting import defaultcamera
 
 class Summary(ContentTab):
     """Settings frame summarizing simulation output.

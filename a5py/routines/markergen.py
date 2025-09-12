@@ -279,3 +279,154 @@ class MarkerGenerator():
         dist._distribution = rhorpz / dist.phasespacevolume().units
 
         return dist
+
+def gen_markerdist(a5, mass, charge, energy, rgrid, zgrid, kgrid,
+                   rhoksidist=None, plot=False):
+    """
+    Generate marker (r,zksi) distribution from a given distribution.
+
+    Args:
+        a5 : Ascotpy, str <br>
+            Ascotpy object or HDF5 filename.
+        mass : float <br>
+            Marker mass [kg].
+        charge : float <br>
+            Marker charge [C].
+        energy : float <br>
+            Marker energy [J].
+        rgrid : array_like (n,1) <br>
+            R coordinate grid.
+        zgrid : array_like (n,1) <br>
+            z coordinate grid.
+        kgrid : array_like (n,1) <br>
+            ksi coordinate grid.
+        rhoksidist : tuple, optional <br>
+            Tuple (rhogrid, ksigrid, weights) if markers are to be generated
+            based weighted (rho_omp, ksi_omp) distribution. See phasespace.py.
+
+    Returns:
+        Tuple (rgrid,zgrid,ksigrid,markerdist) where first three are the grid
+        axes (same as was given) and fourth element is the marker distribution
+        normalized to one.
+    """
+    free = False
+    if isinstance(a5, str):
+        free = True
+        a5 = Ascotpy(a5)
+        a5.init(bfield=True)
+
+    # Marker distribution is generated with a Monte Carlo method by generating
+    # chuncks of markers until the change in each cell is less than the
+    # tolerance.
+    Ndraw = 100000
+    tol = 1e-1
+    err = tol+1
+    newdist = np.zeros((rgrid.size-1, zgrid.size-1, kgrid.size-1))
+    probdensity = np.append( [0], np.cumsum(rhoksidist[2].ravel()) )
+    while(err > tol):
+        olddist = np.copy(newdist)
+
+        if rhoksidist is not None:
+            rhogrid = rhoksidist[0]
+            ksigrid = rhoksidist[1]
+
+            rhovals, ksivals = np.meshgrid(rhogrid[:-1], ksigrid[:-1],
+                                           indexing='ij')
+
+            prob = np.random.rand(Ndraw)
+            idx  = np.searchsorted(probdensity, prob, side='left')-1
+
+            weights = np.ones(idx.shape)
+            rhovals = rhovals.ravel()[idx] + np.random.rand(Ndraw) \
+                      * (rhogrid[1]-rhogrid[0])
+            ksivals = ksivals.ravel()[idx] + np.random.rand(Ndraw) \
+                      * (ksigrid[1]-ksigrid[0])
+
+            newdist += phasespace.maprhoksi2rzk(a5, mass, charge, energy,
+                                                rhovals, ksivals,
+                                                rgrid, zgrid, kgrid,
+                                                weights=weights)
+
+        if np.sum(olddist.ravel()) > 0:
+            ratio = np.absolute(
+                ( newdist.ravel() / np.sum(newdist.ravel()) )
+                / ( olddist.ravel() / np.sum(olddist.ravel())) )
+            err = np.mean(np.absolute( ratio[np.isfinite(ratio)] - 1))
+            print("Iteration error: " + str(err) + " Tolerance: " + str(tol))
+
+    if free:
+        a5.free(bfield=True)
+
+
+    # Normalize
+    newdist /= np.sum(newdist.ravel())
+
+    if plot:
+        plotdist((rgrid, zgrid, kgrid, newdist))
+
+    return (rgrid, zgrid, kgrid, newdist)
+
+
+def gen_DTalphadist(a5, rgrid, zgrid, ksigrid, plot=False):
+    """
+    Generate DT fusion alpha particle distribution based on NRL formula.
+
+    This function assumes the HDF5 file has a plasma where first two ion species
+    are Deuterium and Tritium.
+
+    Args:
+        a5 : Ascotpy, str <br>
+            Ascotpy object or HDF5 filename.
+        rgrid : array_like (n,1) <br>
+            R coordinate grid.
+        zgrid : array_like (n,1) <br>
+            z coordinate grid.
+        ksigrid : array_like (n,1) <br>
+            ksi coordinate grid.
+
+    Returns:
+        Tuple (rgrid,zgrid,ksigrid,P_DT) where first three are the grid axes
+        (same as was given) and fourth element is the number of alpha particles
+        (E = 3.5 MeV) born in second in each cell.
+    """
+    free = False
+    if isinstance(a5, str):
+        free = True
+        a5 = Ascotpy(a5)
+        a5.init(bfield=True, plasma=True)
+
+    # Prepare grid
+    dr = (rgrid[1] - rgrid[0])
+    dz = (zgrid[1] - zgrid[0])
+    rvals = rgrid[:-1] + dr / 2
+    zvals = zgrid[:-1] + dz / 2
+    ksivals = ksigrid[:-1] + (ksigrid[1] - ksigrid[0]) / 2
+    R, Z, Ksi = np.meshgrid(rvals, zvals, ksivals, indexing='ij')
+
+    # Evaluate ion temperature and D and T density
+    ti   = a5.evaluate(R=R, phi=0, z=Z, t=0, quantity="ti1").reshape(
+        rgrid.size-1, zgrid.size-1, ksigrid.size-1) / (1e3*const.e)
+    n1   = a5.evaluate(R=R, phi=0, z=Z, t=0, quantity="ni1").reshape(
+        rgrid.size-1, zgrid.size-1, ksigrid.size-1)
+    n2   = a5.evaluate(R=R, phi=0, z=Z, t=0, quantity="ni2").reshape(
+        rgrid.size-1, zgrid.size-1, ksigrid.size-1)
+
+    # Fusion alpha power density (NRL)
+    sigmaDT = 3.68e-12 * np.power(ti, -2.0/3) \
+              * np.exp(-19.94*np.power(ti, -1.0/3) )
+    PDT     = 5.6e-13*n1*n2*sigmaDT / 1e6 # W / m^3
+
+    # Convert power density to total alpha power in each cell
+    PDT = PDT * 2*np.pi*R * dr * dz / (ksigrid.size-1) # W/bin
+
+    # Convert power to particle birth rate and replace NaNs with zeros.
+    dist = PDT / (3.5e6*const.e)
+    dist[np.isnan(dist)] = 0
+
+    if free:
+        a5.free(bfield=True, plasma=True)
+
+    if plot:
+        plotdist((rgrid, zgrid, ksigrid, dist))
+
+    return (rgrid, zgrid, ksigrid, dist)

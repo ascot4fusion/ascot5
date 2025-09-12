@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include "../ascot5.h"
-#include "../print.h"
 #include "wall_2d.h"
 
 /**

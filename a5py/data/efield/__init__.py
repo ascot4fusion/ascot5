@@ -11,12 +11,23 @@ from .radialpotential import (
 class Efield(ctypes.Structure):
     """Wrapper for the electric field data in libascot.so."""
 
-    _pack_ = 1
+    #_pack_ = 1
     _fields_ = [
         ('ETC', ctypes.POINTER(EfieldCartesian.Struct)),
         ('E1DS', ctypes.POINTER(EfieldRadialPotential.Struct)),
         ('type', ctypes.c_uint32),
     ]
+
+    def use(self, variant):
+        """Initialize the pointer and set the type corresponding to the data."""
+        variant_vs_name_and_enum = {
+            "EfieldCartesian": ("ETC", 0),
+            "EfieldRadialPotential": ("E1DS", 1),
+            }
+        variant.stage()
+        name, enum = variant_vs_name_and_enum[variant.variant]
+        setattr(self, name, ctypes.pointer(variant._struct_))
+        self.type = ctypes.c_uint32(enum)
 
 
 # pylint: disable=too-many-ancestors

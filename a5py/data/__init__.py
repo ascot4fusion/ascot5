@@ -1,15 +1,24 @@
 """Interface for accessing data in ASCOT5 HDF5 files."""
+import importlib
 from typing import Dict, List, Any, Optional
 
 from .access import Tree, InputVariant, RunVariant
-from .access.treeparts import Leaf
-from .access.metadata import MetaData
+from .access.leaf import MetaData, Leaf
 from . import (bfield, efield, plasma, neutral, wall, marker, mhd, boozer, nbi,
                asigma, options)
 
-#from a5py.routines.runmixin import RunMixin
-#from a5py.routines.afsi5 import AfsiMixin
-#from a5py.routines.bbnbi5 import BBNBIMixin
+from .bfield import Bfield
+from .efield import Efield
+from .plasma import Plasma
+from .neutral import Neutral
+from .wall import Wall
+from .mhd import Mhd
+from .boozer import BoozerMap
+
+input_categories = {
+    "options", "bfield", "efield", "marker", "plasma", "neutral", "wall",
+    "boozer", "mhd", "asigma", "nbi",
+}
 
 
 class AscotData(

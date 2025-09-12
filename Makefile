@@ -2,8 +2,6 @@
 
 libascot:
 	$(MAKE) -C src libascot
-	mkdir -p build
-	mv src/libascot.so build/libascot.so
 
 ascot5: libascot
 	pip install -e .
@@ -21,7 +19,9 @@ doc:
 
 clean:
 	$(MAKE) -C src clean
-	rm -rf build/libascot.so
 
 cleanall: clean
 	rm -rf build
+
+
+.PHONY: doc

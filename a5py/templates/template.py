@@ -1,5 +1,5 @@
 """Templates for... templates!"""
-from .. import Ascot
+from a5py import Ascot
 
 class InputTemplate():
     """Template for input templates.

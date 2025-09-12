@@ -7,7 +7,6 @@
 #include "../math.h"
 #include "../ascot5.h"
 #include "../error.h"
-#include "../print.h"
 #include "B_2DS.h"
 #include "../spline/interp.h"
 

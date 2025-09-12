@@ -1,12 +1,24 @@
 """Common interface to access data independently from how it is stored."""
 import ctypes
-from enum import Enum
+from enum import IntFlag, auto, Enum
 from typing import Dict, TypeVar
 from abc import ABC, abstractmethod
 
 import numpy as np
+import unyt
 
 T = TypeVar('T', bound='DataHolder')
+
+class Status(IntFlag):
+    SAVED = auto()
+    STAGED = auto()
+
+    def __contains__(self, item):
+        """Allow `item in Status.BOTH` checks."""
+        # If this status is a group (tuple of values)
+        if isinstance(self.value, tuple):
+            return item.value in self.value
+        return item == self
 
 
 class Format(Enum):
@@ -15,6 +27,15 @@ class Format(Enum):
     """Data is stored in HDF5 file."""
     MEMORY: int = 2
     """Data is stored in memory."""
+
+class DataStruct(ctypes.Structure):
+
+    def readonly_carray(self, name, shape, units=None):
+        arr = np.ctypeslib.as_array(getattr(self, name), shape=shape)
+        arr.flags.writeable = False
+        if not units is None:
+            return unyt.unyt_array(arr, units)
+        return arr
 
 
 # pylint: disable=too-few-public-methods
@@ -52,46 +73,3 @@ class DataHolder(ABC):
         self._staged: bool = False
         self._format: Format = Format.MEMORY
         self._struct_: ctypes.Structure = struct
-
-    def _slice_array(self, name, start: int, end: int) -> np.ndarray:
-        """Return a copied slice of data array.
-
-        Parameters
-        ----------
-        name : str
-            Name of the array in the struct.
-        start : int
-            Start index of the slice (inclusive).
-        end : int
-            End index of the slice (non-inclusive).
-        """
-        array = getattr(self._struct_, name)
-        return np.ctypeslib.as_array(array[start:end]).copy()
-
-    @abstractmethod
-    def _export_hdf5(self) -> None:
-        """Export the data to the HDF5 file."""
-
-    @abstractmethod
-    def export(self) -> Dict[str, np.ndarray]:
-        """Return a dictionary with sufficient data to duplicate this instance.
-
-        Returns
-        -------
-        data : dict[str, np.ndarray or unyt.unyt_array]
-            Data that can be passed to the create method to duplicate this
-            instance.
-        """
-        return {}
-
-    @abstractmethod
-    def stage(self):
-        """Make this data ready for simulation or evaluation.
-
-        The memory consumption may increase significantly, so remember to
-        unstage afterwards with :meth:`unstage`.
-        """
-
-    @abstractmethod
-    def unstage(self):
-        """Undo the effect of :meth:`stage` and free consumed memory."""

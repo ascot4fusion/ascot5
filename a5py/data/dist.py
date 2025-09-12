@@ -6,7 +6,7 @@ import unyt
 import itertools
 from scipy.interpolate import griddata, RectBivariateSpline
 from a5py import physlib
-import a5py.routines.plotting as a5plt
+import a5py.plotting.plotting as a5plt
 
 class DataContainer():
     pass
