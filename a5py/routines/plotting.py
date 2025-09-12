@@ -230,6 +230,9 @@ def tight_layout(axes):
     fig = axes.get_figure()
     return fig.tight_layout()
 
+def subplots():
+    return plt.subplots()
+
 @openfigureifnoaxes(projection=None)
 def scatter2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
               xlabel=None, ylabel=None, clabel=None, cint=9, cmap=None,
