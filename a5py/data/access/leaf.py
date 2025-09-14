@@ -1,7 +1,7 @@
 """Constants, methods, and classes which define and manipulate the metadata."""
 from __future__ import annotations
 
-from enum import Enum
+import re
 import random
 import datetime
 from typing import Any, NamedTuple, Union, Optional, TYPE_CHECKING
@@ -122,14 +122,15 @@ class Leaf():
     def _extract_tag(self) -> str:
         """Extracts a tag from note.
 
-        Note is converted to a tag like this:
+        A note is converted to a tag like this:
 
-        1. The first word in the note is chosen, i.e., everything before
-            the first whitespace.
-        2. All special characters are removed from the first word.
-        3. The word is converted to uppercase which becomes the tag.
-        4. If the tag is invalid (empty string) or it starts with a number,
-            the default tag is returned instead.
+        1. The tag is a word or multiple words surrounded by <>.
+        2. All special characters are removed (only standard letters and numbers
+           are allowed).
+        3. The letters are converted to uppercase and spaces to underscore.
+        4. If the tag is invalid (empty string or starts with a number), or
+           there were multiple tags, raise an exception.
+        5. If there were no tag, the default tag is returned instead.
 
         Note that the returned value is not the actual tag used in the tree if
         there are other leafs with identical tags.
@@ -139,12 +140,27 @@ class Leaf():
         tag : str
             The tag.
         """
-        tag_candidate = self.note.split(" ")[0]
-        tag_candidate = "".join(ch for ch in tag_candidate if ch.isalnum())
-        tag_candidate = tag_candidate.upper()
-        if not tag_candidate or tag_candidate[0] in "1234567890":
-            return DEFAULT_TAG
-        return tag_candidate
+        tags = re.findall(r"<(.*?)>", self.note)
+        if not tags:
+            return None
+
+        if len(tags) > 1:
+            raise ValueError("Multiple tags found. Use single '<>'.")
+
+        raw_tag = tags[0].strip()
+        clean = re.sub(r"[^A-Za-z0-9 ]", "", raw_tag)
+        tag = clean.upper().replace(" ", "_")
+
+        if not len(tag):
+            raise ValueError(
+                "Tag processed to an empty string. Try adding some letters."
+                )
+        if tag and tag[0].isdigit():
+            raise ValueError("Tag cannot start with a number.")
+
+        new_string = re.sub(r"<.*?>", f"<{tag}>", self.note, count=1)
+        self._note = new_string
+        return tag
 
     @property
     def _metadata(self) -> MetaData:
@@ -229,10 +245,11 @@ class Leaf():
         for node, group in self._treemanager.nodes.items():
             if self in group:
                 break
-        self._file = self._treemanager.hdf5manager.get_minimanager(
+        self._file = self._treemanager.get_minimanager(
             node, self.variant, self.qid
             )
 
+    @property
     def status(self):
         """
         """
@@ -249,7 +266,6 @@ class Leaf():
         """
         def decorator(subclass):
             cls._registry[variant] = subclass
-            print(variant, subclass)
             return subclass
         return decorator
 
@@ -268,7 +284,17 @@ class InputLeaf(Leaf):
         super().__init__(qid=qid, date=date, note=note, variant=variant)
         self._cdata: DataStruct | None = None
 
-    def export(self) -> Dict[str, np.ndarray]:
+    @property
+    def status(self):
+        if not self._cdata is None and not self._file is None:
+            return Status.SAVED | Status.STAGED
+        if not self._file is None:
+            return Status.SAVED
+        if not self._cdata is None:
+            return Status.STAGED
+        raise AscotIOException("Inconsistent.")
+
+    def export(self) -> dict[str, np.ndarray]:
         """Return a dictionary with sufficient data to duplicate this instance.
 
         Returns

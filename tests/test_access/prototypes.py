@@ -1,16 +1,11 @@
-import os
 import ctypes
-from typing import Optional
-from enum import Enum
 
 import unyt
 import numpy as np
 
 from a5py.exceptions import AscotIOException
 
-from a5py import utils
 from a5py.data.access import Leaf, InputLeaf, Tree, OutputLeaf
-from a5py.data.access.hdf5 import HDF5Manager
 from a5py.data.access.dataholder import DataStruct, Status
 from a5py.data.access import variants
 
@@ -71,16 +66,6 @@ class InputPrototype(InputLeaf):
         elif self.status & Status.STAGED:
             return self._cdata.readonly_carray("bval", (self.npoint,), "T")
 
-    @property
-    def status(self):
-        if not self._cdata is None and not self._file is None:
-            return Status.SAVED | Status.STAGED
-        if not self._file is None:
-            return Status.SAVED
-        if not self._cdata is None:
-            return Status.STAGED
-        raise AscotIOException("Inconsistent.")
-
     def save(self):
         super().save()
         self._file.write("bval", self.bval)
@@ -137,49 +122,36 @@ class PrototypeMixin():
 class OutputPrototype(OutputLeaf):
     """A prototype class for testing purposes."""
 
-
-
     def __init__(self, qid, date, note, variant, inputs):
         super().__init__(qid=qid, date=date, note=note, variant=variant, inputs=inputs)
 
+    def _setup(self, params):
+        if params["diag1"]:
+            self._diagnostics["diag1"] = (
+                DiagnosticPrototype.from_params(params["dval"])
+                )
+
+    def _load(self, file):
+        super()._load(file)
+        for name in self._file.get_children():
+            if name == "diag1":
+                self._diagnostics[name] = DiagnosticPrototype()
 
     def get_diag1(self):
-        """"""
+        """Get values from 'diag1'.
+
+        This is just a test method to mock real methods such as 'getstate'.
+        """
         if self._file is None:
             return self._diagnostics["diag1"].get()
         return self._diagnostics["diag1"].get(self._file.get_minimanager("diag1"))
 
-
-
-
     def save(self):
-        """Store data to disk."""
         super().save()
         for name, diag in self._diagnostics.items():
             if name == "diag1":
                 file = self._file.get_minimanager("diag1")
                 diag.save(file)
-
-
-    def _load(self, file):
-        """Load diagnostics from file."""
-        if self.status is Status.SAVED:
-            raise AscotIOException("Cannot load twice.")
-        if len(self._diagnostics):
-            raise AscotIOException("Diagnostics setup already.")
-
-        self._file = file
-        for name in self._file.get_children():
-            if name == "diag1":
-                self._diagnostics[name] = DiagnosticPrototype()
-
-
-    def _setup(self, params):
-        """Set up diagnostics as per options."""
-        if params["diag1"]:
-            self._diagnostics["diag1"] = (
-                DiagnosticPrototype.from_params(params["dval"])
-                )
 
 
 class DiagnosticPrototype():
@@ -211,7 +183,8 @@ class DiagnosticPrototype():
         """"""
         obj = cls()
 
-        # Mimic simulated diagnostic by setting values
+        # Normally the diagnostic is initialized to clean state but here we set
+        # values to mimic the state at the end of the simulation.
         n = dval.size
 
         cdata = StructDiag()

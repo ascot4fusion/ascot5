@@ -1,5 +1,16 @@
+PROJECT ?= user
+
+BASEBUILDDIR = ../build/doc/
+SOURCEDIR = .
+BUILDDIR  = $(BASEBUILDDIR)$(PROJECT)
+
+.PHONY: doc clean
+
 doc:
-	sphinx-build -b html . ../build/doc
+	sphinx-build -b html $(SOURCEDIR) $(BUILDDIR)
 
 clean:
-	rm -rf ../build/doc
+	rm -rf $(BUILDDIR)
+
+cleanall:
+	rm -rf $(BASEBUILDDIR)

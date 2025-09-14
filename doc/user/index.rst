@@ -1,5 +1,5 @@
 ..
-  Main page of the ASCOT5 documentation
+  Main page of the user documentation
 
 .. image:: _static/promo.svg
   :target: https://github.com/ascot4fusion/ascot5

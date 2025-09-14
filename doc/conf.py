@@ -15,10 +15,10 @@ import a5py
 project   = 'ASCOT5'
 copyright = '2023, Ascot Group'
 author    = 'Ascot Group'
-release   = a5py.data.access.metadata.VERSION
+release   = "6.0.0"#a5py.data.access.metadata.VERSION
 
-# -- General configuration -----------------------------------------------------
 extensions = [
+    "multiproject",
     'sphinx.ext.autodoc',        # For generating doc from Python source
     'numpydoc',                  # Source docs are done in numpy style
     'nbsphinx',                  # Embed Jupyter notebooks
@@ -31,7 +31,39 @@ extensions = [
     'sphinx_design_elements',    # Additional nice widgets such as tables
     'sphinxcontrib.mermaid',     # Graphs and diagrams
     'options_table',             # Turns ASCOT5 options to RST table (home-made).
-    ]
+
+]
+
+from multiproject.utils import get_project
+
+multiproject_projects = {
+   "user": {
+       "use_config_file": False,
+       },
+   "dev": {
+       "use_config_file": False,
+   },
+}
+
+current_project = get_project(multiproject_projects)
+
+locale_dirs = [f"{current_project}"]
+if current_project == "user":
+    project = "User Documentation"
+elif current_project == "dev":
+    project = "Development documentation"
+
+#import a5py
+
+# -- Project information -------------------------------------------------------
+master_doc = "index"
+project   = 'ASCOT5'
+copyright = '2023, Ascot Group'
+author    = 'Ascot Group'
+release   = "6.0.0"#a5py.data.access.leaf.VERSION
+
+# -- General configuration -----------------------------------------------------
+#
 
 exclude_patterns = []
 add_module_names = False            # Removes the "a5py..." path from class names

@@ -32,6 +32,7 @@ class Diagnostic():
 __all__  = [
     "Tree",
     "Leaf",
+    "InputLeaf",
     "OutputLeaf",
     "Format",
     "CreateLeafMixin",

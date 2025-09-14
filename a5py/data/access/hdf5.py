@@ -33,7 +33,7 @@ Attributes are used to store metadata within the groups:
 """
 import os
 import tempfile
-from typing import List, Dict, Tuple, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 import h5py
 import unyt
@@ -147,7 +147,7 @@ class HDF5Interface(h5py.File):
 
     def get_datagroup(
             self, node: str, name: str,
-            ) -> Tuple[str, str] | Tuple[str, str, Dict[str, str]]:
+            ) -> tuple[str, str] | tuple[str, str, dict[str, str]]:
         """Get metadata from a data group.
 
         Parameters
@@ -189,7 +189,7 @@ class HDF5Interface(h5py.File):
         return date, note, additional_attrs
 
     def write_datasets(
-            self, path: str, data: Dict[str, np.ndarray | unyt.unyt_array],
+            self, path: str, data: dict[str, np.ndarray | unyt.unyt_array],
             ) -> None:
         """Write datasets to a group.
 
@@ -211,7 +211,7 @@ class HDF5Interface(h5py.File):
 
     def read_datasets(
             self, path: str, name: Optional[str]=None,
-            ) -> Dict[str, np.ndarray | unyt.unyt_array]:
+            ) -> dict[str, np.ndarray | unyt.unyt_array]:
         """Read datasets from a group.
 
         Parameters
@@ -309,7 +309,7 @@ class HDF5Manager():
             for category in input_categories:
                 h5.set_node(node=category)
 
-    def read_node(self, node: str) -> Tuple[str, List[str], List[str]]:
+    def read_node(self, node: str) -> tuple[str, list[str], list[str]]:
         """Return list of QIDs, variants, and the active QID for a given node.
 
         Parameters
@@ -365,7 +365,7 @@ class HDF5Manager():
             self, qid: str,
             variant: str,
             category: str,
-            ) -> Tuple[str, str]:
+            ) -> tuple[str, str]:
         """Return date and note of this input variant.
 
         Parameters
@@ -407,7 +407,7 @@ class HDF5Manager():
             if h5.get_node(category) == "":
                 h5.set_node(category, meta.qid)
 
-    def read_output(self, qid: str, variant: str) -> Tuple[str, str, List[str]]:
+    def read_output(self, qid: str, variant: str) -> tuple[str, str, list[str]]:
         """Return date, note, and list of input QIDs for this run variant.
 
         Parameters
@@ -436,7 +436,7 @@ class HDF5Manager():
                 )
         return date, note, list(usedinputs.values())
 
-    def write_output(self, meta: MetaData, usedinputs: Dict[str, str]) -> None:
+    def write_output(self, meta: MetaData, usedinputs: dict[str, str]) -> None:
         """Create a run variant with the given metadata.
 
         Parameters
@@ -559,7 +559,7 @@ class HDF5MiniManager():
     def read(
             self,
             name: Optional[str] = None,
-            ) -> Dict[str, np.ndarray | unyt.unyt_array]:
+            ) -> dict[str, np.ndarray | unyt.unyt_array]:
         """Read the data from the HDF5 file.
 
         Parameters

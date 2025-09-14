@@ -146,9 +146,9 @@ def test_active_property(node):
 
 def test_organize_by_date(node):
     """Test that leafs remain organized by date."""
-    leaf1 = Leaf(qid=QIDS[0], date=DATES[1], variant=INPUTS[0], note="SATURDAY")
-    leaf2 = Leaf(qid=QIDS[1], date=DATES[0], variant=INPUTS[0], note="FRIDAY")
-    leaf3 = Leaf(qid=QIDS[2], date=DATES[2], variant=INPUTS[0], note="SUNDAY")
+    leaf1 = Leaf(qid=QIDS[0], date=DATES[1], variant=INPUTS[0], note="<SATURDAY>")
+    leaf2 = Leaf(qid=QIDS[1], date=DATES[0], variant=INPUTS[0], note="<FRIDAY>")
+    leaf3 = Leaf(qid=QIDS[2], date=DATES[2], variant=INPUTS[0], note="<SUNDAY>")
     node._add_leaf(leaf1)
     assert node._qids == [QIDS[0]]
     node._add_leaf(leaf2)
@@ -167,9 +167,9 @@ def test_organize_same_tags(node):
     """Test that tags are properly renamed when there are multiple identical
     tags.
     """
-    leaf1 = Leaf(qid=QIDS[0], date=DATES[1], variant=INPUTS[0], note="TAG")
-    leaf2 = Leaf(qid=QIDS[1], date=DATES[0], variant=INPUTS[0], note="TAG2")
-    leaf3 = Leaf(qid=QIDS[2], date=DATES[2], variant=INPUTS[0], note="TAG")
+    leaf1 = Leaf(qid=QIDS[0], date=DATES[1], variant=INPUTS[0], note="<TAG>")
+    leaf2 = Leaf(qid=QIDS[1], date=DATES[0], variant=INPUTS[0], note="<TAG2>")
+    leaf3 = Leaf(qid=QIDS[2], date=DATES[2], variant=INPUTS[0], note="<TAG>")
 
     node._add_leaf(leaf1)
     node._add_leaf(leaf2)
@@ -209,12 +209,12 @@ def test_input_category_contents():
     expected = textwrap.dedent(
         """
         inputA     2991786571 1997-08-30 02:14:00 [active]
-        LET_0
-        Let off some steam Bennett
+        BENNETT_0
+        Let off some steam <BENNETT>
 
         inputB     9753987342 1997-08-29 02:14:00
-        LET_1
-        Let off some steam Bennett
+        BENNETT_1
+        Let off some steam <BENNETT>
 
         """)
     diff = '\n'.join(difflib.unified_diff(
@@ -242,6 +242,9 @@ def test_outputleaf_inputs():
 def test_outputleaf_contents():
     """Test that the contents of an simulation output are displayed
     correctly.
+
+    Note the lowercase "tag" as there's no actual tag yet (the leaves are not
+    part of a tree).
     """
     leafin = Leaf(qid=QIDS[0], date=DATES[0], note=NOTE, variant=INPUTS[0])
     leafout = OutputLeaf(
@@ -251,11 +254,11 @@ def test_outputleaf_contents():
     expected = textwrap.dedent(
         """
         output     9753987342 1997-08-29 02:14:00
-        Let off some steam Bennett
+        Let off some steam <Bennett>
 
         Inputs:
         catX    inputA     2991786571 1997-08-29 02:14:00
-                Let off some steam Bennett
+                Let off some steam <Bennett>
         """)
     diff = '\n'.join(difflib.unified_diff(
         leafout.contents.splitlines(),

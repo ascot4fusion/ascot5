@@ -44,9 +44,9 @@ def test_cannot_change_fixed_attributes(leaf):
 @pytest.mark.parametrize(
     "note, tag",
     [
-        ("get to the choppa", "GET"),
-        ("12345note with numbers", DEFAULT_TAG),
-        ("!no@#$special%^&*()characters", "NOSPECIALCHARACTERS"),
+        ("get to the <choppa>", "CHOPPA"),
+        ("12345note with numbers", None),
+        ("<!no@#$special%^&*()characters>", "NOSPECIALCHARACTERS"),
     ],
 )
 def test_extract_tag(leaf, note, tag):

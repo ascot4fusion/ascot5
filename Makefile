@@ -1,9 +1,7 @@
-.PHONY: doc, tests
-
 libascot:
 	$(MAKE) -C src libascot
 
-ascot5: libascot
+ascot: libascot
 	pip install -e .
 
 lint:
@@ -13,15 +11,26 @@ lint:
 tests:
 	pytest -s -v
 
-doc:
+tutorial:
+	@echo TODO
+
+doc-user:
+	$(MAKE) -C doc PROJECT=user doc
+
+doc-dev:
 	$(MAKE) -C src doc
-	$(MAKE) -C doc
+	$(MAKE) -C doc PROJECT=dev doc
+
+doc: doc-user doc-dev
 
 clean:
 	$(MAKE) -C src clean
 
+clean-doc:
+	$(MAKE) -C doc cleanall
+
 cleanall: clean
 	rm -rf build
 
-
-.PHONY: doc
+.PHONY: libascot ascot5 lint tests tutorial doc-user doc-dev doc clean \
+		clean-doc cleanall

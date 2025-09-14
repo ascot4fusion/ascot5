@@ -22,9 +22,9 @@ from .conftest import (
 
 def reinit_from_file(tree_to_reinit):
     """Reinitialize tree from file."""
-    if tree_to_reinit._treemanager.hdf5manager is None:
+    if tree_to_reinit._treemanager.filename is None:
         return tree_to_reinit
-    file = tree_to_reinit._treemanager.hdf5manager.filename
+    file = tree_to_reinit._treemanager.filename
     return Tree(CATEGORIES, (file, True))
 
 
@@ -63,7 +63,7 @@ def test_init_nofile():
         with pytest.raises(AscotIOException):
             setattr(tree[category], "attribute", "value")
 
-    assert tree._treemanager.hdf5manager is None
+    assert tree._treemanager.filename is None
 
 
 def test_init_emptyfile():
@@ -112,7 +112,7 @@ def test_init_fromfile():
         leafin = tree[CATEGORIES[0]][f"q{QIDS[0]}"]
         assert tree[CATEGORIES[0]].active is leafin
         assert leafin.date == DATE
-        assert leafin.note == NOTE
+        assert leafin.note == NOTE.replace("<Bennett>", "<BENNETT>")
         assert leafin.variant == INPUTS[0]
 
         assert tree._qids == [QIDS[1]]
@@ -173,26 +173,26 @@ def test_add_output(tree):
     leaf1 = OutputLeaf(
         qid=QIDS[3], date=DATE, note=NOTE, variant=OUTPUTS[0], inputs={CATEGORIES[0]: leaf})
     with pytest.raises(AscotIOException):
-        tree._treemanager.enter_output(leaf1, [QIDS[0]])
+        tree._treemanager.enter_output(leaf1)
 
     tree._treemanager.enter_input(leaf, CATEGORIES[0])
 
-    tree._treemanager.enter_output(leaf1, [QIDS[0]], dryrun=True)
+    tree._treemanager.enter_output(leaf1, dryrun=True)
     tree = reinit_from_file(tree)
     assert not leaf1.qid in tree, "Dryrun was not dry."
 
-    tree._treemanager.enter_output(leaf1, [QIDS[0]])
+    tree._treemanager.enter_output(leaf1)
     tree = reinit_from_file(tree)
     assert leaf1.qid in tree, "Output was not added."
 
     leaf2 = OutputLeaf(qid=QIDS[1], date=DATE, note=NOTE, variant=OUTPUTS[0], inputs={CATEGORIES[0]: leaf})
-    tree._treemanager.enter_output(leaf2, [QIDS[0]])
+    tree._treemanager.enter_output(leaf2)
     tree = reinit_from_file(tree)
     assert leaf1.qid == tree.active.qid, (
         "Active output should not change unless explicitly activated.")
 
     leaf3 = OutputLeaf(qid=QIDS[2], date=DATE, note=NOTE, variant=OUTPUTS[0], inputs={CATEGORIES[0]: leaf})
-    tree._treemanager.enter_output(leaf3, [QIDS[0]], activate=True)
+    tree._treemanager.enter_output(leaf3, activate=True)
     tree = reinit_from_file(tree)
     assert leaf3.qid == tree.active.qid, (
         "Active input was not changed even when explicitly activated.")
@@ -210,18 +210,18 @@ def test_add_output_and_save(tree):
 
     leafout1 = OutputLeaf(qid=QIDS[1], date=DATE, note=NOTE, variant=OUTPUTS[0], inputs={CATEGORIES[0]: leafin})
     with pytest.raises(AscotIOException):
-        tree._treemanager.enter_output(leafout1, [QIDS[0]])
+        tree._treemanager.enter_output(leafout1)
 
     assert leafout1.qid in tree, (
         "Output should be in tree even if save failed")
 
     leafin.save()
     leafout2 = OutputLeaf(qid=QIDS[2], date=DATE, note=NOTE, variant=OUTPUTS[0], inputs={CATEGORIES[0]: leafin})
-    tree._treemanager.enter_output(leafout2, [QIDS[0]], save=False)
+    tree._treemanager.enter_output(leafout2, save=False)
     tree = reinit_from_file(tree)
     assert not leafout2.qid in tree, "Output was saved even though save=False"
 
-    tree._treemanager.enter_output(leafout2, [QIDS[0]], save=False)
+    tree._treemanager.enter_output(leafout2, save=False)
     leafout2.save()
     tree = reinit_from_file(tree)
     assert leafout2.qid in tree, "Output was not saved by its save method."
@@ -239,13 +239,13 @@ def test_add_identical_qid(tree):
     leaf = OutputLeaf(qid=QIDS[0], date=DATE, note=NOTE, variant=OUTPUTS[0], inputs={CATEGORIES[0]: leafin})
     tree = reinit_from_file(tree)
     with pytest.raises(AscotIOException):
-        tree._treemanager.enter_output(leaf, [QIDS[0]])
+        tree._treemanager.enter_output(leaf)
 
     leaf = OutputLeaf(qid=QIDS[1], date=DATE, note=NOTE, variant=OUTPUTS[0], inputs={CATEGORIES[0]: leafin})
-    tree._treemanager.enter_output(leaf, [QIDS[0]])
+    tree._treemanager.enter_output(leaf)
     tree = reinit_from_file(tree)
     with pytest.raises(AscotIOException):
-        tree._treemanager.enter_output(leaf, [QIDS[1]])
+        tree._treemanager.enter_output(leaf)
 
 
 @pytest.mark.parametrize("tree", [False, True], indirect=True)
@@ -254,7 +254,7 @@ def test_destroy(tree):
     leafin = Leaf(qid=QIDS[0], date=DATE, note=NOTE, variant=INPUTS[0])
     tree._treemanager.enter_input(leafin, CATEGORIES[0])
     leafout = OutputLeaf(qid=QIDS[1], date=DATE, note=NOTE, variant=OUTPUTS[0], inputs={CATEGORIES[0]: leafin})
-    tree._treemanager.enter_output(leafout, [QIDS[0]])
+    tree._treemanager.enter_output(leafout)
 
     with pytest.raises(AscotIOException):
         tree.destroy(data=leafin)
@@ -289,15 +289,15 @@ def test_tree_change_note(tree):
     """Test changing data's note."""
     leaf1 = Leaf(qid=QIDS[0], date=DATES[0], note=NOTE, variant=INPUTS[0])
     tree._treemanager.enter_input(leaf1, CATEGORIES[0])
-    leaf1.note = "Get to the choppa"
+    leaf1.note = "Get to the <choppa>"
     tree = reinit_from_file(tree)
-    assert tree[CATEGORIES[0]]["GET"].qid == leaf1.qid
+    assert tree[CATEGORIES[0]]["CHOPPA"].qid == leaf1.qid
 
     leaf2 = OutputLeaf(qid=QIDS[1], date=DATES[0], note=NOTE, variant=OUTPUTS[0], inputs={CATEGORIES[0]: leaf1})
-    tree._treemanager.enter_output(leaf2, [QIDS[0]])
-    leaf2.note = "Get to the choppa"
+    tree._treemanager.enter_output(leaf2)
+    leaf2.note = "Get to the <choppa>"
     tree = reinit_from_file(tree)
-    assert tree["GET"].qid == leaf2.qid
+    assert tree["CHOPPA"].qid == leaf2.qid
 
 
 @pytest.mark.parametrize("tree", [False], indirect=True)
@@ -315,30 +315,32 @@ def test_tree_contents(tree):
         Leaf(qid=QIDS[3], date=DATES[2], note=NOTE, variant=INPUTS[0]),
         CATEGORIES[1]
         )
+    leaf = tree._treemanager.get_leaf(QIDS[0])
     tree._treemanager.enter_output(
-        Leaf(qid=QIDS[1], date=DATES[2], note=NOTE, variant=OUTPUTS[0]),
-        [QIDS[0]]
+        OutputLeaf(qid=QIDS[1], date=DATES[2], note=NOTE, variant=OUTPUTS[0],
+                   inputs={CATEGORIES[1]: leaf})
         )
+    leaf = tree._treemanager.get_leaf(QIDS[0])
     tree._treemanager.enter_output(
-        Leaf(qid=QIDS[4], date=DATES[2], note=NOTE, variant=OUTPUTS[0]),
-        [QIDS[0]]
+        OutputLeaf(qid=QIDS[4], date=DATES[2], note=NOTE, variant=OUTPUTS[0],
+                   inputs={CATEGORIES[1]: leaf})
         )
 
     expected = textwrap.dedent(
         """
         Inputs: [only active shown]
         catX      inputA    2991786571 1997-08-29 02:14:00 + 1 other(s)
-                  "Let off some steam Bennett"
+                  "Let off some steam <BENNETT>"
         catY      inputA    0963810214 1997-08-31 02:14:00 (no other inputs)
-                  "Let off some steam Bennett"
+                  "Let off some steam <BENNETT>"
         catZ      *no inputs*
 
 
         Simulations:
         output    9753987342 1997-08-31 02:14:00 [active]
-                  "Let off some steam Bennett"
+                  "Let off some steam <BENNETT>"
         output    5960585966 1997-08-31 02:14:00
-                  "Let off some steam Bennett"
+                  "Let off some steam <BENNETT>"
         """)
     diff = '\n'.join(difflib.unified_diff(
         tree.contents.splitlines(),
@@ -351,15 +353,16 @@ def test_tree_contents(tree):
 @pytest.mark.parametrize("tree", [False], indirect=True)
 def test_save_data_no_file(tree):
     """Test saving input or output when there is no file."""
-    leaf = Leaf(qid=QIDS[0], date=DATE, note=NOTE, variant=INPUTS[0])
+    leafin = Leaf(qid=QIDS[0], date=DATE, note=NOTE, variant=INPUTS[0])
     with pytest.raises(AscotIOException) as e:
-        tree._treemanager.enter_input(leaf, CATEGORIES[0], save=True)
+        tree._treemanager.enter_input(leafin, CATEGORIES[0], save=True)
     assert "No HDF5 file was provided." in str(e.value)
     assert tree._treemanager.get_leaf(QIDS[0]).qid == QIDS[0]
 
-    leaf = Leaf(qid=QIDS[2], date=DATE, note=NOTE, variant=OUTPUTS[0])
+    leafout = OutputLeaf(qid=QIDS[2], date=DATE, note=NOTE, variant=OUTPUTS[0],
+                         inputs={CATEGORIES[0]: leafin})
     with pytest.raises(AscotIOException):
-        tree._treemanager.enter_output(leaf, [QIDS[0]], save=True)
+        tree._treemanager.enter_output(leafout, save=True)
     assert "No HDF5 file was provided." in str(e.value)
     assert tree._treemanager.get_leaf(QIDS[2]).qid == QIDS[2]
 

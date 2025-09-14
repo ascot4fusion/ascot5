@@ -8,7 +8,7 @@ from typing import Any, Generator, List, Optional, Union, TYPE_CHECKING
 from a5py import utils
 from a5py.exceptions import AscotIOException
 
-from .leaf import Leaf
+from .leaf import Leaf, Status
 from .hdf5 import HDF5MiniManager
 
 if TYPE_CHECKING:
@@ -285,7 +285,8 @@ class ImmutableNode(ImmutableStorage):
             """Remove all references."""
             self._active = None
             for tag_to_be_removed in self._tags:
-                delattr(self, tag_to_be_removed)
+                if not tag_to_be_removed is None:
+                    delattr(self, tag_to_be_removed)
             self._tags = []
 
         def activate_if_first_leaf():
@@ -310,7 +311,8 @@ class ImmutableNode(ImmutableStorage):
             """Add references by tag with unique tags and remove the old ones.
             """
             for tag_to_be_removed in self._tags:
-                delattr(self, tag_to_be_removed)
+                if not tag_to_be_removed is None:
+                    delattr(self, tag_to_be_removed)
             self._tags = []
 
             dates = [leaf.date for leaf in self]
@@ -331,7 +333,8 @@ class ImmutableNode(ImmutableStorage):
                         new_tag = tag
 
                 self._tags.append(new_tag)
-                self[new_tag] = self[f"q{qid}"]
+                if not new_tag is None:
+                    self[new_tag] = self[f"q{qid}"]
 
         with self._modify_attributes():
             isempty = len(self._qids) == 0
@@ -357,7 +360,7 @@ class ImmutableNode(ImmutableStorage):
                 )
         return self._active
 
-    def destroy(self, *, repack: bool = False, **kwargs) -> None:
+    def destroy(self, *, repack: bool=False, **kwargs) -> None:
         """Remove all data belonging to this node permanently.
 
         Parameters
@@ -411,7 +414,7 @@ class InputCategory(ImmutableNode):
         which input is active."""
         print(self._get_decorated_contents())
 
-    def ls(self, show=False):
+    def ls(self, show: bool=False):
         """Get a string representation of the contents.
 
         Deprecated. Use `show_contents()` or `contents` instead.
@@ -437,7 +440,7 @@ class InputCategory(ImmutableNode):
             print(contents)
         return contents
 
-    def destroy(self, repack: bool = True, **kwargs) -> None:
+    def destroy(self, repack: bool=True, **kwargs) -> None:
         """Remove all inputs and data within this category permanently.
 
         Parameters
@@ -547,6 +550,30 @@ class OutputLeaf(ImmutableStorage, Leaf):
                 )
         return value
 
+    def _setup(self, params):
+        """Create diagnostics and make them ready for simulation.
+
+        Subclasses should override this method.
+        """
+        _ = params
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement '_setup'"
+        )
+
+    def _load(self, file):
+        """Setup diagnostics from file.
+
+        Subclasses should extend this method to create diagnostics based on the
+        data on file. This implementation checks that the diagnostics are not
+        already set and sets the filemanager.
+        """
+        if self.status is Status.SAVED:
+            raise AscotIOException("Cannot load twice.")
+        if len(self._diagnostics):
+            raise AscotIOException("Diagnostics setup already.")
+
+        self._file = file
+
     def _get_decorated_contents(self) -> str:
         """Get a string representation of the contents decorated with ANSI
         escape sequences.
@@ -581,7 +608,7 @@ class OutputLeaf(ImmutableStorage, Leaf):
         """
         print(self._get_decorated_contents())
 
-    def ls(self, show: bool = False) -> str:
+    def ls(self, show: bool=False) -> str:
         """Get a string representation of the contents.
 
         Deprecated. Use `show_contents()` or `contents` instead.

@@ -8,4 +8,4 @@ INPUTS = ["inputA", "inputB", "inputC",]
 CATEGORIES = ["catX", "catY", "catZ"]
 OUTPUTS = ["output"]
 DATE = DATES[0]
-NOTE = "Let off some steam Bennett"
+NOTE = "Let off some steam <Bennett>"

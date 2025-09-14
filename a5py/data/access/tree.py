@@ -51,7 +51,7 @@ from typing import Tuple, List, Dict, Optional
 from a5py import utils
 from a5py.exceptions import AscotIOException
 from .hdf5 import HDF5Manager
-from .leaf import MetaData, Leaf, get_qid
+from .leaf import MetaData, Leaf, Status, get_qid
 from .nodes import ImmutableNode, InputCategory, OutputLeaf
 from .dataholder import Format
 
@@ -60,7 +60,7 @@ ROOT = "root"
 """Name of the root/output node."""
 
 
-class TreeManager():
+class TreeManager(HDF5Manager):
     """Manages contents of the tree.
 
     This manager operates in the background and is responsible for keeping
@@ -89,10 +89,6 @@ class TreeManager():
         Maps output leaf to the inputs it has used.
     nodes : Dict[str, ImmutableNode]
         All nodes and their names that make up the tree.
-    storedin : Dict[MetaDataHolder, DataManager.Format]
-        Where the data is being stored.
-    hdf5manager : HDF5Manager
-        Manages the contents of the HDF5 file if applicable.
     """
 
     def __init__(
@@ -120,15 +116,14 @@ class TreeManager():
             with node._modify_attributes():
                 node._treemanager = self
 
-        self.storedin: Dict[Leaf, Format] = {}
-        self.hdf5manager: Optional[HDF5Manager] = None
+        self.filename = None
         if hdf5file:
             filename, file_exists = hdf5file
-            self.hdf5manager = HDF5Manager(
+            super().__init__(
                 root=ROOT, filename=filename, file_exists=file_exists,
-                input_categories=[n for n in nodes.keys() if n != ROOT],
+                input_categories=[n for n in nodes.keys() if n != ROOT]
                 )
-            self.init_from_hdf5([n for n in nodes.keys() if n != ROOT])
+            self._init_from_hdf5([n for n in nodes.keys() if n != ROOT])
 
     def __repr__(self):
         """Return a string representation of this object."""
@@ -138,9 +133,17 @@ class TreeManager():
         )
 
     def save(self, leaf):
+        """Save the leaf to disk along with its metadata.
+
+        This method just creates the group in file and stores attributes. To
+        store actual data, a subsequent call to Leaf.save is required.
+
+        Parameters
+        ----------
+        leaf : Leaf
+            Leaf whose metadata will be stored to disk.
         """
-        """
-        if not self.hdf5manager:
+        if self.filename is None:
             raise AscotIOException(
                 "The data was not saved to disk because no file has been "
                 "specified."
@@ -153,7 +156,7 @@ class TreeManager():
                     if input_leaf in node:
                         inputs[category] = input_leaf
                         break
-                if self.storedin[input_leaf] != Format.HDF5:
+                if not(input_leaf.status & Status.SAVED):
                     raise AscotIOException(
                         f"The data was created but not stored in the disk "
                         f"since it uses input with QID '{input_leaf.qid}' "
@@ -172,32 +175,33 @@ class TreeManager():
             qid_by_category = {
                 category: leaf.qid for category, leaf in inputs.items()
                 }
-            self.hdf5manager.write_output(leaf._metadata, qid_by_category)
+            self.write_output(leaf._metadata, qid_by_category)
+            leaf._file = self.get_minimanager(
+            ROOT, leaf.variant, leaf.qid
+            )
         else:
-            self.hdf5manager.write_input(leaf._metadata, category)
-        self.storedin[leaf] = Format.HDF5
+            self.write_input(leaf._metadata, category)
         if leaf is self.nodes[category].active:
-            self.hdf5manager.set_active(category, leaf.qid)
+            self.set_active(category, leaf.qid)
 
-    def init_from_hdf5(self, input_categories):
+    def _init_from_hdf5(self, input_categories):
         """Initializes the tree structure from the HDF5 file."""
         for category in input_categories:
-            active, qids, variants = self.hdf5manager.read_node(category)
+            active, qids, variants = self.read_node(category)
             for qid, variant in zip(qids, variants):
-                date, note = self.hdf5manager.read_input(qid, variant, category)
+                date, note = self.read_input(qid, variant, category)
                 leaf = Leaf.create_leaf(MetaData(qid=qid, date=date, note=note, variant=variant))
                 self.enter_input(leaf, category, save=False)
-                self.storedin[leaf] = Format.HDF5
-                leaf._file = self.hdf5manager.get_minimanager(
+                leaf._file = self.get_minimanager(
                     category, variant, qid,
                 )
 
             if active:
                 self.get_leaf(active).activate()
 
-        active, qids, variants = self.hdf5manager.read_node(ROOT)
+        active, qids, variants = self.read_node(ROOT)
         for qid, variant in zip(qids, variants):
-            date, note, inputqids = self.hdf5manager.read_output(qid, variant)
+            date, note, inputqids = self.read_output(qid, variant)
             inputs= {}
             for leaf in [self.get_leaf(qid) for qid in inputqids]:
                 for category, node in self.nodes.items():
@@ -207,9 +211,8 @@ class TreeManager():
                 MetaData(qid=qid, date=date, note=note, variant=variant),
                 inputs=inputs
                 )
-            self.enter_output(leaf, inputqids, save=False)
-            self.storedin[leaf] = Format.HDF5
-            leaf._load(self.hdf5manager.get_minimanager(
+            self.enter_output(leaf, save=False)
+            leaf._load(self.get_minimanager(
                 ROOT, variant, qid,
             ))
         if active:
@@ -266,20 +269,18 @@ class TreeManager():
         self.usedin[leaf] = []
         self.nodes[category]._add_leaf(leaf)
         leaf._treemanager = self
-        self.storedin[leaf] = Format.MEMORY
         if activate:
             leaf.activate()
         if save is None:
-            save = self.hdf5manager is not None
+            save = self.filename is not None
         if save:
-            if not self.hdf5manager:
+            if not self.filename:
                 raise AscotIOException("No HDF5 file was provided.")
             leaf.save()
 
     def enter_output(
             self,
             leaf: OutputLeaf,
-            inputqids: list[str],
             activate: bool=False,
             dryrun: bool=False,
             save: Optional[bool]=None,
@@ -316,8 +317,9 @@ class TreeManager():
         AscotIOException
             If unable to add or store the leaf.
         """
+        inputqids = [leaf[cat].qid for cat in leaf._inputs]
         if save is None:
-            save = self.hdf5manager is not None
+            save = self.filename is not None
 
         for existing_leaf in (self.inputs + self.outputs):
             if existing_leaf.qid == leaf.qid:
@@ -356,13 +358,12 @@ class TreeManager():
         self.outputs.append(leaf)
         self.nodes[ROOT]._add_leaf(leaf)
         leaf._treemanager = self
-        self.storedin[leaf] = Format.MEMORY
         if activate:
             leaf.activate()
         if save:
             self.save(leaf)
 
-    def destroy_leaf(self, leaf: Leaf, repack: Optional[bool] = None) -> None:
+    def destroy_leaf(self, leaf: Leaf, repack: Optional[bool]=None) -> None:
         """Destroy a single leaf.
 
         Parameters
@@ -401,14 +402,13 @@ class TreeManager():
         else:
             raise AscotIOException(f"Leaf with QID '{leaf.qid}' not found.")
 
-        if self.hdf5manager and self.storedin[leaf] == Format.HDF5:
-            self.hdf5manager.remove_variant(leaf.qid, leaf.variant, node)
+        if not self.filename is None and (leaf.status & Status.SAVED):
+            self.remove_variant(leaf.qid, leaf.variant, node)
             qid = self.nodes[node]._active
             qid=""
-            self.hdf5manager.set_active(node, qid)
+            self.set_active(node, qid)
             if repack:
-                self.hdf5manager.repack()
-        del self.storedin[leaf]
+                self.repack()
 
     def activate_leaf(self, leaf: Leaf) -> None:
         """Set given leaf as active within the node it belongs to.
@@ -424,8 +424,8 @@ class TreeManager():
         else:
             category = ROOT
         self.nodes[category]._activate_leaf(leaf)
-        if self.hdf5manager and self.storedin[leaf] == Format.HDF5:
-            self.hdf5manager.set_active(category, leaf.qid)
+        if not self.filename is None and leaf.status & Status.SAVED:
+            self.set_active(category, leaf.qid)
 
     def get_leaf(self, qid: str) -> Leaf:
         """Retrieve leaf with the given QID.
@@ -445,6 +445,19 @@ class TreeManager():
                 return leaf
         raise AscotIOException(f"Data with qid = {qid} not found.")
 
+    def get_parentnode(self, leaf: Leaf | str) -> str:
+        """Retrieve the node given leaf belongs to.
+
+        Parameters
+        ----------
+        leaf : Leaf or str
+            Leaf or it's QID.
+        """
+        for name, node in self.nodes.items():
+            if leaf in node:
+                return name
+        raise ValueError("Leaf does not belong to any node.")
+
     def note_changed(self, leaf: Leaf) -> None:
         """Notify that given leaf's note has changed.
 
@@ -463,8 +476,8 @@ class TreeManager():
         else:
             category = ROOT
         self.nodes[category]._organize()
-        if self.hdf5manager and self.storedin[leaf] == Format.HDF5:
-            self.hdf5manager.set_note(leaf.qid, leaf.variant, category, leaf.note)
+        if not self.filename is None and leaf.status & Status.SAVED:
+            self.set_note(leaf.qid, leaf.variant, category, leaf.note)
 
 
 class Tree(ImmutableNode):
