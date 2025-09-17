@@ -11,20 +11,21 @@ a5err RF_fields_init(RF_fields* rf, hid_t f, char* qid,
     a5err err;
 
     rf->type = RF_NONE; // Setting the default.
+    err = 0;
 
-    hdf5_gen_path("/rf/RF_2D_XXXXXXXXXX", qid, path);
+    hdf5_gen_path("/RF/RF_2D_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
         rf->type = RF_FULL_ORBIT_2D;
         err = RF2D_fields_init_from_file(&rf->rf2d, f, qid);
     }
 
-    hdf5_gen_path("/rf/RF_3D_XXXXXXXXXX", qid, path);
+    hdf5_gen_path("/RF/RF_3D_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
         rf->type = RF_FULL_ORBIT_3D;
         err = RF3D_fields_init_from_file(&rf->rf3d, f, qid);
     }
 
-    hdf5_gen_path("/rf/RF_STIX_2D_XXXXXXXXXX", qid, path);
+    hdf5_gen_path("/RF/RF2D_Stix_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
         rf->type = RF2D_GC_STIX;
         err = RF2D_gc_stix_init_from_file(&rf->stix, f, qid, lhigh, bdata);
