@@ -268,20 +268,20 @@ int hdf5_interface_read_input(sim_data* sim, int input_active,
         print_out(VERBOSE_IO, "Atomic reaction data read and initialized.\n");
     }
 
-    if(input_active & hdf5_input_rffield){
+    if(input_active & hdf5_input_RF){
         if(!hdf5_find_group(f, "/RF/")) {
 
             print_out(VERBOSE_IO, "\nReading RF field input.\n");
 
-            if(sim->qid_rffield[0] != '\0') {
-                strcpy(qid, sim->qid_rffield);
+            if(sim->qid_RF[0] != '\0') {
+                strcpy(qid, sim->qid_RF);
             }
             else if( hdf5_get_active_qid(f, "/RF/", qid) ) {
                 print_err("Error: Active QID not declared.");
                 return 1;
             }
 
-            strcpy(sim->qid_rffield, qid);
+            strcpy(sim->qid_RF, qid);
             print_out(VERBOSE_IO, "Active QID is %s\n", qid);
             if(RF_fields_init(&sim->rffield_data, f, qid, 20, &sim->B_data)) {
                 print_err("Error: Failed to initialize RF field data (hdf5_interface.c).\n");

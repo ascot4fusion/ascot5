@@ -147,7 +147,7 @@ typedef struct {
     char qid_mhd[256];     /**< MHD QID if active not used     */
     char qid_asigma[256];  /**< Asigma QID if active not used  */
     char qid_nbi[256];     /**< NBI QID if active not used     */
-    char qid_rffield[256]; /**< RF field QID if active not used */
+    char qid_RF[256];      /**< RF field QID if active not used */
 
 } sim_data;
 

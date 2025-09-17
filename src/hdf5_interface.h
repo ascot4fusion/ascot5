@@ -29,7 +29,7 @@ enum input_group {
     hdf5_input_mhd     = 0x100, /**< Input group for MHD data                */
     hdf5_input_asigma  = 0x200, /**< Input group for atomic data             */
     hdf5_input_nbi     = 0x400, /**< Input group for injector data           */
-    hdf5_input_rffield = 0x800 /**< Input group for RF fields data          */
+    hdf5_input_RF      = 0x800  /**< Input group for RF fields data          */
 };
 
 int hdf5_interface_read_input(sim_data* sim, int input_active,

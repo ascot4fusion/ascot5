@@ -2404,7 +2404,7 @@ struct_c__SA_sim_data._fields_ = [
     ('qid_mhd', ctypes.c_char * 256),
     ('qid_asigma', ctypes.c_char * 256),
     ('qid_nbi', ctypes.c_char * 256),
-    ('qid_rffield', ctypes.c_char * 256),
+    ('qid_RF', ctypes.c_char * 256),
 ]
 
 sim_data = struct_c__SA_sim_data
@@ -2472,7 +2472,7 @@ input_group__enumvalues = {
     256: 'hdf5_input_mhd',
     512: 'hdf5_input_asigma',
     1024: 'hdf5_input_nbi',
-    2048: 'hdf5_input_rffield',
+    2048: 'hdf5_input_RF',
 }
 hdf5_input_options = 1
 hdf5_input_bfield = 2
@@ -2485,7 +2485,7 @@ hdf5_input_boozer = 128
 hdf5_input_mhd = 256
 hdf5_input_asigma = 512
 hdf5_input_nbi = 1024
-hdf5_input_rffield = 2048
+hdf5_input_RF = 2048
 input_group = ctypes.c_uint32 # enum
 hdf5_interface_read_input = _libraries['libascot.so'].hdf5_interface_read_input
 hdf5_interface_read_input.restype = ctypes.c_int32
@@ -2688,7 +2688,7 @@ __all__ = \
     'hdf5_generate_qid', 'hdf5_input_asigma', 'hdf5_input_bfield',
     'hdf5_input_boozer', 'hdf5_input_efield', 'hdf5_input_marker',
     'hdf5_input_mhd', 'hdf5_input_nbi', 'hdf5_input_neutral',
-    'hdf5_input_options', 'hdf5_input_plasma', 'hdf5_input_rffield',
+    'hdf5_input_options', 'hdf5_input_plasma', 'hdf5_input_RF',
     'hdf5_input_wall', 'hdf5_interface_init_results',
     'hdf5_interface_read_input', 'hdf5_interface_write_diagnostics',
     'hdf5_interface_write_state', 'hid_t', 'input_group',

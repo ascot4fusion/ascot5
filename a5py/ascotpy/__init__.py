@@ -86,7 +86,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
 
     def _init(self, data, bfield=None, efield=None, plasma=None,
               wall=None, neutral=None, boozer=None, mhd=None, asigma=None,
-              nbi=None, rffield=None, switch=False):
+              nbi=None, RF=None, switch=False):
         """Read and initialize input data so it can be accessed
         by libascot.
 
@@ -135,7 +135,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         args = locals() # Contains function arguments and values in a dictionary
         to_be_provided = [] # Inputs to be directly injected (provided)
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
-                    "mhd", "asigma", "nbi", "rffield"]:
+                    "mhd", "asigma", "nbi", "RF"]:
             if args[inp] is None:
                 # This input is not going to be initialized
                 continue
@@ -181,7 +181,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         # an exception, in which case sim.qid_* would point to data which is not
         # initialized.
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
-                    "mhd", "asigma", "nbi", "rffield"]:
+                    "mhd", "asigma", "nbi", "RF"]:
             if inputs2read.value & getattr(ascot2py, "hdf5_input_" + inp):
                 setattr(self._sim, "qid_" + inp, args[inp])
 
@@ -209,7 +209,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             getattr(self, "_provide_" + inp)(**args[inp])
 
     def _free(self, bfield=False, efield=False, plasma=False, wall=False,
-              neutral=False, boozer=False, mhd=False, asigma=False, rffield=False):
+              neutral=False, boozer=False, mhd=False, asigma=False, RF=False):
         """Free input data initialized in C-side.
         """
         args = locals() # Contains function arguments and values in a dictionary
@@ -217,7 +217,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         # Iterate through all inputs and free the data if the corresponding
         # argument is True
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
-                    "mhd", "asigma", "rffield"]:
+                    "mhd", "asigma", "RF"]:
             if args[inp] and \
                 getattr(self._sim, "qid_" + inp) != Ascotpy.DUMMY_QID:
                 # Deallocate the data allocated in C side
@@ -225,6 +225,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                     _LIBASCOT.B_field_free(ctypes.byref(self._sim.B_data))
                 elif inp == "efield":
                     _LIBASCOT.E_field_free(ctypes.byref(self._sim.E_data))
+                elif inp == "RF":
+                    _LIBASCOT.RF_fields_free(ctypes.byref(self._sim.rffield_data))
                 else:
                     data = getattr(self._sim, inp + "_data")
                     getattr(_LIBASCOT, inp + "_free")(ctypes.byref(data))
@@ -261,7 +263,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         """
         out = {}
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
-                    "mhd", "asigma", "nbi", "rffield"]:
+                    "mhd", "asigma", "nbi", "RF"]:
             qid = getattr(self._sim, "qid_" + inp)
             if qid != Ascotpy.DUMMY_QID:
                 out[inp] = qid.decode("utf-8")
@@ -409,17 +411,17 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             "Determinant of the Jacobian in Boozer coordinate transformation",
             "bjacxb2":
             "bjac multiplied by B^2 which is constant along flux surfaces",
-            "er_rf2d":
+            "er_rf":
             "R component of RF electric field",
-            "ephi_rf2d":
+            "ephi_rf":
             "phi component of RF electric field",
-            "ez_rf2d":
+            "ez_rf":
             "z component of RF electric field",
-            "br_rf2d":
+            "br_rf":
             "R component of RF magnetic field",
-            "bphi_rf2d":
+            "bphi_rf":
             "phi component of RF magnetic field",
-            "bz_rf2d":
+            "bz_rf":
             "z component of RF magnetic field",
         }
 

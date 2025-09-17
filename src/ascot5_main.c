@@ -152,7 +152,7 @@ int main(int argc, char** argv) {
                                   hdf5_input_neutral | hdf5_input_wall   |
                                   hdf5_input_marker  | hdf5_input_boozer |
                                   hdf5_input_mhd     | hdf5_input_asigma |
-                                  hdf5_input_rffield,
+                                  hdf5_input_RF,
                                   &p, &n_tot) ) {
         print_out0(VERBOSE_MINIMAL, sim.mpi_rank, sim.mpi_root,
                    "\nInput reading or initializing failed.\n"
@@ -482,7 +482,7 @@ int read_arguments(int argc, char** argv, sim_data* sim) {
     sim->qid_mhd[0]     = '\0';
     sim->qid_asigma[0]  = '\0';
     sim->qid_nbi[0]     = '\0';
-    sim->qid_rffield[0] = '\0';
+    sim->qid_RF[0] = '\0';
 
     /* Read user input */
     int c;

@@ -157,7 +157,7 @@ class Ascot(Ascotpy):
 
     def input_init(self, run=False, bfield=False, efield=False, plasma=False,
                    wall=False, neutral=False, boozer=False, mhd=False,
-                   asigma=False, rffield=False, switch=False):
+                   asigma=False, RF=False, switch=False):
         """Initialize input so it can be accessed via Python interface.
 
         This method can be used in three ways:
@@ -215,11 +215,11 @@ class Ascot(Ascotpy):
                      isinstance(plasma, bool)  and isinstance(wall, bool)   and
                      isinstance(neutral, bool) and isinstance(boozer, bool) and
                      isinstance(mhd, bool)     and isinstance(asigma, bool) and
-                     isinstance(rffield, bool) ):
+                     isinstance(RF, bool) ):
                 raise ValueError(
                     "Cannot specify input explicitly when run=True")
             initall = not any([bfield, efield, plasma, wall, neutral, boozer,
-                               mhd, asigma, rffield])
+                               mhd, asigma, RF])
 
             # Init either the active run or that which was requested
             run = self.data.active if isinstance(run, bool) else\
@@ -227,7 +227,7 @@ class Ascot(Ascotpy):
 
             # Find QIDs of the inputs to be initialized
             for inp in ["bfield", "efield", "plasma", "wall", "neutral",
-                        "boozer", "mhd", "asigma", "rffield"]:
+                        "boozer", "mhd", "asigma", "RF"]:
                 if args[inp] and not inp in self.data:
                     raise AscotIOException("Input \"" + inp + "\" not present.")
                 elif args[inp]:
@@ -240,19 +240,15 @@ class Ascot(Ascotpy):
         else:
             # Init given inputs; first check whether to init everything
             initall = not any([bfield, efield, plasma, wall, neutral, boozer,
-                               mhd, asigma, rffield])
+                               mhd, asigma, RF])
 
             for inp in ["bfield", "efield", "plasma", "wall", "neutral",
-                        "boozer", "mhd", "asigma", "rffield"]:
+                        "boozer", "mhd", "asigma", "RF"]:
                 if isinstance(args[inp], dict):
                     # Argument is a dictionary, presumably in the correct format
                     # It is simply passed forward to _init()
                     pass
                 elif args[inp] and not inp in self.data:
-                    if inp == 'rffield':
-                        # rffield is optional
-                        args[inp] = None
-                        continue
                     # Requested data not present
                     raise AscotIOException("Input \"" + inp + "\" not present.")
                 elif initall and inp in self.data:
@@ -275,11 +271,11 @@ class Ascot(Ascotpy):
             self.data, bfield=args["bfield"], efield=args["efield"],
             plasma=args["plasma"], wall=args["wall"], neutral=args["neutral"],
             boozer=args["boozer"], mhd=args["mhd"], asigma=args["asigma"],
-            rffield=args["rffield"], switch=switch)
+            RF=args["RF"], switch=switch)
 
     def input_free(self, bfield=False, efield=False, plasma=False, wall=False,
                    neutral=False, boozer=False, mhd=False, asigma=False, 
-                   rffield=False):
+                   RF=False):
         """Free input used by the Python interface.
 
         Arguments toggle which input fields are free'd. If called without
@@ -308,15 +304,15 @@ class Ascot(Ascotpy):
             raise AscotInitException(
                 "Python interface disabled as libascot.so is not found")
         freeall = not any([bfield, efield, plasma, wall, neutral, boozer,
-                           mhd, asigma, rffield])
+                           mhd, asigma, RF])
         if freeall:
             self._free(bfield=True, efield=True, plasma=True, wall=True,
                        neutral=True, boozer=True, mhd=True, asigma=True,
-                       rffield=True)
+                       RF=True)
         else:
             self._free(bfield=bfield, efield=efield, plasma=plasma, wall=wall,
                        neutral=neutral, boozer=boozer, mhd=mhd, asigma=asigma,
-                       rffield=rffield)
+                       RF=RF)
 
     def preflight_inputspresent(self):
         """Check required inputs are present for this run.

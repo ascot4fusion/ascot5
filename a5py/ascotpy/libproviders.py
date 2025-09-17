@@ -301,7 +301,22 @@ class LibProviders():
             )
         self._sim.B_data.type = ascot2py.B_field_type_STS
 
-    def _provide_rffield(self, **kwargs):
+    def _provide_RF(self, **kwargs):
+        """Use the provided input parameters to initialize a RF field input.
+
+        Parameters
+        ----------
+        **kwargs
+            Dictionary with the RF field data.
+        """
+
+        inp, data = self._find_input_based_on_kwargs(
+            ["RF2D", "RF3D", "RF2D_Stix"], **kwargs)
+        getattr(self, "_provide_" + inp)(**data)
+        qid, _, _ = fileapi._generate_meta()
+        self._sim.qid_RF = bytes(qid, "utf-8")
+
+    def _provide_RF2D(self, **kwargs):
         """Use the provided input parameters to initialize a RF2D field input.
 
         Parameters
@@ -350,13 +365,13 @@ class LibProviders():
         new_kwargs['nr'] = kwargs['Er_real'].shape[0]
         new_kwargs['nz'] = kwargs['Er_real'].shape[1]
 
-        if self._sim.rffield_data.initialized == ctypes.c_int(1):
+        if self._sim.rffield_data.rf2d.initialized == ctypes.c_int(1):
             raise ValueError("RF2D field already initialized!")
 
         qid, _, _ = fileapi._generate_meta()
-        self._sim.qid_rffield = bytes(qid, "utf-8")
+        self._sim.qid_RF = bytes(qid, "utf-8")
 
-        _LIBASCOT.rffield_init(ctypes.byref(self._sim.rffield_data),
+        _LIBASCOT.RF2D_fields_init(ctypes.byref(self._sim.rffield_data.rf2d),
                             new_kwargs["rmin"], new_kwargs["rmax"], 
                             new_kwargs["nr"],
                             new_kwargs["zmin"], new_kwargs["zmax"], 
@@ -374,9 +389,148 @@ class LibProviders():
                             new_kwargs["Bphi_imag"].ctypes.data_as(PTR_ARR),
                             new_kwargs["Bz_real"].ctypes.data_as(PTR_ARR),
                             new_kwargs["Bz_imag"].ctypes.data_as(PTR_ARR))
-        if self._sim.rffield_data.initialized == ctypes.c_int(0):
+        if self._sim.rffield_data.rf2d.initialized == ctypes.c_int(0):
             raise Exception("RF2D field initialization failed")
 
+    def _provide_RF3D(self, **kwargs):
+        """Use the provided input parameters to initialize a RF3D field input.
+
+        Parameters
+        ----------
+        **kwargs
+            Dictionary with the RF3D field data.
+        """
+        # Checking if all the required inputs have been provided
+        list_of_names = ['Er_real', 'Er_imag', 'Ez_real', 'Ez_imag',
+                         'Br_real', 'Br_imag', 'Bz_real', 'Bz_imag',
+                         'Bphi_real', 'Bphi_imag', 
+                         'rmin', 'rmax', 'zmin', 'zmax', 'omega', 'ntor']
+        list_of_names2 = ['Er', 'Ez', 'Br', 'Bz', 'Bphi', 'rmin', 'rmax',
+                          'zmin', 'zmax', 'omega', 'ntor']
+        new_kwargs = {}
+        if 'Er' in kwargs:
+            for name in list_of_names2:
+                if name not in kwargs:
+                    raise ValueError(f"Missing input parameter {name}")
+            
+            new_kwargs = kwargs
+            new_kwargs['Er_real'] = np.real(kwargs['Er'])
+            new_kwargs['Er_imag'] = np.imag(kwargs['Er'])
+            new_kwargs['Ez_real'] = np.real(kwargs['Ez'])
+            new_kwargs['Ez_imag'] = np.imag(kwargs['Ez'])
+            new_kwargs['Ephi_real'] = np.real(kwargs['Ephi'])
+            new_kwargs['Ephi_imag'] = np.imag(kwargs['Ephi'])
+            new_kwargs['Br_real'] = np.real(kwargs['Br'])
+            new_kwargs['Br_imag'] = np.imag(kwargs['Br'])
+            new_kwargs['Bz_real'] = np.real(kwargs['Bz'])
+            new_kwargs['Bz_imag'] = np.imag(kwargs['Bz'])
+            new_kwargs['Bphi_real'] = np.real(kwargs['Bphi'])
+            new_kwargs['Bphi_imag'] = np.imag(kwargs['Bphi'])
+            new_kwargs['rmin'] = kwargs['rmin']
+            new_kwargs['rmax'] = kwargs['rmax']
+            new_kwargs['zmin'] = kwargs['zmin']
+            new_kwargs['zmax'] = kwargs['zmax']
+            new_kwargs['omega'] = kwargs['omega']
+            new_kwargs['ntor'] = kwargs['ntor']
+            
+        elif 'Er_real' in kwargs:
+            for name in list_of_names:
+                if name not in kwargs:
+                    raise ValueError(f"Missing input parameter {name}")
+                
+        new_kwargs['nr'] = kwargs['Er_real'].shape[0]
+        new_kwargs['nz'] = kwargs['Er_real'].shape[1]
+
+        if self._sim.rffield_data.rf3d.initialized == ctypes.c_int(1):
+            raise ValueError("RF3D field already initialized!")
+
+        qid, _, _ = fileapi._generate_meta()
+        self._sim.qid_RF = bytes(qid, "utf-8")
+
+        _LIBASCOT.RF3D_fields_init(ctypes.byref(self._sim.rffield_data.rf3d),
+                            new_kwargs["rmin"], new_kwargs["rmax"], 
+                            new_kwargs["nr"],
+                            new_kwargs["zmin"], new_kwargs["zmax"], 
+                            new_kwargs["nz"],
+                            new_kwargs["ntor"], new_kwargs["omega"], 
+                            new_kwargs["Er_real"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Er_imag"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Ephi_real"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Ephi_imag"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Ez_real"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Ez_imag"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Br_real"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Br_imag"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Bphi_real"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Bphi_imag"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Bz_real"].ctypes.data_as(PTR_ARR),
+                            new_kwargs["Bz_imag"].ctypes.data_as(PTR_ARR))
+        if self._sim.rffield_data.rf3d.initialized == ctypes.c_int(0):
+            raise Exception("RF3D field initialization failed")
+
+
+    def _provide_RF2D_Stix(self, **kwargs):
+        """Initialize the RF2D field for the guiding-center model
+        with the polarized components of the electric field.
+
+        Parameters
+        ----------
+        **kwargs
+            Dictionary with the RF field data.
+        """
+        list_of_names = ['Eplus_re', 'Eplus_im', 'Eminus_re', 'Eminus_im', 'kperp', 'costerm', 'sinterm']
+
+        for name in list_of_names:
+            if name not in kwargs:
+                raise ValueError(f"Missing input parameter {name}")
+        
+        if self._sim.rffield_data.stix.enabled == ctypes.c_int(1):
+            raise ValueError("RF2D Stix field already initialized!")
+
+
+        qid, _, _ = fileapi._generate_meta()
+        self._sim.qid_RF = bytes(qid, "utf-8")
+
+        # Checking the size consistency
+        for i in range(1, len(list_of_names)):
+            # We need to transform the 2D arrays into 
+            # 3D arrays with a single wave
+            if kwargs[list_of_names[i]].ndim == 2:
+                kwargs[list_of_names[i]] = np.expand_dims(kwargs[list_of_names[i]], axis=0)
+            if kwargs[list_of_names[i]].shape[0] != kwargs[list_of_names[0]].shape[0] or \
+               kwargs[list_of_names[i]].shape[1] != kwargs[list_of_names[0]].shape[1]:
+                raise ValueError("Inconsistent array sizes in the RF2D Stix field input!")
+
+        nwaves = 1
+        nr = kwargs['Eplus_re'].shape[0]
+        nz = kwargs['Eplus_re'].shape[1]
+
+        include_Eminus = 1 if kwargs['include_Eminus'] else 0
+        include_stochastic = 1 if kwargs['include_stochastic'] else 0
+        include_vpara_kick = 1 if kwargs['include_vpara_kick'] else 0
+        include_phase_factor = 1 if kwargs['include_phase_factor'] else 0
+
+        include_Eminus = ctypes.c_int(include_Eminus)
+        include_stochastic = ctypes.c_int(include_stochastic)
+        include_vpara_kick = ctypes.c_int(include_vpara_kick)
+        include_phase_factor = ctypes.c_int(include_phase_factor)
+
+        _LIBASCOT.RF2D_gc_stix_init(ctypes.byref(self._sim.rffield_data.stix),
+                            kwargs["Eplus_re"].ctypes.data_as(PTR_ARR),
+                            kwargs["Eplus_im"].ctypes.data_as(PTR_ARR),
+                            kwargs["Eminus_re"].ctypes.data_as(PTR_ARR),
+                            kwargs["Eminus_im"].ctypes.data_as(PTR_ARR),
+                            kwargs["kperp"].ctypes.data_as(PTR_ARR),
+                            kwargs["costerm"].ctypes.data_as(PTR_ARR),
+                            kwargs["sinterm"].ctypes.data_as(PTR_ARR),
+                            ctypes.c_int(nr), ctypes.c_int(nz), ctypes.c_int(nwaves),
+                            include_Eminus, include_stochastic,
+                            include_vpara_kick, include_phase_factor,
+                            ctypes.byref(self._sim.B_data) )
+
+        if self._sim.rffield_data.stix.enabled == ctypes.c_int(0):
+            raise Exception("RF2D Stix field initialization failed")
+        
     def _provide_efield(self, **kwargs):
         """Use the provided input parameters to initialize an electric field
         input.
