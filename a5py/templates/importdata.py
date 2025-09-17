@@ -925,6 +925,106 @@ class ImportData():
 
         return ("prt", prt)
     
+    def import_wavesol(self, fn=None, frequency: float=None, ntor: float=None, 
+                       power_scaling: float=1.0, nr: int=100, nz: int=101):
+        """
+        Read the polarized components from the wavesol file generated
+        by the TORIC code.
+
+        Parameters
+        ----------
+        fn : str
+            The path to the input file.
+        power_scaling : float
+            A scaling factor for the power of the RF fields.
+        nr : int
+            The number of radial grid points.
+        nz : int
+            The number of vertical grid points.
+        """
+        if fn is None:
+            raise ValueError("Input filename 'fn' is required")
+        if not os.path.isfile(fn):
+            raise FileNotFoundError(f"File {fn} not found")
+        
+        self._ascot._requireinit("bfield")
+
+        # Reading the file
+        with open(fn, 'rt') as fid:
+            tmp = fid.readline().strip().split()
+            n_node_rho = int(tmp[0])
+            n_node_theta = int(tmp[1])
+        
+        tmp = np.loadtxt(fn, skiprows=1)
+        xpl = tmp[:, 0].reshape((n_node_rho, n_node_theta), order='F')
+        ypl = tmp[:, 1].reshape((n_node_rho, n_node_theta), order='F')
+        Eplus_real = tmp[:, 2].reshape((n_node_rho, n_node_theta), order='F')
+        Eplus_imag = tmp[:, 3].reshape((n_node_rho, n_node_theta), order='F')
+        Eminus_real = tmp[:, 4].reshape((n_node_rho, n_node_theta), order='F')
+        Eminus_imag = tmp[:, 5].reshape((n_node_rho, n_node_theta), order='F')
+        P_kerp_real = tmp[:, 6].reshape((n_node_rho, n_node_theta), order='F')
+        # P_kerp_imag = tmp[:, 7].reshape((n_node_rho, n_node_theta), order='F')
+        cos_thet_real = tmp[:, 8].reshape((n_node_rho, n_node_theta), order='F')
+        cos_thet_imag = tmp[:, 9].reshape((n_node_rho, n_node_theta), order='F')
+
+        # Reading the magnetic axis location.
+        bffielddata = self._ascot.data.bfield.active.read()
+        raxis = bffielddata['axisr']
+        zaxis = bffielddata['axisz']
+        xpl += raxis
+        ypl += zaxis
+
+        datavars = {'xpl':xpl, 'ypl':ypl,
+                    'Eplus_re':Eplus_real * power_scaling, 
+                    'Eplus_im':Eplus_imag * power_scaling,
+                    'Eminus_re':Eminus_real * power_scaling, 
+                    'Eminus_im':Eminus_imag * power_scaling,
+                    'kperp':P_kerp_real, 
+                    'costheta_re':cos_thet_real, 
+                    'costheta_im':cos_thet_imag}
+
+        rmin = np.nanmin(xpl)
+        rmax = np.nanmax(xpl)
+        zmin = np.nanmin(ypl)
+        zmax = np.nanmax(ypl)
+
+        rgrid = np.linspace(rmin, rmax, nr)
+        zgrid = np.linspace(zmin, zmax, nz)
+        grr, gzz = np.meshgrid(rgrid, zgrid, indexing='ij')
+
+        # Let remove NaN values from the dataset
+        for ikey in datavars:
+            flags = np.isnan(datavars[ikey])
+            datavars[ikey][flags] = 0.0
+
+        triang = tri.Triangulation(xpl.flatten(), ypl.flatten())
+
+        # We interpolate the field on the target mesh.
+        newdata = dict()
+        for ikey in datavars:
+            interp = tri.LinearTriInterpolator(triang, datavars[ikey].flatten())
+            newdata[ikey] = interp(grr, gzz)
+
+            # Removing the NaN values outside the convex hull
+            flags = np.isnan(newdata[ikey])
+            newdata[ikey][flags] = 0.0
+
+
+
+        omega = 2 * np.pi * frequency.to('Hz')
+        output = {'rmin': rmin, 'rmax': rmax, 'zmin': zmin, 'zmax': zmax,
+                  'omega': np.array((omega.value,)), 'ntor': np.array((ntor,)),
+                  'Eplus_re': newdata['Eplus_re'],
+                  'Eplus_im': newdata['Eplus_im'],
+                  'Eminus_re': newdata['Eminus_re'],
+                  'Eminus_im': newdata['Eminus_im'],
+                  'kperp': newdata['kperp'],
+                  'costheta': newdata['costheta_re'],
+                  'sintheta': newdata['costheta_im'],
+                  }
+        
+        return ("RF2D_Stix", output)
+
     def import_toric2spiral2ascot(self, fn=None, power_scaling: float=1.0,
                                   nr: int=100, nz: int=101):
         """Import toroidal magnetic field from TORIC.
@@ -1027,95 +1127,4 @@ class ImportData():
         
         return ("RF2D", out)
 
-    @parseunits(freq='MHz')
-    def import_toric2ascot(self, fn, freq: float, ntor: float, power_scaling: float=1.0, 
-                           nr: int=100, nz: int=101):
-        """
-        Read the polarized components from the wavesol file generated
-        by the TORIC code.
-
-        Parameters
-        ----------
-        fn : str
-            The path to the input file.
-        power_scaling : float
-            A scaling factor for the power of the RF fields.
-        nr : int
-            The number of radial grid points.
-        nz : int
-            The number of vertical grid points.
-        """
-        if fn is None:
-            raise ValueError("Input filename 'fn' is required")
-        if not os.path.isfile(fn):
-            raise FileNotFoundError(f"File {fn} not found")
-        
-        self._ascot._requireinit("bfield")
-
-        # Reading the file
-        with open(fn, 'rt') as fid:
-            tmp = fid.readline().strip().split()
-            n_node_rho = int(tmp[0])
-            n_node_theta = int(tmp[1])
-        
-        tmp = np.loadtxt(fn, skiprows=1)
-        xpl = tmp[:, 0].reshape((n_node_rho, n_node_theta), order='F')
-        ypl = tmp[:, 1].reshape((n_node_rho, n_node_theta), order='F')
-        Eplus_real = tmp[:, 2].reshape((n_node_rho, n_node_theta), order='F')
-        Eplus_imag = tmp[:, 3].reshape((n_node_rho, n_node_theta), order='F')
-        Eminus_real = tmp[:, 4].reshape((n_node_rho, n_node_theta), order='F')
-        Eminus_imag = tmp[:, 5].reshape((n_node_rho, n_node_theta), order='F')
-        P_kerp_real = tmp[:, 6].reshape((n_node_rho, n_node_theta), order='F')
-        # P_kerp_imag = tmp[:, 7].reshape((n_node_rho, n_node_theta), order='F')
-        cos_thet_real = tmp[:, 8].reshape((n_node_rho, n_node_theta), order='F')
-        cos_thet_imag = tmp[:, 9].reshape((n_node_rho, n_node_theta), order='F')
-
-        # Reading the magnetic axis location.
-        bffielddata = self._ascot.data.bffield.active.read()
-        raxis = bffielddata['axisr']
-        zaxis = bffielddata['axisz']
-        xpl += raxis
-        ypl += zaxis
-
-        datavars = {'xpl':xpl, 'ypl':ypl,
-                    'Eplus_re':Eplus_real, 'Eplus_im':Eplus_imag,
-                    'Eminus_re':Eminus_real, 'Eminus_im':Eminus_imag,
-                    'kperp':P_kerp_real, 
-                    'costheta_re':cos_thet_real, 'costheta_im':cos_thet_imag}
-
-        rmin = np.nanmin(xpl)
-        rmax = np.nanmax(xpl)
-        zmin = np.nanmin(ypl)
-        zmax = np.nanmax(ypl)
-
-        rgrid = np.linspace(rmin, rmax, nr)
-        zgrid = np.linspace(zmin, zmax, nz)
-        grr, gzz = np.meshgrid(rgrid, zgrid, indexing='ij')
-
-        # Let remove NaN values from the dataset
-        for ikey in datavars:
-            flags = np.isnan(datavars[ikey])
-            datavars[ikey][flags] = 0.0
-
-        triang = tri.Triangulation(xpl.flatten(), ypl.flatten())
-
-        # We interpolate the field on the target mesh.
-        newdata = dict()
-        for ikey in datavars:
-            interp = tri.LinearTriInterpolator(triang, datavars[ikey].flatten())
-            newdata[ikey] = interp(grr, gzz)
-
-
-        omega = 2 * np.pi * freq.to('Hz')
-        output = {'rmin': rmin, 'rmax': rmax, 'zmin': zmin, 'zmax': zmax,
-                  'omega': np.array((omega.value,)), 'ntor': np.array((ntor,)),
-                  'Eplus_re': newdata['Eplus_re'],
-                  'Eplus_im': newdata['Eplus_im'],
-                  'Eminus_re': newdata['Eminus_re'],
-                  'Eminus_im': newdata['Eminus_im'],
-                  'kperp': newdata['kperp'],
-                  'costheta': newdata['costheta_re'],
-                  'sintheta': newdata['costheta_im'],
-                  }
-        
-        return ("RF2D_Stix", output)
+    
