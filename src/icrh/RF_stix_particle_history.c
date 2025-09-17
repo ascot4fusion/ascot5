@@ -19,15 +19,16 @@ void RF_particle_history_init(RF_particle_history* hist, particle_simd_gc* p, in
                               int imrk, real* omega, int* ntor, int lhigh) {
     hist->resn = (real*) malloc(nwaves * sizeof(real) * lhigh);
     hist->resp = (real*) malloc(nwaves * sizeof(real) * lhigh);
+    if(!p->running[imrk]) return; // Particle is not running, skip.
 
     hist->qm = p->charge[imrk] / p->mass[imrk]; // Charge/mass ratio
-
+    
     // We need to add to the data the current values.
     for(int j = 0; j < RF_N_HISTORY; j++) {
         hist->dt[j] = h; // Current time
-        hist->bnorm[j] = sqrt(p->B_r[imrk] * p->B_r[imrk] +
-                                                p->B_phi[imrk] * p->B_phi[imrk] +
-                                                p->B_z[imrk] * p->B_z[imrk]);
+        hist->bnorm[j] = sqrt(p->B_r[imrk]   * p->B_r[imrk]   +
+                              p->B_phi[imrk] * p->B_phi[imrk] +
+                              p->B_z[imrk]   * p->B_z[imrk]);
         hist->R[j] = p->r[imrk];
         hist->rhopara[j] = p->ppar[imrk] / hist->bnorm[j];
     }
@@ -37,8 +38,9 @@ void RF_particle_history_init(RF_particle_history* hist, particle_simd_gc* p, in
             real kpara = ntor[i] / p->r[imrk];
             real doppler = kpara * p->ppar[imrk] / p->mass[imrk];
             real Babs = hist->bnorm[0]; // Use the first history point for Babs
-            hist->resn[i * lhigh + j] = omega[i] - lhigh * hist->qm * Babs - doppler;
-            hist->resp[i * lhigh + j] = omega[i] - lhigh * hist->qm * Babs + doppler;
+            int lres = j + 1; // Resonance level starts from 1
+            hist->resn[i * lhigh + j] = omega[i] - lres * hist->qm * Babs - doppler;
+            hist->resp[i * lhigh + j] = omega[i] - lres * hist->qm * Babs + doppler;
         }
     }
 
@@ -70,28 +72,29 @@ void RF_particle_eval_nkicks(RF_particle_history* hist, particle_simd_gc* p,
 
     *nkicks = 0; // Initialize the number of kicks
     *lres = -1; // Initialize l to -1
-    real qm = p->charge[imrk] / p->mass[imrk];
+    real qm = hist->qm;
     real Babs = sqrt(p->B_r[imrk] * p->B_r[imrk] +
-                        p->B_phi[imrk] * p->B_phi[imrk] +
-                        p->B_z[imrk] * p->B_z[imrk]);
-    for(int l = 0; l < hist->lhigh; l++){ 
-        real resn_prv = hist->resn[iwave * hist->lhigh + l];
-        real resp_prv = hist->resp[iwave * hist->lhigh + l];
+                     p->B_phi[imrk] * p->B_phi[imrk] +
+                     p->B_z[imrk] * p->B_z[imrk]);
+    for(int j = 0; j < hist->lhigh; j++){
+        real resn_prv = hist->resn[iwave * hist->lhigh + j];
+        real resp_prv = hist->resp[iwave * hist->lhigh + j];
 
         real kpara = hist->ntor[iwave] / p->r[imrk];
         real doppler = kpara * p->ppar[imrk] / p->mass[imrk];
 
         // Evaluating current resonance locations
-        hist->resn[iwave * hist->lhigh + l] = hist->omega[iwave] - l * qm * Babs - doppler;
-        hist->resp[iwave * hist->lhigh + l] = hist->omega[iwave] - l * qm * Babs + doppler;
+        int l = j + 1; // Resonance level starts from 1
+        hist->resn[iwave * hist->lhigh + j] = hist->omega[iwave] - l * qm * Babs - doppler;
+        hist->resp[iwave * hist->lhigh + j] = hist->omega[iwave] - l * qm * Babs + doppler;
 
         // Check if the resonance condition has changed sign
-        if ((resn_prv * hist->resn[iwave * hist->lhigh + l] < 0.0)){
+        if ((resn_prv * hist->resn[iwave * hist->lhigh + j] < 0.0)){
             (*nkicks)++;
             *lres = l; // Update the resonance level
 
             // Checking the positive resonance condition
-            if(resp_prv * hist->resp[iwave * hist->lhigh + l] < 0.0) (*nkicks)++;
+            if(resp_prv * hist->resp[iwave * hist->lhigh + j] < 0.0) (*nkicks)++;
             break;
         }
     }

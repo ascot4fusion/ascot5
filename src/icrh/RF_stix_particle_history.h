@@ -22,26 +22,28 @@ typedef struct RF_particle_history{
     int lhigh;  /** Maximum number of resonances to store. */
     real* omega; /** Frequencies of the waves */
     int* ntor;  /** Toroidal mode numbers of the waves */
-    real qm;  /** Particle history: magnetic moment */
+    real qm;  /** Particle history: charge-over-mass ratio */
 } RF_particle_history;
 
-GPU_DECLARE_TARGET_SIMD_UNIFORM(hist, nwaves, omega, ntor, lhigh)
-void RF_particle_history_init(RF_particle_history* hist, particle_simd_gc* p, int nwaves, real h,
+GPU_DECLARE_TARGET_SIMD_UNIFORM(p, nwaves, omega, ntor, lhigh)
+void RF_particle_history_init(RF_particle_history* hist, particle_simd_gc* p, 
+                              int nwaves, real h,
                               int imrk, real* omega, int* ntor, int lhigh);
 GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
-GPU_DECLARE_TARGET_SIMD_UNIFORM(hist)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(p, iwave)
 void RF_particle_eval_nkicks(RF_particle_history* hist, particle_simd_gc* p, 
                              int imrk, int iwave, int *nkicks,
                              int *lres);
 GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
-GPU_DECLARE_TARGET_SIMD_UNIFORM(hist)
+GPU_DECLARE_TARGET_SIMD
 void RF_particle_history_free(RF_particle_history* hist);
-GPU_DECLARE_TARGET_SIMD_UNIFORM_END
+GPU_DECLARE_TARGET_SIMD_END
 
-GPU_DECLARE_TARGET_SIMD_UNIFORM(hist)
-void RF_particle_history_update(RF_particle_history* hist, particle_simd_gc* p, int imrk, real h);
+GPU_DECLARE_TARGET_SIMD_UNIFORM(p)
+void RF_particle_history_update(RF_particle_history* hist, particle_simd_gc* p, 
+                                int imrk, real h);
 GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
 #endif // RF_STIX_PARTICLE_HISTORY_H
