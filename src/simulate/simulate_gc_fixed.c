@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <omp.h>
 #include <math.h>
+#include <string.h>
 #include "../ascot5.h"
 #include "../endcond.h"
 #include "../math.h"
@@ -18,6 +19,7 @@
 #include "../B_field.h"
 #include "../E_field.h"
 #include "../plasma.h"
+#include "../icrh/RFlib.h"
 #include "simulate_gc_fixed.h"
 #include "step/step_gc_rk4.h"
 #include "mccc/mccc.h"
@@ -70,6 +72,38 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
     }
 
     cputime_last = A5_WTIME;
+
+
+    // Space for the particle histories.
+    RF_particle_history hist[NSIMD];
+    memset(hist, 0, NSIMD * sizeof(RF_particle_history)); // Clear the memory.
+    real* stix_random;
+    int nsize4stix = 1;
+    if(sim->rffield_data.stix.enabled == 1 && sim->enable_rf){
+
+        real qm = guess_qm(pq);
+        #pragma omp barrier
+
+        // We compute the q/m ratio of the particles.
+        // Computing the number of resonances.
+        #pragma omp single
+        RF2D_gc_stix_compute_cold_resonances(&sim->rffield_data.stix, 
+                                            &sim->B_data, 20, qm); // Assuming all particles have the same qm.
+        #pragma omp barrier
+
+        #pragma omp simd
+        for(int i = 0; i < NSIMD; i++) {
+            RF_particle_history_init(&hist[i], &p, sim->rffield_data.stix.nwaves, 
+                                     hin[i], i, sim->rffield_data.stix.omega, 
+                                     sim->rffield_data.stix.ntor, 
+                                     sim->rffield_data.stix.n_max_res);
+        }
+
+        nsize4stix = NSIMD * sim->rffield_data.stix.n_max_res * sim->rffield_data.stix.nwaves;
+    }
+    stix_random = (real*) malloc(nsize4stix * sizeof(real));
+    memset(stix_random, 0, nsize4stix * sizeof(real));
+
 
     /* MAIN SIMULATION LOOP
      * - Store current state
@@ -124,6 +158,12 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
                           &sim->mccc_data, rnd);
         }
 
+        /* Euler-Maruyama method for the RF diffusion*/
+        if(sim->rffield_data.stix.enabled == 1 && sim->enable_rf){
+            random_uniform_simd(&sim->random_data, nsize4stix, stix_random);
+            RF2D_gc_stix_scatter(&sim->rffield_data.stix, hist, &p, hin, stix_random);
+        }
+
         /**********************************************************************/
 
 
@@ -153,11 +193,27 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         for(int i = 0; i < NSIMD; i++) {
             if(cycle[i] > 0) {
                 hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
+
+                // We also need to reinitialize the RF history for the new particle.
+                if(sim->rffield_data.stix.enabled == 1 && sim->enable_rf){
+                    RF_particle_history_free(&hist[i]);
+                    RF_particle_history_init(&hist[i], &p, sim->rffield_data.stix.nwaves, 
+                                            hin[i], i, sim->rffield_data.stix.omega, 
+                                            sim->rffield_data.stix.ntor, 
+                                            sim->rffield_data.stix.n_max_res);
+                }
             }
         }
 
     }
 
+    // Releasing the memory allocated for the RF history, if needed.
+    if(sim->rffield_data.stix.enabled == 1 && sim->enable_rf){
+        #pragma omp simd
+        for(int i = 1; i < NSIMD; i++) RF_particle_history_free(&hist[i]);
+    }
+
+    free(stix_random);
     /* All markers simulated! */
 
 }
