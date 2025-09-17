@@ -64,40 +64,40 @@ typedef struct RF2D_gc_stix{
 a5err RF2D_gc_stix_init_from_file(RF2D_gc_stix* stix_data, hid_t f, char* qid,
                         int lhigh, B_field_data* bdata); // Done
 a5err RF2D_gc_stix_init(RF2D_gc_stix* stix_data,
-                                  real* Eplus_re, real* Eplus_im,
-                                  real* Eminus_re, real* Eminus_im,
-                                  real* kperp, real* costerm, real* sinterm,
-                                  real rmin, real rmax, real zmin, real zmax,
-                                  int nr, int nz, int nwaves,
-                                  int include_Eminus, int include_stochastic,
-                                  int include_vpara_kick, int include_phase_factor,
-                                  B_field_data* bdata); // Done
+                        real* Eplus_re, real* Eplus_im,
+                        real* Eminus_re, real* Eminus_im,
+                        real* kperp, real* costerm, real* sinterm,
+                        real rmin, real rmax, real zmin, real zmax,
+                        int nr, int nz, int nwaves,
+                        int include_Eminus, int include_stochastic,
+                        int include_vpara_kick, int include_phase_factor,
+                        B_field_data* bdata);
 
-void RF2D_gc_stix_free(RF2D_gc_stix* stix_data); // Done
-void RF2D_gc_stix_offload(RF2D_gc_stix* stix_data); // Done
+void RF2D_gc_stix_free(RF2D_gc_stix* stix_data);
+void RF2D_gc_stix_offload(RF2D_gc_stix* stix_data);
+real guess_qm(particle_queue* pq);
 
 // Internal useful functions.
 a5err RF2D_gc_stix_compute_cold_resonances(RF2D_gc_stix* stix_data,
                                            B_field_data* bdata, int n_max_res,
-                                           real qm);  // Done
+                                           real qm); 
 
-
-// GPU_DECLARE_TARGET_SIMD_UNIFORM(stix_data)
-real RF2D_gc_stix_get_interaction_time(RF2D_gc_stix* stix_data, 
-                                       RF_particle_history hist, 
-                                       int iwave, int l); // Done
-// GPU_DECLARE_TARGET_SIMD_UNIFORM_END
-
-// GPU_DECLARE_TARGET_SIMD_UNIFORM(stix)
 void RF2D_gc_stix_scatter(RF2D_gc_stix* stix, RF_particle_history* hist, 
                           particle_simd_gc* p, real* h, real* rnd); 
-// GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
-// GPU_DECLARE_TARGET_SIMD_UNIFORM(stix_data)
+
+GPU_DECLARE_TARGET_SIMD_UNIFORM(stix_data)
+real RF2D_gc_stix_get_interaction_time(RF2D_gc_stix* stix_data, 
+                                       RF_particle_history* hist, 
+                                       int iwave, int l);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
+
+
+GPU_DECLARE_TARGET_SIMD_UNIFORM(stix_data)
 a5err RF2D_gc_stix_eval_fields(real r, real phi, real z, real t,
                                RF2D_gc_stix* stix_data,
                                real* Eplus_2, real* Eminus_2,
-                               real* E2cross, real* kperp); // Done
-// GPU_DECLARE_TARGET_SIMD_UNIFORM_END
+                               real* E2cross, real* kperp);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
 #endif

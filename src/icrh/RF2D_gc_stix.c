@@ -22,6 +22,7 @@
 #include "../B_field.h"
 #include "../math.h"
 #include "../spline/interp.h"
+#include "../particle.h"
 
 #define M_PI 3.14159265358979323846
 
@@ -46,22 +47,22 @@ a5err RF2D_gc_stix_init_from_file(RF2D_gc_stix* stix_data, hid_t f, char* qid,
     
     // Check if the stix_data pointer is valid.
     if (stix_data == NULL) {
-        print_err("RF2D_gc_stix_init: stix_data pointer is NULL.");
+        print_err("RF2D_gc_stix_init: stix_data pointer is NULL.\n");
         return 1;
     }
 
     if(bdata == NULL) {
-        print_err("RF2D_gc_stix_init: bdata pointer is NULL.");
+        print_err("RF2D_gc_stix_init: bdata pointer is NULL.\n");
         return 1;
     }
 
     if(lhigh < 1){
-        print_err("RF2D_gc_stix_init: lhigh must be at least 1.");
+        print_err("RF2D_gc_stix_init: lhigh must be at least 1.\n");
         return 1;
     }
 
     if (f < 0) {
-        print_err("RF2D_gc_stix_init: Invalid file_id.");
+        print_err("RF2D_gc_stix_init: Invalid file_id.\n");
         return 1;
     }
 
@@ -84,7 +85,7 @@ a5err RF2D_gc_stix_init_from_file(RF2D_gc_stix* stix_data, hid_t f, char* qid,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
 
     if(stix_data->nwaves <= 0) {
-        print_err("RF2D_gc_stix_init: Number of waves must be positive.");
+        print_err("RF2D_gc_stix_init: Number of waves must be positive.\n");
         return 1;
     }
 
@@ -108,23 +109,23 @@ a5err RF2D_gc_stix_init_from_file(RF2D_gc_stix* stix_data, hid_t f, char* qid,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(RFPATHSTIX "include_Eminus", &stix_data->include_Eminus,
                          f, qid, __FILE__, __LINE__) ){
-        print_err("RF2D_gc_stix_init: The include_Eminus flag is missing in the HDF5 file: assuming it is 1.");
+        print_err("RF2D_gc_stix_init: The include_Eminus flag is missing in the HDF5 file: assuming it is 1.\n");
         stix_data->include_Eminus = 1; // Default to 1 if not found
     }
-    if( hdf5_read_int(RFPATHSTIX "include_stochastic", &stix_data->include_Eminus,
+    if( hdf5_read_int(RFPATHSTIX "include_stochastic", &stix_data->include_stochastic,
                          f, qid, __FILE__, __LINE__) ){
-        print_err("RF2D_gc_stix_init: The include_stochastic flag is missing in the HDF5 file: assuming it is 1.");
+        print_err("RF2D_gc_stix_init: The include_stochastic flag is missing in the HDF5 file: assuming it is 1.\n");
         stix_data->include_stochastic = 1; // Default to 1 if not found
     }
 
     if( hdf5_read_int(RFPATHSTIX "include_vpara_kick", &stix_data->include_vpara_kick,
                          f, qid, __FILE__, __LINE__) ){
-        print_err("RF2D_gc_stix_init: The include_vpara_kick flag is missing in the HDF5 file: assuming it is 1.");
+        print_err("RF2D_gc_stix_init: The include_vpara_kick flag is missing in the HDF5 file: assuming it is 1.\n");
         stix_data->include_vpara_kick = 1; // Default to 1 if not found
     }
     if( hdf5_read_int(RFPATHSTIX "include_phase_factor", &stix_data->include_phase_factor,
                          f, qid, __FILE__, __LINE__) ){
-        print_err("RF2D_gc_stix_init: The include_phase_factor flag is missing in the HDF5 file: assuming it is 1.");
+        print_err("RF2D_gc_stix_init: The include_phase_factor flag is missing in the HDF5 file: assuming it is 1.\n");
         stix_data->include_phase_factor = 1; // Default to 1 if not found
     }
     
@@ -147,7 +148,7 @@ a5err RF2D_gc_stix_init_from_file(RF2D_gc_stix* stix_data, hid_t f, char* qid,
             }
     }
     if(err) {
-        print_err("RF2D_gc_stix_init: Error reading fields from HDF5 file.");
+        print_err("RF2D_gc_stix_init: Error reading fields from HDF5 file.\n");
         for(int i = 0; i < 7; i++) {
             if(fields[i] != NULL) free(fields[i]);
         }
@@ -179,7 +180,7 @@ a5err RF2D_gc_stix_init_from_file(RF2D_gc_stix* stix_data, hid_t f, char* qid,
         if(fields[i] != NULL) free(fields[i]);
     }
     if(err) {
-        print_err("RF2D_gc_stix_init: Error initializing Stix data from fields.");
+        print_err("RF2D_gc_stix_init: Error initializing Stix data from fields.\n");
         return err;
     }
 
@@ -233,19 +234,19 @@ a5err RF2D_gc_stix_init(RF2D_gc_stix* stix_data,
     
     // Allocating memory for the Stix data structure.
     if (stix_data == NULL) {
-        print_err("RF2D_gc_stix_init_from_data: stix_data pointer is NULL.");
+        print_err("RF2D_gc_stix_init_from_data: stix_data pointer is NULL.\n");
         err = 1;
         return err;
     }
     if(!Eplus_re || !Eplus_im || !Eminus_re || !Eminus_im ||
        !kperp || !costerm || !sinterm) {
-        print_err("RF2D_gc_stix_init_from_data: One or more field pointers are NULL.");
+        print_err("RF2D_gc_stix_init_from_data: One or more field pointers are NULL.\n");
         err = 1;
         return err;
     }
 
     if(nr <= 0 || nz <= 0 || nwaves <= 0) {
-        print_err("RF2D_gc_stix_init_from_data: nr, nz, and nwaves must be positive.");
+        print_err("RF2D_gc_stix_init_from_data: nr, nz, and nwaves must be positive.\n");
         return err;
     }
 
@@ -268,7 +269,7 @@ a5err RF2D_gc_stix_init(RF2D_gc_stix* stix_data,
     real* Ecross2 = (real*) malloc(nsize * sizeof(real));
 
     if(!Eplus2 || !Eminus2 || !Ecross2) {
-        print_err("RF2D_gc_stix_init_from_data: Memory allocation failed.");
+        print_err("RF2D_gc_stix_init_from_data: Memory allocation failed.\n");
         return err;
     }
 
@@ -288,10 +289,10 @@ a5err RF2D_gc_stix_init(RF2D_gc_stix* stix_data,
             sin2term = 2.0 * costerm[i] * sinterm[i];
             cos2term = 2.0 * costerm[i] * costerm[i] - 1.0;
         }
-        Ecross2[i] = 2.0 * cos2term * ( Eplus_re[i] * Eminus_re[i]   + \
-                                        Eplus_im[i] * Eminus_im[i] )   \
-                    - 2.0 * sin2term * ( Eplus_re[i] * Eminus_im[i]  - \
-                                         Eplus_im[i] * Eminus_re[i] );
+        Ecross2[i] = + 4.0 * cos2term * ( Eplus_re[i] * Eminus_re[i]   + \
+                                          Eplus_im[i] * Eminus_im[i] )   \
+                     - 4.0 * sin2term * ( Eplus_re[i] * Eminus_im[i]  - \
+                                          Eplus_im[i] * Eminus_re[i] );
 
     }
     // Set the enabled flag to 1.
@@ -319,8 +320,21 @@ a5err RF2D_gc_stix_init(RF2D_gc_stix* stix_data,
     free(Eplus2);
     free(Eminus2);
     free(Ecross2);
-    free(kperp);
 
+    print_out(VERBOSE_IO, "RF2D_gc_stix_init: Stix data initialized with %d waves.\n", nwaves);
+    if(err) {
+        print_err("RF2D_gc_stix_init: Error initializing interpolation objects.\n");
+        return err;
+    }
+    print_out(VERBOSE_IO, "RF2D_gc_stix_init: Stix data initialized successfully.\n");
+    print_out(VERBOSE_IO, "  Radial grid: %d points from %f to %f\n", nr, rmin, rmax);
+    print_out(VERBOSE_IO, "  Vertical grid: %d points from %f to %f\n", nz, zmin, zmax);
+    print_out(VERBOSE_IO, "  Number of waves: %d\n", nwaves);
+    print_out(VERBOSE_IO, "  Include Eminus: %d\n", include_Eminus);
+    print_out(VERBOSE_IO, "  Include stochastic diffusion: %d\n", include_stochastic);
+    print_out(VERBOSE_IO, "  Include vpara kick: %d\n", include_vpara_kick);
+    print_out(VERBOSE_IO, "  Include phase factor: %d\n", include_phase_factor);
+    
     err = 0;
     return err;
 }
@@ -469,7 +483,7 @@ a5err RF2D_gc_stix_compute_cold_resonances(RF2D_gc_stix* stix_data,
     // Checking that we are dealing with a 2D magnetic field, as otherwise the resonances
     // would not be only function of the major radius coordinate.
     if(bdata->type != B_field_type_2DS) {
-        print_out(VERBOSE_NORMAL, "RF2D_gc_stix_compute_cold_resonances: B_field_data must be of type B_field_type_2DS.");
+        print_err("RF2D_gc_stix_compute_cold_resonances: B_field_data must be of type B_field_type_2DS.");
         // Creating dummy data.
         for(int i = 0; i < stix_data->nwaves; i++) {
             stix_data->R_resonances[i] = (real*) malloc(n_max_res * sizeof(real));
@@ -495,12 +509,11 @@ a5err RF2D_gc_stix_compute_cold_resonances(RF2D_gc_stix* stix_data,
         print_err("RF2D_gc_stix_compute_cold_resonances: Memory allocation failed for Rgrid or Bnorm.");
         return 1;
     }
-    #pragma omp parallel for simd
     for(int i = 0; i < 1024; i++) {
         Rgrid[i] = stix_data->rmin + i * (stix_data->rmax - stix_data->rmin) / 1023.0;
 
         // Evaluating the local magnetic field strength at the point.
-        B_field_eval_B(&Btmp[0], Rgrid[0], 0.0, zaxis, 0.0, bdata);
+        B_field_eval_B(&Btmp[0], Rgrid[i], 0.0, zaxis, 0.0, bdata);
 
         Bnorm[i] = sqrt(Btmp[0] * Btmp[0] + Btmp[1] * Btmp[1] + Btmp[2] * Btmp[2]);
     }
@@ -525,10 +538,9 @@ a5err RF2D_gc_stix_compute_cold_resonances(RF2D_gc_stix* stix_data,
             for(int j = 1; j < 1024; j++) {
                 prev = next;
                 next = stix_data->omega[iwave] - l_res * qm * Bnorm[j];
-
                 if(prev*next < 0.0){
                     // We have a root between j-1 and j.
-                    real Rres = Rgrid[j-1] + (Rgrid[j] - Rgrid[j-1]) * fabs(prev) / (fabs(prev) + fabs(next));
+                    real Rres = Rgrid[j-1] - fabs(prev) * (Rgrid[j] - Rgrid[j-1])  / (fabs(next) - fabs(prev));
                     Rres_tmp[i] = Rres;
                     res_indx[i] = l_res; // Store the index of the root
                     nres++;
@@ -557,7 +569,17 @@ a5err RF2D_gc_stix_compute_cold_resonances(RF2D_gc_stix* stix_data,
         memset(Rres_tmp, 0, n_max_res * sizeof(real));
         memset(res_indx, 0, n_max_res * sizeof(int));
     }
-    stix_data->n_max_res = maxreson;
+    stix_data->n_max_res = 0;
+
+    // Debugging the resonances found.
+    print_err("RF2D_gc_stix_compute_cold_resonances: Cold resonances found:\n");
+    for (int iwave=0; iwave < stix_data->nwaves; iwave++){
+        print_err("  Wave %d: found %d resonances:\n", iwave, stix_data->nres[iwave]);
+        for(int i = 0; i < stix_data->nres[iwave]; i++) {
+            print_err("    Resonance l=%d: R = %f\n", stix_data->res_nums[iwave][i], stix_data->R_resonances[iwave][i]);
+            stix_data->n_max_res = fmax(stix_data->n_max_res, stix_data->res_nums[iwave][i]);
+        }
+    }
 
     // Free the temporary arrays.
     free(Rgrid);
@@ -585,7 +607,7 @@ a5err RF2D_gc_stix_compute_cold_resonances(RF2D_gc_stix* stix_data,
  *         If the interaction time cannot be computed, it returns -1.
  */
 real RF2D_gc_stix_get_interaction_time(RF2D_gc_stix* stix_data, 
-                                       RF_particle_history hist, 
+                                       RF_particle_history* hist, 
                                        int iwave, int l){
     real time = -1.0; // Default value indicating no interaction time computed.
 
@@ -594,14 +616,14 @@ real RF2D_gc_stix_get_interaction_time(RF2D_gc_stix* stix_data,
     const int prev_prev = 2; // Previous-previous index
 
     // Time step calculations
-    real ddt = hist.dt[curr] + hist.dt[prev];
-    real ddt2 = hist.dt[curr]*hist.dt[curr] + hist.dt[prev]*hist.dt[prev];
-    real diff_dt = hist.dt[curr] - hist.dt[prev];
-    real kpara = stix_data->ntor[iwave] / hist.R[curr]; // Parallel wave vector
+    real ddt = hist->dt[curr] + hist->dt[prev];
+    real ddt2 = hist->dt[curr]*hist->dt[curr] + hist->dt[prev]*hist->dt[prev];
+    real diff_dt = hist->dt[curr] - hist->dt[prev];
+    real kpara = stix_data->ntor[iwave] / hist->R[curr]; // Parallel wave vector
 
-    real nu_curr = kpara * hist.rhopara[curr] * hist.bnorm[curr] + hist.qm * l * hist.bnorm[curr];
-    real nu_prev = kpara * hist.rhopara[prev] * hist.bnorm[prev] + hist.qm * l * hist.bnorm[prev];
-    real nu_prev_prev = kpara * hist.rhopara[prev_prev] * hist.bnorm[prev_prev] + hist.qm * l * hist.bnorm[prev_prev];
+    real nu_curr = kpara * hist->rhopara[curr] * hist->bnorm[curr] + hist->qm * l * hist->bnorm[curr];
+    real nu_prev = kpara * hist->rhopara[prev] * hist->bnorm[prev] + hist->qm * l * hist->bnorm[prev];
+    real nu_prev_prev = kpara * hist->rhopara[prev_prev] * hist->bnorm[prev_prev] + hist->qm * l * hist->bnorm[prev_prev];
 
     // Resonance condition derivatives: one sided derivatives.
     real nudot = ( nu_curr - nu_prev_prev ) / ddt;
@@ -611,7 +633,7 @@ real RF2D_gc_stix_get_interaction_time(RF2D_gc_stix* stix_data,
     );
 
     // Squared interaction time
-    if (fabs(nudot) > (0.5 * fabs(nudot2) * hist.dt[curr])) {
+    if (fabs(nudot) > (0.5 * fabs(nudot2) * hist->dt[curr])) {
         time = M_PI / fabs(nudot);
     } else {
         // Airy function argument
@@ -679,15 +701,16 @@ void RF2D_gc_stix_scatter(RF2D_gc_stix* stix, RF_particle_history* hist,
                           particle_simd_gc* p, real* h, real* rnd){
     // Apply the Stix scattering operator to the particle and update its internal state.
     if (stix == NULL || hist == NULL || p == NULL) {
-        print_err("RF2D_gc_stix_scatter: One or more input pointers are NULL.");
+        print_err("RF2D_gc_stix_scatter: One or more input pointers are NULL.\n");
         return;
     }
 
     if (!stix->enabled) return; // Stix operator is not enabled.
 
     // Updating the internal status of the particles.
-    #pragma omp for
+    #pragma omp simd
     for(int imrk=0; imrk < NSIMD; imrk++) {
+        if(p->running[imrk] == 0) continue; // Particle is not running, skip.
         int imrk_rnd_idx = 2 * stix->n_max_res * stix->nwaves * imrk;
         RF_particle_history_update(&hist[imrk], p, imrk, h[imrk]);
 
@@ -695,8 +718,9 @@ void RF2D_gc_stix_scatter(RF2D_gc_stix* stix, RF_particle_history* hist,
         for(int iwave=0; iwave < stix->nwaves; iwave++) {
             // Evaluating the number of kicks.
             int nkicks, lres;
-            RF_particle_eval_nkicks(hist, p, imrk, iwave, &nkicks, &lres);
-            if(nkicks <= 0) continue; // No kicks, go to the next wave.
+            RF_particle_eval_nkicks(&hist[imrk], p, imrk, iwave, &nkicks, &lres);
+
+            if(nkicks <= 0 || lres == -1) continue; // No kicks, go to the next wave.
 
             // We have a resonance crossing. Let's evaluate the fields.
             real Eplus_2 = 0.0;
@@ -705,11 +729,11 @@ void RF2D_gc_stix_scatter(RF2D_gc_stix* stix, RF_particle_history* hist,
             real kperp = 0.0;
 
             // Getting the resonance time.
-            real t_inter = RF2D_gc_stix_get_interaction_time(stix, hist[imrk], iwave, lres);
+            real t_inter = RF2D_gc_stix_get_interaction_time(stix, &hist[imrk], iwave, lres);
             if(t_inter < 0.0) continue; // No interaction time, go to the next wave.
 
             RF2D_gc_stix_eval_fields(p->r[imrk], p->phi[imrk], p->z[imrk], p->time[imrk],
-                                      stix, &Eplus_2, &Eminus_2, &E2cross, &kperp);
+                                     stix, &Eplus_2, &Eminus_2, &E2cross, &kperp);
 
             // Evaluating so prefactors.
             for(int ikick = 0; ikick < nkicks; ikick++){
@@ -723,7 +747,7 @@ void RF2D_gc_stix_scatter(RF2D_gc_stix* stix, RF_particle_history* hist,
                 Jp1 = gsl_sf_bessel_Jn(lres + 1, arg);
 
                 // We evaluate the value of the derivatives using the recurrence relations.
-                real dbessel_l_m1 = 0.5*(lres - 1) * Jm1 - 0.5*arg*Jl;
+                real dbessel_l_m1 = 0.5 * (lres - 1) * Jm1 - 0.5*arg*Jl;
                 real dbessel_l_p1 = 0.5 * arg * Jl - 0.5*(lres + 1) * Jp1;
 
                 real term1 = Eplus_2 * Jm1 * Jm1 + \
@@ -732,26 +756,72 @@ void RF2D_gc_stix_scatter(RF2D_gc_stix* stix, RF_particle_history* hist,
                 real term2 = 2 * Eplus_2 * Jm1 * dbessel_l_m1 + \
                              2 * Eminus_2 * Jp1 * dbessel_l_p1 + \
                              E2cross * (Jm1 * dbessel_l_p1 + Jp1 * dbessel_l_m1);
-
-                real scaling_para = lres * hist[imrk].qm * hist[imrk].bnorm[0] / stix->omega[iwave] * p->charge[imrk];
+                
+                real omega_cycl = hist[imrk].qm * hist[imrk].bnorm[0];
+                real scaling_para = lres * omega_cycl / stix->omega[iwave] * p->charge[imrk];
                 real scaling2 = scaling_para * scaling_para;
 
                 // Kick in the magnetic moment.
                 real dmu = scaling2 * (term1 + term2) * t_inter / (4.0 * hist[imrk].bnorm[0] * p->mass[imrk]);
                 real kpara = stix->ntor[iwave] / hist[imrk].R[0];
-                real omega_cycl = hist[imrk].qm * hist[imrk].bnorm[0];
                 real drhopara = kpara / (lres * omega_cycl) * dmu;
 
                 // Computing the stochastic contribution.
                 real irnd = cos(lres * rnd[imrk_rnd_idx] * 2.0 * M_PI);
-                real dmu_stoch = sqrt(abs(2 * p->mu[imrk] * term1 / (term1 + term2) * dmu)) * irnd;
+
+                // The following part is prone to underflow since the mu values are always
+                // scaled by the mass of the particle. We temporarily remove the mass.
+                dmu /= p->charge[imrk];
+                real tmp_mu = p->mu[imrk] / p->charge[imrk];
+                real dmu_stoch = sqrt(abs(2 * tmp_mu * term1 / (term1 + term2) * dmu)) * irnd;
                 imrk_rnd_idx++; // For next fetch.
                 real drhopara_stoch = kpara / (lres * omega_cycl) * dmu_stoch;
+                // We recover the original scaling.
+                dmu *= p->charge[imrk];
+                dmu_stoch *= p->charge[imrk];
+                // drhopara *= p->charge[imrk];
+                drhopara_stoch *= p->charge[imrk];
 
                 // Updating the values of the parallel momentum and the magnetic moment.
-                p->mu[imrk] += dmu + dmu_stoch;
+                p->mu[imrk] +=  dmu_stoch + dmu;
                 p->ppar[imrk] += (drhopara + drhopara_stoch) * hist[imrk].bnorm[0];
             }
         }
     }
+}
+
+/**
+ * @brief From the particle queue, it gets the value of the charge
+ * over mass ratio, that it will be used to compute the cold resonances.
+ * 
+ * This function will check whether all particles in the queue have the same
+ * charge-over-mass ratio only for valid particles.
+ * 
+ * @param pq Particle queue to check.
+ * @return real Value of the charge-over-mass ratio, or -1 if there's an error.
+ */
+real guess_qm(particle_queue* pq){
+    if (pq == NULL) {
+        print_err("guess_qm: pq pointer is NULL.\n");
+        return -1.0;
+    }
+    real qm = -1.0;
+    for(int i = 0; i < pq->n; i++) {
+        if(pq->p[i]->mass <= 0.0) continue; // Invalid particle, skip.
+        if(pq->p[i]->charge == 0.0) continue; // Neutral particle, skip.
+        real qm_i = fabs(pq->p[i]->charge / pq->p[i]->mass);
+
+        if(qm < 0.0) {
+            qm = qm_i; // First valid particle, set qm.
+            continue;
+        }
+        if(fabs(qm - qm_i) > 1e-3 * qm){
+            print_err("guess_qm: Particles in the queue have different charge-over-mass ratios: %e vs %e.\n", qm, qm_i);
+            return -1.0;
+        }
+        // They are the same, continue.
+        qm = qm_i;
+        
+    }
+    return qm;
 }
