@@ -81,6 +81,7 @@ class Opt(DataGroup):
         self._OPT_ENABLE_DIST_6D             = 0
         self._OPT_ENABLE_DIST_RHO5D          = 0
         self._OPT_ENABLE_DIST_RHO6D          = 0
+        self._OPT_ENABLE_RF                  = 0
         self._OPT_DIST_MIN_R                 = 0.1
         self._OPT_DIST_MAX_R                 = 10.0
         self._OPT_DIST_NBIN_R                = 1
@@ -350,6 +351,12 @@ class Opt(DataGroup):
         """Trace markers in an electromagnetic field
         """
         return self._OPT_ENABLE_ORBIT_FOLLOWING
+    
+    @property
+    def _ENABLE_RF(self):
+        """Include RF effects in orbit-following
+        """
+        return self._OPT_ENABLE_RF
 
     @property
     def _ENABLE_COULOMB_COLLISIONS(self):

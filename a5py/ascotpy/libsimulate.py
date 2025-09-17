@@ -64,6 +64,7 @@ class LibSimulate():
         self._sim.enable_clmbcol      = int(opt["ENABLE_COULOMB_COLLISIONS"])
         self._sim.enable_mhd          = int(opt["ENABLE_MHD"])
         self._sim.enable_atomic       = int(opt["ENABLE_ATOMIC"])
+        self._sim.enable_rf           = int(opt["ENABLE_RF"])
         self._sim.disable_gctransform = int(opt["DISABLE_FIRSTORDER_GCTRANS"])
         self._sim.disable_energyccoll = int(opt["DISABLE_ENERGY_CCOLL"])
         self._sim.disable_pitchccoll  = int(opt["DISABLE_PITCH_CCOLL"])
@@ -181,7 +182,7 @@ class LibSimulate():
 
     def simulation_initinputs(self, bfield=True, efield=True, plasma=True,
                               neutral=True, wall=True, boozer=True, mhd=True,
-                              asigma=True, switch=True, rffield=True):
+                              asigma=True, switch=True, RF=True):
         """Prepare input fields for the interactive simulation.
 
         Initializes simulation inputs. The inputs used in the simulation are
@@ -197,7 +198,7 @@ class LibSimulate():
         self.input_init(
             bfield=bfield, efield=efield, plasma=plasma, neutral=neutral,
             wall=wall, boozer=boozer, mhd=mhd, asigma=asigma, switch=switch,
-            rffield=rffield)
+            RF=RF)
 
     def simulation_initbbnbi(
             self,
