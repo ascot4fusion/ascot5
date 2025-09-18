@@ -88,10 +88,6 @@ def check_options_consistent(ascotpy):
     if opt["ENABLE_DIST_RHO6D"] == 1 and rtp * p3d * 8 > high_memory_consumption:
         msg += ["Warning: rho6D distribution memory consumption high (~" +
                 str(int(rtp * p3d * 8 / 1e9)) + "Gb)"]
-        
-    # Checking if there is a RF fields and the simulation is not in Full-orbit mode.
-    if opt["SIM_MODE"] not in [2,3] and hasattr(ascotpy.hdf5, "rffield"):
-        msg += ["Error: RF fields are only supported in Full-orbit mode"]
 
     return msg
 

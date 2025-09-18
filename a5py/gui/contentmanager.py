@@ -48,7 +48,7 @@ class ContentManager(NestedNotebook):
                     pass
                 init = {"wall" : False}
                 for inp in ["bfield", "efield", "plasma", "neutral", "boozer",
-                            "mhd", "asigma", "rffield"]:
+                            "mhd", "asigma", "RF"]:
                     init[inp] = inp in self.gui.ascot.data
                 #msg = self.gui.pleasehold("Ascotpy is being initialized..."
                 self.gui.ascot.input_init(**init, switch=True)
@@ -58,11 +58,11 @@ class ContentManager(NestedNotebook):
                 except AscotInitException:
                     pass
                 
-                rffield = 'rffield' in self.gui.ascot.data
+                RF = 'RF' in self.gui.ascot.data
                 self.gui.ascot.input_init(
                     run=True, bfield=True, efield=True, plasma=True,
                     neutral=True, boozer=True, mhd=True, switch=True,
-                    rffield=rffield)
+                    RF=RF)
             elif tab == "Run":
                 self.gui.ascot.input_free()
                 self.gui.ascot.simulation_initinputs()
