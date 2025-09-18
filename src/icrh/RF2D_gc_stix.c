@@ -531,7 +531,6 @@ a5err RF2D_gc_stix_compute_cold_resonances(RF2D_gc_stix* stix_data,
             real prev = stix_data->omega[iwave] - l_res * qm * Bnorm[0];
             real next = stix_data->omega[iwave] - l_res * qm * Bnorm[0];
 
-
             // We loop through the radial coordinate to find the point where there is a
             // change of sign in the resonance condition -> Resonance found. Then
             // we perform linear interpolation to find the exact resonance location.
@@ -572,11 +571,11 @@ a5err RF2D_gc_stix_compute_cold_resonances(RF2D_gc_stix* stix_data,
     stix_data->n_max_res = 0;
 
     // Debugging the resonances found.
-    print_err("RF2D_gc_stix_compute_cold_resonances: Cold resonances found:\n");
+    print_out(VERBOSE_IO, "RF2D_gc_stix_compute_cold_resonances: Cold resonances found:\n");
     for (int iwave=0; iwave < stix_data->nwaves; iwave++){
-        print_err("  Wave %d: found %d resonances:\n", iwave, stix_data->nres[iwave]);
+        print_out(VERBOSE_IO, " > Wave %d: found %d resonances:\n", iwave, stix_data->nres[iwave]);
         for(int i = 0; i < stix_data->nres[iwave]; i++) {
-            print_err("    Resonance l=%d: R = %f\n", stix_data->res_nums[iwave][i], stix_data->R_resonances[iwave][i]);
+            print_out(VERBOSE_IO, "   >> Resonance l=%d: R = %f\n", stix_data->res_nums[iwave][i], stix_data->R_resonances[iwave][i]);
             stix_data->n_max_res = fmax(stix_data->n_max_res, stix_data->res_nums[iwave][i]);
         }
     }
