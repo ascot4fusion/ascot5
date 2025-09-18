@@ -222,9 +222,24 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
         case EF_ASIGMA_LOC:
             sprintf(file, "asigma_loc.c");
             break;
+
+        case EF_RF_FO2D:
+            sprintf(file, "RF_full_orbit_2d.c");
+            break;
+
+        case EF_RF_FO3D:
+            sprintf(file, "RF_full_orbit_3d.c");
+            break;
+
+        case EF_RF_GC2D:
+            sprintf(file, "RF2D_gc_stix.c");
+            break;
         
-        case EF_RF_FIELDS_FO:
-            sprintf(file, "rf_fields_fo.c");
+        case EF_RF_LIBRARY:
+            sprintf(file, "RFlib.c");
+            break;
+        case EF_RF_HISTGC:
+            sprintf(file, "RF_stix_particle_history.c");
             break;
 
         default:

@@ -236,7 +236,8 @@ a5err RF3D_field_eval(real E[3], real B[3], real r, real phi,\
     if(interperr){
         E[0] = 0.0; E[1] = 0.0; E[2] = 0.0;
         B[0] = 0.0; B[1] = 0.0; B[2] = 0.0;
-        return 0;
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_RF_FO3D );
+        return err;
     }
 
     // Computing the actual electric and magnetic waves.

@@ -51,7 +51,11 @@ typedef enum error_file {
     EF_ASIGMA            =  26, /**< Error is from asigma.c                   */
     EF_ASIGMA_LOC        =  27, /**< Error is from asigma_loc.c               */
     EF_SUZUKI            =  28, /**< Error is from suzuki.c                   */
-    EF_RF_FIELDS_FO      =  29, /**< Error is from rf_fields_fo.c             */
+    EF_RF_FO2D           =  29, /**< Error is from RF_full_orbit_2d.c         */
+    EF_RF_FO3D           =  30, /**< Error is from RF_full_orbit_3d.c         */
+    EF_RF_GC2D           =  31, /**< Error is from RF2D_gc_stix.c             */
+    EF_RF_LIBRARY        =  32, /**< Error is from RFlib.c                    */
+    EF_RF_HISTGC         =  33  /**< Error is from RF_stix_particle_history.c */   
 }error_file;
 
 /**
