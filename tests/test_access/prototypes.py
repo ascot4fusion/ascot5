@@ -3,11 +3,11 @@ import ctypes
 import unyt
 import numpy as np
 
-from a5py.exceptions import AscotIOException
 
-from a5py.data.access import Leaf, InputLeaf, Tree, OutputLeaf
-from a5py.data.access.dataholder import DataStruct, Status
-from a5py.data.access import variants
+from a5py.data.access import (
+    Leaf, InputVariant, Tree, OutputVariant, Status, DataStruct
+    )
+from a5py.data.access import _variants
 
 input_prototype = "inputprototype"
 
@@ -47,7 +47,7 @@ class StructDiag(DataStruct):
 
 
 @Leaf.register(input_prototype)
-class InputPrototype(InputLeaf):
+class InputPrototype(InputVariant):
     """A prototype class for testing purposes."""
 
     @property
@@ -66,8 +66,7 @@ class InputPrototype(InputLeaf):
         elif self.status & Status.STAGED:
             return self._cdata.readonly_carray("bval", (self.npoint,), "T")
 
-    def save(self):
-        super().save()
+    def _save_data(self):
         self._file.write("bval", self.bval)
 
     def export(self):
@@ -99,9 +98,9 @@ class PrototypeMixin():
     def create_inputprototype(self, bval, note=None, activate=False, dryrun=False, save=True) -> InputPrototype:
         """Creates a point cloud instance.
         """
-        parameters = variants.parse_parameters(bval)
+        parameters = _variants.parse_parameters(bval)
         n = 3 if parameters["bval"] is None else parameters["bval"].size
-        variants.validate_required_parameters(
+        _variants.validate_required_parameters(
             parameters, names=["bval",], units=["T",], shape=[(n,),], dtype="f8",
             default=[np.array([0., 1., 2.]),],
         )
@@ -109,21 +108,20 @@ class PrototypeMixin():
         #    parameters,
         #    ["psival"], ["Wb/m"], [()], "f8", [parameters["rhoval"]],
         #)
-        meta = variants.new_metadata(input_prototype, note=note)
-        leaf = InputPrototype(*meta)
+        leaf = InputPrototype(note=note)
         leaf._stage(bval=parameters["bval"])
-        self._treemanager.enter_input(
-            leaf, activate=activate, dryrun=dryrun, save=save, category="group",
+        self._treemanager.enter_leaf(
+            leaf, activate=activate, save=save, category="group",
             )
         return leaf
 
 
 @Leaf.register(output_prototype)
-class OutputPrototype(OutputLeaf):
+class OutputPrototype(OutputVariant):
     """A prototype class for testing purposes."""
 
-    def __init__(self, qid, date, note, variant, inputs):
-        super().__init__(qid=qid, date=date, note=note, variant=variant, inputs=inputs)
+    def __init__(self, date=None, note=None, inputs=None):
+        super().__init__(date=date, note=note, inputs=inputs)
 
     def _setup(self, params):
         if params["diag1"]:
@@ -133,7 +131,7 @@ class OutputPrototype(OutputLeaf):
 
     def _load(self, file):
         super()._load(file)
-        for name in self._file.get_children():
+        for name in self._file.children:
             if name == "diag1":
                 self._diagnostics[name] = DiagnosticPrototype()
 
@@ -144,13 +142,13 @@ class OutputPrototype(OutputLeaf):
         """
         if self._file is None:
             return self._diagnostics["diag1"].get()
-        return self._diagnostics["diag1"].get(self._file.get_minimanager("diag1"))
+        return self._diagnostics["diag1"].get(self._file.access_data("diag1"))
 
     def save(self):
         super().save()
         for name, diag in self._diagnostics.items():
             if name == "diag1":
-                file = self._file.get_minimanager("diag1")
+                file = self._file.access_data("diag1")
                 diag.save(file)
 
 

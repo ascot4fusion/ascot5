@@ -1,12 +1,24 @@
 """Contains definitions of this package's exceptions.
 """
 
-class AscotIOException(Exception):
-    """Raised when there is an internal error in `Ascot5IO`.
+class AscotMeltdownError(RuntimeError):
+    """Indicates an internal bug in Ascot itself."""
+    def __init__(self, message: str):
+        super().__init__(
+            f"{message}\n\n"
+            "This appears to be an internal bug in Ascot. "
+            "Please report it at https://github.com/ascot4fusion/ascot5/issues"
+        )
 
-    This exception should be raised in cases where the issue is most certainly
-    a bug in code or inconsistent HDF5 file.
+class AscotDataException(Exception):
+    """Invalid operation related to data.
+
+    This exception should be raised when user tries to do something with data
+    that is not valid or if the required data is not available.
     """
+    pass
+
+class AscotIOException(Exception):
     pass
 
 class AscotNoDataException(Exception):

@@ -7,7 +7,7 @@ import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from .access import variants, InputVariant, Format, TreeCreateClassMixin
+from .access import _variants, InputVariant, Format, TreeCreateClassMixin
 from .cstructs import interp1D_data, interp2D_data, interp3D_data
 from .. import utils
 from ..libascot import LIBASCOT

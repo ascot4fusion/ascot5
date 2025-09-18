@@ -7,7 +7,7 @@ from typing import Tuple, Optional
 import unyt
 import numpy as np
 
-from ..access import variants, InputVariant, Format, TreeCreateClassMixin
+from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
 from ... import utils, physlib
 from ...exceptions import AscotIOException
 
@@ -141,12 +141,12 @@ class CreateGuidingcenterMixin(TreeCreateClassMixin):
             physlib.species2properties(parameters["species"])
         except KeyError as e:
             raise e from None
-        parameters = variants.parse_parameters(
+        parameters = _variants.parse_parameters(
             species, ids, charge, r, phi, z, ekin, pitch, gyroangle, weight,
             time,
         )
         n = 1 if parameters["ids"] is None else parameters["ids"].size
-        variants.validate_required_parameters(
+        _variants.validate_required_parameters(
             parameters,
             names=["ids", "charge", "r", "phi", "z", "ekin", "pitch",
                    "gyroangle", "weight",],
@@ -155,7 +155,7 @@ class CreateGuidingcenterMixin(TreeCreateClassMixin):
             dtype=["i8", "i4", "f8", "f8", "f8", "f8", "f8", "f8", "f8",],
             default=[1, 1, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,],
         )
-        variants.validate_optional_parameters(
+        _variants.validate_optional_parameters(
             parameters,
             names=["time"],
             units=["s"],
@@ -163,7 +163,7 @@ class CreateGuidingcenterMixin(TreeCreateClassMixin):
             dtype="f8",
             default=[0.0,],
         )
-        meta = variants.new_metadata("GuidingCenterMarker", note=note)
+        meta = _variants.new_metadata("GuidingCenterMarker", note=note)
         obj = self._treemanager.enter_input(
             meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
             )

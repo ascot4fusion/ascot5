@@ -7,7 +7,7 @@ BUILDDIR  = $(BASEBUILDDIR)$(PROJECT)
 .PHONY: doc clean
 
 doc:
-	sphinx-build -b html $(SOURCEDIR) $(BUILDDIR)
+	sphinx-build --nitpicky -b html $(SOURCEDIR) $(BUILDDIR)
 
 clean:
 	rm -rf $(BUILDDIR)

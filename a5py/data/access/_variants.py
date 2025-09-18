@@ -10,9 +10,8 @@ from .. import cstructs
 from ... import utils
 from ... import physlib
 
-from . import leaf
-from .leaf import Leaf, MetaData
-from .nodes import OutputLeaf
+from . import leaves
+from .leaves import Leaf, OutputVariant
 from .dataholder import DataHolder
 
 NOTPARAMETERS = ["self", "note", "activate", "dryrun", "store_hdf5"]
@@ -20,7 +19,7 @@ NOTPARAMETERS = ["self", "note", "activate", "dryrun", "store_hdf5"]
 do not specify the actual data."""
 
 
-class RunVariant(OutputLeaf):
+class RunVariant(OutputVariant):
     """Base class for run variants."""
 
     def __init__(self, *args, **kwargs):
@@ -136,7 +135,7 @@ class InputVariant(Leaf, DataHolder):
 
 
 def new_metadata(variant, note):
-    qid, date, default_note = leaf.generate_metadata()
+    qid, date, default_note = leaves.generate_metadata()
     if note is None:
         note = default_note
     return MetaData(qid, date, note, variant)

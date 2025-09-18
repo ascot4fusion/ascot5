@@ -8,7 +8,7 @@ import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from ..access import variants, InputVariant, Format, TreeCreateClassMixin
+from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
 from ..cstructs import interp1D_data
 from ... import utils
 from ...libascot import LIBASCOT
@@ -194,13 +194,13 @@ class CreateEfieldRadialPotentialMixin(TreeCreateClassMixin):
             \mathbf{E} = \frac{\partial V}{\partial \rho}
                          \nabla \rho.
         """
-        parameters = variants.parse_parameters(
+        parameters = _variants.parse_parameters(
             rhogrid, dvdrho, reff,
         )
         default_rhogrid = np.linspace(0., 1., 3)
         nrho = (default_rhogrid.size if parameters["rhogrid"] is None
               else parameters["rhogrid"].size)
-        variants.validate_required_parameters(
+        _variants.validate_required_parameters(
             parameters,
             names=["rhogrid", "dvdrho", "reff",],
             units=["1", "V/m", "m",],
@@ -208,7 +208,7 @@ class CreateEfieldRadialPotentialMixin(TreeCreateClassMixin):
             dtype="f8",
             default=[np.array([0., 0.5, 1.]), np.zeros((3,)), 1.],
         )
-        meta = variants.new_metadata("EfieldRadialPotential", note=note)
+        meta = _variants.new_metadata("EfieldRadialPotential", note=note)
         obj = self._treemanager.enter_input(
             meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
             )

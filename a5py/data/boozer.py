@@ -8,7 +8,7 @@ import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from .access import variants, InputVariant, Format, TreeCreateClassMixin
+from .access import _variants, InputVariant, Format, TreeCreateClassMixin
 from .cstructs import interp2D_data
 from .. import utils
 from ..libascot import LIBASCOT
@@ -301,7 +301,7 @@ class CreateBoozerMixin(TreeCreateClassMixin):
             symbols refer to the geometrical poloidal and toroidal angle,
             respectively.
         """
-        parameters = variants.parse_parameters(
+        parameters = _variants.parse_parameters(
             psigrid, nthetag, nthetab, boozerpoloidal, boozertoroidal,
             separatrix,
         )
@@ -317,7 +317,7 @@ class CreateBoozerMixin(TreeCreateClassMixin):
                    else int(parameters["nthetag"]))
         nthetab = (12 if parameters["nthetab"] is None
                    else int(parameters["nthetab"]))
-        variants.validate_required_parameters(
+        _variants.validate_required_parameters(
             parameters,
             names=["psigrid", "boozerpoloidal", "boozertoroidal", "separatrix",
                    "nthetag", "nthetab",],
@@ -338,7 +338,7 @@ class CreateBoozerMixin(TreeCreateClassMixin):
              parameters["boozerpoloidal"]) )
         parameters["boozerpoloidal"] = parameters["boozerpoloidal"].T
 
-        meta = variants.new_metadata("BoozerMap", note=note)
+        meta = _variants.new_metadata("BoozerMap", note=note)
         obj = self._treemanager.enter_input(
             meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
             )

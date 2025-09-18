@@ -8,7 +8,7 @@ import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from ..access import variants, InputVariant, Format, TreeCreateClassMixin
+from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
 from ..cstructs import interp2D_data
 from ... import utils
 from ...libascot import LIBASCOT
@@ -324,7 +324,7 @@ class CreateMhdDynamicMixin(TreeCreateClassMixin):
         inputdata : ~a5py.data.mhd.MhdDynamic
             Freshly minted input data object.
         """
-        parameters = variants.parse_parameters(
+        parameters = _variants.parse_parameters(
             rhogrid, timegrid, toroidalnumber, poloidalnumber, magneticprofile,
             electricprofile, amplitude, frequency, phase,
         )
@@ -336,7 +336,7 @@ class CreateMhdDynamicMixin(TreeCreateClassMixin):
               else parameters["timegrid"].size)
         nmode = (2 if parameters["toroidalnumber"] is None
               else parameters["toroidalnumber"].size)
-        variants.validate_required_parameters(
+        _variants.validate_required_parameters(
             parameters,
             names=["rhogrid", "timegrid", "toroidalnumber", "poloidalnumber",
                    "magneticprofile", "electricprofile",],
@@ -348,7 +348,7 @@ class CreateMhdDynamicMixin(TreeCreateClassMixin):
                      np.array([3,3]), np.ones((nrho,ntime,nmode)),
                      np.ones((nrho,ntime,nmode)),],
         )
-        variants.validate_optional_parameters(
+        _variants.validate_optional_parameters(
             parameters,
             names=["amplitude", "frequency", "phase",],
             units=["1", "rad/s", "rad",],
@@ -356,7 +356,7 @@ class CreateMhdDynamicMixin(TreeCreateClassMixin):
             dtype=["f8", "f8", "f8",],
             default=[np.ones(nmode), np.zeros(nmode), np.zeros(nmode),],
         )
-        meta = variants.new_metadata("MhdDynamic", note=note)
+        meta = _variants.new_metadata("MhdDynamic", note=note)
         obj = self._treemanager.enter_input(
             meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
             )

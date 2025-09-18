@@ -170,3 +170,65 @@ def test_lazy_loading(monkeypatch):
     assert called["name"] == "arnoldsbigpackage" # After the first call
     opt.foo()
     assert counter["count"] == 1 # Imported only once
+
+
+@pytest.fixture()
+def node():
+    """Create an empty ImmutableNode."""
+    return utils.ImmutableStorage()
+
+
+def test_initialization(node):
+    """Test that the initialized node is unfrozen and empty."""
+    assert not node._frozen
+    assert not len(node._tags)
+    assert node._active is None
+
+
+def test_freeze_and_unfreeze(node):
+    """Test that the node is immutable when frozen and mutable when unfrozen."""
+    VALUE = object()
+    node._freeze()
+    assert node._frozen
+    with pytest.raises(AttributeError):
+        node.new_attr = VALUE
+    with pytest.raises(AttributeError):
+        node.new_attr
+
+    node._unfreeze()
+    assert not node._frozen
+    node.new_attr = VALUE
+    assert node.new_attr is VALUE
+
+
+def test_modify_attributes_context(node):
+    """Test that the node can can be modified inside modify_attributes context.
+    """
+    VALUE = object()
+    node._freeze()
+    with node._modify_attributes():
+        node.new_attr = VALUE
+    assert node.new_attr is VALUE
+
+
+def test_setgetitem(node):
+    """Test that the node attributes can be assigned and referenced both with
+    getattr and getitem methods, and set with either setattr or setitem
+    (unless the node is frozen in which case neither should work).
+    """
+    VALUE, ANOTHER_VALUE, YET_ANOTHER_VALUE = object(), object(), object()
+    node["attr"] = VALUE
+    assert node.attr is VALUE
+    assert node["attr"] is VALUE
+
+    node.attr = ANOTHER_VALUE
+    assert node.attr is ANOTHER_VALUE
+    assert node["attr"] is ANOTHER_VALUE
+
+    node._freeze()
+    with pytest.raises(AttributeError):
+        node.attr = YET_ANOTHER_VALUE
+    with pytest.raises(AttributeError):
+        node["attr"] = YET_ANOTHER_VALUE
+    assert node.attr is ANOTHER_VALUE
+    assert node["attr"] is ANOTHER_VALUE

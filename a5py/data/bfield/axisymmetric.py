@@ -8,7 +8,7 @@ import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from ..access import variants, InputVariant, Format, TreeCreateClassMixin
+from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
 from ..cstructs import interp2D_data
 from ... import utils
 from ...libascot import LIBASCOT
@@ -349,7 +349,7 @@ class CreateBfield2DMixin(TreeCreateClassMixin):
            Caution is advised as this invalidates the divergence-free
            quality of the field.
         """
-        parameters = variants.parse_parameters(
+        parameters = _variants.parse_parameters(
             rgrid, zgrid, axisrz, psilimits, psi, bphi, br, bz,
         )
         default_rgrid = np.linspace(1., 2., 45)
@@ -358,7 +358,7 @@ class CreateBfield2DMixin(TreeCreateClassMixin):
               else parameters["rgrid"].size)
         nz = (default_zgrid.size if parameters["zgrid"] is None
               else parameters["zgrid"].size)
-        variants.validate_required_parameters(
+        _variants.validate_required_parameters(
             parameters,
             names=["rgrid", "zgrid", "axisrz", "psilimits", "psi", "bphi"],
             units=["m", "m", "m", "Wb/m", "Wb/m", "T"],
@@ -369,7 +369,7 @@ class CreateBfield2DMixin(TreeCreateClassMixin):
                 np.zeros((nr, nz)), np.ones((nr, nz)),
                 ],
         )
-        variants.validate_optional_parameters(
+        _variants.validate_optional_parameters(
             parameters,
             ["br", "bz"], ("T", "T"), (nr, nz), "f8",
             [np.zeros((nr, nz)), np.zeros((nr, nz))],
@@ -377,7 +377,7 @@ class CreateBfield2DMixin(TreeCreateClassMixin):
         for abscissa in ["rgrid", "zgrid"]:
             utils.check_abscissa(parameters[abscissa], abscissa)
 
-        meta = variants.new_metadata("Bfield2D", note=note)
+        meta = _variants.new_metadata("Bfield2D", note=note)
         obj = self._treemanager.enter_input(
             meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
             )

@@ -6,6 +6,8 @@ interface to input data interpolation. While each input data itself has the
 tools to process it's own data, the logical place for processing data that
 requires multiple inputs is here.
 """
+import os
+
 from a5py.data import AscotData
 from a5py.engine.simulate import Simulate
 
@@ -37,10 +39,7 @@ class Ascot(Simulate):
         #self.biosaw: BioSaw = BioSaw(self)
         #self.afsi       = Afsi(self)
         #self.markergen  = MarkerGenerator(self)
-
-        if create:
-            if os.path.isfile(inputfile):
-                raise AscotIOException("Cannot create file: file exists.")
-            AscotData._create_file(inputfile)
-
-        self.data = AscotData(inputfile)
+        if inputfile is None:
+            self.data = AscotData()
+        else:
+            self.data = AscotData((inputfile, not create))

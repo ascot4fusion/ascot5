@@ -1,136 +1,33 @@
-"""Class defition for `ImmutableStorage`."""
+"""Contains classes that represent nodes of the tree data structure."""
 from __future__ import annotations
 
-import warnings
-from contextlib import contextmanager
-from typing import Any, Generator, List, Optional, Union, TYPE_CHECKING
+from typing import Generator, Optional, Union, Any
 
 from a5py import utils
-from a5py.exceptions import AscotIOException
+from a5py.exceptions import AscotDataException, AscotMeltdownError
 
-from .leaf import Leaf, Status
-from .hdf5 import HDF5MiniManager
-
-if TYPE_CHECKING:
-    from .tree import TreeManager
-
-class ImmutableStorage():
-    """Object which supports dictionary-like assignment and which can be made
-    immutable.
-
-    Attributes
-    ----------
-    frozen : bool
-        Indicates whether the node is frozen, preventing attribute modification.
-    """
-
-    def __init__(self, **kwargs: Any) -> None:
-        """Initialize an empty node which is unfrozen.
-
-        Parameters
-        ----------
-        **kwargs
-            Arguments passed to other constructors in case of multiple
-            inheritance.
-        """
-        self._frozen: bool = False
-        super().__init__(**kwargs)
-
-    def __repr__(self) -> str:
-        """Return a string representation of this object."""
-        return f"<{self.__class__.__name__}(frozen={self._frozen})>"
-
-    def __setitem__(self, key: str, value: Any) -> None:
-        """Add a new attribute this node in dictionary style.
-
-        Parameters
-        ----------
-        key : str
-            Name of the attribute.
-        value
-            Value of the attribute.
-
-        Raises
-        ------
-        AscotIOException
-            Raised if the node is frozen.
-        """
-        if self._frozen:
-            raise AscotIOException(
-                "The attributes of this class are immutable."
-                )
-        setattr(self, key, value)
-
-    def __setattr__(self, key: str, value: Any) -> None:
-        """Add a new attribute this node.
-
-        Parameters
-        ----------
-        key: str
-            Name of the attribute.
-        value:
-            Value of the attribute.
-
-        Raises
-        ------
-        AscotIOException
-            Raised if the node is frozen.
-        """
-        if key != "_frozen" and self._frozen:
-            raise AscotIOException(
-                "The attributes of this class are immutable."
-                )
-        super().__setattr__(key, value)
-
-    def __getitem__(self, key: str) -> Any:
-        """Retrieve attribute in dictionary-like manner.
-
-        Parameters
-        ----------
-        key : str
-            Name of the attribute.
-
-        Returns
-        -------
-        value
-            Value of the attribute.
-        """
-        return getattr(self, key)
-
-    def _freeze(self) -> None:
-        """Make this node immutable."""
-        self._frozen = True
-
-    def _unfreeze(self) -> None:
-        """Make this node mutable."""
-        self._frozen = False
-
-    @contextmanager
-    def _modify_attributes(self) -> Generator[ImmutableStorage, None, None]:
-        """Open a context where attributes can be modified."""
-        self._unfreeze()
-        try:
-            yield self
-        finally:
-            self._freeze()
+from .leaves import Leaf
+from .tree import TreeManager, ROOT
 
 
-class ImmutableNode(ImmutableStorage):
+class ImmutableNode(utils.ImmutableStorage):
     """Tree node which can store other nodes or leaves, and whose attributes
     cannot be altered once frozen.
 
     This class provides the following main functionalities:
 
     1. Attributes can be accessed in a dictionary-like manner, e.g.,
-       `node.child` and `node["child"]` are equivalent.
+       ``node.child`` and ``node["child"]`` are equivalent.
     2. Freezing this instance prevents setting and removing any attributes.
-    3. Leaves can be accessed using their name, QID, or a tag constructed from
+    3. Leaves can be accessed using their name or a tag constructed from
        the user-given note.
-    4. One leaf is always set as 'active' and is accessed via the `active`
-       attribute.
-    5. Leaves can be iterated over and are organized by their date of creation.
-    6. Whether a leaf belongs to this node can be checked with `leaf in node`,
-       where `leaf` is a `Leaf`, `qid`, or `name`.
+    4. One leaf is always set as 'active' and is accessed via the ``active``
+       property.
+    5. Leaves within this node can be iterated and they are ordered by their
+       date of creation.
+    6. Whether a leaf belongs to this node can be checked with ``leaf in node``,
+       where ``leaf`` is :class:`.Leaf`, its name, or
+       its tag.
 
     The attributes can be modified using a context:
 
@@ -139,22 +36,11 @@ class ImmutableNode(ImmutableStorage):
        with node._modify_attributes():
            node.new_attribute = "new_value"
 
-    Attributes
-    ----------
-    _qids : list of str
-        QIDs of this node's leaves sorted by date starting from newest.
-    _tags : list of str
-        List of all tags that can be used to access the leaves in the same order
-        as QIDs.
-    _active : `Leaf`
-        The currently active leaf.
-    _treemanager : `TreeManager`
-        The manager of the tree this node belongs to.
+    Initially node is empty and mutable.
     """
 
-    def __init__(self, **kwargs) -> None:
-        """Initialize an empty unfrozen node.
-
+    def __init__(self, **kwargs: Any) -> None:
+        """
         Parameters
         ----------
         **kwargs
@@ -162,24 +48,42 @@ class ImmutableNode(ImmutableStorage):
             inheritance.
         """
         super().__init__(**kwargs)
-        self._treemanager: Optional[TreeManager] = None
-        self._qids: List = []
-        self._tags: List = []
+        self._names: list[str] = []
+        """Names of this node's leaves sorted by date starting from newest."""
+
+        self._tags: list[str] = []
+        """List of all tags that can be used to access the leaves.
+
+        Note that not every leaf has a tag.
+        """
+
         self._active: Optional[Leaf] = None
+        """The currently active leaf."""
+
+        self._treemanager: Optional[TreeManager] = None
+        """The manager of the tree this node belongs to.
+
+        Other than in testing environment, the nodes are always part of a tree.
+        """
 
     def __repr__(self) -> str:
         """Return a string representation of this object."""
         return (
-            f"<{self.__class__.__name__}(qids={self._qids}, tags={self._tags}, "
-            f"active={self._active!r}, frozen={self._frozen})>"
+            f"<{self.__class__.__name__}(names={self._names}, "
+            f"tags={self._tags}, active={self._active!r}, "
+            f"frozen={self._frozen})>"
             )
+
+    def __len__(self) -> int:
+        """Return the number of leaves in this node."""
+        return len(self._names)
 
     def __contains__(self, key: Union[str, Leaf]) -> bool:
         """Check whether this node contains the requested leaf.
 
         Parameters
         ----------
-        key : str or `Leaf`
+        key : str or :class:`.Leaf`
             The requested leaf or it's QID.
 
         Returns
@@ -188,32 +92,47 @@ class ImmutableNode(ImmutableStorage):
             True if this node contains the leaf.
         """
         if not isinstance(key, str):
-            key = key.qqid
-        return hasattr(self, key) or hasattr(self, f"q{key}")
+            key = key.name
+        return hasattr(self, key)
 
     def __iter__(self) -> Generator[Leaf, None, None]:
         """Iterate over this node's leafs."""
-        for qid in self._qids:
-            yield self[f"q{qid}"]
+        for name in self._names:
+            yield self[name]
 
-    def _activate_leaf(self, leaf) -> None:
+    @property
+    def active(self) -> Leaf:
+        """The active data.
+
+        Raises
+        ------
+        :class:`.AscotDataException`
+            If there's no active data.
+        """
+        if self._active is None:
+            raise AscotDataException(
+                "No active data. Perhaps this node is empty?"
+                )
+        return self._active
+
+    def _activate_leaf(self, leaf: Leaf) -> None:
         """Set given leaf as active.
 
         No reorganization required as only single reference is updated.
 
         Parameters
         ----------
-        leaf : `Leaf`
+        leaf : :class:`.Leaf`
             The leaf to be set as active.
 
         Raises
         ------
-        AscotIOException
+        :class:`.AscotMeltdownError`
             If the leaf does not belong to this node.
         """
         if leaf not in self:
-            raise AscotIOException(
-                f"Data with QID = {leaf.qid} does not belong to this node."
+            raise AscotMeltdownError(
+                f"Variant '{leaf.name}' does not belong to this node."
                 )
         with self._modify_attributes():
             self._active = leaf
@@ -226,23 +145,26 @@ class ImmutableNode(ImmutableStorage):
 
         Parameters
         ----------
-        leaf : `Leaf`
+        leaf : :class:`.Leaf`
             The leaf to be added.
 
         Raises
         ------
-        AscotIOException
-            If the leaf already belongs to this node.
+        :class:`.AscotMeltdownError`
+            If the leaf already belongs to this node or this node has another
+            leaf with the same name.
         """
         if leaf in self:
-            raise AscotIOException(
-                f"Data with QID = {leaf.qid} already belongs to this node."
+            raise AscotMeltdownError(
+                f"Variant '{leaf.name}' already belongs to this node."
                 )
-        self._qids.append(leaf.qid)
+        if leaf.name in self._names:
+            raise AscotMeltdownError(
+                f"This node already has a variant named '{leaf.name}'."
+                )
+        self._names.append(leaf.name)
         with self._modify_attributes():
-            reference_by_name, reference_by_qid = leaf.name, leaf.qqid
-            self[reference_by_qid] = leaf
-            self[reference_by_name] = leaf
+            self[leaf.name] = leaf
 
         self._organize()
 
@@ -254,18 +176,21 @@ class ImmutableNode(ImmutableStorage):
 
         Parameters
         ----------
-        leaf : `Leaf`
+        leaf : :class:`.Leaf`
             The leaf to be removed.
+
+        Raises
+        ------
+        :class:`.AscotMeltdownError`
+            If the leaf does not belong to this node.
         """
         if leaf not in self:
-            raise AscotIOException(
-                f"Data with QID = {leaf.qid} does not belong to this node."
+            raise AscotMeltdownError(
+                f"Variant '{leaf.name}' does not belong to this node."
                 )
-        self._qids.remove(leaf.qid)
+        self._names.remove(leaf.name)
         with self._modify_attributes():
-            reference_by_name, reference_by_qid = leaf.name, leaf.qqid
-            delattr(self, reference_by_qid)
-            delattr(self, reference_by_name)
+            delattr(self, leaf.name)
 
         self._organize()
 
@@ -281,47 +206,50 @@ class ImmutableNode(ImmutableStorage):
           their tags with running index, i.e. `new_tag = tag_<index>`, counting
           from zero for the leaf with the most recent date.
         """
-        def clear_references():
+        def clear_references() -> None:
             """Remove all references."""
             self._active = None
             for tag_to_be_removed in self._tags:
-                if not tag_to_be_removed is None:
+                if tag_to_be_removed is not None:
                     delattr(self, tag_to_be_removed)
             self._tags = []
 
-        def activate_if_first_leaf():
+        def activate_if_first_leaf() -> None:
             """Activate the leaf if it is the first one in this node or if the
-            previously active leaf was removed from this node."""
+            previously active leaf was removed from this node.
+            """
             try:
                 self.active
-            except AscotIOException:
-                self._active = self[f"q{self._qids[0]}"]
+            except AscotDataException:
+                self._active = self[self._names[0]]
             finally:
-                if not self.active in self:
-                    self._active = self[f"q{self._qids[0]}"]
+                if self.active not in self:
+                    self._active = self[self._names[0]]
 
-        def sort_qids_by_date():
+        def sort_names_by_date() -> None:
             """Sort the collected list of qids by date."""
             dates = [leaf.date for leaf in self]
-            self._qids = [
-                qid for _, qid in sorted(zip(dates, self._qids), reverse=True)
+            self._names = [
+                name for _, name in sorted(zip(dates, self._names), reverse=True)
                 ]
 
-        def update_references_by_tag():
+        def update_references_by_tag() -> None:
             """Add references by tag with unique tags and remove the old ones.
             """
             for tag_to_be_removed in self._tags:
-                if not tag_to_be_removed is None:
+                if tag_to_be_removed is not None:
                     delattr(self, tag_to_be_removed)
             self._tags = []
 
             dates = [leaf.date for leaf in self]
-            unsorted_qids = self._qids
-            unsorted_tags = [leaf._extract_tag() for leaf in self]
+            unsorted_names = self._names
+            unsorted_tags = [Leaf.extract_tag(leaf.note)[0] for leaf in self]
 
-            counts = {}
+            counts: dict[str, int] = {}
             dates.reverse()
-            for tag, _, qid in sorted(zip(unsorted_tags, dates, unsorted_qids)):
+            for tag, _, name in sorted(zip(unsorted_tags, dates, unsorted_names)):
+                if tag is None:
+                    continue
                 if tag in counts:
                     counts[tag] += 1
                     new_tag = f"{tag}_{counts[tag]}"
@@ -333,39 +261,24 @@ class ImmutableNode(ImmutableStorage):
                         new_tag = tag
 
                 self._tags.append(new_tag)
-                if not new_tag is None:
-                    self[new_tag] = self[f"q{qid}"]
+                if new_tag is not None:
+                    self[new_tag] = self[name]
 
         with self._modify_attributes():
-            isempty = len(self._qids) == 0
+            isempty = len(self._names) == 0
             if isempty:
                 clear_references()
             else:
                 activate_if_first_leaf()
-                sort_qids_by_date()
+                sort_names_by_date()
                 update_references_by_tag()
 
-    @property
-    def active(self) -> Leaf:
-        """The active data.
-
-        Raises
-        ------
-        AscotIOException
-            If there's no active data.
-        """
-        if self._active is None:
-            raise AscotIOException(
-                "No active data. Perhaps this node is empty?"
-                )
-        return self._active
-
-    def destroy(self, *, repack: bool=False, **kwargs) -> None:
+    def destroy(self, *, repack: bool=False, **kwargs: Any) -> None:
         """Remove all data belonging to this node permanently.
 
         Parameters
         ----------
-        repack : bool, optional
+        repack : bool, *optional*
             Repack the HDF5 file reducing the size of the file on disk.
 
             Repacking has some overhead but without it only the references to
@@ -373,10 +286,10 @@ class ImmutableNode(ImmutableStorage):
         """
         _ = kwargs # kwargs are required only for subclasses to have kw args
         if self._treemanager:
-            for qid in list(self._qids):
-                leaf = self[f"q{qid}"]
+            for name in list(self._names):
+                leaf = self[name]
                 # Repacking takes time so repack only at the last item
-                if len(self._qids) > 1:
+                if len(self._names) > 1:
                     self._treemanager.destroy_leaf(leaf, repack=False)
                 else:
                     self._treemanager.destroy_leaf(leaf, repack=repack)
@@ -385,14 +298,13 @@ class ImmutableNode(ImmutableStorage):
 class InputCategory(ImmutableNode):
     """Node that contains all inputs of the same category."""
 
-    def _get_decorated_contents(self):
+    def _get_decorated_contents(self) -> str:
         """Get a string representation of the contents decorated with ANSI
         escape sequences.
         """
         contents = ""
         for index, leaf in enumerate(self):
-            contents += utils.decorate(f"{leaf.variant.ljust(10)} {leaf.qid}",
-                                       bold=True)
+            contents += utils.decorate(f"{leaf.name.ljust(15)}", bold=True)
             contents += f" {leaf.date}"
             if self.active == leaf:
                 contents += utils.decorate(" [active]", color="green")
@@ -404,48 +316,21 @@ class InputCategory(ImmutableNode):
         return contents
 
     @property
-    def contents(self):
-        """A string representation of the contents.
-        """
+    def contents(self) -> str:
+        """A string representation of the contents."""
         return utils.undecorate(self._get_decorated_contents())
 
-    def show_contents(self):
+    def show_contents(self) -> None:
         """Show on screen the metadata of all inputs within this category and
         which input is active."""
         print(self._get_decorated_contents())
 
-    def ls(self, show: bool=False):
-        """Get a string representation of the contents.
-
-        Deprecated. Use `show_contents()` or `contents` instead.
-
-        Parameters
-        ----------
-        show : str, optional
-            If True, the contents are also printed on screen.
-
-        Returns
-        -------
-        contents : str
-            Multiline string decorated with ANSI escape sequences that list
-            this node's meta data, all output data within this node, and inputs
-            that were used.
-        """
-        warnings.warn(
-            "'ls' will be removed in a future release. Use 'show_contents' "
-            "instead.",
-            DeprecationWarning, stacklevel=2)
-        contents = self._get_decorated_contents()
-        if show:
-            print(contents)
-        return contents
-
-    def destroy(self, repack: bool=True, **kwargs) -> None:
+    def destroy(self, repack: bool=True, **kwargs: Any) -> None:
         """Remove all inputs and data within this category permanently.
 
         Parameters
         ----------
-        repack : bool, optional
+        repack : bool, *optional*
             Repack the HDF5 file reducing the size of the file on disk.
 
             Repacking has some overhead but without it only the references to
@@ -455,181 +340,148 @@ class InputCategory(ImmutableNode):
         super().destroy(repack=repack, **kwargs)
 
 
-@Leaf.register("output")
-class OutputLeaf(ImmutableStorage, Leaf):
-    """Leaf that contains data of a single simulation.
-
-    Instances of this class contain all the metadata associated with the
-    simulation. This class should be subclassed by various simulation variants
-    to provide access to associated post-processing methods.
-
-    References to the input datasets used in the simulation are stored by
-    category. For instance, `node.bfield` is the magnetic field dataset used in
-    the simulation. It should point to the same object which can be found within
-    the 'bfield' category in the tree.
-
-    If trying to access an input not used in the simulation, an exception is
-    raised.
-    """
+class Tree(ImmutableNode):
+    """The entry node for accessing simulation data."""
 
     def __init__(
-            self,
-            qid: str,
-            date: str,
-            note: str,
-            variant: str,
-            inputs: dict[str, Leaf],
-            **kwargs: Any,
+            self, input_categories: list[str],
+            hdf5file: Optional[tuple[str, bool]]=None
             ) -> None:
-        """Initialize simulation output node with given inputs.
+        """Initialize an empty tree structure.
 
         Parameters
         ----------
-        qid : str
-            Unique identifier for this data.
-        date : str
-            Date when this data was created.
-        note : str
-            Short note for the user to document this data.
-        variant : str
-            What data variant this instance represents.
-        inputs : dict [str, `Leaf`]
-            Inputs used in this simulation by category.
-        **kwargs
-            Arguments passed to other constructors in case of multiple
-            inheritance.
+        hdf5file : Tuple[str, bool], *optional*
+            Filename of the HDF5 file, if used, and flag indicating if the file
+            exists.
         """
-        super().__init__(
-            qid=qid, date=date, note=note, variant=variant, **kwargs
-            )
-        self._inputs = []
-        self._diagnostics = {}
-        for category, leaf in inputs.items():
-            self[category] = leaf
-            self._inputs.append(category)
+        super().__init__()
+        nodes = {ROOT:self}
+        self._input_categories = input_categories
+        for category in input_categories:
+            self[category] = InputCategory()
+            nodes[category] = self[category]
+            self[category]._freeze()
+
+        TreeManager(hdf5file=hdf5file, **nodes)
 
     def __repr__(self) -> str:
         """Return a string representation of this object."""
-        inputs = []
-        for category in self._inputs:
-            data = self[category]
-            inputs.append(f"({category}:{data.qid})")
         return (
-            f"<{self.__class__.__name__}("
-            f"qid={self.qid}, "
-            f"inputs={inputs}, "
-            f"saved={not self._file is None})>"
+            f"<{self.__class__.__name__}(names={self._names}, tags={self._tags}, "
+            f"active={self._active!r})>"
             )
-
-    def __getattribute__(self, key: str) -> Any:
-        """Return attribute unless it refers to an input not present in the
-        simulation.
-
-        Parameters
-        ----------
-        key : str
-            Name of the attribute or input category.
-
-        Returns
-        -------
-        value : Any
-            Value of the attribute.
-
-        Raises
-        ------
-        AscotIOException
-            If the queried input was not used in the simulation.
-        """
-        try:
-            value = super().__getattribute__(key)
-        except AttributeError:
-            value = None
-        if value is None and not key.startswith("_"):
-            raise AscotIOException(
-                f"Input '{key}' was not used in the simulation."
-                )
-        return value
-
-    def _setup(self, params):
-        """Create diagnostics and make them ready for simulation.
-
-        Subclasses should override this method.
-        """
-        _ = params
-        raise NotImplementedError(
-            f"{self.__class__.__name__} must implement '_setup'"
-        )
-
-    def _load(self, file):
-        """Setup diagnostics from file.
-
-        Subclasses should extend this method to create diagnostics based on the
-        data on file. This implementation checks that the diagnostics are not
-        already set and sets the filemanager.
-        """
-        if self.status is Status.SAVED:
-            raise AscotIOException("Cannot load twice.")
-        if len(self._diagnostics):
-            raise AscotIOException("Diagnostics setup already.")
-
-        self._file = file
-
-    def _get_decorated_contents(self) -> str:
-        """Get a string representation of the contents decorated with ANSI
-        escape sequences.
-        """
-        contents = ""
-        contents += utils.decorate(f"{self.variant.ljust(10)} {self.qid}",
-                                   bold=True)
-        contents += f" {self.date}"
-        contents += f"\n{self.note}\n"
-
-        contents += utils.decorate("\nInputs:\n", color="purple",
-                                   underline=True, bold=True)
-        for category in self._inputs:
-            leaf = self[category]
-
-            contents += utils.decorate(category.ljust(8), color="green")
-            contents += utils.decorate(f"{leaf.variant.ljust(10)} {leaf.qid}",
-                                       bold=True)
-            contents += f" {leaf.date}"
-            contents += f"\n{''.ljust(8)}{leaf.note}\n"
-
-        return contents
 
     @property
     def contents(self) -> str:
         """A string representation of the contents."""
         return utils.undecorate(self._get_decorated_contents())
 
-    def show_contents(self) -> None:
-        """Show on screen the metadata of this run among with all the inputs
-        that were used.
-        """
-        print(self._get_decorated_contents())
-
-    def ls(self, show: bool=False) -> str:
-        """Get a string representation of the contents.
-
-        Deprecated. Use `show_contents()` or `contents` instead.
+    def activate(self, data: Leaf | str) -> None:
+        """Mark data as active.
 
         Parameters
         ----------
-        show : str, optional
-            If True, the contents are also printed on screen.
-
-        Returns
-        -------
-        contents : str
-            Multiline string decorated with ANSI escape sequences that list
-            this node's meta data, all output data within this node, and inputs
-            that were used.
+        data : :class:`.Leaf` or str
+            Data to be activated (or it's QID or name).
         """
-        warnings.warn(
-            "'ls' will be removed in a future release. Use 'show_contents' "
-            "instead.",
-            DeprecationWarning, stacklevel=2)
-        contents = self._get_decorated_contents()
-        if show:
-            print(contents)
+        if self._treemanager:
+            if isinstance(data, str):
+                data = self._treemanager.get_leaf(data)
+            self._treemanager.activate_leaf(data)
+
+    def destroy(
+            self, *, repack: bool=True, data: Leaf | str=ROOT, **kwargs: Any,
+            ) -> None:
+        """Remove data permanently.
+
+        Parameters
+        ----------
+        repack : bool, *optional*
+            Repack the HDF5 file reducing the size of the file on disk.
+
+            Repacking has some overhead but without it only the references to
+            the data, not the data itself, are removed in the file.
+        data : :class:`.Leaf` or str or None
+            Data to be removed (or it's QID or name or entire category).
+
+            The default value removes all results.
+        """
+        if data == ROOT:
+            super().destroy(repack=repack, **kwargs)
+        elif isinstance(data, str) and data in self:
+            self[data].destroy(repack=repack)
+        else:
+            if self._treemanager:
+                if isinstance(data, str):
+                    data = self._treemanager.get_leaf(data)
+                else:
+                    data = self._treemanager.get_leaf(data.name)
+                self._treemanager.destroy_leaf(data, repack=repack)
+
+    def show_contents(self) -> None:
+        """Show on screen the metadata of the currently active inputs and list
+        of all simulation runs.
+        """
+        print(self._get_decorated_contents())
+
+    def _get_decorated_contents(self) -> str:
+        """Get a string representation of the contents decorated with ANSI
+        escape sequences.
+        """
+        def print_category(category: str) -> str:
+            return utils.decorate(f"{category.ljust(10)}", color="green")
+
+        def print_howmanyinputs(number_of_inputs: int) -> str:
+            if number_of_inputs > 1:
+                return f" + {number_of_inputs-1} other(s)"
+            if number_of_inputs == 1:
+                return " (no other inputs)"
+            return "*no inputs*\n\n"
+
+        def print_name(leaf: Leaf) -> str:
+            return (
+                utils.decorate(
+                    f"{leaf.name.ljust(15)}", bold=True,
+                )
+                + f" {leaf.date}"
+            )
+
+        def print_note(leaf: Leaf) -> str:
+            return f"\n{''.ljust(15)}\"{leaf.note}\"\n"
+
+        def print_title(title: str) -> str:
+            return utils.decorate(
+                title, color="purple", underline=True, bold=True,
+                )
+
+        contents = ""
+        contents += print_title("Inputs:")
+        contents += utils.decorate(" [only active shown]\n", color="green")
+        for category in self._input_categories:
+            contents += print_category(category)
+            leaf = None
+            try:
+                leaf = self[category].active
+            except AscotDataException:
+                pass
+
+            n_inp = len(self[category])
+            if leaf is None:
+                contents += ""
+            else:
+                contents += print_name(leaf)
+            contents += print_howmanyinputs(n_inp)
+            if leaf is not None:
+                contents += print_note(leaf)
+
+        contents += print_title("\nSimulations:\n")
+        for leaf in self:
+            contents += print_name(leaf)
+            if leaf == self.active:
+                contents += utils.decorate(" [active]", color="green")
+            contents += print_note(leaf)
+
+        if not self._names:
+            contents += "No simulation results.\n"
         return contents

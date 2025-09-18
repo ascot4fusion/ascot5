@@ -8,7 +8,7 @@ import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from ..access import variants, InputVariant, Format, TreeCreateClassMixin
+from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
 from ..cstructs import interp2D_data, interp3D_data
 from ... import utils
 from ...libascot import LIBASCOT
@@ -437,7 +437,7 @@ class CreateBfield3DMixin(TreeCreateClassMixin):
         is calculated from the poloidal flux. Since the 3D magnetic field is
         interpolated directly, the resulting field is not divergence free.
         """
-        parameters = variants.parse_parameters(
+        parameters = _variants.parse_parameters(
             rgrid, phigrid, zgrid, axisrz, psilimits, psi, bphi, br, bz,
             rgridpsi, zgridpsi,
         )
@@ -460,7 +460,7 @@ class CreateBfield3DMixin(TreeCreateClassMixin):
               else parameters["rgridpsi"].size)
         nzpsi = (default_zgrid.size if parameters["zgridpsi"] is None
               else parameters["zgridpsi"].size)
-        variants.validate_required_parameters(
+        _variants.validate_required_parameters(
             parameters,
             names=["rgrid", "phigrid", "zgrid", "axisrz", "psilimits", "psi",
                    "bphi", "br", "bz"],
@@ -474,7 +474,7 @@ class CreateBfield3DMixin(TreeCreateClassMixin):
                 np.ones((nr, nphi, nz)), np.ones((nr, nphi, nz)),
                 ],
         )
-        variants.validate_optional_parameters(
+        _variants.validate_optional_parameters(
             parameters,
             ["rgridpsi", "zgridpsi"], ("m", "m"), [(nrpsi,), (nzpsi,)], "f8",
             [parameters["rgrid"].v, parameters["zgrid"].v],
@@ -485,7 +485,7 @@ class CreateBfield3DMixin(TreeCreateClassMixin):
                 parameters[abscissa], abscissa, periodic=periodic
                 )
 
-        meta = variants.new_metadata("Bfield3D", note=note)
+        meta = _variants.new_metadata("Bfield3D", note=note)
         obj = self._treemanager.enter_input(
             meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
             )

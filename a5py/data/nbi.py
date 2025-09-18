@@ -8,7 +8,7 @@ import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from .access import variants, InputVariant, Format, TreeCreateClassMixin
+from .access import _variants, InputVariant, Format, TreeCreateClassMixin
 from .. import utils
 from ..libascot import LIBASCOT
 from ..exceptions import AscotIOException
@@ -204,10 +204,10 @@ class CreateNbiMixin(TreeCreateClassMixin):
 
         .. math::
         """
-        parameters = variants.parse_parameters(
+        parameters = _variants.parse_parameters(
             bxyz, jacobian, axisrz, rhoval, psival,
         )
-        variants.validate_required_parameters(
+        _variants.validate_required_parameters(
             parameters,
             names=["bxyz", "jacobian", "axisrz", "rhoval"],
             units=["T", "T/m", "m", "1"],
@@ -217,11 +217,11 @@ class CreateNbiMixin(TreeCreateClassMixin):
                 np.ones((3,)), np.zeros((3,3)), (1.0, 0.0), 0.5,
                 ],
         )
-        variants.validate_optional_parameters(
+        _variants.validate_optional_parameters(
             parameters,
             ["psival"], ["Wb/m"], [()], "f8", [parameters["rhoval"]],
         )
-        meta = variants.new_metadata("B_TC", note=note)
+        meta = _variants.new_metadata("B_TC", note=note)
         obj = self._treemanager.enter_input(
             meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
             )

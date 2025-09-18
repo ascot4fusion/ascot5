@@ -8,7 +8,7 @@ import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from ..access import variants, InputVariant, Format, TreeCreateClassMixin
+from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
 from ... import utils
 from ...libascot import LIBASCOT
 from ...exceptions import AscotIOException
@@ -208,7 +208,7 @@ class CreateWall3DMixin(TreeCreateClassMixin):
         present in the ongoing time-step.
         """
         # This function can't deal with dictionaries, so use None to omit it.
-        parameters = variants.parse_parameters(
+        parameters = _variants.parse_parameters(
             vertices, flag, None,
         )
         parameters["labels"] = labels
@@ -220,10 +220,10 @@ class CreateWall3DMixin(TreeCreateClassMixin):
                 raise ValueError("´vertices´ have an invalid format.")
         else:
             n = int(default_xyz.size / 9)
-        variants.validate_required_parameters(
+        _variants.validate_required_parameters(
             parameters, ["vertices"], ["m"], [(9*n,)], "f8", [default_xyz],
         )
-        variants.validate_optional_parameters(
+        _variants.validate_optional_parameters(
             parameters, ["flag"], [""], [(n,)], "i4",
             [np.zeros(parameters["vertices"].shape, dtype="i4")],
         )
@@ -237,7 +237,7 @@ class CreateWall3DMixin(TreeCreateClassMixin):
         for id in np.unique(parameters["flag"]):
             if id not in parameters["labels"].values():
                 raise ValueError(f"Flag {id} does not have a label.")
-        meta = variants.new_metadata("Wall3D", note=note)
+        meta = _variants.new_metadata("Wall3D", note=note)
         obj = self._treemanager.enter_input(
             meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
             )

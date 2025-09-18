@@ -9,16 +9,7 @@ import unyt
 
 T = TypeVar('T', bound='DataHolder')
 
-class Status(IntFlag):
-    SAVED = auto()
-    STAGED = auto()
 
-    def __contains__(self, item):
-        """Allow `item in Status.BOTH` checks."""
-        # If this status is a group (tuple of values)
-        if isinstance(self.value, tuple):
-            return item.value in self.value
-        return item == self
 
 
 class Format(Enum):
@@ -28,14 +19,7 @@ class Format(Enum):
     MEMORY: int = 2
     """Data is stored in memory."""
 
-class DataStruct(ctypes.Structure):
 
-    def readonly_carray(self, name, shape, units=None):
-        arr = np.ctypeslib.as_array(getattr(self, name), shape=shape)
-        arr.flags.writeable = False
-        if not units is None:
-            return unyt.unyt_array(arr, units)
-        return arr
 
 
 # pylint: disable=too-few-public-methods

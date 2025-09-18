@@ -3,7 +3,7 @@ import pytest
 
 import numpy as np
 from .conftest import QIDS, INPUTS, OUTPUTS, DATES, NOTE, FNEMPTY
-from a5py.exceptions import AscotIOException
+from a5py.exceptions import AscotDataException
 
 from .prototypes import InputPrototype, OutputPrototype, TreePrototype
 
@@ -27,7 +27,8 @@ def test_input_create_write_read(tree):
     with pytest.raises(ValueError):
         tree[CATEGORY].active.bval[0] = 1
 
-    tree = TreePrototype([CATEGORY], (FNEMPTY, True))
+    #tree = TreePrototype([CATEGORY], (FNEMPTY, True))
+    tree[CATEGORY].active.unstage()
     assert all(tree[CATEGORY].active.bval == data)
 
 
@@ -35,9 +36,9 @@ def test_input_stage_unstage(tree):
     """"""
     data = np.array([0., 1., 2.])
     leaf = tree.create_inputprototype(bval=data, save=False)
-    with pytest.raises(AscotIOException):
+    with pytest.raises(AscotDataException):
         leaf.unstage()
-    with pytest.raises(AscotIOException):
+    with pytest.raises(AscotDataException):
         leaf.stage()
     leaf.save()
     leaf.unstage()
@@ -50,9 +51,9 @@ def test_output_create_write_read(tree):
     """"""
     data = np.array([0., 1., 2.])
     leafin = tree.create_inputprototype(bval=data, save=False)
-    leafout = OutputPrototype(QIDS[1], DATES[0], NOTE, "runprototype", {CATEGORY:leafin})
-    tree._treemanager.enter_output(leafout, [leafin.qid], save=False)
-    assert tree.active[CATEGORY].qid == leafin.qid
+    leafout = OutputPrototype(inputs={CATEGORY: leafin})
+    tree._treemanager.enter_leaf(leafout, save=False)
+    assert tree.active[CATEGORY].name == leafin.name
 
     params = {"diag1": True, "dval": data}
     leafout._setup(params)

@@ -7,7 +7,7 @@ from typing import Tuple, Optional
 import unyt
 import numpy as np
 
-from ..access import variants, InputVariant, Format, TreeCreateClassMixin
+from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
 from ... import utils
 from ...exceptions import AscotIOException
 

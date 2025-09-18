@@ -8,7 +8,7 @@ import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from ..access import variants, InputVariant, Format, TreeCreateClassMixin
+from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
 from ...libascot import LIBASCOT
 from ...exceptions import AscotIOException
 
@@ -221,7 +221,7 @@ class CreateWall2DMixin(TreeCreateClassMixin):
             https://www.engr.colostate.edu/~dga/documents/papers/point_in_polygon.pdf
         """
         # This function can't deal with dictionaries, so use None to omit it.
-        parameters = variants.parse_parameters(
+        parameters = _variants.parse_parameters(
             r, z, flag, None,
         )
         parameters["labels"] = labels
@@ -229,7 +229,7 @@ class CreateWall2DMixin(TreeCreateClassMixin):
         default_r = np.array([0.0, 1.0, 1.0, 0.0])
         default_z = np.array([0.0, 0.0, 1.0, 1.0])
         n = default_r.size if parameters["r"] is None else parameters["r"].size
-        variants.validate_required_parameters(
+        _variants.validate_required_parameters(
             parameters,
             names=["r", "z"],
             units=["m", "m"],
@@ -237,7 +237,7 @@ class CreateWall2DMixin(TreeCreateClassMixin):
             dtype="f8",
             default=[default_r, default_z],
         )
-        variants.validate_optional_parameters(
+        _variants.validate_optional_parameters(
             parameters, ["flag"], [""], [(n,)], "i4",
             [np.zeros(parameters["r"].shape, dtype="i4")],
         )
@@ -251,7 +251,7 @@ class CreateWall2DMixin(TreeCreateClassMixin):
         for id in np.unique(parameters["flag"]):
             if id not in parameters["labels"].values():
                 raise ValueError(f"Flag {id} does not have a label.")
-        meta = variants.new_metadata("Wall2D", note=note)
+        meta = _variants.new_metadata("Wall2D", note=note)
         obj = self._treemanager.enter_input(
             meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
             )

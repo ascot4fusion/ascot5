@@ -8,7 +8,7 @@ import unyt
 import numpy as np
 
 from ..cstructs import free
-from ..access import variants, InputVariant, Format, TreeCreateClassMixin
+from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
 from ... import utils, physlib
 from ...exceptions import AscotIOException
 
@@ -213,11 +213,11 @@ class CreateParticleMixin(TreeCreateClassMixin):
         inputdata : ParticleMarker
             Freshly minted input data object.
         """
-        parameters = variants.parse_parameters(
+        parameters = _variants.parse_parameters(
             species, ids, charge, r, phi, z, vr, vphi, vz, weight, time,
         )
         n = 1 if parameters["ids"] is None else parameters["ids"].size
-        variants.validate_required_parameters(
+        _variants.validate_required_parameters(
             parameters,
             names=["ids", "charge", "r", "phi", "z", "vr", "vphi", "vz",
                    "weight", "time", "species"],
@@ -234,24 +234,24 @@ class CreateParticleMixin(TreeCreateClassMixin):
             physlib.species2properties(parameters["species"])
         except KeyError as e:
             raise e from None
-        meta = variants.new_metadata("ParticleMarker", note=note)
+        meta = _variants.new_metadata("ParticleMarker", note=note)
         obj = self._treemanager.enter_input(
             meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
             )
         for parameter, value in parameters.items():
             setattr(obj, f"_{parameter}", value)
-            if parameter is not "species":
+            if parameter != "species":
                 getattr(obj, f"_{parameter}").flags.writeable = False
 
         if store_hdf5:
             obj._export_hdf5()
         return obj
 
-        parameters = variants.parse_parameters(
+        parameters = _variants.parse_parameters(
             ids, r, phi, z, direction, time,
         )
         n = 1 if parameters["ids"] is None else parameters["ids"].size
-        variants.validate_required_parameters(
+        _variants.validate_required_parameters(
             parameters,
             names=["ids", "r", "phi", "z",],
             units=["1", "m", "deg", "m",],
@@ -259,7 +259,7 @@ class CreateParticleMixin(TreeCreateClassMixin):
             dtype=["i8", "f8", "f8", "f8",],
             default=[1, 1.0, 0.0, 0.0,],
         )
-        variants.validate_optional_parameters(
+        _variants.validate_optional_parameters(
             parameters,
             names=["direction", "time"],
             units=["1", "s"],
@@ -267,7 +267,7 @@ class CreateParticleMixin(TreeCreateClassMixin):
             dtype=["f8", "f8",],
             default=[np.ones((n,)), np.ones((n,)),],
         )
-        meta = variants.new_metadata("FieldlineMarker", note=note)
+        meta = _variants.new_metadata("FieldlineMarker", note=note)
         obj = self._treemanager.enter_input(
             meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
             )

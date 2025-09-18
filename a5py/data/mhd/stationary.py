@@ -8,7 +8,7 @@ import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from ..access import variants, InputVariant, Format, TreeCreateClassMixin
+from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
 from ..cstructs import interp1D_data
 from ... import utils
 from ...libascot import LIBASCOT
@@ -341,7 +341,7 @@ class CreateMhdStationaryMixin(TreeCreateClassMixin):
         enforce* this condition automatically and it is up to the user to ensure
         this whenever appropriate.
         """
-        parameters = variants.parse_parameters(
+        parameters = _variants.parse_parameters(
             rhogrid, toroidalnumber, poloidalnumber, magneticprofile,
             electricprofile, amplitude, frequency, phase,
         )
@@ -350,7 +350,7 @@ class CreateMhdStationaryMixin(TreeCreateClassMixin):
               else parameters["rhogrid"].size)
         nmode = (2 if parameters["toroidalnumber"] is None
               else parameters["toroidalnumber"].size)
-        variants.validate_required_parameters(
+        _variants.validate_required_parameters(
             parameters,
             names=["rhogrid", "toroidalnumber", "poloidalnumber",
                    "magneticprofile", "electricprofile",],
@@ -360,7 +360,7 @@ class CreateMhdStationaryMixin(TreeCreateClassMixin):
             default=[default_rhogrid, np.array([1, 2]), np.array([3,3]),
                      np.ones((nrho,nmode)), np.ones((nrho,nmode)),],
         )
-        variants.validate_optional_parameters(
+        _variants.validate_optional_parameters(
             parameters,
             names=["amplitude", "frequency", "phase",],
             units=["1", "rad/s", "rad",],
@@ -368,7 +368,7 @@ class CreateMhdStationaryMixin(TreeCreateClassMixin):
             dtype=["f8", "f8", "f8",],
             default=[np.ones(nmode), np.zeros(nmode), np.zeros(nmode),],
         )
-        meta = variants.new_metadata("MhdStationary", note=note)
+        meta = _variants.new_metadata("MhdStationary", note=note)
         obj = self._treemanager.enter_input(
             meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
             )

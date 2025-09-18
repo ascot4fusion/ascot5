@@ -12,7 +12,7 @@ import re
 import unyt
 import numpy as np
 
-from ..access import variants, InputVariant, Format, TreeCreateClassMixin
+from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
 from ... import utils
 from ...exceptions import AscotIOException
 from a5py.engine.functions import END_CONDITIONS
@@ -439,7 +439,7 @@ class CreateOptionsMixin(TreeCreateClassMixin):
         inputdata : ~a5py.data.options.Options
             Freshly minted input data object.
         """
-        meta = variants.new_metadata("Options", note=note)
+        meta = _variants.new_metadata("Options", note=note)
         obj = self._treemanager.enter_input(
             meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
             )

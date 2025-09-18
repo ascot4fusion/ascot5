@@ -6,7 +6,8 @@ ascot: libascot
 
 lint:
 	pylint --generated-members=unyt.*
-	mypy --follow-imports=silent --disable-error-code=import-untyped
+	mypy --follow-imports=silent --disable-error-code=import-untyped \
+	--disallow-untyped-defs --disallow-incomplete-defs
 
 tests:
 	pytest -s -v

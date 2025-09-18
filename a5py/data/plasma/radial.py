@@ -8,7 +8,7 @@ import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from ..access import variants, InputVariant, Format, TreeCreateClassMixin
+from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
 from ... import physlib
 from ...libascot import LIBASCOT
 from ...exceptions import AscotIOException
@@ -322,7 +322,7 @@ class CreatePlasma1DMixin(TreeCreateClassMixin):
         inputdata : ~a5py.data.plasma.Plasma1D
             Freshly minted input data object.
         """
-        parameters = variants.parse_parameters(
+        parameters = _variants.parse_parameters(
             species, rhogrid, iondensity, iontemperature, electrondensity,
             electrontemperature, charge, rotation,
         )
@@ -339,7 +339,7 @@ class CreatePlasma1DMixin(TreeCreateClassMixin):
         default_rhogrid = np.linspace(0., 1., 3)
         nrho = (default_rhogrid.size if parameters["rhogrid"] is None
               else parameters["rhogrid"].size)
-        variants.validate_required_parameters(
+        _variants.validate_required_parameters(
             parameters,
             names=["rhogrid", "iondensity", "iontemperature", "species"],
             units=["1", "m**(-3)", "eV", ""],
@@ -361,7 +361,7 @@ class CreatePlasma1DMixin(TreeCreateClassMixin):
                 parameters["iondensity"], parameters["charge"]
                 ) / unyt.e
 
-        variants.validate_optional_parameters(
+        _variants.validate_optional_parameters(
             parameters,
             ["electrondensity", "electrontemperature", "charge", "rotation"],
             ["m**(-3)", "eV", "e", "rad/s"],
@@ -370,7 +370,7 @@ class CreatePlasma1DMixin(TreeCreateClassMixin):
             [charge_density.v, parameters["iontemperature"].v, znum,
              np.zeros((nrho,)),],
         )
-        meta = variants.new_metadata("Plasma1D", note=note)
+        meta = _variants.new_metadata("Plasma1D", note=note)
         obj = self._treemanager.enter_input(
             meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
             )

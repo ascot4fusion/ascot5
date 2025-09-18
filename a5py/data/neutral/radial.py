@@ -8,7 +8,7 @@ import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from ..access import variants, InputVariant, Format, TreeCreateClassMixin
+from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
 from ..cstructs import linint1D_data
 from ... import utils, physlib
 from ...libascot import LIBASCOT
@@ -232,7 +232,7 @@ class CreateNeutral1DMixin(TreeCreateClassMixin):
         inputdata : ~a5py.data.neutral.Neutral1D
             Freshly minted input data object.
         """
-        parameters = variants.parse_parameters(
+        parameters = _variants.parse_parameters(
             rhogrid, species, density, temperature,
         )
         if parameters["species"] is not None:
@@ -248,7 +248,7 @@ class CreateNeutral1DMixin(TreeCreateClassMixin):
         default_rhogrid = np.linspace(0., 1., 3)
         nrho = (default_rhogrid.size if parameters["rhogrid"] is None
               else parameters["rhogrid"].size)
-        variants.validate_required_parameters(
+        _variants.validate_required_parameters(
             parameters,
             names=["rhogrid", "density", "temperature", "species"],
             units=["1", "m**(-3)", "eV", ""],
@@ -259,7 +259,7 @@ class CreateNeutral1DMixin(TreeCreateClassMixin):
         )
         for abscissa in ["rhogrid"]:
             utils.check_abscissa(parameters[abscissa], abscissa)
-        meta = variants.new_metadata("Neutral1D", note=note)
+        meta = _variants.new_metadata("Neutral1D", note=note)
         obj = self._treemanager.enter_input(
             meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
             )

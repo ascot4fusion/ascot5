@@ -9,7 +9,7 @@ import mpi4py as MPI
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from ..access import variants, InputVariant, Format, TreeCreateClassMixin
+from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
 from ... import utils
 from ...libascot import LIBASCOT
 from ...exceptions import AscotIOException
@@ -414,7 +414,7 @@ class CreateBfieldAnalyticalMixin(TreeCreateClassMixin):
            solutions to the Grad-Shafranov equation. Physics of Plasmas (2010).
            https://doi.org/10.1063/1.3328818
         """
-        parameters = variants.parse_parameters(
+        parameters = _variants.parse_parameters(
             rmajor, axisz, axisb, psiscaling, coefficients, axisr, psilimits,
             nripple, rminor, ripplepenetration, ripplescaling,
         )
@@ -423,7 +423,7 @@ class CreateBfieldAnalyticalMixin(TreeCreateClassMixin):
             6.200e-03, -1.205e-03, -3.701e-05,  0,
             0,          0,          0,          0,
             -0.155])
-        variants.validate_required_parameters(
+        _variants.validate_required_parameters(
             parameters,
             names=["rmajor", "axisz", "axisb", "psiscaling", "coefficients"],
             units=["m", "m", "T", "Wb/m", "1"],
@@ -444,7 +444,7 @@ class CreateBfieldAnalyticalMixin(TreeCreateClassMixin):
         padding = 1e-8 * unyt.Wb/unyt.m
         psi0 = psi0 - padding if psi0 < psi1 else psi0 + padding
 
-        variants.validate_optional_parameters(
+        _variants.validate_optional_parameters(
             parameters,
             ["axisr", "psilimits", "nripple", "rminor", "ripplepenetration",
              "ripplescaling"],
@@ -454,7 +454,7 @@ class CreateBfieldAnalyticalMixin(TreeCreateClassMixin):
             [raxis.v, np.array([psi0[0], 0.]), 0, 1., 1., 1.],
         )
 
-        meta = variants.new_metadata("BfieldAnalytical", note=note)
+        meta = _variants.new_metadata("BfieldAnalytical", note=note)
         obj = self._treemanager.enter_input(
             meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
             )

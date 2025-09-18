@@ -8,7 +8,7 @@ import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from ..access import variants, InputVariant, Format, TreeCreateClassMixin
+from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
 from ..cstructs import linint3D_data
 from ... import utils, physlib
 from ...libascot import LIBASCOT
@@ -282,7 +282,7 @@ class CreateNeutral3DMixin(TreeCreateClassMixin):
         inputdata : ~a5py.data.neutral.Neutral3D
             Freshly minted input data object.
         """
-        parameters = variants.parse_parameters(
+        parameters = _variants.parse_parameters(
             rgrid, phigrid, zgrid, species, density, temperature,
         )
         if parameters["species"] is not None:
@@ -305,7 +305,7 @@ class CreateNeutral3DMixin(TreeCreateClassMixin):
               else parameters["phigrid"].size)
         nz = (default_zgrid.size if parameters["zgrid"] is None
               else parameters["zgrid"].size)
-        variants.validate_required_parameters(
+        _variants.validate_required_parameters(
             parameters,
             names=["rgrid", "phigrid", "zgrid", "density", "temperature",
                    "species"],
@@ -317,7 +317,7 @@ class CreateNeutral3DMixin(TreeCreateClassMixin):
                      np.ones((nr,nphi,nz,ns)), np.ones((nr,nphi,nz,ns)),
                      np.array(["H1"])],
         )
-        meta = variants.new_metadata("Neutral3D", note=note)
+        meta = _variants.new_metadata("Neutral3D", note=note)
         obj = self._treemanager.enter_input(
             meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
             )

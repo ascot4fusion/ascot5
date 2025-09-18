@@ -8,7 +8,7 @@ import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from ..access import variants, InputVariant, Format, TreeCreateClassMixin
+from ..access import _variants, InputVariant, Status, DataStruct
 from ... import utils
 from ...libascot import LIBASCOT
 from ...exceptions import AscotIOException
@@ -18,7 +18,7 @@ class BfieldCartesian(InputVariant):
     """Magnetic field in Cartesian basis for testing purposes."""
 
     # pylint: disable=too-few-public-methods
-    class Struct(ctypes.Structure):
+    class Struct(DataStruct):
         """Python wrapper for the struct in B_TC.h."""
         _pack_ = 1
         _fields_ = [
@@ -30,35 +30,21 @@ class BfieldCartesian(InputVariant):
             ('dB', ctypes.c_double * 9),
             ]
 
-
-    def __init__(self, qid, date, note) -> None:
-        super().__init__(
-            qid=qid, date=date, note=note, variant="BfieldCartesian",
-            struct=BfieldCartesian.Struct(),
-            )
-        self._bxyz: unyt.unyt_array
-        self._axisrz: unyt.unyt_array
-        self._psival: unyt.unyt_array
-        self._rhoval: unyt.unyt_array
-        self._jacobian: unyt.unyt_array
-
     @property
     def bxyz(self) -> unyt.unyt_array:
         """Magnetic field vector in Cartesian basis at origo."""
-        if self._staged:
-            return self._from_struct_("B", shape=(3,), units="T")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("bxyz")
-        return self._bxyz.copy()
+        if self.status is Status.SAVED:
+            return self._file.read_hdf5("bxyz")
+        elif self.status & Status.STAGED:
+            return self._cdata.readonly_carray("B", (3,), "T")
 
     @property
     def jacobian(self) -> unyt.unyt_array:
         """Magnetic field Jacobian :math:`jac[i,j] = dB_i/dx_j`."""
         if self._staged:
             return self._from_struct_("dB", shape=(3,3), units="T/m")
-        if self._format == Format.HDF5:
+        if self.status is Status.SAVED:
             return self._read_hdf5("jacobian")
-        return self._jacobian.copy()
 
     @property
     def rhoval(self) -> unyt.unyt_array:
@@ -66,18 +52,16 @@ class BfieldCartesian(InputVariant):
         value."""
         if self._staged:
             return self._from_struct_("rhoval", shape=(1,), units="1")
-        if self._format == Format.HDF5:
+        if self.status is Status.SAVED:
             return self._read_hdf5("rhoval")
-        return self._rhoval.copy()
 
     @property
     def psival(self) -> unyt.unyt_array:
         """Normalized poloidal flux which has a constant value."""
         if self._staged:
             return self._from_struct_("psival", shape=(1,), units="Wb/m")
-        if self._format == Format.HDF5:
+        if self.status is Status.SAVED:
             return self._read_hdf5("psival")
-        return self._psival.copy()
 
     @property
     def axisrz(self) -> unyt.unyt_array:
@@ -87,11 +71,18 @@ class BfieldCartesian(InputVariant):
                 self._from_struct_("axisr", shape=(1,), units="m"),
                 self._from_struct_("axisz", shape=(1,), units="m")
             )).T
-        if self._format == Format.HDF5:
+        if self.status is Status.SAVED:
             return unyt.unyt_array((
                 self._read_hdf5("axisr"), self._read_hdf5("axisz")
                 ))
-        return self._axisrz.copy()
+
+    def _stage(self, bxyz):
+        cdata = BfieldCartesian.Struct()
+        cdata.bxyz = bxyz
+        self._cdata = cdata
+
+    def _save_data(self):
+        self._file.write("bxyz", self.bxyz)
 
     def _export_hdf5(self):
         """Export data to HDF5 file."""
@@ -159,7 +150,7 @@ class BfieldCartesian(InputVariant):
 
 
 # pylint: disable=too-few-public-methods
-class CreateBfieldCartesianMixin(TreeCreateClassMixin):
+class CreateBfieldCartesianMixin():
     """Mixin class used by `Data` to create :class:`BfieldCartesian` input."""
 
     #pylint: disable=protected-access, too-many-arguments
@@ -237,10 +228,10 @@ class CreateBfieldCartesianMixin(TreeCreateClassMixin):
         basis. The vector given as input is the value of the magnetic field on
         origo.
         """
-        parameters = variants.parse_parameters(
+        parameters = _variants.parse_parameters(
             bxyz, jacobian, axisrz, rhoval, psival,
         )
-        variants.validate_required_parameters(
+        _variants.validate_required_parameters(
             parameters,
             names=["bxyz", "jacobian", "axisrz", "rhoval"],
             units=["T", "T/m", "m", "1"],
@@ -250,18 +241,13 @@ class CreateBfieldCartesianMixin(TreeCreateClassMixin):
                 np.ones((3,)), np.zeros((3,3)), (1.0, 0.0), 0.5,
                 ],
         )
-        variants.validate_optional_parameters(
+        _variants.validate_optional_parameters(
             parameters,
             ["psival"], ["Wb/m"], [()], "f8", [parameters["rhoval"]],
         )
-        meta = variants.new_metadata("BfieldCartesian", note=note)
-        obj = self._treemanager.enter_input(
-            meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
+        leaf = BfieldCartesian(note=note)
+        leaf._stage(bxyz=parameters["bxyz"])
+        self._treemanager.enter_leaf(
+            leaf, activate=activate, save=store_hdf5, category="bfield",
             )
-        for parameter, value in parameters.items():
-            setattr(obj, f"_{parameter}", value)
-            getattr(obj, f"_{parameter}").flags.writeable = False
-
-        if store_hdf5:
-            obj._export_hdf5()
-        return obj
+        return leaf
