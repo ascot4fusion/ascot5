@@ -322,8 +322,6 @@ void wall_3d_init_octree(wall_3d_data* w) {
 int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
             real z2, wall_3d_data* wdata, real* w_coll) {
     real rpz1[3], rpz2[3];
-#include <stdlib.h>
-#include <math.h>
     rpz1[0] = r1;
     rpz1[1] = phi1;
     rpz1[2] = z1;
