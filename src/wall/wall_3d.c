@@ -352,9 +352,9 @@ int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
     int hit_tri = 0;
     real smallest_w = 1.1;
 
-    for(int i = 0; i*i <= (ix2-ix1)*(ix2-ix1); i++) {
-        for(int j = 0; j*j <= (iy2-iy1)*(iy2-iy1); j++) {
-            for(int k = 0; k*k <= (iz2-iz1)*(iz2-iz1); k++) {
+    for(int i = 0; i <= abs(ix2-ix1); i++) {
+        for(int j = 0; j <= abs(iy2-iy1); j++) {
+            for(int k = 0; k <= abs(iz2-iz1); k++) {
                 int ix = ix1 + i*((int) copysign(1, ix2-ix1));
                 int iy = iy1 + j*((int) copysign(1, iy2-iy1));
                 int iz = iz1 + k*((int) copysign(1, iz2-iz1));
