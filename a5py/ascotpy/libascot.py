@@ -174,13 +174,13 @@ class LibAscot:
                 out["psidr"], out["psidphi"], out["psidz"])
 
         if evalaxis:
-            out["axisr"] = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.m
-            out["axisz"] = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.m
+            out["axisr"] = (np.zeros(phi.shape, dtype="f8") + np.nan) * unyt.m
+            out["axisz"] = (np.zeros(phi.shape, dtype="f8") + np.nan) * unyt.m
 
             fun = _LIBASCOT.libascot_B_field_get_axis
             fun.restype  = None
             fun.argtypes = [PTR_SIM, ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL]
-
+            Neval=phi.size
             fun(ctypes.byref(self._sim), Neval, phi, out["axisr"], out["axisz"])
 
         return out
@@ -806,16 +806,18 @@ class LibAscot:
 
         return (r, z)
 
-    @parseunits(rho="1", theta="rad", phi="rad", time="s")
-    def input_findpsi0(self, psi1, nphi=None, phimin=None, phimax=None):
+    @parseunits(psi1="Wb", phi="rad", phimin="rad", phimax="rad")
+    def input_findpsi0(self, psi1, phi=0.0*unyt.rad, nphi=None, phimin=None,
+                       phimax=None, manual_pad=1e-9):
         """Find poloidal flux on axis value numerically.
 
         Before this function is called, the magnetic field data should contain
         initial guess for the position of the magnetic axis. The algorithm then
-        uses the gradient descent method to find psi0. The interpolation is done
-        using Ascot's magnetic field interpolation and a little bit of padding
-        is added to psi0 so the value can be used as an input parameter for
-        the magnetic field without any errors.
+        uses the gradient descent method to find psi0 and its location (either
+        2D or 3D). The interpolation is done using Ascot's magnetic field
+        interpolation and a little bit of padding is added to psi0 so the value
+        can be used as an input parameter for the magnetic field without any
+        errors.
 
         Parameters
         ----------
@@ -824,6 +826,9 @@ class LibAscot:
 
             This value is used to deduce whether the algorithm searches minimum
             or maximum value when finding psi0.
+        phi : float, optional
+            Can be used to manually set the phi co-ordinate when using the 2D
+            search. Zero by default.
         nphi : int, optional
             Number of B field grid points in the phi direction between phimin
             and phimax including the end points of this interval.
@@ -843,15 +848,28 @@ class LibAscot:
             Maximum of the phi interval.
 
             Needed for 3D fields.
+        manual_pad : float, optional
+            The magnitude of manual paddin that is applied to psi0 afterwards.
+            None by default but can be used when the default padding has not
+            been enough. This could manifest itself, e.g., as errors when
+            converting (rho,phi,theta) to (R,z) near the magnetic axis.
 
         Returns
         -------
-        r : float
-            Axis R-coordinate.
-        z : float
-            Axis z-coordinate.
-        psi0 : float
-            Poloidal flux on axis.
+        r : float or array_like (nphi-1,)
+            Axis R-coordinate. If nphi given, returns an array.
+        phi : array_like (nphi-1,), optional
+            Axis phi-coordinate. Returned only if nphi is given.
+        z : float or array_like (nphi-1,)
+            Axis z-coordinate. If nphi given, returns an array.
+        psi0 : float or array_like (nphi-1,)
+            Poloidal flux on axis. If nphi given, returns an array.
+
+        Notes
+        -----
+        In 2D geometry (no nphi specified), returns `(r, z)`.
+        In 3D geometry (when nhpi specified), returns `(r, phi, z)`. These
+        points are generally speaking not uniformly spaced.
 
         Raises
         ------
@@ -865,11 +883,11 @@ class LibAscot:
         step = 1e-3
         maxiter = 10**6
         if nphi is None and phimin is None and phimax is None:
-            #2D case
+            # 2D case
             ax = self._eval_bfield(
-                1.0*unyt.m, 0.0*unyt.rad, 0.0*unyt.m, 0.0*unyt.s, evalaxis=True)
+                1.0*unyt.m, phi, 0.0*unyt.m, 0.0*unyt.s, evalaxis=True)
             psi0 = self._eval_bfield(
-                ax["axisr"], 0.0*unyt.rad, ax["axisz"], 0.0*unyt.s, evalrho=True)
+                ax["axisr"], phi, ax["axisz"], 0.0*unyt.s, evalrho=True)
             ascent  = int(psi1 < psi0["psi"])
 
             psi = np.nan * np.zeros((1,), dtype="f8") * unyt.Wb
@@ -880,45 +898,63 @@ class LibAscot:
             fun = _LIBASCOT.libascot_B_field_gradient_descent
             fun.restype  = None
             fun.argtypes = [PTR_SIM, PTR_REAL, PTR_REAL, ctypes.c_double,
-                            ctypes.c_double, ctypes.c_int, ctypes.c_int]
-            fun(ctypes.byref(self._sim), psi, rz, step, tol, maxiter, ascent)
+                            ctypes.c_double, ctypes.c_double, ctypes.c_int,
+                            ctypes.c_int]
+            fun(ctypes.byref(self._sim), psi, rz, phi, step, tol, maxiter,
+                ascent)
 
             if np.isnan(psi[0]):
                 raise RuntimeError("Failed to converge.")
 
+            # Add manual padding
+            if psi1 > 0:
+                psi -= manual_pad*unyt.Wb
+            else:
+                psi += manual_pad*unyt.Wb
+
             return (rz[0], rz[1], psi)
         elif nphi is not None and phimin is not None and phimax is not None:
-            #3D case
+            # 3D case
 
-            # Divide the 3D field into sectors (phi slices) and find the minimum
+            # Divide the 3D field into sectors (in phi) and find the minimum
             # inside each sector.
             sectoredges = np.linspace(phimin,phimax,nphi)
             nsector = len(sectoredges)-1                      #number of sectors
+
+            # Store final return values here
+            psiconverged = np.nan * np.zeros((nsector,), dtype="f8") * unyt.Wb
+            rzphiconverged = np.empty((nsector,3), dtype="f8")
+
+            # These values get passed to the C function...
             psi = np.nan * np.zeros((1,), dtype="f8") * unyt.Wb
             rzphi  = np.zeros((3,), dtype="f8")
-            psiconverged = np.nan * np.zeros((1,), dtype="f8") * unyt.Wb
 
+            # ...which you can see here:
             fun = _LIBASCOT.libascot_B_field_gradient_descent_3d
             fun.restype  = None
             fun.argtypes = [PTR_SIM, PTR_REAL, PTR_REAL, ctypes.c_double,
                             ctypes.c_double, ctypes.c_double, ctypes.c_double,
                             ctypes.c_int, ctypes.c_int]
 
+            # Find the minimum (or maximum) psi0 value in each of the nphi
+            # toroidal sectors.
             for i in range(nsector):
-                phiminsector = sectoredges[i] * unyt.radian
-                phimaxsector = sectoredges[i+1] * unyt.radian
+                # Obtain starting location (initial guess)
+                phiminsector = sectoredges[i]
+                phimaxsector = sectoredges[i+1]
                 phi = 0.5*(phiminsector + phimaxsector)
-                ax = self._eval_bfield(
-                    1.0*unyt.m, phi, 0.0*unyt.m, 0.0*unyt.s,
+                ax = self._eval_bfield(1.0*unyt.m, phi, 0.0*unyt.m, 0.0*unyt.s,
                     evalaxis=True)
-                psi0 = self._eval_bfield(
-                    ax["axisr"], phi, ax["axisz"], 0.0*unyt.s,evalrho=True)
-                ascent  = int(psi1 < psi0["psi"])
-
                 rzphi[0] = ax["axisr"]
                 rzphi[1] = ax["axisz"]
                 rzphi[2] = phi        #using sector average phi as initial guess
 
+                # Determine whether looking for minimum or maximum
+                psi0 = self._eval_bfield(
+                    ax["axisr"], phi, ax["axisz"], 0.0*unyt.s,evalrho=True)
+                ascent  = int(psi1 < psi0["psi"])
+
+                # Ask the C function to do the hard work
                 fun(ctypes.byref(self._sim),
                     psi, rzphi, phiminsector, phimaxsector, step, tol,
                     maxiter, ascent)
@@ -926,23 +962,20 @@ class LibAscot:
                 if np.isnan(psi[0]):
                     raise RuntimeError("Failed to converge.")
 
-                if i==0:
-                    #Best solution thus far
-                    psiconverged[0]=psi[0]
-                    rzphiconverged = rzphi
-                elif (psi[0] < psiconverged[0]) and ascent == 0:
-                    #Hold up, fount something better
-                    psiconverged[0] = psi[0]
-                    rzphiconverged[:] = rzphi[:]
-                elif (psi[0] > psiconverged[0]) and ascent == 1:
-                    #Hold up, fount something better
-                    psiconverged[0] = psi[0]
-                    rzphiconverged[:] = rzphi[:]
+                # New minimum or not, save psi and the magnetic axis location
+                psiconverged[i] = psi
+                rzphiconverged[i,:] = rzphi
 
                 psi *= np.nan    #reset for next iteration
 
-            # Note: rzphiconverged[2] (phi) is not returned!
-            return (rzphiconverged[0]*unyt.m, rzphiconverged[1]*unyt.m, psiconverged)
+            # Add manual padding
+            if psi1 > 0:
+                psiconverged -= manual_pad*unyt.Wb
+            else:
+                psiconverged += manual_pad*unyt.Wb
+
+            return (rzphiconverged[:,0]*unyt.m, rzphiconverged[:,2],
+                    rzphiconverged[:,1]*unyt.m, psiconverged[:])
         else:
             #Missing inputs for 3D or unnecessary inputs for 2D
             raise ValueError("All arguments (nphi, phimin, phimax) are needed "
@@ -950,7 +983,58 @@ class LibAscot:
                              "should be provided.\n\nYou did an oopsie. Search "
                              "your feelings. You know it to be true.")
 
-        return (rz[0], rz[1], psi)
+    @parseunits(psi1="Wb", phimin="rad", phimax="rad")
+    def input_recalculate_axis(self, psi1, nphi, phimin, phimax):
+        '''
+        Calculates the (R, phi, z) co-ordinates of the magnetic axis.
+
+        Before this function is called, the magnetic field data should contain
+        initial guess for the position of the magnetic axis.
+        (see input_findpsi0)
+
+        Parameters
+        ----------
+        psi1 : float
+            Poloidal flux at the separatrix.
+
+            This value is used to deduce whether the algorithm searches minimum
+            or maximum value of psi when finding the magnetic axis.
+        nphi : float
+            Number of grid points in the phi direction.
+        phimin : float
+            Minimum of the phi co-ordinate
+        phimax : float
+            Maximum of the phi co-ordinate
+
+        Note
+        ----
+        Phimin and phimax are chosen such that for any quantity A one has
+        A(phi=phimin) = A(phi=phimax). However, notice that data is given only
+        at
+
+                    linspace(phimin, phimax, nphi+1)[-1]
+
+        that is, there are a total of nphi points but the last data point is the
+        one just before phimax.
+
+        Returns
+        -------
+        r : array_like (nphi,)
+            Axis R-coordinate.
+        phi : array_like (nphi,)
+            Axis phi-coordinate.
+        z : array_like (nphi,)
+            Axis z-coordinate.
+        '''
+        phiarray = np.linspace(phimin, phimax,nphi+1)[:-1]
+        rout = np.NaN * np.zeros((nphi,), dtype="f8") * unyt.m
+        zout = np.NaN * np.zeros((nphi,), dtype="f8") * unyt.m
+        for i in range(nphi):
+            phi = phiarray[i]
+            # Get the R and z co-ordinates of the magnetic axis in this phi value
+            rout[i], zout[i], psi0 = self.input_findpsi0(psi1, phi=phi)
+        return rout, phiarray, zout
+
 
     @parseunits(m="kg", q="C", vpar="m/s", r="m", phi="rad", z="m", t="s")
     def input_eval_rfof(self, m, q, vpar, r, phi, z, t):

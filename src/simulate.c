@@ -297,10 +297,13 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     /**************************************************************************/
     free(pq.p);
 
+
     /**************************************************************************/
     /* 8. Execution returns to host where this function was called.           */
     /*                                                                        */
     /**************************************************************************/
+
+    diag_onload(&sim->diag_data);
     print_out(VERBOSE_NORMAL, "Simulation complete.\n");
 }
 
@@ -371,7 +374,7 @@ void sim_monitor(char* filename, volatile int* n, volatile int* finished) {
                     (1/fracprog-1)*timespent/3600);
         }
         fflush(f);
-        //sleep(A5_PRINTPROGRESSINTERVAL);
+        sleep(A5_PRINTPROGRESSINTERVAL);
     }
 
     fprintf(f, "Simulation finished.\n");

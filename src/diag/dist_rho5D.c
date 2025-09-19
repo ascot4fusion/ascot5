@@ -72,6 +72,17 @@ void dist_rho5D_offload(dist_rho5D_data* data) {
 }
 
 /**
+ * @brief Onload data back to the host.
+ *
+ * @param data pointer to the data struct
+ */
+void dist_rho5D_onload(dist_rho5D_data* data) {
+    GPU_UPDATE_FROM_DEVICE(
+        data->histogram[0:data->n_rho*data->n_theta*data->n_phi*data->n_ppara*data->n_pperp*data->n_time*data->n_q]
+        )
+}
+
+/**
  * @brief Update the histogram from full-orbit particles
  *
  * This function updates the histogram from the particle data. Bins are

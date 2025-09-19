@@ -477,7 +477,6 @@ class Opt(DataGroup):
         - rho  flux surface
         - pol  poloidal angle
         - phi  toroidal angle
-        - z    z-coordinate
         - ppa  momentum component parallel to magnetic field
         - ppe  momentum component perpendicular to magnetic field
         - t    time
@@ -494,7 +493,6 @@ class Opt(DataGroup):
         - rho  flux surface
         - pol  poloidal angle
         - phi  toroidal angle
-        - z    z-coordinate
         - pR   momentum R-component
         - pphi momentum phi-component
         - pz   momentum z-component

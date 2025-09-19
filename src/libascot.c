@@ -229,8 +229,9 @@ void libascot_B_field_rhotheta2rz(
  * Note that the psi value is not returned in case this algorithm fails.
  *
  * @param sim_data initialized simulation data struct
- * @param psi value of psi on axis if this function did not fail
- * @param rz initial (R,z) position where also the result is stored
+ * @param psi value of psi on axis if this function did not fail [Wb]
+ * @param phi phi co-ordinate of the (R,z) cross section [rad]
+ * @param rz initial (R,z) position where also the result is stored [m]
  * @param step the step size
  * @param tol the current position is accepted if the distance (in meters)
  * between this and the previous point is below this value
@@ -239,13 +240,13 @@ void libascot_B_field_rhotheta2rz(
  */
 void libascot_B_field_gradient_descent(
     sim_data* sim, real psi[1],
-    real rz[2], real step, real tol, int maxiter, int ascent) {
+    real rz[2], real phi, real step, real tol, int maxiter, int ascent) {
 
     if(ascent) {
         step = -1 * step;
     }
 
-    real phi = 0.0, time = 0.0;
+    real time = 0.0;
     real psidpsi[4], nextrz[2];
     B_field_eval_psi_dpsi(psidpsi, rz[0], phi, rz[1], time, &sim->B_data);
 
@@ -291,7 +292,9 @@ void libascot_B_field_gradient_descent(
  * @param sim_offload_data initialized simulation offload data struct
  * @param B_offload_array initialized magnetic field offload data
  * @param psi value of psi on axis if this function did not fail
- * @param rzphi initial (R,z,phi) position where also the result is stored
+ * @param rzphi initial (R,z,phi) position where also the result is stored [m,m,rad]
+ * @param phimin minimum value of the sector [rad]
+ * @param phimax maximum value of the sector [rad]
  * @param step the step size
  * @param tol the current position is accepted if the distance (in meters)
  * between this and the previous point is below this value

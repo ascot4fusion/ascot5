@@ -931,7 +931,7 @@ class ImportData():
                "weight":weight, "time":np.zeros((nmrk,))}
 
         return ("prt", prt)
-
+    @staticmethod
     def costransform(theta, phi, rmnc, xm, xn):
         """Cosine transform for VMEC coefficients
 
@@ -950,7 +950,7 @@ class ImportData():
             f[i,:,:] = (np.matmul(rmnc[i,:]*np.cos(xmt), np.cos(xnz).T)
                         + np.matmul(rmnc[i,:]*np.sin(xmt), np.sin(xnz).T))
         return f
-
+    @staticmethod
     def sintransform(theta, phi, rmnc, xm, xn):
         """Sine transform for VMEC coefficients
 
@@ -970,10 +970,9 @@ class ImportData():
             f[i,:,:] = (np.matmul(rmnc[i,:]*np.sin(xmt), np.cos(xnz).T)
                         - np.matmul(rmnc[i,:]*np.cos(xmt), np.sin(xnz).T))
         return f
-
     @staticmethod
-    def vmec_field(self,ncfile,phimin=0,phimax=360,nphi=361,ntheta=120,
-                   nr=100,nz=100,psipad=0.0):
+    def vmec_field(ncfile,phimin=0,phimax=361,nphi=361,ntheta=120,
+                   nr=100,nz=100,psipad=0.0, extrapolate=True):
         """Load magnetic field data from a VMEC equilibrium.
 
         Notes
@@ -1018,6 +1017,8 @@ class ImportData():
            Number of vertical coordinate Z grid points. Default = 100.
         psipad : float, optional
            Padding to slightly alter flux on axis. 
+        extrapolate : boolean, optional
+            Whether to extrapolate the magnetic field outside LCFS (nearest extrapolation) or not. Without extrapolation B is set to zero outside LCFS. Default = True.
 
         Returns
         -------
@@ -1099,14 +1100,14 @@ class ImportData():
         bsupvmnc[-1, midx_o] = w3 * bsupvmnc[-1, midx_o] - bsupvmnc[-2, midx_o]
 
         # inverse Fourier transform to (s,u,v) coordinates
-        r_grid = self.costransform(theta, phi, rmnc, xm, xn)  # R (m)
-        z_grid = self.sintransform(theta, phi, zmns, xm, xn)  # Z (m)
-        ru_grid = self.sintransform(theta, phi, rumns, xm, xn)  # dR/du (m/rad)
-        zu_grid = self.costransform(theta, phi, zumnc, xm, xn)  # dZ/du (m/rad)
-        rv_grid = self.sintransform(theta, phi, rvmns, xm, xn)  # dR/dv (m/rad)
-        zv_grid = self.costransform(theta, phi, zvmnc, xm, xn)  # dZ/dv (m/rad)
-        bu_grid = self.costransform(theta, phi, bsupumnc, xm_nyq, xn_nyq)  # B^u (T)
-        bv_grid = self.costransform(theta, phi, bsupvmnc, xm_nyq, xn_nyq)  # B^v (T)
+        r_grid = ImportData.costransform(theta, phi, rmnc, xm, xn)  # R (m)
+        z_grid = ImportData.sintransform(theta, phi, zmns, xm, xn)  # Z (m)
+        ru_grid = ImportData.sintransform(theta, phi, rumns, xm, xn)  # dR/du (m/rad)
+        zu_grid = ImportData.costransform(theta, phi, zumnc, xm, xn)  # dZ/du (m/rad)
+        rv_grid = ImportData.sintransform(theta, phi, rvmns, xm, xn)  # dR/dv (m/rad)
+        zv_grid = ImportData.costransform(theta, phi, zvmnc, xm, xn)  # dZ/dv (m/rad)
+        bu_grid = ImportData.costransform(theta, phi, bsupumnc, xm_nyq, xn_nyq)  # B^u (T)
+        bv_grid = ImportData.costransform(theta, phi, bsupvmnc, xm_nyq, xn_nyq)  # B^v (T)
 
         # magnetic axis
         axis_r = r_grid[0, 0, :]  # m
@@ -1167,23 +1168,35 @@ class ImportData():
                 (r_2d, z_2d),
             )
 
-            #Replace br, bphi, bz NaN values outside LCFS with closest values
+            #Replace br, bphi, bz NaN values outside LCFS with closest values (or zeroes if extrapolation = False)
             data = br[:,:,i]
-            mask = np.where(~np.isnan(data))
-            interp = NearestNDInterpolator(np.transpose(mask),data[mask])
-            filled_data = interp(*np.indices(data.shape))
+            if extrapolate:
+                mask = np.where(~np.isnan(data))
+                interp = NearestNDInterpolator(np.transpose(mask),data[mask])
+                filled_data = interp(*np.indices(data.shape))
+            else:
+                filled_data = data.copy()
+                filled_data[np.where(np.isnan(data))]=0
             br[:,:,i] = filled_data
        
             data = bz[:,:,i]
-            mask = np.where(~np.isnan(data))
-            interp = NearestNDInterpolator(np.transpose(mask),data[mask])
-            filled_data = interp(*np.indices(data.shape))
+            if extrapolate:
+                mask = np.where(~np.isnan(data))
+                interp = NearestNDInterpolator(np.transpose(mask),data[mask])
+                filled_data = interp(*np.indices(data.shape))
+            else:
+                filled_data = data.copy()
+                filled_data[np.where(np.isnan(data))]=0
             bz[:,:,i] = filled_data
 
             data = bphi[:,:,i]
-            mask = np.where(~np.isnan(data))
-            interp = NearestNDInterpolator(np.transpose(mask),data[mask])
-            filled_data = interp(*np.indices(data.shape))
+            if extrapolate:
+                mask = np.where(~np.isnan(data))
+                interp = NearestNDInterpolator(np.transpose(mask),data[mask])
+                filled_data = interp(*np.indices(data.shape))
+            else:
+                filled_data = data.copy()
+                filled_data[np.where(np.isnan(data))]=0
             bphi[:,:,i] = filled_data
 
         # change order from [R,Z,phi] to [R,phi,Z]
@@ -1232,6 +1245,13 @@ class ImportData():
         }
 
         return out
+    
+    @staticmethod
+    def vmec_sts(ncfile, **kwargs):
+        data = ImportData.vmec_field(ncfile, **kwargs)
+        data.pop("rlcfs", None)
+        data.pop("zlcfs", None)
+        return ("B_STS", data)
 
     @staticmethod
     def desc_field(h5file,phimin=0,phimax=360,nphi=361,ntheta=120,
@@ -1524,8 +1544,8 @@ class ImportData():
         psi_1d = np.array(vmec.variables["phi"])  # toroidal flux, full mesh
 
         # inverse Fourier transform to (psi,theta,phi) coordinates (m)
-        r_grid = self.costransform(theta, phi, rmnc, xm, xn)
-        z_grid = self.sintransform(theta, phi, zmns, xm, xn)
+        r_grid = ImportData.costransform(theta, phi, rmnc, xm, xn)
+        z_grid = ImportData.sintransform(theta, phi, zmns, xm, xn)
 
         # magnetic axis (m)
         axisr = r_grid[0, 0, :]
@@ -1643,3 +1663,11 @@ class ImportData():
         }
 
         return out
+
+
+    @staticmethod
+    def extender_sts(ncfile, extfile, **kwargs):
+        data = ImportData.extender_field(ncfile, extfile, **kwargs)
+        data.pop("rlcfs", None)
+        data.pop("zlcfs", None)
+        return ("B_STS", data)
