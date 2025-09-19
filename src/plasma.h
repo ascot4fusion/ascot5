@@ -55,6 +55,7 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
 a5err plasma_eval_flow(real* vflow, real rho, real r, real phi, real z, real t,
                        plasma_data* pls_data);
 DECLARE_TARGET_END
+GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
 int plasma_get_n_species(plasma_data* pls_data);
 DECLARE_TARGET_END
 GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
