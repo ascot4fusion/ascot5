@@ -73,7 +73,9 @@ typedef enum error_type {
     ERR_WIENER_ARRAY      =   6, /**< Wiener array is full or inconsistent    */
     ERR_INTEGRATION       =   7, /**< Integrating marker coordinates yield
                                       unphysical results                      */
-    ERR_ATOMIC_EVALUATION =   8  /**< Failure when evaluating atomic reaction */
+    ERR_ATOMIC_EVALUATION =   8, /**< Failure when evaluating atomic reaction */
+    ERR_BESSEL_EVALUATION =   9, /**< Failure when evaluating Bessel function */
+    ERR_AIRY_EVALUATION   =  10, /**< Failure when evaluating Airy function   */
 }error_type;
 
 /**

@@ -696,7 +696,7 @@ a5err RF2D_gc_stix_eval_fields(real r, real phi, real z, real t,
  * @param hist Pointer to the RF_particle_history structure containing the particle's history.
  * @param p Pointer to the particle_simd_gc structure containing the current particle state.
  */
-void RF2D_gc_stix_scatter(RF2D_gc_stix* stix, RF_particle_history* hist, 
+void RF2D_gc_stix_scatter(RF2D_gc_stix* stix, RF_particle_history* hist,
                           particle_simd_gc* p, real* h, real* rnd){
     // Apply the Stix scattering operator to the particle and update its internal state.
     if (stix == NULL || hist == NULL || p == NULL) {
@@ -741,9 +741,25 @@ void RF2D_gc_stix_scatter(RF2D_gc_stix* stix, RF_particle_history* hist,
 
                 // Evaluating the Bessel functions
                 real Jm1, Jl, Jp1; // Bessel functions of order lres-1, lres and lres+1
-                Jm1 = gsl_sf_bessel_Jn(lres - 1, arg);
-                Jl  = gsl_sf_bessel_Jn(lres, arg);
-                Jp1 = gsl_sf_bessel_Jn(lres + 1, arg);
+                int err1, err2, err3;
+                err1 = gsl_sf_bessel_Jn_e(lres - 1, arg, &Jm1);
+                err2 = gsl_sf_bessel_Jn_e(lres, arg, &Jl);
+                err3 = gsl_sf_bessel_Jn_e(lres + 1, arg, &Jp1);
+                if(err1){
+                    print_err("RF2D_gc_stix_scatter: Error computing Bessel function J_%d(%f) for particle %d, wave %d, kick %d.\n", lres - 1, arg, imrk, iwave, ikick);
+                    p->err[imrk] = error_raise( ERR_BESSEL_EVALUATION, __LINE__, EF_RF_GC2D );
+                    continue;
+                }
+                if(err2){
+                    print_err("RF2D_gc_stix_scatter: Error computing Bessel function J_%d(%f) for particle %d, wave %d, kick %d.\n", lres, arg, imrk, iwave, ikick);
+                    p->err[imrk] = error_raise( ERR_BESSEL_EVALUATION, __LINE__, EF_RF_GC2D );
+                    continue;
+                }
+                if(err3){
+                    print_err("RF2D_gc_stix_scatter: Error computing Bessel function J_%d(%f) for particle %d, wave %d, kick %d.\n", lres + 1, arg, imrk, iwave, ikick);
+                    p->err[imrk] = error_raise( ERR_BESSEL_EVALUATION, __LINE__, EF_RF_GC2D );
+                    continue;
+                }
 
                 // We evaluate the value of the derivatives using the recurrence relations.
                 real dbessel_l_m1 = 0.5 * (lres - 1) * Jm1 - 0.5*arg*Jl;
@@ -769,16 +785,16 @@ void RF2D_gc_stix_scatter(RF2D_gc_stix* stix, RF_particle_history* hist,
                 real irnd = cos(lres * rnd[imrk_rnd_idx] * 2.0 * M_PI);
 
                 // The following part is prone to underflow since the mu values are always
-                // scaled by the mass of the particle. We temporarily remove the mass.
+                // scaled by the mass of the particle. We temporarily remove the charge.
                 dmu /= p->charge[imrk];
                 real tmp_mu = p->mu[imrk] / p->charge[imrk];
                 real dmu_stoch = sqrt(abs(2 * tmp_mu * term1 / (term1 + term2) * dmu)) * irnd;
                 imrk_rnd_idx++; // For next fetch.
                 real drhopara_stoch = kpara / (lres * omega_cycl) * dmu_stoch;
+
                 // We recover the original scaling.
                 dmu *= p->charge[imrk];
                 dmu_stoch *= p->charge[imrk];
-                // drhopara *= p->charge[imrk];
                 drhopara_stoch *= p->charge[imrk];
 
                 // Updating the values of the parallel momentum and the magnetic moment.

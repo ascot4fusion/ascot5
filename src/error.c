@@ -104,6 +104,16 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
                     "not have been implemented)");
             break;
 
+        case ERR_BESSEL_EVALUATION:
+            sprintf(msg, "Bessel function evaluation failed "
+                    "(argument could be out of range)");
+            break;
+
+        case ERR_AIRY_EVALUATION:
+            sprintf(msg, "Airy function evaluation failed "
+                    "(argument could be out of range)");
+            break;
+
         default:
             sprintf(msg, "Unknown error");
             break;
@@ -238,6 +248,7 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
         case EF_RF_LIBRARY:
             sprintf(file, "RFlib.c");
             break;
+
         case EF_RF_HISTGC:
             sprintf(file, "RF_stix_particle_history.c");
             break;
