@@ -283,7 +283,7 @@ Examples
 ========
 
 .. list-table:: Examples of simulation times and number of markers used
-   :widths: 50 25 25 25
+   :widths: 45 30 25 25
    :header-rows: 1
 
    * - Simulation
@@ -294,6 +294,10 @@ Examples
      - Xeon-Phi, 10 nodes (MARCONI)
      - :math:`1\times10^6`
      - 24 h
+   * - Alpha particle slowing-down in 3D
+     - 2 x AMD Rome 7H12 per node, 20 nodes (Mahti)
+     - :math:`4\times10^6`
+     - 25-50 h (depending on plasma)
    * -
      -
      -
