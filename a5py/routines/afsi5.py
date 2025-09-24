@@ -2,6 +2,7 @@
 studies in fusion devices
 """
 import ctypes
+import time as t
 import numpy as np
 import unyt
 import numpy.ctypeslib as npctypes
@@ -41,37 +42,33 @@ class Afsi():
 
     def estimate_max_fusion_rate(self, reaction, r, phi, z, swap = False, beam = None):
         """Estimate the maximum fusion rate for a given reaction."""
-        
-        r_grid, phi_grid, z_grid = np.meshgrid(r, phi, z, indexing='ij')
-        
+                
         self._ascot.input_init(bfield=True)
         self._ascot.input_init(plasma=True)
         m1, _, m2, _, _, _, _, _, _ = self.reactions(reaction)
-        te = self._ascot.input_eval(r_grid, phi_grid, z_grid, 0.0*unyt.s, 'te')
-        te = te[~(np.isnan(te))].max()
-        T_max_J = te.to("J")
-        thermal_dens = self._ascot.input_eval(r_grid, phi_grid, z_grid, 0.0*unyt.s, 'ne')
-        thermal_dens = thermal_dens[~(np.isnan(thermal_dens))].max()
+
         if beam is None:
-            density1 = thermal_dens
-            density2 = density1
-            v_max1 = np.sqrt(2 * T_max_J / m1)
-            v_max2 = np.sqrt(2 * T_max_J / m2)
+            phic, rc, zc = 0.5*(phi[:-1]+phi[1:]), 0.5*(r[:-1]+r[1:]), 0.5*(z[:-1]+z[1:])
+        
+            ti1 = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'ti1', grid=True)
+            ti1 = ti1[~(np.isnan(ti1))].to("J")
+            ti2 = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'ti2', grid=True)
+            ti2 = ti2[~(np.isnan(ti2))].to("J")
+
+            thermal_dens1 = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'ni1', grid=True)
+            density1 = thermal_dens1[~(np.isnan(thermal_dens1))].max()
+            thermal_dens2 = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'ni2', grid=True)
+            density2 = thermal_dens2[~(np.isnan(thermal_dens2))].max()
+
+            v_max1 = np.sqrt(2 * ti1 / m1).max()
+            v_max2 = np.sqrt(2 * ti2 / m2).max()
         else:
             ppar = beam.integrate(copy = True, r=np.s_[:], phi=np.s_[:], z=np.s_[:], pperp=np.s_[:], time=np.s_[:], charge=np.s_[:]).histogram()
             pperp = beam.integrate(copy = True, r=np.s_[:], phi=np.s_[:], z=np.s_[:], ppar=np.s_[:], time=np.s_[:], charge=np.s_[:]).histogram()
 
-            # ppar_cdf = np.cumsum(ppar) / np.sum(ppar)
-            # quantile_idx = np.searchsorted(ppar_cdf, 0.999)
-            # ppar_max = beam.abscissa("ppar")[quantile_idx]
-
             ppar_idxs = np.nonzero(ppar)
             ppar_values = beam.abscissa("ppar")[ppar_idxs]
             ppar_max = np.max(np.absolute(ppar_values))
-
-            # pperp_cdf = np.cumsum(pperp) / np.sum(pperp)
-            # quantile_idx = np.searchsorted(pperp_cdf, 0.999)
-            # pperp_max = beam.abscissa("pperp")[quantile_idx]
 
             pperp_idxs = np.nonzero(pperp)
             pperp_values = beam.abscissa("pperp")[pperp_idxs]
@@ -85,27 +82,40 @@ class Afsi():
 
             z_idx = np.digitize([z[0],z[-1]], beam.abscissa_edges("z")) - 1
 
-            rvol = beam.abscissa_edges("r")[r_idx[0]:r_idx[1]+1]
-            phivol = beam.abscissa_edges("phi")[phi_idx[0]:phi_idx[1]+1]
-            zvol = beam.abscissa_edges("z")[z_idx[0]:z_idx[1]+1]
+            r_grid = beam.abscissa_edges("r")[r_idx[0]:r_idx[1]+1]
+            phi_grid = beam.abscissa_edges("phi")[phi_idx[0]:phi_idx[1]+1]
+            z_grid = beam.abscissa_edges("z")[z_idx[0]:z_idx[1]+1]
 
-            phic, rc, zc = np.meshgrid(0.5*(phivol[:-1]+phivol[1:]),
-                                       0.5*(rvol[:-1]+rvol[1:]),
-                                       0.5*(zvol[:-1]+zvol[1:]))
-            vol = ( rc * np.diff(rvol[:2]) * np.diff(zvol[:2]) * np.diff(phivol[:2])* np.pi/180 )
+            phic, rc, zc = np.meshgrid(0.5*(phi_grid[:-1]+phi_grid[1:]),
+                                       0.5*(r_grid[:-1]+r_grid[1:]),
+                                       0.5*(z_grid[:-1]+z_grid[1:]))
+            
+            vol = ( rc * np.diff(r_grid[:2]) * np.diff(z_grid[:2]) * np.diff(phi_grid[:2])* np.pi/180 )
 
             rpzhist = beam.integrate(copy = True, ppar=np.s_[:], pperp=np.s_[:], charge=np.s_[:], time = np.s_[:]).histogram()
             rpzhist = rpzhist[r_idx[0]:r_idx[1], phi_idx[0]:phi_idx[1], z_idx[0]:z_idx[1]]
 
-            density1 = (rpzhist/vol).max()
-            density2 = thermal_dens
+            phic, rc, zc = 0.5*(phi_grid[:-1]+phi_grid[1:]), 0.5*(r_grid[:-1]+r_grid[1:]), 0.5*(z_grid[:-1]+z_grid[1:])
+            
             if not swap:
-                v_max2 = np.sqrt(2 * T_max_J / m2)
+                ti2 = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'ti2', grid=True)
+                ti2 = ti2[~(np.isnan(ti2))].to("J")
+                v_max2 = np.sqrt(2 * ti2 / m2).max()
                 v_max1 = np.sqrt(ppar_max**2+pperp_max**2)/m1
+
+                density1 = (rpzhist/vol).max()
+                thermal_dens2 = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'ni2', grid=True)
+                density2 = thermal_dens2[~(np.isnan(thermal_dens2))].max()
             else:
-                v_max1 = np.sqrt(2 * T_max_J / m1)
+                ti1 = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'ti1', grid=True)
+                ti1 = ti1[~(np.isnan(ti1))].to("J")
+                v_max1 = np.sqrt(2 * ti1 / m1).max()
                 v_max2 = np.sqrt(ppar_max**2+pperp_max**2)/m2
-        
+
+                density2 = (rpzhist/vol).max()
+                thermal_dens1 = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'ni1', grid=True)
+                density1 = thermal_dens1[~(np.isnan(thermal_dens1))].max()
+
         v_rel_max = v_max1 + v_max2
         mu = (m1 * m2) / (m1 + m2)
         E_rel = 0.5 * mu * v_rel_max**2
@@ -223,9 +233,13 @@ class Afsi():
         cumdist_all = self.get_cumdist(beam) if beam is not None else np.zeros(1)
         prod2 = np.zeros((nmc, 7), dtype=np.float64)
         
+        print("Started generating", nmc, "markers")
+        start = t.time()
         _LIBASCOT.afsi_run_rejection(ctypes.byref(self._ascot._sim), ctypes.byref(afsi), nmc, ctypes.c_double(Smax), cumdist_all.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
                                     prod2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
-        
+        elapsed = t.time() - start
+        print("Neutron source successfully generated in", f"{elapsed/3600:.2f}" " hours" if elapsed > 3600 else f"{elapsed/60:.2f}" " minutes")
+        print("The markers are stored in the binary file")
         self._ascot.input_free(bfield=True, plasma=True)
 
         self._ascot.file_load(self._ascot.file_getpath())
