@@ -65,8 +65,10 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
                                             negative of hout_rfof             */
     real cputime, cputime_last; // Global cpu time: recent and previous record
 
-    particle_allocate_gc(&p, mrk_array_size);  // This array holds current states
-    particle_allocate_gc(&p0, mrk_array_size); // This array stores previous states
+    particle_simd_gc p;  // This array holds current states
+    particle_simd_gc p0; // This array stores previous states
+    particle_allocate_gc(&p, mrk_array_size);
+    particle_allocate_gc(&p0, mrk_array_size);
     rfof_marker rfof_mrk; // RFOF specific data
 
     /* Init dummy markers */
