@@ -47,32 +47,24 @@ class Afsi():
         self._ascot.input_init(plasma=True)
         m1, _, m2, _, _, _, _, _, _ = self.reactions(reaction)
 
+        phic, rc, zc = 0.5*(phi[:-1]+phi[1:]), 0.5*(r[:-1]+r[1:]), 0.5*(z[:-1]+z[1:])
+
+        ti = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'te', grid=True)
+        ti = ti[~(np.isnan(ti))].to("J")
+
+        thermal_dens = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'ne', grid=True)
+        density1 = thermal_dens[~(np.isnan(thermal_dens))].max()
+        density2 = density1
+
         if beam is None:
-            phic, rc, zc = 0.5*(phi[:-1]+phi[1:]), 0.5*(r[:-1]+r[1:]), 0.5*(z[:-1]+z[1:])
-        
-            ti1 = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'ti1', grid=True)
-            ti1 = ti1[~(np.isnan(ti1))].to("J")
-            ti2 = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'ti2', grid=True)
-            ti2 = ti2[~(np.isnan(ti2))].to("J")
-
-            thermal_dens1 = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'ni1', grid=True)
-            density1 = thermal_dens1[~(np.isnan(thermal_dens1))].max()
-            thermal_dens2 = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'ni2', grid=True)
-            density2 = thermal_dens2[~(np.isnan(thermal_dens2))].max()
-
-            v_max1 = np.sqrt(2 * ti1 / m1).max()
-            v_max2 = np.sqrt(2 * ti2 / m2).max()
+            v_max1 = np.sqrt(2 * ti / m1).max()
+            v_max2 = np.sqrt(2 * ti / m2).max()
         else:
             ppar = beam.integrate(copy = True, r=np.s_[:], phi=np.s_[:], z=np.s_[:], pperp=np.s_[:], time=np.s_[:], charge=np.s_[:]).histogram()
             pperp = beam.integrate(copy = True, r=np.s_[:], phi=np.s_[:], z=np.s_[:], ppar=np.s_[:], time=np.s_[:], charge=np.s_[:]).histogram()
 
-            ppar_idxs = np.nonzero(ppar)
-            ppar_values = beam.abscissa("ppar")[ppar_idxs]
-            ppar_max = np.max(np.absolute(ppar_values))
-
-            pperp_idxs = np.nonzero(pperp)
-            pperp_values = beam.abscissa("pperp")[pperp_idxs]
-            pperp_max = np.max(np.absolute(pperp_values))
+            ppar_max = beam.abscissa("ppar")[np.argmax(ppar)]
+            pperp_max = beam.abscissa("pperp")[np.argmax(pperp)]
 
             r_idx = np.digitize([r[0],r[-1]], beam.abscissa_edges("r")) - 1
             if beam.abscissa_edges("phi").shape[0] > 2:
@@ -94,27 +86,16 @@ class Afsi():
 
             rpzhist = beam.integrate(copy = True, ppar=np.s_[:], pperp=np.s_[:], charge=np.s_[:], time = np.s_[:]).histogram()
             rpzhist = rpzhist[r_idx[0]:r_idx[1], phi_idx[0]:phi_idx[1], z_idx[0]:z_idx[1]]
-
-            phic, rc, zc = 0.5*(phi_grid[:-1]+phi_grid[1:]), 0.5*(r_grid[:-1]+r_grid[1:]), 0.5*(z_grid[:-1]+z_grid[1:])
             
             if not swap:
-                ti2 = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'ti2', grid=True)
-                ti2 = ti2[~(np.isnan(ti2))].to("J")
-                v_max2 = np.sqrt(2 * ti2 / m2).max()
+                v_max2 = np.sqrt(2 * ti / m2).max()
                 v_max1 = np.sqrt(ppar_max**2+pperp_max**2)/m1
-
                 density1 = (rpzhist/vol).max()
-                thermal_dens2 = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'ni2', grid=True)
-                density2 = thermal_dens2[~(np.isnan(thermal_dens2))].max()
             else:
-                ti1 = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'ti1', grid=True)
-                ti1 = ti1[~(np.isnan(ti1))].to("J")
-                v_max1 = np.sqrt(2 * ti1 / m1).max()
+                v_max1 = np.sqrt(2 * ti / m1).max()
                 v_max2 = np.sqrt(ppar_max**2+pperp_max**2)/m2
-
                 density2 = (rpzhist/vol).max()
-                thermal_dens1 = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'ni1', grid=True)
-                density1 = thermal_dens1[~(np.isnan(thermal_dens1))].max()
+
 
         v_rel_max = v_max1 + v_max2
         mu = (m1 * m2) / (m1 + m2)
@@ -122,7 +103,7 @@ class Afsi():
         reactions = {v: k for k, v in AFSI_REACTIONS.items()}
         reaction = reactions[reaction]
         sigma = _LIBASCOT.boschhale_sigma(ctypes.c_uint32(reaction), ctypes.c_double(E_rel))
-        S_max = density1 * density2 * v_rel_max * sigma*unyt.m**2
+        S_max = (density1 * density2 * v_rel_max * sigma*unyt.m**2)*1.1
         return S_max
     
     def get_cumdist(self, beam):

@@ -348,6 +348,7 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n,
     real phimin = afsi->phi[0], phimax = afsi->phi[1];
     real zmin = afsi->z[0], zmax = afsi->z[1];
 
+    int quante = 0;
     int n_accepted = 0 ;
     int n_samples = 1; 
     int not_transformed_vel = 0; // 0 -> to use B-field aligned transformation, 1 -> vz always aligned with pparall, not physical for neutronics sim.
@@ -405,13 +406,13 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n,
         real E = 0.5 * (m1 * m2) / (m1 + m2) * vcom2;
         real source = density1 * density2 * sqrt(vcom2) * boschhale_sigma(afsi->reaction, E);
         real u  =random_uniform(rdata);
-        
+
         if (u < source / Smax) {
             afsi_store_particle_data(n_accepted, r, phirad, z, vprod2, mprod2, prod2, cartesian);
             n_accepted++;
         }
     }
-
+    printf("quante: %d\n", quante);
     
 }
 
