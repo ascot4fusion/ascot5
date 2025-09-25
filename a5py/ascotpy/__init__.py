@@ -12,7 +12,7 @@ import a5py.routines.plotting as a5plt
 from a5py.routines.plotting import openfigureifnoaxes, plt
 from a5py.exceptions import AscotInitException
 
-from .libascot    import LibAscot, _LIBASCOT, _get_struct_class
+from .libascot    import LibAscot, _LIBASCOT, PTR_RFOF, _get_struct_class
 from .libsimulate import LibSimulate
 from .libproviders import LibProviders
 
@@ -246,6 +246,25 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             qid = getattr(self._sim, "qid_" + inp)
             if qid == Ascotpy.DUMMY_QID:
                 raise AscotInitException(inp + " is not initialized")
+
+    def input_init_rfof(self):
+        """
+        """
+        if self._rfof_initialized:
+            raise AscotInitException("RFOF input is already initialized")
+        fun = _LIBASCOT.rfof_init_offload
+        fun.restype  = None
+        fun.argtypes = [PTR_RFOF]
+        fun(ctypes.byref(self._sim.rfof_data))
+        self._rfof_initialized = True
+
+    def input_free_rfof(self):
+        """
+        """
+        if not self._rfof_initialized:
+            raise AscotInitException("RFOF input is not initialized")
+
+        self._rfof_initialized = False
 
     def input_initialized(self):
         """Get inputs that are currently initialized.
@@ -568,10 +587,261 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         else:
             return [out[q] for q in qnt]
 
-    def input_plotrz(self, r, z, qnt, phi=0*unyt.deg, t=0*unyt.s,
-                     clim=None, cmap=None, axes=None, cax=None):
+    def input_plotalongaxis(self, qnt, nphi=None, phimin=0, phimax=360,
+                            t=0.0*unyt.s, axes=None):
+        """Plot qnt on the magnetic axis as a function of phi.
+
+
+        By default plots qnt in the phigrid of the axis inputs.
+        However, if nphi is given, qnt is plotted against
+        np.linspace(phimin, phimax, nphi)[:-1]
+
+        Parameters
+        ----------
+        qnt : str
+            Name of the quantity to be plotted along the magnetic axis.
+        nphi : int, optional
+            number of phi points for plotting
+        phimin : float, optional
+            Minimum phi value at which qnt is plotted.
+        phimax : float, optional
+            "Maximum" phivalua for the plot. See the comment above parameters.
+        """
+
+        if nphi is None:
+            # Phivec corresponds to the points where the axis input is given.
+            b = self.data.bfield.active.read()
+            phi_vec = np.linspace(b["axis_phimin"][0],b["axis_phimax"][0],
+                                  b["axis_nphi"][0]+1)[:-1]*unyt.deg
+            qnt_vec = np.empty(b["axis_nphi"][0])
+            axisr = b["axisr"]*unyt.m
+            axisz = b["axisz"]*unyt.m
+        else:
+            # Phivev is calculated based on the given resolution, nphi
+            phi_vec = np.linspace(phimin, phimax, nphi+1)[:-1]*unyt.deg
+            qnt_vec = np.empty(nphi)
+            dummyarray = np.ones(nphi)
+            out = self._eval_bfield(
+                dummyarray, phi_vec.to("rad").v, dummyarray, t, evalaxis=True)
+            axisr = out["axisr"]    # these are already in unyt.m
+            axisz = out["axisz"]    # these are already in unyt.m
+        qnt_vec = self.input_eval(axisr, phi_vec, axisz, t, qnt)
+        a5plt.line2d([phi_vec], [qnt_vec], xlabel="phi [deg]",
+                     ylabel=f"{qnt:s} [{str(qnt_vec.units):s}]", axes=axes)
+
+    def input_check_bfield_seam(self,
+                                qnt,
+                                r=None,
+                                z=None,
+                                axes=None,
+                                centremostpercentage=10,
+                                diff=True,
+                                forceplot=False,
+                                n_centremost_elements_for_fit=None,
+                                plot_spline_interpolated=False,
+                                ):
+        """
+        Tries to check if an (R,z) plane is missing near the "seam" of the
+        bfield input.
+
+        This function is intended to be used to verify that the correct number
+        of (R,z) planes is provided when using a stellarator bfield input. To
+        recap, psi and Bfield components should be given at the points
+        np.linspace(phimin, phimax, nphi+1)[:-1]. (It is possible to
+        independently specify phimin, phimax and nphi for both psi and the
+        bfield components.)
+
+        If an (R,z) plane might be missing, plots qnt as a function of phi,
+        evaluated only at the grid points where the input is given.
+
+        Parameters
+        ----------
+        qnt : str
+            One of the following: {"psi", "br", "bphi", "bz"}
+        r : float, optional
+            R coordinate where data is evaluated. (The functions uses the R
+            value of the input that is closest to this requested one) [m]
+        z : float, optional
+            z coordinate where data is evaluated. (The functions uses the z
+            value of the input that is closest to this requested one) [m]
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        centremostpercentage : float, optional
+            Percentage of the grid closest to the requested r and z.
+            (Default is 10, i.e. 5 % of the grid on either side)
+        diff : bool, optional
+            If True, plots np.diff(qnt)/np.diff(phi) instead of qnt. A possible
+            kink may be more clearly visible in the diff(qnt) plot.
+        forceplot : bool, optional
+            If True, plots the requested quantity even if no (R,z) plane is
+            deemed missing.
+        n_centremost_elements_for_fit : int, optional
+            Number of elements from the centre of the quantity array to use for
+            least square sum fitting a polynomial. Default is None, in which
+            case the whole array, consisting of 'centremostpercentage', is used.
+        plot_spline_interpolated : bool, optional
+            If True, plots the spline interpolated version of qnt.
+        """
+
+        if qnt not in ["psi", "br", "bphi", "bz"]:
+            raise ValueError("qnt must be one of the "
+                             "following: {\"psi\", \"br\", \"bphi\", \"bz\"}")
+        b = self.data.bfield.active.read()
+
+        # Since psi and bfield may have been given in different grids, take
+        # explicitly the corresponding grid
+        if qnt == "psi":
+            name = "psi"
+        else:
+            name = "b"
+        dataphimin = b[name+"_phimin"][0]; dataphimax = b[name+"_phimax"][0]
+        datanr, datanphi, datanz = b[qnt].shape
+        phi_vec = np.linspace(dataphimin, dataphimax, datanphi+1)[:-1]
+        dphi = (dataphimax-dataphimin)/(datanphi)
+        datarmin = b[name+"_rmin"][0]; datarmax = b[name+"_rmax"][0]
+        datazmin = b[name+"_zmin"][0]; datazmax = b[name+"_zmax"][0]
+
+        # If r or z co-ordinates are given, get qnt at those
+        if r is not None:
+            rmidindex = int((r-datarmin)/(datarmax-datarmin)*datanr)
+        else:
+            rmidindex = int(datanr/2)
+        # Update r to be the actual r that we are using
+        r = np.linspace(datarmin, datarmax, datanr)[rmidindex]
+
+        if z is not None:
+            zmidindex = int((z-datazmin)/(datazmax-datazmin)*datanz)
+        else:
+            zmidindex = int(datanz/2)
+        # Update z to be the actual r that we are using
+        z = np.linspace(datazmin, datazmax, datanz)[zmidindex]
+
+        qntarray = b[qnt][rmidindex,:,zmidindex]
+
+        # Shift phi_vec values so that the middle of the array correstponds
+        # to the "seam" of the input, that is, phi=phimin is put in the middle
+        n_elements_rolled = int(datanphi/2)
+        phi_vec = phi_vec - n_elements_rolled*dphi
+        qntarray = np.roll(qntarray, n_elements_rolled)
+
+        # Select only the centremost points
+        frac_points_to_keep = 0.01*centremostpercentage
+        start_index = int(datanphi * (1 - frac_points_to_keep) / 2)
+        end_index   = datanphi - start_index
+        phi_vec = phi_vec[start_index:end_index]
+        qntarray = qntarray[start_index:end_index]
+
+        # If diff, plot instead np.diff(qnt)
+        if diff:
+            qntarray = np.diff(qntarray)   #/np.mean(qntarray)  # normalised diff
+            diff_phi = np.diff(phi_vec)
+            qntarray = qntarray/diff_phi
+            phi_vec = 0.5*(phi_vec[:-1] + phi_vec[1:])
+            ylabel = f"diff({qnt:s})/d phi"
+        else:
+            ylabel = qnt
+
+        # Take only the points closest to the seam
+        if n_centremost_elements_for_fit is not None:
+            def centremost(arr, n):
+                """Return n centremost elements of a 1D numpy array."""
+                length = len(arr)
+                if n > length:
+                    raise ValueError("You requested more elements for the fit" \
+                    f" than the input data has inside " \
+                    f"centremostpercentage={centremostpercentage:.1f} %. There" \
+                    f" are {len(qntarray):d} elements, while you requested" \
+                    f" {n:d}. Please, either reduce " \
+                    "'n_centremost_elements_for_fit' or increase " \
+                    "'centremostpercentage'.")
+                start = (length - n) // 2
+                end = start + n
+                return arr[start:end]
+            qntforfit = centremost(qntarray, n_centremost_elements_for_fit)
+            phiforfit = centremost(phi_vec, n_centremost_elements_for_fit)
+        else:
+            qntforfit = qntarray
+            phiforfit = phi_vec
+
+        # Fit a polynomial. Third order seems to work well.
+        poly_order = 3
+        fit = np.polyfit(phiforfit, qntforfit, poly_order)
+        fitfunc = np.poly1d(fit)
+
+        # Evaluate the vertical distance between qntarray and the polynomial
+        qnt_vertical_distance = np.abs(qntforfit - fitfunc(phiforfit))
+        qnt_vertical_distance_avg = np.mean(qnt_vertical_distance)
+        qnt_vertical_distance_normalised = qnt_vertical_distance/qnt_vertical_distance_avg
+
+        # If normalised deviation above threshold, the input point may cause a kink
+        problemeatic_points_indices = qnt_vertical_distance_normalised > 2.0
+        n_problematic_points = np.sum(problemeatic_points_indices)
+        if n_problematic_points > 0:
+            warnings.warn(f"{n_problematic_points:d} potentially problematic " \
+                          f"points in the {qnt:s} input found near the 'seam'" \
+                          " in phi direction.")
+
+        # If kink found, plot the figure for the user to double check
+        if n_problematic_points or forceplot:
+            axes = a5plt.line2d([phi_vec],
+                                [qntarray],
+                                axes=axes,
+                                marker="o",
+                                markerfacecolor="none",
+                                title=f"R = {r:.2f} m, z = {z:.2f} m",
+                                label="input data", skipshow=True)
+
+            # Plot also the spline-interpolated values to assess how well the
+            # splines handle the data
+            if plot_spline_interpolated:
+                phi_high_res = np.linspace(phi_vec[0],phi_vec[-1],100)
+                high_res_qnt = self.input_eval(r, phi_high_res, z, 0, qnt)
+                if diff:
+                    phi_hr_diff = np.diff(phi_high_res)
+                    phi_high_res = 0.5*(phi_high_res[:-1] + phi_high_res[1:])
+                    high_res_qnt = np.diff(high_res_qnt)
+                    high_res_qnt = high_res_qnt/phi_hr_diff
+                axes = a5plt.line2d([phi_high_res], [high_res_qnt], axes=axes,
+                            label="interpolated", skipshow=True)
+
+            # Plot the polynomial fit to verify that it is sensible
+            phi_high_res_centre = np.linspace(phiforfit[0], phiforfit[-1], 50)
+            axes = a5plt.line2d([phi_high_res_centre],
+                                [fitfunc(phi_high_res_centre)],
+                                axes=axes,
+                                title=f"R = {r:.2f} m, z = {z:.2f} m",
+                                label=f"lsq fit, polynomial order {poly_order:d}",
+                                c="k",
+                                skipshow=True,
+                                )
+
+            # Circle problematic input points with red
+            a5plt.scatter2d(phiforfit[problemeatic_points_indices],
+                            qntforfit[problemeatic_points_indices],
+                            c="r",
+                            axes=axes,
+                            xlabel="phi [deg]",
+                            ylabel=ylabel,
+                            marker="o",
+                            markersize=20,
+                            markerfacecolor="none",
+                            label="Potentially problematic points",
+                            skipshow=True,
+                            )
+
+            a5plt.tight_layout(axes=axes)
+            a5plt.legend()
+            a5plt.show()
+
+
+    def input_plotrz(self, r, z, qnt, phi=0*unyt.deg, t=0*unyt.s, rhomax=None,
+                     clim=None, cmap=None, axes=None, cax=None,
+                     drawcontours=False, contourvalues=None, contourcolors=None,
+                     contourlinestyles="-", contourlinewidths=None,
+                     labelfontsize=10):
         """Plot input quantity on a (R, z) plane at given coordinates.
 
+        With drawcontours=True, draws also the contourlines.
         To plot quantity on a logarithmic scale (base 10), add "log" in
         the name of the quantity e.g. "log ne".
 
@@ -587,20 +857,38 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             Toroidal coordinate where data is evaluated.
         t : float, optional
             Time coordinate where data is evaluated.
+        rhomax : float, optional
+            Do not plot (R, z) points for which rho > rhomax
         clim : list [float, float], optional
             Minimum and maximum color range values.
+        cmap : str, optional
+            Colormap.
         axes : :obj:`~matplotlib.axes.Axes`, optional
             The axes where figure is plotted or otherwise new figure is created.
         cax : :obj:`~matplotlib.axes.Axes`, optional
             The color bar axes or otherwise taken from the main axes.
+        drawcontours : boolean, optional
+            If true, draws contourlines on top of the heatmap.
+        contourvalues : list [float], optional
+            Which contour lines to draw. Leave empty for automatic selection
+        contourcolors : str or list[str], optional
+            Colors of the contour lines. By giving a list, one can match the
+            colors with the contourvalues (see above).
+        contourlinestyles : str or list[str], optional
+            Linestyle of the contour lines -- as the reader might have guessed.
+            By giving a list, one can match the styles with the contourvalues (
+            see above).
+        contourlinewidths : float or list[float], optional
+            You can probably guess. By giving a list, one can match the widths
+            with the contourvalues (see above).
+        labelfontsize : float, optional
+            Font size of the labels that indicate contour values.
         """
         logscale = False
         if "log" in qnt:
             qnt = qnt.replace("log", "").strip()
             logscale = True
 
-        out = np.squeeze(self.input_eval(r, phi, z, t, qnt, grid=True)[:,0,:,0])
-        diverging = np.nanmin(out)*np.nanmax(out) < 0 # If data has both -+ vals
         try:
             r = r.v
         except AttributeError:
@@ -609,10 +897,34 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             z = z.v
         except AttributeError:
             pass
+        out = np.squeeze(self.input_eval(r*unyt.m, phi, z*unyt.m, t, qnt,
+                                         grid=True)[:,0,:,0])
+        diverging = np.nanmin(out)*np.nanmax(out) < 0 # If data has both -+ vals
+
+        # Handle possible maximum rho value
+        if not rhomax==None and rhomax <= 0:
+            print(f"Negative rhomax given ({rhomax:.2e}) to input_plotrz(). Ignoring rhomax.")
+            rhomax=None
+        if not rhomax==None:
+            # Throw away values for which rho > rhomax
+
+            # Get rho at these points and set correspondin data to nan
+            rho_vec = np.squeeze(self.input_eval(r*unyt.m, phi, z*unyt.m, t,
+                                                 "rho", grid=True)[:,0,:,0]).v
+            ind_ignore = rho_vec > rhomax
+            out[ind_ignore] = np.nan
+
         a5plt.mesh2d(r, z, out.v, diverging=diverging, logscale=logscale,
                      axesequal=True, xlabel="R [m]", ylabel="z [m]",
                      clabel=qnt + " [" + str(out.units) + "]", clim=clim,
                      cmap=cmap, axes=axes, cax=cax)
+        if drawcontours:
+            a5plt.contour2d(r, z, out.v, contours=contourvalues, xlabel="R [m]",
+                            ylabel="z [m]", axesequal=True,
+                            colors=contourcolors,
+                            linestyles=contourlinestyles,
+                            linewidths=contourlinewidths, axes=axes,
+                            contourlabels=True, labelfontsize=labelfontsize)
 
     @openfigureifnoaxes(projection=None)
     def input_plotrhocontour(self, rho=1.0, phi=0*unyt.deg, t=0*unyt.s,
@@ -647,6 +959,386 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         axes.set_xlabel("R [m]")
         axes.set_ylabel("z [m]")
 
+    def input_plotphitheta(self, phi, theta, rho, qnt, t=0*unyt.s,
+                     clim=None, cmap=None, axes=None, cax=None,
+                     drawcontours=False, contourvalues=None, contourcolors=None,
+                     contourlinestyles="-", contourlinewidths=None,
+                     labelfontsize=10, drawbfielddir=False,
+                     bfieldlinecolor="black", bfieldlinedensity=0.5,
+                     blinewidth=1.0, blinelength=50.0):
+        """Plot input quantity on a (phi, theta) surface at given rho.
+
+        With drawcontours=True, draws also the contourlines.
+        To plot quantity on a logarithmic scale (base 10), add "log" in
+        the name of the quantity e.g. "log ne".
+
+        Parameters
+        ----------
+        phi : array_like (nphi,)
+            phi abscissa where data is evaluated and plotted.
+        theta : array_like (ntheta,)
+            theta abscissa where data is evaluated and plotted.
+        rho : float
+            Rho co-ordinate of the flux surface.
+        qnt : str
+            Name of the plotted quantity.
+        t : float, optional
+            Time coordinate where data is evaluated.
+        clim : list [float, float], optional
+            Minimum and maximum color range values.
+        cmap : str, optional
+            Colormap.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        cax : :obj:`~matplotlib.axes.Axes`, optional
+            The color bar axes or otherwise taken from the main axes.
+        drawcontours : boolean, optional
+            If true, draws contourlines on top of the heatmap.
+        contourvalues : list [float], optional
+            Which contour lines to draw. Leave empty for automatic selection
+        contourcolors : str or list[str], optional
+            Colors of the contour lines. By giving a list, one can match the
+            colors with the contourvalues (see above).
+        contourlinestyles : str or list[str], optional
+            Linestyle of the contour lines -- as the reader might have guessed.
+            By giving a list, one can match the styles with the contourvalues (
+            see above).
+        contourlinewidths : float or list[float], optional
+            You can probably guess. By giving a list, one can match the widths
+            with the contourvalues (see above).
+        labelfontsize : float, optional
+            Font size of the labels that indicate contour values.
+        drawbfielddir : boolean, optional
+            Draw the direction of the bfield on top of the figure as
+            streamlines. This makes sense only in a tokamak geometry since the
+            poloidal plane is a contant phi plane. If drawfielddir true, one
+            must have theta and phi go from 0 to 360.
+        bfieldlinecolor : str, optional
+            Color of the bfield lines if drawbfielddir=True.
+        bfieldlinedensity : float, optional
+            Density of the bfield lines.
+        blinewidth : float, optional
+            Width of the bfield lines.
+        blinelength : float, optional
+            Length of the bfield lines.
+        """
+        logscale = False
+        if "log" in qnt:
+            qnt = qnt.replace("log", "").strip()
+            logscale = True
+
+        try:
+            phi = phi.v
+        except AttributeError:
+            pass
+        try:
+            theta = theta.v
+        except AttributeError:
+            pass
+
+        # phi and theta inputs are abscissae 1d arrays. We need to make them
+        # into a grid and transform them into a pair of 1d arrays containing all
+        # grid points where we wnat to plot
+        phiphi, thetatheta = np.meshgrid(phi,theta)
+        phi_grid1d = phiphi.ravel(); theta_grid1d = thetatheta.ravel()
+
+        # Map the (phi,theta,rho) to (R,z)
+        rho_grid1d = np.ones(len(phi_grid1d))*rho
+        r_grid1d, z_grid1d = self.input_rhotheta2rz(rho_grid1d,
+                                                    theta_grid1d*unyt.deg,
+                                                    phi_grid1d*unyt.deg, t)
+
+        # Get the value of the qnt into a long 1d array
+        qnt_grid1d = self.input_eval(r_grid1d, phi_grid1d*unyt.deg, z_grid1d,
+                                     t, qnt)
+
+        # Go from raveled array to 2d
+        qnt_grid2d = qnt_grid1d.reshape(len(phi), len(theta), order="F")
+
+        diverging = np.nanmin(qnt_grid2d)*np.nanmax(qnt_grid2d) < 0 # If data has both -+ vals
+
+        a5plt.mesh2d(phi, theta, qnt_grid2d.v, diverging=diverging, logscale=logscale,
+                     axesequal=True, xlabel="phi [deg]", ylabel="theta [deg]",
+                     clabel=qnt + " [" + str(qnt_grid2d.units) + "]", clim=clim,
+                     cmap=cmap, axes=axes, cax=cax)
+
+
+        if drawcontours:
+            a5plt.contour2d(phi, theta, qnt_grid2d.v, contours=contourvalues,
+                            xlabel="phi [deg]", ylabel="theta [deg]",
+                            axesequal=True, colors=contourcolors,
+                            linestyles=contourlinestyles,
+                            linewidths=contourlinewidths, axes=axes,
+                            contourlabels=True, labelfontsize=labelfontsize)
+
+
+        if drawbfielddir:
+            # Evaluate the magnitude of the poloidal component
+            br, bz, bphi = self.input_eval(r_grid1d, phi_grid1d*unyt.deg,
+                                           z_grid1d, t, "br", "bz", "bphi")
+            br=br.v; bz=bz.v; bphi=bphi.v
+            bpolmag = np.sqrt(br**2 + bz**2)
+
+            # To determine whether the poloidal component rotates clockwise or
+            # anti-clockwise, we need to know where the magnetic axis is.
+            out = self._eval_bfield(1*unyt.m, phi_grid1d, 1*unyt.m, t,
+                                    evalaxis=True)
+            axisr = out["axisr"]
+            axisz = out["axisz"]
+
+            # We now get the bpol sign from the sign of the cross product
+            # "r cross Bpol", where r points from the magnetic axis to the (R,z)
+            # location we are considering.
+            dr = r_grid1d-axisr     # r distance from the magnetic axis
+            dz = z_grid1d-axisz     # z
+            bpol_sign = np.sign(dr*bz - dz*br)
+
+            # Get bpol
+            bpol = bpol_sign*bpolmag
+
+            # Arrange Bphi and Bpol into 2d arrays
+            nphi = len(phi)
+            ntheta = len(theta)
+            Bphi_2d = bphi.reshape((ntheta, nphi), order='F')
+            Btheta_2d = bpol.reshape((ntheta, nphi), order='F')
+
+            # Before making the streamline plot of Bphi and Bpol, we need to
+            # normalise them with their respective lengths.
+
+            # Get the poloidal length (circumference) in different phi slices
+            R2d = r_grid1d.reshape((ntheta,nphi))
+            z2d = z_grid1d.reshape((ntheta,nphi))
+            # Distances (each column is some phi value. Rows need to be summed
+            # together to get the total arc length on that phi value (column))
+            dl_poldir = np.sqrt((R2d[1:,:] - R2d[:-1,:])**2 +
+                                (z2d[1:,:] - z2d[:-1,:])**2)
+            pol_circumference = np.sum(dl_poldir, axis=0)
+
+            # Get the toroidal length (circumference) in different theta slices
+            x_grid1d = np.cos(phi_grid1d*np.pi/180)*r_grid1d
+            y_grid1d = np.sin(phi_grid1d*np.pi/180)*r_grid1d
+            x2d = x_grid1d.reshape((ntheta,nphi))
+            y2d = y_grid1d.reshape((ntheta,nphi))
+            dl_tordir = np.sqrt((x2d[:,1:] - x2d[:,:-1])**2 +
+                                (y2d[:,1:] - y2d[:,:-1])**2)
+            tor_circumference = np.sum(dl_tordir, axis=1)
+
+            # Scale Bphi and Bpol with the respective circumferences
+            Bphi_2d_scaled = Bphi_2d/tor_circumference[:,np.newaxis]
+            Btheta_2d_scaled = Btheta_2d/pol_circumference[np.newaxis,:]
+
+            axes.streamplot(phi, theta, Bphi_2d_scaled.v, Btheta_2d_scaled.v,
+                            color=bfieldlinecolor, density=bfieldlinedensity,
+                            linewidth=blinewidth, maxlength=blinelength)
+
+
+    def input_plotfluxsurface3d(self, rho, phi, theta, qnt=None, t=0*unyt.s,
+                     clim=None, cmap=None, axes=None, cax=None, meshalpha = 0.6,
+                     tri_lc=None, tri_lw=0.4, opacity=0.8):
+        """Plot a flux surface or, given qnt, a quantity on a flux surface in 3D.
+
+        To plot quantity on a logarithmic scale (base 10), add "log" in
+        the name of the quantity e.g. "log ne".
+
+        Parameters
+        ----------
+        rho : float
+            Rho co-ordinate of the flux surface.
+        phi : array_like (nphi,)
+            phi abscissa where data is evaluated and plotted.
+        theta : array_like (ntheta,)
+            theta abscissa where data is evaluated and plotted.
+        qnt : str, optional
+            Name of the plotted quantity. E.g. "bnorm"
+        t : float, optional
+            Time coordinate where data is evaluated.
+        clim : list [float, float], optional
+            Minimum and maximum color range values.
+        cmap : str, optional
+            Colormap.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        cax : :obj:`~matplotlib.axes.Axes`, optional
+            The color bar axes or otherwise taken from the main axes.
+        meshalpha: float, optional
+            A parameter used when generating the triangles for the surface. For
+            more info, see "alphashape" and "alpha parameter".
+        tri_lc : str, optional
+            Color of the mesh triangle edges. By default, edges are invisible.
+        tri_lw : float, optional
+            Width of the mesh triangle edges. To enable edges, set also tri_lc.
+        opacity : float, optional
+            Opacity of the drawn surface (0: transparent, 1: opaque).
+        """
+        try:
+            phi = phi.v
+        except AttributeError:
+            pass
+        try:
+            theta = theta.v
+        except AttributeError:
+            pass
+
+        # phi and theta inputs are abscissae 1d arrays. We need to make them
+        # into a grid and transform them into a pair of 1d arrays containing all
+        # grid points where we wnat to plot
+        phiphi, thetatheta = np.meshgrid(phi,theta)
+        phi_grid1d = phiphi.ravel(); theta_grid1d = thetatheta.ravel()
+
+        # Map the (phi,theta,rho) to (R,z)
+        rho_grid1d = np.ones(len(phi_grid1d))*rho
+        r_grid1d, z_grid1d = self.input_rhotheta2rz(rho_grid1d,
+                                                    theta_grid1d*unyt.deg,
+                                                    phi_grid1d*unyt.deg, t)
+        # Map (R, phi) to (x,y)
+        x_grid1d = np.cos(phi_grid1d*np.pi/180)*r_grid1d
+        y_grid1d = np.sin(phi_grid1d*np.pi/180)*r_grid1d
+
+        # Draw surface with or without quantity giving the color
+        if not qnt==None:
+            # Get the value of the qnt into a long 1d array
+            logscale = False
+            if "log" in qnt:
+                qnt = qnt.replace("log", "").strip()
+                logscale = True
+            out_grid1d = self.input_eval(r_grid1d, phi_grid1d*unyt.deg, z_grid1d,
+                                        t, qnt)
+            # If data has both -+ vals
+            diverging = np.nanmin(out_grid1d)*np.nanmax(out_grid1d) < 0
+
+            a5plt.surface3d(x_grid1d, y_grid1d, z_grid1d, qnt_grid1d=out_grid1d,
+                            diverging=diverging, logscale=logscale,
+                            axesequal=True, xlabel="x [m]", ylabel="y [m]",
+                            zlabel="z [m]",
+                            clabel=qnt + " [" + str(out_grid1d.units) + "]",
+                            clim=clim, cmap=cmap,  axes=axes, cax=cax,
+                            meshalpha=meshalpha, tri_lc=tri_lc, tri_lw=tri_lw,
+                            opacity=opacity)
+        else:
+            a5plt.surface3d(x_grid1d, y_grid1d, z_grid1d, axesequal=True,
+                            xlabel="x [m]", ylabel="y [m]", zlabel="z [m]",
+                            clim=clim, cmap=cmap,  axes=axes, cax=cax,
+                            meshalpha=meshalpha, tri_lc=tri_lc, tri_lw=tri_lw,
+                            opacity=opacity)
+
+
+    def input_plotcontoursurface3d(self, qnt, isovalue, xmin, xmax, ymin, ymax,
+                                   zmin, zmax, pointspermeterx=10,
+                                   pointspermetery=10, pointspermeterz=10,
+                                   t=0*unyt.s, max_rho=1.0, ax=None, c=0.135,
+                                   delta=None, tri_lc=None, tri_lw=0.4,
+                                   opacity=0.8, reltol=0.01, axscatter=None,
+                                   surfcolor="blue"):
+        """
+        Plot a 3D contour surface of the specified quantity at a given isovalue.
+
+        If there are holes in you surface, try lowering input parameter c or
+        increasing reltol.
+
+        Parameters
+        ----------
+        qnt : str
+            Name of the quantity whose contour surface is drawn (e.g., "bnorm").
+        isovalue : float
+            Value of the quantity at which to generate the isosurface.
+        xmin, xmax : float
+            Minimum and maximum bounds along the x-axis.
+        ymin, ymax : float
+            Minimum and maximum bounds along the y-axis.
+        zmin, zmax : float
+            Minimum and maximum bounds along the z-axis.
+        pointspermeterx, pointspermetery, pointspermeterz : int, optional
+            Number of grid points along the x, y, and z directions per meter.
+            Ideally, use uniform grid spacing in all directions.
+        t : float or unyt_quantity, optional
+            Time coordinate at which the data is evaluated. Default is 0 seconds.
+        max_rho : float, optional
+            Maximum `rho` until (surface outside this is not drawn)
+        ax : matplotlib.axes.Axes, optional
+            Matplotlib 3D axes to plot on. If None, a new figure and axes are
+            created.
+        c : float, optional
+            Scaling parameter for the grid spacing or contour thresholding.
+            Default is 0.135.
+        delta : float or None, optional
+            Characteristic grid spacing. Ideally, use uniform grid of points.
+        tri_lc : str or None, optional
+            Color of the mesh triangle edges. If None, edges are invisible.
+        tri_lw : float, optional
+            Width of the mesh triangle edges. Default is 0.4.
+        opacity : float, optional
+            Opacity of the drawn surface. (0: transparent, 1: opaque)
+        reltol : float, optional
+            Relative tolerance for isosurface extraction. Default is 0.01.
+        axscatter : 3D axes, optional
+            If given, plots the grid points of the surface on these axes. This
+            can be useful especially when verifying that the the plotted surface
+            is sensible.
+        """
+
+        nx = max(int(pointspermeterx*(xmax-xmin)), 1)
+        ny = max(int(pointspermetery*(ymax-ymin)), 1)
+        nz = max(int(pointspermeterz*(zmax-zmin)), 1)
+
+        # Construct a grid of points
+        x = np.linspace(xmin, xmax, nx)
+        y = np.linspace(ymin, ymax, ny)
+        z = np.linspace(zmin, zmax, nz)
+        xx, yy, zz = np.meshgrid(x, y, z, indexing='ij')
+        x1d = xx.ravel(); y1d = yy.ravel(); z1d = zz.ravel()
+        points = np.column_stack((x1d, y1d, z1d))
+
+        # R and phi co-ordinates needed because we call input_eval()
+        r1d = np.sqrt(x1d**2 + y1d**2)
+        phi1d = np.mod(np.arctan2(y1d, x1d), 2 * np.pi)
+
+        # Evaluate qnt and rho in all grid points
+        qnt_grid1d, rho1d = self.input_eval(r1d * unyt.m, phi1d * unyt.rad, z1d * unyt.m, t, qnt, "rho")
+
+        # If not given, calculate delta, the average grid spacing
+        if delta==None:
+            delta = (xmax-xmin)/nx
+
+        # This parameter specifies the inverse of the size of triangles that are
+        # kept. Consequently, it should be inversely proportional to the grid
+        # spacing. You don't want to throw away too small triangles because the
+        # surface then starts to have holes. On the other hand, you want to
+        # throw away the largest triangles because otherwise there will be
+        # artificial connections/triangles in places where there should be no
+        # surface at all. The severity of this problem greatly depends on the
+        # surface. The parameter c has been defined for fine tuning. You may try
+        # to adjust it manually to get better results.
+        meshalpha=c*1/delta
+
+        #This is the tolerance when discarding points outside the contour
+        #surface. If the grid spacing is larger you must have a larger tolerance
+        # to avoid holes. Feel free to adjust the reltol if you think you can
+        # find a more suitable value.
+        tol = reltol*delta
+
+        # Throw away points that are not on the contour surface. Also throw away
+        # points outside max_rho
+        mask = (
+            (rho1d < max_rho)
+            & (qnt_grid1d >= (1.0 - tol) * isovalue)
+            & (qnt_grid1d <= (1.0 + tol) * isovalue)
+        )
+        surface_points = points[mask]
+
+        # Plot the surface
+        a5plt.surface3d(surface_points[:,0], surface_points[:,1],
+                        surface_points[:,2], axesequal=True, xlabel="x [m]",
+                        ylabel="y [m]", zlabel="z [m]", axes=ax,
+                        meshalpha=meshalpha, tri_lc=tri_lc, tri_lw=tri_lw,
+                        opacity=opacity, surfacecolor=surfcolor)
+
+        # Scatter plot for sanity check (you can verify if there are
+        # sufficiently many points)
+        if not axscatter==None:
+            a5plt.scatter3d(surface_points[:,0], surface_points[:,1],
+                            surface_points[:,2], xlabel="x [m]", ylabel="y [m]",
+                            zlabel="z [m]", markersize=1, axesequal=True, axes=axscatter)
+
     def get_plasmaquantities(self):
         """Return species present in plasma input.
         """
@@ -660,7 +1352,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
 
     def input_rhovolume(self, nrho=10, ntheta=360, nphi=10, method="mc",
                         tol=1e-1, t=0*unyt.s, return_area=False,
-                        return_coords=False):
+                        return_coords=False, minrho=0, maxrho=1, minphi=0, maxphi=360, mintheta=0, maxtheta=360):
         """Evaluate flux surface volumes.
 
         Parameters
@@ -694,6 +1386,18 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             Return also the area on (R, z) plane.
         return_coords : bool, optional
             Return also the (R, phi, z) coordinates for grid center points.
+        minrho : float, optional
+            minimum value of rho
+        maxrho : float, optional
+            maximum value of rho
+        minphi : float, optional
+            minimum value of phi (in degrees)
+        maxphi : float, optional
+            maximum value of phi (in degrees)
+        mintheta : float, optional
+            minimum value of theta (in degrees)
+        maxtheta : float, optional
+            maximum value of theta (in degrees)
 
         Returns
         -------
@@ -715,9 +1419,9 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                 + " were given", (nrho, ntheta, nphi))
 
         # Grid edges and area and volume of the grid cells
-        rho    = np.linspace(0, 1,   nrho) * unyt.dimensionless
-        phi    = np.linspace(0, 2*np.pi, nphi) * unyt.rad
-        theta  = np.linspace(0, 2*np.pi, ntheta) * unyt.rad
+        rho    = np.linspace(minrho, maxrho,   nrho) * unyt.dimensionless
+        phi    = np.linspace(minphi, maxphi/180*np.pi, nphi) * unyt.rad
+        theta  = np.linspace(mintheta, maxtheta/180*np.pi, ntheta) * unyt.rad
         area   = np.zeros((nrho-1, ntheta-1, nphi-1)) * unyt.m**2
         volume = np.zeros((nrho-1, ntheta-1, nphi-1)) * unyt.m**3
 
@@ -729,6 +1433,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         r, z = self.input_rhotheta2rz(
             rhoc.ravel(), thc.ravel(), p.ravel(), t)
         del thc, rhoc
+        r = np.reshape(r, p.shape)
+        z = np.reshape(z, p.shape)
 
         def integrate_prism(rho, theta, phimin, phimax):
             """Integrate volume by dividing it into prisms.
@@ -777,10 +1483,10 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             # Determine the bounding box
             th = np.linspace(0, 2*np.pi, 1000)
             rhoc, thc, phic = np.meshgrid(1.0*unyt.dimensionless, th,
-                                          np.append(phimin, phimax),
+                                          unyt.unyt_array([phimin, phimax]),
                                           indexing="ij" )
             rc, zc = self.input_rhotheta2rz(
-                rhoc.ravel(), thc.ravel(), phic.ravel(), t)
+                rhoc.ravel(), thc.ravel()*unyt.rad, phic.ravel(), t)
             bbox = np.ones((4,)) * unyt.m
             bbox[0] = np.nanmin(rc)
             bbox[1] = np.nanmax(rc)

@@ -1,10 +1,13 @@
-name: ascot-env
+name: ascot-rfof
 channels:
   - conda-forge
 dependencies:
+  - fortran-compiler
   - c-compiler
   - make
-  - llvm-openmp
+  - libxml2
+  - pkg-config
+  - libgomp
   - python>=3.10
   - hdf5
   - zlib
@@ -13,15 +16,9 @@ dependencies:
   - ipython
   - numpy
   - scipy
-  - mpi=*=*openmpi*
-  - h5py=*=*openmpi*
-  - mpi4py
-  - xmlschema
-  - unyt
+  - h5py
+  - unyt==2.9.5
   - wurlitzer
   - matplotlib
   - pyvista
   - freeqdsk
-  - pip:
-    - desc-opt
-    - netCDF4

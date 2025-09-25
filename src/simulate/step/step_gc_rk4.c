@@ -29,9 +29,10 @@
  * @param h pointer to array containing time steps
  * @param Bdata pointer to magnetic field data
  * @param Edata pointer to electric field data
+ * @param aldforce indicates whether Abraham-Lorentz-Dirac force is enabled
  */
 void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
-                 E_field_data* Edata) {
+                 E_field_data* Edata, int aldforce) {
 
     int i;
     /* Following loop will be executed simultaneously for all i */
@@ -86,7 +87,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
                                          t0, Edata, Bdata);
             }
             if(!errflag) {
-                step_gceom(k1, yprev, mass, charge, B_dB, E);
+                step_gceom(k1, yprev, mass, charge, B_dB, E, aldforce);
             }
 
 
@@ -106,7 +107,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
                                          t0 + h[i]/2.0, Edata, Bdata);
             }
             if(!errflag) {
-                step_gceom(k2, tempy, mass, charge, B_dB, E);
+                step_gceom(k2, tempy, mass, charge, B_dB, E, aldforce);
             }
             for(int j = 0; j < 6; j++) {
                 tempy[j] = yprev[j] + h[i]*k2[j]/2.0;
@@ -122,7 +123,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
                                          t0 + h[i]/2.0, Edata, Bdata);
             }
             if(!errflag) {
-                step_gceom(k3, tempy, mass, charge, B_dB, E);
+                step_gceom(k3, tempy, mass, charge, B_dB, E, aldforce);
             }
             for(int j = 0; j < 6; j++) {
                 tempy[j] = yprev[j] + h[i]*k3[j];
@@ -136,7 +137,8 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
             if(!errflag) {
                 errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2],
                                          t0 + h[i], Edata, Bdata);}
-            if(!errflag) {step_gceom(k4, tempy, mass, charge, B_dB, E);
+            if(!errflag) {
+                step_gceom(k4, tempy, mass, charge, B_dB, E, aldforce);
             }
             for(int j = 0; j < 6; j++) {
                 y[j] = yprev[j]
@@ -227,9 +229,11 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
  * @param Edata pointer to electric field data
  * @param boozer pointer to boozer data
  * @param mhd pointer to MHD data
+ * @param aldforce indicates whether Abraham-Lorentz-Dirac force is enabled
  */
-void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
-                     E_field_data* Edata, boozer_data* boozer, mhd_data* mhd) {
+void step_gc_rk4_mhd(
+    particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data* Edata,
+    boozer_data* boozer, mhd_data* mhd, int aldforce) {
 
     int i;
     /* Following loop will be executed simultaneously for all i */
@@ -288,7 +292,8 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
                                    MHD_INCLUDE_ALL, boozer, mhd, Bdata);
             }
             if(!errflag) {
-                step_gceom_mhd(k1, yprev, mass, charge, B_dB, E, mhd_dmhd);
+                step_gceom_mhd(k1, yprev, mass, charge, B_dB, E, mhd_dmhd,
+                               aldforce);
             }
 
             /* particle coordinates for the subsequent ydot evaluations are
@@ -311,9 +316,8 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
                                    mhd, Bdata);
             }
             if(!errflag) {
-                step_gceom_mhd(k2, tempy, mass, charge, B_dB, E, mhd_dmhd);
-
-
+                step_gceom_mhd(k2, tempy, mass, charge, B_dB, E, mhd_dmhd,
+                               aldforce);
             }
             for(int j = 0; j < 6; j++) {
                 tempy[j] = yprev[j] + h[i]/2.0*k2[j];
@@ -333,8 +337,8 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
                                    mhd, Bdata);
             }
             if(!errflag) {
-                step_gceom_mhd(k3, tempy, mass, charge, B_dB, E, mhd_dmhd);
-
+                step_gceom_mhd(k3, tempy, mass, charge, B_dB, E, mhd_dmhd,
+                               aldforce);
             }
             for(int j = 0; j < 6; j++) {
                 tempy[j] = yprev[j] + h[i]*k3[j];
@@ -354,7 +358,8 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
                                    mhd, Bdata);
             }
             if(!errflag) {
-                step_gceom_mhd(k4, tempy, mass, charge, B_dB, E, mhd_dmhd);
+                step_gceom_mhd(k4, tempy, mass, charge, B_dB, E, mhd_dmhd,
+                               aldforce);
             }
             for(int j = 0; j < 6; j++) {
                 y[j] = yprev[j]

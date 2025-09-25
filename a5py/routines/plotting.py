@@ -26,6 +26,15 @@ except ImportError:
     warnings.warn("Could not import pyvista. 3D wall plotting disabled.")
     pv = None
 
+try:
+    from scipy.spatial import cKDTree
+    import alphashape
+except ImportError:
+    warnings.warn(
+        "Could not import cKDTree and alphashape. "
+        "3D surface plotting disabled."
+    )
+
 from functools import wraps
 
 def setpaperstyle(latex=True):
@@ -156,11 +165,18 @@ def openfigureifnoaxes(projection="rectilinear"):
             """Create a new figure if axes is None and pass *args and **kwargs
             for the plotter.
             """
+
+            # Sometimes you don't want to give axes, but you want to call
+            # several plotting functions for the same axes. Hence, you need to
+            # skip plt.show() initially.
+            skipshow = kwargs.pop("skipshow", False)
             if axes is None:
                 fig  = plt.figure()
                 axes = fig.add_subplot(111, projection=projection)
-                plotfun(*args, axes=axes, **kwargs)
-                plt.show()
+                result = plotfun(*args, axes=axes, **kwargs)
+                if not skipshow:
+                    plt.show()
+                return result
             else:
                 if projection != None and axes.name != projection:
                     raise ValueError(
@@ -204,10 +220,25 @@ def getmathtextsciformatter(format):
 
     return MathTextSciFormatter(format)
 
+def show():
+    return plt.show()
+
+def legend():
+    return plt.legend()
+
+def tight_layout(axes):
+    fig = axes.get_figure()
+    return fig.tight_layout()
+
+def subplots():
+    return plt.subplots()
+
 @openfigureifnoaxes(projection=None)
 def scatter2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
               xlabel=None, ylabel=None, clabel=None, cint=9, cmap=None,
-              axesequal=False, axes=None, cax=None):
+              axesequal=False, axes=None, cax=None, marker="o", markersize=6.0,
+              markerfacecolor=None, alpha=1.0,
+              title=None, label=None, skipshow=False):
     """Make a scatter plot in 2D+1 where color can be one dimension.
 
     For better performance this function uses matplotlib's plot function instead
@@ -245,17 +276,32 @@ def scatter2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
         The axes where figure is plotted or otherwise new figure is created.
     cax : :obj:`~matplotlib.axes.Axes`, optional
         The color bar axes or otherwise taken from the main axes.
+    markersize : float, optional
+        size of the drawn markers
+    markerfacecolor : str, optional
+        color with which the drawn markers are filled
+    alpha : float, optional
+        Transparency (0: transparent, 1:opaque)
+    title : str, optional
+        title for the axes
+    label : str, optional
+        label for the legend
+    skipshow : bool, optional
+        Skip plt.show() if True. Only used by the decorator when no axes given.
     """
     axes.set_xscale(xlog)
     axes.set_yscale(ylog)
     axes.set_xlabel(xlabel)
     axes.set_ylabel(ylabel)
     if axesequal: axes.set_aspect("equal", adjustable="box")
+    if title is not None: axes.set_title(title)
 
     if c is None or isinstance(c, str):
         # Simple plot with a single color
-        axes.plot(x, y, color=c, linestyle="None", marker="o")
-        return
+        axes.plot(x, y, color=c, linestyle="None", marker=marker,
+                  markersize=markersize, alpha=alpha,
+                  markerfacecolor=markerfacecolor, label=label)
+        return axes
 
     # Sort inputs by color values and then find the indices that divide the
     # color range in given intervals
@@ -280,7 +326,8 @@ def scatter2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
     for i in range(nc):
         i2 = idx[i+1]
         axes.plot(x[i1:i2], y[i1:i2], color=cmap(i/nc), linestyle="None",
-                  marker="o")
+                  marker=marker, markersize=markersize, alpha=alpha,
+                  markerfacecolor=markerfacecolor, label=label)
         i1 = i2
 
     # Make colorbar with where color scale has the intervals
@@ -288,17 +335,19 @@ def scatter2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
     smap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
     cbar = plt.colorbar(smap, ax=axes, cax=cax)
     ticks = []
-    for b in cint.v:
+    for b in cint:
         log = np.floor(np.log10(np.abs(b)))
         mul = b / 10**log
         ticks.append(r"$%.2f\times 10^{%.0f}$" % (mul, log))
     cbar.ax.set_yticklabels(ticks)
     cbar.set_label(clabel)
+    return axes
 
 @openfigureifnoaxes(projection="3d")
 def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
               clog="linear", xlabel=None, ylabel=None, zlabel=None, clabel=None,
-              cint=None, cmap=None, axesequal=False, axes=None, cax=None):
+              cint=None, cmap=None, axesequal=False, axes=None, cax=None,
+              markersize=6.0, alpha=1.0, title=None):
     """Make a scatter plot in 3D+1 where color can be one dimension.
 
     For better performance this function uses matplotlib's plot function instead
@@ -342,6 +391,12 @@ def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
         The axes where figure is plotted or otherwise new figure is created.
     cax : :obj:`~matplotlib.axes.Axes`, optional
         The color bar axes or otherwise taken from the main axes.
+    markersize: float, optional
+        Sets the size of the markers. Bigger number, bigger marker.
+    alpha : float, optional
+        Transparency (0: transparent, 1:opaque)
+    title : str, optional
+        title for the axes
     """
     axes.set_xscale(xlog)
     axes.set_yscale(ylog)
@@ -349,11 +404,26 @@ def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
     axes.set_xlabel(xlabel)
     axes.set_ylabel(ylabel)
     axes.set_zlabel(zlabel)
-    if axesequal: axes.set_aspect("equal", adjustable="box")
+    if axesequal:
+        # axesequal=True requires manually setting symmetric axis limits;
+        # set_aspect("equal") alone does not enforce equal scaling in 3D.
+        all_points = np.array([x, y, z])
+        mins = np.min(all_points, axis=1)
+        maxs = np.max(all_points, axis=1)
+        centers = (mins + maxs) / 2
+        max_range = (maxs - mins).max() / 2
+
+        axes.set_xlim(centers[0] - max_range, centers[0] + max_range)
+        axes.set_ylim(centers[1] - max_range, centers[1] + max_range)
+        axes.set_zlim(centers[2] - max_range, centers[2] + max_range)
+        axes.set_aspect("equal", adjustable="box")
+
+    if title is not None: axes.set_title(title)
 
     if c is None or isinstance(c, str):
         # Simple plot with a single color
-        axes.plot(x, y, z, color=c, linestyle="None", marker="o")
+        axes.plot(x, y, z, color=c, linestyle="None", marker="o",
+                  markersize=markersize, alpha=alpha)
         return
 
     # Sort inputs by color values and then find the indices that divide the
@@ -382,7 +452,8 @@ def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
     for i in range(nc):
         i2 = idx[i+1]
         axes.plot(x[i1:i2], y[i1:i2], z[i1:i2], color=cmap(i/nc),
-                  linestyle="None", marker="o")
+                  linestyle="None", marker="o", markersize=markersize,
+                  alpha=alpha)
         i1 = i2
 
     # Make colorbar with where color scale has the intervals
@@ -391,7 +462,7 @@ def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
     cbar = plt.colorbar(smap, ax=axes, cax=cax)
 
     ticks = []
-    for b in cint.v:
+    for b in cint:
         log = np.floor(np.log10(np.abs(b)))
         mul = b / 10**log
         ticks.append(r"$%.2f\times 10^{%.0f}$" % (mul, log))
@@ -400,7 +471,7 @@ def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
 
 @openfigureifnoaxes(projection=None)
 def hist1d(x, xbins=None, weights=None, xlog="linear", logscale=False,
-           xlabel=None, legend=None, axes=None):
+           xlabel=None, ylabel=None, title=None, legend=None, axes=None,skipshow=False, histtype="bar"):
     """Plot (stacked) marker histogram in 1D.
 
     Parameters
@@ -432,7 +503,9 @@ def hist1d(x, xbins=None, weights=None, xlog="linear", logscale=False,
     """
     axes.set_xlabel(xlabel)
     axes.set_xscale(xlog)
-    ylabel = "Markers per bin" if weights is None else "Particles per bin"
+    axes.set_title(title)
+    if ylabel is None:
+        ylabel = "Markers per bin" if weights is None else "Particles per bin"
     axes.set_ylabel(ylabel)
     if not logscale:
         axes.ticklabel_format(style="sci", axis="y", scilimits=(0,0))
@@ -446,8 +519,10 @@ def hist1d(x, xbins=None, weights=None, xlog="linear", logscale=False,
 
     # Plot and legend
     axes.hist(x, xbins, density=False, stacked=True, log=logscale,
-              weights=weights, rwidth=2)
-    axes.legend(legend, frameon=False)
+              weights=weights, rwidth=2, histtype=histtype)
+    if legend is not None:
+        axes.legend(legend, frameon=False)
+    return axes
 
 @openfigureifnoaxes(projection=None)
 def hist2d(x, y, xbins=None, ybins=None, weights=None, xlog="linear",
@@ -508,22 +583,25 @@ def hist2d(x, y, xbins=None, ybins=None, weights=None, xlog="linear",
     if logscale: norm = mpl.colors.LogNorm()
 
     if weights is not None:
-        weights = weights.v # Cannot have units in weights yet in 2D histogram
+        try:
+            weights = weights.v # Cannot have units in weights yet in 2D histogram
+        except AttributeError:
+            pass
     h,_,_,m = axes.hist2d(x, y, bins=[xbins, ybins], weights=weights, norm=norm)
 
     cbar = plt.colorbar(m, ax=axes, cax=cax)
     cbar.set_label(clabel)
 
 @openfigureifnoaxes(projection=None)
-def mesh1d(x, y, log=False, xlabel=None, ylabel=None, axes=False,
-           logscale=False):
+def mesh1d(x, y, xlabel=None, ylabel=None, axes=None,
+           logscale=False, label=None):
     """Plot 1D distribution.
 
     Parameters
     ----------
     x : array_like (nx,)
         Abscissa edges for the x-axis.
-    z : array_like (nx-1,)
+    y : array_like (nx-1,)
         Data to be plotted.
     xlabel : str, optional
         Label for the x-axis.
@@ -533,6 +611,8 @@ def mesh1d(x, y, log=False, xlabel=None, ylabel=None, axes=False,
         The axes where figure is plotted or otherwise new figure is created.
     logscale: bool, optional
         Whether the plot is in logarithmic scale.
+    label : str, optional
+        Label if you are using a legend.
     """
     xc = np.zeros((y.size*2,))
     xc[1:-1:2] = x[1:-1]
@@ -548,7 +628,7 @@ def mesh1d(x, y, log=False, xlabel=None, ylabel=None, axes=False,
     axes.set_xlim(x[0], x[-1])
     if logscale:
         axes.set_yscale('log')
-    axes.plot(xc, yc)
+    axes.plot(xc, yc,label=label)
 
 @openfigureifnoaxes(projection=None)
 def mesh2d(x, y, z, logscale=False, diverging=False, xlabel=None, ylabel=None,
@@ -628,12 +708,20 @@ def mesh2d(x, y, z, logscale=False, diverging=False, xlabel=None, ylabel=None,
     cbar.set_label(clabel)
 
 @openfigureifnoaxes(projection=None)
-def contour2d(x, y, z, contours, xlabel=None, ylabel=None, axesequal=False,
-              colors=None, linestyles=None, linewidths=None, axes=None):
+def contour2d(x, y, z, contours=None, xlabel=None, ylabel=None, axesequal=False,
+              colors=None, linestyles=None, linewidths=None, axes=None,
+              contourlabels=False, labelfontsize=10):
     """Plot contour on 2D plane.
     """
-    axes.contour(x, y, z.T, contours, colors=colors, linestyles=linestyles,
+    if contours==None:
+        # The level argument needs to be left out if the contour levels are not
+        # specified
+        cs = axes.contour(x, y, z.T, colors=colors, linestyles=linestyles,
                  linewidths=linewidths)
+    else:
+        cs = axes.contour(x, y, z.T, contours, colors=colors, linestyles=linestyles,
+                 linewidths=linewidths)
+    if contourlabels: axes.clabel(cs, inline=True, fontsize=labelfontsize)
     axes.set_xlabel(xlabel)
     axes.set_ylabel(ylabel)
     if axesequal:
@@ -648,7 +736,8 @@ def arrows2d():
 @openfigureifnoaxes(projection=None)
 def line2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
            xlabel=None, ylabel=None, clabel=None, bbox=None,
-           cmap=None, axesequal=False, axes=None, cax=None):
+           cmap=None, axesequal=False, axes=None, cax=None, marker=None,
+           markerfacecolor=None, title=None,label=None, skipshow=False):
     """Plot line segments in 2D.
 
     x : array_like
@@ -677,17 +766,27 @@ def line2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
         The axes where figure is plotted or otherwise new figure is created.
     cax : :obj:`~matplotlib.axes.Axes`, optional
         The color bar axes or otherwise taken from the main axes.
+    marker : str, optional
+        Marker type.
+    markerfacecolor : str, optional
+        Color of the marker face.
+    title : str, optional
+        Title of the figure.
+    skipshow : bool, optional
+        Flag to skip the show function. Only used by the openfigureifnoaxes decorator.
     """
     axes.set_xscale(xlog)
     axes.set_yscale(ylog)
     axes.set_xlabel(xlabel)
     axes.set_ylabel(ylabel)
+    axes.set_title(title)
     if axesequal: axes.set_aspect("equal", adjustable="box")
     if c is None or isinstance(c, str):
         # Simple plot with a single color
         for i in range(len(x)):
-            axes.plot(x[i], y[i], color=c)
-        return
+            axes.plot(x[i], y[i], color=c, marker=marker,
+                      markerfacecolor=markerfacecolor,label=label)
+        return axes
 
     if bbox is None:
         bbox = "[xmin, xmax, ymin, ymax, cmin, cmax]"
@@ -719,6 +818,7 @@ def line2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
     smap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
     cax = plt.colorbar(smap, ax=axes, cax=cax)
     cax.ax.set_ylabel(clabel, rotation=90, labelpad=10)
+    return axes
 
 @openfigureifnoaxes(projection="3d")
 def line3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
@@ -803,7 +903,137 @@ def line3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
         lc.set_array(c[i][1:])
         line = axes.add_collection(lc)
     smap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
-    plt.colorbar(smap, ax=axes, cax=cax)
+    cbar = plt.colorbar(smap, ax=axes, cax=cax)
+    if clabel is not None:
+        cbar.set_label(clabel)
+
+@openfigureifnoaxes(projection="3d")
+def surface3d(x_grid1d, y_grid1d, z_grid1d, qnt_grid1d=None, diverging=False,
+              logscale=False, axesequal=False, xlabel=None, ylabel=None,
+              zlabel=None, clabel=None, clim=None, cmap=None, axes=None,
+              cax=None, meshalpha=0.6, tri_lc="gray", tri_lw=0.3, opacity=0.8,
+              surfacecolor="purple"):
+    """
+    Make a 3D surface plot from 1D coordinate arrays and optional quantity values.
+
+    You may encounter "WARNING:root:Singular matrix. Likely caused by all points
+    lying in an N-1 space." or two but, as the name suggests, it is just a
+    warning.
+
+    Parameters
+    ----------
+    x_grid1d : array_like (n,)
+        X-coordinates of the surface points.
+    y_grid1d : array_like (n,)
+        Y-coordinates of the surface points.
+    z_grid1d : array_like (n,)
+        Z-coordinates of the surface points.
+    qnt_grid1d : array_like (n,), optional
+        Quantity values associated with each point, used for coloring the surface.
+    diverging : bool, optional
+        Use a diverging colormap centered at zero.
+    logscale : bool, optional
+        Apply logarithmic scaling to the colormap.
+    axesequal : bool, optional
+        Set 3D axes to have equal scaling.
+    xlabel : str, optional
+        Label for the x-axis.
+    ylabel : str, optional
+        Label for the y-axis.
+    zlabel : str, optional
+        Label for the z-axis.
+    clabel : str, optional
+        Label for the colorbar.
+    clim : [float, float], optional
+        Limits for the colormap [min, max].
+    cmap : str or Colormap, optional
+        The colormap to use for surface coloring.
+    axes : :obj:`~matplotlib.axes._subplots.Axes3D`, optional
+        The 3D axes to plot on, or None to create a new figure and axes.
+    cax : :obj:`~matplotlib.axes.Axes`, optional
+        Axes to draw the colorbar on, or None to place it next to the main axes.
+    meshalpha : float, optional
+        A parameter used when generating the triangles (google: alpha shape).
+    tri_lc : str or color, optional
+        Color of triangle edges.
+    tri_lw : float, optional
+        Line width of triangle edges.
+    opacity : float, optional
+        Overall opacity of the surface (0: transparent, 1: opaque).
+    surfacecolor : str, optional
+        If no qnt is given, this color is used. By default purple because
+        magneticfield itself is purple, everyone knows that.
+    """
+
+    # Put co-ordinate triplets into 2d array and throw away nans
+    points = np.vstack((x_grid1d, y_grid1d, z_grid1d)).T
+    mask = ~np.isnan(points).any(axis=1)
+    points = points[mask]
+    if qnt_grid1d is not None: quantity = qnt_grid1d[mask]
+
+    # Create the triangles
+    alpha_shape = alphashape.alphashape(points, meshalpha)
+    triangles = np.array(list(alpha_shape.faces))
+    vertices = np.array(alpha_shape.vertices)
+
+    # Get the surface color from the desired quantity
+    if qnt_grid1d is not None:
+        tree = cKDTree(points)
+        _, idx = tree.query(vertices, k=1)
+        vertex_quantity = quantity[idx]
+        triangle_colors = vertex_quantity[triangles].mean(axis=1) #average of vertex
+
+        if clim is None: clim = [None, None]
+        if clim[0] is None:
+            clim[0] = np.nanmin(triangle_colors)
+        if clim[1] is None:
+            clim[1] = np.nanmax(triangle_colors)
+
+        if logscale:
+            if diverging:
+                if cmap == None: cmap = "bwr"
+                norm = mpl.colors.SymLogNorm(linthresh=10, linscale=1.0,
+                                    vmin=clim[0], vmax=clim[1], base=10)
+            else:
+                if cmap == None: cmap = "viridis"
+                if clim[0] <=0: clim[0] = np.min(quantity[quantity>0])
+                norm = mpl.colors.LogNorm(vmin=clim[0], vmax=clim[1])
+        else:
+            if diverging:
+                if cmap == None: cmap = "bwr"
+                norm = mpl.colors.CenteredNorm(halfrange=np.amax(np.abs(clim)))
+            else:
+                if cmap == None: cmap = "viridis"
+                norm = mpl.colors.Normalize(vmin=clim[0], vmax=clim[1])
+
+        colors = mpl.cm.viridis(norm(triangle_colors))
+    else:
+        # No qnt given for coloring => plot just the flux surface
+        colors = surfacecolor
+
+    # Plotting
+    mesh = mpl_toolkits.mplot3d.art3d.Poly3DCollection(
+        vertices[triangles], facecolors=colors, edgecolor=tri_lc, lw=tri_lw,
+        alpha=opacity)
+
+    if axes is None:
+        fig = plt.figure()
+        axes = fig.add_subplot(111, projection='3d')
+    axes.add_collection3d(mesh)
+
+    axes.set_xlim(vertices[:,0].min(), vertices[:,0].max())
+    axes.set_ylim(vertices[:,1].min(), vertices[:,1].max())
+    axes.set_zlim(vertices[:,2].min(), vertices[:,2].max())
+    axes.set_xlabel(xlabel)
+    axes.set_ylabel(ylabel)
+    axes.set_zlabel(zlabel)
+
+    if axesequal:
+        axes.set_aspect("equal", adjustable="box")
+
+    if qnt_grid1d is not None:
+        plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=axes,
+                 cax=cax, shrink=0.5, label=clabel)
 
 @openfigureifnoaxes(projection=None)
 def poincare(x, y, ids, connlen=None, xlim=None, ylim=None, xlabel=None,
@@ -1214,7 +1444,7 @@ def momentumpolargrid(pnorm_edges, pitch_edges, axes=None):
 @openfigureifnoaxes(projection=None)
 def radialprofile(x, y1, y2=None, xlim=None, y1lim=None, y2lim=None,
                   xlabel=None, y1label=None, y2label=None, y1legends=None,
-                  y2legends=None, axes=None):
+                  y2legends=None, axes=None, tightlayout=True, title=None):
     """Plot 1D profiles on axes that can have two y-axes and the y-axis combines
     both linear and logarithmic scale.
 
@@ -1251,9 +1481,14 @@ def radialprofile(x, y1, y2=None, xlim=None, y1lim=None, y2lim=None,
         Number of legend values must be the same as the number of ``y2``.
     axes : :obj:`~matplotlib.axes.Axes`, optional
         The axes where figure is plotted or otherwise new figure is created.
+    tightlayout : bool, optional
+        Whether to use tight layout.
+    title : str, optional
+        Title of the figure.
     """
     if y1lim is None: raise ValueError("y1lim must be provided")
     if xlim is not None: axes.set_xlim(xlim)
+    axes.set_title(title)
 
     # Create linear left axis
     axleftlin = axes
@@ -1269,7 +1504,7 @@ def radialprofile(x, y1, y2=None, xlim=None, y1lim=None, y2lim=None,
     axleftlog.yaxis.set_ticks_position('left')
 
     axleftlog.tick_params(axis='y', which='minor', left=False)
-    axleftlin.yaxis.set_major_formatter(getmathtextsciformatter("%1.0e"))
+    axleftlin.yaxis.set_major_formatter(getmathtextsciformatter("%1.1e"))
 
     axleftlog.set_xlabel(xlabel)
     plt.setp(axleftlin.get_xticklabels(), visible=False)
@@ -1340,6 +1575,9 @@ def radialprofile(x, y1, y2=None, xlim=None, y1lim=None, y2lim=None,
     legend1 = plt.legend(handles1, y1legends, loc='upper left',
                          bbox_to_anchor=(0.6,3.1), frameon=False)
     axleftlog.add_artist(legend1)
+    fig = axes.figure
+    if tightlayout:
+        fig.tight_layout()
 
     return axleftlin, axrightlin, axleftlog, axrightlog
 

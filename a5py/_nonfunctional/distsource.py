@@ -21,6 +21,24 @@ np.float=float
 
 # Read from IMAS
 
+print('Reading 2D equilibrium')
+eq=a5py.ascot5io.imas.B_2DS()
+eqdict=eq.read("akaslos","test","3",92436,306)
+
+
+print('Reading plasma1d')
+p1d=a5py.ascot5io.imas.plasma_1d()
+# We need to give .parse() the equilibrium for the rho_tor --> rho_pol transformation
+p1d.open("akaslos","test","3",92436,306)
+p1d_dict=p1d.parse(equilibrium_ids=eq)
+
+
+#print(eqdict)
+
+print("writing 2d equilibriuem to 'from_imas.h5'.")
+a5py.ascot5io.B_2DS.write_hdf5('from_imas.h5',**eqdict)
+
+#exit()
 
 print('Reading distsource')
 # markers from distsource
@@ -116,13 +134,13 @@ ndict   = a5.data.create_input("N0_1D", dryrun=True)
 bzrdict = a5.data.create_input("Boozer", dryrun=True)
 mhddict = a5.data.create_input("MHD_STAT", dryrun=True)
 asigmadict = a5.data.create_input("asigma_loc", dryrun=True)
-edict = a5.data.efield.active.read()
-pdict = a5.data.plasma.active.read()
-ndict = a5.data.neutral.active.read()
-bzrdict =a5.data.boozer.active.read()
-mhddict =a5.data.mhd.active.read()
-asigmadict =a5.data.asigma.active.read()
-a5.simulation_initinputs(bfield=bdict, efield=edict, plasma=pdict, neutral=ndict,
+#edict = a5.data.efield.active.read()
+#pdict = a5.data.plasma.active.read()
+#ndict = a5.data.neutral.active.read()
+#bzrdict =a5.data.boozer.active.read()
+#mhddict =a5.data.mhd.active.read()
+#asigmadict =a5.data.asigma.active.read()
+a5.simulation_initinputs(bfield=eq, efield=edict, plasma=p1d_dict, neutral=ndict,
                          wall=wdict3, boozer=bzrdict, mhd=mhddict, asigma=asigmadict)
 
 

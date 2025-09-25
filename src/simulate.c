@@ -32,6 +32,7 @@
 #include "simulate/mccc/mccc.h"
 #include "gctransform.h"
 #include "asigma.h"
+#include "rfof.h"
 
 void sim_monitor(char* filename, volatile int* n, volatile int* finished);
 
@@ -94,6 +95,7 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     /*    respective init functions.                                          */
     /*                                                                        */
     /**************************************************************************/
+
     simulate_init(sim);
 
 #ifdef GPU
@@ -213,7 +215,7 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
         {
             /* Update progress until simulation is complete.             */
             /* Trim .h5 from filename and replace it with _<QID>.stdout  */
-            if(id == 0) {
+            if(sim->mpi_rank == sim->mpi_root) {
                 char filename[519], outfn[256];
                 strcpy(outfn, sim->hdf5_out);
                 outfn[strlen(outfn)-3] = '\0';
@@ -279,7 +281,7 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
             #pragma omp section
             {
                 /* Trim .h5 from filename and replace it with _<qid>.stdout */
-                if(id == 0) {
+                if(sim->mpi_rank == sim->mpi_root) {
                     char filename[519], outfn[256];
                     strcpy(outfn, sim->hdf5_out);
                     outfn[strlen(outfn)-3] = '\0';
@@ -296,6 +298,13 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     /**************************************************************************/
     free(pq.p);
 
+
+    /**************************************************************************/
+    /* 8. Execution returns to host where this function was called.           */
+    /*                                                                        */
+    /**************************************************************************/
+
+    diag_onload(&sim->diag_data);
     print_out(VERBOSE_NORMAL, "Simulation complete.\n");
 }
 
@@ -313,7 +322,6 @@ void simulate_init(sim_data* sim) {
         gctransform_setorder(0);
     }
     asigma_extrapolate(sim->enable_atomic==2);
-
 }
 
 /**
@@ -363,10 +371,11 @@ void sim_monitor(char* filename, volatile int* n, volatile int* finished) {
         else {
             fprintf(f, "Progress: %d/%d, %.2f %%. Time spent: %.2f h, "
                     "estimated time to finish: %.2f h\n", finished_temp, n_temp,
-                    100*fracprog, timespent/3600, (1/fracprog-1)*timespent/3600);
+                    100*fracprog, timespent/3600,
+                    (1/fracprog-1)*timespent/3600);
         }
         fflush(f);
-        //sleep(A5_PRINTPROGRESSINTERVAL);
+        sleep(A5_PRINTPROGRESSINTERVAL);
     }
 
     fprintf(f, "Simulation finished.\n");

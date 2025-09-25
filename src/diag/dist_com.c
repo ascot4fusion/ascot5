@@ -56,6 +56,17 @@ void dist_COM_offload(dist_COM_data* data) {
 }
 
 /**
+ * @brief Onload data back to the host.
+ *
+ * @param data pointer to the data struct
+ */
+void dist_COM_onload(dist_COM_data* data) {
+    GPU_UPDATE_FROM_DEVICE(
+        data->histogram[0:data->n_mu*data->n_Ekin*data->n_Ptor]
+        )
+}
+
+/**
  * @brief Update the histogram from full-orbit markers
  *
  * @param dist pointer to distribution parameter struct
@@ -65,6 +76,14 @@ void dist_COM_offload(dist_COM_data* data) {
  */
 void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
                         particle_simd_fo* p_f, particle_simd_fo* p_i) {
+
+#ifdef GPU
+    size_t index;
+    real weight;
+#else
+    size_t index[NSIMD];
+    real weight[NSIMD];
+#endif
 
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < p_f->n_mrk; i++) {
@@ -98,14 +117,29 @@ void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
             if(i_mu   >= 0 && i_mu   <= dist->n_mu - 1   &&
                i_Ekin >= 0 && i_Ekin <= dist->n_Ekin - 1 &&
                i_Ptor >= 0 && i_Ptor <= dist->n_Ptor - 1 ) {
-                real weight = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
-                size_t index = dist_COM_index(
+#ifdef GPU
+                index = dist_COM_index(
                     i_mu, i_Ekin, i_Ptor, dist->step_2, dist->step_1);
-	            GPU_ATOMIC
+                weight = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
+                GPU_ATOMIC
                 dist->histogram[index] += weight;
+#else
+                index[i] = dist_COM_index(
+                    i_mu, i_Ekin, i_Ptor, dist->step_2, dist->step_1);
+                weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
+#endif
             }
         }
     }
+#ifndef GPU
+    for(int i = 0; i < p_f->n_mrk; i++) {
+        if(p_f->running[i] && index[i] >= 0 &&
+            index[i] < dist->step_2 * dist->n_mu) {
+            GPU_ATOMIC
+            dist->histogram[index[i]] += weight[i];
+        }
+    }
+#endif
 }
 
 /**

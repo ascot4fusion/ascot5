@@ -71,6 +71,17 @@ void dist_6D_offload(dist_6D_data* data) {
 }
 
 /**
+ * @brief Onload data back to the host.
+ *
+ * @param data pointer to the data struct
+ */
+void dist_6D_onload(dist_6D_data* data) {
+    GPU_UPDATE_FROM_DEVICE(
+        data->histogram[0:data->n_r*data->n_phi*data->n_z*data->n_pr*data->n_pphi*data->n_pz*data->n_time*data->n_q]
+        )
+}
+
+/**
  * @brief Update the histogram from full-orbit particles
  *
  * This function updates the histogram from the particle data. Bins are
@@ -83,6 +94,14 @@ void dist_6D_offload(dist_6D_data* data) {
  */
 void dist_6D_update_fo(dist_6D_data* dist, particle_simd_fo* p_f,
                        particle_simd_fo* p_i) {
+
+#ifdef GPU
+    size_t index;
+    real weight;
+#else
+    size_t index[NSIMD];
+    real weight[NSIMD];
+#endif
 
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < p_f->n_mrk; i++) {
@@ -124,16 +143,33 @@ void dist_6D_update_fo(dist_6D_data* dist, particle_simd_fo* p_f,
                i_pz   >= 0 && i_pz   <= dist->n_pz - 1   &&
                i_time >= 0 && i_time <= dist->n_time - 1 &&
                i_q    >= 0 && i_q    <= dist->n_q - 1      ) {
-                real weight = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
-                size_t index = dist_6D_index(
+#ifdef GPU
+                index = dist_6D_index(
                     i_r, i_phi, i_z, i_pr, i_pphi, i_pz,
                     i_time, i_q, dist->step_7, dist->step_6, dist->step_5,
                     dist->step_4, dist->step_3, dist->step_2, dist->step_1);
+                weight = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
                 GPU_ATOMIC
                 dist->histogram[index] += weight;
+#else
+                index[i] = dist_6D_index(
+                    i_r, i_phi, i_z, i_pr, i_pphi, i_pz,
+                    i_time, i_q, dist->step_7, dist->step_6, dist->step_5,
+                    dist->step_4, dist->step_3, dist->step_2, dist->step_1);
+                weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
+#endif
             }
         }
     }
+#ifndef GPU
+    for(int i = 0; i < p_f->n_mrk; i++) {
+        if(p_f->running[i] && index[i] >= 0 &&
+            index[i] < dist->step_7 * dist->n_r) {
+            GPU_ATOMIC
+            dist->histogram[index[i]] += weight[i];
+        }
+    }
+#endif
 }
 
 /**

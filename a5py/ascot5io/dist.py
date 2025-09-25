@@ -485,7 +485,7 @@ class DistMoment:
                 ordinates.append(k[10:])
         return ordinates
 
-    def plot(self, ordinate, axes=None, cax=None, logscale=False):
+    def plot(self, ordinate, axes=None, cax=None, logscale=False, label=None):
         """Plot radial or (R,z) profile of a distribution moment.
 
         The plotted profile is the average of (theta, phi) or phi depending
@@ -508,7 +508,8 @@ class DistMoment:
             ylabel += " [" + str(ordinate.units) + "]"
             a5plt.mesh1d(self.rho, ordinate,
                          xlabel="Normalized poloidal flux",
-                         ylabel=ylabel, axes=axes, logscale=logscale)
+                         ylabel=ylabel, axes=axes, logscale=logscale,
+                         label=label)
         else:
             clabel = ordinate
             ordinate = self.ordinate(ordinate, toravg=True)
@@ -613,7 +614,7 @@ class Dist(DataContainer):
         ppa, ppe = np.meshgrid(dist.abscissa("ppar"), dist.abscissa("pperp"))
         pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
         ekin  = (physlib.gamma_momentum(mass, pnorm) - 1) * mass * unyt.c**2
-        dist._multiply(ekin.reshape(ppa.shape), "ppar", "pperp")
+        dist._multiply(ekin.reshape(ppa.shape).T, "ppar", "pperp")
         dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
         moment.add_ordinates(
             energydensity=dist.histogram().to("J") / moment.volume)
@@ -639,13 +640,53 @@ class Dist(DataContainer):
                 if k not in ["r", "z", "phi", "pperp", "ppar"]:
                     integrate[k] = np.s_[:]
         dist = dist.integrate(copy = True, **integrate)
-        ppa, ppe = np.meshgrid(dist.abscissa("ppar"),
-                               dist.abscissa("pperp"))
+        ppa, ppe = np.meshgrid(dist.abscissa("ppar"), dist.abscissa("pperp"),
+                               indexing="ij")
         pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
-        vnorm = physlib.velocity_momentum(mass, pnorm)
-        dist._multiply(vnorm.reshape(ppa.shape)**2 * mass / 3, "ppar", "pperp")
-        dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
-        moment.add_ordinates(pressure=dist.histogram().to("J") / moment.volume)
+        vnorm = physlib.velocity_momentum(mass, pnorm).reshape(ppa.shape)
+        vpa = ppa * vnorm / pnorm.reshape(ppa.shape)
+        vpe = ppe * vnorm / pnorm.reshape(ppa.shape)
+
+        # Evaluate density (zeroth velocity moment)
+        d = dist._copy()
+        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
+        N = d.histogram()      # Number of particles _per bin_ (not per volume)
+
+        # Evaluate first N<vpar>, then divide by number of particles per bin, N,
+        # to get <vpar>
+        d = dist._copy()
+        d._multiply(vpa, "ppar", "pperp")
+        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
+        Nvpa_avg = d.histogram()   # numb. particles per bin times <v>
+        vpa_avg = Nvpa_avg/N
+        vpa_avg[N==0] = 0
+
+        # Get N<vpar^2>
+        d = dist._copy()
+        d._multiply(vpa**2, "ppar", "pperp")
+        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
+        Nvpa2_avg = d.histogram()
+
+        # parallel pressure = m(n<vpar^2> - n<vpar>^2). Divide by volume per
+        # bin because N has units of particles per bin
+        Ppa = mass*(Nvpa2_avg-N*vpa_avg**2)/moment.volume
+        Ppa[N == 0] = 0         # Just to be sure
+        Ppa /= unyt.particles   # to get rid of the "particles"
+
+        # Get N<vper^2>
+        d = dist._copy()
+        d._multiply(vpe**2, "ppar", "pperp")
+        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
+        Nvpe2_avg = d.histogram()
+
+        #Ppe = mass*(Nvpe2_avg-N*vpe_avg**2)/moment.volume
+        Ppe = mass*Nvpe2_avg/moment.volume
+        Ppe[N == 0] = 0         # Just to be sure
+        Ppe /= unyt.particles
+
+        moment.add_ordinates(
+            pressure=1/3*(Ppa+2*Ppe).to("J/m**3")
+        )
 
     @staticmethod
     def toroidalcurrent(ascot, mass, dist, moment):
@@ -750,7 +791,7 @@ class Dist(DataContainer):
         """
         dist = dist._copy()
         ppa, ppe = np.meshgrid(dist.abscissa("ppar"),
-                               dist.abscissa("pperp"))
+                               dist.abscissa("pperp"), indexing="ij")
         pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
         vnorm = physlib.velocity_momentum(mass, pnorm)
         for i, qa in enumerate(dist.abscissa("charge")):
@@ -764,7 +805,7 @@ class Dist(DataContainer):
 
         dist._distribution *= k.units * mass
         dist.integrate(charge=np.s_[:], time=np.s_[:])
-        dist._multiply(vnorm.reshape(ppa.shape).T, "ppar", "pperp")
+        dist._multiply(vnorm.reshape(ppa.shape), "ppar", "pperp")
         dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
         moment.add_ordinates(
             powerdep=(dist.histogram() / moment.volume ).to("W/m**3"))
@@ -786,7 +827,7 @@ class Dist(DataContainer):
         """
         dist = dist._copy()
         ppa, ppe = np.meshgrid(dist.abscissa("ppar"),
-                               dist.abscissa("pperp"))
+                               dist.abscissa("pperp"), indexing="ij")
         pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
         vnorm = physlib.velocity_momentum(mass, pnorm)
         for i, qa in enumerate(dist.abscissa("charge")):
@@ -800,7 +841,7 @@ class Dist(DataContainer):
 
         dist._distribution *= k.units * mass
         dist.integrate(charge=np.s_[:], time=np.s_[:])
-        dist._multiply(vnorm.reshape(ppa.shape).T, "ppar", "pperp")
+        dist._multiply(vnorm.reshape(ppa.shape), "ppar", "pperp")
         dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
         moment.add_ordinates(
             electronpowerdep=(dist.histogram() / moment.volume ).to("W/m**3"))
@@ -818,7 +859,7 @@ class Dist(DataContainer):
         """
         dist = dist._copy()
         ppa, ppe = np.meshgrid(dist.abscissa("ppar"),
-                               dist.abscissa("pperp"))
+                               dist.abscissa("pperp"), indexing="ij")
         pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
         vnorm = physlib.velocity_momentum(mass, pnorm)
         for i, qa in enumerate(dist.abscissa("charge")):
@@ -832,7 +873,7 @@ class Dist(DataContainer):
 
         dist._distribution *= k.units * mass
         dist.integrate(charge=np.s_[:], time=np.s_[:])
-        dist._multiply(vnorm.reshape(ppa.shape).T, "ppar", "pperp")
+        dist._multiply(vnorm.reshape(ppa.shape), "ppar", "pperp")
         dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
         moment.add_ordinates(
             ionpowerdep=(dist.histogram() / moment.volume ).to("W/m**3"))

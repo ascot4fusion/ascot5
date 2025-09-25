@@ -91,7 +91,7 @@ class plasma_1D(DataGroup):
             y2legends=[r"$T_e$", r"$T_i$"], axes=axes)
 
     @staticmethod
-    def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rho,
+    def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rho, vtor,
                    edensity, etemperature, idensity, itemperature, desc=None):
         """Write input data to the HDF5 file.
 
@@ -113,6 +113,8 @@ class plasma_1D(DataGroup):
             Ion species charge [e].
         rho : array_like (nrho,1)
             rho grid, doesn't have to be uniform.
+        vtor : array_like (nrho,1)
+            Plasma rotation [rad/s].
         edensity : array_like (nrho,1)
             Electron density [m^-3].
         etemperature : array_like (nrho,1)
@@ -134,6 +136,8 @@ class plasma_1D(DataGroup):
         ValueError
             If inputs were not consistent.
         """
+        if vtor.size != nrho:
+            raise ValueError("Invalid size for toroidal rotation.")
         if etemperature.size != nrho:
             raise ValueError("Invalid size for electron temperature.")
         if itemperature.size != nrho:
@@ -160,6 +164,7 @@ class plasma_1D(DataGroup):
             g.create_dataset('charge', (nion,1), data=charge, dtype='i4')
             g.create_dataset('mass',   (nion,1), data=mass,   dtype='f8')
             g.create_dataset('rho',    (nrho,1), data=rho,    dtype='f8')
+            g.create_dataset('vtor',   (nrho,1), data=vtor,   dtype='f8')
 
             g.create_dataset('etemperature', (nrho,1),    data=etemperature,
                              dtype='f8')
@@ -190,7 +195,7 @@ class plasma_1D(DataGroup):
         """
         return {"nrho":3, "nion":1, "znum":np.array([1]), "anum":np.array([1]),
                 "mass":np.array([1]), "charge":np.array([1]),
-                "rho":np.array([0, 0.5, 100]),
+                "rho":np.array([0, 0.5, 100]), "vtor":np.zeros((3,1)),
                 "edensity":1e20*np.ones((3,1)),
                 "etemperature":1e3*np.ones((3,1)),
                 "idensity":1e20*np.ones((3,1)),
@@ -273,7 +278,7 @@ class plasma_1DS(DataGroup):
             temperaturelim = [np.amin(pls["itemperature"]), 1e3,
                               np.amax(pls["itemperature"])]
 
-        rho = np.linspace(pls['rhomin'], pls['rhomax'], pls['nrho'])
+        rho = np.linspace(pls['rhomin'][0], pls['rhomax'][0], pls['nrho'])
         a5plt.radialprofile(
             rho, ndens, y2=[pls['etemperature'], pls['itemperature']],
             xlim=rholim, y1lim=densitylim, y2lim=temperaturelim,
@@ -283,7 +288,8 @@ class plasma_1DS(DataGroup):
 
     @staticmethod
     def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rhomin, rhomax,
-                   edensity, etemperature, idensity, itemperature, desc=None):
+                   vtor, edensity, etemperature, idensity, itemperature,
+                   desc=None):
         """Write input data to the HDF5 file.
 
         Parameters
@@ -306,6 +312,8 @@ class plasma_1DS(DataGroup):
             Minimum rho grid value.
         rhomax : float
             Maximum rho grid value.
+        vtor : array_like (nrho,1)
+            Plasma rotation [rad/s].
         edensity : array_like (nrho,1)
             Electron density [m^-3].
         etemperature : array_like (nrho,1)
@@ -327,6 +335,8 @@ class plasma_1DS(DataGroup):
         ValueError
             If inputs were not consistent.
         """
+        if vtor.size != nrho:
+            raise ValueError("Invalid size for toroidal flow.")
         if etemperature.size != nrho:
             raise ValueError("Invalid size for electron temperature.")
         if itemperature.size != nrho:
@@ -354,7 +364,7 @@ class plasma_1DS(DataGroup):
             g.create_dataset('mass',   (nion,1), data=mass,   dtype='f8')
             g.create_dataset('rhomin', (1,1),    data=rhomin, dtype='f8')
             g.create_dataset('rhomax', (1,1),    data=rhomax, dtype='f8')
-
+            g.create_dataset('vtor',   (nrho,1), data=vtor,   dtype='f8')
             g.create_dataset('etemperature', (nrho,1),    data=etemperature,
                              dtype='f8')
             g.create_dataset('edensity',     (nrho,1),    data=edensity,
@@ -384,7 +394,8 @@ class plasma_1DS(DataGroup):
         """
         return {"nrho":3, "nion":1, "znum":np.array([1]), "anum":np.array([1]),
                 "mass":np.array([1]), "charge":np.array([1]),
-                "rhomin":0, "rhomax":100, "edensity":1e20*np.ones((3,1)),
+                "rhomin":0, "rhomax":100, "vtor":np.zeros((3,1)),
+                "edensity":1e20*np.ones((3,1)),
                 "etemperature":1e3*np.ones((3,1)),
                 "idensity":1e20*np.ones((3,1)),
                 "itemperature":1e3*np.ones((3,1))}
@@ -416,7 +427,8 @@ class plasma_1Dt(DataGroup):
 
     @staticmethod
     def write_hdf5(fn, nrho, ntime, nion, anum, znum, mass, charge, rho, time,
-                   edensity, etemperature, idensity, itemperature, desc=None):
+                   vtor, edensity, etemperature, idensity, itemperature,
+                   desc=None):
         """Write input data to the HDF5 file.
 
         Parameters
@@ -441,6 +453,8 @@ class plasma_1Dt(DataGroup):
             rho grid, doesn't have to be uniform.
         time : array_like (nrho,1)
             time grid, doesn't have to be uniform.
+        vtor : array_like (ntime,nrho)
+            Plasma rotation [rad/s].
         edensity : array_like (ntime,nrho)
             Electron density [m^-3].
         etemperature : array_like (ntime,nrho)
@@ -462,6 +476,8 @@ class plasma_1Dt(DataGroup):
         ValueError
             If inputs were not consistent.
         """
+        if vtor.shape != (ntime,nrho):
+            raise ValueError("Invalid shape for toroidal flow.")
         if etemperature.shape != (ntime,nrho):
             raise ValueError("Invalid shape for electron temperature.")
         if itemperature.shape != (ntime,nrho):
@@ -488,7 +504,7 @@ class plasma_1Dt(DataGroup):
             g.create_dataset('mass',   (nion,1),  data=mass,   dtype='f8')
             g.create_dataset('rho',    (nrho,1),  data=rho,    dtype='f8')
             g.create_dataset('time',   (ntime,1), data=time,   dtype='f8')
-
+            g.create_dataset('vtor',   (ntime,nrho), data=vtor, dtype='f8')
             g.create_dataset('etemperature', (ntime,nrho),
                              data=etemperature, dtype='f8')
             g.create_dataset('edensity',     (ntime,nrho),
@@ -519,7 +535,7 @@ class plasma_1Dt(DataGroup):
         return {"nrho":3, "ntime":4, "nion":1, "znum":np.array([1]),
                 "anum":np.array([1]), "mass":np.array([1]),
                 "charge":np.array([1]), "rho":np.array([0, 0.5, 100]),
-                "time":np.array([0, 0.2, 0.4, 0.6]),
+                "time":np.array([0, 0.2, 0.4, 0.6]), "vtor":np.zeros((4,3)),
                 "edensity":1e20*np.ones((4,3)),
                 "etemperature":1e3*np.ones((4,3)),
                 "idensity":1e20*np.ones((4,1,3)),

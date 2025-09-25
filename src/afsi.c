@@ -8,32 +8,41 @@
 #include "ascot5.h"
 #include "print.h"
 #include "gitver.h"
+#include "math.h"
+#include "physlib.h"
 #include "consts.h"
+#include "offload.h"
 #include "random.h"
 #include "simulate.h"
 #include "boschhale.h"
-#include "diag/dist_5D.h"
+#include "diag/hist.h"
 #include "hdf5_interface.h"
 #include "hdf5io/hdf5_helpers.h"
 #include "hdf5io/hdf5_dist.h"
+#include "hdf5io/hdf5_histogram.h"
 #include "afsi.h"
 
 /** Random number generator used by AFSI */
 random_data rdata;
 
-void afsi_sample_reactant_momenta(
-    afsi_data* react1, afsi_data* react2, real m1, real m2, int n, int iR,
-    int iphi, int iz, real* ppara1, real* pperp1, real* ppara2, real* pperp2);
-void afsi_compute_product_momenta(
-    int i, real m1, real m2, real mprod1, real mprod2, real Q,
+void afsi_compute_product_momenta_2d(
+    int i, real m1, real m2, real mprod1, real mprod2, real Q, int prodmomspace,
     real* ppara1, real* pperp1, real* ppara2, real* pperp2, real* vcom2,
-    real* pparaprod1, real* pperpprod1, real* pparaprod2, real* pperpprod2);
-void afsi_sample_5D(dist_5D_data* dist, int n, int iR, int iphi, int iz,
-                    real* ppara, real* pperp);
-void afsi_sample_thermal(afsi_thermal_data* data, real mass, int n, int iR,
-                         int iphi, int iz, real* ppara, real* pperp);
-real afsi_get_density(afsi_data* dist, int iR, int iphi, int iz);
-real afsi_get_volume(afsi_data* dist, int iR);
+    real* prod1_p1, real* prod1_p2, real* prod2_p1, real* prod2_p2);
+void afsi_sample_reactant_momenta_2d(
+    sim_data* sim, afsi_data* afsi, real mass1, real mass2,
+    real vol, int nsample, size_t i0, size_t i1, size_t i2,
+    real r, real phi, real z, real time, real rho,
+    real* density1, real* ppara1, real* pperp1,
+    real* density2, real* ppara2, real* pperp2);
+void afsi_sample_beam_2d(
+    histogram* hist, real mass, real vol, int nsample,
+    size_t i0, size_t i1, size_t i2, real* density,
+    real* ppara, real* pperp);
+void afsi_sample_thermal_2d(
+    sim_data* sim, int ispecies, real mass, int nsample,
+    real r, real phi, real z, real time, real rho,
+    real* density, real* pppara, real* ppperp);
 
 /**
  * @brief Calculate fusion source from two arbitrary ion distributions
@@ -50,9 +59,8 @@ real afsi_get_volume(afsi_data* dist, int iR);
  * @param prod1_data distribution data for product 1 output
  * @param prod2_data distribution data for product 2 output
  */
-void afsi_run(sim_data* sim, Reaction reaction, int n,
-              afsi_data* react1, afsi_data* react2, real mult,
-              dist_5D_data* prod1, dist_5D_data* prod2) {
+void afsi_run(sim_data* sim, afsi_data* afsi, int n,
+              histogram* prod1, histogram* prod2) {
     /* QID for this run */
     char qid[11];
     hdf5_generate_qid(qid);
@@ -62,8 +70,6 @@ void afsi_run(sim_data* sim, Reaction reaction, int n,
     print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "AFSI5\n");
     print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
                "Tag %s\nBranch %s\n\n", GIT_VERSION, GIT_BRANCH);
-    dist_5D_init(prod1);
-    dist_5D_init(prod2);
 
     random_init(&rdata, time((NULL)));
     strcpy(sim->hdf5_out, sim->hdf5_in);
@@ -79,84 +85,115 @@ void afsi_run(sim_data* sim, Reaction reaction, int n,
 
     real m1, q1, m2, q2, mprod1, qprod1, mprod2, qprod2, Q;
     boschhale_reaction(
-        reaction, &m1, &q1, &m2, &q2, &mprod1, &qprod1, &mprod2, &qprod2, &Q);
+        afsi->reaction, &m1, &q1, &m2, &q2,
+        &mprod1, &qprod1, &mprod2, &qprod2, &Q);
 
-    int n_r=0, n_phi=0, n_z=0;
-    if(react1->type == 1) {
-        n_r   = react1->dist_5D->n_r;
-        n_phi = react1->dist_5D->n_phi;
-        n_z   = react1->dist_5D->n_z;
+    int prod_mom_space;
+    int i0coord, i1coord, i2coord, p1coord, p2coord;
+    if(prod1->axes[0].n) {
+        i0coord = 0;
+        i1coord = 1;
+        i2coord = 2;
     }
-    else if(react1->type == 2) {
-        n_r   = react1->dist_thermal->n_r;
-        n_phi = react1->dist_thermal->n_phi;
-        n_z   = react1->dist_thermal->n_z;
+    else if(prod1->axes[3].n) {
+        i0coord = 3;
+        i1coord = 4;
+        i2coord = 1;
+    }
+    else {
+        return;
+    }
+    if(prod1->axes[5].n) {
+        p1coord = 5;
+        p2coord = 6;
+        prod_mom_space = PPARPPERP;
+    }
+    else if(prod1->axes[10].n) {
+        p1coord = 10;
+        p2coord = 11;
+        prod_mom_space = EKINXI;
+    }
+    else {
+        return;
     }
 
+    real time = 0.0;
     #pragma omp parallel for
-    for(int iR = 0; iR < n_r; iR++) {
-        real* ppara1     = (real*) malloc(n*sizeof(real));
-        real* pperp1     = (real*) malloc(n*sizeof(real));
-        real* ppara2     = (real*) malloc(n*sizeof(real));
-        real* pperp2     = (real*) malloc(n*sizeof(real));
-        real* pparaprod1 = (real*) malloc(n*sizeof(real));
-        real* pperpprod1 = (real*) malloc(n*sizeof(real));
-        real* pparaprod2 = (real*) malloc(n*sizeof(real));
-        real* pperpprod2 = (real*) malloc(n*sizeof(real));
+    for(size_t i0 = 0; i0 < afsi->volshape[0]; i0++) {
+        real* ppara1 = (real*) malloc(n*sizeof(real));
+        real* pperp1 = (real*) malloc(n*sizeof(real));
+        real* ppara2 = (real*) malloc(n*sizeof(real));
+        real* pperp2 = (real*) malloc(n*sizeof(real));
+        real* prod1_p1 = (real*) malloc(n*sizeof(real));
+        real* prod1_p2 = (real*) malloc(n*sizeof(real));
+        real* prod2_p1 = (real*) malloc(n*sizeof(real));
+        real* prod2_p2 = (real*) malloc(n*sizeof(real));
 
-        real vol = afsi_get_volume(react1, iR);
-        for(int iphi = 0; iphi < n_phi; iphi++) {
-            for(int iz = 0; iz < n_z; iz++) {
-                real density1 = afsi_get_density(react1, iR, iphi, iz);
-                real density2 = afsi_get_density(react2, iR, iphi, iz);
-                if(density1 > 0 && density2 > 0) {
-                    afsi_sample_reactant_momenta(
-                        react1, react2, m1, m2, n, iR, iphi, iz,
-                        ppara1, pperp1, ppara2, pperp2);
-                    for(int i = 0; i < n; i++) {
-                        real vcom2;
-                        afsi_compute_product_momenta(
-                            i, m1, m2, mprod1, mprod2, Q,
-                            ppara1, pperp1, ppara2, pperp2, &vcom2,
-                            pparaprod1, pperpprod1, pparaprod2, pperpprod2);
-                        real E = 0.5 * ( m1 * m2 ) / ( m1 + m2 ) * vcom2;
+        for(size_t i1 = 0; i1 < afsi->volshape[1]; i1++) {
+            for(size_t i2 = 0; i2 < afsi->volshape[2]; i2++) {
+                size_t spatial_index = i0*afsi->volshape[1]*afsi->volshape[2]
+                                     + i1*afsi->volshape[2] + i2;
+                real r = afsi->r[spatial_index];
+                real z = afsi->z[spatial_index];
+                real phi = afsi->phi[spatial_index];
+                real vol = afsi->vol[spatial_index];
 
-                        real weight = density1 * density2 * sqrt(vcom2)
-                            * boschhale_sigma(reaction, E)/n*vol;
-
-                        int ippara = floor(
-                            (pparaprod1[i] - prod1->min_ppara) * prod1->n_ppara
-                            / ( prod1->max_ppara - prod1->min_ppara ) );
-                        int ipperp = floor(
-                            (pperpprod1[i] - prod1->min_pperp) * prod1->n_pperp
-                            / ( prod1->max_pperp - prod1->min_pperp ) );
-                        if( 0 <= ippara && ippara < prod1->n_ppara &&
-                            0 <= ipperp && ipperp < prod1->n_pperp) {
-                            prod1->histogram[dist_5D_index(
-                                    iR, iphi, iz, ippara, ipperp, 0, 0,
-                                    prod1->step_6, prod1->step_5, prod1->step_4,
-                                    prod1->step_3, prod1->step_2, prod1->step_1)]
-                                += weight * mult;
-                        }
-
-                        ippara = floor(
-                            (pparaprod2[i] - prod2->min_ppara) * prod2->n_ppara
-                            / ( prod2->max_ppara - prod2->min_ppara ) );
-                        ipperp = floor(
-                            (pperpprod2[i] - prod2->min_pperp) * prod2->n_pperp
-                            / ( prod2->max_pperp - prod2->min_pperp ) );
-                        if( 0 <= ippara && ippara < prod2->n_ppara &&
-                            0 <= ipperp && ipperp < prod2->n_pperp) {
-                            prod2->histogram[dist_5D_index(
-                                    iR, iphi, iz, ippara, ipperp, 0, 0,
-                                    prod2->step_6, prod2->step_5, prod2->step_4,
-                                    prod2->step_3, prod2->step_2, prod2->step_1)]
-                                += weight * mult;
-                        }
-                    }
+                real psi, rho[2];
+                if(B_field_eval_psi(&psi, r, phi, z, time, &sim->B_data) ||
+                   B_field_eval_rho(rho, psi, &sim->B_data) ) {
+                    continue;
                 }
-                else {
-                    /* Do nothing */
+
+                real density1, density2;
+                afsi_sample_reactant_momenta_2d(
+                    sim, afsi, m1, m2, vol, n, i0, i1, i2,
+                    r, phi, z, time, rho[0],
+                    &density1, ppara1, pperp1, &density2, ppara2, pperp2);
+                if(density1 == 0 || density2 == 0) {
+                    continue;
+                }
+                for(size_t i = 0; i < n; i++) {
+                    real vcom2;
+                    afsi_compute_product_momenta_2d(
+                        i, m1, m2, mprod1, mprod2, Q, prod_mom_space,
+                        ppara1, pperp1, ppara2, pperp2, &vcom2,
+                        prod1_p1, prod1_p2, prod2_p1, prod2_p2);
+                    real E = 0.5 * ( m1 * m2 ) / ( m1 + m2 ) * vcom2;
+
+                    real weight = density1 * density2 * sqrt(vcom2)
+                        * boschhale_sigma(afsi->reaction, E)/n*vol;
+
+                    size_t ip1 = math_bin_index(
+                        prod1_p1[i], prod1->axes[p1coord].n,
+                        prod1->axes[p1coord].min, prod1->axes[p1coord].max);
+                    size_t ip2 = math_bin_index(
+                        prod1_p2[i], prod1->axes[p2coord].n,
+                        prod1->axes[p2coord].min, prod1->axes[p2coord].max);
+                    if( 0 <= ip1 && ip1 < prod1->axes[p1coord].n &&
+                        0 <= ip2 && ip2 < prod1->axes[p2coord].n) {
+                        size_t index =    i0*prod1->strides[i0coord]
+                                        + i1*prod1->strides[i1coord]
+                                        + i2*prod1->strides[i2coord]
+                                        + ip1*prod1->strides[p1coord]
+                                        + ip2*prod1->strides[p2coord];
+                        prod1->bins[index] += weight * afsi->mult;
+                    }
+
+                    ip1 = math_bin_index(
+                        prod2_p1[i], prod2->axes[p1coord].n,
+                        prod2->axes[p1coord].min, prod2->axes[p1coord].max);
+                    ip2 = math_bin_index(
+                        prod2_p2[i], prod2->axes[p2coord].n,
+                        prod2->axes[p2coord].min, prod2->axes[p2coord].max);
+                    if( 0 <= ip1 && ip1 < prod2->axes[p1coord].n &&
+                        0 <= ip2 && ip2 < prod2->axes[p2coord].n) {
+                        size_t index =    i0*prod2->strides[i0coord]
+                                        + i1*prod2->strides[i1coord]
+                                        + i2*prod2->strides[i2coord]
+                                        + ip1*prod2->strides[p1coord]
+                                        + ip2*prod2->strides[p2coord];
+                        prod2->bins[index] += weight * afsi->mult;
+                    }
                 }
             }
         }
@@ -164,10 +201,10 @@ void afsi_run(sim_data* sim, Reaction reaction, int n,
         free(ppara2);
         free(pperp1);
         free(pperp2);
-        free(pparaprod1);
-        free(pparaprod2);
-        free(pperpprod1);
-        free(pperpprod2);
+        free(prod1_p1);
+        free(prod1_p2);
+        free(prod2_p1);
+        free(prod2_p2);
     }
 
     m1     = m1 / CONST_U;
@@ -236,11 +273,11 @@ void afsi_run(sim_data* sim, Reaction reaction, int n,
     }
 
     sprintf(path, "/results/afsi_%s/prod1dist5d", sim->qid);
-    if( hdf5_dist_write_5D(f, path, prod1) ) {
+    if( hdf5_hist_write(f, path, prod1) ) {
         print_err("Warning: 5D distribution could not be written.\n");
     }
     sprintf(path, "/results/afsi_%s/prod2dist5d", sim->qid);
-    if( hdf5_dist_write_5D(f, path, prod2) ) {
+    if( hdf5_hist_write(f, path, prod2) ) {
         print_err("Warning: 5D distribution could not be written.\n");
     }
     if(hdf5_close(f)) {
@@ -249,43 +286,6 @@ void afsi_run(sim_data* sim, Reaction reaction, int n,
     }
 
     print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "\nDone\n");
-}
-
-/**
- * @brief Sample velocities from reactant distributions.
- *
- * @param react1 reactant 1 distribution data.
- * @param react2 reactant 2 distribution data.
- * @param m1 mass of reactant 1 [kg].
- * @param m2 mass of reactant 2 [kg].
- * @param n number of samples.
- * @param iR R index of the distribution cell where sampling is done.
- * @param iphi phi index of the distribution cell where sampling is done.
- * @param iz z index of the distribution cell where sampling is done.
- * @param ppara1 array where the parallel momentum of react1 will be stored
- * @param pperp1 array where the perpendicular momentum of react1 will be stored
- * @param ppara2 array where the parallel momentum of react2 will be stored
- * @param pperp2 array where the perpendicular momentum of react2 will be stored
- */
-void afsi_sample_reactant_momenta(
-    afsi_data* react1, afsi_data* react2, real m1, real m2, int n, int iR,
-    int iphi, int iz, real* ppara1, real* pperp1, real* ppara2, real* pperp2) {
-
-    if(react1->type == 1) {
-        afsi_sample_5D(react1->dist_5D, n, iR, iphi, iz, ppara1, pperp1);
-    }
-    else if(react1->type == 2) {
-        afsi_sample_thermal(
-            react1->dist_thermal, m1, n, iR, iphi, iz, ppara1, pperp1);
-    }
-
-    if(react2->type == 1) {
-        afsi_sample_5D(react2->dist_5D, n, iR, iphi, iz, ppara2, pperp2);
-    }
-    else if(react2->type == 2) {
-        afsi_sample_thermal(
-            react2->dist_thermal, m2, n, iR, iphi, iz, ppara2, pperp2);
-    }
 }
 
 /**
@@ -307,10 +307,10 @@ void afsi_sample_reactant_momenta(
  * @param pparaprod2 array where parallel momentum of product 2 is stored.
  * @param pperpprod2 array where perpendicular momentum of product 2 is stored.
  */
-void afsi_compute_product_momenta(
-    int i, real m1, real m2, real mprod1, real mprod2, real Q,
+void afsi_compute_product_momenta_2d(
+    int i, real m1, real m2, real mprod1, real mprod2, real Q, int prodmomspace,
     real* ppara1, real* pperp1, real* ppara2, real* pperp2, real* vcom2,
-    real* pparaprod1, real* pperpprod1, real* pparaprod2, real* pperpprod2) {
+    real* prod1_p1, real* prod1_p2, real* prod2_p1, real* prod2_p2) {
 
     real rn1 = CONST_2PI * random_uniform(rdata);
     real rn2 = CONST_2PI * random_uniform(rdata);
@@ -363,60 +363,137 @@ void afsi_compute_product_momenta(
     vprod2[1] = v2_cm[1] + v_cm[1];
     vprod2[2] = v2_cm[2] + v_cm[2];
 
-    // ppara and pperp
-    pparaprod1[i] = vprod1[2] * mprod1;
-    pperpprod1[i] = sqrt( vprod1[0]*vprod1[0] + vprod1[1]*vprod1[1] ) * mprod1;
-    pparaprod2[i] = vprod2[2] * mprod2;
-    pperpprod2[i] = sqrt( vprod2[0]*vprod2[0] + vprod2[1]*vprod2[1] ) * mprod2;
+    if(prodmomspace == PPARPPERP) {
+        prod1_p1[i] = vprod1[2] * mprod1;
+        prod1_p2[i] = sqrt(vprod1[0]*vprod1[0] + vprod1[1]*vprod1[1]) * mprod1;
+        prod2_p1[i] = vprod2[2] * mprod2;
+        prod2_p2[i] = sqrt(vprod2[0]*vprod2[0] + vprod2[1]*vprod2[1]) * mprod2;
+    }
+    else {
+        real vnorm1 = math_norm(vprod1);
+        prod1_p2[i] = vprod1[2] / vnorm1;
+        prod1_p1[i] = physlib_Ekin_gamma(mprod1, physlib_gamma_vnorm(vnorm1));
+
+        real vnorm2 = math_norm(vprod2);
+        prod2_p2[i] = vprod2[2] / vnorm2;
+        prod2_p1[i] = physlib_Ekin_gamma(mprod2, physlib_gamma_vnorm(vnorm2));
+    }
+}
+
+/**
+ * @brief Sample velocities from reactant distributions.
+ *
+ * @param react1 reactant 1 distribution data.
+ * @param react2 reactant 2 distribution data.
+ * @param m1 mass of reactant 1 [kg].
+ * @param m2 mass of reactant 2 [kg].
+ * @param n number of samples.
+ * @param iR R index of the distribution cell where sampling is done.
+ * @param iphi phi index of the distribution cell where sampling is done.
+ * @param iz z index of the distribution cell where sampling is done.
+ * @param ppara1 array where the parallel momentum of react1 will be stored
+ * @param pperp1 array where the perpendicular momentum of react1 will be stored
+ * @param ppara2 array where the parallel momentum of react2 will be stored
+ * @param pperp2 array where the perpendicular momentum of react2 will be stored
+ */
+void afsi_sample_reactant_momenta_2d(
+    sim_data* sim, afsi_data* afsi, real mass1, real mass2, real vol,
+    int nsample, size_t i0, size_t i1, size_t i2,
+    real r, real phi, real z, real time, real rho,
+    real* density1, real* ppara1, real* pperp1,
+    real* density2, real* ppara2, real* pperp2) {
+    if(afsi->type1 == 1) {
+        afsi_sample_beam_2d(afsi->beam1, mass1, vol, nsample, i0, i1, i2,
+                            density1, ppara1, pperp1);
+    }
+    else if(afsi->type1 == 2) {
+        afsi_sample_thermal_2d(sim, afsi->thermal1, mass1, nsample, r, phi, z,
+                               time, rho, density1, ppara1, pperp1);
+    }
+    if(afsi->type2 == 1) {
+        afsi_sample_beam_2d(afsi->beam2, mass2, vol, nsample, i0, i1, i2,
+                            density2, ppara2, pperp2);
+    }
+    else if(afsi->type2 == 2) {
+        afsi_sample_thermal_2d(sim, afsi->thermal2, mass2, nsample, r, phi, z,
+                               time, rho, density2, ppara2, pperp2);
+    }
 }
 
 /**
  * @brief Sample ppara and pperp from a 5D distribution.
  *
  * @param dist pointer to the distribution data.
- * @param n number of values to be sampled.
- * @param iR R index where sampling is done.
- * @param iphi phi index where sampling is done.
- * @param iz z index where sampling is done.
+ * @param nsample number of values to be sampled.
+ * @param spatial_index spatial index where sampling is done.
  * @param ppara pointer to array where sampled parallel momenta are stored.
  * @param pperp pointer to array where sampled perpedicular momenta are stored.
  */
-void afsi_sample_5D(dist_5D_data* dist, int n, int iR, int iphi, int iz,
-                    real* ppara, real* pperp) {
-    real* cumdist = (real*) malloc(dist->n_ppara*dist->n_pperp*sizeof(real));
+void afsi_sample_beam_2d(histogram* hist, real mass, real vol, int nsample,
+                         size_t i0, size_t i1, size_t i2,
+                         real* density, real* ppara, real* pperp) {
+    int mom_space;
+    size_t p1coord, p2coord;
+    if(hist->axes[5].n) {
+        p1coord = 5;
+        p2coord = 6;
+        mom_space = PPARPPERP;
+    }
+    else if(hist->axes[10].n) {
+        p1coord = 10;
+        p2coord = 11;
+        mom_space = EKINXI;
+    }
+    else {
+        return;
+    }
 
-    for(int ippara = 0; ippara < dist->n_ppara; ippara++) {
-        for(int ipperp = 0; ipperp < dist->n_pperp; ipperp++) {
-            if(ippara == 0 && ipperp == 0) {
-                cumdist[0] = dist->histogram[dist_5D_index(
-                        iR, iphi, iz, 0, 0, 0, 0, dist->step_6, dist->step_5,
-                        dist->step_4, dist->step_3, dist->step_2,
-                        dist->step_1)];
+    real* cumdist = (real*) malloc(
+        hist->axes[p1coord].n*hist->axes[p2coord].n*sizeof(real));
+
+    *density = 0.0;
+    for(size_t ip1 = 0; ip1 < hist->axes[p1coord].n; ip1++) {
+        for(size_t ip2 = 0; ip2 < hist->axes[p2coord].n; ip2++) {
+            size_t index = i0*hist->strides[0]
+                         + i1*hist->strides[1]
+                         + i2*hist->strides[2]
+                         + ip1*hist->strides[p1coord]
+                         + ip2*hist->strides[p2coord];
+            if(ip1 == 0 && ip2 == 0) {
+                cumdist[0] = hist->bins[index];
             } else {
-                cumdist[ippara*dist->n_pperp+ipperp] =
-                    cumdist[ippara*dist->n_pperp+ipperp-1]
-                    + dist->histogram[dist_5D_index(
-                        iR, iphi, iz, ippara, ipperp, 0, 0, dist->step_6,
-                        dist->step_5, dist->step_4, dist->step_3, dist->step_2,
-                        dist->step_1)];
+                cumdist[ip1*hist->axes[p2coord].n+ip2] =
+                      cumdist[ip1*hist->axes[p2coord].n+ip2-1]
+                    + hist->bins[index];
             }
+            *density += hist->bins[index] / vol;
         }
     }
-    for(int ippara = 0; ippara < dist->n_ppara; ippara++) {
-        for(int ipperp = 0; ipperp < dist->n_pperp; ipperp++) {
-            cumdist[ippara*dist->n_pperp+ipperp] /=
-                cumdist[dist->n_ppara*dist->n_pperp-1];
-        }
+    if(*density == 0) {
+        return;
     }
 
-    for(int i = 0; i < n; i++) {
+    for(size_t i = 0; i < nsample; i++) {
         real r = random_uniform(rdata);
-        for(int j = 0; j < dist->n_ppara*dist->n_pperp; j++) {
+        r *= cumdist[hist->axes[p1coord].n*hist->axes[p2coord].n-1];
+        for(size_t j = 0; j < hist->axes[p1coord].n*hist->axes[p2coord].n; j++) {
             if(cumdist[j] > r) {
-                pperp[i] = dist->min_pperp + (j % dist->n_pperp + 0.5)
-                    * (dist->max_pperp - dist->min_pperp) / dist->n_pperp;
-                ppara[i] = dist->min_ppara + (j / dist->n_pperp + 0.5)
-                    * (dist->max_ppara - dist->min_ppara) / dist->n_ppara;
+                if(mom_space == PPARPPERP) {
+                    ppara[i] = hist->axes[5].min + (j / hist->axes[5].n + 0.5)
+                        * (hist->axes[5].max - hist->axes[5].min) / hist->axes[5].n;
+                    pperp[i] = hist->axes[6].min + (j % hist->axes[6].n + 0.5)
+                        * (hist->axes[6].max - hist->axes[6].min) / hist->axes[6].n;
+                }
+                else {
+                    real ekin = hist->axes[10].min + (j / hist->axes[10].n + 0.5)
+                        * (hist->axes[10].max - hist->axes[10].min) / hist->axes[10].n;
+                    real pitch = hist->axes[11].min + (j / hist->axes[11].n + 0.5)
+                        * (hist->axes[11].max - hist->axes[11].min) / hist->axes[11].n;
+                    real gamma = physlib_gamma_Ekin(mass, ekin);
+                    real pnorm = sqrt(gamma * gamma - 1.0) * mass * CONST_C;
+                    ppara[i] = pitch * pnorm;
+                    pperp[i] = sqrt( 1.0 - pitch*pitch ) * pnorm;
+                }
                 break;
             }
         }
@@ -433,149 +510,33 @@ void afsi_sample_5D(dist_5D_data* dist, int n, int iR, int iphi, int iz,
  *
  * @param data pointer to the thermal data.
  * @param mass mass of the particle species.
- * @param n number of values to be sampled.
- * @param iR R index where sampling is done.
- * @param iphi phi index where sampling is done.
- * @param iz z index where sampling is done.
+ * @param nsample number of values to be sampled.
+ * @param spatial_index spatial index where sampling is done.
  * @param ppara pointer to array where sampled parallel momenta are stored.
  * @param pperp pointer to array where sampled perpedicular momenta are stored.
  */
-void afsi_sample_thermal(afsi_thermal_data* data, real mass, int n, int iR,
-                         int iphi, int iz, real* ppara, real* pperp) {
-    int ind = iR * (data->n_phi * data->n_z) + iphi * data->n_z + iz;
-    real temp = data->temperature[ind];
-
-    for(int i = 0; i < n; i++) {
+void afsi_sample_thermal_2d(sim_data* sim, int ispecies, real mass, int nsample,
+                            real r, real phi, real z, real time, real rho,
+                            real* density, real* ppara, real* pperp) {
+    real ni, ti;
+    if( plasma_eval_dens(&ni, rho, r, phi, z, time, ispecies,
+        &sim->plasma_data) ||
+        plasma_eval_temp(&ti, rho, r, phi, z, time, ispecies,
+        &sim->plasma_data) ) {
+        *density = 0.0;
+        return;
+    }
+    *density = ni;
+    for(int i = 0; i < nsample; i++) {
         real r1, r2, r3, r4, E;
 
         r1 = random_uniform(rdata);
         r2 = random_uniform(rdata);
         r3 = cos( 0.5 * random_uniform(rdata) * CONST_PI );
-        E  = -temp * ( log(r1) + log(r2) * r3 * r3 );
+        E  = -ti * ( log(r1) + log(r2) * r3 * r3 );
 
         r4 = 1.0 - 2 * random_uniform(rdata);
         pperp[i] = sqrt( ( 1 - r4*r4 ) * 2 * E * mass);
         ppara[i] = r4 * sqrt(2 * E * mass);
-    }
-}
-
-/**
- * @brief Get particle density.
- *
- * @param dist pointer to afsi data.
- * @param iR R index at which density is queried.
- * @param iphi phi index at which density is queried.
- * @param iz z index at which density is queried.
- * @return density [m^-3] or zero if type was unknown.
- */
-real afsi_get_density(afsi_data* dist, int iR, int iphi, int iz) {
-    if(dist->type == 1) {
-        real vol = afsi_get_volume(dist, iR);
-
-        real density = 0.0;
-        for(int ippara = 0; ippara < dist->dist_5D->n_ppara; ippara++) {
-            for(int ipperp = 0; ipperp < dist->dist_5D->n_pperp; ipperp++) {
-                density += dist->dist_5D->histogram[dist_5D_index(
-                        iR, iphi, iz, ippara, ipperp, 0, 0,
-                        dist->dist_5D->step_6, dist->dist_5D->step_5,
-                        dist->dist_5D->step_4, dist->dist_5D->step_3,
-                        dist->dist_5D->step_2, dist->dist_5D->step_1)] / vol;
-            }
-        }
-        return density;
-    }
-
-    else if(dist->type == 2) {
-        return dist->dist_thermal->density[
-              iR * dist->dist_thermal->n_phi * dist->dist_thermal->n_z
-            + iphi * dist->dist_thermal->n_z + iz];
-    }
-
-    else {
-        return 0;
-    }
-}
-
-/**
- * @brief Get physical volume of a distribution cell.
- *
- * @param dist distribution.
- * @param iR radial index of the cell.
- * @return cell volume [m^3].
- */
-real afsi_get_volume(afsi_data* dist, int iR) {
-    real dR, dz;
-
-    if(dist->type == 1) {
-        dR = (dist->dist_5D->max_r - dist->dist_5D->min_r) / dist->dist_5D->n_r;
-        dz = (dist->dist_5D->max_z - dist->dist_5D->min_z) / dist->dist_5D->n_z;
-        return CONST_2PI*(dist->dist_5D->min_r + iR * dR + 0.5*dR)*dR*dz;
-    }
-
-    else if(dist->type == 2) {
-        dR = (dist->dist_thermal->max_r - dist->dist_thermal->min_r)
-            / dist->dist_thermal->n_r;
-        dz = (dist->dist_thermal->max_z - dist->dist_thermal->min_z)
-            / dist->dist_thermal->n_z;
-        return CONST_2PI*(dist->dist_thermal->min_r + iR * dR + 0.5*dR)*dR*dz;
-    }
-    return 0;
-}
-
-/**
- * @brief Test distribution.
- *
- * @param dist1 distribution to be tested.
- */
-void afsi_test_dist(dist_5D_data* dist1) {
-    printf("%d %le %le\n", dist1->n_r, dist1->min_r, dist1->max_r);
-    printf("%d %le %le\n", dist1->n_phi, dist1->min_phi, dist1->max_phi);
-    printf("%d %le %le\n", dist1->n_z, dist1->min_z, dist1->max_z);
-    printf("%d %le %le\n", dist1->n_ppara, dist1->min_ppara, dist1->max_ppara);
-    printf("%d %le %le\n", dist1->n_pperp, dist1->min_pperp, dist1->max_pperp);
-    printf("%d %le %le\n", dist1->n_time, dist1->min_time, dist1->max_time);
-    printf("%d %le %le\n", dist1->n_q, dist1->min_q, dist1->max_q);
-
-    real sum = 0.0;
-
-    int ncell = dist1->n_r * dist1->n_phi * dist1->n_z * dist1->n_ppara
-        * dist1->n_pperp * dist1->n_time * dist1->n_q;
-    for(int i = 0; i < ncell; i++) {
-        sum += dist1->histogram[i];
-    }
-
-    printf("%le\n", sum);
-}
-
-/**
- * @brief Test thermal source.
- */
-void afsi_test_thermal() {
-    afsi_thermal_data data;
-
-    data.n_r     = 1;
-    data.min_r   = 0.1;
-    data.max_r   = 1;
-    data.n_phi   = 1;
-    data.min_phi = 0;
-    data.max_phi = 360;
-    data.n_z     = 1;
-    data.min_z   = -1;
-    data.max_z   = 1;
-
-    real temperature = 1e3;
-    real density = 1e19;
-
-    data.temperature = &temperature;
-    data.density = &density;
-
-    int n = 100000;
-    real* ppara = (real*) malloc(n*sizeof(real));
-    real* pperp = (real*) malloc(n*sizeof(real));
-
-    afsi_sample_thermal(&data, 3.343e-27, n, 0, 0, 0, ppara, pperp);
-
-    for(int i = 0; i < n; i++) {
-        printf("%le %le\n", ppara[i], pperp[i]);
     }
 }
