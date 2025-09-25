@@ -348,7 +348,6 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n,
     real phimin = afsi->phi[0], phimax = afsi->phi[1];
     real zmin = afsi->z[0], zmax = afsi->z[1];
 
-    int quante = 0;
     int n_accepted = 0 ;
     int n_samples = 1; 
     int not_transformed_vel = 0; // 0 -> to use B-field aligned transformation, 1 -> vz always aligned with pparall, not physical for neutronics sim.
@@ -412,7 +411,6 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n,
             n_accepted++;
         }
     }
-    printf("quante: %d\n", quante);
     
 }
 
