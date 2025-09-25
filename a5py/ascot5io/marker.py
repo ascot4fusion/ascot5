@@ -11,7 +11,7 @@ from .coreio.fileapi import read_data, add_group, write_data
 
 from a5py.routines.plotting import openfigureifnoaxes
 from a5py.routines.plotting import hist2d, scatter2d, scatter3d
-from a5py.physlib import parseunits
+from a5py.physlib import parseunits, energy_velocity
 from a5py.physlib.species import species as getspecies
 
 class Marker(DataGroup):
@@ -605,9 +605,9 @@ class Prt(Marker):
             vphi = read_data(h5, "vphi")
             mass = read_data(h5, "mass")
 
-        br    = ascotpy.evaluate(r, phi, z, 0, "br")
-        bz    = ascotpy.evaluate(r, phi, z, 0, "bz")
-        bphi  = ascotpy.evaluate(r, phi, z, 0, "bphi")
+        br    = ascotpy.input_eval(r, phi, z, 0, "br")
+        bz    = ascotpy.input_eval(r, phi, z, 0, "bz")
+        bphi  = ascotpy.input_eval(r, phi, z, 0, "bphi")
         b     = np.sqrt(br**2 + bz**2 + bphi**2)
         v     = np.sqrt(vr**2 + vz**2 + vphi**2)
         pitch = ( vr * br + vz * bz + vphi * bphi ) / ( b * v )
