@@ -848,7 +848,7 @@ class TestMoments(unittest.TestCase):
         print(f"rzphimom.volume = {np.sum(mom.volume):f}")
         print(f"rhomom.volume = {np.sum(rhomom.volume):f}")
         print("Ordinate\nintegrated")
-        print(f"{"over space":<18s}|{"rhomom":<34s}|{"mom":<34s}|{"mrkdist":<34s}")
+        print(f"{'over space':<18s}|{'rhomom':<34s}|{'mom':<34s}|{'mrkdist':<34s}")
         print("_"*120)
         for o in ordinates:
             a1 = np.sum(rhomom.ordinate(o) * rhomom.volume)

@@ -327,9 +327,9 @@ class RunMixin(DistMixin):
             Only return markers that have given end condition.
         """
         self._require("_endstate")
-        return np.array([self._endstate.get("x", endcond=endcond),
-                         self._endstate.get("y", endcond=endcond),
-                         self._endstate.get("z", endcond=endcond)]).T
+        return np.array([self.getstate("x", state="end", endcond=endcond),
+                         self.getstate("y", state ="end", endcond=endcond),
+                         self.getstate("z", state="end", endcond=endcond)]).T
 
     def getstate_markers(self, mrktype, ids=None):
         """Convert endstate to marker input.
@@ -1526,9 +1526,9 @@ class RunMixin(DistMixin):
                                         "electronpowerdep")
 
         volume_vsrho = np.sum(moments.volume, axis=(1,2))
-        tot_sum = np.sum(moments.ordinate("powerdep", toravg=True, polavg=True)*volume_vsrho)
-        i_sum = np.sum(moments.ordinate("ionpowerdep", toravg=True, polavg=True)*volume_vsrho)
-        e_sum = np.sum(moments.ordinate("electronpowerdep", toravg=True, polavg=True)*volume_vsrho)
+        tot_sum = np.sum(moments.ordinate("powerdep", toravg=True, polavg=True).to("MW/m**3")*volume_vsrho)
+        i_sum = np.sum(moments.ordinate("ionpowerdep", toravg=True, polavg=True).to("MW/m**3")*volume_vsrho)
+        e_sum = np.sum(moments.ordinate("electronpowerdep", toravg=True, polavg=True).to("MW/m**3")*volume_vsrho)
 
         if axes is None:
             fig, axes = a5plt.subplots()
