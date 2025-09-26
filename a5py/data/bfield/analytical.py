@@ -1,289 +1,224 @@
-"""Defines `BfieldAnalytical` analytical magnetic field input class and
-the corresponding factory method.
+"""Defines analytical magnetic field input class and the corresponding factory
+method.
 """
 import ctypes
-from typing import Tuple, Optional
+from typing import Optional
 
 import unyt
-import mpi4py as MPI
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
-from ... import utils
-from ...libascot import LIBASCOT
-from ...exceptions import AscotIOException
-from ...physlib import aeq
+from a5py import utils
+from a5py.physlib import aeq
+from a5py.libascot import LIBASCOT, DataStruct, init_fun
+from a5py.exceptions import AscotMeltdownError
+from a5py.data.access import InputVariant, Leaf, TreeMixin
 
 
+# pylint: disable=too-few-public-methods, too-many-instance-attributes
+class Struct(DataStruct):
+    """Python wrapper for the struct in B_GS.h."""
+
+    _fields_ = [
+        ("R0", ctypes.c_double),
+        ("z0", ctypes.c_double),
+        ("raxis", ctypes.c_double),
+        ("zaxis", ctypes.c_double),
+        ("B_phi0", ctypes.c_double),
+        ("psi0", ctypes.c_double),
+        ("psi1", ctypes.c_double),
+        ("psi_mult", ctypes.c_double),
+        ("psi_coeff", ctypes.c_double * 13),
+        ("Nripple", ctypes.c_int32),
+        ("a0", ctypes.c_double),
+        ("alpha0", ctypes.c_double),
+        ("delta0", ctypes.c_double),
+        ]
+
+
+init_fun(
+    "B_GS_init",
+    ctypes.POINTER(Struct),
+    *(8*[ctypes.c_double]),
+    ndpointer(ctypes.c_double),
+    ctypes.c_int32,
+    *(3*[ctypes.c_double]),
+    restype=ctypes.c_int32,
+    )
+
+init_fun("B_GS_free", ctypes.POINTER(Struct))
+
+
+@Leaf.register
 class BfieldAnalytical(InputVariant):
     """Analytical tokamak field which can be either axisymmetric or 3D."""
 
-    # pylint: disable=too-few-public-methods, too-many-instance-attributes
-    class Struct(ctypes.Structure):
-        """Python wrapper for the struct in B_GS.h."""
-        _pack_ = 1
-        _fields_ = [
-            ('R0', ctypes.c_double),
-            ('z0', ctypes.c_double),
-            ('raxis', ctypes.c_double),
-            ('zaxis', ctypes.c_double),
-            ('B_phi0', ctypes.c_double),
-            ('psi0', ctypes.c_double),
-            ('psi1', ctypes.c_double),
-            ('psi_mult', ctypes.c_double),
-            ('psi_coeff', ctypes.c_double * 13),
-            ('Nripple', ctypes.c_int32),
-            ('PADDING_0', ctypes.c_ubyte * 4),
-            ('a0', ctypes.c_double),
-            ('alpha0', ctypes.c_double),
-            ('delta0', ctypes.c_double),
-            ]
-
-
-    def __init__(self, qid, date, note) -> None:
-        super().__init__(
-            qid=qid, date=date, note=note, variant="BfieldAnalytical",
-            struct=BfieldAnalytical.Struct(),
-            )
-        self._rmajor: unyt.unyt_array
-        self._axisr: unyt.unyt_array
-        self._axisz: unyt.unyt_array
-        self._axisb: unyt.unyt_array
-        self._psiscaling: unyt.unyt_array
-        self._coefficients: np.ndarray
-        self._psilimits: unyt.unyt_array
-        self._nripple: int
-        self._rminor: unyt.unyt_array
-        self._ripplepenetration: unyt.unyt_array
-        self._ripplescaling: unyt.unyt_array
+    _cdata: Optional[Struct]
 
     @property
     def rmajor(self) -> unyt.unyt_array:
         """Major radius of the tokamak."""
-        if self._staged:
-            return self._from_struct_("R0", shape=(1,), units="m")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("r0")
-        return self._rmajor.copy()
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("R0", (), "m")
+        assert self._file is not None
+        return self._file.read("rmajor")
 
     @property
-    def axisr(self) -> unyt.unyt_array:
-        """Magnetic axis R coordinate."""
-        if self._staged:
-            return self._from_struct_("raxis", shape=(1,), units="m")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("axisr")
-        return self._axisr.copy()
-
-    @property
-    def axisz(self) -> unyt.unyt_array:
-        """Magnetic axis z coordinate."""
-        if self._staged:
-            return self._from_struct_("zaxis", shape=(1,), units="m")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("z0")
-        return self._axisz.copy()
+    def axisrz(self) -> unyt.unyt_array:
+        r"""Magnetic axis :math:`R` and :math:`z` coordinates."""
+        if self._cdata is not None:
+            r = self._cdata.readonly_carray("raxis", (), "m")
+            z = self._cdata.readonly_carray("zaxis", (), "m")
+            return unyt.unyt_array([r, z])
+        assert self._file is not None
+        return self._file.read("axisrz")
 
     @property
     def axisb(self) -> unyt.unyt_array:
         """Toroidal field strength at the major radius location."""
-        if self._staged:
-            return self._from_struct_("B_phi0", shape=(1,), units="T")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("bphi0")
-        return self._axisb.copy()
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("B_phi0", (), "T")
+        assert self._file is not None
+        return self._file.read("axisb")
 
     @property
     def psiscaling(self) -> unyt.unyt_array:
         """Scaling factor for the poloidal flux."""
-        if self._staged:
-            return self._from_struct_("psi_mult", shape=(1,), units="Wb/m")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("psimult")
-        return self._psiscaling.copy()
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("psi_mult", (), "Wb/rad")
+        assert self._file is not None
+        return self._file.read("psiscaling")
 
     @property
-    def coefficients(self) -> unyt.unyt_array:
+    def coefficients(self) -> np.ndarray:
         """Coefficients defining psi: [c0, c1, ..., c11, A]."""
-        if self._staged:
-            return self._from_struct_("psi_coeff", shape=(13,), units="1")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("coefficients")
-        return self._coefficients.copy()
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("psi_coeff", (13,))
+        assert self._file is not None
+        return self._file.read("coefficients")
 
     @property
     def psilimits(self) -> unyt.unyt_array:
         """Poloidal flux values on the magnetic axis and on the separatrix."""
-        if self._staged:
+        if self._cdata is not None:
             return unyt.unyt_array((
-                self._from_struct_("psi0", shape=(1,), units="Wb/m"),
-                self._from_struct_("psi1", shape=(1,), units="Wb/m")
-            )).T
-        if self._format == Format.HDF5:
-            return unyt.unyt_array((
-                self._read_hdf5("psi0"), self._read_hdf5("psi1")
+                self._cdata.readonly_carray("psi0", (), "Wb/rad"),
+                self._cdata.readonly_carray("psi1", (), "Wb/rad")
             ))
-        return self._psilimits.copy()
+        assert self._file is not None
+        return self._file.read("psilimits")
 
     @property
-    def nripple(self) -> unyt.unyt_array:
+    def nripple(self) -> int:
         """Number of TF coils."""
-        if self._staged:
-            return self._from_struct_("Nripple", shape=(1,), units="1")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("nripple")
-        return self._nripple.copy()
+        if self._cdata is not None:
+            return int(self._cdata.readonly_carray("Nripple", ()))
+        assert self._file is not None
+        return int(self._file.read("nripple"))
 
     @property
     def rminor(self) -> unyt.unyt_array:
         """Minor radius."""
-        if self._staged:
-            return self._from_struct_("a0", shape=(1,), units="m")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("a0")
-        return self._rminor.copy()
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("a0", (), "m")
+        assert self._file is not None
+        return self._file.read("rminor")
 
     @property
     def ripplepenetration(self) -> unyt.unyt_array:
         """Ripple penetration."""
-        if self._staged:
-            return self._from_struct_("alpha0", shape=(1,), units="m")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("alpha0")
-        return self._ripplepenetration.copy()
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("alpha0", (), "m")
+        assert self._file is not None
+        return self._file.read("ripplepenetration")
 
     @property
     def ripplescaling(self) -> unyt.unyt_array:
         """Ripple scaling parameter."""
-        if self._staged:
-            return self._from_struct_("delta0", shape=(1,), units="m")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("delta0")
-        return self._ripplescaling.copy()
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("delta0", (), "m")
+        assert self._file is not None
+        return self._file.read("ripplescaling")
 
-    def _export_hdf5(self):
-        """Export data to HDF5 file."""
-        if self._format == Format.HDF5:
-            raise AscotIOException("Data is already stored in the file.")
-        data = self.export()
-        for name, hdf5name in (
-            ("rmajor", "r0"),
-            ("axisz", "z0"),
-            ("axisb", "bphi0"),
-            ("psiscaling", "psimult"),
-            ("rminor", "a0"),
-            ("ripplepenetration", "alpha0"),
-            ("ripplescaling", "delta0"),
-        ):
-            data[hdf5name] = data[name]
-            del data[name]
-        data["psi0"] = data["psilimits"][0]
-        data["psi1"] = data["psilimits"][1]
-        del data["psilimits"]
-        self._treemanager.hdf5manager.write_datasets(
-            self.qid, self.variant, data,
+    #pylint: disable=too-many-arguments
+    def _stage(
+            self, rmajor: unyt.unyt_array,
+            axisrz: unyt.unyt_array,
+            axisb: unyt.unyt_array,
+            psilimits: unyt.unyt_array,
+            coefficients: np.ndarray,
+            nripple: int,
+            rminor: unyt.unyt_array,
+            ripplepenetration: unyt.unyt_array,
+            ripplescaling: unyt.unyt_array,
+            psiscaling: unyt.unyt_array,
+            ) -> None:
+        self._cdata = Struct()
+        if LIBASCOT.B_GS_init(
+            ctypes.byref(self._cdata), rmajor.v, axisrz[1].v, axisrz[0].v,
+            axisrz[1].v, axisb.v, psilimits[0].v, psilimits[1].v, psiscaling.v,
+            coefficients, nripple, rminor.v, ripplepenetration.v, ripplescaling.v,
+            ):
+            self._cdata = None
+            raise AscotMeltdownError("Could not initialize struct.")
+
+    def _save_data(self) -> None:
+        assert self._file is not None
+        for field in [
+            "rmajor", "axisrz", "axisb", "psiscaling", "coefficients",
+            "psilimits", "rminor", "ripplepenetration", "ripplescaling",
+            ]:
+            self._file.write(field, getattr(self, field))
+        self._file.write(
+            "nripple", np.array(self.nripple, dtype="i4")
             )
-        self._format = Format.HDF5
 
-    def export(self):
-        data = {
-            "rmajor":self.rmajor,
-            "axisz":self.axisz,
-            "axisr":self.axisr,
-            "axisb":self.axisb,
-            "psiscaling":self.psiscaling,
-            "coefficients":self.coefficients,
-            "psilimits":self.psilimits,
-            "nripple":self.nripple,
-            "rminor":self.rminor,
-            "ripplepenetration":self.ripplepenetration,
-            "ripplescaling":self.ripplescaling,
-        }
-        return data
-
-    def stage(self):
-        init = LIBASCOT.B_GS_init
-        init.restype = ctypes.c_int32
-        init.argtypes = [
-            ctypes.POINTER(__class__.Struct),
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_double,
-            ndpointer(ctypes.c_double),
-            ctypes.c_int32,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_double,
+    def export(self) -> dict[str, unyt.unyt_array | np.ndarray | int]:
+        fields = [
+            "rmajor", "axisrz", "axisb", "psiscaling", "coefficients",
+            "psilimits", "nripple", "rminor", "ripplepenetration",
+            "ripplescaling",
             ]
-        if not self._staged:
-            if init(
-                ctypes.byref(self._struct_),
-                self.rmajor[0].v,
-                self.axisz[0].v,
-                self.axisr[0].v,
-                self.axisz[0].v,
-                self.axisb[0].v,
-                self.psilimits[0].v,
-                self.psilimits[1].v,
-                self.psiscaling[0].v,
-                self.coefficients.v,
-                self.nripple[0].v,
-                self.rminor[0].v,
-                self.ripplepenetration[0].v,
-                self.ripplescaling[0].v,
-                ):
-                raise AscotIOException("Failed to stage data.")
-            if self._format is Format.MEMORY:
-                del self._coefficients
-            self._staged = True
+        return {field: getattr(self, field) for field in fields}
 
-    def unstage(self):
-        free = LIBASCOT.B_GS_free
-        free.restype = None
-        free.argtypes = [ctypes.POINTER(__class__.Struct)]
+    def stage(self) -> None:
+        super().stage()
+        self._stage(
+            rmajor=self.rmajor, axisrz=self.axisrz, axisb=self.axisb,
+            psilimits=self.psilimits, coefficients=self.coefficients,
+            nripple=self.nripple, rminor=self.rminor,
+            ripplepenetration=self.ripplepenetration,
+            ripplescaling=self.ripplescaling, psiscaling=self.psiscaling,
+            )
 
-        if self._staged:
-            if self._format is Format.MEMORY:
-                self._coefficients = self.coefficients
-
-            free(ctypes.byref(self._struct_))
-            self._staged = False
-
-    def bcast(self, isroot=0):
-        """Broadcast data."""
-        s = self._struct_
-        buf = (ctypes.c_char * ctypes.sizeof(BfieldAnalytical.Struct)).from_buffer(s)
-        MPI.COMM_WORLD.Bcast([buf, MPI.BYTE], root=0)
+    def unstage(self) -> None:
+        super().unstage()
+        assert self._cdata is not None
+        LIBASCOT.B_GS_free(ctypes.byref(self._cdata))
+        self._cdata = None
 
 
 # pylint: disable=too-few-public-methods
-class CreateBfieldAnalyticalMixin(TreeCreateClassMixin):
-    """Mixin class used by `Data` to create `BfieldAnalytical` input."""
+class CreateMixin(TreeMixin):
+    """Provides the factory method."""
 
-    #pylint: disable=protected-access, too-many-arguments
+    #pylint: disable=protected-access, too-many-arguments, too-many-locals
     def create_bfieldanalytical(
             self,
-            rmajor: float | None = None,
-            axisz: float | None = None,
-            axisb: float | None = None,
-            psiscaling: float | None = None,
-            coefficients : utils.ArrayLike | None = None,
-            axisr: Optional[float] = None,
-            psilimits: Optional[Tuple[float,float]] = None,
-            nripple: Optional[int] = None,
-            rminor: Optional[float] = None,
-            ripplepenetration: Optional[float] = None,
-            ripplescaling: Optional[float] = None,
-            note: Optional[str] = None,
-            activate: bool = False,
-            dryrun: bool = False,
-            store_hdf5: Optional[bool] = None,
+            rmajor: utils.ArrayLike,
+            axisb: utils.ArrayLike,
+            psiscaling: utils.ArrayLike,
+            coefficients: utils.ArrayLike,
+            psilimits: Optional[utils.ArrayLike]=None,
+            axisrz: Optional[utils.ArrayLike]=None,
+            nripple: Optional[int]=None,
+            rminor: Optional[utils.ArrayLike]=None,
+            ripplepenetration: Optional[utils.ArrayLike]=None,
+            ripplescaling: Optional[utils.ArrayLike]=None,
+            note: Optional[str]=None,
+            activate: bool=False,
+            preview: bool=False,
+            save: Optional[bool]=None,
             ) -> BfieldAnalytical:
         r"""Create an analytic tokamak field.
 
@@ -293,8 +228,6 @@ class CreateBfieldAnalyticalMixin(TreeCreateClassMixin):
             Major radius of the tokamak.
 
             Note that this is not the same as the magnetic axis R coordinate.
-        axisz : float
-            Magnetic axis z coordinate.
         axisb : float
             Toroidal field strength at the major radius location.
         psiscaling : float
@@ -307,40 +240,54 @@ class CreateBfieldAnalyticalMixin(TreeCreateClassMixin):
 
             These can be evaluated from the equilibrium properties such as
             triangularity and elongation.
-        raxis : float, optional
-            R coordinate of the magnetic axis.
+        axisrz : float, *optional*
+            :math:`R` and :math:`z` coordinates of the magnetic axis.
 
-            If not provided, this value will be interpolated internally.
-        psilimits : tuple[float, float], optional
+            If not provided, this :math:`R` will be interpolated internally and
+            :math:`z=0`.
+        psilimits : tuple[float, float], *optional*
             Poloidal flux values on the magnetic axis and on the separatrix.
-        nripple : float, optional
+        nripple : float, *optional*
             Number of TF coils.
 
             If this value is set and it is larger than zero, the resulting field
             will contain the toroidal field ripple.
-        rminor : float, optional
+        rminor : float, *optional*
             Minor radius.
 
             Used only for computing ripple strength.
-        ripplepenetration : float, optional
+        ripplepenetration : float, *optional*
             Ripple penetration.
 
             Increasing this parameter decreases ripple strength as
             :math:`\propto\frac{r}{a}^{\alpha}`, where :math:`a` is the minor
             radius and :math:`\alpha` is this parameter.
-        ripplescaling : float, optional
+        ripplescaling : float, *optional*
             Ripple scaling parameter.
 
             Corresponds to the strength of the ripple at the separatrix.
+        note : str, *optional*
+            A short note to document this data.
+
+            The first word of the note is converted to a tag which you can use
+            to reference the data.
+        activate : bool, *optional*
+            Set this input as active on creation.
+        preview : bool, *optional*
+            If ``True``, the input is created but it is not included in the data
+            structure nor saved to disk.
+
+            The input cannot be used in a simulation but it can be previewed.
+        save : bool, *optional*
+            Store this input to disk.
 
         Returns
         -------
-        inputdata : ~a5py.data.bfield.BfieldAnalytical
-            Freshly minted input data object.
+        data : :class:`.BfieldAnalytical`
+            Input variant created from the given parameters.
 
         Notes
         -----
-
         This field can either be axisymmetric or it can include a ripple-like
         perturbation. The field is very fast to interpolate and it is not memory
         intensive. However, it is still intended mostly for testing purposes as
@@ -414,54 +361,42 @@ class CreateBfieldAnalyticalMixin(TreeCreateClassMixin):
            solutions to the Grad-Shafranov equation. Physics of Plasmas (2010).
            https://doi.org/10.1063/1.3328818
         """
-        parameters = _variants.parse_parameters(
-            rmajor, axisz, axisb, psiscaling, coefficients, axisr, psilimits,
-            nripple, rminor, ripplepenetration, ripplescaling,
-        )
-        default_coefs = np.array([
-            2.218e-02, -1.288e-01, -4.177e-02, -6.227e-02,
-            6.200e-03, -1.205e-03, -3.701e-05,  0,
-            0,          0,          0,          0,
-            -0.155])
-        _variants.validate_required_parameters(
-            parameters,
-            names=["rmajor", "axisz", "axisb", "psiscaling", "coefficients"],
-            units=["m", "m", "T", "Wb/m", "1"],
-            shape=[(1,), (1,), (1,), (1,), (13,)],
-            dtype="f8",
-            default=[1., 0., 1., 1., default_coefs],
-        )
+        with utils.validate_variables() as v:
+            axisb = v.validate("axisb", axisb, (), "T")
+            rmajor = v.validate("rmajor", rmajor, (), "m")
+            psiscaling = v.validate("psiscaling", psiscaling, (), "Wb/rad")
+            coefficients = v.validate("coefficients", coefficients, (13,))
 
-        axisxy = aeq.find_axis(
-            parameters["coefficients"],
-            )
-        psi0 = aeq.psi(
-            axisxy[0], axisxy[1], parameters["coefficients"][:-1],
-            parameters["coefficients"][-1],
-            ) * parameters["psiscaling"]
-        psi1  = 0
-        raxis = axisxy[0]*parameters["rmajor"]
-        padding = 1e-8 * unyt.Wb/unyt.m
+        axisxy = aeq.find_axis(coefficients)
+        axisr = axisxy[0] * rmajor.v
+        padding = 1e-8 * unyt.Wb/unyt.rad
+        psi0 = aeq.psi(axisxy[0], axisxy[1], coefficients[:-1], coefficients[-1]) * psiscaling
+        psi1 = 0
         psi0 = psi0 - padding if psi0 < psi1 else psi0 + padding
+        with utils.validate_variables() as v:
+            axisrz = v.validate("axisrz", axisrz, (2,), "m", default=(axisr, 0.))
+            rminor = v.validate("rminor", rminor, (), "m", default=1.0)
+            nripple = v.validate("nripple", nripple, (), dtype="i4", default=18)
+            psilimits = v.validate("psilimits", psilimits, (2,), "Wb/rad",
+                                   default=[psi0.v, 0.0])
+            ripplepenetration = v.validate(
+                "ripplepenetration", ripplepenetration, (), "1", default=0.01
+                )
+            ripplescaling = v.validate(
+                "ripplescaling", ripplescaling, (), "1", default=1.0
+                )
 
-        _variants.validate_optional_parameters(
-            parameters,
-            ["axisr", "psilimits", "nripple", "rminor", "ripplepenetration",
-             "ripplescaling"],
-            ("m", "Wb/m", "1", "m", "1", "1"),
-            [(1,), (2,), (1,), (1,), (1,), (1,)],
-            ["f8", "f8", "i8", "f8", "f8", "f8"],
-            [raxis.v, np.array([psi0[0], 0.]), 0, 1., 1., 1.],
-        )
-
-        meta = _variants.new_metadata("BfieldAnalytical", note=note)
-        obj = self._treemanager.enter_input(
-            meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
+        assert nripple is not None
+        leaf = BfieldAnalytical(note=note)
+        leaf._stage(
+            rmajor=rmajor, axisrz=axisrz, axisb=axisb, psilimits=psilimits,
+            coefficients=coefficients, nripple=nripple, rminor=rminor,
+            ripplepenetration=ripplepenetration, ripplescaling=ripplescaling,
+            psiscaling=psiscaling,
             )
-        for parameter, value in parameters.items():
-            setattr(obj, f"_{parameter}", value)
-            getattr(obj, f"_{parameter}").flags.writeable = False
-
-        if store_hdf5:
-            obj._export_hdf5()
-        return obj
+        if preview:
+            return leaf
+        self._treemanager.enter_leaf(
+            leaf, activate=activate, save=save, category="bfield",
+            )
+        return leaf

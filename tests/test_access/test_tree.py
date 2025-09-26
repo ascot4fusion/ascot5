@@ -10,13 +10,16 @@ import pytest
 
 from a5py.exceptions import AscotMeltdownError, AscotDataException
 
-from a5py.data.access import Leaf, InputVariant, OutputVariant
+from a5py.data.access import InputVariant, OutputVariant
 from a5py.data.access import Tree
 from a5py.data.access.hdf5io import RESULTGROUP, TreeFile
 
 from .conftest import (
     INPUTS, OUTPUTS, CATEGORIES, DATE, NOTE, FNTEST, FNEMPTY, DATES
     )
+
+# Disable not implemented errors (here we are not storing any actual data).
+InputVariant._save_data = lambda self: None
 
 
 def reinit_from_file(tree_to_reinit):
@@ -310,17 +313,17 @@ def test_tree_contents(tree):
     expected = textwrap.dedent(
         """
         Inputs: [only active shown]
-        catX      input_1         1997-08-29 02:14:00 + 1 other(s)
+        catX      InputVariant_1  1997-08-29 02:14:00 + 1 other(s)
                        "Let off some steam <Bennett>"
-        catY      input_3         1997-08-31 02:14:00 (no other inputs)
+        catY      InputVariant_3  1997-08-31 02:14:00 (no other inputs)
                        "Let off some steam <Bennett>"
         catZ      *no inputs*
 
 
         Simulations:
-        output_2        1997-08-31 02:14:00
+        OutputVariant_2 1997-08-31 02:14:00
                        "Let off some steam <Bennett>"
-        output_1        1997-08-31 02:14:00 [active]
+        OutputVariant_1 1997-08-31 02:14:00 [active]
                        "Let off some steam <Bennett>"
         """)
     diff = '\n'.join(difflib.unified_diff(

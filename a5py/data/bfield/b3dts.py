@@ -7,8 +7,9 @@ from typing import Tuple, Optional
 import unyt
 import numpy as np
 
-from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
+from a5py.data.access import InputVariant, Status, DataStruct
 from ... import utils
+from a5py.libascot import LIBASCOT
 from ...exceptions import AscotIOException
 
 
@@ -231,7 +232,7 @@ class B_3DTS(InputVariant):
         return data
 
 # pylint: disable=too-few-public-methods
-class CreateB3DTSMixin(TreeCreateClassMixin):
+class CreateB3DTSMixin():
     """Mixin class used by `Data` to create B_3DTS input."""
 
     #pylint: disable=protected-access, too-many-arguments

@@ -6,36 +6,35 @@ from typing import Tuple, Optional
 
 import unyt
 import numpy as np
-from numpy.ctypeslib import ndpointer
 
-from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
-from ..cstructs import interp1D_data
-from ... import utils
-from ...libascot import LIBASCOT
-from ...exceptions import AscotIOException
+from a5py import utils
+from a5py.libascot import LIBASCOT, DataStruct, interp1D_data, init_fun
+from a5py.exceptions import AscotMeltdownError
+from a5py.data.access import InputVariant, Leaf, TreeMixin
 
 
-class MhdStationary(InputVariant):
-    """Stationary MHD eigenmode input."""
+# pylint: disable=too-few-public-methods
+class Struct(DataStruct):
+    """Python wrapper for the struct in mhd_stat.h."""
 
-    # pylint: disable=too-few-public-methods
-    class Struct(ctypes.Structure):
-        """Python wrapper for the struct in mhd_stat.h."""
-        _pack_ = 1
-        _fields_ = [
-            ('n_modes', ctypes.c_int32),
-            ('PADDING_0', ctypes.c_ubyte * 4),
-            ('rho_min', ctypes.c_double),
-            ('rho_max', ctypes.c_double),
-            ('nmode', ctypes.POINTER(ctypes.c_int32)),
-            ('mmode', ctypes.POINTER(ctypes.c_int32)),
-            ('amplitude_nm', ctypes.POINTER(ctypes.c_double)),
-            ('omega_nm', ctypes.POINTER(ctypes.c_double)),
-            ('phase_nm', ctypes.POINTER(ctypes.c_double)),
-            ('alpha_nm', ctypes.POINTER(interp1D_data)),
-            ('phi_nm', ctypes.POINTER(interp1D_data)),
+    _fields_ = [
+        ('n_modes', ctypes.c_int32),
+        ('PADDING_0', ctypes.c_ubyte * 4),
+        ('rho_min', ctypes.c_double),
+        ('rho_max', ctypes.c_double),
+        ('nmode', ctypes.POINTER(ctypes.c_int32)),
+        ('mmode', ctypes.POINTER(ctypes.c_int32)),
+        ('amplitude_nm', ctypes.POINTER(ctypes.c_double)),
+        ('omega_nm', ctypes.POINTER(ctypes.c_double)),
+        ('phase_nm', ctypes.POINTER(ctypes.c_double)),
+        ('alpha_nm', ctypes.POINTER(interp1D_data)),
+        ('phi_nm', ctypes.POINTER(interp1D_data)),
         ]
 
+
+@Leaf.register
+class MhdStationary(InputVariant):
+    """Stationary MHD eigenmode input."""
 
     def __init__(self, qid, date, note) -> None:
         super().__init__(
@@ -230,10 +229,10 @@ class MhdStationary(InputVariant):
 
 
 # pylint: disable=too-few-public-methods
-class CreateMhdStationaryMixin(TreeCreateClassMixin):
+class CreateMixin(TreeMixin):
     """Mixin class used by `Data` to create `MhdStationary` input."""
 
-    #pylint: disable=protected-access, too-many-arguments
+    #pylint: disable=protected-access, too-many-arguments, too-many-locals
     def create_mhdstationary(
             self,
             rhogrid: utils.ArrayLike | None = None,
@@ -241,13 +240,13 @@ class CreateMhdStationaryMixin(TreeCreateClassMixin):
             poloidalnumber: utils.ArrayLike | None = None,
             magneticprofile: utils.ArrayLike | None = None,
             electricprofile: utils.ArrayLike | None = None,
-            amplitude: Optional[utils.ArrayLike] = None,
-            frequency: Optional[utils.ArrayLike] = None,
-            phase: Optional[utils.ArrayLike] = None,
-            note: Optional[str] = None,
-            activate: bool = False,
-            dryrun: bool = False,
-            store_hdf5: Optional[bool] = None,
+            amplitude: Optional[utils.ArrayLike]=None,
+            frequency: Optional[utils.ArrayLike]=None,
+            phase: Optional[utils.ArrayLike]=None,
+            note: Optional[str]=None,
+            activate: bool=False,
+            preview: bool=False,
+            save: Optional[bool]=None,
             ) -> MhdStationary:
         r"""Create MHD eigenmode input where the modes don't evolve in time.
 
@@ -288,18 +287,18 @@ class CreateMhdStationaryMixin(TreeCreateClassMixin):
             to reference the data.
         activate : bool, optional
             Set this input as active on creation.
-        dryrun : bool, optional
-            Do not add this input to the `data` structure or store it on disk.
+        preview : bool, *optional*
+            If True, the input is created but it is not included in the data
+            structure nor saved to disk.
 
-            Use this flag to modify the input manually before storing it.
-        store_hdf5 : bool, optional
-            Write this input to the HDF5 file if one has been specified when
-            `Ascot` was initialized.
+            The input cannot be used in a simulation but it can be previewed.
+        save : bool, *optional*
+            Store this input to disk.
 
         Returns
         -------
         inputdata : ~a5py.data.mhd.MhdStationary
-            Freshly minted input data object.
+            Input variant created from the given parameters.
 
         Notes
         -----

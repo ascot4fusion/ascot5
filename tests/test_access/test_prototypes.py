@@ -24,11 +24,7 @@ def test_input_create_write_read(tree):
     tree.create_inputprototype(bval=data)
     assert all(tree[CATEGORY].active.bval == data)
     assert not tree[CATEGORY].active.bval is data
-    with pytest.raises(ValueError):
-        tree[CATEGORY].active.bval[0] = 1
-
-    #tree = TreePrototype([CATEGORY], (FNEMPTY, True))
-    tree[CATEGORY].active.unstage()
+    tree[CATEGORY].active.bval[0] = 1
     assert all(tree[CATEGORY].active.bval == data)
 
 
@@ -41,7 +37,6 @@ def test_input_stage_unstage(tree):
     with pytest.raises(AscotDataException):
         leaf.stage()
     leaf.save()
-    leaf.unstage()
     assert all(leaf.bval == data)
     leaf.stage()
     assert all(leaf.bval == data)

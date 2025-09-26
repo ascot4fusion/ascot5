@@ -1,57 +1,81 @@
-"""This module contains all magnetic field input variants."""
+"""This module contains all magnetic field input variants.
+
+.. autosummary::
+    :nosignatures:
+
+    ~BfieldCartesian
+    ~BfieldAnalytical
+    ~Bfield2D
+    ~Bfield3D
+    ~BfieldStellarator
+    ~CreateBfieldMixin.create_bfieldcartesian
+    ~CreateBfieldMixin.create_bfieldanalytical
+    ~CreateBfieldMixin.create_bfield2d
+    ~CreateBfieldMixin.create_bfield3d
+    ~CreateBfieldMixin.create_bfieldstellarator
+
+.. rubric:: Classes
+
+.. autoclass:: BfieldCartesian
+    :members:
+
+.. autoclass:: BfieldAnalytical
+    :members:
+
+.. autoclass:: Bfield2D
+    :members:
+
+.. autoclass:: Bfield3D
+    :members:
+
+.. autoclass:: BfieldStellarator
+    :members:
+
+.. autoclass:: CreateBfieldMixin
+    :members:
+    :inherited-members:
+
+"""
 import ctypes
 
-from .cartesian import BfieldCartesian, CreateBfieldCartesianMixin
-from .analytical import BfieldAnalytical, CreateBfieldAnalyticalMixin
-from .axisymmetric import Bfield2D, CreateBfield2DMixin
-from .perturbed import Bfield3D, CreateBfield3DMixin
-from .stellarator import BfieldStellarator, CreateBfieldStellaratorMixin
+from a5py.libascot import input_category
+
+from . import cartesian
+from . import analytical
+from . import axisymmetric
+from . import perturbed
+from . import stellarator
+from .cartesian import BfieldCartesian
+from .analytical import BfieldAnalytical
+from .axisymmetric import Bfield2D
+from .perturbed import Bfield3D
+from .stellarator import BfieldStellarator
 
 
-def with_use_method(cls):
-    # derive mapping from _fields_
-    mapping = {
-        f[0]: i for i, f in enumerate(cls._fields_)
-        if f[0] != "type"  # exclude the type field
-    }
-
-    def use(self, variant):
-        variant.stage()
-        for name in mapping:
-            if name == variant.variant:
-                setattr(self, name, ctypes.pointer(variant._struct_))
-                self.type = ctypes.c_uint32(mapping[name])
-                break
-        else:
-            raise ValueError(f"Unknown variant {variant.variant}")
-
-    cls.use = use
-    return cls
-
-
-@with_use_method
+# pylint: disable=too-few-public-methods
+@input_category
 class Bfield(ctypes.Structure):
-    """Wrapper for the magnetic field data in libascot.so."""
+    """Wrapper for the magnetic field data in B_field.h."""
 
     _fields_ = [
-        ('BTC', ctypes.POINTER(BfieldCartesian.Struct)),
-        ('BGS', ctypes.POINTER(BfieldAnalytical.Struct)),
-        ('B2DS', ctypes.POINTER(Bfield2D.Struct)),
-        ('B3DS', ctypes.POINTER(Bfield3D.Struct)),
-        ('BSTS', ctypes.POINTER(BfieldStellarator.Struct)),
-        ('type', ctypes.c_uint32),
+        ("BTC", ctypes.POINTER(cartesian.Struct)),
+        ("BGS", ctypes.POINTER(analytical.Struct)),
+        ("B2DS", ctypes.POINTER(axisymmetric.Struct)),
+        ("B3DS", ctypes.POINTER(perturbed.Struct)),
+        ("BSTS", ctypes.POINTER(stellarator.Struct)),
+        ("type", ctypes.c_uint32),
     ]
 
 
 # pylint: disable=too-many-ancestors
 class CreateBfieldMixin(
-    CreateBfieldCartesianMixin,
-    CreateBfieldAnalyticalMixin,
-    CreateBfield2DMixin,
-    CreateBfield3DMixin,
-    CreateBfieldStellaratorMixin,
+    cartesian.CreateMixin,
+    analytical.CreateMixin,
+    axisymmetric.CreateMixin,
+    perturbed.CreateMixin,
+    stellarator.CreateMixin,
     ):
-    """Mixin class used by `Data` to create magnetic field input.
+    """Mixin class used by :class:`.AscotData` to create magnetic field input.
 
     This class just combines all the magnetic field mixin classes.
     """

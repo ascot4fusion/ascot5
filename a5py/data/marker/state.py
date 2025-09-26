@@ -4,69 +4,375 @@ import ctypes
 import numpy as np
 import unyt
 import a5py.physlib as physlib
-
-from ..access import Diagnostic
-
-
-class MarkerState(Diagnostic):
-    """Marker initial and final phase-space positions and related quantities.
-    """
-
-    class Structure(ctypes.Structure):
-        """Python wrapper for the particle state struct in particle.h."""
-
-        _pack_ = 1
-        _fields_ = [
-            ('r', ctypes.c_double),
-            ('phi', ctypes.c_double),
-            ('z', ctypes.c_double),
-            ('ppar', ctypes.c_double),
-            ('mu', ctypes.c_double),
-            ('zeta', ctypes.c_double),
-            ('rprt', ctypes.c_double),
-            ('phiprt', ctypes.c_double),
-            ('zprt', ctypes.c_double),
-            ('p_r', ctypes.c_double),
-            ('p_phi', ctypes.c_double),
-            ('p_z', ctypes.c_double),
-            ('mass', ctypes.c_double),
-            ('charge', ctypes.c_double),
-            ('anum', ctypes.c_int32),
-            ('znum', ctypes.c_int32),
-            ('weight', ctypes.c_double),
-            ('time', ctypes.c_double),
-            ('mileage', ctypes.c_double),
-            ('cputime', ctypes.c_double),
-            ('rho', ctypes.c_double),
-            ('theta', ctypes.c_double),
-            ('id', ctypes.c_int64),
-            ('endcond', ctypes.c_int64),
-            ('walltile', ctypes.c_int64),
-            ('B_r', ctypes.c_double),
-            ('B_phi', ctypes.c_double),
-            ('B_z', ctypes.c_double),
-            ('B_r_dr', ctypes.c_double),
-            ('B_phi_dr', ctypes.c_double),
-            ('B_z_dr', ctypes.c_double),
-            ('B_r_dphi', ctypes.c_double),
-            ('B_phi_dphi', ctypes.c_double),
-            ('B_z_dphi', ctypes.c_double),
-            ('B_r_dz', ctypes.c_double),
-            ('B_phi_dz', ctypes.c_double),
-            ('B_z_dz', ctypes.c_double),
-            ('err', ctypes.c_uint64),
-            ]
+from a5py.libascot import DataStruct
 
 
-    def __init__(self, nmrk: int, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._struct_ = ctypes.POINTER(particle_state)()
-        self.nmrk = nmrk
+class Structure(DataStruct):
+    """Python wrapper for the particle state struct in particle.h."""
 
-    def combine(self):
-        """Combines two into one (copy)."""
+    _fields_ = [
+        ("r", ctypes.c_double),
+        ("phi", ctypes.c_double),
+        ("z", ctypes.c_double),
+        ("ekin", ctypes.c_double),
+        ("pitch", ctypes.c_double),
+        ("zeta", ctypes.c_double),
+        ("rprt", ctypes.c_double),
+        ("phiprt", ctypes.c_double),
+        ("zprt", ctypes.c_double),
+        ("pr", ctypes.c_double),
+        ("pphi", ctypes.c_double),
+        ("pz", ctypes.c_double),
+        ("mass", ctypes.c_double),
+        ("charge", ctypes.c_double),
+        ("anum", ctypes.c_int32),
+        ("znum", ctypes.c_int32),
+        ("weight", ctypes.c_double),
+        ("time", ctypes.c_double),
+        ("mileage", ctypes.c_double),
+        ("cputime", ctypes.c_double),
+        ("theta", ctypes.c_double),
+        ("id", ctypes.c_int64),
+        ("endcond", ctypes.c_int64),
+        ("walltile", ctypes.c_int64),
+        ("err", ctypes.c_uint64),
+        ]
 
-    def get(self, *qnt, mode="gc"):
+
+class MarkerState():
+    """State of the markers at the fixed point in simulation workflow."""
+
+    def __init__(self):
+        self._file = None
+        self._cdata = None
+
+    @property
+    def r(self) -> unyt.unyt_array:
+        r"""Guiding-center :math:`R` coordinate."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "m")
+            for i in range(out.size):
+                out[i] = self._cdata[i].r
+            return out
+        return self._file.read("r")
+
+    @property
+    def phi(self) -> unyt.unyt_array:
+        r"""Guiding-center :math:`\phi` coordinate."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "rad")
+            for i in range(out.size):
+                out[i] = self._cdata[i].phi
+            out.convert_to_units("deg")
+            return out
+        return self._file.read("phi")
+
+    @property
+    def z(self) -> unyt.unyt_array:
+        r"""Guiding-center :math:`z` coordinate."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "m")
+            for i in range(out.size):
+                out[i] = self._cdata[i].z
+            return out
+        return self._file.read("z")
+
+    @property
+    def ekin(self) -> unyt.unyt_array:
+        r"""Guiding-center kinetic energy."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "J")
+            for i in range(out.size):
+                out[i] = self._cdata[i].ekin
+            return out.to("eV")
+        return self._file.read("ekin")
+
+    @property
+    def pitch(self) -> unyt.unyt_array:
+        r"""Guiding-center pitch."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "1")
+            for i in range(out.size):
+                out[i] = self._cdata[i].pitch
+            return out
+        return self._file.read("pitch")
+
+    @property
+    def zeta(self) -> unyt.unyt_array:
+        r"""Guiding-center gyro-angle."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "rad")
+            for i in range(out.size):
+                out[i] = self._cdata[i].zeta
+            return out
+        return self._file.read("zeta")
+
+    @property
+    def rprt(self) -> unyt.unyt_array:
+        r"""Particle :math:`R` coordinate."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "m")
+            for i in range(out.size):
+                out[i] = self._cdata[i].rprt
+            return out
+        return self._file.read("rprt")
+
+    @property
+    def phiprt(self) -> unyt.unyt_array:
+        r"""Particle :math:`\phi` coordinate."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "rad")
+            for i in range(out.size):
+                out[i] = self._cdata[i].phiprt
+            out.convert_to_units("deg")
+            return out
+        return self._file.read("phiprt")
+
+    @property
+    def zprt(self) -> unyt.unyt_array:
+        r"""Particle :math:`z` coordinate."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "m")
+            for i in range(out.size):
+                out[i] = self._cdata[i].zprt
+            return out
+        return self._file.read("zprt")
+
+    @property
+    def pr(self) -> unyt.unyt_array:
+        r"""Particle momentum :math:`R` component."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "kg*m/s")
+            for i in range(out.size):
+                out[i] = self._cdata[i].pr
+            return out
+        return self._file.read("pr")
+
+    @property
+    def pr(self) -> unyt.unyt_array:
+        r"""Particle momentum :math:`R` component."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "kg*m/s")
+            for i in range(out.size):
+                out[i] = self._cdata[i].pr
+            return out
+        return self._file.read("pr")
+
+    @property
+    def pphi(self) -> unyt.unyt_array:
+        r"""Particle momentum :math:`\phi` component."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "kg*m/s")
+            for i in range(out.size):
+                out[i] = self._cdata[i].pphi
+            return out
+        return self._file.read("pphi")
+
+    @property
+    def pz(self) -> unyt.unyt_array:
+        r"""Particle momentum :math:`z` component."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "kg*m/s")
+            for i in range(out.size):
+                out[i] = self._cdata[i].pz
+            return out
+        return self._file.read("pz")
+
+    @property
+    def mass(self) -> unyt.unyt_array:
+        r"""Marker mass."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "kg")
+            for i in range(out.size):
+                out[i] = self._cdata[i].mass
+            return out
+        return self._file.read("mass")
+
+    @property
+    def charge(self) -> unyt.unyt_array:
+        r"""Marker charge."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "C")
+            for i in range(out.size):
+                out[i] = self._cdata[i].charge
+            return out
+        return self._file.read("charge")
+
+    @property
+    def anum(self) -> unyt.unyt_array:
+        r"""Marker atomic mass number."""
+        if self._file is None:
+            out = np.array([0]*self.n)
+            for i in range(out.size):
+                out[i] = self._cdata[i].anum
+            return out
+        return self._file.read("anum")
+
+    @property
+    def znum(self) -> unyt.unyt_array:
+        r"""Marker charge number."""
+        if self._file is None:
+            out = np.array([0]*self.n)
+            for i in range(out.size):
+                out[i] = self._cdata[i].znum
+            return out
+        return self._file.read("znum")
+
+    @property
+    def weight(self) -> unyt.unyt_array:
+        r"""Marker weight."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "particles/s")
+            for i in range(out.size):
+                out[i] = self._cdata[i].weight
+            return out
+        return self._file.read("weight")
+
+    @property
+    def time(self) -> unyt.unyt_array:
+        r"""Marker time."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "s")
+            for i in range(out.size):
+                out[i] = self._cdata[i].time
+            return out
+        return self._file.read("time")
+
+    @property
+    def mileage(self) -> unyt.unyt_array:
+        r"""Marker mileage."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "s")
+            for i in range(out.size):
+                out[i] = self._cdata[i].mileage
+            return out
+        return self._file.read("mileage")
+
+    @property
+    def cputime(self) -> unyt.unyt_array:
+        r"""Marker CPU time."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "s")
+            for i in range(out.size):
+                out[i] = self._cdata[i].cputime
+            return out
+        return self._file.read("cputime")
+
+    @property
+    def theta(self) -> unyt.unyt_array:
+        r"""Marker theta."""
+        if self._file is None:
+            out = unyt.unyt_array([0.]*self.n, "deg")
+            for i in range(out.size):
+                out[i] = self._cdata[i].theta
+            return out
+        return self._file.read("theta")
+
+    @property
+    def ids(self) -> np.ndarray:
+        """Unique identifier for each marker."""
+        if self._cdata is not None:
+            out = np.zeros((self.n,), dtype="i8")
+            for i in range(out.size):
+                out[i] = self._cdata[i].id
+            return out
+        if self._file is not None:
+            return self._file.read("ids")
+
+    @property
+    def endcond(self) -> np.ndarray:
+        """Marker end condition."""
+        if self._cdata is not None:
+            out = np.zeros((self.n,), dtype="i8")
+            for i in range(out.size):
+                out[i] = self._cdata[i].endcond
+            return out
+        if self._file is not None:
+            return self._file.read("endcond")
+
+    @property
+    def walltile(self) -> np.ndarray:
+        """ID of the wall tile if the marker hit one."""
+        if self._cdata is not None:
+            out = np.zeros((self.n,), dtype="i8")
+            for i in range(out.size):
+                out[i] = self._cdata[i].walltile
+            return out
+        if self._file is not None:
+            return self._file.read("walltile")
+
+    @property
+    def err(self) -> np.ndarray:
+        """Error code if marker."""
+        if self._cdata is not None:
+            out = np.zeros((self.n,), dtype="i8")
+            for i in range(out.size):
+                out[i] = self._cdata[i].walltile
+            return out
+        if self._file is not None:
+            return self._file.read("walltile")
+
+    @property
+    def n(self) -> int:
+        r"""Number of markers."""
+        if self._file is None:
+            return len(self._cdata)
+        return self._file.read("ids").size
+
+    def save(self, file):
+        """"""
+        for field in Structure._fields_:
+            name = field[0]
+            file.write(name, getattr(self, name))
+        del self._cdata
+        self._file = file
+
+    def combine(self, file=None):
+        """"""
+
+    def getval(self, *qnt, filter=None):
+        """Get queried values from the stored data.
+
+        Returned values are sorted by IDs unless ``filter`` is provided. Arrays
+        are copies of the original data.
+
+        Parameters
+        ----------
+        qnt : str
+            Names of the quantities.
+        file : h5py.File, optional
+            If provided, read the values from file instead from memory.
+        filter : array_like, optional
+            Return values for specific marker IDs.
+        """
+        marker_ids = getattr(self, "ids")
+        if filter is not None:
+            idx2 = np.isin(marker_ids, filter)
+            marker_ids = marker_ids[idx]
+            idx = np.argsort(marker_ids)
+        else:
+            idx = np.argsort(marker_ids)
+        evaluated = []
+        for q in qnt:
+            if filter is not None:
+                val = getattr(self, q)[idx2]
+            else:
+                val = getattr(self, q)
+            evaluated.append(val[idx])
+
+    @classmethod
+    def from_params(cls, mrk):
+        """"""
+        obj = cls()
+        cdata = (Structure * len(mrk))()
+        for i in range(len(mrk)):
+            for field in Structure._fields_:
+                val = getattr(mrk[i], field[0])
+                setattr(cdata[i], field[0], val)
+        obj._cdata = cdata
+        return obj
+
+    def _get(self, *qnt, mode="gc"):
         """Return marker quantity.
 
         This function accesses the state data within the HDF5 file and uses that

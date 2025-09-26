@@ -169,7 +169,7 @@ class TreeManager(TreeFileManager):
         """Save the leaf to disk along with its metadata.
 
         This method just creates the group in file and stores attributes. To
-        store actual data, a subsequent call to Leaf.save is required.
+        store actual data, a subsequent call to Leaf._save_data is required.
 
         Parameters
         ----------
@@ -310,7 +310,7 @@ class TreeManager(TreeFileManager):
             leaf.activate()
         if save:
             leaf._file = self.save_leaf(leaf)
-            leaf._save_data()
+            leaf._save_and_free_data()
 
     def destroy_leaf(self, leaf: Leaf, repack: Optional[bool]=None) -> None:
         """Destroy a single leaf.

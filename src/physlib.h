@@ -46,6 +46,14 @@
 #define physlib_gamma_pnorm(m, p) (                  \
         sqrt(1.0 + ( p * p ) / ( m * m * CONST_C2 ) ) )
 
+
+/**
+ * @brief Evaluate momentum norm from Lorentz factor
+ *
+*/
+#define physlib_pnorm_gamma(m, gamma) (                  \
+        sqrt( ( gamma * gamma - 1.0 ) ) * m * CONST_C )
+
 /**
 * @brief Evaluate Lorentz factor from parallel velocity
 *

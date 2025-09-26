@@ -1,40 +1,48 @@
-"""This module contains all wall input variants and combines their factory
-methods to a single class."""
+"""This module contains all wall model input variants.
+
+.. autosummary::
+    :nosignatures:
+
+    ~Wall2D
+    ~CreateWallMixin.create_wall2d
+
+.. rubric:: Classes
+
+.. autoclass:: Wall2D
+    :members:
+
+.. autoclass:: CreateWallMixin
+    :members:
+    :inherited-members:
+"""
 import ctypes
 
+from a5py.libascot import input_category
+
+from . import axisymmetric
+from . import triangular
 from .axisymmetric import Wall2D, CreateWall2DMixin
 from .triangular import Wall3D, CreateWall3DMixin
 
 
+@input_category
 class Wall(ctypes.Structure):
     """Wrapper for the wall data in libascot.so."""
 
-    #_pack_ = 1
     _fields_ = [
-        ('w2d', ctypes.POINTER(Wall2D.Struct)),
-        ('w3d', ctypes.POINTER(Wall3D.Struct)),
-        ('type', ctypes.c_int32),
+        ("w2d", ctypes.POINTER(axisymmetric.Struct)),
+        ("w3d", ctypes.POINTER(triangular.Struct)),
+        ("type", ctypes.c_int32),
         ]
-
-    def use(self, variant):
-        """Initialize the pointer and set the type corresponding to the data."""
-        variant_vs_name_and_enum = {
-            "Wall2D": ("w2d", 0),
-            "Wall3D": ("w3d", 1),
-            }
-        variant.stage()
-        name, enum = variant_vs_name_and_enum[variant.variant]
-        setattr(self, name, ctypes.pointer(variant._struct_))
-        self.type = ctypes.c_uint32(enum)
 
 
 # pylint: disable=too-many-ancestors
 class CreateWallMixin(
-    CreateWall2DMixin, CreateWall3DMixin,
+    CreateWall2DMixin, #CreateWall3DMixin,
     ):
-    """Mixin class used by `Data` to create wall input.
+    """Mixin class used by :class:`.AscotData` to create wall input.
 
-    This class just combines all the wall input mixin classes.
+    This class just combines all the wall mixin classes.
     """
 
 __all__  = [

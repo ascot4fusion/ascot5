@@ -424,6 +424,21 @@ gyrofrequency.add_formula(
     )
 
 
+def cart2pol(x, y, z=None):
+    units = unyt.deg if hasattr(x, "units") else 1
+    return np.sqrt(x**2 + y**2), (180./np.pi) * np.arctan2(y, x) * units, z
+
+
+def cart2pol_vec(x, vx, y, vy, z=None, vz=None):
+    _ = z
+    phi = np.arctan2(y, x)
+    return (
+         vx * np.cos(phi) + vy * np.sin(phi),
+        -vx * np.sin(phi) + vy * np.cos(phi),
+         vz,
+        )
+
+
 funlib = {
     "cart2pol":lambda x, y, z=None:(
         np.sqrt(x**2 + y**2), np.arctan2(y, x), z
@@ -443,14 +458,7 @@ funlib = {
         ),
 }
 
-def cart2pol_vec(vx,x,vy,y,vz=None,z=None):
-    phi = np.arctan2( y, x )
-    vr  =  vx * np.cos(phi) + vy * np.sin(phi)
-    vphi= -vx * np.sin(phi) + vy * np.cos(phi)
-    mps = unyt.m / unyt.s
-    if vz is not None:
-        return vr*mps,vphi*mps,vz*mps
-    return vr*mps,vphi*mps,vz
+
 
 def mod0to360(angle):
     """Transfer arbitrary angle to between interval [0, 2pi].

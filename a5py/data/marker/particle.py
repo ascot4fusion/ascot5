@@ -1,162 +1,238 @@
-"""Defines particle (gyro-orbit) input class :class:`ParticleMarker` and the
-corresponding factory method.
+"""Defines particle (gyro-orbit) input class and the corresponding factory
+method.
 """
-import ctypes
-from typing import Tuple, Optional
+from typing import Optional, Any, Sized, cast
 
 import unyt
 import numpy as np
 
-from ..cstructs import free
-from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
-from ... import utils, physlib
-from ...exceptions import AscotIOException
+from a5py import utils
+from a5py.physlib import Species
+from a5py.data.access import InputVariant, Leaf, TreeMixin
 
-from .state import MarkerState
+from .state import Structure
 
+@Leaf.register
 class ParticleMarker(InputVariant):
     """Marker input in particle (6D) phase-space."""
 
-
-    def __init__(self, qid, date, note) -> None:
-        super().__init__(
-            qid=qid, date=date, note=note, variant="ParticleMarker",
-            struct=None,
-            )
-
     @property
-    def species(self) -> str:
+    def species(self) -> Species:
         """Marker species."""
-        return self._species
+        if self._cdata is not None:
+            return Species.from_znumanum(
+                self._cdata[0].znum, self._cdata[0].anum
+                )
+        assert self._file is not None
+        return Species.from_znumanum(
+            cast(int, self._file.read("znum")),
+            cast(int, self._file.read("anum")),
+            )
 
     @property
     def ids(self) -> np.ndarray:
         """Unique identifier for each marker."""
-        if self._format == Format.HDF5:
-            return self._read_hdf5("ids")
+        if self._cdata is not None:
+            out = np.zeros((self.n,), dtype="i8")
+            for i in range(out.size):
+                out[i] = self._cdata[i].id
+            return out
+        assert self._file is not None
+        return self._file.read("ids")
 
-        out = np.zeros((len(self._struct_),))
-        for i in range(out.size):
-            out[i] = self._struct_[i].id
-        return out
+    @property
+    def charge(self) -> unyt.unyt_array:
+        r"""Marker charge."""
+        if self._cdata is not None:
+            out = unyt.unyt_array([0.]*self.n, "e")
+            for i in range(out.size):
+                out[i] = self._cdata[i].charge
+            return out
+        assert self._file is not None
+        return self._file.read("charge")
 
     @property
     def r(self) -> unyt.unyt_array:
-        r"""Field-line :math:`R` coordinate."""
-        if self._format == Format.HDF5:
-            return self._read_hdf5("r")
-
-        out = np.zeros((len(self._struct_),)) * unyt.m
-        for i in range(out.size):
-            out[i] = self._struct_[i].r
-        return out
+        r"""Particle :math:`R` coordinate."""
+        if self._cdata is not None:
+            out = unyt.unyt_array([0.]*self.n, "m")
+            for i in range(out.size):
+                out[i] = self._cdata[i].r
+            return out
+        assert self._file is not None
+        return self._file.read("r")
 
     @property
     def phi(self) -> unyt.unyt_array:
-        r"""Field-line :math:`\phi` coordinate."""
-        if self._format == Format.HDF5:
-            return self._read_hdf5("phi")
+        r"""Particle :math:`\phi` coordinate."""
+        if self._cdata is not None:
+            out = unyt.unyt_array([0.]*self.n, "rad")
+            for i in range(out.size):
+                out[i] = self._cdata[i].phi
 
-        out = np.zeros((len(self._struct_),)) * unyt.rad
-        for i in range(out.size):
-            out[i] = self._struct_[i].phi
-        return out.to("deg")
+            out.convert_to_units("deg")
+            return out
+        assert self._file is not None
+        return self._file.read("phi")
 
     @property
     def z(self) -> unyt.unyt_array:
-        r"""Field-line :math:`z` coordinate."""
-        if self._format == Format.HDF5:
-            return self._read_hdf5("z")
-
-        out = np.zeros((len(self._struct_),)) * unyt.m
-        for i in range(out.size):
-            out[i] = self._struct_[i].z
-        return out
+        r"""Particle :math:`z` coordinate."""
+        if self._cdata is not None:
+            out = unyt.unyt_array([0.]*self.n, "m")
+            for i in range(out.size):
+                out[i] = self._cdata[i].z
+            return out
+        assert self._file is not None
+        return self._file.read("z")
 
     @property
-    def direction(self) -> unyt.unyt_array:
-        r"""Field-line direction (negative means opposite to the magnetic field
-        vector).
-        """
-        if self._format == Format.HDF5:
-            return self._read_hdf5("direction")
+    def vr(self) -> unyt.unyt_array:
+        r"""Particle velocity :math:`R` coordinate."""
+        if self._cdata is not None:
+            out = unyt.unyt_array([0.]*self.n, "m/s")
+            for i in range(out.size):
+                out[i] = self._cdata[i].pr
+            return out
+        assert self._file is not None
+        return self._file.read("vr")
 
-        out = np.zeros((len(self._struct_),)) * unyt.dimensionless
-        for i in range(out.size):
-            out[i] = self._struct_[i].ppar
-        return out
+    @property
+    def vphi(self) -> unyt.unyt_array:
+        r"""Particle velocity :math:`\phi` coordinate."""
+        if self._cdata is not None:
+            out = unyt.unyt_array([0.]*self.n, "m/s")
+            for i in range(out.size):
+                out[i] = self._cdata[i].pphi
+            return out
+        assert self._file is not None
+        return self._file.read("vphi")
+
+    @property
+    def vz(self) -> unyt.unyt_array:
+        r"""Particle velocity :math:`z` coordinate."""
+        if self._cdata is not None:
+            out = unyt.unyt_array([0.]*self.n, "m/s")
+            for i in range(out.size):
+                out[i] = self._cdata[i].pz
+            return out
+        assert self._file is not None
+        return self._file.read("vz")
 
     @property
     def time(self) -> unyt.unyt_array:
-        """Field-line time."""
-        if self._format == Format.HDF5:
-            return self._read_hdf5("time")
+        """Time instant (e.g. with respect to the plasma pulse) when the marker
+        simulation is launched.
+        """
+        if self._cdata is not None:
+            out = unyt.unyt_array([0.]*self.n, "s")
+            for i in range(out.size):
+                out[i] = self._cdata[i].time
+            return out
+        assert self._file is not None
+        return self._file.read("time")
 
-        out = np.zeros((len(self._struct_),)) * unyt.s
-        for i in range(out.size):
-            out[i] = self._struct_[i].time
-        return out
+    @property
+    def weight(self) -> unyt.unyt_array:
+        """How many physical particles each marker represents."""
+        if self._cdata is not None:
+            out = unyt.unyt_array([0.]*self.n, "particles/s")
+            for i in range(out.size):
+                out[i] = self._cdata[i].weight
+            return out
+        assert self._file is not None
+        return self._file.read("weight")
 
     @property
     def n(self) -> int:
         """Number of markers."""
-        if self._format == Format.HDF5:
-            return self._read_hdf5("ids").size
-        return len(self._struct_)
+        if self._cdata is not None:
+            return len(self._cdata)
+        assert self._file is not None
+        return self._file.read("ids").size
 
-    def _export_hdf5(self):
-        """Export data to HDF5 file."""
-        if self._format == Format.HDF5:
-            raise AscotIOException("Data is already stored in the file.")
-        data = self.export()
-        self._treemanager.hdf5manager.write_datasets(
-            self.qid, self.variant, data,
-            )
-        self._format = Format.HDF5
+    #pylint: disable=too-many-arguments
+    def _stage(
+            self, r: unyt.unyt_array,
+            z: unyt.unyt_array,
+            phi: unyt.unyt_array,
+            charge: unyt.unyt_array,
+            time: unyt.unyt_array,
+            ids: np.ndarray,
+            vr: unyt.unyt_array,
+            vphi: unyt.unyt_array,
+            vz: unyt.unyt_array,
+            weight: unyt.unyt_array,
+            species: Species,
+            ) -> None:
+        self._cdata = (Structure * ids.size)()
+        for i in range(ids.size):
+            setattr(self._cdata[i], "r", r[i])
+            setattr(self._cdata[i], "z", z[i])
+            setattr(self._cdata[i], "id", ids[i])
+            setattr(self._cdata[i], "phi", phi[i])
+            setattr(self._cdata[i], "time", time[i])
+            setattr(self._cdata[i], "pr", vr[i])
+            setattr(self._cdata[i], "pphi", vphi[i])
+            setattr(self._cdata[i], "pz", vz[i])
+            setattr(self._cdata[i], "charge", charge[i])
+            setattr(self._cdata[i], "weight", weight[i])
+            setattr(self._cdata[i], "anum", species.anum)
+            setattr(self._cdata[i], "znum", species.znum)
+            setattr(self._cdata[i], "mass", species.mass)
 
-    def export(self):
-        data = {
-            "species":self.species,
-            "r":self.r,
-            "phi":self.phi,
-            "z":self.z,
-            "vr":self.vr,
-            "vphi":self.vphi,
-            "vz":self.vz,
-            "weight":self.weight,
-            "time":self.time,
-        }
-        return data
+    def _save_data(self) -> None:
+        assert self._file is not None
+        for field in [
+            "r", "z", "phi", "charge", "time", "ids", "weight", "vr", "vz",
+            "vphi",
+            ]:
+            self._file.write(field, getattr(self, field))
+        self._file.write("anum", np.array(self.species.anum))
+        self._file.write("znum", np.array(self.species.znum))
 
-    def stage(self):
-        pass
+    def export(self) -> dict[str, Species | np.ndarray | unyt.unyt_array]:
+        fields = [
+            "r", "z", "phi", "charge", "time", "ids", "weight", "vr", "vz",
+            "vphi", "species",
+            ]
+        return {field: getattr(self, field) for field in fields}
 
-    def unstage(self):
-        pass
+    def stage(self) -> None:
+        super().stage()
+        self._stage(
+            r=self.r, z=self.z, phi=self.phi, charge=self.charge,
+            time=self.time, ids=self.ids, vr=self.vr, vphi=self.vphi,
+            vz=self.vz, weight=self.weight, species=self.species,
+        )
+
+    def unstage(self) -> None:
+        super().unstage()
+        self._cdata = None
 
 
 # pylint: disable=too-few-public-methods
-class CreateParticleMixin(TreeCreateClassMixin):
-    """Mixin class used by `Data` to create :class:`ParticleMarker` input."""
+class CreateMixin(TreeMixin):
+    """Provides the factory method."""
 
-    #pylint: disable=protected-access, too-many-arguments
+    #pylint: disable=protected-access, too-many-arguments, too-many-locals
     def create_particlemarker(
             self,
-            species: str | None = None,
-            ids: unyt.unyt_array | None = None,
-            charge: unyt.unyt_array | None = None,
-            r: unyt.unyt_array | None = None,
-            phi: unyt.unyt_array | None = None,
-            z: unyt.unyt_array | None = None,
-            vr: unyt.unyt_array | None = None,
-            vphi: unyt.unyt_array | None = None,
-            vz: unyt.unyt_array | None = None,
-            weight: unyt.unyt_array | None = None,
-            time: Optional[unyt.unyt_array] | None = None,
-            note: Optional[str] = None,
-            activate: bool = False,
-            dryrun: bool = False,
-            store_hdf5: Optional[bool] = None,
+            species: str | Species,
+            charge: utils.Numerical,
+            r: utils.Numerical,
+            z: utils.Numerical,
+            vr: utils.Numerical,
+            vphi: utils.Numerical,
+            vz: utils.Numerical,
+            phi: Optional[utils.Numerical]=None,
+            weight: Optional[utils.Numerical]=None,
+            time: Optional[utils.Numerical]=None,
+            ids: Optional[utils.Numerical]=None,
+            note: Optional[str]=None,
+            activate: bool=False,
+            preview: bool=False,
+            save: Optional[bool]=None,
             ) -> ParticleMarker:
         r"""Create marker input in particle (6D) phase-space.
 
@@ -168,119 +244,111 @@ class CreateParticleMixin(TreeCreateClassMixin):
 
         Parameters
         ----------
-        species : str
+        species : str *or* :class:`.Species`
             Marker species.
-        ids : array_like (n,)
-            Unique identifier for each marker (must be a positive integer).
-        charge : array_like (n,)
-            Charge state.
-        r : array_like (n,)
-            Particle R coordinate.
-        phi : array_like (n,)
-            Particle phi coordinate.
-        z : array_like (n,)
-            Particle z coordinate.
-        vr : array_like (n,)
-            Velocity R-component.
-        vphi : array_like (n,)
-            Velocity phi-component.
-        vz : array_like (n,)
-            Velocity z-component.
-        weight : array_like (n,)
-            How many physical particles are represented by this marker.
-        time : array_like (n,), optional
-            Time instant (e.g. with respect to the plasma pulse) when the marker
-            is created.
+        charge : array_like (n,) *or* scalar
+            Marker charge.
+        r : array_like (n,) *or* scalar
+            Particle :math:`R` coordinate.
+        z : array_like (n,) *or* scalar
+            Particle :math:`z` coordinate.
+        vr : array_like (n,) *or* scalar
+            Velocity :math:`R` component.
+        vphi : array_like (n,) *or* scalar
+            Velocity :math:`\phi` component.
+        vz : array_like (n,) *or* scalar
+            Velocity :math:`z` component.
+        phi : array_like (n,) *or* scalar, *optional*
+            Particle :math:`\phi` coordinate.
 
-            Relevant mainly for time-dependent simulations.
-        note : str, optional
+            If not given, the values are randomly sampled from an uniform
+            distribution between 0 and 360 degrees.
+        weight : array_like (n,) *or* scalar, *optional*
+            How many physical particles each marker represents.
+
+            Default value is one.
+        time : array_like (n,) *or* scalar, *optional*
+            Time instant (e.g. with respect to the plasma pulse) when the marker
+            simulation is launched.
+
+            Relevant mainly for time-dependent simulations. Default value is
+            zero.
+        ids : array_like (n,), *optional*
+            Unique identifier for each marker (must be a positive integer).
+
+            If not given, the IDs are 1, 2, 3, ..., `n`.
+        note : str, *optional*
             A short note to document this data.
 
             The first word of the note is converted to a tag which you can use
             to reference the data.
-        activate : bool, optional
+        activate : bool, *optional*
             Set this input as active on creation.
-        dryrun : bool, optional
-            Do not add this input to the `data` structure or store it on disk.
+        preview : bool, *optional*
+            If ``True``, the input is created but it is not included in the data
+            structure nor saved to disk.
 
-            Use this flag to modify the input manually before storing it.
-        store_hdf5 : bool, optional
-            Write this input to the HDF5 file if one has been specified when
-            `Ascot` was initialized.
+            The input cannot be used in a simulation but it can be previewed.
+        save : bool, *optional*
+            Store this input to disk.
 
         Returns
         -------
         inputdata : ParticleMarker
-            Freshly minted input data object.
+            Input variant created from the given parameters.
         """
-        parameters = _variants.parse_parameters(
-            species, ids, charge, r, phi, z, vr, vphi, vz, weight, time,
-        )
-        n = 1 if parameters["ids"] is None else parameters["ids"].size
-        _variants.validate_required_parameters(
-            parameters,
-            names=["ids", "charge", "r", "phi", "z", "vr", "vphi", "vz",
-                   "weight", "time", "species"],
-            units=["1", "e", "m", "deg", "m", "m/s", "m/s", "m/s",
-                   "markers/s", "s", ""],
-            shape=(n,),
-            dtype=["i8", "i4", "f8", "f8", "f8", "f8", "f8", "f8", "f8", "f8",
-                   "s"],
-            default=[
-                1, 1, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, "H1",
-            ],
-        )
-        try:
-            physlib.species2properties(parameters["species"])
-        except KeyError as e:
-            raise e from None
-        meta = _variants.new_metadata("ParticleMarker", note=note)
-        obj = self._treemanager.enter_input(
-            meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
+        if isinstance(species, str):
+            species = Species.from_string(species)
+
+        n = 1
+        for param in [
+            r, z, phi, vr, vphi, vz, weight, time, ids, charge,
+            ]:
+            if isinstance(param, Sized):
+                if utils.size(param) == 1:
+                    continue
+                if n != 1 and n != utils.size(param):
+                    raise ValueError(
+                        "Input arrays have inconsistent sizes."
+                        )
+                n = utils.size(param)
+
+        to_array = lambda x: utils.to_array(x, n)
+
+        r, z, phi, vr, vphi, charge, weight, time, vz = (
+            to_array(r), to_array(z), to_array(phi), to_array(vr),
+            to_array(vphi), to_array(charge), to_array(weight), to_array(time),
+            to_array(vz),
             )
-        for parameter, value in parameters.items():
-            setattr(obj, f"_{parameter}", value)
-            if parameter != "species":
-                getattr(obj, f"_{parameter}").flags.writeable = False
 
-        if store_hdf5:
-            obj._export_hdf5()
-        return obj
+        with utils.validate_variables() as v:
+            r = v.validate("r", r, (n,), "m")
+            z = v.validate("z", z, (n,), "m")
+            vr = v.validate("vr", vr, (n,), "m/s")
+            vz = v.validate("vz", vz, (n,), "m/s")
+            vphi = v.validate("vphi", vphi, (n,), "m/s")
+            charge = v.validate("charge", charge, (n,), "e")
+        with utils.validate_variables() as v:
+            ids = v.validate(
+                "ids", ids, (n,), dtype="i8", default=np.arange(1, n+1),
+                )
+            phi = v.validate(
+                "phi", phi, (n,), "deg", default=np.random.rand(n) * 360
+                )
+            weight = v.validate(
+                "weight", weight, (n,), "particles/s", default=np.ones((n,))
+                )
+            time = v.validate("time", time, (n,), "s", default=np.zeros((n,)))
 
-        parameters = _variants.parse_parameters(
-            ids, r, phi, z, direction, time,
-        )
-        n = 1 if parameters["ids"] is None else parameters["ids"].size
-        _variants.validate_required_parameters(
-            parameters,
-            names=["ids", "r", "phi", "z",],
-            units=["1", "m", "deg", "m",],
-            shape=(n,),
-            dtype=["i8", "f8", "f8", "f8",],
-            default=[1, 1.0, 0.0, 0.0,],
-        )
-        _variants.validate_optional_parameters(
-            parameters,
-            names=["direction", "time"],
-            units=["1", "s"],
-            shape=(n,),
-            dtype=["f8", "f8",],
-            default=[np.ones((n,)), np.ones((n,)),],
-        )
-        meta = _variants.new_metadata("FieldlineMarker", note=note)
-        obj = self._treemanager.enter_input(
-            meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
+        leaf = ParticleMarker(note=note)
+        leaf._stage(
+            r=r, z=z, phi=phi, vr=vr, vphi=vphi, vz=vz, charge=charge,
+            time=time, ids=cast(np.ndarray, ids), weight=weight,
+            species=species,
             )
-        obj._struct_ = (MarkerState.Structure * n)()
-        parameters.update({
-            "id":parameters["ids"], "ppar":parameters["direction"]
-            })
-        del parameters["ids"]
-        del parameters["direction"]
-        for key in parameters.keys():
-            for i in range(n):
-                setattr(obj._struct_[i], key, parameters[key][i])
-
-        if store_hdf5:
-            obj._export_hdf5()
-        return obj
+        if preview:
+            return leaf
+        self._treemanager.enter_leaf(
+            leaf, activate=activate, save=save, category="marker",
+            )
+        return leaf

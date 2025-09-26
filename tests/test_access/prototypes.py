@@ -1,17 +1,10 @@
 import ctypes
 
-import unyt
 import numpy as np
 
 
-from a5py.data.access import (
-    Leaf, InputVariant, Tree, OutputVariant, Status, DataStruct
-    )
-from a5py.data.access import _variants
-
-input_prototype = "inputprototype"
-
-output_prototype = "runprototype"
+from a5py.data.access import Leaf, InputVariant, Tree, OutputVariant, Status
+from a5py.libascot import DataStruct
 
 
 def free(ptr):
@@ -46,7 +39,7 @@ class StructDiag(DataStruct):
         ]
 
 
-@Leaf.register(input_prototype)
+@Leaf.register
 class InputPrototype(InputVariant):
     """A prototype class for testing purposes."""
 
@@ -95,28 +88,20 @@ class InputPrototype(InputVariant):
 class PrototypeMixin():
 
     #pylint: disable=protected-access
-    def create_inputprototype(self, bval, note=None, activate=False, dryrun=False, save=True) -> InputPrototype:
+    def create_inputprototype(
+            self, bval, note=None, activate=False, preview=False, save=True
+            ) -> InputPrototype:
         """Creates a point cloud instance.
         """
-        parameters = _variants.parse_parameters(bval)
-        n = 3 if parameters["bval"] is None else parameters["bval"].size
-        _variants.validate_required_parameters(
-            parameters, names=["bval",], units=["T",], shape=[(n,),], dtype="f8",
-            default=[np.array([0., 1., 2.]),],
-        )
-        #variants.validate_optional_parameters(
-        #    parameters,
-        #    ["psival"], ["Wb/m"], [()], "f8", [parameters["rhoval"]],
-        #)
         leaf = InputPrototype(note=note)
-        leaf._stage(bval=parameters["bval"])
+        leaf._stage(bval=bval)
         self._treemanager.enter_leaf(
             leaf, activate=activate, save=save, category="group",
             )
         return leaf
 
 
-@Leaf.register(output_prototype)
+@Leaf.register
 class OutputPrototype(OutputVariant):
     """A prototype class for testing purposes."""
 
@@ -193,7 +178,6 @@ class DiagnosticPrototype():
 
         obj._cdata = cdata
         return obj
-
 
 
 class TreePrototype(Tree, PrototypeMixin):

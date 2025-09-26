@@ -1,7 +1,10 @@
-from typing import Union
+import warnings
+from typing import Union, Sequence, Any, Sized
+from contextlib import contextmanager
 
-import numpy as np
 import unyt
+import numpy as np
+from numpy.typing import NDArray
 
 Scalar = Union[int, float]
 """Type of a scalar."""
@@ -9,76 +12,158 @@ Scalar = Union[int, float]
 ArrayLike = Union[list[Scalar], np.ndarray, unyt.unyt_array]
 """Type of a numerical array."""
 
-Numerical = Union[Scalar, ArrayLike]
+Numerical = Union[
+    int, float,
+    Sequence[int], Sequence[float],
+    NDArray[np.float64],
+    unyt.unyt_array]
 """Type of numerical data."""
 
-def validate_variables(
-        variables : list[Numerical] | Numerical,
-        names : list[str] | str,
-        shape : list[tuple[int]] | tuple[int],
-        dtype : list[str] | str,
-        ) -> list[Numerical] | Numerical:
-    """Validate the shape and dtype of multiple variables.
 
-    This function checks that a variable can be inferred to have the expected
-    format (e.g. it can be cast into the expected shape) and returns the
-    variables cast exactly in the expected format.
+class VariableValidator:
+    def __init__(self):
+        self.unitless = []
 
-    Parameters
-    ----------
-    variables : array_like or list[array_like]
-        The variable(s) to validate.
+    def validate(
+            self,
+            name: str,
+            value: int | float | list | np.ndarray | unyt.unyt_array | None,
+            expected_shape: tuple[int],
+            units: str=None,
+            dtype: str="f8",
+            default: np.ndarray=None
+            ) -> np.ndarray | unyt.unyt_array:
+        """Validate a variable.
 
-        If dictionary is provided, the variables are cast in place.
-    names : string or list of strings
-        Names of the variables (required to generate error message).
-    shape : tuple of ints or a list of tuples of ints
-        The expected shape for all variables or for each variable separately.
-    dtype : type
-        The expected type for all variables or for each variable separately.
+        This function checks that the variable has or can be cast into the
+        expected format (shape, units, dtype) and returns the variable cast.
 
-    Returns
-    -------
-    *cast_variables : array_like
-        The variables cast to the expected format.
+        Parameters
+        ----------
+        name : str
+            Name of the variable (for generating error messages).
+        value : int | float | list | np.ndarray | unyt.unyt_array
+            Value of the variable.
+        expected_shape : tuple[int], *optional*
+            Expected shape of the variable if applicable.
 
-    Raises
-    ------
-    ValueError
-        If not able to infer a variable to have the expected format.
-    """
-    if not isinstance(variables, list):
-        variables = [variables]
-        if not isinstance(names, list):
-            names = [names]
-    if not isinstance(shape, list):
-        shape = [shape] * len(variables)
-    if not isinstance(dtype, list):
-        dtype = [dtype] * len(variables)
+            Special case is ``(1,)`` for when the argument is expected to be 1D
+            vector with undefined length.
+        units : str, *optional*
+            Units of the variable.
+        dtype : str, *optional*
+            Data type of the variable.
+        default : int | float | list | np.ndarray | unyt.unyt_array, *optional*
+            If the value is None, this value cast in the expected format is
+            returned.
 
-    cast_variables = []
-    for var, name, expshape, exptype in zip(variables, names, shape, dtype):
-        varshape = var.shape
-        try:
-            var = np.reshape(var, expshape)
-        except ValueError:
-            raise ValueError(
-                f"Argument {name} has incompatible shape {varshape}, "
-                f"expected: {expshape}."
-                ) from None
-        vartype = var.dtype
-        var_original, var = var, var.astype(exptype)
-        equivalent = ( var_original == var if varshape == ()
-                      else (var_original == var).all() )
-        if not equivalent:
-            raise ValueError(
-                f"Argument {name} has incompatible type {vartype}, "
-                f"expected: {exptype}."
+        Returns
+        -------
+        *cast_variable : np.ndarray | unyt.unyt_array
+            The variable cast to the expected format.
+        """
+        if value is None:
+            if default is None:
+                raise ValueError(
+                    "Default value must be provided for optional arguments: "
+                    f"{name}"
+                    )
+            if units is not None:
+                default = unyt.unyt_array(default, units)
+            value = default
+
+        if isinstance(value, (int, float, list, tuple)):
+            arr = np.array(value, dtype=dtype)
+        elif isinstance(value, (np.ndarray, unyt.unyt_array)):
+            arr = value.astype(dtype)
+        else:
+            raise TypeError(
+                f"Argument '{name}' must be int, float, list, numpy array, or "
+                f"unyt array, not '{type(value)}'"
                 )
-        cast_variables.append(var)
-    if len(cast_variables) == 1:
-        return [cast_variables[0]]
-    return tuple(cast_variables)
+
+        if expected_shape == ():
+            if arr.size != 1:
+                raise ValueError(
+                    f"Argument '{name}' has incompatible shape '{arr.shape}', "
+                    f"expected scalar."
+                    )
+        elif expected_shape == (-1,):
+            if arr.ndim != 1 and not ( arr.ndim == 2 and 1 in arr.shape ):
+                raise ValueError(
+                    f"Argument '{name}' has incompatible shape '{arr.shape}', "
+                    f"expected 1D vector."
+                    )
+        elif( arr.size > 1 and
+            arr.shape != expected_shape and
+            arr.T.shape != expected_shape ):
+            raise ValueError(
+                f"Argument '{name}' has incompatible shape '{arr.shape}', "
+                f"expected: {expected_shape}."
+                )
+        arr = arr.reshape(expected_shape)
+
+        if units is not None:
+            if not hasattr(value, "units"):
+                if units != "1":
+                    self.unitless.append((name, units))
+                arr = unyt.unyt_array(arr, units)
+            else:
+                try:
+                    arr.convert_to_units(units)
+                except unyt.exceptions.UnitConversionError:
+                    raise ValueError(
+                        f"Argument '{name}' has incompatible units "
+                        f"'{arr.units}', expected '{units}'."
+                        ) from None
+        return arr
+
+    def flush(self):
+        if self.unitless:
+            names = ", ".join([f"'{name}'" for name, _ in self.unitless])
+            units = ", ".join([f"'{unit}'" for _, unit in self.unitless])
+            warnings.warn(
+                f"Argument(s) {names} given without dimensions. Assumed {units}.",
+                stacklevel=5,
+                )
+            self.unitless.clear()
+
+
+@contextmanager
+def validate_variables():
+    validator = VariableValidator()
+    try:
+        yield validator
+    finally:
+        validator.flush()
+
+
+def size(x: Any) -> int:
+    """Return the size of x.
+
+    Separate function is needed because unyt.array.quantity has size but
+    not len.
+    """
+    try:
+        return x.size
+    except AttributeError:
+        pass
+    return len(x)
+
+
+def to_array(x: Any, n: int) -> unyt.unyt_array | np.ndarray:
+    """Convert x to an array of length n."""
+    if x is None:
+        return None
+    if not isinstance(x, Sized):
+        return np.full(n, x)
+
+    if size(x) == 1:
+        if hasattr(x, "units"):
+            return np.full(n, x) * x.units
+        return np.full(n, x)
+    return x
+
 
 def check_abscissa(abscissa, name, uniform=True, periodic=False) -> None:
     """Check if the abscissa is increasing and otherwise valid.

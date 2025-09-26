@@ -32,10 +32,9 @@
 void step_ml_cashkarp(particle_simd_ml* p, real* h, real* hnext, real tol,
                       B_field_data* Bdata) {
 
-    int i;
     /* Following loop will be executed simultaneously for all i */
     #pragma omp simd
-    for(i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
             a5err errflag = 0;
 
@@ -233,12 +232,18 @@ void step_ml_cashkarp(particle_simd_ml* p, real* h, real* hnext, real tol,
 
 
             /* Evaluate theta angle so that it is cumulative */
-            real axisrz[2];
-            errflag  = B_field_get_axis_rz(axisrz, Bdata, p->phi[i]);
-            p->theta[i] += atan2(   (R0-axisrz[0]) * (p->z[i]-axisrz[1])
-                                  - (z0-axisrz[1]) * (p->r[i]-axisrz[0]),
-                                    (R0-axisrz[0]) * (p->r[i]-axisrz[0])
-                                  + (z0-axisrz[1]) * (p->z[i]-axisrz[1]) );
+            if(!errflag) {
+                real axisrz[2];
+                errflag = B_field_get_axis_rz(axisrz, Bdata, p->phi[i]);
+                p->theta[i] += atan2(   (R0-axisrz[0]) * (p->z[i]-axisrz[1])
+                                      - (z0-axisrz[1]) * (p->r[i]-axisrz[0]),
+                                        (R0-axisrz[0]) * (p->r[i]-axisrz[0])
+                                      + (z0-axisrz[1]) * (p->z[i]-axisrz[1]) );
+            }
+
+            if(errflag) {
+                p->err[i] = errflag;
+            }
 
         }
     }

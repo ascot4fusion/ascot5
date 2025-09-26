@@ -159,7 +159,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
                         hnext[i] = -hin[i]/dphi;
                     }
                     else if(drho > 1 && drho > dphi) {
-                        hnext[i] = -hin[i]/drho;
+                        //hnext[i] = -hin[i]/drho;
                     }
                 }
 

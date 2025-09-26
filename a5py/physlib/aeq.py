@@ -164,8 +164,8 @@ def boundaryconditions2coefficients(
     curvature_outer_equatorial: float,
     curvature_inner_equatorial: float,
     curvature_upper_high: float,
-    lower_x_point: Optional[tuple[float, float]] = None,
-    symmetric: bool = True,
+    lower_x_point: Optional[tuple[float, float]]=None,
+    symmetric: bool=True,
     ):
     """Solve the equilibrium coefficients from the given boundary conditions.
 
@@ -192,12 +192,12 @@ def boundaryconditions2coefficients(
         Outer equatorial point slope.
     inner_slope : float
         Inner equatorial point slope.
-    lower_x_point : float, optional
+    lower_x_point : float, *optional*
         Lower X-point :math:`(x/R0,y/R0)`-coordinates if the equilibrium is not
         a limiter plasma.
 
         ``None`` for limiter plasma.
-    symmetric: bool, optional
+    symmetric: bool, *optional*
         Whether the equilibrium is symmetric (double-null  or limiter plasma).
 
     Returns

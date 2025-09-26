@@ -1,4 +1,4 @@
-from .base import Options, CreateOptionsMixin
+from .base import Options, Struct, CreateOptionsMixin
 from .parameters import (
     simulation,
     physics,
@@ -9,8 +9,12 @@ from .parameters import (
     transport_coefficient,
 )
 
+OptionsStruct = Struct
+
+
 __all__ = [
     "Options",
+    "OptionsStruct",
     "CreateOptionsMixin",
     "simulation",
     "physics",

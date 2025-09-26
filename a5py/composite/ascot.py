@@ -11,9 +11,6 @@ import os
 from a5py.data import AscotData
 from a5py.engine.simulate import Simulate
 
-from a5py.plotting import openfigureifnoaxes
-
-
 class Ascot(Simulate):
     """Primary tool for executing and processing ASCOT5 simulations and data.
 

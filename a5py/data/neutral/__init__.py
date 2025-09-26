@@ -2,35 +2,29 @@
 factory methods to a single class."""
 import ctypes
 
-from .radial import Neutral1D, CreateNeutral1DMixin
-from .arbitrary import Neutral3D, CreateNeutral3DMixin
+from a5py.libascot import input_category
+
+from . import radial
+from . import arbitrary
+from .radial import Neutral1D
+from .arbitrary import Neutral3D
 
 
+@input_category
 class Neutral(ctypes.Structure):
     """Wrapper for the neutral data in libascot.so."""
 
-    #_pack_ = 1
     _fields_ = [
-        ('N01D', ctypes.POINTER(Neutral1D.Struct)),
-        ('N03D', ctypes.POINTER(Neutral3D.Struct)),
+        ('N01D', ctypes.POINTER(radial.Struct)),
+        ('N03D', ctypes.POINTER(arbitrary.Struct)),
         ('type', ctypes.c_uint32),
         ]
-
-    def use(self, variant):
-        """Initialize the pointer and set the type corresponding to the data."""
-        variant_vs_name_and_enum = {
-            "Neutral1D": ("N01D", 0),
-            "Neutral3D": ("N03D", 1),
-            }
-        variant.stage()
-        name, enum = variant_vs_name_and_enum[variant.variant]
-        setattr(self, name, ctypes.pointer(variant._struct_))
-        self.type = ctypes.c_uint32(enum)
 
 
 # pylint: disable=too-many-ancestors
 class CreateNeutralMixin(
-    CreateNeutral1DMixin, CreateNeutral3DMixin,
+    radial.CreateMixin,
+    arbitrary.CreateMixin,
     ):
     """Mixin class used by `Data` to create neutral density input.
 

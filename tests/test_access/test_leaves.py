@@ -20,8 +20,8 @@ def leaf():
 
 @pytest.mark.parametrize(
         "attribute, expected",
-        [("name", Leaf.VARIANT), ("date", DATE), ("note", NOTE),
-         ("variant", Leaf.VARIANT),])
+        [("name", Leaf.__name__), ("date", DATE), ("note", NOTE),
+         ("variant", Leaf.__name__),])
 def test_leaf_initialization(leaf, attribute, expected):
     """Test that attributes were set properly in initialization."""
     assert getattr(leaf, attribute) == expected
@@ -150,11 +150,11 @@ def test_outputleaf_contents():
         )
     expected = textwrap.dedent(
         """
-        output          1997-08-29 02:14:00
+        OutputVariant   1997-08-29 02:14:00
         Let off some steam <Bennett>
 
         Inputs:
-        catX    leaf            1997-08-29 02:14:00
+        catX    Leaf            1997-08-29 02:14:00
                 Let off some steam <Bennett>
         """)
     diff = '\n'.join(difflib.unified_diff(

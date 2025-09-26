@@ -16,7 +16,7 @@ from a5py.data.bfield import Bfield
 from a5py.data.efield import Efield
 from a5py.data.plasma import Plasma
 from a5py.data.neutral import Neutral
-from a5py.data.boozer import BoozerMap
+from a5py.data.boozer import Struct as BoozerMap
 from a5py.data.mhd import Mhd
 from .functions import init_fun, PTR_DOUBLE, PTR_INT
 
@@ -27,7 +27,7 @@ init_fun(
     ctypes.POINTER(Efield),
     ctypes.POINTER(Plasma),
     ctypes.POINTER(Neutral),
-    ctypes.POINTER(BoozerMap.Struct),
+    ctypes.POINTER(BoozerMap),
     ctypes.POINTER(Mhd),
     ctypes.c_int32,
     ctypes.c_int32,
@@ -74,7 +74,7 @@ init_fun(
 
 
 qnt_mapping = {
-    "b": ("br", "bz", "bphi"),
+    "b": ("br", "bphi", "bz"),
     "bjac": ("brdr", "brdphi", "brdz", "bphidr", "bphidphi", "bphidz",
              "bzdr", "bzdphi", "bzdz"),
     "psi": ("psi", "psidr", "psidphi", "psidz"),

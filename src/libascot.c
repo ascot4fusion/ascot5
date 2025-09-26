@@ -115,9 +115,9 @@ void libascot_interpolate(
             !B_field_eval_psi_dpsi(psival, R[k], phi[k], z[k], t[k], bfield) ) {
             psi_valid = true;
             STORE(0*npnt + k, psival[0], *psi);
-            STORE(0*npnt + k, psival[1], *psi);
-            STORE(0*npnt + k, psival[2], *psi);
-            STORE(0*npnt + k, psival[3], *psi);
+            STORE(1*npnt + k, psival[1], *psi);
+            STORE(2*npnt + k, psival[2], *psi);
+            STORE(3*npnt + k, psival[3], *psi);
         }
         if( bfield && psi_valid &&
             !B_field_eval_rho(rhoval, psival[0], bfield) ) {

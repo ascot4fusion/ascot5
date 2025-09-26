@@ -1,4 +1,9 @@
 """Contains definitions of this package's exceptions.
+
+.. autoclass:: a5py.exceptions.AscotDataException
+
+.. autoclass:: a5py.exceptions.AscotMeltdownError
+
 """
 
 class AscotMeltdownError(RuntimeError):

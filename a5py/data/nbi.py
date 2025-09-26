@@ -8,13 +8,13 @@ import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from .access import _variants, InputVariant, Format, TreeCreateClassMixin
-from .. import utils
-from ..libascot import LIBASCOT
-from ..exceptions import AscotIOException
+from a5py import utils
+from a5py.libascot import LIBASCOT, DataStruct, init_fun
+from a5py.exceptions import AscotMeltdownError
+from a5py.data.access import InputVariant, Leaf, TreeMixin
 
 class NbiStruct(ctypes.Structure):
-    #_pack_ = 1
+
     _fields_ = [
         ('id', ctypes.c_int32),
         ('dummy', ctypes.c_int32),
@@ -28,7 +28,7 @@ class NbiBundle(InputVariant):
     # pylint: disable=too-few-public-methods
     class Struct(ctypes.Structure):
         """Python wrapper for the struct in nbi.h."""
-        #_pack_ = 1
+
         _fields_ = [
             ('id', ctypes.c_int32),
             ('n_beamlet', ctypes.c_int32),
@@ -149,10 +149,10 @@ class NbiBundle(InputVariant):
 
 
 # pylint: disable=too-few-public-methods
-class CreateNbiMixin(TreeCreateClassMixin):
+class CreateNbiMixin(TreeMixin):
     """Mixin class used by :class:`Data` to create :class:`NbiBundle` input."""
 
-    #pylint: disable=protected-access, too-many-arguments
+    #pylint: disable=protected-access, too-many-arguments, too-many-locals
     def create_nbibundle(
             self,
             note: Optional[str] = None,

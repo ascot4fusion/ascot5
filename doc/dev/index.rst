@@ -8,5 +8,6 @@ a5py
     :caption: Dev
 
     data
+    physlib
     utils
     exceptions

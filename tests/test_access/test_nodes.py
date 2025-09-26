@@ -27,12 +27,11 @@ def leaf():
     return leaf
 
 def test_add_leaf(node, leaf):
-    """Test that a leaf added to the node can be queried using string 'q+QID',
-    leaf name, or leaf tag.
+    """Test that a leaf added to the node can be queried using leaf name or tag.
     """
     node._add_leaf(leaf)
     assert leaf is node[leaf.name]
-    assert leaf is node[Leaf.extract_tag(leaf.note)["tag"]]
+    assert leaf is node[Leaf.extract_tag(leaf.note)[0]]
     assert node._names == [leaf.variant]
     with pytest.raises(AscotMeltdownError):
         node._add_leaf(leaf)
@@ -45,7 +44,7 @@ def test_contains(node, leaf):
     """
     node._add_leaf(leaf)
     assert leaf.name in node
-    assert Leaf.extract_tag(leaf.note)["tag"] in node
+    assert Leaf.extract_tag(leaf.note)[0] in node
     assert leaf in node
     for leaf_in_node in node:
         assert leaf_in_node is leaf
@@ -56,7 +55,7 @@ def test_remove_leaf(node, leaf):
     node._add_leaf(leaf)
     node._remove_leaf(leaf)
     assert not leaf.name in node
-    assert not Leaf.extract_tag(leaf.note)["tag"] in node
+    assert not Leaf.extract_tag(leaf.note)[0] in node
     assert not leaf in node
     assert not len(node._names)
 
@@ -96,17 +95,17 @@ def test_organize_by_date(node):
     leaf2._name += "_2"
     leaf3._name += "_3"
     node._add_leaf(leaf1)
-    assert node._names == [f"{Leaf.VARIANT}_1"]
+    assert node._names == [f"{Leaf.__name__}_1"]
     node._add_leaf(leaf2)
-    assert node._names == [f"{Leaf.VARIANT}_1", f"{Leaf.VARIANT}_2"]
+    assert node._names == [f"{Leaf.__name__}_1", f"{Leaf.__name__}_2"]
     node._add_leaf(leaf3)
-    assert node._names == [f"{Leaf.VARIANT}_3", f"{Leaf.VARIANT}_1", f"{Leaf.VARIANT}_2"]
+    assert node._names == [f"{Leaf.__name__}_3", f"{Leaf.__name__}_1", f"{Leaf.__name__}_2"]
     assert node._tags == ["FRIDAY", "SATURDAY", "SUNDAY"]
     node._remove_leaf(leaf3)
-    assert node._names == [f"{Leaf.VARIANT}_1", f"{Leaf.VARIANT}_2"]
+    assert node._names == [f"{Leaf.__name__}_1", f"{Leaf.__name__}_2"]
     assert node._tags == ["FRIDAY", "SATURDAY"]
     node._remove_leaf(leaf2)
-    assert node._names == [f"{Leaf.VARIANT}_1"]
+    assert node._names == [f"{Leaf.__name__}_1"]
 
 
 def test_organize_same_tags(node):
@@ -157,11 +156,11 @@ def test_input_category_contents():
 
     expected = textwrap.dedent(
         """
-        leaf_1          1997-08-30 02:14:00 [active]
+        Leaf_1          1997-08-30 02:14:00 [active]
         BENNETT_0
         Let off some steam <Bennett>
 
-        leaf_2          1997-08-29 02:14:00
+        Leaf_2          1997-08-29 02:14:00
         BENNETT_1
         Let off some steam <Bennett>
 

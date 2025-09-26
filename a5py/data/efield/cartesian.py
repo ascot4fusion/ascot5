@@ -1,104 +1,84 @@
-"""Defines EfieldCartesian electric field input class and the corresponding
+"""Defines the Cartesian electric field input class and the corresponding
 factory method.
 """
 import ctypes
 from typing import Optional
 
 import unyt
-import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
-from ... import utils
-from ...libascot import LIBASCOT
-from ...exceptions import AscotIOException
+from a5py import utils
+from a5py.libascot import LIBASCOT, DataStruct, init_fun
+from a5py.exceptions import AscotMeltdownError
+from a5py.data.access import InputVariant, Leaf, TreeMixin
 
 
+# pylint: disable=too-few-public-methods
+class Struct(DataStruct):
+    """Python wrapper for the struct in E_TC.h."""
+
+    _fields_ = [
+        ("Exyz", ctypes.c_double * 3),
+        ]
+
+init_fun(
+    "E_TC_init",
+    ctypes.POINTER(Struct),
+    ndpointer(ctypes.c_double),
+)
+
+init_fun("E_TC_free", ctypes.POINTER(Struct))
+
+
+@Leaf.register
 class EfieldCartesian(InputVariant):
     """Electric field in Cartesian basis for testing purposes."""
-
-    # pylint: disable=too-few-public-methods
-    class Struct(ctypes.Structure):
-        """Python wrapper for the struct in E_TC.h."""
-        _pack_ = 1
-        _fields_ = [
-            ('Exyz', ctypes.c_double * 3),
-            ]
-
-
-    def __init__(self, qid, date, note) -> None:
-        super().__init__(
-            qid=qid, date=date, note=note, variant="EfieldCartesian",
-            struct=EfieldCartesian.Struct(),
-            )
-        self._exyz: unyt.unyt_array
 
     @property
     def exyz(self) -> unyt.unyt_array:
         """Electric field vector (uniform in time and space)."""
-        if self._staged:
-            return self._from_struct_("Exyz", shape=(3,), units="V/m")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("exyz")
-        return self._exyz.copy()
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("Exyz", (3,), "V/m")
+        assert self._file is not None
+        return self._file.read("exyz")
 
-    def _export_hdf5(self):
-        """Export data to HDF5 file."""
-        if self._format == Format.HDF5:
-            raise AscotIOException("Data is already stored in the file.")
-        data = self.export()
-        self._treemanager.hdf5manager.write_datasets(
-            self.qid, self.variant, data,
-            )
-        self._format = Format.HDF5
+    # pylint: disable=too-many-arguments
+    def _stage(self, exyz: unyt.unyt_array) -> None:
+        self._cdata = Struct()
+        if LIBASCOT.E_TC_init(ctypes.byref(self._cdata), exyz.v):
+            self._cdata = None
+            raise AscotMeltdownError("Could not initialize struct.")
 
-    def export(self):
-        data = {
-            "exyz":self.exyz,
-        }
-        return data
+    def _save_data(self) -> None:
+        assert self._file is not None
+        self._file.write("exyz", self.exyz)
 
-    def stage(self):
-        init = LIBASCOT.E_TC_init
-        init.restype = ctypes.c_int32
-        init.argtypes = [
-            ctypes.POINTER(__class__.Struct),
-            ndpointer(ctypes.c_double),
-            ]
-        if not self._staged:
-            if init(
-                ctypes.byref(self._struct_),
-                self.exyz,
-            ):
-                raise AscotIOException("Failed to stage data.")
-            if self._format is Format.MEMORY:
-                del self._exyz
-            self._staged = True
+    def export(self) -> dict[str, unyt.unyt_array]:
+        return {"exyz":self.exyz}
 
-    def unstage(self):
-        free = LIBASCOT.E_TC_free
-        free.restype = None
-        free.argtypes = [ctypes.POINTER(__class__.Struct)]
+    def stage(self) -> None:
+        super().stage()
+        self._stage(**self.export())
 
-        if self._staged:
-            if self._format is Format.MEMORY:
-                self._exyz = self.exyz
-            free(ctypes.byref(self._struct_))
-            self._staged = False
+    def unstage(self) -> None:
+        super().unstage()
+        assert self._cdata is not None
+        LIBASCOT.E_TC_free(ctypes.byref(self._cdata))
+        self._cdata = None
 
 
 # pylint: disable=too-few-public-methods
-class CreateEfieldCartesianMixin(TreeCreateClassMixin):
-    """Mixin class used by `Data` to create EfieldCartesian input."""
+class CreateMixin(TreeMixin):
+    """Provides the factory method."""
 
-    #pylint: disable=protected-access, too-many-arguments
+    #pylint: disable=protected-access, too-many-arguments, too-many-locals
     def create_efieldcartesian(
             self,
-            exyz: utils.ArrayLike | None = None,
-            note: Optional[str] = None,
-            activate: bool = False,
-            dryrun: bool = False,
-            store_hdf5: Optional[bool] = None,
+            exyz: utils.ArrayLike,
+            note: Optional[str]=None,
+            activate: bool=False,
+            preview: bool=False,
+            save: Optional[bool]=None,
             ) -> EfieldCartesian:
         r"""Create a constant electric field input which is defined on
         a Cartesian basis.
@@ -114,25 +94,25 @@ class CreateEfieldCartesianMixin(TreeCreateClassMixin):
         ----------
         exyz : array_like (3,)
             Value of the electric field vector in the simulation domain.
-        note : str, optional
+        note : str, *optional*
             A short note to document this data.
 
             The first word of the note is converted to a tag which you can use
             to reference the data.
-        activate : bool, optional
+        activate : bool, *optional*
             Set this input as active on creation.
-        dryrun : bool, optional
-            Do not add this input to the `data` structure or store it on disk.
+        preview : bool, *optional*
+            If ``True``, the input is created but it is not included in the data
+            structure nor saved to disk.
 
-            Use this flag to modify the input manually before storing it.
-        store_hdf5 : bool, optional
-            Write this input to the HDF5 file if one has been specified when
-            `Ascot` was initialized.
+            The input cannot be used in a simulation but it can be previewed.
+        save : bool, *optional*
+            Store this input to disk.
 
         Returns
         -------
-        inputdata : ~a5py.data.efield.EfieldCartesian
-            Freshly minted input data object.
+        inputdata : :class:`.EfieldCartesian`
+            Input variant created from the given parameters.
 
         Notes
         -----
@@ -144,25 +124,14 @@ class CreateEfieldCartesianMixin(TreeCreateClassMixin):
         Note that this input cannot be used to set a constant electric field
         in cylindrical coordinates (unless the electric field is zero).
         """
-        parameters = _variants.parse_parameters(
-            exyz,
-        )
-        _variants.validate_required_parameters(
-            parameters,
-            names=["exyz",],
-            units=["V/m",],
-            shape=[(3,),],
-            dtype="f8",
-            default=[np.zeros((3,)),],
-        )
-        meta = _variants.new_metadata("EfieldCartesian", note=note)
-        obj = self._treemanager.enter_input(
-            meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
-            )
-        for parameter, value in parameters.items():
-            setattr(obj, f"_{parameter}", value)
-            getattr(obj, f"_{parameter}").flags.writeable = False
+        with utils.validate_variables() as v:
+            exyz = v.validate("exyz", exyz, (3,), "V/m")
 
-        if store_hdf5:
-            obj._export_hdf5()
-        return obj
+        leaf = EfieldCartesian(note=note)
+        leaf._stage(exyz=exyz)
+        if preview:
+            return leaf
+        self._treemanager.enter_leaf(
+            leaf, activate=activate, save=save, category="efield",
+            )
+        return leaf

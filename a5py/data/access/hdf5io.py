@@ -211,7 +211,7 @@ class TreeFile(h5py.File):
             Whether to compress the dataset.
         """
         group = self[path]
-        if compress:
+        if compress and dataset.shape != ():
             dset = group.create_dataset(
                 name, data=dataset, compression="gzip", compression_opts=9
                 )
@@ -222,8 +222,7 @@ class TreeFile(h5py.File):
 
     def read_dataset(
             self, path: str, name: Optional[str]=None,
-            ) -> (dict[str, np.ndarray | unyt.unyt_array] |
-                  np.ndarray | unyt.unyt_array):
+            ) -> (str | np.ndarray | unyt.unyt_array):
         """Read datasets from a group.
 
         Parameters
@@ -235,19 +234,23 @@ class TreeFile(h5py.File):
 
         Returns
         -------
-        data : Dict[str, np.ndarray | unyt.array]
-            Datasets that were read.
+        data : str | np.ndarray | unyt.array
+            Datasets that was read.
         """
         dataset = self[path][name]
+        if dataset.shape == ():
+            array = dataset[()]
+        else:
+            array = dataset[:]
+
         try:
             units = unyt.unyt_quantity.from_string(
                 dataset.attrs["units"].decode("utf-8")
             )
+            array *= units
         except KeyError:
-            units = 1
-        if dataset.shape == ():
-            return dataset[()] * units
-        return dataset[:] * units
+            pass
+        return array
 
 
 class DataAccess():

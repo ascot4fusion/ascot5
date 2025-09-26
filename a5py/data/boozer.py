@@ -8,11 +8,10 @@ import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from .access import _variants, InputVariant, Format, TreeCreateClassMixin
-from .cstructs import interp2D_data
-from .. import utils
-from ..libascot import LIBASCOT
-from ..exceptions import AscotIOException
+from a5py import utils
+from a5py.libascot import LIBASCOT, DataStruct, interp2D_data, init_fun
+from a5py.exceptions import AscotMeltdownError
+from a5py.data.access import InputVariant, Leaf, TreeMixin
 
 
 _NPADDING = 4
@@ -33,37 +32,24 @@ have an effect. This value is the number of points that we add on both ends.
 Seeing how long this explanation is, there should be a better way to do this.
 """
 
+# pylint: disable=too-few-public-methods
+class Struct(DataStruct):
+    """Python wrapper for the struct in boozer.h."""
 
+    _fields_ = [
+        ('psi_min', ctypes.c_double),
+        ('psi_max', ctypes.c_double),
+        ('rs', ctypes.POINTER(ctypes.c_double)),
+        ('zs', ctypes.POINTER(ctypes.c_double)),
+        ('nrzs', ctypes.c_int32),
+        ('nu_psitheta', interp2D_data),
+        ('theta_psithetageom', interp2D_data),
+        ]
+
+
+@Leaf.register
 class BoozerMap(InputVariant):
     """Mapping between cylindrical and Boozer coordinates."""
-
-    # pylint: disable=too-few-public-methods
-    class Struct(ctypes.Structure):
-        """Python wrapper for the struct in boozer.h."""
-        #_pack_ = 1
-        _fields_ = [
-            ('psi_min', ctypes.c_double),
-            ('psi_max', ctypes.c_double),
-            ('rs', ctypes.POINTER(ctypes.c_double)),
-            ('zs', ctypes.POINTER(ctypes.c_double)),
-            ('nrzs', ctypes.c_int32),
-            ('PADDING_0', ctypes.c_ubyte * 4),
-            ('nu_psitheta', interp2D_data),
-            ('theta_psithetageom', interp2D_data),
-            ]
-
-
-    def __init__(self, qid, date, note) -> None:
-        super().__init__(
-            qid=qid, date=date, note=note, variant="BoozerMap",
-            struct=BoozerMap.Struct(),
-            )
-        self._nthetag: unyt.unyt_array
-        self._nthetab: unyt.unyt_array
-        self._psigrid: unyt.unyt_array
-        self._separatrix: unyt.unyt_array
-        self._boozerpoloidal: unyt.unyt_array
-        self._boozertoroidal: unyt.unyt_array
 
     @property
     def nthetag(self) -> int:
@@ -72,7 +58,6 @@ class BoozerMap(InputVariant):
             return self._struct_.theta_psithetageom.n_y
         if self._format == Format.HDF5:
             return self._read_hdf5("nthetag")
-        return self._nthetag
 
     @property
     def nthetab(self) -> int:
@@ -81,7 +66,6 @@ class BoozerMap(InputVariant):
             return self._struct_.nu_psitheta.n_y
         if self._format == Format.HDF5:
             return self._read_hdf5("nthetab")
-        return self._nthetab
 
     @property
     def psigrid(self) -> unyt.unyt_array:
@@ -95,7 +79,6 @@ class BoozerMap(InputVariant):
         if self._format == Format.HDF5:
             nx, x0, x1 = self._read_hdf5("npsi", "psimin", "psimax")
             return np.linspace(x0, x1, nx)
-        return self._psigrid.copy()
 
     @property
     def separatrix(self) -> unyt.unyt_array:
@@ -107,7 +90,6 @@ class BoozerMap(InputVariant):
             ) * unyt.m
         if self._format == Format.HDF5:
             return np.stack(self._read_hdf5("rs", "zs"))
-        return self._separatrix.copy()
 
     @property
     def boozertoroidal(self):
@@ -117,7 +99,6 @@ class BoozerMap(InputVariant):
             return self._from_struct_("nu_psitheta", units="rad")
         if self._format == Format.HDF5:
             return self._read_hdf5("boozertoroidal")
-        return self._boozertoroidal.copy()
 
     @property
     def boozerpoloidal(self):
@@ -128,7 +109,6 @@ class BoozerMap(InputVariant):
             return data[:,_NPADDING:-_NPADDING]
         if self._format == Format.HDF5:
             return self._read_hdf5("boozerpoloidal")[:,_NPADDING:-_NPADDING]
-        return self._boozerpoloidal.copy()[:,_NPADDING:-_NPADDING]
 
     def _export_hdf5(self):
         """Export data to HDF5 file."""
@@ -194,22 +174,22 @@ class BoozerMap(InputVariant):
 
 
 # pylint: disable=too-few-public-methods
-class CreateBoozerMixin(TreeCreateClassMixin):
+class CreateBoozerMixin(TreeMixin):
     """Mixin class used by :class:`Data` to create :class:`BoozerMap` input."""
 
-    #pylint: disable=protected-access, too-many-arguments
+    #pylint: disable=protected-access, too-many-arguments, too-many-locals
     def create_boozermap(
             self,
-            psigrid: utils.ArrayLike | None = None,
-            nthetag: int | None = None,
-            nthetab: int | None = None,
-            boozerpoloidal: utils.ArrayLike | None = None,
-            boozertoroidal: utils.ArrayLike | None = None,
-            separatrix: utils.ArrayLike | None = None,
-            note: Optional[str] = None,
-            activate: bool = False,
-            dryrun: bool = False,
-            store_hdf5: Optional[bool] = None,
+            psigrid: utils.ArrayLike,
+            nthetag: int,
+            nthetab: int,
+            boozerpoloidal: utils.ArrayLike,
+            boozertoroidal: utils.ArrayLike,
+            separatrix: utils.ArrayLike,
+            note: Optional[str]=None,
+            activate: bool=False,
+            preview: bool=False,
+            save: Optional[bool]=None,
             ) -> BoozerMap:
         r"""Create an input that implements a mapping between the cylindrical
         and the Boozer coordinates.
@@ -258,13 +238,13 @@ class CreateBoozerMixin(TreeCreateClassMixin):
             to reference the data.
         activate : bool, optional
             Set this input as active on creation.
-        dryrun : bool, optional
-            Do not add this input to the `data` structure or store it on disk.
+        preview : bool, *optional*
+            If True, the input is created but it is not included in the data
+            structure nor saved to disk.
 
-            Use this flag to modify the input manually before storing it.
-        store_hdf5 : bool, optional
-            Write this input to the HDF5 file if one has been specified when
-            `Ascot` was initialized.
+            The input cannot be used in a simulation but it can be previewed.
+        save : bool, *optional*
+            Store this input to disk.
 
         Returns
         -------

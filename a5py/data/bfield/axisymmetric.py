@@ -2,315 +2,263 @@
 corresponding factory method.
 """
 import ctypes
-from typing import Tuple, Optional
+from typing import Optional
 
 import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
-from ..cstructs import interp2D_data
-from ... import utils
-from ...libascot import LIBASCOT
-from ...exceptions import AscotIOException
+from a5py import utils
+from a5py.libascot import LIBASCOT, DataStruct, interp2D_data, init_fun
+from a5py.exceptions import AscotMeltdownError
+from a5py.data.access import InputVariant, Leaf, TreeMixin
 
 
+# pylint: disable=too-few-public-methods, too-many-instance-attributes
+class Struct(DataStruct):
+    """Python wrapper for the struct in B_2DS.h."""
+
+    _fields_ = [
+        ("psi0", ctypes.c_double),
+        ("psi1", ctypes.c_double),
+        ("axis_r", ctypes.c_double),
+        ("axis_z", ctypes.c_double),
+        ("psi", interp2D_data),
+        ("B_r", interp2D_data),
+        ("B_phi", interp2D_data),
+        ("B_z", interp2D_data),
+        ]
+
+init_fun(
+    "B_2DS_init",
+    ctypes.POINTER(Struct),
+    ctypes.c_int32,
+    *(2*[ctypes.c_double]),
+    ctypes.c_int32,
+    *(6*[ctypes.c_double]),
+    *(4*[ndpointer(ctypes.c_double)]),
+    restype=ctypes.c_int32,
+    )
+
+init_fun("B_2DS_free", ctypes.POINTER(Struct))
+
+
+@Leaf.register
 class Bfield2D(InputVariant):
     """Axisymmetric tokamak field interpolated with splines."""
 
-    # pylint: disable=too-few-public-methods, too-many-instance-attributes
-    class Struct(ctypes.Structure):
-        """Python wrapper for the struct in B_2DS.h."""
-        _pack_ = 1
-        _fields_ = [
-            ('psi0', ctypes.c_double),
-            ('psi1', ctypes.c_double),
-            ('axis_r', ctypes.c_double),
-            ('axis_z', ctypes.c_double),
-            ('psi', interp2D_data),
-            ('B_r', interp2D_data),
-            ('B_phi', interp2D_data),
-            ('B_z', interp2D_data),
-            ]
-
-
-    def __init__(self, qid, date, note) -> None:
-        super().__init__(
-            qid=qid, date=date, note=note, variant="Bfield2D",
-            struct=Bfield2D.Struct(),
-            )
-        self._rgrid: unyt.unyt_array
-        self._zgrid: unyt.unyt_array
-        self._axisrz: unyt.unyt_array
-        self._psilimits: unyt.unyt_array
-        self._psi: unyt.unyt_array
-        self._bphi: unyt.unyt_array
-        self._br: unyt.unyt_array
-        self._bz: unyt.unyt_array
+    _cdata: Optional[Struct]
 
     @property
-    def rgrid(self):
-        """The uniform grid in R in which B and psi are tabulated."""
-        if self._staged:
-            return np.linspace(
-                self._struct_.psi.x_min,
-                self._struct_.psi.x_max,
-                self._struct_.psi.n_x
-                ) * unyt.m
-        if self._format == Format.HDF5:
-            nr, r0, r1 = self._read_hdf5("nr", "rmin", "rmax")
-            return np.linspace(r0, r1, nr)
-        return self._rgrid.copy()
+    def rgrid(self) -> unyt.unyt_array:
+        r"""The uniform grid in :math:`R` in which :math:`\mathbf{B}` and
+        :math:`psi` are tabulated.
+        """
+        if self._cdata is not None:
+            return self._cdata.readonly_grid("x", "m", "psi")
+        assert self._file is not None
+        return self._file.read("rgrid")
 
     @property
-    def zgrid(self):
-        """The uniform grid in z in which B and psi are tabulated."""
-        if self._staged:
-            return np.linspace(
-                self._struct_.psi.y_min,
-                self._struct_.psi.y_max,
-                self._struct_.psi.n_y
-                ) * unyt.m
-        if self._format == Format.HDF5:
-            nz, z0, z1 = self._read_hdf5("nz", "zmin", "zmax")
-            return np.linspace(z0, z1, nz)
-        return self._zgrid.copy()
+    def zgrid(self) -> unyt.unyt_array:
+        r"""The uniform grid in :math:`z` in which :math:`\mathbf{B}` and
+        :math:`psi` are tabulated.
+        """
+        if self._cdata is not None:
+            return self._cdata.readonly_grid("y", "m", "psi")
+        assert self._file is not None
+        return self._file.read("zgrid")
 
     @property
-    def axisrz(self):
-        """Magnetic axis R and z coordinates."""
-        if self._staged:
+    def axisrz(self) -> unyt.unyt_array:
+        r"""Magnetic axis :math:`(R, z)` coordinates."""
+        if self._cdata is not None:
             return unyt.unyt_array((
-                self._from_struct_("axis_r", shape=(1,), units="m"),
-                self._from_struct_("axis_z", shape=(1,), units="m")
-            )).T
-        if self._format == Format.HDF5:
-            return unyt.unyt_array((
-                self._read_hdf5("axisr"), self._read_hdf5("axisz")
+                self._cdata.readonly_carray("axis_r", (), "m"),
+                self._cdata.readonly_carray("axis_z", (), "m"),
                 ))
-        return self._axisrz.copy()
+        assert self._file is not None
+        return self._file.read("axisrz")
 
     @property
-    def psilimits(self):
+    def psilimits(self) -> unyt.unyt_array:
         """Poloidal flux values on the magnetic axis and on the separatrix."""
-        if self._staged:
+        if self._cdata is not None:
             return unyt.unyt_array((
-                self._from_struct_("psi0", shape=(1,), units="Wb/m"),
-                self._from_struct_("psi1", shape=(1,), units="Wb/m")
-            )).T
-        if self._format == Format.HDF5:
-            return unyt.unyt_array((
-                self._read_hdf5("psi0"), self._read_hdf5("psi1")
+                self._cdata.readonly_carray("psi0", (), "Wb/rad"),
+                self._cdata.readonly_carray("psi1", (), "Wb/rad"),
                 ))
-        return self._psilimits.copy()
+        assert self._file is not None
+        return self._file.read("psilimits")
 
     @property
-    def psi(self):
-        """Poloidal flux values on the (R,z) grid."""
-        if self._staged:
-            return self._from_struct_("psi", units="Wb/m")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("psi")
-        return self._psi.copy()
+    def psi(self) -> unyt.unyt_array:
+        """Tabulated values of poloidal flux."""
+        if self._cdata is not None:
+            return self._cdata.readonly_interp("psi", "Wb/rad")
+        assert self._file is not None
+        return self._file.read("psi")
 
     @property
-    def bphi(self):
-        """Toroidal component of the magnetic field on the (R,z) grid."""
-        if self._staged:
-            return self._from_struct_("B_phi", units="T")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("bphi")
-        return self._bphi.copy()
-
-    @property
-    def br(self):
-        """Magnetic field R component (excl. equil. comp.) on the (R,z) grid.
+    def bphi(self) -> unyt.unyt_array:
+        """Tabulated values of  toroidal component of the magnetic field
+        including any perturbations.
         """
-        if self._staged:
-            return self._from_struct_("B_r", units="T")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("br")
-        return self._br.copy()
+        if self._cdata is not None:
+            return self._cdata.readonly_interp("B_phi", "T")
+        assert self._file is not None
+        return self._file.read("bphi")
 
     @property
-    def bz(self):
-        """Magnetic field z component (excl. equil. comp.) on the (R,z) grid.
+    def br(self) -> unyt.unyt_array:
+        r"""Tabulated values of :math:`R` component of the non-equilibrium
+        magnetic field.
         """
-        if self._staged:
-            return self._from_struct_("B_z", units="T")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("bz")
-        return self._bz.copy()
+        if self._cdata is not None:
+            return self._cdata.readonly_interp("B_r", "T")
+        assert self._file is not None
+        return self._file.read("br")
 
-    def _export_hdf5(self):
-        """Export data to HDF5 file."""
-        if self._format == Format.HDF5:
-            raise AscotIOException("Data is already stored in the file.")
-        data = self.export()
-        for grid in ["rgrid", "zgrid"]:
-            name = grid.replace("grid", "")
-            data["n" + name] = data[grid].size
-            data[name + "min"] = data[grid][0]
-            data[name + "max"] = data[grid][-1]
-            del data[grid]
+    @property
+    def bz(self) -> unyt.unyt_array:
+        r"""Tabulated values of :math:`z` component of the non-equilibrium
+        magnetic field.
+        """
+        if self._cdata is not None:
+            return self._cdata.readonly_interp("B_z", "T")
+        assert self._file is not None
+        return self._file.read("bz")
 
-        data["axisr"], data["axisz"], data["psi0"], data["psi1"] = (
-            data["axisrz"][0], data["axisrz"][1],
-            data["psilimits"][0], data["psilimits"][1],
-        )
-        del data["axisrz"]
-        del data["psilimits"]
-        self._treemanager.hdf5manager.write_datasets(
-            self.qid, self.variant, data,
+    #pylint: disable=too-many-arguments
+    def _stage(
+            self, rgrid: unyt.unyt_array,
+            zgrid: unyt.unyt_array,
+            axisrz: unyt.unyt_array,
+            psilimits: unyt.unyt_array,
+            psi: unyt.unyt_array,
+            bphi: unyt.unyt_array,
+            br: unyt.unyt_array,
+            bz: unyt.unyt_array,
+            ) -> None:
+        self._cdata = Struct()
+        if LIBASCOT.B_2DS_init(
+            ctypes.byref(self._cdata), rgrid.size, rgrid[0].v, rgrid[-1].v,
+            zgrid.size, zgrid[0].v, zgrid[-1].v, axisrz[0].v, axisrz[1].v,
+            psilimits[0].v, psilimits[1].v, psi.v, br.v, bphi.v, bz.v,
+            ):
+            self._cdata = None
+            raise AscotMeltdownError("Could not initialize struct.")
+
+    def _save_data(self) -> None:
+        for field in [
+            "rgrid", "zgrid", "axisrz", "psilimits", "psi", "bphi", "br", "bz",
+        ]:
+            assert self._file is not None
+            self._file.write(field, getattr(self, field))
+
+    def export(self) -> dict[str, unyt.unyt_array | np.ndarray | int]:
+        fields = [
+            "rgrid", "zgrid", "axisrz", "psilimits", "psi", "bphi", "br", "bz",
+        ]
+        return {field: getattr(self, field) for field in fields}
+
+    def stage(self) -> None:
+        super().stage()
+        self._stage(
+            rgrid=self.rgrid, zgrid=self.zgrid, axisrz=self.axisrz,
+            psilimits=self.psilimits, psi=self.psi, bphi=self.bphi, br=self.br,
+            bz=self.bz,
             )
-        self._format = Format.HDF5
 
-    def export(self):
-        data = {
-            "rgrid":self.rgrid,
-            "zgrid":self.zgrid,
-            "axisrz":self.axisrz,
-            "psilimits":self.psilimits,
-            "psi":self.psi,
-            "bphi":self.bphi,
-            "br":self.br,
-            "bz":self.bz,
-        }
-        return data
-
-    def stage(self):
-        init = LIBASCOT.B_2DS_init
-        init.restype = ctypes.c_int32
-        init.argtypes = [
-            ctypes.POINTER(__class__.Struct),
-            ctypes.c_int32,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_int32,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_double,
-            ndpointer(ctypes.c_double),
-            ndpointer(ctypes.c_double),
-            ndpointer(ctypes.c_double),
-            ndpointer(ctypes.c_double),
-            ]
-        if not self._staged:
-            if init(
-                ctypes.byref(self._struct_),
-                self.rgrid.size,
-                self.rgrid[0].v,
-                self.rgrid[-1].v,
-                self.zgrid.size,
-                self.zgrid[0].v,
-                self.zgrid[-1].v,
-                self.axisrz[0].v,
-                self.axisrz[1].v,
-                self.psilimits[0].v,
-                self.psilimits[1].v,
-                self.psi.v,
-                self.br.v,
-                self.bphi.v,
-                self.bz.v,
-                ):
-                raise AscotIOException("Failed to stage data.")
-            if self._format is Format.MEMORY:
-                del self._psi
-                del self._br
-                del self._bphi
-                del self._bz
-            self._staged = True
-
-
-    def unstage(self):
-        free = LIBASCOT.B_2DS_free
-        free.restype = None
-        free.argtypes = [ctypes.POINTER(__class__.Struct)]
-
-        if self._staged:
-            if self._format is Format.MEMORY:
-                self._br = self.br
-                self._bz = self.bz
-                self._psi = self.psi
-                self._bphi = self.bphi
-            free(ctypes.byref(self._struct_))
-            self._staged = False
+    def unstage(self) -> None:
+        super().unstage()
+        assert self._cdata is not None
+        LIBASCOT.B_2DS_free(ctypes.byref(self._cdata))
+        self._cdata = None
 
 
 # pylint: disable=too-few-public-methods
-class CreateBfield2DMixin(TreeCreateClassMixin):
-    """Mixin class used by :class:`Data` to create :class:`Bfield2D` input."""
+class CreateMixin(TreeMixin):
+    """Provides the factory method."""
 
-    #pylint: disable=protected-access, too-many-arguments
+    #pylint: disable=protected-access, too-many-arguments, too-many-locals
     def create_bfield2d(
             self,
-            rgrid: utils.ArrayLike | None = None,
-            zgrid: utils.ArrayLike | None = None,
-            axisrz: Tuple[float, float] | None = None,
-            psilimits: Tuple[float, float] | None = None,
-            psi: utils.ArrayLike | None = None,
-            bphi: utils.ArrayLike | None = None,
-            br: Optional[utils.ArrayLike] = None,
-            bz: Optional[utils.ArrayLike] = None,
-            note: Optional[str] = None,
-            activate: bool = False,
-            dryrun: bool = False,
-            store_hdf5: Optional[bool] = None,
+            rgrid: utils.ArrayLike,
+            zgrid: utils.ArrayLike,
+            psi: utils.ArrayLike,
+            bphi: utils.ArrayLike,
+            br: Optional[utils.ArrayLike]=None,
+            bz: Optional[utils.ArrayLike]=None,
+            axisrz: Optional[utils.ArrayLike]=None,
+            psilimits: Optional[utils.ArrayLike]= None,
+            note: Optional[str]=None,
+            activate: bool=False,
+            preview: bool=False,
+            save: Optional[bool]=None,
             ) -> Bfield2D:
         r"""Create axisymmetric tokamak field that is interpolated with splines.
 
         This method creates a field that is suitable for simulations where
         toroidal ripple or other 3D perturbations are not relevant [1]_. Using
         this input instead of it's 3D counterpart
-        (:class:`~a5py.data.bfield.Bfield3D`) makes the simulations *much*
-        faster, so using this input when applicable is strongly recommended.
+        (:class:`.Bfield3D`) makes the simulations *much* faster, so using this
+        input whenever applicable is strongly recommended.
 
         Parameters
         ----------
         rgrid : array_like (nr,)
-            The uniform grid in R in which B and psi are tabulated.
+            The uniform grid in :math:`R` in which :math:`\mathbf{B}` and
+            :math:`psi` are tabulated.
         zgrid : array_like (nz,)
-            The uniform grid in z in which B and psi are tabulated.
-        axisrz : tuple[float, float]
-            Magnetic axis R and z coordinates.
-        psilimits : tuple[float, float]
+            The uniform grid in :math:`z` in which :math:`\mathbf{B}` and
+            :math:`psi` are tabulated.
+        psi : array_like (nr,nz)
+            Tabulated values of poloidal flux.
+        bphi : array_like (nr,nz)
+            Tabulated values of  toroidal component of the magnetic field.
+        br : array_like (nr,nz), *optional*
+            Tabulated values of :math:`R` component of the non-equilibrium
+            magnetic field.
+
+            In most cases this should not be set, see the notes below.
+        bz : array_like (nr,nz), *optional*
+            Tabulated values of :math:`z` component of the non-equilibrium
+            magnetic field.
+
+            In most cases this should not be set, see the notes below.
+        axisrz : array_like (2,), *optional*
+            Magnetic axis :math:`(R,z)` coordinates.
+
+            The recommendation is not to set this variable in which case the
+            location of the axis is interpolated internally. If the
+            interpolation fails (which can happen when e.g.the data covers the
+            PF coil positions), this can be used to set the correct location.
+        psilimits : array_like (2,), *optional*
             Poloidal flux values on the magnetic axis and on the separatrix.
-        psi : array_like (nr, nz)
-            Poloidal flux values on the (R,z) grid.
-        bphi : array_like (nr, nz)
-            Toroidal component of the magnetic field on the (R,z) grid.
-        br : array_like (nr, nz), optional
-            Magnetic field R component (excl. equil. comp.) on the (R,z) grid.
 
-            In most cases this should not be set as the poloidal component of
-            the field is calculated from the poloidal flux.
-        bz : array_like (nr, nz), optional
-            Magnetic field z component (excl. equil. comp.) on the (R,z) grid.
-
-            In most cases this should not be set as the poloidal component of
-            the field is calculated from the poloidal flux.
-        note : str, optional
+            By default the inner limit is interpolated internally using the
+            ``axisrz`` position. The outer limit is assumed to be
+            :math:`\psi=0`.
+        note : str, *optional*
             A short note to document this data.
 
             The first word of the note is converted to a tag which you can use
             to reference the data.
-        activate : bool, optional
+        activate : bool, *optional*
             Set this input as active on creation.
-        dryrun : bool, optional
-            Do not add this input to the `data` structure or store it on disk.
+        preview : bool, *optional*
+            If ``True``, the input is created but it is not included in the data
+            structure nor saved to disk.
 
-            Use this flag to modify the input manually before storing it.
-        store_hdf5 : bool, optional
-            Write this input to the HDF5 file if one has been specified when
-            `Ascot` was initialized.
+            The input cannot be used in a simulation but it can be previewed.
+        save : bool, *optional*
+            Store this input to disk.
 
         Returns
         -------
-        inputdata : ~a5py.data.bfield.Bfield2D
-            Freshly minted input data object.
+        data : :class:`.Bfield2D`
+            Input variant created from the given parameters.
 
         Notes
         -----
@@ -335,56 +283,57 @@ class CreateBfield2DMixin(TreeCreateClassMixin):
             \mathbf{B} = \frac{1}{R}\nabla\psi\times\hat{\mathbf{e}}_\phi \
                 + B_\phi\hat{\mathbf{e}}_\phi
 
-        This means that by default `br` and `bz` should not contain any data as
-        the equilibrium component of :math:`B_\theta` is calculated from
+        This means that by default ``br`` and ``bz`` should not contain any data
+        as the equilibrium component of :math:`B_\theta` is calculated from
         the poloidal flux [2]_. This makes the field inherently divergence-free.
 
         .. [1] Except resonant magnetic perturbations which can be included
            via the dedicated MHD module and used together with this field.
 
-        .. [2] In special cases where `psi` has poor quality, `br` and `bz` can
-           be used instead. Doing so requires that `psi` is scaled down to
+        .. [2] In special cases where `psi` has poor quality, ``br`` and ``bz``
+           can be used instead. Doing so requires that ``psi`` is scaled down to
            insignificant value so that :math:`B_\theta` can be provided
-           explicitly via `br` and `bz`. Remember to scale `psilimits` as well.
-           Caution is advised as this invalidates the divergence-free
-           quality of the field.
+           explicitly via ``br`` and ``bz``. Remember to scale ``psilimits`` as
+           well (if provided explicitly). Caution is advised as this invalidates
+           the divergence-free quality of the field.
         """
-        parameters = _variants.parse_parameters(
-            rgrid, zgrid, axisrz, psilimits, psi, bphi, br, bz,
-        )
-        default_rgrid = np.linspace(1., 2., 45)
-        default_zgrid = np.linspace(-1., 1., 90)
-        nr = (default_rgrid.size if parameters["rgrid"] is None
-              else parameters["rgrid"].size)
-        nz = (default_zgrid.size if parameters["zgrid"] is None
-              else parameters["zgrid"].size)
-        _variants.validate_required_parameters(
-            parameters,
-            names=["rgrid", "zgrid", "axisrz", "psilimits", "psi", "bphi"],
-            units=["m", "m", "m", "Wb/m", "Wb/m", "T"],
-            shape=[(nr,), (nz,), (2,), (2,), (nr, nz), (nr, nz)],
-            dtype="f8",
-            default=[
-                default_rgrid, default_zgrid, (1.5, 0.), (-1., 1.),
-                np.zeros((nr, nz)), np.ones((nr, nz)),
-                ],
-        )
-        _variants.validate_optional_parameters(
-            parameters,
-            ["br", "bz"], ("T", "T"), (nr, nz), "f8",
-            [np.zeros((nr, nz)), np.zeros((nr, nz))],
-        )
+        with utils.validate_variables() as v:
+            rgrid = v.validate("rgrid", rgrid, (-1,), "m")
+            zgrid = v.validate("zgrid", zgrid, (-1,), "m")
+
+        nr, nz = rgrid.size, zgrid.size
+        with utils.validate_variables() as v:
+            psi = v.validate("psi", psi, (nr, nz), "Wb/rad")
+            bphi = v.validate("bphi", bphi, (nr, nz), "T")
+            br = v.validate(
+                "br", br, (nr, nz), "T", default=np.full((nr, nz), 0.0)
+                )
+            bz = v.validate(
+                "bz", bz, (nr, nz), "T", default=np.full((nr, nz), 0.0)
+                )
+
+        interpolated_psi = unyt.unyt_array(0.0, "Wb/rad")
+        interpolated_axisrz = unyt.unyt_array([6.2, 0], "m")
+        with utils.validate_variables() as v:
+            axisrz = v.validate(
+                "axisrz", axisrz, (2,), "m", default=interpolated_axisrz.v
+                )
+            psilimits = v.validate(
+                "psilimits", psilimits, (2,), "Wb/rad",
+                default=np.array([interpolated_psi.v, 0.0]),
+                )
+
         for abscissa in ["rgrid", "zgrid"]:
-            utils.check_abscissa(parameters[abscissa], abscissa)
+            utils.check_abscissa(locals()[abscissa], abscissa)
 
-        meta = _variants.new_metadata("Bfield2D", note=note)
-        obj = self._treemanager.enter_input(
-            meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
+        leaf = Bfield2D(note=note)
+        leaf._stage(
+            rgrid=rgrid, zgrid=zgrid, axisrz=axisrz, psilimits=psilimits,
+            psi=psi, bphi=bphi, br=br, bz=bz,
             )
-        for parameter, value in parameters.items():
-            setattr(obj, f"_{parameter}", value)
-            getattr(obj, f"_{parameter}").flags.writeable = False
-
-        if store_hdf5:
-            obj._export_hdf5()
-        return obj
+        if preview:
+            return leaf
+        self._treemanager.enter_leaf(
+            leaf, activate=activate, save=save, category="bfield",
+            )
+        return leaf

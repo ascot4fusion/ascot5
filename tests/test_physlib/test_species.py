@@ -1,44 +1,38 @@
 """Test physlib.species."""
+import unyt
 import pytest
 
-import a5py.physlib as physlib
-from a5py.exceptions import AscotUnitWarning
+from a5py.physlib import Species
 
-
-@pytest.mark.parametrize("charge", [None, 1, 1.5])
-def test_species2properties(charge):
-    """Test the species2properties function."""
-    if charge == 1.5:
+@pytest.mark.parametrize(
+        "name, valid",
+        [("D", True), ("Deuterium", True), ("Peruna", False)]
+        )
+def test_from_string(name, valid):
+    """Test obtaining species by name."""
+    if not valid:
         with pytest.raises(ValueError):
-            physlib.species2properties("H", charge=charge)
+            Species.from_string(name)
         return
-    properties = physlib.species2properties("H", charge=charge)
 
-    assert properties.anum == physlib.KNOWN_SPECIES["H1"].anum
-    assert properties.znum == physlib.KNOWN_SPECIES["H1"].znum
-    assert properties.mass == physlib.KNOWN_SPECIES["H1"].mass
-
-    if charge is None:
-        assert properties.charge == physlib.KNOWN_SPECIES["H1"].charge
-    else:
-        assert properties.charge == charge
+    sp = Species.from_string(name)
+    assert sp.name == "D"
+    assert sp.znum == 1
+    assert sp.anum == 2
+    assert sp.mass == 2.014*unyt.amu
 
 
-@pytest.mark.parametrize("anumznum", [(1, 1), (-1, 1)])
-def test_findmass(anumznum):
-    """Test the findmass function."""
-    if anumznum == (-1, 1):
+@pytest.mark.parametrize("z, a, valid", [(1, 2, True), (999, 999, False)])
+def test_from_znumanum(z, a, valid):
+    """Test obtaining species by Z and A."""
+    if not valid:
         with pytest.raises(ValueError):
-            physlib.findmass(*anumznum)
+            Species.from_znumanum(z, a)
         return
-    assert physlib.findmass(*anumznum) == physlib.KNOWN_SPECIES["H1"].mass
 
+    sp = Species.from_znumanum(z, a)
+    assert sp.name == "D"
+    assert sp.znum == 1
+    assert sp.anum == 2
+    assert sp.mass == 2.014*unyt.amu
 
-@pytest.mark.parametrize("anumznum", [(1, 1), (-1, 1)])
-def test_properties2species(anumznum):
-    """Test the properties2species function."""
-    if anumznum == (-1, 1):
-        with pytest.raises(ValueError):
-            physlib.findmass(*anumznum)
-        return
-    assert physlib.properties2species(*anumznum) == "H1"

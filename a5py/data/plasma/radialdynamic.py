@@ -8,35 +8,36 @@ import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
-from ... import physlib
-from ...libascot import LIBASCOT
-from ...exceptions import AscotIOException
+from a5py import utils
+from a5py.libascot import LIBASCOT, DataStruct, interp2D_data, init_fun
+from a5py.exceptions import AscotMeltdownError
+from a5py.data.access import InputVariant, Leaf, TreeMixin
 
 
-class Plasma1DDynamic(InputVariant):
-    """Time-dependent radial plasma profile."""
 
-    # pylint: disable=too-few-public-methods
-    class Struct(ctypes.Structure):
-        """Python wrapper for the struct in plasma_1Dt.h."""
-        _pack_ = 1
-        _fields_ = [
-            ('n_rho', ctypes.c_int32),
-            ('n_time', ctypes.c_int32),
-            ('n_species', ctypes.c_int32),
-            ('PADDING_0', ctypes.c_ubyte * 4),
-            ('mass', ctypes.POINTER(ctypes.c_double)),
-            ('charge', ctypes.POINTER(ctypes.c_double)),
-            ('anum', ctypes.POINTER(ctypes.c_int32)),
-            ('znum', ctypes.POINTER(ctypes.c_int32)),
-            ('rho', ctypes.POINTER(ctypes.c_double)),
-            ('time', ctypes.POINTER(ctypes.c_double)),
-            ('temp', ctypes.POINTER(ctypes.c_double)),
-            ('dens', ctypes.POINTER(ctypes.c_double)),
-            ('vtor', ctypes.POINTER(ctypes.c_double)),
+# pylint: disable=too-few-public-methods
+class Struct(DataStruct):
+    """Python wrapper for the struct in plasma_1Dt.h."""
+
+    _fields_ = [
+        ('n_rho', ctypes.c_int32),
+        ('n_time', ctypes.c_int32),
+        ('n_species', ctypes.c_int32),
+        ('mass', ctypes.POINTER(ctypes.c_double)),
+        ('charge', ctypes.POINTER(ctypes.c_double)),
+        ('anum', ctypes.POINTER(ctypes.c_int32)),
+        ('znum', ctypes.POINTER(ctypes.c_int32)),
+        ('rho', ctypes.POINTER(ctypes.c_double)),
+        ('time', ctypes.POINTER(ctypes.c_double)),
+        ('temp', ctypes.POINTER(ctypes.c_double)),
+        ('dens', ctypes.POINTER(ctypes.c_double)),
+        ('vtor', ctypes.POINTER(ctypes.c_double)),
         ]
 
+
+@Leaf.register
+class Plasma1DDynamic(InputVariant):
+    """Time-dependent radial plasma profile."""
 
     def __init__(self, qid, date, note) -> None:
         super().__init__(
@@ -278,7 +279,7 @@ class Plasma1DDynamic(InputVariant):
 
 
 # pylint: disable=too-few-public-methods
-class CreatePlasma1DDynamicMixin(TreeCreateClassMixin):
+class CreateMixin(TreeMixin):
     """Mixin class used by `Data` to create Plasma1DDynamic input."""
 
     #pylint: disable=protected-access, too-many-arguments

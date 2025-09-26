@@ -41,15 +41,15 @@ typedef struct {
     real r;           /**< Guiding center R coordinate [m]                 */
     real phi;         /**< Guiding center phi coordinate [rad]             */
     real z;           /**< Guiding center z coordinate [m]                 */
-    real ppar;        /**< Parallel momentum [kg m/s]                      */
-    real mu;          /**< Magnetic moment [J/T]                           */
-    real zeta;        /**< Gyroangle [rad]                                 */
+    real ekin;        /**< Guiding center kinetic energy [J]               */
+    real pitch;       /**< Guiding center pitch [1]                        */
+    real zeta;        /**< Guiding center gyroangle [rad]                  */
     real rprt;        /**< Particle R coordinate [m]                       */
     real phiprt;      /**< Particle phi coordinate [phi]                   */
     real zprt;        /**< Particle z coordinate [m]                       */
-    real p_r;         /**< Momentum r component [kg m/s]                   */
-    real p_phi;       /**< Momentum phi component [kg m/s]                 */
-    real p_z;         /**< Momentum z component [kg m/s]                   */
+    real pr;          /**< Particle momentum r component [kg m/s]          */
+    real pphi;        /**< Particle momentum phi component [kg m/s]        */
+    real pz;          /**< Particle momentum z component [kg m/s]          */
     real mass;        /**< Mass [kg]                                       */
     real charge;      /**< Charge [C]                                      */
     int  anum;        /**< Atomic mass number of marker species            */
@@ -58,23 +58,10 @@ typedef struct {
     real time;        /**< Marker simulation time [s]                      */
     real mileage;     /**< Duration this marker has been simulated [s]     */
     real cputime;     /**< Marker wall-clock time [s]                      */
-    real rho;         /**< Marker rho coordinate                           */
     real theta;       /**< Marker poloidal coordinate [rad]                */
     integer id;       /**< Arbitrary but unique ID for the marker          */
     integer endcond;  /**< Marker end condition                            */
     integer walltile; /**< ID of walltile if marker has hit the wall       */
-    real B_r;         /**< Magnetic field R component at (r, phi, z) [T]   */
-    real B_phi;       /**< Magnetic field phi component at (r, phi, z) [T] */
-    real B_z;         /**< Magnetic field z component at (r, phi, z) [T]   */
-    real B_r_dr;      /**< dB_R/dR at (r, phi, z) [T/m]                    */
-    real B_phi_dr;    /**< dB_phi/dR at (r, phi, z) [T/m]                  */
-    real B_z_dr;      /**< dB_z/dR at (r, phi, z) [T/m]                    */
-    real B_r_dphi;    /**< dB_R/dphi at (r, phi, z) [T/m]                  */
-    real B_phi_dphi;  /**< dB_phi/dphi at (r, phi, z) [T/m]                */
-    real B_z_dphi;    /**< dB_z/dphi at (r, phi, z) [T/m]                  */
-    real B_r_dz;      /**< dB_R/dz at (r, phi, z) [T/m]                    */
-    real B_phi_dz;    /**< dB_phi/dz at (r, phi, z) [T/m]                  */
-    real B_z_dz;      /**< dB_z/dz at (r, phi, z) [T/m]                    */
 
     a5err err;        /**< error flag */
 } particle_state;

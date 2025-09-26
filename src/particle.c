@@ -561,9 +561,9 @@ a5err particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo,
         p_fo->r[j]          = p->rprt;
         p_fo->phi[j]        = p->phiprt;
         p_fo->z[j]          = p->zprt;
-        p_fo->p_r[j]        = p->p_r;
-        p_fo->p_phi[j]      = p->p_phi;
-        p_fo->p_z[j]        = p->p_z;
+        p_fo->p_r[j]        = p->pr;
+        p_fo->p_phi[j]      = p->pphi;
+        p_fo->p_z[j]        = p->pz;
 
         p_fo->mass[j]       = p->mass;
         p_fo->charge[j]     = p->charge;
@@ -645,9 +645,9 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     p->rprt       = p_fo->r[j];
     p->phiprt     = p_fo->phi[j];
     p->zprt       = p_fo->z[j];
-    p->p_r        = p_fo->p_r[j];
-    p->p_phi      = p_fo->p_phi[j];
-    p->p_z        = p_fo->p_z[j];
+    p->pr         = p_fo->p_r[j];
+    p->pphi       = p_fo->p_phi[j];
+    p->pz         = p_fo->p_z[j];
 
     p->mass       = p_fo->mass[j];
     p->charge     = p_fo->charge[j];
@@ -679,19 +679,19 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     B_dB[11]      = p_fo->B_z_dz[j];
 
     /* Guiding center transformation */
-    real ppar;
+    real ppar, mu;
     if(!err) {
-        real pr   = p->p_r;
-        real pphi = p->p_phi;
-        real pz   = p->p_z;
+        real pr   = p->pr;
+        real pphi = p->pphi;
+        real pz   = p->pz;
 
         gctransform_particle2guidingcenter(
             p->mass, p->charge, B_dB,
             p->rprt, p->phiprt, p->zprt, pr , pphi, pz,
-            &p->r, &p->phi, &p->z, &ppar, &p->mu, &p->zeta);
+            &p->r, &p->phi, &p->z, &ppar, &mu, &p->zeta);
     }
     if(!err && p->r <= 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
-    if(!err && p->mu < 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+    if(!err && mu < 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
     if(!err) {
         err = B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, p->time, Bdata);
@@ -703,32 +703,10 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
         err = B_field_eval_rho(rho, psi[0], Bdata);
     }
 
-    if(!err) {
-        p->ppar = ppar;
-    }
-    if(!err && p->ppar >= CONST_C) {
-        err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
-    }
+    real Bnorm = math_normc(B_dB[0], B_dB[4], B_dB[8]);
+    p->ekin  = physlib_Ekin_ppar(p->mass, mu, ppar, Bnorm);
+    p->pitch = physlib_gc_xi(p->mass, mu, ppar, Bnorm);
 
-    /* Normally magnetic field data at gc position is stored here
-     * but, if gc transformation fails, field at particle position is
-     * stored instead. */
-    p->rho        = rho[0];
-
-    p->B_r        = B_dB[0];
-    p->B_r_dr     = B_dB[1];
-    p->B_r_dphi   = B_dB[2];
-    p->B_r_dz     = B_dB[3];
-
-    p->B_phi      = B_dB[4];
-    p->B_phi_dr   = B_dB[5];
-    p->B_phi_dphi = B_dB[6];
-    p->B_phi_dz   = B_dB[7];
-
-    p->B_z        = B_dB[8];
-    p->B_z_dr     = B_dB[9];
-    p->B_z_dphi   = B_dB[10];
-    p->B_z_dz     = B_dB[11];
 
     /* If marker already has error flag, make sure it is not overwritten here */
     a5err simerr  = p_fo->err[j];
@@ -773,8 +751,6 @@ a5err particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc,
         p_gc->r[j]          = p->r;
         p_gc->phi[j]        = p->phi;
         p_gc->z[j]          = p->z;
-        p_gc->ppar[j]       = p->ppar;
-        p_gc->mu[j]         = p->mu;
         p_gc->zeta[j]       = p->zeta;
 
         p_gc->mass[j]       = p->mass;
@@ -782,27 +758,42 @@ a5err particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc,
         p_gc->time[j]       = p->time;
         p_gc->bounces[j]    = 0;
         p_gc->weight[j]     = p->weight;
-        p_gc->rho[j]        = p->rho;
         p_gc->theta[j]      = p->theta;
         p_gc->id[j]         = p->id;
         p_gc->endcond[j]    = p->endcond;
         p_gc->walltile[j]   = p->walltile;
         p_gc->mileage[j]    = p->mileage;
 
-        p_gc->B_r[j]        = p->B_r;
-        p_gc->B_r_dr[j]     = p->B_r_dr;
-        p_gc->B_r_dphi[j]   = p->B_r_dphi;
-        p_gc->B_r_dz[j]     = p->B_r_dz;
+        real B_dB[15], psi[1], rho[2];
+        if(!err) {
+            err = B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, p->time, Bdata);
+        }
+        if(!err) {
+            err = B_field_eval_psi(psi, p->r, p->phi, p->z, p->time, Bdata);
+        }
+        if(!err) {
+            err = B_field_eval_rho(rho, psi[0], Bdata);
+        }
+        p_gc->rho[j]        = rho[0];
+        p_gc->B_r[j]        = B_dB[0];
+        p_gc->B_r_dr[j]     = B_dB[1];
+        p_gc->B_r_dphi[j]   = B_dB[2];
+        p_gc->B_r_dz[j]     = B_dB[3];
+        p_gc->B_phi[j]      = B_dB[4];
+        p_gc->B_phi_dr[j]   = B_dB[5];
+        p_gc->B_phi_dphi[j] = B_dB[6];
+        p_gc->B_phi_dz[j]   = B_dB[7];
+        p_gc->B_z[j]        = B_dB[8];
+        p_gc->B_z_dr[j]     = B_dB[9];
+        p_gc->B_z_dphi[j]   = B_dB[10];
+        p_gc->B_z_dz[j]     = B_dB[11];
 
-        p_gc->B_phi[j]      = p->B_phi;
-        p_gc->B_phi_dr[j]   = p->B_phi_dr;
-        p_gc->B_phi_dphi[j] = p->B_phi_dphi;
-        p_gc->B_phi_dz[j]   = p->B_phi_dz;
 
-        p_gc->B_z[j]        = p->B_z;
-        p_gc->B_z_dr[j]     = p->B_z_dr;
-        p_gc->B_z_dphi[j]   = p->B_z_dphi;
-        p_gc->B_z_dz[j]     = p->B_z_dz;
+        real Bnorm = math_normc(B_dB[0], B_dB[4], B_dB[8]);
+        real gamma = physlib_gamma_Ekin(p->mass, p->ekin);
+        real pnorm = physlib_pnorm_gamma(p->mass, gamma);
+        p_gc->mu[j] = physlib_gc_mu(p->mass, pnorm, p->pitch, Bnorm);
+        p_gc->ppar[j] = phys_ppar_Ekin(p->mass, p->ekin, p_gc->mu[j], Bnorm);
 
         p_gc->running[j] = 1;
         if(p->endcond) {
@@ -837,9 +828,6 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
     p->r          = p_gc->r[j];
     p->phi        = p_gc->phi[j];
     p->z          = p_gc->z[j];
-    p->ppar       = p_gc->ppar[j];
-    p->mu         = p_gc->mu[j];
-    p->zeta       = p_gc->zeta[j];
 
     p->mass       = p_gc->mass[j];
     p->charge     = p_gc->charge[j];
@@ -847,48 +835,37 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
     p->weight     = p_gc->weight[j];
     p->id         = p_gc->id[j];
     p->cputime    = p_gc->cputime[j];
-    p->rho        = p_gc->rho[j];
     p->theta      = p_gc->theta[j];
     p->endcond    = p_gc->endcond[j];
     p->walltile   = p_gc->walltile[j];
     p->mileage    = p_gc->mileage[j];
 
-    p->B_r        = p_gc->B_r[j];
-    p->B_r_dr     = p_gc->B_r_dr[j];
-    p->B_r_dphi   = p_gc->B_r_dphi[j];
-    p->B_r_dz     = p_gc->B_r_dz[j];
-
-    p->B_phi      = p_gc->B_phi[j];
-    p->B_phi_dr   = p_gc->B_phi_dr[j];
-    p->B_phi_dphi = p_gc->B_phi_dphi[j];
-    p->B_phi_dz   = p_gc->B_phi_dz[j];
-
-    p->B_z        = p_gc->B_z[j];
-    p->B_z_dr     = p_gc->B_z_dr[j];
-    p->B_z_dphi   = p_gc->B_z_dphi[j];
-    p->B_z_dz     = p_gc->B_z_dz[j];
-
     /* Guiding center to particle transformation */
     real B_dB[15];
-    B_dB[0]       = p->B_r;
-    B_dB[1]       = p->B_r_dr;
-    B_dB[2]       = p->B_r_dphi;
-    B_dB[3]       = p->B_r_dz;
-    B_dB[4]       = p->B_phi;
-    B_dB[5]       = p->B_phi_dr;
-    B_dB[6]       = p->B_phi_dphi;
-    B_dB[7]       = p->B_phi_dz;
-    B_dB[8]       = p->B_z;
-    B_dB[9]       = p->B_z_dr;
-    B_dB[10]      = p->B_z_dphi;
-    B_dB[11]      = p->B_z_dz;
+    B_dB[0]       = p_gc->B_r[j];
+    B_dB[1]       = p_gc->B_r_dr[j];
+    B_dB[2]       = p_gc->B_r_dphi[j];
+    B_dB[3]       = p_gc->B_r_dz[j];
+    B_dB[4]       = p_gc->B_phi[j];
+    B_dB[5]       = p_gc->B_phi_dr[j];
+    B_dB[6]       = p_gc->B_phi_dphi[j];
+    B_dB[7]       = p_gc->B_phi_dz[j];
+    B_dB[8]       = p_gc->B_z[j];
+    B_dB[9]       = p_gc->B_z_dr[j];
+    B_dB[10]      = p_gc->B_z_dphi[j];
+    B_dB[11]      = p_gc->B_z_dz[j];
+
+    real Bnorm = math_normc(p_gc->B_r[j], p_gc->B_phi[j], p_gc->B_z[j]);
+    p->ekin       = physlib_Ekin_ppar(p_gc->mass[j], p_gc->mu[j], p_gc->ppar[j], Bnorm);
+    p->pitch      = physlib_gc_xi(p_gc->mass[j], p_gc->mu[j], p_gc->ppar[j], Bnorm);
+    p->zeta       = p_gc->zeta[j];
 
     real pr, pphi, pz;
     if(!err) {
         real pparprt, muprt, zetaprt;
         gctransform_guidingcenter2particle(
             p->mass, p->charge, B_dB,
-            p->r, p->phi, p->z, p->ppar, p->mu, p->zeta,
+            p->r, p->phi, p->z, p_gc->ppar[j], p_gc->mu[j], p->zeta,
             &p->rprt, &p->phiprt, &p->zprt, &pparprt, &muprt, &zetaprt);
 
         B_field_eval_B_dB(B_dB, p->rprt, p->phiprt, p->zprt, p->time, Bdata);
@@ -901,9 +878,9 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
     if(!err && p->rprt <= 0) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
     if(!err) {
-        p->p_r   = pr;
-        p->p_phi = pphi;
-        p->p_z   = pz;
+        p->pr   = pr;
+        p->pphi = pphi;
+        p->pz   = pz;
     }
 
     /* If marker already has error flag, make sure it is not overwritten here */
@@ -955,31 +932,39 @@ a5err particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml,
         p_ml->phi[j]        = p->phi;
         p_ml->z[j]          = p->z;
 
-        p_ml->pitch[j]      = 2*(p->ppar >= 0) - 1.0;
+        p_ml->pitch[j]      = 2*(p->pitch >= 0) - 1.0;
         p_ml->time[j]       = p->time;
         p_ml->weight[j]     = p->weight;
         p_ml->id[j]         = p->id;
         p_ml->cputime[j]    = p->cputime;
-        p_ml->rho[j]        = p->rho;
         p_ml->theta[j]      = p->theta;
         p_ml->endcond[j]    = p->endcond;
         p_ml->walltile[j]   = p->walltile;
         p_ml->mileage[j]    = p->mileage;
 
-        p_ml->B_r[j]        = p->B_r;
-        p_ml->B_r_dr[j]     = p->B_r_dr;
-        p_ml->B_r_dphi[j]   = p->B_r_dphi;
-        p_ml->B_r_dz[j]     = p->B_r_dz;
-
-        p_ml->B_phi[j]      = p->B_phi;
-        p_ml->B_phi_dr[j]   = p->B_phi_dr;
-        p_ml->B_phi_dphi[j] = p->B_phi_dphi;
-        p_ml->B_phi_dz[j]   = p->B_phi_dz;
-
-        p_ml->B_z[j]        = p->B_z;
-        p_ml->B_z_dr[j]     = p->B_z_dr;
-        p_ml->B_z_dphi[j]   = p->B_z_dphi;
-        p_ml->B_z_dz[j]     = p->B_z_dz;
+        real B_dB[15], psi[1], rho[2];
+        if(!err) {
+            err = B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, p->time, Bdata);
+        }
+        if(!err) {
+            err = B_field_eval_psi(psi, p->r, p->phi, p->z, p->time, Bdata);
+        }
+        if(!err) {
+            err = B_field_eval_rho(rho, psi[0], Bdata);
+        }
+        p_ml->rho[j]        = rho[0];
+        p_ml->B_r[j]        = B_dB[0];
+        p_ml->B_r_dr[j]     = B_dB[1];
+        p_ml->B_r_dphi[j]   = B_dB[2];
+        p_ml->B_r_dz[j]     = B_dB[3];
+        p_ml->B_phi[j]      = B_dB[4];
+        p_ml->B_phi_dr[j]   = B_dB[5];
+        p_ml->B_phi_dphi[j] = B_dB[6];
+        p_ml->B_phi_dz[j]   = B_dB[7];
+        p_ml->B_z[j]        = B_dB[8];
+        p_ml->B_z_dr[j]     = B_dB[9];
+        p_ml->B_z_dphi[j]   = B_dB[10];
+        p_ml->B_z_dz[j]     = B_dB[11];
 
         p_ml->running[j] = 1;
         if(p->endcond) {
@@ -1018,15 +1003,15 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
     p->rprt       = p_ml->r[j];
     p->phiprt     = p_ml->phi[j];
     p->zprt       = p_ml->z[j];
-    p->p_r        = 0;
-    p->p_phi      = 0;
-    p->p_z        = 0;
+    p->pr         = 0;
+    p->pphi       = 0;
+    p->pz         = 0;
 
     p->r          = p_ml->r[j];
     p->phi        = p_ml->phi[j];
     p->z          = p_ml->z[j];
-    p->ppar       = p_ml->pitch[j];
-    p->mu         = 0;
+    p->ekin       = 0;
+    p->pitch      = p_ml->pitch[j];
     p->zeta       = 0;
     p->mass       = 0;
     p->charge     = 0;
@@ -1034,27 +1019,11 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
     p->weight     = p_ml->weight[j];
     p->id         = p_ml->id[j];
     p->cputime    = p_ml->cputime[j];
-    p->rho        = p_ml->rho[j];
     p->theta      = p_ml->theta[j];
     p->endcond    = p_ml->endcond[j];
     p->walltile   = p_ml->walltile[j];
     p->mileage    = p_ml->mileage[j];
     p->err        = p_ml->err[j];
-
-    p->B_r        = p_ml->B_r[j];
-    p->B_r_dr     = p_ml->B_r_dr[j];
-    p->B_r_dphi   = p_ml->B_r_dphi[j];
-    p->B_r_dz     = p_ml->B_r_dz[j];
-
-    p->B_phi      = p_ml->B_phi[j];
-    p->B_phi_dr   = p_ml->B_phi_dr[j];
-    p->B_phi_dphi = p_ml->B_phi_dphi[j];
-    p->B_phi_dz   = p_ml->B_phi_dz[j];
-
-    p->B_z        = p_ml->B_z[j];
-    p->B_z_dr     = p_ml->B_z_dr[j];
-    p->B_z_dphi   = p_ml->B_z_dphi[j];
-    p->B_z_dz     = p_ml->B_z_dz[j];
 
     /* If marker already has error flag, make sure it is not overwritten here */
     a5err simerr  = p_ml->err[j];

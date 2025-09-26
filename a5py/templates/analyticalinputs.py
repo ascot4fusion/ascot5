@@ -6,7 +6,7 @@ import unyt
 from scipy.interpolate import interpn
 from scipy.integrate   import quad
 
-from a5py.physlib import aeq, species2properties
+from a5py.physlib import aeq
 
 from .template import InputTemplate
 
@@ -44,7 +44,7 @@ class PremadeMagneticField(InputTemplate):
                 xpoint=None, symmetric=True,
                 )
             data.update({
-                "rmajor":6.2 * unyt.m, "axisz":0.0 * unyt.m,
+                "rmajor":6.2 * unyt.m,
                 "axisb":5.3 * unyt.T, "psiscaling":200.0,
                 "coefficients":np.append(c, 1.0),
                 })
@@ -66,7 +66,7 @@ class PremadeMagneticField(InputTemplate):
                 xpoint=(0.88, -0.6), symmetric=False,
                 )
             data.update({
-                "rmajor":6.2 * unyt.m, "axisz":0.0 * unyt.m,
+                "rmajor":6.2 * unyt.m,
                 "axisb":5.3 * unyt.T, "psiscaling":200.0,
                 "coefficients":np.append(c, -0.155),
                 })
@@ -90,7 +90,7 @@ class PremadeMagneticField(InputTemplate):
                 xpoint=(1.0 - 1.1*0.35*0.78, 1.1*2.0*0.78), symmetric=True,
                 )
             data.update({
-                "rmajor":0.85 * unyt.m, "axisz":0.0 * unyt.m,
+                "rmajor":0.85 * unyt.m,
                 "axisb":0.3 * unyt.T, "psiscaling":200.0,
                 "coefficients":np.append(c, 0.0),
                 })

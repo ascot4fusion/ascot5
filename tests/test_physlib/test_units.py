@@ -60,7 +60,7 @@ def test_match_units_with_strip(value):
 
 def test_parse_units():
     """Test the parse_units decorator."""
-    @physlib.parseunits(arg_units="m", kwarg_units="m")
+    @physlib.parse_units(arg_units="m", kwarg_units="m")
     def func(
         arg_units, arg_not_listed, arg_units_not_listed,
         kwarg_units=None, kwarg_not_listed=None, kwarg_units_not_listed=None,
@@ -85,7 +85,7 @@ def test_parse_units():
 
 def test_parse_units_with_strip():
     """Test the parse_units decorator with strip=True."""
-    @physlib.parseunits(arg="m", kwarg="m", strip=True)
+    @physlib.parse_units(arg="m", kwarg="m", strip=True)
     def func(arg, kwarg=None):
         assert not hasattr(arg, "units")
         assert not hasattr(kwarg, "units")
@@ -97,7 +97,7 @@ def test_parse_units_with_strip():
 
 def test_parse_units_incompatible_dimensions():
     """Test the parse_units decorator when argument has wrong dimensionality."""
-    @physlib.parseunits(arg="m", kwarg="m")
+    @physlib.parse_units(arg="m", kwarg="m")
     def func(arg, kwarg=None):
         pass
     with pytest.raises(ValueError):
@@ -108,7 +108,7 @@ def test_parse_units_incompatible_dimensions():
 
 def test_parse_units_assumed_units():
     """Test the parse_units decorator when units are assumed."""
-    @physlib.parseunits(arg="m", kwarg="m")
+    @physlib.parse_units(arg="m", kwarg="m")
     def func(arg, kwarg=None):
         pass
     with pytest.warns(AscotUnitWarning):

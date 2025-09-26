@@ -53,15 +53,6 @@
  * @param atomic atomic data.
  */
 void simulate(int nmarkers, particle_state* p, sim_data* sim) {
-    printf("%d\n", sim->params->simulation_mode);
-    printf("sizeof(b_data) = %zu\n", sizeof(sim_data));
-    printf("sizeof(b_data) = %zu\n", sizeof(B_field_data));
-    printf("sizeof(e_data) = %zu\n", sizeof(E_field_data));
-    printf("sizeof(w_data) = %zu\n", sizeof(wall_data));
-    printf("sizeof(pls_data) = %zu\n", sizeof(plasma_data));
-    printf("sizeof(sim_data) = %zu\n", sizeof(neutral_data));
-    printf("sizeof(sim_data) = %zu\n", sizeof(sim_parameters));
-    //return;
 
     // Size = NSIMD on CPU and Size = Total number of particles on GPU
     int n_queue_size;
@@ -106,7 +97,6 @@ void simulate(int nmarkers, particle_state* p, sim_data* sim) {
         simulate_fo_fixed(&pq, sim, n_queue_size);
     }
     else if(pq.n > 0 && sim->params->simulation_mode == simulate_mode_ml) {
-        OMP_PARALLEL_CPU_ONLY
         simulate_ml_adaptive(&pq, sim);
     }
 

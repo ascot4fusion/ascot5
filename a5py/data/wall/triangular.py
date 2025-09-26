@@ -6,51 +6,42 @@ from typing import Dict, Optional
 
 import unyt
 import numpy as np
-from numpy.ctypeslib import ndpointer
 
-from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
-from ... import utils
-from ...libascot import LIBASCOT
-from ...exceptions import AscotIOException
+from a5py import utils
+from a5py.libascot import LIBASCOT, DataStruct, init_fun
+from a5py.exceptions import AscotMeltdownError
+from a5py.data.access import InputVariant, Leaf, TreeMixin
 
 
-class Wall3D(InputVariant):
-    """Wall mesh made of triangular elements."""
+# pylint: disable=too-few-public-methods
+class Struct(DataStruct):
+    """Python wrapper for the struct in wall_3d.h."""
 
-    # pylint: disable=too-few-public-methods
-    class Struct(ctypes.Structure):
-        """Python wrapper for the struct in wall_3d.h."""
-        _pack_ = 1
-        _fields_ = [
-            ('n', ctypes.c_int32),
-            ('PADDING_0', ctypes.c_ubyte * 4),
-            ('xmin', ctypes.c_double),
-            ('xmax', ctypes.c_double),
-            ('xgrid', ctypes.c_double),
-            ('ymin', ctypes.c_double),
-            ('ymax', ctypes.c_double),
-            ('ygrid', ctypes.c_double),
-            ('zmin', ctypes.c_double),
-            ('zmax', ctypes.c_double),
-            ('zgrid', ctypes.c_double),
-            ('depth', ctypes.c_int32),
-            ('ngrid', ctypes.c_int32),
-            ('wall_tris', ctypes.POINTER(ctypes.c_double)),
-            ('flag', ctypes.POINTER(ctypes.c_int32)),
-            ('tree_array', ctypes.POINTER(ctypes.c_int32)),
-            ('tree_array_size', ctypes.c_int32),
-            ('PADDING_1', ctypes.c_ubyte * 4),
+    _fields_ = [
+        ('n', ctypes.c_int32),
+        ('PADDING_0', ctypes.c_ubyte * 4),
+        ('xmin', ctypes.c_double),
+        ('xmax', ctypes.c_double),
+        ('xgrid', ctypes.c_double),
+        ('ymin', ctypes.c_double),
+        ('ymax', ctypes.c_double),
+        ('ygrid', ctypes.c_double),
+        ('zmin', ctypes.c_double),
+        ('zmax', ctypes.c_double),
+        ('zgrid', ctypes.c_double),
+        ('depth', ctypes.c_int32),
+        ('ngrid', ctypes.c_int32),
+        ('wall_tris', ctypes.POINTER(ctypes.c_double)),
+        ('flag', ctypes.POINTER(ctypes.c_int32)),
+        ('tree_array', ctypes.POINTER(ctypes.c_int32)),
+        ('tree_array_size', ctypes.c_int32),
+        ('PADDING_1', ctypes.c_ubyte * 4),
         ]
 
 
-    def __init__(self, qid, date, note) -> None:
-        super().__init__(
-            qid=qid, date=date, note=note, variant="Wall3D",
-            struct=Wall3D.Struct(),
-            )
-        self._vertices: unyt.unyt_array
-        self._flag: unyt.unyt_array
-        self._labels: Dict[str,int]
+@Leaf.register
+class Wall3D(InputVariant):
+    """Wall mesh made of triangular elements."""
 
     @property
     def vertices(self) -> unyt.unyt_array:
@@ -60,7 +51,6 @@ class Wall3D(InputVariant):
             return self._from_struct_("wall_tris", shape=(9*n,), units="m")
         if self._format == Format.HDF5:
             return self._read_hdf5("vertices")
-        return self._vertices.copy()
 
     @property
     def flag(self) -> unyt.unyt_array:
@@ -70,7 +60,6 @@ class Wall3D(InputVariant):
             return self._from_struct_("flag", shape=(n,), units="")
         if self._format == Format.HDF5:
             return self._read_hdf5("flag")
-        return self._flag.copy()
 
     @property
     def labels(self) -> Dict[str,int]:
@@ -83,7 +72,6 @@ class Wall3D(InputVariant):
                     zip(self._read_hdf5("labelkeys"),
                         self._read_hdf5("labelvalues"))
                     }
-        return self._labels.copy()
 
     def _export_hdf5(self):
         """Export data to HDF5 file."""
@@ -142,19 +130,19 @@ class Wall3D(InputVariant):
 
 
 # pylint: disable=too-few-public-methods
-class CreateWall3DMixin(TreeCreateClassMixin):
+class CreateWall3DMixin(TreeMixin):
     """Mixin class used by `Data` to create Wall3D input."""
 
-    #pylint: disable=protected-access, too-many-arguments
+    #pylint: disable=protected-access, too-many-arguments, too-many-locals
     def create_wall3d(
             self,
-            vertices: np.ndarray | None = None,
-            flag: Optional[np.ndarray] = None,
-            labels: Optional[Dict[str,int]] = None,
-            note: Optional[str] = None,
-            activate: bool = False,
-            dryrun: bool = False,
-            store_hdf5: Optional[bool] = None,
+            vertices: np.ndarray=None,
+            flag: Optional[np.ndarray]=None,
+            labels: Optional[dict[str,int]]=None,
+            note: Optional[str]=None,
+            activate: bool=False,
+            preview: bool=False,
+            save: Optional[bool]=None,
             ) -> Wall3D:
         r"""Create triangular wall mesh represting the 3D wall.
 
@@ -187,13 +175,13 @@ class CreateWall3DMixin(TreeCreateClassMixin):
             to reference the data.
         activate : bool, optional
             Set this input as active on creation.
-        dryrun : bool, optional
-            Do not add this input to the `data` structure or store it on disk.
+        preview : bool, *optional*
+            If True, the input is created but it is not included in the data
+            structure nor saved to disk.
 
-            Use this flag to modify the input manually before storing it.
-        store_hdf5 : bool, optional
-            Write this input to the HDF5 file if one has been specified when
-            `Ascot` was initialized.
+            The input cannot be used in a simulation but it can be previewed.
+        save : bool, *optional*
+            Store this input to disk.
 
         Returns
         -------

@@ -91,7 +91,6 @@ a5err B_TC_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
     psi_dpsi[1] = 0;
     psi_dpsi[2] = 0;
     psi_dpsi[3] = 0;
-
     return 0;
 }
 
@@ -179,14 +178,14 @@ a5err B_TC_eval_B_dB(real B_dB[12], real r, real phi, real z,
        to cylindrical coordinates */
     real Brpz[3];
     math_vec_xyz2rpz(Bxyz, Brpz, phi);
+
+    real B_dBxyz[12] = {Bdata->dB[0], Bdata->dB[1], Bdata->dB[2],
+                        Bdata->dB[3], Bdata->dB[4], Bdata->dB[5],
+                        Bdata->dB[6], Bdata->dB[7], Bdata->dB[8]};
+    math_jac_xyz2rpz(B_dBxyz, B_dB, r, phi);
     B_dB[0] = Brpz[0];
     B_dB[4] = Brpz[1];
     B_dB[8] = Brpz[2];
-
-    real B_dBxyz[12] = {Bdata->B[0], Bdata->dB[0], Bdata->dB[1], Bdata->dB[2],
-                        Bdata->B[1], Bdata->dB[3], Bdata->dB[4], Bdata->dB[5],
-                        Bdata->B[2], Bdata->dB[6], Bdata->dB[7], Bdata->dB[8]};
-    math_jac_xyz2rpz(B_dBxyz, B_dB, r, phi);
 
     return 0;
 }

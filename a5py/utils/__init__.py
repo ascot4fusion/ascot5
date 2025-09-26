@@ -6,9 +6,10 @@ from .imstorage import ImmutableStorage
 from .optionaldep import OptionalDependency
 from .stringop import decorate, undecorate, format2universaldate
 from .varop import (
-    validate_variables, check_abscissa, ArrayLike, Numerical, Scalar,
+    ArrayLike, Numerical, Scalar, validate_variables, check_abscissa, size,
+    to_array,
     )
-#dt = datetime.strptime(s, "%Y-%m-%d %H:%M:%S.%f")
+
 __all__ = [
     "Scalar",
     "ArrayLike",

@@ -51,11 +51,6 @@ int B_2DS_init(B_2DS_data* data,
                               NATURALBC, NATURALBC, r_min, r_max, z_min, z_max);
     err += interp2Dcomp_setup(&data->B_z, B_z, n_r, n_z, NATURALBC, NATURALBC,
                               r_min, r_max, z_min, z_max);
-
-    /* Evaluate psi and magnetic field on axis for checks */
-    real psival[1], Bval[3];
-    err += B_2DS_eval_psi(psival, data->axis_r, 0, data->axis_z, data);
-    err += B_2DS_eval_B(Bval, data->axis_r, 0, data->axis_z, data);
     return err;
 }
 

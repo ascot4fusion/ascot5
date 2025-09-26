@@ -5,7 +5,7 @@ ascot: libascot
 	pip install -e .
 
 lint:
-	pylint --generated-members=unyt.*
+	pylint --disable=similarities --generated-members=unyt.*
 	mypy --follow-imports=silent --disable-error-code=import-untyped \
 	--disallow-untyped-defs --disallow-incomplete-defs
 

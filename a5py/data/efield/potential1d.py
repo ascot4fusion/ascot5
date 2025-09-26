@@ -1,5 +1,5 @@
-"""Defines :class:`EfieldRadialPotential` electric field input class and the
-corresponding factory method.
+"""Defines 1D potential electric field input class and the corresponding factory
+method.
 """
 import ctypes
 from typing import Optional
@@ -8,34 +8,25 @@ import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
-from ..cstructs import interp1D_data
-from ... import utils
-from ...libascot import LIBASCOT
-from ...exceptions import AscotIOException
+from a5py import utils
+from a5py.libascot import LIBASCOT, DataStruct, interp1D_data, init_fun
+from a5py.exceptions import AscotMeltdownError
+from a5py.data.access import InputVariant, Leaf, TreeMixin
 
 
-class EfieldRadialPotential(InputVariant):
+# pylint: disable=too-few-public-methods
+class Struct(DataStruct):
+    """Python wrapper for the struct in E_1DS.h."""
+
+    _fields_ = [
+        ('reff', ctypes.c_double),
+        ('dV', interp1D_data),
+        ]
+
+
+@Leaf.register
+class EfieldPotential1D(InputVariant):
     """Radial electric field evaluated from the gradient of a 1D potential."""
-
-    # pylint: disable=too-few-public-methods
-    class Struct(ctypes.Structure):
-        """Python wrapper for the struct in E_1DS.h."""
-        _pack_ = 1
-        _fields_ = [
-            ('reff', ctypes.c_double),
-            ('dV', interp1D_data),
-            ]
-
-
-    def __init__(self, qid, date, note) -> None:
-        super().__init__(
-            qid=qid, date=date, note=note, variant="EfieldRadialPotential",
-            struct=EfieldRadialPotential.Struct(),
-            )
-        self._reff: unyt.unyt_array
-        self._rhogrid: unyt.unyt_array
-        self._dvdrho: unyt.unyt_array
 
     @property
     def rhogrid(self) -> unyt.unyt_array:
@@ -49,7 +40,6 @@ class EfieldRadialPotential(InputVariant):
         if self._format == Format.HDF5:
             nx, x0, x1 = self._read_hdf5("nrho", "rhomin", "rhomax")
             return np.linspace(x0, x1, nx) * unyt.dimensionless
-        return self._rhogrid.copy()
 
     @property
     def dvdrho(self) -> unyt.unyt_array:
@@ -58,7 +48,6 @@ class EfieldRadialPotential(InputVariant):
             return self._from_struct_("dV", units="V/m")
         if self._format == Format.HDF5:
             return self._read_hdf5("dvdrho")
-        return self._dvdrho.copy()
 
     @property
     def reff(self) -> unyt.unyt_array:
@@ -67,23 +56,6 @@ class EfieldRadialPotential(InputVariant):
             return self._from_struct_("reff", shape=(1,), units="m")
         if self._format == Format.HDF5:
             return self._read_hdf5("reff")
-        return self._reff.copy()
-
-    def _export_hdf5(self):
-        """Export data to HDF5 file."""
-        if self._format == Format.HDF5:
-            raise AscotIOException("Data is already stored in the file.")
-        data = self.export()
-        for grid in ["rhogrid"]:
-            name = grid.replace("grid", "")
-            data["n" + name] = data[grid].size
-            data[name + "min"] = data[grid][0]
-            data[name + "max"] = data[grid][-1]
-            del data[grid]
-        self._treemanager.hdf5manager.write_datasets(
-            self.qid, self.variant, data,
-            )
-        self._format = Format.HDF5
 
     def export(self):
         data = {
@@ -131,20 +103,20 @@ class EfieldRadialPotential(InputVariant):
 
 
 # pylint: disable=too-few-public-methods
-class CreateEfieldRadialPotentialMixin(TreeCreateClassMixin):
-    """Mixin class used by `Data` to create EfieldRadialPotential input."""
+class CreateMixin(TreeMixin):
+    """Provides the factory method."""
 
-    #pylint: disable=protected-access, too-many-arguments
-    def create_efieldradialpotential(
+    #pylint: disable=protected-access, too-many-arguments, too-many-locals
+    def create_efieldpotential1d(
             self,
-            rhogrid: utils.ArrayLike | None = None,
-            dvdrho: utils.ArrayLike | None = None,
-            reff: float | None = None,
-            note: Optional[str] = None,
-            activate: bool = False,
-            dryrun: bool = False,
-            store_hdf5: Optional[bool] = None,
-            ) -> EfieldRadialPotential:
+            rhogrid: utils.ArrayLike,
+            dvdrho: utils.ArrayLike,
+            reff: Optional[float]=None,
+            note: Optional[str]=None,
+            activate: bool=False,
+            preview: bool=False,
+            save: Optional[bool]=None,
+            ) -> EfieldPotential1D:
         r"""Create radial electric field input that is evaluated from the
         gradient of a 1D potential.
 
@@ -157,32 +129,32 @@ class CreateEfieldRadialPotentialMixin(TreeCreateClassMixin):
 
             If :math:`r_\mathrm{eff} = 1` m, this is essentially equal to
             :math:`\partial V/ \partial r`.
-        reff : float
+        reff : float, *optional*
             Effective minor radius.
 
             This is defined as
             :math:`r_\mathrm{eff} = \partial r/ \partial \rho`, and it is used
             to convert :math:`\partial V/ \partial \rho` to
             :math:`\partial V/ \partial r`.
-        note : str, optional
+        note : str, *optional*
             A short note to document this data.
 
             The first word of the note is converted to a tag which you can use
             to reference the data.
-        activate : bool, optional
+        activate : bool, *optional*
             Set this input as active on creation.
-        dryrun : bool, optional
-            Do not add this input to the `data` structure or store it on disk.
+        preview : bool, *optional*
+            If True, the input is created but it is not included in the data
+            structure nor saved to disk.
 
-            Use this flag to modify the input manually before storing it.
-        store_hdf5 : bool, optional
-            Write this input to the HDF5 file if one has been specified when
-            `Ascot` was initialized.
+            The input cannot be used in a simulation but it can be previewed.
+        save : bool, *optional*
+            Store this input to disk.
 
         Returns
         -------
         inputdata : ~a5py.data.efield.EfieldRadialPotential
-            Freshly minted input data object.
+            Input variant created from the given parameters.
 
         Notes
         -----

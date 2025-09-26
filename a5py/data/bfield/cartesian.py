@@ -1,170 +1,147 @@
-"""Defines `BfieldCartesian` a Cartesian magnetic field input class and the
-corresponding factory method.
+"""Defines the Cartesian magnetic field input class and the corresponding
+factory method.
 """
 import ctypes
-from typing import Tuple, Optional
+from typing import Optional
 
 import unyt
-import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from ..access import _variants, InputVariant, Status, DataStruct
-from ... import utils
-from ...libascot import LIBASCOT
-from ...exceptions import AscotIOException
+from a5py import utils
+from a5py.libascot import LIBASCOT, DataStruct, init_fun
+from a5py.exceptions import AscotMeltdownError
+from a5py.data.access import InputVariant, Leaf, TreeMixin
+
+# pylint: disable=too-few-public-methods
+class Struct(DataStruct):
+    """Python wrapper for the struct in B_TC.h."""
+
+    _fields_ = [
+        ("axisr", ctypes.c_double),
+        ("axisz", ctypes.c_double),
+        ("psival", ctypes.c_double),
+        ("rhoval", ctypes.c_double),
+        ("B", ctypes.c_double * 3),
+        ("dB", ctypes.c_double * 9),
+        ]
+
+init_fun(
+    "B_TC_init",
+    ctypes.POINTER(Struct),
+    *(4*[ctypes.c_double]),
+    *(2*[ndpointer(ctypes.c_double)]),
+    restype=ctypes.c_int32,
+    )
+
+init_fun("B_TC_free", ctypes.POINTER(Struct))
 
 
+@Leaf.register
 class BfieldCartesian(InputVariant):
     """Magnetic field in Cartesian basis for testing purposes."""
 
-    # pylint: disable=too-few-public-methods
-    class Struct(DataStruct):
-        """Python wrapper for the struct in B_TC.h."""
-        _pack_ = 1
-        _fields_ = [
-            ('axisr', ctypes.c_double),
-            ('axisz', ctypes.c_double),
-            ('psival', ctypes.c_double),
-            ('rhoval', ctypes.c_double),
-            ('B', ctypes.c_double * 3),
-            ('dB', ctypes.c_double * 9),
-            ]
+    _cdata: Optional[Struct]
 
     @property
     def bxyz(self) -> unyt.unyt_array:
         """Magnetic field vector in Cartesian basis at origo."""
-        if self.status is Status.SAVED:
-            return self._file.read_hdf5("bxyz")
-        elif self.status & Status.STAGED:
+        if self._cdata is not None:
             return self._cdata.readonly_carray("B", (3,), "T")
+        assert self._file is not None
+        return self._file.read("bxyz")
 
     @property
     def jacobian(self) -> unyt.unyt_array:
-        """Magnetic field Jacobian :math:`jac[i,j] = dB_i/dx_j`."""
-        if self._staged:
-            return self._from_struct_("dB", shape=(3,3), units="T/m")
-        if self.status is Status.SAVED:
-            return self._read_hdf5("jacobian")
+        r"""Magnetic field Jacobian :math:`jac[i,j] = dB_i/dx_j`."""
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("dB", (3,3), "T/m")
+        assert self._file is not None
+        return self._file.read("jacobian")
 
     @property
     def rhoval(self) -> unyt.unyt_array:
         """Square root of the normalized poloidal flux which has a constant
-        value."""
-        if self._staged:
-            return self._from_struct_("rhoval", shape=(1,), units="1")
-        if self.status is Status.SAVED:
-            return self._read_hdf5("rhoval")
+        value.
+        """
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("rhoval", (), "1")
+        assert self._file is not None
+        return self._file.read("rhoval")
 
     @property
     def psival(self) -> unyt.unyt_array:
         """Normalized poloidal flux which has a constant value."""
-        if self._staged:
-            return self._from_struct_("psival", shape=(1,), units="Wb/m")
-        if self.status is Status.SAVED:
-            return self._read_hdf5("psival")
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("psival", (), "Wb/rad")
+        assert self._file is not None
+        return self._file.read("psival")
 
     @property
     def axisrz(self) -> unyt.unyt_array:
-        """Magnetic axis R and z coordinates."""
-        if self._staged:
-            return unyt.unyt_array((
-                self._from_struct_("axisr", shape=(1,), units="m"),
-                self._from_struct_("axisz", shape=(1,), units="m")
-            )).T
-        if self.status is Status.SAVED:
-            return unyt.unyt_array((
-                self._read_hdf5("axisr"), self._read_hdf5("axisz")
-                ))
+        r"""Magnetic axis :math:`R` and :math:`z` coordinates."""
+        if self._cdata is not None:
+            r = self._cdata.readonly_carray("axisr", (), "m")
+            z = self._cdata.readonly_carray("axisz", (), "m")
+            return unyt.unyt_array([r, z])
+        assert self._file is not None
+        return self._file.read("axisrz")
 
-    def _stage(self, bxyz):
-        cdata = BfieldCartesian.Struct()
-        cdata.bxyz = bxyz
-        self._cdata = cdata
+    # pylint: disable=too-many-arguments
+    def _stage(self, axisrz: unyt.unyt_array,
+               psival: unyt.unyt_array,
+               rhoval: unyt.unyt_array,
+               bxyz: unyt.unyt_array,
+               jacobian: unyt.unyt_array,
+               ) -> None:
+        self._cdata = Struct()
+        if LIBASCOT.B_TC_init(
+            ctypes.byref(self._cdata),
+            axisrz[0].v,
+            axisrz[1].v,
+            psival.v,
+            rhoval.v,
+            bxyz.v,
+            jacobian.v,
+            ):
+            self._cdata = None
+            raise AscotMeltdownError("Could not initialize struct.")
 
-    def _save_data(self):
-        self._file.write("bxyz", self.bxyz)
+    def _save_data(self) -> None:
+        assert self._file is not None
+        for field in ["bxyz", "jacobian", "axisrz", "rhoval", "psival"]:
+            self._file.write(field, getattr(self, field))
 
-    def _export_hdf5(self):
-        """Export data to HDF5 file."""
-        if self._format == Format.HDF5:
-            raise AscotIOException("Data is already stored in the file.")
-        data = self.export()
-        axisrz = data["axisrz"]
-        data["axisr"], data["axisz"] = axisrz[0], axisrz[1]
-        del data["axisrz"]
-        self._treemanager.hdf5manager.write_datasets(
-            self.qid, self.variant, data,
-            )
-        self._format = Format.HDF5
+    def export(self) -> dict[str, unyt.unyt_array]:
+        fields = ["bxyz", "jacobian", "axisrz", "rhoval", "psival"]
+        return {field: getattr(self, field) for field in fields}
 
-    def export(self):
-        data = {
-            "bxyz":self.bxyz,
-            "jacobian":self.jacobian,
-            "axisrz":self.axisrz,
-            "rhoval":self.rhoval,
-            "psival":self.psival,
-        }
-        return data
+    def stage(self) -> None:
+        super().stage()
+        self._stage(**self.export())
 
-    def stage(self):
-        init = LIBASCOT.B_TC_init
-        init.restype = ctypes.c_int32
-        init.argtypes = [
-            ctypes.POINTER(__class__.Struct),
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_double,
-            ndpointer(ctypes.c_double),
-            ndpointer(ctypes.c_double),
-            ]
-        if not self._staged:
-            if init(
-                ctypes.byref(self._struct_),
-                self.axisrz[0].v,
-                self.axisrz[1].v,
-                self.psival.v,
-                self.rhoval.v,
-                self.bxyz.v,
-                self.jacobian.v,
-                ):
-                raise AscotIOException("Failed to stage data.")
-            if self._format is Format.MEMORY:
-                del self._bxyz
-                del self._jacobian
-            self._staged = True
-
-
-    def unstage(self):
-        free = LIBASCOT.B_TC_free
-        free.restype = None
-        free.argtypes = [ctypes.POINTER(__class__.Struct)]
-
-        if self._staged:
-            if self._format is Format.MEMORY:
-                self._bxyz = self.bxyz
-                self._jacobian = self.jacobian
-            free(ctypes.byref(self._struct_))
-            self._staged = False
+    def unstage(self) -> None:
+        super().unstage()
+        assert self._cdata is not None
+        LIBASCOT.B_TC_free(ctypes.byref(self._cdata))
+        self._cdata = None
 
 
 # pylint: disable=too-few-public-methods
-class CreateBfieldCartesianMixin():
-    """Mixin class used by `Data` to create :class:`BfieldCartesian` input."""
+class CreateMixin(TreeMixin):
+    """Provides the factory method."""
 
-    #pylint: disable=protected-access, too-many-arguments
+    #pylint: disable=protected-access, too-many-arguments, too-many-locals
     def create_bfieldcartesian(
             self,
-            bxyz: utils.ArrayLike | None = None,
-            jacobian: utils.ArrayLike | None = None,
-            axisrz: Tuple[float, float] | None = None,
-            rhoval: float | None = None,
-            psival: Optional[float] = None,
-            note: Optional[str] = None,
-            activate: bool = False,
-            dryrun: bool = False,
-            store_hdf5: Optional[bool] = None,
+            bxyz: utils.ArrayLike,
+            jacobian: utils.ArrayLike,
+            axisrz: utils.ArrayLike,
+            rhoval: utils.ArrayLike,
+            psival: Optional[utils.ArrayLike]=None,
+            note: Optional[str]=None,
+            activate: bool=False,
+            preview: bool=False,
+            save: Optional[bool]=None,
             ) -> BfieldCartesian:
         r"""Create a magnetic field input which is defined on a Cartesian basis.
 
@@ -190,29 +167,29 @@ class CreateBfieldCartesianMixin():
         rhoval : float
             Square root of the normalized poloidal flux which has a constant
             value.
-        psival : float, optional
+        psival : float, *optional*
             Normalized poloidal flux which has a constant value.
 
             Has the same value as `rhoval` by default.
-        note : str, optional
+        note : str, *optional*
             A short note to document this data.
 
             The first word of the note is converted to a tag which you can use
             to reference the data.
-        activate : bool, optional
+        activate : bool, *optional*
             Set this input as active on creation.
-        dryrun : bool, optional
-            Do not add this input to the `data` structure or store it on disk.
+        preview : bool, *optional*
+            If ``True``, the input is created but it is not included in the data
+            structure nor saved to disk.
 
-            Use this flag to modify the input manually before storing it.
-        store_hdf5 : bool, optional
-            Write this input to the HDF5 file if one has been specified when
-            `Ascot` was initialized.
+            The input cannot be used in a simulation but it can be previewed.
+        save : bool, *optional*
+            Store this input to disk.
 
         Returns
         -------
-        inputdata : ~a5py.data.bfield.BfieldCartesian
-            Freshly minted input data object.
+        data : :class:`.BfieldCartesian`
+            Input variant created from the given parameters.
 
         Notes
         -----
@@ -228,26 +205,20 @@ class CreateBfieldCartesianMixin():
         basis. The vector given as input is the value of the magnetic field on
         origo.
         """
-        parameters = _variants.parse_parameters(
-            bxyz, jacobian, axisrz, rhoval, psival,
-        )
-        _variants.validate_required_parameters(
-            parameters,
-            names=["bxyz", "jacobian", "axisrz", "rhoval"],
-            units=["T", "T/m", "m", "1"],
-            shape=[(3,), (3,3), (2,), ()],
-            dtype="f8",
-            default=[
-                np.ones((3,)), np.zeros((3,3)), (1.0, 0.0), 0.5,
-                ],
-        )
-        _variants.validate_optional_parameters(
-            parameters,
-            ["psival"], ["Wb/m"], [()], "f8", [parameters["rhoval"]],
-        )
+        with utils.validate_variables() as v:
+            bxyz = v.validate("bxyz", bxyz, (3,), "T")
+            jacobian = v.validate("jacobian", jacobian, (3,3), "T/m")
+            axisrz = v.validate("axisrz", axisrz, (2,), "m")
+            rhoval = v.validate("rhoval", rhoval, (), "1")
+
+        with utils.validate_variables() as v:
+            psival = v.validate("psival", psival, (), "Wb/rad", default=rhoval.v)
+
         leaf = BfieldCartesian(note=note)
-        leaf._stage(bxyz=parameters["bxyz"])
+        leaf._stage(axisrz, psival, rhoval, bxyz, jacobian)
+        if preview:
+            return leaf
         self._treemanager.enter_leaf(
-            leaf, activate=activate, save=store_hdf5, category="bfield",
+            leaf, activate=activate, save=save, category="bfield",
             )
         return leaf

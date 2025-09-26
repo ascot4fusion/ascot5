@@ -170,9 +170,9 @@ void bbnbi_inject_markers(particle_state* p, int nprt, int ngenerated, real t0,
         p[i].rprt     = rpz[0];
         p[i].phiprt   = rpz[1];
         p[i].zprt     = rpz[2];
-        p[i].p_r      = vrpz[0] * gamma * inj->mass;
-        p[i].p_phi    = vrpz[1] * gamma * inj->mass;
-        p[i].p_z      = vrpz[2] * gamma * inj->mass;
+        p[i].pr       = vrpz[0] * gamma * inj->mass;
+        p[i].pphi     = vrpz[1] * gamma * inj->mass;
+        p[i].pz       = vrpz[2] * gamma * inj->mass;
         p[i].mass     = inj->mass;
         p[i].charge   = 0.0;
         p[i].anum     = inj->anum;

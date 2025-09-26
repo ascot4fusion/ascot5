@@ -5,32 +5,29 @@ import ctypes
 from typing import Tuple, List, Optional
 
 import unyt
-import numpy as np
-from numpy.ctypeslib import ndpointer
 
-from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
-from ..cstructs import linint1D_data
-from ... import utils, physlib
-from ...libascot import LIBASCOT
-from ...exceptions import AscotIOException
+from a5py import utils
+from a5py.libascot import LIBASCOT, DataStruct, linint1D_data, init_fun
+from a5py.exceptions import AscotMeltdownError
+from a5py.data.access import InputVariant, Leaf, TreeMixin
 
 
+# pylint: disable=too-few-public-methods
+class Struct(DataStruct):
+    """Python wrapper for the struct in N0_1D.h."""
+
+    _fields_ = [
+        ('n_species', ctypes.c_int32),
+        ('anum', ctypes.POINTER(ctypes.c_int32)),
+        ('znum', ctypes.POINTER(ctypes.c_int32)),
+        ('n0', ctypes.POINTER(linint1D_data)),
+        ('t0', ctypes.POINTER(linint1D_data)),
+        ]
+
+
+@Leaf.register
 class Neutral1D(InputVariant):
     """Radial neutral profile."""
-
-    # pylint: disable=too-few-public-methods
-    class Struct(ctypes.Structure):
-        """Python wrapper for the struct in N0_1D.h."""
-        _pack_ = 1
-        _fields_ = [
-            ('n_species', ctypes.c_int32),
-            ('PADDING_0', ctypes.c_ubyte * 4),
-            ('anum', ctypes.POINTER(ctypes.c_int32)),
-            ('znum', ctypes.POINTER(ctypes.c_int32)),
-            ('n0', ctypes.POINTER(linint1D_data)),
-            ('t0', ctypes.POINTER(linint1D_data)),
-            ]
-
 
     def __init__(self, qid, date, note) -> None:
         super().__init__(
@@ -183,20 +180,20 @@ class Neutral1D(InputVariant):
 
 
 # pylint: disable=too-few-public-methods
-class CreateNeutral1DMixin(TreeCreateClassMixin):
+class CreateMixin(TreeMixin):
     """Mixin class used by `Data` to create Neutral1D input."""
 
-    #pylint: disable=protected-access, too-many-arguments
+    #pylint: disable=protected-access, too-many-arguments, too-many-locals
     def create_neutral1d(
             self,
             rhogrid: utils.ArrayLike | None = None,
             species: List[str] | Tuple[str] | None = None,
             density: utils.ArrayLike | None = None,
             temperature: utils.ArrayLike | None = None,
-            note: Optional[str] = None,
-            activate: bool = False,
-            dryrun: bool = False,
-            store_hdf5: Optional[bool] = None,
+            note: Optional[str]=None,
+            activate: bool=False,
+            preview: bool=False,
+            save: Optional[bool]=None,
             ) -> Neutral1D:
         r"""Create radial neutral density.
 
@@ -219,18 +216,18 @@ class CreateNeutral1DMixin(TreeCreateClassMixin):
             to reference the data.
         activate : bool, optional
             Set this input as active on creation.
-        dryrun : bool, optional
-            Do not add this input to the `data` structure or store it on disk.
+        preview : bool, *optional*
+            If True, the input is created but it is not included in the data
+            structure nor saved to disk.
 
-            Use this flag to modify the input manually before storing it.
-        store_hdf5 : bool, optional
-            Write this input to the HDF5 file if one has been specified when
-            `Ascot` was initialized.
+            The input cannot be used in a simulation but it can be previewed.
+        save : bool, *optional*
+            Store this input to disk.
 
         Returns
         -------
         inputdata : ~a5py.data.neutral.Neutral1D
-            Freshly minted input data object.
+            Input variant created from the given parameters.
         """
         parameters = _variants.parse_parameters(
             rhogrid, species, density, temperature,

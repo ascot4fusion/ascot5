@@ -1,163 +1,151 @@
-"""Defines Wall2D first wall model input class and the corresponding factory
-method.
+"""Defines the 2D wall input and the corresponding factory method.
 """
+import copy
 import ctypes
-from typing import Dict, Optional
+from typing import Sized, Optional
 
 import unyt
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
-from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
-from ...libascot import LIBASCOT
-from ...exceptions import AscotIOException
+from a5py import utils
+from a5py.libascot import LIBASCOT, DataStruct, init_fun
+from a5py.exceptions import AscotMeltdownError
+from a5py.data.access import InputVariant, Leaf, TreeMixin
 
 
+# pylint: disable=too-few-public-methods
+class Struct(DataStruct):
+    """Python wrapper for the struct in wall_2d.h."""
+
+    _fields_ = [
+        ("n", ctypes.c_int32),
+        ("wall_r", ctypes.POINTER(ctypes.c_double)),
+        ("wall_z", ctypes.POINTER(ctypes.c_double)),
+        ("flag", ctypes.POINTER(ctypes.c_int32)),
+        ]
+
+
+init_fun(
+    "wall_2d_init",
+    ctypes.POINTER(Struct),
+    ctypes.c_int32,
+    ndpointer(ctypes.c_double),
+    ndpointer(ctypes.c_double),
+    ndpointer(ctypes.c_int32),
+    restype=ctypes.c_int32,
+    )
+
+init_fun("wall_2d_free")
+
+@Leaf.register
 class Wall2D(InputVariant):
     """Simple wall model where the wall is assumed to be axisymmetric."""
 
-    # pylint: disable=too-few-public-methods
-    class Struct(ctypes.Structure):
-        """Python wrapper for the struct in wall_2d.h."""
-        _pack_ = 1
-        _fields_ = [
-            ('n', ctypes.c_int32),
-            ('PADDING_0', ctypes.c_ubyte * 4),
-            ('wall_r', ctypes.POINTER(ctypes.c_double)),
-            ('wall_z', ctypes.POINTER(ctypes.c_double)),
-            ('flag', ctypes.POINTER(ctypes.c_int32)),
-            ]
+    _labels: dict[str, int] | None
+    """Human readable labels for the flag values.
 
+    These are not needed and, hence, not stored in libascot.so. Therefore we
+    store them here when this instance is staged.
+    """
 
-    def __init__(self, qid, date, note) -> None:
-        super().__init__(
-            qid=qid, date=date, note=note, variant="Wall2D",
-            struct=Wall2D.Struct(),
-            )
-        self._r: unyt.unyt_array
-        self._z: unyt.unyt_array
-        self._flag: unyt.unyt_array
-        self._labels: Dict[str,int]
+    @property
+    def n(self) -> int:
+        """Number of wall vertices."""
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("n", ())
+        assert self._file is not None
+        return self._file.read("r").size
 
     @property
     def r(self) -> unyt.unyt_array:
         r""":math:`R` coordinates of the wall vertices."""
-        if self._staged:
-            n = self._from_struct_("n", shape=())
-            return self._from_struct_("wall_r", shape=(n,), units="m")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("r")
-        return self._r.copy()
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("wall_r", (self.n,), "m")
+        assert self._file is not None
+        return self._file.read("r")
 
     @property
     def z(self) -> unyt.unyt_array:
         r""":math:`z` coordinates of the wall vertices."""
-        if self._staged:
-            n = self._from_struct_("n", shape=())
-            return self._from_struct_("wall_z", shape=(n,), units="m")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("z")
-        return self._z.copy()
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("wall_z", (self.n,), "m")
+        assert self._file is not None
+        return self._file.read("z")
 
     @property
-    def flag(self) -> unyt.unyt_array:
-        r"""Integer label for grouping wall elements together."""
-        if self._staged:
-            n = self._from_struct_("n", shape=())
-            return self._from_struct_("flag", shape=(n,), units="")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("flag")
-        return self._flag.copy()
+    def flag(self) -> np.ndarray:
+        r"""Integer label for grouping wall elements."""
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("flag", shape=(self.n,))
+        assert self._file is not None
+        return self._file.read("flag")
 
     @property
-    def labels(self) -> Dict[str,int]:
-        r"""Integer label for grouping wall elements together."""
-        if self._staged:
-            # This information is not currently stored/used within libascot.so
-            return self._labels
-        if self._format == Format.HDF5:
-            return {key.decode("utf-8"): int(value) for key, value in
-                    zip(self._read_hdf5("labelkeys"),
-                        self._read_hdf5("labelvalues"))
-                    }
-        return self._labels.copy()
+    def labels(self) -> dict[str,int]:
+        r"""Human readable labels for the flag values."""
+        if self._cdata is not None:
+            assert self._labels is not None
+            return copy.deepcopy(self._labels)
+        assert self._file is not None
+        return {label.decode("utf-8"): int(flag) for label, flag in
+                zip( self._file.read("labelkeys"), self._file.read("labelvalues") )
+                }
 
-    def _export_hdf5(self):
-        """Export data to HDF5 file."""
-        if self._format == Format.HDF5:
-            raise AscotIOException("Data is already stored in the file.")
-        data = self.export()
-        data["labelkeys"] = list(data["labels"].keys())
-        data["labelvalues"] = list(data["labels"].values())
-        del data["labels"]
-        self._treemanager.hdf5manager.write_datasets(
-            self.qid, self.variant, data,
-            )
-        self._format = Format.HDF5
-
-    def export(self):
-        data = {
-            "r": self._r,
-            "z": self._z,
-            "flag": self._flag,
-            "labels": self._labels,
-        }
-        return data
-
-    def stage(self):
-        init = LIBASCOT.wall_2d_init
-        init.restype = ctypes.c_int32
-        init.argtypes = [
-            ctypes.POINTER(__class__.Struct),
-            ctypes.c_int32,
-            ndpointer(ctypes.c_double),
-            ndpointer(ctypes.c_double),
-            ndpointer(ctypes.c_int32),
-            ]
-        if not self._staged:
-            if init(
-                ctypes.byref(self._struct_),
-                self.r.size,
-                self.r.v,
-                self.z.v,
-                self.flag,
+    # pylint: disable=too-many-arguments
+    def _stage(
+            self, r: unyt.unyt_array,
+            z: unyt.unyt_array,
+            flag: np.ndarray,
+            labels: dict[str, int],
+            ) -> None:
+        self._cdata = Struct()
+        self._labels = labels
+        if LIBASCOT.wall_2d_init(
+            ctypes.byref(self._cdata), r.size, r.v, z.v, flag,
             ):
-                raise AscotIOException("Failed to stage data.")
-            if self._format is Format.MEMORY:
-                del self._r
-                del self._z
-                del self._flag
-            self._staged = True
+            self._cdata = None
+            self._labels = None
+            raise AscotMeltdownError("Could not initialize struct.")
 
-    def unstage(self):
-        free = LIBASCOT.wall_2d_free
-        free.restype = None
-        free.argtypes = [ctypes.POINTER(__class__.Struct)]
+    def _save_data(self) -> None:
+        assert self._file is not None
+        self._file.write("r", self.r)
+        self._file.write("z", self.z)
+        self._file.write("flag", self.flag)
 
-        if self._staged:
-            if self._format is Format.MEMORY:
-                self._r = self.r
-                self._z = self.z
-                self._flag = self.flag
-            free(ctypes.byref(self._struct_))
-            self._staged = False
+        labels = np.char.encode(list( self.labels.keys() ), "utf-8")
+        flags = np.array( list(self.labels.values()) )
+        self._file.write("labelkeys", labels)
+        self._file.write("labelvalues", flags)
+
+    def stage(self) -> None:
+        super().stage()
+        self._stage(**self.export())
+
+    def unstage(self) -> None:
+        super().unstage()
+        assert self._cdata is not None
+        LIBASCOT.wall_2d_free(ctypes.byref(self._cdata))
+        self._cdata = None
+        self._labels = None
 
 
 # pylint: disable=too-few-public-methods
-class CreateWall2DMixin(TreeCreateClassMixin):
-    """Mixin class used by `Data` to create Wall2D input."""
+class CreateWall2DMixin(TreeMixin):
+    """Provides the factory method."""
 
-    #pylint: disable=protected-access, too-many-arguments
+    #pylint: disable=protected-access, too-many-arguments, too-many-locals
     def create_wall2d(
             self,
-            r: np.ndarray | None = None,
-            z: np.ndarray | None = None,
-            flag: Optional[np.ndarray] = None,
-            labels: Optional[Dict[str,int]] = None,
-            note: Optional[str] = None,
-            activate: bool = False,
-            dryrun: bool = False,
-            store_hdf5: Optional[bool] = None,
+            r: utils.ArrayLike,
+            z: utils.ArrayLike,
+            flag: Optional[utils.ArrayLike]=None,
+            labels: Optional[dict[str,int]]=None,
+            note: Optional[str]=None,
+            activate: bool=False,
+            preview: bool=False,
+            save: Optional[bool]=None,
             ) -> Wall2D:
         r"""Create closed 2D polygon that forms the (axisymmetric) first wall.
 
@@ -165,7 +153,7 @@ class CreateWall2DMixin(TreeCreateClassMixin):
         available or if the exact number of losses or wall loads are not of
         interest. Performance-wise, there is little difference between the 2D
         and 3D wall models except that the latter may consume significantly more
-        memory if the mesh is fine.
+        memory if the mesh has fine resolution.
 
         Parameters
         ----------
@@ -173,35 +161,37 @@ class CreateWall2DMixin(TreeCreateClassMixin):
             :math:`R` coordinates of the wall vertices.
         z : array_like (n,)
             :math:`z` coordinates of the wall vertices.
-        flag : array_like (n,), optional
-            Integer label for grouping wall elements together.
+        flag : array_like (n,), *optional*
+            Integer label for grouping wall elements.
 
             By grouping elements together (e.g. all elements that belong to
             the divertor form one group), investigating losses and wall loads
-            component-wise becomes easier in post-processing.
-        labels : dict[str,int], optional
+            component-wise becomes easier in post-processing. If ``flag`` is
+            given, corresponding ``labels`` must be provided as well. By default
+            all elements are simply labeled as "{wall: 0}".
+        labels : dict[str,int], *optional*
             Human readable labels for the flag values.
 
-            For example ``labels`` = ``{"divertor":1, "firstwall":2}``.
-        note : str, optional
+            For example ``labels = {"divertor": 1, "firstwall": 2}``.
+        note : str, *optional*
             A short note to document this data.
 
             The first word of the note is converted to a tag which you can use
             to reference the data.
-        activate : bool, optional
+        activate : bool, *optional*
             Set this input as active on creation.
-        dryrun : bool, optional
-            Do not add this input to the `data` structure or store it on disk.
+        preview : bool, *optional*
+            If ``True``, the input is created but it is not included in the data
+            structure nor saved to disk.
 
-            Use this flag to modify the input manually before storing it.
-        store_hdf5 : bool, optional
-            Write this input to the HDF5 file if one has been specified when
-            `Ascot` was initialized.
+            The input cannot be used in a simulation but it can be previewed.
+        save : bool, *optional*
+            Store this input to disk.
 
         Returns
         -------
-        inputdata : ~a5py.data.wall.Wall2D
-            Freshly minted input data object.
+        obj : :class:`.Wall2D`
+            Input variant created from the given parameters.
 
         Notes
         -----
@@ -216,51 +206,51 @@ class CreateWall2DMixin(TreeCreateClassMixin):
         impact is detected, a more slower algorithm is run to determine which
         wall segment was crossed.
 
-        [1] D.G. Alciatore, R. Miranda. A Winding Number and Point-in-Polygon
-            Algorithm. Technical report, Colorado State University, 1995.
-            https://www.engr.colostate.edu/~dga/documents/papers/point_in_polygon.pdf
+        .. [1] D.G. Alciatore, R. Miranda. A Winding Number and Point-in-Polygon
+           Algorithm. Technical report, Colorado State University, 1995.
+           https://www.engr.colostate.edu/~dga/documents/papers/point_in_polygon.pdf
         """
-        # This function can't deal with dictionaries, so use None to omit it.
-        parameters = _variants.parse_parameters(
-            r, z, flag, None,
-        )
-        parameters["labels"] = labels
+        if not isinstance(r, Sized) or not isinstance(z, Sized):
+            raise ValueError(
+                "'r' and 'z' must be arrays with at least three elements."
+                )
+        nr, nz = utils.size(r), utils.size(z)
+        if nr != nz:
+            raise ValueError("'r' and 'z' must have same size.")
+        n = nr
+        if n < 3:
+            raise ValueError(
+                "'r' and 'z' must be arrays with at least three elements."
+                )
 
-        default_r = np.array([0.0, 1.0, 1.0, 0.0])
-        default_z = np.array([0.0, 0.0, 1.0, 1.0])
-        n = default_r.size if parameters["r"] is None else parameters["r"].size
-        _variants.validate_required_parameters(
-            parameters,
-            names=["r", "z"],
-            units=["m", "m"],
-            shape=[(n,), (n,)],
-            dtype="f8",
-            default=[default_r, default_z],
-        )
-        _variants.validate_optional_parameters(
-            parameters, ["flag"], [""], [(n,)], "i4",
-            [np.zeros(parameters["r"].shape, dtype="i4")],
-        )
-        if parameters["labels"] is None:
-            parameters["labels"] = {"wall": 0}
-        for label, id in parameters["labels"].items():
+        with utils.validate_variables() as v:
+            r = v.validate("r", r, (n,), "m")
+            z = v.validate("z", z, (n,), "m")
+            flag = v.validate(
+                "flag", flag, (n,), dtype="i4", default=np.full(n, 0),
+                )
+
+        if labels is None:
+            labels = {"wall": 0}
+
+        for label, label_flag in labels.items():
             if not isinstance(label, str):
                 raise ValueError("Labels must be strings.")
-            if not isinstance(id, int):
-                raise ValueError("Flags in `labels` must be integers.")
-        for id in np.unique(parameters["flag"]):
-            if id not in parameters["labels"].values():
-                raise ValueError(f"Flag {id} does not have a label.")
-        meta = _variants.new_metadata("Wall2D", note=note)
-        obj = self._treemanager.enter_input(
-            meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
-            )
-        for parameter, value in parameters.items():
-            setattr(obj, f"_{parameter}", value)
-            # No need to make dictionary immutable as copy is always returned
-            if parameter != "labels":
-                getattr(obj, f"_{parameter}").flags.writeable = False
+            if not isinstance(label_flag, int):
+                raise ValueError("Flags in 'labels' must be integers.")
 
-        if store_hdf5:
-            obj._export_hdf5()
-        return obj
+        assert isinstance(flag, np.ndarray)
+        unlabeled = [f for f in flag if f not in labels.values()]
+        if unlabeled:
+            raise ValueError(
+                f"Flags `{unlabeled}` do not have a corresponding label."
+                )
+
+        leaf = Wall2D(note=note)
+        leaf._stage(r=r, z=z, flag=flag, labels=copy.deepcopy(labels))
+        if preview:
+            return leaf
+        self._treemanager.enter_leaf(
+            leaf, activate=activate, save=save, category="wall",
+            )
+        return leaf

@@ -1,41 +1,47 @@
-"""This module contains all electric field input variants and combines their
-factory methods to a single class."""
+"""This module contains all electric field input variants.
+
+.. autosummary::
+    :nosignatures:
+
+    ~EfieldCartesian
+    ~CreateEfieldMixin.create_efieldcartesian
+
+.. rubric:: Classes
+
+.. autoclass:: EfieldCartesian
+    :members:
+
+.. autoclass:: CreateEfieldMixin
+    :members:
+    :inherited-members:
+"""
 import ctypes
 
-from .cartesian import EfieldCartesian, CreateEfieldCartesianMixin
-from .radialpotential import (
-    EfieldRadialPotential, CreateEfieldRadialPotentialMixin,
-    )
+from a5py.libascot import input_category
+
+from . import cartesian
+from . import potential1d
+from .cartesian import EfieldCartesian
+from .potential1d import EfieldPotential1D
 
 
+@input_category
 class Efield(ctypes.Structure):
     """Wrapper for the electric field data in libascot.so."""
 
-    #_pack_ = 1
     _fields_ = [
-        ('ETC', ctypes.POINTER(EfieldCartesian.Struct)),
-        ('E1DS', ctypes.POINTER(EfieldRadialPotential.Struct)),
-        ('type', ctypes.c_uint32),
+        ("ETC", ctypes.POINTER(cartesian.Struct)),
+        ("E1DS", ctypes.POINTER(potential1d.Struct)),
+        ("type", ctypes.c_uint32),
     ]
-
-    def use(self, variant):
-        """Initialize the pointer and set the type corresponding to the data."""
-        variant_vs_name_and_enum = {
-            "EfieldCartesian": ("ETC", 0),
-            "EfieldRadialPotential": ("E1DS", 1),
-            }
-        variant.stage()
-        name, enum = variant_vs_name_and_enum[variant.variant]
-        setattr(self, name, ctypes.pointer(variant._struct_))
-        self.type = ctypes.c_uint32(enum)
 
 
 # pylint: disable=too-many-ancestors
 class CreateEfieldMixin(
-    CreateEfieldCartesianMixin,
-    CreateEfieldRadialPotentialMixin,
+    cartesian.CreateMixin,
+    #potential1d.CreateMixin,
     ):
-    """Mixin class used by `Data` to create electric field input.
+    """Mixin class used by :class:`.AscotData` to create electric field input.
 
     This class just combines all the electric field mixin classes.
     """

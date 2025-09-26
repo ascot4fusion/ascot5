@@ -2,35 +2,29 @@
 factory methods to a single class."""
 import ctypes
 
-from .stationary import MhdStationary, CreateMhdStationaryMixin
-from .dynamic import MhdDynamic, CreateMhdDynamicMixin
+from a5py.libascot import input_category
+
+from . import dynamic
+from . import stationary
+from .dynamic import MhdDynamic
+from .stationary import MhdStationary
 
 
+@input_category
 class Mhd(ctypes.Structure):
     """Wrapper for the MHD data in libascot.so."""
 
-    #_pack_ = 1
     _fields_ = [
-        ('stat', ctypes.POINTER(MhdStationary.Struct)),
-        ('nonstat', ctypes.POINTER(MhdDynamic.Struct)),
+        ('stat', ctypes.POINTER(dynamic.Struct)),
+        ('nonstat', ctypes.POINTER(stationary.Struct)),
         ('type', ctypes.c_uint32),
         ]
-
-    def use(self, variant):
-        """Initialize the pointer and set the type corresponding to the data."""
-        variant_vs_name_and_enum = {
-            "MhdStationary": ("stat", 0),
-            "MhdDynamic": ("nonstat", 1),
-            }
-        variant.stage()
-        name, enum = variant_vs_name_and_enum[variant.variant]
-        setattr(self, name, ctypes.pointer(variant._struct_))
-        self.type = ctypes.c_uint32(enum)
 
 
 # pylint: disable=too-many-ancestors
 class CreateMhdMixin(
-    CreateMhdStationaryMixin, CreateMhdDynamicMixin,
+    dynamic.CreateMixin,
+    stationary.CreateMixin,
     ):
     """Mixin class used by `Data` to create MHD eigenmode input.
 

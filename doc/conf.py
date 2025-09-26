@@ -55,6 +55,7 @@ copyright = "2023, Ascot Group"
 # -- General configuration -----------------------------------------------------
 exclude_patterns = []
 autoclass_content = "both"
+autodoc_typehints = "none"
 autosummary_generate = True
 add_module_names = False            # Removes "a5py..." path from class names
 autodoc_member_order = "bysource"   # Autodoc lists things in same order as in source

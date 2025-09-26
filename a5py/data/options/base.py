@@ -2,20 +2,18 @@
 """
 from __future__ import annotations
 
+import re
 import ctypes
-from typing import Tuple, Optional, TypeVar
+import inspect
+from typing import Optional
 from dataclasses import fields
 
-import inspect
-import re
-
-import unyt
 import numpy as np
 
-from ..access import _variants, InputVariant, Format, TreeCreateClassMixin
-from ... import utils
-from ...exceptions import AscotIOException
 from a5py.engine.functions import END_CONDITIONS
+
+from a5py.libascot import DataStruct
+from a5py.data.access import InputVariant, Leaf, TreeMixin
 
 from typing import TYPE_CHECKING
 
@@ -44,98 +42,91 @@ require_both_tor_and_pol = 2
 be met.
 """
 
+# pylint: disable=too-few-public-methods
+class Struct(DataStruct):
+    """Python wrapper for the struct in options.h."""
 
+    MAXPOINCARE = 32
+
+    _fields_ = [
+        ("simulation_mode", ctypes.c_int),
+        ("enable_adaptive", ctypes.c_int),
+        ("record_mode", ctypes.c_int),
+        ("use_explicit_fixedstep", ctypes.c_int),
+        ("gyrodefined_fixedstep", ctypes.c_int),
+        ("explicit_fixedstep", ctypes.c_double),
+        ("adaptive_tolerance_orbit", ctypes.c_double),
+        ("adaptive_tolerance_collisions", ctypes.c_double),
+        ("adaptive_max_drho", ctypes.c_double),
+        ("adaptive_max_dphi", ctypes.c_double),
+        ("enable_orbit_following", ctypes.c_int),
+        ("enable_coulomb_collisions", ctypes.c_int),
+        ("enable_mhd", ctypes.c_int),
+        ("enable_atomic", ctypes.c_int),
+        ("enable_icrh", ctypes.c_int),
+        ("enable_aldforce", ctypes.c_int),
+        ("disable_first_order_gctransformation", ctypes.c_int),
+        ("disable_ccoll_gcenergy", ctypes.c_int),
+        ("disable_ccoll_gcpitch", ctypes.c_int),
+        ("disable_ccoll_gcspatial", ctypes.c_int),
+        ("reverse_time", ctypes.c_int),
+        ("endcond_active", ctypes.c_int),
+        ("require_both_tor_and_pol", ctypes.c_int),
+        ("lab_time_limit", ctypes.c_double),
+        ("max_mileage", ctypes.c_double),
+        ("max_real_time", ctypes.c_double),
+        ("rho_coordinate_limits", ctypes.c_double * 2),
+        ("min_energy", ctypes.c_double),
+        ("min_local_thermal_energy", ctypes.c_double),
+        ("max_number_of_toroidal_orbits", ctypes.c_double),
+        ("max_number_of_poloidal_orbits", ctypes.c_double),
+        ("collect_orbit", ctypes.c_int),
+        ("collect_dist5d", ctypes.c_int),
+        ("collect_dist6d", ctypes.c_int),
+        ("collect_dist5drho", ctypes.c_int),
+        ("collect_dist6drho", ctypes.c_int),
+        ("collect_distcom", ctypes.c_int),
+        ("collect_transport_coefficient", ctypes.c_int),
+        ("poincare", ctypes.c_int),
+        ("number_of_points_per_marker", ctypes.c_int),
+        ("ntoroidalplots", ctypes.c_int),
+        ("npoloidalplots", ctypes.c_int),
+        ("nradialplots", ctypes.c_int),
+        ("interval", ctypes.c_double),
+        ("toroidal_angles", ctypes.c_double * MAXPOINCARE),
+        ("poloidal_angles", ctypes.c_double * MAXPOINCARE),
+        ("radial_distances", ctypes.c_double * MAXPOINCARE),
+        ("number_of_points_to_average", ctypes.c_int),
+        ("record_rho_instead_of_r", ctypes.c_int),
+        ("margin", ctypes.c_double),
+        ("r_bins", ctypes.c_int),
+        ("phi_bins", ctypes.c_int),
+        ("z_bins", ctypes.c_int),
+        ("ppara_bins", ctypes.c_int),
+        ("pperp_bins", ctypes.c_int),
+        ("time_bins", ctypes.c_int),
+        ("charge_bins", ctypes.c_int),
+        ("r_interval", ctypes.c_double * 2),
+        ("phi_interval", ctypes.c_double * 2),
+        ("z_interval", ctypes.c_double * 2),
+        ("ppara_interval", ctypes.c_double * 2),
+        ("pperp_interval", ctypes.c_double * 2),
+        ("time_interval", ctypes.c_double * 2),
+        ("charge_interval", ctypes.c_double * 2),
+        ]
+
+
+@Leaf.register
 class Options(InputVariant):
     """Simulation options."""
 
-    # pylint: disable=too-few-public-methods
-    class Struct(ctypes.Structure):
-        """Python wrapper for the struct in options.h."""
-        MAXPOINCARE = 32
-        #_pack_ = 1
-        _fields_ = [
-            ("simulation_mode", ctypes.c_int),
-            ("enable_adaptive", ctypes.c_int),
-            ("record_mode", ctypes.c_int),
-            ("use_explicit_fixedstep", ctypes.c_int),
-            ("gyrodefined_fixedstep", ctypes.c_int),
-            #('PADDING_0', ctypes.c_ubyte * 4),
-            ("explicit_fixedstep", ctypes.c_double),
-            ("adaptive_tolerance_orbit", ctypes.c_double),
-            ("adaptive_tolerance_collisions", ctypes.c_double),
-            ("adaptive_max_drho", ctypes.c_double),
-            ("adaptive_max_dphi", ctypes.c_double),
-            ("enable_orbit_following", ctypes.c_int),
-            ("enable_coulomb_collisions", ctypes.c_int),
-            ("enable_mhd", ctypes.c_int),
-            ("enable_atomic", ctypes.c_int),
-            ("enable_icrh", ctypes.c_int),
-            ("enable_aldforce", ctypes.c_int),
-            ("disable_first_order_gctransformation", ctypes.c_int),
-            ("disable_ccoll_gcenergy", ctypes.c_int),
-            ("disable_ccoll_gcpitch", ctypes.c_int),
-            ("disable_ccoll_gcspatial", ctypes.c_int),
-            ("reverse_time", ctypes.c_int),
-            ("endcond_active", ctypes.c_int),
-            ("require_both_tor_and_pol", ctypes.c_int),
-            #('PADDING_1', ctypes.c_ubyte * 4),
-            ("lab_time_limit", ctypes.c_double),
-            ("max_mileage", ctypes.c_double),
-            ("max_real_time", ctypes.c_double),
-            ("rho_coordinate_limits", ctypes.c_double * 2),
-            ("min_energy", ctypes.c_double),
-            ("min_local_thermal_energy", ctypes.c_double),
-            ("max_number_of_toroidal_orbits", ctypes.c_double),
-            ("max_number_of_poloidal_orbits", ctypes.c_double),
-            ("collect_orbit", ctypes.c_int),
-            ("collect_dist5d", ctypes.c_int),
-            ("collect_dist6d", ctypes.c_int),
-            ("collect_dist5drho", ctypes.c_int),
-            ("collect_dist6drho", ctypes.c_int),
-            ("collect_distcom", ctypes.c_int),
-            ("collect_transport_coefficient", ctypes.c_int),
-            ("poincare", ctypes.c_int),
-            ("number_of_points_per_marker", ctypes.c_int),
-            ("ntoroidalplots", ctypes.c_int),
-            ("npoloidalplots", ctypes.c_int),
-            ("nradialplots", ctypes.c_int),
-            ("interval", ctypes.c_double),
-            ("toroidal_angles", ctypes.c_double * MAXPOINCARE),
-            ("poloidal_angles", ctypes.c_double * MAXPOINCARE),
-            ("radial_distances", ctypes.c_double * MAXPOINCARE),
-            ("number_of_points_to_average", ctypes.c_int),
-            ("record_rho_instead_of_r", ctypes.c_int),
-            ("margin", ctypes.c_double),
-            ("r_bins", ctypes.c_int),
-            ("phi_bins", ctypes.c_int),
-            ("z_bins", ctypes.c_int),
-            ("ppara_bins", ctypes.c_int),
-            ("pperp_bins", ctypes.c_int),
-            ("time_bins", ctypes.c_int),
-            ("charge_bins", ctypes.c_int),
-            #('PADDING_2', ctypes.c_ubyte * 4),
-            ("r_interval", ctypes.c_double * 2),
-            ("phi_interval", ctypes.c_double * 2),
-            ("z_interval", ctypes.c_double * 2),
-            ("ppara_interval", ctypes.c_double * 2),
-            ("pperp_interval", ctypes.c_double * 2),
-            ("time_interval", ctypes.c_double * 2),
-            ("charge_interval", ctypes.c_double * 2),
-            ]
-
-
-    def __init__(self, qid, date, note) -> None:
-        super().__init__(
-            qid=qid, date=date, note=note, variant="Options",
-            struct=Options.Struct(),
-            )
-        self._orbit: orbit
-        self._physics: physics
-        self._simulation: simulation
-        self._endconditions: endconditions
-        self._distributions: distributions
-        self._comdistribution: comdistribution
-        self._transport_coefficient: transport_coefficient
+    _orbit: orbit
+    _physics: physics
+    _simulation: simulation
+    _endconditions: endconditions
+    _distributions: distributions
+    _comdistribution: comdistribution
+    _transport_coefficient: transport_coefficient
 
     @property
     def simulation(self):
@@ -155,7 +146,8 @@ class Options(InputVariant):
     @property
     def distributions(self):
         """Diagnostics that collect data for reproducing the particle
-        distribution function."""
+        distribution function.
+        """
         return self._distributions
 
     @property
@@ -172,19 +164,9 @@ class Options(InputVariant):
     @property
     def transport_coefficient(self):
         """Diagnostic that evaluates advection and diffusion coefficients for
-        the radial transport of the simulated particle population."""
+        the radial transport of the simulated particle population.
+        """
         return self._transport_coefficient
-
-
-    def _export_hdf5(self):
-        """Export data to HDF5 file."""
-        if self._format == Format.HDF5:
-            raise AscotIOException("Data is already stored in the file.")
-        data = self.export()
-        self._treemanager.hdf5manager.write_datasets(
-            self.qid, self.variant, data,
-            )
-        self._format = Format.HDF5
 
     def export(self):
         """Return a dictionary with sufficient data to duplicate this instance.
@@ -234,15 +216,16 @@ class Options(InputVariant):
             "npoloidalplots":parameters["toroidal_angles"].size,
             "require_both_tor_and_pol":parameters["activate_orbit_limit"] == require_both_tor_and_pol,
             })
-        for field, _ in self._struct_._fields_:
+        self._cdata = Struct()
+        for field, _ in self._cdata._fields_:
             if field in parameters:
                 val = parameters[field]
-                if isinstance(getattr(self._struct_, field), ctypes.Array):
-                    arr = getattr(self._struct_, field)
+                if isinstance(getattr(self._cdata, field), ctypes.Array):
+                    arr = getattr(self._cdata, field)
                     for i, v in enumerate(val):
                         arr[i] = v
                 else:
-                    setattr(self._struct_, field, val)
+                    setattr(self._cdata, field, val)
 
     def unstage(self):
         pass
@@ -397,16 +380,16 @@ class Options(InputVariant):
 
 
 # pylint: disable=too-few-public-methods
-class CreateOptionsMixin(TreeCreateClassMixin):
+class CreateOptionsMixin(TreeMixin):
     """Mixin class used by `Data` to create Options input."""
 
     #pylint: disable=protected-access, too-many-arguments
     def create_options(
             self,
-            note: Optional[str] = None,
-            activate: bool = False,
-            dryrun: bool = False,
-            store_hdf5: Optional[bool] = None,
+            note: Optional[str]=None,
+            activate: bool=False,
+            preview: bool=False,
+            save: Optional[bool]=None,
             **parameters,
             ) -> Options:
         r"""Create simulation options.
@@ -420,29 +403,32 @@ class CreateOptionsMixin(TreeCreateClassMixin):
 
             The first word of the note is converted to a tag which you can use
             to reference the data.
-        activate : bool, optional
-            Set this input as active on creation.
-        dryrun : bool, optional
-            Do not add this input to the `data` structure or store it on disk.
+        note : str, *optional*
+            A short note to document this data.
 
-            Use this flag to modify the input manually before storing it.
-        store_hdf5 : bool, optional
-            Write this input to the HDF5 file if one has been specified when
-            `Ascot` was initialized.
+            The first word of the note is converted to a tag which you can use
+            to reference the data.
+        activate : bool, *optional*
+            Set this input as active on creation.
+        preview : bool, *optional*
+            If ``True``, the input is created but it is not included in the data
+            structure nor saved to disk.
+
+            The input cannot be used in a simulation but it can be previewed.
+        save : bool, *optional*
+            Store this input to disk.
         **parameters
             Options parameters and the values to be set.
 
-            If a parameter is not set, the default value is used.
+            If a parameter is not set, a default value is used.
 
         Returns
         -------
         inputdata : ~a5py.data.options.Options
             Freshly minted input data object.
         """
-        meta = _variants.new_metadata("Options", note=note)
-        obj = self._treemanager.enter_input(
-            meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
-            )
+        leaf = Options(note=note)
+
         parameters_found = []
         for paramgroup in parameter_groups:
             params_for_this_group = {}
@@ -451,11 +437,14 @@ class CreateOptionsMixin(TreeCreateClassMixin):
                     parameters_found.append(k)
                     params_for_this_group["_" + k] = v
             dataclass = globals()[paramgroup](**params_for_this_group)
-            setattr(obj, "_" + paramgroup, dataclass)
+            setattr(leaf, "_" + paramgroup, dataclass)
         for k in parameters.keys():
             if k not in parameters_found:
                 raise ValueError(f"Unknown options parameter '{k}'.")
 
-        if store_hdf5:
-            obj._export_hdf5()
-        return obj
+        if preview:
+            return leaf
+        self._treemanager.enter_leaf(
+            leaf, activate=activate, save=save, category="options",
+            )
+        return leaf

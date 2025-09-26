@@ -94,9 +94,9 @@
 /** @brief Transform vector from cartesian to cylindrical basis: vxyz -> vrpz,
     phi is the toroidal angle in radians */
 #define math_vec_xyz2rpz(vxyz, vrpz, phi) do {      \
-        vrpz[0]=vxyz[0]*cos(phi)+vxyz[1]*sin(phi);  \
-        vrpz[1]=-vxyz[0]*sin(phi)+vxyz[1]*cos(phi); \
-        vrpz[2]=vxyz[2]; } while(0)
+        vrpz[0] =  vxyz[0]*cos(phi) + vxyz[1]*sin(phi);  \
+        vrpz[1] = -vxyz[0]*sin(phi) + vxyz[1]*cos(phi); \
+        vrpz[2] =  vxyz[2]; } while(0)
 
  /** @brief Direct expansion of 3x3 matrix determinant
   */

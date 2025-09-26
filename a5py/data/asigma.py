@@ -5,42 +5,35 @@ from typing import Tuple, Optional
 
 import unyt
 import numpy as np
-from numpy.ctypeslib import ndpointer
 
-from .access import _variants, InputVariant, Format, TreeCreateClassMixin
-from .cstructs import interp1D_data, interp2D_data, interp3D_data
-from .. import utils
-from ..libascot import LIBASCOT
-from ..exceptions import AscotIOException
+from a5py import utils
+from a5py.libascot import (
+    LIBASCOT, DataStruct, interp1D_data, interp2D_data, interp3D_data, init_fun,
+    )
+from a5py.exceptions import AscotMeltdownError
+from a5py.data.access import InputVariant, Leaf, TreeMixin
 
 
-class Asigma_loc(InputVariant):
-    """Local atomic data."""
+# pylint: disable=too-few-public-methods
+class Struct(DataStruct):
+    """Python wrapper for the struct in asigma_loc.h."""
 
-    # pylint: disable=too-few-public-methods
-    class Struct(ctypes.Structure):
-        """Python wrapper for the struct in asigma_loc.h."""
-        #_pack_ = 1
-        _fields_ = [
-            ('N_reac', ctypes.c_int32),
-            ('PADDING_0', ctypes.c_ubyte * 4),
-            ('z_1', ctypes.POINTER(ctypes.c_int32)),
-            ('a_1', ctypes.POINTER(ctypes.c_int32)),
-            ('z_2', ctypes.POINTER(ctypes.c_int32)),
-            ('a_2', ctypes.POINTER(ctypes.c_int32)),
-            ('reac_type', ctypes.POINTER(ctypes.c_int32)),
-            ('sigma', ctypes.POINTER(interp1D_data)),
-            ('sigmav', ctypes.POINTER(interp2D_data)),
-            ('BMSsigmav', ctypes.POINTER(interp3D_data)),
+    _fields_ = [
+        ('N_reac', ctypes.c_int32),
+        ('z_1', ctypes.POINTER(ctypes.c_int32)),
+        ('a_1', ctypes.POINTER(ctypes.c_int32)),
+        ('z_2', ctypes.POINTER(ctypes.c_int32)),
+        ('a_2', ctypes.POINTER(ctypes.c_int32)),
+        ('reac_type', ctypes.POINTER(ctypes.c_int32)),
+        ('sigma', ctypes.POINTER(interp1D_data)),
+        ('sigmav', ctypes.POINTER(interp2D_data)),
+        ('BMSsigmav', ctypes.POINTER(interp3D_data)),
         ]
 
 
-    def __init__(self, qid, date, note) -> None:
-        super().__init__(
-            qid=qid, date=date, note=note, variant="E_TC",
-            struct=E_TC.Struct(),
-            )
-        self._exyz: unyt.unyt_array
+@Leaf.register
+class Asigma_loc(InputVariant):
+    """Local atomic data."""
 
     @property
     def reactions(self) -> unyt.unyt_array:
@@ -87,7 +80,7 @@ class Asigma_loc(InputVariant):
 
 
 # pylint: disable=too-few-public-methods
-class CreateAsigmaLocMixin(TreeCreateClassMixin):
+class CreateAsigmaLocMixin():
     """Mixin class used by `Data` to create Asimga_loc input."""
 
     #pylint: disable=protected-access, too-many-arguments
@@ -100,10 +93,10 @@ class CreateAsigmaLocMixin(TreeCreateClassMixin):
             densitygrid: Tuple[utils.ArrayLike] | None = None,
             temperaturegrid: Tuple[utils.ArrayLike] | None = None,
             crosssection: utils.ArrayLike | None = None,
-            note: Optional[str] = None,
-            activate: bool = False,
-            dryrun: bool = False,
-            store_hdf5: Optional[bool] = None,
+            note: Optional[str]=None,
+            activate: bool=False,
+            preview: bool=False,
+            save: Optional[bool]=None,
             ) -> Asigma_loc:
         r"""Atomic reaction data stored locally.
 
@@ -129,8 +122,7 @@ class CreateAsigmaLocMixin(TreeCreateClassMixin):
 class Atomic(ctypes.Structure):
     """Wrapper for the atomic data in libascot.so."""
 
-    _pack_ = 1
     _fields_ = [
-        ('asigma_loc', ctypes.POINTER(Asigma_loc.Struct)),
+        ('asigma_loc', ctypes.POINTER(Struct)),
         ('type', ctypes.c_uint32),
         ]
