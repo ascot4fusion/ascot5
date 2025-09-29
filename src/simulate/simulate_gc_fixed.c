@@ -27,6 +27,9 @@
 DECLARE_TARGET_SIMD_UNIFORM(sim)
 real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i);
 
+// Function to fill the random values for the ICRH/Stix operator.
+void fill_random_values(random_data* random_data, uint8* used, real* rnd, int size);
+
 /**
  * @brief Simulates guiding centers using fixed time-step
  *
@@ -78,6 +81,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
     RF_particle_history hist[NSIMD];
     memset(hist, 0, NSIMD * sizeof(RF_particle_history)); // Clear the memory.
     real* stix_random;
+    uint8* used_rnd_icrh; // This stores whether the random value has been already used.
     int nsize4stix = 1;
     if(sim->rffield_data.stix.enabled == 1 && sim->enable_rf){
 
@@ -101,10 +105,17 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 
         nsize4stix = NSIMD * sim->rffield_data.stix.n_max_res * sim->rffield_data.stix.nwaves;
     }
+    
     stix_random = (real*) malloc(nsize4stix * sizeof(real));
+    used_rnd_icrh = (uint8*) malloc(nsize4stix * sizeof(uint8));
     memset(stix_random, 0, nsize4stix * sizeof(real));
+    memset(used_rnd_icrh, 0, nsize4stix * sizeof(uint8));
 
-
+    // We fill the random values:
+    if(sim->rffield_data.stix.enabled == 1 && sim->enable_rf) {
+        fill_random_values(&sim->random_data, used_rnd_icrh, 
+                            stix_random, nsize4stix);
+    }
     /* MAIN SIMULATION LOOP
      * - Store current state
      * - Integrate motion due to background EM-field (orbit-following)
@@ -160,8 +171,8 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 
         /* Euler-Maruyama method for the RF diffusion*/
         if(sim->rffield_data.stix.enabled == 1 && sim->enable_rf){
-            random_uniform_simd(&sim->random_data, nsize4stix, stix_random);
-            RF2D_gc_stix_scatter(&sim->rffield_data.stix, hist, &p, hin, stix_random);
+            RF2D_gc_stix_scatter(&sim->rffield_data.stix, hist, &p, hin, stix_random,
+                                 used_rnd_icrh);
         }
 
         /**********************************************************************/
@@ -196,6 +207,8 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 
                 // We also need to reinitialize the RF history for the new particle.
                 if(sim->rffield_data.stix.enabled == 1 && sim->enable_rf){
+                    // We reset the random values, as we do not need them.
+                    set_rndusage(&sim->rffield_data.stix, used_rnd_icrh, i, 0);
                     RF_particle_history_free(&hist[i]);
                     RF_particle_history_init(&hist[i], &p, sim->rffield_data.stix.nwaves, 
                                             hin[i], i, sim->rffield_data.stix.omega, 
@@ -205,6 +218,11 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
             }
         }
 
+        // We generate new random numbers
+        if(sim->rffield_data.stix.enabled == 1 && sim->enable_rf) {
+            fill_random_values(&sim->random_data, used_rnd_icrh, 
+                                stix_random, nsize4stix);
+        }
     }
 
     // Releasing the memory allocated for the RF history, if needed.
@@ -248,4 +266,27 @@ real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i) {
     }
 
     return h;
+}
+
+void fill_random_values(random_data* random_data, uint8* used, real* rnd, int size){
+    int count = 0;
+    #pragma omp for reduction(+: count)
+    for(int i = 0; i < size; i++){
+        // Count the number of elements to select.
+        if (used[i] == 0) count++;
+    }
+
+    // We create temporal array to store the random values.
+    real* temp_rnd = (real*) malloc(count * sizeof(real));
+    random_uniform_simd(random_data, count, temp_rnd);
+
+    // Filling the random values.
+    int idx = 0;
+    for(int i = 0; i < size; i++){
+        if(used[i] == 0){
+            rnd[i] = temp_rnd[idx];
+            used[i] = 1;
+            idx++;
+        }
+    }
 }

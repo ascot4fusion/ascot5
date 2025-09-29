@@ -14,6 +14,7 @@
 #include <string.h>
 #include <gsl/gsl_sf_bessel.h>
 #include <gsl/gsl_sf_airy.h>
+#include <gsl/gsl_errno.h>
 #include "RF2D_gc_stix.h"
 #include "../error.h"
 #include "../print.h"
@@ -334,6 +335,9 @@ a5err RF2D_gc_stix_init(RF2D_gc_stix* stix_data,
     print_out(VERBOSE_IO, "  Include stochastic diffusion: %d\n", include_stochastic);
     print_out(VERBOSE_IO, "  Include vpara kick: %d\n", include_vpara_kick);
     print_out(VERBOSE_IO, "  Include phase factor: %d\n", include_phase_factor);
+
+    // Disabling the error raising from the GSL library.
+    gsl_set_error_handler_off();
     
     err = 0;
     return err;
@@ -697,7 +701,7 @@ a5err RF2D_gc_stix_eval_fields(real r, real phi, real z, real t,
  * @param p Pointer to the particle_simd_gc structure containing the current particle state.
  */
 void RF2D_gc_stix_scatter(RF2D_gc_stix* stix, RF_particle_history* hist,
-                          particle_simd_gc* p, real* h, real* rnd){
+                          particle_simd_gc* p, real* h, real* rnd, uint8* used){
     // Apply the Stix scattering operator to the particle and update its internal state.
     if (stix == NULL || hist == NULL || p == NULL) {
         print_err("RF2D_gc_stix_scatter: One or more input pointers are NULL.\n");
@@ -740,26 +744,33 @@ void RF2D_gc_stix_scatter(RF2D_gc_stix* stix, RF_particle_history* hist,
                 real arg = fabs(kperp * rhoL);
 
                 // Evaluating the Bessel functions
+                gsl_sf_result rJm1, rJl, rJp1;
                 real Jm1, Jl, Jp1; // Bessel functions of order lres-1, lres and lres+1
                 int err1, err2, err3;
-                err1 = gsl_sf_bessel_Jn_e(lres - 1, arg, &Jm1);
-                err2 = gsl_sf_bessel_Jn_e(lres, arg, &Jl);
-                err3 = gsl_sf_bessel_Jn_e(lres + 1, arg, &Jp1);
+                err1 = gsl_sf_bessel_Jn_e(lres - 1, arg, &rJm1);
+                err2 = gsl_sf_bessel_Jn_e(lres, arg, &rJl);
+                err3 = gsl_sf_bessel_Jn_e(lres + 1, arg, &rJp1);
                 if(err1){
-                    print_err("RF2D_gc_stix_scatter: Error computing Bessel function J_%d(%f) for particle %d, wave %d, kick %d.\n", lres - 1, arg, imrk, iwave, ikick);
+                    print_err("RF2D_gc_stix_scatter: Error computing Bessel function J_%d(%f): kperp = %.3e, mu = %.3e, Bnorm = %.2f, mass=%.3e, charge=%.2e.\n", 
+                        lres, arg, kperp, hist[imrk].bnorm[0], p->mass[imrk], p->charge[imrk]);
                     p->err[imrk] = error_raise( ERR_BESSEL_EVALUATION, __LINE__, EF_RF_GC2D );
                     continue;
                 }
                 if(err2){
-                    print_err("RF2D_gc_stix_scatter: Error computing Bessel function J_%d(%f) for particle %d, wave %d, kick %d.\n", lres, arg, imrk, iwave, ikick);
+                    print_err("RF2D_gc_stix_scatter: Error computing Bessel function J_%d(%f): kperp = %.3e, mu = %.3e, Bnorm = %.2f, mass=%.3e, charge=%.2e.\n", 
+                        lres, arg, kperp, hist[imrk].bnorm[0], p->mass[imrk], p->charge[imrk]);
                     p->err[imrk] = error_raise( ERR_BESSEL_EVALUATION, __LINE__, EF_RF_GC2D );
                     continue;
                 }
                 if(err3){
-                    print_err("RF2D_gc_stix_scatter: Error computing Bessel function J_%d(%f) for particle %d, wave %d, kick %d.\n", lres + 1, arg, imrk, iwave, ikick);
+                    print_err("RF2D_gc_stix_scatter: Error computing Bessel function J_%d(%f): kperp = %.3e, mu = %.3e, Bnorm = %.2f, mass=%.3e, charge=%.2e.\n", 
+                        lres, arg, kperp, hist[imrk].bnorm[0], p->mass[imrk], p->charge[imrk]);
                     p->err[imrk] = error_raise( ERR_BESSEL_EVALUATION, __LINE__, EF_RF_GC2D );
                     continue;
                 }
+                Jm1 = rJm1.val;
+                Jl = rJl.val;
+                Jp1 = rJp1.val;
 
                 // We evaluate the value of the derivatives using the recurrence relations.
                 real dbessel_l_m1 = 0.5 * (lres - 1) * Jm1 - 0.5*arg*Jl;
@@ -783,6 +794,7 @@ void RF2D_gc_stix_scatter(RF2D_gc_stix* stix, RF_particle_history* hist,
 
                 // Computing the stochastic contribution.
                 real irnd = cos(lres * rnd[imrk_rnd_idx] * 2.0 * M_PI);
+                used[imrk_rnd_idx] = 0; // Mark as used.
 
                 // The following part is prone to underflow since the mu values are always
                 // scaled by the mass of the particle. We temporarily remove the charge.
@@ -839,4 +851,28 @@ real guess_qm(particle_queue* pq){
         
     }
     return qm;
+}
+
+
+/**
+ * @brief Sets the usage flag for random numbers for a given particle.
+ * 
+ * This function will set the usage flag for all random numbers associated
+ * with a specific particle in the Stix data structure.
+ * 
+ * @param stix_data Structure with the Stix data.
+ * @param used Pointer to the array of usage flags.
+ * @param imrk Index of the particle in the queue.
+ * @param value Value to set the usage flag.
+ */
+void set_rndusage(RF2D_gc_stix* stix_data, uint8* used, int imrk, uint8 value){
+    if(stix_data == NULL || used == NULL) {
+        print_err("set_rndusage: stix_data or used pointer is NULL.\n");
+        return;
+    }
+    int nflags = 2 * stix_data->n_max_res * stix_data->nwaves;
+    int start_idx = nflags * imrk;
+    for(int i = 0; i < nflags; i++) {
+        used[start_idx + i] = value;
+    }
 }

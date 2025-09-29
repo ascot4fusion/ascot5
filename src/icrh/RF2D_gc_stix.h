@@ -20,6 +20,8 @@
 #include "RF_stix_particle_history.h"
 #include <hdf5.h>
 
+typedef unsigned char uint8;
+
 // Defining the object structure of the RF fields.
 typedef struct RF2D_gc_stix{
     // Physical parameters.
@@ -83,7 +85,7 @@ a5err RF2D_gc_stix_compute_cold_resonances(RF2D_gc_stix* stix_data,
                                            real qm); 
 
 void RF2D_gc_stix_scatter(RF2D_gc_stix* stix, RF_particle_history* hist, 
-                          particle_simd_gc* p, real* h, real* rnd); 
+                          particle_simd_gc* p, real* h, real* rnd, uint8* used); 
 
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(stix_data)
@@ -98,6 +100,10 @@ a5err RF2D_gc_stix_eval_fields(real r, real phi, real z, real t,
                                RF2D_gc_stix* stix_data,
                                real* Eplus_2, real* Eminus_2,
                                real* E2cross, real* kperp);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
+
+GPU_DECLARE_TARGET_SIMD_UNIFORM(stix_data, used, value)
+void set_rndusage(RF2D_gc_stix* stix_data, uint8* used, int imrk, uint8 value);
 GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
 #endif

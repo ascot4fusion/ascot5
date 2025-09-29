@@ -20,7 +20,7 @@
 #include "../E_field.h"
 #include "../boozer.h"
 #include "../mhd.h"
-
+#include "../icrh/RFlib.h"
 #include "../plasma.h"
 #include "simulate_gc_adaptive.h"
 #include "step/step_gc_cashkarp.h"
@@ -29,6 +29,9 @@
 
 DECLARE_TARGET_SIMD_UNIFORM(sim)
 real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
+
+// Function to fill the random values for the ICRH/Stix operator.
+void fill_random_values(random_data* random_data, uint8* used, real* rnd, int size);
 
 #define DUMMY_TIMESTEP_VAL 1.0 /**< Dummy time step value */
 
@@ -93,6 +96,47 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                 mccc_wiener_initialize(&(wienarr[i]), p.time[i]);
             }
         }
+    }
+
+
+    // Space for the particle histories.
+    RF_particle_history hist[NSIMD];
+    memset(hist, 0, NSIMD * sizeof(RF_particle_history)); // Clear the memory.
+    real* stix_random;
+    uint8* used_rnd_icrh; // This stores whether the random value has been already used.
+    int nsize4stix = 1;
+    if(sim->rffield_data.stix.enabled == 1 && sim->enable_rf){
+
+        real qm = guess_qm(pq);
+        #pragma omp barrier
+
+        // We compute the q/m ratio of the particles.
+        // Computing the number of resonances.
+        #pragma omp single
+        RF2D_gc_stix_compute_cold_resonances(&sim->rffield_data.stix, 
+                                            &sim->B_data, 20, qm); // Assuming all particles have the same qm.
+        #pragma omp barrier
+
+        #pragma omp simd
+        for(int i = 0; i < NSIMD; i++) {
+            RF_particle_history_init(&hist[i], &p, sim->rffield_data.stix.nwaves, 
+                                     hin[i], i, sim->rffield_data.stix.omega, 
+                                     sim->rffield_data.stix.ntor, 
+                                     sim->rffield_data.stix.n_max_res);
+        }
+
+        nsize4stix = NSIMD * sim->rffield_data.stix.n_max_res * sim->rffield_data.stix.nwaves;
+    }
+    
+    stix_random = (real*) malloc(nsize4stix * sizeof(real));
+    used_rnd_icrh = (uint8*) malloc(nsize4stix * sizeof(uint8));
+    memset(stix_random, 0, nsize4stix * sizeof(real));
+    memset(used_rnd_icrh, 0, nsize4stix * sizeof(uint8));
+
+    // We fill the random values:
+    if(sim->rffield_data.stix.enabled == 1 && sim->enable_rf) {
+        fill_random_values(&sim->random_data, used_rnd_icrh, 
+                            stix_random, nsize4stix);
     }
 
     cputime_last = A5_WTIME;
@@ -172,6 +216,12 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
             }
         }
 
+        /* Euler-Maruyama for the ICRH operator */
+        if(sim->rffield_data.stix.enabled == 1 && sim->enable_rf){
+            RF2D_gc_stix_scatter(&sim->rffield_data.stix, hist, &p, hin, stix_random,
+                                 used_rnd_icrh);
+        }
+
         /**********************************************************************/
 
         cputime = A5_WTIME;
@@ -205,6 +255,13 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                         /* Time step was rejected, use the suggestion given by
                            integrator */
                         hin[i] = -hnext[i];
+
+                        if(sim->rffield_data.stix.enabled == 1 && sim->enable_rf){
+                            // We mark all the random values obtained for the
+                            // ICRH for the given particle as useful again,
+                            // to avoid the bias on the stochastic term.
+                            set_rndusage(&sim->rffield_data.stix, used_rnd_icrh, i, 1);
+                        }
                     }
                     else {
                         p.time[i] += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) )
@@ -256,6 +313,16 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                 if(sim->enable_clmbcol) {
                     /* Re-allocate array storing the Wiener processes */
                     mccc_wiener_initialize(&(wienarr[i]), p.time[i]);
+                }
+
+                // We also need to reinitialize the RF history for the new particle.
+                if(sim->rffield_data.stix.enabled == 1 && sim->enable_rf){
+                    set_rndusage(&sim->rffield_data.stix, used_rnd_icrh, i, 0);
+                    RF_particle_history_free(&hist[i]);
+                    RF_particle_history_init(&hist[i], &p, sim->rffield_data.stix.nwaves, 
+                                            hin[i], i, sim->rffield_data.stix.omega, 
+                                            sim->rffield_data.stix.ntor, 
+                                            sim->rffield_data.stix.n_max_res);
                 }
             }
         }
