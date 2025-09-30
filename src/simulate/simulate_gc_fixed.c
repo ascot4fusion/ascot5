@@ -270,7 +270,7 @@ real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i) {
 
 void fill_random_values(random_data* random_data, uint8* used, real* rnd, int size){
     int count = 0;
-    #pragma omp for reduction(+: count)
+    #pragma omp parallel for reduction(+: count)
     for(int i = 0; i < size; i++){
         // Count the number of elements to select.
         if (used[i] == 0) count++;

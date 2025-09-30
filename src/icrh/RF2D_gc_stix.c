@@ -15,6 +15,7 @@
 #include <gsl/gsl_sf_bessel.h>
 #include <gsl/gsl_sf_airy.h>
 #include <gsl/gsl_errno.h>
+#include <math.h>
 #include "RF2D_gc_stix.h"
 #include "../error.h"
 #include "../print.h"
@@ -750,21 +751,9 @@ void RF2D_gc_stix_scatter(RF2D_gc_stix* stix, RF_particle_history* hist,
                 err1 = gsl_sf_bessel_Jn_e(lres - 1, arg, &rJm1);
                 err2 = gsl_sf_bessel_Jn_e(lres, arg, &rJl);
                 err3 = gsl_sf_bessel_Jn_e(lres + 1, arg, &rJp1);
-                if(err1){
-                    print_err("RF2D_gc_stix_scatter: Error computing Bessel function J_%d(%f): kperp = %.3e, mu = %.3e, Bnorm = %.2f, mass=%.3e, charge=%.2e.\n", 
-                        lres, arg, kperp, hist[imrk].bnorm[0], p->mass[imrk], p->charge[imrk]);
-                    p->err[imrk] = error_raise( ERR_BESSEL_EVALUATION, __LINE__, EF_RF_GC2D );
-                    continue;
-                }
-                if(err2){
-                    print_err("RF2D_gc_stix_scatter: Error computing Bessel function J_%d(%f): kperp = %.3e, mu = %.3e, Bnorm = %.2f, mass=%.3e, charge=%.2e.\n", 
-                        lres, arg, kperp, hist[imrk].bnorm[0], p->mass[imrk], p->charge[imrk]);
-                    p->err[imrk] = error_raise( ERR_BESSEL_EVALUATION, __LINE__, EF_RF_GC2D );
-                    continue;
-                }
-                if(err3){
-                    print_err("RF2D_gc_stix_scatter: Error computing Bessel function J_%d(%f): kperp = %.3e, mu = %.3e, Bnorm = %.2f, mass=%.3e, charge=%.2e.\n", 
-                        lres, arg, kperp, hist[imrk].bnorm[0], p->mass[imrk], p->charge[imrk]);
+                if(err1 || err2 || err3){
+                    print_err("RF2D_gc_stix_scatter: Error computing Bessel function J_%d(%f): kperp = %.3e, mu = %.3e, Bnorm = %.2f, mass=%.3e, charge=%.2e.\n", \
+                        lres, arg, kperp, p->mu[imrk], hist[imrk].bnorm[0], p->mass[imrk], p->charge[imrk]);
                     p->err[imrk] = error_raise( ERR_BESSEL_EVALUATION, __LINE__, EF_RF_GC2D );
                     continue;
                 }
@@ -800,7 +789,7 @@ void RF2D_gc_stix_scatter(RF2D_gc_stix* stix, RF_particle_history* hist,
                 // scaled by the mass of the particle. We temporarily remove the charge.
                 dmu /= p->charge[imrk];
                 real tmp_mu = p->mu[imrk] / p->charge[imrk];
-                real dmu_stoch = sqrt(abs(2 * tmp_mu * term1 / (term1 + term2) * dmu)) * irnd;
+                real dmu_stoch = sqrt(fabs(2 * tmp_mu * term1 / (term1 + term2) * dmu)) * irnd;
                 imrk_rnd_idx++; // For next fetch.
                 real drhopara_stoch = kpara / (lres * omega_cycl) * dmu_stoch;
 
