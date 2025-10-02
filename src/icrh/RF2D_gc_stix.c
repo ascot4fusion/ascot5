@@ -734,10 +734,11 @@ void RF2D_gc_stix_scatter(RF2D_gc_stix* stix, RF_particle_history* hist,
 
             // Getting the resonance time.
             real t_inter = RF2D_gc_stix_get_interaction_time(stix, &hist[imrk], iwave, lres);
-            if(t_inter < 0.0) continue; // No interaction time, go to the next wave.
+            if(t_inter < 0.0 || !isfinite(t_inter)) continue; // No interaction time, go to the next wave.
 
             RF2D_gc_stix_eval_fields(p->r[imrk], p->phi[imrk], p->z[imrk], p->time[imrk],
                                      stix, &Eplus_2, &Eminus_2, &E2cross, &kperp);
+            if(kperp == 0.0) continue; // Outside domain.
 
             // Evaluating so prefactors.
             for(int ikick = 0; ikick < nkicks; ikick++){

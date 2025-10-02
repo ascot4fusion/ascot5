@@ -76,6 +76,16 @@ void RF_particle_eval_nkicks(RF_particle_history* hist, particle_simd_gc* p,
     real Babs = sqrt(p->B_r[imrk] * p->B_r[imrk] +
                      p->B_phi[imrk] * p->B_phi[imrk] +
                      p->B_z[imrk] * p->B_z[imrk]);
+    
+    
+    // Checking if the particle has advanced...
+    if((hist->bnorm[0] == hist->bnorm[1]) && \
+       (hist->bnorm[1] == hist->bnorm[2])){
+        *nkicks = 0;
+        *lres = -1;
+        return; // No change in B, no resonance crossing possible.
+    }
+
     for(int j = 0; j < hist->lhigh; j++){
         real resn_prv = hist->resn[iwave * hist->lhigh + j];
         real resp_prv = hist->resp[iwave * hist->lhigh + j];
