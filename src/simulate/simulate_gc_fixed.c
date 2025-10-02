@@ -103,7 +103,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
                                      sim->rffield_data.stix.n_max_res);
         }
 
-        nsize4stix = NSIMD * sim->rffield_data.stix.n_max_res * sim->rffield_data.stix.nwaves;
+        nsize4stix = 2 * NSIMD * sim->rffield_data.stix.n_max_res * sim->rffield_data.stix.nwaves;
     }
     
     stix_random = (real*) malloc(nsize4stix * sizeof(real));
