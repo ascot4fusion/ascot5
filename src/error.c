@@ -113,6 +113,11 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
             sprintf(msg, "Airy function evaluation failed "
                     "(argument could be out of range)");
             break;
+        
+        case ERR_NAN_OR_INF:
+            sprintf(msg, "A computed value is NaN or infinite "
+                    "(check preceding messages for more details)");
+            break;
 
         default:
             sprintf(msg, "Unknown error");

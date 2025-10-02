@@ -76,6 +76,7 @@ typedef enum error_type {
     ERR_ATOMIC_EVALUATION =   8, /**< Failure when evaluating atomic reaction */
     ERR_BESSEL_EVALUATION =   9, /**< Failure when evaluating Bessel function */
     ERR_AIRY_EVALUATION   =  10, /**< Failure when evaluating Airy function   */
+    ERR_NAN_OR_INF        =  11  /**< Some computed value is NaN or infinite   */
 }error_type;
 
 /**
