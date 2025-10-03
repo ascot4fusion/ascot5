@@ -219,16 +219,16 @@ class CreateMixin(TreeMixin):
     def create_particlemarker(
             self,
             species: str | Species,
-            charge: utils.Numerical,
-            r: utils.Numerical,
-            z: utils.Numerical,
-            vr: utils.Numerical,
-            vphi: utils.Numerical,
-            vz: utils.Numerical,
-            phi: Optional[utils.Numerical]=None,
-            weight: Optional[utils.Numerical]=None,
-            time: Optional[utils.Numerical]=None,
-            ids: Optional[utils.Numerical]=None,
+            charge: utils.ArrayLike,
+            r: utils.ArrayLike,
+            z: utils.ArrayLike,
+            vr: utils.ArrayLike,
+            vphi: utils.ArrayLike,
+            vz: utils.ArrayLike,
+            phi: Optional[utils.ArrayLike]=None,
+            weight: Optional[utils.ArrayLike]=None,
+            time: Optional[utils.ArrayLike]=None,
+            ids: Optional[utils.ArrayLike]=None,
             note: Optional[str]=None,
             activate: bool=False,
             preview: bool=False,
@@ -313,7 +313,7 @@ class CreateMixin(TreeMixin):
                         )
                 n = utils.size(param)
 
-        to_array = lambda x: utils.to_array(x, n)
+        to_array = lambda x: utils.scalar2array(x, n)
 
         r, z, phi, vr, vphi, charge, weight, time, vz = (
             to_array(r), to_array(z), to_array(phi), to_array(vr),

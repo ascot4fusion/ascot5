@@ -5,8 +5,8 @@
 #ifndef SIMULATE_ML_ADAPTIVE_H
 #define SIMULATE_ML_ADAPTIVE_H
 
-#include "../simulate.h"
-#include "../particle.h"
+#include "simulate.h"
+#include "particle.h"
 
 void simulate_ml_adaptive(particle_queue* pq, sim_data* sim);
 

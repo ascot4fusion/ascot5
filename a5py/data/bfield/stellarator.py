@@ -21,41 +21,25 @@ class Struct(DataStruct):
     """Python wrapper for the struct in B_STS.h."""
 
     _fields_ = [
-        ("psi0", ctypes.c_double),
-        ("psi1", ctypes.c_double),
-        ("axis_r", linint1D_data),
-        ("axis_z", linint1D_data),
+        ("psilimits", ctypes.c_double * 2),
+        ("axisr", linint1D_data),
+        ("axisz", linint1D_data),
         ("psi", interp3D_data),
-        ("B_r", interp3D_data),
-        ("B_phi", interp3D_data),
-        ("B_z", interp3D_data),
+        ("br", interp3D_data),
+        ("bz", interp3D_data),
+        ("bphi", interp3D_data),
         ]
 
 
 init_fun(
-    "B_STS_init",
+    "BfieldStellarator_init",
     ctypes.POINTER(Struct),
-    ctypes.c_int32,
-    *(2*[ctypes.c_double]),
-    ctypes.c_int32,
-    *(2*[ctypes.c_double]),
-    ctypes.c_int32,
-    *(2*[ctypes.c_double]),
-    ctypes.c_int32,
-    *(2*[ctypes.c_double]),
-    ctypes.c_int32,
-    *(2*[ctypes.c_double]),
-    ctypes.c_int32,
-    *(2*[ctypes.c_double]),
-    ctypes.c_int32,
-    *(2*[ctypes.c_double]),
-    *(2*[ndpointer(ctypes.c_double)]),
-    *(2*[ctypes.c_double]),
-    *(4*[ndpointer(ctypes.c_double)]),
+    *(7*[ctypes.c_int32]),
+    *(14*[ndpointer(ctypes.c_double)]),
     restype=ctypes.c_int32,
     )
 
-init_fun("B_STS_free", ctypes.POINTER(Struct))
+init_fun("BfieldStellarator_free", ctypes.POINTER(Struct))
 
 @Leaf.register
 class BfieldStellarator(InputVariant):
@@ -69,7 +53,7 @@ class BfieldStellarator(InputVariant):
         tabulated.
         """
         if self._cdata is not None:
-            return self._cdata.readonly_grid("x", "m", "B_phi")
+            return self._cdata.readonly_grid("x", "m", "bphi")
         assert self._file is not None
         return self._file.read("rgrid")
 
@@ -78,7 +62,7 @@ class BfieldStellarator(InputVariant):
         r"""The uniform grid in :math:`\phi` in which :math:`psi` is tabulated.
         """
         if self._cdata is not None:
-            return self._cdata.readonly_grid("y", "rad", "B_phi").to("deg")
+            return self._cdata.readonly_grid("y", "rad", "bphi").to("deg")
         assert self._file is not None
         return self._file.read("phigrid")
 
@@ -88,7 +72,7 @@ class BfieldStellarator(InputVariant):
         tabulated.
         """
         if self._cdata is not None:
-            return self._cdata.readonly_grid("z", "m", "B_phi")
+            return self._cdata.readonly_grid("z", "m", "bphi")
         assert self._file is not None
         return self._file.read("zgrid")
 
@@ -125,7 +109,7 @@ class BfieldStellarator(InputVariant):
         coordinates are tabulated.
         """
         if self._cdata is not None:
-            return self._cdata.readonly_grid("x", "rad", "axis_r").to("deg")
+            return self._cdata.readonly_grid("x", "rad", "axisr").to("deg")
         assert self._file is not None
         return self._file.read("axisgrid")
 
@@ -134,8 +118,8 @@ class BfieldStellarator(InputVariant):
         r"""Tabulated magnetic axis :math:`(R,z)` coordinates."""
         if self._cdata is not None:
             return unyt.unyt_array((
-                self._cdata.readonly_interp("axis_r", "m"),
-                self._cdata.readonly_interp("axis_z", "m"),
+                self._cdata.readonly_interp("axisr", "m"),
+                self._cdata.readonly_interp("axisz", "m"),
                 )).T
         assert self._file is not None
         return self._file.read("axisrz")
@@ -144,10 +128,7 @@ class BfieldStellarator(InputVariant):
     def psilimits(self) -> unyt.unyt_array:
         """Poloidal flux values on the magnetic axis and on the separatrix."""
         if self._cdata is not None:
-            return unyt.unyt_array((
-                self._cdata.readonly_carray("psi0", (), "Wb/rad"),
-                self._cdata.readonly_carray("psi1", (), "Wb/rad"),
-                ))
+            return self._cdata.readonly_carray("psilimits", (2,), "Wb/rad")
         assert self._file is not None
         return self._file.read("psilimits")
 
@@ -163,7 +144,7 @@ class BfieldStellarator(InputVariant):
     def bphi(self) -> unyt.unyt_array:
         """Tabulated values of toroidal component of the magnetic field."""
         if self._cdata is not None:
-            return self._cdata.readonly_interp("B_phi", "T")
+            return self._cdata.readonly_interp("bphi", "T")
         assert self._file is not None
         return self._file.read("bphi")
 
@@ -172,7 +153,7 @@ class BfieldStellarator(InputVariant):
         r"""Tabulated values of :math:`R` component of the magnetic field.
         """
         if self._cdata is not None:
-            return self._cdata.readonly_interp("B_r", "T")
+            return self._cdata.readonly_interp("br", "T")
         assert self._file is not None
         return self._file.read("br")
 
@@ -181,7 +162,7 @@ class BfieldStellarator(InputVariant):
         r"""Tabulated values of :math:`z` component of the magnetic field.
         """
         if self._cdata is not None:
-            return self._cdata.readonly_interp("B_z", "T")
+            return self._cdata.readonly_interp("bz", "T")
         assert self._file is not None
         return self._file.read("bz")
 
@@ -202,15 +183,14 @@ class BfieldStellarator(InputVariant):
             bz: unyt.unyt_array,
             ) -> None:
         self._cdata = Struct()
-        if LIBASCOT.B_STS_init(
-            ctypes.byref(self._cdata), rgridpsi.size, rgridpsi[0].v,
-            rgridpsi[-1].v, phigridpsi.size, phigridpsi[0].to("rad").v,
-            phigridpsi[-1].to("rad").v, zgridpsi.size, zgridpsi[0].v,
-            zgridpsi[-1].v, rgrid.size, rgrid[0].v, rgrid[-1].v, phigrid.size,
-            phigrid[0].to("rad").v, phigrid[-1].to("rad").v, zgrid.size,
-            zgrid[0].v, zgrid[-1].v, axisgrid.size, axisgrid[0].to("rad").v,
-            axisgrid[-1].to("rad").v, axisrz[:,0].v, axisrz[:,1].v,
-            psilimits[0].v, psilimits[1].v, psi.v, br.v, bphi.v, bz.v,
+        if LIBASCOT.BfieldStellarator_init(
+            ctypes.byref(self._cdata), rgridpsi.size, zgridpsi.size,
+            phigridpsi.size, rgrid.size, zgrid.size, phigrid.size, axisgrid.size,
+            rgridpsi[[0, -1]].v, zgridpsi[[0, -1]].v,
+            phigridpsi[[0, -1]].to("rad").v, rgrid[[0, -1]].v, zgrid[[0, -1]].v,
+            phigrid[[0, -1]].to("rad").v, axisgrid[[0, -1]].to("rad").v,
+            axisrz[:,0].v, axisrz[:,1].v, psilimits.v, psi.v, br.v, bz.v,
+            bphi.v,
             ):
             self._cdata = None
             raise AscotMeltdownError("Could not initialize struct.")
@@ -243,7 +223,7 @@ class BfieldStellarator(InputVariant):
     def unstage(self) -> None:
         super().unstage()
         assert self._cdata is not None
-        LIBASCOT.B_STS_free(ctypes.byref(self._cdata))
+        LIBASCOT.BfieldStellarator_free(ctypes.byref(self._cdata))
         self._cdata = None
 
 
@@ -275,7 +255,7 @@ class CreateMixin(TreeMixin):
         r"""Create spline-interpolated stellarators field.
 
         This method creates a field that extends
-        :class:`~a5py.data.bfield.Bfield3D` to stellarators by providing support
+        :class:`~a5py.data.bfield.BfieldSpline3D` to stellarators by providing support
         for 3D :math:`\psi` and 3D magnetic axis. Furthermore, the magnetic
         field is evaluated from :math:`\mathbf{B}` alone, leaving :math:`\psi`
         to act only as radial coordinate. This means that :math:`\mathbf{B}`
@@ -398,7 +378,7 @@ class CreateMixin(TreeMixin):
             "rgrid", "phigrid", "zgrid", "rgridpsi", "phigridpsi", "zgridpsi"
             ]:
             periodic = abscissa in ["phigrid", "phigridpsi"]
-            utils.check_abscissa(
+            utils.validate_abscissa(
                 locals()[abscissa], abscissa, periodic=periodic
                 )
 

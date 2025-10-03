@@ -1,5 +1,4 @@
-"""Defines the 2D wall input and the corresponding factory method.
-"""
+"""Defines the 2D wall input and the corresponding factory method."""
 import copy
 import ctypes
 from typing import Sized, Optional
@@ -11,7 +10,8 @@ from numpy.ctypeslib import ndpointer
 from a5py import utils
 from a5py.libascot import LIBASCOT, DataStruct, init_fun
 from a5py.exceptions import AscotMeltdownError
-from a5py.data.access import InputVariant, Leaf, TreeMixin
+from a5py.data.access import Leaf, TreeMixin
+from .common import WallVariant
 
 
 # pylint: disable=too-few-public-methods
@@ -27,7 +27,7 @@ class Struct(DataStruct):
 
 
 init_fun(
-    "wall_2d_init",
+    "WallContour2D_init",
     ctypes.POINTER(Struct),
     ctypes.c_int32,
     ndpointer(ctypes.c_double),
@@ -36,22 +36,15 @@ init_fun(
     restype=ctypes.c_int32,
     )
 
-init_fun("wall_2d_free")
+init_fun("WallContour2D_free")
+
 
 @Leaf.register
-class Wall2D(InputVariant):
+class WallContour2D(WallVariant):
     """Simple wall model where the wall is assumed to be axisymmetric."""
-
-    _labels: dict[str, int] | None
-    """Human readable labels for the flag values.
-
-    These are not needed and, hence, not stored in libascot.so. Therefore we
-    store them here when this instance is staged.
-    """
 
     @property
     def n(self) -> int:
-        """Number of wall vertices."""
         if self._cdata is not None:
             return self._cdata.readonly_carray("n", ())
         assert self._file is not None
@@ -73,25 +66,6 @@ class Wall2D(InputVariant):
         assert self._file is not None
         return self._file.read("z")
 
-    @property
-    def flag(self) -> np.ndarray:
-        r"""Integer label for grouping wall elements."""
-        if self._cdata is not None:
-            return self._cdata.readonly_carray("flag", shape=(self.n,))
-        assert self._file is not None
-        return self._file.read("flag")
-
-    @property
-    def labels(self) -> dict[str,int]:
-        r"""Human readable labels for the flag values."""
-        if self._cdata is not None:
-            assert self._labels is not None
-            return copy.deepcopy(self._labels)
-        assert self._file is not None
-        return {label.decode("utf-8"): int(flag) for label, flag in
-                zip( self._file.read("labelkeys"), self._file.read("labelvalues") )
-                }
-
     # pylint: disable=too-many-arguments
     def _stage(
             self, r: unyt.unyt_array,
@@ -101,7 +75,7 @@ class Wall2D(InputVariant):
             ) -> None:
         self._cdata = Struct()
         self._labels = labels
-        if LIBASCOT.wall_2d_init(
+        if LIBASCOT.WallContour2D_init(
             ctypes.byref(self._cdata), r.size, r.v, z.v, flag,
             ):
             self._cdata = None
@@ -112,12 +86,11 @@ class Wall2D(InputVariant):
         assert self._file is not None
         self._file.write("r", self.r)
         self._file.write("z", self.z)
-        self._file.write("flag", self.flag)
+        self._save_flags_and_labels()
 
-        labels = np.char.encode(list( self.labels.keys() ), "utf-8")
-        flags = np.array( list(self.labels.values()) )
-        self._file.write("labelkeys", labels)
-        self._file.write("labelvalues", flags)
+    def export(self) -> dict[str, unyt.unyt_array | np.ndarray]:
+        fields = ["r", "z", "flag", "labels",]
+        return {field: getattr(self, field) for field in fields}
 
     def stage(self) -> None:
         super().stage()
@@ -126,17 +99,17 @@ class Wall2D(InputVariant):
     def unstage(self) -> None:
         super().unstage()
         assert self._cdata is not None
-        LIBASCOT.wall_2d_free(ctypes.byref(self._cdata))
+        LIBASCOT.WallContour2D_free(ctypes.byref(self._cdata))
         self._cdata = None
         self._labels = None
 
 
 # pylint: disable=too-few-public-methods
-class CreateWall2DMixin(TreeMixin):
+class CreateMixin(TreeMixin):
     """Provides the factory method."""
 
     #pylint: disable=protected-access, too-many-arguments, too-many-locals
-    def create_wall2d(
+    def create_wallcontour2d(
             self,
             r: utils.ArrayLike,
             z: utils.ArrayLike,
@@ -146,7 +119,7 @@ class CreateWall2DMixin(TreeMixin):
             activate: bool=False,
             preview: bool=False,
             save: Optional[bool]=None,
-            ) -> Wall2D:
+            ) -> WallContour2D:
         r"""Create closed 2D polygon that forms the (axisymmetric) first wall.
 
         This is a simple wall model which is easy to create when 3D wall is not
@@ -190,7 +163,7 @@ class CreateWall2DMixin(TreeMixin):
 
         Returns
         -------
-        obj : :class:`.Wall2D`
+        obj : :class:`.WallContour2D`
             Input variant created from the given parameters.
 
         Notes
@@ -222,6 +195,7 @@ class CreateWall2DMixin(TreeMixin):
             raise ValueError(
                 "'r' and 'z' must be arrays with at least three elements."
                 )
+        # check that the elements are not on same line
 
         with utils.validate_variables() as v:
             r = v.validate("r", r, (n,), "m")
@@ -230,23 +204,9 @@ class CreateWall2DMixin(TreeMixin):
                 "flag", flag, (n,), dtype="i4", default=np.full(n, 0),
                 )
 
-        if labels is None:
-            labels = {"wall": 0}
+        labels = WallVariant.validate_labels(labels, flag)
 
-        for label, label_flag in labels.items():
-            if not isinstance(label, str):
-                raise ValueError("Labels must be strings.")
-            if not isinstance(label_flag, int):
-                raise ValueError("Flags in 'labels' must be integers.")
-
-        assert isinstance(flag, np.ndarray)
-        unlabeled = [f for f in flag if f not in labels.values()]
-        if unlabeled:
-            raise ValueError(
-                f"Flags `{unlabeled}` do not have a corresponding label."
-                )
-
-        leaf = Wall2D(note=note)
+        leaf = WallContour2D(note=note)
         leaf._stage(r=r, z=z, flag=flag, labels=copy.deepcopy(labels))
         if preview:
             return leaf

@@ -13,48 +13,52 @@
  * E_field_offload_data.type and E_field_data.type from the struct that is given
  * as an argument, and calls the relevant function for that instance.
  */
-#include <stdio.h>
-#include "ascot5.h"
-#include "error.h"
 #include "E_field.h"
 #include "B_field.h"
-#include "Efield/E_TC.h"
 #include "Efield/E_1DS.h"
+#include "Efield/E_TC.h"
+#include "ascot5.h"
+#include "error.h"
+#include <stdio.h>
 
 /**
- * @brief Free allocated resources
+ * Free allocated resources
  *
  * @param data pointer to the data struct
  */
-void E_field_free(E_field_data* data) {
-    switch(data->type) {
-        case E_field_type_1DS:
-            E_1DS_free(data->E1DS);
-            break;
-        case E_field_type_TC:
-            E_TC_free(data->ETC);
-            break;
+void E_field_free(E_field_data *efield)
+{
+    switch (efield->type)
+    {
+    case E_field_type_potential1d:
+        EfieldPotential1D_free(efield->potential1d);
+        break;
+    case E_field_type_cartesian:
+        EfieldCartesian_free(efield->cartesian);
+        break;
     }
 }
 
 /**
- * @brief Offload data to the accelerator.
+ * Offload data to the accelerator.
  *
  * @param data pointer to the data struct
  */
-void E_field_offload(E_field_data* data) {
-    switch(data->type) {
-        case E_field_type_1DS:
-            E_1DS_offload(data->E1DS);
-            break;
-        case E_field_type_TC:
-            E_TC_offload(data->ETC);
-            break;
+void E_field_offload(E_field_data *efield)
+{
+    switch (efield->type)
+    {
+    case E_field_type_potential1d:
+        EfieldPotential1D_offload(efield->potential1d);
+        break;
+    case E_field_type_cartesian:
+        EfieldCartesian_offload(efield->cartesian);
+        break;
     }
 }
 
 /**
- * @brief Evaluate electric field
+ * Evaluate electric field
  *
  * This function evaluates the electric field at the given coordinates. Note
  * that magnetic field data is also required in case electric field is e.g.
@@ -73,29 +77,33 @@ void E_field_offload(E_field_data* data) {
  * @param phi phi coordinate [deg]
  * @param z z coordinate [m]
  * @param t time coordinate [s]
- * @param Edata pointer to electric field data struct
- * @param Bdata pointer to magnetic field data struct
+ * @param efield pointer to electric field data struct
+ * @param bfield pointer to magnetic field data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err E_field_eval_E(real E[3], real r, real phi, real z, real t,
-                     E_field_data* Edata, B_field_data* Bdata) {
+a5err E_field_eval_E(
+    real e[3], real r, real phi, real z, real t, E_field_data *efield,
+    B_field_data *bfield)
+{
     a5err err = 0;
 
-    switch(Edata->type) {
+    switch (efield->type)
+    {
 
-        case E_field_type_1DS:
-            err = E_1DS_eval_E(E, r, phi, z, Edata->E1DS, Bdata);
-            break;
+    case E_field_type_potential1d:
+        err =
+            EfieldPotential1D_eval_e(e, r, phi, z, efield->potential1d, bfield);
+        break;
 
-        case E_field_type_TC:
-            err = E_TC_eval_E(E, r, phi, z, Edata->ETC, Bdata);
-            break;
+    case E_field_type_cartesian:
+        err = EfieldCartesian_eval_e(e, r, phi, z, efield->cartesian, bfield);
+        break;
 
-        default:
-            /* Unregonized input. Produce error. */
-            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_E_FIELD );
-            break;
+    default:
+        /* Unregonized input. Produce error. */
+        err = error_raise(ERR_UNKNOWN_INPUT, __LINE__, EF_E_FIELD);
+        break;
     }
 
     return err;

@@ -1,93 +1,59 @@
-/**
- * @file E_1DS.c
- * @brief 1D spline electric field evaluation functions
- */
 #include <stdio.h>
 #include <stdlib.h>
-#include "../ascot5.h"
-#include "../error.h"
-#include "../B_field.h"
-#include "../spline/interp.h"
+#include "ascot5.h"
+#include "error.h"
+#include "B_field.h"
+#include "interp.h"
 #include "E_1DS.h"
 
-/**
- * @brief Initialize 1DS electric field data
- *
- * @param data pointer to the data struct
- * @param nrho number of points in the rho grid
- * @param rhomin minimum rho value in the grid
- * @param rhomax maximum rho value in the grid
- * @param reff effective minor radius
- * @param dvdrho gradient of the potential
- *
- * @return zero if initialization succeeded
- */
-int E_1DS_init(E_1DS_data* data, int nrho, real rhomin, real rhomax, real reff,
-               real* dvdrho) {
+
+int EfieldPotential1D_init(
+    EfieldPotential1D* data, int nrho, real reff, real rholim[2],
+    real dvdrho[nrho]
+) {
     data->reff = reff;
-    int err = interp1Dcomp_setup(&data->dV, dvdrho, nrho, NATURALBC,
-                             rhomin, rhomax);
+    int err = interp1Dcomp_setup(
+        &data->dv, dvdrho, nrho, NATURALBC, rholim[0], rholim[1]
+    );
     return err;
 }
 
-/**
- * @brief Free allocated resources
- *
- * @param data pointer to the data struct
- */
-void E_1DS_free(E_1DS_data* data) {
-    free(data->dV.c);
+
+void EfieldPotential1D_free(EfieldPotential1D* efield) {
+    free(efield->dv.c);
 }
 
-/**
- * @brief Offload data to the accelerator.
- *
- * @param data pointer to the data struct
- */
-void E_1DS_offload(E_1DS_data* data) {
-    GPU_MAP_TO_DEVICE( data->dV, data->dV.c[0:data->dV.n_x*NSIZE_COMP1D] )
+
+void EfieldPotential1D_offload(EfieldPotential1D* efield) {
+    (void)efield;
+    GPU_MAP_TO_DEVICE( efield->dV, efield->dV.c[0:efield->dv.n_x*NSIZE_COMP1D] )
 }
 
-/**
- * @brief Evaluate 1D spline radial electric field
- *
- * This function evaluates the 1D spline potential gradient of the plasma at the
- * given radial coordinate using linear interpolation, and then calculates the
- * radial electric field by multiplying that with the rho-gradient. Gradient of
- * rho is obtained via magnetic field module.
- *
- * @param E array where the electric field will be stored (E_r -> E[1],
- *        E_phi -> E[1], E_z -> E[2])
- * @param r R-coordiante [m]
- * @param phi phi-coordinate [rad]
- * @param z z-coordiante [m]
- * @param Edata pointer to electric field data
- * @param Bdata pointer to magnetic field data
- *
- * @return zero if evaluation succeeded
- */
-a5err E_1DS_eval_E(real E[3], real r, real phi, real z, E_1DS_data* Edata,
-                   B_field_data* Bdata) {
+
+a5err EfieldPotential1D_eval_e(
+    real e[3], real r, real phi, real z, EfieldPotential1D* efield,
+    B_field_data* bfield
+) {
     a5err err = 0;
-    int interperr = 0; /* If error happened during interpolation */
+    int interperr = 0;
     real rho_drho[4];
-    err = B_field_eval_rho_drho(rho_drho, r, phi, z, Bdata);
+    err = B_field_eval_rho_drho(rho_drho, r, phi, z, bfield);
     if(err) {
         err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_E_1DS );
     }
     /* Convert partial derivative to gradient */
     rho_drho[2] = rho_drho[2]/r;
     /* We set the field to zero if outside the profile. */
-    if (rho_drho[0] < Edata->dV.x_min || rho_drho[0] > Edata->dV.x_max ) {
-        E[0] = 0;
-        E[1] = 0;
-        E[2] = 0;
+    if (rho_drho[0] < efield->dv.x_min || rho_drho[0] > efield->dv.x_max ) {
+        e[0] = 0;
+        e[1] = 0;
+        e[2] = 0;
     } else {
         real dV;
-        interperr += interp1Dcomp_eval_f(&dV, &Edata->dV, rho_drho[0]);
-        E[0] = -dV * rho_drho[1] * Edata->reff;
-        E[1] = -dV * rho_drho[2] * Edata->reff;
-        E[2] = -dV * rho_drho[3] * Edata->reff;
+        interperr += interp1Dcomp_eval_f(&dV, &efield->dv, rho_drho[0]);
+        e[0] = -dV * rho_drho[1] * efield->reff;
+        e[1] = -dV * rho_drho[2] * efield->reff;
+        e[2] = -dV * rho_drho[3] * efield->reff;
 
         if(interperr) {
             err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_E_1DS );

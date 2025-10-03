@@ -1,97 +1,69 @@
 /**
- * @file wall_2d.c
- * @brief 2D wall collision checks
+ * Implements wall_2d.h.
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "../ascot5.h"
+#include "ascot5.h"
 #include "wall_2d.h"
 
-/**
- * @brief Load 2D wall data and prepare parameters
- *
- * @param data pointer to the data struct
- * @param nelements number of elements in the wall polygon
- * @param r R coordinates for the wall polygon points
- * @param z z coordinates for the wall polygon points
- * @param flag integer label for grouping wall elements together.
- *
- * @return zero to indicate success
- */
-int wall_2d_init(wall_2d_data* data, int nelements, real* r, real* z,
-                 int* flag) {
 
-    data->n = nelements;
-    data->flag = (int*)malloc(nelements * sizeof(int));
-    data->wall_r = (real*) malloc( nelements * sizeof(real) );
-    data->wall_z = (real*) malloc( nelements * sizeof(real) );
+int WallContour2D_init(
+    WallContour2D* wall, int n, real r[n], real z[n], int flag[n]
+) {
+
+    wall->n = n;
+    wall->flag = (int*)malloc(n * sizeof(int));
+    wall->r = (real*) malloc( n * sizeof(real) );
+    wall->z = (real*) malloc( n * sizeof(real) );
     real rmin = r[0], rmax = r[0];
     real zmin = z[0], zmax = z[0];
-    for(int i=0; i < nelements; i++) {
+    for(int i=0; i < n; i++) {
         rmin = fmin(rmin, r[i]);
         rmax = fmax(rmax, r[i]);
         zmin = fmin(zmin, z[i]);
         zmax = fmax(zmax, z[i]);
-        data->wall_r[i] = r[i];
-        data->wall_z[i] = z[i];
-        data->flag[i] = flag[i];
+        wall->r[i] = r[i];
+        wall->z[i] = z[i];
+        wall->flag[i] = flag[i];
     }
     return 0;
 }
 
-/**
- * @brief Free allocated resources
- *
- * @param data pointer to the data struct
- */
-void wall_2d_free(wall_2d_data* data) {
-    free(data->wall_r);
-    free(data->wall_z);
+
+void WallContour2D_free(WallContour2D* wall) {
+    free(wall->r);
+    free(wall->z);
 }
 
-/**
- * @brief Offload data to the accelerator.
- *
- * @param data pointer to the data struct
- */
-void wall_2d_offload(wall_2d_data* data) {
+
+void WallContour2D_offload(WallContour2D* wall) {
+    (void)wall;
     GPU_MAP_TO_DEVICE(
-        data->wall_r[0:data->n],
-        data->wall_z[0:data->n],
-        data->flag[0:data->n]
+        wall->r[0:wall->n],
+        wall->z[0:wall->n],
+        wall->flag[0:wall->n]
     )
 }
 
-/**
- * @brief Check if coordinates are within 2D polygon wall
- *
- * This function checks if the given coordinates are within the walls defined
- * by a 2D polygon using a modified axis crossing method Origin is moved
- * to the coordinates and the number of wall segments crossing the positive
- * R-axis are calculated. If this is odd, the point is inside the polygon.
- *
- * @param r R coordinate [m]
- * @param z z coordinate [m]
- * @param w 2D wall data structure
- */
-int wall_2d_inside(real r, real z, wall_2d_data* w) {
+
+int WallContour2D_inside(real r, real z, WallContour2D* wall) {
     int hits = 0;
-    for(int i = 0; i < w->n; i++) {
+    for(int i = 0; i < wall->n; i++) {
         real wr1, wr2, wz1, wz2;
-        if(i == w->n - 1) {
-            wz1 = w->wall_z[i] - z;
-            wz2 = w->wall_z[0]   - z;
-            wr1 = w->wall_r[i] - r;
-            wr2 = w->wall_r[0]   - r;
+        if(i == wall->n - 1) {
+            wz1 = wall->z[i] - z;
+            wz2 = wall->z[0] - z;
+            wr1 = wall->r[i] - r;
+            wr2 = wall->r[0] - r;
         } else {
-            wz1 = w->wall_z[i]   - z;
-            wz2 = w->wall_z[i+1] - z;
-            wr1 = w->wall_r[i]   - r;
-            wr2 = w->wall_r[i+1] - r;
+            wz1 = wall->z[i] - z;
+            wr1 = wall->r[i] - r;
+            wz2 = wall->z[i+1] - z;
+            wr2 = wall->r[i+1] - r;
         }
         if(wz1 * wz2 < 0) {
-            real ri = wr1 + (wz1*(wr2-wr1)) / (wz1-wz2);
+            real ri = wr1 + ( wz1 * (wr2-wr1) ) / (wz1-wz2);
             if(ri > 0) {
                 hits++;
             }
@@ -100,64 +72,36 @@ int wall_2d_inside(real r, real z, wall_2d_data* w) {
     return hits % 2;
 }
 
-/**
- * @brief Check if trajectory from (r1, phi1, z1) to (r2, phi2, z2) intersects
- *        the wall
- *
- * @param r1 start point R coordinate [m]
- * @param phi1 start point phi coordinate [rad]
- * @param z1 start point z coordinate [m]
- * @param r2 end point R coordinate [m]
- * @param phi2 end point phi coordinate [rad]
- * @param z2 end point z coordinate [m]
- * @param w pointer to data struct on target
- * @param w_coll pointer for storing the parameter in P = P1 + w_coll * (P2-P1),
- *        where P is the point where the collision occurred.
- *
- * @return wall element ID if hit, zero otherwise
- */
-int wall_2d_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
-                     wall_2d_data* w, real* w_coll) {
-    return wall_2d_find_intersection(r1, z1, r2, z2, w, w_coll);
+
+int WallContour2D_hit_wall(
+    real r1, real z1, real r2, real z2, real* w_coll, WallContour2D* wall
+) {
+    return WallContour2D_find_intersection(r1, z1, r2, z2, w_coll, wall);
 }
 
-/**
- * @brief Find intersection between the wall element and line segment
- *
- * If there are multiple intersections, the one that is closest to P1
- * is returned.
- *
- * @param r1 R1 coordinate of the line segment [P1,P2] [m]
- * @param z1 z1 coordinate of the line segment [P1,P2] [m]
- * @param r2 R2 coordinate of the line segment [P1,P2] [m]
- * @param z2 z2 coordinate of the line segment [P1,P2] [m]
- * @param w pointer to the wall data
- * @param w_coll pointer for storing the parameter in P = P1 + w_coll * (P2-P1),
- *        where P is the point where the collision occurred.
- *
- * @return int wall element id if hit, zero otherwise
- */
-int wall_2d_find_intersection(real r1, real z1, real r2, real z2,
-                              wall_2d_data* w, real* w_coll) {
+
+int WallContour2D_find_intersection(
+    real r1, real z1, real r2, real z2, real* w_coll, WallContour2D* wall
+) {
     int tile = 0;
     real t0 = 2.0; // Helper variable to pick the closest intersection
-    for(int i=0; i<w->n; i++) {
+    for(int i=0; i < wall->n; i++) {
         real r3, z3, r4, z4;
-        if(i == w->n-1) {
-            r3 = w->wall_r[i];
-            z3 = w->wall_z[i];
-            r4 = w->wall_r[0];
-            z4 = w->wall_z[0];
+        if(i == wall->n - 1) {
+            r3 = wall->r[i];
+            z3 = wall->z[i];
+            r4 = wall->r[0];
+            z4 = wall->z[0];
         } else {
-            r3 = w->wall_r[i];
-            z3 = w->wall_z[i];
-            r4 = w->wall_r[i+1];
-            z4 = w->wall_z[i+1];
+            r3 = wall->r[i];
+            z3 = wall->z[i];
+            r4 = wall->r[i+1];
+            z4 = wall->z[i+1];
         }
 
-        real div = (r1 - r2) * (z3 - z4) - (z1 - z2) * (r3 - r4);
-        real t   = ( (r1 - r3) * (z3 - z4) - (z1 - z3) * (r3 - r4) ) / div;
-        real u   = ( (r1 - r3) * (z1 - z2) - (z1 - z3) * (r1 - r2) ) / div;
+        real div = (r1-r2) * (z3-z4) - (z1-z2) * (r3-r4);
+        real t   = ( (r1-r3) * (z3-z4) - (z1-z3) * (r3-r4) ) / div;
+        real u   = ( (r1-r3) * (z1-z2) - (z1-z3) * (r1-r2) ) / div;
         if(0 <= t && t <= 1.0 && 0 <= u && u <= 1.0 && t < t0) {
             t0   = t;
             tile = i + 1;

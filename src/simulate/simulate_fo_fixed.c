@@ -7,18 +7,18 @@
 #include <time.h>
 #include <omp.h>
 #include <math.h>
-#include "../ascot5.h"
-#include "../physlib.h"
-#include "../simulate.h"
-#include "../particle.h"
-#include "../wall.h"
-#include "../diag.h"
-#include "../B_field.h"
-#include "../E_field.h"
-#include "../plasma.h"
-#include "../endcond.h"
-#include "../math.h"
-#include "../consts.h"
+#include "ascot5.h"
+#include "physlib.h"
+#include "simulate.h"
+#include "particle.h"
+#include "wall.h"
+#include "diag.h"
+#include "B_field.h"
+#include "E_field.h"
+#include "plasma.h"
+#include "endcond.h"
+#include "math.h"
+#include "consts.h"
 #include "simulate_fo_fixed.h"
 #include "step/step_fo_vpa.h"
 #include "mccc/mccc.h"
@@ -158,7 +158,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         /* Update diagnostics */
         if(!(sim->params->record_mode)) {
             /* Record particle coordinates */
-            diag_update_fo(sim, &sim->B_data, &p, &p0);
+            diag_update_fo(sim->diagnostics, sim->params, &sim->B_data, &p, &p0);
         }
         else {
             /* Instead of particle coordinates we record guiding center */
@@ -185,7 +185,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
                     gc_i.running[i] = 0;
                 }
             }
-            diag_update_gc(sim, &sim->B_data, &gc_f, &gc_i);
+            diag_update_gc(sim->diagnostics, sim->params, &sim->B_data, &gc_f, &gc_i);
         }
 
         /* Update running particles */

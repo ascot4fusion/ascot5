@@ -1,27 +1,14 @@
 /**
- * @file interp1Dcomp.c
- * @brief Cubic spline interpolation in compact form
+ * Cubic 1D spline interpolation in compact form (see interp.h).
  */
 #include <stdlib.h>
 #include <math.h>
-#include "../ascot5.h"
-#include "../math.h"
+#include "ascot5.h"
+#include "math.h"
 #include "interp.h"
 #include "spline.h"
 
-/**
- * @brief Calculate cubic spline interpolation coefficients for scalar 1D data
- *
- * This function calculates the cubic spline interpolation coefficients and
- * stores them in a pre-allocated array. Compact cofficients are calculated.
- *
- * @param c allocated array of length n_x*2 to store the coefficients
- * @param f 1D data to be interpolated
- * @param n_x number of data points in the x axis
- * @param bc_x boundary condition for the x axis
- * @param x_min minimum value of the x axis
- * @param x_max maximum value of the x axis
- */
+
 int interp1Dcomp_init_coeff(real* c, real* f, int n_x, int bc_x,
                             real x_min, real x_max) {
 
@@ -55,16 +42,7 @@ int interp1Dcomp_init_coeff(real* c, real* f, int n_x, int bc_x,
     return 0;
 }
 
-/**
- * @brief Initialize a cubic spline
- *
- * @param str pointer to spline to be initialized
- * @param c array where coefficients are stored
- * @param n_x number of data points in the x direction
- * @param bc_x boundary condition for x axis
- * @param x_min minimum value of the x axis
- * @param x_max maximum value of the x axis
- */
+
 void interp1Dcomp_init_spline(interp1D_data* str, real* c,
                               int n_x, int bc_x, real x_min, real x_max) {
 

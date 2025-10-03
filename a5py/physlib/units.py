@@ -8,9 +8,11 @@ import warnings
 from typing import Union, Tuple, List, Dict, Any
 from functools import wraps
 
-from ..utils import Numerical
+#from ..utils import Numerical
 from ..exceptions import AscotUnitWarning
 
+class Numerical:
+    pass
 
 def parse_units(strip: bool = False, **expected: str) -> Any:
     """Check the units of the arguments before they are passed to the wrapped

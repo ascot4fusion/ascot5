@@ -2,6 +2,7 @@
 
 TreeManager in these tests is a mock object.
 """
+
 import pytest
 
 import difflib
@@ -26,9 +27,9 @@ def leaf():
     leaf = Leaf(date=DATES[0], note=NOTE)
     return leaf
 
+
 def test_add_leaf(node, leaf):
-    """Test that a leaf added to the node can be queried using leaf name or tag.
-    """
+    """Test that a leaf added to the node can be queried using leaf name or tag."""
     node._add_leaf(leaf)
     assert leaf is node[leaf.name]
     assert leaf is node[Leaf.extract_tag(leaf.note)[0]]
@@ -99,7 +100,11 @@ def test_organize_by_date(node):
     node._add_leaf(leaf2)
     assert node._names == [f"{Leaf.__name__}_1", f"{Leaf.__name__}_2"]
     node._add_leaf(leaf3)
-    assert node._names == [f"{Leaf.__name__}_3", f"{Leaf.__name__}_1", f"{Leaf.__name__}_2"]
+    assert node._names == [
+        f"{Leaf.__name__}_3",
+        f"{Leaf.__name__}_1",
+        f"{Leaf.__name__}_2",
+    ]
     assert node._tags == ["FRIDAY", "SATURDAY", "SUNDAY"]
     node._remove_leaf(leaf3)
     assert node._names == [f"{Leaf.__name__}_1", f"{Leaf.__name__}_2"]
@@ -164,10 +169,15 @@ def test_input_category_contents():
         BENNETT_1
         Let off some steam <Bennett>
 
-        """)
-    diff = '\n'.join(difflib.unified_diff(
-        inputnode.contents.splitlines(),
-        expected.splitlines()[1:],
-        fromfile="contents", tofile="expected", lineterm="",
-    ))
+        """
+    )
+    diff = "\n".join(
+        difflib.unified_diff(
+            inputnode.contents.splitlines(),
+            expected.splitlines()[1:],
+            fromfile="contents",
+            tofile="expected",
+            lineterm="",
+        )
+    )
     assert not diff, f"Strings differ:\n{diff}"

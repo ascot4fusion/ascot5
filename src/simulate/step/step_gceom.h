@@ -6,10 +6,10 @@
 #define STEP_GCEOM_H
 
 #include <math.h>
-#include "../../ascot5.h"
-#include "../../consts.h"
-#include "../../math.h"
-#include "../../physlib.h"
+#include "ascot5.h"
+#include "consts.h"
+#include "math.h"
+#include "physlib.h"
 
 
 /**

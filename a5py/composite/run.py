@@ -3,9 +3,10 @@ from typing import Optional
 import unyt
 import numpy as np
 
-from a5py.data.access import OutputVariant
+from a5py.data.access import OutputVariant, Leaf
 from a5py.data.marker.state import MarkerState
 
+@Leaf.register
 class Run(OutputVariant):
 
     def _setup(self, mrk):

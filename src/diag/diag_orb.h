@@ -8,8 +8,9 @@
 #define DIAG_ORB_H
 
 #include <stdio.h>
-#include "../particle.h"
-#include "../options.h"
+#include "particle.h"
+#include "options.h"
+#include "diag.h"
 
 #define DIAG_ORB_POINCARE 0      /**< Poincare mode flag                 */
 #define DIAG_ORB_INTERVAL 1      /**< Interval mode flag                 */
@@ -29,44 +30,6 @@ real diag_orb_check_plane_crossing(real fang, real iang, real ang0);
 DECLARE_TARGET_SIMD_UNIFORM(r0)
 real diag_orb_check_radial_crossing(real fr, real ir, real r0);
 
-/**
- * @brief Orbit diagnostics data struct.
- *
- * The pointers are asssigned to the offload array but only those pointers
- * are used which corresponds to the simulation mode (e.g. GC simulation).
- *
- * The marker orbit data are stored in maxpoints length chunks in the
- * offload array. The chuncks are in no particular order. Once chunk is
- * filled and the marker is still recording, new points replace the old
- * ones from the start.
- */
-typedef struct{
-    real* id;     /**< Marker ID                                            */
-    real* mileage;/**< Time marker has been simulated for [s]               */
-    real* r;      /**< Marker R coordinate [m]                              */
-    real* phi;    /**< Marker phi coordinate [rad]                          */
-    real* z;      /**< Marker z coordiante [m]                              */
-    real* p_r;    /**< Particle momentum R component [kg m/s]               */
-    real* p_phi;  /**< Particle momentum phi component [kg m/s]             */
-    real* p_z;    /**< Particle momentum z component [kg m/s]               */
-    real* ppar;   /**< Guiding center parallel momentum [kg m/s]            */
-    real* mu;     /**< Guiding center magnetic moment [J/T]                 */
-    real* zeta;   /**< Guiding center gyroangle [rad]                       */
-    real* weight; /**< Marker weight [1]                                    */
-    real* charge; /**< Marker charge [C]                                    */
-    real* rho;    /**< Normalized poloidal flux at marker position [1]      */
-    real* theta;  /**< Marker poloidal angle [rad]                          */
-    real* B_r;    /**< Magnetic field R component at marker position [T]    */
-    real* B_phi;  /**< Magnetic field phi component at marker position [T]  */
-    real* B_z;    /**< Magnetic field z component at marker position [T]    */
-    real* simmode;/**< In what simulation mode data point was recorded      */
-    real* pncrid; /**< Id for the poincare plot a point corresponds to      */
-    real* pncrdi; /**< Direction in which Poincare plane was crossed        */
-
-    integer* mrk_pnt;     /**< Index of the last recorded point             */
-    real* mrk_recorded;   /**< Last time (in seconds) a marker was updated  */
-
-}diag_orb_data;
 
 void diag_orb_init(diag_orb_data* data, sim_parameters* params, size_t nmarkers);
 

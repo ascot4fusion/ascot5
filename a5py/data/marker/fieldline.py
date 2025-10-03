@@ -97,6 +97,9 @@ class FieldlineMarker(InputVariant):
         assert self._file is not None
         return self._file.read("ids").size
 
+    def _fill_state(self, bfield):
+        pass
+
     #pylint: disable=too-many-arguments
     def _stage(
             self, r: unyt.unyt_array,
@@ -143,12 +146,12 @@ class CreateMixin(TreeMixin):
     #pylint: disable=protected-access, too-many-arguments, too-many-locals
     def create_fieldlinemarker(
             self,
-            r: utils.Numerical,
-            z: utils.Numerical,
-            phi: Optional[utils.Numerical]=None,
-            direction: Optional[utils.Numerical]=None,
-            time: Optional[utils.Numerical]=None,
-            ids: Optional[utils.Numerical]=None,
+            r: utils.ArrayLike,
+            z: utils.ArrayLike,
+            phi: Optional[utils.ArrayLike]=None,
+            direction: Optional[utils.ArrayLike]=None,
+            time: Optional[utils.ArrayLike]=None,
+            ids: Optional[utils.ArrayLike]=None,
             note: Optional[str]=None,
             activate: bool=False,
             preview: bool=False,

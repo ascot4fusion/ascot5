@@ -5,13 +5,13 @@
 
     ~BfieldCartesian
     ~BfieldAnalytical
-    ~Bfield2D
-    ~Bfield3D
+    ~BfieldSpline2D
+    ~BfieldSpline3D
     ~BfieldStellarator
     ~CreateBfieldMixin.create_bfieldcartesian
     ~CreateBfieldMixin.create_bfieldanalytical
-    ~CreateBfieldMixin.create_bfield2d
-    ~CreateBfieldMixin.create_bfield3d
+    ~CreateBfieldMixin.create_bfieldspline2d
+    ~CreateBfieldMixin.create_bfieldspline3d
     ~CreateBfieldMixin.create_bfieldstellarator
 
 .. rubric:: Classes
@@ -22,10 +22,10 @@
 .. autoclass:: BfieldAnalytical
     :members:
 
-.. autoclass:: Bfield2D
+.. autoclass:: BfieldSpline2D
     :members:
 
-.. autoclass:: Bfield3D
+.. autoclass:: BfieldSpline3D
     :members:
 
 .. autoclass:: BfieldStellarator
@@ -42,13 +42,13 @@ from a5py.libascot import input_category
 
 from . import cartesian
 from . import analytical
-from . import axisymmetric
-from . import perturbed
+from . import spline2d
+from . import spline3d
 from . import stellarator
 from .cartesian import BfieldCartesian
 from .analytical import BfieldAnalytical
-from .axisymmetric import Bfield2D
-from .perturbed import Bfield3D
+from .spline2d import BfieldSpline2D
+from .spline3d import BfieldSpline3D
 from .stellarator import BfieldStellarator
 
 
@@ -58,11 +58,11 @@ class Bfield(ctypes.Structure):
     """Wrapper for the magnetic field data in B_field.h."""
 
     _fields_ = [
-        ("BTC", ctypes.POINTER(cartesian.Struct)),
-        ("BGS", ctypes.POINTER(analytical.Struct)),
-        ("B2DS", ctypes.POINTER(axisymmetric.Struct)),
-        ("B3DS", ctypes.POINTER(perturbed.Struct)),
-        ("BSTS", ctypes.POINTER(stellarator.Struct)),
+        ("Cartesian", ctypes.POINTER(cartesian.Struct)),
+        ("Analytical", ctypes.POINTER(analytical.Struct)),
+        ("Spline2D", ctypes.POINTER(spline2d.Struct)),
+        ("Spline3D", ctypes.POINTER(spline3d.Struct)),
+        ("Stellarator", ctypes.POINTER(stellarator.Struct)),
         ("type", ctypes.c_uint32),
     ]
 
@@ -71,8 +71,8 @@ class Bfield(ctypes.Structure):
 class CreateBfieldMixin(
     cartesian.CreateMixin,
     analytical.CreateMixin,
-    axisymmetric.CreateMixin,
-    perturbed.CreateMixin,
+    spline2d.CreateMixin,
+    spline3d.CreateMixin,
     stellarator.CreateMixin,
     ):
     """Mixin class used by :class:`.AscotData` to create magnetic field input.
@@ -84,7 +84,7 @@ __all__  = [
     "CreateBfieldMixin",
     "BfieldCartesian",
     "BfieldAnalytical",
+    "BfieldSpline2D",
+    "BfieldSpline3D",
     "BfieldStellarator",
-    "Bfield2D",
-    "Bfield3D",
     ]

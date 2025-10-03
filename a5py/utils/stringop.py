@@ -1,6 +1,6 @@
+"""Any tools related to string manipulation."""
 import re
 from datetime import datetime
-
 
 def format2universaldate(date: datetime, withms: bool=False) -> str:
     """Convert a datetime object to a string.
@@ -36,11 +36,11 @@ def decorate(
     ----------
     string : str
         String to be decorated.
-    color : {"green", "purple"}, optional
+    color : {"green", "purple"}, *optional*
         Color the text.
-    bold : bool, optional
+    bold : bool, *optional*
         Bold the text.
-    underline : bool, optional
+    underline : bool, *optional*
         Underline the text.
 
     Returns

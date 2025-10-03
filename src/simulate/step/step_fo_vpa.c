@@ -4,17 +4,17 @@
  **/
 #include <math.h>
 #include <stdio.h>
-#include "../../offload.h"
-#include "../../ascot5.h"
-#include "../../math.h"
-#include "../../consts.h"
-#include "../../physlib.h"
-#include "../../error.h"
-#include "../../B_field.h"
-#include "../../E_field.h"
-#include "../../boozer.h"
-#include "../../mhd.h"
-#include "../../particle.h"
+#include "offload.h"
+#include "ascot5.h"
+#include "math.h"
+#include "consts.h"
+#include "physlib.h"
+#include "error.h"
+#include "B_field.h"
+#include "E_field.h"
+#include "boozer.h"
+#include "mhd.h"
+#include "particle.h"
 #include "step_fo_vpa.h"
 
 /**

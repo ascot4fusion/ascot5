@@ -36,21 +36,7 @@ void afsi_sample_thermal_2d(sim_data* sim, int ispecies, real mass, int nsample,
                             real r, real phi, real z, real time, real rho,
                             real* density, real* pppara, real* ppperp);
 
-/**
- * @brief Calculate fusion source from two arbitrary ion distributions
- *
- * Inputs and outputs are expected to have same physical (R, phi, z)
- * dimensions.
- *
- * @param sim pointer to simulation data
- * @param reaction fusion reaction type, see the description
- * @param n number of Monte Carlo samples to be used
- * @param react1 reactant 1 distribution data
- * @param react2 reactant 2 distribution data
- * @param mult factor by which the output is scaled
- * @param prod1_data distribution data for product 1 output
- * @param prod2_data distribution data for product 2 output
- */
+
 void afsi_run(sim_data* sim, afsi_data* afsi, int n,
               histogram* prod1, histogram* prod2) {
     /* QID for this run */

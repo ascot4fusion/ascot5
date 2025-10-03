@@ -9,10 +9,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include "../../math.h"
-#include "../../ascot5.h"
-#include "../../consts.h"
-#include "../../error.h"
+#include "math.h"
+#include "ascot5.h"
+#include "consts.h"
+#include "error.h"
 #include "mccc_wiener.h"
 
 /** Indicates an empty slot in wiener array */

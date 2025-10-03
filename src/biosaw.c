@@ -1,45 +1,30 @@
 /**
- * @file biosaw.c
- * @brief Functions for calculating fields from coil geometry
+ * Implements biosaw.h.
  */
-#include "ascot5.h"
 #include "biosaw.h"
+#include "ascot5.h"
 #include "consts.h"
 #include "math.h"
 
-/**
- * @brief Evaluate magnetic field due to a coil at given points.
- *
- * The magnetic field is evaluated using Biot-Savart law.
- *
- * @param n number of query points
- * @param x x-coordinate of a query point [m]
- * @param y y-coordinate of a query point [m]
- * @param z z-coordinate of a query point [m]
- * @param coil_n number of points in coil geometry
- * @param coil_x coil geometry x-coordinate [m]
- * @param coil_y coil geometry y-coordinate [m]
- * @param coil_z coil geometry z-coordinate [m]
- * @param Bx evaluated magnetic field x-component [T]
- * @param By evaluated magnetic field y-component [T]
- * @param Bz evaluated magnetic field z-component [T]
- */
-void biosaw_calc_B(int n, real* x, real* y, real* z,
-                   int coil_n, real* coil_x, real* coil_y, real* coil_z,
-                   real* Bx, real* By, real* Bz) {
+void biosaw_calc_b(
+    int n, int coil_n, real *x, real *y, real *z, real *coil_x, real *coil_y,
+    real *coil_z, real *bx, real *by, real *bz)
+{
 
-    #pragma omp parallel for
-    for(int ix = 0; ix < n; ix++) {
-        Bx[ix] = 0;
-        By[ix] = 0;
-        Bz[ix] = 0;
+#pragma omp parallel for
+    for (int ix = 0; ix < n; ix++)
+    {
+        bx[ix] = 0;
+        by[ix] = 0;
+        bz[ix] = 0;
 
         real p1[3], p2[3];
         p2[0] = coil_x[0];
         p2[1] = coil_y[0];
         p2[2] = coil_z[0];
 
-        for(int i = 1; i < coil_n; i++) {
+        for (int i = 1; i < coil_n; i++)
+        {
             math_copy(p1, p2);
 
             p2[0] = coil_x[i];
@@ -68,20 +53,21 @@ void biosaw_calc_B(int n, real* x, real* y, real* z,
             real h = s * l;
 
             real xs[3];
-            xs[0] = p1[0] + s*p1p2[0] - x[ix];
-            xs[1] = p1[1] + s*p1p2[1] - y[ix];
-            xs[2] = p1[2] + s*p1p2[2] - z[ix];
+            xs[0] = p1[0] + s * p1p2[0] - x[ix];
+            xs[1] = p1[1] + s * p1p2[1] - y[ix];
+            xs[2] = p1[2] + s * p1p2[2] - z[ix];
 
             real d = math_norm(xs);
 
-            real abs_B = CONST_MU0 / (4*CONST_PI) * ((l-h)/d2 + h/d1)/d;
+            real abs_B =
+                CONST_MU0 / (4 * CONST_PI) * ((l - h) / d2 + h / d1) / d;
 
             real dir_B[3];
             math_cross(p1x, p2x, dir_B);
 
-            Bx[ix] += abs_B * dir_B[0] / math_norm(dir_B);
-            By[ix] += abs_B * dir_B[1] / math_norm(dir_B);
-            Bz[ix] += abs_B * dir_B[2] / math_norm(dir_B);
+            bx[ix] += abs_B * dir_B[0] / math_norm(dir_B);
+            by[ix] += abs_B * dir_B[1] / math_norm(dir_B);
+            bz[ix] += abs_B * dir_B[2] / math_norm(dir_B);
         }
     }
 }

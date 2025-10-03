@@ -7,11 +7,11 @@
  * of the predefined coordinate axes.
  */
 #include <stdlib.h>
-#include "../ascot5.h"
-#include "../math.h"
-#include "../consts.h"
-#include "../offload.h"
-#include "../particle.h"
+#include "ascot5.h"
+#include "math.h"
+#include "consts.h"
+#include "offload.h"
+#include "particle.h"
 #include "hist.h"
 
 /**

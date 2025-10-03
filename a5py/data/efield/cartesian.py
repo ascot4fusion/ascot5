@@ -1,6 +1,7 @@
 """Defines the Cartesian electric field input class and the corresponding
 factory method.
 """
+
 import ctypes
 from typing import Optional
 
@@ -18,16 +19,17 @@ class Struct(DataStruct):
     """Python wrapper for the struct in E_TC.h."""
 
     _fields_ = [
-        ("Exyz", ctypes.c_double * 3),
-        ]
+        ("exyz", ctypes.c_double * 3),
+    ]
+
 
 init_fun(
-    "E_TC_init",
+    "EfieldCartesian_init",
     ctypes.POINTER(Struct),
     ndpointer(ctypes.c_double),
 )
 
-init_fun("E_TC_free", ctypes.POINTER(Struct))
+init_fun("EfieldCartesian_free", ctypes.POINTER(Struct))
 
 
 @Leaf.register
@@ -38,14 +40,14 @@ class EfieldCartesian(InputVariant):
     def exyz(self) -> unyt.unyt_array:
         """Electric field vector (uniform in time and space)."""
         if self._cdata is not None:
-            return self._cdata.readonly_carray("Exyz", (3,), "V/m")
+            return self._cdata.readonly_carray("exyz", (3,), "V/m")
         assert self._file is not None
         return self._file.read("exyz")
 
     # pylint: disable=too-many-arguments
     def _stage(self, exyz: unyt.unyt_array) -> None:
         self._cdata = Struct()
-        if LIBASCOT.E_TC_init(ctypes.byref(self._cdata), exyz.v):
+        if LIBASCOT.EfieldCartesian_init(ctypes.byref(self._cdata), exyz.v):
             self._cdata = None
             raise AscotMeltdownError("Could not initialize struct.")
 
@@ -54,7 +56,7 @@ class EfieldCartesian(InputVariant):
         self._file.write("exyz", self.exyz)
 
     def export(self) -> dict[str, unyt.unyt_array]:
-        return {"exyz":self.exyz}
+        return {"exyz": self.exyz}
 
     def stage(self) -> None:
         super().stage()
@@ -63,7 +65,7 @@ class EfieldCartesian(InputVariant):
     def unstage(self) -> None:
         super().unstage()
         assert self._cdata is not None
-        LIBASCOT.E_TC_free(ctypes.byref(self._cdata))
+        LIBASCOT.EfieldCartesian_free(ctypes.byref(self._cdata))
         self._cdata = None
 
 
@@ -71,15 +73,15 @@ class EfieldCartesian(InputVariant):
 class CreateMixin(TreeMixin):
     """Provides the factory method."""
 
-    #pylint: disable=protected-access, too-many-arguments, too-many-locals
+    # pylint: disable=protected-access, too-many-arguments, too-many-locals
     def create_efieldcartesian(
-            self,
-            exyz: utils.ArrayLike,
-            note: Optional[str]=None,
-            activate: bool=False,
-            preview: bool=False,
-            save: Optional[bool]=None,
-            ) -> EfieldCartesian:
+        self,
+        exyz: utils.ArrayLike,
+        note: Optional[str] = None,
+        activate: bool = False,
+        preview: bool = False,
+        save: Optional[bool] = None,
+    ) -> EfieldCartesian:
         r"""Create a constant electric field input which is defined on
         a Cartesian basis.
 
@@ -131,7 +133,11 @@ class CreateMixin(TreeMixin):
         leaf._stage(exyz=exyz)
         if preview:
             return leaf
+
         self._treemanager.enter_leaf(
-            leaf, activate=activate, save=save, category="efield",
-            )
+            leaf,
+            activate=activate,
+            save=save,
+            category="efield",
+        )
         return leaf

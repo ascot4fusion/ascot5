@@ -5,12 +5,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "../ascot5.h"
-#include "../consts.h"
-#include "../physlib.h"
-#include "../simulate.h"
+#include "ascot5.h"
+#include "consts.h"
+#include "physlib.h"
+#include "simulate.h"
 #include "dist_6D.h"
-#include "../gctransform.h"
+#include "gctransform.h"
 
 /**
  * @brief Internal function calculating the index in the histogram array

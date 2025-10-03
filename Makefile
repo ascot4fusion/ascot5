@@ -10,7 +10,7 @@ lint:
 	--disallow-untyped-defs --disallow-incomplete-defs
 
 tests:
-	pytest -s -v
+	pytest -s -v -W "error::UserWarning"
 
 tutorial:
 	@echo TODO
@@ -19,7 +19,6 @@ doc-user:
 	$(MAKE) -C doc PROJECT=user doc
 
 doc-dev:
-	$(MAKE) -C src doc
 	$(MAKE) -C doc PROJECT=dev doc
 
 doc: doc-user doc-dev

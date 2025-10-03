@@ -3,12 +3,17 @@
 .. autosummary::
     :nosignatures:
 
-    ~Wall2D
-    ~CreateWallMixin.create_wall2d
+    ~WallContour2D
+    ~WallTriangular3D
+    ~CreateWallMixin.create_wallcontour2d
+    ~CreateWallMixin.create_walltriangular3d
 
 .. rubric:: Classes
 
-.. autoclass:: Wall2D
+.. autoclass:: WallContour2D
+    :members:
+
+.. autoclass:: WallTriangular3D
     :members:
 
 .. autoclass:: CreateWallMixin
@@ -21,24 +26,26 @@ from a5py.libascot import input_category
 
 from . import axisymmetric
 from . import triangular
-from .axisymmetric import Wall2D, CreateWall2DMixin
-from .triangular import Wall3D, CreateWall3DMixin
+from .axisymmetric import WallContour2D
+from .triangular import WallTriangular3D
 
 
+# pylint: disable=too-few-public-methods
 @input_category
 class Wall(ctypes.Structure):
     """Wrapper for the wall data in libascot.so."""
 
     _fields_ = [
-        ("w2d", ctypes.POINTER(axisymmetric.Struct)),
-        ("w3d", ctypes.POINTER(triangular.Struct)),
+        ("contour2d", ctypes.POINTER(axisymmetric.Struct)),
+        ("triangular3d", ctypes.POINTER(triangular.Struct)),
         ("type", ctypes.c_int32),
         ]
 
 
 # pylint: disable=too-many-ancestors
 class CreateWallMixin(
-    CreateWall2DMixin, #CreateWall3DMixin,
+    axisymmetric.CreateMixin,
+    triangular.CreateMixin,
     ):
     """Mixin class used by :class:`.AscotData` to create wall input.
 
@@ -46,5 +53,7 @@ class CreateWallMixin(
     """
 
 __all__  = [
-    "CreateWallMixin", "Wall2D", "Wall3D",
+    "CreateWallMixin",
+    "WallContour2D",
+    "WallTriangular3D",
     ]

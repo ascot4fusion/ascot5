@@ -5,8 +5,8 @@
 #ifndef MCCC_WIENER_H
 #define MCCC_WIENER_H
 
-#include "../../ascot5.h"
-#include "../../error.h"
+#include "ascot5.h"
+#include "error.h"
 
 /**
  * Wiener process dimension. NDIM=5 because only guiding centers are simulated

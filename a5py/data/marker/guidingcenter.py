@@ -221,16 +221,16 @@ class CreateMixin(TreeMixin):
     def create_guidingcentermarker(
             self,
             species: str | Species,
-            charge: utils.Numerical,
-            r: utils.Numerical,
-            z: utils.Numerical,
-            ekin: utils.Numerical,
-            pitch: utils.Numerical,
-            phi: Optional[utils.Numerical]=None,
-            gyroangle: Optional[utils.Numerical]=None,
-            weight: Optional[utils.Numerical]=None,
-            time: Optional[utils.Numerical]=None,
-            ids: Optional[utils.Numerical]=None,
+            charge: utils.ArrayLike,
+            r: utils.ArrayLike,
+            z: utils.ArrayLike,
+            ekin: utils.ArrayLike,
+            pitch: utils.ArrayLike,
+            phi: Optional[utils.ArrayLike]=None,
+            gyroangle: Optional[utils.ArrayLike]=None,
+            weight: Optional[utils.ArrayLike]=None,
+            time: Optional[utils.ArrayLike]=None,
+            ids: Optional[utils.ArrayLike]=None,
             note: Optional[str]=None,
             activate: bool=False,
             preview: bool=False,
@@ -317,7 +317,7 @@ class CreateMixin(TreeMixin):
                         )
                 n = utils.size(param)
 
-        to_array = lambda x: utils.to_array(x, n)
+        to_array = lambda x: utils.scalar2array(x, n)
 
         r, z, phi, ekin, pitch, charge, weight, time, gyroangle = (
             to_array(r), to_array(z), to_array(phi), to_array(ekin),

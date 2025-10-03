@@ -3,14 +3,14 @@
  * @brief Euler-Maruyama integrator for collision operator in FO picture.
  */
 #include <math.h>
-#include "../../ascot5.h"
-#include "../../consts.h"
-#include "../../math.h"
-#include "../../error.h"
-#include "../../physlib.h"
-#include "../../particle.h"
-#include "../../plasma.h"
-#include "../../random.h"
+#include "ascot5.h"
+#include "consts.h"
+#include "math.h"
+#include "error.h"
+#include "physlib.h"
+#include "particle.h"
+#include "plasma.h"
+#include "random.h"
 #include "mccc_coefs.h"
 #include "mccc.h"
 

@@ -7,21 +7,21 @@
 #include <time.h>
 #include <omp.h>
 #include <math.h>
-#include "../ascot5.h"
-#include "../endcond.h"
-#include "../math.h"
-#include "../consts.h"
-#include "../physlib.h"
-#include "../simulate.h"
-#include "../particle.h"
-#include "../wall.h"
-#include "../diag.h"
-#include "../B_field.h"
-#include "../E_field.h"
-#include "../boozer.h"
-#include "../mhd.h"
-#include "../rfof.h"
-#include "../plasma.h"
+#include "ascot5.h"
+#include "endcond.h"
+#include "math.h"
+#include "consts.h"
+#include "physlib.h"
+#include "simulate.h"
+#include "particle.h"
+#include "wall.h"
+#include "diag.h"
+#include "B_field.h"
+#include "E_field.h"
+#include "boozer.h"
+#include "mhd.h"
+#include "rfof.h"
+#include "plasma.h"
 #include "simulate_gc_adaptive.h"
 #include "step/step_gc_cashkarp.h"
 #include "mccc/mccc.h"
@@ -273,7 +273,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         endcond_check_gc(&p, &p0, sim);
 
         /* Update diagnostics */
-        diag_update_gc(sim, &sim->B_data, &p, &p0);
+        diag_update_gc(sim->diagnostics, sim->params, &sim->B_data, &p, &p0);
 
         /* Update number of running particles */
         n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);

@@ -1,57 +1,163 @@
 /**
  * @file B_GS.h
- * @brief Header file for B_GS.c
+ * Analytical tokamak magnetic field implementation.
+ *
+ * This field combines the analytical equilibrium `[1]`_, which is quite good
+ * model, to analytical ripple, which is significantly less realistic as it
+ * is not divergence-free.
+ *
+ * .. _[1]: https://doi.org/10.1063/1.3328818
  */
 #ifndef B_GS_H
 #define B_GS_H
-#include "../offload.h"
-#include "../ascot5.h"
-#include "../error.h"
+#include "B_field.h"
+#include "ascot5.h"
+#include "error.h"
+#include "offload.h"
 
 /**
- * @brief Analytic magnetic field parameters on the target
+ * Initialize the analytical magnetic field data.
+ *
+ * Assigns the fields in the struct with the provided values. All arrays in the
+ * struct have fixed lengths so there's no need to allocate anything.
+ *
+ * @param bfield The struct to initialize.
+ * @param nripple Number of tooridal field coils.
+ * @param bphi Toroidal field strength at ``rmajor`` [T].
+ * @param rmajor Plasma major radius [m].
+ * @param rminor Plasma minor radius [m].
+ * @param psiscaling  Scaling factor to scale poloidal flux [Wb/rad].
+ * @param ripplescaling Ripple scaling factor.
+ * @param rippledamping Ripple minor radius damping factor [m].
+ * @param axisrz Magnetic axis (R, z) coordinates [m].
+ * @param psilimits Poloidal flux at axis and separatrix [Wb/rad].
+ * @param coefficients Coefficients for evaluating poloidal flux.
+ *        Layout: [c1, c2, ..., c12, A].
+ *
+ * @return Zero if the initialization succeeded.
  */
-typedef struct {
-    real R0;                  /**< Major radius R coordinate                  */
-    real z0;                  /**< Midplane z coordinate                      */
-    real raxis;               /**< Magnetic axis R coordinate                 */
-    real zaxis;               /**< Magnetic axis z coordinate                 */
-    real B_phi0;              /**< On-axis toroidal field                     */
-    real psi0;                /**< Poloidal flux at axis [V*s*m^-1]           */
-    real psi1;                /**< Poloidal flux at separatrix [V*s*m^-1]     */
-    real psi_mult;            /**< Psi multiplier                             */
-    real psi_coeff[13];       /**< Coefficients for evaluating psi
-                                   [c_1, c_2, ..., c_12, A]                   */
-    int Nripple;              /**< Number of toroidal field coils             */
-    real a0;                  /**< Minor radius [m]                           */
-    real alpha0;              /**< Ripple r-dependency, delta ~ (r/a0)^alpha0 */
-    real delta0;              /**< Ripple strength                            */
-} B_GS_data;
+int BfieldAnalytical_init(
+    BfieldAnalytical *bfield, int nripple, real bphi, real rmajor, real rminor,
+    real psiscaling, real ripplescaling, real rippledamping, real axisrz[2],
+    real psilimits[2], real coefficients[13]);
 
-int B_GS_init(B_GS_data* data, real R0, real z0, real raxis, real zaxis,
-              real B_phi0, real psi0, real psi1, real psi_mult, real c[13],
-              int Nripple, real a0, real alpha0, real delta0);
-void B_GS_free(B_GS_data* data);
-void B_GS_offload(B_GS_data* data);
-GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-a5err B_GS_eval_B(real B[3], real r, real phi, real z, B_GS_data* Bdata);
+/**
+ * Free allocated resources.
+ *
+ * Does nothing since no resources were allocated during the initialization.
+ *
+ * @param bfield The struct whose fields are deallocated.
+ */
+void BfieldAnalytical_free(BfieldAnalytical *bfield);
+
+/**
+ * Offload data to the accelerator.
+ *
+ * @param bfield The struct to offload.
+ */
+void BfieldAnalytical_offload(BfieldAnalytical *bfield);
+
+/**
+ * Evaluate poloidal flux.
+ *
+ * @param psi Evaluated poloidal flux [Wb/rad].
+ * @param r R coordinate of the query point [m].
+ * @param phi phi coordinate of the query point [rad].
+ * @param z z coordinate of the query point [m].
+ * @param bfield The magnetic field data.
+ *
+ * @return Zero if the evaluation succeeded.
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
+a5err BfieldAnalytical_eval_psi(
+    real psi[1], real r, real phi, real z, BfieldAnalytical *bfield);
 DECLARE_TARGET_END
-GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-a5err B_GS_eval_psi(real* psi, real r, real phi, real z, B_GS_data* Bdata);
+
+/**
+ * Evaluate poloidal flux and its derivatives.
+ *
+ * @param psi_dpsi Evaluated poloidal flux and it's derivatives [Wb/rad].
+ *        Layout: [psi, dpsi/dr, dpsi/dphi, dpsi/dz].
+ * @param r R coordinate of the query point [m].
+ * @param phi phi coordinate of the query point [rad].
+ * @param z z coordinate of the query point [m].
+ * @param bfield The magnetic field data.
+ *
+ * @return Zero if the evaluation succeeded.
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
+a5err BfieldAnalytical_eval_psi_dpsi(
+    real psi_dpsi[4], real r, real phi, real z, BfieldAnalytical *bfield);
 DECLARE_TARGET_END
-GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-a5err B_GS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
-                         B_GS_data* Bdata);
+
+/**
+ * Evaluate normalized poloidal flux and its derivatives.
+ *
+ * @param rho_drho Evaluated normalized poloidal flux and it's derivatives [1].
+ *        Layout: [rho, drho/dr, drho/dphi, drho/dz].
+ * @param r R coordinate of the query point [m].
+ * @param phi phi coordinate of the query point [rad].
+ * @param z z coordinate of the query point [m].
+ * @param bfield The magnetic field data.
+ *
+ * @return Zero if the evaluation succeeded.
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
+a5err BfieldAnalytical_eval_rho_drho(
+    real rho_drho[4], real r, real phi, real z, BfieldAnalytical *bfield);
 DECLARE_TARGET_END
-GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-a5err B_GS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
-                         B_GS_data* Bdata);
+
+/**
+ * Evaluate magnetic field vector.
+ *
+ * If ``nripple`` is non-zero, the ripple contribution is included.
+ *
+ * @param b Evaluated magnetic field vector [T].
+ *        Layout: [br, bphi, bz].
+ * @param r R coordinate of the query point [m].
+ * @param phi phi coordinate of the query point [rad].
+ * @param z z coordinate of the query point [m].
+ * @param bfield The magnetic field data.
+ *
+ * @return Zero if the evaluation succeeded.
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
+a5err BfieldAnalytical_eval_b(
+    real b[3], real r, real phi, real z, BfieldAnalytical *bfield);
 DECLARE_TARGET_END
-GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-a5err B_GS_eval_B_dB(real B_dB[12], real r, real phi, real z, B_GS_data* Bdata);
+
+/**
+ * Evaluate magnetic field vector and its derivatives.
+ *
+ * If ``nripple`` is non-zero, the ripple contribution is included.
+ *
+ * @param b_db Evaluated magnetic field vector and its derivatives [T].
+ *        Layout: [br, dbr/dr, dbr/dphi, bz, dbz/dz, bphi, dbphi/dr, dbphi/dphi,
+ *        dbphi/dz, bz, dbz/dr, dbz/dphi, dbz/dz].
+ * @param r R coordinate of the query point [m].
+ * @param phi phi coordinate of the query point [rad].
+ * @param z z coordinate of the query point [m].
+ * @param bfield The magnetic field data.
+ *
+ * @return Zero if the evaluation succeeded.
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
+a5err BfieldAnalytical_eval_b_db(
+    real b_db[12], real r, real phi, real z, BfieldAnalytical *bfield);
 DECLARE_TARGET_END
-GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-a5err B_GS_get_axis_rz(real rz[2], B_GS_data* Bdata);
+
+/**
+ * Evaluate the magnetic axis (R, z) coordinates.
+ *
+ * Returns the position stored in the struct.
+ *
+ * @param axisrz Evaluated axis coordinates [m].
+ * @param bfield The magnetic field data.
+ *
+ * @return Zero if the evaluation succeeded.
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
+a5err BfieldAnalytical_eval_axisrz(real axisrz[2], BfieldAnalytical *bfield);
 DECLARE_TARGET_END
 
 #endif

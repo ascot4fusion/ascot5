@@ -1,4 +1,4 @@
 a5py.utils
 ==========
 
-.. autoclass:: a5py.utils.imstorage.ImmutableStorage
+.. automodule:: a5py.utils

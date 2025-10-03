@@ -17,23 +17,22 @@ class Struct(DataStruct):
     """Python wrapper for the struct in B_TC.h."""
 
     _fields_ = [
-        ("axisr", ctypes.c_double),
-        ("axisz", ctypes.c_double),
+        ("axisrz", ctypes.c_double * 2),
         ("psival", ctypes.c_double),
         ("rhoval", ctypes.c_double),
-        ("B", ctypes.c_double * 3),
-        ("dB", ctypes.c_double * 9),
+        ("bxyz", ctypes.c_double * 3),
+        ("jacobian", ctypes.c_double * 9),
         ]
 
 init_fun(
-    "B_TC_init",
+    "BfieldCartesian_init",
     ctypes.POINTER(Struct),
-    *(4*[ctypes.c_double]),
-    *(2*[ndpointer(ctypes.c_double)]),
+    *(2*[ctypes.c_double]),
+    *(3*[ndpointer(ctypes.c_double)]),
     restype=ctypes.c_int32,
     )
 
-init_fun("B_TC_free", ctypes.POINTER(Struct))
+init_fun("BfieldCartesian_free", ctypes.POINTER(Struct))
 
 
 @Leaf.register
@@ -46,7 +45,7 @@ class BfieldCartesian(InputVariant):
     def bxyz(self) -> unyt.unyt_array:
         """Magnetic field vector in Cartesian basis at origo."""
         if self._cdata is not None:
-            return self._cdata.readonly_carray("B", (3,), "T")
+            return self._cdata.readonly_carray("bxyz", (3,), "T")
         assert self._file is not None
         return self._file.read("bxyz")
 
@@ -54,7 +53,7 @@ class BfieldCartesian(InputVariant):
     def jacobian(self) -> unyt.unyt_array:
         r"""Magnetic field Jacobian :math:`jac[i,j] = dB_i/dx_j`."""
         if self._cdata is not None:
-            return self._cdata.readonly_carray("dB", (3,3), "T/m")
+            return self._cdata.readonly_carray("jacobian", (3,3), "T/m")
         assert self._file is not None
         return self._file.read("jacobian")
 
@@ -80,9 +79,7 @@ class BfieldCartesian(InputVariant):
     def axisrz(self) -> unyt.unyt_array:
         r"""Magnetic axis :math:`R` and :math:`z` coordinates."""
         if self._cdata is not None:
-            r = self._cdata.readonly_carray("axisr", (), "m")
-            z = self._cdata.readonly_carray("axisz", (), "m")
-            return unyt.unyt_array([r, z])
+            return self._cdata.readonly_carray("axisrz", (2,), "m")
         assert self._file is not None
         return self._file.read("axisrz")
 
@@ -94,12 +91,11 @@ class BfieldCartesian(InputVariant):
                jacobian: unyt.unyt_array,
                ) -> None:
         self._cdata = Struct()
-        if LIBASCOT.B_TC_init(
+        if LIBASCOT.BfieldCartesian_init(
             ctypes.byref(self._cdata),
-            axisrz[0].v,
-            axisrz[1].v,
             psival.v,
             rhoval.v,
+            axisrz.v,
             bxyz.v,
             jacobian.v,
             ):
@@ -122,7 +118,7 @@ class BfieldCartesian(InputVariant):
     def unstage(self) -> None:
         super().unstage()
         assert self._cdata is not None
-        LIBASCOT.B_TC_free(ctypes.byref(self._cdata))
+        LIBASCOT.BfieldCartesian_free(ctypes.byref(self._cdata))
         self._cdata = None
 
 

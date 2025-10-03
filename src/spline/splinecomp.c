@@ -3,7 +3,7 @@
  * @brief Cubic spline interpolation of a 1D data set, compact form
  */
 #include <stdlib.h>
-#include "../ascot5.h"
+#include "ascot5.h"
 #include "spline.h"
 #include "interp.h"
 

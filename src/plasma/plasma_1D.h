@@ -1,49 +1,118 @@
 /**
- * @file plasma_1D.h
- * @brief Header file for plasma_1D.c
+ * Header file for PlasmaLinear1D.c
  */
-#ifndef PLASMA_1D_H
-#define PLASMA_1D_H
-#include "../ascot5.h"
-#include "../offload.h"
-#include "../error.h"
+#ifndef PlasmaLinear1D_H
+#define PlasmaLinear1D_H
+#include "ascot5.h"
+#include "error.h"
+#include "offload.h"
+#include "plasma.h"
+
+
 
 /**
- * @brief 1D plasma parameters on the target
+ * Initialize 1D plasma data and check inputs
+ *
+ * @param data pointer to the data struct
+ * @param nrho number of rho grid points in the data
+ * @param nion number of ion species
+ * @param rho rho grid in which data is tabulated [1]
+ * @param anum mass number of ions present in the plasma
+ * @param znum charge number of ions present in the plasma
+ * @param mass mass of ions present in the plasma [kg]
+ * @param charge charge of ions present in the plasma [C]
+ * @param Te electron temperature [J]
+ * @param Ti ion temperature [J]
+ * @param ne electron density [m^-3]
+ * @param ni density of ion species [m^-3]
+ * @param vtor toroidal rotation [rad/s]
+ *
+ * @return zero if initialization succeeded
  */
-typedef struct {
-    int n_rho;     /**< number of rho values in the data             */
-    int n_species; /**< number of plasma species including electrons */
-    real* mass;    /**< plasma species masses [kg]                   */
-    real* charge;  /**< plasma species charges [C]                   */
-    int* anum;     /**< ion species atomic number                    */
-    int* znum;     /**< ion species charge number                    */
-    real* rho;     /**< pointer to start of rho values               */
-    real* temp;    /**< pointer to start of temperatures             */
-    real* dens;    /**< pointer to start of densities                */
-    real* vtor;    /**< pointer to start of toroidal rotation        */
-} plasma_1D_data;
+int PlasmaLinear1D_init(
+    PlasmaLinear1D *plasma, int nrho, int nion, int anum[nion], int znum[nion],
+    real mass[nion], real charge[nion], real rho[nrho], real Te[nrho],
+    real Ti[nrho], real ne[nrho], real ni[nrho * nion], real vtor[nrho]);
 
-int plasma_1D_init(plasma_1D_data* data, int nrho, int nion, real* rho,
-                   int* anum, int* znum, real* mass, real* charge,
-                   real* Te, real* Ti, real* ne, real* ni, real* vtor);
-void plasma_1D_free(plasma_1D_data* data);
-void plasma_1D_offload(plasma_1D_data* data);
-GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
-a5err plasma_1D_eval_temp(real* dens, real rho, int species,
-                          plasma_1D_data* pls_data);
+/**
+ * Free allocated resources
+ *
+ * @param data pointer to the data struct
+ */
+void PlasmaLinear1D_free(PlasmaLinear1D *plasma);
+
+/**
+ * Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void PlasmaLinear1D_offload(PlasmaLinear1D *plasma);
+
+/**
+ * Evaluate plasma temperature
+ *
+ * This function evaluates the temperature of a plasma species at the given
+ * radial coordinate using linear interpolation.
+ *
+ * @param temp pointer to where evaluated temperature is stored [J]
+ * @param rho radial coordinate [1]
+ * @param species index of plasma species
+ * @param pls_data pointer to plasma data struct
+ *
+ * @return zero if evaluation succeeded
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
+a5err PlasmaLinear1D_eval_temp(
+    real *dens, real rho, int species, PlasmaLinear1D *plasma);
 DECLARE_TARGET_END
-GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
-a5err plasma_1D_eval_dens(real* temp, real rho, int species,
-                          plasma_1D_data* pls_data);
+
+/**
+ * Evaluate plasma density
+ *
+ * This function evaluates the density of a plasma species at the given
+ * radial coordinate using linear interpolation.
+ *
+ * @param dens pointer to where evaluated density is stored [m^-3]
+ * @param rho radial coordinate [1]
+ * @param species index of plasma species
+ * @param pls_data pointer to plasma data struct
+ *
+ * @return zero if evaluation succeeded
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
+a5err PlasmaLinear1D_eval_dens(
+    real *temp, real rho, int species, PlasmaLinear1D *plasma);
 DECLARE_TARGET_END
-GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
-a5err plasma_1D_eval_densandtemp(real* dens, real* temp, real rho,
-                                 plasma_1D_data* pls_data);
+
+/**
+ * Evaluate plasma density and temperature for all species
+ *
+ * This function evaluates the density and temperature of all plasma species at
+ * the given radial coordinate using linear interpolation.
+ *
+ * @param dens pointer to where interpolated densities are stored [m^-3]
+ * @param temp pointer to where interpolated temperatures are stored [J]
+ * @param rho radial coordinate [1]
+ * @param pls_data pointer to plasma data struct
+ *
+ * @return zero if evaluation succeeded
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
+a5err PlasmaLinear1D_eval_densandtemp(
+    real *dens, real *temp, real rho, PlasmaLinear1D *plasma);
 DECLARE_TARGET_END
-GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
-a5err plasma_1D_eval_flow(real* vflow, real rho, real r,
-                          plasma_1D_data* pls_data);
+
+/**
+ * Evalate plasma flow along the field lines
+ *
+ * @param vflow pointer where the flow value is stored [m/s]
+ * @param rho particle rho coordinate [1]
+ * @param r particle R coordinate [m]
+ * @param pls_data pointer to plasma data
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
+a5err PlasmaLinear1D_eval_flow(
+    real *vflow, real rho, real r, PlasmaLinear1D *plasma);
 DECLARE_TARGET_END
 
 #endif

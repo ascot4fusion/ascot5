@@ -4,7 +4,7 @@
  */
 #ifndef SPLINE_H
 #define SPLINE_H
-#include "../ascot5.h"
+#include "ascot5.h"
 
 void splineexpl(real* f, int n, int bc, real* c);
 void splinecomp(real* f, int n, int bc, real* c);

@@ -62,7 +62,53 @@ void simulate(int nmarkers, particle_state* p, sim_data* sim) {
     n_queue_size = NSIMD;
 #endif
 
-    //simulate_init_data(&sim);
+#ifdef GPU
+    if(sim->params->simulation_mode != 1) {
+        print_err("Only GO mode ported to GPU. Please set SIM_MODE=1.");
+        exit(1);
+    }
+    if(sim->params->record_mode) {
+        print_err("RECORD_MODE=1 not ported to GPU. Please disable it.");
+        exit(1);
+    }
+    if(sim->params->enable_atomic) {
+        print_err("Atomic not yet ported to GPU. Please set ENABLE_ATOMIC=0.");
+        exit(1);
+    }
+    if(sim->params->enable_mhd) {
+        print_err("MHD not yet ported to GPU. Please set ENABLE_MHD=0.");
+        exit(1);
+    }
+    if(sim->params->collect_orbit) {
+        print_err(
+            "ENABLE_ORBITWRITE=1 not ported to GPU. Please disable it.");
+        exit(1);
+    }
+    if(sim->params->collect_transport_coefficient) {
+        print_err(
+            "ENABLE_TRANSCOEF=1 not ported to GPU. Please disable it.");
+        exit(1);
+    }
+#endif
+
+    GPU_MAP_TO_DEVICE(sim[0:1])
+    B_field_offload(&sim->B_data);
+    E_field_offload(&sim->E_data);
+    plasma_offload(&sim->plasma_data);
+    neutral_offload(&sim->neutral_data);
+    wall_offload(&sim->wall_data);
+    boozer_offload(sim->boozer_data);
+    mhd_offload(&sim->mhd_data);
+    asigma_offload(&sim->asigma_data);
+    random_init(&sim->random_data, 0);
+
+    /* Tabulated data not yet implemented */
+    //sim->mccc_data->usetabulated = 0;
+
+    if(sim->params->disable_first_order_gctransformation) {
+        gctransform_setorder(0);
+    }
+    asigma_extrapolate(sim->params->enable_atomic==2);
 
     particle_queue pq;
 
@@ -137,61 +183,4 @@ void simulate(int nmarkers, particle_state* p, sim_data* sim) {
         simulate_fo_fixed(&pq, sim, n_queue_size);
     }
     free(pq.p);
-}
-
-/**
- * @brief Initialize simulation data struct
- *
- * @param sim pointer to data struct
- */
-void simulate_init(sim_data* sim, int nmarkers) {
-
-#ifdef GPU
-    if(sim->sim_mode != 1) {
-        print_err("Only GO mode ported to GPU. Please set SIM_MODE=1.");
-        exit(1);
-    }
-    if(sim->record_mode) {
-        print_err("RECORD_MODE=1 not ported to GPU. Please disable it.");
-        exit(1);
-    }
-    if(sim->enable_atomic) {
-        print_err("Atomic not yet ported to GPU. Please set ENABLE_ATOMIC=0.");
-        exit(1);
-    }
-    if(sim->enable_mhd) {
-        print_err("MHD not yet ported to GPU. Please set ENABLE_MHD=0.");
-        exit(1);
-    }
-    if(sim->diag_data.diagorb_collect) {
-        print_err(
-            "ENABLE_ORBITWRITE=1 not ported to GPU. Please disable it.");
-        exit(1);
-    }
-    if(sim->diag_data.diagtrcof_collect) {
-        print_err(
-            "ENABLE_TRANSCOEF=1 not ported to GPU. Please disable it.");
-        exit(1);
-    }
-#endif
-
-    diag_init(sim, nmarkers);
-    GPU_MAP_TO_DEVICE(sim[0:1])
-    B_field_offload(&sim->B_data);
-    E_field_offload(&sim->E_data);
-    plasma_offload(&sim->plasma_data);
-    neutral_offload(&sim->neutral_data);
-    wall_offload(&sim->wall_data);
-    boozer_offload(sim->boozer_data);
-    mhd_offload(&sim->mhd_data);
-    asigma_offload(&sim->asigma_data);
-    random_init(&sim->random_data, 0);
-
-    /* Tabulated data not yet implemented */
-    //sim->mccc_data->usetabulated = 0;
-
-    if(sim->params->disable_first_order_gctransformation) {
-        gctransform_setorder(0);
-    }
-    asigma_extrapolate(sim->params->enable_atomic==2);
 }

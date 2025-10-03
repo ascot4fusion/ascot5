@@ -6,18 +6,18 @@
 #include <stdlib.h>
 #include <omp.h>
 #include <math.h>
-#include "../ascot5.h"
-#include "../simulate.h"
-#include "../particle.h"
-#include "../wall.h"
-#include "../diag.h"
-#include "../B_field.h"
-#include "../E_field.h"
+#include "ascot5.h"
+#include "simulate.h"
+#include "particle.h"
+#include "wall.h"
+#include "diag.h"
+#include "B_field.h"
+#include "E_field.h"
 #include "simulate_ml_adaptive.h"
 #include "step/step_ml_cashkarp.h"
-#include "../endcond.h"
-#include "../math.h"
-#include "../consts.h"
+#include "endcond.h"
+#include "math.h"
+#include "consts.h"
 
 DECLARE_TARGET_SIMD_UNIFORM(sim)
 real simulate_ml_adaptive_inidt(sim_data* sim, particle_simd_ml* p, int i);
@@ -201,7 +201,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
         endcond_check_ml(&p, &p0, sim);
 
         /* Update diagnostics */
-        diag_update_ml(sim, &p, &p0);
+        diag_update_ml(sim->diagnostics, sim->params, &p, &p0);
 
         /* Update running particles */
         n_running = particle_cycle_ml(pq, &p, &sim->B_data, cycle);

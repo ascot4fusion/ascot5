@@ -1,4 +1,5 @@
 """Tests for a5py.data.access.leaves module."""
+
 import pytest
 import difflib
 import textwrap
@@ -19,9 +20,14 @@ def leaf():
 
 
 @pytest.mark.parametrize(
-        "attribute, expected",
-        [("name", Leaf.__name__), ("date", DATE), ("note", NOTE),
-         ("variant", Leaf.__name__),])
+    "attribute, expected",
+    [
+        ("name", Leaf.__name__),
+        ("date", DATE),
+        ("note", NOTE),
+        ("variant", Leaf.__name__),
+    ],
+)
 def test_leaf_initialization(leaf, attribute, expected):
     """Test that attributes were set properly in initialization."""
     assert getattr(leaf, attribute) == expected
@@ -127,15 +133,14 @@ def test_outputleaf_inputs():
     query an unused input raises exception.
     """
     leafin = Leaf()
-    leafout = OutputVariant(inputs={CATEGORIES[0]: leafin}
-        )
+    leafout = OutputVariant(inputs={CATEGORIES[0]: leafin})
     leafout._treemanager = MagicMock()
-    leafout._treemanager.nodes = {CATEGORIES[0]: object(),
-                                  CATEGORIES[1]: object()}
+    leafout._treemanager.nodes = {CATEGORIES[0]: object(), CATEGORIES[1]: object()}
     assert leafout[CATEGORIES[0]] is leafin
 
     with pytest.raises(AscotDataException):
         getattr(leafout, CATEGORIES[1])
+
 
 def test_outputleaf_contents():
     """Test that the contents of an simulation output are displayed
@@ -146,8 +151,10 @@ def test_outputleaf_contents():
     """
     leafin = Leaf(date=DATE, note=NOTE)
     leafout = OutputVariant(
-        date=DATE, note=NOTE, inputs={CATEGORIES[0]: leafin},
-        )
+        date=DATE,
+        note=NOTE,
+        inputs={CATEGORIES[0]: leafin},
+    )
     expected = textwrap.dedent(
         """
         OutputVariant   1997-08-29 02:14:00
@@ -156,10 +163,15 @@ def test_outputleaf_contents():
         Inputs:
         catX    Leaf            1997-08-29 02:14:00
                 Let off some steam <Bennett>
-        """)
-    diff = '\n'.join(difflib.unified_diff(
-        leafout.contents.splitlines(),
-        expected.splitlines()[1:],
-        fromfile="contents", tofile="expected", lineterm="",
-    ))
+        """
+    )
+    diff = "\n".join(
+        difflib.unified_diff(
+            leafout.contents.splitlines(),
+            expected.splitlines()[1:],
+            fromfile="contents",
+            tofile="expected",
+            lineterm="",
+        )
+    )
     assert not diff, f"Strings differ:\n{diff}"

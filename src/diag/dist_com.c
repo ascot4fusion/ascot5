@@ -5,10 +5,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "../ascot5.h"
-#include "../consts.h"
-#include "../physlib.h"
-#include "../particle.h"
+#include "ascot5.h"
+#include "consts.h"
+#include "physlib.h"
+#include "particle.h"
 #include "dist_com.h"
 
 /**

@@ -1,5 +1,11 @@
+"""Contains tools to import optional modules without causing import errors if
+the module is missing.
+"""
 import importlib
+from types import ModuleType
 
+
+#pylint: disable=too-few-public-methods
 class OptionalDependency:
     """A lazy, optional import wrapper for third-party packages.
 
@@ -26,8 +32,15 @@ class OptionalDependency:
     If the package is present, it will be imported on demand and cached for
     subsequent use.
 
-    Benefits
-    --------
+    To satisfy type checkers and linters, one can::
+
+        from typing import TYPE_CHECKING
+
+        if TYPE_CHECKING:
+            import optionalpackage
+
+    Notes
+    -----
     - **Graceful degradation**: code can be imported and executed even if
       optional dependencies are not installed, as long as they are not used.
     - **Lazy loading**: dependencies are imported only when needed, which
@@ -36,12 +49,20 @@ class OptionalDependency:
       accesses incur no extra overhead.
     """
 
-    def __init__(self, name: str):
+    _name: str
+    """Name of the module (i.e. the optional package)."""
+
+    _loaded: bool
+    """Whether the module has been loaded or not."""
+
+    _module: ModuleType
+    """The module object."""
+
+    def __init__(self, name: str) -> None:
         self._name = name
-        self._module = None
         self._loaded = False
 
-    def _load(self):
+    def _load(self) -> ModuleType:
         if not self._loaded:
             try:
                 self._module = importlib.import_module(self._name)
@@ -49,9 +70,9 @@ class OptionalDependency:
                 raise ImportError(
                     f"Optional dependency '{self._name}' is not installed. "
                     f"Please install it to use this feature."
-                )
+                    ) from None
             self._loaded = True
         return self._module
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str) -> ModuleType:
         return getattr(self._load(), item)

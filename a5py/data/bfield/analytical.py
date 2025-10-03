@@ -20,33 +20,29 @@ class Struct(DataStruct):
     """Python wrapper for the struct in B_GS.h."""
 
     _fields_ = [
-        ("R0", ctypes.c_double),
-        ("z0", ctypes.c_double),
-        ("raxis", ctypes.c_double),
-        ("zaxis", ctypes.c_double),
-        ("B_phi0", ctypes.c_double),
-        ("psi0", ctypes.c_double),
-        ("psi1", ctypes.c_double),
-        ("psi_mult", ctypes.c_double),
-        ("psi_coeff", ctypes.c_double * 13),
-        ("Nripple", ctypes.c_int32),
-        ("a0", ctypes.c_double),
-        ("alpha0", ctypes.c_double),
-        ("delta0", ctypes.c_double),
+        ("nripple", ctypes.c_int32),
+        ("bphi", ctypes.c_double),
+        ("rmajor", ctypes.c_double),
+        ("rminor", ctypes.c_double),
+        ("psiscaling", ctypes.c_double),
+        ("ripplescaling", ctypes.c_double),
+        ("rippledamping", ctypes.c_double),
+        ("axisrz", ctypes.c_double * 2),
+        ("psilimits", ctypes.c_double * 2),
+        ("coefficients", ctypes.c_double * 13),
         ]
 
 
 init_fun(
-    "B_GS_init",
+    "BfieldAnalytical_init",
     ctypes.POINTER(Struct),
-    *(8*[ctypes.c_double]),
-    ndpointer(ctypes.c_double),
     ctypes.c_int32,
-    *(3*[ctypes.c_double]),
+    *(6*[ctypes.c_double]),
+    *(3*[ndpointer(ctypes.c_double)]),
     restype=ctypes.c_int32,
     )
 
-init_fun("B_GS_free", ctypes.POINTER(Struct))
+init_fun("BfieldAnalytical_free", ctypes.POINTER(Struct))
 
 
 @Leaf.register
@@ -59,7 +55,7 @@ class BfieldAnalytical(InputVariant):
     def rmajor(self) -> unyt.unyt_array:
         """Major radius of the tokamak."""
         if self._cdata is not None:
-            return self._cdata.readonly_carray("R0", (), "m")
+            return self._cdata.readonly_carray("rmajor", (), "m")
         assert self._file is not None
         return self._file.read("rmajor")
 
@@ -67,25 +63,23 @@ class BfieldAnalytical(InputVariant):
     def axisrz(self) -> unyt.unyt_array:
         r"""Magnetic axis :math:`R` and :math:`z` coordinates."""
         if self._cdata is not None:
-            r = self._cdata.readonly_carray("raxis", (), "m")
-            z = self._cdata.readonly_carray("zaxis", (), "m")
-            return unyt.unyt_array([r, z])
+            return self._cdata.readonly_carray("axisrz", (2,), "m")
         assert self._file is not None
         return self._file.read("axisrz")
 
     @property
-    def axisb(self) -> unyt.unyt_array:
+    def bphi(self) -> unyt.unyt_array:
         """Toroidal field strength at the major radius location."""
         if self._cdata is not None:
-            return self._cdata.readonly_carray("B_phi0", (), "T")
+            return self._cdata.readonly_carray("bphi", (), "T")
         assert self._file is not None
-        return self._file.read("axisb")
+        return self._file.read("bphi")
 
     @property
     def psiscaling(self) -> unyt.unyt_array:
         """Scaling factor for the poloidal flux."""
         if self._cdata is not None:
-            return self._cdata.readonly_carray("psi_mult", (), "Wb/rad")
+            return self._cdata.readonly_carray("psiscaling", (), "Wb/rad")
         assert self._file is not None
         return self._file.read("psiscaling")
 
@@ -93,7 +87,7 @@ class BfieldAnalytical(InputVariant):
     def coefficients(self) -> np.ndarray:
         """Coefficients defining psi: [c0, c1, ..., c11, A]."""
         if self._cdata is not None:
-            return self._cdata.readonly_carray("psi_coeff", (13,))
+            return self._cdata.readonly_carray("coefficients", (13,))
         assert self._file is not None
         return self._file.read("coefficients")
 
@@ -101,10 +95,7 @@ class BfieldAnalytical(InputVariant):
     def psilimits(self) -> unyt.unyt_array:
         """Poloidal flux values on the magnetic axis and on the separatrix."""
         if self._cdata is not None:
-            return unyt.unyt_array((
-                self._cdata.readonly_carray("psi0", (), "Wb/rad"),
-                self._cdata.readonly_carray("psi1", (), "Wb/rad")
-            ))
+            return self._cdata.readonly_carray("psilimits", (2,), "Wb/rad")
         assert self._file is not None
         return self._file.read("psilimits")
 
@@ -112,7 +103,7 @@ class BfieldAnalytical(InputVariant):
     def nripple(self) -> int:
         """Number of TF coils."""
         if self._cdata is not None:
-            return int(self._cdata.readonly_carray("Nripple", ()))
+            return int(self._cdata.readonly_carray("nripple", ()))
         assert self._file is not None
         return int(self._file.read("nripple"))
 
@@ -120,23 +111,23 @@ class BfieldAnalytical(InputVariant):
     def rminor(self) -> unyt.unyt_array:
         """Minor radius."""
         if self._cdata is not None:
-            return self._cdata.readonly_carray("a0", (), "m")
+            return self._cdata.readonly_carray("rminor", (), "m")
         assert self._file is not None
         return self._file.read("rminor")
 
     @property
-    def ripplepenetration(self) -> unyt.unyt_array:
+    def rippledamping(self) -> unyt.unyt_array:
         """Ripple penetration."""
         if self._cdata is not None:
-            return self._cdata.readonly_carray("alpha0", (), "m")
+            return self._cdata.readonly_carray("rippledamping", (), "m")
         assert self._file is not None
-        return self._file.read("ripplepenetration")
+        return self._file.read("rippledamping")
 
     @property
     def ripplescaling(self) -> unyt.unyt_array:
         """Ripple scaling parameter."""
         if self._cdata is not None:
-            return self._cdata.readonly_carray("delta0", (), "m")
+            return self._cdata.readonly_carray("ripplescaling", (), "m")
         assert self._file is not None
         return self._file.read("ripplescaling")
 
@@ -144,20 +135,20 @@ class BfieldAnalytical(InputVariant):
     def _stage(
             self, rmajor: unyt.unyt_array,
             axisrz: unyt.unyt_array,
-            axisb: unyt.unyt_array,
+            bphi: unyt.unyt_array,
             psilimits: unyt.unyt_array,
             coefficients: np.ndarray,
             nripple: int,
             rminor: unyt.unyt_array,
-            ripplepenetration: unyt.unyt_array,
+            rippledamping: unyt.unyt_array,
             ripplescaling: unyt.unyt_array,
             psiscaling: unyt.unyt_array,
             ) -> None:
         self._cdata = Struct()
-        if LIBASCOT.B_GS_init(
-            ctypes.byref(self._cdata), rmajor.v, axisrz[1].v, axisrz[0].v,
-            axisrz[1].v, axisb.v, psilimits[0].v, psilimits[1].v, psiscaling.v,
-            coefficients, nripple, rminor.v, ripplepenetration.v, ripplescaling.v,
+        if LIBASCOT.BfieldAnalytical_init(
+            ctypes.byref(self._cdata), nripple, bphi.v, rmajor.v, rminor.v,
+            psiscaling.v, ripplescaling.v, rippledamping.v, axisrz.v,
+            psilimits.v, coefficients
             ):
             self._cdata = None
             raise AscotMeltdownError("Could not initialize struct.")
@@ -165,8 +156,8 @@ class BfieldAnalytical(InputVariant):
     def _save_data(self) -> None:
         assert self._file is not None
         for field in [
-            "rmajor", "axisrz", "axisb", "psiscaling", "coefficients",
-            "psilimits", "rminor", "ripplepenetration", "ripplescaling",
+            "rmajor", "axisrz", "bphi", "psiscaling", "coefficients",
+            "psilimits", "rminor", "rippledamping", "ripplescaling",
             ]:
             self._file.write(field, getattr(self, field))
         self._file.write(
@@ -175,8 +166,8 @@ class BfieldAnalytical(InputVariant):
 
     def export(self) -> dict[str, unyt.unyt_array | np.ndarray | int]:
         fields = [
-            "rmajor", "axisrz", "axisb", "psiscaling", "coefficients",
-            "psilimits", "nripple", "rminor", "ripplepenetration",
+            "rmajor", "axisrz", "bphi", "psiscaling", "coefficients",
+            "psilimits", "nripple", "rminor", "rippledamping",
             "ripplescaling",
             ]
         return {field: getattr(self, field) for field in fields}
@@ -184,17 +175,17 @@ class BfieldAnalytical(InputVariant):
     def stage(self) -> None:
         super().stage()
         self._stage(
-            rmajor=self.rmajor, axisrz=self.axisrz, axisb=self.axisb,
+            rmajor=self.rmajor, axisrz=self.axisrz, bphi=self.bphi,
             psilimits=self.psilimits, coefficients=self.coefficients,
             nripple=self.nripple, rminor=self.rminor,
-            ripplepenetration=self.ripplepenetration,
+            rippledamping=self.rippledamping,
             ripplescaling=self.ripplescaling, psiscaling=self.psiscaling,
             )
 
     def unstage(self) -> None:
         super().unstage()
         assert self._cdata is not None
-        LIBASCOT.B_GS_free(ctypes.byref(self._cdata))
+        LIBASCOT.BfieldAnalytical_free(ctypes.byref(self._cdata))
         self._cdata = None
 
 
@@ -206,14 +197,14 @@ class CreateMixin(TreeMixin):
     def create_bfieldanalytical(
             self,
             rmajor: utils.ArrayLike,
-            axisb: utils.ArrayLike,
+            bphi: utils.ArrayLike,
             psiscaling: utils.ArrayLike,
             coefficients: utils.ArrayLike,
             psilimits: Optional[utils.ArrayLike]=None,
             axisrz: Optional[utils.ArrayLike]=None,
             nripple: Optional[int]=None,
             rminor: Optional[utils.ArrayLike]=None,
-            ripplepenetration: Optional[utils.ArrayLike]=None,
+            rippledamping: Optional[utils.ArrayLike]=None,
             ripplescaling: Optional[utils.ArrayLike]=None,
             note: Optional[str]=None,
             activate: bool=False,
@@ -228,7 +219,7 @@ class CreateMixin(TreeMixin):
             Major radius of the tokamak.
 
             Note that this is not the same as the magnetic axis R coordinate.
-        axisb : float
+        bphi : float
             Toroidal field strength at the major radius location.
         psiscaling : float
             Scaling factor for the poloidal flux.
@@ -256,7 +247,7 @@ class CreateMixin(TreeMixin):
             Minor radius.
 
             Used only for computing ripple strength.
-        ripplepenetration : float, *optional*
+        rippledamping : float, *optional*
             Ripple penetration.
 
             Increasing this parameter decreases ripple strength as
@@ -362,7 +353,7 @@ class CreateMixin(TreeMixin):
            https://doi.org/10.1063/1.3328818
         """
         with utils.validate_variables() as v:
-            axisb = v.validate("axisb", axisb, (), "T")
+            bphi = v.validate("bphi", bphi, (), "T")
             rmajor = v.validate("rmajor", rmajor, (), "m")
             psiscaling = v.validate("psiscaling", psiscaling, (), "Wb/rad")
             coefficients = v.validate("coefficients", coefficients, (13,))
@@ -379,8 +370,8 @@ class CreateMixin(TreeMixin):
             nripple = v.validate("nripple", nripple, (), dtype="i4", default=18)
             psilimits = v.validate("psilimits", psilimits, (2,), "Wb/rad",
                                    default=[psi0.v, 0.0])
-            ripplepenetration = v.validate(
-                "ripplepenetration", ripplepenetration, (), "1", default=0.01
+            rippledamping = v.validate(
+                "rippledamping", rippledamping, (), "1", default=0.01
                 )
             ripplescaling = v.validate(
                 "ripplescaling", ripplescaling, (), "1", default=1.0
@@ -389,9 +380,9 @@ class CreateMixin(TreeMixin):
         assert nripple is not None
         leaf = BfieldAnalytical(note=note)
         leaf._stage(
-            rmajor=rmajor, axisrz=axisrz, axisb=axisb, psilimits=psilimits,
+            rmajor=rmajor, axisrz=axisrz, bphi=bphi, psilimits=psilimits,
             coefficients=coefficients, nripple=nripple, rminor=rminor,
-            ripplepenetration=ripplepenetration, ripplescaling=ripplescaling,
+            rippledamping=rippledamping, ripplescaling=ripplescaling,
             psiscaling=psiscaling,
             )
         if preview:

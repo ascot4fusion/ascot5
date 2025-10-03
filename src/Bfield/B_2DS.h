@@ -1,55 +1,160 @@
 /**
  * @file B_2DS.h
- * @brief Header file for B_2DS.c
+ * Spline-interpolated axisymmetric tokamak magnetic field implementation.
  *
- * Contains declaration of B_2DS_offload_data and B_2DS_data structs.
+ * Both poloidal flux and magnetic field is evaluated by interpolating
+ * uniform 2D tables in which the data is provided. The poloidal component of
+ * the evaluated magnetic field includes the contribution from the gradient of
+ * the poloidal flux.
  */
 #ifndef B_2DS_H
 #define B_2DS_H
-#include "../offload.h"
-#include "../ascot5.h"
-#include "../error.h"
-#include "../spline/interp.h"
+#include "B_field.h"
+#include "ascot5.h"
+#include "error.h"
+#include "offload.h"
 
 /**
- * @brief 2D magnetic field parameters
+ * Initialize the 2D spline-interpolated tokamak magnetic field data.
+ *
+ * Assigns the fields in the struct with the provided values, and initializes
+ * and allocates the spline-interpolants.
+ *
+ * @param bfield The struct to initialize.
+ * @param nr Number of R grid points in the data.
+ * @param nz Number of z grid points in the data.
+ * @param rlim Limits of the uniform R abscissa [m].
+ * @param zlim Limits of the uniform z abscissa [m].
+ * @param axisrz Magnetic axis (R, z) coordinates [m].
+ * @param psilimits Poloidal flux at axis and separatrix [Wb/rad].
+ * @param psi Tabulated values of poloidal flux [Wb/rad].
+ *        Layout: (Ri, zj) = [j*nr + i] (C order).
+ * @param br Tabulated values of R component of B [T].
+ *        Layout: (Ri, zj) = [j*nr + i] (C order).
+ * @param bz Tabulated values of z component of B [T].
+ *        Layout: (Ri, zj) = [j*nr + i] (C order).
+ * @param bphi Tabulated values of phi component of B [T].
+ *        Layout: (Ri, zj) = [j*nr + i] (C order).
+ *
+ * @return  Zero if the initialization succeeded.
  */
-typedef struct {
-    real psi0;           /**< Poloidal flux value at magnetic axis [V*s*m^-1] */
-    real psi1;           /**< Poloidal flux value at separatrix [V*s*m^-1]    */
-    real axis_r;         /**< R coordinate of magnetic axis [m]               */
-    real axis_z;         /**< z coordinate of magnetic axis [m]               */
-    interp2D_data psi;   /**< psi interpolation 2D spline struct              */
-    interp2D_data B_r;   /**< B_R interpolation 2D spline struct              */
-    interp2D_data B_phi; /**< B_phi interpolation 2D spline struct            */
-    interp2D_data B_z;   /**< B_z interpolation 2D spline struct              */
-} B_2DS_data;
+int BfieldSpline2D_init(
+    BfieldSpline2D *bfield, int nr, int nz, real rlim[2], real zlim[2],
+    real axisrz[2], real psilimits[2], real psi[nr * nz], real br[nr * nz],
+    real bz[nr * nz], real bphi[nr * nz]);
 
-int B_2DS_init(B_2DS_data* data,
-               int n_r, real r_min, real r_max,
-               int n_z, real z_min, real z_max,
-               real axis_r, real axis_z, real psi0, real psi1,
-               real* psi, real* B_r, real* B_phi, real* B_z);
-void B_2DS_free(B_2DS_data* data);
-void B_2DS_offload(B_2DS_data* data);
-GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-a5err B_2DS_eval_psi(real* psi, real r, real phi, real z, B_2DS_data* Bdata);
+/**
+ * Free allocated resources
+ *
+ * Spline-interpolants are freed.
+ *
+ * @param bfield The struct whose fields are deallocated.
+ */
+void BfieldSpline2D_free(BfieldSpline2D *bfield);
+
+/**
+ * Offload data to the accelerator.
+ *
+ * @param bfield The struct to offload.
+ */
+void BfieldSpline2D_offload(BfieldSpline2D *bfield);
+
+/**
+ * Evaluate poloidal flux.
+ *
+ * @param psi Evaluated poloidal flux [Wb/rad].
+ * @param r R coordinate of the query point [m].
+ * @param phi phi coordinate of the query point [rad].
+ * @param z z coordinate of the query point [m].
+ * @param bfield The magnetic field data.
+ *
+ * @return Zero if the evaluation succeeded.
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
+a5err BfieldSpline2D_eval_psi(
+    real psi[1], real r, real phi, real z, BfieldSpline2D *bfield);
 DECLARE_TARGET_END
-GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-a5err B_2DS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
-                          B_2DS_data* Bdata);
+
+/**
+ * Evaluate poloidal flux and its derivatives.
+ *
+ * @param psi_dpsi Evaluated poloidal flux and it's derivatives [Wb/rad].
+ *        Layout: [psi, dpsi/dr, dpsi/dphi, dpsi/dz].
+ * @param r R coordinate of the query point [m].
+ * @param phi phi coordinate of the query point [rad].
+ * @param z z coordinate of the query point [m].
+ * @param bfield The magnetic field data.
+ *
+ * @return Zero if the evaluation succeeded.
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
+a5err BfieldSpline2D_eval_psi_dpsi(
+    real psi_dpsi[4], real r, real phi, real z, BfieldSpline2D *bfield);
 DECLARE_TARGET_END
-GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-a5err B_2DS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
-                          B_2DS_data* Bdata);
+
+/**
+ * Evaluate normalized poloidal flux and its derivatives.
+ *
+ * @param rho_drho Evaluated normalized poloidal flux and it's derivatives [1].
+ *        Layout: [rho, drho/dr, drho/dphi, drho/dz].
+ * @param r R coordinate of the query point [m].
+ * @param phi phi coordinate of the query point [rad].
+ * @param z z coordinate of the query point [m].
+ * @param bfield The magnetic field data.
+ *
+ * @return Zero if the evaluation succeeded.
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
+a5err BfieldSpline2D_eval_rho_drho(
+    real rho_drho[4], real r, real phi, real z, BfieldSpline2D *bfield);
 DECLARE_TARGET_END
-GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-a5err B_2DS_eval_B(real B[3], real r, real phi, real z, B_2DS_data* Bdata);
+
+/**
+ * Evaluate magnetic field vector.
+ *
+ * @param b Evaluated magnetic field vector [T].
+ *        Layout: [br, bphi, bz].
+ * @param r R coordinate of the query point [m].
+ * @param phi phi coordinate of the query point [rad].
+ * @param z z coordinate of the query point [m].
+ * @param bfield The magnetic field data.
+ *
+ * @return Zero if the evaluation succeeded.
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
+a5err BfieldSpline2D_eval_b(
+    real b[3], real r, real phi, real z, BfieldSpline2D *bfield);
 DECLARE_TARGET_END
-GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-a5err B_2DS_eval_B_dB(real B_dB[12], real r, real phi, real z, B_2DS_data* Bdata);
+
+/**
+ * Evaluate magnetic field vector and its derivatives.
+ *
+ * @param b_db Evaluated magnetic field vector and its derivatives [T].
+ *        Layout: [br, dbr/dr, dbr/dphi, bz, dbz/dz, bphi, dbphi/dr, dbphi/dphi,
+ *        dbphi/dz, bz, dbz/dr, dbz/dphi, dbz/dz].
+ * @param r R coordinate of the query point [m].
+ * @param phi phi coordinate of the query point [rad].
+ * @param z z coordinate of the query point [m].
+ * @param bfield The magnetic field data.
+ *
+ * @return Zero if the evaluation succeeded.
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
+a5err BfieldSpline2D_eval_b_db(
+    real b_db[12], real r, real phi, real z, BfieldSpline2D *bfield);
 DECLARE_TARGET_END
-GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-a5err B_2DS_get_axis_rz(real rz[2], B_2DS_data* Bdata);
+
+/**
+ * Evaluate the magnetic axis (R, z) coordinates.
+ *
+ * Returns the position stored in the struct.
+ *
+ * @param axisrz Evaluated axis coordinates [m].
+ * @param bfield The magnetic field data.
+ *
+ * @return Zero if the evaluation succeeded.
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
+a5err BfieldSpline2D_eval_axisrz(real axisrz[2], BfieldSpline2D *bfield);
 DECLARE_TARGET_END
 #endif

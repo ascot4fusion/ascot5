@@ -7,18 +7,16 @@ import ctypes
 
 import numpy as np
 
+from a5py.exceptions import AscotDataException
+
 from ..libascot import LIBASCOT
 from ..data.options import Options, OptionsStruct
-from ..data.bfield import Bfield
-from ..data.efield import Efield
-from ..data.plasma import Plasma
-from ..data.neutral import Neutral
-from ..data.wall import Wall
-from ..data.boozer import Struct as BoozerMap
-from ..data.mhd import Mhd
-from ..data.asigma import Atomic
-from ..data.nbi import NbiStruct
 
+from a5py.data import (
+    AscotData, Bfield, Efield, Plasma, Neutral, Wall, Mhd, Atomic,
+    NbiStruct,
+    )
+from a5py.data.boozer import Struct as BoozerMap
 from a5py.data.marker.state import Structure
 
 from .functions import init_fun, PTR_DOUBLE, PTR_INT
@@ -68,102 +66,178 @@ init_fun(
     )
 
 
-def setup_run(params, **inputs):
-    """Check that we have sufficient inputs to carry out this simulation.
+def simulate(
+        data, time=None, run=None, params=None, comm=None, **priority_inputs,
+        ):
+    """Let the markers loose.
+
+    The simulation can either be newly initialized or the simulation can be
+    continued from a previous run.
+
+    For new simulation, options must be provided. By default the inputs that are
+    set as `active` are used but these can be overridden with ``**inputs``:
+
+    .. code-block:: python
+
+        simulate(options=Options(...), bfield=mybfield)
+
+    For continuing a simulation, the run must be provided and no ``options`` or
+    ``**inputs``:
+
+    .. code-block:: python
+
+        simulate(run=run)
+
+    In both cases, ``time`` can be supplied to control the real time for how
+    long the simulation should run.
+
+
+    Parameters
+    ----------
+    run : Run
+        The run to simulate.
     """
-    required = {"bfield"}
+    root = True if comm is None else comm.Get_rank() == 0
+
+    inputs = {}
+    if root:
+        inputs = preflight_check(data, params, **priority_inputs)
+
+    inputs, unstage = setup_inputs(inputs, comm)
+    run = setup_run(params, inputs, comm)
+    execute(run, time)
+    finalize(run, unstage, comm)
+    # Add to tree
+
+    return run
+
+
+def preflight_check(data, params, **priority_inputs):
+    """Check that inputs are consistent and return only those inputs that are
+    needed.
+
+    Parameters
+    ----------
+    data : :class:`.AscotData`
+        Simulation data structure whose `active` inputs will be used
+    params : :class:`.Options`
+        Simulation parameters.
+    priority_inputs : dict
+        Inputs to use in place of the ones that are `active` in ``data``.
+
+    Returns
+    -------
+    inputs : dict[str, :class:`.InputVariant`]
+        Inputs that will be used in the simulation.
+    """
+    preflight_check_parameters(params)
+
+    required = {"bfield", "marker"}
     mf = params.simulation.simulation_mode == 4
     if params.physics.enable_orbit_following and not mf:
         required.add("efield")
+
     if params.physics.enable_icrh:
         required.add("rfof")
-    if params.physics.enable_coulomb_collisions or params.endconditions.activate_energy_limits:
+
+    if (params.physics.enable_coulomb_collisions
+            or params.endconditions.activate_energy_limits):
         required.add("plasma")
+
     if params.physics.enable_mhd:
         required.update({"boozer", "mhd"})
+
+    inputs = {}
+    for req in required:
+        try:
+            inputs[req] = data[req].active
+        except AscotDataException:
+            if req in priority_inputs:
+                inputs[req] = priority_inputs[req]
 
     missing_inputs = {req for req in required if not req in inputs.keys()}
     if missing_inputs:
         raise ValueError(f"Missing inputs: {missing_inputs}")
 
-    return Run(inputs=inputs)
+    return inputs
+
+
+def preflight_check_parameters(params):
+    """Check that options are internally consistent."""
+    return True
+
+
+def setup_inputs(inputs, comm=None):
+    root = True if comm is None else comm.Get_rank() == 0
+    if root:
+        input_names = list(inputs.keys())
+
+    if comm is not None:
+        input_names = comm.bcast(None if not root else input_names, root=0)
+        input_names.remove("marker")
+
+        for variant in input_names:
+            exported_data = None if not root else inputs[variant].export()
+
+            exported_data = comm.bcast(exported_data, root=0)
+            if not root:
+                inputs[variant] = AscotData.from_export(variant, exported_data)
+
+    inputs["marker"] = setup_markers(inputs["marker"], inputs["bfield"])
+    return inputs, []
 
 
 def setup_markers(mrk, bfield):
     axisr, axisz = 6.2, 0.0
-    for i in range(len(mrk._cdata)):
-        mrk._cdata[i].rprt = mrk._cdata[i].r
-        mrk._cdata[i].phiprt = mrk._cdata[i].phi
-        mrk._cdata[i].zprt = mrk._cdata[i].z
-        mrk._cdata[i].p_r = 0.0
-        mrk._cdata[i].p_phi = 0.0
-        mrk._cdata[i].p_z = 0.0
-        mrk._cdata[i].mass = 0.0
-        mrk._cdata[i].charge = 0.0
-        mrk._cdata[i].anum = 0
-        mrk._cdata[i].znum = 0
-        mrk._cdata[i].weight = 0.0
-        mrk._cdata[i].theta = np.arctan2(mrk._cdata[i].z - axisz,
-                                            mrk._cdata[i].r - axisr)
-        mrk._cdata[i].endcond = 0
-        mrk._cdata[i].walltile = 0
-        mrk._cdata[i].cputime = 0.0
-        mrk._cdata[i].mileage = 0.0
-        mrk._cdata[i].mu = 0.0
-        mrk._cdata[i].zeta = 0.0
+    if True:#isinstance(mrk, FieldlineMarker):
+        for i in range(len(mrk._cdata)):
+            mrk._cdata[i].rprt = mrk._cdata[i].r
+            mrk._cdata[i].phiprt = mrk._cdata[i].phi
+            mrk._cdata[i].zprt = mrk._cdata[i].z
+            mrk._cdata[i].pr = 0.0
+            mrk._cdata[i].pphi = 0.0
+            mrk._cdata[i].pz = 0.0
+            mrk._cdata[i].mass = 0.0
+            mrk._cdata[i].charge = 0.0
+            mrk._cdata[i].anum = 0
+            mrk._cdata[i].znum = 0
+            mrk._cdata[i].weight = 0.0
+            mrk._cdata[i].theta = np.arctan2(mrk._cdata[i].z - axisz,
+                                                mrk._cdata[i].r - axisr)
+            mrk._cdata[i].endcond = 0
+            mrk._cdata[i].walltile = 0
+            mrk._cdata[i].cputime = 0.0
+            mrk._cdata[i].mileage = 0.0
+            mrk._cdata[i].ekin = 0.0
+            mrk._cdata[i].zeta = 0.0
+
+    return mrk
 
 
+def setup_run(params, inputs, comm=None):
+    """Create run object and setup diagnostics."""
+    inputs.update({"options": params})
+    run = Run(inputs=inputs)
+    run._setup(inputs["marker"]._cdata)
+    run.options.stage()
+    return run
 
 
-def init(mpirank, simtype, params: Options, **inputs):
-    """Initialize data for the simulation.
-
-    This function does the following:
-
-    - Check what input is needed according to the parameters and simulation
-      type. (root)
-    - Generate Run Group (root)
-    - Initialize marker state (and randomize it) (all)
-    - Broadcast input data (root/all)
-    - Initialize sim struct (all)
-    - Initialize diagnostics (all)
-    """
-
-    def bcast_data(data):
-        if MPI is None:
-            return data
-        return MPI.COMM_WORLD.bcast(data, root=0)
-    data = None
-    if mpirank == 0:
-        data = self.data.bfield.active.export()
-    data = bcast_data(data)
-    if mpirank > 0:
-        self.data.create_bfieldanalytical(**data, activate=True)
-
-    mrk = self.data.create_fieldlinemarker(
-        ids=np.arange(100)+1,
-        r=6 + np.random.rand(100),
-        phi=np.zeros((100,)),
-        z=np.zeros((100,)),
-        direction=np.ones((100,)),
-    )
-    self.data.bfield.active.stage()
-    self.data.options.active.stage()
-    
-
-    self._sim = Simulate.sim_data()
-    self._sim.B_data.use(self.data.bfield.active)
-    self._sim.params = ctypes.pointer(self.data.options.active._struct_)
-
-
-def simulate(run):
+def execute(run, time):
     sim = SimData()
     sim.B_data.use(run.bfield)
-    run.options.stage()
     sim.params = ctypes.pointer(run.options._cdata)
-    LIBASCOT.simulate(len(run._diagnostics["endstate"]._cdata), run._diagnostics["endstate"]._cdata, ctypes.byref(sim))
-    for i in range(len(run._diagnostics["endstate"]._cdata)):
-        print(run._diagnostics["endstate"]._cdata[i].z)
+    mrk = run._diagnostics["endstate"]._cdata
+    LIBASCOT.simulate(len(mrk), mrk, ctypes.byref(sim))
+
+
+def finalize(run, unstage, comm):
+    """Combine results to root process and free any used resources."""
+    pass
+
 
 class Simulate():
     pass
+
+    def resume():
+        pass

@@ -4,9 +4,9 @@
  */
 #include <stdlib.h>
 #include <math.h>
-#include "../ascot5.h"
-#include "../math.h"
-#include "../consts.h"
+#include "ascot5.h"
+#include "math.h"
+#include "consts.h"
 #include "interp.h"
 #include "spline.h"
 

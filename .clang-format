@@ -1,0 +1,4 @@
+AlignAfterOpenBracket: AlwaysBreak
+IndentWidth: 4
+UseTab: Never
+BreakBeforeBraces: Allman

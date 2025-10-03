@@ -7,9 +7,10 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../ascot5.h"
-#include "../consts.h"
-#include "../options.h"
+#include "ascot5.h"
+#include "consts.h"
+#include "options.h"
+#include "diag.h"
 
 /**
  * @brief Initializes orbit diagnostics data.

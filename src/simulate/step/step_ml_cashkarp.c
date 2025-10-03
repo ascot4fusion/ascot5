@@ -5,12 +5,12 @@
 #include <stdlib.h>
 #include <float.h>
 #include <math.h>
-#include "../../ascot5.h"
-#include "../../B_field.h"
-#include "../../math.h"
-#include "../../particle.h"
-#include "../../boozer.h"
-#include "../../mhd.h"
+#include "ascot5.h"
+#include "B_field.h"
+#include "math.h"
+#include "particle.h"
+#include "boozer.h"
+#include "mhd.h"
 #include "step_ml_cashkarp.h"
 
 /**

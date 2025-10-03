@@ -20,7 +20,7 @@ class Struct(DataStruct):
 
     _fields_ = [
         ('reff', ctypes.c_double),
-        ('dV', interp1D_data),
+        ('dv', interp1D_data),
         ]
 
 
@@ -33,9 +33,9 @@ class EfieldPotential1D(InputVariant):
         """Radial grid in rho in which the data is tabulated."""
         if self._staged:
             return np.linspace(
-                self._struct_.dV.x_min,
-                self._struct_.dV.x_max,
-                self._struct_.dV.n_x
+                self._struct_.dv.x_min,
+                self._struct_.dv.x_max,
+                self._struct_.dv.n_x
                 ) * unyt.dimensionless
         if self._format == Format.HDF5:
             nx, x0, x1 = self._read_hdf5("nrho", "rhomin", "rhomax")
@@ -66,7 +66,7 @@ class EfieldPotential1D(InputVariant):
         return data
 
     def stage(self):
-        init = LIBASCOT.E_1DS_init
+        init = LIBASCOT.EfieldPotential1D_init
         init.restype = ctypes.c_int32
         init.argtypes = [
             ctypes.POINTER(__class__.Struct),
@@ -91,7 +91,7 @@ class EfieldPotential1D(InputVariant):
             self._staged = True
 
     def unstage(self):
-        free = LIBASCOT.E_1DS_free
+        free = LIBASCOT.EfieldPotential1D_free
         free.restype = None
         free.argtypes = [ctypes.POINTER(__class__.Struct)]
 

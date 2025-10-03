@@ -1,36 +1,104 @@
 /**
  * @file wall_2d.h
- * @brief Header file for wall_2d.c
+ * Header file for wall_2d.c
  */
 #ifndef WALL_2D_H
 #define WALL_2D_H
-#include "../ascot5.h"
-#include "../offload.h"
+#include "ascot5.h"
+#include "wall.h"
+#include "offload.h"
 
 /**
- * @brief 2D wall data parameters
+ * @brief Load 2D wall data and prepare parameters
  *
- * Note: The start and end point of wall polygon does not have to concide.
+ * @param data pointer to the data struct
+ * @param nelements number of elements in the wall polygon
+ * @param r R coordinates for the wall polygon points
+ * @param z z coordinates for the wall polygon points
+ * @param flag integer label for grouping wall elements together.
+ *
+ * @return zero to indicate success
  */
-typedef struct {
-    int n;        /**< Number of points in the wall polygon      */
-    real* wall_r; /**< R coordinates for the wall polygon points */
-    real* wall_z; /**< z coordinates for the wall polygon points */
-    int* flag;    /**< Array of wall element flags               */
-} wall_2d_data;
+int WallContour2D_init(
+    WallContour2D* wall, int n, real r[n], real z[n], int flag[n]
+);
 
-int wall_2d_init(wall_2d_data* data, int nelements, real* r, real* z,
-                 int* flag);
-void wall_2d_free(wall_2d_data* data);
-void wall_2d_offload(wall_2d_data* data);
-GPU_DECLARE_TARGET_SIMD_UNIFORM(w)
-int wall_2d_inside(real r, real z, wall_2d_data* w);
+
+/**
+ * @brief Free allocated resources
+ *
+ * @param data pointer to the data struct
+ */
+void WallContour2D_free(WallContour2D* wall);
+
+
+/**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void WallContour2D_offload(WallContour2D* wall);
+
+
+/**
+ * @brief Check if coordinates are within 2D polygon wall
+ *
+ * This function checks if the given coordinates are within the walls defined
+ * by a 2D polygon using a modified axis crossing method Origin is moved
+ * to the coordinates and the number of wall segments crossing the positive
+ * R-axis are calculated. If this is odd, the point is inside the polygon.
+ *
+ * @param r R coordinate [m]
+ * @param z z coordinate [m]
+ * @param w 2D wall data structure
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(wall)
+int WallContour2D_inside(real r, real z, WallContour2D* wall);
 DECLARE_TARGET_END
-GPU_DECLARE_TARGET_SIMD_UNIFORM(w)
-int wall_2d_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
-                     wall_2d_data* w, real* w_coll);
-GPU_DECLARE_TARGET_SIMD_UNIFORM(w)
-int wall_2d_find_intersection(real r1, real z1, real r2, real z2,
-                              wall_2d_data* w, real* w_coll);
+
+
+/**
+ * @brief Check if trajectory from (r1, phi1, z1) to (r2, phi2, z2) intersects
+ *        the wall
+ *
+ * @param r1 start point R coordinate [m]
+ * @param phi1 start point phi coordinate [rad]
+ * @param z1 start point z coordinate [m]
+ * @param r2 end point R coordinate [m]
+ * @param phi2 end point phi coordinate [rad]
+ * @param z2 end point z coordinate [m]
+ * @param w pointer to data struct on target
+ * @param w_coll pointer for storing the parameter in P = P1 + w_coll * (P2-P1),
+ *        where P is the point where the collision occurred.
+ *
+ * @return wall element ID if hit, zero otherwise
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(wall)
+int WallContour2D_hit_wall(
+    real r1, real z1, real r2, real z2, real* w_coll, WallContour2D* wall
+);
+
+
+/**
+ * @brief Find intersection between the wall element and line segment
+ *
+ * If there are multiple intersections, the one that is closest to P1
+ * is returned.
+ *
+ * @param r1 R1 coordinate of the line segment [P1,P2] [m]
+ * @param z1 z1 coordinate of the line segment [P1,P2] [m]
+ * @param r2 R2 coordinate of the line segment [P1,P2] [m]
+ * @param z2 z2 coordinate of the line segment [P1,P2] [m]
+ * @param w pointer to the wall data
+ * @param w_coll pointer for storing the parameter in P = P1 + w_coll * (P2-P1),
+ *        where P is the point where the collision occurred.
+ *
+ * @return int wall element id if hit, zero otherwise
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(wall)
+int WallContour2D_find_intersection(
+    real r1, real z1, real r2, real z2, real* w_coll, WallContour2D* wall
+);
 DECLARE_TARGET_END
+
 #endif

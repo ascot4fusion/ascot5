@@ -47,7 +47,7 @@ else ifeq ($(RANDOM),LCG)
 	DEFINES+=-DRANDOM_LCG
 endif
 
-CFLAGS+=-Wall -Wextra -fPIC -std=c11 -D_XOPEN_SOURCE=700 $(DEFINES) $(FLAGS)
+CFLAGS+=-Wall -Wextra -fPIC -std=c11 -D_XOPEN_SOURCE=700 -Iinclude $(DEFINES) $(FLAGS)
 
 ifeq ($(DEBUG),1)
 	CFLAGS+=-g
@@ -92,9 +92,6 @@ $(BUILD_DIR)/libascot.so: $(OBJS)
 
 $(BUILD_DIR)/test_ascot5: $(OBJS) $(OBJ_DIR)/test_ascot5.o
 	$(CC) -o $@ $^ $(LDFLAGS)
-
-doc:
-	doxygen Doxyfile
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c Makefile
 	@mkdir -p $(dir $@)

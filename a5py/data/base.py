@@ -58,3 +58,13 @@ class AscotData(
 
     def __init__(self, hdf5file: Optional[tuple[str, bool]]=None):
         super().__init__(input_categories=input_categories, hdf5file=hdf5file)
+
+    @staticmethod
+    def from_export(variant, data) -> object:
+        """Create a copy of an input variant whose data was exported.
+        """
+        tree = AscotData()
+        factory_method = getattr(tree, f"create_{variant.lower()}", None)
+        if factory_method is None:
+            raise ValueError(f"Unknown variant: {variant}")
+        return factory_method(**data, preview=True)

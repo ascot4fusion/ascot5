@@ -11,3 +11,7 @@ a5py
     physlib
     utils
     exceptions
+    src.bfield
+    src.efield
+    src.plasma
+    src.wall

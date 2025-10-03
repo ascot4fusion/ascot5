@@ -1,114 +1,65 @@
 /**
- * @file B_TC.c
- * @brief Trivial Cartesian magnetic field
+ * Implements B_TC.h.
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include "../ascot5.h"
-#include "../math.h"
-#include "../error.h"
 #include "B_TC.h"
+#include "ascot5.h"
+#include "error.h"
+#include "math.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-/**
- * @brief Initialize magnetic field data
- *
- * @param data pointer to the data struct
- * @param axisr value returned when quering magnetic axis R coordinate [m]
- * @param axisz value returned when quering magnetic axis z coordinate [m]
- * @param psival value returned when quering magnetic flux [Vs/m]
- * @param rhoval value returned when quering normalized poloidal flux [1]
- * @param B magnetic field at origo [B_x, B_y, B_z] [T]
- * @param dB magnetic field Jacobian [dB_x/dx, dB_x/dy, dB_x/dz, dB_y/dx,
- *        dB_y/dy, dB_y/dz, dB_z/dx, dB_z/dy, dB_z/dz] [T/m]
- *
- * @return zero to indicate success
- */
-int B_TC_init(B_TC_data* data, real axisr, real axisz, real psival, real rhoval,
-              real B[3], real dB[9]) {
+int BfieldCartesian_init(
+    BfieldCartesian *bfield, real psival, real rhoval, real axisrz[2],
+    real bxyz[3], real jacobian[9])
+{
 
-    data->axisr = axisr;
-    data->axisz = axisz;
-    data->psival = psival;
-    data->rhoval = rhoval;
-    data->B[0] = B[0];
-    data->B[1] = B[1];
-    data->B[2] = B[2];
-    for(int i = 0; i < 9; i++) {
-        data->dB[i] = dB[i];
+    bfield->psival = psival;
+    bfield->rhoval = rhoval;
+    bfield->bxyz[0] = bxyz[0];
+    bfield->bxyz[1] = bxyz[1];
+    bfield->bxyz[2] = bxyz[2];
+    bfield->axisrz[0] = axisrz[0];
+    bfield->axisrz[1] = axisrz[1];
+    for (int i = 0; i < 9; i++)
+    {
+        bfield->jacobian[i] = jacobian[i];
     }
     return 0;
 }
 
-/**
- * @brief Free allocated resources
- */
-void B_TC_free(B_TC_data* data) {
+void BfieldCartesian_free(BfieldCartesian *bfield)
+{
+    (void)bfield;
     // No resources were dynamically allocated
 }
 
-/**
- * @brief Offload data to the accelerator.
- *
- * @param data pointer to the data struct
- */
-void B_TC_offload(B_TC_data* data) {
-    GPU_MAP_TO_DEVICE( data->B[0:3], data->dB[0:9] )
+void BfieldCartesian_offload(BfieldCartesian *bfield)
+{
+    (void)bfield;
+    GPU_MAP_TO_DEVICE(data->bxyz [0:3], data->jacobian [0:9])
 }
 
-/**
- * @brief Evaluate poloidal flux psi
- *
- * @param psi pointer where psi [V*s*m^-1] value will be stored
- * @param r R coordinate [m]
- * @param phi phi coordinate [rad]
- * @param z z coordinate [m]
- * @param Bdata pointer to magnetic field data struct
- *
- * @return zero to indicate success
- */
-a5err B_TC_eval_psi(real* psi, real r, real phi, real z,
-                   B_TC_data* Bdata) {
-    psi[0] = Bdata->psival;
+a5err BfieldCartesian_eval_psi(real psi[1], BfieldCartesian *bfield)
+{
+    psi[0] = bfield->psival;
 
     return 0;
 }
 
-/**
- * @brief Evaluate poloidal flux psi and its derivatives
- *
- * @param psi_dpsi pointer for storing psi [V*s*m^-1] and its derivatives
- * @param r R coordinate [m]
- * @param phi phi coordinate [rad]
- * @param z z coordinate [m]
- * @param Bdata pointer to magnetic field data struct
- *
- * @return zero to indicate success
- */
-a5err B_TC_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
-                         B_TC_data* Bdata) {
-    psi_dpsi[0] = Bdata->psival;
+a5err BfieldCartesian_eval_psi_dpsi(real psi_dpsi[4], BfieldCartesian *bfield)
+{
+    psi_dpsi[0] = bfield->psival;
     psi_dpsi[1] = 0;
     psi_dpsi[2] = 0;
     psi_dpsi[3] = 0;
+
     return 0;
 }
 
-/**
- * @brief Evaluate normalized poloidal flux rho and its derivatives
- *
- * @param rho_drho pointer where rho and its derivatives will be stored
- * @param r R coordinate [m]
- * @param phi phi coordinate [rad]
- * @param z z coordinate [m]
- * @param Bdata pointer to magnetic field data struct
- *
- * @return zero to indicate success
- */
-a5err B_TC_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
-                         B_TC_data* Bdata) {
-    rho_drho[0] = Bdata->rhoval;
-
+a5err BfieldCartesian_eval_rho_drho(real rho_drho[4], BfieldCartesian *bfield)
+{
+    rho_drho[0] = bfield->rhoval;
     rho_drho[1] = 0;
     rho_drho[2] = 0;
     rho_drho[3] = 0;
@@ -116,91 +67,56 @@ a5err B_TC_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
     return 0;
 }
 
-/**
- * @brief Evaluate magnetic field
- *
- * @param B pointer to array where magnetic field values are stored
- * @param r R coordinate [m]
- * @param phi phi coordinate [rad]
- * @param z z coordinate [m]
- * @param Bdata pointer to magnetic field data struct
- *
- * @return zero to indicate success
- */
-a5err B_TC_eval_B(real B[3], real r, real phi,
-                 real z, B_TC_data* Bdata) {
-    /* Find the Cartesian position and evaluate the field there */
-    real xyz[3];
-    real rpz[3] = {r, phi, z};
+a5err BfieldCartesian_eval_b(
+    real b[3], real r, real phi, real z, BfieldCartesian *bfield)
+{
+    real rpz[3] = {r, phi, z}, xyz[3];
     math_rpz2xyz(rpz, xyz);
 
-    real Bxyz[3];
-    Bxyz[0] = Bdata->B[0] + Bdata->dB[0]*xyz[0] + Bdata->dB[1]*xyz[1]
-        + Bdata->dB[2]*xyz[2];
-    Bxyz[1] = Bdata->B[1] + Bdata->dB[3]*xyz[0] + Bdata->dB[4]*xyz[1]
-        + Bdata->dB[5]*xyz[2];
-    Bxyz[2] = Bdata->B[2] + Bdata->dB[6]*xyz[0] + Bdata->dB[7]*xyz[1]
-        + Bdata->dB[8]*xyz[2];
-
-    /* Transform the Cartesian field vector to cylindrical coordinates */
-    math_vec_xyz2rpz(Bxyz, B, phi);
+    real bxyz[3], *jacobian = bfield->jacobian;
+    bxyz[0] = jacobian[0] + jacobian[0] * xyz[0] + jacobian[1] * xyz[1] +
+              jacobian[2] * xyz[2];
+    bxyz[1] = jacobian[1] + jacobian[3] * xyz[0] + jacobian[4] * xyz[1] +
+              jacobian[5] * xyz[2];
+    bxyz[2] = jacobian[2] + jacobian[6] * xyz[0] + jacobian[7] * xyz[1] +
+              jacobian[8] * xyz[2];
+    math_vec_xyz2rpz(bxyz, b, phi);
 
     return 0;
 }
 
-/**
- * @brief Evaluate magnetic field and its derivatives
- *
- * @param B_dB pointer to array where the field and its derivatives are stored
- * @param r R coordinate [m]
- * @param phi phi coordinate [rad]
- * @param z z coordinate [m]
- * @param Bdata pointer to magnetic field data struct
- *
- * @return zero to indicate success
- */
-a5err B_TC_eval_B_dB(real B_dB[12], real r, real phi, real z,
-                     B_TC_data* Bdata) {
-    /* Find the Cartesian position and evaluate the field there */
-    real xyz[3];
-    real rpz[3] = {r, phi, z};
+a5err BfieldCartesian_eval_b_db(
+    real b_db[12], real r, real phi, real z, BfieldCartesian *bfield)
+{
+    real rpz[3] = {r, phi, z}, xyz[3];
     math_rpz2xyz(rpz, xyz);
 
-    real Bxyz[3];
-    Bxyz[0] = Bdata->B[0] + Bdata->dB[0]*xyz[0] + Bdata->dB[1]*xyz[1]
-        + Bdata->dB[2]*xyz[2];
-    Bxyz[1] = Bdata->B[1] + Bdata->dB[3]*xyz[0] + Bdata->dB[4]*xyz[1]
-        + Bdata->dB[5]*xyz[2];
-    Bxyz[2] = Bdata->B[2] + Bdata->dB[6]*xyz[0] + Bdata->dB[7]*xyz[1]
-        + Bdata->dB[8]*xyz[2];
+    real bxyz[3], *jacobian = bfield->jacobian;
+    bxyz[0] = jacobian[0] + jacobian[0] * xyz[0] + jacobian[1] * xyz[1] +
+              jacobian[2] * xyz[2];
+    bxyz[1] = jacobian[1] + jacobian[3] * xyz[0] + jacobian[4] * xyz[1] +
+              jacobian[5] * xyz[2];
+    bxyz[2] = jacobian[2] + jacobian[6] * xyz[0] + jacobian[7] * xyz[1] +
+              jacobian[8] * xyz[2];
+    real b[3];
+    math_vec_xyz2rpz(bxyz, b, phi);
 
-    /* Transform the Cartesian field vector and Jacobian
-       to cylindrical coordinates */
-    real Brpz[3];
-    math_vec_xyz2rpz(Bxyz, Brpz, phi);
+    real bxyz_db[12] = {jacobian[0], jacobian[1], jacobian[2],
+                        jacobian[3], jacobian[4], jacobian[5],
+                        jacobian[6], jacobian[7], jacobian[8]};
+    math_jac_xyz2rpz(bxyz_db, b_db, r, phi);
 
-    real B_dBxyz[12] = {Bdata->dB[0], Bdata->dB[1], Bdata->dB[2],
-                        Bdata->dB[3], Bdata->dB[4], Bdata->dB[5],
-                        Bdata->dB[6], Bdata->dB[7], Bdata->dB[8]};
-    math_jac_xyz2rpz(B_dBxyz, B_dB, r, phi);
-    B_dB[0] = Brpz[0];
-    B_dB[4] = Brpz[1];
-    B_dB[8] = Brpz[2];
+    b_db[0] = b[0];
+    b_db[4] = b[1];
+    b_db[8] = b[2];
 
     return 0;
 }
 
-/**
- * @brief Return magnetic axis R-coordinate
- *
- * @param rz pointer where axis R and z [m] values will be stored
- * @param Bdata pointer to magnetic field data struct
- *
- * @return Zero a5err value as this function can't fail.
- */
-a5err B_TC_get_axis_rz(real rz[2], B_TC_data* Bdata) {
-    a5err err = 0;
-    rz[0] = Bdata->axisr;
-    rz[1] = Bdata->axisz;
-    return err;
+a5err BfieldCartesian_eval_axisrz(real axisrz[2], BfieldCartesian *bfield)
+{
+    axisrz[0] = bfield->axisrz[0];
+    axisrz[1] = bfield->axisrz[1];
+
+    return 0;
 }

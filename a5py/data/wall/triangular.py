@@ -1,16 +1,18 @@
-"""Defines Wall3D triangular wall mesh input class and the corresponding factory
-method.
+"""Defines triangular 3D wall mesh input and the corresponding factory method.
 """
+import copy
 import ctypes
-from typing import Dict, Optional
+from typing import Sized, Optional
 
 import unyt
 import numpy as np
+from numpy.ctypeslib import ndpointer
 
 from a5py import utils
 from a5py.libascot import LIBASCOT, DataStruct, init_fun
 from a5py.exceptions import AscotMeltdownError
-from a5py.data.access import InputVariant, Leaf, TreeMixin
+from a5py.data.access import Leaf, TreeMixin
+from .common import WallVariant
 
 
 # pylint: disable=too-few-public-methods
@@ -18,132 +20,107 @@ class Struct(DataStruct):
     """Python wrapper for the struct in wall_3d.h."""
 
     _fields_ = [
-        ('n', ctypes.c_int32),
-        ('PADDING_0', ctypes.c_ubyte * 4),
-        ('xmin', ctypes.c_double),
-        ('xmax', ctypes.c_double),
-        ('xgrid', ctypes.c_double),
-        ('ymin', ctypes.c_double),
-        ('ymax', ctypes.c_double),
-        ('ygrid', ctypes.c_double),
-        ('zmin', ctypes.c_double),
-        ('zmax', ctypes.c_double),
-        ('zgrid', ctypes.c_double),
-        ('depth', ctypes.c_int32),
-        ('ngrid', ctypes.c_int32),
-        ('wall_tris', ctypes.POINTER(ctypes.c_double)),
-        ('flag', ctypes.POINTER(ctypes.c_int32)),
-        ('tree_array', ctypes.POINTER(ctypes.c_int32)),
-        ('tree_array_size', ctypes.c_int32),
-        ('PADDING_1', ctypes.c_ubyte * 4),
+        ("n", ctypes.c_int32),
+        ("depth", ctypes.c_int32),
+        ("ngrid", ctypes.c_int32),
+        ("tree_array_size", ctypes.c_int32),
+        ("flag", ctypes.POINTER(ctypes.c_int32)),
+        ("xmin", ctypes.c_double),
+        ("xmax", ctypes.c_double),
+        ("xgrid", ctypes.c_double),
+        ("ymin", ctypes.c_double),
+        ("ymax", ctypes.c_double),
+        ("ygrid", ctypes.c_double),
+        ("zmin", ctypes.c_double),
+        ("zmax", ctypes.c_double),
+        ("zgrid", ctypes.c_double),
+        ("vertices", ctypes.POINTER(ctypes.c_double)),
+        ("tree_array", ctypes.POINTER(ctypes.c_int32)),
         ]
 
 
+init_fun(
+    "WallTriangular3D_init",
+    ctypes.POINTER(Struct),
+    ctypes.c_int32,
+    ndpointer(ctypes.c_double),
+    ndpointer(ctypes.c_int32),
+    restype=ctypes.c_int32,
+    )
+
+init_fun("WallTriangular3D_free")
+
+
 @Leaf.register
-class Wall3D(InputVariant):
+class WallTriangular3D(WallVariant):
     """Wall mesh made of triangular elements."""
 
     @property
+    def n(self) -> int:
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("n", ()) // 9
+        assert self._file is not None
+        return self._file.read("vertices").size // 9
+
+    @property
     def vertices(self) -> unyt.unyt_array:
-        r""":math:`z` coordinates of the wall vertices."""
-        if self._staged:
-            n = self._from_struct_("n", shape=())
-            return self._from_struct_("wall_tris", shape=(9*n,), units="m")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("vertices")
+        r""":math:`(x, y, z)` coordinates of the wall vertices."""
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("vertices", (9*self.n,), "m")
+        assert self._file is not None
+        return self._file.read("vertices")
 
-    @property
-    def flag(self) -> unyt.unyt_array:
-        r"""Integer label for grouping wall elements together."""
-        if self._staged:
-            n = self._from_struct_("n", shape=())
-            return self._from_struct_("flag", shape=(n,), units="")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("flag")
-
-    @property
-    def labels(self) -> Dict[str,int]:
-        r"""Integer label for grouping wall elements together."""
-        if self._staged:
-            # This information is not currently stored/used within libascot.so
-            return self._labels
-        if self._format == Format.HDF5:
-            return {key.decode("utf-8"): int(value) for key, value in
-                    zip(self._read_hdf5("labelkeys"),
-                        self._read_hdf5("labelvalues"))
-                    }
-
-    def _export_hdf5(self):
-        """Export data to HDF5 file."""
-        if self._format == Format.HDF5:
-            raise AscotIOException("Data is already stored in the file.")
-        data = self.export()
-        data["labelkeys"] = list(data["labels"].keys())
-        data["labelvalues"] = list(data["labels"].values())
-        del data["labels"]
-        self._treemanager.hdf5manager.write_datasets(
-            self.qid, self.variant, data,
-            )
-        self._format = Format.HDF5
-
-    def export(self):
-        data = {
-            "vertices": self._vertices,
-            "flag": self._flag,
-            "labels": self._labels,
-        }
-        return data
-
-    def stage(self):
-        init = LIBASCOT.wall_3d_init
-        init.restype = ctypes.c_int32
-        init.argtypes = [
-            ctypes.POINTER(__class__.Struct),
-            ctypes.c_int32,
-            ndpointer(ctypes.c_double),
-            ndpointer(ctypes.c_int32),
-            ]
-        if not self._staged:
-            if init(
-                ctypes.byref(self._struct_),
-                int(self.vertices.size / 9),
-                self.vertices.v,
-                self.flag,
+    # pylint: disable=too-many-arguments
+    def _stage(
+            self, vertices: unyt.unyt_array,
+            flag: np.ndarray,
+            labels: dict[str, int],
+            ) -> None:
+        self._cdata = Struct()
+        self._labels = labels
+        if LIBASCOT.WallTriangular3D_init(
+            ctypes.byref(self._cdata), vertices.size, vertices.v, flag,
             ):
-                raise AscotIOException("Failed to stage data.")
-            if self._format is Format.MEMORY:
-                del self._vertices
-                del self._flag
-            self._staged = True
+            self._cdata = None
+            self._labels = None
+            raise AscotMeltdownError("Could not initialize struct.")
 
-    def unstage(self):
-        free = LIBASCOT.wall_3d_free
-        free.restype = None
-        free.argtypes = [ctypes.POINTER(__class__.Struct)]
+    def _save_data(self) -> None:
+        assert self._file is not None
+        self._file.write("vertices", self.vertices)
+        self._save_flags_and_labels()
 
-        if self._staged:
-            if self._format is Format.MEMORY:
-                self._vertices = self.vertices
-                self._flag = self.flag
-            free(ctypes.byref(self._struct_))
-            self._staged = False
+    def export(self) -> dict[str, unyt.unyt_array | np.ndarray]:
+        fields = ["vertices", "flag", "labels",]
+        return {field: getattr(self, field) for field in fields}
+
+    def stage(self) -> None:
+        super().stage()
+        self._stage(**self.export())
+
+    def unstage(self) -> None:
+        super().unstage()
+        assert self._cdata is not None
+        LIBASCOT.WallTriangular3D_free(ctypes.byref(self._cdata))
+        self._cdata = None
+        self._labels = None
 
 
 # pylint: disable=too-few-public-methods
-class CreateWall3DMixin(TreeMixin):
-    """Mixin class used by `Data` to create Wall3D input."""
+class CreateMixin(TreeMixin):
+    """Provides the factory method."""
 
     #pylint: disable=protected-access, too-many-arguments, too-many-locals
-    def create_wall3d(
+    def create_walltriangular3d(
             self,
-            vertices: np.ndarray=None,
+            vertices: utils.ArrayLike,
             flag: Optional[np.ndarray]=None,
             labels: Optional[dict[str,int]]=None,
             note: Optional[str]=None,
             activate: bool=False,
             preview: bool=False,
             save: Optional[bool]=None,
-            ) -> Wall3D:
+            ) -> WallTriangular3D:
         r"""Create triangular wall mesh represting the 3D wall.
 
         This input is a 3D wall model where the wall consists of small triangles
@@ -158,25 +135,27 @@ class CreateWall3DMixin(TreeMixin):
             The format of the array is :math:`[i*9 + j*3 + k]`, where :math:`i`
             is the index of the triangle, :math:`j` index of the vertex, and
             :math:`k \in [1,2,3]` marks the coordinate :math:`(x,y,z)`.
-        flag : array_like (n,1), optional
-            Integer label for grouping wall elements together.
+        flag : array_like (n,), *optional*
+            Integer label for grouping wall elements.
 
             By grouping elements together (e.g. all elements that belong to
             the divertor form one group), investigating losses and wall loads
-            component-wise becomes easier in post-processing.
-        labels : dict[str,int], optional
+            component-wise becomes easier in post-processing. If ``flag`` is
+            given, corresponding ``labels`` must be provided as well. By default
+            all elements are simply labeled as "{wall: 0}".
+        labels : dict[str,int], *optional*
             Human readable labels for the flag values.
 
-            For example ``labels`` = ``{"divertor":1, "firstwall":2}``.
-        note : str, optional
+            For example ``labels = {"divertor": 1, "firstwall": 2}``.
+        note : str, *optional*
             A short note to document this data.
 
             The first word of the note is converted to a tag which you can use
             to reference the data.
-        activate : bool, optional
+        activate : bool, *optional*
             Set this input as active on creation.
         preview : bool, *optional*
-            If True, the input is created but it is not included in the data
+            If ``True``, the input is created but it is not included in the data
             structure nor saved to disk.
 
             The input cannot be used in a simulation but it can be previewed.
@@ -185,8 +164,8 @@ class CreateWall3DMixin(TreeMixin):
 
         Returns
         -------
-        inputdata : ~a5py.data.wall.Wall3D
-            Freshly minted input data object.
+        obj : :class:`.WallTriangular3D`
+            Input variant created from the given parameters.
 
         Notes
         -----
@@ -195,46 +174,27 @@ class CreateWall3DMixin(TreeMixin):
         respect to triangles that are in the cells where the marker has been
         present in the ongoing time-step.
         """
-        # This function can't deal with dictionaries, so use None to omit it.
-        parameters = _variants.parse_parameters(
-            vertices, flag, None,
-        )
-        parameters["labels"] = labels
+        if not isinstance(vertices, Sized):
+            raise ValueError(
+                "'vertices' must be an array with at least nine elements."
+                )
+        nvertices, ntriangles = utils.size(vertices), vertices.size // 9
+        if nvertices % 9 != 0:
+            raise ValueError(
+                "Number of elements in 'vertices' must be a multiple of 9.")
 
-        default_xyz = np.array([1., 0., 0., 2., 0., -1., 2., 0., 1.])
-        if parameters["vertices"] is not None:
-            n = int(parameters["vertices"].size / 9)
-            if n != parameters["vertices"].size / 9:
-                raise ValueError("´vertices´ have an invalid format.")
-        else:
-            n = int(default_xyz.size / 9)
-        _variants.validate_required_parameters(
-            parameters, ["vertices"], ["m"], [(9*n,)], "f8", [default_xyz],
-        )
-        _variants.validate_optional_parameters(
-            parameters, ["flag"], [""], [(n,)], "i4",
-            [np.zeros(parameters["vertices"].shape, dtype="i4")],
-        )
-        if parameters["labels"] is None:
-            parameters["labels"] = {"wall": 0}
-        for label, id in parameters["labels"].items():
-            if not isinstance(label, str):
-                raise ValueError("Labels must be strings.")
-            if not isinstance(id, int):
-                raise ValueError("Flags in `labels` must be integers.")
-        for id in np.unique(parameters["flag"]):
-            if id not in parameters["labels"].values():
-                raise ValueError(f"Flag {id} does not have a label.")
-        meta = _variants.new_metadata("Wall3D", note=note)
-        obj = self._treemanager.enter_input(
-            meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
+        with utils.validate_variables() as v:
+            vertices = v.validate("vertices", vertices, (nvertices,), "m")
+            flag = v.validate(
+                "flag", flag, (ntriangles,), dtype="i4", default=np.full(ntriangles, 0),
+                )
+
+        labels = WallVariant.validate_labels(labels, flag)
+        leaf = WallTriangular3D(note=note)
+        leaf._stage(vertices=vertices, flag=flag, labels=copy.deepcopy(labels))
+        if preview:
+            return leaf
+        self._treemanager.enter_leaf(
+            leaf, activate=activate, save=save, category="wall",
             )
-        for parameter, value in parameters.items():
-            setattr(obj, f"_{parameter}", value)
-            # No need to make dictionary immutable as copy is always returned
-            if parameter != "labels":
-                getattr(obj, f"_{parameter}").flags.writeable = False
-
-        if store_hdf5:
-            obj._export_hdf5()
-        return obj
+        return leaf

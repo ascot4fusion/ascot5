@@ -5,11 +5,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "../ascot5.h"
-#include "../consts.h"
-#include "../physlib.h"
+#include "ascot5.h"
+#include "consts.h"
+#include "physlib.h"
 #include "dist_rho5D.h"
-#include "../particle.h"
+#include "particle.h"
 
 /**
  * @brief Internal function calculating the index in the histogram array

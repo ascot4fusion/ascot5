@@ -7,6 +7,7 @@ BUILDDIR  = $(BASEBUILDDIR)$(PROJECT)
 .PHONY: doc clean
 
 doc:
+	doxygen Doxyfile
 	sphinx-build --nitpicky -b html $(SOURCEDIR) $(BUILDDIR)
 
 clean:

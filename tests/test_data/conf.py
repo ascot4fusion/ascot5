@@ -24,15 +24,15 @@ test_data = {
                         -0.155],
         "psiscaling": 100 * Wb/rad,
         "rmajor": 6.2 * m,
-        "axisb": 5.3 * T,
+        "bphi": 5.3 * T,
         "_axisrz": [6.2, 0.0] * m,
         "_psilimits": [0.0, 1.0] * Wb/rad,
         "_nripple": 18,
         "_rminor": 2.0 * m,
-        "_ripplepenetration": 0.05,
+        "_rippledamping": 0.05,
         "_ripplescaling": 0.5,
         },
-    "Bfield2D": {
+    "BfieldSpline2D": {
         "rgrid": np.linspace(4.0, 8.0, 10) * m,
         "zgrid": np.linspace(-2.0, 2.0, 20) * m,
         "psi": np.full((10, 20), 1.0) * Wb/rad,
@@ -42,7 +42,7 @@ test_data = {
         "axisrz": (6.2, 0.0) * m,
         "psilimits": (0.0, 1.0) * Wb/rad,
         },
-    "Bfield3D": {
+    "BfieldSpline3D": {
         "rgrid": np.linspace(4.0, 8.0, 10) * m,
         "phigrid": np.linspace(0, 360, 16)[:-1] * deg,
         "zgrid": np.linspace(-2.0, 2.0, 20) * m,
@@ -73,7 +73,7 @@ test_data = {
     "EfieldCartesian": {
         "exyz": np.array([0, 1, 2]) * V/m,
         },
-    "Plasma1D": {
+    "PlasmaLinear1D": {
         "species": ["H1", "He4"],
         "rhogrid": np.linspace(0, 1, 3),
         "ni": np.full((3,2), 1e20) * particles/m**3,
@@ -82,10 +82,15 @@ test_data = {
         "Te": np.full(3, 1e3) * eV,
         "charge": np.array([1, 2]) * e,
         },
-    "Wall2D": {
+    "WallContour2D": {
         "r": np.array([1, 2, 1]) * m,
         "z": np.array([-1, 0, 1]) * m,
         "_flag": np.array([1, 1, 1]),
+        "_labels": {"wood": 1},
+        },
+    "WallTriangular3D": {
+        "vertices": np.array([1, 0, -1, 2, 0, 0, 1, 0, 1]) * m,
+        "_flag": np.array([1,]),
         "_labels": {"wood": 1},
         },
     "FieldlineMarker": {

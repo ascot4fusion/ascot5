@@ -1,33 +1,75 @@
 /**
- * @author Joona Kontula joona.kontula@aalto.fi
- * @file E_1DS.h
- * @brief Header file for E_1DS.c
- *
  * Contains declaration of E_1DS_field_offload_data and E_1DS_field_data
  * structs.
  */
 #ifndef E_1DS_H
 #define E_1DS_H
-#include "../offload.h"
-#include "../ascot5.h"
-#include "../error.h"
-#include "../spline/interp.h"
-#include "../B_field.h"
+#include "offload.h"
+#include "ascot5.h"
+#include "error.h"
+#include "interp.h"
+#include "B_field.h"
+#include "E_field.h"
+
+
 
 /**
- * @brief 1D spline electric field parameters on the target
+ * @brief Initialize 1DS electric field data
+ *
+ * @param data pointer to the data struct
+ * @param nrho number of points in the rho grid
+ * @param rhomin minimum rho value in the grid
+ * @param rhomax maximum rho value in the grid
+ * @param reff effective minor radius
+ * @param dvdrho gradient of the potential
+ *
+ * @return zero if initialization succeeded
  */
-typedef struct {
-    real reff;         /**< Effective minor radius [m] */
-    interp1D_data dV;  /**< dV_drho 1D linear interpolation struct */
-} E_1DS_data;
+int EfieldPotential1D_init(
+    EfieldPotential1D* efield, int nrho, real reff, real rholim[2],
+    real dvdrho[nrho]
+);
 
-int E_1DS_init(E_1DS_data* data, int nrho, real rhomin, real rhomax, real reff,
-               real* dvdrho);
-void E_1DS_free(E_1DS_data* data);
-void E_1DS_offload(E_1DS_data* data);
-GPU_DECLARE_TARGET_SIMD_UNIFORM(Edata,Bdata)
-a5err E_1DS_eval_E(real E[3], real r, real phi, real z, E_1DS_data* Edata,
-                   B_field_data* Bdata);
+
+/**
+ * @brief Free allocated resources
+ *
+ * @param data pointer to the data struct
+ */
+void EfieldPotential1D_free(EfieldPotential1D* efield);
+
+
+/**
+ * @brief Offload data to the accelerator.
+ *
+ * @param data pointer to the data struct
+ */
+void EfieldPotential1D_offload(EfieldPotential1D* efield);
+
+
+/**
+ * @brief Evaluate 1D spline radial electric field
+ *
+ * This function evaluates the 1D spline potential gradient of the plasma at the
+ * given radial coordinate using linear interpolation, and then calculates the
+ * radial electric field by multiplying that with the rho-gradient. Gradient of
+ * rho is obtained via magnetic field module.
+ *
+ * @param E array where the electric field will be stored (E_r -> E[1],
+ *        E_phi -> E[1], E_z -> E[2])
+ * @param r R-coordiante [m]
+ * @param phi phi-coordinate [rad]
+ * @param z z-coordiante [m]
+ * @param Edata pointer to electric field data
+ * @param Bdata pointer to magnetic field data
+ *
+ * @return zero if evaluation succeeded
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(efield, bfield)
+a5err EfieldPotential1D_eval_e(
+    real e[3], real r, real phi, real z, EfieldPotential1D* efield,
+    B_field_data* bfield
+);
 DECLARE_TARGET_END
+
 #endif

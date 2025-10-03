@@ -1,3 +1,4 @@
+"""Contains class for immutable storage objects."""
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -6,11 +7,10 @@ from typing import Any, Generator
 class ImmutableStorage():
     """Object which supports dictionary-like assignment and which can be made
     immutable.
+    """
 
-    Attributes
-    ----------
-    frozen : bool
-        Indicates whether the node is frozen, preventing attribute modification.
+    _frozen: bool
+    """Indicates whether the node is frozen, preventing attribute modification.
     """
 
     def __init__(self, **kwargs: Any) -> None:
@@ -22,7 +22,7 @@ class ImmutableStorage():
             Arguments passed to other constructors in case of multiple
             inheritance.
         """
-        self._frozen: bool = False
+        self._frozen = False
         super().__init__(**kwargs)
 
     def __repr__(self) -> str:

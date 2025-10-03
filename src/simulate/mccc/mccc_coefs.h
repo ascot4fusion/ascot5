@@ -6,8 +6,8 @@
 #define MCCC_COEFS_H
 
 #include <math.h>
-#include "../../ascot5.h"
-#include "../../consts.h"
+#include "ascot5.h"
+#include "consts.h"
 #include "mccc.h"
 
 /**

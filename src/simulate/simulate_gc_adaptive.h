@@ -5,9 +5,9 @@
 #ifndef SIMULATE_GC_ADAPTIVE_H
 #define SIMULATE_GC_ADAPTIVE_H
 
-#include "../ascot5.h"
-#include "../simulate.h"
-#include "../particle.h"
+#include "ascot5.h"
+#include "simulate.h"
+#include "particle.h"
 
 void simulate_gc_adaptive(particle_queue* pq, sim_data* sim);
 

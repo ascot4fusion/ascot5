@@ -3,13 +3,13 @@
  * @brief MHD module for stationary eigenmodes.
  */
 #include <stdlib.h>
-#include "../ascot5.h"
-#include "../error.h"
-#include "../boozer.h"
-#include "../spline/interp.h"
-#include "../B_field.h"
-#include "../math.h"
-#include "../mhd.h"
+#include "ascot5.h"
+#include "error.h"
+#include "boozer.h"
+#include "interp.h"
+#include "B_field.h"
+#include "math.h"
+#include "mhd.h"
 #include "mhd_stat.h"
 
 /**

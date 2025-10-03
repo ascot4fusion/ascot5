@@ -6,11 +6,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "../ascot5.h"
-#include "../math.h"
-#include "../consts.h"
-#include "../options.h"
-#include "../particle.h"
+#include "ascot5.h"
+#include "math.h"
+#include "consts.h"
+#include "options.h"
+#include "particle.h"
 #include "diag_transcoef.h"
 
 DECLARE_TARGET_SIMD

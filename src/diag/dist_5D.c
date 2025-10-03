@@ -5,13 +5,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "../ascot5.h"
-#include "../consts.h"
-#include "../physlib.h"
-#include "../math.h"
+#include "ascot5.h"
+#include "consts.h"
+#include "physlib.h"
+#include "math.h"
 #include "dist_5D.h"
-#include "../particle.h"
-#include "../options.h"
+#include "particle.h"
+#include "options.h"
 
 /**
  * @brief Function for calculating the index in the histogram array
