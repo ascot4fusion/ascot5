@@ -4,8 +4,8 @@
 #ifndef WALL_H
 #define WALL_H
 
-#include "ascot5.h"
-#include "offload.h"
+#include "defines.h"
+#include "parallel.h"
 
 /**
  * Wall data types.
@@ -74,21 +74,21 @@ typedef struct
     WallContour2D *contour2d; /**< 2D model or NULL if not active         */
     WallTriangular3D *triangular3d; /**< 3D model or NULL if not active */
     wall_type type; /**< Wall model type wrapped by this struct */
-} wall_data;
+} Wall;
 
 /**
  * Free allocated resources.
  *
  * @param wall Pointer to the data struct.
  */
-void wall_free(wall_data *wall);
+void wall_free(Wall *wall);
 
 /**
  *  Offload data to the accelerator.
  *
  * @param wall pointer to the data struct.
  */
-void wall_offload(wall_data *wall);
+void wall_offload(Wall *wall);
 
 /**
  * Check if a given directed line segment intersects the wall.
@@ -114,8 +114,8 @@ void wall_offload(wall_data *wall);
  */
 GPU_DECLARE_TARGET_SIMD_UNIFORM(wall)
 int wall_hit_wall(
-    real r1, real phi1, real z1, real r2, real phi2, real z2, wall_data *wall,
-    real *w_coll);
+    real r1, real phi1, real z1, real r2, real phi2, real z2, real *w_coll,
+    Wall *wall);
 DECLARE_TARGET_END
 
 /**
@@ -126,7 +126,7 @@ DECLARE_TARGET_END
  * @return Number of wall elements or zero on failure.
  */
 GPU_DECLARE_TARGET_SIMD_UNIFORM(wall)
-int wall_get_n_elements(wall_data *wall);
+int wall_get_n_elements(Wall *wall);
 DECLARE_TARGET_END
 
 /**
@@ -138,7 +138,7 @@ DECLARE_TARGET_END
  * @return Flag of the wall element.
  */
 GPU_DECLARE_TARGET_SIMD_UNIFORM(wall)
-int wall_get_flag(wall_data *wall, int idx);
+int wall_get_flag(int idx, Wall *wall);
 DECLARE_TARGET_END
 
 #endif

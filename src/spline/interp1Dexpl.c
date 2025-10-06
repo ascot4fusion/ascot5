@@ -4,8 +4,8 @@
  */
 #include <stdlib.h>
 #include <math.h>
-#include "ascot5.h"
-#include "math.h"
+#include "defines.h"
+#include "mathlib.h"
 #include "interp.h"
 #include "spline.h"
 
@@ -19,11 +19,8 @@
  * @param f 1D data to be interpolated
  * @param n_x number of data points in the x axis
  * @param bc_x boundary condition for the x axis
- * @param x_min minimum value of the x axis
- * @param x_max maximum value of the x axis
  */
-int interp1Dexpl_init_coeff(real* c, real* f, int n_x, int bc_x,
-                            real x_min, real x_max) {
+int interp1Dexpl_init_coeff(real* c, real* f, int n_x, int bc_x) {
 
     if(c == NULL) {
         return 1;

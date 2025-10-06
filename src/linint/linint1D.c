@@ -1,10 +1,10 @@
 /**
  * Linear interpolation in 1D (see linint.h).
  */
-#include "ascot5.h"
+#include "defines.h"
 #include "interp.h"
 #include "linint.h"
-#include "math.h"
+#include "mathlib.h"
 #include <math.h>
 #include <stdlib.h>
 

@@ -4,8 +4,8 @@
  */
 #include <stdlib.h>
 #include <math.h>
-#include "ascot5.h"
-#include "math.h"
+#include "defines.h"
+#include "mathlib.h"
 #include "consts.h"
 #include "interp.h"
 #include "spline.h"
@@ -25,21 +25,12 @@
  * @param bc_x boundary condition for x axis
  * @param bc_y boundary condition for y axis
  * @param bc_z boundary condition for z axis
- * @param x_min minimum value of the x axis
- * @param x_max maximum value of the x axis
- * @param y_min minimum value of the y axis
- * @param y_max maximum value of the y axis
- * @param z_min minimum value of the z axis
- * @param z_max maximum value of the z axis
  *
  * @return zero if initialization succeeded
  */
 int interp3Dexpl_init_coeff(real* c, real* f,
                             int n_x, int n_y, int n_z,
-                            int bc_x, int bc_y, int bc_z,
-                            real x_min, real x_max,
-                            real y_min, real y_max,
-                            real z_min, real z_max) {
+                            int bc_x, int bc_y, int bc_z) {
 
     /* Allocate helper quantities */
     real* f_x = malloc(n_x*sizeof(real));

@@ -1,6 +1,5 @@
 /**
- * @file particle.h
- * @brief Header file for particle.c
+ * @file marker.h
  *
  * The relationship between the seven different marker structs is:
  *
@@ -15,14 +14,58 @@
  * is a wrapper for particle, particle_gc, particle_ml, and particle_state
  * structs while latter is a queue from where markers are chosen when simulation
  * begins and updated when simulation ends.
+ *
+ * Marker structs and conversions between them
+ *
+ * ASCOT5 is a code that simulates markers.
+ *
+ * This file contains functions to generate dummy markers, fetching markers
+ * from the marker queue, and handles conversions between various marker
+ * structs.
+ *
+ * The relationship between the seven different marker structs is:
+ *
+ *    particle >--+            +--> particle_simd_fo
+ *                |            |
+ * particle_gc >--particle_state--> particle_simd_gc
+ *                |            |
+ * particle_ml >--+            +--> particle_simd_ml
+ *
+ * The structs on the left are input structs which are constructed when marker
+ * data is read. These structs must be independend of any other input data. A
+ * consistent representation of markers is provided by particle_state which
+ * can be constructed from any type of input marker.
+ *
+ * Particle state can be used to obtain any information from marker physical
+ * quantities such as guiding center energy, which requires one knows both
+ * guiding center magnetic moment and local magnetic field value. All markers
+ * are represented by particle state when simulation begins and again when
+ * simulation ends.
+ *
+ * During simulation, markers are represented by a SIMD compatible structure
+ * (all fields in these structs are NSIMD long arrays representing NSIMD
+ * markers), and the type of SIMD structure depends on the simulation type:
+ * whether simulation models markers as particles, guiding centers or field
+ * lines. Each simulation struct can be constructed from particle state.
+ *
+ * So in principle, one can have any type of marker input and still use any kind
+ * of simulation method, e.g. input can be guiding centers but these can be
+ * modelled as particles, or to be precise, the particles are modelled whose
+ * guiding centers are given as inputs.
+ *
+ * Exception to this rule: field line input can only be used to simulate field
+ * lines as field lines have no mass.
+ *
+ * If one is to implement a new simulation mode, e.g. particle simulation in
+ * Boozer coordinates, one is advised to implement a new marker struct for it.
  */
 #ifndef PARTICLE_H
 #define PARTICLE_H
 
-#include "B_field.h"
-#include "E_field.h"
-#include "ascot5.h"
-#include "error.h"
+#include "defines.h"
+#include "bfield.h"
+#include "efield.h"
+#include "errors.h"
 
 /**
  * @brief General representation of a marker
@@ -293,39 +336,35 @@ void particle_to_gc_dummy(particle_simd_gc *p_gc, int j);
 void particle_to_ml_dummy(particle_simd_ml *p_ml, int j);
 
 int particle_cycle_fo(
-    particle_queue *q, particle_simd_fo *p, B_field_data *Bdata, int *cycle);
+    particle_queue *q, particle_simd_fo *p, Bfield *bfield, int *cycle);
 int particle_cycle_gc(
-    particle_queue *q, particle_simd_gc *p, B_field_data *Bdata, int *cycle);
+    particle_queue *q, particle_simd_gc *p, Bfield *bfield, int *cycle);
 int particle_cycle_ml(
-    particle_queue *q, particle_simd_ml *p, B_field_data *Bdata, int *cycle);
+    particle_queue *q, particle_simd_ml *p, Bfield *bfield, int *cycle);
 
 void particle_offload_fo(particle_simd_fo *p);
 void particle_onload_fo(particle_simd_fo *p);
 
-DECLARE_TARGET_SIMD_UNIFORM(Bdata)
+DECLARE_TARGET_SIMD_UNIFORM(bfield)
 a5err particle_state_to_fo(
-    particle_state *p, int i, particle_simd_fo *p_fo, int j,
-    B_field_data *Bdata);
-DECLARE_TARGET_SIMD_UNIFORM(Bdata)
+    particle_state *p, int i, particle_simd_fo *p_fo, int j, Bfield *bfield);
+DECLARE_TARGET_SIMD_UNIFORM(bfield)
 void particle_fo_to_state(
-    particle_simd_fo *p_fo, int j, particle_state *p, B_field_data *Bdata);
-DECLARE_TARGET_SIMD_UNIFORM(Bdata)
+    particle_simd_fo *p_fo, int j, particle_state *p, Bfield *bfield);
+DECLARE_TARGET_SIMD_UNIFORM(bfield)
 a5err particle_state_to_gc(
-    particle_state *p, int i, particle_simd_gc *p_gc, int j,
-    B_field_data *Bdata);
-DECLARE_TARGET_SIMD_UNIFORM(Bdata)
+    particle_state *p, int i, particle_simd_gc *p_gc, int j, Bfield *bfield);
+DECLARE_TARGET_SIMD_UNIFORM(bfield)
 void particle_gc_to_state(
-    particle_simd_gc *p_gc, int j, particle_state *p, B_field_data *Bdata);
-DECLARE_TARGET_SIMD_UNIFORM(Bdata)
+    particle_simd_gc *p_gc, int j, particle_state *p, Bfield *bfield);
+DECLARE_TARGET_SIMD_UNIFORM(bfield)
 a5err particle_state_to_ml(
-    particle_state *p, int i, particle_simd_ml *p_ml, int j,
-    B_field_data *Bdata);
-DECLARE_TARGET_SIMD_UNIFORM(Bdata)
-void particle_ml_to_state(
-    particle_simd_ml *p_ml, int j, particle_state *p, B_field_data *Bdata);
-DECLARE_TARGET_SIMD_UNIFORM(p_fo, Bdata)
+    particle_state *p, int i, particle_simd_ml *p_ml, int j, Bfield *bfield);
+DECLARE_TARGET_SIMD_UNIFORM(bfield)
+void particle_ml_to_state(particle_simd_ml *p_ml, int j, particle_state *p);
+DECLARE_TARGET_SIMD_UNIFORM(p_fo, bfield)
 int particle_fo_to_gc(
-    particle_simd_fo *p_fo, int j, particle_simd_gc *p_gc, B_field_data *Bdata);
+    particle_simd_fo *p_fo, int j, particle_simd_gc *p_gc, Bfield *bfield);
 GPU_DECLARE_TARGET_SIMD
 void particle_copy_fo(particle_simd_fo *p1, int i, particle_simd_fo *p2, int j);
 DECLARE_TARGET_END

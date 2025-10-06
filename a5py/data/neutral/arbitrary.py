@@ -18,11 +18,11 @@ class Struct(DataStruct):
     """Python wrapper for the struct in N0_3D.h."""
 
     _fields_ = [
-        ('n_species', ctypes.c_int32),
-        ('anum', ctypes.POINTER(ctypes.c_int32)),
-        ('znum', ctypes.POINTER(ctypes.c_int32)),
-        ('n0', ctypes.POINTER(linint3D_data)),
-        ('t0', ctypes.POINTER(linint3D_data)),
+        ("nspecies", ctypes.c_int32),
+        ("anum", ctypes.POINTER(ctypes.c_int32)),
+        ("znum", ctypes.POINTER(ctypes.c_int32)),
+        ("n", ctypes.POINTER(linint3D_data)),
+        ("T", ctypes.POINTER(linint3D_data)),
         ]
 
 

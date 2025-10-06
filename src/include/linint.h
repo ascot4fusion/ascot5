@@ -10,8 +10,8 @@
  */
 #ifndef LININT_H
 #define LININT_H
-#include "ascot5.h"
-#include "offload.h"
+#include "defines.h"
+#include "parallel.h"
 #include "interp.h"
 
 /**

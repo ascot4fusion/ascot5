@@ -26,9 +26,9 @@
  */
 #ifndef INTERP_H
 #define INTERP_H
-#include "ascot5.h"
-#include "error.h"
-#include "offload.h"
+#include "defines.h"
+#include "errors.h"
+#include "parallel.h"
 
 /**
  * Boundary conditions for the spline interpolation.
@@ -131,15 +131,13 @@ int interp3Dcomp_init_coeff(
     real x_min, real x_max, real y_min, real y_max, real z_min, real z_max);
 
 int interp1Dexpl_init_coeff(
-    real *c, real *f, int n_x, int bc_x, real x_min, real x_max);
+    real *c, real *f, int n_x, int bc_x);
 
 int interp2Dexpl_init_coeff(
-    real *c, real *f, int n_x, int n_y, int bc_x, int bc_y, real x_min,
-    real x_max, real y_min, real y_max);
+    real *c, real *f, int n_x, int n_y, int bc_x, int bc_y);
 
 int interp3Dexpl_init_coeff(
-    real *c, real *f, int n_x, int n_y, int n_z, int bc_x, int bc_y, int bc_z,
-    real x_min, real x_max, real y_min, real y_max, real z_min, real z_max);
+    real *c, real *f, int n_x, int n_y, int n_z, int bc_x, int bc_y, int bc_z);
 
 /**
  * @brief Initialize a cubic spline

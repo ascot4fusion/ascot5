@@ -47,7 +47,7 @@ else ifeq ($(RANDOM),LCG)
 	DEFINES+=-DRANDOM_LCG
 endif
 
-CFLAGS+=-Wall -Wextra -fPIC -std=c11 -D_XOPEN_SOURCE=700 -Iinclude $(DEFINES) $(FLAGS)
+CFLAGS+=-Wall -Wextra -fPIC -std=c11 -D_XOPEN_SOURCE=700 -Iinclude -I. $(DEFINES) $(FLAGS)
 
 ifeq ($(DEBUG),1)
 	CFLAGS+=-g
@@ -67,15 +67,8 @@ libascot.so: CFLAGS+=-fPIC
 	LDFLAGS+=-lm -shared
 endif
 
-# Write CFLAGS and CC to a file to be included into output
-$(file >compiler_flags.h,#define CFLAGS "$(CFLAGS)")
-
-# Also store the version from current git tag or from VERSION file
-$(shell bash gitver.sh)
 
 SRCS := $(shell find $(SRC_DIR) -name '*.c')
-SRCS := $(filter-out $(SRC_DIR)/test_ascot5.c, $(SRCS))
-
 OBJS := $(patsubst $(SRC_DIR)/%, $(OBJ_DIR)/%, $(SRCS:.c=.o))
 DEPS := $(OBJS:.o=.d)
 

@@ -16,10 +16,10 @@
 #ifndef NEUTRAL_H
 #define NEUTRAL_H
 
-#include "ascot5.h"
-#include "error.h"
+#include "defines.h"
+#include "errors.h"
 #include "linint.h"
-#include "offload.h"
+#include "parallel.h"
 
 /**
  * @brief Neutral data types
@@ -65,22 +65,21 @@ typedef struct
     N0_1D_data *N01D;  /**< 1D field or NULL if not active           */
     N0_3D_data *N03D;  /**< 3D field or NULL if not active           */
     neutral_type type; /**< Neutral data type wrapped by this struct */
-} neutral_data;
+} Neutral;
 
 /**
  * @brief Free allocated resources
  *
  * @param data pointer to data struct
  */
-void neutral_free(neutral_data *data);
+void neutral_free(Neutral *neutral);
 
 /**
  * @brief Offload data to the accelerator.
  *
  * @param data pointer to the data struct
  */
-void neutral_offload(neutral_data *data);
-DECLARE_TARGET_SIMD_UNIFORM(ndata)
+void neutral_offload(Neutral *neutral);
 
 /**
  * @brief Evaluate neutral density
@@ -99,8 +98,9 @@ DECLARE_TARGET_SIMD_UNIFORM(ndata)
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
+DECLARE_TARGET_SIMD_UNIFORM(neutral)
 a5err neutral_eval_n0(
-    real *n0, real rho, real r, real phi, real z, real t, neutral_data *ndata);
+    real *n0, real rho, real r, real phi, real z, real t, Neutral *neutral);
 
 /**
  * @brief Evaluate neutral temperature
@@ -119,9 +119,9 @@ a5err neutral_eval_n0(
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-DECLARE_TARGET_SIMD_UNIFORM(ndata)
+DECLARE_TARGET_SIMD_UNIFORM(neutral)
 a5err neutral_eval_t0(
-    real *t0, real rho, real r, real phi, real z, real t, neutral_data *ndata);
+    real *t0, real rho, real r, real phi, real z, real t, Neutral *neutral);
 
 /**
  * @brief Get the number of neutral species
@@ -134,7 +134,7 @@ a5err neutral_eval_t0(
  *
  * @return The number of neutral species
  */
-DECLARE_TARGET_SIMD_UNIFORM(ndata)
-int neutral_get_n_species(neutral_data *ndata);
+DECLARE_TARGET_SIMD_UNIFORM(neutral)
+int neutral_get_n_species(Neutral *neutral);
 
 #endif

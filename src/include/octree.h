@@ -14,8 +14,12 @@
  */
 #ifndef OCTREE_H
 #define OCTREE_H
-#include "ascot5.h"
+#include "defines.h"
+#include "parallel.h"
 #include "list.h"
+
+/** Small value to check if x = 0 (i.e. abs(x) < WALL_EPSILON) */
+#define WALL_EPSILON 1e-9
 
 
 /**
@@ -92,8 +96,80 @@ void octree_free(octree_node** node);
  */
 void octree_add(octree_node* node, real t1[3], real t2[3], real t3[3], int id);
 
-
-
+/**
+ * @brief Get that leaf node's linked list the given coordinate belongs to
+ *
+ * This function uses recursion to travel through the octree, determining at
+ * each step the correct branch to follow next until the leaf node is found.
+ * In other words, at each step this function determines the child node the
+ * point belongs to and calls this function for that node.
+ *
+ * The point is assumed to belong to the volume of the node used in the
+ * argument.
+ *
+ * @param node octree node that is traversed
+ * @param p xyz coordinates of the point
+ *
+ * @return linked list of the leaf node given point belongs to
+ */
 list_int_node* octree_get(octree_node* node, real p[3]);
+
+
+/**
+ * @brief Check if any part of a triangle is inside a box
+ *
+ * @param t1 xyz coordinates of first triangle vertex [m]
+ * @param t2 xyz coordinates of second triangle vertex [m]
+ * @param t3 xyz coordinates of third triangle vertex [m]
+ * @param bb1 bounding box minimum xyz coordinates [m]
+ * @param bb2 bounding box maximum xyz coordinates [m]
+ *
+ * @return zero if not any part of the triangle is within the box
+ */
+DECLARE_TARGET
+int octree_tri_in_cube(
+    real t1[3], real t2[3], real t3[3], real bb1[3], real bb2[3]
+);
+DECLARE_TARGET_END
+
+/**
+ * @brief Check if a line segment intersects a triangle
+ *
+ * This routine implements the Möller-Trumbore algorithm.
+ *
+ * @param q1 line segment start point xyz coordinates [m]
+ * @param q2 line segment end point xyz coordinates [m]
+ * @param t1 xyz coordinates of first triangle vertex [m]
+ * @param t2 xyz coordinates of second triangle vertex [m]
+ * @param t3 xyz coordinates of third triangle vertex [m]
+ *
+ * @return A positive number w which is defined so that vector q1 + w*(q2-q1)
+ *         is the intersection point. A negative number is returned if no there
+ *         is no intersection
+ */
+GPU_DECLARE_TARGET_SIMD
+double octree_tri_collision(
+    real q1[3], real q2[3], real t1[3], real t2[3], real t3[3]
+);
+DECLARE_TARGET_END
+
+
+/**
+ * @brief Check if a line segment intersects a quad (assumed planar)
+ *
+ * @param q1 line segment start point xyz coordinates [m]
+ * @param q2 line segment end point xyz coordinates [m]
+ * @param t1 xyz coordinates of first quad vertex [m]
+ * @param t2 xyz coordinates of second quad vertex [m]
+ * @param t3 xyz coordinates of third quad vertex [m]
+ * @param t4 xyz coordinates of fourth quad vertex [m]
+ *
+ * @return Zero if no intersection, positive number otherwise
+ */
+DECLARE_TARGET
+int octree_quad_collision(
+    real q1[3], real q2[3], real t1[3], real t2[3], real t3[3], real t4[3]
+);
+DECLARE_TARGET_END
 
 #endif

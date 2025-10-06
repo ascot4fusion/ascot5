@@ -21,9 +21,9 @@
 #ifndef PLASMA_H
 #define PLASMA_H
 
-#include "ascot5.h"
-#include "error.h"
-#include "offload.h"
+#include "defines.h"
+#include "errors.h"
+#include "parallel.h"
 
 /**
  * @brief Plasma data types
@@ -81,21 +81,21 @@ typedef struct
     PlasmaLinear1D *linear1d;   /**< 1D data or NULL if not active           */
     PlasmaDynamic1D *dynamic1d; /**< 1D data or NULL if not active           */
     plasma_type type;           /**< Plasma data type wrapped by this struct */
-} plasma_data;
+} Plasma;
 
 /**
  * @brief Free allocated resources
  *
  * @param data pointer to the data struct
  */
-void plasma_free(plasma_data *plasma);
+void plasma_free(Plasma *plasma);
 
 /**
  * @brief Offload data to the accelerator.
  *
  * @param data pointer to the data struct
  */
-void plasma_offload(plasma_data *plasma);
+void plasma_offload(Plasma *plasma);
 
 /**
  * @brief Evaluate plasma temperature
@@ -119,7 +119,7 @@ void plasma_offload(plasma_data *plasma);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
 a5err plasma_eval_temp(
     real *temp, real rho, real r, real phi, real z, real t, int species,
-    plasma_data *plasma);
+    Plasma *plasma);
 DECLARE_TARGET_END
 
 /**
@@ -144,7 +144,7 @@ DECLARE_TARGET_END
 GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
 a5err plasma_eval_dens(
     real *dens, real rho, real r, real phi, real z, real t, int species,
-    plasma_data *plasma);
+    Plasma *plasma);
 DECLARE_TARGET_END
 
 /**
@@ -169,7 +169,7 @@ DECLARE_TARGET_END
 GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
 a5err plasma_eval_densandtemp(
     real *dens, real *temp, real rho, real r, real phi, real z, real t,
-    plasma_data *plasma);
+    Plasma *plasma);
 DECLARE_TARGET_END
 
 /**
@@ -186,7 +186,7 @@ DECLARE_TARGET_END
 GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
 a5err plasma_eval_flow(
     real *vflow, real rho, real r, real phi, real z, real t,
-    plasma_data *plasma);
+    Plasma *plasma);
 DECLARE_TARGET_END
 
 /**
@@ -202,7 +202,7 @@ DECLARE_TARGET_END
  * @return The number of plasma species
  */
 GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
-int plasma_get_n_species(plasma_data *plasma);
+int plasma_get_n_species(Plasma *plasma);
 DECLARE_TARGET_END
 
 /**
@@ -217,7 +217,7 @@ DECLARE_TARGET_END
  * @return Pointer to array containing the requested mass values [kg]
  */
 GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
-const real *plasma_get_species_mass(plasma_data *plasma);
+const real *plasma_get_species_mass(Plasma *plasma);
 DECLARE_TARGET_END
 
 /**
@@ -232,7 +232,7 @@ DECLARE_TARGET_END
  * @return Pointer to array containing the requested charge values [C]
  */
 GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
-const real *plasma_get_species_charge(plasma_data *plasma);
+const real *plasma_get_species_charge(Plasma *plasma);
 DECLARE_TARGET_END
 
 /**
@@ -245,7 +245,7 @@ DECLARE_TARGET_END
  * @return Pointer to array containing the charge numbers
  */
 GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
-const int *plasma_get_species_znum(plasma_data *plasma);
+const int *plasma_get_species_znum(Plasma *plasma);
 DECLARE_TARGET_END
 
 /**
@@ -258,7 +258,7 @@ DECLARE_TARGET_END
  * @return Pointer to array containing the atomic mass numbers
  */
 GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
-const int *plasma_get_species_anum(plasma_data *plasma);
+const int *plasma_get_species_anum(Plasma *plasma);
 DECLARE_TARGET_END
 
 #endif

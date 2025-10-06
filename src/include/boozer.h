@@ -5,9 +5,9 @@
 #ifndef BOOZER_H
 #define BOOZER_H
 
-#include "B_field.h"
-#include "ascot5.h"
-#include "error.h"
+#include "bfield.h"
+#include "defines.h"
+#include "errors.h"
 #include "interp.h"
 
 /**
@@ -25,7 +25,7 @@ typedef struct
     interp2D_data nu_psitheta; /**< The nu-function, phi=zeta+nu(psi,theta),
                                     with phi the cylindrical angle. */
     interp2D_data theta_psithetageom; /**< Boozer_theta(psi,thetag). */
-} boozer_data;
+} Boozer;
 
 /**
  * Initialize boozer coordinate transformation.
@@ -50,7 +50,7 @@ typedef struct
  * @return Zero if initialization succeeded.
  */
 int boozer_init(
-    boozer_data *boozer, int npsi, real psi_min, real psi_max, int ntheta,
+    Boozer *boozer, int npsi, real psi_min, real psi_max, int ntheta,
     int nthetag, int npadding, real *nu, real *theta, int nrzs, real *rs,
     real *zs);
 
@@ -61,14 +61,14 @@ int boozer_init(
  *
  * @param boozer The struct whose fields are deallocated.
  */
-void boozer_free(boozer_data *boozer);
+void boozer_free(Boozer *boozer);
 
 /**
  * Offload data to the accelerator.
  *
  * @param boozer The struct to offload.
  */
-void boozer_offload(boozer_data *boozer);
+void boozer_offload(Boozer *boozer);
 
 /**
  * Evaluate Boozer coordinates and partial derivatives.
@@ -102,6 +102,6 @@ void boozer_offload(boozer_data *boozer);
 DECLARE_TARGET_SIMD_UNIFORM(bfield, boozer)
 a5err boozer_eval_psithetazeta(
     real psithetazeta[12], int *isinside, real r, real phi, real z,
-    B_field_data *bfield, boozer_data *boozer);
+    Bfield *bfield, Boozer *boozer);
 
 #endif

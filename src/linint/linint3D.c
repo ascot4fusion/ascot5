@@ -1,9 +1,9 @@
 /**
  * Linear interpolation in 3D (see linint.h).
  */
-#include "ascot5.h"
+#include "defines.h"
 #include "linint.h"
-#include "math.h"
+#include "mathlib.h"
 #include <math.h>
 #include <stdlib.h>
 

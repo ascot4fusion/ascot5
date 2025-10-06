@@ -36,16 +36,16 @@ class Rfof(ctypes.Structure):
 class SimData(ctypes.Structure):
 
     _fields_ = [
-        ("B_data", Bfield),
-        ("E_data", Efield),
-        ("plasma_data", Plasma),
-        ("neutral_data", Neutral),
-        ("wall_data", Wall),
-        ("boozer_data", ctypes.POINTER(BoozerMap)),
-        ("mhd_data", Mhd),
-        ("asigma_data", Atomic),
-        ("nbi_data", NbiStruct),
-        ("rfof_data", Rfof),
+        ("bfield", Bfield),
+        ("efield", Efield),
+        ("plasma", Plasma),
+        ("neutral", Neutral),
+        ("wall", Wall),
+        ("boozer", ctypes.POINTER(BoozerMap)),
+        ("mhd", Mhd),
+        ("atomic", Atomic),
+        ("nbi", NbiStruct),
+        ("rfof", Rfof),
         ("orbit", ctypes.c_void_p),
         ("dist5d", ctypes.c_void_p),
         ("dist6d", ctypes.c_void_p),
@@ -59,7 +59,7 @@ class SimData(ctypes.Structure):
         ]
 
 init_fun(
-    "simulate",
+    "ascot_solve_distribution",
     ctypes.c_int,
     ctypes.POINTER(Structure),
     ctypes.POINTER(SimData),
@@ -228,7 +228,7 @@ def execute(run, time):
     sim.B_data.use(run.bfield)
     sim.params = ctypes.pointer(run.options._cdata)
     mrk = run._diagnostics["endstate"]._cdata
-    LIBASCOT.simulate(len(mrk), mrk, ctypes.byref(sim))
+    LIBASCOT.ascot_solve_distribution(len(mrk), mrk, ctypes.byref(sim))
 
 
 def finalize(run, unstage, comm):

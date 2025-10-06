@@ -5,22 +5,23 @@
 #ifndef NBI_H
 #define NBI_H
 
-#include "ascot5.h"
+#include "defines.h"
 #include "particle.h"
 #include "random.h"
 
 /**
  * @brief Structure for describing an NBI injector
  */
-typedef struct {
+typedef struct
+{
     int id;             /**< integer identifier for this injector           */
     int n_beamlet;      /**< number of beamlets in this injector            */
-    real* beamlet_x;    /**< x coordinates of beamlets [m]                  */
-    real* beamlet_y;    /**< y coordinates of beamlets [m]                  */
-    real* beamlet_z;    /**< z coordinates of beamlets [m]                  */
-    real* beamlet_dx;   /**< x components of beamlet unit direction vectors */
-    real* beamlet_dy;   /**< y components of beamlet unit direction vectors */
-    real* beamlet_dz;   /**< z components of beamlet unit direction vectors */
+    real *beamlet_x;    /**< x coordinates of beamlets [m]                  */
+    real *beamlet_y;    /**< y coordinates of beamlets [m]                  */
+    real *beamlet_z;    /**< z coordinates of beamlets [m]                  */
+    real *beamlet_dx;   /**< x components of beamlet unit direction vectors */
+    real *beamlet_dy;   /**< y components of beamlet unit direction vectors */
+    real *beamlet_dz;   /**< z components of beamlet unit direction vectors */
     real power;         /**< this injector's power injected [W]             */
     real energy;        /**< full energy of injected particles [J]          */
     real efrac[3];      /**< fractions of full, 1/2 and 1/3 energy          */
@@ -37,16 +38,17 @@ typedef struct {
 /**
  * @brief NBI data consisting of `ninj` injectors.
  */
-typedef struct {
+typedef struct
+{
     int ninj;          /**< number of injectors */
-    nbi_injector* inj; /**< array of injectors  */
-} nbi_data;
+    nbi_injector *inj; /**< array of injectors  */
+} Nbi;
 
-int nbi_init(nbi_data* data, int ninj, int* id, int* anum, int* znum,
-             real* mass, real* power, real* efrac, real* energy,
-             real* div_h, real* div_v, real* div_halo_v, real* div_halo_h,
-             real* div_halo_frac, int* nbeamlet, real* beamlet_xyz);
-void nbi_free(nbi_data* nbi);
-void nbi_inject(real* xyz, real* vxyz, nbi_injector* inj, random_data* rng);
+int nbi_init(
+    Nbi *nbi, int ninj, int *id, int *anum, int *znum, real *mass, real *power,
+    real *efrac, real *energy, real *div_h, real *div_v, real *div_halo_v,
+    real *div_halo_h, real *div_halo_frac, int *nbeamlet, real *beamlet_xyz);
+void nbi_free(Nbi *nbi);
+void nbi_inject(real *xyz, real *vxyz, nbi_injector *inj, random_data *rng);
 
 #endif

@@ -54,7 +54,7 @@ void random_gsl_normal_simd(random_data *rdata, int n, double *r);
 
 #elif defined(RANDOM_LCG)
 
-#include "offload.h"
+#include "parallel.h"
 #include <stdint.h>
 
 typedef struct

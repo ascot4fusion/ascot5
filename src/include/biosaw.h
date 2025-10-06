@@ -5,7 +5,7 @@
 #ifndef BIOSAW_H
 #define BIOSAW_H
 
-#include "ascot5.h"
+#include "defines.h"
 
 /**
  * Evaluate magnetic field due to a coil at given points.

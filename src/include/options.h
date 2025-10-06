@@ -3,7 +3,7 @@
 
 #define MAXPOINCARE 32
 
-#include "ascot5.h"
+#include "defines.h"
 
 /**
  * @brief Simulaton modes

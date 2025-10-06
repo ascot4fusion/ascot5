@@ -12,8 +12,8 @@
  */
 #ifndef DIAG_H
 #define DIAG_H
-#include "B_field.h"
-#include "ascot5.h"
+#include "bfield.h"
+#include "defines.h"
 #include "options.h"
 #include "particle.h"
 
@@ -345,7 +345,7 @@ void diag_offload(Diagnostics *diag, sim_parameters *params);
  *        current time-step
  */
 void diag_update_fo(
-    Diagnostics *diag, sim_parameters *params, B_field_data *Bdata,
+    Diagnostics *diag, sim_parameters *params, Bfield *bfield,
     particle_simd_fo *p_f, particle_simd_fo *p_i);
 
 /**
@@ -359,7 +359,7 @@ void diag_update_fo(
  *        current time-step
  */
 void diag_update_gc(
-    Diagnostics *diag, sim_parameters *params, B_field_data *Bdata,
+    Diagnostics *diag, sim_parameters *params, Bfield *bfield,
     particle_simd_gc *p_f, particle_simd_gc *p_i);
 
 /**

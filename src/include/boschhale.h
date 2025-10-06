@@ -8,7 +8,7 @@
 #ifndef BOSCHHALE_H
 #define BOSCHHALE_H
 
-#include "ascot5.h"
+#include "defines.h"
 
 /**
  * Available reactions.

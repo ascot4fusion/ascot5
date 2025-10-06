@@ -5,8 +5,8 @@
  *
  * Requires librfof which contains the Fortran routines.
  */
-#include "B_field.h"
-#include "ascot5.h"
+#include "bfield.h"
+#include "defines.h"
 #include "particle.h"
 #include <stdlib.h>
 
@@ -41,7 +41,7 @@ typedef struct
     void *rfof_input_params; /**< Pointer to rfof_input_param struct on
                                   the fortran side.                 */
     void *rfglobal;          /**< Wave field; same for all markers. */
-} rfof_data;
+} Rfof;
 
 /**
  * RFOF simulation output data.
@@ -67,7 +67,7 @@ typedef struct rfof_output
  *
  * @param rfof pointer to the RFOF data structure.
  */
-void rfof_init(rfof_data *rfof);
+void rfof_init(Rfof *rfof);
 
 /**
  * Deallocate the rfof_input_param struct on the fortran side.
@@ -75,7 +75,7 @@ void rfof_init(rfof_data *rfof);
  * There exists only one copy of this struct and therefore it is to be
  * deallocated in the simulate.c after the loop is completed.
  */
-void rfof_free(rfof_data *rfof);
+void rfof_free(Rfof *rfof);
 
 /**
  * Initialises resonance history, diagnostics, and the marker struct.
@@ -85,7 +85,7 @@ void rfof_free(rfof_data *rfof);
  * @param rfof_mrk Pointer to the local RFOF marker data.
  * @param rfof Pointer to the shared RFOF data.
  */
-void rfof_set_up(rfof_marker *rfof_mrk, rfof_data *rfof_data);
+void rfof_set_up(rfof_marker *rfof_mrk, Rfof *rfof_data);
 
 /**
  * Deallocate the data structs used by the RFOF marker simulation data.
@@ -128,12 +128,12 @@ void rfof_clear_history(rfof_marker *rfof_mrk, int imrk);
  * @param hout Suggestion for the next time step with negative sign
  * indicating a failed step.
  * @param rfof_mrk Pointer to the rfof marker simulation struct.
- * @param rfof_data Pointer to the shared rfof data.
+ * @param rfof Pointer to the shared rfof data.
  * @param bfield Pointer to the magnetic field data needed to evaluate psi.
  */
 void rfof_resonance_check_and_kick_gc(
     particle_simd_gc *p, real *hin, real *hout_rfof, rfof_marker *rfof_mrk,
-    rfof_data *rfof_data, B_field_data *bfield);
+    Rfof *rfof, Bfield *bfield);
 
 /**
  * @brief Explicitly set the coordinates in a marker struct.
@@ -190,7 +190,7 @@ void rfof_set_marker_manually(
  */
 void rfof_eval_rf_wave(
     real *e_plus_real, real *e_minus_real, real *e_plus_imag,
-    real *e_minus_imag, real R, real z, rfof_data *rfof);
+    real *e_minus_imag, real R, real z, Rfof *rfof);
 
 /**
  * Evaluate the value of resonance function (zero at the resonance).
@@ -207,6 +207,6 @@ void rfof_eval_rf_wave(
  * @param nharm The number of the closest harmonic found.
  */
 void rfof_eval_resonance_function(
-    real *omega_res, int *nharm, rfof_marker *rfof_mrk, rfof_data *rfof);
+    real *omega_res, int *nharm, rfof_marker *rfof_mrk, Rfof *rfof);
 
 #endif

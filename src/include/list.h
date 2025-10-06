@@ -3,7 +3,7 @@
  */
 #ifndef LIST_H
 #define LIST_H
-#include "offload.h"
+#include "parallel.h"
 
 /**
  * Linked list node that stores data of type `int`.

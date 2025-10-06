@@ -22,7 +22,7 @@ from .functions import init_fun, PTR_DOUBLE, PTR_INT
 
 
 init_fun(
-    "libascot_interpolate",
+    "ascot_interpolate",
     ctypes.POINTER(Bfield),
     ctypes.POINTER(Efield),
     ctypes.POINTER(Plasma),
@@ -35,14 +35,14 @@ init_fun(
     )
 
 init_fun(
-    "libascot_find_axis",
+    "ascot_eval_axis",
     ctypes.POINTER(Bfield),
     ctypes.c_int32,
     *([PTR_DOUBLE]*2)
     )
 
 init_fun(
-    "libascot_rhotheta2rz",
+    "ascot_map_rhotheta_to_rz",
     ctypes.POINTER(Bfield),
     ctypes.c_int32,
     ctypes.c_int32,
@@ -52,7 +52,7 @@ init_fun(
     )
 
 init_fun(
-    "libascot_gradient_descent",
+    "ascot_find_psi_on_axis_2d",
     ctypes.POINTER(Bfield),
     ctypes.c_int32,
     ctypes.c_int32,
@@ -62,7 +62,7 @@ init_fun(
     )
 
 init_fun(
-    "libascot_gradient_descent_3d",
+    "ascot_find_psi_on_axis_3d",
     ctypes.POINTER(Bfield),
     ctypes.c_int32,
     ctypes.c_int32,
@@ -368,7 +368,7 @@ def interpolate(r, phi, z, t, nmode, *qnt, **input_variants):
     ptrs = {
         k: ctypes.byref(v) if v is not None else None for k, v in inputs.items()
         }
-    LIBASCOT.libascot_interpolate(
+    LIBASCOT.ascot_interpolate(
         ptrs["bfield"], ptrs["efield"], ptrs["plasma"], ptrs["neutral"],
         ptrs["boozer"], ptrs["mhd"], query_size, nmode, r, phi, z, t,
         *return_arrays.values()

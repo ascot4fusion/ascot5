@@ -4,8 +4,8 @@
  */
 #include <stdlib.h>
 #include <math.h>
-#include "ascot5.h"
-#include "math.h"
+#include "defines.h"
+#include "mathlib.h"
 #include "interp.h"
 #include "spline.h"
 
@@ -23,17 +23,11 @@
  * @param n_y number of data points in the y direction
  * @param bc_x boundary condition for x axis (0) natural (1) periodic
  * @param bc_y boundary condition for y axis (0) natural (1) periodic
- * @param x_min minimum value of the x axis
- * @param x_max maximum value of the x axis
- * @param y_min minimum value of the y axis
- * @param y_max maximum value of the y axis
  *
  * @return zero if initialization succeeded
  */
 int interp2Dexpl_init_coeff(real* c, real* f,
-                            int n_x, int n_y, int bc_x, int bc_y,
-                            real x_min, real x_max,
-                            real y_min, real y_max) {
+                            int n_x, int n_y, int bc_x, int bc_y) {
 
     /* Allocate helper quantities */
     real* f_x = malloc(n_x*sizeof(real));

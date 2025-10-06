@@ -32,8 +32,8 @@
 #ifndef GCTRANSFORM_H
 #define GCTRANSFORM_H
 
-#include "ascot5.h"
-#include "offload.h"
+#include "defines.h"
+#include "parallel.h"
 
 /**
  * Set the order of the transformation.

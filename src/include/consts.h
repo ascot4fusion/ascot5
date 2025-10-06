@@ -5,7 +5,7 @@
 #ifndef CONSTS_H
 #define CONSTS_H
 
-#include "ascot5.h"
+#include "defines.h"
 
 /**
  * pi.
