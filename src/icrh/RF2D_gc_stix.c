@@ -635,15 +635,15 @@ real RF2D_gc_stix_get_interaction_time(RF2D_gc_stix* stix_data,
         nu_curr - 2.0 * nu_prev + nu_prev_prev
         - nudot * diff_dt
     );
+    nudot = fmax(1e-14, fabs(nudot)); // Avoiding zero nudot
+    nudot2 = fmax(1e-14, fabs(nudot2)); // Avoiding zero nudot2
 
     // Squared interaction time
     if (fabs(nudot) > (0.5 * fabs(nudot2) * hist->dt[curr])) {
         time = M_PI / fabs(nudot);
     } else {
         // Airy function argument
-        real zeta = -pow(nudot, 2) / pow(2.0 * nudot2, 2.0/3.0);
-        // You need to implement or link an Airy function Ai(zeta)
-        // For now, assume a function real Airy_Ai(real x) is available.
+        real zeta = - (nudot * nudot) / pow(2.0 * nudot2 * nudot2, 2.0/3.0);
         real airy_val = gsl_sf_airy_Ai(zeta, GSL_PREC_DOUBLE);
         time = 2.0 * M_PI * airy_val / pow(fabs(nudot2 / 2.0), 1.0/3.0);
         time = 0.5 * time * time;
@@ -778,7 +778,7 @@ void RF2D_gc_stix_scatter(RF2D_gc_stix* stix, RF_particle_history* hist,
                 real scaling2 = scaling_para * scaling_para;
 
                 // Kick in the magnetic moment.
-                real dmu = scaling2 * (term1 + term2) * t_inter / (4.0 * hist[imrk].bnorm[0] * p->mass[imrk]);
+                real dmu = M_PI * M_PI * scaling2 * (term1 + term2) * t_inter / (4 * hist[imrk].bnorm[0] * p->mass[imrk]);
                 real kpara = stix->ntor[iwave] / hist[imrk].R[0];
                 real drhopara = kpara / (lres * omega_cycl) * dmu;
 
