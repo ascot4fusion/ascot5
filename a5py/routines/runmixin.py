@@ -330,7 +330,7 @@ class RunMixin(DistMixin):
                          self._endstate.get("y", endcond=endcond),
                          self._endstate.get("z", endcond=endcond)]).T
 
-    def getstate_markers(self, mrktype, ids=None):
+    def getstate_markers(self, mrktype, ids=None, state="end"):
         """Convert endstate to marker input.
 
         Parameters
@@ -353,13 +353,13 @@ class RunMixin(DistMixin):
         if mrktype == "prt":
             qnt = ["r", "phi", "z", "weight", "time", "vr", "vphi", "vz",
                    "mass", "charge", "anum", "znum"]
-            state = self.getstate(*qnt, mode="prt", state="end", ids=ids)
+            state = self.getstate(*qnt, mode="prt", state=state, ids=ids)
             for i, q in enumerate(qnt):
                 mrk[q] = state[i]
         elif mrktype == "gc":
             qnt = ["r", "phi", "z", "weight", "time", "ekin", "pitch", "zeta",
                    "mass", "charge", "anum", "znum"]
-            state = self.getstate(*qnt, mode="gc", state="end", ids=ids)
+            state = self.getstate(*qnt, mode="gc", state=state, ids=ids)
             for i, q in enumerate(qnt):
                 if q == "ekin":
                     mrk["energy"] = state[i]
@@ -367,7 +367,7 @@ class RunMixin(DistMixin):
                     mrk[q] = state[i]
         elif mrktype == "fl":
             qnt = ["r", "phi", "z", "weight", "time", "pitch"]
-            state = self.getstate(*qnt, mode="gc", state="end", ids=ids)
+            state = self.getstate(*qnt, mode="gc", state=state, ids=ids)
             for i, q in enumerate(qnt):
                 mrk[q] = state[i]
         return mrk
