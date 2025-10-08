@@ -13,13 +13,13 @@ a5err RF_fields_init(RF_fields* rf, hid_t f, char* qid,
     rf->type = RF_NONE; // Setting the default.
     err = 0;
 
-    hdf5_gen_path("/RF/RF_2D_XXXXXXXXXX", qid, path);
+    hdf5_gen_path("/RF/RF2D_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
         rf->type = RF_FULL_ORBIT_2D;
         err = RF2D_fields_init_from_file(&rf->rf2d, f, qid);
     }
 
-    hdf5_gen_path("/RF/RF_3D_XXXXXXXXXX", qid, path);
+    hdf5_gen_path("/RF/RF3D_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
         rf->type = RF_FULL_ORBIT_3D;
         err = RF3D_fields_init_from_file(&rf->rf3d, f, qid);
