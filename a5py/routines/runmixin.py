@@ -1919,8 +1919,13 @@ class RunMixin(DistMixin):
 
         # Poloidal angle for each vertex
         if getaxis is None:
-            out = self._root._ascot._eval_bfield(
-                1*unyt.m, tor*unyt.deg, 1*unyt.m, 0*unyt.s, evalaxis=True)
+            dummy_input = np.ones(tor.size)
+            out = self._root._ascot._eval_bfield(dummy_input,
+                                                 np.deg2rad(tor),
+                                                 dummy_input,
+                                                 dummy_input,
+                                                 evalaxis=True,
+                                                 )
             axisr  = out["axisr"].v
             axisz  = out["axisz"].v
         elif getaxis is tuple and len(getaxis) == 2:
