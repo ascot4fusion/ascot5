@@ -1940,16 +1940,16 @@ def cameracontrols(plotter):
         plotter.update()
         plotter.disable() # This disables some default keys
 
-    # Not all keys are available for us so we make do
-    plotter.add_key_event('w', lambda : control_camera('move_forward'))
-    plotter.add_key_event('s', lambda : control_camera('move_backward'))
-    plotter.add_key_event('a', lambda : control_camera('move_left'))
-    plotter.add_key_event('d', lambda : control_camera('move_right'))
+    # Many of the keys are already taken, hence these unorthodox keybindings
+    plotter.add_key_event('d', lambda : control_camera('move_forward'))
+    plotter.add_key_event('x', lambda : control_camera('move_backward'))
+    plotter.add_key_event('z', lambda : control_camera('move_left'))
+    plotter.add_key_event('c', lambda : control_camera('move_right'))
     plotter.add_key_event('n', lambda : control_camera('move_up'))
     plotter.add_key_event('m', lambda : control_camera('move_down'))
-    plotter.add_key_event('r', lambda : control_camera('rotate_cw'))
-    plotter.add_key_event('y', lambda : control_camera('rotate_ccw'))
-    plotter.add_key_event('t', lambda : control_camera('look_up'))
-    plotter.add_key_event('g', lambda : control_camera('look_down'))
-    plotter.add_key_event('f', lambda : control_camera('look_left'))
-    plotter.add_key_event('h', lambda : control_camera('look_right'))
+    plotter.add_key_event('o', lambda : control_camera('rotate_cw'))
+    plotter.add_key_event('u', lambda : control_camera('rotate_ccw'))
+    plotter.add_key_event('i', lambda : control_camera('look_up'))
+    plotter.add_key_event('k', lambda : control_camera('look_down'))
+    plotter.add_key_event('j', lambda : control_camera('look_left'))
+    plotter.add_key_event('l', lambda : control_camera('look_right'))
