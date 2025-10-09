@@ -132,6 +132,11 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
 #endif
 
     diag_init(&sim->diag_data, n_particles);
+    if(sim->diag_data.diagene_collect) {
+        diag_energy_exchange_init(&sim->diag_data.diagene, n_particles,
+                                  &sim->boozer_data, &sim->B_data,
+                                  &sim->mhd_data.stat, &sim->plasma_data);
+    }
     GPU_MAP_TO_DEVICE(sim[0:1])
     B_field_offload(&sim->B_data);
     E_field_offload(&sim->E_data);

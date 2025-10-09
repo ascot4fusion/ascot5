@@ -126,6 +126,7 @@ class LibSimulate():
         diag.distCOM_collect   = int(opt["ENABLE_DIST_COM"]) * 0   # Not impl.
         diag.diagtrcof_collect = int(opt["ENABLE_TRANSCOEF"]) * 0  # Not impl.
         diag.diagorb_collect   = int(opt["ENABLE_ORBITWRITE"])
+        diag.diagene_collect   = int(opt["ENABLE_ENERGY_TRANSFER_DIAG"])
 
         diagorb = diag.diagorb
         diagorb.mode          = int(opt["ORBITWRITE_MODE"])

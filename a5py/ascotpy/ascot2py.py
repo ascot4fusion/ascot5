@@ -1342,7 +1342,7 @@ struct_c__SA_diag_data._fields_ = [
     ('distrho6D_collect', ctypes.c_int32),
     ('distCOM_collect', ctypes.c_int32),
     ('diagtrcof_collect', ctypes.c_int32),
-    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('diagene_collect', ctypes.c_int32),
     ('diagorb', diag_orb_data),
     ('dist5D', dist_5D_data),
     ('dist6D', dist_6D_data),
@@ -1350,6 +1350,7 @@ struct_c__SA_diag_data._fields_ = [
     ('distrho6D', dist_rho6D_data),
     ('distCOM', dist_COM_data),
     ('diagtrcof', diag_transcoef_data),
+    ('diagene', diag_energy_exchange_data),
 ]
 
 diag_data = struct_c__SA_diag_data

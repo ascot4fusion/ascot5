@@ -14,6 +14,7 @@
 #include "diag/dist_com.h"
 #include "diag/diag_orb.h"
 #include "diag/diag_transcoef.h"
+#include "diag/diag_energy_exchange.h"
 
 /**
  * @brief Diagnostics data struct
@@ -26,6 +27,7 @@ typedef struct {
     int distrho6D_collect; /**< Flag for collecting 6D rho distribution      */
     int distCOM_collect;   /**< Flag for collecting COM distribution         */
     int diagtrcof_collect; /**< Flag for collecting transport coefficients   */
+    int diagene_collect;   /**< Flag for collecting energy exchange data     */
 
     diag_orb_data diagorb;     /**< Orbit diagnostics data                   */
     dist_5D_data dist5D;       /**< 5D distribution diagnostics data         */
@@ -34,6 +36,7 @@ typedef struct {
     dist_rho6D_data distrho6D; /**< 6D rho distribution diagnostics data     */
     dist_COM_data distCOM;     /**< COM distribution diagnostics data        */
     diag_transcoef_data diagtrcof; /**< Transp. Coef. diagnostics data       */
+    diag_energy_exchange_data diagene; /**< Energy exchange diagnostics data */
 
 } diag_data;
 

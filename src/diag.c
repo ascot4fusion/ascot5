@@ -90,6 +90,9 @@ int diag_init(diag_data* data, int Nmrk) {
     if(data->diagtrcof_collect) {
         diag_transcoef_init(&data->diagtrcof);
     }
+    if(data->diagene_collect) {
+        diag_energy_exchange_free(&data->diagene);
+    }
 
     return 0;
 }
@@ -144,6 +147,9 @@ void diag_offload(diag_data* data) {
     if(data->distCOM_collect) {
         dist_COM_offload(&data->distCOM);
     }
+    if(data->diagene_collect) {
+        diag_energy_exchange_offload(&data->diagene);
+    }
 }
 
 /**
@@ -166,6 +172,9 @@ void diag_onload(diag_data* data) {
     }
     if(data->distCOM_collect) {
         dist_COM_onload(&data->distCOM);
+    }
+    if(data->diagene_collect) {
+        diag_energy_exchange_onload(&data->diagene);
     }
 }
 
@@ -201,6 +210,9 @@ void diag_update_fo(diag_data* data, B_field_data* Bdata, particle_simd_fo* p_f,
     }
     if(data->diagtrcof_collect){
         diag_transcoef_update_fo(&data->diagtrcof, p_f, p_i);
+    }
+    if(data->diagene_collect) {
+        diag_energy_exchange_update_fo(&data->diagene, p_f, p_i);
     }
 }
 
@@ -242,6 +254,10 @@ void diag_update_gc(diag_data* data, B_field_data* Bdata, particle_simd_gc* p_f,
 
     if(data->diagtrcof_collect){
         diag_transcoef_update_gc(&data->diagtrcof, p_f, p_i);
+    }
+    
+    if(data->diagene_collect) {
+        diag_energy_exchange_update_gc(&data->diagene, p_f, p_i);
     }
 }
 
