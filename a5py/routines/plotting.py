@@ -9,6 +9,8 @@ So either import this module or use try-except when importing matplotlib.
 """
 import numpy as np
 import warnings
+import unyt
+import a5py.physlib as physlib
 
 try:
     import matplotlib as mpl
@@ -1282,9 +1284,25 @@ def still(wallmesh, points=None, orbit=None, data=None, log=False, clim=None,
         if data == "eload":
             cbar.set_label(r"Power load W/m$^2$")
 
-
-def interactive(wallmesh, *args, points=None, orbit=None, data=None, log=False,
-                clim=None, cpos=None, cfoc=None, cang=None, **kwargs):
+def interactive(wallmesh,
+                *args,
+                points=None,
+                orbit=None,
+                data=None,
+                log=False,
+                clim=None,
+                cmap=None,
+                cbar_title=None,
+                cpos=None,
+                cfoc=None,
+                cang=None,
+                p=None,
+                phi_lines=None,
+                const_phi_planes=None,
+                theta_lines=None,
+                a5=None,
+                skipshow=False,
+                **kwargs):
     """Open VTK window to display interactive view of the wall mesh.
 
     Parameters
@@ -1306,30 +1324,60 @@ def interactive(wallmesh, *args, points=None, orbit=None, data=None, log=False,
         Color range is logarithmic if True.
     clim : [float, float], optional
         Color [min, max] limits.
+    cmap : str, optional
+        Colormap name.
+    cbar_title : str, optional
+        Color bar title.
     cpos : array_like, optional
         Camera position coordinates [x, y, z].
     cfoc : array_like, optional
         Camera focal point coordinates [x, y, z].
     cang : array_like, optional
         Camera angle [azimuth, elevation, roll].
+    p : :obj:`~pyvista.Plotter`, optional
+        PyVista plotter instance.
+    phi_lines : array_like, optional
+        Array of phi values in degrees.
+    const_phi_planes : array_like, optional
+        Array of phi values in degrees.
+    theta_lines : array_like, optional
+        Array of theta values in degrees.
+    a5 : a5py.ASCOT, optional
+        ASCOT instance.
+    skipshow : bool, optional
+        If True, do not show the plot. Useful if you want to draw something else
+        like a flux surface in the same Plotter.
     **kwargs
         Keyword arguments passed to :obj:`~pyvista.Plotter`.
     """
-    p = pv.Plotter(**kwargs)
+    if p is None:
+        p = pv.Plotter(**kwargs)
     p.disable()
     cameracontrols(p)
 
     if data is None:
         p.add_mesh(wallmesh, color=[0.9,0.9,0.9], log_scale=log)
     else:
-        cmap = mpl.colormaps["Reds"].copy()
-        cmap.set_bad(color=[0.9,0.9,0.9])
+        if cmap is None:
+            cmap = mpl.colormaps["Reds"].copy()
+            cmap.set_bad(color=[0.9,0.9,0.9])
         maxval = np.nanmax(wallmesh.cell_data[data])
         minval = np.nanmin(wallmesh.cell_data[data])
         if clim is None: clim = [minval, maxval]
         if clim[0] is None: clim[0] = minval
         if clim[1] is None: clim[1] = maxval
-        p.add_mesh(wallmesh, scalars=data, cmap=cmap, clim=clim, log_scale=log)
+        if cbar_title is None: cbar_title = data
+        p.add_mesh(wallmesh,
+                   scalars=data,
+                   cmap=cmap,
+                   clim=clim,
+                   log_scale=log,
+                   scalar_bar_args={
+                        "title": cbar_title,
+                        "title_font_size": 22,
+                        "label_font_size": 18,
+                    },
+        )
 
     if points is not None:
         p.theme.color = 'black'
@@ -1353,7 +1401,215 @@ def interactive(wallmesh, *args, points=None, orbit=None, data=None, log=False,
         p.camera.elevation = cang[1]
         p.camera.roll      = cang[2]
 
-    p.show()
+    # Constant phi lines with z=0, extending radially outward
+    if phi_lines is not None:
+        add_phi_lines(wallmesh, p, phi_lines, a5)
+
+    # Constant phi planes with constant theta lines on them
+    if const_phi_planes is not None:
+        add_phi_planes(wallmesh=wallmesh,
+                    plotter=p,
+                    phi_planes=const_phi_planes,
+                    )
+        if theta_lines is not None:
+            add_theta_lines(p,
+                            const_phi_planes,
+                            theta_lines,
+                            a5,
+                            rminor_wall=4*unyt.m)
+
+    p.renderer.ResetCameraClippingRange()
+    if not skipshow:
+        p.show()
+
+def add_highlighted_edges(plotter,
+                          wallmesh_highlight,
+                          color="yellow",
+                          line_width=3):
+    """
+    Highlight the edges of a wall mesh on an existing PyVista plotter.
+
+    Parameters
+    ----------
+    plotter : pv.Plotter
+        The PyVista plotter instance where the mesh is already displayed.
+    wallmesh_highlight : pv.PolyData
+        The wall mesh whose edges you want to highlight.
+    color : str, optional
+        Color of the edges (default "yellow").
+    line_width : int, optional
+        Thickness of the edge lines (default 3).
+    """
+    plotter.add_mesh(
+        wallmesh_highlight,
+        style="wireframe",
+        color=color,
+        line_width=line_width
+    )
+
+@physlib.parseunits(phi_lines="deg")
+def add_phi_lines(wallmesh,
+                  plotter,
+                  phi_lines,
+                  a5,
+                  ):
+    """
+    Add phi lines to a PyVista plotter.
+
+    Parameters
+    ----------
+    wallmesh : pv.PolyData
+        The wall mesh to which the phi lines will be added.
+    plotter : pv.Plotter
+        The PyVista plotter instance where the mesh is already displayed.
+    phi_lines : np.ndarray
+        Array of phi values.
+    a5 : a5py.ASCOT
+        An instance of the ASCOT class.
+    """
+    bounds = wallmesh.bounds  # (xmin, xmax, ymin, ymax, zmin, zmax)
+    xmax = max(abs(bounds[0]), abs(bounds[1]))
+    ymax = max(abs(bounds[2]), abs(bounds[3]))
+    max_r = np.sqrt(xmax**2 + ymax**2)
+    x = max_r * np.cos(phi_lines)
+    y = max_r * np.sin(phi_lines)
+    out = a5._eval_bfield(1*unyt.m, phi_lines.to("rad"), 1*unyt.m, 0, evalaxis=True)
+    x_axis = out["axisr"]*np.cos(phi_lines)
+    y_axis = out["axisr"]*np.sin(phi_lines)
+
+    for i in range(len(phi_lines)):
+        # line from origin to outer radius in XY plane, z=0
+        line = pv.Line([0.05*x[i], 0.05*y[i], 0], [x[i], y[i], 0])
+        plotter.add_mesh(line,
+                         color="green",
+                         opacity=1.0,
+                         line_width=2,
+                         pickable=False,
+                         reset_camera=False,
+                         )
+        labels = plotter.add_point_labels([[x_axis[i], y_axis[i], 0.05]],
+                                          [f"phi = {phi_lines[i].to("deg").to_value():.0f}°"],
+                                          point_size=10,
+                                          font_size=22,
+                                          text_color="green",
+                                          shape_opacity=0.0,
+                                          show_points=False,
+                                          )
+        labels.GetProperty().SetDisplayLocationToForeground()
+
+@physlib.parseunits(phi_planes="deg")
+def add_phi_planes(wallmesh,
+                   plotter,
+                   phi_planes,
+                   ):
+    """
+    Add phi planes to a PyVista plotter.
+
+    Parameters
+    ----------
+    wallmesh : pv.PolyData
+        The wall mesh to which the phi planes will be added.
+    plotter : pv.Plotter
+        The PyVista plotter instance where the mesh is already displayed.
+    phi_planes : np.ndarray
+        Array of phi values.
+    """
+    bounds = wallmesh.bounds  # (xmin, xmax, ymin, ymax, zmin, zmax)
+    xmax = max(abs(bounds[0]), abs(bounds[1]))
+    ymax = max(abs(bounds[2]), abs(bounds[3]))
+    zmin, zmax = bounds[4], bounds[5]
+    max_r = np.sqrt(xmax**2 + ymax**2)
+    phi = 45*unyt.deg
+    for phi in phi_planes:
+        # direction vector in XY plane
+        dx, dy = np.cos(phi), np.sin(phi)
+        # define the four corners of the rectangle (plane)
+        corners = np.array([
+            [0, 0, zmin],
+            [0, 0, zmax],
+            [max_r*dx, max_r*dy, zmax],
+            [max_r*dx, max_r*dy, zmin],
+        ])
+        # make a quad surface (polygon)
+        faces = np.hstack([[4, 0, 1, 2, 3]])  # 4-point face
+        plane = pv.PolyData(corners, faces)
+        # add with some transparency
+        actor = plotter.add_mesh(plane, color="blue", opacity=0.2)
+        #actor.SetForceTranslucent(True)
+
+@physlib.parseunits(theta_lines="deg")
+def add_theta_lines(plotter,
+                    phi_array,
+                    theta_lines,
+                    a5,
+                    rminor_wall,
+                    ):
+    """
+    Add theta lines to a PyVista plotter.
+
+    Parameters
+    ----------
+    plotter : pv.Plotter
+        The PyVista plotter instance where the mesh is already displayed.
+    phi_array : np.ndarray
+        Array of phi values.
+    theta_lines : np.ndarray
+        Array of theta values.
+    a5 : a5py.ASCOT
+        An instance of the ASCOT class.
+    rminor_wall : float
+        Minor radius of the wall. Used to determine the theta label positions.
+    """
+    out = a5._eval_bfield(1*unyt.m, phi_array.to("rad"), 1*unyt.m, 0, evalaxis=True)
+    axis_x = out["axisr"]*np.cos(phi_array)
+    axis_y = out["axisr"]*np.sin(phi_array)
+    axis_z = out["axisz"]
+    for i in range(len(phi_array)):
+        phi = phi_array[i]
+        for theta in theta_lines:
+            d = rminor_wall
+
+            # line beginning co-ordinates close to magnetic axis
+            x0 = axis_x[i] + 0.05*d*np.cos(theta)*np.cos(phi)
+            y0 = axis_y[i] + 0.05*d*np.cos(theta)*np.sin(phi)
+            z0 = axis_z[i] + 0.05*d*np.sin(theta)
+
+            dr1 = d * np.cos(theta)
+            dz1 = d * np.sin(theta)
+
+            # line end co-ordinates outside the wall
+            R1 = out["axisr"][i]+dr1
+            x1 = R1 * np.cos(phi)
+            y1 = R1 * np.sin(phi)
+            z1 = out["axisz"][i]+dz1
+
+            dr2 = dr1/2
+            dz2 = dz1/2
+
+            # Co-ordinates for labels, half way between rminor=0 and wall
+            R2 = out["axisr"][i]+dr2
+            x2 = R2 * np.cos(phi)
+            y2 = R2 * np.sin(phi)
+            z2 = out["axisz"][i]+dz2
+
+            line = pv.Line([x0, y0, z0], [x1, y1, z1])
+            plotter.add_mesh(line,
+                             color="blue",
+                             opacity=1.0,
+                             line_width=2,
+                             pickable=False,
+                             reset_camera=False,
+                             )
+            labels = plotter.add_point_labels([[x2, y2, z2]],
+                                              [f"{theta:.0f}°"],
+                                              point_size=10,
+                                              font_size=22,
+                                              text_color="blue",
+                                              shape_opacity=0.0,
+                                              )
+            labels.GetProperty().SetDisplayLocationToForeground()
+
+
 
 @openfigureifnoaxes(projection=None)
 def loadvsarea(wetted, loads, axes=None):

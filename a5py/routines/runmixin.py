@@ -1969,9 +1969,21 @@ class RunMixin(DistMixin):
         axes.set_yticks([-180, -90, 0, 90, 180])
 
     def plotwall_3dstill(
-            self, wallmesh=None, points=None, orbit=None, data=None, log=False,
-            clim=None, cpos=None, cfoc=None, cang=None, p_ids=None,
-            w_indices=None, axes=None, cax=None, **kwargs):
+            self,
+            wallmesh=None,
+            points=None,
+            orbit=None,
+            data=None,
+            log=False,
+            clim=None,
+            cpos=None,
+            cfoc=None,
+            cang=None,
+            p_ids=None,
+            w_indices=None,
+            axes=None,
+            cax=None,
+            **kwargs):
         """Take a still shot of the mesh and display it using matplotlib
         backend.
 
@@ -1993,6 +2005,7 @@ class RunMixin(DistMixin):
             ID of a marker whose orbit is plotted.
         data : str, optional
             Name of the cell data in the wall mesh that is shown in color.
+            {"label", "pload", "eload", "mload", "iangle"}
         log : bool, optional
             Color range is logarithmic if True.
         clim : [float, float], optional
@@ -2031,10 +2044,31 @@ class RunMixin(DistMixin):
                     clim=clim, cpos=cpos, cfoc=cfoc, cang=cang, axes=axes,
                     cax=cax, **kwargs)
 
-    def plotwall_3dinteractive(self, wallmesh=None, *args, points=None,
-                               orbit=None, data=None, log=False, clim=None,
-                               cpos=None, cfoc=None, cang=None,
-                               p_ids=None, w_indices=None, **kwargs):
+    def plotwall_3dinteractive(
+            self,
+            wallmesh=None,
+            *args,
+            points=None,
+            orbit=None,
+            data=None,
+            log=False,
+            clim=None,
+            cmap=None,
+            cpos=None,
+            cfoc=None,
+            cang=None,
+            p_ids=None,
+            w_indices=None,
+            w_ids_to_highlight=None,
+            highlight_color="yellow",
+            plotter=None,
+            phi_lines=None,
+            const_phi_planes=None,
+            theta_lines=None,
+            a5=None,
+            skipshow=False,
+            **kwargs
+        ):
         """Open vtk window to display interactive view of the wall mesh.
 
         Parameters
@@ -2054,10 +2088,13 @@ class RunMixin(DistMixin):
             ID of a marker whose orbit is plotted.
         data : str, optional
             Name of the cell data in the wall mesh that is shown in color.
+            {"label", "pload", "eload", "mload", "iangle"}
         log : bool, optional
             Color range is logarithmic if True.
         clim : [float, float], optional
             Color [min, max] limits.
+        cmap : str, optional
+            Colormap name.
         cpos : array_like, optional
             Camera position coordinates [x, y, z].
         cfoc : array_like, optional
@@ -2068,6 +2105,20 @@ class RunMixin(DistMixin):
             List of ids of the particles for which the heat load is shown.
         w_indices : array_like, optional
             List of wall indices which are included in the wall mesh.
+        w_ids_to_highlight : array_like, optional
+            List of wall indices which are highlighted.
+        highlight_color : str, optional
+            Color of the highlighted wall elements. Default is yellow.
+        plotter : :obj:`~pyvista.Plotter`, optional
+            Plotter instance. If not given, then a new one is created.
+        phi_lines : array_like, optional
+            Number of constant phi lines with z=0, extending radially outward.
+        const_phi_planes : array_like, optional
+            Number of constant phi planes.
+        theta_lines : array_like, optional
+            Number of constant theta lines, extending radially outward from the
+            magnetic axis for phi in const_phi_planes.
+        a5 : :obj:`~a5py.A5`, optional
         **kwargs
             Keyword arguments passed to :obj:`~pyvista.Plotter`.
         """
@@ -2078,12 +2129,41 @@ class RunMixin(DistMixin):
         if orbit is not None:
             x,y,z = self.getorbit("x", "y", "z", ids=orbit)
             orbit = np.array([x,y,z]).T
+        if w_ids_to_highlight is not None and len(w_ids_to_highlight) == 0:
+            w_ids_to_highlight = None
+            print("There were 0 wall indices to highlight. No mesh will be highlighted.")
+        if w_ids_to_highlight is not None:
+            wallmesh_highlight = self.getwall_3dmesh(p_ids=p_ids,
+                                                     w_indices=w_ids_to_highlight)
+            print(f"highlighting {len(w_ids_to_highlight):d} triangles")
+            a5plt.add_highlighted_edges(plotter,
+                                        wallmesh_highlight=wallmesh_highlight,
+                                        color=highlight_color,
+                                        )
 
         (cpos0, cfoc0, cang0) = a5plt.defaultcamera(wallmesh)
         if cpos is None: cpos = cpos0
         if cfoc is None: cfoc = cfoc0
         if cang is None: cang = cang0
 
-        a5plt.interactive(wallmesh, *args, points=points, data=data,
-                          orbit=orbit, log=log, clim=clim,
-                          cpos=cpos, cfoc=cfoc, cang=cang, **kwargs)
+        if data=="eload": cbar_title=data+" W/m^2"
+
+        a5plt.interactive(wallmesh,
+                          *args,
+                          points=points,
+                          data=data,
+                          orbit=orbit,
+                          log=log,
+                          clim=clim,
+                          cmap=cmap,
+                          cbar_title=cbar_title,
+                          cpos=cpos,
+                          cfoc=cfoc,
+                          cang=cang,
+                          p=plotter,
+                          phi_lines=phi_lines,
+                          const_phi_planes=const_phi_planes,
+                          theta_lines=theta_lines,
+                          a5=a5,
+                          skipshow=skipshow,
+                          **kwargs)
