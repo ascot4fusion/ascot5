@@ -224,14 +224,14 @@ a5err RF2D_gc_stix_init_from_file(RF2D_gc_stix* stix_data, hid_t f, char* qid,
  * @return Error code indicating success or failure of the initialization.
  */
 a5err RF2D_gc_stix_init(RF2D_gc_stix* stix_data,
-                                  real* Eplus_re, real* Eplus_im,
-                                  real* Eminus_re, real* Eminus_im,
-                                  real* kperp, real* costerm, real* sinterm,
-                                  real rmin, real rmax, real zmin, real zmax,
-                                  int nr, int nz, int nwaves,
-                                  int include_Eminus, int include_stochastic,
-                                  int include_vpara_kick, int include_phase_factor,
-                                  B_field_data* bdata){
+                        real* Eplus_re, real* Eplus_im,
+                        real* Eminus_re, real* Eminus_im,
+                        real* kperp, real* costerm, real* sinterm,
+                        real rmin, real rmax, real zmin, real zmax,
+                        int nr, int nz, int nwaves,
+                        int include_Eminus, int include_stochastic,
+                        int include_vpara_kick, int include_phase_factor,
+                        B_field_data* bdata){
     a5err err = 0;
     
     // Allocating memory for the Stix data structure.
@@ -629,7 +629,12 @@ real RF2D_gc_stix_get_interaction_time(RF2D_gc_stix* stix_data,
     real nu_prev = kpara * hist->rhopara[prev] * hist->bnorm[prev] + hist->qm * l * hist->bnorm[prev];
     real nu_prev_prev = kpara * hist->rhopara[prev_prev] * hist->bnorm[prev_prev] + hist->qm * l * hist->bnorm[prev_prev];
 
-    // Resonance condition derivatives: one sided derivatives.
+    // Evaluation of the \dot\nu and \ddot\nu terms at the resonance crossing:
+    // 1. The curve of \nu(t) is approximated by a parabola and the coefficients
+    //    are computed using the three points available.
+    // 2. The crossing via \nu(t_0) = 0 is computed.
+    // 3. The derivatives \dot\nu and \ddot\nu are evaluated at t_0.
+    // 4. The interaction time is computed.
     real nudot = ( nu_curr - nu_prev_prev ) / ddt;
     real nudot2 = 2.0 / ddt2 * (
         nu_curr - 2.0 * nu_prev + nu_prev_prev

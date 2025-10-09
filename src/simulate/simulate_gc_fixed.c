@@ -232,6 +232,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
     }
 
     free(stix_random);
+    free(used_rnd_icrh);
     /* All markers simulated! */
 
 }
@@ -289,4 +290,5 @@ void fill_random_values(random_data* random_data, uint8* used, real* rnd, int si
             idx++;
         }
     }
+    free(temp_rnd);
 }
