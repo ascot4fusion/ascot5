@@ -1,73 +1,111 @@
 /**
- * @file libascot.c
- * @brief Library of Ascot5 functions for external use.
+ * @file ascot.h
+ * Ascot functions and structures for external use.
  *
- * Functions in this file allows to evaluate input data and quantities using
- * the same methods as is used in actual simulation.
+ * Ascot is a high-performance orbit-following code for fusion plasma physics
+ * and engineering. In addition to marker tracing, it provides tools to
+ * interpolate and process input data used in the simulation. The code can also
+ * calculate fusion or NBI source, and magnetic field based on the coil
+ * geometry.
+ *
+ * All performance sensitive components are implemented within. The code uses
+ * OpenMP for parallelization on CPUs and OpenMP/OpenACC for GPU
+ * parallelization. For CPUs, markers are parallelized both using threads and
+ * vector operations.
+ *
+ * MPI level parallelization is left to the user of this library.
  */
 #ifndef ASCOT_H
 #define ASCOT_H
 
+#include "datatypes.h"
 #include "defines.h"
-#include "atomic.h"
-#include "bfield.h"
-#include "boozer.h"
-#include "efield.h"
-#include "mhd.h"
-#include "neutral.h"
-#include "plasma.h"
-#include "particle.h"
-#include "simulate.h"
-#include "wall.h"
-#include "fusion_source.h"
+#include <stddef.h>
+#include <stdint.h>
 
-#define STORE(index, val, ptr)                                                 \
-    if ((ptr))                                                                 \
-    (ptr)[(index)] = (val)
-/** Store value in output array if the output array is allocated. */
-
-
-void ascot_solve_distribution(int nmarkers, particle_state* p, sim_data* sim);
+/**
+ * Trace markers and solve the test particle Fokker-Planck equation.
+ *
+ * @param sim Simulation data with necessary inputs and diagnostics present.
+ * @param nmrk Number of markers to be simulated.
+ * @param mrk Markers to be simulated.
+ */
+void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk]);
 
 /**
  * Calculate fusion source from two arbitrary ion distributions.
  *
- * Inputs and outputs are expected to have same physical (R, phi, z)
+ * Inputs and outputs are expected to have same (R, phi, z) or (rho, theta, phi)
  * dimensions.
  *
- * @param sim Pointer to simulation data.
- * @param reaction Fusion reaction type, see the description.
- * @param n Number of Monte Carlo samples to be used.
- * @param react1 Reactant 1 distribution data.
- * @param react2 Reactant 2 distribution data.
- * @param mult Factor by which the output is scaled.
- * @param prod1_data Distribution data for product 1 output.
- * @param prod2_data Distribution data for product 2 output.
+ * @param sim Simulation data with bfield and plasma inputs.
+ * @param source Fusion source data that specifies the reactions and the
+ *        reactants.
+ * @param nsample Number of Monte Carlo samples to be used per one spatial cell.
+ * @param product1 Output distribution for the first output species.
+ * @param product2 Output distribution for the second output species.
  */
 void ascot_solve_fusion(
-    sim_data *sim, afsi_data *data, size_t n, histogram *prod1, histogram *prod2);
+    Simulation *sim, FusionSource *source, size_t nsample, histogram *product1,
+    histogram *product2);
 
 /**
- * Simulate NBI injection.
+ * Simulate NBI injection and calculate shinethrough and birth profile of NBI
+ * ions.
  *
- * This function initializes neutrals and traces them until they have ionized or
- * hit the wall.
+ * This function initializes neutrals at beamlet positions and traces them until
+ * they have ionized or hit the wall.
  *
- * @param sim Pointer to the simulation data structure.
- * @param nprt Number of markers to be injected.
- * @param t1 Time instant when the injector is turned on.
- * @param t2 Time instant when the injector is turned off.
- * @param p Pointer to the marker array which is allocated here.
+ * It is not necessary to have bfield to extend all the way to the beamlet as
+ * the markers are assumed to remain neutrals on ballistic trajectories before
+ * they enter the magnetic field data regime for the first time.
+ *
+ * Several injectors can be modelled simultaneously while keeping in mind that
+ * the output does not contain any information on which injector a marker
+ * originated.
+ *
+ * @param sim The simulation data with bfield, plasma, (wall), and any used
+ *        diagnostics.
+ * @param ninj Number of injectors.
+ * @param injectors Neutral beam injector(s).
+ * @param tlim Time interval over which the markers are injected.
+ *        The marker initial time (at the point of injection) is sampled from
+ *        this interval.
+ * @param nmrk Number of markers to inject in total.
+ * @param mrk Array where generated markers are stored.
+ *        Contains all injected markers, not just those that end up ionized.
  */
 void ascot_solve_nbi(
-    sim_data *sim, int nprt, real t1, real t2, particle_state **p);
+    Simulation *sim, size_t ninj, Nbi injectors[ninj], real tlim[2],
+    size_t nmrk, State mrk[nmrk]);
 
 /**
- * @brief Interpolate input quantities at the given coordinates.
+ * Evaluate magnetic field due to a coil at given points.
+ *
+ * The magnetic field is evaluated using Biot-Savart law. The coil geometry is
+ * not assumed to be closed: the first and last points must coincide if the coil
+ * is to be closed.
+ *
+ * @param npnt Number of query points.
+ * @param ncoil Number of points in coil geometry.
+ * @param coilxyz Coil geometry (x, y, z) coordinates [m].
+ * @param x Query point x coordinate [m].
+ * @param y Query point y coordinate [m].
+ * @param z Query point z coordinate [m].
+ * @param Bx Evaluated magnetic field x-component [T].
+ * @param By Evaluated magnetic field y-component [T].
+ * @param Bz Evaluated magnetic field z-component [T].
+ */
+void ascot_solve_field(
+    size_t npnt, size_t ncoil, real coilxyz[3][ncoil], real xyz[3][npnt],
+    real bxyz[3][npnt]);
+
+/**
+ * Interpolate input quantities at the given coordinates.
  *
  * @param bfield Magnetic field data.
  * @param efield Electric field data.
- * @param plasma plasma data.
+ * @param plasma Plasma data.
  * @param neutral Neutral data.
  * @param boozer Boozer data.
  * @param mhd MHD data.
@@ -104,31 +142,20 @@ void ascot_solve_nbi(
  * @param mhd_phi Electric field perturbation potential [V/m].
  */
 void ascot_interpolate(
-    Bfield *bfield, Efield *efield, Plasma *plasma,
-    Neutral *neutral, Boozer *boozer, Mhd *mhd,
+    Bfield *bfield, Efield *efield, Plasma *plasma, Neutral *neutral,
+    Boozer *boozer, Mhd *mhd,
     // Atomic* atomic,
-    int npnt, int modenumber, real R[npnt], real phi[npnt], real z[npnt],
-    real t[npnt], real B[3][npnt], real Bjac[9][npnt], real psi[4][npnt],
+    size_t npnt, int modenumber, real r[npnt], real phi[npnt], real z[npnt],
+    real t[npnt], real b[3][npnt], real bjac[9][npnt], real psi[4][npnt],
     real rho[2][npnt], real E[3][npnt], real n[][npnt], real T[2][npnt],
     real n0[][npnt], real T0[][npnt], real theta[4][npnt], real zeta[4][npnt],
     real alpha[5][npnt], real Phi[5][npnt], real mhd_b[3][npnt],
     real mhd_e[3][npnt], real mhd_phi[npnt]);
 
 /**
- * @brief Get magnetic axis at given coordinates.
- *
- * @param bfield Magnetic field data
- * @param nphi Number of evaluation points.
- * @param phi phi coordinates of the evaluation points [rad].
- * @param Raxis output array for axis R coordinates.
- */
-void ascot_eval_axis(
-    Bfield *bfield, int nphi, real phi[nphi], real axisRz[2][nphi]);
-
-/**
  * Evaluate collision coefficients
  *
- * @param sim_data initialized simulation data struct
+ * @param Simulation initialized simulation data struct
  * @param Neval number of evaluation points
  * @param R R coordinates of the evaluation points [m]
  * @param phi phi coordinates of the evaluation points [rad]
@@ -144,10 +171,56 @@ void ascot_eval_axis(
  * @param mu The special functions (mu0, mu1, dmu0)
  */
 void ascot_eval_collcoefs(
-    Bfield *bfield, Plasma *plasma, int npnt, real ma, real qa,
-    real R[npnt], real phi[npnt], real z[npnt], real t[npnt], real va[npnt],
+    Bfield *bfield, Plasma *plasma, size_t npnt, real ma, real qa, real R[npnt],
+    real phi[npnt], real z[npnt], real t[npnt], real va[npnt],
     real coefficients[6][npnt], real clog[][npnt], real mu[3][npnt]);
 
+/**
+ * Return size of the ``real`` type.
+ *
+ * This can be used to determine if the code was compiled in single or double
+ * precision.
+ */
+size_t ascot_sizeof_real(void);
+
+/**
+ * Map (rho, theta, phi) to (R, z) coordinates using Newton method.
+ *
+ * Due to padding, rho might not be exactly zero on the axis so we
+ * return the axis position for small values of queried rho
+ *
+ * @param bfield Magnetic field data.
+ * @param npnt Number of query points.
+ * @param maxiter Maximum number of iterations in Newton algorithm before abort.
+ * @param tol Maximum difference between two consecutive iterations before the
+ *        value is accepted.
+ * @param t Time instant when the inputs are interpolated [s].
+ * @param rho Queried normalized poloidal flux [1].
+ * @param theta Queried poloidal angle [rad].
+ * @param phi Queried toroidal angle [rad].
+ * @param rz Output array for (R, z) coordinates [m].
+ */
+void ascot_map_rhotheta_to_rz(
+    Bfield *bfield, size_t npnt, size_t maxiter, real tol, real t,
+    real rho[npnt], real theta[npnt], real phi[npnt], real rz[2][npnt]);
+
+/**
+ * Find psi on axis using the gradient descent method.
+ *
+ * Note that the psi value is not returned in case this algorithm fails.
+ *
+ * @param bfield magnetic field data
+ * @param psi value of psi on axis if this function did not fail
+ * @param rz initial (R,z) position where also the result is stored
+ * @param step the step size
+ * @param tol the current position is accepted if the distance (in meters)
+ * between this and the previous point is below this value
+ * @param maxiter maximum number of iterations before failure
+ * @param ascent if true the algorithm instead ascends to find psi0 (> psi1)
+ */
+void ascot_find_psi_on_axis_2d(
+    Bfield *bfield, size_t maxiter, size_t ascent, real step, real tol,
+    real psi[1], real rz[2]);
 
 /**
  * Find one psi minimum using the gradient descent method for 3D field
@@ -164,9 +237,7 @@ void ascot_eval_collcoefs(
  * @param ascent if true the algorithm instead ascends to find psi0 (> psi1)
  */
 void ascot_find_psi_on_axis_3d(
-    Bfield *bfield, int maxiter, int ascent, real phimin, real phimax,
+    Bfield *bfield, size_t maxiter, int ascent, real phimin, real phimax,
     real step, real tol, real psi[1], real rzphi[3]);
-
-
 
 #endif

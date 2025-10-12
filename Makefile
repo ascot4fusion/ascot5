@@ -1,8 +1,8 @@
-libascot:
-	$(MAKE) -C src libascot
+ascot:
+	$(MAKE) -C src ascot
 
-ascot: libascot
-	pip install -e .
+#ascot: libascot
+#	pip install -e .
 
 lint:
 	pylint --disable=similarities --generated-members=unyt.*

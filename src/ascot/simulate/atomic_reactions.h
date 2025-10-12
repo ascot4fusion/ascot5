@@ -16,11 +16,11 @@
 
 #include "defines.h"
 #include "atomic_reactions.h"
-#include "atomic.h"
-#include "neutral.h"
-#include "particle.h"
-#include "plasma.h"
-#include "random.h"
+#include "data/atomic.h"
+#include "data/neutral.h"
+#include "data/marker.h"
+#include "data/plasma.h"
+#include "utils/random.h"
 
 /**
  * @brief Determine if atomic reactions occur during time-step and change charge
@@ -35,8 +35,8 @@
 #ifndef GPU
 #pragma omp declare target
 #endif
-void atomic_fo(
-    particle_simd_fo *p, real *h, Plasma *plasma, Neutral *neutral,
+void atomic_go(
+    MarkerGyroOrbit *p, real *h, Plasma *plasma, Neutral *neutral,
     random_data *r_data, Atomic *atomic);
 #ifndef GPU
 #pragma omp end declare target

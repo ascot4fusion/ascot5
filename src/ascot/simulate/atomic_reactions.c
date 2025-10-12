@@ -3,15 +3,14 @@
  */
 #include "atomic_reactions.h"
 #include "defines.h"
-#include "atomic.h"
+#include "data/atomic.h"
 #include "consts.h"
-#include "errors.h"
-#include "mathlib.h"
-#include "neutral.h"
-#include "particle.h"
-#include "physlib.h"
-#include "plasma.h"
-#include "random.h"
+#include "utils/mathlib.h"
+#include "data/neutral.h"
+#include "data/marker.h"
+#include "utils/physlib.h"
+#include "data/plasma.h"
+#include "utils/random.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -19,7 +18,7 @@
 #pragma omp declare target
 DECLARE_TARGET_SIMD_UNIFORM(asigma)
 #endif
-a5err atomic_rates(
+err_t atomic_rates(
     real *rate_eff_ion, real *rate_eff_rec, int z_1, int a_1, real m_1,
     const int *z_2, const int *a_2, const real *m_2, Atomic *atomic, int q,
     real E, int N_pls_spec, int N_ntl_spec, real *T, real *T_0, real *n,
@@ -30,11 +29,11 @@ a5err atomic_rates(
 #ifndef GPU
 DECLARE_TARGET_SIMD
 #endif
-a5err atomic_react(
+err_t atomic_react(
     int *q, real dt, real rate_eff_ion, real rate_eff_rec, int z_1, real rnd);
 
-void atomic_fo(
-    particle_simd_fo *p, real *h, Plasma *plasma, Neutral *neutral,
+void atomic_go(
+    MarkerGyroOrbit *p, real *h, Plasma *plasma, Neutral *neutral,
     random_data *r_data, Atomic *atomic)
 {
 
@@ -44,18 +43,18 @@ void atomic_fo(
     random_uniform_simd(r_data, NSIMD, rnd);
     (void)r_data;
 
-    int N_pls_spec = plasma_get_n_species(plasma);
+    int N_pls_spec = Plasma_get_n_species(plasma);
     int N_ntl_spec = neutral_get_n_species(neutral);
-    const real *m_2 = plasma_get_species_mass(plasma);
-    const int *z_2 = plasma_get_species_znum(plasma);
-    const int *a_2 = plasma_get_species_anum(plasma);
+    const real *m_2 = Plasma_get_species_mass(plasma);
+    const int *z_2 = Plasma_get_species_znum(plasma);
+    const int *a_2 = Plasma_get_species_anum(plasma);
 
 #pragma omp simd
     for (int i = 0; i < NSIMD; i++)
     {
         if (p->running[i])
         {
-            a5err errflag = 0;
+            err_t errflag = 0;
 
             /* Calculate kinetic energy of test particle */
             real p_comps[3];
@@ -69,7 +68,7 @@ void atomic_fo(
             real n_2[MAX_SPECIES], T_2[MAX_SPECIES];
             if (!errflag)
             {
-                errflag = plasma_eval_densandtemp(
+                errflag = Plasma_eval_densandtemp(
                     n_2, T_2, p->rho[i], p->r[i], p->phi[i], p->z[i],
                     p->time[i], plasma);
             }
@@ -78,13 +77,13 @@ void atomic_fo(
             real n_0[MAX_SPECIES], T_0[MAX_SPECIES];
             if (!errflag)
             {
-                errflag = neutral_eval_n0(
+                errflag = Neutral_eval_n0(
                     n_0, p->rho[i], p->r[i], p->phi[i], p->z[i], p->time[i],
                     neutral);
             }
             if (!errflag)
             {
-                errflag = neutral_eval_t0(
+                errflag = Neutral_eval_T0(
                     T_0, p->rho[i], p->r[i], p->phi[i], p->z[i], p->time[i],
                     neutral);
             }
@@ -152,13 +151,13 @@ void atomic_fo(
  *
  * @return zero if evaluation succeeded
  */
-a5err atomic_rates(
+err_t atomic_rates(
     real *rate_eff_ion, real *rate_eff_rec, int z_1, int a_1, real m_1,
     const int *z_2, const int *a_2, const real *m_2, Atomic *atomic, int q,
     real E, int N_pls_spec, int N_ntl_spec, real *T, real *T_0, real *n,
     real *n_0)
 {
-    a5err err = 0;
+    err_t err = 0;
     (void)m_2;
 
     /* Define a helper variable for storing rate coefficients, and
@@ -210,10 +209,10 @@ a5err atomic_rates(
  *
  * @return zero if evaluation succeeded
  */
-a5err atomic_react(
+err_t atomic_react(
     int *q, real dt, real rate_eff_ion, real rate_eff_rec, int z_1, real rnd)
 {
-    a5err err = 0;
+    err_t err = 0;
 
     /* Calculate the reaction probabilities for ionizing (charge-increasing)
        and recombining (charge-decreasing) atomic reactions. But first,

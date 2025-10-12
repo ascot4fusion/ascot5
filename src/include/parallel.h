@@ -1,11 +1,18 @@
 /**
+ * @file parallel.h
  * Macros for parallelizing the code for GPUs (with OpenACC or OpenMP) or
  * for CPUs with OpenMP.
  */
-#ifndef OFFLOAD_ACC_OMP_H
-#define OFFLOAD_ACC_OMP_H
+#ifndef PARALLEL_H
+#define PARALLEL_H
 
 #include "defines.h"
+
+#if defined(GPU)
+#define CPU_PARALLELIZE_LOOP
+#else
+#define CPU_PARALLELIZE_LOOP str_pragma(omp parallel for)
+#endif
 
 /**
  * Apply parallel execution to loops.

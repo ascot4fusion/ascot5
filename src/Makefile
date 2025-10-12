@@ -6,11 +6,6 @@ OBJ_DIR := $(BUILD_DIR)/obj
 
 DEPFLAGS = -MMD -MP
 
-ifdef TRAP_FPE
-	DEFINES+=-DTRAP_FPE=$(TRAP_FPE)
-	CFLAGS+= -fsignaling-nans -ftrapping-math
-endif
-
 ifdef NSIMD
 	DEFINES+=-DNSIMD=$(NSIMD)
 endif
@@ -47,7 +42,7 @@ else ifeq ($(RANDOM),LCG)
 	DEFINES+=-DRANDOM_LCG
 endif
 
-CFLAGS+=-Wall -Wextra -fPIC -std=c11 -D_XOPEN_SOURCE=700 -Iinclude -I. $(DEFINES) $(FLAGS)
+CFLAGS+=-Wall -Wextra -fPIC -std=c11 -D_XOPEN_SOURCE=700 -Iinclude -Iascot $(DEFINES) $(FLAGS)
 
 ifeq ($(DEBUG),1)
 	CFLAGS+=-g
@@ -72,11 +67,12 @@ SRCS := $(shell find $(SRC_DIR) -name '*.c')
 OBJS := $(patsubst $(SRC_DIR)/%, $(OBJ_DIR)/%, $(SRCS:.c=.o))
 DEPS := $(OBJS:.o=.d)
 
-DOCDIR = doc/
+all: ascot test_ascot5
 
-all: libascot doc
+ascot: $(BUILD_DIR)/libascot.so
+	true
 
-libascot: $(BUILD_DIR)/libascot.so
+test_ascot5: $(BUILD_DIR)/test_ascot5
 	true
 
 $(BUILD_DIR)/libascot.so: $(OBJS)
@@ -92,10 +88,9 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c Makefile
 
 clean:
 	@rm -f $(BUILD_DIR)/libascot.so
+	@rm -f $(BUILD_DIR)/test_ascot5
 	@rm -rf $(OBJ_DIR)
-	@rm -rf $(DOCDIR)
-	@rm -f gitver.h
 
-.PHONY: all clean $(BUILD_DIR)/libascot.so
+.PHONY: all clean $(BUILD_DIR)/libascot.so $(BUILD_DIR)/test_ascot5
 
 -include $(DEPS)

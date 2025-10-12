@@ -8,70 +8,62 @@
 #include <math.h>
 #include "defines.h"
 #include "endcond.h"
-#include "mathlib.h"
+#include "utils/mathlib.h"
 #include "consts.h"
-#include "physlib.h"
+#include "utils/physlib.h"
 #include "simulate.h"
-#include "particle.h"
-#include "wall.h"
-#include "diag.h"
-#include "bfield.h"
-#include "efield.h"
-#include "rfof.h"
-#include "plasma.h"
-#include "orbit_following/orbit_following.h"
-#include "coulomb_collisions/coulomb_collisions.h"
+#include "data/marker.h"
+#include "data/wall.h"
+#include "data/diag.h"
+#include "datatypes.h"
+#include "data/bfield.h"
+#include "data/efield.h"
+#include "data/rfof.h"
+#include "data/plasma.h"
+#include "orbit_following.h"
+#include "coulomb_collisions.h"
 
 DECLARE_TARGET_SIMD_UNIFORM(sim)
-real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i);
+real simulate_gc_fixed_inidt(Simulation* sim, MarkerGuidingCenter* p, int i);
 
 #define DUMMY_TIMESTEP_VAL 1.0 /**< Dummy time step value */
 
 
-void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
-    int cycle[NSIMD]      __memalign__; /* Flag indigating whether a new marker
-                                           was initialized */
-    real hin[NSIMD]       __memalign__;  /* Time step given as an input into the
-                                           integrators. Almost always default.*/
-    real hin_default[NSIMD] __memalign__; /* The default fixed time step.     */
-    real hnext_recom[NSIMD]     __memalign__; /* Next time step, only used to
-                                                store the value when RFOF has
-                                                rejected a time step.         */
-    real hout_rfof[NSIMD] __memalign__; /* The time step that RFOF recommends.
-                                            Small positive means that resonance
-                                            is close, small negative means that
-                                            the step failed because the marker
-                                            overshot the resonance and that the
-                                            time step should be retaken with a
-                                            smaller time step given by the
-                                            negative of hout_rfof             */
+void simulate_gc_fixed(Simulation* sim, MarkerQueue* pq, size_t vector_size) {
+    size_t* cycle = (size_t*) malloc(vector_size*sizeof(size_t));
+    real* hin = (real*) malloc(vector_size*sizeof(real));
+    real* hin_default = (real*) malloc(vector_size*sizeof(real));
+    real* hnext_recom = (real*) malloc(vector_size*sizeof(real));
+    real* hout_rfof = (real*) malloc(vector_size*sizeof(real));
 
 
     real cputime, cputime_last; // Global cpu time: recent and previous record
 
-    particle_simd_gc p;  // This array holds current states
-    particle_simd_gc p0; // This array stores previous states
+    MarkerGuidingCenter p;  // This array holds current states
+    MarkerGuidingCenter p0; // This array stores previous states
+    marker_allocate_gc(&p, vector_size);
+    marker_allocate_gc(&p0, vector_size);
 
     rfof_marker rfof_mrk; // RFOF specific data
 
     /* Init dummy markers */
-    for(int i=0; i< NSIMD; i++) {
-        p.id[i] = -1;
+    for(size_t i=0; i< vector_size; i++) {
+        p.id[i] = 0;
         p.running[i] = 0;
         hout_rfof[i] = DUMMY_TIMESTEP_VAL;
         hnext_recom[i] = DUMMY_TIMESTEP_VAL;
     }
 
     /* Initialize running particles */
-    int n_running = particle_cycle_gc(pq, &p, &sim->bfield, cycle);
+    size_t n_running = marker_cycle_gc(pq, &p, &sim->bfield, cycle);
 
-    if(sim->params->enable_icrh) {
+    if(sim->options->enable_icrh) {
         rfof_set_up(&rfof_mrk, &sim->rfof);
     }
 
     /* Determine simulation time-step */
     #pragma omp simd
-    for(int i = 0; i < NSIMD; i++) {
+    for(size_t i = 0; i < vector_size; i++) {
         if(cycle[i] > 0) {
             hin_default[i] = simulate_gc_fixed_inidt(sim, &p, i);
             hin[i] = hin_default[i];
@@ -89,55 +81,55 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
      * - Check for end condition(s)
      * - Update diagnostics
      */
+    real* rnd = (real*) malloc(5*vector_size*sizeof(real));
     while(n_running > 0) {
 
         /* Store marker states */
         #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
-            particle_copy_gc(&p, i, &p0, i);
+        for(size_t i = 0; i < vector_size; i++) {
+            marker_copy_gc(&p, i, &p0, i);
         }
 
         /*************************** Physics **********************************/
 
         /* Set time-step negative if tracing backwards in time */
         #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
-            if(sim->params->reverse_time) {
+        for(size_t i = 0; i < vector_size; i++) {
+            if(sim->options->reverse_time) {
                 hin[i]  = -hin[i];
             }
         }
 
         /* RK4 method for orbit-following */
-        if(sim->params->enable_orbit_following) {
-            if(sim->params->enable_mhd) {
+        if(sim->options->enable_orbit_following) {
+            if(sim->options->enable_mhd) {
                 step_gc_rk4_mhd(
                     &p, hin, &sim->bfield, &sim->efield, sim->boozer,
-                    &sim->mhd, sim->params->enable_aldforce);
+                    &sim->mhd, sim->options->enable_aldforce);
             }
             else {
                 step_gc_rk4(&p, hin, &sim->bfield, &sim->efield,
-                            sim->params->enable_aldforce);
+                            sim->options->enable_aldforce);
             }
         }
 
         /* Switch sign of the time-step again if it was reverted earlier */
         #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
-            if(sim->params->reverse_time) {
+        for(size_t i = 0; i < vector_size; i++) {
+            if(sim->options->reverse_time) {
                 hin[i]  = -hin[i];
             }
         }
 
         /* Euler-Maruyama method for collisions */
-        if(sim->params->enable_coulomb_collisions) {
-            real rnd[5*NSIMD];
-            random_normal_simd(sim->random_data, 5*NSIMD, rnd);
+        if(sim->options->enable_coulomb_collisions) {
+            random_normal_simd(sim->random_data, 5*vector_size, rnd);
             mccc_gc_euler(&p, hin, &sim->bfield, &sim->plasma,
                           sim->mccc_data, rnd);
         }
 
         /* Performs the ICRH kick if in resonance. */
-        if(sim->params->enable_icrh) {
+        if(sim->options->enable_icrh) {
             rfof_resonance_check_and_kick_gc(
                 &p, hin, hout_rfof, &rfof_mrk, &sim->rfof, &sim->bfield);
 
@@ -163,11 +155,11 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         /* Update simulation and cpu times */
         cputime = A5_WTIME;
         #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
+        for(size_t i = 0; i < vector_size; i++) {
             if(hnext_recom[i] < 0) {
                 /* Screwed up big time (negative time-step only when RFOF
                     rejected) */
-                particle_copy_gc(&p0, i, &p, i);
+                marker_copy_gc(&p0, i, &p, i);
                 hin[i] = -hnext_recom[i];
             }
             if(p.running[i]) {
@@ -176,7 +168,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
                     hnext_recom[i] = DUMMY_TIMESTEP_VAL;
                 } else {
                     // The step was successful
-                    p.time[i]    += ( 1.0 - 2.0 * ( sim->params->reverse_time > 0 ) ) * hin[i];
+                    p.time[i]    += ( 1.0 - 2.0 * ( sim->options->reverse_time > 0 ) ) * hin[i];
                     p.mileage[i] += hin[i];
                     p.cputime[i] += cputime - cputime_last;
                 }
@@ -188,17 +180,17 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         endcond_check_gc(&p, &p0, sim);
 
         /* Update diagnostics */
-        diag_update_gc(sim->diagnostics, sim->params, &sim->bfield, &p, &p0);
+        diag_update_gc(sim->diagnostics, sim->options, &sim->bfield, &p, &p0);
 
         /* Update running particles */
-        n_running = particle_cycle_gc(pq, &p, &sim->bfield, cycle);
+        n_running = marker_cycle_gc(pq, &p, &sim->bfield, cycle);
 
         /* Determine simulation time-step */
         #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
+        for(size_t i = 0; i < vector_size; i++) {
             if(cycle[i] > 0) {
                 hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
-                if(sim->params->enable_icrh) {
+                if(sim->options->enable_icrh) {
                     /* Reset icrh (rfof) resonance memory matrix. */
                     rfof_clear_history(&rfof_mrk, i);
                 }
@@ -208,9 +200,15 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
     }
 
     /* All markers simulated! */
+    free(cycle);
+    free(hin);
+    free(hnext_recom);
+    free(hin_default);
+    free(hout_rfof);
+    free(rnd);
 
     /* Deallocate rfof structs */
-    if(sim->params->enable_icrh) {
+    if(sim->options->enable_icrh) {
         rfof_tear_down(&rfof_mrk);
     }
 }
@@ -228,12 +226,12 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
  *
  * @return Calculated time step
  */
-real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i) {
+real simulate_gc_fixed_inidt(Simulation* sim, MarkerGuidingCenter* p, int i) {
     real h;
 
     /* Value defined directly by user */
-    if(sim->params->use_explicit_fixedstep) {
-        h = sim->params->explicit_fixedstep;
+    if(sim->options->use_explicit_fixedstep) {
+        h = sim->options->explicit_fixedstep;
     }
     else {
         /* Value calculated from gyrotime */
@@ -241,7 +239,7 @@ real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i) {
         real gyrotime = CONST_2PI /
             phys_gyrofreq_ppar(p->mass[i], p->charge[i],
                                p->mu[i], p->ppar[i], Bnorm);
-        h = gyrotime/sim->params->gyrodefined_fixedstep;
+        h = gyrotime/sim->options->gyrodefined_fixedstep;
     }
 
     return h;

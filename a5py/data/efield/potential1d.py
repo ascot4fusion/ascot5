@@ -120,6 +120,8 @@ class CreateMixin(TreeMixin):
         r"""Create radial electric field input that is evaluated from the
         gradient of a 1D potential.
 
+        This input was designed to use NEOTRANSP output.
+
         Parameters
         ----------
         rhogrid : array_like (nrho,)

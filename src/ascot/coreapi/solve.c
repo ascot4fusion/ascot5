@@ -1,84 +1,58 @@
 /**
- * Simulation is initialized and run from here
- *
- * This module acts as an interface through which different types of simulations
- * are initialized and run. This module handles no IO operations (with the
- * exception of writing of progress update), no offloading (only unpacking and
- * initialization is done here).
- *
- * Thread level parallelisation is done here and the threads have shared access
- * on the data once it has been initialized. However, threads should only modify
- * marker and diagnostic data.
+ * Main simulation routines (see ascot.h).
  */
+#include "ascot.h"
+#include "data/atomic.h"
+#include "data/bfield.h"
+#include "data/boozer.h"
+#include "data/diag.h"
+#include "data/efield.h"
+#include "data/marker.h"
+#include "data/mhd.h"
+#include "data/neutral.h"
+#include "data/plasma.h"
+#include "data/rfof.h"
+#include "data/wall.h"
 #include "endcond.h"
-#include "gctransform.h"
-#include "particle.h"
-#include "random.h"
-#include "simulate.h"
+#include "simulate/fusion_source.h"
+#include "simulate/nbi_source.h"
+#include "simulate/simulate.h"
+#include "utils/gctransform.h"
+#include "utils/mathlib.h"
+#include "utils/random.h"
 #include <string.h>
 #include <unistd.h>
-// #include "simulate/mccc/mccc.h"
-#include "atomic.h"
-#include "bfield.h"
-#include "boozer.h"
-#include "diag.h"
-#include "efield.h"
-#include "fusion_source.h"
-#include "mathlib.h"
-#include "mhd.h"
-#include "nbi_source.h"
-#include "neutral.h"
-#include "plasma.h"
-#include "rfof.h"
-#include "wall.h"
 
-/**
- * Trace provided markers.
- *
- * This simulates markers using given inputs and options. All different types of
- * simulations are initialized and run via this function.
- *
- * @param nmarkers number of markers to be simulated by this process.
- * @param p markers to be simulated by this process.
- */
-void ascot_solve_distribution(int nmarkers, particle_state *p, sim_data *sim)
+void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
 {
 
-    // Size = NSIMD on CPU and Size = Total number of particles on GPU
-    int n_queue_size;
 #ifdef GPU
-    n_queue_size = n_particles;
-#else
-    n_queue_size = NSIMD;
-#endif
-
-#ifdef GPU
-    if (sim->params->simulation_mode != 1)
+    if (sim->options->simulation_mode != 1)
     {
         print_err("Only GO mode ported to GPU. Please set SIM_MODE=1.");
         exit(1);
     }
-    if (sim->params->record_mode)
+    if (sim->options->record_mode)
     {
         print_err("RECORD_MODE=1 not ported to GPU. Please disable it.");
         exit(1);
     }
-    if (sim->params->enable_atomic)
+    if (sim->options->enable_atomic)
     {
         print_err("Atomic not yet ported to GPU. Please set ENABLE_ATOMIC=0.");
         exit(1);
     }
-    if (sim->params->enable_mhd)
+    if (sim->options->enable_mhd)
     {
         print_err("MHD not yet ported to GPU. Please set ENABLE_MHD=0.");
         exit(1);
     }
-    if (sim->params->collect_orbit)
+    if (sim->options->collect_orbit)
     {
         print_err("ENABLE_ORBITWRITE=1 not ported to GPU. Please disable it.");
         exit(1);
     }
-    if (sim->params->collect_transport_coefficient)
+    if (sim->options->collect_transport_coefficient)
     {
         print_err("ENABLE_TRANSCOEF=1 not ported to GPU. Please disable it.");
         exit(1);
@@ -86,86 +60,89 @@ void ascot_solve_distribution(int nmarkers, particle_state *p, sim_data *sim)
 #endif
 
     GPU_MAP_TO_DEVICE(sim [0:1])
-    B_field_offload(&sim->bfield);
-    E_field_offload(&sim->efield);
+    Bfield_offload(&sim->bfield);
+    Efield_offload(&sim->efield);
     plasma_offload(&sim->plasma);
     neutral_offload(&sim->neutral);
     wall_offload(&sim->wall);
     boozer_offload(sim->boozer);
     mhd_offload(&sim->mhd);
-    asigma_offload(&sim->atomic);
+    asigma_offload(sim->atomic);
     random_init(&sim->random_data, 0);
 
-    /* Tabulated data not yet implemented */
-    // sim->mccc_data->usetabulated = 0;
-
-    if (sim->params->disable_first_order_gctransformation)
+    if (sim->options->disable_first_order_gctransformation)
     {
         gctransform_setorder(0);
     }
-    asigma_extrapolate(sim->params->enable_atomic == 2);
+    asigma_extrapolate(sim->options->enable_atomic == 2);
 
-    particle_queue pq;
+#ifdef GPU
+    size_t vector_size = nmrk;
+#else
+    size_t vector_size = NSIMD;
+#endif
 
-    pq.n = 0;
-    for (int i = 0; i < nmarkers; i++)
+    MarkerQueue queue;
+    queue.n = 0;
+    for (size_t i = 0; i < nmrk; i++)
     {
-        pq.n++;
+        queue.n++;
     }
 
-    pq.p = (particle_state **)malloc(pq.n * sizeof(particle_state *));
-    pq.finished = 0;
+    queue.p = (State **)malloc(queue.n * sizeof(State *));
+    queue.finished = 0;
 
-    pq.next = 0;
-    for (int i = 0; i < nmarkers; i++)
+    queue.next = 0;
+    for (size_t i = 0; i < nmrk; i++)
     {
-        pq.p[pq.next++] = &p[i];
+        queue.p[queue.next++] = &mrk[i];
     }
-    pq.next = 0;
-    if (pq.n > 0 && (sim->params->simulation_mode == simulate_mode_gc ||
-                     sim->params->simulation_mode == simulate_mode_hybrid))
+    queue.next = 0;
+    if (queue.n > 0 && (sim->options->simulation_mode == simulate_mode_gc ||
+                        sim->options->simulation_mode == simulate_mode_hybrid))
     {
-        if (sim->params->enable_adaptive)
+        if (sim->options->enable_adaptive)
         {
             OMP_PARALLEL_CPU_ONLY
-            simulate_gc_adaptive(&pq, sim);
+            simulate_gc_adaptive(sim, &queue, vector_size);
         }
         else
         {
             OMP_PARALLEL_CPU_ONLY
-            simulate_gc_fixed(&pq, sim);
+            simulate_gc_fixed(sim, &queue, vector_size);
         }
     }
-    else if (pq.n > 0 && sim->params->simulation_mode == simulate_mode_fo)
+    else if (queue.n > 0 && sim->options->simulation_mode == simulate_mode_fo)
     {
         OMP_PARALLEL_CPU_ONLY
-        simulate_fo_fixed(&pq, sim, n_queue_size);
+        simulate_go_fixed(sim, &queue, vector_size);
     }
-    else if (pq.n > 0 && sim->params->simulation_mode == simulate_mode_ml)
+    else if (queue.n > 0 && sim->options->simulation_mode == simulate_mode_ml)
     {
-        simulate_fl_adaptive(&pq, sim);
+        simulate_fl_adaptive(sim, &queue, vector_size);
     }
 
-    int n_new = 0;
-    if (sim->params->simulation_mode == simulate_mode_hybrid)
+    size_t n_new = 0;
+    if (sim->options->simulation_mode == simulate_mode_hybrid)
     {
 
         /* Determine the number markers that should be run
-         * in fo after previous gc simulation */
-        for (int i = 0; i < pq.n; i++)
+         * in go after previous gc simulation */
+        for (size_t i = 0; i < queue.n; i++)
         {
-            if (pq.p[i]->endcond == endcond_hybrid)
+            if (queue.p[i]->endcond == ENDCOND_HYBRID)
             {
                 /* Check that there was no wall between when moving from
                    gc to fo */
                 real w_coll;
-                int tile = wall_hit_wall(
-                    pq.p[i]->r, pq.p[i]->phi, pq.p[i]->z, pq.p[i]->rprt,
-                    pq.p[i]->phiprt, pq.p[i]->zprt, &w_coll, &sim->wall);
+                size_t tile = Wall_hit_wall(
+                    queue.p[i]->r, queue.p[i]->phi, queue.p[i]->z,
+                    queue.p[i]->rprt, queue.p[i]->phiprt, queue.p[i]->zprt,
+                    &w_coll, &sim->wall);
                 if (tile > 0)
                 {
-                    pq.p[i]->walltile = tile;
-                    pq.p[i]->endcond |= endcond_wall;
+                    queue.p[i]->walltile = tile;
+                    queue.p[i]->endcond |= ENDCOND_WALL;
                 }
                 else
                 {
@@ -178,42 +155,42 @@ void ascot_solve_distribution(int nmarkers, particle_state *p, sim_data *sim)
     {
 
         /* Reset hybrid marker end condition */
-        for (int i = 0; i < pq.n; i++)
+        for (size_t i = 0; i < queue.n; i++)
         {
-            if (pq.p[i]->endcond & endcond_hybrid)
+            if (queue.p[i]->endcond & ENDCOND_HYBRID)
             {
-                pq.p[i]->endcond ^= endcond_hybrid;
+                queue.p[i]->endcond ^= ENDCOND_HYBRID;
             }
         }
-        pq.next = 0;
-        pq.finished = 0;
+        queue.next = 0;
+        queue.finished = 0;
         OMP_PARALLEL_CPU_ONLY
-        simulate_fo_fixed(&pq, sim, n_queue_size);
+        simulate_go_fixed(sim, &queue, vector_size);
     }
-    free(pq.p);
+    free(queue.p);
 }
 
 void ascot_solve_fusion(
-    sim_data *sim, afsi_data *afsi, size_t n, histogram *prod1,
-    histogram *prod2)
+    Simulation *sim, FusionSource *source, size_t nsample, histogram *product1,
+    histogram *product2)
 {
 
     random_init(&rdata, time((NULL)));
 
     real m1, q1, m2, q2, mprod1, qprod1, mprod2, qprod2, Q;
     boschhale_reaction(
-        afsi->reaction, &m1, &q1, &m2, &q2, &mprod1, &qprod1, &mprod2, &qprod2,
-        &Q);
+        source->reaction, &m1, &q1, &m2, &q2, &mprod1, &qprod1, &mprod2,
+        &qprod2, &Q);
 
     int prod_mom_space;
     int i0coord, i1coord, i2coord, p1coord, p2coord;
-    if (prod1->axes[0].n)
+    if (product1->axes[0].n)
     {
         i0coord = 0;
         i1coord = 1;
         i2coord = 2;
     }
-    else if (prod1->axes[3].n)
+    else if (product1->axes[3].n)
     {
         i0coord = 3;
         i1coord = 4;
@@ -223,13 +200,13 @@ void ascot_solve_fusion(
     {
         return;
     }
-    if (prod1->axes[5].n)
+    if (product1->axes[5].n)
     {
         p1coord = 5;
         p2coord = 6;
         prod_mom_space = PPARPPERP;
     }
-    else if (prod1->axes[10].n)
+    else if (product1->axes[10].n)
     {
         p1coord = 10;
         p2coord = 11;
@@ -241,47 +218,47 @@ void ascot_solve_fusion(
     }
 
     real time = 0.0;
-#pragma omp parallel for
-    for (size_t i0 = 0; i0 < afsi->volshape[0]; i0++)
+    OMP_PARALLEL_CPU_ONLY
+    for (size_t i0 = 0; i0 < source->volshape[0]; i0++)
     {
-        real *ppara1 = (real *)malloc(n * sizeof(real));
-        real *pperp1 = (real *)malloc(n * sizeof(real));
-        real *ppara2 = (real *)malloc(n * sizeof(real));
-        real *pperp2 = (real *)malloc(n * sizeof(real));
-        real *prod1_p1 = (real *)malloc(n * sizeof(real));
-        real *prod1_p2 = (real *)malloc(n * sizeof(real));
-        real *prod2_p1 = (real *)malloc(n * sizeof(real));
-        real *prod2_p2 = (real *)malloc(n * sizeof(real));
+        real *ppara1 = (real *)malloc(nsample * sizeof(real));
+        real *pperp1 = (real *)malloc(nsample * sizeof(real));
+        real *ppara2 = (real *)malloc(nsample * sizeof(real));
+        real *pperp2 = (real *)malloc(nsample * sizeof(real));
+        real *prod1_p1 = (real *)malloc(nsample * sizeof(real));
+        real *prod1_p2 = (real *)malloc(nsample * sizeof(real));
+        real *prod2_p1 = (real *)malloc(nsample * sizeof(real));
+        real *prod2_p2 = (real *)malloc(nsample * sizeof(real));
 
-        for (size_t i1 = 0; i1 < afsi->volshape[1]; i1++)
+        for (size_t i1 = 0; i1 < source->volshape[1]; i1++)
         {
-            for (size_t i2 = 0; i2 < afsi->volshape[2]; i2++)
+            for (size_t i2 = 0; i2 < source->volshape[2]; i2++)
             {
                 size_t spatial_index =
-                    i0 * afsi->volshape[1] * afsi->volshape[2] +
-                    i1 * afsi->volshape[2] + i2;
-                real r = afsi->r[spatial_index];
-                real z = afsi->z[spatial_index];
-                real phi = afsi->phi[spatial_index];
-                real vol = afsi->vol[spatial_index];
+                    i0 * source->volshape[1] * source->volshape[2] +
+                    i1 * source->volshape[2] + i2;
+                real r = source->r[spatial_index];
+                real z = source->z[spatial_index];
+                real phi = source->phi[spatial_index];
+                real vol = source->vol[spatial_index];
 
                 real psi, rho[2];
-                if (B_field_eval_psi(&psi, r, phi, z, time, &sim->bfield) ||
-                    B_field_eval_rho(rho, psi, &sim->bfield))
+                if (Bfield_eval_psi(&psi, r, phi, z, time, &sim->bfield) ||
+                    Bfield_eval_rho(rho, psi, &sim->bfield))
                 {
                     continue;
                 }
 
                 real density1, density2;
                 afsi_sample_reactant_momenta_2d(
-                    sim, afsi, m1, m2, vol, n, i0, i1, i2, r, phi, z, time,
-                    rho[0], &density1, ppara1, pperp1, &density2, ppara2,
+                    sim, source, m1, m2, vol, nsample, i0, i1, i2, r, phi, z,
+                    time, rho[0], &density1, ppara1, pperp1, &density2, ppara2,
                     pperp2);
                 if (density1 == 0 || density2 == 0)
                 {
                     continue;
                 }
-                for (size_t i = 0; i < n; i++)
+                for (size_t i = 0; i < nsample; i++)
                 {
                     real vcom2;
                     afsi_compute_product_momenta_2d(
@@ -291,40 +268,45 @@ void ascot_solve_fusion(
                     real E = 0.5 * (m1 * m2) / (m1 + m2) * vcom2;
 
                     real weight = density1 * density2 * sqrt(vcom2) *
-                                  boschhale_sigma(afsi->reaction, E) / n * vol;
+                                  boschhale_sigma(source->reaction, E) /
+                                  nsample * vol;
 
                     size_t ip1 = math_bin_index(
-                        prod1_p1[i], prod1->axes[p1coord].n,
-                        prod1->axes[p1coord].min, prod1->axes[p1coord].max);
+                        prod1_p1[i], product1->axes[p1coord].n,
+                        product1->axes[p1coord].min,
+                        product1->axes[p1coord].max);
                     size_t ip2 = math_bin_index(
-                        prod1_p2[i], prod1->axes[p2coord].n,
-                        prod1->axes[p2coord].min, prod1->axes[p2coord].max);
-                    if (ip1 < prod1->axes[p1coord].n &&
-                        ip2 < prod1->axes[p2coord].n)
+                        prod1_p2[i], product1->axes[p2coord].n,
+                        product1->axes[p2coord].min,
+                        product1->axes[p2coord].max);
+                    if (ip1 < product1->axes[p1coord].n &&
+                        ip2 < product1->axes[p2coord].n)
                     {
-                        size_t index = i0 * prod1->strides[i0coord] +
-                                       i1 * prod1->strides[i1coord] +
-                                       i2 * prod1->strides[i2coord] +
-                                       ip1 * prod1->strides[p1coord] +
-                                       ip2 * prod1->strides[p2coord];
-                        prod1->bins[index] += weight * afsi->mult;
+                        size_t index = i0 * product1->strides[i0coord] +
+                                       i1 * product1->strides[i1coord] +
+                                       i2 * product1->strides[i2coord] +
+                                       ip1 * product1->strides[p1coord] +
+                                       ip2 * product1->strides[p2coord];
+                        product1->bins[index] += weight * source->mult;
                     }
 
                     ip1 = math_bin_index(
-                        prod2_p1[i], prod2->axes[p1coord].n,
-                        prod2->axes[p1coord].min, prod2->axes[p1coord].max);
+                        prod2_p1[i], product2->axes[p1coord].n,
+                        product2->axes[p1coord].min,
+                        product2->axes[p1coord].max);
                     ip2 = math_bin_index(
-                        prod2_p2[i], prod2->axes[p2coord].n,
-                        prod2->axes[p2coord].min, prod2->axes[p2coord].max);
-                    if (ip1 < prod2->axes[p1coord].n &&
-                        ip2 < prod2->axes[p2coord].n)
+                        prod2_p2[i], product2->axes[p2coord].n,
+                        product2->axes[p2coord].min,
+                        product2->axes[p2coord].max);
+                    if (ip1 < product2->axes[p1coord].n &&
+                        ip2 < product2->axes[p2coord].n)
                     {
-                        size_t index = i0 * prod2->strides[i0coord] +
-                                       i1 * prod2->strides[i1coord] +
-                                       i2 * prod2->strides[i2coord] +
-                                       ip1 * prod2->strides[p1coord] +
-                                       ip2 * prod2->strides[p2coord];
-                        prod2->bins[index] += weight * afsi->mult;
+                        size_t index = i0 * product2->strides[i0coord] +
+                                       i1 * product2->strides[i1coord] +
+                                       i2 * product2->strides[i2coord] +
+                                       ip1 * product2->strides[p1coord] +
+                                       ip2 * product2->strides[p2coord];
+                        product2->bins[index] += weight * source->mult;
                     }
                 }
             }
@@ -352,65 +334,128 @@ void ascot_solve_fusion(
 }
 
 void ascot_solve_nbi(
-    sim_data *sim, int nprt, real t1, real t2, particle_state **p)
+    Simulation *sim, size_t ninj, Nbi injectors[ninj], real tlim[2],
+    size_t nmrk, State mrk[nmrk])
 {
 
     /* Initialize input data */
-    // simulate_init(sim);
     random_init(&sim->random_data, time(NULL));
 
     /* Calculate total NBI power so that we can distribute markers along
      * the injectors according to their power */
     real total_power = 0;
-    for (int i = 0; i < sim->nbi.ninj; i++)
+    for (size_t i = 0; i < ninj; i++)
     {
-        total_power += sim->nbi.inj[i].power;
+        total_power += injectors[i].power;
     }
 
-    /* Initialize particle struct */
-    *p = (particle_state *)malloc(nprt * sizeof(particle_state));
-
     /* Generate markers at the injectors */
-    int nprt_generated = 0;
-    for (int i = 0; i < sim->nbi.ninj; i++)
+    size_t nprt_generated = 0;
+    for (size_t i = 0; i < ninj; i++)
     {
 
         /* Number of markers generated is proportional to NBI power */
-        int nprt_inj = (sim->nbi.inj[i].power / total_power) * nprt;
-        if (i == sim->nbi.ninj - 1)
+        size_t nprt_inj = (injectors[i].power / total_power) * nmrk;
+        if (i == ninj - 1)
         {
             /* All "remaining" markers goes to the last injector to avoid any
              * rounding issues */
-            nprt_inj = nprt - nprt_generated;
+            nprt_inj = nmrk - nprt_generated;
         }
 
-        /* Generates markers at the injector location and traces them until
-         * they enter the region with magnetic field data */
-        bbnbi_inject_markers(
-            &((*p)[nprt_generated]), nprt_inj, nprt_generated, t1, t2,
-            &(sim->nbi.inj[i]), sim);
+        nbi_source_inject_markers(
+            sim, &(injectors[i]), tlim, nprt_inj, &(mrk[nprt_generated]));
 
         nprt_generated += nprt_inj;
     }
 
-    /* Place markers in a queue */
-    particle_queue pq;
-    pq.n = 0;
-    for (int i = 0; i < nprt; i++)
+    MarkerQueue queue;
+    queue.n = 0;
+    for (size_t i = 0; i < nmrk; i++)
     {
-        pq.n++;
+        mrk[i].id = i + 1;
+        queue.n++;
     }
-    pq.p = (particle_state **)malloc(pq.n * sizeof(particle_state *));
-    pq.finished = 0;
+    queue.p = (State **)malloc(queue.n * sizeof(State *));
+    queue.finished = 0;
 
-    pq.next = 0;
-    for (int i = 0; i < nprt; i++)
+    queue.next = 0;
+    for (size_t i = 0; i < nmrk; i++)
     {
-        pq.p[pq.next++] = &((*p)[i]);
+        queue.p[queue.next++] = &(mrk[i]);
     }
-    pq.next = 0;
+    queue.next = 0;
 
-/* Trace neutrals until they are ionized or lost to the wall */
-#pragma omp parallel
-    bbnbi_trace_markers(&pq, sim);
+    /* Trace neutrals until they are ionized or lost to the wall */
+    OMP_PARALLEL_CPU_ONLY
+    nbi_source_trace_markers(&queue, sim);
+}
+
+void ascot_solve_field(
+    size_t npnt, size_t ncoil, real coilxyz[3][ncoil], real xyz[3][npnt],
+    real bxyz[3][npnt])
+{
+    real *x = xyz[0];
+    real *y = xyz[1];
+    real *z = xyz[2];
+
+    OMP_PARALLEL_CPU_ONLY
+    for (size_t ix = 0; ix < npnt; ix++)
+    {
+        bxyz[0][ix] = 0;
+        bxyz[1][ix] = 0;
+        bxyz[2][ix] = 0;
+
+        real p1[3], p2[3];
+        p2[0] = coilxyz[0][0];
+        p2[1] = coilxyz[1][0];
+        p2[2] = coilxyz[2][0];
+
+        for (size_t i = 1; i < ncoil; i++)
+        {
+            math_copy(p1, p2);
+
+            p2[0] = coilxyz[0][i * 3];
+            p2[1] = coilxyz[1][i * 3];
+            p2[2] = coilxyz[2][i * 3];
+
+            real p1p2[3];
+            p1p2[0] = p2[0] - p1[0];
+            p1p2[1] = p2[1] - p1[1];
+            p1p2[2] = p2[2] - p1[2];
+
+            real p1x[3];
+            p1x[0] = x[ix] - p1[0];
+            p1x[1] = y[ix] - p1[1];
+            p1x[2] = z[ix] - p1[2];
+
+            real p2x[3];
+            p2x[0] = x[ix] - p2[0];
+            p2x[1] = y[ix] - p2[1];
+            p2x[2] = z[ix] - p2[2];
+
+            real d1 = math_norm(p1x);
+            real d2 = math_norm(p2x);
+            real l = math_norm(p1p2);
+            real s = math_dot(p1p2, p1x) / math_dot(p1p2, p1p2);
+            real h = s * l;
+
+            real xs[3];
+            xs[0] = p1[0] + s * p1p2[0] - x[ix];
+            xs[1] = p1[1] + s * p1p2[1] - y[ix];
+            xs[2] = p1[2] + s * p1p2[2] - z[ix];
+
+            real d = math_norm(xs);
+
+            real bnorm =
+                CONST_MU0 / (4 * CONST_PI) * ((l - h) / d2 + h / d1) / d;
+
+            real bdir[3];
+            math_cross(p1x, p2x, bdir);
+
+            bxyz[0][ix] += bnorm * bdir[0] / math_norm(bdir);
+            bxyz[1][ix] += bnorm * bdir[1] / math_norm(bdir);
+            bxyz[2][ix] += bnorm * bdir[2] / math_norm(bdir);
+        }
+    }
 }

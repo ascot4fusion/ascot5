@@ -1,38 +1,46 @@
 /**
- * @file libascot.c
- * @brief Library of Ascot5 functions for external use.
+ * Routines for interpolating input data and derived quantities for external
+ * use.
  *
  * Functions in this file allows to evaluate input data and quantities using
- * the same methods as is used in actual simulation.
+ * the same methods as is used in the actual simulation.
  */
+#include "ascot.h"
+#include "consts.h"
+#include "data/atomic.h"
+#include "data/bfield.h"
+#include "data/boozer.h"
+#include "data/efield.h"
+#include "data/mhd.h"
+#include "data/neutral.h"
+#include "data/plasma.h"
+#include "data/rfof.h"
+#include "data/wall.h"
+#include "datatypes.h"
+#include "defines.h"
+#include "parallel.h"
+#include "utils/mathlib.h"
+#include "utils/physlib.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "bfield.h"
-#include "efield.h"
-#include "defines.h"
-#include "atomic.h"
-#include "boozer.h"
-#include "consts.h"
-#include "mathlib.h"
-#include "mhd.h"
-#include "neutral.h"
-#include "physlib.h"
-#include "plasma.h"
-#include "simulate.h"
-#include "wall.h"
 
-/** Store value in output array if the output array is allocated. */
-#define STORE(index, val, ptr)                                                 \
-    if ((ptr))                                                                 \
-    (ptr)[(index)] = (val)
+/**
+ * Store val at index idx in output array arr if the output array is not NULL.
+ */
+#define STORE(idx, val, arr)                                                   \
+    do                                                                         \
+    {                                                                          \
+        if (arr)                                                               \
+            (arr)[(idx)] = (val);                                              \
+    } while (0)
 
 void ascot_interpolate(
-    Bfield *bfield, Efield *efield, Plasma *plasma,
-    Neutral *neutral, Boozer *boozer, Mhd *mhd,
+    Bfield *bfield, Efield *efield, Plasma *plasma, Neutral *neutral,
+    Boozer *boozer, Mhd *mhd,
     // Atomic* atomic,
-    int npnt, int modenumber, real R[npnt], real phi[npnt], real z[npnt],
+    size_t npnt, int modenumber, real R[npnt], real phi[npnt], real z[npnt],
     real t[npnt], real B[3][npnt], real Bjac[9][npnt], real psi[4][npnt],
     real rho[2][npnt], real E[3][npnt], real n[][npnt], real T[2][npnt],
     real n0[][npnt], real T0[][npnt], real theta[4][npnt], real zeta[4][npnt],
@@ -40,15 +48,15 @@ void ascot_interpolate(
     real mhd_e[3][npnt], real mhd_phi[npnt])
 {
     int ONLY_PERTURBATIONS = 1;
-#pragma omp parallel for
-    for (int k = 0; k < npnt; k++)
+    OMP_PARALLEL_CPU_ONLY
+    for (size_t k = 0; k < npnt; k++)
     {
         real Bq[15], psival[4], rhoval[2], Eq[3], ns[MAX_SPECIES],
             Ts[MAX_SPECIES], psithetazeta[12], pert_field[7], mhd_dmhd[10];
         int psi_valid = 0, rho_valid = 0;
         int n_species, isinside;
 
-        if (bfield && !B_field_eval_B_dB(Bq, R[k], phi[k], z[k], t[k], bfield))
+        if (bfield && !Bfield_eval_b_db(Bq, R[k], phi[k], z[k], t[k], bfield))
         {
             STORE(0 * npnt + k, Bq[0], *B);
             STORE(1 * npnt + k, Bq[4], *B);
@@ -64,7 +72,7 @@ void ascot_interpolate(
             STORE(8 * npnt + k, Bq[11], *Bjac);
         }
         if (bfield &&
-            !B_field_eval_psi_dpsi(psival, R[k], phi[k], z[k], t[k], bfield))
+            !Bfield_eval_psi_dpsi(psival, R[k], phi[k], z[k], t[k], bfield))
         {
             psi_valid = 1;
             STORE(0 * npnt + k, psival[0], *psi);
@@ -72,14 +80,14 @@ void ascot_interpolate(
             STORE(2 * npnt + k, psival[2], *psi);
             STORE(3 * npnt + k, psival[3], *psi);
         }
-        if (bfield && psi_valid && !B_field_eval_rho(rhoval, psival[0], bfield))
+        if (bfield && psi_valid && !Bfield_eval_rho(rhoval, psival[0], bfield))
         {
             rho_valid = 1;
             STORE(0 * npnt + k, rhoval[0], *rho);
             STORE(1 * npnt + k, rhoval[1], *rho);
         }
         if (efield && bfield &&
-            !E_field_eval_E(Eq, R[k], phi[k], z[k], t[k], efield, bfield))
+            !Efield_eval_e(Eq, R[k], phi[k], z[k], t[k], efield, bfield))
         {
             STORE(0 * npnt + k, Eq[0], *E);
             STORE(1 * npnt + k, Eq[1], *E);
@@ -87,10 +95,10 @@ void ascot_interpolate(
         }
         if (plasma)
         {
-            n_species = plasma_get_n_species(plasma);
+            n_species = Plasma_get_n_species(plasma);
         }
         if (plasma && rho_valid &&
-            !plasma_eval_densandtemp(
+            !Plasma_eval_densandtemp(
                 ns, Ts, rhoval[0], R[k], phi[k], z[k], t[k], plasma))
         {
             STORE(0 * npnt + k, Ts[0] / CONST_E, *T);
@@ -105,7 +113,7 @@ void ascot_interpolate(
             n_species = neutral_get_n_species(neutral);
         }
         if (neutral && rho_valid &&
-            !neutral_eval_n0(ns, rhoval[0], R[k], phi[k], z[k], t[k], neutral))
+            !Neutral_eval_n0(ns, rhoval[0], R[k], phi[k], z[k], t[k], neutral))
         {
             for (int i = 0; i < n_species; i++)
             {
@@ -113,7 +121,7 @@ void ascot_interpolate(
             }
         }
         if (neutral && rho_valid &&
-            !neutral_eval_t0(Ts, rhoval[0], R[k], phi[k], z[k], t[k], neutral))
+            !Neutral_eval_T0(Ts, rhoval[0], R[k], phi[k], z[k], t[k], neutral))
         {
             for (int i = 0; i < n_species; i++)
             {
@@ -137,7 +145,7 @@ void ascot_interpolate(
             }
         }
         if (mhd && boozer && bfield &&
-            !mhd_eval(
+            !Mhd_eval(
                 mhd_dmhd, R[k], phi[k], z[k], t[k], modenumber, boozer, mhd,
                 bfield))
         {
@@ -153,7 +161,7 @@ void ascot_interpolate(
             STORE(4 * npnt + k, mhd_dmhd[6], *Phi);
         }
         if (mhd && boozer && bfield &&
-            !mhd_perturbations(
+            !Mhd_perturbations(
                 pert_field, R[k], phi[k], z[k], t[k], ONLY_PERTURBATIONS,
                 modenumber, boozer, mhd, bfield))
         {
@@ -168,52 +176,34 @@ void ascot_interpolate(
     }
 }
 
-void ascot_eval_axis(
-    Bfield *bfield, int nphi, real phi[nphi], real axisRz[2][nphi])
-{
-
-#pragma omp parallel for
-    for (int k = 0; k < nphi; k++)
-    {
-        real axisrz[2];
-        if (!B_field_get_axis_rz(axisrz, bfield, phi[k]))
-        {
-            axisRz[0][k] = axisrz[0];
-            axisRz[1][k] = axisrz[1];
-        }
-    }
-}
-
 void ascot_eval_collcoefs(
-    Bfield *bfield, Plasma *plasma, int npnt, real ma, real qa,
-    real R[npnt], real phi[npnt], real z[npnt], real t[npnt], real va[npnt],
+    Bfield *bfield, Plasma *plasma, size_t npnt, real ma, real qa, real R[npnt],
+    real phi[npnt], real z[npnt], real t[npnt], real va[npnt],
     real coefficients[6][npnt], real clog[][npnt], real mu[3][npnt])
 {
-
-    /* Evaluate plasma parameters */
-    int n_species = plasma_get_n_species(plasma);
-    const real *qb = plasma_get_species_charge(plasma);
-    const real *mb = plasma_get_species_mass(plasma);
+    int n_species = Plasma_get_n_species(plasma);
+    const real *qb = Plasma_get_species_charge(plasma);
+    const real *mb = Plasma_get_species_mass(plasma);
     mccc_data mccc;
 
-#pragma omp parallel for
-    for (int k = 0; k < npnt; k++)
+    OMP_PARALLEL_CPU_ONLY
+    for (size_t k = 0; k < npnt; k++)
     {
         real mufun[3] = {0., 0., 0.};
 
         /* Evaluate rho as it is needed to evaluate plasma parameters */
         real psi, rho[2];
-        if (B_field_eval_psi(&psi, R[k], phi[k], z[k], t[k], bfield))
+        if (Bfield_eval_psi(&psi, R[k], phi[k], z[k], t[k], bfield))
         {
             continue;
         }
-        if (B_field_eval_rho(rho, psi, bfield))
+        if (Bfield_eval_rho(rho, psi, bfield))
         {
             continue;
         }
 
         real nb[MAX_SPECIES], Tb[MAX_SPECIES];
-        if (plasma_eval_densandtemp(
+        if (Plasma_eval_densandtemp(
                 nb, Tb, rho[0], R[k], phi[k], z[k], t[k], plasma))
         {
             continue;
@@ -232,9 +222,9 @@ void ascot_eval_collcoefs(
             real x = va[k] / vb;
             mccc_coefs_mufun(mufun, x, &mccc);
 
-            (void) clog;
-            (void) mu;
-            (void) coefficients;
+            (void)clog;
+            (void)mu;
+            (void)coefficients;
 
             /* Coefficients */
             /*
@@ -255,8 +245,8 @@ void ascot_eval_collcoefs(
             real nub = mccc_coefs_nu(va[k], Dperpb);
             */
 
-            //int idx = ib * npnt + k;
-            // STORE(n_species*npnt*0 + ib*npnt + k, mufun[0], **mu);
+            // int idx = ib * npnt + k;
+            //  STORE(n_species*npnt*0 + ib*npnt + k, mufun[0], **mu);
             /**
             if(mu0 != NULL)    { mu0[idx]    = mufun[0];   }
             if(mu1 != NULL)    { mu1[idx]    = mufun[1];   }
@@ -275,9 +265,9 @@ void ascot_eval_collcoefs(
 }
 
 /**
- * @brief Evaluate atomic reaction rate coefficient.
+ * Evaluate atomic reaction rate coefficient.
  *
- * @param sim_data initialized simulation data struct
+ * @param Simulation initialized simulation data struct
  * @param Neval number of evaluation points in (R, phi, z, t).
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
@@ -291,40 +281,40 @@ void ascot_eval_collcoefs(
  * @param reac_type reaction type
  * @param ratecoeff output array where evaluated values are stored [1/m^2].
  */
-void libascot_eval_ratecoeff(
-    Bfield *bfield, Plasma *plasma, Neutral *neutral,
-    Atomic *atomic, int Neval, real *R, real *phi, real *z, real *t,
-    int Nv, real *va, int Aa, int Za, real ma, int reac_type, real *ratecoeff)
+void ascot_eval_ratecoeff(
+    Bfield *bfield, Plasma *plasma, Neutral *neutral, Atomic *atomic, int Neval,
+    real *R, real *phi, real *z, real *t, int Nv, real *va, int Aa, int Za,
+    real ma, int reac_type, real *ratecoeff)
 {
 
-    const int *Zb = plasma_get_species_znum(plasma);
-    const int *Ab = plasma_get_species_anum(plasma);
-    int nion = plasma_get_n_species(plasma) - 1;
+    const int *Zb = Plasma_get_species_znum(plasma);
+    const int *Ab = Plasma_get_species_anum(plasma);
+    int nion = Plasma_get_n_species(plasma) - 1;
     int nspec = neutral_get_n_species(neutral);
 
-#pragma omp parallel for
+    OMP_PARALLEL_CPU_ONLY
     for (int k = 0; k < Neval; k++)
     {
         real psi[1], rho[2], T0[1], n[MAX_SPECIES], T[MAX_SPECIES],
             n0[MAX_SPECIES];
-        if (B_field_eval_psi(psi, R[k], phi[k], z[k], t[k], bfield))
+        if (Bfield_eval_psi(psi, R[k], phi[k], z[k], t[k], bfield))
         {
             continue;
         }
-        if (B_field_eval_rho(rho, psi[0], bfield))
+        if (Bfield_eval_rho(rho, psi[0], bfield))
         {
             continue;
         }
-        if (plasma_eval_densandtemp(
+        if (Plasma_eval_densandtemp(
                 n, T, rho[0], R[k], phi[k], z[k], t[k], plasma))
         {
             continue;
         }
-        if (neutral_eval_t0(T0, rho[0], R[k], phi[k], z[k], t[k], neutral))
+        if (Neutral_eval_T0(T0, rho[0], R[k], phi[k], z[k], t[k], neutral))
         {
             continue;
         }
-        if (neutral_eval_n0(n0, rho[0], R[k], phi[k], z[k], t[k], neutral))
+        if (Neutral_eval_n0(n0, rho[0], R[k], phi[k], z[k], t[k], neutral))
         {
             continue;
         }
@@ -359,7 +349,7 @@ void libascot_eval_ratecoeff(
 }
 
 /**
- * @brief Evaluate ICRH electric field and the resonance condition.
+ * Evaluate ICRH electric field and the resonance condition.
  *
  * The evaluated electric field consists of left-hand (+) and right-hand (-)
  * circularly polarized components. The circularly polarised components are
@@ -402,10 +392,10 @@ void libascot_eval_ratecoeff(
  * @param res_cond value of the resonance condition where zero is the resonance
  *        [1].
  */
-void libascot_eval_rfof(
-    Bfield *bfield, Rfof *rfof, int Neval, real *R, real *phi,
-    real *z, real *t, real mass, real q, real vpar, real *Eplus_real,
-    real *Eminus_real, real *Eplus_imag, real *Eminus_imag, real *res_cond)
+void ascot_eval_rfof(
+    Bfield *bfield, Rfof *rfof, int Neval, real *R, real *phi, real *z, real *t,
+    real mass, real q, real vpar, real *Eplus_real, real *Eminus_real,
+    real *Eplus_imag, real *Eminus_imag, real *res_cond)
 {
 
 #pragma omp parallel
@@ -423,7 +413,7 @@ void libascot_eval_rfof(
         for (int k = 0; k < Neval; k++)
         {
             real B[3];
-            if (B_field_eval_B(B, R[k], phi[k], z[k], t[k], bfield))
+            if (Bfield_eval_b(B, R[k], phi[k], z[k], t[k], bfield))
             {
                 continue;
             }
@@ -447,3 +437,5 @@ void libascot_eval_rfof(
         rfof_tear_down(&rfof_mrk);
     }
 }
+
+#undef STORE

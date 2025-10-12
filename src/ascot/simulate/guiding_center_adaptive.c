@@ -9,72 +9,75 @@
 #include <math.h>
 #include "defines.h"
 #include "endcond.h"
-#include "mathlib.h"
+#include "utils/mathlib.h"
 #include "consts.h"
-#include "physlib.h"
+#include "utils/physlib.h"
 #include "simulate.h"
-#include "particle.h"
-#include "wall.h"
-#include "diag.h"
-#include "bfield.h"
-#include "efield.h"
-#include "boozer.h"
-#include "mhd.h"
-#include "rfof.h"
-#include "plasma.h"
-#include "orbit_following/orbit_following.h"
-#include "coulomb_collisions/coulomb_collisions.h"
+#include "datatypes.h"
+#include "data/marker.h"
+#include "data/wall.h"
+#include "data/diag.h"
+#include "data/bfield.h"
+#include "data/efield.h"
+#include "data/boozer.h"
+#include "data/mhd.h"
+#include "data/rfof.h"
+#include "data/plasma.h"
+#include "orbit_following.h"
+#include "coulomb_collisions.h"
 
 DECLARE_TARGET_SIMD_UNIFORM(sim)
-real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
+real simulate_gc_adaptive_inidt(Simulation* sim, MarkerGuidingCenter* p, int i);
 
 #define DUMMY_TIMESTEP_VAL 1.0 /**< Dummy time step value */
 
 
-void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
+void simulate_gc_adaptive(Simulation* sim, MarkerQueue* pq, size_t vector_size) {
 
     /* Wiener arrays needed for the adaptive time step */
     mccc_wienarr wienarr[NSIMD];
 
     /* Current time step, suggestions for the next time step and next time
      * step                                                                */
-    real hin[NSIMD]       __memalign__;
-    real hout_orb[NSIMD]  __memalign__;
-    real hout_col[NSIMD]  __memalign__;
-    real hout_rfof[NSIMD] __memalign__;
-    real hnext[NSIMD]     __memalign__;
+    real* hin = (real*) malloc(vector_size*sizeof(real));
+    real* hout_orb = (real*) malloc(vector_size*sizeof(real));
+    real* hout_col = (real*) malloc(vector_size*sizeof(real));
+    real* hout_rfof = (real*) malloc(vector_size*sizeof(real));
+    real* hnext = (real*) malloc(vector_size*sizeof(real));
 
     /* Flag indicateing whether a new marker was initialized */
-    int cycle[NSIMD]     __memalign__;
+    size_t* cycle = (size_t*) malloc(vector_size*sizeof(size_t));
 
-    real tol_col = sim->params->adaptive_tolerance_collisions;
-    real tol_orb = sim->params->adaptive_tolerance_orbit;
+    real tol_col = sim->options->adaptive_tolerance_collisions;
+    real tol_orb = sim->options->adaptive_tolerance_orbit;
 
     real cputime, cputime_last; // Global cpu time: recent and previous record
 
-    particle_simd_gc p;  // This array holds current states
-    particle_simd_gc p0; // This array stores previous states
+    MarkerGuidingCenter p;  // This array holds current states
+    MarkerGuidingCenter p0; // This array stores previous states
+    marker_allocate_gc(&p, vector_size);
+    marker_allocate_gc(&p0, vector_size);
 
     rfof_marker rfof_mrk; // RFOF specific data
 
-    for(int i=0; i< NSIMD; i++) {
-        p.id[i] = -1;
+    for(size_t i=0; i< vector_size; i++) {
+        p.id[i] = 0;
         p.running[i] = 0;
     }
 
     /* Initialize running particles */
-    int n_running = particle_cycle_gc(pq, &p, &sim->bfield, cycle);
+    size_t n_running = marker_cycle_gc(pq, &p, &sim->bfield, cycle);
 
-    if(sim->params->enable_icrh) {
+    if(sim->options->enable_icrh) {
         rfof_set_up(&rfof_mrk, &sim->rfof);
     }
 
     #pragma omp simd
-    for(int i = 0; i < NSIMD; i++) {
+    for(size_t i = 0; i < vector_size; i++) {
         if(cycle[i] > 0) {
             /* Determine initial time-step */
             hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
-            if(sim->params->enable_coulomb_collisions) {
+            if(sim->options->enable_coulomb_collisions) {
                 /* Allocate array storing the Wiener processes */
                 mccc_wiener_initialize(&(wienarr[i]), p.time[i]);
             }
@@ -95,12 +98,13 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
      * - Check for end condition(s)
      * - Update diagnostics
      */
+    real* rnd = (real*) malloc(5*vector_size*sizeof(real));
     while(n_running > 0) {
 
         /* Store marker states in case time step will be rejected */
         #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
-            particle_copy_gc(&p, i, &p0, i);
+        for(size_t i = 0; i < vector_size; i++) {
+            marker_copy_gc(&p, i, &p0, i);
             hout_orb[i]  = DUMMY_TIMESTEP_VAL;
             hout_col[i]  = DUMMY_TIMESTEP_VAL;
             hout_rfof[i] = DUMMY_TIMESTEP_VAL;
@@ -111,30 +115,30 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
         /* Set time-step negative if tracing backwards in time */
         #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
-            if(sim->params->reverse_time) {
+        for(size_t i = 0; i < vector_size; i++) {
+            if(sim->options->reverse_time) {
                 hin[i]  = -hin[i];
             }
         }
 
         /* Cash-Karp method for orbit-following */
-        if(sim->params->enable_orbit_following) {
-            if(sim->params->enable_mhd) {
+        if(sim->options->enable_orbit_following) {
+            if(sim->options->enable_mhd) {
                 step_gc_cashkarp_mhd(
                     &p, hin, hout_orb, tol_orb, &sim->bfield, &sim->efield,
-                    sim->boozer, &sim->mhd, sim->params->enable_aldforce);
+                    sim->boozer, &sim->mhd, sim->options->enable_aldforce);
             }
             else {
                 step_gc_cashkarp(
                     &p, hin, hout_orb, tol_orb, &sim->bfield, &sim->efield,
-                    sim->params->enable_aldforce);
+                    sim->options->enable_aldforce);
             }
             /* Check whether time step was rejected */
             #pragma omp simd
-            for(int i = 0; i < NSIMD; i++) {
+            for(size_t i = 0; i < vector_size; i++) {
                 /* Switch sign of the time-step again if it was reverted earlier
                 */
-                if(sim->params->reverse_time) {
+                if(sim->options->reverse_time) {
                     hout_orb[i] = -hout_orb[i];
                     hin[i]      = -hin[i];
                 }
@@ -146,15 +150,14 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         }
 
         /* Milstein method for collisions */
-        if(sim->params->enable_coulomb_collisions) {
-            real rnd[5*NSIMD];
-            random_normal_simd(sim->random_data, 5*NSIMD, rnd);
+        if(sim->options->enable_coulomb_collisions) {
+            random_normal_simd(sim->random_data, 5*vector_size, rnd);
             mccc_gc_milstein(&p, hin, hout_col, tol_col, wienarr, &sim->bfield,
                              &sim->plasma, sim->mccc_data, rnd);
 
             /* Check whether time step was rejected */
             #pragma omp simd
-            for(int i = 0; i < NSIMD; i++) {
+            for(size_t i = 0; i < vector_size; i++) {
                 if(p.running[i] && hout_col[i] < 0){
                     p.running[i] = 0;
                     hnext[i] =  hout_col[i];
@@ -163,13 +166,13 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         }
 
         /* Performs the ICRH kick if in resonance. */
-        if(sim->params->enable_icrh) {
+        if(sim->options->enable_icrh) {
             rfof_resonance_check_and_kick_gc(
                 &p, hin, hout_rfof, &rfof_mrk, &sim->rfof, &sim->bfield);
 
             /* Check whether time step was rejected */
             #pragma omp simd
-            for(int i = 0; i < NSIMD; i++) {
+            for(size_t i = 0; i < vector_size; i++) {
                 if(p.running[i] && hout_rfof[i] < 0){
                     p.running[i] = 0;
                     hnext[i] =  hout_rfof[i];
@@ -181,12 +184,12 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
         cputime = A5_WTIME;
         #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
+        for(size_t i = 0; i < vector_size; i++) {
             if(p.id[i] > 0 && !p.err[i]) {
                 /* Check other time step limitations */
                 if(hnext[i] > 0) {
-                    real dphi = fabs(p0.phi[i]-p.phi[i]) / sim->params->adaptive_max_dphi;
-                    real drho = fabs(p0.rho[i]-p.rho[i]) / sim->params->adaptive_max_drho;
+                    real dphi = fabs(p0.phi[i]-p.phi[i]) / sim->options->adaptive_max_dphi;
+                    real drho = fabs(p0.rho[i]-p.rho[i]) / sim->options->adaptive_max_drho;
 
                     if(dphi > 1 && dphi > drho) {
                         hnext[i] = -hin[i]/dphi;
@@ -198,7 +201,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
                 /* Retrieve marker states in case time step was rejected      */
                 if(hnext[i] < 0) {
-                    particle_copy_gc(&p0, i, &p, i);
+                    marker_copy_gc(&p0, i, &p, i);
                 }
                 if(p.running[i]){
 
@@ -211,7 +214,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                         hin[i] = -hnext[i];
                     }
                     else {
-                        p.time[i] += ( 1.0 - 2.0 * ( sim->params->reverse_time > 0 ) )
+                        p.time[i] += ( 1.0 - 2.0 * ( sim->options->reverse_time > 0 ) )
                             * hin[i];
                         p.mileage[i] += hin[i];
                         /* In case the time step was succesful, pick the
@@ -236,7 +239,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                             hnext[i] = hin[i];
                         }
                         hin[i] = hnext[i];
-                        if(sim->params->enable_coulomb_collisions) {
+                        if(sim->options->enable_coulomb_collisions) {
                             /* Clear wiener processes */
                             mccc_wiener_clean(&(wienarr[i]), p.time[i]);
                         }
@@ -252,21 +255,21 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         endcond_check_gc(&p, &p0, sim);
 
         /* Update diagnostics */
-        diag_update_gc(sim->diagnostics, sim->params, &sim->bfield, &p, &p0);
+        diag_update_gc(sim->diagnostics, sim->options, &sim->bfield, &p, &p0);
 
         /* Update number of running particles */
-        n_running = particle_cycle_gc(pq, &p, &sim->bfield, cycle);
+        n_running = marker_cycle_gc(pq, &p, &sim->bfield, cycle);
 
         /* Determine simulation time-step for new particles */
         #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
+        for(size_t i = 0; i < vector_size; i++) {
             if(cycle[i] > 0) {
                 hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
-                if(sim->params->enable_coulomb_collisions) {
+                if(sim->options->enable_coulomb_collisions) {
                     /* Re-allocate array storing the Wiener processes */
                     mccc_wiener_initialize(&(wienarr[i]), p.time[i]);
                 }
-                if(sim->params->enable_icrh) {
+                if(sim->options->enable_icrh) {
                     /* Reset icrh (rfof) resonance memory matrix. */
                     rfof_clear_history(&rfof_mrk, i);
                 }
@@ -275,9 +278,16 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     }
 
     /* All markers simulated! */
+    free(hin);
+    free(hout_orb);
+    free(hout_col);
+    free(hout_rfof);
+    free(hnext);
+    free(cycle);
+    free(rnd);
 
     /* Deallocate rfof structs */
-    if(sim->params->enable_icrh) {
+    if(sim->options->enable_icrh) {
         rfof_tear_down(&rfof_mrk);
     }
 }
@@ -294,17 +304,17 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
  *
  * @return Calculated time step
  */
-real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
+real simulate_gc_adaptive_inidt(Simulation* sim, MarkerGuidingCenter* p, int i) {
     /* Just use some large value if no physics are defined */
     real h = DUMMY_TIMESTEP_VAL;
 
     /* Value defined directly by user */
-    if(sim->params->use_explicit_fixedstep) {
-        h =  sim->params->explicit_fixedstep;
+    if(sim->options->use_explicit_fixedstep) {
+        h =  sim->options->explicit_fixedstep;
     }
     else {
         /* Value calculated from gyrotime */
-        if(sim->params->enable_orbit_following) {
+        if(sim->options->enable_orbit_following) {
             real Bnorm = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
             real gyrotime = CONST_2PI /
                 phys_gyrofreq_ppar(p->mass[i], p->charge[i], p->mu[i],
@@ -315,7 +325,7 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
         }
 
         /* Value calculated from collision frequency */
-        if(sim->params->enable_coulomb_collisions) {
+        if(sim->options->enable_coulomb_collisions) {
             real nu = 1;
             /*mccc_collfreq_gc(p, &sim->B_data, &sim->plasma_data,
                 sim->coldata, &nu, i); */
