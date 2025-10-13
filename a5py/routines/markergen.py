@@ -135,10 +135,9 @@ class MarkerGenerator():
             mrk["phi"] = randomize(markerdist.abscissa_edges("phi"), ic2)
             mrk["z"]   = randomize(markerdist.abscissa_edges("z"),   ic3)
         elif set(['rho', 'theta', 'phi']).issubset(markerdist.abscissae):
-            rhos       = randomize(markerdist.abscissa_edges("rho"),   ic1)
-            thetas     = randomize(markerdist.abscissa_edges("theta"), ic2)
-            mrk["phi"] = randomize(markerdist.abscissa_edges("phi"),   ic3)
-
+            mrk["phi"] = randomize(markerdist.abscissa_edges("phi"),   ic1)
+            rhos       = randomize(markerdist.abscissa_edges("rho"),   ic2)
+            thetas     = randomize(markerdist.abscissa_edges("theta"), ic3)
             mrk["r"], mrk["z"] = self._ascot.input_rhotheta2rz(rhos, thetas, \
                                         mrk["phi"], 0*unyt.s)
         else:
