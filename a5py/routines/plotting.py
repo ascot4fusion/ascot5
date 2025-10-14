@@ -1488,7 +1488,7 @@ def add_phi_lines(wallmesh,
                          reset_camera=False,
                          )
         labels = plotter.add_point_labels([[x_axis[i], y_axis[i], 0.05]],
-                                          [f"phi = {phi_lines[i].to("deg").to_value():.0f}°"],
+                                          [f"phi = {phi_lines[i].to('deg').to_value():.0f}°"],
                                           point_size=10,
                                           font_size=22,
                                           text_color="green",
