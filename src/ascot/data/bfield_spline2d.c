@@ -8,13 +8,13 @@
 #include "utils/mathlib.h"
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 int BfieldSpline2D_init(
     BfieldSpline2D *bfield, size_t nr, size_t nz, real rlim[2], real zlim[2],
     real axisrz[2], real psilimits[2], real psi[nr * nz], real br[nr * nz],
     real bz[nr * nz], real bphi[nr * nz])
 {
-
     int err = 0;
     bfield->axisrz[0] = axisrz[0];
     bfield->axisrz[1] = axisrz[1];

@@ -1,6 +1,6 @@
 /**
- * @file simulate_fo_fixed.c
- * @brief Simulate particles using fixed time-step
+ * Simulate gyro-orbit or neutral particles using fixed time-step (see
+ * simulate.h).
  */
 #include "defines.h"
 #include "atomic_reactions.h"

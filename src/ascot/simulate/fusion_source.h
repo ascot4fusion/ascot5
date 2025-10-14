@@ -5,12 +5,12 @@
 #ifndef FUSION_SOURCE_H
 #define FUSION_SOURCE_H
 
-#include "defines.h"
-#include "utils/boschhale.h"
 #include "consts.h"
 #include "data/diag.h"
-#include "utils/random.h"
 #include "datatypes.h"
+#include "defines.h"
+#include "utils/boschhale.h"
+#include "utils/random.h"
 #include <math.h>
 
 /**
@@ -21,8 +21,6 @@ typedef enum
     PPARPPERP,
     EKINXI
 } mom_space_basis;
-
-
 
 /**
  * Compute momenta of reaction products.

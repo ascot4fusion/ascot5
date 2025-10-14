@@ -9,7 +9,7 @@ import numpy as np
 from numpy.ctypeslib import ndpointer
 
 from a5py import utils
-from a5py.libascot import LIBASCOT, DataStruct, interp1D_data, init_fun
+from a5py.libascot import LIBASCOT, DataStruct, Spline1D, init_fun
 from a5py.exceptions import AscotMeltdownError
 from a5py.data.access import InputVariant, Leaf, TreeMixin
 
@@ -20,7 +20,7 @@ class Struct(DataStruct):
 
     _fields_ = [
         ('reff', ctypes.c_double),
-        ('dv', interp1D_data),
+        ('dv', Spline1D),
         ]
 
 

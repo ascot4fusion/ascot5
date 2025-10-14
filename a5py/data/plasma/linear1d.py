@@ -20,23 +20,23 @@ class Struct(DataStruct):
     """Python wrapper for the struct in plasma_1D.h."""
 
     _fields_ = [
-        ("nrho", ctypes.c_int32),
-        ("nspecies", ctypes.c_int32),
+        ("nrho", ctypes.c_size_t),
+        ("nspecies", ctypes.c_size_t),
         ("anum", ctypes.POINTER(ctypes.c_int32)),
         ("znum", ctypes.POINTER(ctypes.c_int32)),
         ("mass", ctypes.POINTER(ctypes.c_double)),
         ("charge", ctypes.POINTER(ctypes.c_double)),
         ("rho", ctypes.POINTER(ctypes.c_double)),
-        ("temp", ctypes.POINTER(ctypes.c_double)),
-        ("dens", ctypes.POINTER(ctypes.c_double)),
         ("vtor", ctypes.POINTER(ctypes.c_double)),
+        ("temperature", ctypes.POINTER(ctypes.c_double)),
+        ("density", ctypes.POINTER(ctypes.c_double)),
         ]
 
 
 init_fun(
     "PlasmaLinear1D_init",
     ctypes.POINTER(Struct),
-    *(2*[ctypes.c_int32]),
+    *(2*[ctypes.c_size_t]),
     *(2*[ndpointer(ctypes.c_int32)]),
     *(8*[ndpointer(ctypes.c_double)]),
     restype=ctypes.c_int32,
@@ -106,7 +106,7 @@ class PlasmaLinear1D(InputVariant):
         """Density for each ion species."""
         if self._cdata is not None:
             data = self._cdata.readonly_carray(
-                "dens", (self.nion, self.nrho), "m**(-3)",
+                "density", (self.nion, self.nrho), "m**(-3)",
                 )
             return data.T[:,1:]
         assert self._file is not None
@@ -116,7 +116,7 @@ class PlasmaLinear1D(InputVariant):
     def Ti(self) -> unyt.unyt_array:
         """Ion temperature."""
         if self._cdata is not None:
-            data = self._cdata.readonly_carray("temp", (self.nrho, 2), "J")
+            data = self._cdata.readonly_carray("temperature", (self.nrho, 2), "J")
             return data[:,0].to("eV")
         assert self._file is not None
         return self._file.read("Ti")
@@ -126,7 +126,7 @@ class PlasmaLinear1D(InputVariant):
         """Electron density."""
         if self._cdata is not None:
             data = self._cdata.readonly_carray(
-                "dens", (self.nion, self.nrho), "m**(-3)",
+                "density", (self.nion, self.nrho), "m**(-3)",
                 )
             return data.T[:,0]
         assert self._file is not None
@@ -137,7 +137,7 @@ class PlasmaLinear1D(InputVariant):
         """Electron temperature."""
         if self._cdata is not None:
             nrho = self.rhogrid.size
-            data = self._cdata.readonly_carray("temp", (nrho, 2), "J")
+            data = self._cdata.readonly_carray("temperature", (nrho, 2), "J")
             return data[:,1].to("eV")
         assert self._file is not None
         return self._file.read("Te")

@@ -2,21 +2,21 @@
  * Implements atomic.h.
  */
 #include "atomic_reactions.h"
-#include "defines.h"
-#include "data/atomic.h"
 #include "consts.h"
-#include "utils/mathlib.h"
-#include "data/neutral.h"
+#include "data/atomic.h"
 #include "data/marker.h"
-#include "utils/physlib.h"
+#include "data/neutral.h"
 #include "data/plasma.h"
+#include "defines.h"
+#include "utils/mathlib.h"
+#include "utils/physlib.h"
 #include "utils/random.h"
 #include <stdio.h>
 #include <stdlib.h>
 
 #ifndef GPU
 #pragma omp declare target
-DECLARE_TARGET_SIMD_UNIFORM(asigma)
+DECLARE_TARGET_SIMD_UNIFORM(atomic)
 #endif
 err_t atomic_rates(
     real *rate_eff_ion, real *rate_eff_rec, int z_1, int a_1, real m_1,
@@ -44,7 +44,7 @@ void atomic_go(
     (void)r_data;
 
     int N_pls_spec = Plasma_get_n_species(plasma);
-    int N_ntl_spec = neutral_get_n_species(neutral);
+    int N_ntl_spec = Neutral_get_n_species(neutral);
     const real *m_2 = Plasma_get_species_mass(plasma);
     const int *z_2 = Plasma_get_species_znum(plasma);
     const int *a_2 = Plasma_get_species_anum(plasma);
@@ -68,7 +68,7 @@ void atomic_go(
             real n_2[MAX_SPECIES], T_2[MAX_SPECIES];
             if (!errflag)
             {
-                errflag = Plasma_eval_densandtemp(
+                errflag = Plasma_eval_nT(
                     n_2, T_2, p->rho[i], p->r[i], p->phi[i], p->z[i],
                     p->time[i], plasma);
             }
@@ -77,13 +77,13 @@ void atomic_go(
             real n_0[MAX_SPECIES], T_0[MAX_SPECIES];
             if (!errflag)
             {
-                errflag = Neutral_eval_n0(
+                errflag = Neutral_eval_density(
                     n_0, p->rho[i], p->r[i], p->phi[i], p->z[i], p->time[i],
                     neutral);
             }
             if (!errflag)
             {
-                errflag = Neutral_eval_T0(
+                errflag = Neutral_eval_temperature(
                     T_0, p->rho[i], p->r[i], p->phi[i], p->z[i], p->time[i],
                     neutral);
             }
@@ -171,7 +171,7 @@ err_t atomic_rates(
     if (q == 1)
     {
         /* Only CX is implemented */
-        err = asigma_eval_cx(
+        err = Atomic_eval_cx(
             &coeff, z_1, a_1, E, m_1, N_ntl_spec, z_2, a_2, T_0[0], n_0,
             atomic);
         *rate_eff_rec += coeff;
@@ -179,7 +179,7 @@ err_t atomic_rates(
     else if (q == 0)
     {
         /* Only BMS is implemented */
-        err = asigma_eval_bms(
+        err = Atomic_eval_bms(
             &coeff, z_1, a_1, E, m_1, (N_pls_spec - 1), z_2, a_2, T[0], &n[1],
             atomic);
         *rate_eff_ion += coeff * n[0];
@@ -187,7 +187,8 @@ err_t atomic_rates(
     else
     {
         /* q > 1 not yet implemented */
-        err = error_raise(ERR_ATOMIC_EVALUATION, __LINE__, EF_ATOMIC);
+        err = ERROR_CHECK(
+            err, 1, ERR_PRECHECK_FAILED, SIMULATE_ATOMIC_REACTIONS_C);
     }
 
     return err;

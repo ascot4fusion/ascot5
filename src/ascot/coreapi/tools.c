@@ -2,27 +2,29 @@
 #include "data/bfield.h"
 #include "defines.h"
 #include "parallel.h"
+#include <math.h>
 
-
-size_t ascot_sizeof_real(void) {
-    return sizeof(real);
-}
+size_t ascot_sizeof_real(void) { return sizeof(real); }
 
 void ascot_map_rhotheta_to_rz(
-    Bfield *bfield, size_t npnt, size_t maxiter, real tol, real t, real rho[npnt],
-    real theta[npnt], real phi[npnt], real rz[2][npnt])
+    Bfield *bfield, size_t npnt, size_t maxiter, real tol, real t,
+    real rho[npnt], real theta[npnt], real phi[npnt], real rz[2][npnt])
 {
     (void)t;
     OMP_PARALLEL_CPU_ONLY
     for (size_t j = 0; j < npnt; j++)
     {
-        real axisrz[2], rho_drho[4];
+        real axisrz[2], psi_dpsi[4], rho_drho[4];
         if (Bfield_eval_axis_rz(axisrz, bfield, phi[j]))
         {
             continue;
         }
-        if (Bfield_eval_rho_drho(
-                rho_drho, axisrz[0], phi[j], axisrz[1], bfield))
+        if (Bfield_eval_psi_dpsi(
+                psi_dpsi, axisrz[0], phi[j], axisrz[1], t, bfield))
+        {
+            continue;
+        }
+        if (Bfield_eval_rho_drho(rho_drho, psi_dpsi, bfield))
         {
             continue;
         }
@@ -46,7 +48,13 @@ void ascot_map_rhotheta_to_rz(
                 b = c;
                 continue;
             }
-            if (Bfield_eval_rho_drho(rho_drho, rj, phi[j], zj, bfield))
+            if (Bfield_eval_psi_dpsi(
+                psi_dpsi, axisrz[0], phi[j], axisrz[1], t, bfield))
+            {
+                b = c;
+                continue;
+            }
+            if (Bfield_eval_rho_drho(rho_drho, psi_dpsi, bfield))
             {
                 b = c;
                 continue;
@@ -68,7 +76,6 @@ void ascot_map_rhotheta_to_rz(
         }
     }
 }
-
 
 void ascot_find_psi_on_axis_2d(
     Bfield *bfield, size_t maxiter, size_t ascent, real step, real tol,
@@ -142,10 +149,9 @@ void ascot_find_psi_on_axis_3d(
         {
             break;
         }
-        nextrzphi[0] = rzphi[0] - step * psidpsi[1]; // R
-        nextrzphi[1] = rzphi[1] - step * psidpsi[3]; // z
-        nextrzphi[2] =
-            rzphi[2] - step / rzphi[0] * psidpsi[2]; // phi
+        nextrzphi[0] = rzphi[0] - step * psidpsi[1];            // R
+        nextrzphi[1] = rzphi[1] - step * psidpsi[3];            // z
+        nextrzphi[2] = rzphi[2] - step / rzphi[0] * psidpsi[2]; // phi
 
         /* Check that phi remained inside the sector. If not, use the value on
            the sector boundary. */

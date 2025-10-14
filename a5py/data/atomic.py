@@ -8,7 +8,7 @@ import numpy as np
 
 from a5py import utils
 from a5py.libascot import (
-    LIBASCOT, DataStruct, interp1D_data, interp2D_data, interp3D_data, init_fun,
+    LIBASCOT, DataStruct, Spline1D, Spline2D, Spline3D, init_fun,
     )
 from a5py.exceptions import AscotMeltdownError
 from a5py.data.access import InputVariant, Leaf, TreeMixin
@@ -25,9 +25,9 @@ class Struct(DataStruct):
         ('z_2', ctypes.POINTER(ctypes.c_int32)),
         ('a_2', ctypes.POINTER(ctypes.c_int32)),
         ('reac_type', ctypes.POINTER(ctypes.c_int32)),
-        ('sigma', ctypes.POINTER(interp1D_data)),
-        ('sigmav', ctypes.POINTER(interp2D_data)),
-        ('BMSsigmav', ctypes.POINTER(interp3D_data)),
+        ('sigma', ctypes.POINTER(Spline1D)),
+        ('sigmav', ctypes.POINTER(Spline2D)),
+        ('BMSsigmav', ctypes.POINTER(Spline3D)),
         ]
 
 

@@ -17,7 +17,6 @@
 typedef struct
 {
     size_t nrz;     /**< Number of separatrix points.                         */
-    real psilim[2]; /**< Minimum psi in other fields.                         */
     real *rlim;     /**< Separatrix R coordinates [m].                        */
     real *zlim;     /**< Separatrix z coordinates [m].                        */
 

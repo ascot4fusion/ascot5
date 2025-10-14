@@ -35,7 +35,7 @@ void Plasma_offload(Plasma *plasma)
     }
 }
 
-err_t Plasma_eval_temp(
+err_t Plasma_eval_temperature(
     real temperature[1], real rho, real r, real phi, real z, real t,
     size_t i_species, Plasma *plasma)
 {
@@ -47,25 +47,20 @@ err_t Plasma_eval_temp(
     switch (plasma->type)
     {
     case PLASMA_LINEAR1D:
-        err = PlasmaLinear1D_eval_temp(
+        err = PlasmaLinear1D_eval_temperature(
             temperature, rho, i_species, plasma->linear1d);
         break;
     case PLASMA_DYNAMIC1D:
-        err = PlasmaDynamic1D_eval_temp(
+        err = PlasmaDynamic1D_eval_temperature(
             temperature, rho, t, i_species, plasma->dynamic1d);
         break;
     }
-    if (err)
-    {
-        /* In case of error, return some reasonable value to avoid further
-           complications */
-        temp[0] = 1e20;
-    }
+    temperature[0] = err ? 1e20 : temperature[0];
 
     return err;
 }
 
-err_t Plasma_eval_dens(
+err_t Plasma_eval_density(
     real density[1], real rho, real r, real phi, real z, real t,
     size_t i_species, Plasma *plasma)
 {
@@ -77,58 +72,45 @@ err_t Plasma_eval_dens(
     switch (plasma->type)
     {
     case PLASMA_LINEAR1D:
-        err =
-            PlasmaLinear1D_eval_dens(density, rho, i_species, plasma->linear1d);
+        err = PlasmaLinear1D_eval_density(
+            density, rho, i_species, plasma->linear1d);
         break;
     case PLASMA_DYNAMIC1D:
-        err = PlasmaDynamic1D_eval_dens(
+        err = PlasmaDynamic1D_eval_density(
             density, rho, t, i_species, plasma->dynamic1d);
         break;
     }
 
-    if (err)
-    {
-        /* In case of error, return some reasonable value to avoid further
-           complications */
-        dens[0] = 1e20;
-    }
+    density[0] = err ? 1e20 : density[0];
     return err;
 }
 
-err_t Plasma_eval_densandtemp(
-    real *dens, real *temp, real rho, real r, real phi, real z, real t,
-    Plasma *plasma)
+err_t Plasma_eval_nT(
+    real *density, real *temperature, real rho, real r, real phi, real z,
+    real t, Plasma *plasma)
 {
-    err_t err = 0;
-
     /* Unused until 3D plasma is implemented */
     (void)r;
     (void)phi;
     (void)z;
-
+    err_t err = 0;
     switch (plasma->type)
     {
     case PLASMA_LINEAR1D:
         err =
-            PlasmaLinear1D_eval_densandtemp(dens, temp, rho, plasma->linear1d);
+            PlasmaLinear1D_eval_nT(density, temperature, rho, plasma->linear1d);
         break;
     case PLASMA_DYNAMIC1D:
-        err = PlasmaDynamic1D_eval_densandtemp(
-            dens, temp, rho, t, plasma->dynamic1d);
+        err = PlasmaDynamic1D_eval_nT(
+            density, temperature, rho, t, plasma->dynamic1d);
         break;
     }
 
-    if (err)
+    for (size_t i = 0; i < MAX_SPECIES; i++)
     {
-        /* In case of error, return some reasonable values to avoid further
-           complications */
-        for (int i = 0; i < MAX_SPECIES; i++)
-        {
-            dens[i] = 1e20;
-            temp[i] = 1e3;
-        }
+        density[i] = err ? 1e20 : density[i];
+        temperature[i] = err ? 1.6e-16 : temperature[i];
     }
-
     return err;
 }
 
@@ -149,7 +131,7 @@ err_t Plasma_eval_flow(
         break;
     }
 
-        vflow[0] = err ? 0.0 : vflow[0];
+    vflow[0] = err ? 0.0 : vflow[0];
     return err;
 }
 

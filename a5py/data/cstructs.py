@@ -8,7 +8,7 @@ ENUM = ctypes.c_uint32
 """Python wrapper for an enum defined in C."""
 
 
-class linint1D_data(ctypes.Structure):
+class Linear1D(ctypes.Structure):
     """Python wrapper for the 1D linear-interpolator defined in linint.h."""
 
     #_pack_ = 1
@@ -22,7 +22,7 @@ class linint1D_data(ctypes.Structure):
         ]
 
 
-class linint3D_data(ctypes.Structure):
+class Linear3D(ctypes.Structure):
     """Python wrapper for the 3D linear-interpolator defined in linint.h."""
 
     #_pack_ = 1
@@ -46,7 +46,7 @@ class linint3D_data(ctypes.Structure):
         ]
 
 
-class interp1D_data(ctypes.Structure):
+class Spline1D(ctypes.Structure):
     """Python wrapper for the 1D spline-interpolator defined in interp.h."""
 
     #_pack_ = 1
@@ -60,7 +60,7 @@ class interp1D_data(ctypes.Structure):
         ]
 
 
-class interp2D_data(ctypes.Structure):
+class Spline2D(ctypes.Structure):
     """Python wrapper for the 2D spline-interpolator defined in interp.h."""
 
     #_pack_ = 1
@@ -79,7 +79,7 @@ class interp2D_data(ctypes.Structure):
         ]
 
 
-class interp3D_data(ctypes.Structure):
+class Spline3D(ctypes.Structure):
     """Python wrapper for the 3D spline-interpolator defined in interp.h."""
 
     #_pack_ = 1

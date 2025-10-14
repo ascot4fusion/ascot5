@@ -54,7 +54,7 @@
  * @param bphi Tabulated values of phi component of B [T].
  *        Layout: (Ri, phij, zk) = [k*nr*nphi + j*nr + i] (C order).
  *
- * @return  Zero if the initialization succeeded.
+ * @return Zero if the initialization succeeded.
  */
 int BfieldStellarator_init(
     BfieldStellarator *bfield, size_t pnr, size_t pnz, size_t pnphi, size_t bnr,

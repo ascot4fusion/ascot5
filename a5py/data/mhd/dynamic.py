@@ -8,7 +8,7 @@ import unyt
 import numpy as np
 
 from a5py import utils
-from a5py.libascot import LIBASCOT, DataStruct, interp2D_data, init_fun
+from a5py.libascot import LIBASCOT, DataStruct, Spline2D, init_fun
 from a5py.exceptions import AscotMeltdownError
 from a5py.data.access import InputVariant, Leaf, TreeMixin
 
@@ -27,8 +27,8 @@ class Struct(DataStruct):
         ('amplitude_nm', ctypes.POINTER(ctypes.c_double)),
         ('omega_nm', ctypes.POINTER(ctypes.c_double)),
         ('phase_nm', ctypes.POINTER(ctypes.c_double)),
-        ('alpha_nm', ctypes.POINTER(interp2D_data)),
-        ('phi_nm', ctypes.POINTER(interp2D_data)),
+        ('alpha_nm', ctypes.POINTER(Spline2D)),
+        ('phi_nm', ctypes.POINTER(Spline2D)),
         ]
 
 

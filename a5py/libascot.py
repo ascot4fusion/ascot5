@@ -2,6 +2,7 @@
 
 Importing this module will load libascot.so.
 """
+
 from __future__ import annotations
 
 import ctypes
@@ -25,7 +26,8 @@ def init_fun(name, *argtypes, restype=None):
 def input_category(cls):
     # derive mapping from _fields_
     mapping = {
-        f[0]: i for i, f in enumerate(cls._fields_)
+        f[0]: i
+        for i, f in enumerate(cls._fields_)
         if f[0] != "type"  # exclude the type field
     }
     variant_name = {
@@ -61,8 +63,7 @@ def _find_libascot():
     """
     global LIBASCOT
     err = 0
-    libpath = (str(Path(__file__).absolute().parent.parent)
-               + "/build/libascot.so")
+    libpath = str(Path(__file__).absolute().parent.parent) + "/build/libascot.so"
     try:
         LIBASCOT = ctypes.CDLL(libpath)
     except OSError as error:
@@ -98,25 +99,24 @@ def _find_libascot():
 _find_libascot()
 
 
-#pylint: disable=too-few-public-methods
+# pylint: disable=too-few-public-methods
 class DataStruct(ctypes.Structure):
     """Expands the ctypes.Structure class to better support data storage."""
 
     @overload
-    def readonly_carray(
-            self, name: str, shape: tuple[int, ...]
-            ) -> np.ndarray: ...
+    def readonly_carray(self, name: str, shape: tuple[int, ...]) -> np.ndarray: ...
 
     @overload
     def readonly_carray(
-            self, name: str, shape: tuple[int, ...], units: str
-            ) -> unyt.unyt_array: ...
+        self, name: str, shape: tuple[int, ...], units: str
+    ) -> unyt.unyt_array: ...
 
     def readonly_carray(
-            self, name: str,
-            shape: tuple[int, ...],
-            units: Optional[str]=None,
-            ) -> np.ndarray | unyt.unyt_array:
+        self,
+        name: str,
+        shape: tuple[int, ...],
+        units: Optional[str] = None,
+    ) -> np.ndarray | unyt.unyt_array:
         """Return a read-only view on the array within the struct.
 
         Parameters
@@ -135,19 +135,18 @@ class DataStruct(ctypes.Structure):
         """
         # as_array only reads data based on shape but doesn't actually reshape
         # the data, which is why we need to reshape explicitly
-        arr = np.ctypeslib.as_array(
-            getattr(self, name), shape=shape
-            ).reshape(shape)
+        arr = np.ctypeslib.as_array(getattr(self, name), shape=shape).reshape(shape)
         arr.flags.writeable = False
         if units is not None:
             return unyt.unyt_array(arr, units)
         return arr
 
     def readonly_grid(
-            self, coordinate: str,
-            units: str,
-            member: Optional[str]=None,
-            ) -> unyt.unyt_array:
+        self,
+        coordinate: str,
+        units: str,
+        member: Optional[str] = None,
+    ) -> unyt.unyt_array:
         """Return a read-only view on the grid within the struct.
 
         The uniform grids in libascot.so are stored as ``(x_min, x_max, n_x)``.
@@ -178,7 +177,7 @@ class DataStruct(ctypes.Structure):
         grid.flags.writeable = False
         return unyt.unyt_array(grid, units)
 
-    def readonly_interp(self, name: str, units: str, idx: int=None):
+    def readonly_interp(self, name: str, units: str, idx: int = None):
         """Read the tabulated values from interpolation struct.
 
         This does not read all values but only those that correspond to the
@@ -205,114 +204,113 @@ class DataStruct(ctypes.Structure):
         else:
             attribute = getattr(self, name)[idx]
         match attribute:
-            case linint1D_data():
+            case Linear1D():
                 shape, skip = (attribute.n_x,), 1
-            case linint3D_data():
+            case Linear3D():
                 shape, skip = (attribute.n_x, attribute.n_y, attribute.n_z), 1
-            case interp1D_data():
+            case Spline1D():
                 shape, skip = (attribute.n_x,), 2
-            case interp2D_data():
+            case Spline2D():
                 shape, skip = (attribute.n_x, attribute.n_y), 4
-            case interp3D_data():
+            case Spline3D():
                 shape, skip = (attribute.n_x, attribute.n_y, attribute.n_z), 8
             case _:
                 raise ValueError(
                     f"Unknown interpolation struct type: {type(attribute)} "
                     "Please submit an issue to the ASCOT5 GitHub repository."
-                    )
-
+                )
         arr = np.ctypeslib.as_array(
-            attribute.c[:np.multiply.reduce(shape)*skip:skip]
-            )
+            attribute.c[: np.multiply.reduce(shape) * skip : skip]
+        )
         arr.flags.writeable = False
         return unyt.unyt_array(arr.reshape(shape), units)
 
 
-class linint1D_data(ctypes.Structure):
-    """Python wrapper for the 1D linear-interpolator defined in linint.h."""
+class Linear1D(ctypes.Structure):
+    """Python wrapper for the 1D linear-interpolator defined in interp.h."""
 
     _fields_ = [
-        ('n_x', ctypes.c_int32),
-        ('bc_x', ctypes.c_int32),
-        ('x_min', ctypes.c_double),
-        ('x_max', ctypes.c_double),
-        ('x_grid', ctypes.c_double),
-        ('c', ctypes.POINTER(ctypes.c_double)),
-        ]
+        ("n_x", ctypes.c_size_t),
+        ("bc_x", ctypes.c_int32),
+        ("x_min", ctypes.c_double),
+        ("x_max", ctypes.c_double),
+        ("x_grid", ctypes.c_double),
+        ("c", ctypes.POINTER(ctypes.c_double)),
+    ]
 
 
-class linint3D_data(ctypes.Structure):
-    """Python wrapper for the 3D linear-interpolator defined in linint.h."""
+class Linear3D(ctypes.Structure):
+    """Python wrapper for the 3D linear-interpolator defined in interp.h."""
 
     _fields_ = [
-        ('n_x', ctypes.c_int32),
-        ('n_y', ctypes.c_int32),
-        ('n_z', ctypes.c_int32),
-        ('bc_x', ctypes.c_int32),
-        ('bc_y', ctypes.c_int32),
-        ('bc_z', ctypes.c_int32),
-        ('x_min', ctypes.c_double),
-        ('x_max', ctypes.c_double),
-        ('x_grid', ctypes.c_double),
-        ('y_min', ctypes.c_double),
-        ('y_max', ctypes.c_double),
-        ('y_grid', ctypes.c_double),
-        ('z_min', ctypes.c_double),
-        ('z_max', ctypes.c_double),
-        ('z_grid', ctypes.c_double),
-        ('c', ctypes.POINTER(ctypes.c_double)),
-        ]
+        ("n_x", ctypes.c_size_t),
+        ("n_y", ctypes.c_size_t),
+        ("n_z", ctypes.c_size_t),
+        ("bc_x", ctypes.c_int32),
+        ("bc_y", ctypes.c_int32),
+        ("bc_z", ctypes.c_int32),
+        ("x_min", ctypes.c_double),
+        ("x_max", ctypes.c_double),
+        ("x_grid", ctypes.c_double),
+        ("y_min", ctypes.c_double),
+        ("y_max", ctypes.c_double),
+        ("y_grid", ctypes.c_double),
+        ("z_min", ctypes.c_double),
+        ("z_max", ctypes.c_double),
+        ("z_grid", ctypes.c_double),
+        ("c", ctypes.POINTER(ctypes.c_double)),
+    ]
 
 
-class interp1D_data(ctypes.Structure):
+class Spline1D(ctypes.Structure):
     """Python wrapper for the 1D spline-interpolator defined in interp.h."""
 
     _fields_ = [
-        ('n_x', ctypes.c_int32),
-        ('bc_x', ctypes.c_int32),
-        ('x_min', ctypes.c_double),
-        ('x_max', ctypes.c_double),
-        ('x_grid', ctypes.c_double),
-        ('c', ctypes.POINTER(ctypes.c_double)),
-        ]
+        ("n_x", ctypes.c_size_t),
+        ("bc_x", ctypes.c_int32),
+        ("x_min", ctypes.c_double),
+        ("x_max", ctypes.c_double),
+        ("x_grid", ctypes.c_double),
+        ("c", ctypes.POINTER(ctypes.c_double)),
+    ]
 
 
-class interp2D_data(ctypes.Structure):
+class Spline2D(ctypes.Structure):
     """Python wrapper for the 2D spline-interpolator defined in interp.h."""
 
     _fields_ = [
-        ('n_x', ctypes.c_int32),
-        ('n_y', ctypes.c_int32),
-        ('bc_x', ctypes.c_int32),
-        ('bc_y', ctypes.c_int32),
-        ('x_min', ctypes.c_double),
-        ('x_max', ctypes.c_double),
-        ('x_grid', ctypes.c_double),
-        ('y_min', ctypes.c_double),
-        ('y_max', ctypes.c_double),
-        ('y_grid', ctypes.c_double),
-        ('c', ctypes.POINTER(ctypes.c_double)),
-        ]
+        ("n_x", ctypes.c_size_t),
+        ("n_y", ctypes.c_size_t),
+        ("bc_x", ctypes.c_int32),
+        ("bc_y", ctypes.c_int32),
+        ("x_min", ctypes.c_double),
+        ("x_max", ctypes.c_double),
+        ("x_grid", ctypes.c_double),
+        ("y_min", ctypes.c_double),
+        ("y_max", ctypes.c_double),
+        ("y_grid", ctypes.c_double),
+        ("c", ctypes.POINTER(ctypes.c_double)),
+    ]
 
 
-class interp3D_data(ctypes.Structure):
+class Spline3D(ctypes.Structure):
     """Python wrapper for the 3D spline-interpolator defined in interp.h."""
 
     _fields_ = [
-        ('n_x', ctypes.c_int32),
-        ('n_y', ctypes.c_int32),
-        ('n_z', ctypes.c_int32),
-        ('bc_x', ctypes.c_int32),
-        ('bc_y', ctypes.c_int32),
-        ('bc_z', ctypes.c_int32),
-        ('x_min', ctypes.c_double),
-        ('x_max', ctypes.c_double),
-        ('x_grid', ctypes.c_double),
-        ('y_min', ctypes.c_double),
-        ('y_max', ctypes.c_double),
-        ('y_grid', ctypes.c_double),
-        ('z_min', ctypes.c_double),
-        ('z_max', ctypes.c_double),
-        ('z_grid', ctypes.c_double),
-        ('c', ctypes.POINTER(ctypes.c_double)),
-        ]
+        ("n_x", ctypes.c_size_t),
+        ("n_y", ctypes.c_size_t),
+        ("n_z", ctypes.c_size_t),
+        ("bc_x", ctypes.c_int32),
+        ("bc_y", ctypes.c_int32),
+        ("bc_z", ctypes.c_int32),
+        ("x_min", ctypes.c_double),
+        ("x_max", ctypes.c_double),
+        ("x_grid", ctypes.c_double),
+        ("y_min", ctypes.c_double),
+        ("y_max", ctypes.c_double),
+        ("y_grid", ctypes.c_double),
+        ("z_min", ctypes.c_double),
+        ("z_max", ctypes.c_double),
+        ("z_grid", ctypes.c_double),
+        ("c", ctypes.POINTER(ctypes.c_double)),
+    ]

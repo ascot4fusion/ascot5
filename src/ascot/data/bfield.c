@@ -9,6 +9,7 @@
 #include "bfield_stellarator.h"
 #include "defines.h"
 #include <stdio.h>
+#include <math.h>
 
 void Bfield_free(Bfield *bfield)
 {
@@ -166,7 +167,7 @@ err_t Bfield_eval_rho(real rho[2], real psi, Bfield *bfield)
 err_t Bfield_eval_rho_drho(real rho_drho[4], real psi_dpsi[4], Bfield *bfield)
 {
     err_t err = 0;
-    real psi0, delta;
+    real psi0 = 0, delta = 1;
     switch (bfield->type)
     {
     case BFIELD_CARTESIAN:

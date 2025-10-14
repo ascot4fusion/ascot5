@@ -50,25 +50,6 @@ typedef enum ENDCOND
 typedef unsigned int endcond_t;
 
 /**
- * Enum type for indicating type of error.
- *
- * Assign unique value for each type just in case. Do not use zero! Please use
- * running numbering and put the latest entry last.
- */
-typedef enum error_type
-{
-    ERR_INPUT_EVALUATION = 1,  /**< Failure when evaluating input data      */
-    ERR_UNKNOWN_INPUT = 2,     /**< Input data type not regonizable         */
-    ERR_INPUT_UNPHYSICAL = 3,  /**< Input evaluation result is unphysical   */
-    ERR_MARKER_UNPHYSICAL = 4, /**< Some of marker fields are unphysical    */
-    ERR_INVALID_TIMESTEP = 5,  /**< Time step is zero, NaN or too small     */
-    ERR_WIENER_ARRAY = 6,      /**< Wiener array is full or inconsistent    */
-    ERR_INTEGRATION = 7,       /**< Integrating marker coordinates yield
-                                    unphysical results                      */
-    ERR_ATOMIC_EVALUATION = 8  /**< Failure when evaluating atomic reaction */
-} error_type;
-
-/**
  * Available reactions.
  */
 typedef enum Reaction

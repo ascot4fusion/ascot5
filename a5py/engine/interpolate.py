@@ -35,13 +35,6 @@ init_fun(
     )
 
 init_fun(
-    "ascot_eval_axis",
-    ctypes.POINTER(Bfield),
-    ctypes.c_int32,
-    *([PTR_DOUBLE]*2)
-    )
-
-init_fun(
     "ascot_map_rhotheta_to_rz",
     ctypes.POINTER(Bfield),
     ctypes.c_int32,

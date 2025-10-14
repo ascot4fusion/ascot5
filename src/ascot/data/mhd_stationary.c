@@ -10,24 +10,6 @@
 #include "utils/mathlib.h"
 #include <stdlib.h>
 
-/**
- * @brief Load MHD data
- *
- * @param data pointer to the data struct
- * @param nmode number of modes
- * @param nrho number of rho grid points
- * @param rhomin minimum rho value in the grid
- * @param rhomax maximum rho value in the grid
- * @param moden toroidal mode numbers
- * @param modem poloidal mode numbers
- * @param amplitude_nm amplitude of each mode
- * @param omega_nm toroidal frequency of each mode [rad/s]
- * @param phase_nm phase of each mode [rad]
- * @param alpha magnetic perturbation eigenfunctions
- * @param phi electric perturbation eigenfunctions
- *
- * @return zero if initialization succeeded.
- */
 int MhdStationary_init(
     MhdStationary *mhd, size_t n, size_t nrho, int nmode[n], int mmode[n],
     real rholim[2], real amplitude[n], real omega[n], real phase[n],
@@ -55,16 +37,12 @@ int MhdStationary_init(
             &mhd->alpha[i], &alpha[i * nrho], nrho, NATURALBC, rholim[0],
             rholim[1]);
         err += interp1Dcomp_setup(
-            &mhd->phi[i], &phi[i * nrho], nrho, NATURALBC, rholim[0], rholim[1]);
+            &mhd->phi[i], &phi[i * nrho], nrho, NATURALBC, rholim[0],
+            rholim[1]);
     }
     return err;
 }
 
-/**
- * @brief Free allocated resources
- *
- * @param data pointer to the data struct
- */
 void MhdStationary_free(MhdStationary *mhd)
 {
     for (size_t i = 0; i < mhd->n; i++)
@@ -81,229 +59,92 @@ void MhdStationary_free(MhdStationary *mhd)
     free(mhd->amplitude);
 }
 
-/**
- * @brief Offload data to the accelerator.
- *
- * @param data pointer to the data struct
- */
 void MhdStationary_offload(MhdStationary *mhd) { SUPPRESS_UNUSED_WARNING(mhd); }
 
-/**
- * @brief Evaluate the needed quantities from MHD mode for orbit following
- *
- * The quantities to be evaluated are alpha, phi, grad alpha, grad phi,
- * partial t alpha, partial t phi
- *
- * The values are stored in the given array as:
- * - mhd_dmhd[0] = alpha
- * - mhd_dmhd[1] = dalpha/dt
- * - mhd_dmhd[2] = grad alpha, r component
- * - mhd_dmhd[3] = grad alpha, phi component
- * - mhd_dmhd[4] = grad alpha, z component
- * - mhd_dmhd[5] = phi
- * - mhd_dmhd[6] = dphi/dt
- * - mhd_dmhd[7] = grad phi, r component
- * - mhd_dmhd[8] = grad phi, phi component
- * - mhd_dmhd[9] = grad phi, z component
- *
- * @param mhd_dmhd
- * @param r R coordinate [m]
- * @param phi phi coordinate [rad]
- * @param z z coordinate [m]
- * @param t time coordinate [s]
- * @param includemode mode number to include or MHD_INCLUDE_ALL
- * @param boozer pointer to boozer data
- * @param mhd pointer to mhd data
- * @param bfield pointer to magnetic field data
- *
- * @return Non-zero err_t value if evaluation failed, zero otherwise
- */
-err_t MhdStationary_eval(
-    real mhd_dmhd[10], real r, real phi, real z, real t, size_t includemode,
-    Boozer *boozer, MhdStationary *mhd, Bfield *bfield)
+err_t MhdStationary_eval_alpha_Phi(
+    real alpha[5], real Phi[5], real r, real phi, real z, real t,
+    size_t include_mode, MhdStationary *mhd, Bfield *bfield, Boozer *boozer)
 {
-
     err_t err = 0;
-
-    real ptz[12];
+    real ptz[12], rho[2];
     int isinside;
-    if (!err)
-    {
-        err =
-            boozer_eval_psithetazeta(ptz, &isinside, r, phi, z, bfield, boozer);
-    }
-    real rho[2];
-    if (!err && isinside)
-    {
-        err = Bfield_eval_rho(rho, ptz[0], bfield);
-    }
+    err = Boozer_map_coordinates(ptz, &isinside, r, phi, z, t, boozer, bfield);
+    err = err ? err : Bfield_eval_rho(rho, ptz[0], bfield);
 
-    /* Initialize values */
-    for (int i = 0; i < 10; i++)
+    for (size_t i = 0; i < 5; i++)
     {
-        mhd_dmhd[i] = 0;
+        Phi[i] = 0;
+        alpha[i] = 0;
     }
 
     int interperr = 0;
     for (size_t i = 0; i < mhd->n; i++)
     {
-        if (includemode != MHD_INCLUDE_ALL && includemode != i)
+        if (include_mode != MHD_INCLUDE_ALL && include_mode != i)
         {
             continue;
         }
-        /* Get interpolated values */
+
         real a_da[3], phi_dphi[3];
         interperr += interp1Dcomp_eval_df(a_da, &(mhd->alpha[i]), rho[0]);
         interperr += interp1Dcomp_eval_df(phi_dphi, &(mhd->phi[i]), rho[0]);
 
-        /* The interpolation returns dx/drho but we require dx/dpsi.
-         * The second order derivatives are not needed anywhere */
+        /* The interpolation returns dx/drho but we require dx/dpsi. The second
+           order derivatives are not needed anywhere */
         a_da[1] *= rho[1];
         phi_dphi[1] *= rho[1];
 
-        /* These are used frequently, so store them in separate variables */
+        /* Frequently used helper variables */
         real mhdarg = mhd->nmode[i] * ptz[8] - mhd->mmode[i] * ptz[4] -
                       mhd->omega[i] * t + mhd->phase[i];
         real sinmhd = sin(mhdarg);
         real cosmhd = cos(mhdarg);
 
-        /* Sum over modes to get alpha, phi */
-        mhd_dmhd[0] += a_da[0] * mhd->amplitude[i] * cosmhd;
-        mhd_dmhd[5] += phi_dphi[0] * mhd->amplitude[i] * cosmhd;
+        alpha[0] += a_da[0] * mhd->amplitude[i] * cosmhd;
+        Phi[0] += phi_dphi[0] * mhd->amplitude[i] * cosmhd;
 
         /* Time derivatives */
-        mhd_dmhd[1] +=
-            a_da[0] * mhd->amplitude[i] * mhd->omega[i] * sinmhd;
-        mhd_dmhd[6] +=
-            phi_dphi[0] * mhd->amplitude[i] * mhd->omega[i] * sinmhd;
+        alpha[1] += a_da[0] * mhd->amplitude[i] * mhd->omega[i] * sinmhd;
+        Phi[1] += phi_dphi[0] * mhd->amplitude[i] * mhd->omega[i] * sinmhd;
 
         /* R component of gradients */
-        mhd_dmhd[2] +=
+        alpha[2] +=
             mhd->amplitude[i] * (a_da[1] * ptz[1] * cosmhd +
-                                    a_da[0] * mhd->mmode[i] * ptz[5] * sinmhd -
-                                    a_da[0] * mhd->nmode[i] * ptz[9] * sinmhd);
-        mhd_dmhd[7] += mhd->amplitude[i] *
-                       (phi_dphi[1] * ptz[1] * cosmhd +
-                        phi_dphi[0] * mhd->mmode[i] * ptz[5] * sinmhd -
-                        phi_dphi[0] * mhd->nmode[i] * ptz[9] * sinmhd);
+                                 a_da[0] * mhd->mmode[i] * ptz[5] * sinmhd -
+                                 a_da[0] * mhd->nmode[i] * ptz[9] * sinmhd);
+        Phi[2] +=
+            mhd->amplitude[i] * (phi_dphi[1] * ptz[1] * cosmhd +
+                                 phi_dphi[0] * mhd->mmode[i] * ptz[5] * sinmhd -
+                                 phi_dphi[0] * mhd->nmode[i] * ptz[9] * sinmhd);
 
         /* phi component of gradients */
-        mhd_dmhd[3] += (1 / r) * mhd->amplitude[i] *
-                       (a_da[1] * ptz[2] * cosmhd +
-                        a_da[0] * mhd->mmode[i] * ptz[6] * sinmhd -
-                        a_da[0] * mhd->nmode[i] * ptz[10] * sinmhd);
-        mhd_dmhd[8] += (1 / r) * mhd->amplitude[i] *
-                       (phi_dphi[1] * ptz[2] * cosmhd +
-                        phi_dphi[0] * mhd->mmode[i] * ptz[6] * sinmhd -
-                        phi_dphi[0] * mhd->nmode[i] * ptz[10] * sinmhd);
+        alpha[3] += (1 / r) * mhd->amplitude[i] *
+                    (a_da[1] * ptz[2] * cosmhd +
+                     a_da[0] * mhd->mmode[i] * ptz[6] * sinmhd -
+                     a_da[0] * mhd->nmode[i] * ptz[10] * sinmhd);
+        Phi[3] += (1 / r) * mhd->amplitude[i] *
+                  (phi_dphi[1] * ptz[2] * cosmhd +
+                   phi_dphi[0] * mhd->mmode[i] * ptz[6] * sinmhd -
+                   phi_dphi[0] * mhd->nmode[i] * ptz[10] * sinmhd);
 
         /* z component of gradients */
-        mhd_dmhd[4] +=
+        alpha[4] +=
             mhd->amplitude[i] * (a_da[1] * ptz[3] * cosmhd +
-                                    a_da[0] * mhd->mmode[i] * ptz[7] * sinmhd -
-                                    a_da[0] * mhd->nmode[i] * ptz[11] * sinmhd);
-        mhd_dmhd[9] += mhd->amplitude[i] *
-                       (phi_dphi[1] * ptz[3] * cosmhd +
-                        phi_dphi[0] * mhd->mmode[i] * ptz[7] * sinmhd -
-                        phi_dphi[0] * mhd->nmode[i] * ptz[11] * sinmhd);
+                                 a_da[0] * mhd->mmode[i] * ptz[7] * sinmhd -
+                                 a_da[0] * mhd->nmode[i] * ptz[11] * sinmhd);
+        Phi[4] += mhd->amplitude[i] *
+                  (phi_dphi[1] * ptz[3] * cosmhd +
+                   phi_dphi[0] * mhd->mmode[i] * ptz[7] * sinmhd -
+                   phi_dphi[0] * mhd->nmode[i] * ptz[11] * sinmhd);
     }
 
-    /* Omit evaluation if point outside the boozer or mhd grid. */
-    if (!isinside || interperr)
+    for (size_t i = 0; i < 5; i++)
     {
-        for (int i = 0; i < 10; i++)
-        {
-            mhd_dmhd[i] = 0;
-        }
-    }
-    return err;
-}
-
-/**
- * @brief Evaluate perturbed fields Btilde, Etilde and potential Phi explicitly
- *
- * The values are stored in the given array as
- * - pert_field[0] = BtildeR
- * - pert_field[1] = BtildePhi
- * - pert_field[2] = BtildeZ
- * - pert_field[3] = EtildeR
- * - pert_field[4] = EtildePhi
- * - pert_field[5] = EtildeZ
- * - pert_field[6] = Phi
- *
- * Only the perturbation values for the magnetic field are returned if
- * pertonly=1, otherwise, the total perturbed field is returned. This is done to
- * avoid double evaluation of the magnetic field e.g. in field line tracing.
- * For electric field only the perturbation component is returned always.
- *
- * @param pert_field perturbation field components
- * @param r R coordinate [m]
- * @param phi phi coordinate [rad]
- * @param z z coordinate [m]
- * @param t time coordinate [s]
- * @param pertonly flag whether to return the whole field or only perturbation
- * @param includemode mode number to include or MHD_INCLUDE_ALL
- * @param boozer pointer to boozer data
- * @param mhd pointer to mhd data
- * @param bfield pointer to magnetic field data
- *
- * @return Non-zero err_t value if evaluation failed, zero otherwise
- */
-err_t MhdStationary_perturbations(
-    real pert_field[7], real r, real phi, real z, real t, int pertonly,
-    size_t includemode, Boozer *boozer, MhdStationary *mhd, Bfield *bfield)
-{
-    err_t err = 0;
-    real mhd_dmhd[10];
-    if (!err)
-    {
-        err = MhdStationary_eval(
-            mhd_dmhd, r, phi, z, t, includemode, boozer, mhd, bfield);
-    }
-    /*  see example of curl evaluation in step_gc_rk4.c, ydot_gc*/
-    real B_dB[15];
-    if (!err)
-    {
-        err = Bfield_eval_b_db(B_dB, r, phi, z, t, bfield);
+        Phi[i] = isinside ? Phi[i] : 0.0;
+        alpha[i] = isinside ? alpha[i] : 0.0;
     }
 
-    if (!err)
-    {
-        real B[3];
-        B[0] = B_dB[0];
-        B[1] = B_dB[4];
-        B[2] = B_dB[8];
-
-        real curlB[3];
-        curlB[0] = B_dB[10] / r - B_dB[7];
-        curlB[1] = B_dB[3] - B_dB[9];
-        curlB[2] = (B[1] - B_dB[2]) / r + B_dB[5];
-
-        real gradalpha[3];
-        gradalpha[0] = mhd_dmhd[2];
-        gradalpha[1] = mhd_dmhd[3];
-        gradalpha[2] = mhd_dmhd[4];
-
-        real gradalphacrossB[3];
-
-        math_cross(gradalpha, B, gradalphacrossB);
-
-        pert_field[0] = mhd_dmhd[0] * curlB[0] + gradalphacrossB[0];
-        pert_field[1] = mhd_dmhd[0] * curlB[1] + gradalphacrossB[1];
-        pert_field[2] = mhd_dmhd[0] * curlB[2] + gradalphacrossB[2];
-
-        pert_field[3] = -mhd_dmhd[7] - B[0] * mhd_dmhd[1];
-        pert_field[4] = -mhd_dmhd[8] - B[1] * mhd_dmhd[1];
-        pert_field[5] = -mhd_dmhd[9] - B[2] * mhd_dmhd[1];
-        pert_field[6] = mhd_dmhd[5];
-
-        if (!pertonly)
-        {
-            pert_field[0] += B[0];
-            pert_field[1] += B[1];
-            pert_field[2] += B[2];
-        }
-    }
-
+    err = ERROR_CHECK(
+        err, interperr, ERR_INTERPOLATED_OUTSIDE_RANGE, DATA_MHD_STATIONARY_C);
     return err;
 }

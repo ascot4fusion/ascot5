@@ -9,7 +9,7 @@ import numpy as np
 from numpy.ctypeslib import ndpointer
 
 from a5py import utils
-from a5py.libascot import LIBASCOT, DataStruct, interp2D_data, init_fun
+from a5py.libascot import LIBASCOT, DataStruct, Spline2D, init_fun
 from a5py.exceptions import AscotMeltdownError
 from a5py.data.access import InputVariant, Leaf, TreeMixin
 
@@ -42,8 +42,8 @@ class Struct(DataStruct):
         ('rs', ctypes.POINTER(ctypes.c_double)),
         ('zs', ctypes.POINTER(ctypes.c_double)),
         ('nrzs', ctypes.c_int32),
-        ('nu_psitheta', interp2D_data),
-        ('theta_psithetageom', interp2D_data),
+        ('nu_psitheta', Spline2D),
+        ('theta_psithetageom', Spline2D),
         ]
 
 

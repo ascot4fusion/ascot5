@@ -1,17 +1,13 @@
 /**
  * @file neutral.h
- * Neutral interface
+ * Neutral interface.
  *
- * This is an interface through which neutral data is initialized and accessed.
- * Reading e.g. from disk is done elsewhere.
+ * Provides functions and datatypes for getting neutral species information and
+ * for interpolating background neutral density and temperature.
  *
- * To add a new neutral data instance, make sure these functions are implemented
- * and called from this interface, and that neutral.h contains enum type for the
- * new instance.
- *
- * The interface checks which instance given data corresponds to from the
- * "type"-field in neutral_offload_data or neutral_data that is given as an
- * argument, and calls the relevant function for that instance.
+ * The neutral data is closely related to the plasma data because it is assumed
+ * that the species in the neutral data are the same, and in same order, as in
+ * the plasma data.
  */
 #ifndef NEUTRAL_H
 #define NEUTRAL_H
@@ -21,73 +17,73 @@
 #include "parallel.h"
 
 /**
- * @brief Free allocated resources
+ * Free allocated resources.
  *
- * @param data pointer to data struct
+ * @param neutral The struct whose fields are deallocated.
  */
 void Neutral_free(Neutral *neutral);
 
 /**
- * @brief Offload data to the accelerator.
+ * Offload data to the accelerator.
  *
- * @param data pointer to the data struct
+ * @param neutral The struct to offload.
  */
 void Neutral_offload(Neutral *neutral);
 
-/**
- * @brief Evaluate neutral density
- *
- * This function evaluates the neutral density n0 at the given coordinates.
- *
- * This is a SIMD function.
- *
- * @param n0 pointer where neutral density is stored [m^-3]
- * @param rho normalized poloidal flux coordinate
- * @param r R coordinate [m]
- * @param phi phi coordinate [rad]
- * @param z z coordinate [m]
- * @param t time coordinate [s]
- * @param ndata pointer to neutral density data struct
- *
- * @return Non-zero err_t value if evaluation failed, zero otherwise
- */
 DECLARE_TARGET_SIMD_UNIFORM(neutral)
-err_t Neutral_eval_n0(
-    real *n0, real rho, real r, real phi, real z, real t, Neutral *neutral);
+/**
+ * Evaluate density of each neutral species.
+ *
+ * Depending on the implementation, either the normalized poloidal flux
+ * coordinate or the cylindrical coordinate is used in the interpolation.
+ *
+ * The evaluated values are in the same order as ions in the plasma data.
+ *
+ * @param density Evaluated density [m^-3].
+ * @param rho Normalized poloidal flux coordinate of the query point [1].
+ * @param r R coordinate of the query point [m].
+ * @param phi phi coordinate of the query point [rad].
+ * @param z z coordinate of the query point [m].
+ * @param t Time coordinate of the query point [s].
+ * @param neutral The neutral data.
+ *
+ * @return Zero if the evaluation succeeded.
+ */
+err_t Neutral_eval_density(
+    real *density, real rho, real r, real phi, real z, real t,
+    Neutral *neutral);
 
-/**
- * @brief Evaluate neutral temperature
- *
- * This function evaluates the neutral temperature t0 at the given coordinates.
- *
- * This is a SIMD function.
- *
- * @param t0 pointer where neutral temperature is stored [eV]
- * @param rho normalized poloidal flux coordinate
- * @param r R coordinate [m]
- * @param phi phi coordinate [rad]
- * @param z z coordinate [m]
- * @param t time coordinate [s]
- * @param ndata pointer to neutral temperature data struct
- *
- * @return Non-zero err_t value if evaluation failed, zero otherwise
- */
 DECLARE_TARGET_SIMD_UNIFORM(neutral)
-err_t Neutral_eval_T0(
-    real *T0, real rho, real r, real phi, real z, real t, Neutral *neutral);
+/**
+ * Evaluate temperature of each neutral species.
+ *
+ * Depending on the implementation, either the normalized poloidal flux
+ * coordinate or the cylindrical coordinate is used in the interpolation.
+ *
+ * The evaluated values are in the same order as ions in the plasma data.
+ *
+ * @param temperature Evaluated temperature [J].
+ * @param rho Normalized poloidal flux coordinate of the query point [1].
+ * @param r R coordinate of the query point [m].
+ * @param phi phi coordinate of the query point [rad].
+ * @param z z coordinate of the query point [m].
+ * @param t Time coordinate of the query point [s].
+ * @param neutral The neutral data.
+ *
+ * @return Zero if the evaluation succeeded.
+ */
+err_t Neutral_eval_temperature(
+    real *temperature, real rho, real r, real phi, real z, real t,
+    Neutral *neutral);
 
-/**
- * @brief Get the number of neutral species
- *
- * Retrieve the number of how many neutral species the data contains.
- *
- * This is a SIMD function.
- *
- * @param ndata pointer to neutral data struct
- *
- * @return The number of neutral species
- */
 DECLARE_TARGET_SIMD_UNIFORM(neutral)
-int neutral_get_n_species(Neutral *neutral);
+/**
+ * Get the number of neutral species.
+ *
+ * @param neutral The neutral data.
+ *
+ * @return The number of neutral species.
+ */
+size_t Neutral_get_n_species(Neutral *neutral);
 
 #endif

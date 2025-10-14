@@ -240,4 +240,13 @@ void ascot_find_psi_on_axis_3d(
     Bfield *bfield, size_t maxiter, int ascent, real phimin, real phimax,
     real step, real tol, real psi[1], real rzphi[3]);
 
+/**
+ * Return value of the end condition.
+ *
+ * @param name Name of the end condition.
+ *        Note that this is not the name of the ENUM but the more user-friendly
+ *        name used in a5py.
+ */
+int get_endcond(const char *name);
+
 #endif

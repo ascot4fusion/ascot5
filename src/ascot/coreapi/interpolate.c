@@ -52,7 +52,8 @@ void ascot_interpolate(
     for (size_t k = 0; k < npnt; k++)
     {
         real Bq[15], psival[4], rhoval[2], Eq[3], ns[MAX_SPECIES],
-            Ts[MAX_SPECIES], psithetazeta[12], pert_field[7], mhd_dmhd[10];
+            Ts[MAX_SPECIES], psithetazeta[12], epert[3], bpert[3], Phipert[1],
+            alpha_dalpha[5], Phi_dPhi[5];
         int psi_valid = 0, rho_valid = 0;
         int n_species, isinside;
 
@@ -98,7 +99,7 @@ void ascot_interpolate(
             n_species = Plasma_get_n_species(plasma);
         }
         if (plasma && rho_valid &&
-            !Plasma_eval_densandtemp(
+            !Plasma_eval_nT(
                 ns, Ts, rhoval[0], R[k], phi[k], z[k], t[k], plasma))
         {
             STORE(0 * npnt + k, Ts[0] / CONST_E, *T);
@@ -110,10 +111,10 @@ void ascot_interpolate(
         }
         if (neutral)
         {
-            n_species = neutral_get_n_species(neutral);
+            n_species = Neutral_get_n_species(neutral);
         }
         if (neutral && rho_valid &&
-            !Neutral_eval_n0(ns, rhoval[0], R[k], phi[k], z[k], t[k], neutral))
+            !Neutral_eval_density(ns, rhoval[0], R[k], phi[k], z[k], t[k], neutral))
         {
             for (int i = 0; i < n_species; i++)
             {
@@ -121,7 +122,7 @@ void ascot_interpolate(
             }
         }
         if (neutral && rho_valid &&
-            !Neutral_eval_T0(Ts, rhoval[0], R[k], phi[k], z[k], t[k], neutral))
+            !Neutral_eval_temperature(Ts, rhoval[0], R[k], phi[k], z[k], t[k], neutral))
         {
             for (int i = 0; i < n_species; i++)
             {
@@ -129,8 +130,8 @@ void ascot_interpolate(
             }
         }
         if (boozer && bfield &&
-            !boozer_eval_psithetazeta(
-                psithetazeta, &isinside, R[k], phi[k], z[k], bfield, boozer))
+            !Boozer_map_coordinates(
+                psithetazeta, &isinside, R[k], phi[k], z[k], t[k], boozer, bfield))
         {
             if (isinside)
             {
@@ -145,33 +146,33 @@ void ascot_interpolate(
             }
         }
         if (mhd && boozer && bfield &&
-            !Mhd_eval(
-                mhd_dmhd, R[k], phi[k], z[k], t[k], modenumber, boozer, mhd,
-                bfield))
+            !Mhd_eval_alpha_Phi(
+                alpha_dalpha, Phi_dPhi, R[k], phi[k], z[k], t[k], modenumber, mhd,
+                bfield, boozer))
         {
-            STORE(0 * npnt + k, mhd_dmhd[0], *alpha);
-            STORE(1 * npnt + k, mhd_dmhd[2], *alpha);
-            STORE(2 * npnt + k, mhd_dmhd[3], *alpha);
-            STORE(3 * npnt + k, mhd_dmhd[4], *alpha);
-            STORE(4 * npnt + k, mhd_dmhd[1], *alpha);
-            STORE(0 * npnt + k, mhd_dmhd[5], *Phi);
-            STORE(1 * npnt + k, mhd_dmhd[7], *Phi);
-            STORE(2 * npnt + k, mhd_dmhd[8], *Phi);
-            STORE(3 * npnt + k, mhd_dmhd[9], *Phi);
-            STORE(4 * npnt + k, mhd_dmhd[6], *Phi);
+            STORE(0 * npnt + k, alpha_dalpha[0], *alpha);
+            STORE(1 * npnt + k, alpha_dalpha[2], *alpha);
+            STORE(2 * npnt + k, alpha_dalpha[3], *alpha);
+            STORE(3 * npnt + k, alpha_dalpha[4], *alpha);
+            STORE(4 * npnt + k, alpha_dalpha[1], *alpha);
+            STORE(0 * npnt + k, Phi_dPhi[0], *Phi);
+            STORE(1 * npnt + k, Phi_dPhi[2], *Phi);
+            STORE(2 * npnt + k, Phi_dPhi[3], *Phi);
+            STORE(3 * npnt + k, Phi_dPhi[4], *Phi);
+            STORE(4 * npnt + k, Phi_dPhi[2], *Phi);
         }
         if (mhd && boozer && bfield &&
-            !Mhd_perturbations(
-                pert_field, R[k], phi[k], z[k], t[k], ONLY_PERTURBATIONS,
-                modenumber, boozer, mhd, bfield))
+            !Mhd_eval_perturbation(
+                bpert, epert, Phipert, R[k], phi[k], z[k], t[k], ONLY_PERTURBATIONS,
+                modenumber, mhd, bfield, boozer))
         {
-            STORE(0 * npnt + k, pert_field[0], *mhd_b);
-            STORE(1 * npnt + k, pert_field[1], *mhd_b);
-            STORE(2 * npnt + k, pert_field[2], *mhd_b);
-            STORE(0 * npnt + k, pert_field[3], *mhd_e);
-            STORE(1 * npnt + k, pert_field[4], *mhd_e);
-            STORE(2 * npnt + k, pert_field[5], *mhd_e);
-            STORE(0 * npnt + k, pert_field[6], mhd_phi);
+            STORE(0 * npnt + k, bpert[0], *mhd_b);
+            STORE(1 * npnt + k, bpert[1], *mhd_b);
+            STORE(2 * npnt + k, bpert[2], *mhd_b);
+            STORE(0 * npnt + k, epert[0], *mhd_e);
+            STORE(1 * npnt + k, epert[1], *mhd_e);
+            STORE(2 * npnt + k, epert[2], *mhd_e);
+            STORE(0 * npnt + k, Phipert[0], mhd_phi);
         }
     }
 }
@@ -203,7 +204,7 @@ void ascot_eval_collcoefs(
         }
 
         real nb[MAX_SPECIES], Tb[MAX_SPECIES];
-        if (Plasma_eval_densandtemp(
+        if (Plasma_eval_nT(
                 nb, Tb, rho[0], R[k], phi[k], z[k], t[k], plasma))
         {
             continue;
@@ -290,7 +291,7 @@ void ascot_eval_ratecoeff(
     const int *Zb = Plasma_get_species_znum(plasma);
     const int *Ab = Plasma_get_species_anum(plasma);
     int nion = Plasma_get_n_species(plasma) - 1;
-    int nspec = neutral_get_n_species(neutral);
+    int nspec = Neutral_get_n_species(neutral);
 
     OMP_PARALLEL_CPU_ONLY
     for (int k = 0; k < Neval; k++)
@@ -305,16 +306,16 @@ void ascot_eval_ratecoeff(
         {
             continue;
         }
-        if (Plasma_eval_densandtemp(
+        if (Plasma_eval_nT(
                 n, T, rho[0], R[k], phi[k], z[k], t[k], plasma))
         {
             continue;
         }
-        if (Neutral_eval_T0(T0, rho[0], R[k], phi[k], z[k], t[k], neutral))
+        if (Neutral_eval_temperature(T0, rho[0], R[k], phi[k], z[k], t[k], neutral))
         {
             continue;
         }
-        if (Neutral_eval_n0(n0, rho[0], R[k], phi[k], z[k], t[k], neutral))
+        if (Neutral_eval_density(n0, rho[0], R[k], phi[k], z[k], t[k], neutral))
         {
             continue;
         }
@@ -326,7 +327,7 @@ void ascot_eval_ratecoeff(
             switch (reac_type)
             {
             case sigmav_CX:
-                if (asigma_eval_cx(
+                if (Atomic_eval_cx(
                         &val, Za, Aa, E, ma, nspec, Zb, Ab, T0[0], n0, atomic))
                 {
                     continue;
@@ -334,7 +335,7 @@ void ascot_eval_ratecoeff(
                 ratecoeff[Nv * k + j] = val;
                 break;
             case sigmav_BMS:
-                if (asigma_eval_bms(
+                if (Atomic_eval_bms(
                         &val, Za, Aa, E, ma, nion, Zb, Ab, T[0], n, atomic))
                 {
                     continue;

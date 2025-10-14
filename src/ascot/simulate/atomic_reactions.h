@@ -22,6 +22,9 @@
 #include "data/plasma.h"
 #include "utils/random.h"
 
+#ifndef GPU
+#pragma omp declare target
+#endif
 /**
  * @brief Determine if atomic reactions occur during time-step and change charge
  *
@@ -32,9 +35,6 @@
  * @param r_data pointer to random-generator data
  * @param asigmadata pointer to atomic reaction data
  */
-#ifndef GPU
-#pragma omp declare target
-#endif
 void atomic_go(
     MarkerGyroOrbit *p, real *h, Plasma *plasma, Neutral *neutral,
     random_data *r_data, Atomic *atomic);

@@ -28,7 +28,7 @@ void Plasma_offload(Plasma *plasma);
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
 /**
- * Evaluate plasma temperature of a plasma species.
+ * Evaluate temperature of a plasma species.
  *
  * Depending on the implementation, either the normalized poloidal flux
  * coordinate or the cylindrical coordinate is used in the interpolation.
@@ -46,19 +46,17 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
  *
  * @return Zero if the evaluation succeeded.
  */
-err_t Plasma_eval_temp(
+err_t Plasma_eval_temperature(
     real temperature[1], real rho, real r, real phi, real z, real t,
     size_t i_species, Plasma *plasma);
 DECLARE_TARGET_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
 /**
- * @brief Evaluate plasma density
+ * Evaluate density of a plasma species.
  *
- * This function evaluates the density of a plasma species at the given
- * radial coordinate.
- *
- * This is a SIMD function.
+ * Depending on the implementation, either the normalized poloidal flux
+ * coordinate or the cylindrical coordinate is used in the interpolation.
  *
  * @param density Evaluated density [m^-3].
  * @param rho Normalized poloidal flux coordinate of the query point [1].
@@ -73,7 +71,7 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
  *
  * @return Zero if the evaluation succeeded.
  */
-err_t Plasma_eval_dens(
+err_t Plasma_eval_density(
     real density[1], real rho, real r, real phi, real z, real t,
     size_t i_species, Plasma *plasma);
 DECLARE_TARGET_END
@@ -81,6 +79,9 @@ DECLARE_TARGET_END
 GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
 /**
  * Evaluate plasma density and temperature for all species.
+ *
+ * Depending on the implementation, either the normalized poloidal flux
+ * coordinate or the cylindrical coordinate is used in the interpolation.
  *
  * @param density Evaluated density (electrons first followed by ions) [m^-3].
  * @param temperature Evaluated temperature (electrons first followed by ions)
@@ -94,7 +95,7 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
  *
  * @return Zero if the evaluation succeeded.
  */
-err_t Plasma_eval_densandtemp(
+err_t Plasma_eval_nT(
     real *density, real *temperature, real rho, real r, real phi, real z,
     real t, Plasma *plasma);
 DECLARE_TARGET_END
@@ -102,6 +103,11 @@ DECLARE_TARGET_END
 GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
 /**
  * Evaluate plasma flow along the field lines (same for all species).
+ *
+ * Depending on the implementation, either the normalized poloidal flux
+ * coordinate or the cylindrical coordinate is used in the interpolation. In any
+ * case the R coordinate is required to convert the rotation (rad/s) to flow
+ * (m/s).
  *
  * @param vflow Evaluated flow value [m/s].
  * @param rho Normalized poloidal flux coordinate of the query point [1].

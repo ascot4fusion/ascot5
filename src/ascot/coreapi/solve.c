@@ -13,7 +13,6 @@
 #include "data/plasma.h"
 #include "data/rfof.h"
 #include "data/wall.h"
-#include "endcond.h"
 #include "simulate/fusion_source.h"
 #include "simulate/nbi_source.h"
 #include "simulate/simulate.h"
@@ -62,19 +61,19 @@ void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
     GPU_MAP_TO_DEVICE(sim [0:1])
     Bfield_offload(&sim->bfield);
     Efield_offload(&sim->efield);
-    plasma_offload(&sim->plasma);
-    neutral_offload(&sim->neutral);
-    wall_offload(&sim->wall);
-    boozer_offload(sim->boozer);
-    mhd_offload(&sim->mhd);
-    asigma_offload(sim->atomic);
+    Plasma_offload(&sim->plasma);
+    Neutral_offload(&sim->neutral);
+    Wall_offload(&sim->wall);
+    Boozer_offload(sim->boozer);
+    Mhd_offload(&sim->mhd);
+    Atomic_offload(sim->atomic);
     random_init(&sim->random_data, 0);
 
     if (sim->options->disable_first_order_gctransformation)
     {
         gctransform_setorder(0);
     }
-    asigma_extrapolate(sim->options->enable_atomic == 2);
+    Atomic_extrapolate(sim->options->enable_atomic == 2);
 
 #ifdef GPU
     size_t vector_size = nmrk;
@@ -135,10 +134,10 @@ void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
                 /* Check that there was no wall between when moving from
                    gc to fo */
                 real w_coll;
-                size_t tile = Wall_hit_wall(
-                    queue.p[i]->r, queue.p[i]->phi, queue.p[i]->z,
+                size_t tile = Wall_eval_intersection(
+                    &w_coll, queue.p[i]->r, queue.p[i]->phi, queue.p[i]->z,
                     queue.p[i]->rprt, queue.p[i]->phiprt, queue.p[i]->zprt,
-                    &w_coll, &sim->wall);
+                    &sim->wall);
                 if (tile > 0)
                 {
                     queue.p[i]->walltile = tile;

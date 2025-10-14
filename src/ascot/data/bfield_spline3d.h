@@ -45,7 +45,7 @@
  * @param bphi Tabulated values of phi component of B [T].
  *        Layout: (Ri, phij, zk) = [k*nr*nphi + j*nr + i] (C order).
  *
- * @return  Zero if the initialization succeeded.
+ * @return Zero if the initialization succeeded.
  */
 int BfieldSpline3D_init(
     BfieldSpline3D *bfield, size_t pnr, size_t pnz, size_t bnr, size_t bnz,

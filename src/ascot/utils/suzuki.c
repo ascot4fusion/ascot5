@@ -2,8 +2,8 @@
  * Implements suzuki.h.
  */
 #include "suzuki.h"
-#include "defines.h"
 #include "consts.h"
+#include "defines.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,11 +26,11 @@ const real A_lowE[3][10] = {
 
 const int Z_imp[NIMPURITIES] = {2, 6, 6, 4, 8, 7, 3, 5, 26};
 
-const real Zeffmin_imp[NIMPURITIES] = {
-    1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+const real Zeffmin_imp[NIMPURITIES] = {1.0, 1.0, 5.0, 1.0, 1.0,
+                                       1.0, 1.0, 1.0, 1.0};
 
-const real Zeffmax_imp[NIMPURITIES] = {
-    2.1, 5.0, 6.0, 4.0, 5.0, 5.0, 3.0, 5.0, 5.0};
+const real Zeffmax_imp[NIMPURITIES] = {2.1, 5.0, 6.0, 4.0, 5.0,
+                                       5.0, 3.0, 5.0, 5.0};
 
 const real B_highE[NIMPURITIES][12] = {
     {0.231, 0.343, -0.185, -0.162e-1, 0.105, -0.703e-1, 0.531e-1, 0.342e-2,
@@ -110,11 +110,7 @@ err_t suzuki_sigmav(
     }
     real Zeff = Zeff_sum1 / Zeff_sum2;
 
-    if (n_H == 0)
-    {
-        /* No hydrogen species present */
-        err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_SUZUKI);
-    }
+    err = ERROR_CHECK(err, n_H == 0, ERR_PRECHECK_FAILED, UTILS_SUZUKI_C);
 
     /* Select low- or high-energy coefficient tables */
     const real(*A)[10];
@@ -134,7 +130,7 @@ err_t suzuki_sigmav(
         /* Outside energy range, just put some data to avoid segfaults */
         A = A_lowE;
         B = B_lowE;
-        err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_SUZUKI);
+        err = ERROR_CHECK(err, 1, ERR_SUZUKI_INAPPLICABLE, UTILS_SUZUKI_C);
     }
 
     real logE = log(EperAmu);
@@ -170,11 +166,7 @@ err_t suzuki_sigmav(
                 ind_B = j;
             }
         }
-        if (ind_B < 0 && !err)
-        {
-            /* Data for the input species not tabulated */
-            err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_SUZUKI);
-        }
+        err = ERROR_CHECK(err, ind_B < 0, ERR_PRECHECK_FAILED, UTILS_SUZUKI_C);
         sigma_Z +=
             ni[ind_Z[i]] / ne * znum[ind_Z[i]] *
             (B[ind_B][0] + B[ind_B][1] * U + B[ind_B][2] * logN +

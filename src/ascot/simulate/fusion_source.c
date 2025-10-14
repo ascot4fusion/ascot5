@@ -2,16 +2,16 @@
  * Implements fusion_source.h.
  */
 #include "fusion_source.h"
-#include "defines.h"
-#include "utils/boschhale.h"
 #include "consts.h"
 #include "data/hist.h"
 #include "data/plasma.h"
-#include "utils/mathlib.h"
+#include "datatypes.h"
+#include "defines.h"
 #include "parallel.h"
+#include "utils/boschhale.h"
+#include "utils/mathlib.h"
 #include "utils/physlib.h"
 #include "utils/random.h"
-#include "datatypes.h"
 #include <math.h>
 #include <string.h>
 
@@ -229,10 +229,8 @@ void afsi_sample_thermal_2d(
     real z, real time, real rho, real *density, real *ppara, real *pperp)
 {
     real ni, ti;
-    if (Plasma_eval_dens(
-            &ni, rho, r, phi, z, time, ispecies, &sim->plasma) ||
-        Plasma_eval_temp(
-            &ti, rho, r, phi, z, time, ispecies, &sim->plasma))
+    if (Plasma_eval_density(&ni, rho, r, phi, z, time, ispecies, &sim->plasma) ||
+        Plasma_eval_temperature(&ti, rho, r, phi, z, time, ispecies, &sim->plasma))
     {
         *density = 0.0;
         return;

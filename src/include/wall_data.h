@@ -69,9 +69,9 @@ typedef struct
  */
 typedef struct
 {
-    WallContour2D *contour2d; /**< 2D model or NULL if not active         */
-    WallTriangular3D *triangular3d; /**< 3D model or NULL if not active */
-    Wall_type type; /**< Wall model type wrapped by this struct */
+    WallContour2D *contour2d;       /**< 2D contour.                          */
+    WallTriangular3D *triangular3d; /**< 3D triangular mesh.                  */
+    Wall_type type;                 /**< Current wall type.                   */
 } Wall;
 
 #endif

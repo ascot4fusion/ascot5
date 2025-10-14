@@ -812,7 +812,7 @@ inline static void step_gceom(real* ydot, real* y, real mass, real charge,
 DECLARE_TARGET_SIMD
 inline static void step_gceom_mhd(
     real* ydot, real* y, real mass, real charge, real* B_dB, real* E,
-    real* mhd_dmhd, int aldforce) {
+    real alpha[5], real Phi[5], int aldforce) {
 
     real B[3];
     B[0] = B_dB[0];
@@ -836,33 +836,29 @@ inline static void step_gceom_mhd(
     curlB[1] = B_dB[3] - B_dB[9];
     curlB[2] = (B[1] - B_dB[2]) / y[0] + B_dB[5];
 
-    real gradalpha[3];
-    real alpha = mhd_dmhd[0];
-    gradalpha[0] = mhd_dmhd[2];
-    gradalpha[1] = mhd_dmhd[3];
-    gradalpha[2] = mhd_dmhd[4];
+    real* gradalpha = &alpha[2];
 
     real gradalphacrossB[3];
     math_cross(gradalpha, B, gradalphacrossB);
 
     real Bstar[3];
-    Bstar[0] = B[0] + gradalphacrossB[0] + alpha * curlB[0]
+    Bstar[0] = B[0] + gradalphacrossB[0] + alpha[0] * curlB[0]
         + ( y[3] / charge ) * ( curlB[0] / normB
                                 - gradBcrossB[0] / (normB*normB));
-    Bstar[1] = B[1] + gradalphacrossB[1] + alpha * curlB[1]
+    Bstar[1] = B[1] + gradalphacrossB[1] + alpha[0] * curlB[1]
         + ( y[3] / charge ) * ( curlB[1] / normB
                                 - gradBcrossB[0] / (normB*normB));
-    Bstar[2] = B[2] + gradalphacrossB[2] + alpha * curlB[2]
+    Bstar[2] = B[2] + gradalphacrossB[2] + alpha[0] * curlB[2]
         + ( y[3] / charge ) * ( curlB[2] / normB
                                 - gradBcrossB[2] / (normB*normB));
 
     real Estar[3];
-    Estar[0] = E[0] - mhd_dmhd[7] - y[4] * gradB[0] / ( charge * gamma )
-        - B[0] * mhd_dmhd[1];
-    Estar[1] = E[1] - mhd_dmhd[8] - y[4] * gradB[1] / ( charge * gamma )
-        - B[1] * mhd_dmhd[1];
-    Estar[2] = E[2] - mhd_dmhd[9] - y[4] * gradB[2] / ( charge * gamma )
-        - B[2] * mhd_dmhd[1];
+    Estar[0] = E[0] - Phi[2] - y[4] * gradB[0] / ( charge * gamma )
+        - B[0] * alpha[1];
+    Estar[1] = E[1] - Phi[3] - y[4] * gradB[1] / ( charge * gamma )
+        - B[1] * alpha[1];
+    Estar[2] = E[2] - Phi[4] - y[4] * gradB[2] / ( charge * gamma )
+        - B[2] * alpha[1];
 
     real Bhat[3];
     Bhat[0] = B[0] / normB;

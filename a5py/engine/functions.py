@@ -47,19 +47,4 @@ def get_enum_value(enum):
     return ctypes.c_uint.in_dll(LIBASCOT, enum).value
 
 
-#END_CONDITIONS = _load_end_condions()
-END_CONDITIONS = {
-    "reached_time_limit":get_enum_value("endcond_tlim"),
-    "below_min_energy":get_enum_value("endcond_emin"),
-    "thermalized":get_enum_value("endcond_therm"),
-    "hit_wall":get_enum_value("endcond_wall"),
-    "below_rho_limit":get_enum_value("endcond_rhomin"),
-    "above_rho_limit":get_enum_value("endcond_rhomax"),
-    "completed_poloidal_orbits":get_enum_value("endcond_polmax"),
-    "completed_toroidal_orbits":get_enum_value("endcond_tormax"),
-    "simulation_not_finished":get_enum_value("endcond_cpumax"),
-    "finished_gc_in_hybrid_mode":get_enum_value("endcond_hybrid"),
-    "neutralized":get_enum_value("endcond_neutr"),
-    "ionized":get_enum_value("endcond_ioniz"),
-}
-"""Mapping from end condition name to end condition code."""
+END_CONDITIONS = None

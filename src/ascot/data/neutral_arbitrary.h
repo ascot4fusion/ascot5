@@ -1,6 +1,6 @@
 /**
  * @file neutral_arbitrary.h
- * 3D neutral data with trilinear interpolation.
+ * Arbitrary (3D) neutral data interpolated linearly.
  */
 #ifndef NEUTRAL_ARBITRARY_H
 #define NEUTRAL_ARBITRARY_H
@@ -10,74 +10,79 @@
 #include "parallel.h"
 
 /**
- * Initialize neutral data.
+ * Initialize the linearly interpolated cylindrical neutral data.
  *
- * @param data pointer to data struct.
- * @param n_r number of r grid points in the data.
- * @param r_min minimum r coordinate in the grid in the data [m].
- * @param r_max maximum r coordinate in the grid in the data [m].
- * @param n_phi number of phi grid points in the data.
- * @param phi_min minimum phi coordinate in the grid in the data [rad].
- * @param phi_max maximum phi coordinate in the grid in the data [rad].
- * @param n_z number of z grid points in the data.
- * @param z_min minimum z coordinate in the grid in the data [m].
- * @param z_max maximum z coordinate in the grid in the data [m].
- * @param n_species number of neutral species.
- * @param anum neutral species mass number.
- * @param znum neutral species charge number.
- * @param density neutral species-wise density [m^-3].
- * @param temperature neutral species-wise temperature [J].
+ * @param neutral The struct to initialize.
+ * @param n Number of neutral species.
+ * @param nr Number of R grid points in the data.
+ * @param nphi Number of phi grid points in the data.
+ * @param nz Number of z grid points in the data.
+ * @param rlim Limits of the uniform R grid [m].
+ * @param philim Limits of the uniform phi grid [rad].
+ * @param zlim Limits of the uniform z grid [m].
+ * @param density Density of the neutral species (in same order as they are
+ *        listed in the plasma input) [m^-3].
+ *        Layout is (neutral, rhoi) = [neutral*nrho + i] (C order).
+ * @param temperature Temperature of the neutral species (in same order as they
+ *        are listed in the plasma input) [J].
+ *        Layout is (neutral, rhoi) = [neutral*nrho + i] (C order).
+ *
+ * @return Zero if initialization succeeded.
  */
 int NeutralArbitrary_init(
     NeutralArbitrary *neutral, size_t n, size_t nr, size_t nphi, size_t nz,
-    real rlim[2], real philim[2], real zlim[2], int *anum, int *znum,
-    real *density, real *temperature);
+    real rlim[2], real philim[2], real zlim[2],
+    real density[n * nr * nphi * nz], real temperature[n * nr * nphi * nz]);
 
 /**
- * @brief Free allocated resources
+ * Free allocated resources.
  *
- * @param data pointer to the data struct
+ * @param neutral The struct whose fields are deallocated.
  */
 void NeutralArbitrary_free(NeutralArbitrary *neutral);
 
 /**
- * @brief Offload data to the accelerator.
+ * Offload data to the accelerator.
  *
- * @param data pointer to the data struct
+ * @param neutral The struct to offload.
  */
 void NeutralArbitrary_offload(NeutralArbitrary *neutral);
 
-/**
- * @brief Evaluate neutral density
- *
- * This function evaluates the neutral density at the given coordinates using
- * trilinear interpolation on the 3D neutral density data.
- *
- * @param n0 pointer where neutral density is stored [m^-3]
- * @param r R coordinate [m]
- * @param phi phi coordinate [rad]
- * @param z z coordinate [m]
- * @param ndata pointer to neutral density data struct
- *
- * @return zero if evaluation succeeded
- */
 DECLARE_TARGET_SIMD_UNIFORM(neutral)
-err_t NeutralArbitrary_eval_n0(real *n0, real r, real phi, real z, NeutralArbitrary *neutral);
+/**
+ * Evaluate density of each neutral species.
+ *
+ * The evaluated values are in the same order as ions in the plasma data.
+ *
+ * @param density Evaluated density [m^-3].
+ * @param r R coordinate of the query point [m].
+ * @param phi phi coordinate of the query point [rad].
+ * @param z z coordinate of the query point [m].
+ * @param neutral The neutral data.
+ *
+ * @return Zero if the evaluation succeeded.
+ */
+err_t NeutralArbitrary_eval_density(
+    real *density, real r, real phi, real z, NeutralArbitrary *neutral);
 
-/**
- * @brief Evaluate neutral temperature
- *
- * This function evaluates the neutral temperature at the given coordinates
- * using trilinear interpolation on the 3D neutral temperature data.
- *
- * @param t0 pointer where neutral temperature is stored [J]
- * @param r R coordinate [m]
- * @param phi phi coordinate [rad]
- * @param z z coordinate [m]
- *
- * @return zero if evaluation succeeded
- */
 DECLARE_TARGET_SIMD_UNIFORM(neutral)
-err_t NeutralArbitrary_eval_T0(real *T0, real r, real phi, real z, NeutralArbitrary *neutral);
+/**
+ * Evaluate temperature of each neutral species.
+ *
+ * Depending on the implementation, either the normalized poloidal flux
+ * coordinate or the cylindrical coordinate is used in the interpolation.
+ *
+ * The evaluated values are in the same order as ions in the plasma data.
+ *
+ * @param temperature Evaluated temperature [J].
+ * @param r R coordinate of the query point [m].
+ * @param phi phi coordinate of the query point [rad].
+ * @param z z coordinate of the query point [m].
+ * @param neutral The neutral data.
+ *
+ * @return Zero if the evaluation succeeded.
+ */
+err_t NeutralArbitrary_eval_temperature(
+    real *temperature, real r, real phi, real z, NeutralArbitrary *neutral);
 
 #endif

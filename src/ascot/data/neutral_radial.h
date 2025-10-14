@@ -1,74 +1,79 @@
 /**
  * @file neutral_radial.h
- * 1D neutral data with linear interpolation.
+ * Radial neutral data with linear interpolation.
  */
 #ifndef NEUTRAL_RADIAL_H
 #define NEUTRAL_RADIAL_H
 
 #include "defines.h"
-#include "parallel.h"
 #include "neutral.h"
+#include "parallel.h"
 
 /**
- * Initialize data.
+ * Initialize the linearly interpolated radial neutral data.
  *
- * @param data pointer to data struct.
- * @param n_rho number of rho grid points in the data.
- * @param rho_min minimum rho coordinate in the grid in the data [1].
- * @param rho_max maximum rho coordinate in the grid in the data [1].
- * @param n_species number of neutral species.
- * @param anum neutral species mass number.
- * @param znum neutral species charge number.
- * @param density neutral species-wise density [m^-3].
- * @param temperature neutral species-wise temperature [J].
+ * @param neutral The struct to initialize.
+ * @param n Number of neutral species.
+ * @param nrho Number of rho grid points in the data.
+ * @param rholim Limits of the uniform rho grid [1].
+ * @param density Density of the neutral species (in same order as they are
+ *        listed in the plasma input) [m^-3].
+ *        Layout is (neutral, rhoi) = [neutral*nrho + i] (C order).
+ * @param temperature Temperature of the neutral species (in same order as they
+ *        are listed in the plasma input) [J].
+ *        Layout is (neutral, rhoi) = [neutral*nrho + i] (C order).
  *
  * @return Zero if initialization succeeded.
  */
 int NeutralRadial_init(
-    NeutralRadial *neutral, size_t n, size_t nrho, int *anum, int *znum,
-    real rholim[2], real *density, real *temperature);
+    NeutralRadial *neutral, size_t n, size_t nrho, real rholim[2],
+    real density[n * nrho], real temperature[n * nrho]);
 
 /**
- * @brief Free allocated resources
+ * Free allocated resources.
  *
- * @param data pointer to the data struct
+ * @param neutral The struct whose fields are deallocated.
  */
-void NeutralRadial_free(NeutralRadial* neutral);
+void NeutralRadial_free(NeutralRadial *neutral);
 
 /**
- * @brief Offload data to the accelerator.
+ * Offload data to the accelerator.
  *
- * @param data pointer to the data struct
+ * @param neutral The struct to offload.
  */
-void NeutralRadial_offload(NeutralRadial* neutral);
+void NeutralRadial_offload(NeutralRadial *neutral);
 
-/**
- * @brief Evaluate neutral density
- *
- * This function evaluates the neutral density at the given coordinates using
- * linear interpolation on the 1D neutral density data.
- *
- * @param n0 pointer where neutral density is stored [m^-3]
- * @param rho normalized poloidal flux coordinate
- * @param ndata pointer to neutral data struct
- *
- * @return zero if evaluation succeeded
- */
 DECLARE_TARGET_SIMD_UNIFORM(neutral)
-err_t NeutralRadial_eval_n0(real* n0, real rho, NeutralRadial* neutral);
-
 /**
- * @brief Evaluate neutral temperature
+ * Evaluate density of each neutral species.
  *
- * This function evaluates the neutral temperature at the given coordinates
- * using linear interpolation on the 1D neutral temperature data.
+ * The evaluated values are in the same order as ions in the plasma data.
  *
- * @param t0 pointer where neutral temperature is stored [J]
- * @param rho normalized poloidal flux coordinate
+ * @param density Evaluated density [m^-3].
+ * @param rho Normalized poloidal flux coordinate of the query point [1].
+ * @param neutral The neutral data.
  *
- * @return zero if evaluation succeeded
+ * @return Zero if the evaluation succeeded.
  */
+err_t NeutralRadial_eval_density(
+    real *density, real rho, NeutralRadial *neutral);
+
 DECLARE_TARGET_SIMD_UNIFORM(neutral)
-err_t NeutralRadial_eval_T0(real* T0, real rho, NeutralRadial* neutral);
+/**
+ * Evaluate temperature of each neutral species.
+ *
+ * Depending on the implementation, either the normalized poloidal flux
+ * coordinate or the cylindrical coordinate is used in the interpolation.
+ *
+ * The evaluated values are in the same order as ions in the plasma data.
+ *
+ * @param temperature Evaluated temperature [J].
+ * @param rho Normalized poloidal flux coordinate of the query point [1].
+ * @param neutral The neutral data.
+ *
+ * @return Zero if the evaluation succeeded.
+ */
+err_t NeutralRadial_eval_temperature(
+    real *temperature, real rho, NeutralRadial *neutral);
 
 #endif

@@ -8,7 +8,7 @@
 #include "interp.h"
 
 
-int interp1Dcomp_init_coeff(real* c, real* f, int n_x, int bc_x,
+int interp1Dcomp_init_coeff(real* c, real* f, size_t n_x, int bc_x,
                             real x_min, real x_max) {
 
     /* Check boundary condition and calculate grid interval. Grid interval
@@ -33,7 +33,7 @@ int interp1Dcomp_init_coeff(real* c, real* f, int n_x, int bc_x,
 
     /* Cubic spline along x, using f values to get fxx */
     splinecomp(f, n_x, bc_x, c);
-    for(int i_x=0; i_x<n_x; i_x++) {
+    for(size_t i_x=0; i_x<n_x; i_x++) {
         /* Accounting for normalized grid. Affects fxx, but not f. */
         c[i_x*2 + 1] = c[i_x*2+1] / (x_grid*x_grid);
     }
@@ -43,7 +43,7 @@ int interp1Dcomp_init_coeff(real* c, real* f, int n_x, int bc_x,
 
 
 void interp1Dcomp_init_spline(Spline1D* str, real* c,
-                              int n_x, int bc_x, real x_min, real x_max) {
+                              size_t n_x, int bc_x, real x_min, real x_max) {
 
     /* Calculate grid interval. For periodic boundary condition, grid maximum
        value and the last data point are not the same. Take this into account
@@ -74,7 +74,7 @@ void interp1Dcomp_init_spline(Spline1D* str, real* c,
  *
  * @return zero if initialization succeeded
  */
-int interp1Dcomp_setup(Spline1D* str, real* f, int n_x, int bc_x,
+int interp1Dcomp_setup(Spline1D* str, real* f, size_t n_x, int bc_x,
                        real x_min, real x_max) {
     real* c = (real*) malloc(n_x*NSIZE_COMP1D*sizeof(real));
     int err = interp1Dcomp_init_coeff(c, f, n_x, bc_x, x_min, x_max);

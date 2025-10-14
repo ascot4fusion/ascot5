@@ -1,6 +1,7 @@
 /**
  * @file boozer.h
- * Module for transforming between cylindrical and Boozer coordinates.
+ * Module for mapping cylindrical coordinates into straight-field-line (Boozer)
+ * coordinates.
  */
 #ifndef BOOZER_H
 #define BOOZER_H
@@ -11,80 +12,78 @@
 #include "utils/interp.h"
 
 /**
- * Initialize boozer coordinate transformation.
+ * Initialize the data for Boozer coordinate mapping.
  *
- * Multidimensional arrays must be stored as
- * - nu(psi_i, theta_j)     = array[j*npsi + i]
- * - theta(psi_i, thetag_j) = array[j*npsi + i]
+ * The tabulated values of the poloidal Boozer angle ``theta`` has a peculiarity
+ * that ``theta`` is periodic but not in a typical sense: there is a
+ * discontinuity when the geometrical angle crosses 2pi and ``theta`` drops from
+ * 2pi to 0. The interpolant cannot deal with this, so we solve this by
+ * requiring that the values of ``theta`` are padded in both directions. The
+ * padded values do not include the "drop": instead they go above 2pi or below
+ * 0. This way the splines are well behaved in the region [0, 2pi] and we never
+ * interpolate outside this region. The padded values are counted in
+ * ``nthetag``.
  *
- * @param boozer Pointer to the data struct.
- * @param npsi Number of psi grid points in nu and theta data.
- * @param psi_min Minimum value in the psi grid.
- * @param psi_max Maximum value in the psi grid.
- * @param ntheta Number of boozer theta grid points in nu data.
- * @param nthetag Number of geometric theta grid points in theta data.
- * @param nu The difference between cylindrical angle phi and toroidal boozer.
- *           coordinate zeta, phi = zeta + nu [rad].
+ * @param boozer The struct to initialize.
+ * @param npsi Number of psi grid points in ``nu`` and ``theta`` data.
+ * @param ntheta Number of Boozer theta grid points in ``nu`` data.
+ * @param nthetag Number of geometric theta grid points in ``theta`` data.
+ * @param nrz The number of elements in ``rs`` and ``zs``.
+ * @param npadding Number of padding values in ``theta`` in one direction.
+ * @param psilim Limits of the uniform psi grid [Wb/rad].
+ * @param nu The difference between cylindrical angle phi and toroidal boozer
+ *        coordinate: nu = zeta - phi [rad].
+ *        Layout: [psi_i, theta_j] = array[j*npsi + i].
  * @param theta The boozer poloidal angle [rad].
- * @param nrzs The number of elements in rs and zs.
+ *        Layout: [psi_i, thetag_j] = array[j*npsi + i].
  * @param rs Separatrix contour R coordinates [m].
  * @param zs Separatrix contour z coordinates [m].
  *
  * @return Zero if initialization succeeded.
  */
-int boozer_init(
-    Boozer *boozer, size_t npsi, real psi_min, real psi_max, size_t ntheta,
-    size_t nthetag, int npadding, real *nu, real *theta, size_t nrzs, real *rs,
-    real *zs);
+int Boozer_init(
+    Boozer *boozer, size_t npsi, size_t ntheta, size_t nthetag, size_t nrz,
+    int npadding, real psilim[2], real nu[npsi * ntheta],
+    real theta[npsi * nthetag], real rs[nrz], real zs[nrz]);
 
 /**
- * @brief Free allocated resources.
+ * Free allocated resources.
  *
  * Spline-interpolants are freed.
  *
  * @param boozer The struct whose fields are deallocated.
  */
-void boozer_free(Boozer *boozer);
+void Boozer_free(Boozer *boozer);
 
 /**
  * Offload data to the accelerator.
  *
  * @param boozer The struct to offload.
  */
-void boozer_offload(Boozer *boozer);
+void Boozer_offload(Boozer *boozer);
 
 DECLARE_TARGET_SIMD_UNIFORM(bfield, boozer)
 /**
- * Evaluate Boozer coordinates and partial derivatives.
+ * Find Boozer coordinates and their gradients at a given point in cylindrical
+ * coordinates.
  *
- * The output vector has the following elements:
- *
- * - psithetazeta[0]  = psi
- * - psithetazeta[1]  = dpsi/dR
- * - psithetazeta[2]  = dpsi/dphi
- * - psithetazeta[3]  = dpsi/dz
- * - psithetazeta[4]  = theta
- * - psithetazeta[5]  = dtheta/dR
- * - psithetazeta[6]  = dtheta/dphi
- * - psithetazeta[7]  = dtheta/dz
- * - psithetazeta[8]  = zeta
- * - psithetazeta[9]  = dzeta/dR
- * - psithetazeta[10] = dzeta/dphi
- * - psithetazeta[11] = dzeta/dz
- *
- * @param psithetazeta Evaluated Boozer coordinates and their gradients.
+ * @param psithetazeta Evaluated Boozer coordinates and their gradients
+ *        [Wb, rad, rad].
+ *        Layout: [psi, dpsi/dr, dpsi/dphi, dpsi/dz, theta, dtheta/dr,
+ *        dtheta/dphi, dtheta/dz, zeta, dzeta/dr, dzeta/dphi, dzeta/dz].
  * @param isinside A flag indicating whether the queried point was inside
- *        boozer grid.
- * @param r R coordinate.
- * @param phi phi coordinate.
- * @param z z coordinate.
- * @param bfield Pointer to magnetic field data.
- * @param boozer Pointer to boozerdata.
+ *        the flux region where the Boozer coordinates are defined.
+ * @param r R coordinate of the query point [m].
+ * @param phi phi coordinate of the query point [rad].
+ * @param z z coordinate of the query point [m].
+ * @param t Time coordinate of the query point [s].
+ * @param boozer The Boozer coordinate data.
+ * @param bfield The magnetic field data.
  *
- * @return Zero on success.
+ * @return Zero if the evaluation succeeded.
  */
-err_t boozer_eval_psithetazeta(
-    real psithetazeta[12], int *isinside, real r, real phi, real z,
-    Bfield *bfield, Boozer *boozer);
+err_t Boozer_map_coordinates(
+    real psithetazeta[12], int *isinside, real r, real phi, real z, real t,
+    Boozer *boozer, Bfield *bfield);
 
 #endif

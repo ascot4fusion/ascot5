@@ -45,24 +45,15 @@
  * @param x_max Maximum value of the x axis.
  */
 int interp1Dcomp_init_coeff(
-    real *c, real *f, int n_x, int bc_x, real x_min, real x_max);
+    real *c, real *f, size_t n_x, int bc_x, real x_min, real x_max);
 
 int interp2Dcomp_init_coeff(
-    real *c, real *f, int n_x, int n_y, int bc_x, int bc_y, real x_min,
+    real *c, real *f, size_t n_x, size_t n_y, int bc_x, int bc_y, real x_min,
     real x_max, real y_min, real y_max);
 
 int interp3Dcomp_init_coeff(
-    real *c, real *f, int n_x, int n_y, int n_z, int bc_x, int bc_y, int bc_z,
+    real *c, real *f, size_t n_x, size_t n_y, size_t n_z, int bc_x, int bc_y, int bc_z,
     real x_min, real x_max, real y_min, real y_max, real z_min, real z_max);
-
-int interp1Dexpl_init_coeff(
-    real *c, real *f, int n_x, int bc_x);
-
-int interp2Dexpl_init_coeff(
-    real *c, real *f, int n_x, int n_y, int bc_x, int bc_y);
-
-int interp3Dexpl_init_coeff(
-    real *c, real *f, int n_x, int n_y, int n_z, int bc_x, int bc_y, int bc_z);
 
 /**
  * @brief Initialize a cubic spline
@@ -75,38 +66,26 @@ int interp3Dexpl_init_coeff(
  * @param x_max maximum value of the x axis
  */
 void interp1Dcomp_init_spline(
-    Spline1D *str, real *c, int n_x, int bc_x, real x_min, real x_max);
+    Spline1D *str, real *c, size_t n_x, int bc_x, real x_min, real x_max);
 
 void interp2Dcomp_init_spline(
-    Spline2D *str, real *c, int n_x, int n_y, int bc_x, int bc_y,
+    Spline2D *str, real *c, size_t n_x, size_t n_y, int bc_x, int bc_y,
     real x_min, real x_max, real y_min, real y_max);
 
 void interp3Dcomp_init_spline(
-    Spline3D *str, real *c, int n_x, int n_y, int n_z, int bc_x, int bc_y,
-    int bc_z, real x_min, real x_max, real y_min, real y_max, real z_min,
-    real z_max);
-
-void interp1Dexpl_init_spline(
-    Spline1D *str, real *c, int n_x, int bc_x, real x_min, real x_max);
-
-void interp2Dexpl_init_spline(
-    Spline2D *str, real *c, int n_x, int n_y, int bc_x, int bc_y,
-    real x_min, real x_max, real y_min, real y_max);
-
-void interp3Dexpl_init_spline(
-    Spline3D *str, real *c, int n_x, int n_y, int n_z, int bc_x, int bc_y,
+    Spline3D *str, real *c, size_t n_x, size_t n_y, size_t n_z, int bc_x, int bc_y,
     int bc_z, real x_min, real x_max, real y_min, real y_max, real z_min,
     real z_max);
 
 int interp1Dcomp_setup(
-    Spline1D *str, real *f, int n_x, int bc_x, real x_min, real x_max);
+    Spline1D *str, real *f, size_t n_x, int bc_x, real x_min, real x_max);
 
 int interp2Dcomp_setup(
-    Spline2D *str, real *f, int n_x, int n_y, int bc_x, int bc_y,
+    Spline2D *str, real *f, size_t n_x, size_t n_y, int bc_x, int bc_y,
     real x_min, real x_max, real y_min, real y_max);
 
 int interp3Dcomp_setup(
-    Spline3D *str, real *f, int n_x, int n_y, int n_z, int bc_x, int bc_y,
+    Spline3D *str, real *f, size_t n_x, size_t n_y, size_t n_z, int bc_x, int bc_y,
     int bc_z, real x_min, real x_max, real y_min, real y_max, real z_min,
     real z_max);
 
@@ -120,13 +99,6 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
 err_t interp3Dcomp_eval_f(real *f, Spline3D *str, real x, real y, real z);
 DECLARE_TARGET_END
 
-DECLARE_TARGET_SIMD_UNIFORM(str)
-err_t interp1Dexpl_eval_f(real *f, Spline1D *str, real x);
-DECLARE_TARGET_SIMD_UNIFORM(str)
-err_t interp2Dexpl_eval_f(real *f, Spline2D *str, real x, real y);
-DECLARE_TARGET_SIMD_UNIFORM(str)
-err_t interp3Dexpl_eval_f(real *f, Spline3D *str, real x, real y, real z);
-
 GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
 err_t interp1Dcomp_eval_df(real *f_df, Spline1D *str, real x);
 DECLARE_TARGET_END
@@ -137,14 +109,6 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
 err_t interp3Dcomp_eval_df(
     real *f_df, Spline3D *str, real x, real y, real z);
 DECLARE_TARGET_END
-
-DECLARE_TARGET_SIMD_UNIFORM(str)
-err_t interp1Dexpl_eval_df(real *f_df, Spline1D *str, real x);
-DECLARE_TARGET_SIMD_UNIFORM(str)
-err_t interp2Dexpl_eval_df(real *f_df, Spline2D *str, real x, real y);
-DECLARE_TARGET_SIMD_UNIFORM(str)
-err_t interp3Dexpl_eval_df(
-    real *f_df, Spline3D *str, real x, real y, real z);
 
 /**
  * Evaluate interpolated value of 1D scalar field.

@@ -20,7 +20,7 @@ class Struct(DataStruct):
     """Python wrapper for the struct in B_GS.h."""
 
     _fields_ = [
-        ("nripple", ctypes.c_int32),
+        ("nripple", ctypes.c_size_t),
         ("bphi", ctypes.c_double),
         ("rmajor", ctypes.c_double),
         ("rminor", ctypes.c_double),

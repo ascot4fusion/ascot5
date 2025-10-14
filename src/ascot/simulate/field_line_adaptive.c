@@ -1,18 +1,18 @@
 /**
  * Simulate magnetic field-lines using adaptive time-step (see simulate.h).
  */
-#include "data/bfield.h"
 #include "consts.h"
-#include "defines.h"
+#include "data/bfield.h"
 #include "data/diag.h"
 #include "data/efield.h"
-#include "endcond.h"
-#include "utils/mathlib.h"
-#include "orbit_following.h"
 #include "data/marker.h"
-#include "simulate.h"
 #include "data/wall.h"
 #include "datatypes.h"
+#include "defines.h"
+#include "endcond.h"
+#include "orbit_following.h"
+#include "simulate.h"
+#include "utils/mathlib.h"
 #include <math.h>
 #include <omp.h>
 #include <stdio.h>
@@ -21,14 +21,14 @@
 #define MAGNETIC_FIELD_LINE_INISTEP 1.0e-2 /**< Initial step size in meters */
 #define DUMMY_STEP_VAL 100.0 /**< Dummy orbit step val in meters */
 
-
-void simulate_fl_adaptive(Simulation *sim, MarkerQueue *queue, size_t vector_size)
+void simulate_fl_adaptive(
+    Simulation *sim, MarkerQueue *queue, size_t vector_size)
 {
 
-    real *current_time_step = (real*) malloc(vector_size*sizeof(real));
-    real *suggested_time_step = (real*) malloc(vector_size*sizeof(real));
-    real *next_time_step = (real*) malloc(vector_size*sizeof(real));
-    size_t* new_marker = (size_t*) malloc(vector_size*sizeof(size_t));
+    real *current_time_step = (real *)malloc(vector_size * sizeof(real));
+    real *suggested_time_step = (real *)malloc(vector_size * sizeof(real));
+    real *next_time_step = (real *)malloc(vector_size * sizeof(real));
+    size_t *new_marker = (size_t *)malloc(vector_size * sizeof(size_t));
 
     real current_time, previous_time;
 

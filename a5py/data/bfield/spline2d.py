@@ -9,7 +9,7 @@ import numpy as np
 from numpy.ctypeslib import ndpointer
 
 from a5py import utils
-from a5py.libascot import LIBASCOT, DataStruct, interp2D_data, init_fun
+from a5py.libascot import LIBASCOT, DataStruct, Spline2D, init_fun
 from a5py.exceptions import AscotMeltdownError
 from a5py.data.access import InputVariant, Leaf, TreeMixin
 
@@ -21,16 +21,16 @@ class Struct(DataStruct):
     _fields_ = [
         ("axisrz", ctypes.c_double * 2),
         ("psilimits", ctypes.c_double * 2),
-        ("psi", interp2D_data),
-        ("br", interp2D_data),
-        ("bz", interp2D_data),
-        ("bphi", interp2D_data),
+        ("psi", Spline2D),
+        ("br", Spline2D),
+        ("bz", Spline2D),
+        ("bphi", Spline2D),
         ]
 
 init_fun(
     "BfieldSpline2D_init",
     ctypes.POINTER(Struct),
-    *(2*[ctypes.c_int32]),
+    *(2*[ctypes.c_size_t]),
     *(8*[ndpointer(ctypes.c_double)]),
     restype=ctypes.c_int32,
     )

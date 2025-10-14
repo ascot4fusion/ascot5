@@ -10,7 +10,7 @@ from numpy.ctypeslib import ndpointer
 
 from a5py import utils
 from a5py.libascot import (
-    LIBASCOT, DataStruct, linint1D_data, interp3D_data, init_fun,
+    LIBASCOT, DataStruct, Linear1D, Spline3D, init_fun,
     )
 from a5py.exceptions import AscotMeltdownError
 from a5py.data.access import InputVariant, Leaf, TreeMixin
@@ -22,19 +22,19 @@ class Struct(DataStruct):
 
     _fields_ = [
         ("psilimits", ctypes.c_double * 2),
-        ("axisr", linint1D_data),
-        ("axisz", linint1D_data),
-        ("psi", interp3D_data),
-        ("br", interp3D_data),
-        ("bz", interp3D_data),
-        ("bphi", interp3D_data),
+        ("axisr", Linear1D),
+        ("axisz", Linear1D),
+        ("psi", Spline3D),
+        ("br", Spline3D),
+        ("bz", Spline3D),
+        ("bphi", Spline3D),
         ]
 
 
 init_fun(
     "BfieldStellarator_init",
     ctypes.POINTER(Struct),
-    *(7*[ctypes.c_int32]),
+    *(7*[ctypes.c_size_t]),
     *(14*[ndpointer(ctypes.c_double)]),
     restype=ctypes.c_int32,
     )

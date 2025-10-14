@@ -7,7 +7,7 @@ from typing import Tuple, List, Optional
 import unyt
 
 from a5py import utils
-from a5py.libascot import LIBASCOT, DataStruct, linint1D_data, init_fun
+from a5py.libascot import LIBASCOT, DataStruct, Linear1D, init_fun
 from a5py.exceptions import AscotMeltdownError
 from a5py.data.access import InputVariant, Leaf, TreeMixin
 
@@ -20,8 +20,8 @@ class Struct(DataStruct):
         ("nspecies", ctypes.c_int32),
         ("anum", ctypes.POINTER(ctypes.c_int32)),
         ("znum", ctypes.POINTER(ctypes.c_int32)),
-        ("n", ctypes.POINTER(linint1D_data)),
-        ("T", ctypes.POINTER(linint1D_data)),
+        ("n", ctypes.POINTER(Linear1D)),
+        ("T", ctypes.POINTER(Linear1D)),
         ]
 
 

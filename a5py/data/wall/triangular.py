@@ -20,10 +20,10 @@ class Struct(DataStruct):
     """Python wrapper for the struct in wall_3d.h."""
 
     _fields_ = [
-        ("n", ctypes.c_int32),
-        ("depth", ctypes.c_int32),
-        ("ngrid", ctypes.c_int32),
-        ("tree_array_size", ctypes.c_int32),
+        ("n", ctypes.c_size_t),
+        ("depth", ctypes.c_size_t),
+        ("ngrid", ctypes.c_size_t),
+        ("n_tree_array", ctypes.c_size_t),
         ("flag", ctypes.POINTER(ctypes.c_int32)),
         ("xmin", ctypes.c_double),
         ("xmax", ctypes.c_double),
@@ -35,7 +35,7 @@ class Struct(DataStruct):
         ("zmax", ctypes.c_double),
         ("zgrid", ctypes.c_double),
         ("vertices", ctypes.POINTER(ctypes.c_double)),
-        ("tree_array", ctypes.POINTER(ctypes.c_int32)),
+        ("tree_array", ctypes.POINTER(ctypes.c_size_t)),
         ]
 
 

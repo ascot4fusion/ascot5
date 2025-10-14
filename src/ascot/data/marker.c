@@ -768,11 +768,11 @@ void marker_go_to_state(
     }
     if (!err && p->r <= 0)
     {
-        err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
+        err = ERROR_RAISE(ERR_UNPHYSICAL_MARKER, DATA_MARKER_C);
     }
     if (!err && mu < 0)
     {
-        err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
+        err = ERROR_RAISE(ERR_UNPHYSICAL_MARKER, DATA_MARKER_C);
     }
 
     if (!err)
@@ -970,7 +970,7 @@ void marker_gc_to_state(
     }
     if (!err && p->rprt <= 0)
     {
-        err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
+        err = ERROR_RAISE(ERR_UNPHYSICAL_MARKER, DATA_MARKER_C);
     }
 
     if (!err)
@@ -1210,11 +1210,11 @@ int marker_go_to_gc(
     }
     if (!err && r <= 0)
     {
-        err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
+        err = ERROR_RAISE(ERR_UNPHYSICAL_MARKER, DATA_MARKER_C);
     }
     if (!err && mu < 0)
     {
-        err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
+        err = ERROR_RAISE(ERR_UNPHYSICAL_MARKER, DATA_MARKER_C);
     }
 
     real psi[1], rho[2];

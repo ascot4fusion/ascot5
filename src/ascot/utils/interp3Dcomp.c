@@ -34,7 +34,7 @@
  * @return zero if initialization succeeded
  */
 int interp3Dcomp_init_coeff(real* c, real* f,
-                            int n_x, int n_y, int n_z,
+                            size_t n_x, size_t n_y, size_t n_z,
                             int bc_x, int bc_y, int bc_z,
                             real x_min, real x_max,
                             real y_min, real y_max,
@@ -85,16 +85,16 @@ int interp3Dcomp_init_coeff(real* c, real* f,
        for normalized grid intervals. */
 
     /* Bicubic spline surfaces over xy-grid for each z */
-    for(int i_z=0; i_z<n_z; i_z++) {
+    for(size_t i_z=0; i_z<n_z; i_z++) {
 
         /* Cubic spline along x for each y, using f values to get fxx */
-        for(int i_y=0; i_y<n_y; i_y++) {
+        for(size_t i_y=0; i_y<n_y; i_y++) {
             /* fxx */
-            for(int i_x=0; i_x<n_x; i_x++) {
+            for(size_t i_x=0; i_x<n_x; i_x++) {
                 f_x[i_x] = f[i_z*n_y*n_x + i_y*n_x + i_x];
             }
             splinecomp(f_x, n_x, bc_x, c_x);
-            for(int i_x=0; i_x<n_x; i_x++) {
+            for(size_t i_x=0; i_x<n_x; i_x++) {
                 c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8    ] = c_x[i_x*2];
                 c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 1] = c_x[i_x*2 + 1]
                                                            / (x_grid*x_grid);
@@ -103,22 +103,22 @@ int interp3Dcomp_init_coeff(real* c, real* f,
 
         /* Two cubic splines along y for each x, one using f values to
            get fyy, and the other using fxx values to get fxxyy */
-        for(int i_x=0; i_x<n_x; i_x++) {
+        for(size_t i_x=0; i_x<n_x; i_x++) {
             /* fyy */
-            for(int i_y=0; i_y<n_y; i_y++) {
+            for(size_t i_y=0; i_y<n_y; i_y++) {
                 f_y[i_y] = f[i_z*n_y*n_x + i_y*n_x + i_x];
             }
             splinecomp(f_y, n_y, bc_y, c_y);
-            for(int i_y=0; i_y<n_y; i_y++) {
+            for(size_t i_y=0; i_y<n_y; i_y++) {
                 c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 2] = c_y[i_y*2 + 1]
                                                            / (y_grid*y_grid);
             }
             /* fxxyy */
-            for(int i_y=0; i_y<n_y; i_y++) {
+            for(size_t i_y=0; i_y<n_y; i_y++) {
                 f_y[i_y] = c[i_z*n_y*n_x*8 + i_y*n_x*8+i_x*8 + 1];
             }
             splinecomp(f_y, n_y, bc_y, c_y);
-            for(int i_y=0; i_y<n_y; i_y++) {
+            for(size_t i_y=0; i_y<n_y; i_y++) {
                 c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 4] = c_y[i_y*2 + 1]
                                                            / (y_grid*y_grid);
             }
@@ -129,41 +129,41 @@ int interp3Dcomp_init_coeff(real* c, real* f,
     /* Four cubic splines along z for each xy-pair, one using f values to get
        fzz, one using fxx to get fxxzz, one using fyy to get fyyzz, and one
        using fxxyy to get fxxyyzz */
-    for(int i_y=0; i_y<n_y; i_y++) {
-        for(int i_x=0; i_x<n_x; i_x++) {
+    for(size_t i_y=0; i_y<n_y; i_y++) {
+        for(size_t i_x=0; i_x<n_x; i_x++) {
             /* fzz */
-            for(int i_z=0; i_z<n_z; i_z++) {
+            for(size_t i_z=0; i_z<n_z; i_z++) {
                 f_z[i_z] = f[i_z*n_y*n_x + i_y*n_x + i_x];
             }
             splinecomp(f_z, n_z, bc_z, c_z);
-            for(int i_z=0; i_z<n_z; i_z++) {
+            for(size_t i_z=0; i_z<n_z; i_z++) {
                 c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 3] = c_z[i_z*2 + 1]
                                                            / (z_grid*z_grid);
             }
             /* fxxzz */
-            for(int i_z=0; i_z<n_z; i_z++) {
+            for(size_t i_z=0; i_z<n_z; i_z++) {
                 f_z[i_z] = c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 1];
             }
             splinecomp(f_z, n_z, bc_z, c_z);
-            for(int i_z=0; i_z<n_z; i_z++) {
+            for(size_t i_z=0; i_z<n_z; i_z++) {
                 c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 5] = c_z[i_z*2 + 1]
                                                            / (z_grid*z_grid);
             }
             /* fyyzz */
-            for(int i_z=0; i_z<n_z; i_z++) {
+            for(size_t i_z=0; i_z<n_z; i_z++) {
                 f_z[i_z] = c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 2];
             }
             splinecomp(f_z, n_z, bc_z, c_z);
-            for(int i_z=0; i_z<n_z; i_z++) {
+            for(size_t i_z=0; i_z<n_z; i_z++) {
                 c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 6] = c_z[i_z*2+1]
                                                            / (z_grid*z_grid);
             }
             /* fxxyyzz */
-            for(int i_z=0; i_z<n_z; i_z++) {
+            for(size_t i_z=0; i_z<n_z; i_z++) {
                 f_z[i_z] = c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 4];
             }
             splinecomp(f_z, n_z, bc_z, c_z);
-            for(int i_z=0; i_z<n_z; i_z++) {
+            for(size_t i_z=0; i_z<n_z; i_z++) {
                 c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 7] = c_z[i_z*2+1]
                                                            / (z_grid*z_grid);
             }
@@ -200,7 +200,7 @@ int interp3Dcomp_init_coeff(real* c, real* f,
  * @param z_max maximum value of the z axis
  */
 void interp3Dcomp_init_spline(Spline3D* str, real* c,
-                              int n_x, int n_y, int n_z,
+                              size_t n_x, size_t n_y, size_t n_z,
                               int bc_x, int bc_y, int bc_z,
                               real x_min, real x_max,
                               real y_min, real y_max,
@@ -256,7 +256,7 @@ void interp3Dcomp_init_spline(Spline3D* str, real* c,
  * @return zero if initialization succeeded
  */
 int interp3Dcomp_setup(Spline3D* str, real* f,
-                       int n_x, int n_y, int n_z, int bc_x, int bc_y, int bc_z,
+                       size_t n_x, size_t n_y, size_t n_z, int bc_x, int bc_y, int bc_z,
                        real x_min, real x_max, real y_min, real y_max,
                        real z_min, real z_max) {
     real* c = (real*) malloc(n_z*n_y*n_x*NSIZE_COMP3D*sizeof(real));

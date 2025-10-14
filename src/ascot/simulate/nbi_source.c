@@ -3,23 +3,23 @@
  */
 #include "nbi_source.h"
 #include "ascot.h"
+#include "consts.h"
 #include "data/atomic.h"
 #include "data/bfield.h"
-#include "consts.h"
-#include "defines.h"
 #include "data/diag.h"
-#include "endcond.h"
 #include "data/marker.h"
-#include "utils/mathlib.h"
 #include "data/nbi.h"
 #include "data/neutral.h"
-#include "parallel.h"
-#include "utils/physlib.h"
 #include "data/plasma.h"
-#include "utils/random.h"
-#include "datatypes.h"
-#include "utils/suzuki.h"
 #include "data/wall.h"
+#include "datatypes.h"
+#include "defines.h"
+#include "endcond.h"
+#include "parallel.h"
+#include "utils/mathlib.h"
+#include "utils/physlib.h"
+#include "utils/random.h"
+#include "utils/suzuki.h"
 #include <getopt.h>
 #include <math.h>
 #include <omp.h>
@@ -186,7 +186,7 @@ void nbi_source_trace_markers(MarkerQueue *pq, Simulation *sim)
 
                 if (!err)
                 {
-                    err = Plasma_eval_densandtemp(
+                    err = Plasma_eval_nT(
                         pls_dens, pls_temp, rho[0], p.r[i], p.phi[i], p.z[i],
                         p.time[i], &sim->plasma);
                 }
@@ -196,7 +196,7 @@ void nbi_source_trace_markers(MarkerQueue *pq, Simulation *sim)
                 if (!err)
                 {
                     real sigmav;
-                    if (asigma_eval_bms(
+                    if (Atomic_eval_bms(
                             &sigmav, p.znum[i], p.anum[i], ekin, p.mass[i],
                             n_species - 1, pls_znum, pls_anum, pls_temp[0],
                             &(pls_dens[1]), sim->atomic))
@@ -214,9 +214,9 @@ void nbi_source_trace_markers(MarkerQueue *pq, Simulation *sim)
                     int tile = 0;
                     if (shinethrough[i])
                     {
-                        tile = Wall_hit_wall(
-                            p0.r[i], p0.phi[i], p0.z[i], p.r[i], p.phi[i],
-                            p.z[i], &w_coll, &sim->wall);
+                        tile = Wall_eval_intersection(
+                            &w_coll, p0.r[i], p0.phi[i], p0.z[i], p.r[i], p.phi[i],
+                            p.z[i], &sim->wall);
                     }
                     if (tile > 0)
                     {

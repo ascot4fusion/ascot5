@@ -3,13 +3,13 @@
  */
 #include "endcond.h"
 #include "consts.h"
-#include "utils/mathlib.h"
-#include "options.h"
 #include "data/marker.h"
-#include "data/wall.h"
-#include "utils/physlib.h"
 #include "data/plasma.h"
+#include "data/wall.h"
 #include "datatypes.h"
+#include "options.h"
+#include "utils/mathlib.h"
+#include "utils/physlib.h"
 #include <math.h>
 #include <stdint.h>
 
@@ -90,9 +90,9 @@ void endcond_check_go(
             if (active_wall)
             {
                 real w_coll = 0;
-                int tile = Wall_hit_wall(
-                    p_i->r[i], p_i->phi[i], p_i->z[i], p_f->r[i], p_f->phi[i],
-                    p_f->z[i], &w_coll, &sim->wall);
+                int tile = Wall_eval_intersection(
+                    &w_coll, p_i->r[i], p_i->phi[i], p_i->z[i], p_f->r[i],
+                    p_f->phi[i], p_f->z[i], &sim->wall);
                 if (tile > 0)
                 {
                     real w = w_coll;
@@ -117,7 +117,7 @@ void endcond_check_go(
                 real ekin = physlib_Ekin_pnorm(p_f->mass[i], pnorm);
 
                 real Ti;
-                err_t errflag = Plasma_eval_temp(
+                err_t errflag = Plasma_eval_temperature(
                     &Ti, p_f->rho[i], p_f->r[i], p_f->phi[i], p_f->z[i],
                     p_f->time[i], 1, &sim->plasma);
 
@@ -300,9 +300,9 @@ void endcond_check_gc(
             if (active_wall)
             {
                 real w_coll = 0;
-                int tile = Wall_hit_wall(
-                    p_i->r[i], p_i->phi[i], p_i->z[i], p_f->r[i], p_f->phi[i],
-                    p_f->z[i], &w_coll, &sim->wall);
+                int tile = Wall_eval_intersection(
+                    &w_coll, p_i->r[i], p_i->phi[i], p_i->z[i], p_f->r[i],
+                    p_f->phi[i], p_f->z[i], &sim->wall);
                 if (tile > 0)
                 {
                     p_f->walltile[i] = tile;
@@ -321,7 +321,7 @@ void endcond_check_gc(
                     p_f->mass[i], p_f->mu[i], p_f->ppar[i], Bnorm);
 
                 real Ti;
-                err_t errflag = Plasma_eval_temp(
+                err_t errflag = Plasma_eval_temperature(
                     &Ti, p_f->rho[i], p_f->r[i], p_f->phi[i], p_f->z[i],
                     p_f->time[i], 1, &sim->plasma);
 
@@ -473,9 +473,9 @@ void endcond_check_fl(
             if (active_wall)
             {
                 real w_coll = 0;
-                int tile = Wall_hit_wall(
-                    p_i->r[i], p_i->phi[i], p_i->z[i], p_f->r[i], p_f->phi[i],
-                    p_f->z[i], &w_coll, &sim->wall);
+                int tile = Wall_eval_intersection(
+                    &w_coll, p_i->r[i], p_i->phi[i], p_i->z[i], p_f->r[i],
+                    p_f->phi[i], p_f->z[i], &sim->wall);
                 if (tile > 0)
                 {
                     p_f->walltile[i] = tile;

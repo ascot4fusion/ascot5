@@ -7,8 +7,8 @@
 
 #include "defines.h"
 #include "marker.h"
+#include "nbi_data.h"
 #include "utils/random.h"
-#include "nbi.h"
 
 int nbi_init(
     Nbi *nbi, size_t ninj, size_t *id, int *anum, int *znum, real *mass, real *power,

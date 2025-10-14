@@ -3,38 +3,38 @@
  */
 #include "neutral.h"
 #include "defines.h"
-#include "neutral_radial.h"
 #include "neutral_arbitrary.h"
+#include "neutral_radial.h"
 #include <stdio.h>
 
-void Neutral_free(Neutral *data)
+void Neutral_free(Neutral *neutral)
 {
-    switch (data->type)
+    switch (neutral->type)
     {
     case NEUTRAL_RADIAL:
-        NeutralRadial_free(data->radial);
+        NeutralRadial_free(neutral->radial);
         break;
     case NEUTRAL_ARBITRARY:
-        NeutralArbitrary_free(data->arbitrary);
+        NeutralArbitrary_free(neutral->arbitrary);
         break;
     }
 }
 
-void Neutral_offload(Neutral *data)
+void Neutral_offload(Neutral *neutral)
 {
-    switch (data->type)
+    switch (neutral->type)
     {
     case NEUTRAL_RADIAL:
-        NeutralRadial_offload(data->radial);
+        NeutralRadial_offload(neutral->radial);
         break;
     case NEUTRAL_ARBITRARY:
-        NeutralArbitrary_offload(data->arbitrary);
+        NeutralArbitrary_offload(neutral->arbitrary);
         break;
     }
 }
 
-err_t Neutral_eval_n0(
-    real *n0, real rho, real r, real phi, real z, real t, Neutral *neutral)
+err_t Neutral_eval_density(
+    real *density, real rho, real r, real phi, real z, real t, Neutral *neutral)
 {
     (void)t; // Unused until dynamic neutral is implemented.
     size_t n = 0;
@@ -42,23 +42,25 @@ err_t Neutral_eval_n0(
     switch (neutral->type)
     {
     case NEUTRAL_RADIAL:
-        err = NeutralRadial_eval_n0(n0, rho, neutral->radial);
+        err = NeutralRadial_eval_density(density, rho, neutral->radial);
         n = neutral->radial->n;
         break;
     case NEUTRAL_ARBITRARY:
-        err = NeutralArbitrary_eval_n0(n0, r, phi, z, neutral->arbitrary);
+        err = NeutralArbitrary_eval_density(
+            density, r, phi, z, neutral->arbitrary);
         n = neutral->arbitrary->n;
         break;
     }
 
-    for(size_t i = 0; i < n; i++)
-        n0[i] = err ? 1.0 : n0[i];
+    for (size_t i = 0; i < n; i++)
+        density[i] = err ? 1.0 : density[i];
 
     return err;
 }
 
-err_t Neutral_eval_T0(
-    real *T0, real rho, real r, real phi, real z, real t, Neutral *neutral)
+err_t Neutral_eval_temperature(
+    real *temperature, real rho, real r, real phi, real z, real t,
+    Neutral *neutral)
 {
     (void)t; // Unused until dynamic neutral is implemented.
     size_t n = 0;
@@ -66,17 +68,18 @@ err_t Neutral_eval_T0(
     switch (neutral->type)
     {
     case NEUTRAL_RADIAL:
-        err = NeutralRadial_eval_T0(T0, rho, neutral->radial);
+        err = NeutralRadial_eval_temperature(temperature, rho, neutral->radial);
         n = neutral->radial->n;
         break;
     case NEUTRAL_ARBITRARY:
-        err = NeutralArbitrary_eval_T0(T0, r, phi, z, neutral->arbitrary);
+        err = NeutralArbitrary_eval_temperature(
+            temperature, r, phi, z, neutral->arbitrary);
         n = neutral->arbitrary->n;
         break;
     }
 
-    for(size_t i = 0; i < n; i++)
-        T0[i] = err ? 1.0 : T0[i];
+    for (size_t i = 0; i < n; i++)
+        temperature[i] = err ? 1.0 : temperature[i];
 
     return err;
 }

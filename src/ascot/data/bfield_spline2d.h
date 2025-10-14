@@ -35,7 +35,7 @@
  * @param bphi Tabulated values of phi component of B [T].
  *        Layout: (Ri, zj) = [j*nr + i] (C order).
  *
- * @return  Zero if the initialization succeeded.
+ * @return Zero if the initialization succeeded.
  */
 int BfieldSpline2D_init(
     BfieldSpline2D *bfield, size_t nr, size_t nz, real rlim[2], real zlim[2],

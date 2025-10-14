@@ -30,7 +30,7 @@
  * @return zero if initialization succeeded
  */
 int interp2Dcomp_init_coeff(real* c, real* f,
-                            int n_x, int n_y, int bc_x, int bc_y,
+                            size_t n_x, size_t n_y, int bc_x, int bc_y,
                             real x_min, real x_max,
                             real y_min, real y_max) {
 
@@ -68,13 +68,13 @@ int interp2Dcomp_init_coeff(real* c, real* f,
        [f, fxx, fyy, fxxyy]. Note how we account for normalized grid. */
 
     /* Cubic spline along x for each y, using f values to get fxx */
-    for(int i_y=0; i_y<n_y; i_y++) {
+    for(size_t i_y=0; i_y<n_y; i_y++) {
         /* fxx */
-        for(int i_x=0; i_x<n_x; i_x++) {
+        for(size_t i_x=0; i_x<n_x; i_x++) {
             f_x[i_x] = f[i_y*n_x+i_x];
         }
         splinecomp(f_x, n_x, bc_x, c_x);
-        for(int i_x=0; i_x<n_x; i_x++) {
+        for(size_t i_x=0; i_x<n_x; i_x++) {
             c[i_y*n_x*4 + i_x*4    ] = c_x[i_x*2];
             c[i_y*n_x*4 + i_x*4 + 1] = c_x[i_x*2+1] / (x_grid*x_grid);
         }
@@ -82,23 +82,23 @@ int interp2Dcomp_init_coeff(real* c, real* f,
 
     /* Two cubic splines along y for each x, using f and fxx to get fyy and
        fxxyy */
-    for(int i_x=0; i_x<n_x; i_x++) {
+    for(size_t i_x=0; i_x<n_x; i_x++) {
 
         /* fyy */
-        for(int i_y=0; i_y<n_y; i_y++) {
+        for(size_t i_y=0; i_y<n_y; i_y++) {
             f_y[i_y] =  f[i_y*n_x + i_x];
         }
         splinecomp(f_y, n_y, bc_y, c_y);
-        for(int i_y=0; i_y<n_y; i_y++) {
+        for(size_t i_y=0; i_y<n_y; i_y++) {
             c[i_y*n_x*4+i_x*4+2] = c_y[i_y*2+1]/(y_grid*y_grid);
         }
 
         /* fxxyy */
-        for(int i_y=0; i_y<n_y; i_y++) {
+        for(size_t i_y=0; i_y<n_y; i_y++) {
             f_y[i_y] =  c[i_y*n_x*4 + i_x*4 + 1];
         }
         splinecomp(f_y, n_y, bc_y, c_y);
-        for(int i_y=0; i_y<n_y; i_y++) {
+        for(size_t i_y=0; i_y<n_y; i_y++) {
             c[i_y*n_x*4 + i_x*4 + 3] = c_y[i_y*2 + 1] / (y_grid*y_grid);
         }
     }
@@ -127,7 +127,7 @@ int interp2Dcomp_init_coeff(real* c, real* f,
  * @param y_max maximum value of the y axis
  */
 void interp2Dcomp_init_spline(Spline2D* str, real* c,
-                              int n_x, int n_y, int bc_x, int bc_y,
+                              size_t n_x, size_t n_y, int bc_x, int bc_y,
                               real x_min, real x_max,
                               real y_min, real y_max) {
 
@@ -171,7 +171,7 @@ void interp2Dcomp_init_spline(Spline2D* str, real* c,
  * @return zero if initialization succeeded
  */
 int interp2Dcomp_setup(Spline2D* str, real* f,
-                       int n_x, int n_y, int bc_x, int bc_y,
+                       size_t n_x, size_t n_y, int bc_x, int bc_y,
                        real x_min, real x_max, real y_min, real y_max) {
     real* c = (real*) malloc(n_y*n_x*NSIZE_COMP2D*sizeof(real));
     int err = interp2Dcomp_init_coeff(c, f, n_x, n_y, bc_x, bc_y, x_min, x_max,

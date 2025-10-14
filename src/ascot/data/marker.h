@@ -7,6 +7,7 @@
 
 #include "bfield.h"
 #include "defines.h"
+#include "datatypes.h"
 #include "efield.h"
 #include <stdint.h>
 

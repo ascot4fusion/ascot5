@@ -10,30 +10,39 @@
 #include "plasma.h"
 
 /**
- * @brief Initialize 1Dt plasma data and check inputs
+ * Initialize the linearly interpolated radial time-dependent plasma data.
  *
- * @param data pointer to the data struct
- * @param nrho number of rho grid points in the data
- * @param nrho number of time grid points in the data
- * @param nion number of ion species
- * @param rho rho grid points in which data is tabulated [1]
- * @param time time grid points in which data is tabulated [s]
- * @param anum mass number of ions present in the plasma
- * @param znum charge number of ions present in the plasma
- * @param mass mass of ions present in the plasma [kg]
- * @param charge charge of ions present in the plasma [C]
- * @param Te electron temperature [J]
- * @param Ti ion temperature [J]
- * @param ne electron density [m^-3]
- * @param ni density of ion species [m^-3]
- * @param vtor toroidal rotation [rad/s]
+ * @param plasma The struct to initialize.
+ * @param nrho Number of rho grid points in the data.
+ * @param ntime Number of time grid points in the data
+ * @param nion Number of ion species.
+ * @param rho Grid in rho in which data is tabulated [1].
+ *        No need to be uniform.
+ * @param time Grid in time in which data is tabulated [s].
+ *        No need to be uniform.
+ * @param anum Atomic mass number of the ion species.
+ * @param znum Charge number of the ion species.
+ * @param mass Mass of the ion species [kg].
+ * @param charge Charge of the ion species [C].
+ * @param Te Electron temperature [J].
+ *        Layout is (rhoi, tj) = [j*nrho + i] (C order).
+ * @param Ti Temperature of the ion species [J].
+ *        Layout is (rhoi, tj) = [j*nrho + i] (C order).
+ * @param ne Electron density [m^-3].
+ *        Layout is (rhoi, tj) = [j*nrho + i] (C order).
+ * @param ni Density of the ion species [m^-3].
+ *        Layout is (ion, rhoi, tj) = [ion*nrho*ntime + j*nrho + i] (C order).
+ * @param vtor Toroidal rotation of the whole plasma [rad/s].
+ *        Layout is (rhoi, tj) = [j*nrho + i] (C order).
  *
- * @return zero if initialization succeeded
+ * @return Zero if the initialization succeeded.
  */
 int PlasmaDynamic1D_init(
-    PlasmaDynamic1D *plasma, size_t nrho, size_t ntime, size_t nion, int *anum,
-    int *znum, real *rho, real *time, real *mass, real *charge, real *Te,
-    real *Ti, real *ne, real *ni, real *vtor);
+    PlasmaDynamic1D *plasma, size_t nrho, size_t ntime, size_t nion,
+    int anum[nion], int znum[nion], real mass[nion], real charge[nion],
+    real rho[nrho], real time[ntime], real Te[nrho * ntime],
+    real Ti[nrho * ntime], real ne[nrho * ntime], real ni[nrho * ntime * nion],
+    real vtor[nrho * ntime]);
 
 /**
  * Free allocated resources.
@@ -51,73 +60,74 @@ void PlasmaDynamic1D_offload(PlasmaDynamic1D *plasma);
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
 /**
- * @brief Evaluate plasma temperature
+ * Evaluate temperature of a plasma species.
  *
- * This function evaluates the temperature of a plasma species at the given
- * radial coordinate using linear interpolation.
+ * @param temperature Evaluated temperature [J].
+ * @param rho Normalized poloidal flux coordinate of the query point [1].
+ * @param t Time coordinate of the query point [s].
+ * @param i_species Index of the requested species.
+ *        Zero for electrons, then 1 for the first ion, etc. in the same order
+ *        as they are listed in the plasma data.
+ * @param plasma The plasma data.
  *
- * @param temp pointer to where evaluated temperature is stored [J]
- * @param rho radial coordinate [1]
- * @param t time instant [s]
- * @param species index of plasma species
- * @param pls_data pointer to plasma data struct
- *
- * @return zero if evaluation succeeded
+ * @return Zero if the evaluation succeeded.
  */
-err_t PlasmaDynamic1D_eval_temp(
-    real *dens, real rho, real t, size_t species, PlasmaDynamic1D *plasma);
+err_t PlasmaDynamic1D_eval_temperature(
+    real temperature[1], real rho, real t, size_t i_species,
+    PlasmaDynamic1D *plasma);
 DECLARE_TARGET_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
 /**
- * @brief Evaluate plasma density
+ * Evaluate density of a plasma species.
  *
- * This function evaluates the density of a plasma species at the given
- * radial coordinate using linear interpolation.
+ * @param density Evaluated density [m^-3].
+ * @param rho Normalized poloidal flux coordinate of the query point [1].
+ * @param t Time coordinate of the query point [s].
+ * @param i_species Index of the requested species.
+ *        Zero for electrons, then 1 for the first ion, etc. in the same order
+ *        as they are listed in the plasma data.
+ * @param plasma The plasma data.
  *
- * @param dens pointer to where evaluated density is stored [m^-3]
- * @param rho radial coordinate [1]
- * @param t time instant [s]
- * @param species index of plasma species
- * @param pls_data pointer to plasma data struct
- *
- * @return zero if evaluation succeeded
+ * @return Zero if the evaluation succeeded.
  */
-err_t PlasmaDynamic1D_eval_dens(
-    real *temp, real rho, real t, size_t species, PlasmaDynamic1D *plasma);
+err_t PlasmaDynamic1D_eval_density(
+    real density[1], real rho, real t, size_t i_species,
+    PlasmaDynamic1D *plasma);
 DECLARE_TARGET_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
 /**
- * @brief Evaluate plasma density and temperature for all species
+ * Evaluate plasma density and temperature for all species.
  *
- * This function evaluates the density and temperature of all plasma species at
- * the given radial coordinate using linear interpolation.
+ * @param density Evaluated density (electrons first followed by ions) [m^-3].
+ * @param temperature Evaluated temperature (electrons first followed by ions)
+ *        [J].
+ * @param rho Normalized poloidal flux coordinate of the query point [1].
+ * @param t Time coordinate of the query point [s].
+ * @param plasma The plasma data.
  *
- * @param dens pointer to where interpolated densities are stored [m^-3]
- * @param temp pointer to where interpolated temperatures are stored [J]
- * @param rho radial coordinate [1]
- * @param t time instant [s]
- * @param pls_data pointer to plasma data struct
- *
- * @return zero if evaluation succeeded
+ * @return Zero if the evaluation succeeded.
  */
-err_t PlasmaDynamic1D_eval_densandtemp(
-    real *dens, real *temp, real rho, real t, PlasmaDynamic1D *plasma);
+err_t PlasmaDynamic1D_eval_nT(
+    real *density, real *temperature, real rho, real t,
+    PlasmaDynamic1D *plasma);
 DECLARE_TARGET_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
 /**
- * @brief Evalate plasma flow along the field lines
+ * Evaluate plasma flow along the field lines (same for all species).
  *
- * @param vflow pointer where the flow value is stored [m/s]
- * @param rho particle rho coordinate [1]
- * @param t particle time coordinate [s]
- * @param r particle R coordinate [m]
- * @param pls_data pointer to plasma data
+ * @param vflow Evaluated flow value [m/s].
+ * @param rho Normalized poloidal flux coordinate of the query point [1].
+ * @param r R coordinate of the query point [m].
+ * @param t Time coordinate of the query point [s].
+ * @param plasma The plasma data.
+ *
+ * @return Zero if the evaluation succeeded.
  */
 err_t PlasmaDynamic1D_eval_flow(
-    real *vflow, real rho, real t, real r, PlasmaDynamic1D *plasma);
+    real vflow[1], real rho, real t, real r, PlasmaDynamic1D *plasma);
 DECLARE_TARGET_END
 
 #endif

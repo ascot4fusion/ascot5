@@ -40,7 +40,7 @@ void splinecomp(real *f, size_t n, int bc, real c[2 * n])
 
         /* Back substitution */
         D[n - 1] = Y[n - 1];
-        for (size_t i = n - 1; i-- > 0;)
+        for (size_t i = n - 1; i > 0; i--)
             D[i - 1] = Y[i - 1] - p[i - 1] * D[i];
     }
     else if (bc == PERIODICBC)
@@ -92,14 +92,9 @@ void splinecomp(real *f, size_t n, int bc, real c[2 * n])
         /* Back substitution */
         D[n - 1] = Y[n - 1];
         D[n - 2] = Y[n - 2] - p[n - 2] * D[n - 1];
-        for (size_t i = n - 3; i < n; i--)
-        {
-            D[i] = Y[i] - p[i] * D[i + 1] - r[i] * D[n - 1];
-            if (i == 0)
-                break;
-        }
+        for (size_t i = n - 2; i > 0; i--)
+            D[i-1] = Y[i-1] - p[i-1] * D[i] - r[i-1] * D[n-1];
 
-        /* Free allocated memory */
         free(r);
     }
 
@@ -116,7 +111,6 @@ void splinecomp(real *f, size_t n, int bc, real c[2 * n])
         c[i * 2 + 1] = D[i];
     }
 
-    /* Free allocated memory */
     free(Y);
     free(p);
     free(D);

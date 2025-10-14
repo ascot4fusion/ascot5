@@ -34,7 +34,7 @@ typedef struct
      * First ``nrho`` elements are electron temperatures, followed by ``nrho``
      * ion temperatures (same for all ion species).
      */
-    real *temp;
+    real *temperature;
 
     /**
      * Electron and ion densities [m^-3].
@@ -42,7 +42,7 @@ typedef struct
      * First ``nrho`` elements are electron densities, followed by ion densities
      * (in same order as they are listed in ``anum``, ``znum``, etc.).
      */
-    real *dens;
+    real *density;
 } PlasmaLinear1D;
 
 /**
@@ -68,7 +68,7 @@ typedef struct
      * by ``nrho`` x ``ntime`` ion temperatures (same for all ion species).
      * Otherwise the layout is (rhoi, tj) = [j*nrho + i] (C order).
      */
-    real *temp;
+    real *temperature;
 
     /**
      * Electron and ion densities [m^-3].
@@ -77,7 +77,7 @@ typedef struct
      * ion densities (in same order as they are listed in ``anum``, ``znum``,
      * etc.). Otherwise the layout is (rhoi, tj) = [j*nrho + i] (C order).
      */
-    real *dens;
+    real *density;
 } PlasmaDynamic1D;
 
 /**

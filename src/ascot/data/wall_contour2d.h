@@ -5,100 +5,60 @@
 #ifndef WALL_CONTOUR2D_H
 #define WALL_CONTOUR2D_H
 #include "defines.h"
-#include "wall.h"
 #include "parallel.h"
+#include "wall.h"
 
 /**
- * @brief Load 2D wall data and prepare parameters
+ * Initialize 2D contour wall model.
  *
- * @param data pointer to the data struct
- * @param nelements number of elements in the wall polygon
- * @param r R coordinates for the wall polygon points
- * @param z z coordinates for the wall polygon points
- * @param flag integer label for grouping wall elements together.
+ * @param wall The struct to initialize.
+ * @param n Number of vertices in the wall mesh.
+ * @param r R coordinates for the wall polygon vertices.
+ * @param z z coordinates for the wall polygon vertices.
+ * @param flag Integer label for grouping wall elements together.
  *
- * @return zero to indicate success
+ * @return Zero if the initialization succeeded.
  */
 int WallContour2D_init(
-    WallContour2D* wall, int n, real r[n], real z[n], int flag[n]
-);
-
+    WallContour2D *wall, size_t n, real r[n], real z[n], int flag[n]);
 
 /**
- * @brief Free allocated resources
+ * Free allocated resources.
  *
- * @param data pointer to the data struct
+ * @param wall The struct whose fields are deallocated.
  */
-void WallContour2D_free(WallContour2D* wall);
-
+void WallContour2D_free(WallContour2D *wall);
 
 /**
- * @brief Offload data to the accelerator.
+ * Offload data to the accelerator.
  *
- * @param data pointer to the data struct
+ * @param wall The struct to offload.
  */
-void WallContour2D_offload(WallContour2D* wall);
+void WallContour2D_offload(WallContour2D *wall);
 
-
-/**
- * @brief Check if coordinates are within 2D polygon wall
- *
- * This function checks if the given coordinates are within the walls defined
- * by a 2D polygon using a modified axis crossing method Origin is moved
- * to the coordinates and the number of wall segments crossing the positive
- * R-axis are calculated. If this is odd, the point is inside the polygon.
- *
- * @param r R coordinate [m]
- * @param z z coordinate [m]
- * @param w 2D wall data structure
- */
 GPU_DECLARE_TARGET_SIMD_UNIFORM(wall)
-int WallContour2D_inside(real r, real z, WallContour2D* wall);
-DECLARE_TARGET_END
-
-
 /**
- * @brief Check if trajectory from (r1, phi1, z1) to (r2, phi2, z2) intersects
- *        the wall
+ * Check if a given directed line segment intersects the wall.
  *
- * @param r1 start point R coordinate [m]
- * @param phi1 start point phi coordinate [rad]
- * @param z1 start point z coordinate [m]
- * @param r2 end point R coordinate [m]
- * @param phi2 end point phi coordinate [rad]
- * @param z2 end point z coordinate [m]
- * @param w pointer to data struct on target
- * @param w_coll pointer for storing the parameter in P = P1 + w_coll * (P2-P1),
- *        where P is the point where the collision occurred.
+ * This function is intended to be used to check whether a marker intersects
+ * with the wall. If there is an intersection, this function returns the index
+ * of the wall element (indexing starts from one). If the marker hits multiple
+ * wall elements, only the one that is closest to the start point is returned.
  *
- * @return wall element ID if hit, zero otherwise
+ * Intersections are tested with respect to each wall element.
+ *
+ * @param w_coll Parameter indicating the point of intersection.
+ *        This parameter is defined by P = P1 + w_coll * (P2-P1). The value is
+ *        one if no intersection occurred.
+ * @param r1 Start point R coordinate [m].
+ * @param z1 Start point z coordinate [m].
+ * @param r2 End point R coordinate [m].
+ * @param z2 End point z coordinate [m].
+ * @param wall The wall data.
+ *
+ * @return Wall element index on intersection, zero otherwise.
  */
-GPU_DECLARE_TARGET_SIMD_UNIFORM(wall)
-size_t WallContour2D_hit_wall(
-    real r1, real z1, real r2, real z2, real* w_coll, WallContour2D* wall
-);
-
-
-/**
- * @brief Find intersection between the wall element and line segment
- *
- * If there are multiple intersections, the one that is closest to P1
- * is returned.
- *
- * @param r1 R1 coordinate of the line segment [P1,P2] [m]
- * @param z1 z1 coordinate of the line segment [P1,P2] [m]
- * @param r2 R2 coordinate of the line segment [P1,P2] [m]
- * @param z2 z2 coordinate of the line segment [P1,P2] [m]
- * @param w pointer to the wall data
- * @param w_coll pointer for storing the parameter in P = P1 + w_coll * (P2-P1),
- *        where P is the point where the collision occurred.
- *
- * @return int wall element id if hit, zero otherwise
- */
-GPU_DECLARE_TARGET_SIMD_UNIFORM(wall)
-size_t WallContour2D_find_intersection(
-    real r1, real z1, real r2, real z2, real* w_coll, WallContour2D* wall
-);
-DECLARE_TARGET_END
+size_t WallContour2D_eval_intersection(
+    real w_coll[1], real r1, real z1, real r2, real z2, WallContour2D *wall);
 
 #endif

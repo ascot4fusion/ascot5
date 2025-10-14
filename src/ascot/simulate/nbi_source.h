@@ -6,10 +6,10 @@
 #ifndef NBI_SOURCE_H
 #define NBI_SOURCE_H
 
-#include "defines.h"
-#include "datatypes.h"
 #include "data/marker.h"
 #include "data/nbi.h"
+#include "datatypes.h"
+#include "defines.h"
 #include <stddef.h>
 
 /**
@@ -32,7 +32,7 @@
  * @param mrk Marker struct to fill.
  */
 void nbi_source_inject_markers(
-    Simulation *sim, Nbi* inj, real tlim[2], size_t nmrk, State *mrk);
+    Simulation *sim, Nbi *inj, real tlim[2], size_t nmrk, State *mrk);
 
 /**
  * Trace a neutral marker until it has ionized or hit wall.
