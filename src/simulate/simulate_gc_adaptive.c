@@ -64,6 +64,9 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     real hout_col[NSIMD]  __memalign__;
     real hout_rfof[NSIMD] __memalign__;
     real hnext[NSIMD]     __memalign__;
+    real acc[NSIMD]       __memalign__;
+    real orbit_time[NSIMD]__memalign__;
+    real collfreq[NSIMD]__memalign__;
 
     /* Flag indicateing whether a new marker was initialized */
     int cycle[NSIMD]     __memalign__;
@@ -81,6 +84,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     for(int i=0; i< NSIMD; i++) {
         p.id[i] = -1;
         p.running[i] = 0;
+        acc[i] = 1.0;
+        orbit_time[i] = -1;
     }
 
     /* Initialize running particles */
@@ -170,7 +175,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         if(sim->enable_clmbcol) {
             real rnd[5*NSIMD];
             random_normal_simd(&sim->random_data, 5*NSIMD, rnd);
-            mccc_gc_milstein(&p, hin, hout_col, tol_col, wienarr, &sim->B_data,
+            mccc_gc_milstein(&p, hin, acc, collfreq, hout_col, tol_col, wienarr, &sim->B_data,
                              &sim->plasma_data, &sim->mccc_data, rnd);
 
             /* Check whether time step was rejected */
@@ -233,8 +238,10 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                     }
                     else {
                         p.time[i] += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) )
-                            * hin[i];
-                        p.mileage[i] += hin[i];
+                            * hin[i] * acc[i];
+                        p.mileage[i] += hin[i] * acc[i];
+                        if(orbit_time[i] >= 0)
+                            orbit_time[i] += hin[i] * acc[i];
                         /* In case the time step was succesful, pick the
                         smallest recommended value for the next step */
                         if(hnext[i] > hout_orb[i]) {
@@ -269,6 +276,19 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         }
         cputime_last = cputime;
 
+        /* If OMP is crossed, adjust acceleration */
+        if(sim->enable_ada > 1) {
+            real rz[2];
+            for(int i = 0; i < NSIMD; i++) {
+                B_field_get_axis_rz(rz, &sim->B_data, p.phi[i]);
+                if( (p.z[i] - rz[1]) * (p0.z[i] - rz[1]) < 0) {
+                    if(orbit_time[i] >= 0)
+                        acc[i] = fmax(1.0, 0.01 / (orbit_time[i] * collfreq[i]));
+                    orbit_time[i] = 0;
+                }
+            }
+        }
+
         /* Check possible end conditions */
         endcond_check_gc(&p, &p0, sim);
 
@@ -283,6 +303,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         for(int i = 0; i < NSIMD; i++) {
             if(cycle[i] > 0) {
                 hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
+                acc[i] = 1.0;
+                orbit_time[i] = -1;
                 if(sim->enable_clmbcol) {
                     /* Re-allocate array storing the Wiener processes */
                     mccc_wiener_initialize(&(wienarr[i]), p.time[i]);
