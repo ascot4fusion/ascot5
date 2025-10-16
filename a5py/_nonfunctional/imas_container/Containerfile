@@ -1,0 +1,34 @@
+# Start from the specified base image
+FROM gitlab.eufus.psnc.pl:5050/containerization/imas/imas-installer/al:DD-4.0.0_AL-5.4.1-UDA-2.8.1-UDA-PLUGIN-1.5.0
+
+# Set the maintainer label
+LABEL maintainer="Simppa Akaslompolo <simppa.akaslompolo@aalto.fi>"
+
+RUN ["dnf", "install", "-y", "hdf5-devel", "redhat-rpm-config", "emacs-nox"]
+
+WORKDIR /ascot
+RUN ["git", "clone", "https://github.com/ascot4fusion/ascot5.git"]
+
+WORKDIR ascot5
+
+RUN ["git", "checkout", "feature/54-imasify-ascot5-rebased"]
+
+
+RUN ["make", "libascot", "-j"]
+
+RUN ["pip", "install", "-e", "."]
+
+RUN ["pip", "install", "ipython"]
+
+ADD runexample.py runexample.py
+
+RUN ["ipython", "runexample.py" ]
+
+# podman build --format docker  -t imas-ascot:latest .
+# podman run --rm -it localhost/imas-ascot:latest /bin/bash
+
+# podman build --format docker  -t imas-ascot:latest . && podman run --rm -it localhost/imas-ascot:latest ipython getExample.py
+
+RUN mkdir -p /ids/
+
+ADD getExample.py getExample.py
