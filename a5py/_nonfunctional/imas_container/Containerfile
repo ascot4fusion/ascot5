@@ -32,3 +32,5 @@ RUN ["ipython", "runexample.py" ]
 RUN mkdir -p /ids/
 
 ADD getExample.py getExample.py
+
+RUN ipython getExample.py
