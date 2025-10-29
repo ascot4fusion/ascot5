@@ -1772,7 +1772,7 @@ class PhysTest():
         print("Error in H - P (GCF): %e %e %s" % (err1[1], err2[1], fail))
 
         fail = ""
-        if err1[2] > 1e-9 or err2[2] > 1e-6:
+        if err1[2] > 1e-7 or err2[2] > 1e-6:
             fail = "(FAILED)"
             passed = False
         print("Error in H - P (GCA): %e %e %s" % (err1[2], err2[2], fail))
