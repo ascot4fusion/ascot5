@@ -508,7 +508,7 @@ class Ascot(Ascotpy):
         axes.set_ylabel("y [m]")
         axes.set_title("View from above")
 
-    def input_plotwallcontour(self, phi=0*unyt.deg, axes=None):
+    def input_plotwallcontour(self, phi=0*unyt.deg, axes=None, color="black",label=None):
         """Plot intersection of the wall and the poloidal plane at the given
         toroidal angle.
 
@@ -520,5 +520,5 @@ class Ascot(Ascotpy):
             The axes where figure is plotted or otherwise new figure is created.
         """
         ls = self.data.wall.active.getwallcontour(phi=phi)
-        line2d(ls[:,:,0], ls[:,:,1], c="black", axesequal=True, axes=axes,
-               xlabel="R [m]", ylabel="z [m]")
+        line2d(ls[:,:,0], ls[:,:,1], c=color, axesequal=True, axes=axes,
+               xlabel="R [m]", ylabel="z [m]",label=label)

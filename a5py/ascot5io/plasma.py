@@ -88,7 +88,7 @@ class plasma_1D(DataGroup):
             xlim=rholim, y1lim=densitylim, y2lim=temperaturelim,
             xlabel=r"$\rho$", y1label=r"Density [m$^{-3}$]",
             y1legends=y1legends, y2label=r"Temperature [eV]",
-            y2legends=[r"$T_e$", r"$T_i$"], axes=axes)
+            y2legends=[r"$T_e$", r"$T_i$"], axes=axes, title=self.get_desc())
 
     @staticmethod
     def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rho, vtor,
@@ -284,7 +284,7 @@ class plasma_1DS(DataGroup):
             xlim=rholim, y1lim=densitylim, y2lim=temperaturelim,
             xlabel=r"$\rho$", y1label=r"Density [m$^{-3}$]",
             y1legends=y1legends, y2label=r"Temperature [eV]",
-            y2legends=[r"$T_e$", r"$T_i$"], axes=axes)
+            y2legends=[r"$T_e$", r"$T_i$"], axes=axes, title=self.get_desc())
 
     @staticmethod
     def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rhomin, rhomax,

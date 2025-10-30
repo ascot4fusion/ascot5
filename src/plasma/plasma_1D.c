@@ -72,7 +72,7 @@ int plasma_1D_init(plasma_1D_data* data, int nrho, int nion, real* rho,
                   data->znum[i], data->anum[i],
                   (int)round(data->charge[i+1]/CONST_E),
                   data->mass[i+1]/CONST_U,
-                  data->dens[(i+1)*nrho], data->dens[(i+1)*nrho - 1],
+                  data->dens[(i+1)*nrho], data->dens[(i+2)*nrho - 1],
                   data->temp[nrho] / CONST_E, data->temp[2*nrho-1] / CONST_E);
     }
     print_out(VERBOSE_IO,

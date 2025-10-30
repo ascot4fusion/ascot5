@@ -774,6 +774,8 @@ def line2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
         Color of the marker face.
     title : str, optional
         Title of the figure.
+    label : str, optional
+        Label for the legend.
     skipshow : bool, optional
         Flag to skip the show function. Only used by the openfigureifnoaxes decorator.
     """
@@ -786,8 +788,12 @@ def line2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
     if c is None or isinstance(c, str):
         # Simple plot with a single color
         for i in range(len(x)):
-            axes.plot(x[i], y[i], color=c, marker=marker,
-                      markerfacecolor=markerfacecolor,label=label)
+            if i == 0:
+                axes.plot(x[i], y[i], color=c, marker=marker,
+                          markerfacecolor=markerfacecolor,label=label)
+            else:
+                axes.plot(x[i], y[i], color=c, marker=marker,
+                          markerfacecolor=markerfacecolor)
         return axes
 
     if bbox is None:

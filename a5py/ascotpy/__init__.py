@@ -316,6 +316,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             "Magnetic field phi component (not including MHD)",
             "bz":
             "Magnetic field z component (not including MHD)",
+            "bpol":
+            "Magnetic field poloidal component (not including MHD)",
             "bnorm":
             "Magnetic field norm (not including MHD)",
             "brdr":
@@ -543,10 +545,14 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             out["curlbr"]   = out["bzdphi"] / r - out["bphidz"]
             out["curlbphi"] = out["brdz"] - out["bzdr"]
             out["curlbz"]   = (out["bphi"] - out["brdphi"]) / r + out["bphidr"]
-        if any(q in qnt for q in ["axisr", "axisz", "rminor"]):
-            out.update(self._eval_bfield(r, phi, z, t, evalaxis=True))
+        if any(q in qnt for q in ["axisr", "axisz", "rminor", "bpol"]):
+            out.update(self._eval_bfield(r, phi, z, t, evalaxis=True, evalb=True))
             out["rminor"] = np.sqrt(  ( out["axisr"] - r )**2
                                     + ( out["axisz"] - z )**2 )
+            dr = r-out["axisr"]
+            dz = z-out["axisz"]
+            bpol_sign = np.sign(dr*out["bz"] - dz*out["br"])
+            out["bpol"] = bpol_sign*np.sqrt(out["bphi"]**2 + out["bz"]**2)
         if any(q in qnt for q in ["er", "ephi", "ez"]):
             out.update(self._eval_efield(r, phi, z, t))
         if any(q in qnt for q in ["n0"]):

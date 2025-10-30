@@ -331,7 +331,7 @@ class RunMixin(DistMixin):
                          self.getstate("y", state ="end", endcond=endcond),
                          self.getstate("z", state="end", endcond=endcond)]).T
 
-    def getstate_markers(self, mrktype, ids=None):
+    def getstate_markers(self, mrktype, ids=None, state="end"):
         """Convert endstate to marker input.
 
         Parameters
@@ -340,6 +340,8 @@ class RunMixin(DistMixin):
             Type of marker input to be created.
         ids : array_like, optional
             Select only these markers for the output.
+        state : {"ini", "end"}
+            Use initial or final state.
 
         Returns
         -------
@@ -354,13 +356,13 @@ class RunMixin(DistMixin):
         if mrktype == "prt":
             qnt = ["r", "phi", "z", "weight", "time", "vr", "vphi", "vz",
                    "mass", "charge", "anum", "znum"]
-            state = self.getstate(*qnt, mode="prt", state="end", ids=ids)
+            state = self.getstate(*qnt, mode="prt", state=state, ids=ids)
             for i, q in enumerate(qnt):
                 mrk[q] = state[i]
         elif mrktype == "gc":
             qnt = ["r", "phi", "z", "weight", "time", "ekin", "pitch", "zeta",
                    "mass", "charge", "anum", "znum"]
-            state = self.getstate(*qnt, mode="gc", state="end", ids=ids)
+            state = self.getstate(*qnt, mode="gc", state=state, ids=ids)
             for i, q in enumerate(qnt):
                 if q == "ekin":
                     mrk["energy"] = state[i]
@@ -368,7 +370,7 @@ class RunMixin(DistMixin):
                     mrk[q] = state[i]
         elif mrktype == "fl":
             qnt = ["r", "phi", "z", "weight", "time", "pitch"]
-            state = self.getstate(*qnt, mode="gc", state="end", ids=ids)
+            state = self.getstate(*qnt, mode="gc", state=state, ids=ids)
             for i, q in enumerate(qnt):
                 mrk[q] = state[i]
         return mrk
@@ -857,7 +859,7 @@ class RunMixin(DistMixin):
     def plotstate_scatter(self, x, y, z=None, c=None, xmode="gc", ymode="gc",
                           zmode="gc", cmode="gc", endcond=None, ids=None,
                           cint=9, cmap=None, axesequal=False, axes=None,
-                          cax=None):
+                          cax=None, markersize=4.0):
         """Make a scatter plot of marker state coordinates.
 
         The plot is either 2D+1D or 3D+1D, where the extra coordinate is color,
@@ -981,14 +983,14 @@ class RunMixin(DistMixin):
         if z is None:
             a5plt.scatter2d(xc, yc, c=cc, xlog=xlog, ylog=ylog, clog=clog,
                             xlabel=x, ylabel=y, clabel=c, cint=cint, cmap=cmap,
-                            axesequal=axesequal, axes=axes, cax=cax)
+                            axesequal=axesequal, axes=axes, cax=cax, markersize=markersize)
         else:
             z, zc, zlog = parsearg(z)
             z = z + " [" + str(zc.units) + "]"
             a5plt.scatter3d(xc, yc, zc, c=cc, xlog=xlog, ylog=ylog,
                             zlog=zlog, clog=clog, xlabel=x, ylabel=y, zlabel=z,
                             clabel=c, cint=cint, cmap=cmap,
-                            axesequal=axesequal, axes=axes, cax=cax)
+                            axesequal=axesequal, axes=axes, cax=cax, markersize=markersize)
 
     def plotstate_histogram(self, x, y=None, xbins=10, ybins=10, xmode="gc",
                             ymode="gc", endcond=None, ids=None, weight=False,
