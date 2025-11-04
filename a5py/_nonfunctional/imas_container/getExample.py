@@ -23,7 +23,52 @@ def fill_ggd_d5d( d5d, D, itime=0, itasc=0, irefgrid=0 ):
      itime    (input, optional(default=0) which time index to fill in the IDS (index here starts with 0)
      itasc    (input, optional(default=0) which time index in the ascot distribution use
      irefgrid (input, optional(default=0) which time index in the ascot distribution use (index here starts with 0, will be +1)
+
    '''
+
+   reference_implementation_notes='''
+The following is a list of needed steps as extracted from manual grid building examples
+https://git.iter.org/projects/IMEX/repos/ggd/browse/examples/f90/ids_grid_example1_2dstructured_manual.f90
+   2. Set up grid
+   - we need one space per abscissa
+   - each space can be done separately in a subroutine (gridSetupStruct1dSpace_ex1), and needs
+      * coordtype
+      * vector of coordinate values
+     (To be documented here)
+   3. grid subsets are used to define where in the grid the data is actually stored.
+      (Assume we have n slots in each dimension.)
+       - This is a case of first building up indexes of all points in the grid. That is (n+1)**5 points.
+         T
+       - Next each neighboring pair of points in connected as a line segment. That is probably another n**5
+       - For each face we need to connect four lines.
+       - For each cell we need to connect six faces
+       - For each tesseract we need to connect eight cells
+       - For each penteract we need to connect ten tesseracts
+
+   Luckily, it seems this list does not need to be explictly written.
+   See  https://sharepoint.iter.org/departments/POP/CM/IMDesign/Data%20Model/CI/imas-4.0.0/distributions.html
+   # in distribution.ggd.grid.gridsubset.identifier
+
+   # I think we need to request continuation of this list:
+
+   index name
+   ----------
+   1  nodes         : "All nodes (0D) belonging to the associated spaces, implicit declaration (no need to replicate the grid elements in the grid_subset structure)."
+   2  edges         : "All edges (1D) belonging to the associated spaces, implicit declaration (no need to replicate the grid elements in the grid_subset structure)"
+   43 volumes       : "All volumes (3D) belonging to the associated spaces, implicit declaration (no need to replicate the grid elements in the grid_subset structure)"
+             proposed extension:
+   n 4-hypervolumes : "All 4d-hypervolumes (4D) belonging to the associated spaces, implicit declaration (no need to replicate the grid elements in the grid_subset structure)
+   m 5-hypervolumes : "All 5d-hypervolumes (5D) belonging to the associated spaces, implicit declaration (no need to replicate the grid elements in the grid_subset structure)
+   o 6-hypervolumes : "All 6d-hypervolumes (6D) belonging to the associated spaces, implicit declaration (no need to replicate the grid elements in the grid_subset structure)
+   p 7-hypervolumes : "All 7d-hypervolumes (7D) belonging to the associated spaces, implicit declaration (no need to replicate the grid elements in the grid_subset structure)
+   q 8-hypervolumes : "All 8d-hypervolumes (8D) belonging to the associated spaces, implicit declaration (no need to replicate the grid elements in the grid_subset structure)
+
+
+
+
+   '''
+
+
    # Sanity check:
    if (d5d.abscissae[0] != 'r'     or
        d5d.abscissae[1] != 'phi'   or
@@ -106,6 +151,20 @@ def fill_ggd_d5d( d5d, D, itime=0, itasc=0, irefgrid=0 ):
 
       
    A.values.resize(nData)
+
+   # The data organization, copied from https://sharepoint.iter.org/departments/POP/CM/IMDesign/Data%20Model/CI/imas-4.0.0/distributions.html
+   # in distribution.ggd.grid.gridsubset.identifier for index 1: "nodes"
+
+   '''
+   All nodes (0D) belonging to the associated spaces, implicit declaration (no need to replicate the grid elements in the grid_subset structure).
+   In case of a structured grid represented with multiple 1D spaces,
+   the order of the implicit elements in the grid_subset follows Fortran ordering, i.e.
+   iterate always on nodes of the first space first,
+   then move to the second node of the second space, ... :
+   [((s1_1 to s1_end), s2_1, s3_1 ... sN_1), (((s1_1 to s1_end), s2_2, s3_1, ... sN_1)), ... ((s1_1 to s1_end), s2_end, s3_end ... sN_end)]
+   '''
+
+
 
    # Here is a leap of fate that the data gets correctly organized:
    A.values[:] = d5d.distribution().value[:,:,:,:,:,itasc,iCharge].ravel()
