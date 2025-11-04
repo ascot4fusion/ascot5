@@ -793,10 +793,10 @@ class RunMixin(DistMixin):
             Dist.electronpowerdep(self._root._ascot, mass, dist, out)
         if "ionpowerdep" in moments:
             Dist.ionpowerdep(self._root._ascot, mass, dist, out)
-        #if "jxbtorque" in moments:
-        #    Dist.jxbtorque(self._root._ascot, mass, dist, out)
-        #if "colltorque" in moments:
-        #    Dist.collTorque(self._root._ascot, mass, dist, out)
+        if "jxbtorque" in moments:
+            Dist.jxbtorque(self._root._ascot, mass, dist, out)
+        if "colltorque" in moments:
+            Dist.collTorque(self._root._ascot, mass, dist, out)
         #if "canmomtorque" in moments:
         #    Dist.canMomentTorque(dist, out)
         return out

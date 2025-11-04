@@ -477,7 +477,7 @@ class Ascot(Ascotpy):
         from matplotlib.lines import Line2D
         legend_elements = [
             Line2D([0], [0], marker=r'$\leftarrow$', color='C0',
-                   linestyle="none", label=r"$\mathbf{B}_\mathrm{pol}$",
+                   linestyle="none", label=r"$\mathbf{B}_\mathrm{tor}$",
                    markerfacecolor='C0', markersize=14),
             Line2D([0], [0], marker=r'$\leftarrow$', color='C1',
                    linestyle="none", label=r"$\mathbf{I}_p$",
