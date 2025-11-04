@@ -37,31 +37,6 @@ https://git.iter.org/projects/IMEX/repos/ggd/browse/examples/f90/ids_grid_exampl
      (To be documented here)
    3. grid subsets are used to define where in the grid the data is actually stored.
       (Assume we have n slots in each dimension.)
-       - This is a case of first building up indexes of all points in the grid. That is (n+1)**5 points.
-         T
-       - Next each neighboring pair of points in connected as a line segment. That is probably another n**5
-       - For each face we need to connect four lines.
-       - For each cell we need to connect six faces
-       - For each tesseract we need to connect eight cells
-       - For each penteract we need to connect ten tesseracts
-
-   Luckily, it seems this list does not need to be explictly written.
-   See  https://sharepoint.iter.org/departments/POP/CM/IMDesign/Data%20Model/CI/imas-4.0.0/distributions.html
-   # in distribution.ggd.grid.gridsubset.identifier
-
-   # I think we need to request continuation of this list:
-
-   index name
-   ----------
-   1  nodes         : "All nodes (0D) belonging to the associated spaces, implicit declaration (no need to replicate the grid elements in the grid_subset structure)."
-   2  edges         : "All edges (1D) belonging to the associated spaces, implicit declaration (no need to replicate the grid elements in the grid_subset structure)"
-   43 volumes       : "All volumes (3D) belonging to the associated spaces, implicit declaration (no need to replicate the grid elements in the grid_subset structure)"
-             proposed extension:
-   n 4-hypervolumes : "All 4d-hypervolumes (4D) belonging to the associated spaces, implicit declaration (no need to replicate the grid elements in the grid_subset structure)
-   m 5-hypervolumes : "All 5d-hypervolumes (5D) belonging to the associated spaces, implicit declaration (no need to replicate the grid elements in the grid_subset structure)
-   o 6-hypervolumes : "All 6d-hypervolumes (6D) belonging to the associated spaces, implicit declaration (no need to replicate the grid elements in the grid_subset structure)
-   p 7-hypervolumes : "All 7d-hypervolumes (7D) belonging to the associated spaces, implicit declaration (no need to replicate the grid elements in the grid_subset structure)
-   q 8-hypervolumes : "All 8d-hypervolumes (8D) belonging to the associated spaces, implicit declaration (no need to replicate the grid elements in the grid_subset structure)
 
 
 
@@ -79,7 +54,7 @@ https://git.iter.org/projects/IMEX/repos/ggd/browse/examples/f90/ids_grid_exampl
        d5d.abscissae[6] != 'charge'   ):
       warnings.warn("The 5d-distribution abscissae are not what is expected. Skipping ggd")
       return
-   
+
    warnings.warn("Species loop not yet implemented")
    iCharge=0
    if len(d5d.abscissa_edges( d5d.abscissae[ 6 ] )) > 2:
@@ -89,10 +64,11 @@ https://git.iter.org/projects/IMEX/repos/ggd/browse/examples/f90/ids_grid_exampl
    # Make sure we have an allocated ggd
    if len(D.ggd) <= 0:
       D.ggd.resize(1)
-   
-   g = D.ggd[itime].grid 
 
-   
+   g = D.ggd[itime].grid
+
+
+   warnings.warn("Not yet writing the neighbours etc. for spaces")
    g.identifier.name = "structured_spaces"
    g.identifier.index = 10
    g.identifier.description = "ASCOT5 5D distribution in"
@@ -100,7 +76,7 @@ https://git.iter.org/projects/IMEX/repos/ggd/browse/examples/f90/ids_grid_exampl
       g.identifier.description += ' {}'.format(dim)
 
    # Prepare the spaces...abscissaes
-   
+
    abscissae=[
       # index ascot, name, index, description
       ( 0, 'r',                          4, 'Major radius'),
@@ -111,7 +87,7 @@ https://git.iter.org/projects/IMEX/repos/ggd/browse/examples/f90/ids_grid_exampl
       # time index 5 itasc
       # charge should go to the different species
    ]
-   
+
    # We have five spaces, one for each abscissa
    nData = 1
    g.space.resize(len(abscissae))
@@ -120,7 +96,7 @@ https://git.iter.org/projects/IMEX/repos/ggd/browse/examples/f90/ids_grid_exampl
       edges = d5d.abscissa_edges( d5d.abscissae[ a[0] ] )
 
       S = g.space[i]
-      
+
       S.identifier.name         = 'primary_standard'
       S.identifier.index        = 1
       S.identifier.description  = 'Primary space defining the standard grid'
@@ -134,7 +110,7 @@ https://git.iter.org/projects/IMEX/repos/ggd/browse/examples/f90/ids_grid_exampl
       C.name        = a[1]
       C.index       = a[2]
       C.description = a[3]
-  
+
       S.objects_per_dimension.resize(1)
       S.objects_per_dimension[0].object.resize( len(edges) )
       for j,e in enumerate(edges):
@@ -149,11 +125,15 @@ https://git.iter.org/projects/IMEX/repos/ggd/browse/examples/f90/ids_grid_exampl
 
    A.grid_index = irefgrid
 
-      
+
+   A.grid_subset_index = 201 # "all 5-hypervolumes" https://imas-data-dictionary.readthedocs.io/en/latest/generated/identifier/ggd_subset_identifier.html#identifier-utilities-ggd_subset_identifier.xml
+                             # See also https://github.com/iterorganization/IMAS-Data-Dictionary/issues/166
+
    A.values.resize(nData)
 
    # The data organization, copied from https://sharepoint.iter.org/departments/POP/CM/IMDesign/Data%20Model/CI/imas-4.0.0/distributions.html
    # in distribution.ggd.grid.gridsubset.identifier for index 1: "nodes"
+   # Or https://imas-data-dictionary.readthedocs.io/en/latest/generated/identifier/ggd_subset_identifier.html#identifier-utilities-ggd_subset_identifier.xml
 
    '''
    All nodes (0D) belonging to the associated spaces, implicit declaration (no need to replicate the grid elements in the grid_subset structure).
@@ -165,9 +145,20 @@ https://git.iter.org/projects/IMEX/repos/ggd/browse/examples/f90/ids_grid_exampl
    '''
 
 
+   '''
+   order {‘C’,’F’, ‘A’, ‘K’}, optional
+
+   The elements of a are read using this index order. ‘C’ means to index the elements in row-major, C-style order, with the last axis index changing fastest, back to the first axis index changing slowest. ‘F’ means to index the elements in column-major, Fortran-style order, with the first index changing fastest, and the last index changing slowest. Note that the ‘C’ and ‘F’ options take no account of the memory layout of the underlying array, and only refer to the order of axis indexing. ‘A’ means to read the elements in Fortran-like index order if a is Fortran contiguous in memory, C-like order otherwise. ‘K’ means to read the elements in the order they occur in memory, except for reversing the data when strides are negative. By default, ‘C’ index order is used.
+   '''
+
+   ravel_order = 'F'
+   warnings.warn("Assuming that ravel from ASCOT5 5d-distribution to Fortran works with ravel order '{}'. Not checked.".format(ravel_order))
 
    # Here is a leap of fate that the data gets correctly organized:
-   A.values[:] = d5d.distribution().value[:,:,:,:,:,itasc,iCharge].ravel()
+
+   # The unit is supposed to be m^-6.s^-3 (A bug? should be m^-6.s^3 )
+   warnings.warn("There has been no checking if the units are correct or not.")
+   A.values[:] = d5d.distribution().value[:,:,:,:,:,itasc,iCharge].ravel(order=ravel_order)
 
 
 
