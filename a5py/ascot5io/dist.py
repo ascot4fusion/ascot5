@@ -909,12 +909,24 @@ class Dist(DataContainer):
         bnorm = np.sqrt(np.sum(bvec**2, axis=1))
 
         # We want to broadcast bnorm into (N_spatial, 3) array so that the
-        # multiplications work below. Note: broadcasting discards units.
-        bnorm = np.broadcast_to(bnorm[:,None], bvec.shape)*unyt.T
+        # multiplications work below. In some versions, broadcasting discards
+        # units.
+        bnorm = np.broadcast_to(bnorm[:,None], bvec.shape)
+        try:
+            bnorm.units
+        except:
+            bnorm *= unyt.T
 
         gradb = unyt.unyt_array([gradbr, gradbphi, gradbz]).T
         curlb = unyt.unyt_array([curlbr, curlbphi, curlbz]).T
-        curlbhat = -( np.cross(gradb, bvec/bnorm)*unyt.T/unyt.m - curlb ) / bnorm
+
+        # Depending on version, np.cross might discard units
+        grad_b_cross_bhat = np.cross(gradb, bvec/bnorm)
+        try:
+            grad_b_cross_bhat.units
+        except:
+            grad_b_cross_bhat *= unyt.T/unyt.m
+        curlbhat = -( grad_b_cross_bhat - curlb ) / bnorm
         for iq, q in enumerate(dist.abscissa("charge")):
             for ippa, ppa in enumerate(dist.abscissa("ppar")):
                 Bstar = bvec + (ppa / q) * curlbhat
@@ -925,10 +937,10 @@ class Dist(DataContainer):
                     # Our goal is to evaluate -qv dot grad(psi)
                     vr = (ppa / (gamma*mass)) * Bstar[:,0] \
                         / (b_star_par) + \
-                            (ppe**2/(2*q*mass)*np.cross(bvec, gradb)*unyt.T*unyt.T/unyt.m/bnorm**2)[:,0]*1/(b_star_par)
+                            (ppe**2/(2*q*mass)*(-grad_b_cross_bhat)/bnorm)[:,0]*1/(b_star_par)
                     vz = (ppa / (gamma*mass)) * Bstar[:,2] \
                         / (b_star_par) + \
-                            (ppe**2/(2*q*mass)*np.cross(bvec, gradb)*unyt.T*unyt.T/unyt.m/bnorm**2)[:,2]*1/(b_star_par)
+                            (ppe**2/(2*q*mass)*(-grad_b_cross_bhat)/bnorm)[:,2]*1/(b_star_par)
 
                     v_dot_nabla_psi = vr * dpsidr + vz * dpsidz
                     v_dot_nabla_psi = v_dot_nabla_psi.reshape(moment.volume.shape)
@@ -999,6 +1011,15 @@ class Dist(DataContainer):
                 shape_of_space_and_E = K.shape
                 K = np.broadcast_to(K[...,None], shape_of_space_and_E + (pitch.size,))
                 nu = np.broadcast_to(nu[...,None], shape_of_space_and_E + (pitch.size,))
+                # In some versions, broadcasting discards units
+                try:
+                    K.units
+                except:
+                    K *= K_units
+                try:
+                    nu.units
+                except:
+                    nu *= nu_units
 
                 # In a similar fashion, the shapes of pitch and va must match
                 pitch_shape=pitch.shape
@@ -1007,10 +1028,14 @@ class Dist(DataContainer):
                 pitch = np.broadcast_to(pitch, shape_of_space_and_E + pitch_shape)
                 va = np.broadcast_to(va, shape_of_space_and_E[:-1] + energy_shape)
                 va = np.broadcast_to(va[...,None], shape_of_space_and_E + pitch_shape)
+                try:
+                    va.units
+                except:
+                    va *= va_units
 
                 # Change of ppar due to collisions (without stochastic part)
-                dpitch = -nu*nu_units*pitch
-                dPpara = pitch*mass*K*K_units + mass*va*va_units*dpitch
+                dpitch = -nu*pitch
+                dPpara = pitch*mass*K + mass*va*dpitch
                 units = dPpara.units
 
                 dist._distribution[:,:,:,:,:,0,0] *= dPpara.v
@@ -1045,6 +1070,15 @@ class Dist(DataContainer):
                 shape_of_space_and_E = K.shape
                 K = np.broadcast_to(K[...,None], shape_of_space_and_E + (pitch.size,))
                 nu = np.broadcast_to(nu[...,None], shape_of_space_and_E + (pitch.size,))
+                # In some versions, broadcasting discards units
+                try:
+                    K.units
+                except:
+                    K *= K_units
+                try:
+                    nu.units
+                except:
+                    nu *= nu_units
 
                 pitch_shape=pitch.shape
                 energy_shape=va.shape
@@ -1052,9 +1086,13 @@ class Dist(DataContainer):
                 pitch = np.broadcast_to(pitch, shape_of_space_and_E + pitch_shape)
                 va = np.broadcast_to(va, shape_of_space_and_E[:-1] + energy_shape)
                 va = np.broadcast_to(va[...,None], shape_of_space_and_E + pitch_shape)
+                try:
+                    va.units
+                except:
+                    va *= va_units
 
-                dpitch = -nu*nu_units*pitch
-                dPpara = pitch*mass*K*K_units + mass*va*va_units*dpitch
+                dpitch = -nu*pitch
+                dPpara = pitch*mass*K + mass*va*dpitch
                 units = dPpara.units
 
                 dist._distribution[:,:,:,:,:,0,0] *= dPpara.v
