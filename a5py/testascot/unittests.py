@@ -822,7 +822,11 @@ class TestMoments(unittest.TestCase):
         k       = np.sum(k, axis=0)
         dppar   = mass * k * pitch - p * pitch * nu
         Pphi    = ppar * r * (bphi/bnorm) + charge * psi
-        dPphi   = np.diff(Pphi, prepend=Pphi[0])*Pphi.units
+        dPphi   = np.diff(Pphi, prepend=Pphi[0])
+        try:
+            dPphi.units
+        except:
+            dPphi *= Pphi.units
 
         a5.input_free()
 
