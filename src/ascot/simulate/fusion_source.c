@@ -3,7 +3,7 @@
  */
 #include "fusion_source.h"
 #include "consts.h"
-#include "data/hist.h"
+#include "data/diag_hist.h"
 #include "data/plasma.h"
 #include "datatypes.h"
 #include "defines.h"
@@ -130,7 +130,7 @@ void afsi_sample_reactant_momenta_2d(
 }
 
 void afsi_sample_beam_2d(
-    histogram *hist, real mass, real vol, size_t nsample, size_t i0, size_t i1,
+    DiagHist *hist, real mass, real vol, size_t nsample, size_t i0, size_t i1,
     size_t i2, real *density, real *ppara, real *pperp)
 {
     int mom_space;

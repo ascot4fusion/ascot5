@@ -816,25 +816,25 @@ inline static void step_gceom_mhd(
 
     real B[3];
     B[0] = B_dB[0];
-    B[1] = B_dB[4];
-    B[2] = B_dB[8];
+    B[1] = B_dB[1];
+    B[2] = B_dB[2];
 
     real normB = sqrt(math_dot(B, B));
     real gamma = physlib_gamma_ppar(mass, y[4], y[3], normB);
 
     real gradB[3];
-    gradB[0] = (B[0]*B_dB[1] + B[1]*B_dB[5] + B[2]*B_dB[9]) / normB;
-    gradB[1] = (B[0]*B_dB[2] + B[1]*B_dB[6] + B[2]*B_dB[10])
+    gradB[0] = (B[0]*B_dB[3] + B[1]*B_dB[6] + B[2]*B_dB[9]) / normB;
+    gradB[1] = (B[0]*B_dB[4] + B[1]*B_dB[7] + B[2]*B_dB[10])
                / (normB * y[0]);
-    gradB[2] = (B[0]*B_dB[3] + B[1]*B_dB[7] + B[2]*B_dB[11]) / normB;
+    gradB[2] = (B[0]*B_dB[5] + B[1]*B_dB[8] + B[2]*B_dB[11]) / normB;
 
     real gradBcrossB[3];
     math_cross(gradB, B, gradBcrossB);
 
     real curlB[3];
-    curlB[0] = B_dB[10] / y[0] - B_dB[7];
-    curlB[1] = B_dB[3] - B_dB[9];
-    curlB[2] = (B[1] - B_dB[2]) / y[0] + B_dB[5];
+    curlB[0] = B_dB[10] / y[0] - B_dB[8];
+    curlB[1] = B_dB[5] - B_dB[9];
+    curlB[2] = (B[1] - B_dB[4]) / y[0] + B_dB[6];
 
     real* gradalpha = &alpha[2];
 

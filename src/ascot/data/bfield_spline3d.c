@@ -23,18 +23,18 @@ int BfieldSpline3D_init(
     bfield->psilimits[0] = psilimits[0];
     bfield->psilimits[1] = psilimits[1];
 
-    err += interp2Dcomp_setup(
-        &bfield->psi, psi, pnr, pnz, NATURALBC, NATURALBC, prlim[0], prlim[1],
-        pzlim[0], pzlim[1]);
-    err += interp3Dcomp_setup(
-        &bfield->br, br, bnr, bnphi, bnz, NATURALBC, PERIODICBC, NATURALBC,
-        brlim[0], brlim[1], bphilim[0], bphilim[1], bzlim[0], bzlim[1]);
-    err += interp3Dcomp_setup(
-        &bfield->bz, bz, bnr, bnphi, bnz, NATURALBC, PERIODICBC, NATURALBC,
-        brlim[0], brlim[1], bphilim[0], bphilim[1], bzlim[0], bzlim[1]);
-    err += interp3Dcomp_setup(
-        &bfield->bphi, bphi, bnr, bnphi, bnz, NATURALBC, PERIODICBC, NATURALBC,
-        brlim[0], brlim[1], bphilim[0], bphilim[1], bzlim[0], bzlim[1]);
+    err += Spline2D_init(
+        &bfield->psi, pnr, pnz, NATURALBC, NATURALBC, prlim,
+        pzlim, psi);
+    err += Spline3D_init(
+        &bfield->br, bnr, bnphi, bnz, NATURALBC, PERIODICBC, NATURALBC,
+        brlim, bphilim, bzlim, br);
+    err += Spline3D_init(
+        &bfield->bz, bnr, bnphi, bnz, NATURALBC, PERIODICBC, NATURALBC,
+        brlim, bphilim, bzlim, bz);
+    err += Spline3D_init(
+        &bfield->bphi, bnr, bnphi, bnz, NATURALBC, PERIODICBC, NATURALBC,
+        brlim, bphilim, bzlim, bphi);
 
     return err;
 }
@@ -65,7 +65,7 @@ err_t BfieldSpline3D_eval_psi(
     real psi[1], real r, real z, BfieldSpline3D *bfield)
 {
     err_t err = 0;
-    int interperr = interp2Dcomp_eval_f(&psi[0], &bfield->psi, r, z);
+    int interperr = Spline2D_eval_f(&psi[0], &bfield->psi, r, z);
 
     err = ERROR_CHECK(
         err, interperr, ERR_INTERPOLATED_OUTSIDE_RANGE, DATA_BFIELD_SPLINE3D_C);
@@ -77,7 +77,7 @@ err_t BfieldSpline3D_eval_psi_dpsi(
 {
     err_t err = 0;
     real psi_dpsi_temp[6];
-    int interperr = interp2Dcomp_eval_df(psi_dpsi_temp, &bfield->psi, r, z);
+    int interperr = Spline2D_eval_f_df(psi_dpsi_temp, &bfield->psi, r, z);
     psi_dpsi[0] = psi_dpsi_temp[0];
     psi_dpsi[1] = psi_dpsi_temp[1];
     psi_dpsi[2] = 0;
@@ -94,15 +94,15 @@ err_t BfieldSpline3D_eval_b(
     err_t err = 0;
     int interperr = 0;
 
-    interperr += interp3Dcomp_eval_f(&b[0], &bfield->br, r, phi, z);
-    interperr += interp3Dcomp_eval_f(&b[1], &bfield->bphi, r, phi, z);
-    interperr += interp3Dcomp_eval_f(&b[2], &bfield->bz, r, phi, z);
+    interperr += Spline3D_eval_f(&b[0], &bfield->br, r, phi, z);
+    interperr += Spline3D_eval_f(&b[1], &bfield->bphi, r, phi, z);
+    interperr += Spline3D_eval_f(&b[2], &bfield->bz, r, phi, z);
 
     err = ERROR_CHECK(
         err, interperr, ERR_INTERPOLATED_OUTSIDE_RANGE, DATA_BFIELD_SPLINE3D_C);
 
     real psi_dpsi[6];
-    interperr = interp2Dcomp_eval_df(psi_dpsi, &bfield->psi, r, z);
+    interperr = Spline2D_eval_f_df(psi_dpsi, &bfield->psi, r, z);
     b[0] -= psi_dpsi[2] / r;
     b[2] += psi_dpsi[1] / r;
 
@@ -118,20 +118,20 @@ err_t BfieldSpline3D_eval_b_db(
     int interperr = 0;
     real b_db_temp[10];
 
-    interperr += interp3Dcomp_eval_df(b_db_temp, &bfield->br, r, phi, z);
+    interperr += Spline3D_eval_f_df(b_db_temp, &bfield->br, r, phi, z);
     b_db[0] = b_db_temp[0];
-    b_db[1] = b_db_temp[1];
-    b_db[2] = b_db_temp[2];
-    b_db[3] = b_db_temp[3];
+    b_db[2] = b_db_temp[1];
+    b_db[3] = b_db_temp[2];
+    b_db[4] = b_db_temp[3];
 
-    interperr += interp3Dcomp_eval_df(b_db_temp, &bfield->bphi, r, phi, z);
-    b_db[4] = b_db_temp[0];
-    b_db[5] = b_db_temp[1];
-    b_db[6] = b_db_temp[2];
-    b_db[7] = b_db_temp[3];
+    interperr += Spline3D_eval_f_df(b_db_temp, &bfield->bphi, r, phi, z);
+    b_db[1] = b_db_temp[0];
+    b_db[6] = b_db_temp[1];
+    b_db[7] = b_db_temp[2];
+    b_db[8] = b_db_temp[3];
 
-    interperr += interp3Dcomp_eval_df(b_db_temp, &bfield->bz, r, phi, z);
-    b_db[8] = b_db_temp[0];
+    interperr += Spline3D_eval_f_df(b_db_temp, &bfield->bz, r, phi, z);
+    b_db[2] = b_db_temp[0];
     b_db[9] = b_db_temp[1];
     b_db[10] = b_db_temp[2];
     b_db[11] = b_db_temp[3];
@@ -140,12 +140,12 @@ err_t BfieldSpline3D_eval_b_db(
         err, interperr, ERR_INTERPOLATED_OUTSIDE_RANGE, DATA_BFIELD_SPLINE3D_C);
 
     real psi_dpsi[6];
-    interperr = interp2Dcomp_eval_df(psi_dpsi, &bfield->psi, r, z);
+    interperr = Spline2D_eval_f_df(psi_dpsi, &bfield->psi, r, z);
 
     b_db[0] -= psi_dpsi[2] / r;
-    b_db[1] += psi_dpsi[2] / (r * r) - psi_dpsi[5] / r;
-    b_db[3] -= psi_dpsi[4] / r;
-    b_db[8] += psi_dpsi[1] / r;
+    b_db[3] += psi_dpsi[2] / (r * r) - psi_dpsi[5] / r;
+    b_db[5] -= psi_dpsi[4] / r;
+    b_db[2] += psi_dpsi[1] / r;
     b_db[9] -= psi_dpsi[1] / (r * r) + psi_dpsi[3] / r;
     b_db[11] += psi_dpsi[5] / r;
 

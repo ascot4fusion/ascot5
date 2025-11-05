@@ -10,6 +10,7 @@
 #include "data/nbi.h"
 #include "datatypes.h"
 #include "defines.h"
+#include "simulate.h"
 #include <stddef.h>
 
 /**

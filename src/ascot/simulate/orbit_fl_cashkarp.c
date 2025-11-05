@@ -25,39 +25,22 @@ void step_fl_cashkarp(
         {
             err_t errflag = 0;
 
-            real k1[3], k2[3], k3[3], k4[3], k5[3], k6[3];
+            real k2[3], k3[3], k4[3], k5[3], k6[3];
             real tempy[3];
-            real yprev[3];
 
             real normB;
 
             real R0 = p->r[i];
             real z0 = p->z[i];
             real t0 = p->time[i];
+            int direction = 1 - 2 * (p->pitch[i] < 0);
 
-            /* Direction */
-            int direction = 1;
-            if (p->pitch[i] < 0)
-            {
-                direction = -1;
-            }
-
-            /* Coordinates are copied from the struct into an array to make
-             * passing parameters easier */
-            yprev[0] = p->r[i];
-            yprev[1] = p->phi[i];
-            yprev[2] = p->z[i];
-
-            /* Magnetic field at initial position already known */
-            k1[0] = p->B_r[i];
-            k1[1] = p->B_phi[i];
-            k1[2] = p->B_z[i];
-
+            real yprev[3] = {p->r[i], p->phi[i], p->z[i]};
+            real k1[3] = {p->B_r[i], p->B_phi[i], p->B_z[i]};
             normB = (math_normc(k1[0], k1[1], k1[2])) * direction;
             k1[0] /= normB;
-            k1[1] /= normB;
+            k1[1] /= normB * yprev[0];
             k1[2] /= normB;
-            k1[1] /= yprev[0];
 
             for (int j = 0; j < 3; j++)
             {
@@ -192,16 +175,16 @@ void step_fl_cashkarp(
                     bfield);
             }
             p->B_r[i] = B_dB[0];
-            p->B_r_dr[i] = B_dB[1];
-            p->B_r_dphi[i] = B_dB[2];
-            p->B_r_dz[i] = B_dB[3];
+            p->B_r_dr[i] = B_dB[3];
+            p->B_r_dphi[i] = B_dB[4];
+            p->B_r_dz[i] = B_dB[5];
 
-            p->B_phi[i] = B_dB[4];
-            p->B_phi_dr[i] = B_dB[5];
-            p->B_phi_dphi[i] = B_dB[6];
-            p->B_phi_dz[i] = B_dB[7];
+            p->B_phi[i] = B_dB[1];
+            p->B_phi_dr[i] = B_dB[6];
+            p->B_phi_dphi[i] = B_dB[7];
+            p->B_phi_dz[i] = B_dB[8];
 
-            p->B_z[i] = B_dB[8];
+            p->B_z[i] = B_dB[2];
             p->B_z_dr[i] = B_dB[9];
             p->B_z_dphi[i] = B_dB[10];
             p->B_z_dz[i] = B_dB[11];
@@ -454,16 +437,16 @@ void step_fl_cashkarp_mhd(
                     bfield);
             }
             p->B_r[i] = B_dB[0];
-            p->B_r_dr[i] = B_dB[1];
-            p->B_r_dphi[i] = B_dB[2];
-            p->B_r_dz[i] = B_dB[3];
+            p->B_r_dr[i] = B_dB[3];
+            p->B_r_dphi[i] = B_dB[4];
+            p->B_r_dz[i] = B_dB[5];
 
-            p->B_phi[i] = B_dB[4];
-            p->B_phi_dr[i] = B_dB[5];
-            p->B_phi_dphi[i] = B_dB[6];
-            p->B_phi_dz[i] = B_dB[7];
+            p->B_phi[i] = B_dB[1];
+            p->B_phi_dr[i] = B_dB[6];
+            p->B_phi_dphi[i] = B_dB[7];
+            p->B_phi_dz[i] = B_dB[8];
 
-            p->B_z[i] = B_dB[8];
+            p->B_z[i] = B_dB[2];
             p->B_z_dr[i] = B_dB[9];
             p->B_z_dphi[i] = B_dB[10];
             p->B_z_dz[i] = B_dB[11];

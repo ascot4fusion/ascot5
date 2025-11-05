@@ -49,24 +49,25 @@ int Atomic_init(
         switch (dim)
         {
         case 1:
-            err = interp1Dcomp_setup(
-                &atomic->sigma[i_reac], pos, ne[i_reac], NATURALBC,
-                emin[i_reac], emax[i_reac]);
+            err = Spline1D_init(
+                &atomic->sigma[i_reac], ne[i_reac], NATURALBC,
+                (real[]){emin[i_reac], emax[i_reac]}, pos);
             pos += ne[i_reac];
             break;
         case 2:
-            err = interp2Dcomp_setup(
-                &atomic->sigmav[i_reac], pos, ne[i_reac], nT[i_reac], NATURALBC,
-                NATURALBC, emin[i_reac], emax[i_reac], Tmin[i_reac],
-                Tmax[i_reac]);
+            err = Spline2D_init(
+                &atomic->sigmav[i_reac], ne[i_reac], nT[i_reac], NATURALBC,
+                NATURALBC, (real[]){emin[i_reac], emax[i_reac]},
+                (real[]){Tmin[i_reac], Tmax[i_reac]}, pos);
             pos += ne[i_reac] * nT[i_reac];
             break;
         case 3:
-            err = interp3Dcomp_setup(
-                &atomic->BMSsigmav[i_reac], pos, ne[i_reac], nn[i_reac],
-                nT[i_reac], NATURALBC, NATURALBC, NATURALBC, emin[i_reac],
-                emax[i_reac], nmin[i_reac], nmax[i_reac], Tmin[i_reac],
-                Tmax[i_reac]);
+            err = Spline3D_init(
+                &atomic->BMSsigmav[i_reac], ne[i_reac], nn[i_reac], nT[i_reac],
+                NATURALBC, NATURALBC, NATURALBC,
+                (real[]){emin[i_reac], emax[i_reac]},
+                (real[]){nmin[i_reac], nmax[i_reac]},
+                (real[]){Tmin[i_reac], Tmax[i_reac]}, pos);
             pos += ne[i_reac] * nn[i_reac] * nT[i_reac];
             break;
         default:
@@ -147,7 +148,7 @@ err_t Atomic_eval_cx(
         {
             real sigmav;
             int interperr =
-                interp2Dcomp_eval_f(&sigmav, &atomic->sigmav[i_reac], E, T_0);
+                Spline2D_eval_f(&sigmav, &atomic->sigmav[i_reac], E, T_0);
 
             /* Interpolation error means the data has to be extrapolated */
             if (interperr)
@@ -195,7 +196,7 @@ err_t Atomic_eval_bms(
             {
                 reac_found = i_reac;
                 real sigmav;
-                int interperr = interp3Dcomp_eval_f(
+                int interperr = Spline3D_eval_f(
                     &sigmav, &atomic->BMSsigmav[i_reac], E_eV / a_1,
                     znum[i_spec] * n_i[i_spec], T_e);
 

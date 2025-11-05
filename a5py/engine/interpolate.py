@@ -29,7 +29,7 @@ init_fun(
     ctypes.POINTER(Neutral),
     ctypes.POINTER(BoozerMap),
     ctypes.POINTER(Mhd),
-    ctypes.c_int32,
+    ctypes.c_size_t,
     ctypes.c_int32,
     *([PTR_DOUBLE]*20)
     )
@@ -225,9 +225,13 @@ def process_query_points(r, phi, z, t, grid):
     if grid:
         if any(arr.squeeze().ndim > 1 for arr in (r, phi, z, t)):
             raise ValueError("Grid inputs must be 1D arrays")
-        return np.meshgrid(
+        R, PHI, Z, T = np.meshgrid(
             r.ravel(), phi.ravel(), z.ravel(), t.ravel(), indexing="ij"
             )
+        # Meshgrid doesn't ensure that arrays are C_CONTIGUOUS, and in fact Z
+        # isn't, so we make a C_CONTIGUOUS copy.
+        Z = np.ascontiguousarray(Z)
+        return R, PHI, Z, T
 
     shapes = [arr.shape for arr in (r, phi, z, t)]
     nonsingletons = [s for s in shapes if s != ()]

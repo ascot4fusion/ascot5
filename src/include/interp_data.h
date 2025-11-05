@@ -11,14 +11,14 @@
 /**
  * Boundary conditions for the interpolation.
  */
-enum boundaryCondition
+typedef enum
 {
-    NATURALBC = 0, /**< Second derivative is zero at the boundary.            */
-    PERIODICBC = 1 /**< Function has same value and derivatives at both ends. */
-};
+    NATURALBC,  /**< Second derivative is zero at the boundary.               */
+    PERIODICBC, /**< Function has same value and derivatives at both ends.    */
+} BoundaryCondition;
 
 /**
- * Number of coefficients stored for each data point in splines.
+ * Number of spline coefficients needed for each point in data.
  */
 enum SplineSize
 {
@@ -32,12 +32,17 @@ enum SplineSize
  */
 typedef struct
 {
-    size_t n_x;  /**< Number of x grid points.                                */
-    int bc_x;    /**< Boundary condition for x coordinate.                    */
-    real x_min;  /**< Minimum x coordinate in the grid.                       */
-    real x_max;  /**< Maximum x coordinate in the grid.                       */
-    real x_grid; /**< Interval between two adjacent points in x grid.         */
-    real *c;     /**< Pointer to array with spline coefficients.              */
+    size_t nx;    /**< Number of grid points in x.                            */
+    int xbc;      /**< Boundary condition in x.                               */
+    real dx;      /**< Grid interval in x.                                    */
+    real xlim[2]; /**< Grid limits in x.                                      */
+
+    /**
+     * Spline coefficients.
+     *
+     * Layout: [ix * 2 + c], where c = 0 for f and c = 1 for fxx.
+     */
+    real *c;
 } Spline1D;
 
 /**
@@ -45,17 +50,22 @@ typedef struct
  */
 typedef struct
 {
-    size_t n_x;  /**< Number of x grid points.                                */
-    size_t n_y;  /**< Number of y grid points.                                */
-    int bc_x;    /**< Boundary condition for x coordinate.                    */
-    int bc_y;    /**< Boundary condition for y coordinate.                    */
-    real x_min;  /**< Minimum x coordinate in the grid.                       */
-    real x_max;  /**< Maximum x coordinate in the grid.                       */
-    real x_grid; /**< Interval between two adjacent points in x grid.         */
-    real y_min;  /**< Minimum y coordinate in the grid.                       */
-    real y_max;  /**< Maximum y coordinate in the grid.                       */
-    real y_grid; /**< Interval between two adjacent points in y grid.         */
-    real *c;     /**< Pointer to array with spline coefficients.              */
+    size_t nx;    /**< Number of grid points in x.                            */
+    size_t ny;    /**< Number of grid points in y.                            */
+    int xbc;      /**< Boundary condition in x.                               */
+    int ybc;      /**< Boundary condition in y.                               */
+    real dx;      /**< Grid interval in x.                                    */
+    real dy;      /**< Grid interval in y.                                    */
+    real xlim[2]; /**< Grid limits in x.                                      */
+    real ylim[2]; /**< Grid limits in y.                                      */
+
+    /**
+     * Spline coefficients.
+     *
+     * Layout: [(ix * ny + iy) * 4 + c] (C order), where c = 0 for f, c = 1
+     * for fxx, c = 2 for fyy, and c = 3 for fxy.
+     */
+    real *c;
 } Spline2D;
 
 /**
@@ -63,22 +73,27 @@ typedef struct
  */
 typedef struct
 {
-    size_t n_x;  /**< Number of x grid points.                                */
-    size_t n_y;  /**< Number of y grid points.                                */
-    size_t n_z;  /**< Number of z grid points.                                */
-    int bc_x;    /**< Boundary condition for x coordinate.                    */
-    int bc_y;    /**< Boundary condition for y coordinate.                    */
-    int bc_z;    /**< Boundary condition for z coordinate.                    */
-    real x_min;  /**< Minimum x coordinate in the grid.                       */
-    real x_max;  /**< Maximum x coordinate in the grid.                       */
-    real x_grid; /**< Interval between two adjacent points in x grid.         */
-    real y_min;  /**< Minimum y coordinate in the grid.                       */
-    real y_max;  /**< Maximum y coordinate in the grid.                       */
-    real y_grid; /**< Interval between two adjacent points in y grid.         */
-    real z_min;  /**< Minimum z coordinate in the grid.                       */
-    real z_max;  /**< Maximum z coordinate in the grid.                       */
-    real z_grid; /**< Interval between two adjacent points in z grid.         */
-    real *c;     /**< Pointer to array with spline coefficients.              */
+    size_t nx;    /**< Number of grid points in x.                            */
+    size_t ny;    /**< Number of grid points in y.                            */
+    size_t nz;    /**< Number of grid points in z.                            */
+    int xbc;      /**< Boundary condition in x.                               */
+    int ybc;      /**< Boundary condition in y.                               */
+    int zbc;      /**< Boundary condition in z.                               */
+    real dx;      /**< Grid interval in x.                                    */
+    real dy;      /**< Grid interval in y.                                    */
+    real dz;      /**< Grid interval in z.                                    */
+    real xlim[2]; /**< Grid limits in x.                                      */
+    real ylim[2]; /**< Grid limits in y.                                      */
+    real zlim[2]; /**< Grid limits in z.                                      */
+
+    /**
+     * Spline coefficients.
+     *
+     * Layout: [(ix * ny * nz + iy * nz + iz) * 8 + c] (C order), where c = 0
+     * for f, c = 1 for fxx, c = 2 for fyy, c = 3 for fzz, c = 4 for fxxyy,
+     * c = 5 for fxxzz, c = 6 for fyyzz, and c = 7 for fxxyyzz.
+     */
+    real *c;
 } Spline3D;
 
 /**
@@ -86,53 +101,47 @@ typedef struct
  */
 typedef struct
 {
-    size_t n_x;  /**< Number of x grid points.                                */
-    int bc_x;    /**< Boundary condition for x coordinate.                    */
-    real x_min;  /**< Minimum x coordinate in the grid.                       */
-    real x_max;  /**< Maximum x coordinate in the grid.                       */
-    real x_grid; /**< Interval between two adjacent points in x grid.         */
-    real *c;     /**< Pointer to array with interpolant values.               */
+    size_t nx;    /**< Number of grid points in x.                            */
+    int xbc;      /**< Boundary condition in x.                               */
+    real dx;      /**< Grid interval in x.                                    */
+    real xlim[2]; /**< Grid limits in x.                                      */
+    real *c;      /**< Interpolant values at the grid points (nx,).           */
 } Linear1D;
 
 /**
- * @brief 2D linear interpolation struct.
+ * 2D linear interpolation struct.
  */
 typedef struct
 {
-    size_t n_x;  /**< Number of x grid points.                                */
-    size_t n_y;  /**< Number of y grid points.                                */
-    int bc_x;    /**< Boundary condition for x coordinate.                    */
-    int bc_y;    /**< Boundary condition for y coordinate.                    */
-    real x_min;  /**< Minimum x coordinate in the grid.                       */
-    real x_max;  /**< Maximum x coordinate in the grid.                       */
-    real x_grid; /**< Interval between two adjacent points in x grid.         */
-    real y_min;  /**< Minimum y coordinate in the grid.                       */
-    real y_max;  /**< Maximum y coordinate in the grid.                       */
-    real y_grid; /**< Interval between two adjacent points in y grid.         */
-    real *c;     /**< Pointer to array with interpolant values.               */
+    size_t nx;    /**< Number of grid points in x.                            */
+    size_t ny;    /**< Number of grid points in y.                            */
+    int xbc;      /**< Boundary condition in x.                               */
+    int ybc;      /**< Boundary condition in y.                               */
+    real dx;      /**< Grid interval in x.                                    */
+    real dy;      /**< Grid interval in y.                                    */
+    real xlim[2]; /**< Grid limits in x.                                      */
+    real ylim[2]; /**< Grid limits in y.                                      */
+    real *c;      /**< Interpolant values at the grid points (nx,).           */
 } Linear2D;
 
 /**
- * @brief 3D linear interpolation struct.
+ * 3D linear interpolation struct.
  */
 typedef struct
 {
-    size_t n_x;  /**< Number of x grid points.                                */
-    size_t n_y;  /**< Number of y grid points.                                */
-    size_t n_z;  /**< Number of z grid points.                                */
-    int bc_x;    /**< Boundary condition for x coordinate.                    */
-    int bc_y;    /**< Boundary condition for y coordinate.                    */
-    int bc_z;    /**< Boundary condition for z coordinate.                    */
-    real x_min;  /**< Minimum x coordinate in the grid.                       */
-    real x_max;  /**< Maximum x coordinate in the grid.                       */
-    real x_grid; /**< Interval between two adjacent points in x grid.         */
-    real y_min;  /**< Minimum y coordinate in the grid.                       */
-    real y_max;  /**< Maximum y coordinate in the grid.                       */
-    real y_grid; /**< Interval between two adjacent points in y grid.         */
-    real z_min;  /**< Minimum z coordinate in the grid.                       */
-    real z_max;  /**< Maximum z coordinate in the grid.                       */
-    real z_grid; /**< Interval between two adjacent points in z grid.         */
-    real *c;     /**< Pointer to array with interpolant values.               */
+    size_t nx;    /**< Number of grid points in x.                            */
+    size_t ny;    /**< Number of grid points in y.                            */
+    size_t nz;    /**< Number of grid points in z.                            */
+    int xbc;      /**< Boundary condition in x.                               */
+    int ybc;      /**< Boundary condition in y.                               */
+    int zbc;      /**< Boundary condition in z.                               */
+    real dx;      /**< Grid interval in x.                                    */
+    real dy;      /**< Grid interval in y.                                    */
+    real dz;      /**< Grid interval in z.                                    */
+    real xlim[2]; /**< Grid limits in x.                                      */
+    real ylim[2]; /**< Grid limits in y.                                      */
+    real zlim[2]; /**< Grid limits in z.                                      */
+    real *c;      /**< Interpolant values at the grid points (nx,).           */
 } Linear3D;
 
 #endif

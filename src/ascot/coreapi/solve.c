@@ -21,6 +21,8 @@
 #include "utils/random.h"
 #include <string.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <stddef.h>
 
 void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
 {
@@ -57,7 +59,6 @@ void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
         exit(1);
     }
 #endif
-
     GPU_MAP_TO_DEVICE(sim [0:1])
     Bfield_offload(&sim->bfield);
     Efield_offload(&sim->efield);
@@ -80,7 +81,6 @@ void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
 #else
     size_t vector_size = NSIMD;
 #endif
-
     MarkerQueue queue;
     queue.n = 0;
     for (size_t i = 0; i < nmrk; i++)
@@ -90,7 +90,6 @@ void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
 
     queue.p = (State **)malloc(queue.n * sizeof(State *));
     queue.finished = 0;
-
     queue.next = 0;
     for (size_t i = 0; i < nmrk; i++)
     {
@@ -170,8 +169,8 @@ void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
 }
 
 void ascot_solve_fusion(
-    Simulation *sim, FusionSource *source, size_t nsample, histogram *product1,
-    histogram *product2)
+    Simulation *sim, FusionSource *source, size_t nsample, DiagHist *product1,
+    DiagHist *product2)
 {
 
     random_init(&rdata, time((NULL)));

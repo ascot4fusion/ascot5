@@ -21,50 +21,96 @@
 #define MAGNETIC_FIELD_LINE_INISTEP 1.0e-2 /**< Initial step size in meters */
 #define DUMMY_STEP_VAL 100.0 /**< Dummy orbit step val in meters */
 
-void simulate_fl_adaptive(
+/**
+ * Replace markers in the simulation vector with new ones from the queue.
+ *
+ * A marker is replaced if it is no longer running or if it is a dummy marker.
+ *
+ * @param vector_size Number of markers in the simulation vector.
+ * @param queue Marker queue.
+ * @param p_current Current marker vector.
+ * @param sim Simulation data.
+ * @param time_step Time step for each marker.
+ *        This is set to the initial step size for newly added markers.
+ */
+static size_t cycle_markers(
+    size_t vector_size, MarkerQueue *queue, MarkerFieldLine *p_current,
+    Simulation *sim, real time_step[vector_size])
+{
+    size_t start = 0;
+    while (start < vector_size)
+    {
+        size_t next_in_queue;
+        size_t idx = MarkerQueue_cycle(
+            &next_in_queue, queue, vector_size, start, p_current->id,
+            p_current->running);
+        if (idx == vector_size)
+            break;
+        if (p_current->id[idx] != 0)
+            MarkerFieldLine_to_queue(queue, p_current, idx);
+        p_current->id[idx] = 0;
+        p_current->running[idx] = 0;
+
+        if (next_in_queue < queue->n)
+        {
+            if (MarkerFieldLine_from_queue(
+                    p_current, queue, idx, next_in_queue, &sim->bfield))
+            {
+                p_current->id[idx] = 0;
+                p_current->running[idx] = 0;
+            }
+            time_step[idx] = MAGNETIC_FIELD_LINE_INISTEP;
+        }
+        start = idx;
+    }
+
+    size_t n_running = 0;
+#pragma omp simd reduction(+ : n_running)
+    for (size_t i = 0; i < NSIMD; i++)
+    {
+        n_running += p_current->running[i];
+    }
+
+    return n_running;
+}
+
+int simulate_fl_adaptive(
     Simulation *sim, MarkerQueue *queue, size_t vector_size)
 {
 
     real *current_time_step = (real *)malloc(vector_size * sizeof(real));
     real *suggested_time_step = (real *)malloc(vector_size * sizeof(real));
     real *next_time_step = (real *)malloc(vector_size * sizeof(real));
-    size_t *new_marker = (size_t *)malloc(vector_size * sizeof(size_t));
 
     real current_time, previous_time;
 
     real tol = sim->options->adaptive_tolerance_orbit;
 
     MarkerFieldLine p_current, p_previous;
-    marker_allocate_fl(&p_current, vector_size);
-    marker_allocate_fl(&p_previous, vector_size);
+    if (MarkerFieldLine_allocate(&p_current, vector_size))
+        return 1;
+    if (MarkerFieldLine_allocate(&p_previous, vector_size))
+        return 1;
 
     for (size_t i = 0; i < vector_size; i++)
     {
-        p_current.id[i] = -1;
+        p_current.id[i] = 0;
         p_current.running[i] = 0;
     }
 
-    int n_running =
-        marker_cycle_fl(queue, &p_current, &sim->bfield, new_marker);
-
-    OMP_PARALLEL_CPU_ONLY
-    for (size_t i = 0; i < vector_size; i++)
-    {
-        if (new_marker[i] > 0)
-        {
-            current_time_step[i] = MAGNETIC_FIELD_LINE_INISTEP;
-        }
-    }
+    size_t nrunning =
+        cycle_markers(vector_size, queue, &p_current, sim, current_time_step);
 
     previous_time = A5_WTIME;
-
-    while (n_running > 0)
+    MarkerFieldLine_offload(&p_current);
+    MarkerFieldLine_offload(&p_previous);
+    while (nrunning)
     {
 
         OMP_PARALLEL_CPU_ONLY
         for (size_t i = 0; i < vector_size; i++)
         {
-            marker_copy_fl(&p_current, i, &p_previous, i);
+            MarkerFieldLine_copy(&p_previous, &p_current, i);
 
             suggested_time_step[i] = DUMMY_STEP_VAL;
             next_time_step[i] = DUMMY_STEP_VAL;
@@ -121,7 +167,7 @@ void simulate_fl_adaptive(
         OMP_PARALLEL_CPU_ONLY
         for (size_t i = 0; i < vector_size; i++)
         {
-            if (!p_current.err[i])
+            if (p_current.running[i])
             {
                 /* Check other time step limitations */
                 if (next_time_step[i] > 0)
@@ -144,7 +190,7 @@ void simulate_fl_adaptive(
                 /* Retrieve marker states in case time step was rejected */
                 if (next_time_step[i] < 0)
                 {
-                    marker_copy_fl(&p_previous, i, &p_current, i);
+                    MarkerFieldLine_copy(&p_current, &p_previous, i);
                 }
 
                 /* Update simulation and cpu times */
@@ -185,21 +231,18 @@ void simulate_fl_adaptive(
         previous_time = current_time;
 
         endcond_check_fl(&p_current, &p_previous, sim);
-        diag_update_fl(sim->diagnostics, sim->options, &p_current, &p_previous);
-        n_running =
-            marker_cycle_fl(queue, &p_current, &sim->bfield, new_marker);
-
-        OMP_PARALLEL_CPU_ONLY
-        for (size_t i = 0; i < vector_size; i++)
-        {
-            if (new_marker[i] > 0)
-            {
-                current_time_step[i] = MAGNETIC_FIELD_LINE_INISTEP;
-            }
-        }
+        // Diag_update_fl(sim->diagnostics, &sim->bfield, &p_current,
+        // &p_previous);
+        nrunning =
+            cycle_markers(vector_size, queue, &p_current, sim, current_time_step);
     }
-    free(new_marker);
+    MarkerFieldLine_onload(&p_current);
+    MarkerFieldLine_onload(&p_previous);
     free(current_time_step);
     free(suggested_time_step);
     free(next_time_step);
+
+    MarkerFieldLine_deallocate(&p_current);
+    MarkerFieldLine_deallocate(&p_previous);
+    return 0;
 }

@@ -6,8 +6,8 @@
 #define MARKER_H
 
 #include "bfield.h"
-#include "defines.h"
 #include "datatypes.h"
+#include "defines.h"
 #include "efield.h"
 #include <stdint.h>
 
@@ -50,42 +50,42 @@ typedef struct
  */
 typedef struct
 {
-    real *r;           /**< Particle R coordinate [m].                        */
-    real *phi;         /**< Particle phi coordinate [rad].                    */
-    real *z;           /**< Particle z coordinate [m].                        */
-    real *p_r;         /**< Momentum r coordinate [kg m/s].                   */
-    real *p_phi;       /**< Momentum phi coordinate [kg m/s].                 */
-    real *p_z;         /**< Momentum z coordinate [kg m/s].                   */
-    real *mass;        /**< Mass [kg].                                        */
-    real *charge;      /**< Charge [C].                                       */
-    real *time;        /**< Marker simulation time [s].                       */
-    int *znum;         /**< Particle atomic number.                           */
-    int *anum;         /**< Particle mass number.                             */
-    real *B_r;         /**< BR at marker position [T].                        */
-    real *B_phi;       /**< Bphi at marker position [T].                      */
-    real *B_z;         /**< Bz at marker position [T].                        */
-    real *B_r_dr;      /**< dB_R/dR at marker position [T/m].                 */
-    real *B_phi_dr;    /**< dB_phi/dR at marker position [T/m].               */
-    real *B_z_dr;      /**< dB_z/dR at marker position [T/m].                 */
-    real *B_r_dphi;    /**< dB_R/dphi at marker position [T/rad].             */
-    real *B_phi_dphi;  /**< dB_phi/dphi at marker position [T/rad].           */
-    real *B_z_dphi;    /**< dB_z/dphi at marker position [T/rad].             */
-    real *B_r_dz;      /**< dB_R/dz at marker position [T/m].                 */
-    real *B_phi_dz;    /**< dB_phi/dz at marker position [T/m].               */
-    real *B_z_dz;      /**< dB_z/dz at marker position [T/m].                 */
-    int *bounces;      /**< Number of times pitch sign changed.               */
-    real *weight;      /**< Marker weight.                                    */
-    real *cputime;     /**< Marker wall time [s].                             */
-    real *rho;         /**< Marker rho coordinate [1].                        */
-    real *theta;       /**< Marker cumulative poloidal coordinate [rad].      */
-    size_t *id;        /**< Unique ID for the marker.                         */
-    endcond_t *endcond;/**< Marker end condition.                             */
-    size_t *walltile;  /**< Index (>0) of walltile if marker has hit the wall.*/
-    real *mileage;     /**< Duration the marker has been simulated [s].       */
-    int *running;      /**< Is the marker currently simulated.                */
-    err_t *err;        /**< Error flag, zero if no error.                     */
-    size_t *index;     /**< This marker's index at the marker queue.          */
-    size_t n_mrk;      /**< How many markers this struct contains.            */
+    real *r;          /**< Particle R coordinate [m].                        */
+    real *phi;        /**< Particle phi coordinate [rad].                    */
+    real *z;          /**< Particle z coordinate [m].                        */
+    real *p_r;        /**< Momentum r coordinate [kg m/s].                   */
+    real *p_phi;      /**< Momentum phi coordinate [kg m/s].                 */
+    real *p_z;        /**< Momentum z coordinate [kg m/s].                   */
+    real *mass;       /**< Mass [kg].                                        */
+    real *charge;     /**< Charge [C].                                       */
+    real *time;       /**< Marker simulation time [s].                       */
+    int *znum;        /**< Particle atomic number.                           */
+    int *anum;        /**< Particle mass number.                             */
+    real *B_r;        /**< BR at marker position [T].                        */
+    real *B_phi;      /**< Bphi at marker position [T].                      */
+    real *B_z;        /**< Bz at marker position [T].                        */
+    real *B_r_dr;     /**< dB_R/dR at marker position [T/m].                 */
+    real *B_phi_dr;   /**< dB_phi/dR at marker position [T/m].               */
+    real *B_z_dr;     /**< dB_z/dR at marker position [T/m].                 */
+    real *B_r_dphi;   /**< dB_R/dphi at marker position [T/rad].             */
+    real *B_phi_dphi; /**< dB_phi/dphi at marker position [T/rad].           */
+    real *B_z_dphi;   /**< dB_z/dphi at marker position [T/rad].             */
+    real *B_r_dz;     /**< dB_R/dz at marker position [T/m].                 */
+    real *B_phi_dz;   /**< dB_phi/dz at marker position [T/m].               */
+    real *B_z_dz;     /**< dB_z/dz at marker position [T/m].                 */
+    int *bounces;     /**< Number of times pitch sign changed.               */
+    real *weight;     /**< Marker weight.                                    */
+    real *cputime;    /**< Marker wall time [s].                             */
+    real *rho;        /**< Marker rho coordinate [1].                        */
+    real *theta;      /**< Marker cumulative poloidal coordinate [rad].      */
+    size_t *id;       /**< Unique ID for the marker.                         */
+    endcond_t *endcond; /**< Marker end condition. */
+    size_t *walltile; /**< Index (>0) of walltile if marker has hit the wall.*/
+    real *mileage;    /**< Duration the marker has been simulated [s].       */
+    int *running;     /**< Is the marker currently simulated.                */
+    err_t *err;       /**< Error flag, zero if no error.                     */
+    size_t *index;    /**< This marker's index at the marker queue.          */
+    size_t n_mrk;     /**< How many markers this struct contains.            */
 } MarkerGyroOrbit;
 
 /**
@@ -107,42 +107,42 @@ typedef struct
  */
 typedef struct
 {
-    real *r;           /**< Guiding center R coordinate [m].                  */
-    real *phi;         /**< Guiding center phi coordinate [rad].              */
-    real *z;           /**< Guiding center z coordinate [m].                  */
-    real *ppar;        /**< Parallel momentum [kg m/s].                       */
-    real *mu;          /**< Magnetic moment [J/T] .                           */
-    real *zeta;        /**< Gyroangle [rad].                                  */
-    real *mass;        /**< Mass [kg].                                        */
-    real *charge;      /**< Charge [C].                                       */
-    real *time;        /**< Marker simulation time [s].                       */
-    int *znum;         /**< Particle atomic number.                           */
-    int *anum;         /**< Particle mass number.                             */
-    real *B_r;         /**< BR at marker position [T].                        */
-    real *B_phi;       /**< Bphi at marker position [T].                      */
-    real *B_z;         /**< Bz at marker position [T].                        */
-    real *B_r_dr;      /**< dB_R/dR at marker position [T/m].                 */
-    real *B_phi_dr;    /**< dB_phi/dR at marker position [T/m].               */
-    real *B_z_dr;      /**< dB_z/dR at marker position [T/m].                 */
-    real *B_r_dphi;    /**< dB_R/dphi at marker position [T/rad].             */
-    real *B_phi_dphi;  /**< dB_phi/dphi at marker position [T/rad].           */
-    real *B_z_dphi;    /**< dB_z/dphi at marker position [T/rad].             */
-    real *B_r_dz;      /**< dB_R/dz at marker position [T/m].                 */
-    real *B_phi_dz;    /**< dB_phi/dz at marker position [T/m].               */
-    real *B_z_dz;      /**< dB_z/dz at marker position [T/m].                 */
-    int *bounces;      /**< Number of times pitch sign changed.               */
-    real *weight;      /**< Marker weight.                                    */
-    real *cputime;     /**< Marker wall time [s].                             */
-    real *rho;         /**< Marker rho coordinate [1].                        */
-    real *theta;       /**< Marker cumulative poloidal coordinate [rad].      */
-    size_t *id;        /**< Unique ID for the marker.                         */
-    endcond_t *endcond;/**< Marker end condition.                             */
-    size_t *walltile;  /**< Index (>0) of walltile if marker has hit the wall.*/
-    real *mileage;     /**< Duration the marker has been simulated [s].       */
-    int *running;      /**< Is the marker currently simulated.                */
-    err_t *err;        /**< Error flag, zero if no error.                     */
-    size_t *index;     /**< This marker's index at the marker queue.          */
-    size_t n_mrk;      /**< How many markers this struct contains.            */
+    real *r;          /**< Guiding center R coordinate [m].                  */
+    real *phi;        /**< Guiding center phi coordinate [rad].              */
+    real *z;          /**< Guiding center z coordinate [m].                  */
+    real *ppar;       /**< Parallel momentum [kg m/s].                       */
+    real *mu;         /**< Magnetic moment [J/T] .                           */
+    real *zeta;       /**< Gyroangle [rad].                                  */
+    real *mass;       /**< Mass [kg].                                        */
+    real *charge;     /**< Charge [C].                                       */
+    real *time;       /**< Marker simulation time [s].                       */
+    int *znum;        /**< Particle atomic number.                           */
+    int *anum;        /**< Particle mass number.                             */
+    real *B_r;        /**< BR at marker position [T].                        */
+    real *B_phi;      /**< Bphi at marker position [T].                      */
+    real *B_z;        /**< Bz at marker position [T].                        */
+    real *B_r_dr;     /**< dB_R/dR at marker position [T/m].                 */
+    real *B_phi_dr;   /**< dB_phi/dR at marker position [T/m].               */
+    real *B_z_dr;     /**< dB_z/dR at marker position [T/m].                 */
+    real *B_r_dphi;   /**< dB_R/dphi at marker position [T/rad].             */
+    real *B_phi_dphi; /**< dB_phi/dphi at marker position [T/rad].           */
+    real *B_z_dphi;   /**< dB_z/dphi at marker position [T/rad].             */
+    real *B_r_dz;     /**< dB_R/dz at marker position [T/m].                 */
+    real *B_phi_dz;   /**< dB_phi/dz at marker position [T/m].               */
+    real *B_z_dz;     /**< dB_z/dz at marker position [T/m].                 */
+    int *bounces;     /**< Number of times pitch sign changed.               */
+    real *weight;     /**< Marker weight.                                    */
+    real *cputime;    /**< Marker wall time [s].                             */
+    real *rho;        /**< Marker rho coordinate [1].                        */
+    real *theta;      /**< Marker cumulative poloidal coordinate [rad].      */
+    size_t *id;       /**< Unique ID for the marker.                         */
+    endcond_t *endcond; /**< Marker end condition. */
+    size_t *walltile; /**< Index (>0) of walltile if marker has hit the wall.*/
+    real *mileage;    /**< Duration the marker has been simulated [s].       */
+    int *running;     /**< Is the marker currently simulated.                */
+    err_t *err;       /**< Error flag, zero if no error.                     */
+    size_t *index;    /**< This marker's index at the marker queue.          */
+    size_t n_mrk;     /**< How many markers this struct contains.            */
 } MarkerGuidingCenter;
 
 /**
@@ -164,103 +164,276 @@ typedef struct
  */
 typedef struct
 {
-    real *r;           /**< Field line R coordinate [m].                      */
-    real *phi;         /**< Field line phi coordinate [rad].                  */
-    real *z;           /**< Field line z coordinate [m].                      */
-    int *pitch;        /**< Is the marker traced along or opposite to B-field.*/
-    real *time;        /**< The fixed time instant this field line exists [s].*/
-    real *B_r;         /**< BR at marker position [T].                        */
-    real *B_phi;       /**< Bphi at marker position [T].                      */
-    real *B_z;         /**< Bz at marker position [T].                        */
-    real *B_r_dr;      /**< dB_R/dR at marker position [T/m].                 */
-    real *B_phi_dr;    /**< dB_phi/dR at marker position [T/m].               */
-    real *B_z_dr;      /**< dB_z/dR at marker position [T/m].                 */
-    real *B_r_dphi;    /**< dB_R/dphi at marker position [T/rad].             */
-    real *B_phi_dphi;  /**< dB_phi/dphi at marker position [T/rad].           */
-    real *B_z_dphi;    /**< dB_z/dphi at marker position [T/rad].             */
-    real *B_r_dz;      /**< dB_R/dz at marker position [T/m].                 */
-    real *B_phi_dz;    /**< dB_phi/dz at marker position [T/m].               */
-    real *B_z_dz;      /**< dB_z/dz at marker position [T/m].                 */
-    int *bounces;      /**< Number of times pitch sign changed.               */
-    real *cputime;     /**< Marker wall time [s].                             */
-    real *rho;         /**< Marker rho coordinate [1].                        */
-    real *theta;       /**< Marker cumulative poloidal coordinate [rad].      */
-    size_t *id;        /**< Unique ID for the marker.                         */
-    endcond_t *endcond;/**< Marker end condition.                             */
-    size_t *walltile;  /**< Index (>0) of walltile if marker has hit the wall.*/
-    real *mileage;     /**< Distance the marker has been traced [m].          */
-    int *running;      /**< Is the marker currently simulated.                */
-    err_t *err;        /**< Error flag, zero if no error.                     */
-    size_t *index;     /**< This marker's index at the marker queue.          */
-    size_t n_mrk;      /**< How many markers this struct contains.            */
+    real *r;          /**< Field line R coordinate [m].                      */
+    real *phi;        /**< Field line phi coordinate [rad].                  */
+    real *z;          /**< Field line z coordinate [m].                      */
+    int *pitch;       /**< Is the marker traced along or opposite to B-field.*/
+    real *time;       /**< The fixed time instant this field line exists [s].*/
+    real *B_r;        /**< BR at marker position [T].                        */
+    real *B_phi;      /**< Bphi at marker position [T].                      */
+    real *B_z;        /**< Bz at marker position [T].                        */
+    real *B_r_dr;     /**< dB_R/dR at marker position [T/m].                 */
+    real *B_phi_dr;   /**< dB_phi/dR at marker position [T/m].               */
+    real *B_z_dr;     /**< dB_z/dR at marker position [T/m].                 */
+    real *B_r_dphi;   /**< dB_R/dphi at marker position [T/rad].             */
+    real *B_phi_dphi; /**< dB_phi/dphi at marker position [T/rad].           */
+    real *B_z_dphi;   /**< dB_z/dphi at marker position [T/rad].             */
+    real *B_r_dz;     /**< dB_R/dz at marker position [T/m].                 */
+    real *B_phi_dz;   /**< dB_phi/dz at marker position [T/m].               */
+    real *B_z_dz;     /**< dB_z/dz at marker position [T/m].                 */
+    real *cputime;    /**< Marker wall time [s].                             */
+    real *rho;        /**< Marker rho coordinate [1].                        */
+    real *theta;      /**< Marker cumulative poloidal coordinate [rad].      */
+    real *mileage;    /**< Distance the marker has been traced [m].          */
+    size_t *id;       /**< Unique ID for the marker.                         */
+    size_t *walltile; /**< Index (>0) of walltile if marker has hit the wall.*/
+    size_t *index;    /**< This marker's index at the marker queue.          */
+    endcond_t *endcond; /**< Marker end condition. */
+    err_t *err;   /**< Error flag, zero if no error.                     */
+    int *running; /**< Is the marker currently simulated.                */
+    size_t n_mrk; /**< How many markers this struct contains.            */
 } MarkerFieldLine;
 
-void marker_allocate_go(MarkerGyroOrbit *mrk, size_t nmrk);
+size_t MarkerQueue_cycle(
+    size_t *next_in_queue, MarkerQueue *q, size_t nmrk, size_t start,
+    size_t ids[nmrk], int running[nmrk]);
 
-void marker_allocate_gc(MarkerGuidingCenter *mrk, size_t nmrk);
+/**
+ * Allocate field line marker simulation vector.
+ *
+ * @param mrk Allocated marker vector.
+ * @param vector_size Number of markers in the vector.
+ *
+ * @return Zero on success.
+ */
+int MarkerGyroOrbit_allocate(MarkerGyroOrbit *mrk, size_t vector_size);
 
-void marker_allocate_fl(MarkerFieldLine *mrk, size_t nmrk);
+/**
+ * Deallocate field line marker simulation vector.
+ *
+ * @param mrk Deallocated marker vector.
+ */
+void MarkerGyroOrbit_deallocate(MarkerGyroOrbit *mrk);
 
-void marker_to_go_dummy(MarkerGyroOrbit *mrk, size_t index);
+/**
+ * Copy field line marker data from host to GPU.
+ *
+ * @param mrk Marker vector.
+ */
+void MarkerGyroOrbit_offload(MarkerGyroOrbit *mrk);
 
-void marker_to_gc_dummy(MarkerGuidingCenter *mrk, size_t index);
+/**
+ * Copy field line marker data from GPU to host.
+ *
+ * @param mrk Marker vector.
+ */
+void MarkerGyroOrbit_onload(MarkerGyroOrbit *mrk);
 
-void marker_to_go_dummy(MarkerGyroOrbit *mrk, size_t index);
+DECLARE_TARGET_SIMD_UNIFORM(copy, original)
+/**
+ * Copy field line marker from one simulation vector to another.
+ *
+ * @param mrk_copy The simulation vector copy.
+ * @param mrk_original The simulation vector to copy.
+ * @param mrk_index Index of the marker in the simulation vector (same in both
+ *        structures).
+ */
+void MarkerGyroOrbit_copy(
+    MarkerGyroOrbit *copy, MarkerGyroOrbit *original, size_t index);
 
-void marker_to_gc_dummy(MarkerGuidingCenter *mrk, size_t index);
+DECLARE_TARGET_SIMD_UNIFORM(mrk, queue, bfield)
+/**
+ * Retrieve field line marker from a queue of marker states.
+ *
+ * The marker position in the queue is stored so that the marker can be returned
+ * in the same position. In case the conversion from state to field line marker
+ * failed, the error field of the state is updated and this function returns
+ * non-zero value.
+ *
+ * @param mrk Marker simulation vector.
+ * @param queue The queue of marker states.
+ * @param mrk_index The index of the marker in the simulation vector.
+ * @param queue_index The index of the retrieved marker in the queue.
+ * @param bfield Magnetic field data.
+ *
+ * @return Zero on success.
+ */
+int MarkerGyroOrbit_from_queue(
+    MarkerGyroOrbit *mrk, MarkerQueue *queue, size_t mrk_index,
+    size_t queue_index, Bfield *bfield);
 
-void marker_to_fl_dummy(MarkerFieldLine *mrk, size_t index);
+DECLARE_TARGET_SIMD_UNIFORM(queue, mrk)
+/**
+ * Return field line marker back to queue and convert it to a state.
+ *
+ * The marker is returned on the same position it was retrieved from.
+ *
+ * @param queue The queue of marker states.
+ * @param mrk Marker simulation vector.
+ * @param index The index of the marker in the simulation vector.
+ * @param bfield Magnetic field data.
+ */
+void MarkerGyroOrbit_to_queue(
+    MarkerQueue *queue, MarkerGyroOrbit *mrk, size_t index, Bfield *bfield);
 
-size_t marker_cycle_go(
-    MarkerQueue *queue, MarkerGyroOrbit *p, Bfield *bfield, size_t *cycle);
+/**
+ * Allocate field line marker simulation vector.
+ *
+ * @param mrk Allocated marker vector.
+ * @param vector_size Number of markers in the vector.
+ *
+ * @return Zero on success.
+ */
+int MarkerGuidingCenter_allocate(MarkerGuidingCenter *mrk, size_t vector_size);
 
-size_t marker_cycle_gc(
-    MarkerQueue *queue, MarkerGuidingCenter *p, Bfield *bfield, size_t *cycle);
+/**
+ * Deallocate field line marker simulation vector.
+ *
+ * @param mrk Deallocated marker vector.
+ */
+void MarkerGuidingCenter_deallocate(MarkerGuidingCenter *mrk);
 
-size_t marker_cycle_fl(
-    MarkerQueue *queue, MarkerFieldLine *p, Bfield *bfield, size_t *cycle);
+/**
+ * Copy field line marker data from host to GPU.
+ *
+ * @param mrk Marker vector.
+ */
+void MarkerGuidingCenter_offload(MarkerGuidingCenter *mrk);
 
-void marker_offload_go(MarkerGyroOrbit *p);
+/**
+ * Copy field line marker data from GPU to host.
+ *
+ * @param mrk Marker vector.
+ */
+void MarkerGuidingCenter_onload(MarkerGuidingCenter *mrk);
 
-void marker_onload_go(MarkerGyroOrbit *p);
+DECLARE_TARGET_SIMD_UNIFORM(copy, original)
+/**
+ * Copy field line marker from one simulation vector to another.
+ *
+ * @param mrk_copy The simulation vector copy.
+ * @param mrk_original The simulation vector to copy.
+ * @param mrk_index Index of the marker in the simulation vector (same in both
+ *        structures).
+ */
+void MarkerGuidingCenter_copy(
+    MarkerGuidingCenter *copy, MarkerGuidingCenter *original, size_t index);
 
-DECLARE_TARGET_SIMD_UNIFORM(bfield)
-err_t state_to_go(
-    State *p, size_t i, MarkerGyroOrbit *p_fo, size_t index, Bfield *bfield);
+DECLARE_TARGET_SIMD_UNIFORM(mrk, queue, bfield)
+/**
+ * Retrieve field line marker from a queue of marker states.
+ *
+ * The marker position in the queue is stored so that the marker can be returned
+ * in the same position. In case the conversion from state to field line marker
+ * failed, the error field of the state is updated and this function returns
+ * non-zero value.
+ *
+ * @param mrk Marker simulation vector.
+ * @param queue The queue of marker states.
+ * @param mrk_index The index of the marker in the simulation vector.
+ * @param queue_index The index of the retrieved marker in the queue.
+ * @param bfield Magnetic field data.
+ *
+ * @return Zero on success.
+ */
+int MarkerGuidingCenter_from_queue(
+    MarkerGuidingCenter *mrk, MarkerQueue *queue, size_t mrk_index,
+    size_t queue_index, Bfield *bfield);
 
-DECLARE_TARGET_SIMD_UNIFORM(bfield)
-void marker_go_to_state(
-    MarkerGyroOrbit *p_fo, size_t index, State *p, Bfield *bfield);
+DECLARE_TARGET_SIMD_UNIFORM(queue, mrk)
+/**
+ * Return field line marker back to queue and convert it to a state.
+ *
+ * The marker is returned on the same position it was retrieved from.
+ *
+ * @param queue The queue of marker states.
+ * @param mrk Marker simulation vector.
+ * @param index The index of the marker in the simulation vector.
+ * @param bfield Magnetic field data.
+ */
+void MarkerGuidingCenter_to_queue(
+    MarkerQueue *queue, MarkerGuidingCenter *mrk, size_t index, Bfield *bfield);
 
-DECLARE_TARGET_SIMD_UNIFORM(bfield)
-err_t state_to_gc(
-    State *p, size_t i, MarkerGuidingCenter *p_gc, size_t index, Bfield *bfield);
+/**
+ * Allocate field line marker simulation vector.
+ *
+ * @param mrk Allocated marker vector.
+ * @param vector_size Number of markers in the vector.
+ *
+ * @return Zero on success.
+ */
+int MarkerFieldLine_allocate(MarkerFieldLine *mrk, size_t vector_size);
 
-DECLARE_TARGET_SIMD_UNIFORM(bfield)
-void marker_gc_to_state(
-    MarkerGuidingCenter *p_gc, size_t index, State *p, Bfield *bfield);
+/**
+ * Deallocate field line marker simulation vector.
+ *
+ * @param mrk Deallocated marker vector.
+ */
+void MarkerFieldLine_deallocate(MarkerFieldLine *mrk);
 
-DECLARE_TARGET_SIMD_UNIFORM(bfield)
-err_t state_to_fl(
-    State *p, size_t i, MarkerFieldLine *p_ml, size_t index, Bfield *bfield);
+/**
+ * Copy field line marker data from host to GPU.
+ *
+ * @param mrk Marker vector.
+ */
+void MarkerFieldLine_offload(MarkerFieldLine *mrk);
 
-DECLARE_TARGET_SIMD_UNIFORM(bfield)
-void marker_fl_to_state(MarkerFieldLine *p_ml, size_t index, State *p);
+/**
+ * Copy field line marker data from GPU to host.
+ *
+ * @param mrk Marker vector.
+ */
+void MarkerFieldLine_onload(MarkerFieldLine *mrk);
+
+DECLARE_TARGET_SIMD_UNIFORM(copy, original)
+/**
+ * Copy field line marker from one simulation vector to another.
+ *
+ * @param mrk_copy The simulation vector copy.
+ * @param mrk_original The simulation vector to copy.
+ * @param mrk_index Index of the marker in the simulation vector (same in both
+ *        structures).
+ */
+void MarkerFieldLine_copy(
+    MarkerFieldLine *copy, MarkerFieldLine *original, size_t index);
+
+DECLARE_TARGET_SIMD_UNIFORM(mrk, queue, bfield)
+/**
+ * Retrieve field line marker from a queue of marker states.
+ *
+ * The marker position in the queue is stored so that the marker can be returned
+ * in the same position. In case the conversion from state to field line marker
+ * failed, the error field of the state is updated and this function returns
+ * non-zero value.
+ *
+ * @param mrk Marker simulation vector.
+ * @param queue The queue of marker states.
+ * @param mrk_index The index of the marker in the simulation vector.
+ * @param queue_index The index of the retrieved marker in the queue.
+ * @param bfield Magnetic field data.
+ *
+ * @return Zero on success.
+ */
+int MarkerFieldLine_from_queue(
+    MarkerFieldLine *mrk, MarkerQueue *queue, size_t mrk_index,
+    size_t queue_index, Bfield *bfield);
+
+DECLARE_TARGET_SIMD_UNIFORM(queue, mrk)
+/**
+ * Return field line marker back to queue and convert it to a state.
+ *
+ * The marker is returned on the same position it was retrieved from.
+ *
+ * @param queue The queue of marker states.
+ * @param mrk Marker simulation vector.
+ * @param index The index of the marker in the simulation vector.
+ */
+void MarkerFieldLine_to_queue(
+    MarkerQueue *queue, MarkerFieldLine *mrk, size_t index);
 
 DECLARE_TARGET_SIMD_UNIFORM(p_fo, bfield)
 int marker_go_to_gc(
     MarkerGyroOrbit *p_fo, size_t index, MarkerGuidingCenter *p_gc,
     Bfield *bfield);
-
-GPU_DECLARE_TARGET_SIMD
-void marker_copy_go(MarkerGyroOrbit *p1, size_t i, MarkerGyroOrbit *p2, size_t j);
-DECLARE_TARGET_END
-
-DECLARE_TARGET_SIMD
-void marker_copy_gc(
-    MarkerGuidingCenter *p1, size_t i, MarkerGuidingCenter *p2, size_t j);
-
-DECLARE_TARGET_SIMD
-void marker_copy_fl(MarkerFieldLine *p1, size_t i, MarkerFieldLine *p2, size_t j);
 
 #endif

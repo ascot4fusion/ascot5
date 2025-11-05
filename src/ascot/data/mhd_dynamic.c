@@ -34,12 +34,12 @@ int MhdDynamic_init(
         mhd->phase[i] = phase[i];
         mhd->amplitude[i] = amplitude[i];
 
-        err += interp2Dcomp_setup(
-            &mhd->alpha[i], &alpha[i * nrho * ntime], nrho, ntime, NATURALBC,
-            NATURALBC, rholim[0], rholim[1], tlim[0], tlim[1]);
-        err += interp2Dcomp_setup(
-            &mhd->phi[i], &phi[i * nrho * ntime], nrho, ntime, NATURALBC,
-            NATURALBC, rholim[0], rholim[1], tlim[0], tlim[1]);
+        err += Spline2D_init(
+            &mhd->alpha[i], nrho, ntime, NATURALBC, NATURALBC, rholim, tlim,
+            &alpha[i * nrho * ntime]);
+        err += Spline2D_init(
+            &mhd->phi[i], nrho, ntime, NATURALBC, NATURALBC, rholim, tlim,
+            &phi[i * nrho * ntime]);
     }
     return err;
 }
@@ -86,8 +86,8 @@ err_t MhdDynamic_eval_alpha_Phi(
 
         /* Get interpolated values */
         real a_da[6], phi_dphi[6];
-        interperr += interp2Dcomp_eval_df(a_da, &(mhd->alpha[i]), rho[0], t);
-        interperr += interp2Dcomp_eval_df(phi_dphi, &(mhd->phi[i]), rho[0], t);
+        interperr += Spline2D_eval_f_df(a_da, &(mhd->alpha[i]), rho[0], t);
+        interperr += Spline2D_eval_f_df(phi_dphi, &(mhd->phi[i]), rho[0], t);
 
         /* The interpolation returns dx/drho but we require dx/dpsi. Second
            order derivatives are not needed. */

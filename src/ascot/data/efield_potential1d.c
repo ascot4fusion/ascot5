@@ -18,7 +18,7 @@ int EfieldPotential1D_init(
     {
         c[i] = dvdrho[i];
     }
-    linint1D_init(&efield->dvdrho, c, nrho, NATURALBC, rholim[0], rholim[1]);
+    Linear1D_init(&efield->dvdrho, nrho, NATURALBC, rholim, c);
     return err;
 }
 
@@ -47,7 +47,7 @@ err_t EfieldPotential1D_eval_e(
     rho_drho[2] = rho_drho[2] / r;
 
     real dvdrho;
-    int interperr = linint1D_eval_f(&dvdrho, &efield->dvdrho, rho_drho[0]);
+    int interperr = Linear1D_eval_f(&dvdrho, &efield->dvdrho, rho_drho[0]);
     e[0] = -dvdrho * rho_drho[1];
     e[1] = -dvdrho * rho_drho[2];
     e[2] = -dvdrho * rho_drho[3];

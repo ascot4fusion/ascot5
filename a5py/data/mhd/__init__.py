@@ -15,9 +15,9 @@ class Mhd(ctypes.Structure):
     """Wrapper for the MHD data in libascot.so."""
 
     _fields_ = [
-        ('stat', ctypes.POINTER(dynamic.Struct)),
-        ('nonstat', ctypes.POINTER(stationary.Struct)),
-        ('type', ctypes.c_uint32),
+        ("stationary", ctypes.POINTER(dynamic.Struct)),
+        ("dynamic", ctypes.POINTER(stationary.Struct)),
+        ("type", ctypes.c_int32),
         ]
 
 

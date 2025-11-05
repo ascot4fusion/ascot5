@@ -33,11 +33,6 @@ void Bfield_free(Bfield *bfield)
     }
 }
 
-/**
- * @brief Offload data to the accelerator.
- *
- * @param data pointer to the data struct
- */
 void Bfield_offload(Bfield *bfield)
 {
     switch (bfield->type)
@@ -247,18 +242,33 @@ err_t Bfield_eval_b_db(
     {
     case BFIELD_CARTESIAN:
         err = BfieldCartesian_eval_b_db(b_db, r, phi, z, bfield->cartesian);
+        b_db[12] = 0.0;
+        b_db[13] = 0.0;
+        b_db[14] = 0.0;
         break;
     case BFIELD_ANALYTICAL:
         err = BfieldAnalytical_eval_b_db(b_db, r, phi, z, bfield->analytical);
+        b_db[12] = 0.0;
+        b_db[13] = 0.0;
+        b_db[14] = 0.0;
         break;
     case BFIELD_SPLINE2D:
         err = BfieldSpline2D_eval_b_db(b_db, r, z, bfield->spline2d);
+        b_db[12] = 0.0;
+        b_db[13] = 0.0;
+        b_db[14] = 0.0;
         break;
     case BFIELD_SPLINE3D:
         err = BfieldSpline3D_eval_b_db(b_db, r, phi, z, bfield->spline3d);
+        b_db[12] = 0.0;
+        b_db[13] = 0.0;
+        b_db[14] = 0.0;
         break;
     case BFIELD_STELLARATOR:
         err = BfieldStellarator_eval_b_db(b_db, r, phi, z, bfield->stellarator);
+        b_db[12] = 0.0;
+        b_db[13] = 0.0;
+        b_db[14] = 0.0;
         break;
     }
 
@@ -274,6 +284,9 @@ err_t Bfield_eval_b_db(
     b_db[9] = err ? 0.0 : b_db[9];
     b_db[10] = err ? 0.0 : b_db[10];
     b_db[11] = err ? 0.0 : b_db[11];
+    b_db[12] = err ? 0.0 : b_db[12];
+    b_db[13] = err ? 0.0 : b_db[13];
+    b_db[14] = err ? 0.0 : b_db[14];
 
     return err;
 }

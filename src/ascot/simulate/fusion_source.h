@@ -79,7 +79,7 @@ void afsi_sample_reactant_momenta_2d(
  * @param pperp pointer to array where sampled perpedicular momenta are stored.
  */
 void afsi_sample_beam_2d(
-    histogram *hist, real mass, real vol, size_t nsample, size_t i0, size_t i1,
+    DiagHist *hist, real mass, real vol, size_t nsample, size_t i0, size_t i1,
     size_t i2, real *density, real *ppara, real *pperp);
 
 /**

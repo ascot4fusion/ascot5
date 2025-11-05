@@ -24,28 +24,13 @@ def init_fun(name, *argtypes, restype=None):
 
 
 def input_category(cls):
-    # derive mapping from _fields_
-    mapping = {
-        f[0]: i
-        for i, f in enumerate(cls._fields_)
-        if f[0] != "type"  # exclude the type field
-    }
-    variant_name = {
-        "BTC": "BfieldCartesian",
-        "BGS": "BfieldAnalytical",
-        "B2DS": "BfieldAxisymmetric",
-        "B3DS": "BfieldPerturbed",
-        "BSTS": "BfieldStellarator",
-    }
 
     def use(self, variant):
-        for name in mapping:
-            if variant_name[name] == variant.variant:
-                setattr(self, name, ctypes.pointer(variant._cdata))
-                self.type = ctypes.c_uint32(mapping[name])
+        for enumval, field in enumerate(cls._fields_):
+            if field[0] in variant.variant.lower():
+                self.type = ctypes.c_int32(1 + enumval) # Type enum starts at 1
+                setattr(self, field[0], ctypes.pointer(variant._cdata))
                 break
-        else:
-            raise ValueError(f"Unknown variant {variant.variant}")
 
     cls.use = use
     return cls
@@ -149,7 +134,7 @@ class DataStruct(ctypes.Structure):
     ) -> unyt.unyt_array:
         """Return a read-only view on the grid within the struct.
 
-        The uniform grids in libascot.so are stored as ``(x_min, x_max, n_x)``.
+        The uniform grids in libascot.so are stored as ``(xlim, nx)``.
         This function reads the values and converts them to (read-only) grid
         array.
 
@@ -170,9 +155,9 @@ class DataStruct(ctypes.Structure):
         """
         struct = self if member is None else getattr(self, member)
         grid = np.linspace(
-            getattr(struct, f"{coordinate}_min"),
-            getattr(struct, f"{coordinate}_max"),
-            getattr(struct, f"n_{coordinate}"),
+            getattr(struct, f"{coordinate}lim")[0],
+            getattr(struct, f"{coordinate}lim")[1],
+            getattr(struct, f"n{coordinate}"),
         )
         grid.flags.writeable = False
         return unyt.unyt_array(grid, units)
@@ -205,22 +190,22 @@ class DataStruct(ctypes.Structure):
             attribute = getattr(self, name)[idx]
         match attribute:
             case Linear1D():
-                shape, skip = (attribute.n_x,), 1
+                shape, skip = (attribute.nx,), 1
             case Linear3D():
-                shape, skip = (attribute.n_x, attribute.n_y, attribute.n_z), 1
+                shape, skip = (attribute.nx, attribute.ny, attribute.nz), 1
             case Spline1D():
-                shape, skip = (attribute.n_x,), 2
+                shape, skip = (attribute.nx,), 2
             case Spline2D():
-                shape, skip = (attribute.n_x, attribute.n_y), 4
+                shape, skip = (attribute.nx, attribute.ny), 4
             case Spline3D():
-                shape, skip = (attribute.n_x, attribute.n_y, attribute.n_z), 8
+                shape, skip = (attribute.nx, attribute.ny, attribute.nz), 8
             case _:
                 raise ValueError(
                     f"Unknown interpolation struct type: {type(attribute)} "
                     "Please submit an issue to the ASCOT5 GitHub repository."
                 )
         arr = np.ctypeslib.as_array(
-            attribute.c[: np.multiply.reduce(shape) * skip : skip]
+            attribute.c[: np.multiply.reduce(shape) * skip : skip],
         )
         arr.flags.writeable = False
         return unyt.unyt_array(arr.reshape(shape), units)
@@ -230,11 +215,26 @@ class Linear1D(ctypes.Structure):
     """Python wrapper for the 1D linear-interpolator defined in interp.h."""
 
     _fields_ = [
-        ("n_x", ctypes.c_size_t),
-        ("bc_x", ctypes.c_int32),
-        ("x_min", ctypes.c_double),
-        ("x_max", ctypes.c_double),
-        ("x_grid", ctypes.c_double),
+        ("nx", ctypes.c_size_t),
+        ("xbc", ctypes.c_int32),
+        ("dx", ctypes.c_double),
+        ("xlim", ctypes.c_double * 2),
+        ("c", ctypes.POINTER(ctypes.c_double)),
+    ]
+
+
+class Linear2D(ctypes.Structure):
+    """Python wrapper for the 2D linear-interpolator defined in interp.h."""
+
+    _fields_ = [
+        ("nx", ctypes.c_size_t),
+        ("ny", ctypes.c_size_t),
+        ("xbc", ctypes.c_int32),
+        ("ybc", ctypes.c_int32),
+        ("dx", ctypes.c_double),
+        ("dy", ctypes.c_double),
+        ("xlim", ctypes.c_double * 2),
+        ("ylim", ctypes.c_double * 2),
         ("c", ctypes.POINTER(ctypes.c_double)),
     ]
 
@@ -243,21 +243,18 @@ class Linear3D(ctypes.Structure):
     """Python wrapper for the 3D linear-interpolator defined in interp.h."""
 
     _fields_ = [
-        ("n_x", ctypes.c_size_t),
-        ("n_y", ctypes.c_size_t),
-        ("n_z", ctypes.c_size_t),
-        ("bc_x", ctypes.c_int32),
-        ("bc_y", ctypes.c_int32),
-        ("bc_z", ctypes.c_int32),
-        ("x_min", ctypes.c_double),
-        ("x_max", ctypes.c_double),
-        ("x_grid", ctypes.c_double),
-        ("y_min", ctypes.c_double),
-        ("y_max", ctypes.c_double),
-        ("y_grid", ctypes.c_double),
-        ("z_min", ctypes.c_double),
-        ("z_max", ctypes.c_double),
-        ("z_grid", ctypes.c_double),
+        ("nx", ctypes.c_size_t),
+        ("ny", ctypes.c_size_t),
+        ("nz", ctypes.c_size_t),
+        ("xbc", ctypes.c_int32),
+        ("ybc", ctypes.c_int32),
+        ("zbc", ctypes.c_int32),
+        ("dx", ctypes.c_double),
+        ("dy", ctypes.c_double),
+        ("dz", ctypes.c_double),
+        ("xlim", ctypes.c_double * 2),
+        ("ylim", ctypes.c_double * 2),
+        ("zlim", ctypes.c_double * 2),
         ("c", ctypes.POINTER(ctypes.c_double)),
     ]
 
@@ -266,11 +263,10 @@ class Spline1D(ctypes.Structure):
     """Python wrapper for the 1D spline-interpolator defined in interp.h."""
 
     _fields_ = [
-        ("n_x", ctypes.c_size_t),
-        ("bc_x", ctypes.c_int32),
-        ("x_min", ctypes.c_double),
-        ("x_max", ctypes.c_double),
-        ("x_grid", ctypes.c_double),
+        ("nx", ctypes.c_size_t),
+        ("xbc", ctypes.c_int32),
+        ("dx", ctypes.c_double),
+        ("xlim", ctypes.c_double * 2),
         ("c", ctypes.POINTER(ctypes.c_double)),
     ]
 
@@ -279,16 +275,14 @@ class Spline2D(ctypes.Structure):
     """Python wrapper for the 2D spline-interpolator defined in interp.h."""
 
     _fields_ = [
-        ("n_x", ctypes.c_size_t),
-        ("n_y", ctypes.c_size_t),
-        ("bc_x", ctypes.c_int32),
-        ("bc_y", ctypes.c_int32),
-        ("x_min", ctypes.c_double),
-        ("x_max", ctypes.c_double),
-        ("x_grid", ctypes.c_double),
-        ("y_min", ctypes.c_double),
-        ("y_max", ctypes.c_double),
-        ("y_grid", ctypes.c_double),
+        ("nx", ctypes.c_size_t),
+        ("ny", ctypes.c_size_t),
+        ("xbc", ctypes.c_int32),
+        ("ybc", ctypes.c_int32),
+        ("dx", ctypes.c_double),
+        ("dy", ctypes.c_double),
+        ("xlim", ctypes.c_double * 2),
+        ("ylim", ctypes.c_double * 2),
         ("c", ctypes.POINTER(ctypes.c_double)),
     ]
 
@@ -297,20 +291,17 @@ class Spline3D(ctypes.Structure):
     """Python wrapper for the 3D spline-interpolator defined in interp.h."""
 
     _fields_ = [
-        ("n_x", ctypes.c_size_t),
-        ("n_y", ctypes.c_size_t),
-        ("n_z", ctypes.c_size_t),
-        ("bc_x", ctypes.c_int32),
-        ("bc_y", ctypes.c_int32),
-        ("bc_z", ctypes.c_int32),
-        ("x_min", ctypes.c_double),
-        ("x_max", ctypes.c_double),
-        ("x_grid", ctypes.c_double),
-        ("y_min", ctypes.c_double),
-        ("y_max", ctypes.c_double),
-        ("y_grid", ctypes.c_double),
-        ("z_min", ctypes.c_double),
-        ("z_max", ctypes.c_double),
-        ("z_grid", ctypes.c_double),
+        ("nx", ctypes.c_size_t),
+        ("ny", ctypes.c_size_t),
+        ("nz", ctypes.c_size_t),
+        ("xbc", ctypes.c_int32),
+        ("ybc", ctypes.c_int32),
+        ("zbc", ctypes.c_int32),
+        ("dx", ctypes.c_double),
+        ("dy", ctypes.c_double),
+        ("dz", ctypes.c_double),
+        ("xlim", ctypes.c_double * 2),
+        ("ylim", ctypes.c_double * 2),
+        ("zlim", ctypes.c_double * 2),
         ("c", ctypes.POINTER(ctypes.c_double)),
     ]

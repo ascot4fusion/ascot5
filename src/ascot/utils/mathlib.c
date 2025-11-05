@@ -60,63 +60,34 @@ void math_jac_rpz2xyz(real *rpz, real *xyz, real r, real phi)
     xyz[11] = temp[2];
 }
 
-void math_jac_xyz2rpz(real *xyz, real *rpz, real r, real phi)
+void math_cart2cyl_gradient(
+    real *gcyl, const real *gcart, const real *bcart, real r, real phi)
 {
-    // Temporary variables
-    real c = cos(phi);
-    real s = sin(phi);
-    real temp[3];
+    real c = cos(phi), s = sin(phi);
+    real dBxdx = gcart[0], dBxdy = gcart[1], dBxdz = gcart[2];
+    real dBydx = gcart[3], dBydy = gcart[4], dBydz = gcart[5];
+    real dBzdx = gcart[6], dBzdy = gcart[7], dBzdz = gcart[8];
 
-    // rpz[0] =  xyz[0] * c + xyz[4] * s;
-    // rpz[4] = -xyz[0] * s + xyz[4] * c;
-    // rpz[8] =  xyz[8];
+    real dBxdphi = (-dBxdx * s + dBxdy * c) * r;
+    real dBydphi = (-dBydx * s + dBydy * c) * r;
+    real dBzdphi = (-dBzdx * s + dBzdy * c) * r;
 
-    // Step 1: Vector [dBx/dr dBx/dphi dBx/dz]
-    temp[0] = xyz[1] * c + xyz[5] * s;
-    temp[1] = xyz[2] * c + xyz[6] * s;
-    temp[2] = xyz[3] * c + xyz[7] * s;
+    gcyl[0] = c * (dBxdx * c + dBxdy * s) + s * (dBydx * c + dBydy * s);
+    gcyl[3] = -s * (dBxdx * c + dBxdy * s) + c * (dBydx * c + dBydy * s);
+    gcyl[6] = dBzdx * c + dBzdy * s;
 
-    // Step 2: Gradient
-    rpz[1] = temp[0] * c + temp[1] * s;
-    rpz[2] = -temp[0] * s * r + temp[1] * c * r - xyz[0] * s + xyz[4] * c;
-    rpz[3] = temp[2];
+    gcyl[1] = c * dBxdphi + s * dBydphi - bcart[0] * s + bcart[1] * c;
+    gcyl[4] = -s * dBxdphi + c * dBydphi - bcart[0] * c - bcart[1] * s;
+    gcyl[7] = dBzdphi;
 
-    // Step 1: Vector [dBy/dr dBy/dphi dBy/dz]
-    temp[0] = -xyz[1] * s + xyz[5] * c;
-    temp[1] = -xyz[2] * s + xyz[6] * c;
-    temp[2] = -xyz[3] * s + xyz[7] * c;
-
-    // Step 2: Gradient
-    rpz[5] = temp[0] * c + temp[1] * s;
-    rpz[6] = -temp[0] * s * r + temp[1] * c * r - xyz[0] * c - xyz[4] * s;
-    rpz[7] = temp[2];
-
-    // Step 1: Vector [dBz/dr dBz/dphi dBz/dz]
-    temp[0] = xyz[9];
-    temp[1] = xyz[10];
-    temp[2] = xyz[11];
-
-    // Step 2: Gradient
-    rpz[9] = temp[0] * c + temp[1] * s;
-    rpz[10] = -temp[0] * s * r + temp[1] * c * r;
-    rpz[11] = temp[2];
+    gcyl[2] = c * dBxdz + s * dBydz;
+    gcyl[5] = -s * dBxdz + c * dBydz;
+    gcyl[8] = dBzdz;
 }
 
-void math_matmul(real *matA, real *matB, int d1, int d2, int d3, real *matC)
+void test_matrix_multiplication(real *C, real *A, real *B, const size_t dim[3])
 {
-    real sum;
-    for (int i = 0; i < d1; i = i + 1)
-    {
-        for (int j = 0; j < d3; j = j + 1)
-        {
-            sum = 0.0;
-            for (int k = 0; k < d2; k = k + 1)
-            {
-                sum = sum + matA[k * d1 + i] * matB[j * d2 + k];
-            }
-            matC[i * d3 + j] = sum;
-        }
-    }
+    math_matrix_multiplication(C, A, B, dim);
 }
 
 real math_normal_rand(void)
@@ -133,16 +104,6 @@ real math_normal_rand(void)
     X = v1 * sqrt(-2 * log(s) / s);
 
     return X;
-}
-
-int math_ipow(int a, int p)
-{
-    int pow = 1;
-    for (int i = 0; i < p; i++)
-    {
-        pow *= a;
-    }
-    return pow;
 }
 
 double math_simpson(double (*f)(double), double a, double b, double eps)

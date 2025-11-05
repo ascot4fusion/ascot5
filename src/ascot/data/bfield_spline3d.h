@@ -37,13 +37,13 @@
  * @param axisrz Magnetic axis (R, z) coordinates [m].
  * @param psilimits Poloidal flux at axis and separatrix [Wb/rad].
  * @param psi Tabulated values of poloidal flux [Wb/rad].
- *        Layout: (Ri, zj) = [j*nr + i] (C order).
+ *        Layout: (Ri, zj) = [i*nz + j] (C order).
  * @param br Tabulated values of R component of B [T].
- *        Layout: (Ri, phij, zk) = [k*nr*nphi + j*nr + i] (C order).
+ *        Layout: (Ri, phij, zk) = [i*nz*nphi + j*nz + k] (C order).
  * @param bz Tabulated values of z component of B [T].
- *        Layout: (Ri, phij, zk) = [k*nr*nphi + j*nr + i] (C order).
+ *        Layout: (Ri, phij, zk) = [i*nz*nphi + j*nz + k] (C order).
  * @param bphi Tabulated values of phi component of B [T].
- *        Layout: (Ri, phij, zk) = [k*nr*nphi + j*nr + i] (C order).
+ *        Layout: (Ri, phij, zk) = [i*nz*nphi + j*nz + k] (C order).
  *
  * @return Zero if the initialization succeeded.
  */
@@ -127,8 +127,8 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
  * Evaluate magnetic field vector and its derivatives.
  *
  * @param b_db Evaluated magnetic field vector and its derivatives [T].
- *        Layout: [br, dbr/dr, dbr/dphi, bz, dbz/dz, bphi, dbphi/dr, dbphi/dphi,
- *        dbphi/dz, bz, dbz/dr, dbz/dphi, dbz/dz].
+ *        Layout: [br, bphi, bz, dbr/dr, dbr/dphi, dbrdz, dbphi/dr, dbphi/dphi,
+ *        dbphi/dz, dbz/dr, dbz/dphi, dbz/dz].
  * @param r R coordinate of the query point [m].
  * @param phi phi coordinate of the query point [rad].
  * @param z z coordinate of the query point [m].

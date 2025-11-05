@@ -63,11 +63,11 @@ err_t BfieldCartesian_eval_b(
     math_rpz2xyz(rpz, xyz);
 
     real bxyz[3], *jacobian = bfield->jacobian;
-    bxyz[0] = jacobian[0] + jacobian[0] * xyz[0] + jacobian[1] * xyz[1] +
+    bxyz[0] = bfield->bxyz[0] + jacobian[0] * xyz[0] + jacobian[1] * xyz[1] +
               jacobian[2] * xyz[2];
-    bxyz[1] = jacobian[1] + jacobian[3] * xyz[0] + jacobian[4] * xyz[1] +
+    bxyz[1] = bfield->bxyz[1] + jacobian[3] * xyz[0] + jacobian[4] * xyz[1] +
               jacobian[5] * xyz[2];
-    bxyz[2] = jacobian[2] + jacobian[6] * xyz[0] + jacobian[7] * xyz[1] +
+    bxyz[2] = bfield->bxyz[2] + jacobian[6] * xyz[0] + jacobian[7] * xyz[1] +
               jacobian[8] * xyz[2];
     math_vec_xyz2rpz(bxyz, b, phi);
 
@@ -81,22 +81,14 @@ err_t BfieldCartesian_eval_b_db(
     math_rpz2xyz(rpz, xyz);
 
     real bxyz[3], *jacobian = bfield->jacobian;
-    bxyz[0] = jacobian[0] + jacobian[0] * xyz[0] + jacobian[1] * xyz[1] +
+    bxyz[0] = bfield->bxyz[0] + jacobian[0] * xyz[0] + jacobian[1] * xyz[1] +
               jacobian[2] * xyz[2];
-    bxyz[1] = jacobian[1] + jacobian[3] * xyz[0] + jacobian[4] * xyz[1] +
+    bxyz[1] = bfield->bxyz[1] + jacobian[3] * xyz[0] + jacobian[4] * xyz[1] +
               jacobian[5] * xyz[2];
-    bxyz[2] = jacobian[2] + jacobian[6] * xyz[0] + jacobian[7] * xyz[1] +
+    bxyz[2] = bfield->bxyz[2] + jacobian[6] * xyz[0] + jacobian[7] * xyz[1] +
               jacobian[8] * xyz[2];
-    real b[3];
-    math_vec_xyz2rpz(bxyz, b, phi);
-
-    real bxyz_db[12] = {jacobian[0], jacobian[1], jacobian[2],
-                        jacobian[3], jacobian[4], jacobian[5],
-                        jacobian[6], jacobian[7], jacobian[8]};
-    math_jac_xyz2rpz(bxyz_db, b_db, r, phi);
-    b_db[0] = b[0];
-    b_db[4] = b[1];
-    b_db[8] = b[2];
+    math_vec_xyz2rpz(bxyz, b_db, phi);
+    math_cart2cyl_gradient(&b_db[3], jacobian, bxyz, r, phi);
 
     return 0;
 }

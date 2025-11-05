@@ -2,9 +2,6 @@
 """
 import ctypes
 
-#from mpi4py import MPI
-#MPI=None
-
 import numpy as np
 
 from a5py.exceptions import AscotDataException
@@ -31,38 +28,69 @@ class Rfof(ctypes.Structure):
         ("rfof_input_params", ctypes.c_void_p),
         ("rfglobal", ctypes.c_void_p),
         ]
+    
+class Diag(ctypes.Structure):
+
+    _fields_ = [
+        ("collect_orbit", ctypes.c_int),
+        ("collect_dist5d", ctypes.c_int),
+        ("collect_dist6d", ctypes.c_int),
+        ("collect_dist5drho", ctypes.c_int),
+        ("collect_dist6drho", ctypes.c_int),
+        ("collect_distcom", ctypes.c_int),
+        ("collect_transport_coefficient", ctypes.c_int),
+        ("poincare", ctypes.c_int),
+        ("number_of_points_per_marker", ctypes.c_int),
+        ("ntoroidalplots", ctypes.c_int),
+        ("npoloidalplots", ctypes.c_int),
+        ("nradialplots", ctypes.c_int),
+        ("interval", ctypes.c_double),
+        ("toroidal_angles", ctypes.POINTER(ctypes.c_double)),
+        ("poloidal_angles", ctypes.POINTER(ctypes.c_double)),
+        ("radial_distances", ctypes.POINTER(ctypes.c_double)),
+        ("number_of_points_to_average", ctypes.c_int),
+        ("record_rho_instead_of_r", ctypes.c_int),
+        ("margin", ctypes.c_double),
+        ("r_bins", ctypes.c_int),
+        ("phi_bins", ctypes.c_int),
+        ("z_bins", ctypes.c_int),
+        ("ppara_bins", ctypes.c_int),
+        ("pperp_bins", ctypes.c_int),
+        ("time_bins", ctypes.c_int),
+        ("charge_bins", ctypes.c_int),
+        ("r_interval", ctypes.c_double * 2),
+        ("phi_interval", ctypes.c_double * 2),
+        ("z_interval", ctypes.c_double * 2),
+        ("ppara_interval", ctypes.c_double * 2),
+        ("pperp_interval", ctypes.c_double * 2),
+        ("time_interval", ctypes.c_double * 2),
+        ("charge_interval", ctypes.c_double * 2),
+        ]
 
 
 class SimData(ctypes.Structure):
 
     _fields_ = [
+        ("mhd", Mhd),
+        ("wall", Wall),
+        ("rfof", ctypes.POINTER(Rfof)),
         ("bfield", Bfield),
         ("efield", Efield),
         ("plasma", Plasma),
-        ("neutral", Neutral),
-        ("wall", Wall),
         ("boozer", ctypes.POINTER(BoozerMap)),
-        ("mhd", Mhd),
-        ("atomic", Atomic),
-        ("nbi", NbiStruct),
-        ("rfof", Rfof),
-        ("orbit", ctypes.c_void_p),
-        ("dist5d", ctypes.c_void_p),
-        ("dist6d", ctypes.c_void_p),
-        ("dist5drho", ctypes.c_void_p),
-        ("dist6drho", ctypes.c_void_p),
-        ("distcom", ctypes.c_void_p),
-        ("transport_coefficient", ctypes.c_void_p),
+        ("atomic", ctypes.POINTER(Atomic)),
+        ("neutral", Neutral),
+        ("options", ctypes.POINTER(OptionsStruct)),
+        ("diagnostics", ctypes.c_void_p),
         ("random_data", ctypes.c_void_p),
         ("mccc_data", ctypes.c_void_p),
-        ("params", ctypes.POINTER(OptionsStruct)),
         ]
 
 init_fun(
     "ascot_solve_distribution",
-    ctypes.c_int,
-    ctypes.POINTER(Structure),
     ctypes.POINTER(SimData),
+    ctypes.c_size_t,
+    ctypes.POINTER(Structure),
     )
 
 
@@ -225,10 +253,10 @@ def setup_run(params, inputs, comm=None):
 
 def execute(run, time):
     sim = SimData()
-    sim.B_data.use(run.bfield)
-    sim.params = ctypes.pointer(run.options._cdata)
+    sim.bfield.use(run.bfield)
+    sim.options = ctypes.pointer(run.options._cdata)
     mrk = run._diagnostics["endstate"]._cdata
-    LIBASCOT.ascot_solve_distribution(len(mrk), mrk, ctypes.byref(sim))
+    LIBASCOT.ascot_solve_distribution(ctypes.byref(sim), len(mrk), mrk)
 
 
 def finalize(run, unstage, comm):

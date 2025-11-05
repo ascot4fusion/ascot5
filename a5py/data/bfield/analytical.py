@@ -367,7 +367,7 @@ class CreateMixin(TreeMixin):
         with utils.validate_variables() as v:
             axisrz = v.validate("axisrz", axisrz, (2,), "m", default=(axisr, 0.))
             rminor = v.validate("rminor", rminor, (), "m", default=1.0)
-            nripple = v.validate("nripple", nripple, (), dtype="i4", default=18)
+            nripple = v.validate("nripple", nripple, (), dtype="i4", default=0)
             psilimits = v.validate("psilimits", psilimits, (2,), "Wb/rad",
                                    default=[psi0.v, 0.0])
             rippledamping = v.validate(

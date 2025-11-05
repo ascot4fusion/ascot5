@@ -55,16 +55,16 @@ void gctransform_particle2guidingcenter(
     /* Magnetic field norm gradient */
     real gradB[3];
     gradB[0] =
-        (bhat[0] * b_dbxyz[1] + bhat[1] * b_dbxyz[5] + bhat[2] * b_dbxyz[9]);
+        (bhat[0] * b_dbxyz[3] + bhat[1] * b_dbxyz[6] + bhat[2] * b_dbxyz[9]);
     gradB[1] =
-        (bhat[0] * b_dbxyz[2] + bhat[1] * b_dbxyz[6] + bhat[2] * b_dbxyz[10]);
+        (bhat[0] * b_dbxyz[4] + bhat[1] * b_dbxyz[7] + bhat[2] * b_dbxyz[10]);
     gradB[2] =
-        (bhat[0] * b_dbxyz[3] + bhat[1] * b_dbxyz[7] + bhat[2] * b_dbxyz[11]);
+        (bhat[0] * b_dbxyz[5] + bhat[1] * b_dbxyz[8] + bhat[2] * b_dbxyz[11]);
 
     /* nabla x |B| */
     real curlB[3] = {
-        b_dbxyz[10] - b_dbxyz[7], b_dbxyz[3] - b_dbxyz[9],
-        b_dbxyz[5] - b_dbxyz[2]};
+        b_dbxyz[10] - b_dbxyz[8], b_dbxyz[5] - b_dbxyz[9],
+        b_dbxyz[6] - b_dbxyz[4]};
 
     /* Magnetic field torsion = bhat dot ( nabla X bhat ) which is equivalent to
        bhat dot ( nabla x |B| ) / |B|
@@ -73,12 +73,12 @@ void gctransform_particle2guidingcenter(
 
     /* Gradient of magnetic field unit vector */
     real nablabhat[9];
-    nablabhat[0] = (b_dbxyz[1] - gradB[0] * bhat[0]) / Bnorm;
-    nablabhat[1] = (b_dbxyz[2] - gradB[0] * bhat[1]) / Bnorm;
-    nablabhat[2] = (b_dbxyz[3] - gradB[0] * bhat[2]) / Bnorm;
-    nablabhat[3] = (b_dbxyz[5] - gradB[1] * bhat[0]) / Bnorm;
-    nablabhat[4] = (b_dbxyz[6] - gradB[1] * bhat[1]) / Bnorm;
-    nablabhat[5] = (b_dbxyz[7] - gradB[1] * bhat[2]) / Bnorm;
+    nablabhat[0] = (b_dbxyz[3] - gradB[0] * bhat[0]) / Bnorm;
+    nablabhat[1] = (b_dbxyz[4] - gradB[0] * bhat[1]) / Bnorm;
+    nablabhat[2] = (b_dbxyz[5] - gradB[0] * bhat[2]) / Bnorm;
+    nablabhat[3] = (b_dbxyz[6] - gradB[1] * bhat[0]) / Bnorm;
+    nablabhat[4] = (b_dbxyz[7] - gradB[1] * bhat[1]) / Bnorm;
+    nablabhat[5] = (b_dbxyz[8] - gradB[1] * bhat[2]) / Bnorm;
     nablabhat[6] = (b_dbxyz[9] - gradB[2] * bhat[0]) / Bnorm;
     nablabhat[7] = (b_dbxyz[10] - gradB[2] * bhat[1]) / Bnorm;
     nablabhat[8] = (b_dbxyz[11] - gradB[2] * bhat[2]) / Bnorm;
@@ -86,13 +86,13 @@ void gctransform_particle2guidingcenter(
     /* Magnetic field curvature vector = bhat dot nablabhat.
        Note that nabla x bhat = tau bhat + bhat x kappa */
     real kappa[3];
-    kappa[0] = (bhat[0] * b_dbxyz[1] + bhat[1] * b_dbxyz[5] +
+    kappa[0] = (bhat[0] * b_dbxyz[3] + bhat[1] * b_dbxyz[6] +
                 bhat[2] * b_dbxyz[9] - math_dot(bhat, gradB) * bhat[0]) /
                Bnorm;
-    kappa[1] = (bhat[0] * b_dbxyz[2] + bhat[1] * b_dbxyz[6] +
+    kappa[1] = (bhat[0] * b_dbxyz[4] + bhat[1] * b_dbxyz[7] +
                 bhat[2] * b_dbxyz[10] - math_dot(bhat, gradB) * bhat[1]) /
                Bnorm;
-    kappa[2] = (bhat[0] * b_dbxyz[3] + bhat[1] * b_dbxyz[7] +
+    kappa[2] = (bhat[0] * b_dbxyz[5] + bhat[1] * b_dbxyz[8] +
                 bhat[2] * b_dbxyz[11] - math_dot(bhat, gradB) * bhat[2]) /
                Bnorm;
 
@@ -251,7 +251,7 @@ void gctransform_guidingcenter2particle(
 
     /* |B| */
     real Bnorm =
-        sqrt(b_db[0] * b_db[0] + b_db[4] * b_db[4] + b_db[8] * b_db[8]);
+        sqrt(b_db[0] * b_db[0] + b_db[1] * b_db[1] + b_db[2] * b_db[2]);
 
     /* Guiding center transformation is more easily done in cartesian
      * coordinates so we switch to using those */
@@ -262,21 +262,21 @@ void gctransform_guidingcenter2particle(
     math_jac_rpz2xyz(b_db, b_dbxyz, R, Phi);
 
     /* bhat = Unit vector of B */
-    real bhat[3] = {b_dbxyz[0] / Bnorm, b_dbxyz[4] / Bnorm, b_dbxyz[8] / Bnorm};
+    real bhat[3] = {b_dbxyz[0] / Bnorm, b_dbxyz[1] / Bnorm, b_dbxyz[2] / Bnorm};
 
     /* Magnetic field norm gradient */
     real gradB[3];
     gradB[0] =
-        (bhat[0] * b_dbxyz[1] + bhat[1] * b_dbxyz[5] + bhat[2] * b_dbxyz[9]);
+        (bhat[0] * b_dbxyz[3] + bhat[1] * b_dbxyz[6] + bhat[2] * b_dbxyz[9]);
     gradB[1] =
-        (bhat[0] * b_dbxyz[2] + bhat[1] * b_dbxyz[6] + bhat[2] * b_dbxyz[10]);
+        (bhat[0] * b_dbxyz[4] + bhat[1] * b_dbxyz[7] + bhat[2] * b_dbxyz[10]);
     gradB[2] =
-        (bhat[0] * b_dbxyz[3] + bhat[1] * b_dbxyz[7] + bhat[2] * b_dbxyz[11]);
+        (bhat[0] * b_dbxyz[5] + bhat[1] * b_dbxyz[8] + bhat[2] * b_dbxyz[11]);
 
     /* nabla x |B| */
     real curlB[3] = {
-        b_dbxyz[10] - b_dbxyz[7], b_dbxyz[3] - b_dbxyz[9],
-        b_dbxyz[5] - b_dbxyz[2]};
+        b_dbxyz[10] - b_dbxyz[8], b_dbxyz[5] - b_dbxyz[9],
+        b_dbxyz[6] - b_dbxyz[4]};
 
     /* Magnetic field torsion = bhat dot ( nabla X bhat ) which is equivalent to
        bhat dot ( nabla x |B| ) / |B|
@@ -285,12 +285,12 @@ void gctransform_guidingcenter2particle(
 
     /* Gradient of magnetic field unit vector */
     real nablabhat[9];
-    nablabhat[0] = (b_dbxyz[1] - gradB[0] * bhat[0]) / Bnorm;
-    nablabhat[1] = (b_dbxyz[2] - gradB[0] * bhat[1]) / Bnorm;
-    nablabhat[2] = (b_dbxyz[3] - gradB[0] * bhat[2]) / Bnorm;
-    nablabhat[3] = (b_dbxyz[5] - gradB[1] * bhat[0]) / Bnorm;
-    nablabhat[4] = (b_dbxyz[6] - gradB[1] * bhat[1]) / Bnorm;
-    nablabhat[5] = (b_dbxyz[7] - gradB[1] * bhat[2]) / Bnorm;
+    nablabhat[0] = (b_dbxyz[3] - gradB[0] * bhat[0]) / Bnorm;
+    nablabhat[1] = (b_dbxyz[4] - gradB[0] * bhat[1]) / Bnorm;
+    nablabhat[2] = (b_dbxyz[5] - gradB[0] * bhat[2]) / Bnorm;
+    nablabhat[3] = (b_dbxyz[6] - gradB[1] * bhat[0]) / Bnorm;
+    nablabhat[4] = (b_dbxyz[7] - gradB[1] * bhat[1]) / Bnorm;
+    nablabhat[5] = (b_dbxyz[8] - gradB[1] * bhat[2]) / Bnorm;
     nablabhat[6] = (b_dbxyz[9] - gradB[2] * bhat[0]) / Bnorm;
     nablabhat[7] = (b_dbxyz[10] - gradB[2] * bhat[1]) / Bnorm;
     nablabhat[8] = (b_dbxyz[11] - gradB[2] * bhat[2]) / Bnorm;
@@ -298,13 +298,13 @@ void gctransform_guidingcenter2particle(
     /* Magnetic field curvature vector = bhat dot nablabhat.
        Note that nabla x bhat = tau bhat + bhat x kappa */
     real kappa[3];
-    kappa[0] = (bhat[0] * b_dbxyz[1] + bhat[1] * b_dbxyz[5] +
+    kappa[0] = (bhat[0] * b_dbxyz[3] + bhat[1] * b_dbxyz[6] +
                 bhat[2] * b_dbxyz[9] - math_dot(bhat, gradB) * bhat[0]) /
                Bnorm;
-    kappa[1] = (bhat[0] * b_dbxyz[2] + bhat[1] * b_dbxyz[6] +
+    kappa[1] = (bhat[0] * b_dbxyz[4] + bhat[1] * b_dbxyz[7] +
                 bhat[2] * b_dbxyz[10] - math_dot(bhat, gradB) * bhat[1]) /
                Bnorm;
-    kappa[2] = (bhat[0] * b_dbxyz[3] + bhat[1] * b_dbxyz[7] +
+    kappa[2] = (bhat[0] * b_dbxyz[5] + bhat[1] * b_dbxyz[8] +
                 bhat[2] * b_dbxyz[11] - math_dot(bhat, gradB) * bhat[2]) /
                Bnorm;
 
@@ -455,7 +455,7 @@ void gctransform_pparmuzeta2prpphipz(
     real *pr, real *pphi, real *pz)
 {
     /* Find magnetic field norm and unit vector */
-    real Brpz[3] = {b_db[0], b_db[4], b_db[8]};
+    real Brpz[3] = {b_db[0], b_db[1], b_db[2]};
     real Bxyz[3];
     math_vec_rpz2xyz(Brpz, Bxyz, phi);
 

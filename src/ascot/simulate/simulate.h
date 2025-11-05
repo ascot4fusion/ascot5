@@ -45,7 +45,7 @@
  * @param vector_size Size of the marker vector array, i.e. how many markers are
  *        processed in parallel with SIMD instructions.
  */
-void simulate_go_fixed(Simulation *sim, MarkerQueue *queue, size_t vector_size);
+int simulate_go_fixed(Simulation *sim, MarkerQueue *queue, size_t vector_size);
 
 /**
  * Trace guiding centers using fixed time-step.
@@ -65,7 +65,7 @@ void simulate_go_fixed(Simulation *sim, MarkerQueue *queue, size_t vector_size);
  * @param vector_size Size of the marker vector array, i.e. how many markers are
  *        processed in parallel with SIMD instructions.
  */
-void simulate_gc_fixed(Simulation *sim, MarkerQueue *queue, size_t vector_size);
+int simulate_gc_fixed(Simulation *sim, MarkerQueue *queue, size_t vector_size);
 
 /**
  * Simulate guiding centers using adaptive time-step.
@@ -87,7 +87,7 @@ void simulate_gc_fixed(Simulation *sim, MarkerQueue *queue, size_t vector_size);
  * @param vector_size Size of the marker vector array, i.e. how many markers are
  *        processed in parallel with SIMD instructions.
  */
-void simulate_gc_adaptive(
+int simulate_gc_adaptive(
     Simulation *sim, MarkerQueue *queue, size_t vector_size);
 
 /**
@@ -114,7 +114,7 @@ void simulate_gc_adaptive(
  * @param vector_size Size of the marker vector array, i.e. how many markers are
  *        processed in parallel with SIMD instructions.
  */
-void simulate_fl_adaptive(
+int simulate_fl_adaptive(
     Simulation *sim, MarkerQueue *queue, size_t vector_size);
 
 #endif

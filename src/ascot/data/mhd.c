@@ -80,13 +80,13 @@ err_t Mhd_eval_perturbation(
 
     real B[3];
     B[0] = B_dB[0];
-    B[1] = B_dB[4];
-    B[2] = B_dB[8];
+    B[1] = B_dB[1];
+    B[2] = B_dB[2];
 
     real curlB[3];
-    curlB[0] = B_dB[10] / r - B_dB[7];
-    curlB[1] = B_dB[3] - B_dB[9];
-    curlB[2] = (B[1] - B_dB[2]) / r + B_dB[5];
+    curlB[0] = B_dB[10] / r - B_dB[8];
+    curlB[1] = B_dB[5] - B_dB[9];
+    curlB[2] = (B_dB[1] - B_dB[4]) / r + B_dB[6];
 
     err = err ? err
               : Mhd_eval_alpha_Phi(

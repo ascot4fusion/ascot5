@@ -74,7 +74,7 @@ typedef struct
 {
     Mhd mhd;                  /**< MHD data interface.                        */
     Wall wall;                /**< Wall data interface.                       */
-    Rfof rfof;                /**< Rfof data read via RFOF library.           */
+    Rfof *rfof;               /**< Rfof data read via RFOF library.           */
     Bfield bfield;            /**< Magnetic field data interface.             */
     Efield efield;            /**< Electric field data interface.             */
     Plasma plasma;            /**< Plasma data interface.                     */
@@ -97,15 +97,15 @@ typedef struct
     int type2;          /**< Distribution type (1:beam, 2:thermal).           */
     int thermal1;       /**< Thermal species index for reactant 1.            */
     int thermal2;       /**< Thermal species index for reactant 2.            */
-    histogram *beam1;   /**< Distribution data for reactant 1.                */
-    histogram *beam2;   /**< Distribution data for reactant 2.                */
-    double *r;          /**< Radial coordinate at the grid center [m].        */
-    double *phi;        /**< Toroidal coordinate at the grid center [rad].    */
-    double *z;          /**< Axial coordinate at the grid center [m].         */
-    double *vol;        /**< Grid cell volume [m^3].                          */
+    DiagHist *beam1;    /**< Distribution data for reactant 1.                */
+    DiagHist *beam2;    /**< Distribution data for reactant 2.                */
+    real *r;            /**< Radial coordinate at the grid center [m].        */
+    real *phi;          /**< Toroidal coordinate at the grid center [rad].    */
+    real *z;            /**< Axial coordinate at the grid center [m].         */
+    real *vol;          /**< Grid cell volume [m^3].                          */
     size_t volshape[3]; /**< Dimensions of r, phi, z, and volume.             */
     Reaction reaction;  /**< The fusion reaction that is modelled.            */
-    float mult;         /**< Multiplication factor which is 0.5 if species is
+    real mult;          /**< Multiplication factor which is 0.5 if species is
                              interacting with itself, 1.0 otherwise.          */
 } FusionSource;
 
@@ -131,17 +131,17 @@ typedef struct
     real pphi;         /**< Particle momentum phi component [kg m/s].         */
     real mass;         /**< Mass [kg].                                        */
     real charge;       /**< Charge [C].                                       */
-    int anum;          /**< Atomic mass number of marker species.             */
-    int znum;          /**< Charge number of marker species.                  */
     real time;         /**< Marker simulation time [s].                       */
     real theta;        /**< Marker poloidal coordinate [rad].                 */
     real weight;       /**< Marker weight.                                    */
     real mileage;      /**< Duration this marker has been simulated [s].      */
     real cputime;      /**< Marker wall-clock time [s].                       */
     size_t id;         /**< Arbitrary but unique ID for the marker.           */
-    endcond_t endcond; /**< Marker end condition.                             */
     size_t walltile;   /**< ID of walltile if marker has hit the wall.        */
+    endcond_t endcond; /**< Marker end condition.                             */
     err_t err;         /**< Error flag.                                       */
+    int anum;          /**< Atomic mass number of marker species.             */
+    int znum;          /**< Charge number of marker species.                  */
 } State;
 
 #endif

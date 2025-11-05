@@ -3,158 +3,58 @@
  */
 #include "diag.h"
 #include "bfield.h"
-#include "defines.h"
-#include "diag_orb.h"
-#include "diag_transcoef.h"
-#include "dist_5D.h"
-#include "dist_6D.h"
-#include "dist_com.h"
-#include "dist_rho5D.h"
-#include "dist_rho6D.h"
-#include "marker.h"
-#include "options.h"
 #include "datatypes.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "defines.h"
+#include "diag_hist.h"
+#include "diag_orbit.h"
+#include "marker.h"
 
-void diag_free(Diagnostics *diag, Options *options)
+void Diag_offload(Diagnostics *diag)
 {
-    if (options->collect_dist5d)
+    for (size_t i = 0; i < diag->nhist; i++)
     {
-        dist_5D_free(diag->dist5d);
+        DiagHist_offload(&diag->hist[i]);
     }
-    if (options->collect_dist6d)
+    if (diag->orbit != NULL)
     {
-        dist_6D_free(diag->dist6d);
-    }
-    if (options->collect_dist5drho)
-    {
-        dist_rho5D_free(diag->dist5drho);
-    }
-    if (options->collect_dist6drho)
-    {
-        dist_rho6D_free(diag->dist6drho);
-    }
-    if (options->collect_distcom)
-    {
-        dist_COM_free(diag->distcom);
-    }
-    if (options->collect_orbit)
-    {
-        diag_orb_free(diag->orbit, options);
-    }
-    if (options->collect_transport_coefficient)
-    {
-        diag_transcoef_free(diag->transport_coefficient);
+        DiagOrbit_offload(diag->orbit);
     }
 }
 
-void diag_offload(Diagnostics *diag, Options *options)
+void Diag_update_go(
+    Diagnostics *diag, Bfield *bfield, MarkerGyroOrbit *mrk_f,
+    MarkerGyroOrbit *mrk_i)
 {
-    if (options->collect_dist5d)
+    for (size_t i = 0; i < diag->nhist; i++)
     {
-        dist_5D_offload(diag->dist5d);
+        DiagHist_update_go(&diag->hist[i], mrk_f, mrk_i);
     }
-    if (options->collect_dist6d)
+    if (diag->orbit != NULL)
     {
-        dist_6D_offload(diag->dist6d);
-    }
-    if (options->collect_dist5drho)
-    {
-        dist_rho5D_offload(diag->dist5drho);
-    }
-    if (options->collect_dist6drho)
-    {
-        dist_rho6D_offload(diag->dist6drho);
-    }
-    if (options->collect_distcom)
-    {
-        dist_COM_offload(diag->distcom);
+        DiagOrbit_update_go(diag->orbit, bfield, mrk_f, mrk_i);
     }
 }
 
-void diag_update_go(
-    Diagnostics *diag, Options *options, Bfield *bfield, MarkerGyroOrbit *p_f,
-    MarkerGyroOrbit *p_i)
+void Diag_update_gc(
+    Diagnostics *diag, Bfield *bfield, MarkerGuidingCenter *mrk_f,
+    MarkerGuidingCenter *mrk_i)
 {
-    if (options->collect_orbit)
+    for (size_t i = 0; i < diag->nhist; i++)
     {
-        diag_orb_update_fo(diag->orbit, options, p_f, p_i);
+        DiagHist_update_gc(&diag->hist[i], mrk_f, mrk_i);
     }
-    if (options->collect_dist5d)
+    if (diag->orbit != NULL)
     {
-        dist_5D_update_fo(diag->dist5d, options, p_f, p_i);
-    }
-    if (options->collect_dist6d)
-    {
-        dist_6D_update_fo(diag->dist6d, p_f, p_i);
-    }
-    if (options->collect_dist5drho)
-    {
-        dist_rho5D_update_fo(diag->dist5drho, p_f, p_i);
-    }
-    if (options->collect_dist6drho)
-    {
-        dist_rho6D_update_fo(diag->dist6drho, p_f, p_i);
-    }
-    if (options->collect_distcom)
-    {
-        dist_COM_update_fo(diag->distcom, bfield, p_f, p_i);
-    }
-    if (options->collect_transport_coefficient)
-    {
-        diag_transcoef_update_fo(
-            diag->transport_coefficient, options, p_f, p_i);
+        DiagOrbit_update_gc(diag->orbit, bfield, mrk_f, mrk_i);
     }
 }
 
-void diag_update_gc(
-    Diagnostics *diag, Options *options, Bfield *bfield,
-    MarkerGuidingCenter *p_f, MarkerGuidingCenter *p_i)
+void Diag_update_fl(
+    Diagnostics *diag, Bfield *bfield, MarkerFieldLine *mrk_f,
+    MarkerFieldLine *mrk_i)
 {
-    if (options->collect_orbit)
+    if (diag->orbit != NULL)
     {
-        diag_orb_update_gc(diag->orbit, options, p_f, p_i);
-    }
-    if (options->collect_dist5d)
-    {
-        dist_5D_update_gc(diag->dist5d, options, p_f, p_i);
-    }
-    if (options->collect_dist6d)
-    {
-        dist_6D_update_gc(diag->dist6d, p_f, p_i);
-    }
-    if (options->collect_dist5drho)
-    {
-        dist_rho5D_update_gc(diag->dist5drho, p_f, p_i);
-    }
-    if (options->collect_dist6drho)
-    {
-        dist_rho6D_update_gc(diag->dist6drho, p_f, p_i);
-    }
-    if (options->collect_distcom)
-    {
-        dist_COM_update_gc(diag->distcom, bfield, p_f, p_i);
-    }
-    if (options->collect_transport_coefficient)
-    {
-        diag_transcoef_update_gc(
-            diag->transport_coefficient, options, p_f, p_i);
-    }
-}
-
-void diag_update_fl(
-    Diagnostics *diag, Options *options, MarkerFieldLine *p_f,
-    MarkerFieldLine *p_i)
-{
-    if (options->collect_orbit)
-    {
-        diag_orb_update_ml(diag->orbit, options, p_f, p_i);
-    }
-    if (options->collect_transport_coefficient)
-    {
-        diag_transcoef_update_ml(
-            diag->transport_coefficient, options, p_f, p_i);
+        DiagOrbit_update_fl(diag->orbit, bfield, mrk_f, mrk_i);
     }
 }

@@ -200,16 +200,7 @@
     (x1) * ((y2) * (z3) - (y3) * (z2)) + (x2) * ((y3) * (z1) - (y1) * (z3)) +  \
         (x3) * ((y1) * (z2) - (y2) * (z1))
 
-/**
- * Convert degrees to radians.
- */
-#define math_deg2rad(a) (a * math_degrad)
-
-/**
- * Convert radians to degrees.
- */
-#define math_rad2deg(a) (a * math_raddeg)
-
+DECLARE_TARGET
 /**
  * Compute the modulus of two real numbers.
  *
@@ -217,10 +208,10 @@
  * @param y The divisor
  * @return The modulus (remainder) of x and y
  */
-DECLARE_TARGET
 real fmod(real x, real y);
 DECLARE_TARGET_END
 
+DECLARE_TARGET_SIMD
 /**
  * Convert a Jacobian from cylindrical to cartesian coordinates.
  *
@@ -239,9 +230,9 @@ DECLARE_TARGET_END
  * @param r   r coordinate of the gradient
  * @param phi phi coordinate of the gradient
  */
-DECLARE_TARGET_SIMD
 void math_jac_rpz2xyz(real *rpz, real *xyz, real r, real phi);
 
+GPU_DECLARE_TARGET_SIMD
 /**
  * Convert a Jacobian from cartesian to cylindrical coordinates.
  *
@@ -260,10 +251,11 @@ void math_jac_rpz2xyz(real *rpz, real *xyz, real r, real phi);
  * @param r   r coordinate of the gradient.
  * @param phi phi coordinate of the gradient.
  */
-GPU_DECLARE_TARGET_SIMD
-void math_jac_xyz2rpz(real *xyz, real *rpz, real r, real phi);
+void math_cart2cyl_gradient(
+    real *gcyl, const real *gcart, const real *bcart, real r, real phi);
 DECLARE_TARGET_END
 
+GPU_DECLARE_TARGET_SIMD
 /**
  * Matrix multiplication.
  *
@@ -277,9 +269,23 @@ DECLARE_TARGET_END
  * @param d3   Input scalar dimension (rows in matB and matC).
  * @param matC Output array representing a d1 x d3 matrix.
  */
-GPU_DECLARE_TARGET_SIMD
-void math_matmul(real *matA, real *matB, int d1, int d2, int d3, real *matC);
+inline void
+math_matrix_multiplication(real *C, real *A, real *B, const size_t dim[3])
+{
+    for (size_t i = 0; i < dim[0]; ++i)
+    {
+        for (size_t j = 0; j < dim[2]; ++j)
+        {
+            real sum = 0.0;
+            for (size_t k = 0; k < dim[1]; ++k)
+                sum += A[k * dim[0] + i] * B[j * dim[1] + k];
+            C[i * dim[2] + j] = sum;
+        }
+    }
+}
 DECLARE_TARGET_END
+
+void test_matrix_multiplication(real *C, real *A, real *B, const size_t dim[3]);
 
 /**
  * Generate normally distributed random numbers.
@@ -300,16 +306,6 @@ DECLARE_TARGET_END
 DECLARE_TARGET_SIMD
 real math_normal_rand();
 DECLARE_TARGET_SIMD
-
-/**
- * Calculate a^p where both a and p are integers (p >= 0).
- *
- * @param a Argument.
- * @param p Power.
- *
- * @return a^p.
- */
-int math_ipow(int a, int p);
 
 /**
  * Adaptive Simpsons rule for integral.

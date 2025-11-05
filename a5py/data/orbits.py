@@ -1,14 +1,45 @@
-"""Orbit data IO module.
+"""Orbit diagnostics.
 """
 import numpy as np
-import h5py
 import unyt
 import a5py.physlib as physlib
 
-class DataContainer():
-    pass
+import ctypes
+from typing import Optional
 
-class Orbits(DataContainer):
+import unyt
+import numpy as np
+from numpy.ctypeslib import ndpointer
+
+from a5py import utils
+from a5py.libascot import LIBASCOT, DataStruct
+from a5py.exceptions import AscotMeltdownError
+from a5py.data.access import InputVariant, Leaf, TreeMixin
+
+
+
+# pylint: disable=too-few-public-methods
+class Struct(DataStruct):
+    _fields_ = [
+        ("r", ctypes.POINTER(ctypes.c_double)),
+        ("z", ctypes.POINTER(ctypes.c_double)),
+        ("phi", ctypes.POINTER(ctypes.c_double)),
+        ("p1", ctypes.POINTER(ctypes.c_double)),
+        ("p2", ctypes.POINTER(ctypes.c_double)),
+        ("p3", ctypes.POINTER(ctypes.c_double)),
+        ("mileage", ctypes.POINTER(ctypes.c_double)),
+        ("stamp", ctypes.POINTER(ctypes.c_double)),
+        ("id", ctypes.POINTER(ctypes.c_size_t)),
+        ("idx", ctypes.POINTER(ctypes.c_size_t)),
+        ("charge", ctypes.POINTER(ctypes.c_int)),
+        ("poincare", ctypes.POINTER(ctypes.c_int)),
+        ("simmode", ctypes.POINTER(ctypes.c_int)),
+    ]
+
+
+
+
+class Orbit():
     """Orbit diagnostics that collect marker phase-space coordinates and related
     quantities at certain points along the marker orbit.
     """
@@ -17,15 +48,23 @@ class Orbits(DataContainer):
     GUIDINGCENTER = 2
     FIELDLINE     = 3
 
-    def read(self):
-        """Read raw orbit data to a dictionary.
-        """
-        out = {}
-        with self as f:
-            for key in f:
-                out[key] = f[key][:]
 
-        return out
+    def init(nmrk, npoint):
+        orbit = Struct()
+
+        orbit.r = (ctypes.c_double * nmrk * npoint)()
+        orbit.z = (ctypes.c_double * nmrk * npoint)()
+        orbit.phi = (ctypes.c_double * nmrk * npoint)()
+        orbit.p1 = (ctypes.c_double * nmrk * npoint)()
+        orbit.p2 = (ctypes.c_double * nmrk * npoint)()
+        orbit.p3 = (ctypes.c_double * nmrk * npoint)()
+        orbit.mileage = (ctypes.c_double * nmrk * npoint)()
+        orbit.stamp = (ctypes.c_double * nmrk)()
+        orbit.idx = (ctypes.c_size_t * nmrk)()
+        orbit.id = (ctypes.c_size_t * nmrk * npoint)()
+        orbit.charge = (ctypes.c_int * nmrk * npoint)()
+        orbit.poincare = (ctypes.c_int * nmrk * npoint)()
+        orbit.simmode = (ctypes.c_int * nmrk * npoint)()
 
     def get(self, inistate, endstate, *qnt):
         """Return marker quantity.
@@ -321,64 +360,3 @@ class Orbits(DataContainer):
             "pncrdir":  "Direction at which Poincaré plane was crossed",
         }
         return out
-
-    @staticmethod
-    def write_hdf5(fn, data, desc=None):
-        """Write state data in HDF5 file.
-
-        Parameters
-        ----------
-        fn : str
-            Full path to the HDF5 file.
-        desc : str, optional
-            Input description.
-        """
-
-        gname = "results/" + run + "/orbit"
-
-        N = data["id"].size
-
-        with h5py.File(fn, "a") as f:
-            g = f.create_group(gname)
-
-            g.create_dataset("id",   (N,1), data=data["id"],   dtype="i8")
-            g.create_dataset("time", (N,1), data=data["time"], dtype="f8")
-
-            if "pncrid" in data:
-                g.create_dataset("pncrid", (N,1), data=data["pncrid"], dtype="i4")
-
-            if "charge" in data:
-                g.create_dataset("charge", (N,1), data=data["charge"], dtype="i4")
-
-            if "weight" in data:
-                g.create_dataset("weight", (N,1), data=data["weight"], dtype="f8")
-
-            if "pr" in data:
-                g.create_dataset("r",     (N,1), data=data["r"],     dtype="f8")
-                g.create_dataset("phi",   (N,1), data=data["phi"],   dtype="f8")
-                g.create_dataset("z",     (N,1), data=data["z"],     dtype="f8")
-
-                g.create_dataset("pr",    (N,1), data=data["pr"],    dtype="f8")
-                g.create_dataset("pphi",  (N,1), data=data["pphi"],  dtype="f8")
-                g.create_dataset("pz",    (N,1), data=data["pz"],    dtype="f8")
-
-                g.create_dataset("rho",   (N,1), data=data["rho"],   dtype="f8")
-                g.create_dataset("theta", (N,1), data=data["theta"], dtype="f8")
-                g.create_dataset("br",    (N,1), data=data["br"],    dtype="f8")
-                g.create_dataset("bphi",  (N,1), data=data["bphi"],  dtype="f8")
-                g.create_dataset("bz",    (N,1), data=data["bz"],    dtype="f8")
-            else:
-                g.create_dataset("r",     (N,1), data=data["r"],     dtype="f8")
-                g.create_dataset("phi",   (N,1), data=data["phi"],   dtype="f8")
-                g.create_dataset("z",     (N,1), data=data["z"],     dtype="f8")
-
-                g.create_dataset("rho",   (N,1), data=data["rho"],   dtype="f8")
-                g.create_dataset("theta", (N,1), data=data["theta"], dtype="f8")
-                g.create_dataset("br",    (N,1), data=data["br"],    dtype="f8")
-                g.create_dataset("bphi",  (N,1), data=data["bphi"],  dtype="f8")
-                g.create_dataset("bz",    (N,1), data=data["bz"],    dtype="f8")
-
-            if "ppar" in data:
-                g.create_dataset("ppar",  (N,1), data=data["ppar"],  dtype="f8")
-                g.create_dataset("mu",    (N,1), data=data["mu"],    dtype="f8")
-                g.create_dataset("zeta",  (N,1), data=data["zeta"],  dtype="f8")

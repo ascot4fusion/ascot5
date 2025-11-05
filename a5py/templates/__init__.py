@@ -1,9 +1,10 @@
 """Package for generating inputs from templates and imported data.
 """
 
+from .transmute import TransmuteAnalyticalBfieldToSplines
 from .analyticalinputs import (
-    PremadeMagneticField,
     FlatPlasma,
+    PremadeMagneticField,
     )
 from .optionsxml import make_simple_type, make_element_block, doc, make_schema
 
@@ -13,6 +14,7 @@ def create_input(ascot, template, note=None, activate=False, dryrun=False, store
     return factory(**template[1], note=note, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5)
 
 __all__ = [
+    "TransmuteAnalyticalBfieldToSplines",
     "PremadeMagneticField",
     "FlatPlasma",
     ]

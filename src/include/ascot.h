@@ -46,8 +46,8 @@ void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk]);
  * @param product2 Output distribution for the second output species.
  */
 void ascot_solve_fusion(
-    Simulation *sim, FusionSource *source, size_t nsample, histogram *product1,
-    histogram *product2);
+    Simulation *sim, FusionSource *source, size_t nsample, DiagHist *product1,
+    DiagHist *product2);
 
 /**
  * Simulate NBI injection and calculate shinethrough and birth profile of NBI

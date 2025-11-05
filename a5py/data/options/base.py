@@ -10,7 +10,7 @@ from dataclasses import fields
 
 import numpy as np
 
-from a5py.engine.functions import END_CONDITIONS
+from a5py.engine.functions import get_endcond
 
 from a5py.libascot import DataStruct
 from a5py.data.access import InputVariant, Leaf, TreeMixin
@@ -46,8 +46,6 @@ be met.
 class Struct(DataStruct):
     """Python wrapper for the struct in options.h."""
 
-    MAXPOINCARE = 32
-
     _fields_ = [
         ("simulation_mode", ctypes.c_int),
         ("enable_adaptive", ctypes.c_int),
@@ -80,39 +78,6 @@ class Struct(DataStruct):
         ("min_local_thermal_energy", ctypes.c_double),
         ("max_number_of_toroidal_orbits", ctypes.c_double),
         ("max_number_of_poloidal_orbits", ctypes.c_double),
-        ("collect_orbit", ctypes.c_int),
-        ("collect_dist5d", ctypes.c_int),
-        ("collect_dist6d", ctypes.c_int),
-        ("collect_dist5drho", ctypes.c_int),
-        ("collect_dist6drho", ctypes.c_int),
-        ("collect_distcom", ctypes.c_int),
-        ("collect_transport_coefficient", ctypes.c_int),
-        ("poincare", ctypes.c_int),
-        ("number_of_points_per_marker", ctypes.c_int),
-        ("ntoroidalplots", ctypes.c_int),
-        ("npoloidalplots", ctypes.c_int),
-        ("nradialplots", ctypes.c_int),
-        ("interval", ctypes.c_double),
-        ("toroidal_angles", ctypes.c_double * MAXPOINCARE),
-        ("poloidal_angles", ctypes.c_double * MAXPOINCARE),
-        ("radial_distances", ctypes.c_double * MAXPOINCARE),
-        ("number_of_points_to_average", ctypes.c_int),
-        ("record_rho_instead_of_r", ctypes.c_int),
-        ("margin", ctypes.c_double),
-        ("r_bins", ctypes.c_int),
-        ("phi_bins", ctypes.c_int),
-        ("z_bins", ctypes.c_int),
-        ("ppara_bins", ctypes.c_int),
-        ("pperp_bins", ctypes.c_int),
-        ("time_bins", ctypes.c_int),
-        ("charge_bins", ctypes.c_int),
-        ("r_interval", ctypes.c_double * 2),
-        ("phi_interval", ctypes.c_double * 2),
-        ("z_interval", ctypes.c_double * 2),
-        ("ppara_interval", ctypes.c_double * 2),
-        ("pperp_interval", ctypes.c_double * 2),
-        ("time_interval", ctypes.c_double * 2),
-        ("charge_interval", ctypes.c_double * 2),
         ]
 
 
@@ -207,13 +172,13 @@ class Options(InputVariant):
         parameters["endcond_active"] = 0
         for ec, param in map_endcond_to_param.items():
             parameters["endcond_active"] += (
-                END_CONDITIONS[ec] * parameters[param]
+                get_endcond(ec) * parameters[param]
                 )
         parameters.update({
-            "charge_bins":np.abs(np.diff(parameters["charge_interval"])[0]) + 1,
-            "nradialplots":parameters["radial_distances"].size,
-            "ntoroidalplots":parameters["poloidal_angles"].size,
-            "npoloidalplots":parameters["toroidal_angles"].size,
+            #"charge_bins":np.abs(np.diff(parameters["charge_interval"])[0]) + 1,
+            #"nradialplots":parameters["radial_distances"].size,
+            #"ntoroidalplots":parameters["poloidal_angles"].size,
+            #"npoloidalplots":parameters["toroidal_angles"].size,
             "require_both_tor_and_pol":parameters["activate_orbit_limit"] == require_both_tor_and_pol,
             })
         self._cdata = Struct()

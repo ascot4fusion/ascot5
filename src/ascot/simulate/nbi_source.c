@@ -16,6 +16,7 @@
 #include "defines.h"
 #include "endcond.h"
 #include "parallel.h"
+#include "simulate.h"
 #include "utils/mathlib.h"
 #include "utils/physlib.h"
 #include "utils/random.h"
@@ -26,6 +27,55 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+/**
+ * Replace markers in the simulation vector with new ones from the queue.
+ *
+ * A marker is replaced if it is no longer running or if it is a dummy marker.
+ *
+ * @param vector_size Number of markers in the simulation vector.
+ * @param queue Marker queue.
+ * @param p_current Current marker vector.
+ * @param sim Simulation data.
+ * @param time_step Time step for each marker.
+ *        This is set to the initial step size for newly added markers.
+ */
+static size_t cycle_markers(
+    size_t vector_size, MarkerQueue *queue, MarkerGyroOrbit *p_current,
+    Simulation *sim, real time_step[vector_size])
+{
+    size_t start = 0;
+    while (start < vector_size)
+    {
+        size_t next_in_queue;
+        size_t idx = MarkerQueue_cycle(
+            &next_in_queue, queue, vector_size, start, p_current->id,
+            p_current->running);
+        if (idx == vector_size)
+            break;
+        if (p_current->id[idx] != 0)
+            MarkerGyroOrbit_to_queue(queue, p_current, idx, &sim->bfield);
+        p_current->id[idx] = 0;
+
+        if (next_in_queue < queue->n)
+        {
+            if (MarkerGyroOrbit_from_queue(
+                    p_current, queue, idx, next_in_queue, &sim->bfield))
+                p_current->id[idx] = 0;
+            time_step[idx] = 0; // TODO
+        }
+        start = idx;
+    }
+
+    size_t n_running = 0;
+#pragma omp simd reduction(+ : n_running)
+    for (size_t i = 0; i < NSIMD; i++)
+    {
+        n_running += p_current->running[i];
+    }
+
+    return n_running;
+}
 
 void nbi_source_inject_markers(
     Simulation *sim, Nbi *inj, real tlim[2], size_t nmrk, State *mrk)
@@ -100,9 +150,9 @@ void nbi_source_trace_markers(MarkerQueue *pq, Simulation *sim)
     const int *pls_znum = Plasma_get_species_znum(&sim->plasma);
 
     /* Init dummy markers */
-    marker_allocate_go(&p, NSIMD);
-    marker_allocate_go(&p0, NSIMD);
-    marker_allocate_go(&pdiag, NSIMD);
+    MarkerGyroOrbit_allocate(&p, NSIMD);
+    MarkerGyroOrbit_allocate(&p0, NSIMD);
+    MarkerGyroOrbit_allocate(&pdiag, NSIMD);
     for (size_t i = 0; i < NSIMD; i++)
     {
         p.id[i] = -1;
@@ -114,15 +164,15 @@ void nbi_source_trace_markers(MarkerQueue *pq, Simulation *sim)
     }
 
     /* Initialize running particles */
-    size_t n_running = marker_cycle_go(pq, &p, &sim->bfield, cycle);
+    size_t n_running =
+        cycle_markers(NSIMD, pq, &p, sim, hin);
     while (n_running > 0)
     {
 
         OMP_PARALLEL_CPU_ONLY
         for (size_t i = 0; i < NSIMD; i++)
         {
-            /* Store marker states */
-            marker_copy_go(&p, i, &p0, i);
+            MarkerGyroOrbit_copy(&p0, &p, i);
 
             if (p.running[i])
             {
@@ -215,8 +265,8 @@ void nbi_source_trace_markers(MarkerQueue *pq, Simulation *sim)
                     if (shinethrough[i])
                     {
                         tile = Wall_eval_intersection(
-                            &w_coll, p0.r[i], p0.phi[i], p0.z[i], p.r[i], p.phi[i],
-                            p.z[i], &sim->wall);
+                            &w_coll, p0.r[i], p0.phi[i], p0.z[i], p.r[i],
+                            p.phi[i], p.z[i], &sim->wall);
                     }
                     if (tile > 0)
                     {
@@ -273,22 +323,22 @@ void nbi_source_trace_markers(MarkerQueue *pq, Simulation *sim)
                         B_dB, p.r[i], p.phi[i], p.z[i], p.time[i],
                         &sim->bfield);
                     p.B_r[i] = B_dB[0];
-                    p.B_r_dr[i] = B_dB[1];
-                    p.B_r_dphi[i] = B_dB[2];
-                    p.B_r_dz[i] = B_dB[3];
+                    p.B_r_dr[i] = B_dB[3];
+                    p.B_r_dphi[i] = B_dB[4];
+                    p.B_r_dz[i] = B_dB[5];
 
-                    p.B_phi[i] = B_dB[4];
-                    p.B_phi_dr[i] = B_dB[5];
-                    p.B_phi_dphi[i] = B_dB[6];
-                    p.B_phi_dz[i] = B_dB[7];
+                    p.B_phi[i] = B_dB[1];
+                    p.B_phi_dr[i] = B_dB[6];
+                    p.B_phi_dphi[i] = B_dB[7];
+                    p.B_phi_dz[i] = B_dB[8];
 
-                    p.B_z[i] = B_dB[8];
+                    p.B_z[i] = B_dB[2];
                     p.B_z_dr[i] = B_dB[9];
                     p.B_z_dphi[i] = B_dB[10];
                     p.B_z_dz[i] = B_dB[11];
                 }
             }
-            marker_copy_go(&p, i, &pdiag, i);
+            MarkerGyroOrbit_copy(&pdiag, &p, i);
             if (!p.running[i] && p.id[i] > 0)
             {
                 pdiag.running[i] = 1;
@@ -304,6 +354,9 @@ void nbi_source_trace_markers(MarkerQueue *pq, Simulation *sim)
         // diag_update_go(&sim->diag_data, &sim->bfield, &pdiag, &p);
 
         /* Update running particles */
-        n_running = marker_cycle_go(pq, &p, &sim->bfield, cycle);
+        n_running = cycle_markers(NSIMD, pq, &p, sim, hin);
     }
+    MarkerGyroOrbit_deallocate(&p);
+    MarkerGyroOrbit_deallocate(&p0);
+    MarkerGyroOrbit_deallocate(&pdiag);
 }

@@ -58,12 +58,12 @@ class Bfield(ctypes.Structure):
     """Wrapper for the magnetic field data in B_field.h."""
 
     _fields_ = [
-        ("Cartesian", ctypes.POINTER(cartesian.Struct)),
-        ("Analytical", ctypes.POINTER(analytical.Struct)),
-        ("Spline2D", ctypes.POINTER(spline2d.Struct)),
-        ("Spline3D", ctypes.POINTER(spline3d.Struct)),
-        ("Stellarator", ctypes.POINTER(stellarator.Struct)),
-        ("type", ctypes.c_uint32),
+        ("cartesian", ctypes.POINTER(cartesian.Struct)),
+        ("analytical", ctypes.POINTER(analytical.Struct)),
+        ("spline2d", ctypes.POINTER(spline2d.Struct)),
+        ("spline3d", ctypes.POINTER(spline3d.Struct)),
+        ("stellarator", ctypes.POINTER(stellarator.Struct)),
+        ("type", ctypes.c_int32),
     ]
 
 

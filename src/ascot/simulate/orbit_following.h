@@ -24,19 +24,19 @@
  * time step was accepted or rejected and provides a suggestion for the next
  * time step.
  *
- * @param p Markers that are advanced.
- * @param h NSIMD length array containing time step lengths
+ * @param mrk Markers that are advanced.
+ * @param h Time steps for each marker.
  * @param hnext Suggestion for the next step size.
- *        Negative sign indicates a failed step and the suggested value for the
- *        next step is the absoulte value.
+ *        Negative sign indicates a failed step. In this case, the suggested
+ *        value for the next step is the absolute value.
  * @param tol Error tolerance for acceptance.
  * @param bfield Magnetic field data.
  */
 void step_fl_cashkarp(
-    MarkerFieldLine *p, real *h, real *hnext, real tol, Bfield *bfield);
+    MarkerFieldLine *mrk, real *h, real *hnext, real tol, Bfield *bfield);
 
 /**
- * @brief Integrate a magnetic field line step for a struct of markers
+ * Integrate a magnetic field line step for a struct of markers
  *
  * This function calculates a magnetic field line step for a struct of NSIMD
  * markers with Cash-Karp (adaptive RK5) simultaneously using SIMD instructions.

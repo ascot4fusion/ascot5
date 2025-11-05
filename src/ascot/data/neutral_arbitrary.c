@@ -27,20 +27,18 @@ int NeutralArbitrary_init(
         {
             c[i] = density[i];
         }
-        linint3D_init(
-            &neutral->density[i], c, nr, nphi, nz, NATURALBC, PERIODICBC,
-            NATURALBC, rlim[0], rlim[1], philim[0], philim[1], zlim[0],
-            zlim[1]);
+        Linear3D_init(
+            &neutral->density[i], nr, nphi, nz, NATURALBC, PERIODICBC,
+            NATURALBC, rlim, philim, zlim, c);
         c = (real *)malloc(nr * nphi * nz * sizeof(real));
         err += c == NULL ? 1 : 0;
         for (size_t i = 0; i < nr * nphi * nz; i++)
         {
             c[i] = temperature[i];
         }
-        linint3D_init(
-            &neutral->temperature[i], c, nr, nphi, nz, NATURALBC, PERIODICBC,
-            NATURALBC, rlim[0], rlim[1], philim[0], philim[1], zlim[0],
-            zlim[1]);
+        Linear3D_init(
+            &neutral->temperature[i], nr, nphi, nz, NATURALBC, PERIODICBC,
+            NATURALBC, rlim, philim, zlim, c);
     }
     return err;
 }
@@ -69,7 +67,7 @@ err_t NeutralArbitrary_eval_density(
     for (size_t i = 0; i < neutral->n; i++)
     {
         interperr +=
-            linint3D_eval_f(&density[i], &neutral->density[i], r, phi, z);
+            Linear3D_eval_f(&density[i], &neutral->density[i], r, phi, z);
     }
 
     err = ERROR_CHECK(
@@ -85,7 +83,7 @@ err_t NeutralArbitrary_eval_temperature(
     int interperr = 0;
     for (size_t i = 0; i < neutral->n; i++)
     {
-        interperr += linint3D_eval_f(
+        interperr += Linear3D_eval_f(
             &temperature[i], &neutral->temperature[i], r, phi, z);
     }
 

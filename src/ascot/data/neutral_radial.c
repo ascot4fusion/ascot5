@@ -26,16 +26,16 @@ int NeutralRadial_init(
         {
             c[i] = density[i];
         }
-        linint1D_init(
-            &neutral->density[i], c, nrho, NATURALBC, rholim[0], rholim[1]);
+        Linear1D_init(
+            &neutral->density[i], nrho, NATURALBC, rholim, c);
         c = (real *)malloc(nrho * sizeof(real));
         err += c == NULL ? 1 : 0;
         for (size_t i = 0; i < nrho; i++)
         {
             c[i] = temperature[i];
         }
-        linint1D_init(
-            &neutral->temperature[i], c, nrho, NATURALBC, rholim[0], rholim[1]);
+        Linear1D_init(
+            &neutral->temperature[i], nrho, NATURALBC, rholim, c);
     }
     return err;
 }
@@ -63,7 +63,7 @@ err_t NeutralRadial_eval_density(
     int interperr = 0;
     for (size_t i = 0; i < neutral->n; i++)
     {
-        interperr += linint1D_eval_f(&density[i], &neutral->density[i], rho);
+        interperr += Linear1D_eval_f(&density[i], &neutral->density[i], rho);
     }
 
     err = ERROR_CHECK(
@@ -79,7 +79,7 @@ err_t NeutralRadial_eval_temperature(
     for (size_t i = 0; i < neutral->n; i++)
     {
         interperr +=
-            linint1D_eval_f(&temperature[i], &neutral->temperature[i], rho);
+            Linear1D_eval_f(&temperature[i], &neutral->temperature[i], rho);
     }
 
     err = ERROR_CHECK(

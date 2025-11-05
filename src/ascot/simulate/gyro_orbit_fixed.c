@@ -24,10 +24,59 @@
 #include <stdlib.h>
 #include <time.h>
 
+/**
+ * Replace markers in the simulation vector with new ones from the queue.
+ *
+ * A marker is replaced if it is no longer running or if it is a dummy marker.
+ *
+ * @param vector_size Number of markers in the simulation vector.
+ * @param queue Marker queue.
+ * @param p_current Current marker vector.
+ * @param sim Simulation data.
+ * @param time_step Time step for each marker.
+ *        This is set to the initial step size for newly added markers.
+ */
+static size_t cycle_markers(
+    size_t vector_size, MarkerQueue *queue, MarkerGyroOrbit *p_current,
+    Simulation *sim, real time_step[vector_size])
+{
+    size_t start = 0;
+    while (start < vector_size)
+    {
+        size_t next_in_queue;
+        size_t idx = MarkerQueue_cycle(
+            &next_in_queue, queue, vector_size, start, p_current->id,
+            p_current->running);
+        if (idx == vector_size)
+            break;
+        if (p_current->id[idx] != 0)
+            MarkerGyroOrbit_to_queue(queue, p_current, idx, &sim->bfield);
+        p_current->id[idx] = 0;
+
+        if (next_in_queue < queue->n)
+        {
+            if (MarkerGyroOrbit_from_queue(
+                    p_current, queue, idx, next_in_queue, &sim->bfield))
+                p_current->id[idx] = 0;
+            time_step[idx] = 0; // TODO
+        }
+        start = idx;
+    }
+
+    size_t n_running = 0;
+#pragma omp simd reduction(+ : n_running)
+    for (size_t i = 0; i < NSIMD; i++)
+    {
+        n_running += p_current->running[i];
+    }
+
+    return n_running;
+}
+
 DECLARE_TARGET_SIMD_UNIFORM(sim)
 real simulate_go_fixed_inidt(Simulation *sim, MarkerGyroOrbit *p, size_t i);
 
-void simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
+int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 {
     // Indicates whether a new marker was initialized
     size_t *cycle = (size_t *)malloc(vector_size * sizeof(size_t));
@@ -38,8 +87,10 @@ void simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 
     MarkerGyroOrbit p;  // This array holds current states
     MarkerGyroOrbit p0; // This array stores previous states
-    marker_allocate_go(&p, vector_size);
-    marker_allocate_go(&p0, vector_size);
+    if(MarkerGyroOrbit_allocate(&p, vector_size))
+        return 1;
+    if(MarkerGyroOrbit_allocate(&p0, vector_size))
+        return 1;
 
     /* Init dummy markers */
     for (size_t i = 0; i < vector_size; i++)
@@ -49,7 +100,7 @@ void simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     }
 
     /* Initialize running particles */
-    size_t n_running = marker_cycle_go(pq, &p, &sim->bfield, cycle);
+    size_t n_running = cycle_markers(vector_size, pq, &p, sim, hin);
 
 /* Determine simulation time-step */
 #pragma omp simd
@@ -71,8 +122,8 @@ void simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
      * - Check for end condition(s)
      * - Update diagnostics
      */
-    marker_offload_go(&p);
-    marker_offload_go(&p0);
+    MarkerGyroOrbit_offload(&p);
+    MarkerGyroOrbit_offload(&p0);
     real *rnd = (real *)malloc(3 * vector_size * sizeof(real));
     GPU_MAP_TO_DEVICE(hin [0:vector_size], rnd [0:3 * vector_size])
     while (n_running > 0)
@@ -80,9 +131,8 @@ void simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         /* Store marker states */
         GPU_PARALLEL_LOOP_ALL_LEVELS
         for (size_t i = 0; i < p.n_mrk; i++)
-        {
-            marker_copy_go(&p, i, &p0, i);
-        }
+            MarkerGyroOrbit_copy(&p0, &p, i);
+
         /*************************** Physics **********************************/
 
         /* Set time-step negative if tracing backwards in time */
@@ -159,8 +209,8 @@ void simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         if (!(sim->options->record_mode))
         {
             /* Record particle coordinates */
-            diag_update_go(
-                sim->diagnostics, sim->options, &sim->bfield, &p, &p0);
+            Diag_update_go(
+                sim->diagnostics, &sim->bfield, &p, &p0);
         }
         else
         {
@@ -193,8 +243,8 @@ void simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
                     gc_i.running[i] = 0;
                 }
             }
-            diag_update_gc(
-                sim->diagnostics, sim->options, &sim->bfield, &gc_f, &gc_i);
+            Diag_update_gc(
+                sim->diagnostics, &sim->bfield, &gc_f, &gc_i);
         }
 
         /* Update running particles */
@@ -207,7 +257,7 @@ void simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
                 n_running++;
         }
 #else
-        n_running = marker_cycle_go(pq, &p, &sim->bfield, cycle);
+        n_running = cycle_markers(vector_size, pq, &p, sim, hin);
 #endif
 #ifndef GPU
         /* Determine simulation time-step for new particles */
@@ -225,11 +275,15 @@ void simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 #ifdef GPU
     GPU_MAP_FROM_DEVICE(sim [0:1])
     marker_onload_go(&p);
-    n_running = marker_cycle_go(pq, &p, &sim->B_data, cycle);
+    n_running = cycle_markers(vector_size, pq, &p, sim, hin);
 #endif
     free(cycle);
     free(hin);
     free(rnd);
+
+    MarkerGyroOrbit_deallocate(&p);
+    MarkerGyroOrbit_deallocate(&p0);
+    return 0;
 }
 
 /**

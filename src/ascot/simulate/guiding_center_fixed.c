@@ -27,7 +27,56 @@ real simulate_gc_fixed_inidt(Simulation *sim, MarkerGuidingCenter *p, int i);
 
 #define DUMMY_TIMESTEP_VAL 1.0 /**< Dummy time step value */
 
-void simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
+/**
+ * Replace markers in the simulation vector with new ones from the queue.
+ *
+ * A marker is replaced if it is no longer running or if it is a dummy marker.
+ *
+ * @param vector_size Number of markers in the simulation vector.
+ * @param queue Marker queue.
+ * @param p_current Current marker vector.
+ * @param sim Simulation data.
+ * @param time_step Time step for each marker.
+ *        This is set to the initial step size for newly added markers.
+ */
+static size_t cycle_markers(
+    size_t vector_size, MarkerQueue *queue, MarkerGuidingCenter *p_current,
+    Simulation *sim, real time_step[vector_size])
+{
+    size_t start = 0;
+    while (start < vector_size)
+    {
+        size_t next_in_queue;
+        size_t idx = MarkerQueue_cycle(
+            &next_in_queue, queue, vector_size, start, p_current->id,
+            p_current->running);
+        if (idx == vector_size)
+            break;
+        if (p_current->id[idx] != 0)
+            MarkerGuidingCenter_to_queue(queue, p_current, idx, &sim->bfield);
+        p_current->id[idx] = 0;
+
+        if (next_in_queue < queue->n)
+        {
+            if (MarkerGuidingCenter_from_queue(
+                    p_current, queue, idx, next_in_queue, &sim->bfield))
+                p_current->id[idx] = 0;
+            time_step[idx] = 0; // TODO
+        }
+        start = idx;
+    }
+
+    size_t n_running = 0;
+#pragma omp simd reduction(+ : n_running)
+    for (size_t i = 0; i < NSIMD; i++)
+    {
+        n_running += p_current->running[i];
+    }
+
+    return n_running;
+}
+
+int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 {
     size_t *cycle = (size_t *)malloc(vector_size * sizeof(size_t));
     real *hin = (real *)malloc(vector_size * sizeof(real));
@@ -39,8 +88,10 @@ void simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 
     MarkerGuidingCenter p;  // This array holds current states
     MarkerGuidingCenter p0; // This array stores previous states
-    marker_allocate_gc(&p, vector_size);
-    marker_allocate_gc(&p0, vector_size);
+    if(MarkerGuidingCenter_allocate(&p, vector_size))
+        return 1;
+    if(MarkerGuidingCenter_allocate(&p0, vector_size))
+        return 1;
 
     rfof_marker rfof_mrk; // RFOF specific data
 
@@ -54,11 +105,11 @@ void simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     }
 
     /* Initialize running particles */
-    size_t n_running = marker_cycle_gc(pq, &p, &sim->bfield, cycle);
+    size_t n_running = cycle_markers(vector_size, pq, &p, sim, hin);
 
     if (sim->options->enable_icrh)
     {
-        rfof_set_up(&rfof_mrk, &sim->rfof);
+        rfof_set_up(&rfof_mrk, sim->rfof);
     }
 
 /* Determine simulation time-step */
@@ -84,15 +135,15 @@ void simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
      * - Update diagnostics
      */
     real *rnd = (real *)malloc(5 * vector_size * sizeof(real));
+    MarkerGuidingCenter_offload(&p);
+    MarkerGuidingCenter_offload(&p0);
     while (n_running > 0)
     {
 
 /* Store marker states */
 #pragma omp simd
         for (size_t i = 0; i < vector_size; i++)
-        {
-            marker_copy_gc(&p, i, &p0, i);
-        }
+            MarkerGuidingCenter_copy(&p0, &p, i);
 
 /*************************** Physics **********************************/
 
@@ -145,7 +196,7 @@ void simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         if (sim->options->enable_icrh)
         {
             rfof_resonance_check_and_kick_gc(
-                &p, hin, hout_rfof, &rfof_mrk, &sim->rfof, &sim->bfield);
+                &p, hin, hout_rfof, &rfof_mrk, sim->rfof, &sim->bfield);
 
 /* Check whether time step was rejected */
 #pragma omp simd
@@ -178,7 +229,7 @@ void simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
             {
                 /* Screwed up big time (negative time-step only when RFOF
                     rejected) */
-                marker_copy_gc(&p0, i, &p, i);
+                MarkerGuidingCenter_copy(&p, &p0, i);
                 hin[i] = -hnext_recom[i];
             }
             if (p.running[i])
@@ -204,10 +255,10 @@ void simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         endcond_check_gc(&p, &p0, sim);
 
         /* Update diagnostics */
-        diag_update_gc(sim->diagnostics, sim->options, &sim->bfield, &p, &p0);
+        Diag_update_gc(sim->diagnostics, &sim->bfield, &p, &p0);
 
         /* Update running particles */
-        n_running = marker_cycle_gc(pq, &p, &sim->bfield, cycle);
+        n_running = cycle_markers(vector_size, pq, &p, sim, hin);
 
 /* Determine simulation time-step */
 #pragma omp simd
@@ -224,6 +275,8 @@ void simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
             }
         }
     }
+    MarkerGuidingCenter_onload(&p);
+    MarkerGuidingCenter_onload(&p0);
 
     /* All markers simulated! */
     free(cycle);
@@ -238,6 +291,8 @@ void simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     {
         rfof_tear_down(&rfof_mrk);
     }
+
+    return 0;
 }
 
 /**

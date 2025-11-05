@@ -9,8 +9,12 @@ from a5py.data.marker.state import MarkerState
 @Leaf.register
 class Run(OutputVariant):
 
-    def _setup(self, mrk):
+    def _setup(self, mrk, *hist, orbit=None):
         self._diagnostics["endstate"] = MarkerState.from_params(mrk)
+        if orbit is not None:
+            self._diagnostics["orbit"] = orbit
+        for i, h in enumerate(hist):
+            self._diagnostics[f"hist_{i}"] = h
 
     def _load(self, file):
         super()._load(file)

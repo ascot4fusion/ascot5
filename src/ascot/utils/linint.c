@@ -7,119 +7,145 @@
 #include <math.h>
 #include <stdlib.h>
 
-void linint1D_init(
-    Linear1D *str, real *c, size_t n_x, int bc_x, real x_min, real x_max)
+void Linear1D_init(
+    Linear1D *linear, size_t nx, int xbc, real xlim[2], real c[nx])
 {
-    real x_grid = (x_max - x_min) / (n_x - 1 * (bc_x == NATURALBC));
-
-    str->c = c;
-    str->n_x = n_x;
-    str->bc_x = bc_x;
-    str->x_min = x_min;
-    str->x_max = x_max;
-    str->x_grid = x_grid;
+    linear->c = c;
+    linear->nx = nx;
+    linear->xbc = xbc;
+    linear->xlim[0] = xlim[0];
+    linear->xlim[1] = xlim[1];
+    linear->dx = (xlim[1] - xlim[0]) / (nx - 1 * (xbc == NATURALBC));
 }
 
-int linint1D_eval_f(real *f, Linear1D *str, real x)
+void Linear2D_init(
+    Linear2D *linear, size_t nx, size_t ny, int xbc, int ybc, real xlim[2],
+    real ylim[2], real c[nx * ny])
+{
+    linear->c = c;
+    linear->nx = nx;
+    linear->ny = ny;
+    linear->xlim[0] = xlim[0];
+    linear->xlim[1] = xlim[1];
+    linear->ylim[0] = ylim[0];
+    linear->ylim[1] = ylim[1];
+    linear->dx = (xlim[1] - xlim[0]) / (nx - 1 * (xbc == NATURALBC));
+    linear->dy = (ylim[1] - ylim[0]) / (ny - 1 * (ybc == NATURALBC));
+}
+
+void Linear3D_init(
+    Linear3D *linear, size_t nx, size_t ny, size_t nz, int xbc, int ybc,
+    int zbc, real xlim[2], real ylim[2], real zlim[2], real c[nx * ny * nz])
+{
+    linear->c = c;
+    linear->nx = nx;
+    linear->ny = ny;
+    linear->nz = nz;
+    linear->xbc = xbc;
+    linear->ybc = ybc;
+    linear->zbc = zbc;
+    linear->xlim[0] = xlim[0];
+    linear->xlim[1] = xlim[1];
+    linear->ylim[0] = ylim[0];
+    linear->ylim[1] = ylim[1];
+    linear->zlim[0] = zlim[0];
+    linear->zlim[1] = zlim[1];
+    linear->dx = (xlim[1] - xlim[0]) / (nx - 1 * (xbc == NATURALBC));
+    linear->dy = (ylim[1] - ylim[0]) / (ny - 1 * (ybc == NATURALBC));
+    linear->dz = (zlim[1] - zlim[0]) / (nz - 1 * (zbc == NATURALBC));
+}
+
+int Linear1D_eval_f(real f[1], Linear1D *linear, real x)
 {
     /* Make sure periodic coordinates are within [max, min] region. */
-    if (str->bc_x == PERIODICBC)
+    if (linear->xbc == PERIODICBC)
     {
-        x = fmod(x - str->x_min, str->x_max - str->x_min) + str->x_min;
-        x = x + (x < str->x_min) * (str->x_max - str->x_min);
+        x = fmod(x - linear->xlim[0], linear->xlim[1] - linear->xlim[0]) +
+            linear->xlim[0];
+        x = x + (x < linear->xlim[0]) * (linear->xlim[1] - linear->xlim[0]);
     }
 
     /* index for x variable */
-    size_t i_x = (x - str->x_min) / str->x_grid;
+    size_t i_x = (x - linear->xlim[0]) / linear->dx;
     /**< Normalized x coordinate in current cell */
-    real dx = (x - (str->x_min + i_x * str->x_grid)) / str->x_grid;
+    real dx = (x - (linear->xlim[0] + i_x * linear->dx)) / linear->dx;
 
     size_t x1 = 1; /* Index jump one x forward */
 
     int err = 0;
 
     /* Enforce periodic BC or check that the coordinate is within the grid. */
-    if (str->bc_x == PERIODICBC && i_x == str->n_x - 1)
+    if (linear->xbc == PERIODICBC && i_x == linear->nx - 1)
     {
-        x1 = -(str->n_x - 1) * x1;
+        x1 = -(linear->nx - 1) * x1;
     }
-    else if (str->bc_x == NATURALBC && !(x >= str->x_min && x <= str->x_max))
+    else if (
+        linear->xbc == NATURALBC &&
+        !(x >= linear->xlim[0] && x <= linear->xlim[1]))
     {
         err = 1;
     }
 
     if (!err)
     {
-        *f = str->c[i_x] * (1 - dx) + str->c[i_x + x1] * dx;
+        *f = linear->c[i_x] * (1 - dx) + linear->c[i_x + x1] * dx;
     }
     return err;
 }
 
-void linint2D_init(
-    Linear2D *str, real *c, size_t n_x, size_t n_y, int bc_x, int bc_y,
-    real x_min, real x_max, real y_min, real y_max)
-{
-    real x_grid = (x_max - x_min) / (n_x - 1 * (bc_x == NATURALBC));
-    real y_grid = (y_max - y_min) / (n_y - 1 * (bc_y == NATURALBC));
-
-    str->c = c;
-    str->n_x = n_x;
-    str->n_y = n_y;
-    str->x_min = x_min;
-    str->x_max = x_max;
-    str->y_min = y_min;
-    str->y_max = y_max;
-    str->x_grid = x_grid;
-    str->y_grid = y_grid;
-}
-
-int linint2D_eval_f(real *f, Linear2D *str, real x, real y)
+int Linear2D_eval_f(real f[1], Linear2D *linear, real x, real y)
 {
     real c00, c01, c10, c11;
     real c0, c1;
 
     /* Make sure periodic coordinates are within [max, min] region. */
-    if (str->bc_x == PERIODICBC)
+    if (linear->xbc == PERIODICBC)
     {
-        x = fmod(x - str->x_min, str->x_max - str->x_min) + str->x_min;
-        x = x + (x < str->x_min) * (str->x_max - str->x_min);
+        x = fmod(x - linear->xlim[0], linear->xlim[1] - linear->xlim[0]) +
+            linear->xlim[0];
+        x = x + (x < linear->xlim[0]) * (linear->xlim[1] - linear->xlim[0]);
     }
-    if (str->bc_y == PERIODICBC)
+    if (linear->ybc == PERIODICBC)
     {
-        y = fmod(y - str->y_min, str->y_max - str->y_min) + str->y_min;
-        y = y + (y < str->y_min) * (str->y_max - str->y_min);
+        y = fmod(y - linear->ylim[0], linear->ylim[1] - linear->ylim[0]) +
+            linear->ylim[0];
+        y = y + (y < linear->ylim[0]) * (linear->ylim[1] - linear->ylim[0]);
     }
 
     /* Index for x variable */
-    size_t i_x = (x - str->x_min) / str->x_grid;
+    size_t i_x = (x - linear->xlim[0]) / linear->dx;
     /* Normalized x coordinate in current cell */
-    real dx = (x - (str->x_min + i_x * str->x_grid)) / str->x_grid;
+    real dx = (x - (linear->xlim[0] + i_x * linear->dx)) / linear->dx;
 
     /* Index for y variable */
-    size_t i_y = (y - str->y_min) / str->y_grid;
+    size_t i_y = (y - linear->ylim[0]) / linear->dy;
     /* Normalized y coordinate in current cell */
-    real dy = (y - (str->y_min + i_y * str->y_grid)) / str->y_grid;
+    real dy = (y - (linear->ylim[0] + i_y * linear->dy)) / linear->dy;
 
-    size_t n = i_y * str->n_x + i_x; /* Index jump to cell       */
-    size_t x1 = 1;                   /* Index jump one x forward */
-    size_t y1 = str->n_x;            /* Index jump one y forward */
+    size_t n = i_y * linear->nx + i_x; /* Index jump to cell       */
+    size_t x1 = 1;                     /* Index jump one x forward */
+    size_t y1 = linear->nx;            /* Index jump one y forward */
 
     int err = 0;
 
     /* Enforce periodic BC or check that the coordinate is within the grid. */
-    if (str->bc_x == PERIODICBC && i_x == str->n_x - 1)
+    if (linear->xbc == PERIODICBC && i_x == linear->nx - 1)
     {
-        x1 = -(str->n_x - 1) * x1;
+        x1 = -(linear->nx - 1) * x1;
     }
-    else if (str->bc_x == NATURALBC && !(x >= str->x_min && x <= str->x_max))
+    else if (
+        linear->xbc == NATURALBC &&
+        !(x >= linear->xlim[0] && x <= linear->xlim[1]))
     {
         err = 1;
     }
-    if (str->bc_y == PERIODICBC && i_y == str->n_y - 1)
+    if (linear->ybc == PERIODICBC && i_y == linear->ny - 1)
     {
-        y1 = -(str->n_y - 1) * y1;
+        y1 = -(linear->ny - 1) * y1;
     }
-    else if (str->bc_y == NATURALBC && !(y >= str->y_min && y <= str->y_max))
+    else if (
+        linear->ybc == NATURALBC &&
+        !(y >= linear->ylim[0] && y <= linear->ylim[1]))
     {
         err = 1;
     }
@@ -127,10 +153,10 @@ int linint2D_eval_f(real *f, Linear2D *str, real x, real y)
     if (!err)
     {
         /* Values at grid cell corners */
-        c00 = str->c[n];
-        c10 = str->c[n + x1];
-        c01 = str->c[n + y1];
-        c11 = str->c[n + y1 + x1];
+        c00 = linear->c[n];
+        c10 = linear->c[n + x1];
+        c01 = linear->c[n + y1];
+        c11 = linear->c[n + y1 + x1];
         /* Interpolate along x */
         c0 = c00 * (1 - dx) + c10 * dx;
         c1 = c01 * (1 - dx) + c11 * dx;
@@ -141,100 +167,76 @@ int linint2D_eval_f(real *f, Linear2D *str, real x, real y)
     return err;
 }
 
-void linint3D_init(
-    Linear3D *str, real *c, size_t n_x, size_t n_y, size_t n_z, int bc_x, int bc_y,
-    int bc_z, real x_min, real x_max, real y_min, real y_max, real z_min,
-    real z_max)
-{
-    real x_grid = (x_max - x_min) / (n_x - 1 * (bc_x == NATURALBC));
-    real y_grid = (y_max - y_min) / (n_y - 1 * (bc_y == NATURALBC));
-    real z_grid = (z_max - z_min) / (n_z - 1 * (bc_z == NATURALBC));
-
-    str->c = c;
-    str->n_x = n_x;
-    str->n_y = n_y;
-    str->n_z = n_z;
-    str->bc_x = bc_x;
-    str->bc_y = bc_y;
-    str->bc_z = bc_z;
-    str->x_min = x_min;
-    str->x_max = x_max;
-    str->y_min = y_min;
-    str->y_max = y_max;
-    str->z_min = z_min;
-    str->z_max = z_max;
-    str->x_grid = x_grid;
-    str->y_grid = y_grid;
-    str->z_grid = z_grid;
-}
-
-int linint3D_eval_f(real *f, Linear3D *str, real x, real y, real z)
+int Linear3D_eval_f(real f[1], Linear3D *linear, real x, real y, real z)
 {
     real c000, c100, c001, c101, c010, c110, c011, c111;
     real c00, c01, c10, c11;
     real c0, c1;
     /* Make sure periodic coordinates are within [max, min] region. */
-    if (str->bc_x == PERIODICBC)
+    if (linear->xbc == PERIODICBC)
     {
-        x = fmod(x - str->x_min, str->x_max - str->x_min) + str->x_min;
-        x = x + (x < str->x_min) * (str->x_max - str->x_min);
+        x = fmod(x - linear->xlim[0], linear->xlim[1] - linear->xlim[0]) +
+            linear->xlim[0];
+        x = x + (x < linear->xlim[0]) * (linear->xlim[1] - linear->xlim[0]);
     }
-    if (str->bc_y == PERIODICBC)
+    if (linear->ybc == PERIODICBC)
     {
-        y = fmod(y - str->y_min, str->y_max - str->y_min) + str->y_min;
-        y = y + (y < str->y_min) * (str->y_max - str->y_min);
+        y = fmod(y - linear->ylim[0], linear->ylim[1] - linear->ylim[0]) +
+            linear->ylim[0];
+        y = y + (y < linear->ylim[0]) * (linear->ylim[1] - linear->ylim[0]);
     }
-    if (str->bc_z == PERIODICBC)
+    if (linear->zbc == PERIODICBC)
     {
-        z = fmod(z - str->z_min, str->z_max - str->z_min) + str->z_min;
-        z = z + (z < str->z_min) * (str->z_max - str->z_min);
+        z = fmod(z - linear->zlim[0], linear->zlim[1] - linear->zlim[0]) +
+            linear->zlim[0];
+        z = z + (z < linear->zlim[0]) * (linear->zlim[1] - linear->zlim[0]);
     }
 
-    /* index for x variable */
-    size_t i_x = (x - str->x_min) / str->x_grid;
-    /* Normalized x coordinate in current cell */
-    real dx = (x - (str->x_min + i_x * str->x_grid)) / str->x_grid;
+    size_t i_x = (x - linear->xlim[0]) / linear->dx;
+    real dx = (x - (linear->xlim[0] + i_x * linear->dx)) / linear->dx;
 
-    /* index for y variable */
-    size_t i_y = (y - str->y_min) / str->y_grid;
-    /* Normalized y coordinate in current cell */
-    real dy = (y - (str->y_min + i_y * str->y_grid)) / str->y_grid;
+    size_t i_y = (y - linear->ylim[0]) / linear->dy;
+    real dy = (y - (linear->ylim[0] + i_y * linear->dy)) / linear->dy;
 
-    /* index for z variable */
-    size_t i_z = (z - str->z_min) / str->z_grid;
-    /* Normalized z coordinate in current cell */
-    real dz = (z - (str->z_min + i_z * str->z_grid)) / str->z_grid;
+    size_t i_z = (z - linear->zlim[0]) / linear->dz;
+    real dz = (z - (linear->zlim[0] + i_z * linear->dz)) / linear->dz;
 
     /* Index jump to cell */
-    size_t n = i_y * str->n_z * str->n_x + i_z * str->n_x + i_x;
-    size_t x1 = 1;                   /* Index jump one x forward */
-    size_t y1 = str->n_z * str->n_x; /* Index jump one y forward */
-    size_t z1 = str->n_x;            /* Index jump one z forward */
+    size_t n = i_y * linear->nz * linear->nx + i_z * linear->nx + i_x;
+    size_t x1 = 1;                       /* Index jump one x forward */
+    size_t y1 = linear->nz * linear->nx; /* Index jump one y forward */
+    size_t z1 = linear->nx;              /* Index jump one z forward */
 
     int err = 0;
 
     /* Enforce periodic BC or check that the coordinate is within the grid. */
-    if (str->bc_x == PERIODICBC && i_x == str->n_x - 1)
+    if (linear->xbc == PERIODICBC && i_x == linear->nx - 1)
     {
-        x1 = -(str->n_x - 1) * x1;
+        x1 = -(linear->nx - 1) * x1;
     }
-    else if (str->bc_x == NATURALBC && !(x >= str->x_min && x <= str->x_max))
-    {
-        err = 1;
-    }
-    if (str->bc_y == PERIODICBC && i_y == str->n_y - 1)
-    {
-        y1 = -(str->n_y - 1) * y1;
-    }
-    else if (str->bc_y == NATURALBC && !(y >= str->y_min && y <= str->y_max))
+    else if (
+        linear->xbc == NATURALBC &&
+        !(x >= linear->xlim[0] && x <= linear->xlim[1]))
     {
         err = 1;
     }
-    if (str->bc_z == PERIODICBC && i_z == str->n_z - 1)
+    if (linear->ybc == PERIODICBC && i_y == linear->ny - 1)
     {
-        z1 = -(str->n_z - 1) * z1;
+        y1 = -(linear->ny - 1) * y1;
     }
-    else if (str->bc_z == NATURALBC && !(z >= str->z_min && z <= str->z_max))
+    else if (
+        linear->ybc == NATURALBC &&
+        !(y >= linear->ylim[0] && y <= linear->ylim[1]))
+    {
+        err = 1;
+    }
+    if (linear->zbc == PERIODICBC && i_z == linear->nz - 1)
+    {
+        z1 = -(linear->nz - 1) * z1;
+    }
+    else if (
+        linear->zbc == NATURALBC &&
+        !(z >= linear->zlim[0] && z <= linear->zlim[1]))
     {
         err = 1;
     }
@@ -242,14 +244,14 @@ int linint3D_eval_f(real *f, Linear3D *str, real x, real y, real z)
     if (!err)
     {
         /* Values at grid cell corners */
-        c000 = str->c[n];
-        c100 = str->c[n + x1];
-        c001 = str->c[n + y1];
-        c101 = str->c[n + y1 + x1];
-        c010 = str->c[n + z1];
-        c110 = str->c[n + z1 + x1];
-        c011 = str->c[n + y1 + z1];
-        c111 = str->c[n + y1 + z1 + x1];
+        c000 = linear->c[n];
+        c100 = linear->c[n + x1];
+        c001 = linear->c[n + y1];
+        c101 = linear->c[n + y1 + x1];
+        c010 = linear->c[n + z1];
+        c110 = linear->c[n + z1 + x1];
+        c011 = linear->c[n + y1 + z1];
+        c111 = linear->c[n + y1 + z1 + x1];
         /* Interpolate along x */
         c00 = c000 * (1 - dx) + c100 * dx;
         c01 = c001 * (1 - dx) + c101 * dx;

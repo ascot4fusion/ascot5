@@ -32,5 +32,5 @@ clean-doc:
 cleanall: clean
 	rm -rf build
 
-.PHONY: libascot ascot5 lint tests tutorial doc-user doc-dev doc clean \
+.PHONY: libascot ascot lint tests tutorial doc-user doc-dev doc clean \
 		clean-doc cleanall

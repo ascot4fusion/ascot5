@@ -135,6 +135,21 @@ typedef struct
 } mccc_data;
 
 /**
+ * Allocate memory and check that malloc succeeded.
+ *
+ * @param err Error flag (zero on success).
+ * @param size Size of allocated memory.
+ *
+ * @return Pointer to allocated memory.
+ */
+static inline void *xmalloc(int *err, size_t size)
+{
+    void *ptr = malloc(size);
+    *err = ptr == NULL;
+    return ptr;
+}
+
+/**
  * Simulation error flag type.
  *
  * The error flag is a 32 bit integer that contains following information:

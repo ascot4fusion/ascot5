@@ -33,12 +33,10 @@ int MhdStationary_init(
         mhd->phase[i] = phase[i];
         mhd->amplitude[i] = amplitude[i];
 
-        err += interp1Dcomp_setup(
-            &mhd->alpha[i], &alpha[i * nrho], nrho, NATURALBC, rholim[0],
-            rholim[1]);
-        err += interp1Dcomp_setup(
-            &mhd->phi[i], &phi[i * nrho], nrho, NATURALBC, rholim[0],
-            rholim[1]);
+        err += Spline1D_init(
+            &mhd->alpha[i], nrho, NATURALBC, rholim, &alpha[i * nrho]);
+        err += Spline1D_init(
+            &mhd->phi[i], nrho, NATURALBC, rholim, &phi[i * nrho]);
     }
     return err;
 }
@@ -86,8 +84,8 @@ err_t MhdStationary_eval_alpha_Phi(
         }
 
         real a_da[3], phi_dphi[3];
-        interperr += interp1Dcomp_eval_df(a_da, &(mhd->alpha[i]), rho[0]);
-        interperr += interp1Dcomp_eval_df(phi_dphi, &(mhd->phi[i]), rho[0]);
+        interperr += Spline1D_eval_f_df(a_da, &(mhd->alpha[i]), rho[0]);
+        interperr += Spline1D_eval_f_df(phi_dphi, &(mhd->phi[i]), rho[0]);
 
         /* The interpolation returns dx/drho but we require dx/dpsi. The second
            order derivatives are not needed anywhere */

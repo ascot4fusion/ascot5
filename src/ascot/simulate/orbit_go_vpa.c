@@ -90,7 +90,8 @@ void step_go_vpa(
                 real Bhat[9] = {0,       Bxyz[2], -Bxyz[1], -Bxyz[2], 0,
                                 Bxyz[0], Bxyz[1], -Bxyz[0], 0};
                 real Bhat2[9];
-                math_matmul(Bhat, Bhat, 3, 3, 3, Bhat2);
+                math_matrix_multiplication(
+                    Bhat2, Bhat, Bhat, (size_t[]){3, 3, 3});
 
                 real B2 =
                     Bxyz[0] * Bxyz[0] + Bxyz[1] * Bxyz[1] + Bxyz[2] * Bxyz[2];
@@ -103,7 +104,8 @@ void step_go_vpa(
                 }
 
                 real pplus[3];
-                math_matmul(pminus, A, 1, 3, 3, pplus);
+                math_matrix_multiplication(
+                    pplus, pminus, A, (size_t[]){1, 3, 3});
 
                 /* Take the step */
                 real pfinal[3];
@@ -162,16 +164,16 @@ void step_go_vpa(
             if (!errflag)
             {
                 p->B_r[i] = BdBrpz[0];
-                p->B_r_dr[i] = BdBrpz[1];
-                p->B_r_dphi[i] = BdBrpz[2];
-                p->B_r_dz[i] = BdBrpz[3];
+                p->B_r_dr[i] = BdBrpz[3];
+                p->B_r_dphi[i] = BdBrpz[4];
+                p->B_r_dz[i] = BdBrpz[5];
 
-                p->B_phi[i] = BdBrpz[4];
-                p->B_phi_dr[i] = BdBrpz[5];
-                p->B_phi_dphi[i] = BdBrpz[6];
-                p->B_phi_dz[i] = BdBrpz[7];
+                p->B_phi[i] = BdBrpz[1];
+                p->B_phi_dr[i] = BdBrpz[6];
+                p->B_phi_dphi[i] = BdBrpz[7];
+                p->B_phi_dz[i] = BdBrpz[8];
 
-                p->B_z[i] = BdBrpz[8];
+                p->B_z[i] = BdBrpz[2];
                 p->B_z_dr[i] = BdBrpz[9];
                 p->B_z_dphi[i] = BdBrpz[10];
                 p->B_z_dz[i] = BdBrpz[11];
@@ -268,8 +270,9 @@ void step_go_vpa_mhd(
             if (!errflag)
             {
                 errflag = Mhd_eval_perturbation(
-                    Brpz, Epert, Psi, posrpz[0], posrpz[1], posrpz[2], t0 + h[i] / 2,
-                    pertonly, MHD_INCLUDE_ALL, mhd, bfield, boozer);
+                    Brpz, Epert, Psi, posrpz[0], posrpz[1], posrpz[2],
+                    t0 + h[i] / 2, pertonly, MHD_INCLUDE_ALL, mhd, bfield,
+                    boozer);
             }
             Erpz[0] += Epert[0];
             Erpz[1] += Epert[1];
@@ -301,7 +304,8 @@ void step_go_vpa_mhd(
                 real Bhat[9] = {0,       Bxyz[2], -Bxyz[1], -Bxyz[2], 0,
                                 Bxyz[0], Bxyz[1], -Bxyz[0], 0};
                 real Bhat2[9];
-                math_matmul(Bhat, Bhat, 3, 3, 3, Bhat2);
+                math_matrix_multiplication(
+                    Bhat2, Bhat, Bhat, (size_t[]){3, 3, 3});
 
                 real B2 =
                     Bxyz[0] * Bxyz[0] + Bxyz[1] * Bxyz[1] + Bxyz[2] * Bxyz[2];
@@ -313,7 +317,8 @@ void step_go_vpa_mhd(
                 }
 
                 real pplus[3];
-                math_matmul(pminus, A, 1, 3, 3, pplus);
+                math_matrix_multiplication(
+                    pplus, pminus, A, (size_t[]){1, 3, 3});
 
                 /* Take the step */
                 real pfinal[3];
@@ -372,16 +377,16 @@ void step_go_vpa_mhd(
             if (!errflag)
             {
                 p->B_r[i] = BdBrpz[0];
-                p->B_r_dr[i] = BdBrpz[1];
-                p->B_r_dphi[i] = BdBrpz[2];
-                p->B_r_dz[i] = BdBrpz[3];
+                p->B_r_dr[i] = BdBrpz[3];
+                p->B_r_dphi[i] = BdBrpz[4];
+                p->B_r_dz[i] = BdBrpz[5];
 
-                p->B_phi[i] = BdBrpz[4];
-                p->B_phi_dr[i] = BdBrpz[5];
-                p->B_phi_dphi[i] = BdBrpz[6];
-                p->B_phi_dz[i] = BdBrpz[7];
+                p->B_phi[i] = BdBrpz[1];
+                p->B_phi_dr[i] = BdBrpz[6];
+                p->B_phi_dphi[i] = BdBrpz[7];
+                p->B_phi_dz[i] = BdBrpz[8];
 
-                p->B_z[i] = BdBrpz[8];
+                p->B_z[i] = BdBrpz[2];
                 p->B_z_dr[i] = BdBrpz[9];
                 p->B_z_dphi[i] = BdBrpz[10];
                 p->B_z_dz[i] = BdBrpz[11];

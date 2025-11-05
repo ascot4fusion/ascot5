@@ -21,18 +21,18 @@ int BfieldStellarator_init(
     int err = 0;
     bfield->psilimits[0] = psilimits[0];
     bfield->psilimits[1] = psilimits[1];
-    err += interp3Dcomp_setup(
-        &bfield->psi, psi, pnr, pnphi, pnz, NATURALBC, PERIODICBC, NATURALBC,
-        prlim[0], prlim[1], pphilim[0], pphilim[1], pzlim[0], pzlim[1]);
-    err += interp3Dcomp_setup(
-        &bfield->br, br, bnr, bnphi, bnz, NATURALBC, PERIODICBC, NATURALBC,
-        brlim[0], brlim[1], bphilim[0], bphilim[1], bzlim[0], bzlim[1]);
-    err += interp3Dcomp_setup(
-        &bfield->bz, bz, bnr, bnphi, bnz, NATURALBC, PERIODICBC, NATURALBC,
-        brlim[0], brlim[1], bphilim[0], bphilim[1], bzlim[0], bzlim[1]);
-    err += interp3Dcomp_setup(
-        &bfield->bphi, bphi, bnr, bnphi, bnz, NATURALBC, PERIODICBC, NATURALBC,
-        brlim[0], brlim[1], bphilim[0], bphilim[1], bzlim[0], bzlim[1]);
+    err += Spline3D_init(
+        &bfield->psi, pnr, pnphi, pnz, NATURALBC, PERIODICBC, NATURALBC,
+        prlim, pphilim, pzlim, psi);
+    err += Spline3D_init(
+        &bfield->br, bnr, bnphi, bnz, NATURALBC, PERIODICBC, NATURALBC,
+        brlim, bphilim, bzlim, br);
+    err += Spline3D_init(
+        &bfield->bz, bnr, bnphi, bnz, NATURALBC, PERIODICBC, NATURALBC,
+        brlim, bphilim, bzlim, bz);
+    err += Spline3D_init(
+        &bfield->bphi, bnr, bnphi, bnz, NATURALBC, PERIODICBC, NATURALBC,
+        brlim, bphilim, bzlim, bphi);
 
     real *c1 = (real *)malloc(naxis * sizeof(real));
     real *c2 = (real *)malloc(naxis * sizeof(real));
@@ -41,10 +41,10 @@ int BfieldStellarator_init(
         c1[i] = axisr[i];
         c2[i] = axisz[i];
     }
-    linint1D_init(
-        &bfield->axisr, c1, naxis, PERIODICBC, axislim[0], axislim[1]);
-    linint1D_init(
-        &bfield->axisz, c2, naxis, PERIODICBC, axislim[0], axislim[1]);
+    Linear1D_init(
+        &bfield->axisr, naxis, PERIODICBC, axislim, c1);
+    Linear1D_init(
+        &bfield->axisz, naxis, PERIODICBC, axislim, c2);
     return 0;
 }
 
@@ -77,7 +77,7 @@ err_t BfieldStellarator_eval_psi(
     real psi[1], real r, real phi, real z, BfieldStellarator *bfield)
 {
     err_t err = 0;
-    int interperr = interp3Dcomp_eval_f(&psi[0], &bfield->psi, r, phi, z);
+    int interperr = Spline3D_eval_f(&psi[0], &bfield->psi, r, phi, z);
 
     err = ERROR_CHECK(
         err, interperr, ERR_INTERPOLATED_OUTSIDE_RANGE,
@@ -91,7 +91,7 @@ err_t BfieldStellarator_eval_psi_dpsi(
     err_t err = 0;
     real psi_dpsi_temp[10];
     int interperr =
-        interp3Dcomp_eval_df(psi_dpsi_temp, &bfield->psi, r, phi, z);
+        Spline3D_eval_f_df(psi_dpsi_temp, &bfield->psi, r, phi, z);
     psi_dpsi[0] = psi_dpsi_temp[0];
     psi_dpsi[1] = psi_dpsi_temp[1];
     psi_dpsi[2] = psi_dpsi_temp[2];
@@ -108,9 +108,9 @@ err_t BfieldStellarator_eval_b(
 {
     err_t err = 0;
     int interperr = 0;
-    interperr += interp3Dcomp_eval_f(&b[0], &bfield->br, r, phi, z);
-    interperr += interp3Dcomp_eval_f(&b[1], &bfield->bphi, r, phi, z);
-    interperr += interp3Dcomp_eval_f(&b[2], &bfield->bz, r, phi, z);
+    interperr += Spline3D_eval_f(&b[0], &bfield->br, r, phi, z);
+    interperr += Spline3D_eval_f(&b[1], &bfield->bphi, r, phi, z);
+    interperr += Spline3D_eval_f(&b[2], &bfield->bz, r, phi, z);
 
     err = ERROR_CHECK(
         err, interperr, ERR_INTERPOLATED_OUTSIDE_RANGE,
@@ -125,20 +125,20 @@ err_t BfieldStellarator_eval_b_db(
     int interperr = 0;
     real b_db_temp[10];
 
-    interperr += interp3Dcomp_eval_df(b_db_temp, &bfield->br, r, phi, z);
+    interperr += Spline3D_eval_f_df(b_db_temp, &bfield->br, r, phi, z);
     b_db[0] = b_db_temp[0];
-    b_db[1] = b_db_temp[1];
-    b_db[2] = b_db_temp[2];
-    b_db[3] = b_db_temp[3];
+    b_db[3] = b_db_temp[1];
+    b_db[4] = b_db_temp[2];
+    b_db[5] = b_db_temp[3];
 
-    interperr += interp3Dcomp_eval_df(b_db_temp, &bfield->bphi, r, phi, z);
-    b_db[4] = b_db_temp[0];
-    b_db[5] = b_db_temp[1];
-    b_db[6] = b_db_temp[2];
-    b_db[7] = b_db_temp[3];
+    interperr += Spline3D_eval_f_df(b_db_temp, &bfield->bphi, r, phi, z);
+    b_db[1] = b_db_temp[0];
+    b_db[6] = b_db_temp[1];
+    b_db[7] = b_db_temp[2];
+    b_db[8] = b_db_temp[3];
 
-    interperr += interp3Dcomp_eval_df(b_db_temp, &bfield->bz, r, phi, z);
-    b_db[8] = b_db_temp[0];
+    interperr += Spline3D_eval_f_df(b_db_temp, &bfield->bz, r, phi, z);
+    b_db[2] = b_db_temp[0];
     b_db[9] = b_db_temp[1];
     b_db[10] = b_db_temp[2];
     b_db[11] = b_db_temp[3];
@@ -154,8 +154,8 @@ err_t BfieldStellarator_eval_axisrz(
 {
     err_t err = 0;
     int interperr = 0;
-    interperr += linint1D_eval_f(&axisrz[0], &bfield->axisr, phi);
-    interperr += linint1D_eval_f(&axisrz[1], &bfield->axisz, phi);
+    interperr += Linear1D_eval_f(&axisrz[0], &bfield->axisr, phi);
+    interperr += Linear1D_eval_f(&axisrz[1], &bfield->axisz, phi);
 
     err = ERROR_CHECK(
         err, interperr, ERR_INTERPOLATED_OUTSIDE_RANGE,

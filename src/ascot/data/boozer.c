@@ -20,12 +20,12 @@ int Boozer_init(
     real THETAMAX = CONST_2PI;
     real padding = (npadding * CONST_2PI) / (nthetag - 2 * npadding - 1);
 
-    err = interp2Dcomp_setup(
-        &boozer->nu, nu, npsi, ntheta, NATURALBC, PERIODICBC, psilim[0],
-        psilim[1], THETAMIN, THETAMAX);
-    err = interp2Dcomp_setup(
-        &boozer->theta, theta, npsi, nthetag, NATURALBC, NATURALBC, psilim[0],
-        psilim[1], THETAMIN - padding, THETAMAX + padding);
+    err = Spline2D_init(
+        &boozer->nu, npsi, ntheta, NATURALBC, PERIODICBC, psilim,
+        (real[]){THETAMIN, THETAMAX}, nu);
+    err = Spline2D_init(
+        &boozer->theta, npsi, nthetag, NATURALBC, NATURALBC, psilim,
+        (real[]){THETAMIN - padding, THETAMAX + padding}, theta);
 
     boozer->nrz = nrz;
     boozer->rlim = (real *)malloc(nrz * sizeof(real));
@@ -61,17 +61,17 @@ err_t Boozer_map_coordinates(
     err = err ? err : Bfield_eval_axis_rz(axisrz, bfield, phi);
 
     isinside[0] =
-        psi_dpsi[0] < boozer->theta.y_max &&
-        psi_dpsi[0] > boozer->theta.y_min &&
+        psi_dpsi[0] < boozer->theta.ylim[1] &&
+        psi_dpsi[0] > boozer->theta.ylim[0] &&
         math_point_in_polygon(r, z, boozer->rlim, boozer->zlim, boozer->nrz);
 
     int interperr = 0;
     real thgeo, theta_dtheta[6], nu[6];
     thgeo = fmod(atan2(z - axisrz[1], r - axisrz[0]) + CONST_2PI, CONST_2PI);
     interperr +=
-        interp2Dcomp_eval_df(theta_dtheta, &boozer->theta, psi_dpsi[0], thgeo);
+        Spline2D_eval_f_df(theta_dtheta, &boozer->theta, psi_dpsi[0], thgeo);
     interperr +=
-        interp2Dcomp_eval_df(nu, &boozer->nu, psi_dpsi[0], theta_dtheta[0]);
+        Spline2D_eval_f_df(nu, &boozer->nu, psi_dpsi[0], theta_dtheta[0]);
 
     /* No need to raise error if we are outside the Boozer region */
     err = ERROR_CHECK(

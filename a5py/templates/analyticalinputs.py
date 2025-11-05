@@ -45,7 +45,7 @@ class PremadeMagneticField(InputTemplate):
                 )
             data.update({
                 "rmajor":6.2 * unyt.m,
-                "axisb":5.3 * unyt.T, "psiscaling":200.0,
+                "bphi":5.3 * unyt.T, "psiscaling":200.0 * unyt.Wb/unyt.rad,
                 "coefficients":np.append(c, 1.0),
                 })
             if splines:
@@ -67,7 +67,7 @@ class PremadeMagneticField(InputTemplate):
                 )
             data.update({
                 "rmajor":6.2 * unyt.m,
-                "axisb":5.3 * unyt.T, "psiscaling":200.0,
+                "bphi":5.3 * unyt.T, "psiscaling":200.0 * unyt.Wb/unyt.rad,
                 "coefficients":np.append(c, -0.155),
                 })
             if splines:
@@ -91,7 +91,7 @@ class PremadeMagneticField(InputTemplate):
                 )
             data.update({
                 "rmajor":0.85 * unyt.m,
-                "axisb":0.3 * unyt.T, "psiscaling":200.0,
+                "bphi":0.3 * unyt.T, "psiscaling":200.0 * unyt.Wb/unyt.rad,
                 "coefficients":np.append(c, 0.0),
                 })
             if splines:
@@ -110,9 +110,9 @@ class PremadeMagneticField(InputTemplate):
             raise ValueError(f"No premade field found: {field}")
 
         if splines and axisymmetric:
-            input_type = "bfield2d"
+            input_type = "bfieldspline2d"
         elif splines and not axisymmetric:
-            input_type = "bfield3d"
+            input_type = "bfieldspline3d"
         else:
             input_type = "bfieldanalytical"
         super().__init__(ascot, input_type, data)

@@ -105,8 +105,8 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
  *
  * @param b_db Evaluated magnetic field vector and its derivatives in
  *        cylindrical basis [T].
- *        Layout: [br, dbr/dr, dbr/dphi, bz, dbz/dz, bphi, dbphi/dr, dbphi/dphi,
- *        dbphi/dz, bz, dbz/dr, dbz/dphi, dbz/dz].
+ *        Layout: [br, bphi, bz, dbr/dr, dbr/dphi, dbr/dz, dbphi/dr, dbphi/dphi,
+ *        dbphi/dz, dbz/dr, dbz/dphi, dbz/dz].
  * @param r R coordinate of the query point [m].
  * @param phi phi coordinate of the query point [rad].
  * @param z z coordinate of the query point [m].

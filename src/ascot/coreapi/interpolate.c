@@ -48,7 +48,7 @@ void ascot_interpolate(
     real mhd_e[3][npnt], real mhd_phi[npnt])
 {
     int ONLY_PERTURBATIONS = 1;
-    OMP_PARALLEL_CPU_ONLY
+    //OMP_PARALLEL_CPU_ONLY
     for (size_t k = 0; k < npnt; k++)
     {
         real Bq[15], psival[4], rhoval[2], Eq[3], ns[MAX_SPECIES],
@@ -56,18 +56,18 @@ void ascot_interpolate(
             alpha_dalpha[5], Phi_dPhi[5];
         int psi_valid = 0, rho_valid = 0;
         int n_species, isinside;
-
+        //printf("R=%f, phi=%f, z=%f, t=%f\n", R[k], phi[k], z[k], t[k]);
         if (bfield && !Bfield_eval_b_db(Bq, R[k], phi[k], z[k], t[k], bfield))
         {
             STORE(0 * npnt + k, Bq[0], *B);
-            STORE(1 * npnt + k, Bq[4], *B);
-            STORE(2 * npnt + k, Bq[8], *B);
-            STORE(0 * npnt + k, Bq[1], *Bjac);
-            STORE(1 * npnt + k, Bq[2], *Bjac);
-            STORE(2 * npnt + k, Bq[3], *Bjac);
-            STORE(3 * npnt + k, Bq[5], *Bjac);
-            STORE(4 * npnt + k, Bq[6], *Bjac);
-            STORE(5 * npnt + k, Bq[7], *Bjac);
+            STORE(1 * npnt + k, Bq[1], *B);
+            STORE(2 * npnt + k, Bq[2], *B);
+            STORE(0 * npnt + k, Bq[3], *Bjac);
+            STORE(1 * npnt + k, Bq[4], *Bjac);
+            STORE(2 * npnt + k, Bq[5], *Bjac);
+            STORE(3 * npnt + k, Bq[6], *Bjac);
+            STORE(4 * npnt + k, Bq[7], *Bjac);
+            STORE(5 * npnt + k, Bq[8], *Bjac);
             STORE(6 * npnt + k, Bq[9], *Bjac);
             STORE(7 * npnt + k, Bq[10], *Bjac);
             STORE(8 * npnt + k, Bq[11], *Bjac);

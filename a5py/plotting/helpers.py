@@ -51,7 +51,7 @@ def setpaperstyle(latex=True):
             "text.usetex":True,
         })
 
-def setguistyle(latex=True):
+def setscreenstyle(latex=True):
     """Set default figure settings (label sizes etc.) so that the figure is
     suitable for GUI and presentations (large labels).
 
