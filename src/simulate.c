@@ -99,8 +99,12 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     simulate_init(sim);
 
 #ifdef GPU
-    if(sim->sim_mode != 1) {
-        print_err("Only GO mode ported to GPU. Please set SIM_MODE=1.");
+    if((sim->sim_mode != 1) && (sim->sim_mode != 2)) {
+        print_err("Only GO and GC mode ported to GPU. Please set SIM_MODE=1 or 2.");
+        exit(1);
+    }
+    if((sim->sim_mode == 2) && (sim->enable_ada)) {
+        print_err("adaptive time-step is not ported to GPU. Please set ENABLE_ADAPTIVE=0.");
         exit(1);
     }
     if(sim->record_mode) {
@@ -125,6 +129,7 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
             "ENABLE_TRANSCOEF=1 not ported to GPU. Please disable it.");
         exit(1);
     }
+    
 #endif
 
     diag_init(&sim->diag_data, n_particles);
@@ -192,12 +197,12 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
             if(pq.n > 0 && (sim->sim_mode == simulate_mode_gc
                         || sim->sim_mode == simulate_mode_hybrid)) {
                 if(sim->enable_ada) {
-                    OMP_PARALLEL_CPU_ONLY
-                    simulate_gc_adaptive(&pq, sim);
+		    OMP_PARALLEL_CPU_ONLY
+		    simulate_gc_adaptive(&pq, sim);
                 }
                 else {
                     OMP_PARALLEL_CPU_ONLY
-                    simulate_gc_fixed(&pq, sim);
+                    simulate_gc_fixed(&pq, sim, n_queue_size);
                 }
             }
             else if(pq.n > 0 && sim->sim_mode == simulate_mode_fo) {

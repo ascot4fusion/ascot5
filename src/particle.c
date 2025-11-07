@@ -114,6 +114,58 @@ void particle_allocate_fo(particle_simd_fo* p_fo, int nmrk){
     p_fo->n_mrk = nmrk;
 }
 
+/**
+ * @brief Allocates guiding center struct representing particle markers
+ *
+ * Size used for memory allocation is NSIMD for CPU run and the total number
+ * of particles for GPU.
+ *
+ * @param p_gc marker struct to allocate
+ * @param nmrk the number of markers that the struct represents
+ */
+void particle_allocate_gc(particle_simd_gc* p_gc, int nmrk){
+    /* Physical coordinates and parameters */
+    p_gc->r = malloc(nmrk * sizeof(p_gc->r)  );
+    p_gc->phi = malloc(nmrk * sizeof(p_gc->phi)  );
+    p_gc->z = malloc(nmrk * sizeof(p_gc->z)  );
+    p_gc->ppar = malloc(nmrk * sizeof(p_gc->ppar)  );
+    p_gc->mu = malloc(nmrk * sizeof(p_gc->mu)  );
+    p_gc->zeta = malloc(nmrk * sizeof(p_gc->zeta)  );
+    p_gc->mass = malloc(nmrk * sizeof(p_gc->mass)  );
+    p_gc->charge = malloc(nmrk * sizeof(p_gc->charge)  );
+    p_gc->time = malloc(nmrk * sizeof(p_gc->time)  );
+
+    /* Magnetic field data */
+    p_gc->B_r = malloc(nmrk * sizeof(p_gc->B_r)  );
+    p_gc->B_phi = malloc(nmrk * sizeof(p_gc->B_phi)  );
+    p_gc->B_z = malloc(nmrk * sizeof(p_gc->B_z)  );
+    p_gc->B_r_dr = malloc(nmrk * sizeof(p_gc->B_r_dr)  );
+    p_gc->B_phi_dr = malloc(nmrk * sizeof(p_gc->B_phi_dr)  );
+    p_gc->B_z_dr = malloc(nmrk * sizeof(p_gc->B_z_dr)  );
+    p_gc->B_r_dphi = malloc(nmrk * sizeof(p_gc->B_r_dphi)  );
+    p_gc->B_phi_dphi = malloc(nmrk * sizeof(p_gc->B_phi_dphi)  );
+    p_gc->B_z_dphi = malloc(nmrk * sizeof(p_gc->B_z_dphi)  );
+    p_gc->B_r_dz = malloc(nmrk * sizeof(p_gc->B_r_dz)  );
+    p_gc->B_phi_dz = malloc(nmrk * sizeof(p_gc->B_phi_dz)  );
+    p_gc->B_z_dz = malloc(nmrk * sizeof(p_gc->B_z_dz)  );
+
+    /* Quantities used in diagnostics */
+    p_gc->bounces = malloc(nmrk * sizeof(p_gc->bounces));
+    p_gc->weight = malloc(nmrk * sizeof(p_gc->weight)  );
+    p_gc->cputime = malloc(nmrk * sizeof(p_gc->cputime)  );
+    p_gc->rho = malloc(nmrk * sizeof(p_gc->rho)  );
+    p_gc->theta = malloc(nmrk * sizeof(p_gc->theta)  );
+    p_gc->id = malloc(nmrk * sizeof(p_gc->id)  );
+    p_gc->endcond = malloc(nmrk * sizeof(p_gc->endcond)  );
+    p_gc->walltile = malloc(nmrk * sizeof(p_gc->walltile)  );
+
+    /* Meta data */
+    p_gc->mileage = malloc(nmrk * sizeof(p_gc->mileage)  );
+    p_gc->running = malloc(nmrk * sizeof(p_gc->running)  );
+    p_gc->err = malloc(nmrk * sizeof(p_gc->err)  );
+    p_gc->index = malloc(nmrk * sizeof(p_gc->index)  );
+    p_gc->n_mrk = nmrk;
+}
 
 /**
  * @brief Makes a dummy FO simulation marker
@@ -369,7 +421,7 @@ int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
 
     /* Loop over markers.
      * A SIMD loop is not possible as we modify the queue. */
-    for(int i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < p->n_mrk; i++) {
 
         /* First check whether we should pick a new marker */
         int newmarker = 0;
@@ -426,7 +478,7 @@ int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
 
     int n_running = 0;
     #pragma omp simd reduction(+:n_running)
-    for(int i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < p->n_mrk; i++) {
         n_running += p->running[i];
     }
 
@@ -1806,5 +1858,93 @@ void particle_onload_fo(particle_simd_fo* p) {
         p->znum      [0:p->n_mrk],\
         p->anum      [0:p->n_mrk],\
         p->bounces   [0:p->n_mrk]
+    )
+}
+
+
+/**
+ * @brief Offload guiding center particle struct to GPU.
+ *
+ * @param p pointer to the particle struct to be offloaded.
+ */
+void particle_offload_gc(particle_simd_gc* p) {
+    GPU_MAP_TO_DEVICE(
+        p[0:1],\
+        p->r          [0:p->n_mrk],\
+        p->phi        [0:p->n_mrk],\
+        p->z          [0:p->n_mrk],\
+        p->ppar       [0:p->n_mrk],\
+        p->mu         [0:p->n_mrk],\
+        p->zeta       [0:p->n_mrk],\
+        p->mass       [0:p->n_mrk],\
+        p->charge     [0:p->n_mrk],\
+        p->time       [0:p->n_mrk],\
+        p->B_r        [0:p->n_mrk],\
+        p->B_phi      [0:p->n_mrk],\
+        p->B_z        [0:p->n_mrk],\
+        p->B_r_dr     [0:p->n_mrk],\
+        p->B_phi_dr   [0:p->n_mrk],\
+        p->B_z_dr     [0:p->n_mrk],\
+        p->B_r_dphi   [0:p->n_mrk],\
+        p->B_phi_dphi [0:p->n_mrk],\
+        p->B_z_dphi   [0:p->n_mrk],\
+        p->B_r_dz     [0:p->n_mrk],\
+        p->B_phi_dz   [0:p->n_mrk],\
+        p->B_z_dz     [0:p->n_mrk],\
+        p->bounces    [0:p->n_mrk],\
+        p->weight     [0:p->n_mrk],\
+        p->cputime    [0:p->n_mrk],\
+        p->rho        [0:p->n_mrk],\
+        p->theta      [0:p->n_mrk],\
+        p->id         [0:p->n_mrk],\
+        p->endcond    [0:p->n_mrk],\
+        p->walltile   [0:p->n_mrk],\
+        p->mileage    [0:p->n_mrk],\
+        p->running    [0:p->n_mrk],\
+        p->err        [0:p->n_mrk],\
+        p->index      [0:p->n_mrk]
+    )
+}
+
+/**
+ * @brief Onload guiding center particle struct from the GPU.
+ *
+ * @param p pointer to the particle struct to be onloaded.
+ */
+void particle_onload_gc(particle_simd_gc* p) {
+    GPU_UPDATE_FROM_DEVICE(
+        p->r          [0:p->n_mrk],\
+        p->phi        [0:p->n_mrk],\
+        p->z          [0:p->n_mrk],\
+        p->ppar       [0:p->n_mrk],\
+        p->mu         [0:p->n_mrk],\
+        p->zeta       [0:p->n_mrk],\
+        p->mass       [0:p->n_mrk],\
+        p->charge     [0:p->n_mrk],\
+        p->time       [0:p->n_mrk],\
+        p->B_r        [0:p->n_mrk],\
+        p->B_phi      [0:p->n_mrk],\
+        p->B_z        [0:p->n_mrk],\
+        p->B_r_dr     [0:p->n_mrk],\
+        p->B_phi_dr   [0:p->n_mrk],\
+        p->B_z_dr     [0:p->n_mrk],\
+        p->B_r_dphi   [0:p->n_mrk],\
+        p->B_phi_dphi [0:p->n_mrk],\
+        p->B_z_dphi   [0:p->n_mrk],\
+        p->B_r_dz     [0:p->n_mrk],\
+        p->B_phi_dz   [0:p->n_mrk],\
+        p->B_z_dz     [0:p->n_mrk],\
+        p->bounces    [0:p->n_mrk],\
+        p->weight     [0:p->n_mrk],\
+        p->cputime    [0:p->n_mrk],\
+        p->rho        [0:p->n_mrk],\
+        p->theta      [0:p->n_mrk],\
+        p->id         [0:p->n_mrk],\
+        p->endcond    [0:p->n_mrk],\
+        p->walltile   [0:p->n_mrk],\
+        p->mileage    [0:p->n_mrk],\
+        p->running    [0:p->n_mrk],\
+        p->err        [0:p->n_mrk],\
+        p->index      [0:p->n_mrk]
     )
 }
