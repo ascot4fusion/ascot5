@@ -597,6 +597,8 @@ class ImportImas():
         eqprof = equilibrium_ids.time_slice[_TIMEINDEX].profiles_1d
         if (grid.rho_pol_norm):
             rho = grid.rho_pol_norm
+        #elif True:
+        #    rho = np.sqrt( (grid.psi - grid.psi[0]) / (grid.psi[-1] - grid.psi[0]) )
         elif len(grid.psi) and grid.psi_magnetic_axis != grid.psi_boundary:
             rho = np.sqrt(
                 (grid.psi - grid.psi_magnetic_axis) /
@@ -674,7 +676,7 @@ class ImportImas():
         pls = self._ascot.data.create_input(
             "import plasma profiles", dryrun=True, pls=pls,
             extrapolate=3.0, extrapolate_len=0.001
-        )
+            )
         return "plasma_1D", pls
 
     def imas_marker(self, distribution_sources_ids=None):
@@ -1006,3 +1008,76 @@ class ExportIMAS():
         #    d = self.ids.distribution[iDistribution + distoffset]
         #distoffset += len(charges)
         return distributions_ids
+
+
+    def imas_marker(self, distribution_sources_ids=None):
+        """Import markers from IMAS IDS.
+
+        Parameters
+        ----------
+        distribution_sources_ids : imas.ids_base.IDSBase
+            The IDS database object which contains the kinetic particle sources.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        TIME = 0.0
+        SPECIES_TYPE_INV = {v: k for k, v in _SPECIES_TYPE.items()}
+        if distribution_sources_ids is None:
+            # Following works for the IMAS-Python
+            #distributions_ids = imas.IDSFactory().distributions()
+            distributions_ids = imas.distribution_sources_ids()
+            distributions_ids.ids_properties.homogeneous_time = (
+                imas.imasdef.IDS_TIME_MODE_HOMOGENEOUS
+            )
+        codeversion = self.getcodeversion()
+        for field in ["name", "description", "commit", "version", "repository"]:
+            setattr(distribution_sources_ids.code, field, codeversion[field])
+
+        distribution_sources_ids.code.parameters = self.options.toxml()
+        distribution_sources_ids.code.output_flag = np.array([self.get_run_success()])
+
+        mrk_all = {}
+        distribution_sources_ids.time[0] = time
+        source = distribution_sources_ids.source[0]
+        markers = source.markers[0]
+        source.species.type.index = _SPECIES_TYPE["ion"]
+
+        mrk = self.marker.read()
+        n = mrk["ids"].size
+        if "ekin" in mrk:
+            source.gyro_type = _GYRO_TYPE["gyrocentre"]
+        else:
+            source.gyro_type = _GYRO_TYPE["actual"]
+
+        indices = np.array([x.index for x in markers.coordinate_identifier ])
+        if _GYRO_TYPE[int(source.gyro_type)] == "actual":
+            x, y = physlib.pol2cart(mrk["r"], mrk["phi"])
+            mrk["vx"], mrk["vy"] = (
+                physlib.pol2cart_vec(mrk["vr"], x, mrk["vphi"], y)
+            )
+            del mrk["vx"], mrk["vy"]
+            for field in ["r", "z", "phi", "vx", "vy", "vz"]:
+                idx = np.argwhere(
+                    indices == _COORDINATE_IDENTIFIERS[field][0]
+                )[0][0]
+                markers.positions[:,idx] = mrk["field"]
+        elif _GYRO_TYPE[int(source.gyro_type)] == "gyrocentre":
+            for field in ["r", "z", "phi", "energy_kinetic", "pitch"]:
+                idx = np.argwhere(
+                    indices == _COORDINATE_IDENTIFIERS[field][0]
+                )[0][0]
+                if field == "energy_kinetic":
+                    markers.positions[:,idx] = mrk["energy"]
+                else:
+                    markers.positions[:,idx] = mrk[field]
+
+            source.species.ion.element[0].a = mrk["anum"][0]
+            source.species.ion.element[0].z_n = mrk["znum"][0]
+
+        return distribution_sources_ids

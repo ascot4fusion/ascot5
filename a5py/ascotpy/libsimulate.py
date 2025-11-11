@@ -216,7 +216,10 @@ class LibSimulate():
         self.input_init(
             bfield=bfield, plasma=plasma, neutral=neutral,
             wall=wall, asigma=asigma, switch=switch)
-        self._init(self.data, nbi=getattr(self.data, "nbi").active.get_qid())
+        if isinstance(nbi, dict):
+            self._init(self.data, nbi=nbi)
+        else:
+            self._init(self.data, nbi=getattr(self.data, "nbi").active.get_qid())
 
     def simulation_initmarkers(self, **mrk):
         """Create markers for the interactive simulations.
