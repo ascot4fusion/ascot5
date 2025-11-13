@@ -552,7 +552,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             dr = r-out["axisr"]
             dz = z-out["axisz"]
             bpol_sign = np.sign(dr*out["bz"] - dz*out["br"])
-            out["bpol"] = bpol_sign*np.sqrt(out["bphi"]**2 + out["bz"]**2)
+            out["bpol"] = bpol_sign*np.sqrt(out["br"]**2 + out["bz"]**2)
         if any(q in qnt for q in ["er", "ephi", "ez"]):
             out.update(self._eval_efield(r, phi, z, t))
         if any(q in qnt for q in ["n0"]):
