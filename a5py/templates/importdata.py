@@ -1083,13 +1083,7 @@ class ImportData():
 
         # toroidal angle array
         # note phi should start at 0 and end on 360, inclusive
-<<<<<<< HEAD
         phi = np.deg2rad(np.linspace(phimin, phimax, nphi, endpoint=True))  # rad
-   
-=======
-        phi = np.deg2rad(np.linspace(phimin, phimax, nphi, endpoint=False))  # rad
-
->>>>>>> 2d2af4ee (Template for injectors and fixed issues with plasma template)
         # derivatives
         rumns = rmnc * (-1 * xm)  # drmn*cos(m*u-n*v)/du = -m*rmn*sin(m*u-n*v)
         zumnc = zmns * (xm)  # dzmn*sin(m*u-n*v)/du = m*zmn*cos(m*u-n*v)
