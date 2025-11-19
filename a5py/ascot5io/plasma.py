@@ -38,22 +38,45 @@ class plasma_1D(DataGroup):
         out["idensity"] = np.transpose(out["idensity"])
         return out
 
-    def plot_radial(self, rholim=None, densitylim=None, temperaturelim=None,
-                    axes=None):
-        """Plot plasma profiles as a function of rho.
+    def plot_radial(self,
+                    rholim=None,
+                    rholim_sol=None,
+                    densitylim=None,
+                    densitylim_sol=None,
+                    temperaturelim=None,
+                    temperaturelim_sol=None,
+                    axes=None,
+                    plot_sol_separately=False,
+                    ):
+        """Plot plasma profiles as a function of rho. If ``plot_sol_separately``
+        is True, then the core and scrape-off layer are plotted separately.
 
         Parameters
         ----------
         rholim : [float, float], optional
-            Limits on x-axis.
-        densitylim : [float, float, float], optional
+            Limits on x-axis. If plot_sol_separately is True, then the limits
+            are applied to the left side of x-axis.
+        rholim_sol : [float, float], optional
+            Limits on the right side of x-axis when ``plot_sol_separately`` is
+            True.
+        densitylim : [float, float, float] or [float, float], optional
             Limits on the first y axis where the middle value is when the scale
-            changes from logarithmic to linear [m^-3].
-        temperaturelim : [float, float, float], optional
+            changes from logarithmic to linear [m^-3]. If ``plot_sol_separately``
+            is True, only the first and last values are used.
+        densitylim_sol : [float, float], optional
+            Limits on the sol y axis when ``plot_sol_separately`` is True.
+        temperaturelim : [float, float, float] or [float, float], optional
             Limits on the second y axis where the middle value is when the scale
-            changes from logarithmic to linear [eV].
+            changes from logarithmic to linear [eV]. If ``plot_sol_separately``
+            is True, only the first and last values are used.
+        temperaturelim_sol : [float, float], optional
+            Limits on the sol y axis when ``plot_sol_separately`` is True.
         axes : :obj:`~matplotlib.axes.Axes`, optional
             The axes where figure is plotted or otherwise new figure is created.
+            If ``plot_sol_separately`` is True, there should be two axes:
+            axes[0] for core and axes[1] for SOL.
+        plot_sol_separately : bool, optional
+            If True, plot core on left-hand side and SOL on the right-hand side.
         """
         def formatspec(s, a, z, q):
             """Get species name in '^anum_znum A^charge' format"""
@@ -75,20 +98,69 @@ class plasma_1D(DataGroup):
                     y1legends[i+1] = formatspec(s, a, z, int(d[2].v))
                     break
 
-        if rholim is None: rholim = [pls['rho'][0], pls['rho'][-1]]
-        if densitylim is None:
-            densitylim = [np.amin(pls["idensity"]), 1e19,
-                          np.amax(pls["edensity"])]
-        if temperaturelim is None:
-            temperaturelim = [np.amin(pls["itemperature"]), 1e3,
-                              np.amax(pls["itemperature"])]
+        rho = pls["rho"]
+        if rholim is None: rholim = [pls['rho'][0][0], pls['rho'][-1][0]]
 
-        a5plt.radialprofile(
-            pls['rho'], ndens, y2=[pls['etemperature'], pls['itemperature']],
-            xlim=rholim, y1lim=densitylim, y2lim=temperaturelim,
-            xlabel=r"$\rho$", y1label=r"Density [m$^{-3}$]",
-            y1legends=y1legends, y2label=r"Temperature [eV]",
-            y2legends=[r"$T_e$", r"$T_i$"], axes=axes, title=self.get_desc())
+        if plot_sol_separately:
+            if rholim_sol is None:
+                rholim_sol = [np.maximum(pls['rho'][0][0],0.95), pls['rho'][-1][0]]
+            if axes is None:
+                fig, axes = a5plt.plt.subplots(1, 2, figsize=(14, 5))
+                fig.suptitle(self.get_desc())
+            if densitylim is None:
+                densitylim = [np.minimum(0, np.amin(pls["idensity"])),
+                              1.1*np.amax(pls["edensity"])]
+            else:
+                # In case three elements are given accidentally
+                densitylim = [densitylim[0], densitylim[-1]]
+            if densitylim_sol is None:
+                densitylim_sol = [np.amin(pls["idensity"]),
+                                  1.1*np.amax(pls["edensity"])]
+            else:
+                densitylim_sol = [densitylim_sol[0], densitylim_sol[-1]]
+            if temperaturelim is None:
+                temperaturelim = [np.minimum(0, np.amin(pls["itemperature"])),
+                                  1.1*np.amax(pls["itemperature"])]
+            else:
+                temperaturelim = [temperaturelim[0], temperaturelim[-1]]
+            if temperaturelim_sol is None:
+                temperaturelim_sol = [np.amin(pls["itemperature"]),
+                                      1.1*np.amax(pls["itemperature"])]
+            else:
+                temperaturelim_sol = [temperaturelim_sol[0], temperaturelim_sol[-1]]
+
+            a5plt.radialprofile_single_scale_axes(
+                rho, ndens, y2=[pls['etemperature'], pls['itemperature']],
+                xlim=rholim,
+                y1lim=densitylim, y2lim=temperaturelim,
+                xlabel=r"$\rho$", y1label=r"Density [m$^{-3}$]",
+                y1legends=None, y2label=None,
+                y2legends=None, axes=axes[0], yscale="linear")
+
+            a5plt.radialprofile_single_scale_axes(
+                rho, ndens, y2=[pls['etemperature'], pls['itemperature']],
+                xlim=rholim_sol,
+                y1lim=densitylim_sol, y2lim=temperaturelim_sol,
+                xlabel=r"$\rho$", y1label=None,
+                y1legends=y1legends, y2label=r"Temperature [eV]",
+                y2legends=[r"$T_e$", r"$T_i$"], axes=axes[1], yscale="log")
+            a5plt.plt.show()
+        else:
+            if densitylim is None:
+                densitylim = [np.amin(pls["idensity"]),
+                              1e19,
+                              1.1*np.amax(pls["edensity"])]
+            if temperaturelim is None:
+                temperaturelim = [np.amin(pls["itemperature"]),
+                                  1e3,
+                                  1.1*np.amax(pls["itemperature"])]
+
+            a5plt.radialprofile(
+                rho, ndens, y2=[pls['etemperature'], pls['itemperature']],
+                xlim=rholim, y1lim=densitylim, y2lim=temperaturelim,
+                xlabel=r"$\rho$", y1label=r"Density [m$^{-3}$]",
+                y1legends=y1legends, y2label=r"Temperature [eV]",
+                y2legends=[r"$T_e$", r"$T_i$"], axes=axes, title=self.get_desc())
 
     @staticmethod
     def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rho, vtor,
@@ -233,22 +305,45 @@ class plasma_1DS(DataGroup):
         out["idensity"] = np.transpose(out["idensity"])
         return out
 
-    def plot_radial(self, rholim=None, densitylim=None, temperaturelim=None,
-                    axes=None):
-        """Plot plasma profiles as a function of rho.
+    def plot_radial(self,
+                    rholim=None,
+                    rholim_sol=None,
+                    densitylim=None,
+                    densitylim_sol=None,
+                    temperaturelim=None,
+                    temperaturelim_sol=None,
+                    axes=None,
+                    plot_sol_separately=False,
+                    ):
+        """Plot plasma profiles as a function of rho. If
+        ``plot_sol_separately`` is True, then the core and scrape-off layer are
+        plotted separately.
 
         Parameters
         ----------
         rholim : [float, float], optional
-            Limits on x-axis.
-        densitylim : [float, float, float], optional
+            Limits on x-axis. If plot_sol_separately is True, then the limits
+            are applied to the left side of x-axis.
+        rholim_sol : [float, float], optional
+            Limits on the right side of x-axis when ``plot_sol_separately`` is True.
+        densitylim : [float, float, float] or [float, float], optional
             Limits on the first y axis where the middle value is when the scale
-            changes from logarithmic to linear [m^-3].
-        temperaturelim : [float, float, float], optional
+            changes from logarithmic to linear [m^-3]. If ``plot_sol_separately``
+            is True, only the first and last values are used.
+        densitylim_sol : [float, float], optional
+            Limits on the sol y axis when ``plot_sol_separately`` is True.
+        temperaturelim : [float, float, float] or [float, float], optional
             Limits on the second y axis where the middle value is when the scale
-            changes from logarithmic to linear [eV].
+            changes from logarithmic to linear [eV]. If ``plot_sol_separately``
+            is True, only the first and last values are used.
+        temperaturelim_sol : [float, float], optional
+            Limits on the sol y axis when ``plot_sol_separately`` is True.
         axes : :obj:`~matplotlib.axes.Axes`, optional
             The axes where figure is plotted or otherwise new figure is created.
+            If ``plot_sol_separately`` is True, there should be two axes:
+            axes[0] for core and axes[1] for SOL.
+        plot_sol_separately : bool, optional
+            If True, plot core on left-hand side and SOL on the right-hand side.
         """
         def formatspec(s, a, z, q):
             """Get species name in '^anum_znum A^charge' format"""
@@ -270,21 +365,69 @@ class plasma_1DS(DataGroup):
                     y1legends[i+1] = formatspec(s, a, z, int(d[2].v))
                     break
 
-        if rholim is None: rholim = [pls['rhomin'][0], pls['rhomax'][0]]
-        if densitylim is None:
-            densitylim = [np.amin(pls["idensity"]), 1e19,
-                          np.amax(pls["edensity"])]
-        if temperaturelim is None:
-            temperaturelim = [np.amin(pls["itemperature"]), 1e3,
-                              np.amax(pls["itemperature"])]
-
         rho = np.linspace(pls['rhomin'][0], pls['rhomax'][0], pls['nrho'])
-        a5plt.radialprofile(
-            rho, ndens, y2=[pls['etemperature'], pls['itemperature']],
-            xlim=rholim, y1lim=densitylim, y2lim=temperaturelim,
-            xlabel=r"$\rho$", y1label=r"Density [m$^{-3}$]",
-            y1legends=y1legends, y2label=r"Temperature [eV]",
-            y2legends=[r"$T_e$", r"$T_i$"], axes=axes, title=self.get_desc())
+        if rholim is None: rholim = [pls['rhomin'][0][0], pls['rhomax'][0][0]]
+        if plot_sol_separately:
+            if rholim_sol is None:
+                rholim_sol = [np.maximum(pls['rhomin'][0][0],0.95), pls['rhomax'][0][0]]
+
+            if axes is None:
+                fig, axes = a5plt.plt.subplots(1, 2, figsize=(14, 5))
+                fig.suptitle(self.get_desc())
+            if densitylim is None:
+                densitylim = [np.minimum(0, np.amin(pls["idensity"])),
+                              1.1*np.amax(pls["edensity"])]
+            else:
+                # In case three elements are given accidentally
+                densitylim = [densitylim[0], densitylim[-1]]
+            if densitylim_sol is None:
+                densitylim_sol = [np.amin(pls["idensity"]),
+                                  1.1*np.amax(pls["edensity"])]
+            else:
+                densitylim_sol = [densitylim_sol[0], densitylim_sol[-1]]
+            if temperaturelim is None:
+                temperaturelim = [np.minimum(0, np.amin(pls["itemperature"])),
+                                  1.1*np.amax(pls["itemperature"])]
+            else:
+                temperaturelim = [temperaturelim[0], temperaturelim[-1]]
+            if temperaturelim_sol is None:
+                temperaturelim_sol = [np.amin(pls["itemperature"]),
+                                      1.1*np.amax(pls["itemperature"])]
+            else:
+                temperaturelim_sol = [temperaturelim_sol[0], temperaturelim_sol[-1]]
+
+            a5plt.radialprofile_single_scale_axes(
+                rho, ndens, y2=[pls['etemperature'], pls['itemperature']],
+                xlim=rholim,
+                y1lim=densitylim, y2lim=temperaturelim,
+                xlabel=r"$\rho$", y1label=r"Density [m$^{-3}$]",
+                y1legends=None, y2label=None,
+                y2legends=None, axes=axes[0], yscale="linear")
+
+            a5plt.radialprofile_single_scale_axes(
+                rho, ndens, y2=[pls['etemperature'], pls['itemperature']],
+                xlim=rholim_sol,
+                y1lim=densitylim_sol, y2lim=temperaturelim_sol,
+                xlabel=r"$\rho$", y1label=None,
+                y1legends=y1legends, y2label=r"Temperature [eV]",
+                y2legends=[r"$T_e$", r"$T_i$"], axes=axes[1], yscale="log")
+            a5plt.plt.show()
+        else:
+            if densitylim is None:
+                densitylim = [np.amin(pls["idensity"]),
+                              1e19,
+                              1.1*np.amax(pls["edensity"])]
+            if temperaturelim is None:
+                temperaturelim = [np.amin(pls["itemperature"]),
+                                  1e3,
+                                  1.1*np.amax(pls["itemperature"])]
+
+            a5plt.radialprofile(
+                rho, ndens, y2=[pls['etemperature'], pls['itemperature']],
+                xlim=rholim, y1lim=densitylim, y2lim=temperaturelim,
+                xlabel=r"$\rho$", y1label=r"Density [m$^{-3}$]",
+                y1legends=y1legends, y2label=r"Temperature [eV]",
+                y2legends=[r"$T_e$", r"$T_i$"], axes=axes, title=self.get_desc())
 
     @staticmethod
     def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rhomin, rhomax,

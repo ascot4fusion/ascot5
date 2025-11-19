@@ -1843,6 +1843,111 @@ def radialprofile(x, y1, y2=None, xlim=None, y1lim=None, y2lim=None,
 
     return axleftlin, axrightlin, axleftlog, axrightlog
 
+@openfigureifnoaxes(projection=None)
+def radialprofile_single_scale_axes(x,
+                                    y1,
+                                    y2=None,
+                                    xlim=None,
+                                    y1lim=None,
+                                    y2lim=None,
+                                    xlabel=None,
+                                    y1label=None,
+                                    y2label=None,
+                                    y1legends=None,
+                                    y2legends=None,
+                                    axes=None,
+                                    tightlayout=True, yscale="linear",
+                                    ):
+    """Plot 1D profiles in the same figure with two axes. Each y-axis has only
+    linear or logarithmic scale. For contrast, see: radialprofile()
+
+    Parameters
+    ----------
+    x : array_like
+        Marker x-coordinates.
+    y1 : array_like
+        Data to be plotted.
+    y2 : array_like, optional
+        Data to be plotted.
+    xlim : array_like, optional
+        x-axis limits.
+    y1lim : array_like, optional
+        y1-axis limits.
+    y2lim : array_like, optional
+        y2-axis limits.
+    xlabel : str, optional
+        Label for the x-axis.
+    y1label : str, optional
+        Label for the y1-axis.
+    y2label : str, optional
+        Label for the y2-axis.
+    y1legends : list of str, optional
+        Legends for the y1-axis.
+    y2legends : list of str, optional
+        Legends for the y2-axis.
+    axes : :obj:`~matplotlib.axes.Axes`, optional
+        The axes where figure is plotted or otherwise new figure is created.
+    tightlayout : bool, optional
+        If True, adjust the subplot parameters to provide certain padding.
+    yscale : str, optional
+        Either "linear" or "log".
+    """
+    if xlim is not None: axes.set_xlim(xlim)
+    axleft=axes
+    axleft.set_yscale(yscale)
+    axleft.spines['right'].set_visible(False)
+    axleft.spines['bottom'].set_visible(False)
+    axleft.set_xlabel(xlabel)
+
+    if y2 is not None:
+        # Create linear right axis
+        axright = axes.twinx()
+        axright.set_yscale(yscale)
+        axright.spines['left'].set_visible(False)
+        axright.spines['bottom'].set_visible(False)
+
+        if y2lim is not None: axright.set_ylim((y2lim[0], y2lim[1]))
+        axright.set_ylabel(y2label)
+
+        axright.spines['right'].set_color('C3')
+        axright.tick_params(axis='y', colors='C3')
+        axright.yaxis.label.set_color('C3')
+
+        if not isinstance(y2, list): y2 = [y2]
+        handles2 = []
+        for i, y in enumerate(y2):
+            ls = '-' if i == 0 else '--'
+            h, = axright.plot(x, y, color='C3', ls=ls)
+            handles2.append(h)
+        axright.set_xlim(xlim)
+
+    axleft.set_ylabel(y1label)
+    if y1lim is not None: axleft.set_ylim((y1lim[0], y1lim[1]))
+
+    if not isinstance(y1, list): y1 = [y1]
+    handles1 = []
+    for i, y in enumerate(y1):
+        ls = '-' if i == 0 else '--'
+        c = 'C'+str(i) if i < 3 else 'C'+str(i+1)
+        h, = axleft.plot(x, y, ls=ls, color=c)
+        handles1.append(h)
+
+    all_handles = handles1 + handles2
+    # Here we assume that all or none of the legends should be shown
+    if y1legends is not None and y2legends is not None:
+        all_legend_lagels = y1legends + y2legends
+        axleft.legend(all_handles,
+                      all_legend_lagels,
+                      loc='upper right',
+                      frameon=False)
+
+    fig = axes.figure
+    if tightlayout:
+        fig.tight_layout()
+        fig.subplots_adjust(wspace=0.25)
+
+    return axleft, axright
+
 def defaultcamera(wallmesh):
     """Get default camera (helper function for the 3D plots).
 
