@@ -461,7 +461,7 @@ class RunMixin(DistMixin):
         r = r[i1-1:i2]
         z = z[i1-1:i2]
         p = p[i1-1:i2]
-        x, y, _ = physlib.pol2cart(r, p)
+        x, y = physlib.pol2cart(r, p)
         ds = np.sqrt(np.diff(x)**2 + np.diff(y)**2 + np.diff(z)**2)
         avg = np.sum(val[1:]*ds) / np.sum(ds)
         return mileage-mileage[0], r, z, val, avg
