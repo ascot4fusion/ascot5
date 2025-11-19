@@ -353,6 +353,14 @@ class State(DataContainer):
             add("rho", lambda : evalprt("rho"))
             add("ptor", lambda : physlib.torcanangmom_momentum(
                 _val("charge"), _val("rprt"), pvecprt(), evalprt("psi")))
+            add("rho*cos(thetageom)", lambda : _val("rho")*np.cos(_val("theta")))
+            add("rho*sin(thetageom)", lambda : _val("rho")*np.sin(_val("theta")))
+            axisr = _eval(_val("rprt"), _val("phiprt"), _val("zprt"), _val("time"), "axisr")
+            axisz = _eval(_val("rprt"), _val("phiprt"), _val("zprt"), _val("time"), "axisz")
+            dr = _val("r") - axisr
+            dz = _val("z") - axisz
+            bpol_sign = np.sign(dr*_val("bz") - dz*_val("br"))
+            add("bpol", lambda : bpol_sign * np.sqrt( _val("br")**2 + _val("bz")**2 ))
 
         if mode == "gc":
             add("r", lambda : _val("r"))
@@ -405,6 +413,14 @@ class State(DataContainer):
             add("ptor", lambda : physlib.torcanangmom_ppar(
                 _val("charge"), _val("r"), _val("ppar"),
                 bvecgc(), evalgc("psi")))
+            add("rho*cos(thetageom)", lambda : _val("rho")*np.cos(_val("theta")))
+            add("rho*sin(thetageom)", lambda : _val("rho")*np.sin(_val("theta")))
+            axisr = _eval(_val("r"), _val("phi"), _val("z"), _val("time"), "axisr")
+            axisz = _eval(_val("r"), _val("phi"), _val("z"), _val("time"), "axisz")
+            dr = _val("r") - axisr
+            dz = _val("z") - axisz
+            bpol_sign = np.sign(dr*_val("bz") - dz*_val("br"))
+            add("bpol", lambda : bpol_sign * np.sqrt( _val("br")**2 + _val("bz")**2 ))
 
         for i in range(len(items)):
             if items[i] is None:
@@ -548,5 +564,8 @@ class State(DataContainer):
             "psi":      "Poloidal flux at the marker position",
             "rho":      "Square root of normalized psi",
             "ptor":     "Canonical toroidal angular momentum",
+            "rho*cos(thetageom)": "rho * cos(theta)",
+            "rho*sin(thetageom)": "rho * sin(theta)",
+            "bpol":     "Magnetic field component normal to phi",
         }
         return out
