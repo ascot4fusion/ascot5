@@ -844,8 +844,8 @@ class RunMixin(DistMixin):
             ("powerdep", "Total deposited power"),
             ("ionpowerdep", "Power deposited to ions"),
             ("electronpowerdep", "Power deposited to electrons"),
-            #("jxbtorque", "j_rad x B_pol torque"),
-            #("colltorque", "Torque from collisions"),
+            ("jxbtorque", "J_rad x B_pol torque on the bulk"),
+            ("colltorque", "Collisoinal torque on the bulk"),
             #("canmomtorque", "Torque from change in can. tor. ang. momentum"),
         ]
         if show:

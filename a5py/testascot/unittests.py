@@ -656,6 +656,7 @@ class TestAscot(unittest.TestCase):
             "Area calculation with MC failed", delta)
 
         # Test distribution initializing
+        a5.input_init(bfield=True)
         a5.data.active.getdist("5d")
         a5.data.active.getdist("rho5d")
         a5.data.active.getdist("6d")
@@ -691,7 +692,6 @@ class TestAscot(unittest.TestCase):
                                "Converting ppar-pperp to ekin-pitch failed",
                                0.001)
 
-        a5.input_init(bfield=True)
         rhodist    = a5.data.active.getdist("rho5d")
         rhoexidist = a5.data.active.getdist("rho5d", exi=True)
         mom1 = a5.data.active.getdist_moments(dist, "density")
@@ -889,6 +889,7 @@ class TestMoments(unittest.TestCase):
         print(f"{o:18s}|{a1.v:<21.15e} {str(a1.units):12s} {a2.v:<21.15e} {str(a2.units):12s} {a3.v:<21.15e} {str(a3.units):12s}")
 
         # Print total rate of change in angular momentum
+        a5.input_init(bfield=True)
         ppar_ini, R_ini, bphi_ini, bnorm_ini= a5.data.active.getstate("ppar", "r", "bphi", "bnorm", state="ini")
         ppar_end, R_end, bphi_end, bnorm_end = a5.data.active.getstate("ppar",
          "r", "bphi", "bnorm", state="end")
@@ -900,6 +901,9 @@ class TestMoments(unittest.TestCase):
                     +mom.ordinate("jxbtorque") * mom.volume)
         a3 = torque_to_bulk[0]
         print(f"{'Total torque':18s}|{a1.v:<21.15e} {str(a1.units):12s} {a2.v:<21.15e} {str(a2.units):12s} {a3.v:<21.15e} {str(a3.units):12s}")
+
+        a5.input_free(bfield=True)
+
 class TestPlotting(unittest.TestCase):
 
     def tearDown(self):

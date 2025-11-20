@@ -70,6 +70,7 @@ class GUI(tk.Tk):
     # combined width. If the screenwidth is above this limit (in pixels), assume
     # dual monitors are in use.
     DUALMONITORWIDTH = 2000
+    DUALMONITORHEIGHT = 1500
 
     BORDERWIDTH = 2
 
@@ -91,6 +92,8 @@ class GUI(tk.Tk):
         # with dual monitors.
         if sw > GUI.DUALMONITORWIDTH:
             sw /= 2
+        if sh > GUI.DUALMONITORHEIGHT:
+            sh /= 2
 
         # GUI dimensions and locations
         w = sw*3/4
