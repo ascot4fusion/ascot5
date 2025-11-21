@@ -72,10 +72,8 @@ class Trace(ContentTab):
             pitch  = self.k_entry.getval()
             gamemode = self.gamemode.getval()
             if gamemode == "Guiding centre":
-                print("gamemode GC")
                 simmode = 2
             elif gamemode == "Full gyro-orbit":
-                print("gamemode FO")
                 simmode = 1
 
             mrk = Marker.generate("gc", n=1, species=self.species.getval())

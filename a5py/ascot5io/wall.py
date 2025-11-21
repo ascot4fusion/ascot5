@@ -117,8 +117,8 @@ class wall_2D(DataGroup):
             Maximum R-coordinate at each toroidal angle.
         """
         w = self.read()
-        rmin = np.amax(w["r"]) * np.ones(phigrid.shape).ravel()
-        rmax = np.amin(w["r"]) * np.ones(phigrid.shape).ravel()
+        rmin = np.amin(w["r"]) * np.ones(phigrid.shape).ravel()
+        rmax = np.amax(w["r"]) * np.ones(phigrid.shape).ravel()
 
         return rmin, rmax
 

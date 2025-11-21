@@ -495,8 +495,15 @@ class Ascot(Ascotpy):
                        label="Marker", markerfacecolor='black', markersize=2))
 
         if "wall" in self.data and not hidewall:
-            ls = self.data.wall.active.getwalloutline(z=0)
-            line2d(ls[:,:,0], ls[:,:,1], c="black", axes=axes)
+            if self.data.wall.active.get_type() == "wall_2D":
+                phigrid = np.linspace(0,2*np.pi,360)*unyt.rad
+                r_min, r_max = self.data.wall.active.getwalloutline(phigrid=phigrid)
+                line2d((r_min*np.cos(phigrid), r_max*np.cos(phigrid)),
+                       (r_min*np.sin(phigrid), r_max*np.sin(phigrid)),
+                        c="black", axes=axes)
+            else:
+                ls = self.data.wall.active.getwalloutline(z=0)
+                line2d(ls[:,:,0], ls[:,:,1], c="black", axes=axes)
 
         axes.legend(handles=legend_elements, ncol=1, frameon=False,
                     loc='center left', bbox_to_anchor=(1, 0.5))
