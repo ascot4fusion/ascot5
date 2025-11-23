@@ -81,11 +81,11 @@ class ImportData():
             Maximum of temperature (eV) abscissa for CX rate coefficients.
         ntempcx : float, optional
             Number of points in temperature abscissa for CX rate coefficients.
-        mltpresekin : int, optional
+        mltpresekinbms : int, optional
             Resolution multiplier for energy abscissa for BMS coefficients.
-        mltpresdens : int, optional
+        mltpresdensbms : int, optional
             Resolution multiplier for density abscissa for BMS coefficients.
-        mltprestemp : int, optional
+        mltprestempbms : int, optional
             Resolution multiplier for temperature abscissa for
             BMS coefficients.
         show_progress : bool, optional
@@ -289,6 +289,267 @@ class ImportData():
                 sigmav = 1e-6*sigmav
                 # Store data in data list
                 sigmalist[ireac] = sigmav
+                # Increment reaction index
+                ireac += 1
+            else:
+                raise(Exception("Unsupported kwarg."))
+
+        # Place reaction data for all reactions in one long array
+        ntot = 0
+        for ireac in range(nreac):
+            ntot += n[ireac]
+        sigma = np.zeros((1,ntot))
+        isigma0 = 0
+        for ireac in range(nreac):
+            sigma[0,isigma0:isigma0+n[ireac]] = sigmalist[ireac]
+            isigma0 += n[ireac]
+
+        out = {
+            "nreac" : nreac,
+            "z1" : z1, "a1" : a1, "z2" : z2, "a2" : a2, "reactype" : reactype,
+            "nenergy" : nekin, "energymin" : ekinmin, "energymax" : ekinmax,
+            "ndensity" : ndens, "densitymin" : densmin, "densitymax" : densmax,
+            "ntemperature" : ntemp,
+            "temperaturemin" : tempmin, "temperaturemax" : tempmax,
+            "sigma" : sigma
+        }
+        return ("asigma_loc", out)
+
+    def import_openadas(self,
+                        mltpresekinbms=1, mltpresdensbms=1, mltprestempbms=1,
+                        **kwargs):
+        """Import data from Open ADAS files.
+
+        Parameters
+        ----------
+        mltpresekinbms : int, optional
+            Resolution multiplier for energy abscissa for BMS coefficients.
+        mltpresdensbms : int, optional
+            Resolution multiplier for density abscissa for BMS coefficients.
+        mltprestempbms : int, optional
+            Resolution multiplier for temperature abscissa for
+            BMS coefficients.
+        **kwargs
+            Open ADAS data files in format:
+            ``reaction``="/path/to/reaction/data".
+
+            The key ``reaction`` is used to interpret the specific reaction
+            and reactant species (charge state included) the data corresponds
+            to, and it must follow the format ``"input_"<reaction>_<fast
+            particle species><bulk particle species>``. Example of valid
+            key-value pair are
+            ``input_BMS_H0H1="/home/data/openadas/adf21/bms10#h_h1.dat"``.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+
+        # Define relevant reaction types
+        reac_type_sigmav_bms = 7
+
+        # Count number of reactions based on kwargs and initialize data list
+        nreac = len(kwargs)
+        sigmalist = [None]*nreac
+
+        # Initialize arrays for reaction identifiers and abscissae
+        z1       = np.zeros(nreac, dtype=int)
+        a1       = np.zeros(nreac, dtype=int)
+        z2       = np.zeros(nreac, dtype=int)
+        a2       = np.zeros(nreac, dtype=int)
+        reactype = np.zeros(nreac, dtype=int)
+        nekin    = np.zeros(nreac, dtype=int)
+        ekinmin  = np.zeros(nreac, dtype=float)
+        ekinmax  = np.zeros(nreac, dtype=float)
+        ndens    = np.zeros(nreac, dtype=int)
+        densmin  = np.zeros(nreac, dtype=float)
+        densmax  = np.zeros(nreac, dtype=float)
+        ntemp    = np.zeros(nreac, dtype=int)
+        tempmin  = np.zeros(nreac, dtype=float)
+        tempmax  = np.zeros(nreac, dtype=float)
+        n        = np.zeros(nreac, dtype=int)
+
+        # Loop through kwargs
+        ireac = 0
+        for key,val in kwargs.items():
+
+            if "BMS" in key:
+                # Reaction type for BMS coefficient data is 7
+                reactype[ireac] = 7
+                # Determine znum and anum values based on key
+                match = re.match(r"([a-z]+)([0-9]+)([a-z]+)([0-9]+)",
+                                 key.split('_')[-1],re.I)
+                items = match.groups()
+                if(items[0] == 'H'):
+                    z1[ireac] = 1
+                    a1[ireac] = 1
+                elif(items[0] == 'He'):
+                    z1[ireac] = 2
+                    a1[ireac] = 4
+                else:
+                    raise(Exception("Unsupported beam species in BMS."))
+                if(items[2] == 'H'):
+                    z2[ireac] = 1
+                    a2[ireac] = 1
+                elif(items[2] == 'He'):
+                    z2[ireac] = 2
+                    a2[ireac] = 4
+                elif(items[2] == 'C'):
+                    z2[ireac] = 6
+                    a2[ireac] = 12
+                else:
+                    raise(Exception("Unsupported target species in BMS."))
+                # Read Open ADAS BMS data file
+                f = open(val, 'r')
+                lines = f.readlines()
+                iline = 0
+                words = lines[iline].split(' ')
+                # Remove empty strings
+                words = [i for i in words if i]
+                sigmavref = float(words[1].split('=')[1])
+                # Skip separator line
+                iline += 2
+                words = lines[iline].split(' ')
+                # Remove empty strings
+                words = [i for i in words if i]
+                # Read numbers of energy and density points, and reference
+                # value for temperature
+                nekin[ireac] = int(words[0])
+                ndens[ireac] = int(words[1])
+                tempref = float(words[2].split('=')[1])
+                # Skip separator line
+                iline += 2
+                # Energy abscissa
+                ekin = np.zeros(nekin[ireac])
+                iekin = 0
+                while iekin < nekin[ireac]:
+                    words = lines[iline].split(' ')
+                    for i in range(0, len(words)):
+                        if(not words[i] == ''):
+                            ekin[iekin] = float(words[i])
+                            iekin += 1
+                    iline += 1
+                ekinmin[ireac] = ekin[0]
+                ekinmax[ireac] = ekin[-1]
+                # Density abscissa
+                dens = np.zeros(ndens[ireac])
+                idens = 0
+                while idens < ndens[ireac]:
+                    words = lines[iline].split(' ')
+                    for i in range(0, len(words)):
+                        if(not words[i] == ''):
+                            dens[idens] = float(words[i])
+                            idens += 1
+                    iline += 1
+                densmin[ireac] = dens[0]
+                densmax[ireac] = dens[-1]
+                # Skip separator line
+                iline += 1
+                # BMS rate coefficient data that depends on energy and density
+                nsigmav2d = nekin[ireac]*ndens[ireac]
+                sigmav2d = np.zeros(nsigmav2d)
+                isigmav2d = 0
+                while isigmav2d < nsigmav2d:
+                    words = lines[iline].split(' ')
+                    for i in range(0, len(words)):
+                        if(not words[i] == ''):
+                            sigmav2d[isigmav2d] = float(words[i])
+                            isigmav2d += 1
+                    iline += 1
+                # Skip separator line
+                iline += 1
+                words = lines[iline].split(' ')
+                # Remove empty strings
+                words = [i for i in words if i]
+                # Read number of temperature points, and reference values for
+                # energy and density
+                ntemp[ireac] = int(words[0])
+                ekinref = float(words[1].split('=')[1])
+                densref = float(words[2].split('=')[1])
+                # Skip separator line
+                iline += 2
+                # Temperature abscissa
+                temp = np.zeros(ntemp[ireac])
+                itemp = 0
+                while itemp < ntemp[ireac]:
+                    words = lines[iline].split(' ')
+                    for i in range(0, len(words)):
+                        if(not words[i] == ''):
+                            temp[itemp] = float(words[i])
+                            itemp += 1
+                    iline += 1
+                tempmin[ireac] = temp[0]
+                tempmax[ireac] = temp[-1]
+                # Skip separator line
+                iline += 1
+                # BMS rate coefficient correction that depends on temperature
+                sigmav1dcorr = np.zeros(ntemp[ireac])
+                itemp = 0
+                while itemp < ntemp[ireac]:
+                    words = lines[iline].split(' ')
+                    for i in range(0, len(words)):
+                        if(not words[i] == ''):
+                            sigmav1dcorr[itemp] = float(words[i])
+                            itemp += 1
+                    iline += 1
+
+                # Get index for reference temperature
+                itempref = np.argmin(abs(temp - tempref))
+                # Multiply temperature correction to BMSsigmav(ekin, dens),
+                # making it a 3D function BMSsigmav(ekin, dens, temp)
+                sigmav3d = np.zeros(ntemp[ireac]*ndens[ireac]*nekin[ireac])
+                for itemp in range(0, ntemp[ireac]):
+                    sigmav3d[itemp*ndens[ireac]*nekin[ireac]:
+                             (itemp+1)*ndens[ireac]*nekin[ireac]] = (
+                                 sigmav2d*(sigmav1dcorr[itemp]/
+                                           sigmav1dcorr[itempref]) )
+
+                # Interpolate data onto a uniformly spaced grid (linearise)
+                # Apply resolution multipliers
+                nekinlin = (nekin[ireac]-1)*mltpresekinbms + 1
+                ndenslin = (ndens[ireac]-1)*mltpresdensbms + 1
+                ntemplin = (ntemp[ireac]-1)*mltprestempbms + 1
+                # Construct new, uniformly spaced (linear) abscissae
+                ekinlin = np.linspace(ekin[0], ekin[-1], nekinlin)
+                denslin = np.linspace(dens[0], dens[-1], ndenslin)
+                templin = np.linspace(temp[0], temp[-1], ntemplin)
+                n[ireac] = ntemplin*ndenslin*nekinlin
+                # Convert long 1D array into 3D array (needed for
+                # RegularGridInterpolator)
+                sigmav3d = sigmav3d.reshape((ntemp[ireac],ndens[ireac],
+                                             nekin[ireac]))
+                # Calculate interpolating function
+                sigmav3dinterp = RegularGridInterpolator(
+                    (temp,dens,ekin), sigmav3d)
+                # Convert new abscissa grid into a series of points in 3D space
+                # (needed when evaluating function from RegularGridInterpolator)
+                pts = np.zeros((ntemplin*ndenslin*nekinlin,3))
+                for itemp in range(0, ntemplin):
+                    for idens in range(0, ndenslin):
+                        for iekin in range(0, nekinlin):
+                            pts[itemp*ndenslin*nekinlin + idens*nekinlin +
+                                iekin, :] = np.array([templin[itemp],
+                                                      denslin[idens],
+                                                      ekinlin[iekin]])
+                # Find BMS rate coefficients at new grid points by evaluating
+                # interpolating function
+                sigmav3dlin = sigmav3dinterp(pts)
+
+                # Update numbers of grid points
+                nekin[ireac] = nekinlin
+                ndens[ireac] = ndenslin
+                ntemp[ireac] = ntemplin
+                # Convert units 1/cm3 to 1/m3
+                densmin[ireac] = 1e6*densmin[ireac]
+                densmax[ireac] = 1e6*densmax[ireac]
+                # Convert units cm3/s to m3/s
+                sigmav3dlin = 1e-6*sigmav3dlin
+                # Store data in data list
+                sigmalist[ireac] = sigmav3dlin
                 # Increment reaction index
                 ireac += 1
             else:
