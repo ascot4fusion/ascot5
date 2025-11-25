@@ -34,8 +34,9 @@ void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
     const real* qb = plasma_get_species_charge(pdata);
     const real* mb = plasma_get_species_mass(pdata);
 
-    #pragma omp simd
-    for(int i = 0; i < NSIMD; i++) {
+    GPU_DATA_IS_MAPPED(h[0:p->n_mrk], rnd[0:3*p->n_mrk])
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for(int i = 0; i < p->n_mrk; i++) {
         if(p->running[i]) {
             a5err errflag = 0;
 
@@ -81,6 +82,7 @@ void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
             real gyrofreq = phys_gyrofreq_pnorm(p->mass[i], p->charge[i],
                                                 pin, Bnorm);
             real K = 0, Dpara = 0, nu = 0, DX = 0;
+            GPU_SEQUENTIAL_LOOP
             for(int j = 0; j < n_species; j++) {
                 real vb = sqrt( 2 * Tb[j] / mb[j] );
                 real x  = vin / vb;
@@ -109,11 +111,11 @@ void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
             /* Evaluate collisions */
             real sdt = sqrt(h[i]);
             real dW[5];
-            dW[0]=sdt*rnd[0*NSIMD + i]; // For X_1
-            dW[1]=sdt*rnd[1*NSIMD + i]; // For X_2
-            dW[2]=sdt*rnd[2*NSIMD + i]; // For X_3
-            dW[3]=sdt*rnd[3*NSIMD + i]; // For v
-            dW[4]=sdt*rnd[4*NSIMD + i]; // For xi
+            dW[0]=sdt*rnd[0*p->n_mrk + i]; // For X_1
+            dW[1]=sdt*rnd[1*p->n_mrk + i]; // For X_2
+            dW[2]=sdt*rnd[2*p->n_mrk + i]; // For X_3
+            dW[3]=sdt*rnd[3*p->n_mrk + i]; // For v
+            dW[4]=sdt*rnd[4*p->n_mrk + i]; // For xi
 
             real bhat[3];
             math_unit(Bxyz, bhat);
