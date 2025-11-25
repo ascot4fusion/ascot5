@@ -182,12 +182,15 @@ class Orbits(DataContainer):
         add("connlen", lambda : totmil)
         add("rho*cos(thetageom)", lambda : _val("rho")*np.cos(_val("theta")))
         add("rho*sin(thetageom)", lambda : _val("rho")*np.sin(_val("theta")))
-        axisr = _eval("axisr")
-        axisz = _eval("axisz")
-        dr = _val("r") - axisr
-        dz = _val("z") - axisz
-        bpol_sign = np.sign(dr*_val("bz") - dz*_val("br"))
-        add("bpol", lambda : bpol_sign * np.sqrt( _val("br")**2 + _val("bz")**2 ))
+
+        def bpol_fun():
+            axisr = _eval("axisr")
+            axisz = _eval("axisz")
+            dr = _val("r") - axisr
+            dz = _val("z") - axisz
+            bpol_sign = np.sign(dr*_val("bz") - dz*_val("br"))
+            return bpol_sign * np.sqrt( _val("br")**2 + _val("bz")**2 )
+        add("bpol", lambda : bpol_fun())
 
         mask = mode > 0
         if Orbits.GYROORBIT in mode:
@@ -328,8 +331,9 @@ class Orbits(DataContainer):
             "connlen":  "Connection length for lost markers",
             "pncrid":   "Poincaré plane this point corresponds to",
             "pncrdir":  "Direction at which Poincaré plane was crossed",
-            "rho*cos(thetageom)": "rho*cos(theta), useful for stellarators; theta is geometric angle",
-            "rho*sin(thetageom)": "rho*sin(theta), useful for stellarators; theta is geometric angle",
+            # Available but not listed
+            #"rho*cos(thetageom)": "rho*cos(theta), useful for stellarators; theta is geometric angle",
+            #"rho*sin(thetageom)": "rho*sin(theta), useful for stellarators; theta is geometric angle",
             "bpol":     "Bpol",
         }
         return out
