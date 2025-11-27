@@ -459,10 +459,15 @@ class Afsi():
         afsidata = STRUCT_AFSIDATA()
         afsidata.reaction = reaction
         afsidata.mult = mult
-        afsidata.r = r.ravel().ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-        afsidata.z = z.ravel().ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-        afsidata.phi = phi.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-        afsidata.vol = vol.ravel().ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        afsidata._r = r.ravel()
+        afsidata.r = afsidata._r.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        afsidata._z = z.ravel()
+        afsidata.z = afsidata._z.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        afsidata._phi = phi.ravel()
+        afsidata.phi = afsidata._phi.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        afsidata._vol = vol.ravel()
+        afsidata.vol = afsidata._vol.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+
         afsidata.volshape[:] = vol.shape
         if isinstance(react1, np.int_):
             afsidata.type1 = 2
