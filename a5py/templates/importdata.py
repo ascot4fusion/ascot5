@@ -1525,7 +1525,7 @@ class ImportData():
         }
 
         return out
-    
+
     @staticmethod
     def vmec_sts(ncfile, **kwargs):
         data = ImportData.vmec_field(ncfile, **kwargs)

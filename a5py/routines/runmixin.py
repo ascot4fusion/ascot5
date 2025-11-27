@@ -74,29 +74,29 @@ class RunMixin(DistMixin):
         the simulation and endstate is the position at the end of
         the simulation.
 
+        BY DEFAULT, GC QUANTITIES ARE RETURNED. USE mode="prt" IF YOU RAN A
+        FULL GYRO-ORBIT SIMULATION OR OTHERWISE RISK GETTING RUBBISH DATA, E.G.
+        OCCASIONAL 10 GeV IONS ETC.
+
         This function not only returns the marker phase space coordinates but
         also other quantities that can be inferred from it and information that
         is stored along with coordinates. For a complete list of available
-        quantities, see.
-
-        ASCOT5 stores both particle and guiding center phase-space position in
-        all simulations. To differentiate these, quantities with suffix "prt",
-        e.g. "xprt", return particle quantities and without suffix the guiding
-        center quantity is returned.
+        quantities, see getstate_list().
 
         Parameters
         ----------
         *qnt : str
             Names of the quantities.
+        mode : {"gc", "prt"}, optional
+            Coordinate system to use. Please be aware that using a mode other
+            than that in the simulation can in some specieal cases cause rubbish
+            data to be returned due to imperfect FO to GC transformation.
         state : {"ini", "end"}, optional
             Is the quantity evaluated at the ini- or endstate.
         ids : array_like, optional
             Filter markers by their IDs.
         endcond : str or list [str], optional
             Filter markers by their end conditions.
-
-            See for a list of all possible end conditions or to list end
-            conditions that are currently present in the data.
 
             Markers may have multiple end conditions active simultaneously. If
             just the name of the end condition e.g. "POLMAX" is passed, then all
@@ -1407,8 +1407,10 @@ class RunMixin(DistMixin):
                        markersize=markersize, axesequal=axesequal, axes=axes,
                        cax=cax)
 
-    def plot_lost_power(self, endcond,
-                        max_initial_rho=100,
+    def plot_lost_power(self,
+                        endcond,
+                        mode,
+                        max_initial_rho=None,
                         logscale=True,
                         cumulative=True,
                         axes=None,
@@ -1418,16 +1420,18 @@ class RunMixin(DistMixin):
         Parameters
         ----------
         endcond : str
-            Probably "rhomax" or "wall" or ["rhomax", "wall"].
+            Which end conditions to count as "lost". Probably "rhomax" or "wall"
+            or ["rhomax", "wall"].
+        mode : str
+            Either "gc" or "prt"
         max_initial_rho : float, optional
             Maximum initial rho for the markers that are included. For instance,
-            if the markers are only simulated up to rho=1.0, it does not make
+            if the markers are only simulated up to rho=1.0, it might not make
             sense to count the ones that are initially outside rho=1.0 as lost.
-            Instead, you probably want to include just the markers that started
-            inside rho=1.0.
+            Instead, you might want in some caes to include just the markers
+            that started inside rho=1.0.
         logscale : bool, optional
-            Whether to plot the cumulative or non-cumulative lost power in
-            logarithmic x-scale.
+            Whether to plot the lost power in logarithmic x-scale.
         cumulative : bool, optional
             Whether to plot the cumulative or non-cumulative lost power.
         axes : :obj:`~matplotlib.axes.Axes`, optional
@@ -1435,17 +1439,32 @@ class RunMixin(DistMixin):
         """
 
         # Get mileage, weight, and Ekin of markers that count as lost
-        ids_lost, lost_initial_rho = self.getstate("ids",
-                                                   "rho",
-                                                   state="ini",
-                                                   endcond=endcond,
-                                                   )
-        ids_lost = ids_lost[lost_initial_rho <= max_initial_rho]
-        mileage_lost, w_lost, ekin_lost = self.getstate("mileage",
-                                                        "weight",
-                                                        "ekin",
-                                                        state="end",
-                                                        ids=ids_lost)
+        if max_initial_rho is not None:
+            # Take into account only the markers that were initially inside
+            # certain rho
+            ids_lost, lost_initial_rho = self.getstate("ids",
+                                                       "rho",
+                                                       state="ini",
+                                                       endcond=endcond,
+                                                       mode=mode,
+                                                       )
+            ids_lost = ids_lost[lost_initial_rho <= max_initial_rho]
+            mileage_lost, w_lost, ekin_lost = self.getstate("mileage",
+                                                            "weight",
+                                                            "ekin",
+                                                            state="end",
+                                                            ids=ids_lost,
+                                                            mode=mode,
+                                                            )
+        else:
+            # Take into account all markers regardless of initial rho
+            mileage_lost, w_lost, ekin_lost = self.getstate("mileage",
+                                                            "weight",
+                                                            "ekin",
+                                                            state="end",
+                                                            endcond=endcond,
+                                                            mode=mode,
+                                                            )
         ekin_lost = ekin_lost.to("MJ")
 
         # Craft the time array
