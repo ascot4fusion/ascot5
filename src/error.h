@@ -37,7 +37,7 @@ typedef enum error_file {
     EF_B_2DS             =  12, /**< Error is from B_2DS.c                    */
     EF_B_STS             =  13, /**< Error is from B_STS.c                    */
     EF_B_GS              =  14, /**< Error is from B_GS.c                     */
-    EF_PLASMA_1D         =  15, /**< Error is from plasma_1DS.c               */
+    EF_PLASMA_1D         =  15, /**< Error is from plasma_1D.c                */
     EF_PLASMA_1DS        =  16, /**< Error is from plasma_1DS.c               */
     EF_PLASMA            =  17, /**< Error is from plasma.c                   */
     EF_E_FIELD           =  18, /**< Error is from E_field.c                  */
@@ -50,7 +50,8 @@ typedef enum error_file {
     EF_ATOMIC            =  25, /**< Error is from atomic.c                   */
     EF_ASIGMA            =  26, /**< Error is from asigma.c                   */
     EF_ASIGMA_LOC        =  27, /**< Error is from asigma_loc.c               */
-    EF_SUZUKI            =  28  /**< Error is from suzuki.c                   */
+    EF_SUZUKI            =  28, /**< Error is from suzuki.c                   */
+    EF_PLASMA_2D         =  29  /**< Error is from plasma_2D.c                */
 }error_file;
 
 /**

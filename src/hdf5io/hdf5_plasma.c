@@ -13,6 +13,7 @@
 #include "../ascot5.h"
 #include "../plasma.h"
 #include "../plasma/plasma_1D.h"
+#include "../plasma/plasma_2D.h"
 #include "../plasma/plasma_1Dt.h"
 #include "../plasma/plasma_1DS.h"
 #include "../consts.h"
@@ -22,6 +23,7 @@
 #define PLSPATH /**< Macro that is used to store paths to data groups */
 
 int hdf5_plasma_read_1D(hid_t f, plasma_1D_data* data, char* qid);
+int hdf5_plasma_read_2D(hid_t f, plasma_2D_data* data, char* qid);
 int hdf5_plasma_read_1Dt(hid_t f, plasma_1Dt_data* data, char* qid);
 int hdf5_plasma_read_1DS(hid_t f, plasma_1DS_data* data, char* qid);
 /**
@@ -43,6 +45,11 @@ int hdf5_plasma_init(hid_t f, plasma_data* data, char* qid) {
     if(hdf5_find_group(f, path) == 0) {
         data->type = plasma_type_1D;
         err = hdf5_plasma_read_1D(f, &data->plasma_1D, qid);
+    }
+    hdf5_gen_path("/plasma/plasma_2D_XXXXXXXXXX", qid, path);
+    if(hdf5_find_group(f, path) == 0) {
+        data->type = plasma_type_2D;
+        err = hdf5_plasma_read_2D(f, &data->plasma_2D, qid);
     }
     hdf5_gen_path("/plasma/plasma_1Dt_XXXXXXXXXX", qid, path);
     if(hdf5_find_group(f, path) == 0) {
@@ -130,6 +137,94 @@ int hdf5_plasma_read_1D(hid_t f, plasma_1D_data* data, char* qid) {
     free(ne);
     free(ni);
     free(rho);
+    free(znum);
+    free(anum);
+    free(mass);
+    free(charge);
+    return err;
+}
+
+/**
+ * @brief Read 2D plasma data from HDF5 file
+ *
+ * @param f HDF5 file from which data is read
+ * @param data pointer to the data
+ * @param qid QID of the data
+ *
+ * @return Zero if reading succeeded
+ */
+int hdf5_plasma_read_2D(hid_t f, plasma_2D_data* data, char* qid) {
+    #undef PLSPATH
+    #define PLSPATH "/plasma/plasma_2D_XXXXXXXXXX/"
+
+    int nr, nz, n_ions;
+    real rmin, rmax, zmin, zmax;
+    if( hdf5_read_int(PLSPATH "nion", &n_ions,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(PLSPATH "nr",  &nr,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(PLSPATH "nz",  &nz,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(PLSPATH "rmin", &rmin,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(PLSPATH "rmax", &rmax,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(PLSPATH "zmin", &zmin,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(PLSPATH "zmax", &zmax,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    int* q = (int*) malloc( n_ions * sizeof(int) );
+    int* znum = (int*) malloc( n_ions * sizeof(int) );
+    int* anum = (int*) malloc( n_ions * sizeof(int) );
+    real* mass = (real*) malloc( ( n_ions + 1 ) * sizeof(real) );
+    real* charge = (real*) malloc( ( n_ions + 1 ) * sizeof(real) );
+    if( hdf5_read_int(PLSPATH "znum", znum,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(PLSPATH "anum", anum,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(PLSPATH "charge", q,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(PLSPATH "mass", &mass[1],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    charge[0] = -1 * CONST_E;
+    for(int i = 0; i < n_ions; i++) {
+        charge[i+1] = q[i] * CONST_E;
+    }
+    mass[0] = CONST_M_E;
+    for(int i = 0; i < n_ions; i++) {
+        mass[i+1] *= CONST_U;
+    }
+    free(q);
+
+    real* Te = (real*) malloc( nr*nz*sizeof(real) );
+    real* Ti = (real*) malloc( nr*nz*sizeof(real) );
+    real* ne = (real*) malloc( nr*nz*sizeof(real) );
+    real* ni = (real*) malloc( nr*nz*n_ions*sizeof(real) );
+    real* vtor = (real*) malloc( nr*nz*sizeof(real) );
+    if( hdf5_read_double(PLSPATH "vtor", vtor,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(PLSPATH "etemperature", Te,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(PLSPATH "edensity", ne,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(PLSPATH "itemperature", Ti,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(PLSPATH "idensity", ni,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    for(int i = 0; i < nr * nz; i++) {
+        Te[i] = Te[i] * CONST_E;
+        Ti[i] = Ti[i] * CONST_E;
+    }
+
+    int err = plasma_2D_init(
+        data, nr, nz, n_ions, rmin, rmax, zmin, zmax, anum, znum, mass, charge,
+        Te, Ti, ne, ni, vtor);
+    free(Te);
+    free(Ti);
+    free(ne);
+    free(ni);
     free(znum);
     free(anum);
     free(mass);

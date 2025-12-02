@@ -33,6 +33,8 @@ void linint2D_init(linint2D_data* str, real* c,
 
     str->n_x    = n_x;
     str->n_y    = n_y;
+    str->bc_x   = bc_x;
+    str->bc_y   = bc_y;
     str->x_min  = x_min;
     str->x_max  = x_max;
     str->x_grid = x_grid;
