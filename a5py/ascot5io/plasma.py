@@ -273,6 +273,165 @@ class plasma_1D(DataGroup):
                 "idensity":1e20*np.ones((3,1)),
                 "itemperature":1e20*np.ones((3,1))}
 
+class plasma_2D(DataGroup):
+    """Plasma profiles with (R,z) dependency.
+    """
+
+    def read(self):
+        """Read data from HDF5 file.
+
+        Returns
+        -------
+        data : dict
+            Data read from HDF5 stored in the same format as is passed to
+            :meth:`write_hdf5`.
+        """
+        fn   = self._root._ascot.file_getpath()
+        path = self._path
+
+        out = {}
+        with h5py.File(fn,"r") as f:
+            for key in f[path]:
+                out[key] = f[path][key][:]
+                if key in ["nion", "nrho"]:
+                    out[key] = int(out[key])
+
+        for name in ["vtor", "edensity", "etemperature", "idensity",
+                     "itemperature"]:
+            out[name] = np.transpose(out[name])
+        return out
+
+    @staticmethod
+    def write_hdf5(fn, nr, nz, nion, rmin, rmax, zmin, zmax, anum, znum, mass,
+                   charge, vtor, edensity, etemperature, idensity, itemperature,
+                   desc=None):
+        """Write input data to the HDF5 file.
+
+        Parameters
+        ----------
+        fn : str
+            Path to hdf5 file.
+        nr : int
+            Number of R grid points.
+        nz : int
+            Number of z grid points.
+        nion : int
+            Number of ion species.
+        rmin : float
+            Minimum R grid value.
+        rmax : float
+            Maximum R grid value.
+        zmin : float
+            Minimum z grid value.
+        zmax : float
+            Maximum z grid value.
+        anum : array_like (nion,1)
+            Ion species atomic mass number
+        znum : array_like (nion,1)
+            Ion species charge number.
+        mass : array_like (nion,1)
+            Ion species mass [amu].
+        charge : array_like (nion,1)
+            Ion species charge [e].
+        vtor : array_like (nrho,1)
+            Plasma rotation [rad/s].
+        edensity : array_like (nrho,1)
+            Electron density [m^-3].
+        etemperature : array_like (nrho,1)
+            Electron temperature [eV].
+        idensity : array_like (nrho,nion)
+            Ion density [m^-3].
+        itemperature : array_like (nrho,1)
+            Ion temperature [ev].
+        desc : str, optional
+            Input description.
+
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
+
+        Raises
+        ------
+        ValueError
+            If inputs were not consistent.
+        """
+        if vtor.shape != (nr,nz):
+            raise ValueError("Invalid size for toroidal rotation.")
+        if etemperature.shape != (nr,nz):
+            raise ValueError("Invalid size for electron temperature.")
+        if itemperature.shape != (nr,nz):
+            raise ValueError("Invalid size for ion temperature.")
+        if edensity.shape != (nr,nz):
+            raise ValueError("Invalid size for electron density.")
+        if idensity.shape != (nr,nz,nion):
+            raise ValueError("Invalid size for ion density.")
+
+        vtor = np.transpose(vtor)
+        etemperature = np.transpose(etemperature)
+        itemperature = np.transpose(itemperature)
+        edensity = np.transpose(edensity)
+        idensity = np.transpose(idensity)
+
+        parent = "plasma"
+        group  = "plasma_2D"
+        gname  = ""
+
+        with h5py.File(fn, "a") as f:
+            g = add_group(f, parent, group, desc=desc)
+            gname = g.name.split("/")[-1]
+
+            g.create_dataset('nion',   (1,1),    data=nion,   dtype='i4')
+            g.create_dataset('nr',     (1,1),    data=nr,     dtype='i4')
+            g.create_dataset('nz',     (1,1),    data=nz,     dtype='i4')
+            g.create_dataset('rmin',   (1,1),    data=rmin,   dtype='f8')
+            g.create_dataset('rmax',   (1,1),    data=rmax,   dtype='f8')
+            g.create_dataset('zmin',   (1,1),    data=zmin,   dtype='f8')
+            g.create_dataset('zmax',   (1,1),    data=zmax,   dtype='f8')
+            g.create_dataset('znum',   (nion,1), data=znum,   dtype='i4')
+            g.create_dataset('anum',   (nion,1), data=anum,   dtype='i4')
+            g.create_dataset('charge', (nion,1), data=charge, dtype='i4')
+            g.create_dataset('mass',   (nion,1), data=mass,   dtype='f8')
+            g.create_dataset('vtor',   (nz,nr),  data=vtor,   dtype='f8')
+
+            g.create_dataset('etemperature', (nz,nr),    data=etemperature,
+                             dtype='f8')
+            g.create_dataset('edensity',     (nz,nr),    data=edensity,
+                             dtype='f8')
+            g.create_dataset('itemperature', (nz,nr),    data=itemperature,
+                             dtype='f8')
+            g.create_dataset('idensity',     (nion,nz,nr), data=idensity,
+                             dtype='f8')
+
+        return gname
+
+    @staticmethod
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
+        non-sensical.
+
+        This method is intended for testing purposes or to provide data whose
+        presence is needed but which is not actually used in simulation.
+
+        The dummy output is an uniform hydrogen plasma.
+
+        Returns
+        -------
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        nr, nz = 3, 4
+        return {
+            "nr":nr, "nz":nz, "nion":1, "rmin":0, "rmax":1, "zmin":-1, "zmax":1,
+            "znum":np.array([1]), "anum":np.array([1]),
+            "mass":np.array([1]), "charge":np.array([1]),
+            "vtor":np.zeros((nr,nz)),
+            "edensity":np.full((nr,nz), 1e20),
+            "etemperature":np.full((nr,nz), 1e3),
+            "idensity":np.full((nr,nz,1), 1e20),
+            "itemperature":np.full((nr,nz), 1e3)}
+
 class plasma_1DS(DataGroup):
     """Same input as :class:`plasma_1D` but interpolated with splines.
 

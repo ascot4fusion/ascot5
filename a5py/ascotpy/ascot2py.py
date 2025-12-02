@@ -979,6 +979,9 @@ dist_5D_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data)]
 dist_5D_offload = _libraries['libascot.so'].dist_5D_offload
 dist_5D_offload.restype = None
 dist_5D_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data)]
+dist_5D_onload = _libraries['libascot.so'].dist_5D_onload
+dist_5D_onload.restype = None
+dist_5D_onload.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data)]
 dist_5D_update_fo = _libraries['libascot.so'].dist_5D_update_fo
 dist_5D_update_fo.restype = None
 dist_5D_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
@@ -1042,6 +1045,9 @@ dist_6D_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_6D_data)]
 dist_6D_offload = _libraries['libascot.so'].dist_6D_offload
 dist_6D_offload.restype = None
 dist_6D_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_6D_data)]
+dist_6D_onload = _libraries['libascot.so'].dist_6D_onload
+dist_6D_onload.restype = None
+dist_6D_onload.argtypes = [ctypes.POINTER(struct_c__SA_dist_6D_data)]
 dist_6D_update_fo = _libraries['libascot.so'].dist_6D_update_fo
 dist_6D_update_fo.restype = None
 dist_6D_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_6D_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
@@ -1100,6 +1106,9 @@ dist_rho5D_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho5D_data)]
 dist_rho5D_offload = _libraries['libascot.so'].dist_rho5D_offload
 dist_rho5D_offload.restype = None
 dist_rho5D_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho5D_data)]
+dist_rho5D_onload = _libraries['libascot.so'].dist_rho5D_onload
+dist_rho5D_onload.restype = None
+dist_rho5D_onload.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho5D_data)]
 dist_rho5D_update_fo = _libraries['libascot.so'].dist_rho5D_update_fo
 dist_rho5D_update_fo.restype = None
 dist_rho5D_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho5D_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
@@ -1163,6 +1172,9 @@ dist_rho6D_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho6D_data)]
 dist_rho6D_offload = _libraries['libascot.so'].dist_rho6D_offload
 dist_rho6D_offload.restype = None
 dist_rho6D_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho6D_data)]
+dist_rho6D_onload = _libraries['libascot.so'].dist_rho6D_onload
+dist_rho6D_onload.restype = None
+dist_rho6D_onload.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho6D_data)]
 dist_rho6D_update_fo = _libraries['libascot.so'].dist_rho6D_update_fo
 dist_rho6D_update_fo.restype = None
 dist_rho6D_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho6D_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
@@ -1201,6 +1213,9 @@ dist_COM_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_COM_data)]
 dist_COM_offload = _libraries['libascot.so'].dist_COM_offload
 dist_COM_offload.restype = None
 dist_COM_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_COM_data)]
+dist_COM_onload = _libraries['libascot.so'].dist_COM_onload
+dist_COM_onload.restype = None
+dist_COM_onload.argtypes = [ctypes.POINTER(struct_c__SA_dist_COM_data)]
 dist_COM_update_fo = _libraries['libascot.so'].dist_COM_update_fo
 dist_COM_update_fo.restype = None
 dist_COM_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_COM_data), ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
@@ -1347,6 +1362,9 @@ diag_free.argtypes = [ctypes.POINTER(struct_c__SA_diag_data)]
 diag_offload = _libraries['libascot.so'].diag_offload
 diag_offload.restype = None
 diag_offload.argtypes = [ctypes.POINTER(struct_c__SA_diag_data)]
+diag_onload = _libraries['libascot.so'].diag_onload
+diag_onload.restype = None
+diag_onload.argtypes = [ctypes.POINTER(struct_c__SA_diag_data)]
 diag_sum = _libraries['libascot.so'].diag_sum
 diag_sum.restype = None
 diag_sum.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.POINTER(struct_c__SA_diag_data)]
@@ -1416,6 +1434,62 @@ plasma_1D_eval_densandtemp.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.P
 plasma_1D_eval_flow = _libraries['libascot.so'].plasma_1D_eval_flow
 plasma_1D_eval_flow.restype = a5err
 plasma_1D_eval_flow.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, ctypes.POINTER(struct_c__SA_plasma_1D_data)]
+class struct_c__SA_plasma_2D_data(Structure):
+    pass
+
+class struct_c__SA_linint2D_data(Structure):
+    pass
+
+struct_c__SA_plasma_2D_data._pack_ = 1 # source:False
+struct_c__SA_plasma_2D_data._fields_ = [
+    ('n_species', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('mass', ctypes.POINTER(ctypes.c_double)),
+    ('charge', ctypes.POINTER(ctypes.c_double)),
+    ('anum', ctypes.POINTER(ctypes.c_int32)),
+    ('znum', ctypes.POINTER(ctypes.c_int32)),
+    ('temp', ctypes.POINTER(struct_c__SA_linint2D_data)),
+    ('dens', ctypes.POINTER(struct_c__SA_linint2D_data)),
+    ('vtor', ctypes.POINTER(struct_c__SA_linint2D_data)),
+]
+
+struct_c__SA_linint2D_data._pack_ = 1 # source:False
+struct_c__SA_linint2D_data._fields_ = [
+    ('n_x', ctypes.c_int32),
+    ('n_y', ctypes.c_int32),
+    ('bc_x', ctypes.c_int32),
+    ('bc_y', ctypes.c_int32),
+    ('x_min', ctypes.c_double),
+    ('x_max', ctypes.c_double),
+    ('x_grid', ctypes.c_double),
+    ('y_min', ctypes.c_double),
+    ('y_max', ctypes.c_double),
+    ('y_grid', ctypes.c_double),
+    ('c', ctypes.POINTER(ctypes.c_double)),
+]
+
+plasma_2D_data = struct_c__SA_plasma_2D_data
+plasma_2D_init = _libraries['libascot.so'].plasma_2D_init
+plasma_2D_init.restype = ctypes.c_int32
+plasma_2D_init.argtypes = [ctypes.POINTER(struct_c__SA_plasma_2D_data), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, real, real, real, real, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+plasma_2D_free = _libraries['libascot.so'].plasma_2D_free
+plasma_2D_free.restype = None
+plasma_2D_free.argtypes = [ctypes.POINTER(struct_c__SA_plasma_2D_data)]
+plasma_2D_offload = _libraries['libascot.so'].plasma_2D_offload
+plasma_2D_offload.restype = None
+plasma_2D_offload.argtypes = [ctypes.POINTER(struct_c__SA_plasma_2D_data)]
+plasma_2D_eval_temp = _libraries['libascot.so'].plasma_2D_eval_temp
+plasma_2D_eval_temp.restype = a5err
+plasma_2D_eval_temp.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_2D_data)]
+plasma_2D_eval_dens = _libraries['libascot.so'].plasma_2D_eval_dens
+plasma_2D_eval_dens.restype = a5err
+plasma_2D_eval_dens.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_2D_data)]
+plasma_2D_eval_densandtemp = _libraries['libascot.so'].plasma_2D_eval_densandtemp
+plasma_2D_eval_densandtemp.restype = a5err
+plasma_2D_eval_densandtemp.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), real, real, ctypes.POINTER(struct_c__SA_plasma_2D_data)]
+plasma_2D_eval_flow = _libraries['libascot.so'].plasma_2D_eval_flow
+plasma_2D_eval_flow.restype = a5err
+plasma_2D_eval_flow.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, ctypes.POINTER(struct_c__SA_plasma_2D_data)]
 class struct_c__SA_plasma_1Dt_data(Structure):
     pass
 
@@ -1500,12 +1574,14 @@ plasma_1DS_eval_flow.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, ct
 # values for enumeration 'plasma_type'
 plasma_type__enumvalues = {
     0: 'plasma_type_1D',
-    1: 'plasma_type_1Dt',
-    2: 'plasma_type_1DS',
+    1: 'plasma_type_2D',
+    2: 'plasma_type_1Dt',
+    3: 'plasma_type_1DS',
 }
 plasma_type_1D = 0
-plasma_type_1Dt = 1
-plasma_type_1DS = 2
+plasma_type_2D = 1
+plasma_type_1Dt = 2
+plasma_type_1DS = 3
 plasma_type = ctypes.c_uint32 # enum
 class struct_c__SA_plasma_data(Structure):
     pass
@@ -1515,6 +1591,7 @@ struct_c__SA_plasma_data._fields_ = [
     ('type', plasma_type),
     ('PADDING_0', ctypes.c_ubyte * 4),
     ('plasma_1D', plasma_1D_data),
+    ('plasma_2D', plasma_2D_data),
     ('plasma_1Dt', plasma_1Dt_data),
     ('plasma_1DS', plasma_1DS_data),
 ]
@@ -2549,7 +2626,7 @@ __all__ = \
     'boozer_init', 'boozer_offload', 'boschhale_reaction',
     'boschhale_sigma', 'boschhale_sigmav', 'c__EA_hist_coordinate',
     'c__EA_mom_space_basis', 'diag_data', 'diag_free', 'diag_init',
-    'diag_offload', 'diag_orb_check_plane_crossing',
+    'diag_offload', 'diag_onload', 'diag_orb_check_plane_crossing',
     'diag_orb_check_radial_crossing', 'diag_orb_data',
     'diag_orb_free', 'diag_orb_init', 'diag_orb_update_fo',
     'diag_orb_update_gc', 'diag_orb_update_ml', 'diag_sum',
@@ -2558,15 +2635,17 @@ __all__ = \
     'diag_transcoef_update_fo', 'diag_transcoef_update_gc',
     'diag_transcoef_update_ml', 'diag_update_fo', 'diag_update_gc',
     'diag_update_ml', 'dist_5D_data', 'dist_5D_free', 'dist_5D_index',
-    'dist_5D_init', 'dist_5D_offload', 'dist_5D_update_fo',
-    'dist_5D_update_gc', 'dist_6D_data', 'dist_6D_free',
-    'dist_6D_init', 'dist_6D_offload', 'dist_6D_update_fo',
-    'dist_6D_update_gc', 'dist_COM_data', 'dist_COM_free',
-    'dist_COM_init', 'dist_COM_offload', 'dist_COM_update_fo',
+    'dist_5D_init', 'dist_5D_offload', 'dist_5D_onload',
+    'dist_5D_update_fo', 'dist_5D_update_gc', 'dist_6D_data',
+    'dist_6D_free', 'dist_6D_init', 'dist_6D_offload',
+    'dist_6D_onload', 'dist_6D_update_fo', 'dist_6D_update_gc',
+    'dist_COM_data', 'dist_COM_free', 'dist_COM_init',
+    'dist_COM_offload', 'dist_COM_onload', 'dist_COM_update_fo',
     'dist_COM_update_gc', 'dist_rho5D_data', 'dist_rho5D_free',
-    'dist_rho5D_init', 'dist_rho5D_offload', 'dist_rho5D_update_fo',
-    'dist_rho5D_update_gc', 'dist_rho6D_data', 'dist_rho6D_free',
-    'dist_rho6D_init', 'dist_rho6D_offload', 'dist_rho6D_update_fo',
+    'dist_rho5D_init', 'dist_rho5D_offload', 'dist_rho5D_onload',
+    'dist_rho5D_update_fo', 'dist_rho5D_update_gc', 'dist_rho6D_data',
+    'dist_rho6D_free', 'dist_rho6D_init', 'dist_rho6D_offload',
+    'dist_rho6D_onload', 'dist_rho6D_update_fo',
     'dist_rho6D_update_gc', 'endcond_check_fo', 'endcond_check_gc',
     'endcond_check_ml', 'endcond_cpumax', 'endcond_emin',
     'endcond_hybrid', 'endcond_ioniz', 'endcond_neutr',
@@ -2624,37 +2703,41 @@ __all__ = \
     'plasma_1D_init', 'plasma_1D_offload', 'plasma_1Dt_data',
     'plasma_1Dt_eval_dens', 'plasma_1Dt_eval_densandtemp',
     'plasma_1Dt_eval_flow', 'plasma_1Dt_eval_temp', 'plasma_1Dt_free',
-    'plasma_1Dt_init', 'plasma_1Dt_offload', 'plasma_data',
+    'plasma_1Dt_init', 'plasma_1Dt_offload', 'plasma_2D_data',
+    'plasma_2D_eval_dens', 'plasma_2D_eval_densandtemp',
+    'plasma_2D_eval_flow', 'plasma_2D_eval_temp', 'plasma_2D_free',
+    'plasma_2D_init', 'plasma_2D_offload', 'plasma_data',
     'plasma_eval_dens', 'plasma_eval_densandtemp', 'plasma_eval_flow',
     'plasma_eval_temp', 'plasma_free', 'plasma_get_n_species',
     'plasma_get_species_anum', 'plasma_get_species_charge',
     'plasma_get_species_mass', 'plasma_get_species_znum',
     'plasma_offload', 'plasma_type', 'plasma_type_1D',
-    'plasma_type_1DS', 'plasma_type_1Dt', 'prepare_markers',
-    'print_marker_summary', 'real', 'rfof_clear_history', 'rfof_data',
-    'rfof_eval_resonance_function', 'rfof_eval_rf_wave', 'rfof_free',
-    'rfof_init', 'rfof_marker', 'rfof_resonance_check_and_kick_gc',
-    'rfof_set_marker_manually', 'rfof_set_up', 'rfof_tear_down',
-    'sigma_CX', 'sigma_ioniz', 'sigma_recomb', 'sigmav_BMS',
-    'sigmav_CX', 'sigmav_ioniz', 'sigmav_recomb', 'sigmaveff_CX',
-    'sigmaveff_ioniz', 'sigmaveff_recomb', 'sim_data', 'simulate',
-    'simulate_init', 'simulate_mode_fo', 'simulate_mode_gc',
-    'simulate_mode_hybrid', 'simulate_mode_ml', 'size_t',
-    'struct_c__SA_B_2DS_data', 'struct_c__SA_B_3DS_data',
-    'struct_c__SA_B_GS_data', 'struct_c__SA_B_STS_data',
-    'struct_c__SA_B_TC_data', 'struct_c__SA_B_field_data',
-    'struct_c__SA_E_1DS_data', 'struct_c__SA_E_TC_data',
-    'struct_c__SA_E_field_data', 'struct_c__SA_N0_1D_data',
-    'struct_c__SA_N0_3D_data', 'struct_c__SA_afsi_data',
-    'struct_c__SA_asigma_data', 'struct_c__SA_asigma_loc_data',
-    'struct_c__SA_boozer_data', 'struct_c__SA_diag_data',
-    'struct_c__SA_diag_orb_data', 'struct_c__SA_diag_transcoef_data',
-    'struct_c__SA_dist_5D_data', 'struct_c__SA_dist_6D_data',
-    'struct_c__SA_dist_COM_data', 'struct_c__SA_dist_rho5D_data',
-    'struct_c__SA_dist_rho6D_data', 'struct_c__SA_hist_axis',
-    'struct_c__SA_histogram', 'struct_c__SA_input_particle',
-    'struct_c__SA_interp1D_data', 'struct_c__SA_interp2D_data',
-    'struct_c__SA_interp3D_data', 'struct_c__SA_linint1D_data',
+    'plasma_type_1DS', 'plasma_type_1Dt', 'plasma_type_2D',
+    'prepare_markers', 'print_marker_summary', 'real',
+    'rfof_clear_history', 'rfof_data', 'rfof_eval_resonance_function',
+    'rfof_eval_rf_wave', 'rfof_free', 'rfof_init', 'rfof_marker',
+    'rfof_resonance_check_and_kick_gc', 'rfof_set_marker_manually',
+    'rfof_set_up', 'rfof_tear_down', 'sigma_CX', 'sigma_ioniz',
+    'sigma_recomb', 'sigmav_BMS', 'sigmav_CX', 'sigmav_ioniz',
+    'sigmav_recomb', 'sigmaveff_CX', 'sigmaveff_ioniz',
+    'sigmaveff_recomb', 'sim_data', 'simulate', 'simulate_init',
+    'simulate_mode_fo', 'simulate_mode_gc', 'simulate_mode_hybrid',
+    'simulate_mode_ml', 'size_t', 'struct_c__SA_B_2DS_data',
+    'struct_c__SA_B_3DS_data', 'struct_c__SA_B_GS_data',
+    'struct_c__SA_B_STS_data', 'struct_c__SA_B_TC_data',
+    'struct_c__SA_B_field_data', 'struct_c__SA_E_1DS_data',
+    'struct_c__SA_E_TC_data', 'struct_c__SA_E_field_data',
+    'struct_c__SA_N0_1D_data', 'struct_c__SA_N0_3D_data',
+    'struct_c__SA_afsi_data', 'struct_c__SA_asigma_data',
+    'struct_c__SA_asigma_loc_data', 'struct_c__SA_boozer_data',
+    'struct_c__SA_diag_data', 'struct_c__SA_diag_orb_data',
+    'struct_c__SA_diag_transcoef_data', 'struct_c__SA_dist_5D_data',
+    'struct_c__SA_dist_6D_data', 'struct_c__SA_dist_COM_data',
+    'struct_c__SA_dist_rho5D_data', 'struct_c__SA_dist_rho6D_data',
+    'struct_c__SA_hist_axis', 'struct_c__SA_histogram',
+    'struct_c__SA_input_particle', 'struct_c__SA_interp1D_data',
+    'struct_c__SA_interp2D_data', 'struct_c__SA_interp3D_data',
+    'struct_c__SA_linint1D_data', 'struct_c__SA_linint2D_data',
     'struct_c__SA_linint3D_data', 'struct_c__SA_mccc_data',
     'struct_c__SA_mhd_data', 'struct_c__SA_mhd_nonstat_data',
     'struct_c__SA_mhd_stat_data', 'struct_c__SA_nbi_data',
@@ -2664,16 +2747,17 @@ __all__ = \
     'struct_c__SA_particle_simd_fo', 'struct_c__SA_particle_simd_gc',
     'struct_c__SA_particle_simd_ml', 'struct_c__SA_particle_state',
     'struct_c__SA_plasma_1DS_data', 'struct_c__SA_plasma_1D_data',
-    'struct_c__SA_plasma_1Dt_data', 'struct_c__SA_plasma_data',
-    'struct_c__SA_rfof_data', 'struct_c__SA_sim_data',
-    'struct_c__SA_wall_2d_data', 'struct_c__SA_wall_3d_data',
-    'struct_c__SA_wall_data', 'struct_diag_transcoef_link',
-    'struct_rfof_marker', 'union_c__SA_input_particle_0',
-    'wall_2d_data', 'wall_2d_find_intersection', 'wall_2d_free',
-    'wall_2d_hit_wall', 'wall_2d_init', 'wall_2d_inside',
-    'wall_2d_offload', 'wall_3d_data', 'wall_3d_free',
-    'wall_3d_hit_wall', 'wall_3d_hit_wall_full', 'wall_3d_init',
-    'wall_3d_init_tree', 'wall_3d_offload', 'wall_3d_quad_collision',
+    'struct_c__SA_plasma_1Dt_data', 'struct_c__SA_plasma_2D_data',
+    'struct_c__SA_plasma_data', 'struct_c__SA_rfof_data',
+    'struct_c__SA_sim_data', 'struct_c__SA_wall_2d_data',
+    'struct_c__SA_wall_3d_data', 'struct_c__SA_wall_data',
+    'struct_diag_transcoef_link', 'struct_rfof_marker',
+    'union_c__SA_input_particle_0', 'wall_2d_data',
+    'wall_2d_find_intersection', 'wall_2d_free', 'wall_2d_hit_wall',
+    'wall_2d_init', 'wall_2d_inside', 'wall_2d_offload',
+    'wall_3d_data', 'wall_3d_free', 'wall_3d_hit_wall',
+    'wall_3d_hit_wall_full', 'wall_3d_init', 'wall_3d_init_tree',
+    'wall_3d_offload', 'wall_3d_quad_collision',
     'wall_3d_tri_collision', 'wall_3d_tri_in_cube', 'wall_data',
     'wall_free', 'wall_get_flag', 'wall_get_n_elements',
     'wall_hit_wall', 'wall_offload', 'wall_type', 'wall_type_2D',

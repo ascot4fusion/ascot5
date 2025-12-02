@@ -11,6 +11,7 @@
 #include "ascot5.h"
 #include "error.h"
 #include "plasma/plasma_1D.h"
+#include "plasma/plasma_2D.h"
 #include "plasma/plasma_1Dt.h"
 #include "plasma/plasma_1DS.h"
 
@@ -19,6 +20,7 @@
  */
 typedef enum plasma_type {
     plasma_type_1D,  /**< Linear-interpolated 1D plasma data                */
+    plasma_type_2D,  /**< Linear-interpolated 2D plasma data                */
     plasma_type_1Dt, /**< Linear-interpolated time-dependent 1D plasma data */
     plasma_type_1DS  /**< Spline-interpolated 1D plasma data                */
 } plasma_type;
@@ -32,6 +34,7 @@ typedef enum plasma_type {
 typedef struct {
     plasma_type type;           /**< Plasma data type wrapped by this struct */
     plasma_1D_data plasma_1D;   /**< 1D data or NULL if not active           */
+    plasma_2D_data plasma_2D;   /**< 2D data or NULL if not active           */
     plasma_1Dt_data plasma_1Dt; /**< 1D data or NULL if not active           */
     plasma_1DS_data plasma_1DS; /**< 1DS data or NULL if not active          */
 } plasma_data;
