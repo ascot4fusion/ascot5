@@ -103,10 +103,6 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
         print_err("Only GO and GC mode ported to GPU. Please set SIM_MODE=1 or 2.");
         exit(1);
     }
-    if((sim->sim_mode == 2) && (sim->enable_ada)) {
-        print_err("adaptive time-step is not ported to GPU. Please set ENABLE_ADAPTIVE=0.");
-        exit(1);
-    }
     if(sim->record_mode) {
         print_err("RECORD_MODE=1 not ported to GPU. Please disable it.");
         exit(1);
@@ -198,7 +194,7 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
                         || sim->sim_mode == simulate_mode_hybrid)) {
                 if(sim->enable_ada) {
 		    OMP_PARALLEL_CPU_ONLY
-		    simulate_gc_adaptive(&pq, sim);
+		    simulate_gc_adaptive(&pq, sim, n_queue_size);
                 }
                 else {
                     OMP_PARALLEL_CPU_ONLY

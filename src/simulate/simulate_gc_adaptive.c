@@ -52,21 +52,21 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
  * @param sim simulation data
  *
  */
-void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
+void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 
     /* Wiener arrays needed for the adaptive time step */
-    mccc_wienarr wienarr[NSIMD];
+    mccc_wienarr wienarr = (mccc_wienarr*) malloc(mrk_array_size*sizeof(mccc_wienarr));
 
     /* Current time step, suggestions for the next time step and next time
      * step                                                                */
-    real hin[NSIMD]       __memalign__;
-    real hout_orb[NSIMD]  __memalign__;
-    real hout_col[NSIMD]  __memalign__;
-    real hout_rfof[NSIMD] __memalign__;
-    real hnext[NSIMD]     __memalign__;
+    real hin = (real*) malloc(mrk_array_size*sizeof(real));
+    real hout_orb = (real*) malloc(mrk_array_size*sizeof(real));
+    real hout_col = (real*) malloc(mrk_array_size*sizeof(real));
+    real hout_rfof = (real*) malloc(mrk_array_size*sizeof(real));
+    real hnext = (real*) malloc(mrk_array_size*sizeof(real));
 
     /* Flag indicateing whether a new marker was initialized */
-    int cycle[NSIMD]     __memalign__;
+    int cycle = (int*) malloc(mrk_array_size*sizeof(int));
 
     real tol_col = sim->ada_tol_clmbcol;
     real tol_orb = sim->ada_tol_orbfol;
@@ -75,10 +75,12 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
     particle_simd_gc p;  // This array holds current states
     particle_simd_gc p0; // This array stores previous states
-
+    particle_allocate_gc(&p, mrk_array_size);
+    particle_allocate_gc(&p0, mrk_array_size);
+    
     rfof_marker rfof_mrk; // RFOF specific data
 
-    for(int i=0; i< NSIMD; i++) {
+    for(int i=0; i< mrk_array_size; i++) {
         p.id[i] = -1;
         p.running[i] = 0;
     }
@@ -91,7 +93,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     }
 
     #pragma omp simd
-    for(int i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < mrk_array_size; i++) {
         if(cycle[i] > 0) {
             /* Determine initial time-step */
             hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
@@ -116,11 +118,12 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
      * - Check for end condition(s)
      * - Update diagnostics
      */
+    GPU_MAP_TO_DEVICE(hin[0:mrk_array_size],rnd[0:5*mrk_array_size],hout_orb[0:mrk_array_size],hout_col[0:mrk_array_size],hout_rfof[0:mrk_array_size],hnext[0:mrk_array_size],cycle[0:mrk_array_size])
     while(n_running > 0) {
 
         /* Store marker states in case time step will be rejected */
-        #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
+        GPU_PARALLEL_LOOP_ALL_LEVELS
+        for(int i = 0; i < p.n_mrk; i++) {
             particle_copy_gc(&p, i, &p0, i);
             hout_orb[i]  = DUMMY_TIMESTEP_VAL;
             hout_col[i]  = DUMMY_TIMESTEP_VAL;
@@ -131,8 +134,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         /*************************** Physics **********************************/
 
         /* Set time-step negative if tracing backwards in time */
-        #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
+        GPU_PARALLEL_LOOP_ALL_LEVELS
+        for(int i = 0; i < p.n_mrk; i++) {
             if(sim->reverse_time) {
                 hin[i]  = -hin[i];
             }
@@ -201,8 +204,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         /**********************************************************************/
 
         cputime = A5_WTIME;
-        #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
+        GPU_PARALLEL_LOOP_ALL_LEVELS
+        for(int i = 0; i < p.n_mrk; i++) {
             if(p.id[i] > 0 && !p.err[i]) {
                 /* Check other time step limitations */
                 if(hnext[i] > 0) {
@@ -279,8 +282,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 
         /* Determine simulation time-step for new particles */
-        #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
+        GPU_PARALLEL_LOOP_ALL_LEVELS
+        for(int i = 0; i <p.n_mrk; i++) {
             if(cycle[i] > 0) {
                 hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
                 if(sim->enable_clmbcol) {
