@@ -118,6 +118,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
      * - Check for end condition(s)
      * - Update diagnostics
      */
+    real* rnd = (real*) malloc(5*mrk_array_size*sizeof(real));
     GPU_MAP_TO_DEVICE(hin[0:mrk_array_size],rnd[0:5*mrk_array_size],hout_orb[0:mrk_array_size],hout_col[0:mrk_array_size],hout_rfof[0:mrk_array_size],hnext[0:mrk_array_size],cycle[0:mrk_array_size])
     while(n_running > 0) {
 
@@ -278,10 +279,18 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
         diag_update_gc(&sim->diag_data, &sim->B_data, &p, &p0);
 
         /* Update number of running particles */
+#ifdef GPU
+        n_running = 0;
+        GPU_PARALLEL_LOOP_ALL_LEVELS_REDUCTION(n_running)
+        for(int i = 0; i < p.n_mrk; i++)
+        {
+            if(p.running[i] > 0) n_running++;
+        }
+#else
         n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 
         /* Determine simulation time-step for new particles */
-        GPU_PARALLEL_LOOP_ALL_LEVELS
+        #pragma omp simd
         for(int i = 0; i <p.n_mrk; i++) {
             if(cycle[i] > 0) {
                 hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
@@ -295,10 +304,23 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
                 }
             }
         }
+#endif
     }
 
     /* All markers simulated! */
-
+#ifdef GPU
+    GPU_MAP_FROM_DEVICE(sim[0:1])
+    particle_onload_gc(&p);
+    n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
+#endif
+    free(cycle);
+    free(hin);
+    free(rnd);
+    free(wienarr);
+    free(hout_orb);
+    free(hout_col);
+    free(hout_rfof);
+    free(hnext);
     /* Deallocate rfof structs */
     if(sim->enable_icrh) {
         rfof_tear_down(&rfof_mrk);
