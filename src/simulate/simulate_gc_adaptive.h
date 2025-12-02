@@ -9,6 +9,6 @@
 #include "../simulate.h"
 #include "../particle.h"
 
-void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size));
+void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size);
 
 #endif

@@ -55,18 +55,18 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
 void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 
     /* Wiener arrays needed for the adaptive time step */
-    mccc_wienarr wienarr = (mccc_wienarr*) malloc(mrk_array_size*sizeof(mccc_wienarr));
+    mccc_wienarr* wienarr = (mccc_wienarr*) malloc(mrk_array_size*sizeof(mccc_wienarr));
 
     /* Current time step, suggestions for the next time step and next time
      * step                                                                */
-    real hin = (real*) malloc(mrk_array_size*sizeof(real));
-    real hout_orb = (real*) malloc(mrk_array_size*sizeof(real));
-    real hout_col = (real*) malloc(mrk_array_size*sizeof(real));
-    real hout_rfof = (real*) malloc(mrk_array_size*sizeof(real));
-    real hnext = (real*) malloc(mrk_array_size*sizeof(real));
+    real* hin = (real*) malloc(mrk_array_size*sizeof(real));
+    real* hout_orb = (real*) malloc(mrk_array_size*sizeof(real));
+    real* hout_col = (real*) malloc(mrk_array_size*sizeof(real));
+    real* hout_rfof = (real*) malloc(mrk_array_size*sizeof(real));
+    real* hnext = (real*) malloc(mrk_array_size*sizeof(real));
 
     /* Flag indicateing whether a new marker was initialized */
-    int cycle = (int*) malloc(mrk_array_size*sizeof(int));
+    int* cycle = (int*) malloc(mrk_array_size*sizeof(int));
 
     real tol_col = sim->ada_tol_clmbcol;
     real tol_orb = sim->ada_tol_orbfol;
