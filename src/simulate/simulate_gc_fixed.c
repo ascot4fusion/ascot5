@@ -247,6 +247,9 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     free(cycle);
     free(hin);
     free(rnd);
+    free(hnext_recom);
+    free(hin_default);
+    free(hout_rfof);
 
     /* Deallocate rfof structs */
     if(sim->enable_icrh) {
