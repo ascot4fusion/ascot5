@@ -154,8 +154,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
                     sim->enable_aldforce);
             }
             /* Check whether time step was rejected */
-            #pragma omp simd
-            for(int i = 0; i < NSIMD; i++) {
+            GPU_PARALLEL_LOOP_ALL_LEVELS
+            for(int i = 0; i < p.n_mrk; i++) {
                 /* Switch sign of the time-step again if it was reverted earlier
                 */
                 if(sim->reverse_time) {
@@ -171,14 +171,13 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
 
         /* Milstein method for collisions */
         if(sim->enable_clmbcol) {
-            real rnd[5*NSIMD];
-            random_normal_simd(&sim->random_data, 5*NSIMD, rnd);
+            random_normal_simd(&sim->random_data, 5*p.n_mrk, rnd);
             mccc_gc_milstein(&p, hin, hout_col, tol_col, wienarr, &sim->B_data,
                              &sim->plasma_data, &sim->mccc_data, rnd);
 
             /* Check whether time step was rejected */
-            #pragma omp simd
-            for(int i = 0; i < NSIMD; i++) {
+            GPU_PARALLEL_LOOP_ALL_LEVELS
+            for(int i = 0; i < p.n_mrk; i++) {
                 if(p.running[i] && hout_col[i] < 0){
                     p.running[i] = 0;
                     hnext[i] =  hout_col[i];
@@ -192,8 +191,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
                 &p, hin, hout_rfof, &rfof_mrk, &sim->rfof_data, &sim->B_data);
 
             /* Check whether time step was rejected */
-            #pragma omp simd
-            for(int i = 0; i < NSIMD; i++) {
+            GPU_PARALLEL_LOOP_ALL_LEVELS
+            for(int i = 0; i < p.n_mrk; i++) {
                 if(p.running[i] && hout_rfof[i] < 0){
                     p.running[i] = 0;
                     hnext[i] =  hout_rfof[i];
