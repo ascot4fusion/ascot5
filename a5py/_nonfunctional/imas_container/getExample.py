@@ -2,6 +2,7 @@ import pickle
 import imas
 import warnings
 import numpy as np
+import copy
 
 with open('dist5d.pickle', 'rb') as f:
    d5d=pickle.load(f)
@@ -14,7 +15,7 @@ D=dists[0]
 
 
 
-def fill_ggd_d5d( d5d, D, itime=0, itasc=0, irefgrid=0 ):
+def fill_ggd_d5d( d5d, D, itime=0, irefgrid=0 ):
    '''
    Fill in the general grid discription if the distribution IDS.
    parameters:
@@ -43,10 +44,11 @@ def fill_ggd_d5d( d5d, D, itime=0, itasc=0, irefgrid=0 ):
       warnings.warn("The 5d-distribution abscissae are not what is expected. Skipping ggd")
       return
 
-   warnings.warn("Species loop not yet implemented")
-   iCharge=0
-   if len(d5d.abscissa_edges( d5d.abscissae[ 6 ] )) > 2:
-      warnings.warn("Only using the index {} in charge dimension.".format(iCharge))
+
+   # Let us integrate away charge and time.
+   # First make a deepcopy, because the distribution is changed by the call.
+   d5d = copy.deepcopy(d5d)
+   d5d.integrate(charge=np.s_[:], time=np.s_[:])
 
 
    # Make sure we have an allocated ggd
@@ -71,8 +73,8 @@ def fill_ggd_d5d( d5d, D, itime=0, itasc=0, irefgrid=0 ):
       ( 2, 'z',                          3, 'Vertical coordinate z'),
       ( 3, 'momentum_parallel',        201, 'Component of the relativistic momentum vector parallel to the magnetic field'),
       ( 4, 'momentum_perpendicular',   202, 'Component of the relativistic momentum vector perpendicular to the magnetic field'),
-      # time index 5 itasc
-      # charge should go to the different species
+      # time index 5 integrated away
+      # charge       integrated away
    ]
 
    # We have five spaces, one for each abscissa
@@ -136,11 +138,13 @@ def fill_ggd_d5d( d5d, D, itime=0, itasc=0, irefgrid=0 ):
    ravel_order = 'F'
    warnings.warn("Assuming that ravel from ASCOT5 5d-distribution to Fortran works with ravel order '{}'. Not checked.".format(ravel_order))
 
-   # Here is a leap of fate that the data gets correctly organized:
+   # Prepare to move from density to number particles per slot. This is the density of each slot:
+   V = d5d.phasespacevolume()
 
    # The unit is supposed to be m^-6.s^3 ( https://github.com/iterorganization/IMAS-Data-Dictionary/issues/168 )
    warnings.warn("There has been no checking if the units are correct or not.")
-   A.values[:] = d5d.distribution().value[:,:,:,:,:,itasc,iCharge].ravel(order=ravel_order)
+   A.values[:] = d5d.distribution().value[:,:,:,:,:].ravel(order=ravel_order) * V.ravel(order=ravel_order)
+
 
 
 def grid_setup_struct1d_space(space, coordtype, nodes, periodic=False):
