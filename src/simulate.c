@@ -103,10 +103,6 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
         print_err("Only GO and GC mode ported to GPU. Please set SIM_MODE=1 or 2.");
         exit(1);
     }
-    if((sim->sim_mode == 2) && (sim->enable_mhd)) {
-        print_err("MHD not yet ported to GPU in GC mode. Please set ENABLE_MHD=0.");
-        exit(1);
-    }
     if(sim->record_mode) {
         print_err("RECORD_MODE=1 not ported to GPU. Please disable it.");
         exit(1);
