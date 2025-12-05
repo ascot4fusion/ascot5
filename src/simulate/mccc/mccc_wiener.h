@@ -40,7 +40,7 @@ DECLARE_TARGET_SIMD
 void mccc_wiener_initialize(mccc_wienarr* w, real initime);
 DECLARE_TARGET_SIMD
 a5err mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5);
-DECLARE_TARGET_SIMD
+GPU_DECLARE_TARGET_SIMD
 a5err mccc_wiener_clean(mccc_wienarr* w, real t);
 
 #endif

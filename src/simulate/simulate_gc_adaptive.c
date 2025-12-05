@@ -119,6 +119,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
      * - Update diagnostics
      */
     real* rnd = (real*) malloc(5*mrk_array_size*sizeof(real));
+    particle_offload_gc(&p);
+    particle_offload_gc(&p0);
     GPU_MAP_TO_DEVICE(hin[0:mrk_array_size],rnd[0:5*mrk_array_size],hout_orb[0:mrk_array_size],hout_col[0:mrk_array_size],hout_rfof[0:mrk_array_size],hnext[0:mrk_array_size],cycle[0:mrk_array_size])
     while(n_running > 0) {
 
@@ -316,7 +318,6 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
     free(cycle);
     free(hin);
     free(rnd);
-    free(wienarr);
     free(hout_orb);
     free(hout_col);
     free(hout_rfof);
