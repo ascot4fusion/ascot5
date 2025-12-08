@@ -38,6 +38,10 @@
 #include "../linint/linint.h"
 #include "../spline/interp.h"
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 /**
  * @brief Initialize magnetic field data
  *
@@ -256,8 +260,8 @@ a5err B_STS_reduce_symm(real r, real phi, real z,
         *flip = 1.0;
         return err;
     }
-
-    real half_period = Bdata->B_r.y_max; // Assuming that y_max = 2*pi/(2*Nperiods)
+    
+    real half_period = (M_PI / Bdata->Nperiods);
     real phi_mod = fmod(phi, 2.0*half_period);
 
     if(phi_mod > half_period){
