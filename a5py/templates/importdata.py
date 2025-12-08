@@ -3,12 +3,15 @@ import warnings
 import re
 import unyt
 import copy
+import os
 
 from scipy.interpolate import RegularGridInterpolator,griddata,NearestNDInterpolator
 
+import a5py.physlib as physlib
 from a5py.physlib import cocos as cocosmod
 from a5py.physlib import species as physlibspecies
 from a5py.ascot5io.wall import wall_3D
+from a5py.ascot5io.nbi import Injector
 
 try:
     import adas
@@ -20,13 +23,27 @@ try:
 except ImportError:
     geqdsk = None
 
+#for nbi_waveforms.yaml
+try:
+    from ruamel.yaml import YAML
+except:
+    YAML = None
+
 #for desc_field
 try:
     import desc.io as dscio
     import desc.grid as dscg
+    from desc.compat import rescale
 except:
     dscio = None
     dsccg = None
+    rescale = None
+
+try:
+    from tqdm import tqdm
+except:
+    def tqdm(x, **kwargs):
+        return x
 
 #for vmec_field and extender_field
 try:
@@ -73,11 +90,11 @@ class ImportData():
             Maximum of temperature (eV) abscissa for CX rate coefficients.
         ntempcx : float, optional
             Number of points in temperature abscissa for CX rate coefficients.
-        mltpresekin : int, optional
+        mltpresekinbms : int, optional
             Resolution multiplier for energy abscissa for BMS coefficients.
-        mltpresdens : int, optional
+        mltpresdensbms : int, optional
             Resolution multiplier for density abscissa for BMS coefficients.
-        mltprestemp : int, optional
+        mltprestempbms : int, optional
             Resolution multiplier for temperature abscissa for
             BMS coefficients.
         show_progress : bool, optional
@@ -281,6 +298,267 @@ class ImportData():
                 sigmav = 1e-6*sigmav
                 # Store data in data list
                 sigmalist[ireac] = sigmav
+                # Increment reaction index
+                ireac += 1
+            else:
+                raise(Exception("Unsupported kwarg."))
+
+        # Place reaction data for all reactions in one long array
+        ntot = 0
+        for ireac in range(nreac):
+            ntot += n[ireac]
+        sigma = np.zeros((1,ntot))
+        isigma0 = 0
+        for ireac in range(nreac):
+            sigma[0,isigma0:isigma0+n[ireac]] = sigmalist[ireac]
+            isigma0 += n[ireac]
+
+        out = {
+            "nreac" : nreac,
+            "z1" : z1, "a1" : a1, "z2" : z2, "a2" : a2, "reactype" : reactype,
+            "nenergy" : nekin, "energymin" : ekinmin, "energymax" : ekinmax,
+            "ndensity" : ndens, "densitymin" : densmin, "densitymax" : densmax,
+            "ntemperature" : ntemp,
+            "temperaturemin" : tempmin, "temperaturemax" : tempmax,
+            "sigma" : sigma
+        }
+        return ("asigma_loc", out)
+
+    def import_openadas(self,
+                        mltpresekinbms=1, mltpresdensbms=1, mltprestempbms=1,
+                        **kwargs):
+        """Import data from Open ADAS files.
+
+        Parameters
+        ----------
+        mltpresekinbms : int, optional
+            Resolution multiplier for energy abscissa for BMS coefficients.
+        mltpresdensbms : int, optional
+            Resolution multiplier for density abscissa for BMS coefficients.
+        mltprestempbms : int, optional
+            Resolution multiplier for temperature abscissa for
+            BMS coefficients.
+        **kwargs
+            Open ADAS data files in format:
+            ``reaction``="/path/to/reaction/data".
+
+            The key ``reaction`` is used to interpret the specific reaction
+            and reactant species (charge state included) the data corresponds
+            to, and it must follow the format ``"input_"<reaction>_<fast
+            particle species><bulk particle species>``. Example of valid
+            key-value pair are
+            ``input_BMS_H0H1="/home/data/openadas/adf21/bms10#h_h1.dat"``.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+
+        # Define relevant reaction types
+        reac_type_sigmav_bms = 7
+
+        # Count number of reactions based on kwargs and initialize data list
+        nreac = len(kwargs)
+        sigmalist = [None]*nreac
+
+        # Initialize arrays for reaction identifiers and abscissae
+        z1       = np.zeros(nreac, dtype=int)
+        a1       = np.zeros(nreac, dtype=int)
+        z2       = np.zeros(nreac, dtype=int)
+        a2       = np.zeros(nreac, dtype=int)
+        reactype = np.zeros(nreac, dtype=int)
+        nekin    = np.zeros(nreac, dtype=int)
+        ekinmin  = np.zeros(nreac, dtype=float)
+        ekinmax  = np.zeros(nreac, dtype=float)
+        ndens    = np.zeros(nreac, dtype=int)
+        densmin  = np.zeros(nreac, dtype=float)
+        densmax  = np.zeros(nreac, dtype=float)
+        ntemp    = np.zeros(nreac, dtype=int)
+        tempmin  = np.zeros(nreac, dtype=float)
+        tempmax  = np.zeros(nreac, dtype=float)
+        n        = np.zeros(nreac, dtype=int)
+
+        # Loop through kwargs
+        ireac = 0
+        for key,val in kwargs.items():
+
+            if "BMS" in key:
+                # Reaction type for BMS coefficient data is 7
+                reactype[ireac] = 7
+                # Determine znum and anum values based on key
+                match = re.match(r"([a-z]+)([0-9]+)([a-z]+)([0-9]+)",
+                                 key.split('_')[-1],re.I)
+                items = match.groups()
+                if(items[0] == 'H'):
+                    z1[ireac] = 1
+                    a1[ireac] = 1
+                elif(items[0] == 'He'):
+                    z1[ireac] = 2
+                    a1[ireac] = 4
+                else:
+                    raise(Exception("Unsupported beam species in BMS."))
+                if(items[2] == 'H'):
+                    z2[ireac] = 1
+                    a2[ireac] = 1
+                elif(items[2] == 'He'):
+                    z2[ireac] = 2
+                    a2[ireac] = 4
+                elif(items[2] == 'C'):
+                    z2[ireac] = 6
+                    a2[ireac] = 12
+                else:
+                    raise(Exception("Unsupported target species in BMS."))
+                # Read Open ADAS BMS data file
+                f = open(val, 'r')
+                lines = f.readlines()
+                iline = 0
+                words = lines[iline].split(' ')
+                # Remove empty strings
+                words = [i for i in words if i]
+                sigmavref = float(words[1].split('=')[1])
+                # Skip separator line
+                iline += 2
+                words = lines[iline].split(' ')
+                # Remove empty strings
+                words = [i for i in words if i]
+                # Read numbers of energy and density points, and reference
+                # value for temperature
+                nekin[ireac] = int(words[0])
+                ndens[ireac] = int(words[1])
+                tempref = float(words[2].split('=')[1])
+                # Skip separator line
+                iline += 2
+                # Energy abscissa
+                ekin = np.zeros(nekin[ireac])
+                iekin = 0
+                while iekin < nekin[ireac]:
+                    words = lines[iline].split(' ')
+                    for i in range(0, len(words)):
+                        if(not words[i] == ''):
+                            ekin[iekin] = float(words[i])
+                            iekin += 1
+                    iline += 1
+                ekinmin[ireac] = ekin[0]
+                ekinmax[ireac] = ekin[-1]
+                # Density abscissa
+                dens = np.zeros(ndens[ireac])
+                idens = 0
+                while idens < ndens[ireac]:
+                    words = lines[iline].split(' ')
+                    for i in range(0, len(words)):
+                        if(not words[i] == ''):
+                            dens[idens] = float(words[i])
+                            idens += 1
+                    iline += 1
+                densmin[ireac] = dens[0]
+                densmax[ireac] = dens[-1]
+                # Skip separator line
+                iline += 1
+                # BMS rate coefficient data that depends on energy and density
+                nsigmav2d = nekin[ireac]*ndens[ireac]
+                sigmav2d = np.zeros(nsigmav2d)
+                isigmav2d = 0
+                while isigmav2d < nsigmav2d:
+                    words = lines[iline].split(' ')
+                    for i in range(0, len(words)):
+                        if(not words[i] == ''):
+                            sigmav2d[isigmav2d] = float(words[i])
+                            isigmav2d += 1
+                    iline += 1
+                # Skip separator line
+                iline += 1
+                words = lines[iline].split(' ')
+                # Remove empty strings
+                words = [i for i in words if i]
+                # Read number of temperature points, and reference values for
+                # energy and density
+                ntemp[ireac] = int(words[0])
+                ekinref = float(words[1].split('=')[1])
+                densref = float(words[2].split('=')[1])
+                # Skip separator line
+                iline += 2
+                # Temperature abscissa
+                temp = np.zeros(ntemp[ireac])
+                itemp = 0
+                while itemp < ntemp[ireac]:
+                    words = lines[iline].split(' ')
+                    for i in range(0, len(words)):
+                        if(not words[i] == ''):
+                            temp[itemp] = float(words[i])
+                            itemp += 1
+                    iline += 1
+                tempmin[ireac] = temp[0]
+                tempmax[ireac] = temp[-1]
+                # Skip separator line
+                iline += 1
+                # BMS rate coefficient correction that depends on temperature
+                sigmav1dcorr = np.zeros(ntemp[ireac])
+                itemp = 0
+                while itemp < ntemp[ireac]:
+                    words = lines[iline].split(' ')
+                    for i in range(0, len(words)):
+                        if(not words[i] == ''):
+                            sigmav1dcorr[itemp] = float(words[i])
+                            itemp += 1
+                    iline += 1
+
+                # Get index for reference temperature
+                itempref = np.argmin(abs(temp - tempref))
+                # Multiply temperature correction to BMSsigmav(ekin, dens),
+                # making it a 3D function BMSsigmav(ekin, dens, temp)
+                sigmav3d = np.zeros(ntemp[ireac]*ndens[ireac]*nekin[ireac])
+                for itemp in range(0, ntemp[ireac]):
+                    sigmav3d[itemp*ndens[ireac]*nekin[ireac]:
+                             (itemp+1)*ndens[ireac]*nekin[ireac]] = (
+                                 sigmav2d*(sigmav1dcorr[itemp]/
+                                           sigmav1dcorr[itempref]) )
+
+                # Interpolate data onto a uniformly spaced grid (linearise)
+                # Apply resolution multipliers
+                nekinlin = (nekin[ireac]-1)*mltpresekinbms + 1
+                ndenslin = (ndens[ireac]-1)*mltpresdensbms + 1
+                ntemplin = (ntemp[ireac]-1)*mltprestempbms + 1
+                # Construct new, uniformly spaced (linear) abscissae
+                ekinlin = np.linspace(ekin[0], ekin[-1], nekinlin)
+                denslin = np.linspace(dens[0], dens[-1], ndenslin)
+                templin = np.linspace(temp[0], temp[-1], ntemplin)
+                n[ireac] = ntemplin*ndenslin*nekinlin
+                # Convert long 1D array into 3D array (needed for
+                # RegularGridInterpolator)
+                sigmav3d = sigmav3d.reshape((ntemp[ireac],ndens[ireac],
+                                             nekin[ireac]))
+                # Calculate interpolating function
+                sigmav3dinterp = RegularGridInterpolator(
+                    (temp,dens,ekin), sigmav3d)
+                # Convert new abscissa grid into a series of points in 3D space
+                # (needed when evaluating function from RegularGridInterpolator)
+                pts = np.zeros((ntemplin*ndenslin*nekinlin,3))
+                for itemp in range(0, ntemplin):
+                    for idens in range(0, ndenslin):
+                        for iekin in range(0, nekinlin):
+                            pts[itemp*ndenslin*nekinlin + idens*nekinlin +
+                                iekin, :] = np.array([templin[itemp],
+                                                      denslin[idens],
+                                                      ekinlin[iekin]])
+                # Find BMS rate coefficients at new grid points by evaluating
+                # interpolating function
+                sigmav3dlin = sigmav3dinterp(pts)
+
+                # Update numbers of grid points
+                nekin[ireac] = nekinlin
+                ndens[ireac] = ndenslin
+                ntemp[ireac] = ntemplin
+                # Convert units 1/cm3 to 1/m3
+                densmin[ireac] = 1e6*densmin[ireac]
+                densmax[ireac] = 1e6*densmax[ireac]
+                # Convert units cm3/s to m3/s
+                sigmav3dlin = 1e-6*sigmav3dlin
+                # Store data in data list
+                sigmalist[ireac] = sigmav3dlin
                 # Increment reaction index
                 ireac += 1
             else:
@@ -751,11 +1029,22 @@ class ImportData():
                    "edensity":ne, "idensity":ni}
         else:
             # Data is read already and only needs to be extrapolated
-            pls["ne"] = interp(pls["rho"], pls["ne"], nmin)
-            pls["Te"] = interp(pls["rho"], pls["Te"], Tmin)
-            pls["Ti"] = interp(pls["rho"], pls["Ti"], Tmin)
-            pls["ni"] = interp(pls["rho"], pls["ni"], nmin)
-            pls["vtor"] = interp(pls["rho"], pls["vtor"], pls["vtor"][-1])
+            pls["edensity"] = interp(
+                    pls["rho"].ravel(), pls["edensity"].ravel(), nmin
+                )
+            pls["etemperature"] = interp(
+                    pls["rho"].ravel(), pls["etemperature"].ravel(), Tmin
+                )
+            pls["itemperature"] = interp(
+                    pls["rho"].ravel(), pls["itemperature"].ravel(), Tmin
+                )
+            densities = np.zeros((rho.size, pls["nion"]))
+            for i in range(pls["nion"]):
+                densities[:, i] = interp(
+                    pls["rho"].ravel(), pls["idensity"][:,i], nmin
+                )
+            pls["idensity"] = densities
+            pls["vtor"] = interp(pls["rho"].ravel(), pls["vtor"].ravel(), pls["vtor"][-1])
             pls["rho"]  = rho
             pls["nrho"] = rho.size
 
@@ -931,6 +1220,7 @@ class ImportData():
                "weight":weight, "time":np.zeros((nmrk,))}
 
         return ("prt", prt)
+    
     @staticmethod
     def costransform(theta, phi, rmnc, xm, xn):
         """Cosine transform for VMEC coefficients
@@ -950,6 +1240,7 @@ class ImportData():
             f[i,:,:] = (np.matmul(rmnc[i,:]*np.cos(xmt), np.cos(xnz).T)
                         + np.matmul(rmnc[i,:]*np.sin(xmt), np.sin(xnz).T))
         return f
+    
     @staticmethod
     def sintransform(theta, phi, rmnc, xm, xn):
         """Sine transform for VMEC coefficients
@@ -961,7 +1252,6 @@ class ImportData():
             angle theta, toroidal angle phi, poloidal mode number xm, and
             toroidal mode number xn
         """
-        
         ns  = rmnc.shape[0]
         xmt = xm*theta[:,None]
         xnz = xn*phi[:,None]
@@ -970,6 +1260,7 @@ class ImportData():
             f[i,:,:] = (np.matmul(rmnc[i,:]*np.sin(xmt), np.cos(xnz).T)
                         - np.matmul(rmnc[i,:]*np.cos(xmt), np.sin(xnz).T))
         return f
+    
     @staticmethod
     def vmec_field(ncfile,phimin=0,phimax=361,nphi=361,ntheta=120,
                    nr=100,nz=100,psipad=0.0, extrapolate=True):
@@ -986,12 +1277,12 @@ class ImportData():
            `s_full = np.linspace(0, 1, ns) # full mesh`
            `s_half = np.insert(s_full[0:-1] + 0.5 / (ns - 1),0,np.nan) # half mesh`
 
-        The interpolation/extrapolation scheme to convert from the half mesh 
-        to the full meshis adapted from Hirshman et al. 1990: 
+        The interpolation/extrapolation scheme to convert from the half mesh
+        to the full meshis adapted from Hirshman et al. 1990:
            https://doi.org/10.1016/0021-9991(90)90259-4.
 
         The toroidal magnetic flux is saved in the VMEC output as the variable `phi`
-    
+
         In B_STS B_STS_eval_rho defines psi as:
         `rho[0] = sqrt( (psi - Bdata->psi0) / delta );`
         So psi is the toroidal magnetic flux.
@@ -1016,9 +1307,11 @@ class ImportData():
         nz : int, optional
            Number of vertical coordinate Z grid points. Default = 100.
         psipad : float, optional
-           Padding to slightly alter flux on axis. 
+           Padding to slightly alter flux on axis.
         extrapolate : boolean, optional
-            Whether to extrapolate the magnetic field outside LCFS (nearest extrapolation) or not. Without extrapolation B is set to zero outside LCFS. Default = True.
+            Whether to extrapolate the magnetic field outside LCFS (nearest
+            extrapolation) or not. Without extrapolation B is set to zero
+            outside LCFS. Default = True.
 
         Returns
         -------
@@ -1044,7 +1337,7 @@ class ImportData():
            - `'bphi'`: toroidal magnetic field B_phi(R,phi,Z) (T)
            - `'bz'`: vertical magnetic field B_Z(R,phi,Z) (T)
         """
-        
+
         # read VMEC NetCDF file
         if not nc: raise ImportError("Package netCDF4 not found")
         data = nc.Dataset(ncfile)
@@ -1064,7 +1357,6 @@ class ImportData():
         # toroidal angle array
         # note phi should start at 0 and end on 360, inclusive
         phi = np.deg2rad(np.linspace(phimin, phimax, nphi, endpoint=True))  # rad
-   
         # derivatives
         rumns = rmnc * (-1 * xm)  # drmn*cos(m*u-n*v)/du = -m*rmn*sin(m*u-n*v)
         zumnc = zmns * (xm)  # dzmn*sin(m*u-n*v)/du = m*zmn*cos(m*u-n*v)
@@ -1130,7 +1422,7 @@ class ImportData():
         r_1d = np.linspace(rmin, rmax, nr)  # m
         z_1d = np.linspace(zmin, zmax, nz)  # m
         z_2d, r_2d = np.meshgrid(z_1d, r_1d)
-    
+
         # toroidal magnetic flux
         psi0 = psi_1d[0]  # axis
         psi1 = psi_1d[-1]  # LCFS
@@ -1178,7 +1470,7 @@ class ImportData():
                 filled_data = data.copy()
                 filled_data[np.where(np.isnan(data))]=0
             br[:,:,i] = filled_data
-       
+
             data = bz[:,:,i]
             if extrapolate:
                 mask = np.where(~np.isnan(data))
@@ -1245,7 +1537,7 @@ class ImportData():
         }
 
         return out
-    
+
     @staticmethod
     def vmec_sts(ncfile, **kwargs):
         data = ImportData.vmec_field(ncfile, **kwargs)
@@ -1254,80 +1546,121 @@ class ImportData():
         return ("B_STS", data)
 
     @staticmethod
-    def desc_field(h5file,phimin=0,phimax=360,nphi=361,ntheta=120,
-                   nr=100,nz=100,psipad=0.0):
+    def desc_field(fn: str, nphi: int=361, ntheta: int=120, 
+                   nr: int=100, nz: int=100, 
+                   psipad: float=0.000, waitingbar: bool=False,
+                   rescale_R: float=None, rescale_B: float=None,
+                   L_radial: int=4, M_poloidal: int=4, 
+                   use_stell_sym: bool=True) -> tuple[str, dict]:
         """Load magnetic field data from a DESC equilibrium.
 
-        Notes
-        -----
-        The toroidal magnetic flux is saved in the DESC output as the variable `Psi`
-    
-        In B_STS B_STS_eval_rho defines psi as:
-        `rho[0] = sqrt( (psi - Bdata->psi0) / delta );`
-        So psi is the toroidal magnetic flux.
+        This will behave like a template for the DESC equilibrium for the ASCOT5
+        code: a dictionary with the inputs for the write_hdf5 function in the B_STS 
+        ASCOT5 input.
+        
+        This routine allows for non-self-consistent rescaling of the equilibrium
+        major radius R0 and magnetic field B0, which can be useful for simplified
+        scans of the equilibrium parameters. 
 
-        Values outside the LCFS are interpolated to the nearest values. Simulations
-        should not extend past rho>1.
+        The radial and poloidal resolution of the DESC equilibrium used to compute
+        the field on the concentric grid can be controlled with the L_radial and
+        M_poloidal parameters, which act as multipliers of the original equilibrium
+        resolution. Keep this numbers relatively higher (e.g. 4) to ensure good accuracy
+        of the interpolated field, but take into account that the computational cost
+        increases with them.
+
+        The option to use_stell_sym allows to take advantage of stellarator symmetry
+        in the equilibrium, which can significantly speed up the field computation.
 
         Parameters
         ----------
         h5file : str
-           File path to DESC HDF5 output.
-        phimin : float, optional
-           Minimum toroidal angle phi (deg). Default = 0.
-        phimax : float, optional
-           Maximum toroidal angle phi (deg). Default = 360.
+            File path to DESC HDF5 output.
         nphi : int, optional
-           Number of toroidal angle phi grid points. Default = 360.
+            Number of toroidal angle phi grid points. Default = 360.
         ntheta : int, optional
-           Number of poloidal angle theta grid points. Default = 120.
+            Number of poloidal angle theta grid points. Default = 120.
         nr : int, optional
-           Number of radial coordinate R grid points. Default = 100.
+            Number of radial coordinate R grid points. Default = 100.
         nz : int, optional
-           Number of vertical coordinate Z grid points. Default = 100.
+            Number of vertical coordinate Z grid points. Default = 100.
         psipad : float, optional
-           Padding to slightly alter flux on axis.
+            Value to pad the toroidal flux psi0 on the magnetic axis (Wb). Default = 0.0.
+        waitingbar : bool, optional
+            Whether to show a progress bar during interpolation. Default = False.
+        rescale_R : float, optional
+            If provided, rescales the equilibrium major radius R0 to this value (m).
+        rescale_B : float, optional
+            If provided, rescales the equilibrium magnetic field B0 to this value (T).
+        L_radial : int, optional
+            Multiplier for the equilibrium radial resolution when computing on the
+            concentric grid. Default = 4.
+        M_poloidal : int, optional
+            Multiplier for the equilibrium poloidal resolution when computing on the
+            concentric grid. Default = 4.
+        use_stell_sym : bool, optional
+            Whether to use stellarator symmetry when computing the field. Default = True.
 
         Returns
         -------
         out : dict
-        Dictionary with the following items:
-           - `'axis_nphi'`, `'b_nphi'`, `'psi_nphi'`: nphi phi bins
-           - `'b_nr'`, `'psi_nr'`: nr radial bins
-           - `'b_nz'`, `'psi_nz'`: nz z-bins
-           - `'axis_phimin'`, `'b_phimin'`, `'psi_phimin'`: phimin (deg)
-           - `'axis_phimax'`, `'b_phimax'`, `'psi_phimax'`: (phimax-phimin)*(nphi-1)/nphi (deg)
-           - `'b_rmin'`, `'psi_rmin'`: minimum radial coordinate R of output grids (m)
-           - `'b_rmax'`, `'psi_rmax'`: maximum radial coordinate R of output grids (m)
-           - `'b_zmin'`, `'psi_zmin'`: minimum vertical coordinate Z of output grids (m)
-           - `'b_zmax'`, `'psi_zmax'`: maximum vertical coordinate Z of output grids (m)
-           - `'axis_r'`: R(phi) on the magnetic axis (m)
-           - `'axis_z'`: Z(phi) on the magnetic axis (m)
-           - `'rlcfs'`: R(phi,len(u)) for the LCFS (m)
-           - `'zlcfs'`: Z(phi,len(u)) for the LCFS (m)
-           - `'psi0'`: toroidal magnetic flux on the magnetic axis (Wb)
-           - `'psi1'`: toroidal magnetic flux through the last closed flux surface (Wb)
-           - `'psi'`: toroidal magnetic flux psi(R,phi,Z) (Wb)
-           - `'br'`: radial magnetic field B_R(R,phi,Z) (T)
-           - `'bphi'`: toroidal magnetic field B_phi(R,phi,Z) (T)
-           - `'bz'`: vertical magnetic field B_Z(R,phi,Z) (T)
+            Dictionary with the following items:
+            - `'axis_nphi'`, `'b_nphi'`, `'psi_nphi'`: nphi
+            - `'b_nr'`, `'psi_nr'`: nr
+            - `'b_nz'`, `'psi_nz'`: nz
+            - `'axis_phimin'`, `'b_phimin'`, `'psi_phimin'`: phimin (deg)
+            - `'axis_phimax'`, `'b_phimax'`, `'psi_phimax'`: (phimax-phimin)*(nphi-1)/nphi (deg)
+            - `'b_rmin'`, `'psi_rmin'`: minimum radial coordinate R of output grids (m)
+            - `'b_rmax'`, `'psi_rmax'`: maximum radial coordinate R of output grids (m)
+            - `'b_zmin'`, `'psi_zmin'`: minimum vertical coordinate Z of output grids (m)
+            - `'b_zmax'`, `'psi_zmax'`: maximum vertical coordinate Z of output grids (m)
+            - `'axis_r'`: R(phi) on the magnetic axis (m)
+            - `'axis_z'`: Z(phi) on the magnetic axis (m)
+            - `'psi0'`: toroidal magnetic flux on the magnetic axis (Wb)
+            - `'psi1'`: toroidal magnetic flux through the last closed flux surface (Wb)
+            - `'psi'`: toroidal magnetic flux psi(R,phi,Z) (Wb)
+            - `'br'`: radial magnetic field B_R(R,phi,Z) (T)
+            - `'bphi'`: toroidal magnetic field B_phi(R,phi,Z) (T)
+            - `'bz'`: vertical magnetic field B_Z(R,phi,Z) (T)
+            - `'Nperiods'`: Number of field periods in the equilibrium
+            - `'stell_sym'`: whether to use stellarator symmetry (bool)
         """
+        if not os.path.isfile(fn):
+            raise FileNotFoundError(f"DESC file {fn} not found.")
 
-        #load DESC equilibrium
-        if not dscio: raise ImportError("Package desc-opt not found")
-        fam = dscio.load(h5file)
+        fam = dscio.load(fn, file_format="hdf5")
         try:  # if file is an EquilibriaFamily, use final Equilibrium
             eq = fam[-1]
         except:  # file is already an Equilibrium
             eq = fam
-        eq.resolution_summary()
 
-        # poloidal angle array
-        theta = np.linspace(0, 2.0 * np.pi, ntheta)  # rad
+        if (rescale_R is not None) and (rescale_B is not None):
+            eq = rescale(eq, L=("R0", rescale_R), B=("B0", rescale_B))
+        elif rescale_R is not None:
+            eq = rescale(eq, L=("R0", rescale_R))
+        elif rescale_B is not None:
+            eq = rescale(eq, B=("B0", rescale_B))
 
         # toroidal angle array
+        # Patch for the abscense of the units decorators.
+        phimin = 0.0 * unyt.deg
+        phimax = 360.0 * unyt.deg / eq.NFP # Number of field periods.
+
+        if use_stell_sym:
+            phimax /= 2.0 # We can further reduce the toroidal angle range.
+
+            # This padding is added to remove the edge effects since the
+            # implemented symmetry does not allow us to use the symmetric
+            # spline in ASCOT.
+            dphi = (phimax - phimin) / (nphi - 1)
+            phimin = - 4.0 * dphi
+            phimax = phimax + 4.0 * dphi
+            nphi += 8
+
+        phi = np.linspace(phimin.to('rad').value, 
+                          phimax.to('rad').value, 
+                          nphi, endpoint=True)  # rad
         # note: phi should start at 0 and end on 360, inclusive
-        phi = np.deg2rad(np.linspace(phimin, phimax, nphi, endpoint=True))  # rad
 
         # magnetic axis
         grid_axis = dscg.LinearGrid(rho=0.0, zeta=nphi, NFP=1)
@@ -1337,44 +1670,48 @@ class ImportData():
         psi0 = 0  # Wb
 
         # boundary
-        grid = dscg.LinearGrid(rho=1.0, theta=ntheta, zeta=nphi,
-                               NFP=1, sym=False,endpoint=True)
+        grid = dscg.LinearGrid(
+            rho=1.0, theta=ntheta, zeta=nphi, NFP=1, sym=False, endpoint=True
+        )
         data = eq.compute(["R", "Z"], grid=grid)
-        theta_2D = grid.nodes[:, 1].reshape((grid.num_zeta, grid.num_theta),
-                                            order="C").T
-        phi_2D = grid.nodes[:, 2].reshape((grid.num_zeta, grid.num_theta),
-                                          order="C").T
-        bdry_r = data["R"].reshape((grid.num_zeta, grid.num_theta),
-                                   order="C").T
-        bdry_z = data["Z"].reshape((grid.num_zeta, grid.num_theta),
-                                   order="C").T
-        
+        bdry_r = data["R"].reshape((grid.num_zeta, grid.num_theta), order="C").T * unyt.m
+        bdry_z = data["Z"].reshape((grid.num_zeta, grid.num_theta), order="C").T * unyt.m
+
         # boundaries
         rmin = np.min(bdry_r)  # m
         rmax = np.max(bdry_r)  # m
         zmin = np.min(bdry_z)  # m
         zmax = np.max(bdry_z)  # m
-        psi1 = eq.Psi  # Wb
+        psi1 = eq.Psi * unyt.Wb  # Wb
 
         # output domain
         R_1d = np.linspace(rmin, rmax, nr)  # m
         Z_1d = np.linspace(zmin, zmax, nz)  # m
         Z_2d, R_2d = np.meshgrid(Z_1d, R_1d)
+        if hasattr(Z_2d, 'units'):
+            Z_2d = Z_2d.to('m').value
+        if hasattr(R_2d, 'units'):
+            R_2d = R_2d.to('m').value
 
         # interpolate psi, B_R, B_phi, B_Z to cylindircal coordinates
-        psi = np.zeros([nr, nz, nphi])
-        br = np.zeros([nr, nz, nphi])
-        bphi = np.zeros([nr, nz, nphi])
-        bz = np.zeros([nr, nz, nphi])
+        psi = np.zeros([nr, nz, nphi]) * unyt.Wb
+        br = np.zeros([nr, nz, nphi]) * unyt.T
+        bphi = np.zeros([nr, nz, nphi]) * unyt.T
+        bz = np.zeros([nr, nz, nphi]) * unyt.T
 
-        # interpolate to cylindrical grid, iterate through toroidal angle
-        for k in range(nphi):
-            print(k)
+        for k in tqdm(range(nphi), desc="Interpolating DESC field", total=nphi, disable=not waitingbar):
+            # compute on concentric grid
             grid = dscg.ConcentricGrid(
-                L=eq.L_grid, M=eq.M_grid, N=0, NFP=eq.NFP, node_pattern="linear")
-            grid._nodes[:, 2] = phi[k]
+                L=eq.L_grid*L_radial, M=eq.M_grid*M_poloidal, N=0, 
+                NFP=eq.NFP, node_pattern="linear"
+            )
+            if hasattr(phi, 'units'):
+                iphi = phi[k].to('rad').value
+            else:
+                iphi = phi[k]
+            grid._nodes[:, 2] = iphi
             data = eq.compute(["R", "Z", "psi", "B_R", "B_phi", "B_Z"], grid=grid)
-            
+
             # interpolate data inside DESC domain
             psi[:, :, k] = griddata(
                 (data["R"], data["Z"]),
@@ -1382,28 +1719,29 @@ class ImportData():
                 (R_2d, Z_2d),
                 fill_value=psi1,
             )
-            br[:,:,k] = griddata((data["R"],data["Z"]),data["B_R"],(R_2d,Z_2d))
-            bphi[:,:,k]=griddata((data["R"],data["Z"]),data["B_phi"],(R_2d,Z_2d))
-            bz[:,:,k] = griddata((data["R"],data["Z"]),data["B_Z"], (R_2d,Z_2d))
+            br[:, :, k] = griddata((data["R"], data["Z"]), data["B_R"], (R_2d, Z_2d))
+            bphi[:, :, k] = griddata((data["R"], data["Z"]), data["B_phi"], (R_2d, Z_2d))
+            bz[:, :, k] = griddata((data["R"], data["Z"]), data["B_Z"], (R_2d, Z_2d))
 
-            #Replace br, bphi, bz NaN values outside LCFS with closest values
-            data = br[:,:,k]
+            # Replace br, bphi, bz NaN values outside LCFS with closest values
+            data = br[:, :, k].to('T').value
             mask = np.where(~np.isnan(data))
-            interp = NearestNDInterpolator(np.transpose(mask),data[mask])
+            interp = NearestNDInterpolator(np.transpose(mask), data[mask])
             filled_data = interp(*np.indices(data.shape))
-            br[:,:,k] = filled_data
+            br[:, :, k] = filled_data * unyt.T
 
-            data = bz[:,:,k]
+            data = bz[:, :, k].to('T').value
             mask = np.where(~np.isnan(data))
-            interp = NearestNDInterpolator(np.transpose(mask),data[mask])
+            interp = NearestNDInterpolator(np.transpose(mask), data[mask])
             filled_data = interp(*np.indices(data.shape))
-            bz[:,:,k] = filled_data
+            bz[:, :, k] = filled_data * unyt.T
 
-            data = bphi[:,:,k]
+
+            data = bphi[:, :, k].to('T').value
             mask = np.where(~np.isnan(data))
-            interp = NearestNDInterpolator(np.transpose(mask),data[mask])
+            interp = NearestNDInterpolator(np.transpose(mask), data[mask])
             filled_data = interp(*np.indices(data.shape))
-            bphi[:,:,k] = filled_data
+            bphi[:, :, k] = filled_data * unyt.T
 
         # change order from [R,Z,phiang] to [R,phiang,Z]
         psi = np.transpose(psi, (0, 2, 1))
@@ -1411,19 +1749,17 @@ class ImportData():
         bphi = np.transpose(bphi, (0, 2, 1))
         bz = np.transpose(bz, (0, 2, 1))
 
-        #pad psi0 if needed
+        # pad psi0 if needed
         if psipad != 0.0:
-            print('Warning: Padding psi0 with',psipad)
+            print("Warning: Padding psi0 with", psipad)
             psi0 += psipad
 
         out = {
-            "axis_phimin": phimin,  # deg
-            "axis_phimax": np.rad2deg(phi[-1]),  # deg
+            "axis_phimin": phimin, 
+            "axis_phimax": phimax, 
             "axis_nphi": nphi,
             "axisr": axis_r,  # m
             "axisz": axis_z,  # m
-            "rlcfs": bdry_r,  # m
-            "zlcfs": bdry_z,  # m
             "b_rmin": rmin,  # m
             "b_rmax": rmax,  # m
             "b_nr": nr,
@@ -1448,9 +1784,90 @@ class ImportData():
             "psi_phimin": phimin,  # deg
             "psi_phimax": np.rad2deg(phi[-1]),  # deg
             "psi_nphi": nphi,
+            "Nperiods": eq.NFP,
+            "stell_sym": use_stell_sym,
         }
 
-        return out
+        return ('B_STS', out)
+
+    @staticmethod
+    def desc_profiles(fn: str, rhomin: float=0.0, rhomax: float=1.0, 
+                      nrho: int=100, fraction_T: float=0.5, Zeff: float=1.0,
+                      Aimp: int=12, Zimp: int=6, mass_imp: float=12.0) -> tuple[str, dict]:
+        """
+        Load the 1D profiles from the DESC file and prepares the plasma_1D input for ASCOT.
+
+        Parameters
+        ----------
+        fn : str
+            File path to DESC HDF5 output.
+        rhomin : float, optional
+            Minimum normalized radius rho. Default = 0.0.
+        rhomax : float, optional
+            Maximum normalized radius rho. Default = 1.0.
+        nrho : int, optional
+            Number of radial grid points. Default = 100.
+        fraction_T : float, optional
+            Fraction of the main ion density that is tritium. Default = 0.5.
+        Zeff : float, optional
+            Effective charge of the plasma. Default = 1.0.
+        Aimp : int, optional
+            Mass number of the impurity species. Default = 12 (carbon).
+        Zimp : int, optional
+            Charge number of the impurity species. Default = 6 (carbon).
+        Returns
+        -------
+
+        """
+        if not os.path.isfile(fn):
+            raise FileNotFoundError(f"DESC file {fn} not found.")
+
+        equ = dscio.load(fn, file_format="hdf5")
+
+        rho = np.linspace(rhomin, rhomax, nrho)
+        grid = dscg.LinearGrid(rho=rho, M=equ.M_grid, N=equ.N_grid, NFP=equ.NFP, sym=False)
+        data = equ.compute(["ne", "Te", "Ti"], grid=grid)
+        edensity = grid.compress(data["ne"]) * unyt.m**-3
+        etemperature = grid.compress(data["Te"]) * unyt.eV
+        itemperature = grid.compress(data["Ti"]) * unyt.eV
+        vtor = np.zeros_like(rho) * unyt.m / unyt.s  # zero toroidal rotation
+        # We need now to distinguish between the impurities and main ions. 
+        # The impurities are described using Zeff (> 1 implies impurities, = 1 pure plasma,
+        # < 1 non-physical -> raise)
+        if Zeff < 1.0:
+            raise ValueError("Zeff must be >= 1.0")
+
+        nion = 2
+        nimp = (Zeff - 1.0) * edensity / (Zimp**2 - Zimp * Zeff + Zeff)
+        nmain = edensity - nimp * Zimp
+
+        # We now use the fraction_T to split the tritium from the deuterium.
+        n_tritium = fraction_T * nmain
+        n_deuterium = nmain - n_tritium
+        anum = np.array([2, 3])
+        znum = np.array([1, 1])
+        mass = np.array([2.014, 3.016]) * unyt.amu  # deuterium, tritium
+        idensity = np.array([n_deuterium, n_tritium]) * unyt.m**-3
+
+        if Zeff > 1.0:
+            nion = 3 # deuterium, tritium, impurity
+            idensity = np.concatenate((idensity.to('m**-3').value, [nimp])) * unyt.m**-3
+            anum = np.concatenate((anum, [Aimp]))
+            znum = np.concatenate((znum, [Zimp]))
+            mass = np.concatenate((mass, [mass_imp]))
+        
+
+        plasma = {'nrho': nrho, 'rho': rho,
+                  'nion': nion, 
+                  'anum': anum, 
+                  'znum': znum,
+                  'idensity': idensity.to('m**-3').value.T, 
+                  'edensity': edensity.to('m**-3').value,
+                  'etemperature': etemperature.to('eV').value,
+                  'itemperature': itemperature.to('eV').value, 
+                  'vtor': vtor.to('m/s').value,
+                  'charge': znum, 'mass': mass}
+        return ('plasma_1D', plasma)
 
     @staticmethod
     def extender_field(ncfile,extfile,ntheta=120,psipad=0.0):
@@ -1459,18 +1876,18 @@ class ImportData():
         Notes
         -----
         The toroidal magnetic flux is saved in the VMEC output as the variable `phi`
-        
+
         In B_STS B_STS_eval_rho defines psi as:
         `rho[0] = sqrt( (psi - Bdata->psi0) / delta );`
         So psi is the toroidal magnetic flux.
 
         Psi values outside the LCFS are defined as psi1, so while markers may exist in the
         vacuum region (beyond LCFS) the mapping to the rho variable will not be valid
-        as the rho=1 everywhere in the vacuum region. 
+        as the rho=1 everywhere in the vacuum region.
 
         The magnetic field (Br,Bphi,Bz) is defined via the EXTENDER input file while the
-        toroidal flux (psi) is supplied via the VMEC input. Care should be taken to 
-        make sure that the VMEC psi calculations agree with EXTENDER for rho<1. 
+        toroidal flux (psi) is supplied via the VMEC input. Care should be taken to
+        make sure that the VMEC psi calculations agree with EXTENDER for rho<1.
 
         EXTENDER input is assumed to cover one field period!!
 
@@ -1509,24 +1926,23 @@ class ImportData():
            - `'bphi'`: toroidal magnetic field B_phi(R,phi,Z) (T)
            - `'bz'`: vertical magnetic field B_Z(R,phi,Z) (T)
         """
-        
         # load NetCDF data
         if not nc: raise ImportError("Package netCDF4 not found")
         vmec = nc.Dataset(ncfile)
         extender = nc.Dataset(extfile)
-    
+
         # array dimenstions
         nr = int(extender.variables["ir"].getValue())
         nz = int(extender.variables["jz"].getValue())
         nphi = int(extender.variables["kp"].getValue())
         nfp = int(extender.variables["nfp"].getValue())
-   
+
         # coordinate bounds (m)
         rmin = float(extender.variables["rmin"].getValue())
         rmax = float(extender.variables["rmax"].getValue())
         zmin = float(extender.variables["zmin"].getValue())
         zmax = float(extender.variables["zmax"].getValue())
-    
+
         # magnetic field (T)
         br = np.array(extender.variables["br_001"])
         bphi = np.array(extender.variables["bp_001"])
@@ -1535,7 +1951,7 @@ class ImportData():
         # poloidal and toroidal angles (rad)
         theta = np.linspace(0, 2 * np.pi, ntheta, endpoint=True)
         phi = np.linspace(0, 2 * np.pi / nfp, nphi, endpoint=False)
-    
+
         # VMEC spectral coefficients
         xm = np.array(vmec.variables["xm"])  # poloidal mode numbers
         xn = np.array(vmec.variables["xn"])  # toroidal mode numbers
@@ -1552,14 +1968,14 @@ class ImportData():
         axisz = z_grid[0, 0, :]
 
         #get lcfs (m)
-        lcfs_r = r_grid[-1, :, :] 
+        lcfs_r = r_grid[-1, :, :]
         lcfs_z = z_grid[-1, :, :]
 
         # toroidal magnetic flux (Wb)
         psi0 = psi_1d[0] #axis
         psi1 = psi_1d[-1] #LCFS
         psi_2d = np.tile(psi_1d, (ntheta, 1)).T
-    
+
         # R,Z interpolation points (m)
         r_1d = np.linspace(rmin, rmax, nr)
         z_1d = np.linspace(zmin, zmax, nz)
@@ -1575,14 +1991,14 @@ class ImportData():
                 (r_2d, z_2d),
                 fill_value=psi1,
             )
-    
+
         # close NetCDF data
         vmec.close()
         extender.close()
-    
+
         # change order from [R,Z,phi] to [phi,Z,R] for below
         psi = np.transpose(psi, (2, 1, 0))
-    
+
         # repeat for each field period
         phidum = phi
         for i in range(1,nfp):
@@ -1595,7 +2011,7 @@ class ImportData():
         bphi = np.tile(bphi, (nfp, 1, 1))
         bz = np.tile(bz, (nfp, 1, 1))
         psi = np.tile(psi, (nfp, 1, 1))
-       
+
         # repeat endpoint phi=0 == phi=360
         phi = np.append(phi,2*np.pi)
         nphi = len(phi)
@@ -1605,7 +2021,7 @@ class ImportData():
         bphi = np.append(bphi, bphi[0, :, :][None, :], axis=0)
         bz = np.append(bz, bz[0, :, :][None, :], axis=0)
         psi = np.append(psi, psi[0, :, :][None, :], axis=0)
-    
+
         #dumb way to append to lcfs endpoint
         dumx,dumy = lcfs_r.shape
         new_lcfsr = np.zeros([dumx,dumy+1])
@@ -1627,7 +2043,7 @@ class ImportData():
         if psipad != 0.0:
             print('Warning: Padding psi0 with',psipad)
             psi0 += psipad
-    
+
         out = {
             "axis_phimin": 0,  # deg
             "axis_phimax": np.rad2deg(phi[-1]),  # deg
@@ -1664,10 +2080,136 @@ class ImportData():
 
         return out
 
-
     @staticmethod
     def extender_sts(ncfile, extfile, **kwargs):
         data = ImportData.extender_field(ncfile, extfile, **kwargs)
         data.pop("rlcfs", None)
         data.pop("zlcfs", None)
         return ("B_STS", data)
+
+    def import_nbi_waveforms(self, fn="nbi_waveforms.yaml"):
+        """Import NBI geometry from a YAML file.
+
+        This format contains data identical to what is found in IMAS IDS.
+        However, the NBI data is fixed in IDS, meaning that it cannot be
+        modified to e.g. scan different beam tilting angles. Storing the data in
+        YAML file instead allows one to easily modify the beam geometry.
+
+        Parameters
+        ----------
+        fn : str, optional
+            Name of the YAML file.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        yaml = YAML()
+        with open(fn, "r") as f:
+            data = yaml.load(f)
+
+        nunit = data["nunit"]
+        nbeamletgroup = data["nbeamletgroup"]
+        injectors = [None] * nunit
+
+        dynamic_variables = data["dynamic_variables"]
+        for unit in np.arange(nunit):
+            injectors[unit] = {}
+            prefix = f"unit[{unit}]."
+            var_map_beam = {
+                "anum":"species.a",
+                "znum":"species.z_n",
+                "power":"power_launched.data",
+                "energy":"energy.data",
+                "efraction":"beam_current_fraction.data",
+                "pfraction":"beam_power_fraction.data",
+                }
+            for var, idsname in var_map_beam.items():
+                injectors[unit][var] = dynamic_variables[prefix + idsname]
+            injectors[unit]["efraction"] = (
+                np.array(injectors[unit]["efraction"]).ravel()
+            )
+
+        static_variables = data["static_variables"]
+        for unit in np.arange(nunit):
+            var_map_beamletgroup = {
+                "direction":"direction",
+                "halofraction":"divergence_component[0].particles_fraction",
+                "divv":"divergence_component[0].vertical",
+                "divh":"divergence_component[0].horizontal",
+                "halodivv":"divergence_component[1].vertical",
+                "halodivh":"divergence_component[1].horizontal",
+            }
+            var_map_beamlet = {
+                "r":"beamlets.positions.r",
+                "phi":"beamlets.positions.phi",
+                "z":"beamlets.positions.z",
+                "angles":"beamlets.angles",
+                "tangencyradii":"beamlets.tangency_radii",
+            }
+            for var in var_map_beamlet.keys():
+                injectors[unit][var] = np.array([])
+            for group in np.arange(nbeamletgroup):
+                prefix = f"unit[{unit}].beamlets_group[{group}]."
+                for var, idsname in var_map_beamletgroup.items():
+                    injectors[unit][var] = static_variables[prefix + idsname]
+                for var, idsname in var_map_beamlet.items():
+                    injectors[unit][var] = np.append(
+                        injectors[unit][var],
+                        static_variables[prefix + idsname]
+                    )
+
+        injs = []
+        for unit in np.arange(nunit):
+            xyz = physlib.pol2cart(
+                    injectors[unit]["r"],
+                    injectors[unit]["phi"],
+                    injectors[unit]["z"],
+                )
+            beta = np.arccos(
+                injectors[unit]["tangencyradii"] / injectors[unit]["r"]
+                )
+            alpha = (
+                np.pi + injectors[unit]["phi"]
+                - injectors[unit]["direction"] * ( 0.5 * np.pi - beta )
+            )
+
+            # Fixing origo to the beamlet position, we can calculate the beam
+            # center line vector from spherical coordinates
+            dxyz = physlib.sph2cart(
+                r=1.0,
+                phi=alpha,
+                theta=np.pi/2 - injectors[unit]["angles"],
+            )
+
+            species = physlibspecies.autodetect(
+                injectors[unit]["anum"], injectors[unit]["znum"]
+                )
+            injs.append(
+                Injector(
+                    unit+1,
+                    injectors[unit]["anum"],
+                    injectors[unit]["znum"],
+                    species["mass"],
+                    injectors[unit]["energy"],
+                    injectors[unit]["efraction"],
+                    injectors[unit]["power"],
+                    injectors[unit]["divh"],
+                    injectors[unit]["divv"],
+                    injectors[unit]["halofraction"],
+                    injectors[unit]["halodivh"],
+                    injectors[unit]["halodivv"],
+                    xyz[0].size,
+                    xyz[0],
+                    xyz[1],
+                    xyz[2],
+                    dxyz[0],
+                    dxyz[1],
+                    dxyz[2]
+                )
+            )
+        return ("nbi", {"ninj":nunit, "injectors":injs})
