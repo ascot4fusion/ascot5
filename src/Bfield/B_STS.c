@@ -96,8 +96,13 @@ int B_STS_init(B_STS_data* data,
     int err = 0;
     data->psi0 = psi0;
     data->psi1 = psi1;
+    int PHI_INTERP_CONDITION = PERIODICBC;
+    if(Nperiods > 0 && stell_sym){
+        PHI_INTERP_CONDITION = NATURALBC;
+    }
+
     err = interp3Dcomp_setup(&data->psi, psi, p_n_r, p_n_phi, p_n_z,
-                             NATURALBC, PERIODICBC, NATURALBC,
+                             NATURALBC, PHI_INTERP_CONDITION, NATURALBC,
                              p_r_min, p_r_max, p_phi_min, p_phi_max,
                              p_z_min, p_z_max);
     if(err) {
@@ -106,7 +111,7 @@ int B_STS_init(B_STS_data* data,
     }
     interp3Dcomp_setup(
         &data->B_r, B_r, b_n_r, b_n_phi, b_n_z,
-        NATURALBC, PERIODICBC, NATURALBC,
+        NATURALBC, PHI_INTERP_CONDITION, NATURALBC,
         b_r_min, b_r_max, b_phi_min, b_phi_max, b_z_min, b_z_max);
     if(err) {
         print_err("Error: Failed to initialize splines.\n");
@@ -114,7 +119,7 @@ int B_STS_init(B_STS_data* data,
     }
     interp3Dcomp_setup(
         &data->B_phi, B_phi, b_n_r, b_n_phi, b_n_z,
-        NATURALBC, PERIODICBC, NATURALBC,
+        NATURALBC, PHI_INTERP_CONDITION, NATURALBC,
         b_r_min, b_r_max, b_phi_min, b_phi_max, b_z_min, b_z_max);
     if(err) {
         print_err("Error: Failed to initialize splines.\n");
@@ -122,7 +127,7 @@ int B_STS_init(B_STS_data* data,
     }
     interp3Dcomp_setup(
         &data->B_z, B_z, b_n_r, b_n_phi, b_n_z,
-        NATURALBC, PERIODICBC, NATURALBC,
+        NATURALBC, PHI_INTERP_CONDITION, NATURALBC,
         b_r_min, b_r_max, b_phi_min, b_phi_max, b_z_min, b_z_max);
     if(err) {
         print_err("Error: Failed to initialize splines.\n");
