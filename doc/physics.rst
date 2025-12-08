@@ -485,7 +485,19 @@ and then we include `B_\mathrm{phi}` by interpolating values tabulated in `(R,z)
 It is also possible to include tabulated values of `B_R` and `B_z` and sum those with Eq. :math:numref:`b2ds`, but this is rarely used as usually the poloidal field is completely defined by `psi`.
 One possible use case is when `psi` is of poor quality and it is scaled so that it doesn't contribute to `\mathbf{B}_\mathrm{pol}` (but it can still be used to evaluate `\rho`), and the field is completely interpolated from the tabulated values of `\mathbf{B}`.
 
-In 3D, the magnetic field evaluation works in a similar fashion except now `\mathbf{B}` is tabulated in `(R,\phi,z)` grid and `B_R` and `B_z` are usually non-zero as they contain the perturbation components.
+In 3D, the magnetic field evaluation works in a similar fashion except now `\mathbf{B}` is tabulated in `(R,\phi,z)` grid and `B_R` and `B_z` are usually non-zero as they contain the perturbation components. 
+
+For the stellarator symmetry case, a flag can be set to make use of the symmetry to reduce memory consumption. Internally, this flag will apply the following symmetry:
+.. math::
+   :name: stellarator-symmetry
+
+   B_R(R,\phi,z) &= -B_R(R,-\phi,-z),\\
+   B_\phi(R,\phi,z) &=  B_\phi(R,-\phi,-z),\\
+   B_z(R,\phi,z) &= -B_z(R,-\phi,-z),
+   \Psi(R,\phi,z) &=  \Psi(R,-\phi,-z).
+
+which is valid for stellarators. The input field must be already pre-computed within the relevant domain, i.e., for `\phi \in [0, \pi/N_\mathrm{periods}]`. In general, is good practise to add extra padding at the edges, since the new symmetry will remove the `PERIODICBC` in the spline calculation. The template `desc field` already does this internally. These two flags `Nperiods` and `stell_sym` are optional, and it is set to be backward compatible.
+
 
 
 Interaction with MHD modes
