@@ -418,10 +418,10 @@ class ImportImas():
         axis_nphi = len(space[0].objects_per_dimension[0].object)
         if not axis_nphi:
             raise ValueError("The axis grid has null dimension.")
-        if (len(space) == 3 and
+        if (len(space) == 1 and
             space[0].coordinates_type[0] == _COORDINATE_IDENTIFIERS["r"][0] and
-            space[1].coordinates_type[0] == _COORDINATE_IDENTIFIERS["phi"][0] and
-            space[2].coordinates_type[0] == _COORDINATE_IDENTIFIERS["z"][0]
+            space[0].coordinates_type[1] == _COORDINATE_IDENTIFIERS["phi"][0] and
+            space[0].coordinates_type[2] == _COORDINATE_IDENTIFIERS["z"][0]
         ):
             raise ValueError("The axis grid is not (R,phi,z).")
 
@@ -430,11 +430,11 @@ class ImportImas():
             for i in range(nr)
             ]) * unyt.unyt_quantity.from_string(_COORDINATE_IDENTIFIERS["r"][1])
         axis_z = np.array([
-            space[2].objects_per_dimension[0].object[i].geometry[0]
+            space[0].objects_per_dimension[0].object[i].geometry[2]
             for i in range(nz)
             ]) * unyt.unyt_quantity.from_string(_COORDINATE_IDENTIFIERS["z"][1])
         axis_phi = np.array([
-            space[1].objects_per_dimension[0].object[i].geometry[0]
+            space[0].objects_per_dimension[0].object[i].geometry[1]
             for i in range(nphi)
             ]) * unyt.unyt_quantity.from_string(_COORDINATE_IDENTIFIERS["phi"][1])
 
