@@ -29,3 +29,5 @@ test_wall_2d
 test_wall_3d
 ascot5_main
 bbnbi5
+no_sync/
+.vscode

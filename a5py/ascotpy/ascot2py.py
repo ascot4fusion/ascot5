@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# TARGET arch is: ['-I/home/sarkimk1/miniconda3/envs/clang/include/', '-I/home/sarkimk1/miniconda3/envs/clang/x86_64-conda-linux-gnu/sysroot/usr/include/', '-I/home/sarkimk1/miniconda3/envs/clang/lib/clang/14.0.6/include/']
+# TARGET arch is: ['-I/home/pablooyola/.anaconda3/envs/ascot-dev-2/include/', '-I/home/pablooyola/.anaconda3/envs/ascot-dev-2/x86_64-conda-linux-gnu/sysroot/usr/include/', '-I/home/pablooyola/.anaconda3/envs/ascot-dev-2/lib/clang/15.0.7/include/']
 # WORD_SIZE is: 8
 # POINTER_SIZE is: 8
 # LONGDOUBLE_SIZE is: 16
@@ -2204,12 +2204,14 @@ struct_c__SA_sim_data._fields_ = [
     ('enable_atomic', ctypes.c_int32),
     ('enable_icrh', ctypes.c_int32),
     ('enable_aldforce', ctypes.c_int32),
+    ('enable_flr_losses', ctypes.c_int32),
     ('disable_gctransform', ctypes.c_int32),
     ('disable_energyccoll', ctypes.c_int32),
     ('disable_pitchccoll', ctypes.c_int32),
     ('disable_gcdiffccoll', ctypes.c_int32),
     ('reverse_time', ctypes.c_int32),
     ('endcond_active', ctypes.c_int32),
+    ('PADDING_1', ctypes.c_ubyte * 4),
     ('endcond_lim_simtime', ctypes.c_double),
     ('endcond_max_mileage', ctypes.c_double),
     ('endcond_max_cputime', ctypes.c_double),
@@ -2262,6 +2264,7 @@ ENDCOND_FLAG__enumvalues = {
     512: 'endcond_hybrid',
     1024: 'endcond_neutr',
     2048: 'endcond_ioniz',
+    4096: 'endcond_flr_wall',
 }
 endcond_tlim = 1
 endcond_emin = 2
@@ -2275,6 +2278,7 @@ endcond_cpumax = 256
 endcond_hybrid = 512
 endcond_neutr = 1024
 endcond_ioniz = 2048
+endcond_flr_wall = 4096
 ENDCOND_FLAG = ctypes.c_uint32 # enum
 endcond_check_gc = _libraries['libascot.so'].endcond_check_gc
 endcond_check_gc.restype = None
@@ -2355,21 +2359,42 @@ struct_c__SA_histogram._fields_ = [
 ]
 
 histogram = struct_c__SA_histogram
-hist_init = _libraries['libascot.so'].hist_init
-hist_init.restype = ctypes.c_int32
-hist_init.argtypes = [ctypes.POINTER(struct_c__SA_histogram), ctypes.c_int32, ctypes.POINTER(c__EA_hist_coordinate), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_uint64)]
-hist_free = _libraries['libascot.so'].hist_free
-hist_free.restype = None
-hist_free.argtypes = [ctypes.POINTER(struct_c__SA_histogram)]
-hist_offload = _libraries['libascot.so'].hist_offload
-hist_offload.restype = None
-hist_offload.argtypes = [ctypes.POINTER(struct_c__SA_histogram)]
-hist_update_fo = _libraries['libascot.so'].hist_update_fo
-hist_update_fo.restype = None
-hist_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_histogram), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
-hist_update_gc = _libraries['libascot.so'].hist_update_gc
-hist_update_gc.restype = None
-hist_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_histogram), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
+try:
+    hist_init = _libraries['libascot.so'].hist_init
+    hist_init.restype = ctypes.c_int32
+    hist_init.argtypes = [ctypes.POINTER(struct_c__SA_histogram), ctypes.c_int32, ctypes.POINTER(c__EA_hist_coordinate), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_uint64)]
+except AttributeError:
+    pass
+try:
+    hist_free = _libraries['libascot.so'].hist_free
+    hist_free.restype = None
+    hist_free.argtypes = [ctypes.POINTER(struct_c__SA_histogram)]
+except AttributeError:
+    pass
+try:
+    hist_offload = _libraries['libascot.so'].hist_offload
+    hist_offload.restype = None
+    hist_offload.argtypes = [ctypes.POINTER(struct_c__SA_histogram)]
+except AttributeError:
+    pass
+try:
+    hist_update_fo = _libraries['libascot.so'].hist_update_fo
+    hist_update_fo.restype = None
+    hist_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_histogram), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
+except AttributeError:
+    pass
+try:
+    hist_update_gc = _libraries['libascot.so'].hist_update_gc
+    hist_update_gc.restype = None
+    hist_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_histogram), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
+except AttributeError:
+    pass
+try:
+    flr_losses_eval = _libraries['libascot.so'].flr_losses_eval
+    flr_losses_eval.restype = ctypes.c_int32
+    flr_losses_eval.argtypes = [real, real, real, real, real, real, real, real, ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(struct_c__SA_wall_data), ctypes.POINTER(ctypes.POINTER(None)), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32)]
+except AttributeError:
+    pass
 
 # values for enumeration 'input_group'
 input_group__enumvalues = {
@@ -2569,22 +2594,22 @@ __all__ = \
     'dist_rho6D_init', 'dist_rho6D_offload', 'dist_rho6D_update_fo',
     'dist_rho6D_update_gc', 'endcond_check_fo', 'endcond_check_gc',
     'endcond_check_ml', 'endcond_cpumax', 'endcond_emin',
-    'endcond_hybrid', 'endcond_ioniz', 'endcond_neutr',
-    'endcond_parse', 'endcond_parse2str', 'endcond_polmax',
-    'endcond_rhomax', 'endcond_rhomin', 'endcond_therm',
-    'endcond_tlim', 'endcond_tormax', 'endcond_wall',
-    'hdf5_generate_qid', 'hdf5_input_asigma', 'hdf5_input_bfield',
-    'hdf5_input_boozer', 'hdf5_input_efield', 'hdf5_input_marker',
-    'hdf5_input_mhd', 'hdf5_input_nbi', 'hdf5_input_neutral',
-    'hdf5_input_options', 'hdf5_input_plasma', 'hdf5_input_wall',
-    'hdf5_interface_init_results', 'hdf5_interface_read_input',
-    'hdf5_interface_write_diagnostics', 'hdf5_interface_write_state',
-    'hist_axis', 'hist_coordinate', 'hist_coordinate__enumvalues',
-    'hist_free', 'hist_init', 'hist_offload', 'hist_update_fo',
-    'hist_update_gc', 'histogram', 'input_group', 'input_particle',
-    'input_particle_type', 'input_particle_type_gc',
-    'input_particle_type_ml', 'input_particle_type_p',
-    'input_particle_type_s', 'integer',
+    'endcond_flr_wall', 'endcond_hybrid', 'endcond_ioniz',
+    'endcond_neutr', 'endcond_parse', 'endcond_parse2str',
+    'endcond_polmax', 'endcond_rhomax', 'endcond_rhomin',
+    'endcond_therm', 'endcond_tlim', 'endcond_tormax', 'endcond_wall',
+    'flr_losses_eval', 'hdf5_generate_qid', 'hdf5_input_asigma',
+    'hdf5_input_bfield', 'hdf5_input_boozer', 'hdf5_input_efield',
+    'hdf5_input_marker', 'hdf5_input_mhd', 'hdf5_input_nbi',
+    'hdf5_input_neutral', 'hdf5_input_options', 'hdf5_input_plasma',
+    'hdf5_input_wall', 'hdf5_interface_init_results',
+    'hdf5_interface_read_input', 'hdf5_interface_write_diagnostics',
+    'hdf5_interface_write_state', 'hist_axis', 'hist_coordinate',
+    'hist_coordinate__enumvalues', 'hist_free', 'hist_init',
+    'hist_offload', 'hist_update_fo', 'hist_update_gc', 'histogram',
+    'input_group', 'input_particle', 'input_particle_type',
+    'input_particle_type_gc', 'input_particle_type_ml',
+    'input_particle_type_p', 'input_particle_type_s', 'integer',
     'libascot_allocate_input_particles',
     'libascot_allocate_particle_states', 'libascot_allocate_reals',
     'libascot_deallocate', 'mhd_data', 'mhd_eval', 'mhd_free',
