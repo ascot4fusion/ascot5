@@ -234,8 +234,7 @@ void B_STS_offload(B_STS_data* data) {
  * 
  * This function will reduce the coordinates (R, phi, z) to the 
  * fundamental domain of the stellarator symmetry, i.e.,
- * phi in [0, pi/Nperiods] and z >= 0. The function will modify
- * the coordinates in place.
+ * phi in [0, pi/Nperiods] and z >= 0.
  *
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
@@ -243,6 +242,7 @@ void B_STS_offload(B_STS_data* data) {
  * @param r_out pointer to reduced R coordinate [m]
  * @param phi_out pointer to reduced phi coordinate [rad]
  * @param z_out pointer to reduced z coordinate [m]
+ * @param flip pointer to sign flip factor for B_R and derivatives
  * @param Bdata pointer to magnetic field data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
@@ -252,17 +252,19 @@ a5err B_STS_reduce_symm(real r, real phi, real z,
                         B_STS_data* Bdata){
     a5err err = 0;
 
+    real phi_int = fmod(phi, 2.0*M_PI);
+
     if(Bdata->Nperiods <= 0 || Bdata->stell_sym == 0){
         // No stellarator symmetry to apply
         *r_out = r;
-        *phi_out = phi;
+        *phi_out = phi_int;
         *z_out = z;
         *flip = 1.0;
         return err;
     }
     
     real half_period = (M_PI / Bdata->Nperiods);
-    real phi_mod = fmod(phi, 2.0*half_period);
+    real phi_mod = fmod(phi_int, 2.0*half_period);
 
     if(phi_mod > half_period){
         // Map to negative phi
