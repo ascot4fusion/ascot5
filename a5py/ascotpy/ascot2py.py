@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# TARGET arch is: ['-I/home/sarkimk1/miniconda3/envs/clang/include/', '-I/home/sarkimk1/miniconda3/envs/clang/x86_64-conda-linux-gnu/sysroot/usr/include/', '-I/home/sarkimk1/miniconda3/envs/clang/lib/clang/14.0.6/include/']
+# TARGET arch is: ['-I/home/pablooyola/.anaconda3/envs/thea/include/', '-I/home/pablooyola/.anaconda3/envs/thea/x86_64-conda-linux-gnu/sysroot/usr/include/', '-I/home/pablooyola/.anaconda3/envs/thea/lib/clang/15.0.7/include/']
 # WORD_SIZE is: 8
 # POINTER_SIZE is: 8
 # LONGDOUBLE_SIZE is: 16
@@ -27,11 +27,11 @@ class AsDictMixin:
             type_ = type(value)
             if hasattr(value, "_length_") and hasattr(value, "_type_"):
                 # array
-                if not hasattr(type_, "as_dict"):
-                    value = [v for v in value]
-                else:
-                    type_ = type_._type_
+                type_ = type_._type_
+                if hasattr(type_, 'as_dict'):
                     value = [type_.as_dict(v) for v in value]
+                else:
+                    value = [i for i in value]
             elif hasattr(value, "contents") and hasattr(value, "_type_"):
                 # pointer
                 try:
@@ -189,34 +189,61 @@ struct_c__SA_B_GS_data._fields_ = [
 ]
 
 B_GS_data = struct_c__SA_B_GS_data
-B_GS_init = _libraries['libascot.so'].B_GS_init
-B_GS_init.restype = ctypes.c_int32
-B_GS_init.argtypes = [ctypes.POINTER(struct_c__SA_B_GS_data), real, real, real, real, real, real, real, real, ctypes.c_double * 14, ctypes.c_int32, real, real, real]
-B_GS_free = _libraries['libascot.so'].B_GS_free
-B_GS_free.restype = None
-B_GS_free.argtypes = [ctypes.POINTER(struct_c__SA_B_GS_data)]
-B_GS_offload = _libraries['libascot.so'].B_GS_offload
-B_GS_offload.restype = None
-B_GS_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_GS_data)]
+try:
+    B_GS_init = _libraries['libascot.so'].B_GS_init
+    B_GS_init.restype = ctypes.c_int32
+    B_GS_init.argtypes = [ctypes.POINTER(struct_c__SA_B_GS_data), real, real, real, real, real, real, real, real, ctypes.c_double * 14, ctypes.c_int32, real, real, real]
+except AttributeError:
+    pass
+try:
+    B_GS_free = _libraries['libascot.so'].B_GS_free
+    B_GS_free.restype = None
+    B_GS_free.argtypes = [ctypes.POINTER(struct_c__SA_B_GS_data)]
+except AttributeError:
+    pass
+try:
+    B_GS_offload = _libraries['libascot.so'].B_GS_offload
+    B_GS_offload.restype = None
+    B_GS_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_GS_data)]
+except AttributeError:
+    pass
 a5err = ctypes.c_uint64
-B_GS_eval_B = _libraries['libascot.so'].B_GS_eval_B
-B_GS_eval_B.restype = a5err
-B_GS_eval_B.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_B_GS_data)]
-B_GS_eval_psi = _libraries['libascot.so'].B_GS_eval_psi
-B_GS_eval_psi.restype = a5err
-B_GS_eval_psi.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_B_GS_data)]
-B_GS_eval_psi_dpsi = _libraries['libascot.so'].B_GS_eval_psi_dpsi
-B_GS_eval_psi_dpsi.restype = a5err
-B_GS_eval_psi_dpsi.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_GS_data)]
-B_GS_eval_rho_drho = _libraries['libascot.so'].B_GS_eval_rho_drho
-B_GS_eval_rho_drho.restype = a5err
-B_GS_eval_rho_drho.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_GS_data)]
-B_GS_eval_B_dB = _libraries['libascot.so'].B_GS_eval_B_dB
-B_GS_eval_B_dB.restype = a5err
-B_GS_eval_B_dB.argtypes = [ctypes.c_double * 12, real, real, real, ctypes.POINTER(struct_c__SA_B_GS_data)]
-B_GS_get_axis_rz = _libraries['libascot.so'].B_GS_get_axis_rz
-B_GS_get_axis_rz.restype = a5err
-B_GS_get_axis_rz.argtypes = [ctypes.c_double * 2, ctypes.POINTER(struct_c__SA_B_GS_data)]
+try:
+    B_GS_eval_B = _libraries['libascot.so'].B_GS_eval_B
+    B_GS_eval_B.restype = a5err
+    B_GS_eval_B.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_B_GS_data)]
+except AttributeError:
+    pass
+try:
+    B_GS_eval_psi = _libraries['libascot.so'].B_GS_eval_psi
+    B_GS_eval_psi.restype = a5err
+    B_GS_eval_psi.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_B_GS_data)]
+except AttributeError:
+    pass
+try:
+    B_GS_eval_psi_dpsi = _libraries['libascot.so'].B_GS_eval_psi_dpsi
+    B_GS_eval_psi_dpsi.restype = a5err
+    B_GS_eval_psi_dpsi.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_GS_data)]
+except AttributeError:
+    pass
+try:
+    B_GS_eval_rho_drho = _libraries['libascot.so'].B_GS_eval_rho_drho
+    B_GS_eval_rho_drho.restype = a5err
+    B_GS_eval_rho_drho.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_GS_data)]
+except AttributeError:
+    pass
+try:
+    B_GS_eval_B_dB = _libraries['libascot.so'].B_GS_eval_B_dB
+    B_GS_eval_B_dB.restype = a5err
+    B_GS_eval_B_dB.argtypes = [ctypes.c_double * 12, real, real, real, ctypes.POINTER(struct_c__SA_B_GS_data)]
+except AttributeError:
+    pass
+try:
+    B_GS_get_axis_rz = _libraries['libascot.so'].B_GS_get_axis_rz
+    B_GS_get_axis_rz.restype = a5err
+    B_GS_get_axis_rz.argtypes = [ctypes.c_double * 2, ctypes.POINTER(struct_c__SA_B_GS_data)]
+except AttributeError:
+    pass
 class struct_c__SA_B_2DS_data(Structure):
     pass
 
@@ -251,33 +278,60 @@ struct_c__SA_B_2DS_data._fields_ = [
 ]
 
 B_2DS_data = struct_c__SA_B_2DS_data
-B_2DS_init = _libraries['libascot.so'].B_2DS_init
-B_2DS_init.restype = ctypes.c_int32
-B_2DS_init.argtypes = [ctypes.POINTER(struct_c__SA_B_2DS_data), ctypes.c_int32, real, real, ctypes.c_int32, real, real, real, real, real, real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
-B_2DS_free = _libraries['libascot.so'].B_2DS_free
-B_2DS_free.restype = None
-B_2DS_free.argtypes = [ctypes.POINTER(struct_c__SA_B_2DS_data)]
-B_2DS_offload = _libraries['libascot.so'].B_2DS_offload
-B_2DS_offload.restype = None
-B_2DS_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_2DS_data)]
-B_2DS_eval_psi = _libraries['libascot.so'].B_2DS_eval_psi
-B_2DS_eval_psi.restype = a5err
-B_2DS_eval_psi.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_B_2DS_data)]
-B_2DS_eval_psi_dpsi = _libraries['libascot.so'].B_2DS_eval_psi_dpsi
-B_2DS_eval_psi_dpsi.restype = a5err
-B_2DS_eval_psi_dpsi.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_2DS_data)]
-B_2DS_eval_rho_drho = _libraries['libascot.so'].B_2DS_eval_rho_drho
-B_2DS_eval_rho_drho.restype = a5err
-B_2DS_eval_rho_drho.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_2DS_data)]
-B_2DS_eval_B = _libraries['libascot.so'].B_2DS_eval_B
-B_2DS_eval_B.restype = a5err
-B_2DS_eval_B.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_B_2DS_data)]
-B_2DS_eval_B_dB = _libraries['libascot.so'].B_2DS_eval_B_dB
-B_2DS_eval_B_dB.restype = a5err
-B_2DS_eval_B_dB.argtypes = [ctypes.c_double * 12, real, real, real, ctypes.POINTER(struct_c__SA_B_2DS_data)]
-B_2DS_get_axis_rz = _libraries['libascot.so'].B_2DS_get_axis_rz
-B_2DS_get_axis_rz.restype = a5err
-B_2DS_get_axis_rz.argtypes = [ctypes.c_double * 2, ctypes.POINTER(struct_c__SA_B_2DS_data)]
+try:
+    B_2DS_init = _libraries['libascot.so'].B_2DS_init
+    B_2DS_init.restype = ctypes.c_int32
+    B_2DS_init.argtypes = [ctypes.POINTER(struct_c__SA_B_2DS_data), ctypes.c_int32, real, real, ctypes.c_int32, real, real, real, real, real, real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    B_2DS_free = _libraries['libascot.so'].B_2DS_free
+    B_2DS_free.restype = None
+    B_2DS_free.argtypes = [ctypes.POINTER(struct_c__SA_B_2DS_data)]
+except AttributeError:
+    pass
+try:
+    B_2DS_offload = _libraries['libascot.so'].B_2DS_offload
+    B_2DS_offload.restype = None
+    B_2DS_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_2DS_data)]
+except AttributeError:
+    pass
+try:
+    B_2DS_eval_psi = _libraries['libascot.so'].B_2DS_eval_psi
+    B_2DS_eval_psi.restype = a5err
+    B_2DS_eval_psi.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_B_2DS_data)]
+except AttributeError:
+    pass
+try:
+    B_2DS_eval_psi_dpsi = _libraries['libascot.so'].B_2DS_eval_psi_dpsi
+    B_2DS_eval_psi_dpsi.restype = a5err
+    B_2DS_eval_psi_dpsi.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_2DS_data)]
+except AttributeError:
+    pass
+try:
+    B_2DS_eval_rho_drho = _libraries['libascot.so'].B_2DS_eval_rho_drho
+    B_2DS_eval_rho_drho.restype = a5err
+    B_2DS_eval_rho_drho.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_2DS_data)]
+except AttributeError:
+    pass
+try:
+    B_2DS_eval_B = _libraries['libascot.so'].B_2DS_eval_B
+    B_2DS_eval_B.restype = a5err
+    B_2DS_eval_B.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_B_2DS_data)]
+except AttributeError:
+    pass
+try:
+    B_2DS_eval_B_dB = _libraries['libascot.so'].B_2DS_eval_B_dB
+    B_2DS_eval_B_dB.restype = a5err
+    B_2DS_eval_B_dB.argtypes = [ctypes.c_double * 12, real, real, real, ctypes.POINTER(struct_c__SA_B_2DS_data)]
+except AttributeError:
+    pass
+try:
+    B_2DS_get_axis_rz = _libraries['libascot.so'].B_2DS_get_axis_rz
+    B_2DS_get_axis_rz.restype = a5err
+    B_2DS_get_axis_rz.argtypes = [ctypes.c_double * 2, ctypes.POINTER(struct_c__SA_B_2DS_data)]
+except AttributeError:
+    pass
 class struct_c__SA_B_3DS_data(Structure):
     pass
 
@@ -317,33 +371,60 @@ struct_c__SA_B_3DS_data._fields_ = [
 ]
 
 B_3DS_data = struct_c__SA_B_3DS_data
-B_3DS_init = _libraries['libascot.so'].B_3DS_init
-B_3DS_init.restype = ctypes.c_int32
-B_3DS_init.argtypes = [ctypes.POINTER(struct_c__SA_B_3DS_data), ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, real, real, real, real, real, real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
-B_3DS_free = _libraries['libascot.so'].B_3DS_free
-B_3DS_free.restype = None
-B_3DS_free.argtypes = [ctypes.POINTER(struct_c__SA_B_3DS_data)]
-B_3DS_offload = _libraries['libascot.so'].B_3DS_offload
-B_3DS_offload.restype = None
-B_3DS_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_3DS_data)]
-B_3DS_eval_psi = _libraries['libascot.so'].B_3DS_eval_psi
-B_3DS_eval_psi.restype = a5err
-B_3DS_eval_psi.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_B_3DS_data)]
-B_3DS_eval_psi_dpsi = _libraries['libascot.so'].B_3DS_eval_psi_dpsi
-B_3DS_eval_psi_dpsi.restype = a5err
-B_3DS_eval_psi_dpsi.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_3DS_data)]
-B_3DS_eval_rho_drho = _libraries['libascot.so'].B_3DS_eval_rho_drho
-B_3DS_eval_rho_drho.restype = a5err
-B_3DS_eval_rho_drho.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_3DS_data)]
-B_3DS_eval_B = _libraries['libascot.so'].B_3DS_eval_B
-B_3DS_eval_B.restype = a5err
-B_3DS_eval_B.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_B_3DS_data)]
-B_3DS_eval_B_dB = _libraries['libascot.so'].B_3DS_eval_B_dB
-B_3DS_eval_B_dB.restype = a5err
-B_3DS_eval_B_dB.argtypes = [ctypes.c_double * 12, real, real, real, ctypes.POINTER(struct_c__SA_B_3DS_data)]
-B_3DS_get_axis_rz = _libraries['libascot.so'].B_3DS_get_axis_rz
-B_3DS_get_axis_rz.restype = a5err
-B_3DS_get_axis_rz.argtypes = [ctypes.c_double * 2, ctypes.POINTER(struct_c__SA_B_3DS_data)]
+try:
+    B_3DS_init = _libraries['libascot.so'].B_3DS_init
+    B_3DS_init.restype = ctypes.c_int32
+    B_3DS_init.argtypes = [ctypes.POINTER(struct_c__SA_B_3DS_data), ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, real, real, real, real, real, real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    B_3DS_free = _libraries['libascot.so'].B_3DS_free
+    B_3DS_free.restype = None
+    B_3DS_free.argtypes = [ctypes.POINTER(struct_c__SA_B_3DS_data)]
+except AttributeError:
+    pass
+try:
+    B_3DS_offload = _libraries['libascot.so'].B_3DS_offload
+    B_3DS_offload.restype = None
+    B_3DS_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_3DS_data)]
+except AttributeError:
+    pass
+try:
+    B_3DS_eval_psi = _libraries['libascot.so'].B_3DS_eval_psi
+    B_3DS_eval_psi.restype = a5err
+    B_3DS_eval_psi.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_B_3DS_data)]
+except AttributeError:
+    pass
+try:
+    B_3DS_eval_psi_dpsi = _libraries['libascot.so'].B_3DS_eval_psi_dpsi
+    B_3DS_eval_psi_dpsi.restype = a5err
+    B_3DS_eval_psi_dpsi.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_3DS_data)]
+except AttributeError:
+    pass
+try:
+    B_3DS_eval_rho_drho = _libraries['libascot.so'].B_3DS_eval_rho_drho
+    B_3DS_eval_rho_drho.restype = a5err
+    B_3DS_eval_rho_drho.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_3DS_data)]
+except AttributeError:
+    pass
+try:
+    B_3DS_eval_B = _libraries['libascot.so'].B_3DS_eval_B
+    B_3DS_eval_B.restype = a5err
+    B_3DS_eval_B.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_B_3DS_data)]
+except AttributeError:
+    pass
+try:
+    B_3DS_eval_B_dB = _libraries['libascot.so'].B_3DS_eval_B_dB
+    B_3DS_eval_B_dB.restype = a5err
+    B_3DS_eval_B_dB.argtypes = [ctypes.c_double * 12, real, real, real, ctypes.POINTER(struct_c__SA_B_3DS_data)]
+except AttributeError:
+    pass
+try:
+    B_3DS_get_axis_rz = _libraries['libascot.so'].B_3DS_get_axis_rz
+    B_3DS_get_axis_rz.restype = a5err
+    B_3DS_get_axis_rz.argtypes = [ctypes.c_double * 2, ctypes.POINTER(struct_c__SA_B_3DS_data)]
+except AttributeError:
+    pass
 class struct_c__SA_B_STS_data(Structure):
     pass
 
@@ -370,36 +451,71 @@ struct_c__SA_B_STS_data._fields_ = [
     ('B_r', struct_c__SA_interp3D_data),
     ('B_phi', struct_c__SA_interp3D_data),
     ('B_z', struct_c__SA_interp3D_data),
+    ('Nperiods', ctypes.c_int32),
+    ('stell_sym', ctypes.c_int32),
 ]
 
 B_STS_data = struct_c__SA_B_STS_data
-B_STS_init = _libraries['libascot.so'].B_STS_init
-B_STS_init.restype = ctypes.c_int32
-B_STS_init.argtypes = [ctypes.POINTER(struct_c__SA_B_STS_data), ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), real, real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
-B_STS_free = _libraries['libascot.so'].B_STS_free
-B_STS_free.restype = None
-B_STS_free.argtypes = [ctypes.POINTER(struct_c__SA_B_STS_data)]
-B_STS_offload = _libraries['libascot.so'].B_STS_offload
-B_STS_offload.restype = None
-B_STS_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_STS_data)]
-B_STS_eval_psi = _libraries['libascot.so'].B_STS_eval_psi
-B_STS_eval_psi.restype = a5err
-B_STS_eval_psi.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_B_STS_data)]
-B_STS_eval_psi_dpsi = _libraries['libascot.so'].B_STS_eval_psi_dpsi
-B_STS_eval_psi_dpsi.restype = a5err
-B_STS_eval_psi_dpsi.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_STS_data)]
-B_STS_eval_rho_drho = _libraries['libascot.so'].B_STS_eval_rho_drho
-B_STS_eval_rho_drho.restype = a5err
-B_STS_eval_rho_drho.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_STS_data)]
-B_STS_eval_B = _libraries['libascot.so'].B_STS_eval_B
-B_STS_eval_B.restype = a5err
-B_STS_eval_B.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_B_STS_data)]
-B_STS_eval_B_dB = _libraries['libascot.so'].B_STS_eval_B_dB
-B_STS_eval_B_dB.restype = a5err
-B_STS_eval_B_dB.argtypes = [ctypes.c_double * 12, real, real, real, ctypes.POINTER(struct_c__SA_B_STS_data)]
-B_STS_get_axis_rz = _libraries['libascot.so'].B_STS_get_axis_rz
-B_STS_get_axis_rz.restype = a5err
-B_STS_get_axis_rz.argtypes = [ctypes.c_double * 2, ctypes.POINTER(struct_c__SA_B_STS_data), real]
+try:
+    B_STS_init = _libraries['libascot.so'].B_STS_init
+    B_STS_init.restype = ctypes.c_int32
+    B_STS_init.argtypes = [ctypes.POINTER(struct_c__SA_B_STS_data), ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), real, real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32]
+except AttributeError:
+    pass
+try:
+    B_STS_free = _libraries['libascot.so'].B_STS_free
+    B_STS_free.restype = None
+    B_STS_free.argtypes = [ctypes.POINTER(struct_c__SA_B_STS_data)]
+except AttributeError:
+    pass
+try:
+    B_STS_offload = _libraries['libascot.so'].B_STS_offload
+    B_STS_offload.restype = None
+    B_STS_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_STS_data)]
+except AttributeError:
+    pass
+try:
+    B_STS_reduce_symm = _libraries['libascot.so'].B_STS_reduce_symm
+    B_STS_reduce_symm.restype = a5err
+    B_STS_reduce_symm.argtypes = [real, real, real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(struct_c__SA_B_STS_data)]
+except AttributeError:
+    pass
+try:
+    B_STS_eval_psi = _libraries['libascot.so'].B_STS_eval_psi
+    B_STS_eval_psi.restype = a5err
+    B_STS_eval_psi.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_B_STS_data)]
+except AttributeError:
+    pass
+try:
+    B_STS_eval_psi_dpsi = _libraries['libascot.so'].B_STS_eval_psi_dpsi
+    B_STS_eval_psi_dpsi.restype = a5err
+    B_STS_eval_psi_dpsi.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_STS_data)]
+except AttributeError:
+    pass
+try:
+    B_STS_eval_rho_drho = _libraries['libascot.so'].B_STS_eval_rho_drho
+    B_STS_eval_rho_drho.restype = a5err
+    B_STS_eval_rho_drho.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_STS_data)]
+except AttributeError:
+    pass
+try:
+    B_STS_eval_B = _libraries['libascot.so'].B_STS_eval_B
+    B_STS_eval_B.restype = a5err
+    B_STS_eval_B.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_B_STS_data)]
+except AttributeError:
+    pass
+try:
+    B_STS_eval_B_dB = _libraries['libascot.so'].B_STS_eval_B_dB
+    B_STS_eval_B_dB.restype = a5err
+    B_STS_eval_B_dB.argtypes = [ctypes.c_double * 12, real, real, real, ctypes.POINTER(struct_c__SA_B_STS_data)]
+except AttributeError:
+    pass
+try:
+    B_STS_get_axis_rz = _libraries['libascot.so'].B_STS_get_axis_rz
+    B_STS_get_axis_rz.restype = a5err
+    B_STS_get_axis_rz.argtypes = [ctypes.c_double * 2, ctypes.POINTER(struct_c__SA_B_STS_data), real]
+except AttributeError:
+    pass
 class struct_c__SA_B_TC_data(Structure):
     pass
 
@@ -414,33 +530,60 @@ struct_c__SA_B_TC_data._fields_ = [
 ]
 
 B_TC_data = struct_c__SA_B_TC_data
-B_TC_init = _libraries['libascot.so'].B_TC_init
-B_TC_init.restype = ctypes.c_int32
-B_TC_init.argtypes = [ctypes.POINTER(struct_c__SA_B_TC_data), real, real, real, real, ctypes.c_double * 3, ctypes.c_double * 9]
-B_TC_free = _libraries['libascot.so'].B_TC_free
-B_TC_free.restype = None
-B_TC_free.argtypes = [ctypes.POINTER(struct_c__SA_B_TC_data)]
-B_TC_offload = _libraries['libascot.so'].B_TC_offload
-B_TC_offload.restype = None
-B_TC_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_TC_data)]
-B_TC_eval_B = _libraries['libascot.so'].B_TC_eval_B
-B_TC_eval_B.restype = a5err
-B_TC_eval_B.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_B_TC_data)]
-B_TC_eval_psi = _libraries['libascot.so'].B_TC_eval_psi
-B_TC_eval_psi.restype = a5err
-B_TC_eval_psi.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_B_TC_data)]
-B_TC_eval_psi_dpsi = _libraries['libascot.so'].B_TC_eval_psi_dpsi
-B_TC_eval_psi_dpsi.restype = a5err
-B_TC_eval_psi_dpsi.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_TC_data)]
-B_TC_eval_rho_drho = _libraries['libascot.so'].B_TC_eval_rho_drho
-B_TC_eval_rho_drho.restype = a5err
-B_TC_eval_rho_drho.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_TC_data)]
-B_TC_eval_B_dB = _libraries['libascot.so'].B_TC_eval_B_dB
-B_TC_eval_B_dB.restype = a5err
-B_TC_eval_B_dB.argtypes = [ctypes.c_double * 12, real, real, real, ctypes.POINTER(struct_c__SA_B_TC_data)]
-B_TC_get_axis_rz = _libraries['libascot.so'].B_TC_get_axis_rz
-B_TC_get_axis_rz.restype = a5err
-B_TC_get_axis_rz.argtypes = [ctypes.c_double * 2, ctypes.POINTER(struct_c__SA_B_TC_data)]
+try:
+    B_TC_init = _libraries['libascot.so'].B_TC_init
+    B_TC_init.restype = ctypes.c_int32
+    B_TC_init.argtypes = [ctypes.POINTER(struct_c__SA_B_TC_data), real, real, real, real, ctypes.c_double * 3, ctypes.c_double * 9]
+except AttributeError:
+    pass
+try:
+    B_TC_free = _libraries['libascot.so'].B_TC_free
+    B_TC_free.restype = None
+    B_TC_free.argtypes = [ctypes.POINTER(struct_c__SA_B_TC_data)]
+except AttributeError:
+    pass
+try:
+    B_TC_offload = _libraries['libascot.so'].B_TC_offload
+    B_TC_offload.restype = None
+    B_TC_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_TC_data)]
+except AttributeError:
+    pass
+try:
+    B_TC_eval_B = _libraries['libascot.so'].B_TC_eval_B
+    B_TC_eval_B.restype = a5err
+    B_TC_eval_B.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_B_TC_data)]
+except AttributeError:
+    pass
+try:
+    B_TC_eval_psi = _libraries['libascot.so'].B_TC_eval_psi
+    B_TC_eval_psi.restype = a5err
+    B_TC_eval_psi.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_B_TC_data)]
+except AttributeError:
+    pass
+try:
+    B_TC_eval_psi_dpsi = _libraries['libascot.so'].B_TC_eval_psi_dpsi
+    B_TC_eval_psi_dpsi.restype = a5err
+    B_TC_eval_psi_dpsi.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_TC_data)]
+except AttributeError:
+    pass
+try:
+    B_TC_eval_rho_drho = _libraries['libascot.so'].B_TC_eval_rho_drho
+    B_TC_eval_rho_drho.restype = a5err
+    B_TC_eval_rho_drho.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_TC_data)]
+except AttributeError:
+    pass
+try:
+    B_TC_eval_B_dB = _libraries['libascot.so'].B_TC_eval_B_dB
+    B_TC_eval_B_dB.restype = a5err
+    B_TC_eval_B_dB.argtypes = [ctypes.c_double * 12, real, real, real, ctypes.POINTER(struct_c__SA_B_TC_data)]
+except AttributeError:
+    pass
+try:
+    B_TC_get_axis_rz = _libraries['libascot.so'].B_TC_get_axis_rz
+    B_TC_get_axis_rz.restype = a5err
+    B_TC_get_axis_rz.argtypes = [ctypes.c_double * 2, ctypes.POINTER(struct_c__SA_B_TC_data)]
+except AttributeError:
+    pass
 
 # values for enumeration 'B_field_type'
 B_field_type__enumvalues = {
@@ -471,33 +614,60 @@ struct_c__SA_B_field_data._fields_ = [
 ]
 
 B_field_data = struct_c__SA_B_field_data
-B_field_free = _libraries['libascot.so'].B_field_free
-B_field_free.restype = None
-B_field_free.argtypes = [ctypes.POINTER(struct_c__SA_B_field_data)]
-B_field_offload = _libraries['libascot.so'].B_field_offload
-B_field_offload.restype = None
-B_field_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_field_data)]
-B_field_eval_psi = _libraries['libascot.so'].B_field_eval_psi
-B_field_eval_psi.restype = a5err
-B_field_eval_psi.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, real, ctypes.POINTER(struct_c__SA_B_field_data)]
-B_field_eval_psi_dpsi = _libraries['libascot.so'].B_field_eval_psi_dpsi
-B_field_eval_psi_dpsi.restype = a5err
-B_field_eval_psi_dpsi.argtypes = [ctypes.c_double * 4, real, real, real, real, ctypes.POINTER(struct_c__SA_B_field_data)]
-B_field_eval_rho = _libraries['libascot.so'].B_field_eval_rho
-B_field_eval_rho.restype = a5err
-B_field_eval_rho.argtypes = [ctypes.c_double * 2, real, ctypes.POINTER(struct_c__SA_B_field_data)]
-B_field_eval_rho_drho = _libraries['libascot.so'].B_field_eval_rho_drho
-B_field_eval_rho_drho.restype = a5err
-B_field_eval_rho_drho.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_field_data)]
-B_field_eval_B = _libraries['libascot.so'].B_field_eval_B
-B_field_eval_B.restype = a5err
-B_field_eval_B.argtypes = [ctypes.c_double * 3, real, real, real, real, ctypes.POINTER(struct_c__SA_B_field_data)]
-B_field_eval_B_dB = _libraries['libascot.so'].B_field_eval_B_dB
-B_field_eval_B_dB.restype = a5err
-B_field_eval_B_dB.argtypes = [ctypes.c_double * 15, real, real, real, real, ctypes.POINTER(struct_c__SA_B_field_data)]
-B_field_get_axis_rz = _libraries['libascot.so'].B_field_get_axis_rz
-B_field_get_axis_rz.restype = a5err
-B_field_get_axis_rz.argtypes = [ctypes.c_double * 2, ctypes.POINTER(struct_c__SA_B_field_data), real]
+try:
+    B_field_free = _libraries['libascot.so'].B_field_free
+    B_field_free.restype = None
+    B_field_free.argtypes = [ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    B_field_offload = _libraries['libascot.so'].B_field_offload
+    B_field_offload.restype = None
+    B_field_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    B_field_eval_psi = _libraries['libascot.so'].B_field_eval_psi
+    B_field_eval_psi.restype = a5err
+    B_field_eval_psi.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, real, ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    B_field_eval_psi_dpsi = _libraries['libascot.so'].B_field_eval_psi_dpsi
+    B_field_eval_psi_dpsi.restype = a5err
+    B_field_eval_psi_dpsi.argtypes = [ctypes.c_double * 4, real, real, real, real, ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    B_field_eval_rho = _libraries['libascot.so'].B_field_eval_rho
+    B_field_eval_rho.restype = a5err
+    B_field_eval_rho.argtypes = [ctypes.c_double * 2, real, ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    B_field_eval_rho_drho = _libraries['libascot.so'].B_field_eval_rho_drho
+    B_field_eval_rho_drho.restype = a5err
+    B_field_eval_rho_drho.argtypes = [ctypes.c_double * 4, real, real, real, ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    B_field_eval_B = _libraries['libascot.so'].B_field_eval_B
+    B_field_eval_B.restype = a5err
+    B_field_eval_B.argtypes = [ctypes.c_double * 3, real, real, real, real, ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    B_field_eval_B_dB = _libraries['libascot.so'].B_field_eval_B_dB
+    B_field_eval_B_dB.restype = a5err
+    B_field_eval_B_dB.argtypes = [ctypes.c_double * 15, real, real, real, real, ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    B_field_get_axis_rz = _libraries['libascot.so'].B_field_get_axis_rz
+    B_field_get_axis_rz.restype = a5err
+    B_field_get_axis_rz.argtypes = [ctypes.c_double * 2, ctypes.POINTER(struct_c__SA_B_field_data), real]
+except AttributeError:
+    pass
 class struct_c__SA_E_TC_data(Structure):
     pass
 
@@ -507,18 +677,30 @@ struct_c__SA_E_TC_data._fields_ = [
 ]
 
 E_TC_data = struct_c__SA_E_TC_data
-E_TC_init = _libraries['libascot.so'].E_TC_init
-E_TC_init.restype = ctypes.c_int32
-E_TC_init.argtypes = [ctypes.POINTER(struct_c__SA_E_TC_data), ctypes.c_double * 3]
-E_TC_free = _libraries['libascot.so'].E_TC_free
-E_TC_free.restype = None
-E_TC_free.argtypes = [ctypes.POINTER(struct_c__SA_E_TC_data)]
-E_TC_offload = _libraries['libascot.so'].E_TC_offload
-E_TC_offload.restype = None
-E_TC_offload.argtypes = [ctypes.POINTER(struct_c__SA_E_TC_data)]
-E_TC_eval_E = _libraries['libascot.so'].E_TC_eval_E
-E_TC_eval_E.restype = a5err
-E_TC_eval_E.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_E_TC_data), ctypes.POINTER(struct_c__SA_B_field_data)]
+try:
+    E_TC_init = _libraries['libascot.so'].E_TC_init
+    E_TC_init.restype = ctypes.c_int32
+    E_TC_init.argtypes = [ctypes.POINTER(struct_c__SA_E_TC_data), ctypes.c_double * 3]
+except AttributeError:
+    pass
+try:
+    E_TC_free = _libraries['libascot.so'].E_TC_free
+    E_TC_free.restype = None
+    E_TC_free.argtypes = [ctypes.POINTER(struct_c__SA_E_TC_data)]
+except AttributeError:
+    pass
+try:
+    E_TC_offload = _libraries['libascot.so'].E_TC_offload
+    E_TC_offload.restype = None
+    E_TC_offload.argtypes = [ctypes.POINTER(struct_c__SA_E_TC_data)]
+except AttributeError:
+    pass
+try:
+    E_TC_eval_E = _libraries['libascot.so'].E_TC_eval_E
+    E_TC_eval_E.restype = a5err
+    E_TC_eval_E.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_E_TC_data), ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
 class struct_c__SA_E_1DS_data(Structure):
     pass
 
@@ -541,18 +723,30 @@ struct_c__SA_E_1DS_data._fields_ = [
 ]
 
 E_1DS_data = struct_c__SA_E_1DS_data
-E_1DS_init = _libraries['libascot.so'].E_1DS_init
-E_1DS_init.restype = ctypes.c_int32
-E_1DS_init.argtypes = [ctypes.POINTER(struct_c__SA_E_1DS_data), ctypes.c_int32, real, real, real, ctypes.POINTER(ctypes.c_double)]
-E_1DS_free = _libraries['libascot.so'].E_1DS_free
-E_1DS_free.restype = None
-E_1DS_free.argtypes = [ctypes.POINTER(struct_c__SA_E_1DS_data)]
-E_1DS_offload = _libraries['libascot.so'].E_1DS_offload
-E_1DS_offload.restype = None
-E_1DS_offload.argtypes = [ctypes.POINTER(struct_c__SA_E_1DS_data)]
-E_1DS_eval_E = _libraries['libascot.so'].E_1DS_eval_E
-E_1DS_eval_E.restype = a5err
-E_1DS_eval_E.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_E_1DS_data), ctypes.POINTER(struct_c__SA_B_field_data)]
+try:
+    E_1DS_init = _libraries['libascot.so'].E_1DS_init
+    E_1DS_init.restype = ctypes.c_int32
+    E_1DS_init.argtypes = [ctypes.POINTER(struct_c__SA_E_1DS_data), ctypes.c_int32, real, real, real, ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    E_1DS_free = _libraries['libascot.so'].E_1DS_free
+    E_1DS_free.restype = None
+    E_1DS_free.argtypes = [ctypes.POINTER(struct_c__SA_E_1DS_data)]
+except AttributeError:
+    pass
+try:
+    E_1DS_offload = _libraries['libascot.so'].E_1DS_offload
+    E_1DS_offload.restype = None
+    E_1DS_offload.argtypes = [ctypes.POINTER(struct_c__SA_E_1DS_data)]
+except AttributeError:
+    pass
+try:
+    E_1DS_eval_E = _libraries['libascot.so'].E_1DS_eval_E
+    E_1DS_eval_E.restype = a5err
+    E_1DS_eval_E.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_E_1DS_data), ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
 
 # values for enumeration 'E_field_type'
 E_field_type__enumvalues = {
@@ -574,15 +768,24 @@ struct_c__SA_E_field_data._fields_ = [
 ]
 
 E_field_data = struct_c__SA_E_field_data
-E_field_free = _libraries['libascot.so'].E_field_free
-E_field_free.restype = None
-E_field_free.argtypes = [ctypes.POINTER(struct_c__SA_E_field_data)]
-E_field_offload = _libraries['libascot.so'].E_field_offload
-E_field_offload.restype = None
-E_field_offload.argtypes = [ctypes.POINTER(struct_c__SA_E_field_data)]
-E_field_eval_E = _libraries['libascot.so'].E_field_eval_E
-E_field_eval_E.restype = a5err
-E_field_eval_E.argtypes = [ctypes.c_double * 3, real, real, real, real, ctypes.POINTER(struct_c__SA_E_field_data), ctypes.POINTER(struct_c__SA_B_field_data)]
+try:
+    E_field_free = _libraries['libascot.so'].E_field_free
+    E_field_free.restype = None
+    E_field_free.argtypes = [ctypes.POINTER(struct_c__SA_E_field_data)]
+except AttributeError:
+    pass
+try:
+    E_field_offload = _libraries['libascot.so'].E_field_offload
+    E_field_offload.restype = None
+    E_field_offload.argtypes = [ctypes.POINTER(struct_c__SA_E_field_data)]
+except AttributeError:
+    pass
+try:
+    E_field_eval_E = _libraries['libascot.so'].E_field_eval_E
+    E_field_eval_E.restype = a5err
+    E_field_eval_E.argtypes = [ctypes.c_double * 3, real, real, real, real, ctypes.POINTER(struct_c__SA_E_field_data), ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
 class struct_c__SA_particle_state(Structure):
     pass
 
@@ -854,75 +1057,144 @@ struct_c__SA_particle_simd_ml._fields_ = [
 ]
 
 particle_simd_ml = struct_c__SA_particle_simd_ml
-particle_allocate_fo = _libraries['libascot.so'].particle_allocate_fo
-particle_allocate_fo.restype = None
-particle_allocate_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.c_int32]
-particle_to_fo_dummy = _libraries['libascot.so'].particle_to_fo_dummy
-particle_to_fo_dummy.restype = None
-particle_to_fo_dummy.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.c_int32]
-particle_to_gc_dummy = _libraries['libascot.so'].particle_to_gc_dummy
-particle_to_gc_dummy.restype = None
-particle_to_gc_dummy.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.c_int32]
-particle_to_ml_dummy = _libraries['libascot.so'].particle_to_ml_dummy
-particle_to_ml_dummy.restype = None
-particle_to_ml_dummy.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.c_int32]
-particle_cycle_fo = _libraries['libascot.so'].particle_cycle_fo
-particle_cycle_fo.restype = ctypes.c_int32
-particle_cycle_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_queue), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(ctypes.c_int32)]
-particle_cycle_gc = _libraries['libascot.so'].particle_cycle_gc
-particle_cycle_gc.restype = ctypes.c_int32
-particle_cycle_gc.argtypes = [ctypes.POINTER(struct_c__SA_particle_queue), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(ctypes.c_int32)]
-particle_cycle_ml = _libraries['libascot.so'].particle_cycle_ml
-particle_cycle_ml.restype = ctypes.c_int32
-particle_cycle_ml.argtypes = [ctypes.POINTER(struct_c__SA_particle_queue), ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(ctypes.c_int32)]
-particle_input_to_state = _libraries['libascot.so'].particle_input_to_state
-particle_input_to_state.restype = None
-particle_input_to_state.argtypes = [ctypes.POINTER(struct_c__SA_input_particle), ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_B_field_data)]
-particle_input_p_to_state = _libraries['libascot.so'].particle_input_p_to_state
-particle_input_p_to_state.restype = a5err
-particle_input_p_to_state.argtypes = [ctypes.POINTER(struct_c__SA_particle), ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_B_field_data)]
-particle_input_gc_to_state = _libraries['libascot.so'].particle_input_gc_to_state
-particle_input_gc_to_state.restype = a5err
-particle_input_gc_to_state.argtypes = [ctypes.POINTER(struct_c__SA_particle_gc), ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_B_field_data)]
-particle_input_ml_to_state = _libraries['libascot.so'].particle_input_ml_to_state
-particle_input_ml_to_state.restype = a5err
-particle_input_ml_to_state.argtypes = [ctypes.POINTER(struct_c__SA_particle_ml), ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_B_field_data)]
-particle_offload_fo = _libraries['libascot.so'].particle_offload_fo
-particle_offload_fo.restype = None
-particle_offload_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo)]
-particle_onload_fo = _libraries['libascot.so'].particle_onload_fo
-particle_onload_fo.restype = None
-particle_onload_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo)]
-particle_state_to_fo = _libraries['libascot.so'].particle_state_to_fo
-particle_state_to_fo.restype = a5err
-particle_state_to_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.c_int32, ctypes.POINTER(struct_c__SA_B_field_data)]
-particle_fo_to_state = _libraries['libascot.so'].particle_fo_to_state
-particle_fo_to_state.restype = None
-particle_fo_to_state.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_B_field_data)]
-particle_state_to_gc = _libraries['libascot.so'].particle_state_to_gc
-particle_state_to_gc.restype = a5err
-particle_state_to_gc.argtypes = [ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.c_int32, ctypes.POINTER(struct_c__SA_B_field_data)]
-particle_gc_to_state = _libraries['libascot.so'].particle_gc_to_state
-particle_gc_to_state.restype = None
-particle_gc_to_state.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_B_field_data)]
-particle_state_to_ml = _libraries['libascot.so'].particle_state_to_ml
-particle_state_to_ml.restype = a5err
-particle_state_to_ml.argtypes = [ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.c_int32, ctypes.POINTER(struct_c__SA_B_field_data)]
-particle_ml_to_state = _libraries['libascot.so'].particle_ml_to_state
-particle_ml_to_state.restype = None
-particle_ml_to_state.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_B_field_data)]
-particle_fo_to_gc = _libraries['libascot.so'].particle_fo_to_gc
-particle_fo_to_gc.restype = ctypes.c_int32
-particle_fo_to_gc.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_B_field_data)]
-particle_copy_fo = _libraries['libascot.so'].particle_copy_fo
-particle_copy_fo.restype = None
-particle_copy_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.c_int32]
-particle_copy_gc = _libraries['libascot.so'].particle_copy_gc
-particle_copy_gc.restype = None
-particle_copy_gc.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.c_int32]
-particle_copy_ml = _libraries['libascot.so'].particle_copy_ml
-particle_copy_ml.restype = None
-particle_copy_ml.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.c_int32]
+try:
+    particle_allocate_fo = _libraries['libascot.so'].particle_allocate_fo
+    particle_allocate_fo.restype = None
+    particle_allocate_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.c_int32]
+except AttributeError:
+    pass
+try:
+    particle_to_fo_dummy = _libraries['libascot.so'].particle_to_fo_dummy
+    particle_to_fo_dummy.restype = None
+    particle_to_fo_dummy.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.c_int32]
+except AttributeError:
+    pass
+try:
+    particle_to_gc_dummy = _libraries['libascot.so'].particle_to_gc_dummy
+    particle_to_gc_dummy.restype = None
+    particle_to_gc_dummy.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.c_int32]
+except AttributeError:
+    pass
+try:
+    particle_to_ml_dummy = _libraries['libascot.so'].particle_to_ml_dummy
+    particle_to_ml_dummy.restype = None
+    particle_to_ml_dummy.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.c_int32]
+except AttributeError:
+    pass
+try:
+    particle_cycle_fo = _libraries['libascot.so'].particle_cycle_fo
+    particle_cycle_fo.restype = ctypes.c_int32
+    particle_cycle_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_queue), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(ctypes.c_int32)]
+except AttributeError:
+    pass
+try:
+    particle_cycle_gc = _libraries['libascot.so'].particle_cycle_gc
+    particle_cycle_gc.restype = ctypes.c_int32
+    particle_cycle_gc.argtypes = [ctypes.POINTER(struct_c__SA_particle_queue), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(ctypes.c_int32)]
+except AttributeError:
+    pass
+try:
+    particle_cycle_ml = _libraries['libascot.so'].particle_cycle_ml
+    particle_cycle_ml.restype = ctypes.c_int32
+    particle_cycle_ml.argtypes = [ctypes.POINTER(struct_c__SA_particle_queue), ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(ctypes.c_int32)]
+except AttributeError:
+    pass
+try:
+    particle_input_to_state = _libraries['libascot.so'].particle_input_to_state
+    particle_input_to_state.restype = None
+    particle_input_to_state.argtypes = [ctypes.POINTER(struct_c__SA_input_particle), ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    particle_input_p_to_state = _libraries['libascot.so'].particle_input_p_to_state
+    particle_input_p_to_state.restype = a5err
+    particle_input_p_to_state.argtypes = [ctypes.POINTER(struct_c__SA_particle), ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    particle_input_gc_to_state = _libraries['libascot.so'].particle_input_gc_to_state
+    particle_input_gc_to_state.restype = a5err
+    particle_input_gc_to_state.argtypes = [ctypes.POINTER(struct_c__SA_particle_gc), ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    particle_input_ml_to_state = _libraries['libascot.so'].particle_input_ml_to_state
+    particle_input_ml_to_state.restype = a5err
+    particle_input_ml_to_state.argtypes = [ctypes.POINTER(struct_c__SA_particle_ml), ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    particle_offload_fo = _libraries['libascot.so'].particle_offload_fo
+    particle_offload_fo.restype = None
+    particle_offload_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo)]
+except AttributeError:
+    pass
+try:
+    particle_onload_fo = _libraries['libascot.so'].particle_onload_fo
+    particle_onload_fo.restype = None
+    particle_onload_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo)]
+except AttributeError:
+    pass
+try:
+    particle_state_to_fo = _libraries['libascot.so'].particle_state_to_fo
+    particle_state_to_fo.restype = a5err
+    particle_state_to_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.c_int32, ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    particle_fo_to_state = _libraries['libascot.so'].particle_fo_to_state
+    particle_fo_to_state.restype = None
+    particle_fo_to_state.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    particle_state_to_gc = _libraries['libascot.so'].particle_state_to_gc
+    particle_state_to_gc.restype = a5err
+    particle_state_to_gc.argtypes = [ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.c_int32, ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    particle_gc_to_state = _libraries['libascot.so'].particle_gc_to_state
+    particle_gc_to_state.restype = None
+    particle_gc_to_state.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    particle_state_to_ml = _libraries['libascot.so'].particle_state_to_ml
+    particle_state_to_ml.restype = a5err
+    particle_state_to_ml.argtypes = [ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.c_int32, ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    particle_ml_to_state = _libraries['libascot.so'].particle_ml_to_state
+    particle_ml_to_state.restype = None
+    particle_ml_to_state.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    particle_fo_to_gc = _libraries['libascot.so'].particle_fo_to_gc
+    particle_fo_to_gc.restype = ctypes.c_int32
+    particle_fo_to_gc.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    particle_copy_fo = _libraries['libascot.so'].particle_copy_fo
+    particle_copy_fo.restype = None
+    particle_copy_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.c_int32]
+except AttributeError:
+    pass
+try:
+    particle_copy_gc = _libraries['libascot.so'].particle_copy_gc
+    particle_copy_gc.restype = None
+    particle_copy_gc.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.c_int32]
+except AttributeError:
+    pass
+try:
+    particle_copy_ml = _libraries['libascot.so'].particle_copy_ml
+    particle_copy_ml.restype = None
+    particle_copy_ml.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.c_int32]
+except AttributeError:
+    pass
 class struct_c__SA_dist_5D_data(Structure):
     pass
 
@@ -967,24 +1239,48 @@ struct_c__SA_dist_5D_data._fields_ = [
 
 dist_5D_data = struct_c__SA_dist_5D_data
 size_t = ctypes.c_uint64
-dist_5D_index = _libraries['libascot.so'].dist_5D_index
-dist_5D_index.restype = size_t
-dist_5D_index.argtypes = [ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, size_t, size_t, size_t, size_t, size_t, size_t]
-dist_5D_init = _libraries['libascot.so'].dist_5D_init
-dist_5D_init.restype = ctypes.c_int32
-dist_5D_init.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data)]
-dist_5D_free = _libraries['libascot.so'].dist_5D_free
-dist_5D_free.restype = None
-dist_5D_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data)]
-dist_5D_offload = _libraries['libascot.so'].dist_5D_offload
-dist_5D_offload.restype = None
-dist_5D_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data)]
-dist_5D_update_fo = _libraries['libascot.so'].dist_5D_update_fo
-dist_5D_update_fo.restype = None
-dist_5D_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
-dist_5D_update_gc = _libraries['libascot.so'].dist_5D_update_gc
-dist_5D_update_gc.restype = None
-dist_5D_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
+try:
+    dist_5D_index = _libraries['libascot.so'].dist_5D_index
+    dist_5D_index.restype = size_t
+    dist_5D_index.argtypes = [ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, size_t, size_t, size_t, size_t, size_t, size_t]
+except AttributeError:
+    pass
+try:
+    dist_5D_init = _libraries['libascot.so'].dist_5D_init
+    dist_5D_init.restype = ctypes.c_int32
+    dist_5D_init.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data)]
+except AttributeError:
+    pass
+try:
+    dist_5D_free = _libraries['libascot.so'].dist_5D_free
+    dist_5D_free.restype = None
+    dist_5D_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data)]
+except AttributeError:
+    pass
+try:
+    dist_5D_offload = _libraries['libascot.so'].dist_5D_offload
+    dist_5D_offload.restype = None
+    dist_5D_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data)]
+except AttributeError:
+    pass
+try:
+    dist_5D_onload = _libraries['libascot.so'].dist_5D_onload
+    dist_5D_onload.restype = None
+    dist_5D_onload.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data)]
+except AttributeError:
+    pass
+try:
+    dist_5D_update_fo = _libraries['libascot.so'].dist_5D_update_fo
+    dist_5D_update_fo.restype = None
+    dist_5D_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
+except AttributeError:
+    pass
+try:
+    dist_5D_update_gc = _libraries['libascot.so'].dist_5D_update_gc
+    dist_5D_update_gc.restype = None
+    dist_5D_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_dist_5D_data), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
+except AttributeError:
+    pass
 class struct_c__SA_dist_6D_data(Structure):
     pass
 
@@ -1033,21 +1329,42 @@ struct_c__SA_dist_6D_data._fields_ = [
 ]
 
 dist_6D_data = struct_c__SA_dist_6D_data
-dist_6D_init = _libraries['libascot.so'].dist_6D_init
-dist_6D_init.restype = ctypes.c_int32
-dist_6D_init.argtypes = [ctypes.POINTER(struct_c__SA_dist_6D_data)]
-dist_6D_free = _libraries['libascot.so'].dist_6D_free
-dist_6D_free.restype = None
-dist_6D_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_6D_data)]
-dist_6D_offload = _libraries['libascot.so'].dist_6D_offload
-dist_6D_offload.restype = None
-dist_6D_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_6D_data)]
-dist_6D_update_fo = _libraries['libascot.so'].dist_6D_update_fo
-dist_6D_update_fo.restype = None
-dist_6D_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_6D_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
-dist_6D_update_gc = _libraries['libascot.so'].dist_6D_update_gc
-dist_6D_update_gc.restype = None
-dist_6D_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_dist_6D_data), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
+try:
+    dist_6D_init = _libraries['libascot.so'].dist_6D_init
+    dist_6D_init.restype = ctypes.c_int32
+    dist_6D_init.argtypes = [ctypes.POINTER(struct_c__SA_dist_6D_data)]
+except AttributeError:
+    pass
+try:
+    dist_6D_free = _libraries['libascot.so'].dist_6D_free
+    dist_6D_free.restype = None
+    dist_6D_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_6D_data)]
+except AttributeError:
+    pass
+try:
+    dist_6D_offload = _libraries['libascot.so'].dist_6D_offload
+    dist_6D_offload.restype = None
+    dist_6D_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_6D_data)]
+except AttributeError:
+    pass
+try:
+    dist_6D_onload = _libraries['libascot.so'].dist_6D_onload
+    dist_6D_onload.restype = None
+    dist_6D_onload.argtypes = [ctypes.POINTER(struct_c__SA_dist_6D_data)]
+except AttributeError:
+    pass
+try:
+    dist_6D_update_fo = _libraries['libascot.so'].dist_6D_update_fo
+    dist_6D_update_fo.restype = None
+    dist_6D_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_6D_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
+except AttributeError:
+    pass
+try:
+    dist_6D_update_gc = _libraries['libascot.so'].dist_6D_update_gc
+    dist_6D_update_gc.restype = None
+    dist_6D_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_dist_6D_data), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
+except AttributeError:
+    pass
 class struct_c__SA_dist_rho5D_data(Structure):
     pass
 
@@ -1091,21 +1408,42 @@ struct_c__SA_dist_rho5D_data._fields_ = [
 ]
 
 dist_rho5D_data = struct_c__SA_dist_rho5D_data
-dist_rho5D_init = _libraries['libascot.so'].dist_rho5D_init
-dist_rho5D_init.restype = ctypes.c_int32
-dist_rho5D_init.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho5D_data)]
-dist_rho5D_free = _libraries['libascot.so'].dist_rho5D_free
-dist_rho5D_free.restype = None
-dist_rho5D_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho5D_data)]
-dist_rho5D_offload = _libraries['libascot.so'].dist_rho5D_offload
-dist_rho5D_offload.restype = None
-dist_rho5D_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho5D_data)]
-dist_rho5D_update_fo = _libraries['libascot.so'].dist_rho5D_update_fo
-dist_rho5D_update_fo.restype = None
-dist_rho5D_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho5D_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
-dist_rho5D_update_gc = _libraries['libascot.so'].dist_rho5D_update_gc
-dist_rho5D_update_gc.restype = None
-dist_rho5D_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho5D_data), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
+try:
+    dist_rho5D_init = _libraries['libascot.so'].dist_rho5D_init
+    dist_rho5D_init.restype = ctypes.c_int32
+    dist_rho5D_init.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho5D_data)]
+except AttributeError:
+    pass
+try:
+    dist_rho5D_free = _libraries['libascot.so'].dist_rho5D_free
+    dist_rho5D_free.restype = None
+    dist_rho5D_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho5D_data)]
+except AttributeError:
+    pass
+try:
+    dist_rho5D_offload = _libraries['libascot.so'].dist_rho5D_offload
+    dist_rho5D_offload.restype = None
+    dist_rho5D_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho5D_data)]
+except AttributeError:
+    pass
+try:
+    dist_rho5D_onload = _libraries['libascot.so'].dist_rho5D_onload
+    dist_rho5D_onload.restype = None
+    dist_rho5D_onload.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho5D_data)]
+except AttributeError:
+    pass
+try:
+    dist_rho5D_update_fo = _libraries['libascot.so'].dist_rho5D_update_fo
+    dist_rho5D_update_fo.restype = None
+    dist_rho5D_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho5D_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
+except AttributeError:
+    pass
+try:
+    dist_rho5D_update_gc = _libraries['libascot.so'].dist_rho5D_update_gc
+    dist_rho5D_update_gc.restype = None
+    dist_rho5D_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho5D_data), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
+except AttributeError:
+    pass
 class struct_c__SA_dist_rho6D_data(Structure):
     pass
 
@@ -1154,21 +1492,42 @@ struct_c__SA_dist_rho6D_data._fields_ = [
 ]
 
 dist_rho6D_data = struct_c__SA_dist_rho6D_data
-dist_rho6D_init = _libraries['libascot.so'].dist_rho6D_init
-dist_rho6D_init.restype = ctypes.c_int32
-dist_rho6D_init.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho6D_data)]
-dist_rho6D_free = _libraries['libascot.so'].dist_rho6D_free
-dist_rho6D_free.restype = None
-dist_rho6D_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho6D_data)]
-dist_rho6D_offload = _libraries['libascot.so'].dist_rho6D_offload
-dist_rho6D_offload.restype = None
-dist_rho6D_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho6D_data)]
-dist_rho6D_update_fo = _libraries['libascot.so'].dist_rho6D_update_fo
-dist_rho6D_update_fo.restype = None
-dist_rho6D_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho6D_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
-dist_rho6D_update_gc = _libraries['libascot.so'].dist_rho6D_update_gc
-dist_rho6D_update_gc.restype = None
-dist_rho6D_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho6D_data), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
+try:
+    dist_rho6D_init = _libraries['libascot.so'].dist_rho6D_init
+    dist_rho6D_init.restype = ctypes.c_int32
+    dist_rho6D_init.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho6D_data)]
+except AttributeError:
+    pass
+try:
+    dist_rho6D_free = _libraries['libascot.so'].dist_rho6D_free
+    dist_rho6D_free.restype = None
+    dist_rho6D_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho6D_data)]
+except AttributeError:
+    pass
+try:
+    dist_rho6D_offload = _libraries['libascot.so'].dist_rho6D_offload
+    dist_rho6D_offload.restype = None
+    dist_rho6D_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho6D_data)]
+except AttributeError:
+    pass
+try:
+    dist_rho6D_onload = _libraries['libascot.so'].dist_rho6D_onload
+    dist_rho6D_onload.restype = None
+    dist_rho6D_onload.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho6D_data)]
+except AttributeError:
+    pass
+try:
+    dist_rho6D_update_fo = _libraries['libascot.so'].dist_rho6D_update_fo
+    dist_rho6D_update_fo.restype = None
+    dist_rho6D_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho6D_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
+except AttributeError:
+    pass
+try:
+    dist_rho6D_update_gc = _libraries['libascot.so'].dist_rho6D_update_gc
+    dist_rho6D_update_gc.restype = None
+    dist_rho6D_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_dist_rho6D_data), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
+except AttributeError:
+    pass
 class struct_c__SA_dist_COM_data(Structure):
     pass
 
@@ -1192,27 +1551,54 @@ struct_c__SA_dist_COM_data._fields_ = [
 ]
 
 dist_COM_data = struct_c__SA_dist_COM_data
-dist_COM_init = _libraries['libascot.so'].dist_COM_init
-dist_COM_init.restype = ctypes.c_int32
-dist_COM_init.argtypes = [ctypes.POINTER(struct_c__SA_dist_COM_data)]
-dist_COM_free = _libraries['libascot.so'].dist_COM_free
-dist_COM_free.restype = None
-dist_COM_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_COM_data)]
-dist_COM_offload = _libraries['libascot.so'].dist_COM_offload
-dist_COM_offload.restype = None
-dist_COM_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_COM_data)]
-dist_COM_update_fo = _libraries['libascot.so'].dist_COM_update_fo
-dist_COM_update_fo.restype = None
-dist_COM_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_COM_data), ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
-dist_COM_update_gc = _libraries['libascot.so'].dist_COM_update_gc
-dist_COM_update_gc.restype = None
-dist_COM_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_dist_COM_data), ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
-diag_orb_check_plane_crossing = _libraries['libascot.so'].diag_orb_check_plane_crossing
-diag_orb_check_plane_crossing.restype = real
-diag_orb_check_plane_crossing.argtypes = [real, real, real]
-diag_orb_check_radial_crossing = _libraries['libascot.so'].diag_orb_check_radial_crossing
-diag_orb_check_radial_crossing.restype = real
-diag_orb_check_radial_crossing.argtypes = [real, real, real]
+try:
+    dist_COM_init = _libraries['libascot.so'].dist_COM_init
+    dist_COM_init.restype = ctypes.c_int32
+    dist_COM_init.argtypes = [ctypes.POINTER(struct_c__SA_dist_COM_data)]
+except AttributeError:
+    pass
+try:
+    dist_COM_free = _libraries['libascot.so'].dist_COM_free
+    dist_COM_free.restype = None
+    dist_COM_free.argtypes = [ctypes.POINTER(struct_c__SA_dist_COM_data)]
+except AttributeError:
+    pass
+try:
+    dist_COM_offload = _libraries['libascot.so'].dist_COM_offload
+    dist_COM_offload.restype = None
+    dist_COM_offload.argtypes = [ctypes.POINTER(struct_c__SA_dist_COM_data)]
+except AttributeError:
+    pass
+try:
+    dist_COM_onload = _libraries['libascot.so'].dist_COM_onload
+    dist_COM_onload.restype = None
+    dist_COM_onload.argtypes = [ctypes.POINTER(struct_c__SA_dist_COM_data)]
+except AttributeError:
+    pass
+try:
+    dist_COM_update_fo = _libraries['libascot.so'].dist_COM_update_fo
+    dist_COM_update_fo.restype = None
+    dist_COM_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_dist_COM_data), ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
+except AttributeError:
+    pass
+try:
+    dist_COM_update_gc = _libraries['libascot.so'].dist_COM_update_gc
+    dist_COM_update_gc.restype = None
+    dist_COM_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_dist_COM_data), ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
+except AttributeError:
+    pass
+try:
+    diag_orb_check_plane_crossing = _libraries['libascot.so'].diag_orb_check_plane_crossing
+    diag_orb_check_plane_crossing.restype = real
+    diag_orb_check_plane_crossing.argtypes = [real, real, real]
+except AttributeError:
+    pass
+try:
+    diag_orb_check_radial_crossing = _libraries['libascot.so'].diag_orb_check_radial_crossing
+    diag_orb_check_radial_crossing.restype = real
+    diag_orb_check_radial_crossing.argtypes = [real, real, real]
+except AttributeError:
+    pass
 class struct_c__SA_diag_orb_data(Structure):
     pass
 
@@ -1256,21 +1642,36 @@ struct_c__SA_diag_orb_data._fields_ = [
 ]
 
 diag_orb_data = struct_c__SA_diag_orb_data
-diag_orb_init = _libraries['libascot.so'].diag_orb_init
-diag_orb_init.restype = None
-diag_orb_init.argtypes = [ctypes.POINTER(struct_c__SA_diag_orb_data)]
-diag_orb_free = _libraries['libascot.so'].diag_orb_free
-diag_orb_free.restype = None
-diag_orb_free.argtypes = [ctypes.POINTER(struct_c__SA_diag_orb_data)]
-diag_orb_update_fo = _libraries['libascot.so'].diag_orb_update_fo
-diag_orb_update_fo.restype = None
-diag_orb_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_diag_orb_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
-diag_orb_update_gc = _libraries['libascot.so'].diag_orb_update_gc
-diag_orb_update_gc.restype = None
-diag_orb_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_diag_orb_data), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
-diag_orb_update_ml = _libraries['libascot.so'].diag_orb_update_ml
-diag_orb_update_ml.restype = None
-diag_orb_update_ml.argtypes = [ctypes.POINTER(struct_c__SA_diag_orb_data), ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.POINTER(struct_c__SA_particle_simd_ml)]
+try:
+    diag_orb_init = _libraries['libascot.so'].diag_orb_init
+    diag_orb_init.restype = None
+    diag_orb_init.argtypes = [ctypes.POINTER(struct_c__SA_diag_orb_data)]
+except AttributeError:
+    pass
+try:
+    diag_orb_free = _libraries['libascot.so'].diag_orb_free
+    diag_orb_free.restype = None
+    diag_orb_free.argtypes = [ctypes.POINTER(struct_c__SA_diag_orb_data)]
+except AttributeError:
+    pass
+try:
+    diag_orb_update_fo = _libraries['libascot.so'].diag_orb_update_fo
+    diag_orb_update_fo.restype = None
+    diag_orb_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_diag_orb_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
+except AttributeError:
+    pass
+try:
+    diag_orb_update_gc = _libraries['libascot.so'].diag_orb_update_gc
+    diag_orb_update_gc.restype = None
+    diag_orb_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_diag_orb_data), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
+except AttributeError:
+    pass
+try:
+    diag_orb_update_ml = _libraries['libascot.so'].diag_orb_update_ml
+    diag_orb_update_ml.restype = None
+    diag_orb_update_ml.argtypes = [ctypes.POINTER(struct_c__SA_diag_orb_data), ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.POINTER(struct_c__SA_particle_simd_ml)]
+except AttributeError:
+    pass
 class struct_diag_transcoef_link(Structure):
     pass
 
@@ -1300,21 +1701,36 @@ struct_c__SA_diag_transcoef_data._fields_ = [
 ]
 
 diag_transcoef_data = struct_c__SA_diag_transcoef_data
-diag_transcoef_init = _libraries['libascot.so'].diag_transcoef_init
-diag_transcoef_init.restype = None
-diag_transcoef_init.argtypes = [ctypes.POINTER(struct_c__SA_diag_transcoef_data)]
-diag_transcoef_free = _libraries['libascot.so'].diag_transcoef_free
-diag_transcoef_free.restype = None
-diag_transcoef_free.argtypes = [ctypes.POINTER(struct_c__SA_diag_transcoef_data)]
-diag_transcoef_update_fo = _libraries['libascot.so'].diag_transcoef_update_fo
-diag_transcoef_update_fo.restype = None
-diag_transcoef_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_diag_transcoef_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
-diag_transcoef_update_gc = _libraries['libascot.so'].diag_transcoef_update_gc
-diag_transcoef_update_gc.restype = None
-diag_transcoef_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_diag_transcoef_data), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
-diag_transcoef_update_ml = _libraries['libascot.so'].diag_transcoef_update_ml
-diag_transcoef_update_ml.restype = None
-diag_transcoef_update_ml.argtypes = [ctypes.POINTER(struct_c__SA_diag_transcoef_data), ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.POINTER(struct_c__SA_particle_simd_ml)]
+try:
+    diag_transcoef_init = _libraries['libascot.so'].diag_transcoef_init
+    diag_transcoef_init.restype = None
+    diag_transcoef_init.argtypes = [ctypes.POINTER(struct_c__SA_diag_transcoef_data)]
+except AttributeError:
+    pass
+try:
+    diag_transcoef_free = _libraries['libascot.so'].diag_transcoef_free
+    diag_transcoef_free.restype = None
+    diag_transcoef_free.argtypes = [ctypes.POINTER(struct_c__SA_diag_transcoef_data)]
+except AttributeError:
+    pass
+try:
+    diag_transcoef_update_fo = _libraries['libascot.so'].diag_transcoef_update_fo
+    diag_transcoef_update_fo.restype = None
+    diag_transcoef_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_diag_transcoef_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
+except AttributeError:
+    pass
+try:
+    diag_transcoef_update_gc = _libraries['libascot.so'].diag_transcoef_update_gc
+    diag_transcoef_update_gc.restype = None
+    diag_transcoef_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_diag_transcoef_data), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
+except AttributeError:
+    pass
+try:
+    diag_transcoef_update_ml = _libraries['libascot.so'].diag_transcoef_update_ml
+    diag_transcoef_update_ml.restype = None
+    diag_transcoef_update_ml.argtypes = [ctypes.POINTER(struct_c__SA_diag_transcoef_data), ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.POINTER(struct_c__SA_particle_simd_ml)]
+except AttributeError:
+    pass
 class struct_c__SA_diag_data(Structure):
     pass
 
@@ -1338,45 +1754,90 @@ struct_c__SA_diag_data._fields_ = [
 ]
 
 diag_data = struct_c__SA_diag_data
-diag_init = _libraries['libascot.so'].diag_init
-diag_init.restype = ctypes.c_int32
-diag_init.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.c_int32]
-diag_free = _libraries['libascot.so'].diag_free
-diag_free.restype = None
-diag_free.argtypes = [ctypes.POINTER(struct_c__SA_diag_data)]
-diag_offload = _libraries['libascot.so'].diag_offload
-diag_offload.restype = None
-diag_offload.argtypes = [ctypes.POINTER(struct_c__SA_diag_data)]
-diag_sum = _libraries['libascot.so'].diag_sum
-diag_sum.restype = None
-diag_sum.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.POINTER(struct_c__SA_diag_data)]
-diag_update_fo = _libraries['libascot.so'].diag_update_fo
-diag_update_fo.restype = None
-diag_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
-diag_update_gc = _libraries['libascot.so'].diag_update_gc
-diag_update_gc.restype = None
-diag_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
-diag_update_ml = _libraries['libascot.so'].diag_update_ml
-diag_update_ml.restype = None
-diag_update_ml.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.POINTER(struct_c__SA_particle_simd_ml)]
-mpi_interface_barrier = _libraries['libascot.so'].mpi_interface_barrier
-mpi_interface_barrier.restype = None
-mpi_interface_barrier.argtypes = []
-mpi_interface_init = _libraries['libascot.so'].mpi_interface_init
-mpi_interface_init.restype = None
-mpi_interface_init.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.POINTER(ctypes.c_char)), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32)]
-mpi_interface_finalize = _libraries['libascot.so'].mpi_interface_finalize
-mpi_interface_finalize.restype = None
-mpi_interface_finalize.argtypes = [ctypes.c_int32]
-mpi_my_particles = _libraries['libascot.so'].mpi_my_particles
-mpi_my_particles.restype = None
-mpi_my_particles.argtypes = [ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32]
-mpi_gather_particlestate = _libraries['libascot.so'].mpi_gather_particlestate
-mpi_gather_particlestate.restype = None
-mpi_gather_particlestate.argtypes = [ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(ctypes.POINTER(struct_c__SA_particle_state)), ctypes.POINTER(ctypes.c_int32), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32]
-mpi_gather_diag = _libraries['libascot.so'].mpi_gather_diag
-mpi_gather_diag.restype = None
-mpi_gather_diag.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32]
+try:
+    diag_init = _libraries['libascot.so'].diag_init
+    diag_init.restype = ctypes.c_int32
+    diag_init.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.c_int32]
+except AttributeError:
+    pass
+try:
+    diag_free = _libraries['libascot.so'].diag_free
+    diag_free.restype = None
+    diag_free.argtypes = [ctypes.POINTER(struct_c__SA_diag_data)]
+except AttributeError:
+    pass
+try:
+    diag_offload = _libraries['libascot.so'].diag_offload
+    diag_offload.restype = None
+    diag_offload.argtypes = [ctypes.POINTER(struct_c__SA_diag_data)]
+except AttributeError:
+    pass
+try:
+    diag_onload = _libraries['libascot.so'].diag_onload
+    diag_onload.restype = None
+    diag_onload.argtypes = [ctypes.POINTER(struct_c__SA_diag_data)]
+except AttributeError:
+    pass
+try:
+    diag_sum = _libraries['libascot.so'].diag_sum
+    diag_sum.restype = None
+    diag_sum.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.POINTER(struct_c__SA_diag_data)]
+except AttributeError:
+    pass
+try:
+    diag_update_fo = _libraries['libascot.so'].diag_update_fo
+    diag_update_fo.restype = None
+    diag_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
+except AttributeError:
+    pass
+try:
+    diag_update_gc = _libraries['libascot.so'].diag_update_gc
+    diag_update_gc.restype = None
+    diag_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
+except AttributeError:
+    pass
+try:
+    diag_update_ml = _libraries['libascot.so'].diag_update_ml
+    diag_update_ml.restype = None
+    diag_update_ml.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.POINTER(struct_c__SA_particle_simd_ml)]
+except AttributeError:
+    pass
+try:
+    mpi_interface_barrier = _libraries['libascot.so'].mpi_interface_barrier
+    mpi_interface_barrier.restype = None
+    mpi_interface_barrier.argtypes = []
+except AttributeError:
+    pass
+try:
+    mpi_interface_init = _libraries['libascot.so'].mpi_interface_init
+    mpi_interface_init.restype = None
+    mpi_interface_init.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.POINTER(ctypes.c_char)), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32)]
+except AttributeError:
+    pass
+try:
+    mpi_interface_finalize = _libraries['libascot.so'].mpi_interface_finalize
+    mpi_interface_finalize.restype = None
+    mpi_interface_finalize.argtypes = [ctypes.c_int32]
+except AttributeError:
+    pass
+try:
+    mpi_my_particles = _libraries['libascot.so'].mpi_my_particles
+    mpi_my_particles.restype = None
+    mpi_my_particles.argtypes = [ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32]
+except AttributeError:
+    pass
+try:
+    mpi_gather_particlestate = _libraries['libascot.so'].mpi_gather_particlestate
+    mpi_gather_particlestate.restype = None
+    mpi_gather_particlestate.argtypes = [ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(ctypes.POINTER(struct_c__SA_particle_state)), ctypes.POINTER(ctypes.c_int32), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32]
+except AttributeError:
+    pass
+try:
+    mpi_gather_diag = _libraries['libascot.so'].mpi_gather_diag
+    mpi_gather_diag.restype = None
+    mpi_gather_diag.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32]
+except AttributeError:
+    pass
 class struct_c__SA_plasma_1D_data(Structure):
     pass
 
@@ -1395,27 +1856,48 @@ struct_c__SA_plasma_1D_data._fields_ = [
 ]
 
 plasma_1D_data = struct_c__SA_plasma_1D_data
-plasma_1D_init = _libraries['libascot.so'].plasma_1D_init
-plasma_1D_init.restype = ctypes.c_int32
-plasma_1D_init.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1D_data), ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
-plasma_1D_free = _libraries['libascot.so'].plasma_1D_free
-plasma_1D_free.restype = None
-plasma_1D_free.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1D_data)]
-plasma_1D_offload = _libraries['libascot.so'].plasma_1D_offload
-plasma_1D_offload.restype = None
-plasma_1D_offload.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1D_data)]
-plasma_1D_eval_temp = _libraries['libascot.so'].plasma_1D_eval_temp
-plasma_1D_eval_temp.restype = a5err
-plasma_1D_eval_temp.argtypes = [ctypes.POINTER(ctypes.c_double), real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_1D_data)]
-plasma_1D_eval_dens = _libraries['libascot.so'].plasma_1D_eval_dens
-plasma_1D_eval_dens.restype = a5err
-plasma_1D_eval_dens.argtypes = [ctypes.POINTER(ctypes.c_double), real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_1D_data)]
-plasma_1D_eval_densandtemp = _libraries['libascot.so'].plasma_1D_eval_densandtemp
-plasma_1D_eval_densandtemp.restype = a5err
-plasma_1D_eval_densandtemp.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), real, ctypes.POINTER(struct_c__SA_plasma_1D_data)]
-plasma_1D_eval_flow = _libraries['libascot.so'].plasma_1D_eval_flow
-plasma_1D_eval_flow.restype = a5err
-plasma_1D_eval_flow.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, ctypes.POINTER(struct_c__SA_plasma_1D_data)]
+try:
+    plasma_1D_init = _libraries['libascot.so'].plasma_1D_init
+    plasma_1D_init.restype = ctypes.c_int32
+    plasma_1D_init.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1D_data), ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    plasma_1D_free = _libraries['libascot.so'].plasma_1D_free
+    plasma_1D_free.restype = None
+    plasma_1D_free.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1D_data)]
+except AttributeError:
+    pass
+try:
+    plasma_1D_offload = _libraries['libascot.so'].plasma_1D_offload
+    plasma_1D_offload.restype = None
+    plasma_1D_offload.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1D_data)]
+except AttributeError:
+    pass
+try:
+    plasma_1D_eval_temp = _libraries['libascot.so'].plasma_1D_eval_temp
+    plasma_1D_eval_temp.restype = a5err
+    plasma_1D_eval_temp.argtypes = [ctypes.POINTER(ctypes.c_double), real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_1D_data)]
+except AttributeError:
+    pass
+try:
+    plasma_1D_eval_dens = _libraries['libascot.so'].plasma_1D_eval_dens
+    plasma_1D_eval_dens.restype = a5err
+    plasma_1D_eval_dens.argtypes = [ctypes.POINTER(ctypes.c_double), real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_1D_data)]
+except AttributeError:
+    pass
+try:
+    plasma_1D_eval_densandtemp = _libraries['libascot.so'].plasma_1D_eval_densandtemp
+    plasma_1D_eval_densandtemp.restype = a5err
+    plasma_1D_eval_densandtemp.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), real, ctypes.POINTER(struct_c__SA_plasma_1D_data)]
+except AttributeError:
+    pass
+try:
+    plasma_1D_eval_flow = _libraries['libascot.so'].plasma_1D_eval_flow
+    plasma_1D_eval_flow.restype = a5err
+    plasma_1D_eval_flow.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, ctypes.POINTER(struct_c__SA_plasma_1D_data)]
+except AttributeError:
+    pass
 class struct_c__SA_plasma_1Dt_data(Structure):
     pass
 
@@ -1437,27 +1919,48 @@ struct_c__SA_plasma_1Dt_data._fields_ = [
 ]
 
 plasma_1Dt_data = struct_c__SA_plasma_1Dt_data
-plasma_1Dt_init = _libraries['libascot.so'].plasma_1Dt_init
-plasma_1Dt_init.restype = ctypes.c_int32
-plasma_1Dt_init.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1Dt_data), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
-plasma_1Dt_free = _libraries['libascot.so'].plasma_1Dt_free
-plasma_1Dt_free.restype = None
-plasma_1Dt_free.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1Dt_data)]
-plasma_1Dt_offload = _libraries['libascot.so'].plasma_1Dt_offload
-plasma_1Dt_offload.restype = None
-plasma_1Dt_offload.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1Dt_data)]
-plasma_1Dt_eval_temp = _libraries['libascot.so'].plasma_1Dt_eval_temp
-plasma_1Dt_eval_temp.restype = a5err
-plasma_1Dt_eval_temp.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_1Dt_data)]
-plasma_1Dt_eval_dens = _libraries['libascot.so'].plasma_1Dt_eval_dens
-plasma_1Dt_eval_dens.restype = a5err
-plasma_1Dt_eval_dens.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_1Dt_data)]
-plasma_1Dt_eval_densandtemp = _libraries['libascot.so'].plasma_1Dt_eval_densandtemp
-plasma_1Dt_eval_densandtemp.restype = a5err
-plasma_1Dt_eval_densandtemp.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), real, real, ctypes.POINTER(struct_c__SA_plasma_1Dt_data)]
-plasma_1Dt_eval_flow = _libraries['libascot.so'].plasma_1Dt_eval_flow
-plasma_1Dt_eval_flow.restype = a5err
-plasma_1Dt_eval_flow.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_plasma_1Dt_data)]
+try:
+    plasma_1Dt_init = _libraries['libascot.so'].plasma_1Dt_init
+    plasma_1Dt_init.restype = ctypes.c_int32
+    plasma_1Dt_init.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1Dt_data), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    plasma_1Dt_free = _libraries['libascot.so'].plasma_1Dt_free
+    plasma_1Dt_free.restype = None
+    plasma_1Dt_free.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1Dt_data)]
+except AttributeError:
+    pass
+try:
+    plasma_1Dt_offload = _libraries['libascot.so'].plasma_1Dt_offload
+    plasma_1Dt_offload.restype = None
+    plasma_1Dt_offload.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1Dt_data)]
+except AttributeError:
+    pass
+try:
+    plasma_1Dt_eval_temp = _libraries['libascot.so'].plasma_1Dt_eval_temp
+    plasma_1Dt_eval_temp.restype = a5err
+    plasma_1Dt_eval_temp.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_1Dt_data)]
+except AttributeError:
+    pass
+try:
+    plasma_1Dt_eval_dens = _libraries['libascot.so'].plasma_1Dt_eval_dens
+    plasma_1Dt_eval_dens.restype = a5err
+    plasma_1Dt_eval_dens.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_1Dt_data)]
+except AttributeError:
+    pass
+try:
+    plasma_1Dt_eval_densandtemp = _libraries['libascot.so'].plasma_1Dt_eval_densandtemp
+    plasma_1Dt_eval_densandtemp.restype = a5err
+    plasma_1Dt_eval_densandtemp.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), real, real, ctypes.POINTER(struct_c__SA_plasma_1Dt_data)]
+except AttributeError:
+    pass
+try:
+    plasma_1Dt_eval_flow = _libraries['libascot.so'].plasma_1Dt_eval_flow
+    plasma_1Dt_eval_flow.restype = a5err
+    plasma_1Dt_eval_flow.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_plasma_1Dt_data)]
+except AttributeError:
+    pass
 class struct_c__SA_plasma_1DS_data(Structure):
     pass
 
@@ -1475,27 +1978,48 @@ struct_c__SA_plasma_1DS_data._fields_ = [
 ]
 
 plasma_1DS_data = struct_c__SA_plasma_1DS_data
-plasma_1DS_init = _libraries['libascot.so'].plasma_1DS_init
-plasma_1DS_init.restype = ctypes.c_int32
-plasma_1DS_init.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1DS_data), ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
-plasma_1DS_free = _libraries['libascot.so'].plasma_1DS_free
-plasma_1DS_free.restype = None
-plasma_1DS_free.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1DS_data)]
-plasma_1DS_offload = _libraries['libascot.so'].plasma_1DS_offload
-plasma_1DS_offload.restype = None
-plasma_1DS_offload.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1DS_data)]
-plasma_1DS_eval_temp = _libraries['libascot.so'].plasma_1DS_eval_temp
-plasma_1DS_eval_temp.restype = a5err
-plasma_1DS_eval_temp.argtypes = [ctypes.POINTER(ctypes.c_double), real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_1DS_data)]
-plasma_1DS_eval_dens = _libraries['libascot.so'].plasma_1DS_eval_dens
-plasma_1DS_eval_dens.restype = a5err
-plasma_1DS_eval_dens.argtypes = [ctypes.POINTER(ctypes.c_double), real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_1DS_data)]
-plasma_1DS_eval_densandtemp = _libraries['libascot.so'].plasma_1DS_eval_densandtemp
-plasma_1DS_eval_densandtemp.restype = a5err
-plasma_1DS_eval_densandtemp.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), real, ctypes.POINTER(struct_c__SA_plasma_1DS_data)]
-plasma_1DS_eval_flow = _libraries['libascot.so'].plasma_1DS_eval_flow
-plasma_1DS_eval_flow.restype = a5err
-plasma_1DS_eval_flow.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, ctypes.POINTER(struct_c__SA_plasma_1DS_data)]
+try:
+    plasma_1DS_init = _libraries['libascot.so'].plasma_1DS_init
+    plasma_1DS_init.restype = ctypes.c_int32
+    plasma_1DS_init.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1DS_data), ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    plasma_1DS_free = _libraries['libascot.so'].plasma_1DS_free
+    plasma_1DS_free.restype = None
+    plasma_1DS_free.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1DS_data)]
+except AttributeError:
+    pass
+try:
+    plasma_1DS_offload = _libraries['libascot.so'].plasma_1DS_offload
+    plasma_1DS_offload.restype = None
+    plasma_1DS_offload.argtypes = [ctypes.POINTER(struct_c__SA_plasma_1DS_data)]
+except AttributeError:
+    pass
+try:
+    plasma_1DS_eval_temp = _libraries['libascot.so'].plasma_1DS_eval_temp
+    plasma_1DS_eval_temp.restype = a5err
+    plasma_1DS_eval_temp.argtypes = [ctypes.POINTER(ctypes.c_double), real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_1DS_data)]
+except AttributeError:
+    pass
+try:
+    plasma_1DS_eval_dens = _libraries['libascot.so'].plasma_1DS_eval_dens
+    plasma_1DS_eval_dens.restype = a5err
+    plasma_1DS_eval_dens.argtypes = [ctypes.POINTER(ctypes.c_double), real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_1DS_data)]
+except AttributeError:
+    pass
+try:
+    plasma_1DS_eval_densandtemp = _libraries['libascot.so'].plasma_1DS_eval_densandtemp
+    plasma_1DS_eval_densandtemp.restype = a5err
+    plasma_1DS_eval_densandtemp.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), real, ctypes.POINTER(struct_c__SA_plasma_1DS_data)]
+except AttributeError:
+    pass
+try:
+    plasma_1DS_eval_flow = _libraries['libascot.so'].plasma_1DS_eval_flow
+    plasma_1DS_eval_flow.restype = a5err
+    plasma_1DS_eval_flow.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, ctypes.POINTER(struct_c__SA_plasma_1DS_data)]
+except AttributeError:
+    pass
 
 # values for enumeration 'plasma_type'
 plasma_type__enumvalues = {
@@ -1520,39 +2044,72 @@ struct_c__SA_plasma_data._fields_ = [
 ]
 
 plasma_data = struct_c__SA_plasma_data
-plasma_free = _libraries['libascot.so'].plasma_free
-plasma_free.restype = None
-plasma_free.argtypes = [ctypes.POINTER(struct_c__SA_plasma_data)]
-plasma_offload = _libraries['libascot.so'].plasma_offload
-plasma_offload.restype = None
-plasma_offload.argtypes = [ctypes.POINTER(struct_c__SA_plasma_data)]
-plasma_eval_temp = _libraries['libascot.so'].plasma_eval_temp
-plasma_eval_temp.restype = a5err
-plasma_eval_temp.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_data)]
-plasma_eval_dens = _libraries['libascot.so'].plasma_eval_dens
-plasma_eval_dens.restype = a5err
-plasma_eval_dens.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_data)]
-plasma_eval_densandtemp = _libraries['libascot.so'].plasma_eval_densandtemp
-plasma_eval_densandtemp.restype = a5err
-plasma_eval_densandtemp.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), real, real, real, real, real, ctypes.POINTER(struct_c__SA_plasma_data)]
-plasma_eval_flow = _libraries['libascot.so'].plasma_eval_flow
-plasma_eval_flow.restype = a5err
-plasma_eval_flow.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, real, real, ctypes.POINTER(struct_c__SA_plasma_data)]
-plasma_get_n_species = _libraries['libascot.so'].plasma_get_n_species
-plasma_get_n_species.restype = ctypes.c_int32
-plasma_get_n_species.argtypes = [ctypes.POINTER(struct_c__SA_plasma_data)]
-plasma_get_species_mass = _libraries['libascot.so'].plasma_get_species_mass
-plasma_get_species_mass.restype = ctypes.POINTER(ctypes.c_double)
-plasma_get_species_mass.argtypes = [ctypes.POINTER(struct_c__SA_plasma_data)]
-plasma_get_species_charge = _libraries['libascot.so'].plasma_get_species_charge
-plasma_get_species_charge.restype = ctypes.POINTER(ctypes.c_double)
-plasma_get_species_charge.argtypes = [ctypes.POINTER(struct_c__SA_plasma_data)]
-plasma_get_species_znum = _libraries['libascot.so'].plasma_get_species_znum
-plasma_get_species_znum.restype = ctypes.POINTER(ctypes.c_int32)
-plasma_get_species_znum.argtypes = [ctypes.POINTER(struct_c__SA_plasma_data)]
-plasma_get_species_anum = _libraries['libascot.so'].plasma_get_species_anum
-plasma_get_species_anum.restype = ctypes.POINTER(ctypes.c_int32)
-plasma_get_species_anum.argtypes = [ctypes.POINTER(struct_c__SA_plasma_data)]
+try:
+    plasma_free = _libraries['libascot.so'].plasma_free
+    plasma_free.restype = None
+    plasma_free.argtypes = [ctypes.POINTER(struct_c__SA_plasma_data)]
+except AttributeError:
+    pass
+try:
+    plasma_offload = _libraries['libascot.so'].plasma_offload
+    plasma_offload.restype = None
+    plasma_offload.argtypes = [ctypes.POINTER(struct_c__SA_plasma_data)]
+except AttributeError:
+    pass
+try:
+    plasma_eval_temp = _libraries['libascot.so'].plasma_eval_temp
+    plasma_eval_temp.restype = a5err
+    plasma_eval_temp.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_data)]
+except AttributeError:
+    pass
+try:
+    plasma_eval_dens = _libraries['libascot.so'].plasma_eval_dens
+    plasma_eval_dens.restype = a5err
+    plasma_eval_dens.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_plasma_data)]
+except AttributeError:
+    pass
+try:
+    plasma_eval_densandtemp = _libraries['libascot.so'].plasma_eval_densandtemp
+    plasma_eval_densandtemp.restype = a5err
+    plasma_eval_densandtemp.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), real, real, real, real, real, ctypes.POINTER(struct_c__SA_plasma_data)]
+except AttributeError:
+    pass
+try:
+    plasma_eval_flow = _libraries['libascot.so'].plasma_eval_flow
+    plasma_eval_flow.restype = a5err
+    plasma_eval_flow.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, real, real, ctypes.POINTER(struct_c__SA_plasma_data)]
+except AttributeError:
+    pass
+try:
+    plasma_get_n_species = _libraries['libascot.so'].plasma_get_n_species
+    plasma_get_n_species.restype = ctypes.c_int32
+    plasma_get_n_species.argtypes = [ctypes.POINTER(struct_c__SA_plasma_data)]
+except AttributeError:
+    pass
+try:
+    plasma_get_species_mass = _libraries['libascot.so'].plasma_get_species_mass
+    plasma_get_species_mass.restype = ctypes.POINTER(ctypes.c_double)
+    plasma_get_species_mass.argtypes = [ctypes.POINTER(struct_c__SA_plasma_data)]
+except AttributeError:
+    pass
+try:
+    plasma_get_species_charge = _libraries['libascot.so'].plasma_get_species_charge
+    plasma_get_species_charge.restype = ctypes.POINTER(ctypes.c_double)
+    plasma_get_species_charge.argtypes = [ctypes.POINTER(struct_c__SA_plasma_data)]
+except AttributeError:
+    pass
+try:
+    plasma_get_species_znum = _libraries['libascot.so'].plasma_get_species_znum
+    plasma_get_species_znum.restype = ctypes.POINTER(ctypes.c_int32)
+    plasma_get_species_znum.argtypes = [ctypes.POINTER(struct_c__SA_plasma_data)]
+except AttributeError:
+    pass
+try:
+    plasma_get_species_anum = _libraries['libascot.so'].plasma_get_species_anum
+    plasma_get_species_anum.restype = ctypes.POINTER(ctypes.c_int32)
+    plasma_get_species_anum.argtypes = [ctypes.POINTER(struct_c__SA_plasma_data)]
+except AttributeError:
+    pass
 class struct_c__SA_N0_1D_data(Structure):
     pass
 
@@ -1568,24 +2125,42 @@ struct_c__SA_N0_1D_data._fields_ = [
 ]
 
 N0_1D_data = struct_c__SA_N0_1D_data
-N0_1D_init = _libraries['libascot.so'].N0_1D_init
-N0_1D_init.restype = ctypes.c_int32
-N0_1D_init.argtypes = [ctypes.POINTER(struct_c__SA_N0_1D_data), ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
-N0_1D_free = _libraries['libascot.so'].N0_1D_free
-N0_1D_free.restype = None
-N0_1D_free.argtypes = [ctypes.POINTER(struct_c__SA_N0_1D_data)]
-N0_1D_offload = _libraries['libascot.so'].N0_1D_offload
-N0_1D_offload.restype = None
-N0_1D_offload.argtypes = [ctypes.POINTER(struct_c__SA_N0_1D_data)]
-N0_1D_eval_n0 = _libraries['libascot.so'].N0_1D_eval_n0
-N0_1D_eval_n0.restype = a5err
-N0_1D_eval_n0.argtypes = [ctypes.POINTER(ctypes.c_double), real, ctypes.POINTER(struct_c__SA_N0_1D_data)]
-N0_1D_eval_t0 = _libraries['libascot.so'].N0_1D_eval_t0
-N0_1D_eval_t0.restype = a5err
-N0_1D_eval_t0.argtypes = [ctypes.POINTER(ctypes.c_double), real, ctypes.POINTER(struct_c__SA_N0_1D_data)]
-N0_1D_get_n_species = _libraries['libascot.so'].N0_1D_get_n_species
-N0_1D_get_n_species.restype = ctypes.c_int32
-N0_1D_get_n_species.argtypes = [ctypes.POINTER(struct_c__SA_N0_1D_data)]
+try:
+    N0_1D_init = _libraries['libascot.so'].N0_1D_init
+    N0_1D_init.restype = ctypes.c_int32
+    N0_1D_init.argtypes = [ctypes.POINTER(struct_c__SA_N0_1D_data), ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    N0_1D_free = _libraries['libascot.so'].N0_1D_free
+    N0_1D_free.restype = None
+    N0_1D_free.argtypes = [ctypes.POINTER(struct_c__SA_N0_1D_data)]
+except AttributeError:
+    pass
+try:
+    N0_1D_offload = _libraries['libascot.so'].N0_1D_offload
+    N0_1D_offload.restype = None
+    N0_1D_offload.argtypes = [ctypes.POINTER(struct_c__SA_N0_1D_data)]
+except AttributeError:
+    pass
+try:
+    N0_1D_eval_n0 = _libraries['libascot.so'].N0_1D_eval_n0
+    N0_1D_eval_n0.restype = a5err
+    N0_1D_eval_n0.argtypes = [ctypes.POINTER(ctypes.c_double), real, ctypes.POINTER(struct_c__SA_N0_1D_data)]
+except AttributeError:
+    pass
+try:
+    N0_1D_eval_t0 = _libraries['libascot.so'].N0_1D_eval_t0
+    N0_1D_eval_t0.restype = a5err
+    N0_1D_eval_t0.argtypes = [ctypes.POINTER(ctypes.c_double), real, ctypes.POINTER(struct_c__SA_N0_1D_data)]
+except AttributeError:
+    pass
+try:
+    N0_1D_get_n_species = _libraries['libascot.so'].N0_1D_get_n_species
+    N0_1D_get_n_species.restype = ctypes.c_int32
+    N0_1D_get_n_species.argtypes = [ctypes.POINTER(struct_c__SA_N0_1D_data)]
+except AttributeError:
+    pass
 class struct_c__SA_N0_3D_data(Structure):
     pass
 
@@ -1624,24 +2199,42 @@ struct_c__SA_linint3D_data._fields_ = [
 ]
 
 N0_3D_data = struct_c__SA_N0_3D_data
-N0_3D_init = _libraries['libascot.so'].N0_3D_init
-N0_3D_init.restype = ctypes.c_int32
-N0_3D_init.argtypes = [ctypes.POINTER(struct_c__SA_N0_3D_data), ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
-N0_3D_free = _libraries['libascot.so'].N0_3D_free
-N0_3D_free.restype = None
-N0_3D_free.argtypes = [ctypes.POINTER(struct_c__SA_N0_3D_data)]
-N0_3D_offload = _libraries['libascot.so'].N0_3D_offload
-N0_3D_offload.restype = None
-N0_3D_offload.argtypes = [ctypes.POINTER(struct_c__SA_N0_3D_data)]
-N0_3D_eval_n0 = _libraries['libascot.so'].N0_3D_eval_n0
-N0_3D_eval_n0.restype = a5err
-N0_3D_eval_n0.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_N0_3D_data)]
-N0_3D_eval_t0 = _libraries['libascot.so'].N0_3D_eval_t0
-N0_3D_eval_t0.restype = a5err
-N0_3D_eval_t0.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_N0_3D_data)]
-N0_3D_get_n_species = _libraries['libascot.so'].N0_3D_get_n_species
-N0_3D_get_n_species.restype = ctypes.c_int32
-N0_3D_get_n_species.argtypes = [ctypes.POINTER(struct_c__SA_N0_3D_data)]
+try:
+    N0_3D_init = _libraries['libascot.so'].N0_3D_init
+    N0_3D_init.restype = ctypes.c_int32
+    N0_3D_init.argtypes = [ctypes.POINTER(struct_c__SA_N0_3D_data), ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    N0_3D_free = _libraries['libascot.so'].N0_3D_free
+    N0_3D_free.restype = None
+    N0_3D_free.argtypes = [ctypes.POINTER(struct_c__SA_N0_3D_data)]
+except AttributeError:
+    pass
+try:
+    N0_3D_offload = _libraries['libascot.so'].N0_3D_offload
+    N0_3D_offload.restype = None
+    N0_3D_offload.argtypes = [ctypes.POINTER(struct_c__SA_N0_3D_data)]
+except AttributeError:
+    pass
+try:
+    N0_3D_eval_n0 = _libraries['libascot.so'].N0_3D_eval_n0
+    N0_3D_eval_n0.restype = a5err
+    N0_3D_eval_n0.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_N0_3D_data)]
+except AttributeError:
+    pass
+try:
+    N0_3D_eval_t0 = _libraries['libascot.so'].N0_3D_eval_t0
+    N0_3D_eval_t0.restype = a5err
+    N0_3D_eval_t0.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, ctypes.POINTER(struct_c__SA_N0_3D_data)]
+except AttributeError:
+    pass
+try:
+    N0_3D_get_n_species = _libraries['libascot.so'].N0_3D_get_n_species
+    N0_3D_get_n_species.restype = ctypes.c_int32
+    N0_3D_get_n_species.argtypes = [ctypes.POINTER(struct_c__SA_N0_3D_data)]
+except AttributeError:
+    pass
 
 # values for enumeration 'neutral_type'
 neutral_type__enumvalues = {
@@ -1663,21 +2256,36 @@ struct_c__SA_neutral_data._fields_ = [
 ]
 
 neutral_data = struct_c__SA_neutral_data
-neutral_free = _libraries['libascot.so'].neutral_free
-neutral_free.restype = None
-neutral_free.argtypes = [ctypes.POINTER(struct_c__SA_neutral_data)]
-neutral_offload = _libraries['libascot.so'].neutral_offload
-neutral_offload.restype = None
-neutral_offload.argtypes = [ctypes.POINTER(struct_c__SA_neutral_data)]
-neutral_eval_n0 = _libraries['libascot.so'].neutral_eval_n0
-neutral_eval_n0.restype = a5err
-neutral_eval_n0.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, real, real, ctypes.POINTER(struct_c__SA_neutral_data)]
-neutral_eval_t0 = _libraries['libascot.so'].neutral_eval_t0
-neutral_eval_t0.restype = a5err
-neutral_eval_t0.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, real, real, ctypes.POINTER(struct_c__SA_neutral_data)]
-neutral_get_n_species = _libraries['libascot.so'].neutral_get_n_species
-neutral_get_n_species.restype = ctypes.c_int32
-neutral_get_n_species.argtypes = [ctypes.POINTER(struct_c__SA_neutral_data)]
+try:
+    neutral_free = _libraries['libascot.so'].neutral_free
+    neutral_free.restype = None
+    neutral_free.argtypes = [ctypes.POINTER(struct_c__SA_neutral_data)]
+except AttributeError:
+    pass
+try:
+    neutral_offload = _libraries['libascot.so'].neutral_offload
+    neutral_offload.restype = None
+    neutral_offload.argtypes = [ctypes.POINTER(struct_c__SA_neutral_data)]
+except AttributeError:
+    pass
+try:
+    neutral_eval_n0 = _libraries['libascot.so'].neutral_eval_n0
+    neutral_eval_n0.restype = a5err
+    neutral_eval_n0.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, real, real, ctypes.POINTER(struct_c__SA_neutral_data)]
+except AttributeError:
+    pass
+try:
+    neutral_eval_t0 = _libraries['libascot.so'].neutral_eval_t0
+    neutral_eval_t0.restype = a5err
+    neutral_eval_t0.argtypes = [ctypes.POINTER(ctypes.c_double), real, real, real, real, real, ctypes.POINTER(struct_c__SA_neutral_data)]
+except AttributeError:
+    pass
+try:
+    neutral_get_n_species = _libraries['libascot.so'].neutral_get_n_species
+    neutral_get_n_species.restype = ctypes.c_int32
+    neutral_get_n_species.argtypes = [ctypes.POINTER(struct_c__SA_neutral_data)]
+except AttributeError:
+    pass
 class struct_c__SA_wall_2d_data(Structure):
     pass
 
@@ -1691,24 +2299,42 @@ struct_c__SA_wall_2d_data._fields_ = [
 ]
 
 wall_2d_data = struct_c__SA_wall_2d_data
-wall_2d_init = _libraries['libascot.so'].wall_2d_init
-wall_2d_init.restype = ctypes.c_int32
-wall_2d_init.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_data), ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32)]
-wall_2d_free = _libraries['libascot.so'].wall_2d_free
-wall_2d_free.restype = None
-wall_2d_free.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_data)]
-wall_2d_offload = _libraries['libascot.so'].wall_2d_offload
-wall_2d_offload.restype = None
-wall_2d_offload.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_data)]
-wall_2d_inside = _libraries['libascot.so'].wall_2d_inside
-wall_2d_inside.restype = ctypes.c_int32
-wall_2d_inside.argtypes = [real, real, ctypes.POINTER(struct_c__SA_wall_2d_data)]
-wall_2d_hit_wall = _libraries['libascot.so'].wall_2d_hit_wall
-wall_2d_hit_wall.restype = ctypes.c_int32
-wall_2d_hit_wall.argtypes = [real, real, real, real, real, real, ctypes.POINTER(struct_c__SA_wall_2d_data), ctypes.POINTER(ctypes.c_double)]
-wall_2d_find_intersection = _libraries['libascot.so'].wall_2d_find_intersection
-wall_2d_find_intersection.restype = ctypes.c_int32
-wall_2d_find_intersection.argtypes = [real, real, real, real, ctypes.POINTER(struct_c__SA_wall_2d_data), ctypes.POINTER(ctypes.c_double)]
+try:
+    wall_2d_init = _libraries['libascot.so'].wall_2d_init
+    wall_2d_init.restype = ctypes.c_int32
+    wall_2d_init.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_data), ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32)]
+except AttributeError:
+    pass
+try:
+    wall_2d_free = _libraries['libascot.so'].wall_2d_free
+    wall_2d_free.restype = None
+    wall_2d_free.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_data)]
+except AttributeError:
+    pass
+try:
+    wall_2d_offload = _libraries['libascot.so'].wall_2d_offload
+    wall_2d_offload.restype = None
+    wall_2d_offload.argtypes = [ctypes.POINTER(struct_c__SA_wall_2d_data)]
+except AttributeError:
+    pass
+try:
+    wall_2d_inside = _libraries['libascot.so'].wall_2d_inside
+    wall_2d_inside.restype = ctypes.c_int32
+    wall_2d_inside.argtypes = [real, real, ctypes.POINTER(struct_c__SA_wall_2d_data)]
+except AttributeError:
+    pass
+try:
+    wall_2d_hit_wall = _libraries['libascot.so'].wall_2d_hit_wall
+    wall_2d_hit_wall.restype = ctypes.c_int32
+    wall_2d_hit_wall.argtypes = [real, real, real, real, real, real, ctypes.POINTER(struct_c__SA_wall_2d_data), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    wall_2d_find_intersection = _libraries['libascot.so'].wall_2d_find_intersection
+    wall_2d_find_intersection.restype = ctypes.c_int32
+    wall_2d_find_intersection.argtypes = [real, real, real, real, ctypes.POINTER(struct_c__SA_wall_2d_data), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
 class struct_c__SA_wall_3d_data(Structure):
     pass
 
@@ -1735,33 +2361,60 @@ struct_c__SA_wall_3d_data._fields_ = [
 ]
 
 wall_3d_data = struct_c__SA_wall_3d_data
-wall_3d_init = _libraries['libascot.so'].wall_3d_init
-wall_3d_init.restype = ctypes.c_int32
-wall_3d_init.argtypes = [ctypes.POINTER(struct_c__SA_wall_3d_data), ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32)]
-wall_3d_free = _libraries['libascot.so'].wall_3d_free
-wall_3d_free.restype = None
-wall_3d_free.argtypes = [ctypes.POINTER(struct_c__SA_wall_3d_data)]
-wall_3d_offload = _libraries['libascot.so'].wall_3d_offload
-wall_3d_offload.restype = None
-wall_3d_offload.argtypes = [ctypes.POINTER(struct_c__SA_wall_3d_data)]
-wall_3d_hit_wall = _libraries['libascot.so'].wall_3d_hit_wall
-wall_3d_hit_wall.restype = ctypes.c_int32
-wall_3d_hit_wall.argtypes = [real, real, real, real, real, real, ctypes.POINTER(struct_c__SA_wall_3d_data), ctypes.POINTER(ctypes.c_double)]
-wall_3d_hit_wall_full = _libraries['libascot.so'].wall_3d_hit_wall_full
-wall_3d_hit_wall_full.restype = ctypes.c_int32
-wall_3d_hit_wall_full.argtypes = [real, real, real, real, real, real, ctypes.POINTER(struct_c__SA_wall_3d_data), ctypes.POINTER(ctypes.c_double)]
-wall_3d_tri_collision = _libraries['libascot.so'].wall_3d_tri_collision
-wall_3d_tri_collision.restype = ctypes.c_double
-wall_3d_tri_collision.argtypes = [ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3]
-wall_3d_init_tree = _libraries['libascot.so'].wall_3d_init_tree
-wall_3d_init_tree.restype = None
-wall_3d_init_tree.argtypes = [ctypes.POINTER(struct_c__SA_wall_3d_data), ctypes.POINTER(ctypes.c_double)]
-wall_3d_tri_in_cube = _libraries['libascot.so'].wall_3d_tri_in_cube
-wall_3d_tri_in_cube.restype = ctypes.c_int32
-wall_3d_tri_in_cube.argtypes = [ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3]
-wall_3d_quad_collision = _libraries['libascot.so'].wall_3d_quad_collision
-wall_3d_quad_collision.restype = ctypes.c_int32
-wall_3d_quad_collision.argtypes = [ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3]
+try:
+    wall_3d_init = _libraries['libascot.so'].wall_3d_init
+    wall_3d_init.restype = ctypes.c_int32
+    wall_3d_init.argtypes = [ctypes.POINTER(struct_c__SA_wall_3d_data), ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32)]
+except AttributeError:
+    pass
+try:
+    wall_3d_free = _libraries['libascot.so'].wall_3d_free
+    wall_3d_free.restype = None
+    wall_3d_free.argtypes = [ctypes.POINTER(struct_c__SA_wall_3d_data)]
+except AttributeError:
+    pass
+try:
+    wall_3d_offload = _libraries['libascot.so'].wall_3d_offload
+    wall_3d_offload.restype = None
+    wall_3d_offload.argtypes = [ctypes.POINTER(struct_c__SA_wall_3d_data)]
+except AttributeError:
+    pass
+try:
+    wall_3d_hit_wall = _libraries['libascot.so'].wall_3d_hit_wall
+    wall_3d_hit_wall.restype = ctypes.c_int32
+    wall_3d_hit_wall.argtypes = [real, real, real, real, real, real, ctypes.POINTER(struct_c__SA_wall_3d_data), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    wall_3d_hit_wall_full = _libraries['libascot.so'].wall_3d_hit_wall_full
+    wall_3d_hit_wall_full.restype = ctypes.c_int32
+    wall_3d_hit_wall_full.argtypes = [real, real, real, real, real, real, ctypes.POINTER(struct_c__SA_wall_3d_data), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    wall_3d_tri_collision = _libraries['libascot.so'].wall_3d_tri_collision
+    wall_3d_tri_collision.restype = ctypes.c_double
+    wall_3d_tri_collision.argtypes = [ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3]
+except AttributeError:
+    pass
+try:
+    wall_3d_init_tree = _libraries['libascot.so'].wall_3d_init_tree
+    wall_3d_init_tree.restype = None
+    wall_3d_init_tree.argtypes = [ctypes.POINTER(struct_c__SA_wall_3d_data), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    wall_3d_tri_in_cube = _libraries['libascot.so'].wall_3d_tri_in_cube
+    wall_3d_tri_in_cube.restype = ctypes.c_int32
+    wall_3d_tri_in_cube.argtypes = [ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3]
+except AttributeError:
+    pass
+try:
+    wall_3d_quad_collision = _libraries['libascot.so'].wall_3d_quad_collision
+    wall_3d_quad_collision.restype = ctypes.c_int32
+    wall_3d_quad_collision.argtypes = [ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3, ctypes.c_double * 3]
+except AttributeError:
+    pass
 
 # values for enumeration 'wall_type'
 wall_type__enumvalues = {
@@ -1783,21 +2436,36 @@ struct_c__SA_wall_data._fields_ = [
 ]
 
 wall_data = struct_c__SA_wall_data
-wall_free = _libraries['libascot.so'].wall_free
-wall_free.restype = None
-wall_free.argtypes = [ctypes.POINTER(struct_c__SA_wall_data)]
-wall_offload = _libraries['libascot.so'].wall_offload
-wall_offload.restype = None
-wall_offload.argtypes = [ctypes.POINTER(struct_c__SA_wall_data)]
-wall_hit_wall = _libraries['libascot.so'].wall_hit_wall
-wall_hit_wall.restype = ctypes.c_int32
-wall_hit_wall.argtypes = [real, real, real, real, real, real, ctypes.POINTER(struct_c__SA_wall_data), ctypes.POINTER(ctypes.c_double)]
-wall_get_n_elements = _libraries['libascot.so'].wall_get_n_elements
-wall_get_n_elements.restype = ctypes.c_int32
-wall_get_n_elements.argtypes = [ctypes.POINTER(struct_c__SA_wall_data)]
-wall_get_flag = _libraries['libascot.so'].wall_get_flag
-wall_get_flag.restype = ctypes.c_int32
-wall_get_flag.argtypes = [ctypes.POINTER(struct_c__SA_wall_data), ctypes.c_int32]
+try:
+    wall_free = _libraries['libascot.so'].wall_free
+    wall_free.restype = None
+    wall_free.argtypes = [ctypes.POINTER(struct_c__SA_wall_data)]
+except AttributeError:
+    pass
+try:
+    wall_offload = _libraries['libascot.so'].wall_offload
+    wall_offload.restype = None
+    wall_offload.argtypes = [ctypes.POINTER(struct_c__SA_wall_data)]
+except AttributeError:
+    pass
+try:
+    wall_hit_wall = _libraries['libascot.so'].wall_hit_wall
+    wall_hit_wall.restype = ctypes.c_int32
+    wall_hit_wall.argtypes = [real, real, real, real, real, real, ctypes.POINTER(struct_c__SA_wall_data), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    wall_get_n_elements = _libraries['libascot.so'].wall_get_n_elements
+    wall_get_n_elements.restype = ctypes.c_int32
+    wall_get_n_elements.argtypes = [ctypes.POINTER(struct_c__SA_wall_data)]
+except AttributeError:
+    pass
+try:
+    wall_get_flag = _libraries['libascot.so'].wall_get_flag
+    wall_get_flag.restype = ctypes.c_int32
+    wall_get_flag.argtypes = [ctypes.POINTER(struct_c__SA_wall_data), ctypes.c_int32]
+except AttributeError:
+    pass
 class struct_c__SA_boozer_data(Structure):
     pass
 
@@ -1814,18 +2482,30 @@ struct_c__SA_boozer_data._fields_ = [
 ]
 
 boozer_data = struct_c__SA_boozer_data
-boozer_init = _libraries['libascot.so'].boozer_init
-boozer_init.restype = ctypes.c_int32
-boozer_init.argtypes = [ctypes.POINTER(struct_c__SA_boozer_data), ctypes.c_int32, real, real, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
-boozer_free = _libraries['libascot.so'].boozer_free
-boozer_free.restype = None
-boozer_free.argtypes = [ctypes.POINTER(struct_c__SA_boozer_data)]
-boozer_offload = _libraries['libascot.so'].boozer_offload
-boozer_offload.restype = None
-boozer_offload.argtypes = [ctypes.POINTER(struct_c__SA_boozer_data)]
-boozer_eval_psithetazeta = _libraries['libascot.so'].boozer_eval_psithetazeta
-boozer_eval_psithetazeta.restype = a5err
-boozer_eval_psithetazeta.argtypes = [ctypes.c_double * 12, ctypes.POINTER(ctypes.c_int32), real, real, real, ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(struct_c__SA_boozer_data)]
+try:
+    boozer_init = _libraries['libascot.so'].boozer_init
+    boozer_init.restype = ctypes.c_int32
+    boozer_init.argtypes = [ctypes.POINTER(struct_c__SA_boozer_data), ctypes.c_int32, real, real, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    boozer_free = _libraries['libascot.so'].boozer_free
+    boozer_free.restype = None
+    boozer_free.argtypes = [ctypes.POINTER(struct_c__SA_boozer_data)]
+except AttributeError:
+    pass
+try:
+    boozer_offload = _libraries['libascot.so'].boozer_offload
+    boozer_offload.restype = None
+    boozer_offload.argtypes = [ctypes.POINTER(struct_c__SA_boozer_data)]
+except AttributeError:
+    pass
+try:
+    boozer_eval_psithetazeta = _libraries['libascot.so'].boozer_eval_psithetazeta
+    boozer_eval_psithetazeta.restype = a5err
+    boozer_eval_psithetazeta.argtypes = [ctypes.c_double * 12, ctypes.POINTER(ctypes.c_int32), real, real, real, ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(struct_c__SA_boozer_data)]
+except AttributeError:
+    pass
 class struct_c__SA_mhd_stat_data(Structure):
     pass
 
@@ -1845,21 +2525,36 @@ struct_c__SA_mhd_stat_data._fields_ = [
 ]
 
 mhd_stat_data = struct_c__SA_mhd_stat_data
-mhd_stat_init = _libraries['libascot.so'].mhd_stat_init
-mhd_stat_init.restype = ctypes.c_int32
-mhd_stat_init.argtypes = [ctypes.POINTER(struct_c__SA_mhd_stat_data), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
-mhd_stat_free = _libraries['libascot.so'].mhd_stat_free
-mhd_stat_free.restype = None
-mhd_stat_free.argtypes = [ctypes.POINTER(struct_c__SA_mhd_stat_data)]
-mhd_stat_offload = _libraries['libascot.so'].mhd_stat_offload
-mhd_stat_offload.restype = None
-mhd_stat_offload.argtypes = [ctypes.POINTER(struct_c__SA_mhd_stat_data)]
-mhd_stat_eval = _libraries['libascot.so'].mhd_stat_eval
-mhd_stat_eval.restype = a5err
-mhd_stat_eval.argtypes = [ctypes.c_double * 10, real, real, real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_boozer_data), ctypes.POINTER(struct_c__SA_mhd_stat_data), ctypes.POINTER(struct_c__SA_B_field_data)]
-mhd_stat_perturbations = _libraries['libascot.so'].mhd_stat_perturbations
-mhd_stat_perturbations.restype = a5err
-mhd_stat_perturbations.argtypes = [ctypes.c_double * 7, real, real, real, real, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_boozer_data), ctypes.POINTER(struct_c__SA_mhd_stat_data), ctypes.POINTER(struct_c__SA_B_field_data)]
+try:
+    mhd_stat_init = _libraries['libascot.so'].mhd_stat_init
+    mhd_stat_init.restype = ctypes.c_int32
+    mhd_stat_init.argtypes = [ctypes.POINTER(struct_c__SA_mhd_stat_data), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    mhd_stat_free = _libraries['libascot.so'].mhd_stat_free
+    mhd_stat_free.restype = None
+    mhd_stat_free.argtypes = [ctypes.POINTER(struct_c__SA_mhd_stat_data)]
+except AttributeError:
+    pass
+try:
+    mhd_stat_offload = _libraries['libascot.so'].mhd_stat_offload
+    mhd_stat_offload.restype = None
+    mhd_stat_offload.argtypes = [ctypes.POINTER(struct_c__SA_mhd_stat_data)]
+except AttributeError:
+    pass
+try:
+    mhd_stat_eval = _libraries['libascot.so'].mhd_stat_eval
+    mhd_stat_eval.restype = a5err
+    mhd_stat_eval.argtypes = [ctypes.c_double * 10, real, real, real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_boozer_data), ctypes.POINTER(struct_c__SA_mhd_stat_data), ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    mhd_stat_perturbations = _libraries['libascot.so'].mhd_stat_perturbations
+    mhd_stat_perturbations.restype = a5err
+    mhd_stat_perturbations.argtypes = [ctypes.c_double * 7, real, real, real, real, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_boozer_data), ctypes.POINTER(struct_c__SA_mhd_stat_data), ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
 class struct_c__SA_mhd_nonstat_data(Structure):
     pass
 
@@ -1879,21 +2574,36 @@ struct_c__SA_mhd_nonstat_data._fields_ = [
 ]
 
 mhd_nonstat_data = struct_c__SA_mhd_nonstat_data
-mhd_nonstat_init = _libraries['libascot.so'].mhd_nonstat_init
-mhd_nonstat_init.restype = ctypes.c_int32
-mhd_nonstat_init.argtypes = [ctypes.POINTER(struct_c__SA_mhd_nonstat_data), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, real, real, real, real, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
-mhd_nonstat_free = _libraries['libascot.so'].mhd_nonstat_free
-mhd_nonstat_free.restype = None
-mhd_nonstat_free.argtypes = [ctypes.POINTER(struct_c__SA_mhd_nonstat_data)]
-mhd_nonstat_offload = _libraries['libascot.so'].mhd_nonstat_offload
-mhd_nonstat_offload.restype = None
-mhd_nonstat_offload.argtypes = [ctypes.POINTER(struct_c__SA_mhd_nonstat_data)]
-mhd_nonstat_eval = _libraries['libascot.so'].mhd_nonstat_eval
-mhd_nonstat_eval.restype = a5err
-mhd_nonstat_eval.argtypes = [ctypes.c_double * 10, real, real, real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_boozer_data), ctypes.POINTER(struct_c__SA_mhd_nonstat_data), ctypes.POINTER(struct_c__SA_B_field_data)]
-mhd_nonstat_perturbations = _libraries['libascot.so'].mhd_nonstat_perturbations
-mhd_nonstat_perturbations.restype = a5err
-mhd_nonstat_perturbations.argtypes = [ctypes.c_double * 7, real, real, real, real, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_boozer_data), ctypes.POINTER(struct_c__SA_mhd_nonstat_data), ctypes.POINTER(struct_c__SA_B_field_data)]
+try:
+    mhd_nonstat_init = _libraries['libascot.so'].mhd_nonstat_init
+    mhd_nonstat_init.restype = ctypes.c_int32
+    mhd_nonstat_init.argtypes = [ctypes.POINTER(struct_c__SA_mhd_nonstat_data), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, real, real, real, real, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    mhd_nonstat_free = _libraries['libascot.so'].mhd_nonstat_free
+    mhd_nonstat_free.restype = None
+    mhd_nonstat_free.argtypes = [ctypes.POINTER(struct_c__SA_mhd_nonstat_data)]
+except AttributeError:
+    pass
+try:
+    mhd_nonstat_offload = _libraries['libascot.so'].mhd_nonstat_offload
+    mhd_nonstat_offload.restype = None
+    mhd_nonstat_offload.argtypes = [ctypes.POINTER(struct_c__SA_mhd_nonstat_data)]
+except AttributeError:
+    pass
+try:
+    mhd_nonstat_eval = _libraries['libascot.so'].mhd_nonstat_eval
+    mhd_nonstat_eval.restype = a5err
+    mhd_nonstat_eval.argtypes = [ctypes.c_double * 10, real, real, real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_boozer_data), ctypes.POINTER(struct_c__SA_mhd_nonstat_data), ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    mhd_nonstat_perturbations = _libraries['libascot.so'].mhd_nonstat_perturbations
+    mhd_nonstat_perturbations.restype = a5err
+    mhd_nonstat_perturbations.argtypes = [ctypes.c_double * 7, real, real, real, real, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_boozer_data), ctypes.POINTER(struct_c__SA_mhd_nonstat_data), ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
 
 # values for enumeration 'mhd_type'
 mhd_type__enumvalues = {
@@ -1915,36 +2625,66 @@ struct_c__SA_mhd_data._fields_ = [
 ]
 
 mhd_data = struct_c__SA_mhd_data
-mhd_free = _libraries['libascot.so'].mhd_free
-mhd_free.restype = None
-mhd_free.argtypes = [ctypes.POINTER(struct_c__SA_mhd_data)]
-mhd_offload = _libraries['libascot.so'].mhd_offload
-mhd_offload.restype = None
-mhd_offload.argtypes = [ctypes.POINTER(struct_c__SA_mhd_data)]
-mhd_eval = _libraries['libascot.so'].mhd_eval
-mhd_eval.restype = a5err
-mhd_eval.argtypes = [ctypes.c_double * 10, real, real, real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_boozer_data), ctypes.POINTER(struct_c__SA_mhd_data), ctypes.POINTER(struct_c__SA_B_field_data)]
-mhd_perturbations = _libraries['libascot.so'].mhd_perturbations
-mhd_perturbations.restype = a5err
-mhd_perturbations.argtypes = [ctypes.c_double * 7, real, real, real, real, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_boozer_data), ctypes.POINTER(struct_c__SA_mhd_data), ctypes.POINTER(struct_c__SA_B_field_data)]
-mhd_get_n_modes = _libraries['libascot.so'].mhd_get_n_modes
-mhd_get_n_modes.restype = ctypes.c_int32
-mhd_get_n_modes.argtypes = [ctypes.POINTER(struct_c__SA_mhd_data)]
-mhd_get_nmode = _libraries['libascot.so'].mhd_get_nmode
-mhd_get_nmode.restype = ctypes.POINTER(ctypes.c_int32)
-mhd_get_nmode.argtypes = [ctypes.POINTER(struct_c__SA_mhd_data)]
-mhd_get_mmode = _libraries['libascot.so'].mhd_get_mmode
-mhd_get_mmode.restype = ctypes.POINTER(ctypes.c_int32)
-mhd_get_mmode.argtypes = [ctypes.POINTER(struct_c__SA_mhd_data)]
-mhd_get_amplitude = _libraries['libascot.so'].mhd_get_amplitude
-mhd_get_amplitude.restype = ctypes.POINTER(ctypes.c_double)
-mhd_get_amplitude.argtypes = [ctypes.POINTER(struct_c__SA_mhd_data)]
-mhd_get_frequency = _libraries['libascot.so'].mhd_get_frequency
-mhd_get_frequency.restype = ctypes.POINTER(ctypes.c_double)
-mhd_get_frequency.argtypes = [ctypes.POINTER(struct_c__SA_mhd_data)]
-mhd_get_phase = _libraries['libascot.so'].mhd_get_phase
-mhd_get_phase.restype = ctypes.POINTER(ctypes.c_double)
-mhd_get_phase.argtypes = [ctypes.POINTER(struct_c__SA_mhd_data)]
+try:
+    mhd_free = _libraries['libascot.so'].mhd_free
+    mhd_free.restype = None
+    mhd_free.argtypes = [ctypes.POINTER(struct_c__SA_mhd_data)]
+except AttributeError:
+    pass
+try:
+    mhd_offload = _libraries['libascot.so'].mhd_offload
+    mhd_offload.restype = None
+    mhd_offload.argtypes = [ctypes.POINTER(struct_c__SA_mhd_data)]
+except AttributeError:
+    pass
+try:
+    mhd_eval = _libraries['libascot.so'].mhd_eval
+    mhd_eval.restype = a5err
+    mhd_eval.argtypes = [ctypes.c_double * 10, real, real, real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_boozer_data), ctypes.POINTER(struct_c__SA_mhd_data), ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    mhd_perturbations = _libraries['libascot.so'].mhd_perturbations
+    mhd_perturbations.restype = a5err
+    mhd_perturbations.argtypes = [ctypes.c_double * 7, real, real, real, real, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_boozer_data), ctypes.POINTER(struct_c__SA_mhd_data), ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    mhd_get_n_modes = _libraries['libascot.so'].mhd_get_n_modes
+    mhd_get_n_modes.restype = ctypes.c_int32
+    mhd_get_n_modes.argtypes = [ctypes.POINTER(struct_c__SA_mhd_data)]
+except AttributeError:
+    pass
+try:
+    mhd_get_nmode = _libraries['libascot.so'].mhd_get_nmode
+    mhd_get_nmode.restype = ctypes.POINTER(ctypes.c_int32)
+    mhd_get_nmode.argtypes = [ctypes.POINTER(struct_c__SA_mhd_data)]
+except AttributeError:
+    pass
+try:
+    mhd_get_mmode = _libraries['libascot.so'].mhd_get_mmode
+    mhd_get_mmode.restype = ctypes.POINTER(ctypes.c_int32)
+    mhd_get_mmode.argtypes = [ctypes.POINTER(struct_c__SA_mhd_data)]
+except AttributeError:
+    pass
+try:
+    mhd_get_amplitude = _libraries['libascot.so'].mhd_get_amplitude
+    mhd_get_amplitude.restype = ctypes.POINTER(ctypes.c_double)
+    mhd_get_amplitude.argtypes = [ctypes.POINTER(struct_c__SA_mhd_data)]
+except AttributeError:
+    pass
+try:
+    mhd_get_frequency = _libraries['libascot.so'].mhd_get_frequency
+    mhd_get_frequency.restype = ctypes.POINTER(ctypes.c_double)
+    mhd_get_frequency.argtypes = [ctypes.POINTER(struct_c__SA_mhd_data)]
+except AttributeError:
+    pass
+try:
+    mhd_get_phase = _libraries['libascot.so'].mhd_get_phase
+    mhd_get_phase.restype = ctypes.POINTER(ctypes.c_double)
+    mhd_get_phase.argtypes = [ctypes.POINTER(struct_c__SA_mhd_data)]
+except AttributeError:
+    pass
 class struct_c__SA_asigma_loc_data(Structure):
     pass
 
@@ -1963,27 +2703,48 @@ struct_c__SA_asigma_loc_data._fields_ = [
 ]
 
 asigma_loc_data = struct_c__SA_asigma_loc_data
-asigma_loc_init = _libraries['libascot.so'].asigma_loc_init
-asigma_loc_init.restype = ctypes.c_int32
-asigma_loc_init.argtypes = [ctypes.POINTER(struct_c__SA_asigma_loc_data), ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
-asigma_loc_free = _libraries['libascot.so'].asigma_loc_free
-asigma_loc_free.restype = None
-asigma_loc_free.argtypes = [ctypes.POINTER(struct_c__SA_asigma_loc_data)]
-asigma_loc_offload = _libraries['libascot.so'].asigma_loc_offload
-asigma_loc_offload.restype = None
-asigma_loc_offload.argtypes = [ctypes.POINTER(struct_c__SA_asigma_loc_data)]
-asigma_loc_eval_sigma = _libraries['libascot.so'].asigma_loc_eval_sigma
-asigma_loc_eval_sigma.restype = a5err
-asigma_loc_eval_sigma.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, real, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
-asigma_loc_eval_sigmav = _libraries['libascot.so'].asigma_loc_eval_sigmav
-asigma_loc_eval_sigmav.restype = a5err
-asigma_loc_eval_sigmav.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, ctypes.c_int32, ctypes.c_int32, real, real, real, real, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
-asigma_loc_eval_cx = _libraries['libascot.so'].asigma_loc_eval_cx
-asigma_loc_eval_cx.restype = a5err
-asigma_loc_eval_cx.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
-asigma_loc_eval_bms = _libraries['libascot.so'].asigma_loc_eval_bms
-asigma_loc_eval_bms.restype = a5err
-asigma_loc_eval_bms.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
+try:
+    asigma_loc_init = _libraries['libascot.so'].asigma_loc_init
+    asigma_loc_init.restype = ctypes.c_int32
+    asigma_loc_init.argtypes = [ctypes.POINTER(struct_c__SA_asigma_loc_data), ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    asigma_loc_free = _libraries['libascot.so'].asigma_loc_free
+    asigma_loc_free.restype = None
+    asigma_loc_free.argtypes = [ctypes.POINTER(struct_c__SA_asigma_loc_data)]
+except AttributeError:
+    pass
+try:
+    asigma_loc_offload = _libraries['libascot.so'].asigma_loc_offload
+    asigma_loc_offload.restype = None
+    asigma_loc_offload.argtypes = [ctypes.POINTER(struct_c__SA_asigma_loc_data)]
+except AttributeError:
+    pass
+try:
+    asigma_loc_eval_sigma = _libraries['libascot.so'].asigma_loc_eval_sigma
+    asigma_loc_eval_sigma.restype = a5err
+    asigma_loc_eval_sigma.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, real, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
+except AttributeError:
+    pass
+try:
+    asigma_loc_eval_sigmav = _libraries['libascot.so'].asigma_loc_eval_sigmav
+    asigma_loc_eval_sigmav.restype = a5err
+    asigma_loc_eval_sigmav.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, ctypes.c_int32, ctypes.c_int32, real, real, real, real, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
+except AttributeError:
+    pass
+try:
+    asigma_loc_eval_cx = _libraries['libascot.so'].asigma_loc_eval_cx
+    asigma_loc_eval_cx.restype = a5err
+    asigma_loc_eval_cx.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
+except AttributeError:
+    pass
+try:
+    asigma_loc_eval_bms = _libraries['libascot.so'].asigma_loc_eval_bms
+    asigma_loc_eval_bms.restype = a5err
+    asigma_loc_eval_bms.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
+except AttributeError:
+    pass
 
 # values for enumeration 'asigma_type'
 asigma_type__enumvalues = {
@@ -2027,27 +2788,48 @@ struct_c__SA_asigma_data._fields_ = [
 ]
 
 asigma_data = struct_c__SA_asigma_data
-asigma_free = _libraries['libascot.so'].asigma_free
-asigma_free.restype = None
-asigma_free.argtypes = [ctypes.POINTER(struct_c__SA_asigma_data)]
-asigma_offload = _libraries['libascot.so'].asigma_offload
-asigma_offload.restype = None
-asigma_offload.argtypes = [ctypes.POINTER(struct_c__SA_asigma_data)]
-asigma_extrapolate = _libraries['libascot.so'].asigma_extrapolate
-asigma_extrapolate.restype = None
-asigma_extrapolate.argtypes = [ctypes.c_int32]
-asigma_eval_sigma = _libraries['libascot.so'].asigma_eval_sigma
-asigma_eval_sigma.restype = a5err
-asigma_eval_sigma.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, real, asigma_reac_type, ctypes.POINTER(struct_c__SA_asigma_data)]
-asigma_eval_sigmav = _libraries['libascot.so'].asigma_eval_sigmav
-asigma_eval_sigmav.restype = a5err
-asigma_eval_sigmav.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, ctypes.c_int32, ctypes.c_int32, real, real, real, real, asigma_reac_type, ctypes.POINTER(struct_c__SA_asigma_data)]
-asigma_eval_cx = _libraries['libascot.so'].asigma_eval_cx
-asigma_eval_cx.restype = a5err
-asigma_eval_cx.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(struct_c__SA_asigma_data)]
-asigma_eval_bms = _libraries['libascot.so'].asigma_eval_bms
-asigma_eval_bms.restype = a5err
-asigma_eval_bms.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(struct_c__SA_asigma_data)]
+try:
+    asigma_free = _libraries['libascot.so'].asigma_free
+    asigma_free.restype = None
+    asigma_free.argtypes = [ctypes.POINTER(struct_c__SA_asigma_data)]
+except AttributeError:
+    pass
+try:
+    asigma_offload = _libraries['libascot.so'].asigma_offload
+    asigma_offload.restype = None
+    asigma_offload.argtypes = [ctypes.POINTER(struct_c__SA_asigma_data)]
+except AttributeError:
+    pass
+try:
+    asigma_extrapolate = _libraries['libascot.so'].asigma_extrapolate
+    asigma_extrapolate.restype = None
+    asigma_extrapolate.argtypes = [ctypes.c_int32]
+except AttributeError:
+    pass
+try:
+    asigma_eval_sigma = _libraries['libascot.so'].asigma_eval_sigma
+    asigma_eval_sigma.restype = a5err
+    asigma_eval_sigma.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, real, asigma_reac_type, ctypes.POINTER(struct_c__SA_asigma_data)]
+except AttributeError:
+    pass
+try:
+    asigma_eval_sigmav = _libraries['libascot.so'].asigma_eval_sigmav
+    asigma_eval_sigmav.restype = a5err
+    asigma_eval_sigmav.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, ctypes.c_int32, ctypes.c_int32, real, real, real, real, asigma_reac_type, ctypes.POINTER(struct_c__SA_asigma_data)]
+except AttributeError:
+    pass
+try:
+    asigma_eval_cx = _libraries['libascot.so'].asigma_eval_cx
+    asigma_eval_cx.restype = a5err
+    asigma_eval_cx.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(struct_c__SA_asigma_data)]
+except AttributeError:
+    pass
+try:
+    asigma_eval_bms = _libraries['libascot.so'].asigma_eval_bms
+    asigma_eval_bms.restype = a5err
+    asigma_eval_bms.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(struct_c__SA_asigma_data)]
+except AttributeError:
+    pass
 class struct_c__SA_nbi_injector(Structure):
     pass
 
@@ -2086,15 +2868,24 @@ struct_c__SA_nbi_data._fields_ = [
 ]
 
 nbi_data = struct_c__SA_nbi_data
-nbi_init = _libraries['libascot.so'].nbi_init
-nbi_init.restype = ctypes.c_int32
-nbi_init.argtypes = [ctypes.POINTER(struct_c__SA_nbi_data), ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double)]
-nbi_free = _libraries['libascot.so'].nbi_free
-nbi_free.restype = None
-nbi_free.argtypes = [ctypes.POINTER(struct_c__SA_nbi_data)]
-nbi_inject = _libraries['libascot.so'].nbi_inject
-nbi_inject.restype = None
-nbi_inject.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(struct_c__SA_nbi_injector), ctypes.POINTER(ctypes.POINTER(None))]
+try:
+    nbi_init = _libraries['libascot.so'].nbi_init
+    nbi_init.restype = ctypes.c_int32
+    nbi_init.argtypes = [ctypes.POINTER(struct_c__SA_nbi_data), ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    nbi_free = _libraries['libascot.so'].nbi_free
+    nbi_free.restype = None
+    nbi_free.argtypes = [ctypes.POINTER(struct_c__SA_nbi_data)]
+except AttributeError:
+    pass
+try:
+    nbi_inject = _libraries['libascot.so'].nbi_inject
+    nbi_inject.restype = None
+    nbi_inject.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(struct_c__SA_nbi_injector), ctypes.POINTER(ctypes.POINTER(None))]
+except AttributeError:
+    pass
 class struct_rfof_marker(Structure):
     pass
 
@@ -2118,33 +2909,60 @@ struct_c__SA_rfof_data._fields_ = [
 ]
 
 rfof_data = struct_c__SA_rfof_data
-rfof_init = _libraries['libascot.so'].rfof_init
-rfof_init.restype = None
-rfof_init.argtypes = [ctypes.POINTER(struct_c__SA_rfof_data)]
-rfof_free = _libraries['libascot.so'].rfof_free
-rfof_free.restype = None
-rfof_free.argtypes = [ctypes.POINTER(struct_c__SA_rfof_data)]
-rfof_set_marker_manually = _libraries['libascot.so'].rfof_set_marker_manually
-rfof_set_marker_manually.restype = None
-rfof_set_marker_manually.argtypes = [ctypes.POINTER(struct_rfof_marker), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32)]
-rfof_set_up = _libraries['libascot.so'].rfof_set_up
-rfof_set_up.restype = None
-rfof_set_up.argtypes = [ctypes.POINTER(struct_rfof_marker), ctypes.POINTER(struct_c__SA_rfof_data)]
-rfof_tear_down = _libraries['libascot.so'].rfof_tear_down
-rfof_tear_down.restype = None
-rfof_tear_down.argtypes = [ctypes.POINTER(struct_rfof_marker)]
-rfof_clear_history = _libraries['libascot.so'].rfof_clear_history
-rfof_clear_history.restype = None
-rfof_clear_history.argtypes = [ctypes.POINTER(struct_rfof_marker), ctypes.c_int32]
-rfof_resonance_check_and_kick_gc = _libraries['libascot.so'].rfof_resonance_check_and_kick_gc
-rfof_resonance_check_and_kick_gc.restype = None
-rfof_resonance_check_and_kick_gc.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(struct_rfof_marker), ctypes.POINTER(struct_c__SA_rfof_data), ctypes.POINTER(struct_c__SA_B_field_data)]
-rfof_eval_rf_wave = _libraries['libascot.so'].rfof_eval_rf_wave
-rfof_eval_rf_wave.restype = None
-rfof_eval_rf_wave.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), real, real, ctypes.POINTER(struct_c__SA_rfof_data)]
-rfof_eval_resonance_function = _libraries['libascot.so'].rfof_eval_resonance_function
-rfof_eval_resonance_function.restype = None
-rfof_eval_resonance_function.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(struct_rfof_marker), ctypes.POINTER(struct_c__SA_rfof_data)]
+try:
+    rfof_init = _libraries['libascot.so'].rfof_init
+    rfof_init.restype = None
+    rfof_init.argtypes = [ctypes.POINTER(struct_c__SA_rfof_data)]
+except AttributeError:
+    pass
+try:
+    rfof_free = _libraries['libascot.so'].rfof_free
+    rfof_free.restype = None
+    rfof_free.argtypes = [ctypes.POINTER(struct_c__SA_rfof_data)]
+except AttributeError:
+    pass
+try:
+    rfof_set_marker_manually = _libraries['libascot.so'].rfof_set_marker_manually
+    rfof_set_marker_manually.restype = None
+    rfof_set_marker_manually.argtypes = [ctypes.POINTER(struct_rfof_marker), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32)]
+except AttributeError:
+    pass
+try:
+    rfof_set_up = _libraries['libascot.so'].rfof_set_up
+    rfof_set_up.restype = None
+    rfof_set_up.argtypes = [ctypes.POINTER(struct_rfof_marker), ctypes.POINTER(struct_c__SA_rfof_data)]
+except AttributeError:
+    pass
+try:
+    rfof_tear_down = _libraries['libascot.so'].rfof_tear_down
+    rfof_tear_down.restype = None
+    rfof_tear_down.argtypes = [ctypes.POINTER(struct_rfof_marker)]
+except AttributeError:
+    pass
+try:
+    rfof_clear_history = _libraries['libascot.so'].rfof_clear_history
+    rfof_clear_history.restype = None
+    rfof_clear_history.argtypes = [ctypes.POINTER(struct_rfof_marker), ctypes.c_int32]
+except AttributeError:
+    pass
+try:
+    rfof_resonance_check_and_kick_gc = _libraries['libascot.so'].rfof_resonance_check_and_kick_gc
+    rfof_resonance_check_and_kick_gc.restype = None
+    rfof_resonance_check_and_kick_gc.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(struct_rfof_marker), ctypes.POINTER(struct_c__SA_rfof_data), ctypes.POINTER(struct_c__SA_B_field_data)]
+except AttributeError:
+    pass
+try:
+    rfof_eval_rf_wave = _libraries['libascot.so'].rfof_eval_rf_wave
+    rfof_eval_rf_wave.restype = None
+    rfof_eval_rf_wave.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), real, real, ctypes.POINTER(struct_c__SA_rfof_data)]
+except AttributeError:
+    pass
+try:
+    rfof_eval_resonance_function = _libraries['libascot.so'].rfof_eval_resonance_function
+    rfof_eval_resonance_function.restype = None
+    rfof_eval_resonance_function.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(struct_rfof_marker), ctypes.POINTER(struct_c__SA_rfof_data)]
+except AttributeError:
+    pass
 
 # values for enumeration 'SIMULATION_MODE'
 SIMULATION_MODE__enumvalues = {
@@ -2241,12 +3059,18 @@ struct_c__SA_sim_data._fields_ = [
 ]
 
 sim_data = struct_c__SA_sim_data
-simulate_init = _libraries['libascot.so'].simulate_init
-simulate_init.restype = None
-simulate_init.argtypes = [ctypes.POINTER(struct_c__SA_sim_data)]
-simulate = _libraries['libascot.so'].simulate
-simulate.restype = None
-simulate.argtypes = [ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_sim_data)]
+try:
+    simulate_init = _libraries['libascot.so'].simulate_init
+    simulate_init.restype = None
+    simulate_init.argtypes = [ctypes.POINTER(struct_c__SA_sim_data)]
+except AttributeError:
+    pass
+try:
+    simulate = _libraries['libascot.so'].simulate
+    simulate.restype = None
+    simulate.argtypes = [ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(struct_c__SA_sim_data)]
+except AttributeError:
+    pass
 
 # values for enumeration 'ENDCOND_FLAG'
 ENDCOND_FLAG__enumvalues = {
@@ -2276,21 +3100,36 @@ endcond_hybrid = 512
 endcond_neutr = 1024
 endcond_ioniz = 2048
 ENDCOND_FLAG = ctypes.c_uint32 # enum
-endcond_check_gc = _libraries['libascot.so'].endcond_check_gc
-endcond_check_gc.restype = None
-endcond_check_gc.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_sim_data)]
-endcond_check_fo = _libraries['libascot.so'].endcond_check_fo
-endcond_check_fo.restype = None
-endcond_check_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_sim_data)]
-endcond_check_ml = _libraries['libascot.so'].endcond_check_ml
-endcond_check_ml.restype = None
-endcond_check_ml.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.POINTER(struct_c__SA_sim_data)]
-endcond_parse = _libraries['libascot.so'].endcond_parse
-endcond_parse.restype = None
-endcond_parse.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.c_int32)]
-endcond_parse2str = _libraries['libascot.so'].endcond_parse2str
-endcond_parse2str.restype = None
-endcond_parse2str.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.c_char)]
+try:
+    endcond_check_gc = _libraries['libascot.so'].endcond_check_gc
+    endcond_check_gc.restype = None
+    endcond_check_gc.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_sim_data)]
+except AttributeError:
+    pass
+try:
+    endcond_check_fo = _libraries['libascot.so'].endcond_check_fo
+    endcond_check_fo.restype = None
+    endcond_check_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_sim_data)]
+except AttributeError:
+    pass
+try:
+    endcond_check_ml = _libraries['libascot.so'].endcond_check_ml
+    endcond_check_ml.restype = None
+    endcond_check_ml.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.POINTER(struct_c__SA_sim_data)]
+except AttributeError:
+    pass
+try:
+    endcond_parse = _libraries['libascot.so'].endcond_parse
+    endcond_parse.restype = None
+    endcond_parse.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.c_int32)]
+except AttributeError:
+    pass
+try:
+    endcond_parse2str = _libraries['libascot.so'].endcond_parse2str
+    endcond_parse2str.restype = None
+    endcond_parse2str.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.c_char)]
+except AttributeError:
+    pass
 
 # values for enumeration 'c__EA_hist_coordinate'
 c__EA_hist_coordinate__enumvalues = {
@@ -2355,21 +3194,36 @@ struct_c__SA_histogram._fields_ = [
 ]
 
 histogram = struct_c__SA_histogram
-hist_init = _libraries['libascot.so'].hist_init
-hist_init.restype = ctypes.c_int32
-hist_init.argtypes = [ctypes.POINTER(struct_c__SA_histogram), ctypes.c_int32, ctypes.POINTER(c__EA_hist_coordinate), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_uint64)]
-hist_free = _libraries['libascot.so'].hist_free
-hist_free.restype = None
-hist_free.argtypes = [ctypes.POINTER(struct_c__SA_histogram)]
-hist_offload = _libraries['libascot.so'].hist_offload
-hist_offload.restype = None
-hist_offload.argtypes = [ctypes.POINTER(struct_c__SA_histogram)]
-hist_update_fo = _libraries['libascot.so'].hist_update_fo
-hist_update_fo.restype = None
-hist_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_histogram), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
-hist_update_gc = _libraries['libascot.so'].hist_update_gc
-hist_update_gc.restype = None
-hist_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_histogram), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
+try:
+    hist_init = _libraries['libascot.so'].hist_init
+    hist_init.restype = ctypes.c_int32
+    hist_init.argtypes = [ctypes.POINTER(struct_c__SA_histogram), ctypes.c_int32, ctypes.POINTER(c__EA_hist_coordinate), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_uint64)]
+except AttributeError:
+    pass
+try:
+    hist_free = _libraries['libascot.so'].hist_free
+    hist_free.restype = None
+    hist_free.argtypes = [ctypes.POINTER(struct_c__SA_histogram)]
+except AttributeError:
+    pass
+try:
+    hist_offload = _libraries['libascot.so'].hist_offload
+    hist_offload.restype = None
+    hist_offload.argtypes = [ctypes.POINTER(struct_c__SA_histogram)]
+except AttributeError:
+    pass
+try:
+    hist_update_fo = _libraries['libascot.so'].hist_update_fo
+    hist_update_fo.restype = None
+    hist_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_histogram), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
+except AttributeError:
+    pass
+try:
+    hist_update_gc = _libraries['libascot.so'].hist_update_gc
+    hist_update_gc.restype = None
+    hist_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_histogram), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
+except AttributeError:
+    pass
 
 # values for enumeration 'input_group'
 input_group__enumvalues = {
@@ -2397,33 +3251,60 @@ hdf5_input_mhd = 256
 hdf5_input_asigma = 512
 hdf5_input_nbi = 1024
 input_group = ctypes.c_uint32 # enum
-hdf5_interface_read_input = _libraries['libascot.so'].hdf5_interface_read_input
-hdf5_interface_read_input.restype = ctypes.c_int32
-hdf5_interface_read_input.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.c_int32, ctypes.POINTER(ctypes.POINTER(struct_c__SA_input_particle)), ctypes.POINTER(ctypes.c_int32)]
-hdf5_interface_init_results = _libraries['libascot.so'].hdf5_interface_init_results
-hdf5_interface_init_results.restype = ctypes.c_int32
-hdf5_interface_init_results.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_char)]
-hdf5_interface_write_state = _libraries['libascot.so'].hdf5_interface_write_state
-hdf5_interface_write_state.restype = ctypes.c_int32
-hdf5_interface_write_state.argtypes = [ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_char), integer, ctypes.POINTER(struct_c__SA_particle_state)]
-hdf5_interface_write_diagnostics = _libraries['libascot.so'].hdf5_interface_write_diagnostics
-hdf5_interface_write_diagnostics.restype = ctypes.c_int32
-hdf5_interface_write_diagnostics.argtypes = [ctypes.POINTER(struct_c__SA_sim_data)]
-hdf5_generate_qid = _libraries['libascot.so'].hdf5_generate_qid
-hdf5_generate_qid.restype = None
-hdf5_generate_qid.argtypes = [ctypes.POINTER(ctypes.c_char)]
-libascot_allocate_input_particles = _libraries['libascot.so'].libascot_allocate_input_particles
-libascot_allocate_input_particles.restype = ctypes.POINTER(struct_c__SA_input_particle)
-libascot_allocate_input_particles.argtypes = [ctypes.c_int32]
-libascot_allocate_particle_states = _libraries['libascot.so'].libascot_allocate_particle_states
-libascot_allocate_particle_states.restype = ctypes.POINTER(struct_c__SA_particle_state)
-libascot_allocate_particle_states.argtypes = [ctypes.c_int32]
-libascot_allocate_reals = _libraries['libascot.so'].libascot_allocate_reals
-libascot_allocate_reals.restype = ctypes.POINTER(ctypes.c_double)
-libascot_allocate_reals.argtypes = [size_t]
-libascot_deallocate = _libraries['libascot.so'].libascot_deallocate
-libascot_deallocate.restype = None
-libascot_deallocate.argtypes = [ctypes.POINTER(None)]
+try:
+    hdf5_interface_read_input = _libraries['libascot.so'].hdf5_interface_read_input
+    hdf5_interface_read_input.restype = ctypes.c_int32
+    hdf5_interface_read_input.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.c_int32, ctypes.POINTER(ctypes.POINTER(struct_c__SA_input_particle)), ctypes.POINTER(ctypes.c_int32)]
+except AttributeError:
+    pass
+try:
+    hdf5_interface_init_results = _libraries['libascot.so'].hdf5_interface_init_results
+    hdf5_interface_init_results.restype = ctypes.c_int32
+    hdf5_interface_init_results.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_char)]
+except AttributeError:
+    pass
+try:
+    hdf5_interface_write_state = _libraries['libascot.so'].hdf5_interface_write_state
+    hdf5_interface_write_state.restype = ctypes.c_int32
+    hdf5_interface_write_state.argtypes = [ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_char), integer, ctypes.POINTER(struct_c__SA_particle_state)]
+except AttributeError:
+    pass
+try:
+    hdf5_interface_write_diagnostics = _libraries['libascot.so'].hdf5_interface_write_diagnostics
+    hdf5_interface_write_diagnostics.restype = ctypes.c_int32
+    hdf5_interface_write_diagnostics.argtypes = [ctypes.POINTER(struct_c__SA_sim_data)]
+except AttributeError:
+    pass
+try:
+    hdf5_generate_qid = _libraries['libascot.so'].hdf5_generate_qid
+    hdf5_generate_qid.restype = None
+    hdf5_generate_qid.argtypes = [ctypes.POINTER(ctypes.c_char)]
+except AttributeError:
+    pass
+try:
+    libascot_allocate_input_particles = _libraries['libascot.so'].libascot_allocate_input_particles
+    libascot_allocate_input_particles.restype = ctypes.POINTER(struct_c__SA_input_particle)
+    libascot_allocate_input_particles.argtypes = [ctypes.c_int32]
+except AttributeError:
+    pass
+try:
+    libascot_allocate_particle_states = _libraries['libascot.so'].libascot_allocate_particle_states
+    libascot_allocate_particle_states.restype = ctypes.POINTER(struct_c__SA_particle_state)
+    libascot_allocate_particle_states.argtypes = [ctypes.c_int32]
+except AttributeError:
+    pass
+try:
+    libascot_allocate_reals = _libraries['libascot.so'].libascot_allocate_reals
+    libascot_allocate_reals.restype = ctypes.POINTER(ctypes.c_double)
+    libascot_allocate_reals.argtypes = [size_t]
+except AttributeError:
+    pass
+try:
+    libascot_deallocate = _libraries['libascot.so'].libascot_deallocate
+    libascot_deallocate.restype = None
+    libascot_deallocate.argtypes = [ctypes.POINTER(None)]
+except AttributeError:
+    pass
 
 # values for enumeration 'Reaction'
 Reaction__enumvalues = {
@@ -2437,15 +3318,24 @@ DHe3_He4p = 2
 DD_Tp = 3
 DD_He3n = 4
 Reaction = ctypes.c_uint32 # enum
-boschhale_reaction = _libraries['libascot.so'].boschhale_reaction
-boschhale_reaction.restype = None
-boschhale_reaction.argtypes = [Reaction, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
-boschhale_sigma = _libraries['libascot.so'].boschhale_sigma
-boschhale_sigma.restype = real
-boschhale_sigma.argtypes = [Reaction, real]
-boschhale_sigmav = _libraries['libascot.so'].boschhale_sigmav
-boschhale_sigmav.restype = real
-boschhale_sigmav.argtypes = [Reaction, real]
+try:
+    boschhale_reaction = _libraries['libascot.so'].boschhale_reaction
+    boschhale_reaction.restype = None
+    boschhale_reaction.argtypes = [Reaction, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    boschhale_sigma = _libraries['libascot.so'].boschhale_sigma
+    boschhale_sigma.restype = real
+    boschhale_sigma.argtypes = [Reaction, real]
+except AttributeError:
+    pass
+try:
+    boschhale_sigmav = _libraries['libascot.so'].boschhale_sigmav
+    boschhale_sigmav.restype = real
+    boschhale_sigmav.argtypes = [Reaction, real]
+except AttributeError:
+    pass
 
 # values for enumeration 'c__EA_mom_space_basis'
 c__EA_mom_space_basis__enumvalues = {
@@ -2479,30 +3369,54 @@ struct_c__SA_afsi_data._fields_ = [
 ]
 
 afsi_data = struct_c__SA_afsi_data
-afsi_run = _libraries['libascot.so'].afsi_run
-afsi_run.restype = None
-afsi_run.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.POINTER(struct_c__SA_afsi_data), ctypes.c_int32, ctypes.POINTER(struct_c__SA_histogram), ctypes.POINTER(struct_c__SA_histogram)]
-prepare_markers = _libraries['libascot.so'].prepare_markers
-prepare_markers.restype = ctypes.c_int32
-prepare_markers.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.c_int32, ctypes.POINTER(struct_c__SA_input_particle), ctypes.POINTER(ctypes.POINTER(struct_c__SA_particle_state)), ctypes.POINTER(ctypes.c_int32)]
-write_rungroup = _libraries['libascot.so'].write_rungroup
-write_rungroup.restype = ctypes.c_int32
-write_rungroup.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32, ctypes.POINTER(ctypes.c_char)]
-offload_and_simulate = _libraries['libascot.so'].offload_and_simulate
-offload_and_simulate.restype = ctypes.c_int32
-offload_and_simulate.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.POINTER(struct_c__SA_particle_state))]
-write_output = _libraries['libascot.so'].write_output
-write_output.restype = ctypes.c_int32
-write_output.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32]
-print_marker_summary = _libraries['libascot.so'].print_marker_summary
-print_marker_summary.restype = None
-print_marker_summary.argtypes = [ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32]
-biosaw_calc_B = _libraries['libascot.so'].biosaw_calc_B
-biosaw_calc_B.restype = None
-biosaw_calc_B.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
-bbnbi_simulate = _libraries['libascot.so'].bbnbi_simulate
-bbnbi_simulate.restype = None
-bbnbi_simulate.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.c_int32, real, real, ctypes.POINTER(ctypes.POINTER(struct_c__SA_particle_state))]
+try:
+    afsi_run = _libraries['libascot.so'].afsi_run
+    afsi_run.restype = None
+    afsi_run.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.POINTER(struct_c__SA_afsi_data), ctypes.c_int32, ctypes.POINTER(struct_c__SA_histogram), ctypes.POINTER(struct_c__SA_histogram)]
+except AttributeError:
+    pass
+try:
+    prepare_markers = _libraries['libascot.so'].prepare_markers
+    prepare_markers.restype = ctypes.c_int32
+    prepare_markers.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.c_int32, ctypes.POINTER(struct_c__SA_input_particle), ctypes.POINTER(ctypes.POINTER(struct_c__SA_particle_state)), ctypes.POINTER(ctypes.c_int32)]
+except AttributeError:
+    pass
+try:
+    write_rungroup = _libraries['libascot.so'].write_rungroup
+    write_rungroup.restype = ctypes.c_int32
+    write_rungroup.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32, ctypes.POINTER(ctypes.c_char)]
+except AttributeError:
+    pass
+try:
+    offload_and_simulate = _libraries['libascot.so'].offload_and_simulate
+    offload_and_simulate.restype = ctypes.c_int32
+    offload_and_simulate.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_state), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.POINTER(struct_c__SA_particle_state))]
+except AttributeError:
+    pass
+try:
+    write_output = _libraries['libascot.so'].write_output
+    write_output.restype = ctypes.c_int32
+    write_output.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32]
+except AttributeError:
+    pass
+try:
+    print_marker_summary = _libraries['libascot.so'].print_marker_summary
+    print_marker_summary.restype = None
+    print_marker_summary.argtypes = [ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32]
+except AttributeError:
+    pass
+try:
+    biosaw_calc_B = _libraries['libascot.so'].biosaw_calc_B
+    biosaw_calc_B.restype = None
+    biosaw_calc_B.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+except AttributeError:
+    pass
+try:
+    bbnbi_simulate = _libraries['libascot.so'].bbnbi_simulate
+    bbnbi_simulate.restype = None
+    bbnbi_simulate.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.c_int32, real, real, ctypes.POINTER(ctypes.POINTER(struct_c__SA_particle_state))]
+except AttributeError:
+    pass
 __all__ = \
     ['B_2DS_data', 'B_2DS_eval_B', 'B_2DS_eval_B_dB',
     'B_2DS_eval_psi', 'B_2DS_eval_psi_dpsi', 'B_2DS_eval_rho_drho',
@@ -2515,12 +3429,12 @@ __all__ = \
     'B_GS_get_axis_rz', 'B_GS_init', 'B_GS_offload', 'B_STS_data',
     'B_STS_eval_B', 'B_STS_eval_B_dB', 'B_STS_eval_psi',
     'B_STS_eval_psi_dpsi', 'B_STS_eval_rho_drho', 'B_STS_free',
-    'B_STS_get_axis_rz', 'B_STS_init', 'B_STS_offload', 'B_TC_data',
-    'B_TC_eval_B', 'B_TC_eval_B_dB', 'B_TC_eval_psi',
-    'B_TC_eval_psi_dpsi', 'B_TC_eval_rho_drho', 'B_TC_free',
-    'B_TC_get_axis_rz', 'B_TC_init', 'B_TC_offload', 'B_field_data',
-    'B_field_eval_B', 'B_field_eval_B_dB', 'B_field_eval_psi',
-    'B_field_eval_psi_dpsi', 'B_field_eval_rho',
+    'B_STS_get_axis_rz', 'B_STS_init', 'B_STS_offload',
+    'B_STS_reduce_symm', 'B_TC_data', 'B_TC_eval_B', 'B_TC_eval_B_dB',
+    'B_TC_eval_psi', 'B_TC_eval_psi_dpsi', 'B_TC_eval_rho_drho',
+    'B_TC_free', 'B_TC_get_axis_rz', 'B_TC_init', 'B_TC_offload',
+    'B_field_data', 'B_field_eval_B', 'B_field_eval_B_dB',
+    'B_field_eval_psi', 'B_field_eval_psi_dpsi', 'B_field_eval_rho',
     'B_field_eval_rho_drho', 'B_field_free', 'B_field_get_axis_rz',
     'B_field_offload', 'B_field_type', 'B_field_type_2DS',
     'B_field_type_3DS', 'B_field_type_GS', 'B_field_type_STS',
@@ -2549,7 +3463,7 @@ __all__ = \
     'boozer_init', 'boozer_offload', 'boschhale_reaction',
     'boschhale_sigma', 'boschhale_sigmav', 'c__EA_hist_coordinate',
     'c__EA_mom_space_basis', 'diag_data', 'diag_free', 'diag_init',
-    'diag_offload', 'diag_orb_check_plane_crossing',
+    'diag_offload', 'diag_onload', 'diag_orb_check_plane_crossing',
     'diag_orb_check_radial_crossing', 'diag_orb_data',
     'diag_orb_free', 'diag_orb_init', 'diag_orb_update_fo',
     'diag_orb_update_gc', 'diag_orb_update_ml', 'diag_sum',
@@ -2558,15 +3472,17 @@ __all__ = \
     'diag_transcoef_update_fo', 'diag_transcoef_update_gc',
     'diag_transcoef_update_ml', 'diag_update_fo', 'diag_update_gc',
     'diag_update_ml', 'dist_5D_data', 'dist_5D_free', 'dist_5D_index',
-    'dist_5D_init', 'dist_5D_offload', 'dist_5D_update_fo',
-    'dist_5D_update_gc', 'dist_6D_data', 'dist_6D_free',
-    'dist_6D_init', 'dist_6D_offload', 'dist_6D_update_fo',
-    'dist_6D_update_gc', 'dist_COM_data', 'dist_COM_free',
-    'dist_COM_init', 'dist_COM_offload', 'dist_COM_update_fo',
+    'dist_5D_init', 'dist_5D_offload', 'dist_5D_onload',
+    'dist_5D_update_fo', 'dist_5D_update_gc', 'dist_6D_data',
+    'dist_6D_free', 'dist_6D_init', 'dist_6D_offload',
+    'dist_6D_onload', 'dist_6D_update_fo', 'dist_6D_update_gc',
+    'dist_COM_data', 'dist_COM_free', 'dist_COM_init',
+    'dist_COM_offload', 'dist_COM_onload', 'dist_COM_update_fo',
     'dist_COM_update_gc', 'dist_rho5D_data', 'dist_rho5D_free',
-    'dist_rho5D_init', 'dist_rho5D_offload', 'dist_rho5D_update_fo',
-    'dist_rho5D_update_gc', 'dist_rho6D_data', 'dist_rho6D_free',
-    'dist_rho6D_init', 'dist_rho6D_offload', 'dist_rho6D_update_fo',
+    'dist_rho5D_init', 'dist_rho5D_offload', 'dist_rho5D_onload',
+    'dist_rho5D_update_fo', 'dist_rho5D_update_gc', 'dist_rho6D_data',
+    'dist_rho6D_free', 'dist_rho6D_init', 'dist_rho6D_offload',
+    'dist_rho6D_onload', 'dist_rho6D_update_fo',
     'dist_rho6D_update_gc', 'endcond_check_fo', 'endcond_check_gc',
     'endcond_check_ml', 'endcond_cpumax', 'endcond_emin',
     'endcond_hybrid', 'endcond_ioniz', 'endcond_neutr',
