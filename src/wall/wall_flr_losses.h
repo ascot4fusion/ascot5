@@ -1,5 +1,5 @@
 /**
- * @file flr_losses.h
+ * @file wall_flr_losses.h
  * @brief Header file for flr_losses.c. Contains the routines to 
  * determine the FLR losses of GC markers.
  */
