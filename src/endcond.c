@@ -58,6 +58,7 @@
 #include "consts.h"
 #include "math.h"
 #include "plasma.h"
+#include "wall/wall_flr_losses.h"
 
 /**
  * @brief Check end conditions for FO markers
@@ -272,6 +273,7 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
     int active_polmax    = sim->endcond_active & endcond_polmax;
     int active_tormax    = sim->endcond_active & endcond_tormax;
     int active_cpumax    = sim->endcond_active & endcond_cpumax;
+    int active_flr_losses = sim->enable_flr_losses & active_wall;
 
     #pragma omp simd
     for(i = 0; i < NSIMD; i++) {
@@ -320,6 +322,22 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
                     p_f->walltile[i] = tile;
                     p_f->endcond[i] |= endcond_wall;
                     p_f->running[i] = 0;
+                }
+                else if(active_flr_losses){
+                    // In the event that there's have not been collision in the
+                    // GC limit, we check the FLR losses.
+                    int tile_flr = 0;
+                    int err_flr  = 0;
+                    flr_losses_eval(p_f->r[i], p_f->phi[i], p_f->z[i],
+                                    p_f->ppar[i], p_f->mu[i], p_f->mass[i],
+                                    p_f->charge[i], p_f->time[i],
+                                    &sim->B_data, &sim->wall_data, &sim->random_data,
+                                    &tile_flr, &err_flr);
+                    if(tile_flr > 0) {
+                        p_f->walltile[i] = tile_flr;
+                        p_f->endcond[i] |= endcond_wall | endcond_flr_wall;
+                        p_f->running[i] = 0;
+                    }
                 }
             }
 
@@ -550,6 +568,7 @@ void endcond_parse(int endcond, int* endconds) {
     if(endcond & endcond_hybrid) {endconds[i++] = 10;};
     if(endcond & endcond_neutr)  {endconds[i++] = 11;};
     if(endcond & endcond_ioniz)  {endconds[i++] = 12;};
+    if(endcond & endcond_flr_wall) {endconds[i++] = 13;};
 }
 
 /**
@@ -601,6 +620,9 @@ void endcond_parse2str(int endcond, char* str) {
             break;
         case 12:
             sprintf(str, "Ionization");
+            break;
+        case 13:
+            sprintf(str, "FLR loss particle");
             break;
     }
 }

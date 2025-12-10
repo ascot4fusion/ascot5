@@ -27,7 +27,8 @@ enum ENDCOND_FLAG {
     endcond_cpumax = 0x100, /**< Wall time exceeded      */
     endcond_hybrid = 0x200, /**< Hybrid mode condition   */
     endcond_neutr  = 0x400, /**< Neutralized             */
-    endcond_ioniz  = 0x800  /**< Ionized                 */
+    endcond_ioniz  = 0x800, /**< Ionized                 */
+    endcond_flr_wall = 0x1000 /**< FLR loss due to wall    */
 
 };
 

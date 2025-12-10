@@ -88,6 +88,9 @@ def check_options_consistent(ascotpy):
     if opt["ENABLE_DIST_RHO6D"] == 1 and rtp * p3d * 8 > high_memory_consumption:
         msg += ["Warning: rho6D distribution memory consumption high (~" +
                 str(int(rtp * p3d * 8 / 1e9)) + "Gb)"]
+        
+    if opt["ENABLE_FLR_LOSSES"] == 1 and (not (opt["SIM_MODE"] in [2,3])):
+        msg += ["Error: ENABLE_FLR_LOSSES can only be used with guiding center mode"]
 
     return msg
 
