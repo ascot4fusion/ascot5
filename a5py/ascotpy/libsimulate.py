@@ -66,7 +66,7 @@ class LibSimulate():
         self._sim.enable_atomic       = int(opt["ENABLE_ATOMIC"])
         self._sim.enable_icrh         = int(opt["ENABLE_ICRH"])
         self._sim.enable_aldforce     = int(opt["ENABLE_ALDFORCE"])
-        self._sim.enable_flr_losses   = opt["ENABLE_FLR_LOSSES"]
+        self._sim.enable_flr_losses   = int(opt["ENABLE_FLR_LOSSES"])
         self._sim.disable_gctransform = int(opt["DISABLE_FIRSTORDER_GCTRANS"])
         self._sim.disable_energyccoll = int(opt["DISABLE_ENERGY_CCOLL"])
         self._sim.disable_pitchccoll  = int(opt["DISABLE_PITCH_CCOLL"])
