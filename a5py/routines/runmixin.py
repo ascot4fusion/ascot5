@@ -87,7 +87,7 @@ class RunMixin(DistMixin):
         ----------
         *qnt : str
             Names of the quantities.
-        mode : {"gc", "prt"}, optional
+        mode : {"gc", "prt", "fl"}, optional
             Coordinate system to use. Please be aware that using a mode other
             than that in the simulation can in some specieal cases cause rubbish
             data to be returned due to imperfect FO to GC transformation.
@@ -294,14 +294,25 @@ class RunMixin(DistMixin):
 
         return econds, emsg
 
-    def getstate_losssummary(self):
+    def getstate_losssummary(self, mode="gc"):
         """Return a summary of lost markers.
+
+        Parameters
+        ----------
+        mode : str
+            Simulation mode. {"gc", "prt", "fl"}
+
+        Returns
+        -------
+        msg : list [str]
+            List of strings summarizing the loss of markers.
+
         """
         self._require("_endstate")
 
-        wmrks, emrks = self.getstate("weight", "ekin", state="ini")
+        wmrks, emrks = self.getstate("weight", "ekin", state="ini", mode=mode)
         wloss, eloss = self.getstate("weight", "ekin", state="end",
-                                     endcond="wall")
+                                     endcond="wall", mode=mode)
 
         markers_lost   = wloss.size
         markers_frac   = wloss.size / wmrks.size
@@ -319,18 +330,25 @@ class RunMixin(DistMixin):
                 + str(np.around(power_frac*100, decimals=1)) + "% of total)"]
         return msg
 
-    def getstate_pointcloud(self, endcond=None):
+    def getstate_pointcloud(self, endcond=None, mode="gc"):
         """Return marker endstate (x,y,z) coordinates in single array.
 
         Parameters
         ----------
         endcond : str, optional
             Only return markers that have given end condition.
+        mode : str, optional
+            Simulation mode. {"gc", "prt", "fl"}
+
+        Returns
+        -------
+        pos : array_like
+            Marker endstate (x,y,z) coordinates.
         """
         self._require("_endstate")
-        return np.array([self.getstate("x", state="end", endcond=endcond),
-                         self.getstate("y", state ="end", endcond=endcond),
-                         self.getstate("z", state="end", endcond=endcond)]).T
+        return np.array([self.getstate("x", state="end", endcond=endcond, mode=mode),
+                         self.getstate("y", state ="end", endcond=endcond, mode=mode),
+                         self.getstate("z", state="end", endcond=endcond, mode=mode)]).T
 
     def getstate_markers(self, mrktype, ids=None, state="end"):
         """Convert endstate to marker input.
@@ -857,10 +875,24 @@ class RunMixin(DistMixin):
                 print(d[0] + " : " + d[1])
         return dists, moms
 
-    def plotstate_scatter(self, x, y, z=None, c=None, xmode="gc", ymode="gc",
-                          zmode="gc", cmode="gc", endcond=None, ids=None,
-                          cint=9, cmap=None, axesequal=False, axes=None,
-                          cax=None, markersize=4.0):
+    def plotstate_scatter(self,
+                          x,
+                          y,
+                          z=None,
+                          c=None,
+                          xmode="gc",
+                          ymode="gc",
+                          zmode="gc",
+                          cmode="gc",
+                          endcond=None,
+                          ids=None,
+                          cint=9,
+                          cmap=None,
+                          axesequal=False,
+                          axes=None,
+                          cax=None,
+                          markersize=4.0,
+                          ):
         """Make a scatter plot of marker state coordinates.
 
         The plot is either 2D+1D or 3D+1D, where the extra coordinate is color,
@@ -888,13 +920,13 @@ class RunMixin(DistMixin):
         c : str, optional
             Name of the quantity shown with color scale or name of a color
             to plot all markers with same color.
-        xmode : {"prt", "gc"}, optional
+        xmode : {"prt", "gc", "fl"}, optional
             Evaluate x quantity in particle or guiding-center phase space.
-        ymode : {"prt", "gc"}, optional
+        ymode : {"prt", "gc", "fl"}, optional
             Evaluate y quantity in particle or guiding-center phase space.
-        zmode : {"prt", "gc"}, optional
+        zmode : {"prt", "gc", "fl"}, optional
             Evaluate z quantity in particle or guiding-center phase space.
-        cmode : {"prt", "gc"}, optional
+        cmode : {"prt", "gc", "fl"}, optional
             Evaluate color quantity in particle or guiding-center phase space.
         endcond : str, array_like, optional
             Endcond of those markers which are plotted.
@@ -922,8 +954,14 @@ class RunMixin(DistMixin):
         ValueError
             If argument could not be parsed.
         """
-        def parsearg(arg):
+        def parsearg(arg, mode):
             """Parse arguments of from "log ini qnt" to (qnt, value, islog).
+            Parameters
+            ----------
+            arg : str
+                Argument to be parsed.
+            mode : {"prt", "gc", "fl"}
+                Evaluate quantity in particle or guiding-center phase space.
             """
             arg = arg.lower()
             log = "linear"
@@ -933,22 +971,28 @@ class RunMixin(DistMixin):
 
             if "ini" in arg:
                 arg = arg.replace("ini", "").strip()
-                val = self.getstate(arg, state="ini", endcond=endcond, ids=ids)
+                val = self.getstate(arg, state="ini", endcond=endcond, ids=ids,
+                                    mode=mode)
                 arg = "Initial " + arg
             elif "end" in arg:
                 arg = arg.replace("end", "").strip()
-                val = self.getstate(arg, state="end", endcond=endcond, ids=ids)
+                val = self.getstate(arg, state="end", endcond=endcond, ids=ids,
+                                    mode=mode)
                 arg = "Final " + arg
             elif "reldiff" in arg:
                 arg = arg.replace("reldiff", "").strip()
-                val1 = self.getstate(arg, state="ini", endcond=endcond, ids=ids)
-                val2 = self.getstate(arg, state="end", endcond=endcond, ids=ids)
+                val1 = self.getstate(arg, state="ini", endcond=endcond, ids=ids,
+                                     mode=mode)
+                val2 = self.getstate(arg, state="end", endcond=endcond, ids=ids,
+                                     mode=mode)
                 val = (val2 -val1) / val1
                 arg = r"$\Delta x/x_0$ " + arg
             elif "diff" in arg:
                 arg = arg.replace("diff", "").strip()
-                val1 = self.getstate(arg, state="ini", endcond=endcond, ids=ids)
-                val2 = self.getstate(arg, state="end", endcond=endcond, ids=ids)
+                val1 = self.getstate(arg, state="ini", endcond=endcond, ids=ids,
+                                     mode=mode)
+                val2 = self.getstate(arg, state="end", endcond=endcond, ids=ids,
+                                     mode=mode)
                 val = val2 - val1
                 arg = r"$\Delta$ " + arg
             else:
@@ -966,19 +1010,20 @@ class RunMixin(DistMixin):
                 val *= unyt.dimensionless
             return (arg, val, log)
 
-        x, xc, xlog = parsearg(x)
-        y, yc, ylog = parsearg(y)
+        x, xc, xlog = parsearg(x, xmode)
+        y, yc, ylog = parsearg(y, ymode)
         x = x + " [" + str(xc.units) + "]"
         y = y + " [" + str(yc.units) + "]"
 
-        cc = None; clog = False;
+        cc = None
+        clog = False
         if c is not None:
-            if len(c.split()) == 1:
+            if len(c.split()[0]) == 1:
                 # c is a color string, not quantity
                 cc = c
                 c = None
             else:
-                c, cc, clog = parsearg(c)
+                c, cc, clog = parsearg(c, cmode)
                 c = c + " [" + str(cc.units) + "]"
 
         if z is None:
@@ -986,7 +1031,7 @@ class RunMixin(DistMixin):
                             xlabel=x, ylabel=y, clabel=c, cint=cint, cmap=cmap,
                             axesequal=axesequal, axes=axes, cax=cax, markersize=markersize)
         else:
-            z, zc, zlog = parsearg(z)
+            z, zc, zlog = parsearg(z, zmode)
             z = z + " [" + str(zc.units) + "]"
             a5plt.scatter3d(xc, yc, zc, c=cc, xlog=xlog, ylog=ylog,
                             zlog=zlog, clog=clog, xlabel=x, ylabel=y, zlabel=z,
@@ -1023,9 +1068,9 @@ class RunMixin(DistMixin):
             Bin edges for the x coordinate or the number of bins.
         ybins : int or array_like, optional
             Bin edges for the y coordinate or the number of bins.
-        xmode : {"prt", "gc"}, optional
+        xmode : {"prt", "gc", "fl"}, optional
             Evaluate x quantity in particle or guiding-center phase space.
-        ymode : {"prt", "gc"}, optional
+        ymode : {"prt", "gc", "fl"}, optional
             Evaluate y quantity in particle or guiding-center phase space.
         endcond : str, array_like, optional
             Endcond of those markers which are plotted.
@@ -1050,6 +1095,15 @@ class RunMixin(DistMixin):
         """
         def parsearg(arg, mode, endcond):
             """Parse arguments of from "log ini qnt" to (qnt, value, islog).
+
+            Parameters
+            ----------
+            arg : str
+                Argument to parse.
+            mode : {"prt", "gc", "fl"}
+                Mode of the quantity.
+            endcond : str, array_like, optional
+                Endcond of those markers which are plotted.
             """
             arg = arg.lower()
             log = "linear"
@@ -1241,14 +1295,27 @@ class RunMixin(DistMixin):
         # Find indices to map values from inistate to orbit array
         _, idarr = np.unique(idarr, return_inverse=True)
         idx = np.where(idarr[:-1] != idarr[1:])[0] + 1
-        def parsevals(val, log, label, qnt):
+        def parsevals(val, log, label, qnt, mode="gc"):
             """Compute values and split them by orbit
+
+            Parameters
+            ----------
+            val : array_like
+                Values to be split.
+            log : str
+                Logarithmic flag.
+            label : str
+                Label of the quantity.
+            qnt : str
+                Name of the quantity.
+            mode : {"prt", "gc", "fl"}
+                Mode of the quantity.
             """
             if "x/x_0" in label:
-                val0 = self.getstate(qnt, state="ini", endcond=endcond, ids=ids)
+                val0 = self.getstate(qnt, state="ini", endcond=endcond, ids=ids, mode=mode)
                 val = ( val / val0[idarr] ) - 1
             elif "Delta" in label:
-                val0 = self.getstate(qnt, state="ini", endcond=endcond, ids=ids)
+                val0 = self.getstate(qnt, state="ini", endcond=endcond, ids=ids, mode=mode)
                 val = val - val0[idarr]
 
             if any(val < 0) and log == "log":
@@ -1414,6 +1481,7 @@ class RunMixin(DistMixin):
                         logscale=True,
                         cumulative=True,
                         axes=None,
+                        label=None,
                         ):
         """Plot the cumulative or non-cumulative lost power.
 
@@ -1423,7 +1491,7 @@ class RunMixin(DistMixin):
             Which end conditions to count as "lost". Probably "rhomax" or "wall"
             or ["rhomax", "wall"].
         mode : str
-            Either "gc" or "prt"
+            Simulation mode. {"gc", "prt", "fl"}
         max_initial_rho : float, optional
             Maximum initial rho for the markers that are included. For instance,
             if the markers are only simulated up to rho=1.0, it might not make
@@ -1436,6 +1504,8 @@ class RunMixin(DistMixin):
             Whether to plot the cumulative or non-cumulative lost power.
         axes : :obj:`~matplotlib.axes.Axes`, optional
             The axes where figure is plotted or otherwise new figure is created.
+        label : str, optional
+            Label if you are using a legend.
         """
 
         # Get mileage, weight, and Ekin of markers that count as lost
@@ -1468,7 +1538,7 @@ class RunMixin(DistMixin):
         ekin_lost = ekin_lost.to("MJ")
 
         # Craft the time array
-        nbins=300
+        nbins=250
         plot_max_time = np.amax(mileage_lost)*1.2
         if logscale:
             t_array= np.logspace(-8,
@@ -1497,7 +1567,7 @@ class RunMixin(DistMixin):
                                 xlog=xlog,
                                 xlabel="Time [s]",
                                 ylabel=f"Cumulative power lost [{str(cumulative_lost_power.units):s}]",
-                                title=f"Run: \"{self.get_desc():s}\"",
+                                label=label,
                                 axes=axes, skipshow=True,
                                 )
             axes.text(t_array[-1],
@@ -1505,9 +1575,7 @@ class RunMixin(DistMixin):
                     f" {cumulative_lost_power[-1]:.2e}",
                     )
             axes.grid(True)
-            axes.set_xlim([t_array[0], t_array[-1]])
             a5plt.tight_layout(axes)
-            a5plt.show()
         else:
             ekin_lost_weighted = (ekin_lost*w_lost).to("MW")
             axes = a5plt.hist1d(
@@ -1517,18 +1585,19 @@ class RunMixin(DistMixin):
                 xlog="log" if logscale else "linear",
                 xlabel="Time [s]",
                 ylabel=f"Lost power per bin [{str(ekin_lost_weighted.units):s}]",
-                title=f"Run: \"{self.get_desc():s}\"",
+                legend=label,
+                axes=axes,
                 skipshow=True,
                 histtype="step",
             )
             axes.grid(True)
-            axes.set_xlim([t_array[0], t_array[-1]])
-            a5plt.show()
 
     def plot_powerdep_rhoprofile(self,
                                  distribution,
                                  axes=None,
                                  ylim=[None,None],
+                                 total_only=False,
+                                 label=None,
                                  ):
         """Plot deposited power rho distribution (ion, electron, total).
 
@@ -1540,32 +1609,41 @@ class RunMixin(DistMixin):
             The axes where figure is plotted or otherwise new figure is created.
         ylim : list, optional
             y-axis limits
+        total_only : bool, optional
+            Whether to plot only the total power deposition.
+        label : str, optional
+            Custom label for the legend.
         """
         dist = self.getdist(distribution)
-        moments = self.getdist_moments(dist,
-                                       "powerdep",
-                                        "ionpowerdep",
-                                        "electronpowerdep")
+        if total_only:
+            moments = self.getdist_moments(dist, "powerdep")
 
-        volume_vsrho = np.sum(moments.volume, axis=(1,2))
-        tot_sum = np.sum(moments.ordinate("powerdep", toravg=True, polavg=True).to("MW/m**3")*volume_vsrho)
-        i_sum = np.sum(moments.ordinate("ionpowerdep", toravg=True, polavg=True).to("MW/m**3")*volume_vsrho)
-        e_sum = np.sum(moments.ordinate("electronpowerdep", toravg=True, polavg=True).to("MW/m**3")*volume_vsrho)
+            volume_vsrho = np.sum(moments.volume, axis=(1,2))
+            tot_sum = np.sum(moments.ordinate("powerdep", toravg=True, polavg=True).to("MW/m**3")*volume_vsrho)
+            if label is None:
+                label = f"total ({tot_sum:.2e})"
+            moments.plot("powerdep", axes=axes, label=label)
+        else:
+            moments = self.getdist_moments(dist,
+                                        "powerdep",
+                                            "ionpowerdep",
+                                            "electronpowerdep")
 
-        if axes is None:
-            fig, axes = a5plt.subplots()
-        moments.plot("powerdep", axes=axes, label=f"total ({tot_sum:.2e})")
-        moments.plot("ionpowerdep", axes=axes, label=f"ion ({i_sum:.2e})")
-        moments.plot("electronpowerdep", axes=axes, label=f"electron ({e_sum:.2e})")
-        axes.set_ylabel("power deposition [W/m**3]")
-        axes.legend()
-        axes.set_ylim(ylim)
-        a5plt.show()
+            volume_vsrho = np.sum(moments.volume, axis=(1,2))
+            tot_sum = np.sum(moments.ordinate("powerdep", toravg=True, polavg=True).to("MW/m**3")*volume_vsrho)
+            i_sum = np.sum(moments.ordinate("ionpowerdep", toravg=True, polavg=True).to("MW/m**3")*volume_vsrho)
+            e_sum = np.sum(moments.ordinate("electronpowerdep", toravg=True, polavg=True).to("MW/m**3")*volume_vsrho)
+            moments.plot("powerdep", axes=axes, label=f"total ({tot_sum:.2e})")
+            moments.plot("ionpowerdep", axes=axes, label=f"ion ({i_sum:.2e})")
+            moments.plot("electronpowerdep", axes=axes, label=f"electron ({e_sum:.2e})")
+            axes.set_ylabel("power deposition [W/m**3]")
+            axes.legend()
+            axes.set_ylim(ylim)
 
 
     @a5plt.openfigureifnoaxes(projection=None)
     def plotwall_convergence(self, qnt, nmin=1000, nsample=10, axes=None,
-                             flags=None):
+                             flags=None, mode="prt"):
         """Plot convergence of losses by subsampling the results.
 
         This function works by picking randomly a subset of
@@ -1588,10 +1666,12 @@ class RunMixin(DistMixin):
             list (the values can either be integers or strings).
         axes : :obj:`~matplotlib.axes.Axes`, optional
             The axes where figure is plotted or otherwise new figure is created.
+        mode : {"prt", "gc", "fl"}, optional
+            Simulation mode.
         """
         self._require("_endstate")
-        ids, weight, ekin = self.getstate("ids", "weight", "ekin", state="end")
-        lost = self.getstate("ids", endcond='WALL')
+        ids, weight, ekin = self.getstate("ids", "weight", "ekin", state="end", mode=mode)
+        lost = self.getstate("ids", endcond='WALL', mode=mode)
         lost = np.in1d(ids, lost)
         ntotal = ids.size
         nsubset = np.logspace(np.log10(nmin), np.log10(ntotal), nsample)
@@ -2196,7 +2276,7 @@ class RunMixin(DistMixin):
          - 1 Gyro-orbit
          - 2 Guiding center
          - 3 Hybrid
-         - 4 Magnetic field lines )
+         - 4 Magnetic field lines
 
         Returns
         -------
