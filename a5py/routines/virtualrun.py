@@ -409,11 +409,11 @@ class VirtualDist(Dist):
                 case "ppar":
                     self._abscissa_edges[n] = \
                         np.linspace(dist.min_ppara, dist.max_ppara,
-                                    dist.n_ppara+1) * unyt.kg*unyt.m**2/unyt.s
+                                    dist.n_ppara+1) * unyt.kg*unyt.m/unyt.s
                 case "pperp":
                     self._abscissa_edges[n] = \
                         np.linspace(dist.min_pperp, dist.max_pperp,
-                                    dist.n_pperp+1) * unyt.kg*unyt.m**2/unyt.s
+                                    dist.n_pperp+1) * unyt.kg*unyt.m/unyt.s
                 case "time":
                     self._abscissa_edges[n] = \
                         np.linspace(dist.min_time, dist.max_time,
