@@ -104,6 +104,11 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
         }
     }
 
+    if(sim->enable_clmbcol) {
+      /* Copy Wiener data on Device */
+      GPU_MAP_TO_DEVICE(wienarr[0:mrk_array_size])
+    }
+
     cputime_last = A5_WTIME;
 
     /* MAIN SIMULATION LOOP
@@ -312,6 +317,10 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
     /* All markers simulated! */
 #ifdef GPU
     GPU_MAP_FROM_DEVICE(sim[0:1])
+    if(sim->enable_clmbcol) {
+      /* Copy Wiener data on Device */
+      GPU_MAP_FROM_DEVICE(wienarr[0:mrk_array_size])
+    }
     particle_onload_gc(&p);
     n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 #endif
