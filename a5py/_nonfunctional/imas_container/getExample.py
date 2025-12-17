@@ -3,9 +3,12 @@ import imas
 import warnings
 import numpy as np
 import copy
+import unyt
 
 with open('dist5d.pickle', 'rb') as f:
-   d5d=pickle.load(f)
+   P=pickle.load(f)
+d5d  = P['d5d']
+mass = P['mass']
 
 
 distIDS = imas.distributions()
@@ -15,14 +18,13 @@ D=dists[0]
 
 
 
-def fill_ggd_d5d( d5d, D, itime=0, irefgrid=0 ):
+def fill_ggd_d5d( d5d, D, mass, itime=0, irefgrid=0 ):
    '''
-   Fill in the general grid discription if the distribution IDS.
+   Fill in the general grid discription of the distribution IDS.
    parameters:
      d5d      (input,  from e.g. = vrun.getdist('5d') )
      D        (output, from e.g. dists=imas.distributions().distribution; dists.resize(1) ; D=dists[0] )
      itime    (input, optional(default=0) which time index to fill in the IDS (index here starts with 0)
-     itasc    (input, optional(default=0) which time index in the ascot distribution use
      irefgrid (input, optional(default=0) which time index in the ascot distribution use (index here starts with 0, will be +1)
 
    '''
@@ -141,10 +143,71 @@ def fill_ggd_d5d( d5d, D, itime=0, irefgrid=0 ):
    # Prepare to move from density to number particles per slot. This is the density of each slot:
    V = d5d.phasespacevolume()
 
+   VDD = calculate_phase_space_volume_ppar_pperp(mass=mass,
+                                                 r    = d5d.abscissa_edges( 'r'     ),
+                                                 phi  = d5d.abscissa_edges( 'phi'   ),
+                                                 z    = d5d.abscissa_edges( 'z'     ),
+                                                 ppar = d5d.abscissa_edges( 'ppar'  ),
+                                                 pperp= d5d.abscissa_edges( 'pperp' )  )
+
    # The unit is supposed to be m^-6.s^3 ( https://github.com/iterorganization/IMAS-Data-Dictionary/issues/168 )
    warnings.warn("There has been no checking if the units are correct or not.")
-   A.values[:] = d5d.distribution().value[:,:,:,:,:].ravel(order=ravel_order) * V.ravel(order=ravel_order)
+   A.values[:] = d5d.distribution().value[:,:,:,:,:].ravel(order=ravel_order) * V.ravel(order=ravel_order) / VDD.ravel(order=ravel_order)
 
+def calculate_phase_space_volume_ppar_pperp(mass,r,phi,z,ppar,pperp):
+   """Calculate the phase space volume of each histogram slot in an ascot5 5d distribution of r,phi,z,ppar,pperp
+
+   The volume in m**3 * (m/s)**3
+
+    Parameters
+    ----------
+
+"""
+   #from a5py.physlib import velocity_momentum
+   #print(mass)
+
+   V = np.ones( ( len(r)-1, len(phi)-1, len(z)-1, len(ppar)-1, len(pperp)-1 ) ) *unyt.m*unyt.m*unyt.m * unyt.m*unyt.m*unyt.m /unyt.s/unyt.s/unyt.s
+
+   # Convert momentum into velocity
+   vpar = np.zeros_like(ppar.value) * unyt.m/unyt.s
+   for i,p in enumerate(ppar):
+      vpar[i] = p/mass #velocity_momentum(mass, np.array([p,]))
+
+   # Convert momentum into velocity
+   vperp = np.zeros_like(pperp.value) * unyt.m/unyt.s
+   for i,p in enumerate(pperp):
+      vperp[i] = p/mass #velocity_momentum(mass, p)
+
+   # Calculate volumes in spatial space
+
+   # Radial slice, surface area of a disc, minus surface area of a smaller disc: pi*R_o**2 - pi*R_i**2
+   for i in range( len(r)-1 ):
+      V[i,:,:,:,:] *= np.pi * ( r[i+1]*r[i+1] - r[i]*r[i] ) / ( unyt.m * unyt.m)
+
+   # toroidal segment
+   for i in range( len(phi)-1 ):
+      V[:,i,:,:,:] *=  ( phi[i+1] - phi[i] ) /  ( 2 * np.pi * unyt.rad )
+
+   # vertical slices
+   for i in range( len(z)-1 ):
+      V[:,:,i,:,:] *=  ( z[i+1] - z[i] )  / ( unyt.m )
+
+   # Calculate volumes in velocity space
+   # The geometry is analogous to R,phi,z <--> vperp,gyrophase,vpar
+
+   # parallel slices
+   for i in range( len(ppar)-1 ):
+      V[:,:,:,i,:] *=  ( vpar[i+1] - vpar[i] )  / ( unyt.m / unyt.s )
+
+   # Radial slice, surface area of a disc, minus surface area of a smaller disc: pi*R_o**2 - pi*R_i**2
+   for i in range( len(pperp)-1 ):
+      V[:,:,:,:,i] *= np.pi * ( vperp[i+1]*vperp[i+1] - vperp[i]*vperp[i] )  / ( unyt.m / unyt.s )**2
+
+   # (We have all gyrophases included, so no gyrophase related operation needed)
+
+   #print('V[0]',V[0,0,0,0,0])
+
+   return V
 
 
 def grid_setup_struct1d_space(space, coordtype, nodes, periodic=False):
@@ -222,7 +285,7 @@ input:
 
 print('Starting to fill distribution IDS ggd part')
 
-fill_ggd_d5d( d5d, D)
+fill_ggd_d5d( d5d, D, mass)
 
 print('done filling ggd')
 

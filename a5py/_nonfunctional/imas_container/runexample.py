@@ -84,6 +84,10 @@ print("Simulation completed")
 
 vrun.getdist_list()
 d=vrun.getdist('5d')
+#print(vrun.getdist('5d').abscissa_edges( 'ppar'  )[0])
+
+print("save the particle mass")
+mass = vrun.getstate('mass')[0]
 
 pickle_file = 'dist5d.pickle'
 
@@ -92,7 +96,7 @@ print("pickling distribution to '"+pickle_file+"'")
 import pickle
 
 with open(pickle_file, 'wb') as f:
-   pickle.dump(d,f,pickle.HIGHEST_PROTOCOL)
+   pickle.dump({'d5d':d,'mass':mass},   f,pickle.HIGHEST_PROTOCOL)
 
 print('done')
 
