@@ -401,10 +401,10 @@ class RunMixin(DistMixin):
         Returns
         -------
         pol : list [(float, int)]
-            List of tuples with a toroidal angle and pncrid for each poloidal
-            plane or empty list if there are none.
+            List of tuples with a poloidal angle and pncrid for each
+            constant-theta plane or empty list if there are none.
         tor : list [float]
-            List of tuples with a poloidal angle and pncrid for each toroidal
+            List of tuples with a toroidal angle and pncrid for each contant-phi
             plane or empty list if there are none.
         rad : list [float]
             List of tuples with radius and pncrid for radial surfaces or empty
@@ -431,7 +431,12 @@ class RunMixin(DistMixin):
                 pncrid += 1
             return tuples
 
-        return opt2list(polval), opt2list(torval), opt2list(radval)
+        # tor needs to be evaluated first since plane indexing starts from there
+        return_2 = opt2list(torval)
+        return_1 = opt2list(polval)
+        return_3 = opt2list(radval)
+
+        return return_1, return_2, return_3
 
     def getorbit_average(self, qnt, ids):
         """Calculate average of a quantity during a single poloidal transit.
@@ -1367,8 +1372,9 @@ class RunMixin(DistMixin):
             The argument is expected to have format "pol/tor/rad i" where the
             first part specifies the type of the plane (poloidal, toroidal,
             radial) and the second argument is the plane index. For example,
-            ``plane="pol 2"`` plots the second poloidal plane. The order of
-            the planes is same as given by :meth:`getorbit_poincareplanes`.
+            ``plane="pol 2"`` plots the second plane with a contant theta angle.
+            The order of the planes is same as given by
+            :meth:`getorbit_poincareplanes`.
         connlen : bool, optional
             Show connection length and separated lost and confined markers with
             color.
@@ -1408,19 +1414,6 @@ class RunMixin(DistMixin):
             plane = int(plane.split()[1]) - 1
             if plane < len(pol) and plane >= 0:
                 plane = pol[plane][1]
-                x = choose("r", "rho")
-                y = choose("z", "polmod")
-                xlabel = choose("R [m]", "Normalized poloidal flux")
-                ylabel = choose("z [m]", "Poloidal angle [deg]")
-                xlim = choose(None, [0, 1.1]) # None is determined separately
-                ylim = choose(None, [0, 360]) # None is determined separately
-                axesequal = choose(True, False)
-            else:
-                raise ValueError("Unknown plane.")
-        elif "tor" in plane:
-            plane = int(plane.split()[1]) - 1
-            if plane < len(tor) and plane >= 0:
-                plane = tor[plane][1]
                 x = choose("rho", "r")
                 y = "phimod"
                 xlabel = choose("Normalized poloidal flux", "R [m]")
@@ -1428,6 +1421,19 @@ class RunMixin(DistMixin):
                 xlim = choose([0, 1.1], None) # None is determined separately
                 ylim = [0, 360]
                 axesequal = False
+            else:
+                raise ValueError("Unknown plane.")
+        elif "tor" in plane:
+            plane = int(plane.split()[1]) - 1
+            if plane < len(tor) and plane >= 0:
+                plane = tor[plane][1]
+                x = choose("r", "rho")
+                y = choose("z", "polmod")
+                xlabel = choose("R [m]", "Normalized poloidal flux")
+                ylabel = choose("z [m]", "Poloidal angle [deg]")
+                xlim = choose(None, [0, 1.1]) # None is determined separately
+                ylim = choose(None, [0, 360]) # None is determined separately
+                axesequal = choose(True, False)
             else:
                 raise ValueError("Unknown plane.")
         elif "rad" in plane:
@@ -1633,12 +1639,19 @@ class RunMixin(DistMixin):
             tot_sum = np.sum(moments.ordinate("powerdep", toravg=True, polavg=True).to("MW/m**3")*volume_vsrho)
             i_sum = np.sum(moments.ordinate("ionpowerdep", toravg=True, polavg=True).to("MW/m**3")*volume_vsrho)
             e_sum = np.sum(moments.ordinate("electronpowerdep", toravg=True, polavg=True).to("MW/m**3")*volume_vsrho)
-            moments.plot("powerdep", axes=axes, label=f"total ({tot_sum:.2e})")
-            moments.plot("ionpowerdep", axes=axes, label=f"ion ({i_sum:.2e})")
-            moments.plot("electronpowerdep", axes=axes, label=f"electron ({e_sum:.2e})")
+            if axes is None:
+                axes_was_none = True
+                fig, axes = a5plt.subplots()
+            else:
+                axes_was_none = False
+            moments.plot("powerdep", axes=axes, label=f"total ({tot_sum:.4e})")
+            moments.plot("ionpowerdep", axes=axes, label=f"ion ({i_sum:.4e})")
+            moments.plot("electronpowerdep", axes=axes, label=f"electron ({e_sum:.4e})")
             axes.set_ylabel("power deposition [W/m**3]")
             axes.legend()
             axes.set_ylim(ylim)
+            if axes_was_none:
+                a5plt.show()
 
 
     @a5plt.openfigureifnoaxes(projection=None)
