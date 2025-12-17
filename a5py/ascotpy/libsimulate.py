@@ -273,7 +273,7 @@ class LibSimulate():
 
                 vvec = np.array([vr[i], vphi[i], vz[i]])*unyt.m/unyt.s
                 pvec = physlib.momentum_velocity(mrk["mass"][i], vvec)
-
+                #print('anum ', int(anum[i]))
                 p.r       = r[i]
                 p.phi     = phi[i]
                 p.z       = z[i]
@@ -282,8 +282,8 @@ class LibSimulate():
                 p.p_z     = pvec[2]
                 p.mass    = m[i]
                 p.charge  = q[i]
-                p.anum    = anum[i]
-                p.znum    = znum[i]
+                p.anum    = int(anum[i])
+                p.znum    = int(znum[i])
                 p.weight  = w[i]
                 p.time    = t[i]
                 p.id      = ids[i]

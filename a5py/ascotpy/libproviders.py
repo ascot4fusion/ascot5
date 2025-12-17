@@ -279,20 +279,23 @@ class LibProviders():
     def _provide_B_STS(self, **kwargs):
         """Initialize :class:`B_STS` from dictionary.
         """
+#        print('in libproviders', kwargs["psi_rmin"],type(kwargs["psi_rmin"]))
+#        print('axisr',kwargs['axisr'])
+#        print('axisz',kwargs['axisz'])
         _LIBASCOT.B_STS_init(
             ctypes.byref(self._sim.B_data.BSTS),
-            int(kwargs["psi_nr"][0]), kwargs["psi_rmin"][0],
-            kwargs["psi_rmax"][0],
-            int(kwargs["psi_nphi"][0]), kwargs["psi_phimin"][0] * np.pi / 180,
-            kwargs["psi_phimax"][0] * np.pi / 180,
-            int(kwargs["psi_nz"][0]), kwargs["psi_zmin"][0],
-            kwargs["psi_zmax"][0],
-            int(kwargs["b_nr"][0]), kwargs["b_rmin"][0], kwargs["b_rmax"][0],
-            int(kwargs["b_nphi"][0]), kwargs["b_phimin"][0] * np.pi / 180,
-            kwargs["b_phimax"][0] * np.pi / 180,
-            int(kwargs["b_nz"][0]), kwargs["b_zmin"][0], kwargs["b_zmax"][0],
-            int(kwargs['axis_nphi'][0]), kwargs["axis_phimin"][0] * np.pi / 180,
-            kwargs["axis_phimax"][0] * np.pi / 180,
+            int(kwargs["psi_nr"][0]), kwargs["psi_rmin"],
+            kwargs["psi_rmax"],
+            int(kwargs["psi_nphi"][0]), kwargs["psi_phimin"] * np.pi / 180,
+            kwargs["psi_phimax"] * np.pi / 180,
+            int(kwargs["psi_nz"][0]), kwargs["psi_zmin"],
+            kwargs["psi_zmax"],
+            int(kwargs["b_nr"][0]), kwargs["b_rmin"], kwargs["b_rmax"],
+            int(kwargs["b_nphi"][0]), kwargs["b_phimin"] * np.pi / 180,
+            kwargs["b_phimax"] * np.pi / 180,
+            int(kwargs["b_nz"][0]), kwargs["b_zmin"], kwargs["b_zmax"],
+            int(kwargs['axis_nphi'][0]), kwargs["axis_phimin"] * np.pi / 180,
+            kwargs["axis_phimax"] * np.pi / 180,
             kwargs['axisr'].ctypes.data_as(PTR_ARR),
             kwargs['axisz'].ctypes.data_as(PTR_ARR),
             kwargs["psi0"][0], kwargs["psi1"][0],
@@ -354,16 +357,32 @@ class LibProviders():
         """
         Te = kwargs["etemperature"] * unyt.elementary_charge
         Ti = kwargs["itemperature"] * unyt.elementary_charge
-        mass = np.append(
-            (1.0 * unyt.electron_mass),
-             (kwargs["mass"].flatten() * unyt.atomic_mass_unit).to("kg")
-            )
-        charge = np.append(
+        print(kwargs["mass"],unyt.atomic_mass_unit)
+        if not hasattr(kwargs["mass"],'units'):
+            mass = np.append(
+                (1.0 * unyt.electron_mass),
+                 (kwargs["mass"].flatten() * unyt.atomic_mass_unit).to("kg")
+                )
+        else:
+            mass = np.append(
+                (1.0 * unyt.electron_mass),
+                 (kwargs["mass"].flatten()).to("kg")
+               )
+        if not hasattr(kwargs["charge"],'units'):
+            charge = np.append(
             (-1.0 * unyt.elementary_charge),
              (kwargs["charge"].flatten() * unyt.elementary_charge).to("C")
             )
+        else:
+            charge = np.append(
+                (-1.0 * unyt.elementary_charge),
+                (kwargs["charge"].flatten() ).to("C")
+            )
+        print('mass', mass)
+        print('charge', charge)
         anum = np.ascontiguousarray(kwargs["anum"], dtype=np.int32)
         znum = np.ascontiguousarray(kwargs["znum"], dtype=np.int32)
+        print('anum, znum ', anum,znum)
         _LIBASCOT.plasma_1D_init(
             ctypes.byref(self._sim.plasma_data.plasma_1D), int(kwargs["nrho"]),
             int(kwargs["nion"]), kwargs["rho"].ctypes.data_as(PTR_ARR),
