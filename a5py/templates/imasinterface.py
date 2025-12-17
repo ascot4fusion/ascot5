@@ -595,6 +595,7 @@ class ImportImas():
         profiles_1d = core_profiles_ids.profiles_1d[_TIMEINDEX]
         grid = profiles_1d.grid
         eqprof = equilibrium_ids.time_slice[_TIMEINDEX].profiles_1d
+        eqglobals=equilibrium_ids.time_slice[_TIMEINDEX].global_quantities
         if (grid.rho_pol_norm):
             rho = grid.rho_pol_norm
         #elif True:
@@ -608,9 +609,25 @@ class ImportImas():
             rho = np.interp(grid.rho_tor, eqprof.rho_tor, eqprof.psi_norm)
         elif len(grid.rho_tor) and len(eqprof.rho_tor) and len(eqprof.psi):
             psi = np.interp(grid.rho_tor, eqprof.rho_tor, eqprof.psi) / ( 2*np.pi )
+            if psi1==None or psi1==None:
+                try:
+                    psi0=eqglobals.psi_axis
+                    psi1=eqglobals.psi_boundary
+                except:
+                   raise ValueError(
+                       "No psi_axis, psi_boundary given"
+                   ) 
             rho = np.sqrt( (psi - psi0) / (psi1 - psi0) )
         elif len(grid.rho_tor_norm) and len(eqprof.rho_tor_norm) and len(eqprof.psi):
             psi = np.interp(grid.rho_tor_norm, eqprof.rho_tor_norm, eqprof.psi) / ( 2*np.pi )
+            if psi1==None or psi1==None:
+                try:
+                    psi0=eqglobals.psi_axis
+                    psi1=eqglobals.psi_boundary
+                except:
+                   raise ValueError(
+                       "No psi_axis, psi_boundary given"
+                   ) 
             rho = np.sqrt( (psi - psi0) / (psi1 - psi0) )
         else:
             raise ValueError(
@@ -631,7 +648,7 @@ class ImportImas():
 
         mass = np.array([
             physlib.species.autodetect(a, z)["mass"] for a, z in zip(anum, znum)
-        ]) / unyt.amu
+        ]) * unyt.amu
         warnings.warn(
             "Assuming fully ionized ions in IMAS import. "
             "This may not be correct for all cases."
@@ -696,8 +713,12 @@ class ImportImas():
             a corresponding type.
         """
         mrk_all = {}
+        #print('in markers',_TIMEINDEX)
         time = distribution_sources_ids.time[_TIMEINDEX]
-        for source in distribution_sources_ids.source:
+        for isource, source in enumerate(distribution_sources_ids.source):
+            print(isource,len(source.markers),flush=True)
+            if len(source.markers)==0:
+                continue
             markers = source.markers[_TIMEINDEX]
             if len(markers.weights) == 0:
                 continue
