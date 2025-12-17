@@ -19,7 +19,7 @@ D=dists[0]
 
 
 def fill_ggd_d5d( d5d, D, mass, itime=0, irefgrid=0 ):
-   '''
+   """
    Fill in the general grid discription of the distribution IDS.
    parameters:
      d5d      (input,  from e.g. = vrun.getdist('5d') )
@@ -27,7 +27,7 @@ def fill_ggd_d5d( d5d, D, mass, itime=0, irefgrid=0 ):
      itime    (input, optional(default=0) which time index to fill in the IDS (index here starts with 0)
      irefgrid (input, optional(default=0) which time index in the ascot distribution use (index here starts with 0, will be +1)
 
-   '''
+   """
 
    # One can compare to the ASCOT4 implementation:
    # The call is                here: https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/ids/ids2distribution2ids.F90?ref_type=heads#L293
@@ -106,23 +106,25 @@ def fill_ggd_d5d( d5d, D, mass, itime=0, irefgrid=0 ):
    A.grid_subset_index = 201 # "all 5-hypervolumes" https://imas-data-dictionary.readthedocs.io/en/latest/generated/identifier/ggd_subset_identifier.html#identifier-utilities-ggd_subset_identifier.xml
                              # See also https://github.com/iterorganization/IMAS-Data-Dictionary/issues/166
 
+   # A.grid_subset_index *= -1 # We are not following the units of the data dictionary
+
    A.values.resize(nData)
 
    # The data organization, copied from https://sharepoint.iter.org/departments/POP/CM/IMDesign/Data%20Model/CI/imas-4.0.0/distributions.html
    # in distribution.ggd.grid.gridsubset.identifier for index 1: "nodes"
    # Or https://imas-data-dictionary.readthedocs.io/en/latest/generated/identifier/ggd_subset_identifier.html#identifier-utilities-ggd_subset_identifier.xml
 
-   '''
+   """
    All nodes (0D) belonging to the associated spaces, implicit declaration (no need to replicate the grid elements in the grid_subset structure).
    In case of a structured grid represented with multiple 1D spaces,
    the order of the implicit elements in the grid_subset follows Fortran ordering, i.e.
    iterate always on nodes of the first space first,
    then move to the second node of the second space, ... :
    [((s1_1 to s1_end), s2_1, s3_1 ... sN_1), (((s1_1 to s1_end), s2_2, s3_1, ... sN_1)), ... ((s1_1 to s1_end), s2_end, s3_end ... sN_end)]
-   '''
+   """
 
 
-   '''
+   """
    from the documentation of ravel():
    order {‘C’,’F’, ‘A’, ‘K’}, optional
 
@@ -135,7 +137,7 @@ def fill_ggd_d5d( d5d, D, mass, itime=0, irefgrid=0 ):
 
    Note that the ‘C’ and ‘F’ options take no account of the memory layout of the underlying array, and only refer to the order of axis indexing.
    By default, ‘C’ index order is used.
-   '''
+   """
 
    ravel_order = 'F'
    warnings.warn("Assuming that ravel from ASCOT5 5d-distribution to Fortran works with ravel order '{}'. Not checked.".format(ravel_order))
@@ -151,8 +153,14 @@ def fill_ggd_d5d( d5d, D, mass, itime=0, irefgrid=0 ):
                                                  pperp= d5d.abscissa_edges( 'pperp' )  )
 
    # The unit is supposed to be m^-6.s^3 ( https://github.com/iterorganization/IMAS-Data-Dictionary/issues/168 )
-   warnings.warn("There has been no checking if the units are correct or not.")
    A.values[:] = d5d.distribution().value[:,:,:,:,:].ravel(order=ravel_order) * V.ravel(order=ravel_order) / VDD.ravel(order=ravel_order)
+
+
+#   warnings.warn("Storing the used phase space volume to ggd[itime].grid.grid_subset[0].metric.jacobian (nonstandard usage)")
+#   # except we cannot simply do that:
+#   # ValidationError: Element 'distribution[0]/ggd[0]/grid/grid_subset[0]/metric/jacobian' must have its coordinate in dimension 1 (any of 'distribution(i1)/ggd(itime)/grid/grid_subset(i2)/element') filled.
+#   D.ggd[itime].grid.grid_subset.resize(1)
+#   D.ggd[itime].grid.grid_subset[0].metric.jacobian = VDD.ravel(order=ravel_order)
 
 def calculate_phase_space_volume_ppar_pperp(mass,r,phi,z,ppar,pperp):
    """Calculate the phase space volume of each histogram slot in an ascot5 5d distribution of r,phi,z,ppar,pperp
@@ -211,12 +219,12 @@ def calculate_phase_space_volume_ppar_pperp(mass,r,phi,z,ppar,pperp):
 
 
 def grid_setup_struct1d_space(space, coordtype, nodes, periodic=False):
-   '''
+   """
 input:
   space = ggd[itime].grid.space[i]
   coordtype = ('ignored', 'name', 'index', 'description' )
   nodes = list of edge coordinates
-'''
+"""
 
    print("  Setting space for {}.".format(coordtype[3]) )
    GRID_UNDEFINED = 0  # https://git.iter.org/projects/IMEX/repos/ggd/browse/src/f90/ids_grid_common.f90#26
@@ -290,9 +298,9 @@ fill_ggd_d5d( d5d, D, mass)
 print('done filling ggd')
 
 print('Preparing to write IDS')
-'''
+"""
    https://sharepoint.iter.org/departments/POP/CM/IMDesign/Code%20Documentation//ACCESS-LAYER-doc/python/5.4/examples/001_3_open_URI_path.html
-'''
+"""
 
 
 
