@@ -155,6 +155,12 @@ def fill_ggd_d5d( d5d, D, mass, itime=0, irefgrid=0 ):
    # The unit is supposed to be m^-6.s^3 ( https://github.com/iterorganization/IMAS-Data-Dictionary/issues/168 )
    A.values[:] = d5d.distribution().value[:,:,:,:,:].ravel(order=ravel_order) * V.ravel(order=ravel_order) / VDD.ravel(order=ravel_order)
 
+   # calculate the total number of particles
+   nprt = float(np.sum( (d5d.distribution() * V).ravel(order=ravel_order) ).value)
+
+   warnings.warn("Storing the total number of particles ({}) in global_quantities[0].particles_fast_n.".format(nprt))
+   D.global_quantities.resize(1)
+   D.global_quantities[0].particles_fast_n = nprt
 
 #   warnings.warn("Storing the used phase space volume to ggd[itime].grid.grid_subset[0].metric.jacobian (nonstandard usage)")
 #   # except we cannot simply do that:
