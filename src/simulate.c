@@ -139,6 +139,11 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     asigma_offload(&sim->asigma_data);
     diag_offload(&sim->diag_data);
 
+    if(sim->enable_flr_losses && (sim->sim_mode == simulate_mode_fo)) {
+        print_err("Error: FLR losses is only valid for GC mode.\n");
+        sim->enable_flr_losses = 0; // Disabling it to avoid any issues
+    }
+
     /**************************************************************************/
     /* 2. Meta data (e.g. random number generator) is initialized.            */
     /*                                                                        */
