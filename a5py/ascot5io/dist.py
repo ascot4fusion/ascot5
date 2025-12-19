@@ -730,6 +730,10 @@ class Dist(DataContainer):
 
         Parameters
         ----------
+        ascot : :class:`Ascot`
+            Ascot object for interpolating input data.
+        mass : float
+            Test particle mass.
         dist : :class:`DistData`
             Distribution from where the moments are calculated.
         moment : class:`DistMoment`
@@ -738,8 +742,20 @@ class Dist(DataContainer):
             Calculate current drive instead.
         """
         Z = dist.abscissa("charge")[0] / unyt.e
-        dist = dist.integrate(copy=True, charge=dist.abscissa("charge"),
-                              ppar=dist.abscissa("ppar"))
+
+        # Make a copy of dist and ntegrate over the trvial abscissae
+        dist = dist.integrate(copy=True, charge=np.s_[:],
+                              time=np.s_[:])
+
+        # Multiply by charge*vpar
+        ppa, ppe = np.meshgrid(dist.abscissa("ppar"),
+                               dist.abscissa("pperp"), indexing="ij")
+        pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
+        vnorm = physlib.velocity_momentum(mass, pnorm).reshape(ppa.shape)
+        charge_times_vpa = Z * unyt.e * ppa * vnorm / pnorm.reshape(ppa.shape)
+        dist._multiply(charge_times_vpa, "ppar", "pperp")
+
+        # Integrates over ppar and pperp
         integrate = {}
         if moment.rhodist:
             for k in dist.abscissae:
@@ -750,20 +766,20 @@ class Dist(DataContainer):
                 if k not in ["r", "phi", "z"]:
                     integrate[k] = np.s_[:]
         dist.integrate(**integrate)
-        dist._distribution *= 1/mass
 
         if(drive):
             rho, zeff, ne, te, rminor = ascot.input_eval(
-                moment.rc, moment.phic, moment.zc, 0,
-                "rho", "zeff", "ne", "te", "rminor"
+                moment.rc.ravel(), moment.phic.ravel(), moment.zc.ravel(), 0,
+                "rho", "zeff", "ne", "te", "rminor",
                 )
             clogee = 31.3 - np.log(np.sqrt(ne/unyt.m**3)/(te/unyt.eV))
             q, _, _, ftrap = ascot.input_eval_safetyfactor(
                 rho, return_ftrap=True)
-            aspectratio = np.sqrt(moment.rc/rminor)
+            aspectratio = np.sqrt(moment.rc.ravel()/rminor)
             F = Z/zeff
-            nu_eff = (  1.779e-55 * unyt.J**2 * unyt.m**2 * q * moment.rc * ne
-                      * clogee / (te**2 * aspectratio**(-3/2)))
+
+            nu_eff = (  1.779e-55 * unyt.J**2 * unyt.m**2 * q * moment.rc.ravel() * ne
+                      * clogee / (te**2 * aspectratio**(3/2)))
             X = ftrap / (1 + ( 1 - 0.1*ftrap ) * np.sqrt(nu_eff)
                            + 0.5 * ( 1 -  ftrap ) * nu_eff / zeff )
             zeffplusone = zeff+1
@@ -772,6 +788,10 @@ class Dist(DataContainer):
                  + (0.3 / zeffplusone) * X**3
                  + (0.2 / zeffplusone) * X**4
                  )
+
+            #Since F and G are flattened due to input_eval(), we need to reshape
+            F   = F.reshape(moment.volume.shape)
+            G   = G.reshape(moment.volume.shape)
             jpar = (dist.histogram() / moment.volume).to("A/m**2")
             moment.add_ordinates(currentdrive=(1 - F *(1 - G))*jpar)
         else:
