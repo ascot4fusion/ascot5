@@ -46,16 +46,16 @@ real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i);
  * @param pq particles to be simulated
  * @param sim simulation data
  */
-void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
-    int cycle[NSIMD]      __memalign__; /* Flag indigating whether a new marker
-                                           was initialized */
-    real hin[NSIMD]       __memalign__;  /* Time step given as an input into the
-                                           integrators. Almost always default.*/
-    real hin_default[NSIMD] __memalign__; /* The default fixed time step.     */
-    real hnext_recom[NSIMD]     __memalign__; /* Next time step, only used to
+void simulate_gc_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
+    int* cycle = (int*) malloc(mrk_array_size*sizeof(int)); /* Flag indigating whether a new marker
+                                                              was initialized */
+    real* hin = (real*) malloc(mrk_array_size*sizeof(real));/* Time step given as an input into the
+                                                                integrators. Almost always default.*/
+    real* hin_default = (real*) malloc(mrk_array_size*sizeof(real)); /* The default fixed time step.     */
+    real* hnext_recom = (real*) malloc(mrk_array_size*sizeof(real)); /* Next time step, only used to
                                                 store the value when RFOF has
                                                 rejected a time step.         */
-    real hout_rfof[NSIMD] __memalign__; /* The time step that RFOF recommends.
+    real* hout_rfof = (real*) malloc(mrk_array_size*sizeof(real)); /* The time step that RFOF recommends.
                                             Small positive means that resonance
                                             is close, small negative means that
                                             the step failed because the marker
@@ -63,17 +63,16 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
                                             time step should be retaken with a
                                             smaller time step given by the
                                             negative of hout_rfof             */
-
-
     real cputime, cputime_last; // Global cpu time: recent and previous record
 
     particle_simd_gc p;  // This array holds current states
     particle_simd_gc p0; // This array stores previous states
-
+    particle_allocate_gc(&p, mrk_array_size);
+    particle_allocate_gc(&p0, mrk_array_size);
     rfof_marker rfof_mrk; // RFOF specific data
 
     /* Init dummy markers */
-    for(int i=0; i< NSIMD; i++) {
+    for(int i=0; i< mrk_array_size; i++) {
         p.id[i] = -1;
         p.running[i] = 0;
         hout_rfof[i] = DUMMY_TIMESTEP_VAL;
@@ -89,7 +88,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 
     /* Determine simulation time-step */
     #pragma omp simd
-    for(int i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < mrk_array_size; i++) {
         if(cycle[i] > 0) {
             hin_default[i] = simulate_gc_fixed_inidt(sim, &p, i);
             hin[i] = hin_default[i];
@@ -107,19 +106,23 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
      * - Check for end condition(s)
      * - Update diagnostics
      */
+    particle_offload_gc(&p);
+    particle_offload_gc(&p0);
+    real* rnd = (real*) malloc(5*mrk_array_size*sizeof(real));
+    GPU_MAP_TO_DEVICE(hin[0:mrk_array_size], rnd[0:5*mrk_array_size], hin_default[0:mrk_array_size], hnext_recom[0:mrk_array_size], hout_rfof[0:mrk_array_size])
     while(n_running > 0) {
 
         /* Store marker states */
-        #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
+        GPU_PARALLEL_LOOP_ALL_LEVELS
+        for(int i = 0; i < p.n_mrk; i++) {
             particle_copy_gc(&p, i, &p0, i);
         }
 
         /*************************** Physics **********************************/
 
         /* Set time-step negative if tracing backwards in time */
-        #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
+        GPU_PARALLEL_LOOP_ALL_LEVELS
+        for(int i = 0; i < p.n_mrk; i++) {
             if(sim->reverse_time) {
                 hin[i]  = -hin[i];
             }
@@ -139,8 +142,8 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         }
 
         /* Switch sign of the time-step again if it was reverted earlier */
-        #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
+        GPU_PARALLEL_LOOP_ALL_LEVELS
+        for(int i = 0; i < p.n_mrk; i++) {
             if(sim->reverse_time) {
                 hin[i]  = -hin[i];
             }
@@ -148,8 +151,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 
         /* Euler-Maruyama method for collisions */
         if(sim->enable_clmbcol) {
-            real rnd[5*NSIMD];
-            random_normal_simd(&sim->random_data, 5*NSIMD, rnd);
+            random_normal_simd(&sim->random_data, 5*p.n_mrk, rnd);
             mccc_gc_euler(&p, hin, &sim->B_data, &sim->plasma_data,
                           &sim->mccc_data, rnd);
         }
@@ -180,8 +182,8 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 
         /* Update simulation and cpu times */
         cputime = A5_WTIME;
-        #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
+        GPU_PARALLEL_LOOP_ALL_LEVELS
+        for(int i = 0; i < p.n_mrk; i++) {
             if(hnext_recom[i] < 0) {
                 /* Screwed up big time (negative time-step only when RFOF
                     rejected) */
@@ -209,11 +211,21 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         diag_update_gc(&sim->diag_data, &sim->B_data, &p, &p0);
 
         /* Update running particles */
+#ifdef GPU
+        n_running = 0;
+        GPU_PARALLEL_LOOP_ALL_LEVELS_REDUCTION(n_running)
+        for(int i = 0; i < p.n_mrk; i++)
+        {
+            if(p.running[i] > 0) n_running++;
+        }
+#else
         n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
-
+#endif
+	
+#ifndef GPU
         /* Determine simulation time-step */
         #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
+        for(int i = 0; i < p.n_mrk; i++) {
             if(cycle[i] > 0) {
                 hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
                 if(sim->enable_icrh) {
@@ -222,10 +234,22 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
                 }
             }
         }
+#endif
 
     }
 
     /* All markers simulated! */
+#ifdef GPU
+    GPU_MAP_FROM_DEVICE(sim[0:1])
+    particle_onload_gc(&p);
+    n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
+#endif
+    free(cycle);
+    free(hin);
+    free(rnd);
+    free(hnext_recom);
+    free(hin_default);
+    free(hout_rfof);
 
     /* Deallocate rfof structs */
     if(sim->enable_icrh) {
