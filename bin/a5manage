@@ -27,6 +27,7 @@ examples:
   a5manage -a ascot.h5 0123456789
   a5manage -r backedup.h5 bfield
   a5manage -c copyhere.h5 B_2DS_0123456789 fromhere.h5
+  a5manage -n ascot.h5 0123456789
 """
 
 parser = argparse.ArgumentParser(
@@ -45,9 +46,14 @@ parser.add_argument("-r", "--remove", action="store_true", dest="remove",
                     default=False, help="Remove GROUP from FILE")
 parser.add_argument("-c", "--copy", action="store_true", dest="copy",
                     default=False, help="Copy GROUP from FILE2 to FILE")
+parser.add_argument("-n", "--note",
+                    action="store_true",
+                    help="Change the note (=description) of GROUP in FILE",
+                    dest="note",
+                    )
 
 args = parser.parse_args()
-opt = sum([args.activate, args.remove, args.copy, args.show])
+opt = sum([args.activate, args.remove, args.copy, args.show, args.note])
 if opt == 0:
     print("a5manage: error: provide one of the -s, -a, -r, -c options")
     exit()
@@ -108,4 +114,9 @@ if args.remove:
 if args.copy:
     print("a5manage: copying group from one file to another")
     a5tools.copygroup(args.FILE2, args.FILE, args.GROUP, newgroup=False)
+    print("a5manage: done")
+
+if args.note:
+    print("a5manage: changing note")
+    a5tools.call_fileapi(args.FILE, "set_note", args.GROUP)
     print("a5manage: done")

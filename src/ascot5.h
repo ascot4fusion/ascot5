@@ -92,7 +92,7 @@ typedef double real;  /**< Double precision float   */
 #endif
 
 /** @brief Maximum number of plasma species */
-#define MAX_SPECIES 8
+#define MAX_SPECIES 16
 
 /** @brief Maximum number of MHD modes */
 #define MHD_MODES_MAX_NUM 512

@@ -58,6 +58,8 @@ int hdf5_hist_write(hid_t f, char* path, histogram* hist) {
         case THETA:
             abscissa_names[k] = "theta";
             abscissa_units[k] = "deg";
+            abscissa_min[k] *= 180.0/CONST_PI;
+            abscissa_max[k] *= 180.0/CONST_PI;
             break;
         case PPAR:
             abscissa_names[k] = "ppar";

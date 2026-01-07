@@ -17,6 +17,7 @@ import unyt
 from scipy.spatial import cKDTree
 
 from a5py.exceptions import AscotNoDataException
+from a5py.ascot5io.coreio.fileapi import VERSION
 
 import a5py.routines.plotting as a5plt
 from a5py.ascot5io import Marker, State, Orbits, Dist
@@ -327,11 +328,11 @@ class RunMixin(DistMixin):
             Only return markers that have given end condition.
         """
         self._require("_endstate")
-        return np.array([self._endstate.get("x", endcond=endcond),
-                         self._endstate.get("y", endcond=endcond),
-                         self._endstate.get("z", endcond=endcond)]).T
+        return np.array([self.getstate("x", state="end", endcond=endcond),
+                         self.getstate("y", state ="end", endcond=endcond),
+                         self.getstate("z", state="end", endcond=endcond)]).T
 
-    def getstate_markers(self, mrktype, ids=None):
+    def getstate_markers(self, mrktype, ids=None, state="end"):
         """Convert endstate to marker input.
 
         Parameters
@@ -340,6 +341,8 @@ class RunMixin(DistMixin):
             Type of marker input to be created.
         ids : array_like, optional
             Select only these markers for the output.
+        state : {"ini", "end"}
+            Use initial or final state.
 
         Returns
         -------
@@ -354,13 +357,13 @@ class RunMixin(DistMixin):
         if mrktype == "prt":
             qnt = ["r", "phi", "z", "weight", "time", "vr", "vphi", "vz",
                    "mass", "charge", "anum", "znum"]
-            state = self.getstate(*qnt, mode="prt", state="end", ids=ids)
+            state = self.getstate(*qnt, mode="prt", state=state, ids=ids)
             for i, q in enumerate(qnt):
                 mrk[q] = state[i]
         elif mrktype == "gc":
             qnt = ["r", "phi", "z", "weight", "time", "ekin", "pitch", "zeta",
                    "mass", "charge", "anum", "znum"]
-            state = self.getstate(*qnt, mode="gc", state="end", ids=ids)
+            state = self.getstate(*qnt, mode="gc", state=state, ids=ids)
             for i, q in enumerate(qnt):
                 if q == "ekin":
                     mrk["energy"] = state[i]
@@ -368,7 +371,7 @@ class RunMixin(DistMixin):
                     mrk[q] = state[i]
         elif mrktype == "fl":
             qnt = ["r", "phi", "z", "weight", "time", "pitch"]
-            state = self.getstate(*qnt, mode="gc", state="end", ids=ids)
+            state = self.getstate(*qnt, mode="gc", state=state, ids=ids)
             for i, q in enumerate(qnt):
                 mrk[q] = state[i]
         return mrk
@@ -458,7 +461,7 @@ class RunMixin(DistMixin):
         r = r[i1-1:i2]
         z = z[i1-1:i2]
         p = p[i1-1:i2]
-        x, y, _ = physlib.pol2cart(r, p)
+        x, y = physlib.pol2cart(r, p)
         ds = np.sqrt(np.diff(x)**2 + np.diff(y)**2 + np.diff(z)**2)
         avg = np.sum(val[1:]*ds) / np.sum(ds)
         return mileage-mileage[0], r, z, val, avg
@@ -791,10 +794,10 @@ class RunMixin(DistMixin):
             Dist.electronpowerdep(self._root._ascot, mass, dist, out)
         if "ionpowerdep" in moments:
             Dist.ionpowerdep(self._root._ascot, mass, dist, out)
-        #if "jxbtorque" in moments:
-        #    Dist.jxbtorque(self._root._ascot, mass, dist, out)
-        #if "colltorque" in moments:
-        #    Dist.collTorque(self._root._ascot, mass, dist, out)
+        if "jxbtorque" in moments:
+            Dist.jxbtorque(self._root._ascot, mass, dist, out)
+        if "colltorque" in moments:
+            Dist.collTorque(self._root._ascot, mass, dist, out)
         #if "canmomtorque" in moments:
         #    Dist.canMomentTorque(dist, out)
         return out
@@ -857,7 +860,7 @@ class RunMixin(DistMixin):
     def plotstate_scatter(self, x, y, z=None, c=None, xmode="gc", ymode="gc",
                           zmode="gc", cmode="gc", endcond=None, ids=None,
                           cint=9, cmap=None, axesequal=False, axes=None,
-                          cax=None):
+                          cax=None, markersize=4.0):
         """Make a scatter plot of marker state coordinates.
 
         The plot is either 2D+1D or 3D+1D, where the extra coordinate is color,
@@ -981,14 +984,14 @@ class RunMixin(DistMixin):
         if z is None:
             a5plt.scatter2d(xc, yc, c=cc, xlog=xlog, ylog=ylog, clog=clog,
                             xlabel=x, ylabel=y, clabel=c, cint=cint, cmap=cmap,
-                            axesequal=axesequal, axes=axes, cax=cax)
+                            axesequal=axesequal, axes=axes, cax=cax, markersize=markersize)
         else:
             z, zc, zlog = parsearg(z)
             z = z + " [" + str(zc.units) + "]"
             a5plt.scatter3d(xc, yc, zc, c=cc, xlog=xlog, ylog=ylog,
                             zlog=zlog, clog=clog, xlabel=x, ylabel=y, zlabel=z,
                             clabel=c, cint=cint, cmap=cmap,
-                            axesequal=axesequal, axes=axes, cax=cax)
+                            axesequal=axesequal, axes=axes, cax=cax, markersize=markersize)
 
     def plotstate_histogram(self, x, y=None, xbins=10, ybins=10, xmode="gc",
                             ymode="gc", endcond=None, ids=None, weight=False,
@@ -1526,9 +1529,9 @@ class RunMixin(DistMixin):
                                         "electronpowerdep")
 
         volume_vsrho = np.sum(moments.volume, axis=(1,2))
-        tot_sum = np.sum(moments.ordinate("powerdep", toravg=True, polavg=True)*volume_vsrho)
-        i_sum = np.sum(moments.ordinate("ionpowerdep", toravg=True, polavg=True)*volume_vsrho)
-        e_sum = np.sum(moments.ordinate("electronpowerdep", toravg=True, polavg=True)*volume_vsrho)
+        tot_sum = np.sum(moments.ordinate("powerdep", toravg=True, polavg=True).to("MW/m**3")*volume_vsrho)
+        i_sum = np.sum(moments.ordinate("ionpowerdep", toravg=True, polavg=True).to("MW/m**3")*volume_vsrho)
+        e_sum = np.sum(moments.ordinate("electronpowerdep", toravg=True, polavg=True).to("MW/m**3")*volume_vsrho)
 
         if axes is None:
             fig, axes = a5plt.subplots()
@@ -1919,8 +1922,13 @@ class RunMixin(DistMixin):
 
         # Poloidal angle for each vertex
         if getaxis is None:
-            out = self._root._ascot._eval_bfield(
-                1*unyt.m, tor*unyt.deg, 1*unyt.m, 0*unyt.s, evalaxis=True)
+            dummy_input = np.ones(tor.size)
+            out = self._root._ascot._eval_bfield(dummy_input,
+                                                 np.deg2rad(tor),
+                                                 dummy_input,
+                                                 dummy_input,
+                                                 evalaxis=True,
+                                                 )
             axisr  = out["axisr"].v
             axisz  = out["axisz"].v
         elif getaxis is tuple and len(getaxis) == 2:
@@ -1964,9 +1972,21 @@ class RunMixin(DistMixin):
         axes.set_yticks([-180, -90, 0, 90, 180])
 
     def plotwall_3dstill(
-            self, wallmesh=None, points=None, orbit=None, data=None, log=False,
-            clim=None, cpos=None, cfoc=None, cang=None, p_ids=None,
-            w_indices=None, axes=None, cax=None, **kwargs):
+            self,
+            wallmesh=None,
+            points=None,
+            orbit=None,
+            data=None,
+            log=False,
+            clim=None,
+            cpos=None,
+            cfoc=None,
+            cang=None,
+            p_ids=None,
+            w_indices=None,
+            axes=None,
+            cax=None,
+            **kwargs):
         """Take a still shot of the mesh and display it using matplotlib
         backend.
 
@@ -1988,6 +2008,7 @@ class RunMixin(DistMixin):
             ID of a marker whose orbit is plotted.
         data : str, optional
             Name of the cell data in the wall mesh that is shown in color.
+            {"label", "pload", "eload", "mload", "iangle"}
         log : bool, optional
             Color range is logarithmic if True.
         clim : [float, float], optional
@@ -2026,10 +2047,31 @@ class RunMixin(DistMixin):
                     clim=clim, cpos=cpos, cfoc=cfoc, cang=cang, axes=axes,
                     cax=cax, **kwargs)
 
-    def plotwall_3dinteractive(self, wallmesh=None, *args, points=None,
-                               orbit=None, data=None, log=False, clim=None,
-                               cpos=None, cfoc=None, cang=None,
-                               p_ids=None, w_indices=None, **kwargs):
+    def plotwall_3dinteractive(
+            self,
+            wallmesh=None,
+            *args,
+            points=None,
+            orbit=None,
+            data=None,
+            log=False,
+            clim=None,
+            cmap=None,
+            cpos=None,
+            cfoc=None,
+            cang=None,
+            p_ids=None,
+            w_indices=None,
+            w_ids_to_highlight=None,
+            highlight_color="yellow",
+            plotter=None,
+            phi_lines=None,
+            const_phi_planes=None,
+            theta_lines=None,
+            a5=None,
+            skipshow=False,
+            **kwargs
+        ):
         """Open vtk window to display interactive view of the wall mesh.
 
         Parameters
@@ -2049,10 +2091,13 @@ class RunMixin(DistMixin):
             ID of a marker whose orbit is plotted.
         data : str, optional
             Name of the cell data in the wall mesh that is shown in color.
+            {"label", "pload", "eload", "mload", "iangle"}
         log : bool, optional
             Color range is logarithmic if True.
         clim : [float, float], optional
             Color [min, max] limits.
+        cmap : str, optional
+            Colormap name.
         cpos : array_like, optional
             Camera position coordinates [x, y, z].
         cfoc : array_like, optional
@@ -2063,6 +2108,20 @@ class RunMixin(DistMixin):
             List of ids of the particles for which the heat load is shown.
         w_indices : array_like, optional
             List of wall indices which are included in the wall mesh.
+        w_ids_to_highlight : array_like, optional
+            List of wall indices which are highlighted.
+        highlight_color : str, optional
+            Color of the highlighted wall elements. Default is yellow.
+        plotter : :obj:`~pyvista.Plotter`, optional
+            Plotter instance. If not given, then a new one is created.
+        phi_lines : array_like, optional
+            Number of constant phi lines with z=0, extending radially outward.
+        const_phi_planes : array_like, optional
+            Number of constant phi planes.
+        theta_lines : array_like, optional
+            Number of constant theta lines, extending radially outward from the
+            magnetic axis for phi in const_phi_planes.
+        a5 : :obj:`~a5py.A5`, optional
         **kwargs
             Keyword arguments passed to :obj:`~pyvista.Plotter`.
         """
@@ -2073,12 +2132,114 @@ class RunMixin(DistMixin):
         if orbit is not None:
             x,y,z = self.getorbit("x", "y", "z", ids=orbit)
             orbit = np.array([x,y,z]).T
+        if w_ids_to_highlight is not None and len(w_ids_to_highlight) == 0:
+            w_ids_to_highlight = None
+            print("There were 0 wall indices to highlight. No mesh will be highlighted.")
+        if w_ids_to_highlight is not None:
+            wallmesh_highlight = self.getwall_3dmesh(p_ids=p_ids,
+                                                     w_indices=w_ids_to_highlight)
+            print(f"highlighting {len(w_ids_to_highlight):d} triangles")
+            a5plt.add_highlighted_edges(plotter,
+                                        wallmesh_highlight=wallmesh_highlight,
+                                        color=highlight_color,
+                                        )
 
         (cpos0, cfoc0, cang0) = a5plt.defaultcamera(wallmesh)
         if cpos is None: cpos = cpos0
         if cfoc is None: cfoc = cfoc0
         if cang is None: cang = cang0
 
-        a5plt.interactive(wallmesh, *args, points=points, data=data,
-                          orbit=orbit, log=log, clim=clim,
-                          cpos=cpos, cfoc=cfoc, cang=cang, **kwargs)
+        if data=="eload": cbar_title=data+" W/m^2"
+
+        a5plt.interactive(wallmesh,
+                          *args,
+                          points=points,
+                          data=data,
+                          orbit=orbit,
+                          log=log,
+                          clim=clim,
+                          cmap=cmap,
+                          cbar_title=cbar_title,
+                          cpos=cpos,
+                          cfoc=cfoc,
+                          cang=cang,
+                          p=plotter,
+                          phi_lines=phi_lines,
+                          const_phi_planes=const_phi_planes,
+                          theta_lines=theta_lines,
+                          a5=a5,
+                          skipshow=skipshow,
+                          **kwargs)
+
+    def getsimmode(self):
+        """Return the simulation mode that was used to run the simulation.
+
+         - 1 Gyro-orbit
+         - 2 Guiding center
+         - 3 Hybrid
+         - 4 Magnetic field lines )
+
+        Returns
+        -------
+        mode : int
+            The simulation mode.
+        """
+        self._require("options")
+        return self.options.read()["SIM_MODE"]
+
+    def getspecies(self):
+        """Return the test particle species that was used in the simulation.
+
+        Returns
+        -------
+        species : dict
+            Dictionary with the following keys:
+            'anum' : int
+                Atomic number of the test particle-
+            'znum' : int
+                Charge number of the test particle.
+            'mass' : float
+                Mass of the test particle.
+        """
+        anum, znum, mass = self.getstate("anum", "znum", "mass")
+        return {"anum":anum[0], "znum":znum[0], "mass":mass[0]}
+
+    def getcodeversion(self):
+        """Return version of the code that was used to run the simulation.
+
+        Returns
+        -------
+        version : dict
+            Dictionary with the following keys:
+            'name' : str
+                Name of the software.
+            'description' : str
+                Short description of the software (type, purpose).
+            'commit' : str
+                Unique commit reference of the software.
+            'version' : str
+                Unique version (tag) of the software.
+            'repository' : str
+                URL of the software repository.
+        """
+        return {
+            "name": "ascot5",
+            "description": "monte carlo particle following",
+            "commit": str(VERSION),
+            "version": str(VERSION),
+            "repository":"github.com/ascot4fusion/ascot5",
+            }
+
+    def get_run_success(self):
+        """Assess if the run was successful.
+
+        Returns
+        -------
+        success : int
+            Zero if the run was successful.
+        """
+        try:
+            self._require("_endstate")
+            return 0
+        except AscotNoDataException:
+            return -1

@@ -1,0 +1,120 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	   elementFormDefault="qualified">
+   <xs:annotation>
+     <xs:documentation>Code parameters for Physics Code</xs:documentation>
+   </xs:annotation>
+ 
+   <xs:simpleType name="integer_shot">
+     <xs:restriction base="xs:integer">
+       <xs:minInclusive value="1"/>
+       <xs:maxInclusive value="214748"/>
+     </xs:restriction>
+   </xs:simpleType>
+
+   <xs:simpleType name="integer_run">
+     <xs:restriction base="xs:integer">
+       <xs:minInclusive value="0"/>
+       <xs:maxInclusive value="99999"/>
+     </xs:restriction>
+   </xs:simpleType>
+
+   <xs:simpleType name="integer_minmaxInclusive_010">
+     <xs:restriction base="xs:integer">
+       <xs:minInclusive value="1"/>
+       <xs:maxInclusive value="10"/>
+     </xs:restriction>
+   </xs:simpleType>
+
+  <xs:simpleType name="float_minInclusive_dot0001">
+     <xs:restriction base="xs:float">
+       <xs:minInclusive value="0.0001"/>
+     </xs:restriction>
+   </xs:simpleType>
+
+   <xs:simpleType name="string_field">
+     <xs:restriction base="xs:string">
+     </xs:restriction>
+   </xs:simpleType>
+
+   <!-- document element -->
+   <xs:element name="parameters">
+     <xs:complexType>
+       <xs:all>
+         <xs:element ref="shot" minOccurs="0"/>
+         <xs:element ref="run_in" minOccurs="0"/>
+         <xs:element ref="run_out" minOccurs="0"/>
+         <xs:element ref="ntimes" minOccurs="0"/>
+         <xs:element ref="multiplication_factor" minOccurs="0"/>
+         <xs:element ref="input_db" minOccurs="0"/>
+         <xs:element ref="input_machine" minOccurs="0"/>
+         <xs:element ref="local_db" minOccurs="0"/>
+         <xs:element ref="local_machine" minOccurs="0"/>
+       </xs:all>
+     </xs:complexType>
+   </xs:element>
+ 
+   <!-- Number of times the multiplication factor is applied -->
+   <xs:element name="shot" type="integer_shot">
+      <xs:annotation>
+          <xs:documentation>Input/output shot number</xs:documentation>
+      </xs:annotation>
+   </xs:element>
+
+   <!-- Number of times the multiplication factor is applied -->
+   <xs:element name="run_in" type="integer_run">
+      <xs:annotation>
+          <xs:documentation>Input run number</xs:documentation>
+      </xs:annotation>
+   </xs:element>
+
+   <!-- Number of times the multiplication factor is applied -->
+   <xs:element name="run_out" type="integer_run">
+      <xs:annotation>
+          <xs:documentation>Output run number</xs:documentation>
+      </xs:annotation>
+   </xs:element>
+
+   <!-- Number of times the multiplication factor is applied -->
+   <xs:element name="ntimes" type="integer_minmaxInclusive_010">
+      <xs:annotation>
+          <xs:documentation>Number of times the multiplication factor is applied</xs:documentation>
+      </xs:annotation>
+   </xs:element>
+
+   <!-- Multiplication factor for the major radius -->
+   <xs:element name="multiplication_factor" type="float_minInclusive_dot0001">
+      <xs:annotation>
+          <xs:documentation>Multiplication factor for the major radius</xs:documentation>
+      </xs:annotation>
+   </xs:element>
+  
+   <!-- Input database name to read from external database -->
+   <xs:element name="input_db" type="string_field">
+      <xs:annotation>
+          <xs:documentation>Input database name to read from external database</xs:documentation>
+      </xs:annotation>
+   </xs:element>
+  
+   <!-- Input machine name to read from external database -->
+   <xs:element name="input_machine" type="string_field">
+      <xs:annotation>
+          <xs:documentation>Input machine name to read from external database</xs:documentation>
+      </xs:annotation>
+   </xs:element>
+  
+   <!-- Local database name to write into local IMAS database -->
+   <xs:element name="local_db" type="string_field">
+      <xs:annotation>
+          <xs:documentation>Local database name to write into local IMAS database</xs:documentation>
+      </xs:annotation>
+   </xs:element>
+  
+   <!-- Local machine name to write into local IMAS database -->
+   <xs:element name="local_machine" type="string_field">
+      <xs:annotation>
+          <xs:documentation>Local machine name to write into local IMAS database</xs:documentation>
+      </xs:annotation>
+   </xs:element>
+  
+</xs:schema>
+ 

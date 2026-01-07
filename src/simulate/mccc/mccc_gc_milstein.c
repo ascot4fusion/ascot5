@@ -31,7 +31,7 @@
  * @param rnd array of normally distributed random numbers used to resolve
  *        collisions. Values for marker i are rnd[i*NSIMD + j]
  */
-void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
+void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* acc, real* collfreq, real* hout, real tol,
                       mccc_wienarr* w, B_field_data* Bdata, plasma_data* pdata,
                       mccc_data* mdata, real* rnd) {
 
@@ -118,7 +118,7 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
             /* Generate Wiener process for this step */
             int tindex;
             if(!errflag) {
-                errflag = mccc_wiener_generate(&w[i], w[i].time[0]+hin[i],
+                errflag = mccc_wiener_generate(&w[i], w[i].time[0]+hin[i]*acc[i],
                                                &tindex, &rnd[i*5]);
             }
             real dW[5] = {0, 0, 0, 0, 0};
@@ -142,10 +142,10 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
             Xout_xyz[0] = Xin_xyz[0] + k1 * ( dW[0] - k2 * bhat[0] );
             Xout_xyz[1] = Xin_xyz[1] + k1 * ( dW[1] - k2 * bhat[1] );
             Xout_xyz[2] = Xin_xyz[2] + k1 * ( dW[2] - k2 * bhat[2] );
-            vout  = vin + K*hin[i] + sqrt( 2 * Dpara ) * dW[3]
-                  + 0.5 * dDpara * ( dW[3]*dW[3] - hin[i] );
-            xiout = xiin - xiin*nu*hin[i] + sqrt( ( 1 - xiin*xiin ) * nu )*dW[4]
-                  - 0.5 * xiin * nu * ( dW[4]*dW[4] - hin[i] );
+            vout  = vin + K*hin[i]*acc[i] + sqrt( 2 * Dpara ) * dW[3]
+                  + 0.5 * dDpara * ( dW[3]*dW[3] - hin[i]*acc[i] );
+            xiout = xiin - xiin*nu*hin[i]*acc[i] + sqrt( ( 1 - xiin*xiin ) * nu )*dW[4]
+                  - 0.5 * xiin * nu * ( dW[4]*dW[4] - hin[i]*acc[i] );
 
             /* Enforce boundary conditions */
             real cutoff = MCCC_CUTOFF * sqrt( Tb[0] / p->mass[i] );
@@ -162,7 +162,7 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
 
             // xi is limited to interval [-1, 1] but for v we need some value
             // to translate relative error to absolute error.
-            real v0    = ( vin + fabs(K) * hin[i] + sqrt( 2*Dpara*hin[i] ) )
+            real v0    = ( vin + fabs(K) * hin[i]*acc[i] + sqrt( 2*Dpara*hin[i]*acc[i] ) )
                          + DBL_EPSILON;
             real verr  = fabs( K*dQ ) / (2*tol*v0);
             real xierr = fabs( xiin*nu*nu ) / (2*tol);
@@ -170,17 +170,17 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
             // kappa_k is error due to drift
             real kappa_k;
             if(verr > xierr){
-                kappa_k = verr*hin[i]*hin[i];
+                kappa_k = verr*hin[i]*hin[i]*acc[i]*acc[i];
             }
             else{
-                kappa_k = xierr*hin[i]*hin[i];
+                kappa_k = xierr*hin[i]*hin[i]*acc[i]*acc[i];
             }
 
             // kappa_d is error due to diffusion (v and xi are both needed)
             real kappa_d0 = fabs(  dW[3]*dW[3]*dW[3]
                                  * dDpara*dDpara / sqrt( Dpara ) ) / (6*tol*v0);
             real kappa_d1 = sqrt( 1 - xiin*xiin ) * nu * sqrt( nu )
-                          * fabs( dW[4] + sqrt( hin[i]/3 ) ) * hin[i] / (2*tol);
+                          * fabs( dW[4] + sqrt( hin[i]*acc[i]/3 ) ) * hin[i]*acc[i] / (2*tol);
 
             /* Remove energy or pitch change or spatial diffusion from the    *
              * results if that is requested                                   */
@@ -205,12 +205,12 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
             real B_dB[15], psi[1], rho[2];
             if(!errflag) {
                 errflag = B_field_eval_B_dB(B_dB, Xout_rpz[0], Xout_rpz[1],
-                                            Xout_rpz[2], p->time[i] + hin[i],
+                                            Xout_rpz[2], p->time[i] + hin[i]*acc[i],
                                             Bdata);
             }
             if(!errflag) {
                 errflag = B_field_eval_psi(psi, Xout_rpz[0], Xout_rpz[1],
-                                           Xout_rpz[2], p->time[i] + hin[i],
+                                           Xout_rpz[2], p->time[i] + hin[i]*acc[i],
                                            Bdata);
             }
             if(!errflag) {
@@ -297,6 +297,8 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
                 p->err[i]     = errflag;
                 p->running[i] = 0;
             }
+
+            collfreq[i] = nu;
         }
     }
 }
