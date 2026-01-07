@@ -906,13 +906,33 @@ class Opt(DataGroup):
 
                 # Take type from the default parameter
                 if isinstance(defopt[key], list):
-                    try:
-                        val[0]
-                        out[key] = type(defopt[key])(val)
-                    except Exception:
-                        out[key] = val
+                    # Default is a list: make sure we return a list
+                    if isinstance(val, np.ndarray):
+                        # Convert NumPy array to a plain Python list
+                        out[key] = val.tolist()
                 else:
-                    out[key] = type(defopt[key])(val)
+                    try:
+                        # If it's iterable, turn it into a list
+                        out[key] = list(val)
+                    except TypeError:
+                        # Scalar → wrap in a single-element list
+                        out[key] = [val]
+                    else:
+                    # Default is NOT a list: usually scalar (int, float, bool, etc.)
+                        if isinstance(val, np.ndarray):
+                            # 0-dim array: scalar
+                            if val.shape == ():
+                                out[key] = type(defopt[key])(val.item())
+                            # length-1 array: treat as scalar as well
+                            elif val.size == 1:
+                                out[key] = type(defopt[key])(val.ravel()[0])
+                            else:
+                                # Multi-element array but scalar default: ambiguous.
+                            # Safer to keep the array as-is instead of forcing scalar.
+                                out[key] = val
+                        else:
+                        # Non-array: keep original behaviour
+                            out[key] = type(defopt[key])(val)
 
         for o in defopt.keys():
             if o not in out:
