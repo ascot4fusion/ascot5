@@ -123,7 +123,11 @@
 #define DECLARE_TARGET_SIMD
 #elif defined(GPU) && defined(_OPENACC)
 #define DECLARE_TARGET_SIMD
+#elif defined(__INTEL_LLVM_COMPILER)
+/* icx: avoid vector-function ABI (fixes _ZGV... undefined references) */
+#define DECLARE_TARGET_SIMD
 #else
+#warning "omp declare simd"
 #define DECLARE_TARGET_SIMD str_pragma(omp declare simd)
 #endif
 
@@ -146,6 +150,9 @@
 #define GPU_DECLARE_TARGET_SIMD str_pragma(omp declare target)
 #elif defined(GPU) && defined(_OPENACC)
 #define GPU_DECLARE_TARGET_SIMD str_pragma(acc routine seq)
+#elif defined(__INTEL_LLVM_COMPILER)
+/* icx: avoid vector-function ABI (fixes _ZGV... undefined references) */
+#define GPU_DECLARE_TARGET_SIMD
 #else
 #define GPU_DECLARE_TARGET_SIMD str_pragma(omp declare simd)
 #endif
@@ -168,6 +175,8 @@
 #define GPU_DECLARE_TARGET_SIMD_UNIFORM(...) str_pragma(omp declare target)
 #elif defined(GPU) && defined(_OPENACC)
 #define GPU_DECLARE_TARGET_SIMD_UNIFORM(...) str_pragma(acc routine seq)
+#elif defined(__INTEL_LLVM_COMPILER)
+#define GPU_DECLARE_TARGET_SIMD_UNIFORM(...)
 #else
 #define GPU_DECLARE_TARGET_SIMD_UNIFORM(...) \
     str_pragma(omp declare simd uniform (__VA_ARGS__))
