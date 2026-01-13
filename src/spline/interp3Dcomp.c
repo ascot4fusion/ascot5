@@ -1449,7 +1449,7 @@ a5err interp3Dcomp_eval_df_opt(
         +yg2*zgi/6*(
             -(
                 dxi*(dyi3*c0002+dy3*c0102)
-                +dx*(dyi*c0012+dy3*c0112))
+                +dx*(dyi3*c0012+dy3*c0112))
             +(
                 dxi*(dyi3*c1002+dy3*c1102)
                 +dx*(dyi3*c1012+dy3*c1112)))
