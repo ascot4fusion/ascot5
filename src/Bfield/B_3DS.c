@@ -367,19 +367,19 @@ a5err B_3DS_eval_B_dB(real B_dB[12], real r, real phi, real z,
     int interperr = 0; /* If error happened during interpolation */
     real B_dB_temp[10];
 
-    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_r, r, phi, z);
+    interperr += interp3Dcomp_eval_df_opt(B_dB_temp, &Bdata->B_r, r, phi, z);
     B_dB[0] = B_dB_temp[0];
     B_dB[1] = B_dB_temp[1];
     B_dB[2] = B_dB_temp[2];
     B_dB[3] = B_dB_temp[3];
 
-    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_phi, r, phi, z);
+    interperr += interp3Dcomp_eval_df_opt(B_dB_temp, &Bdata->B_phi, r, phi, z);
     B_dB[4] = B_dB_temp[0];
     B_dB[5] = B_dB_temp[1];
     B_dB[6] = B_dB_temp[2];
     B_dB[7] = B_dB_temp[3];
 
-    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_z, r, phi, z);
+    interperr += interp3Dcomp_eval_df_opt(B_dB_temp, &Bdata->B_z, r, phi, z);
     B_dB[8] = B_dB_temp[0];
     B_dB[9] = B_dB_temp[1];
     B_dB[10] = B_dB_temp[2];

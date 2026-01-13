@@ -1118,3 +1118,640 @@ a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
 
     return err;
 }
+#pragma acc routine seq
+static inline real wrap_periodic(real v, real vmin, real vmax)
+{
+    const real L = vmax - vmin;
+    real t = (v - vmin) / L;   /* peut être négatif */
+    t = t - floor(t);          /* frac dans [0,1) */
+    return vmin + t * L;
+}
+
+a5err interp3Dcomp_eval_df_opt(
+    real* f_df,
+    interp3D_data* str,
+    real x, real y, real z)
+{
+    /* 1) BC périodiques: éviter fmod */
+    if (str->bc_x == PERIODICBC) x = wrap_periodic(x, str->x_min, str->x_max);
+    if (str->bc_y == PERIODICBC) y = wrap_periodic(y, str->y_min, str->y_max);
+    if (str->bc_z == PERIODICBC) z = wrap_periodic(z, str->z_min, str->z_max);
+
+    /* 2) NATURALBC: early exit */
+    if (str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max)) return 1;
+    if (str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max)) return 1;
+    if (str->bc_z == NATURALBC && (z < str->z_min || z > str->z_max)) return 1;
+
+    /* 3) indices via inv_grid */
+    real fx = (x - str->x_min) * str->x_inv_grid;
+    real fy = (y - str->y_min) * str->y_inv_grid;
+    real fz = (z - str->z_min) * str->z_inv_grid;
+
+    int i_x = (int)floor(fx);
+    int i_y = (int)floor(fy);
+    int i_z = (int)floor(fz);
+
+    /* gérer pile au max (évite -1*(x==x_max) et divergence) */
+    if (x >= str->x_max) i_x = str->n_x - 1;
+    if (y >= str->y_max) i_y = str->n_y - 1;
+    if (z >= str->z_max) i_z = str->n_z - 1;
+
+    /* 4) dx,dy,dz = frac */
+    real dx = fx - (real)i_x;
+    real dy = fy - (real)i_y;
+    real dz = fz - (real)i_z;
+
+    /* 5) Helpers (identiques à toi) */
+    real dx3    = dx*dx*dx - dx;
+    real dx3dx  = 3*dx*dx - 1.0;
+    real dxi    = 1.0 - dx;
+    real dxi3   = dxi*dxi*dxi - dxi;
+    real dxi3dx = -3*dxi*dxi + 1.0;
+
+    real dy3    = dy*dy*dy - dy;
+    real dy3dy  = 3*dy*dy - 1.0;
+    real dyi    = 1.0 - dy;
+    real dyi3   = dyi*dyi*dyi - dyi;
+    real dyi3dy = -3*dyi*dyi + 1.0;
+
+    real dz3    = dz*dz*dz - dz;
+    real dz3dz  = 3*dz*dz - 1.0;
+    real dzi    = 1.0 - dz;
+    real dzi3   = dzi*dzi*dzi - dzi;
+    real dzi3dz = -3*dzi*dzi + 1.0;
+
+    /* grids */
+    const real xg  = str->x_grid;
+    const real yg  = str->y_grid;
+    const real zg  = str->z_grid;
+
+    const real xg2_over6 = str->xg2_over6; /* xg*xg/6 */
+    const real yg2_over6 = str->yg2_over6;
+    const real zg2_over6 = str->zg2_over6;
+
+    const real xgi = str->x_inv_grid; /* 1/xg */
+    const real ygi = str->y_inv_grid;
+    const real zgi = str->z_inv_grid;
+
+    /* carrés utiles */
+    const real xg2 = xg * xg;
+    const real yg2 = yg * yg;
+    const real zg2 = zg * zg;
+
+    /* 6) jumps + périodique au bord */
+    int x1 = 8;
+    int y1 = str->y_stride8;  /* n_x*8 */
+    int z1 = str->z_stride8;  /* n_y*n_x*8 */
+
+    if (str->bc_x == PERIODICBC && i_x == str->n_x - 1) x1 = -(str->n_x - 1) * x1;
+    if (str->bc_y == PERIODICBC && i_y == str->n_y - 1) y1 = -(str->n_y - 1) * y1;
+    if (str->bc_z == PERIODICBC && i_z == str->n_z - 1) z1 = -(str->n_z - 1) * z1;
+
+    /* 7) base index (comme ton code original) */
+    int n = i_z * (str->n_y * str->n_x * 8) + i_y * (str->n_x * 8) + i_x * 8;
+
+    const real* __restrict__ c = str->c;
+
+    /* offsets coins */
+    const int o000 = n;
+    const int o001 = n + x1;
+    const int o010 = n + y1;
+    const int o011 = n + y1 + x1;
+    const int o100 = n + z1;
+    const int o101 = n + z1 + x1;
+    const int o110 = n + z1 + y1;
+    const int o111 = n + z1 + y1 + x1;
+
+    /* 8) Charger 64 coeff (8 coins x 8) */
+    /* coin 000 */
+    real c0000 = c[o000+0]; real c0001 = c[o000+1]; real c0002 = c[o000+2]; real c0003 = c[o000+3];
+    real c0004 = c[o000+4]; real c0005 = c[o000+5]; real c0006 = c[o000+6]; real c0007 = c[o000+7];
+
+    /* coin 001 (x + 1) */
+    real c0010 = c[o001+0]; real c0011 = c[o001+1]; real c0012 = c[o001+2]; real c0013 = c[o001+3];
+    real c0014 = c[o001+4]; real c0015 = c[o001+5]; real c0016 = c[o001+6]; real c0017 = c[o001+7];
+
+    /* coin 010 (y + 1) */
+    real c0100 = c[o010+0]; real c0101 = c[o010+1]; real c0102 = c[o010+2]; real c0103 = c[o010+3];
+    real c0104 = c[o010+4]; real c0105 = c[o010+5]; real c0106 = c[o010+6]; real c0107 = c[o010+7];
+
+    /* coin 100 (z + 1) */
+    real c1000 = c[o100+0]; real c1001 = c[o100+1]; real c1002 = c[o100+2]; real c1003 = c[o100+3];
+    real c1004 = c[o100+4]; real c1005 = c[o100+5]; real c1006 = c[o100+6]; real c1007 = c[o100+7];
+
+    /* coin 011 (y+1, x+1) */
+    real c0110 = c[o011+0]; real c0111 = c[o011+1]; real c0112 = c[o011+2]; real c0113 = c[o011+3];
+    real c0114 = c[o011+4]; real c0115 = c[o011+5]; real c0116 = c[o011+6]; real c0117 = c[o011+7];
+
+    /* coin 101 (z+1, x+1) */
+    real c1010 = c[o101+0]; real c1011 = c[o101+1]; real c1012 = c[o101+2]; real c1013 = c[o101+3];
+    real c1014 = c[o101+4]; real c1015 = c[o101+5]; real c1016 = c[o101+6]; real c1017 = c[o101+7];
+
+    /* coin 110 (z+1, y+1) */
+    real c1100 = c[o110+0]; real c1101 = c[o110+1]; real c1102 = c[o110+2]; real c1103 = c[o110+3];
+    real c1104 = c[o110+4]; real c1105 = c[o110+5]; real c1106 = c[o110+6]; real c1107 = c[o110+7];
+
+    /* coin 111 (z+1, y+1, x+1) */
+    real c1110 = c[o111+0]; real c1111 = c[o111+1]; real c1112 = c[o111+2]; real c1113 = c[o111+3];
+    real c1114 = c[o111+4]; real c1115 = c[o111+5]; real c1116 = c[o111+6]; real c1117 = c[o111+7];
+
+    /* ---- TES FORMULES, inchangées, avec remplacements de constantes ---- */
+
+    /* f */
+    f_df[0] = (
+               dzi*(
+                   dxi*(dyi*c0000+dy*c0100)
+                   +dx*(dyi*c0010+dy*c0110))
+               +dz*(
+                   dxi*(dyi*c1000+dy*c1100)
+                   +dx*(dyi*c1010+dy*c1110)))
+        +xg2_over6*(
+            dzi*(
+                dxi3*(dyi*c0001+dy*c0101)
+                +dx3*(dyi*c0011+dy*c0111))
+            +dz*(
+                dxi3*(dyi*c1001+dy*c1101)
+                +dx3*(dyi*c1011+dy*c1111)))
+        +yg2_over6*(
+            dzi*(
+                dxi*(dyi3*c0002+dy3*c0102)
+                +dx*(dyi3*c0012+dy3*c0112))
+            +dz*(
+                dxi*(dyi3*c1002+dy3*c1102)
+                +dx*(dyi3*c1012+dy3*c1112)))
+        +zg2_over6*(
+            dzi3*(
+                dxi*(dyi*c0003+dy*c0103)
+                +dx*(dyi*c0013+dy*c0113))
+            +dz3*(
+                dxi*(dyi*c1003+dy*c1103)
+                +dx*(dyi*c1013+dy*c1113)))
+        +xg2*yg2/36*(
+            dzi*(
+                dxi3*(dyi3*c0004+dy3*c0104)
+                +dx3*(dyi3*c0014+dy3*c0114))
+            +dz*(
+                dxi3*(dyi3*c1004+dy3*c1104)
+                +dx3*(dyi3*c1014+dy3*c1114)))
+        +xg2*zg2/36*(
+            dzi3*(
+                dxi3*(dyi*c0005+dy*c0105)
+                +dx3*(dyi*c0015+dy*c0115))
+            +dz3*(
+                dxi3*(dyi*c1005+dy*c1105)
+                +dx3*(dyi*c1015+dy*c1115)))
+        +yg2*zg2/36*(
+            dzi3*(
+                dxi*(dyi3*c0006+dy3*c0106)
+                +dx*(dyi3*c0016+dy3*c0116))
+            +dz3*(
+                dxi*(dyi3*c1006+dy3*c1106)
+                +dx*(dyi3*c1016+dy3*c1116)))
+        +xg2*yg2*zg2/216*(
+            dzi3*(
+                dxi3*(dyi3*c0007+dy3*c0107)
+                +dx3*(dyi3*c0017+dy3*c0117))
+            +dz3*(
+                dxi3*(dyi3*c1007+dy3*c1107)
+                +dx3*(dyi3*c1017+dy3*c1117)));
+
+    /* df/dx */
+    f_df[1] = xgi*(
+        dzi*(
+            -(dyi*c0000+dy*c0100)
+            +(dyi*c0010+dy*c0110))
+        +dz*(
+            -(dyi*c1000+dy*c1100)
+            +(dyi*c1010+dy*c1110)))
+        +xg/6*(
+            dzi*(
+                dxi3dx*(dyi*c0001+dy*c0101)
+                +dx3dx*(dyi*c0011+dy*c0111))
+            +dz*(
+                dxi3dx*(dyi*c1001  +dy*c1101)
+                +dx3dx*(dyi*c1011+dy*c1111)))
+        +xgi*yg2/6*(
+            dzi*(
+                -(dyi3*c0002+dy3*c0102)
+                +(dyi3*c0012+dy3*c0112))
+            +dz*(
+                -(dyi3*c1002+dy3*c1102)
+                +(dyi3*c1012+dy3*c1112)))
+        +xgi*zg2/6*(
+            dzi3*(
+                -(dyi*c0003+dy*c0103)
+                +(dyi*c0013+dy*c0113))
+            +dz3*(
+                -(dyi*c1003+dy*c1103)
+                +(dyi*c1013+dy*c1113)))
+        +xg*yg2/36*(
+            dzi*(
+                dxi3dx*(dyi3*c0004+dy3*c0104)
+                +dx3dx*(dyi3*c0014+dy3*c0114))
+            +dz*(
+                dxi3dx*(dyi3*c1004+dy3*c1104)
+                +dx3dx*(dyi3*c1014+dy3*c1114)))
+        +xg*zg2/36*(
+            dzi3*(
+                dxi3dx*(dyi*c0005+dy*c0105)
+                +dx3dx*(dyi*c0015+dy*c0115))
+            +dz3*(
+                dxi3dx*(dyi*c1005+dy*c1105)
+                +dx3dx*(dyi*c1015+dy*c1115)))
+        +xgi*yg2*zg2/36*(
+            dzi3*(
+                -(dyi3*c0006+dy3*c0106)
+                +(dyi3*c0016+dy3*c0116))
+            +dz3*(
+                -(dyi3*c1006+dy3*c1106)
+                +(dyi3*c1016+dy3*c1116)))
+        +xg*yg2*zg2/216*(
+            dzi3*(
+                dxi3dx*(dyi3*c0007+dy3*c0107)
+                +dx3dx*(dyi3*c0017+dy3*c0117))
+            +dz3*(
+                dxi3dx*(dyi3*c1007+dy3*c1107)
+                +dx3dx*(dyi3*c1017+dy3*c1117)));
+
+    /* df/dy */
+    f_df[2] = ygi*(
+        dzi*(
+            dxi*(-c0000+c0100)
+            +dx*(-c0010+c0110))
+        +dz*(
+            dxi*(-c1000+c1100)
+            +dx*(-c1010+c1110)))
+        +ygi*xg2/6*(
+            dzi*(
+                dxi3*(-c0001+c0101)
+                +dx3*(-c0011+c0111))
+            +dz*(
+                dxi3*(-c1001+c1101)
+                +dx3*(-c1011+c1111)))
+        +yg/6*(
+            dzi*(
+                dxi*(dyi3dy*c0002+dy3dy*c0102)
+                +dx*(dyi3dy*c0012+dy3dy*c0112))
+            +dz*(
+                dxi*(dyi3dy*c1002+dy3dy*c1102)
+                +dx*(dyi3dy*c1012+dy3dy*c1112)))
+        +ygi*zg2/6*(
+            dzi3*(
+                dxi*(-c0003+c0103)
+                +dx*(-c0013+c0113))
+            +dz3*(
+                dxi*(-c1003+c1103)
+                +dx*(-c1013+c1113)))
+        +xg2*yg/36*(
+            dzi*(
+                dxi3*(dyi3dy*c0004+dy3dy*c0104)
+                +dx3*(dyi3dy*c0014+dy3dy*c0114))
+            +dz*(
+                dxi3*(dyi3dy*c1004+dy3dy*c1104)
+                +dx3*(dyi3dy*c1014+dy3dy*c1114)))
+        +ygi*xg2*zg2/36*(
+            dzi3*(
+                dxi3*(-c0005+c0105)
+                +dx3*(-c0015+c0115))
+            +dz3*(
+                dxi3*(-c1005+c1105)
+                +dx3*(-c1015+c1115)))
+        +yg*zg2/36*(
+            dzi3*(
+                dxi*(dyi3dy*c0006+dy3dy*c0106)
+                +dx*(dyi3dy*c0016+dy3dy*c0116))
+            +dz3*(
+                dxi*(dyi3dy*c1006+dy3dy*c1106)
+                +dx*(dyi3dy*c1016+dy3dy*c1116)))
+        +xg2*yg*zg2/216*(
+            dzi3*(
+                dxi3*(dyi3dy*c0007+dy3dy*c0107)
+                +dx3*(dyi3dy*c0017+dy3dy*c0117))
+            +dz3*(
+                dxi3*(dyi3dy*c1007+dy3dy*c1107)
+                +dx3*(dyi3dy*c1017+dy3dy*c1117)));
+
+    /* df/dz */
+    f_df[3] = zgi*(
+        -(
+            dxi*(dyi*c0000+dy*c0100)
+            +dx*(dyi*c0010+dy*c0110))
+        +(
+            dxi*(dyi*c1000+dy*c1100)
+            +dx*(dyi*c1010+dy*c1110)))
+        +xg2*zgi/6*(
+            -(
+                dxi3*(dyi*c0001+dy*c0101)
+                +dx3*(dyi*c0011+dy*c0111))
+            +(
+                dxi3*(dyi*c1001+dy*c1101)
+                +dx3*(dyi*c1011+dy*c1111)))
+        +yg2*zgi/6*(
+            -(
+                dxi*(dyi3*c0002+dy3*c0102)
+                +dx*(dyi*c0012+dy3*c0112))
+            +(
+                dxi*(dyi3*c1002+dy3*c1102)
+                +dx*(dyi3*c1012+dy3*c1112)))
+        +zg/6*(
+            dzi3dz*(
+                dxi*(dyi*c0003+dy*c0103)
+                +dx*(dyi*c0013+dy*c0113))
+            +dz3dz*(
+                dxi*(dyi*c1003+dy*c1103)
+                +dx*(dyi*c1013+dy*c1113)))
+        +xg2*yg2*zgi/36*(
+            -(
+                dxi3*(dyi3*c0004+dy3*c0104)
+                +dx3*(dyi3*c0014+dy3*c0114))
+            +(
+                dxi3*(dyi3*c1004+dy3*c1104)
+                +dx3*(dyi3*c1014+dy3*c1114)))
+        +xg2*zg/36*(
+            dzi3dz*(
+                dxi3*(dyi*c0005+dy*c0105)
+                +dx3*(dyi*c0015+dy*c0115))
+            +dz3dz*(
+                dxi3*(dyi*c1005+dy*c1105)
+                +dx3*(dyi*c1015+dy*c1115)))
+        +yg2*zg/36*(
+            dzi3dz*(
+                dxi*(dyi3*c0006+dy3*c0106)
+                +dx*(dyi3*c0016+dy3*c0116))
+            +dz3dz*(
+                dxi*(dyi3*c1006+dy3*c1106)
+                +dx*(dyi3*c1016+dy3*c1116)))
+        +xg2*yg2*zg/216*(
+            dzi3dz*(
+                dxi3*(dyi3*c0007+dy3*c0107)
+                +dx3*(dyi3*c0017+dy3*c0117))
+            +dz3dz*(
+                dxi3*(dyi3*c1007+dy3*c1107)
+                +dx3*(dyi3*c1017+dy3*c1117)));
+
+    /* d2f/dx2 */
+    f_df[4] = (
+        dzi*(
+            dxi*(dyi*c0001+dy*c0101)
+            +dx*(dyi*c0011+dy*c0111))
+        +dz*(
+            dxi*(dyi*c1001+dy*c1101)
+            +dx*(dyi*c1011+dy*c1111)))
+        +yg2/6*(
+            dzi*(
+                dxi*(dyi3*c0004+dy3*c0104)
+                +dx*(dyi3*c0014+dy3*c0114))
+            +dz*(
+                dxi*(dyi3*c1004+dy3*c1104)
+                +dx*(dyi3*c1014+dy3*c1114)))
+        +zg2/6*(
+            dzi3*(
+                dxi*(dyi*c0005+dy*c0105)
+                +dx*(dyi*c0015+dy*c0115))
+            +dz3*(
+                dxi*(dyi*c1005+dy*c1105)
+                +dx*(dyi*c1015+dy*c1115)))
+        +yg2*zg2/36*(
+            dzi3*(
+                dxi*(dyi3*c0007+dy3*c0107)
+                +dx*(dyi3*c0017+dy3*c0117))
+            +dz3*(
+                dxi*(dyi3*c1007+dy3*c1107)
+                +dx*(dyi3*c1017+dy3*c1117)));
+
+    /* d2f/dy2 */
+    f_df[5] = (
+        dzi*(
+            dxi*(dyi*c0002+dy*c0102)
+            +dx*(dyi*c0012+dy*c0112))
+        +dz*(
+            dxi*(dyi*c1002+dy*c1102)
+            +dx*(dyi*c1012+dy*c1112)))
+        +xg2/6*(
+            dzi*(
+                dxi3*(dyi*c0004+dy*c0104)
+                +dx3*(dyi*c0014+dy*c0114))
+            +dz*(
+                dxi3*(dyi*c1004+dy*c1104)
+                +dx3*(dyi*c1014+dy*c1114)))
+        +zg2/6*(
+            dzi3*(
+                dxi*(dyi*c0006+dy*c0106)
+                +dx*(dyi*c0016+dy*c0116))
+            +dz3*(
+                dxi*(dyi*c1006+dy*c1106)
+                +dx*(dyi*c1016+dy*c1116)))
+        +xg2*zg2/36*(
+            dzi3*(
+                dxi3*(dyi*c0007+dy*c0107)
+                +dx3*(dyi*c0017+dy*c0117))
+            +dz3*(
+                dxi3*(dyi*c1007+dy*c1107)
+                +dx3*(dyi*c1017+dy*c1117)));
+
+    /* d2f/dz2 */
+    f_df[6] = (
+        dzi*(
+            dxi*(dyi*c0003+dy*c0103)
+            +dx*(dyi*c0013+dy*c0113))
+        +dz*(
+            dxi*(dyi*c1003+dy*c1103)
+            +dx*(dyi*c1013+dy*c1113)))
+        +xg2/6*(
+            dzi*(
+                dxi3*(dyi*c0005+dy*c0105)
+                +dx3*(dyi*c0015+dy*c0115))
+            +dz*(
+                dxi3*(dyi*c1005+dy*c1105)
+                +dx3*(dyi*c1015+dy*c1115)))
+        +yg2/6*(
+            dzi*(
+                dxi*(dyi3*c0006+dy3*c0106)
+                +dx*(dyi3*c0016+dy3*c0116))
+            +dz*(
+                dxi*(dyi3*c1006+dy3*c1106)
+                +dx*(dyi3*c1016+dy3*c1116)))
+        +xg2*yg2/36*(
+            dzi*(
+                dxi3*(dyi3*c0007+dy3*c0107)
+                +dx3*(dyi3*c0017+dy3*c0117))
+            +dz*(
+                dxi3*(dyi3*c1007+dy3*c1107)
+                +dx3*(dyi3*c1017+dy3*c1117)));
+
+    /* d2f/dxdy */
+    f_df[7] = xgi*ygi*(
+        dzi*(
+            (c0000  -c0100)
+            -(c0010-c0110))
+        +dz*(
+            (c1000  -c1100)
+            -(c1010-c1110)))
+        +ygi*xg/6*(
+            dzi*(
+                dxi3dx*(-c0001+c0101)
+                +dx3dx*(-c0011+c0111))
+            +dz*(
+                dxi3dx*(-c1001+c1101)
+                +dx3dx*(-c1011+c1111)))
+        +xgi*yg/6*(
+            dzi*(
+                -(dyi3dy*c0002+dy3dy*c0102)
+                +(dyi3dy*c0012+dy3dy*c0112))
+            +dz*(
+                -(dyi3dy*c1002+dy3dy*c1102)
+                +(dyi3dy*c1012+dy3dy*c1112)))
+        +xgi*ygi*zg2/6*(
+            dzi3*(
+                (c0003  -c0103)
+                -(c0013-c0113))
+            +dz3*(
+                (c1003  -c1103)
+                -(c1013-c1113)))
+        +xg*yg/36*(
+            dzi*(
+                dxi3dx*(dyi3dy*c0004+dy3dy*c0104)
+                +dx3dx*(dyi3dy*c0014+dy3dy*c0114))
+            +dz*(
+                dxi3dx*(dyi3dy*c1004+dy3dy*c1104)
+                +dx3dx*(dyi3dy*c1014+dy3dy*c1114)))
+        +ygi*xg*zg2/36*(
+            dzi3*(
+                dxi3dx*(-c0005+c0105)
+                +dx3dx*(-c0015+c0115))
+            +dz3*(
+                dxi3dx*(-c1005+c1105)
+                +dx3dx*(-c1015+c1115)))
+        +xgi*yg*zg2/36*(
+            dzi3*(
+                -(dyi3dy*c0006+dy3dy*c0106)
+                +(dyi3dy*c0016+dy3dy*c0116))
+            +dz3*(
+                -(dyi3dy*c1006+dy3dy*c1106)
+                +(dyi3dy*c1016+dy3dy*c1116)))
+        +xg*yg*zg2/216*(
+            dzi3*(
+                dxi3dx*(dyi3dy*c0007+dy3dy*c0107)
+                +dx3dx*(dyi3dy*c0017+dy3dy*c0117))
+            +dz3*(
+                dxi3dx*(dyi3dy*c1007+dy3dy*c1107)
+                +dx3dx*(dyi3dy*c1017+dy3dy*c1117)));
+
+    /* d2f/dxdz */
+    f_df[8] = xgi*zgi*(
+        (
+            (dyi*c0000+dy*c0100)
+            -(dyi*c0010+dy*c0110))
+        -(
+            (dyi*c1000+dy*c1100)
+            -(dyi*c1010+dy*c1110)))
+        +xg*zgi/6*(
+            -(
+                dxi3dx*(dyi*c0001+dy*c0101)
+                +dx3dx*(dyi*c0011+dy*c0111))
+            +(
+                dxi3dx*(dyi*c1001+dy*c1101)
+                +dx3dx*(dyi*c1011+dy*c1111)))
+        +xgi*yg2*zgi/6*(
+            (
+                (dyi3*c0002+dy3*c0102)
+                -(dyi3*c0012+dy3*c0112))
+            -(
+                (dyi3*c1002+dy3*c1102)
+                -(dyi3*c1012+dy3*c1112)))
+        +xgi*zg/6*(
+            dzi3dz*(
+                -(dyi*c0003+dy*c0103)
+                +(dyi*c0013+dy*c0113))
+            +dz3dz*(
+                -(dyi*c1003+dy*c1103)
+                +(dyi*c1013+dy*c1113)))
+        +xg*yg2*zgi/36*(
+            -(
+                dxi3dx*(dyi3*c0004+dy3*c0104)
+                +dx3dx*(dyi3*c0014+dy3*c0114))
+            +(
+                dxi3dx*(dyi3*c1004+dy3*c1104)
+                +dx3dx*(dyi3*c1014+dy3*c1114)))
+        +xg*zg/36*(
+            dzi3dz*(
+                dxi3dx*(dyi*c0005+dy*c0105)
+                +dx3dx*(dyi*c0015+dy*c0115))
+            +dz3dz*(
+                dxi3dx*(dyi*c1005+dy*c1105)
+                +dx3dx*(dyi*c1015+dy*c1115)))
+        +xgi*yg2*zg/36*(
+            dzi3dz*(
+                -(dyi3*c0006+dy3*c0106)
+                +(dyi3*c0016+dy3*c0116))
+            +dz3dz*(
+                -(dyi3*c1006+dy3*c1106)
+                +(dyi3*c1016+dy3*c1116)))
+        +xg*yg2*zg/216*(
+            dzi3dz*(
+                dxi3dx*(dyi3*c0007+dy3*c0107)
+                +dx3dx*(dyi3*c0017+dy3*c0117))
+            +dz3dz*(
+                dxi3dx*(dyi3*c1007+dy3*c1107)
+                +dx3dx*(dyi3*c1017+dy3*c1117)));
+
+    /* d2f/dydz */
+    f_df[9] = ygi*zgi*(
+        (
+            dxi*(c0000  -c0100)
+            +dx*(c0010-c0110))
+        -(
+            dxi*(c1000  -c1100)
+            +dx*(c1010-c1110)))
+        +ygi*xg2*zgi/6*(
+            (
+                dxi3*(c0001  -c0101)
+                +dx3*(c0011-c0111))
+            -(
+                dxi3*(c1001  -c1101)
+                +dx3*(c1011-c1111)))
+        +yg*zgi/6*(
+            -(
+                dxi*(dyi3dy*c0002+dy3dy*c0102)
+                +dx*(dyi3dy*c0012+dy3dy*c0112))
+            +(
+                dxi*(dyi3dy*c1002+dy3dy*c1102)
+                +dx*(dyi3dy*c1012+dy3dy*c1112)))
+        +ygi*zg/6*(
+            dzi3dz*(
+                dxi*(-c0003+c0103)
+                +dx*(-c0013+c0113))
+            +dz3dz*(
+                dxi*(-c1003+c1103)
+                +dx*(-c1013+c1113)))
+        +xg2*yg*zgi/36*(
+            -(
+                dxi3*(dyi3dy*c0004+dy3dy*c0104)
+                +dx3*(dyi3dy*c0014+dy3dy*c0114))
+            +(
+                dxi3*(dyi3dy*c1004+dy3dy*c1104)
+                +dx3*(dyi3dy*c1014+dy3dy*c1114)))
+        +ygi*xg2*zg/36*(
+            dzi3dz*(
+                dxi3*(-c0005+c0105)
+                +dx3*(-c0015+c0115))
+            +dz3dz*(
+                dxi3*(-c1005+c1105)
+                +dx3*(-c1015+c1115)))
+        +yg*zg/36*(
+            dzi3dz*(
+                dxi*(dyi3dy*c0006+dy3dy*c0106)
+                +dx*(dyi3dy*c0016+dy3dy*c0116))
+            +dz3dz*(
+                dxi*(dyi3dy*c1006+dy3dy*c1106)
+                +dx*(dyi3dy*c1016+dy3dy*c1116)))
+        +xg2*yg*zg/216*(
+            dzi3dz*(
+                dxi3*(dyi3dy*c0007+dy3dy*c0107)
+                +dx3*(dyi3dy*c0017+dy3dy*c0117))
+            +dz3dz*(
+                dxi3*(dyi3dy*c1007+dy3dy*c1107)
+                +dx3*(dyi3dy*c1017+dy3dy*c1117)));
+
+    return 0;
+}

@@ -99,6 +99,11 @@ typedef struct {
     real z_max;  /**< maximum z coordinate in the grid               */
     real z_grid; /**< interval between two adjacent points in z grid */
     real* c;     /**< pointer to array with spline coefficients      */
+    real x_inv_grid, y_inv_grid, z_inv_grid; /* 1/grid */
+    real xg2_over6, yg2_over6, zg2_over6;    /* grid^2 / 6 */
+    int y_stride8; /* n_x*8 */
+    int z_stride8; /* n_y*n_x*8 */
+
 } interp3D_data;
 
 int interp1Dcomp_init_coeff(real* c, real* f,
@@ -176,6 +181,12 @@ int interp3Dcomp_setup(interp3D_data* str, real* f,
                        int n_x, int n_y, int n_z, int bc_x, int bc_y, int bc_z,
                        real x_min, real x_max, real y_min, real y_max,
                        real z_min, real z_max);
+
+#pragma acc routine seq 
+a5err interp3Dcomp_eval_df_opt(
+    real* f_df,
+    interp3D_data* str,
+    real x, real y, real z);
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp1Dcomp_eval_f(real* f, interp1D_data* str, real x);
