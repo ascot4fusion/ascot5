@@ -72,7 +72,7 @@ CFLAGS+=-Wall -fPIC -std=c11 -D_XOPEN_SOURCE=700 $(DEFINES) $(FLAGS)
 ifeq ($(DEBUG),1)
 	CFLAGS+=-g -fsanitize=address,undefined
 else
-	CFLAGS+=-O2
+	CFLAGS+=-Ofast -Minline=interp3Dcomp_eval_df_opt,interp3Dcomp_eval_df_vec,B_3DS_eval_B_dB,interp3Dcomp_eval_df
 endif
 
 ifeq ($(CC), $(filter $(CC), h5cc h5pcc))

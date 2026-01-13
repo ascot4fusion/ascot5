@@ -101,6 +101,7 @@ typedef struct {
     real* c;     /**< pointer to array with spline coefficients      */
     real x_inv_grid, y_inv_grid, z_inv_grid; /* 1/grid */
     real xg2_over6, yg2_over6, zg2_over6;    /* grid^2 / 6 */
+    real xg_over6, yg_over6, zg_over6;    /* grid^2 / 6 */
     int y_stride8; /* n_x*8 */
     int z_stride8; /* n_y*n_x*8 */
 
@@ -184,6 +185,12 @@ int interp3Dcomp_setup(interp3D_data* str, real* f,
 
 #pragma acc routine seq 
 a5err interp3Dcomp_eval_df_opt(
+    real* f_df,
+    interp3D_data* str,
+    real x, real y, real z);
+
+#pragma acc routine seq 
+a5err interp3Dcomp_eval_df_vec(
     real* f_df,
     interp3D_data* str,
     real x, real y, real z);

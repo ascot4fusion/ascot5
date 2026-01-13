@@ -231,6 +231,21 @@ void interp3Dcomp_init_spline(interp3D_data* str, real* c,
     str->z_max  = z_max;
     str->z_grid = z_grid;
     str->c      = c;
+    // Pré-calculs
+    str->x_inv_grid = 1.0 / str->x_grid;
+    str->y_inv_grid = 1.0 / str->y_grid;
+    str->z_inv_grid = 1.0 / str->z_grid;
+
+    str->xg2_over6  = (str->x_grid * str->x_grid) / 6.0;
+    str->yg2_over6  = (str->y_grid * str->y_grid) / 6.0;
+    str->zg2_over6  = (str->z_grid * str->z_grid) / 6.0;
+
+    str->xg_over6  = str->x_grid / 6.0;
+    str->yg_over6  = str->y_grid / 6.0;
+    str->zg_over6  = str->z_grid / 6.0;
+
+    str->y_stride8  = str->n_x * 8;
+    str->z_stride8  = str->n_y * str->n_x * 8;
 }
 
 /**
@@ -468,47 +483,55 @@ a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
         z = z + (z < str->z_min) * (str->z_max - str->z_min);
     }
 
+    const real xg2_over6 = str->xg2_over6;
+    const real yg2_over6 = str->yg2_over6;
+    const real zg2_over6 = str->zg2_over6;
+
+    const real xg_over6 = str->xg_over6;
+    const real yg_over6 = str->yg_over6;
+    const real zg_over6 = str->zg_over6;
+
+    real xg     = str->x_grid;
+    real xg2    = xg*xg;
+    real xgi    = str->x_inv_grid;
     /* Index for x variable. The -1 needed at exactly grid end. */
-    int i_x     = (x - str->x_min) / str->x_grid - 1*(x==str->x_max);
+    int i_x     = (x - str->x_min) * xgi - 1*(x==str->x_max);
     /* Normalized x coordinate in current cell */
-    real dx     = ( x - (str->x_min + i_x*str->x_grid) ) / str->x_grid;
+    real dx     = ( x - (str->x_min + i_x*str->x_grid) ) * xgi;
     /* Helper variables */
     real dx3    = dx*dx*dx - dx;
     real dx3dx  = 3*dx*dx - 1.0;
     real dxi    = 1.0 - dx;
     real dxi3   = dxi*dxi*dxi - dxi;
     real dxi3dx = -3*dxi*dxi + 1.0;
-    real xg     = str->x_grid;
-    real xg2    = xg*xg;
-    real xgi    = 1.0 / xg;
 
+    real yg     = str->y_grid;
+    real yg2    = yg*yg;
+    real ygi    = str->y_inv_grid;
     /* Index for y variable. The -1 needed at exactly grid end. */
-    int i_y     = (y - str->y_min) / str->y_grid - 1*(y==str->y_max);
+    int i_y     = (y - str->y_min) * ygi - 1*(y==str->y_max);
     /* Normalized y coordinate in current cell */
-    real dy     = ( y - (str->y_min + i_y*str->y_grid) ) / str->y_grid;
+    real dy     = ( y - (str->y_min + i_y*str->y_grid) ) * ygi;
     /* Helper variables */
     real dy3    = dy*dy*dy-dy;
     real dy3dy  = 3*dy*dy - 1.0;
     real dyi    = 1.0 - dy;
     real dyi3   = dyi*dyi*dyi - dyi;
     real dyi3dy = -3*dyi*dyi + 1.0;
-    real yg     = str->y_grid;
-    real yg2    = yg*yg;
-    real ygi    = 1.0 / yg;
 
+    real zg     = str->z_grid;
+    real zg2    = zg*zg;
+    real zgi    = str->z_inv_grid;
     /* Index for z variable. The -1 needed at exactly grid end. */
-    int i_z     = (z - str->z_min) / str->z_grid - 1*(z==str->z_max);
+    int i_z     = (z - str->z_min) * zgi - 1*(z==str->z_max);
     /* Normalized z coordinate in current cell */
-    real dz     = ( z - (str->z_min + i_z*str->z_grid) ) / str->z_grid;
+    real dz     = ( z - (str->z_min + i_z*str->z_grid) ) * zgi;
     /* Helper variables */
     real dz3    = dz*dz*dz - dz;
     real dz3dz  = 3*dz*dz - 1.0;
     real dzi    = 1.0 - dz;
     real dzi3   = dzi*dzi*dzi - dzi;
     real dzi3dz = -3*dzi*dzi + 1.0;
-    real zg     = str->z_grid;
-    real zg2    = zg*zg;
-    real zgi    = 1.0 / zg;
 
     /* Index jump to cell */
     int n  = i_z*str->n_y*str->n_x*8 + i_y*str->n_x*8 + i_x*8;
@@ -627,49 +650,49 @@ a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
                +dz*(
                    dxi*(dyi*c1000+dy*c1100)
                    +dx*(dyi*c1010+dy*c1110)))
-        +xg2/6*(
+        +xg2_over6*(
             dzi*(
                 dxi3*(dyi*c0001+dy*c0101)
                 +dx3*(dyi*c0011+dy*c0111))
             +dz*(
                 dxi3*(dyi*c1001+dy*c1101)
                 +dx3*(dyi*c1011+dy*c1111)))
-        +yg2/6*(
+        +yg2_over6*(
             dzi*(
                 dxi*(dyi3*c0002+dy3*c0102)
                 +dx*(dyi3*c0012+dy3*c0112))
             +dz*(
                 dxi*(dyi3*c1002+dy3*c1102)
                 +dx*(dyi3*c1012+dy3*c1112)))
-        +zg2/6*(
+        +zg2_over6*(
             dzi3*(
                 dxi*(dyi*c0003+dy*c0103)
                 +dx*(dyi*c0013+dy*c0113))
             +dz3*(
                 dxi*(dyi*c1003+dy*c1103)
                 +dx*(dyi*c1013+dy*c1113)))
-        +xg2*yg2/36*(
+        +xg2_over6*yg2_over6*(
             dzi*(
                 dxi3*(dyi3*c0004+dy3*c0104)
                 +dx3*(dyi3*c0014+dy3*c0114))
             +dz*(
                 dxi3*(dyi3*c1004+dy3*c1104)
                 +dx3*(dyi3*c1014+dy3*c1114)))
-        +xg2*zg2/36*(
+        +xg2_over6*zg2_over6*(
             dzi3*(
                 dxi3*(dyi*c0005+dy*c0105)
                 +dx3*(dyi*c0015+dy*c0115))
             +dz3*(
                 dxi3*(dyi*c1005+dy*c1105)
                 +dx3*(dyi*c1015+dy*c1115)))
-        +yg2*zg2/36*(
+        +yg2_over6*zg2_over6*(
             dzi3*(
                 dxi*(dyi3*c0006+dy3*c0106)
                 +dx*(dyi3*c0016+dy3*c0116))
             +dz3*(
                 dxi*(dyi3*c1006+dy3*c1106)
                 +dx*(dyi3*c1016+dy3*c1116)))
-        +xg2*yg2*zg2/216*(
+        +xg2_over6*yg2_over6*zg2_over6*(
             dzi3*(
                 dxi3*(dyi3*c0007+dy3*c0107)
                 +dx3*(dyi3*c0017+dy3*c0117))
@@ -685,49 +708,49 @@ a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
         +dz*(
             -(dyi*c1000+dy*c1100)
             +(dyi*c1010+dy*c1110)))
-        +xg/6*(
+        +xg_over6*(
             dzi*(
                 dxi3dx*(dyi*c0001+dy*c0101)
                 +dx3dx*(dyi*c0011+dy*c0111))
             +dz*(
                 dxi3dx*(dyi*c1001  +dy*c1101)
                 +dx3dx*(dyi*c1011+dy*c1111)))
-        +xgi*yg2/6*(
+        +xgi*yg2_over6*(
             dzi*(
                 -(dyi3*c0002+dy3*c0102)
                 +(dyi3*c0012+dy3*c0112))
             +dz*(
                 -(dyi3*c1002+dy3*c1102)
                 +(dyi3*c1012+dy3*c1112)))
-        +xgi*zg2/6*(
+        +xgi*zg2_over6*(
             dzi3*(
                 -(dyi*c0003+dy*c0103)
                 +(dyi*c0013+dy*c0113))
             +dz3*(
                 -(dyi*c1003+dy*c1103)
                 +(dyi*c1013+dy*c1113)))
-        +xg*yg2/36*(
+        +xg_over6*yg2_over6*(
             dzi*(
                 dxi3dx*(dyi3*c0004+dy3*c0104)
                 +dx3dx*(dyi3*c0014+dy3*c0114))
             +dz*(
                 dxi3dx*(dyi3*c1004+dy3*c1104)
                 +dx3dx*(dyi3*c1014+dy3*c1114)))
-        +xg*zg2/36*(
+        +xg_over6*zg2_over6*(
             dzi3*(
                 dxi3dx*(dyi*c0005+dy*c0105)
                 +dx3dx*(dyi*c0015+dy*c0115))
             +dz3*(
                 dxi3dx*(dyi*c1005+dy*c1105)
                 +dx3dx*(dyi*c1015+dy*c1115)))
-        +xgi*yg2*zg2/36*(
+        +xgi*yg2_over6*zg2_over6*(
             dzi3*(
                 -(dyi3*c0006+dy3*c0106)
                 +(dyi3*c0016+dy3*c0116))
             +dz3*(
                 -(dyi3*c1006+dy3*c1106)
                 +(dyi3*c1016+dy3*c1116)))
-        +xg*yg2*zg2/216*(
+        +xg_over6*yg2_over6*zg2_over6*(
             dzi3*(
                 dxi3dx*(dyi3*c0007+dy3*c0107)
                 +dx3dx*(dyi3*c0017+dy3*c0117))
@@ -743,49 +766,49 @@ a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
         +dz*(
             dxi*(-c1000+c1100)
             +dx*(-c1010+c1110)))
-        +ygi*xg2/6*(
+        +ygi*xg2_over6*(
             dzi*(
                 dxi3*(-c0001+c0101)
                 +dx3*(-c0011+c0111))
             +dz*(
                 dxi3*(-c1001+c1101)
                 +dx3*(-c1011+c1111)))
-        +yg/6*(
+        +yg_over6*(
             dzi*(
                 dxi*(dyi3dy*c0002+dy3dy*c0102)
                 +dx*(dyi3dy*c0012+dy3dy*c0112))
             +dz*(
                 dxi*(dyi3dy*c1002+dy3dy*c1102)
                 +dx*(dyi3dy*c1012+dy3dy*c1112)))
-        +ygi*zg2/6*(
+        +ygi*zg2_over6*(
             dzi3*(
                 dxi*(-c0003+c0103)
                 +dx*(-c0013+c0113))
             +dz3*(
                 dxi*(-c1003+c1103)
                 +dx*(-c1013+c1113)))
-        +xg2*yg/36*(
+        +xg2_over6*yg_over6*(
             dzi*(
                 dxi3*(dyi3dy*c0004+dy3dy*c0104)
                 +dx3*(dyi3dy*c0014+dy3dy*c0114))
             +dz*(
                 dxi3*(dyi3dy*c1004+dy3dy*c1104)
                 +dx3*(dyi3dy*c1014+dy3dy*c1114)))
-        +ygi*xg2*zg2/36*(
+        +ygi*xg2_over6*zg2_over6*(
             dzi3*(
                 dxi3*(-c0005+c0105)
                 +dx3*(-c0015+c0115))
             +dz3*(
                 dxi3*(-c1005+c1105)
                 +dx3*(-c1015+c1115)))
-        +yg*zg2/36*(
+        +yg_over6*zg2_over6*(
             dzi3*(
                 dxi*(dyi3dy*c0006+dy3dy*c0106)
                 +dx*(dyi3dy*c0016+dy3dy*c0116))
             +dz3*(
                 dxi*(dyi3dy*c1006+dy3dy*c1106)
                 +dx*(dyi3dy*c1016+dy3dy*c1116)))
-        +xg2*yg*zg2/216*(
+        +xg2_over6*yg_over6*zg2_over6*(
             dzi3*(
                 dxi3*(dyi3dy*c0007+dy3dy*c0107)
                 +dx3*(dyi3dy*c0017+dy3dy*c0117))
@@ -801,49 +824,49 @@ a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
         +(
             dxi*(dyi*c1000+dy*c1100)
             +dx*(dyi*c1010+dy*c1110)))
-        +xg2*zgi/6*(
+        +xg2_over6*zgi*(
             -(
                 dxi3*(dyi*c0001+dy*c0101)
                 +dx3*(dyi*c0011+dy*c0111))
             +(
                 dxi3*(dyi*c1001+dy*c1101)
                 +dx3*(dyi*c1011+dy*c1111)))
-        +yg2*zgi/6*(
+        +yg2_over6*zgi*(
             -(
                 dxi*(dyi3*c0002+dy3*c0102)
                 +dx*(dyi3*c0012+dy3*c0112))
             +(
                 dxi*(dyi3*c1002+dy3*c1102)
                 +dx*(dyi3*c1012+dy3*c1112)))
-        +zg/6*(
+        +zg_over6*(
             dzi3dz*(
                 dxi*(dyi*c0003+dy*c0103)
                 +dx*(dyi*c0013+dy*c0113))
             +dz3dz*(
                 dxi*(dyi*c1003+dy*c1103)
                 +dx*(dyi*c1013+dy*c1113)))
-        +xg2*yg2*zgi/36*(
+        +xg2_over6*yg2_over6*zgi*(
             -(
                 dxi3*(dyi3*c0004+dy3*c0104)
                 +dx3*(dyi3*c0014+dy3*c0114))
             +(
                 dxi3*(dyi3*c1004+dy3*c1104)
                 +dx3*(dyi3*c1014+dy3*c1114)))
-        +xg2*zg/36*(
+        +xg2_over6*zg_over6*(
             dzi3dz*(
                 dxi3*(dyi*c0005+dy*c0105)
                 +dx3*(dyi*c0015+dy*c0115))
             +dz3dz*(
                 dxi3*(dyi*c1005+dy*c1105)
                 +dx3*(dyi*c1015+dy*c1115)))
-        +yg2*zg/36*(
+        +yg2_over6*zg_over6*(
             dzi3dz*(
                 dxi*(dyi3*c0006+dy3*c0106)
                 +dx*(dyi3*c0016+dy3*c0116))
             +dz3dz*(
                 dxi*(dyi3*c1006+dy3*c1106)
                 +dx*(dyi3*c1016+dy3*c1116)))
-        +xg2*yg2*zg/216*(
+        +xg2_over6*yg2_over6*zg_over6*(
             dzi3dz*(
                 dxi3*(dyi3*c0007+dy3*c0107)
                 +dx3*(dyi3*c0017+dy3*c0117))
@@ -859,21 +882,21 @@ a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
         +dz*(
             dxi*(dyi*c1001+dy*c1101)
             +dx*(dyi*c1011+dy*c1111)))
-        +yg2/6*(
+        +yg2_over6*(
             dzi*(
                 dxi*(dyi3*c0004+dy3*c0104)
                 +dx*(dyi3*c0014+dy3*c0114))
             +dz*(
                 dxi*(dyi3*c1004+dy3*c1104)
                 +dx*(dyi3*c1014+dy3*c1114)))
-        +zg2/6*(
+        +zg2_over6*(
             dzi3*(
                 dxi*(dyi*c0005+dy*c0105)
                 +dx*(dyi*c0015+dy*c0115))
             +dz3*(
                 dxi*(dyi*c1005+dy*c1105)
                 +dx*(dyi*c1015+dy*c1115)))
-        +yg2*zg2/36*(
+        +yg2_over6*zg2_over6*(
             dzi3*(
                 dxi*(dyi3*c0007+dy3*c0107)
                 +dx*(dyi3*c0017+dy3*c0117))
@@ -889,21 +912,21 @@ a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
         +dz*(
             dxi*(dyi*c1002+dy*c1102)
             +dx*(dyi*c1012+dy*c1112)))
-        +xg2/6*(
+        +xg2_over6*(
             dzi*(
                 dxi3*(dyi*c0004+dy*c0104)
                 +dx3*(dyi*c0014+dy*c0114))
             +dz*(
                 dxi3*(dyi*c1004+dy*c1104)
                 +dx3*(dyi*c1014+dy*c1114)))
-        +zg2/6*(
+        +zg2_over6*(
             dzi3*(
                 dxi*(dyi*c0006+dy*c0106)
                 +dx*(dyi*c0016+dy*c0116))
             +dz3*(
                 dxi*(dyi*c1006+dy*c1106)
                 +dx*(dyi*c1016+dy*c1116)))
-        +xg2*zg2/36*(
+        +xg2_over6*zg2_over6*(
             dzi3*(
                 dxi3*(dyi*c0007+dy*c0107)
                 +dx3*(dyi*c0017+dy*c0117))
@@ -919,21 +942,21 @@ a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
         +dz*(
             dxi*(dyi*c1003+dy*c1103)
             +dx*(dyi*c1013+dy*c1113)))
-        +xg2/6*(
+        +xg2_over6*(
             dzi*(
                 dxi3*(dyi*c0005+dy*c0105)
                 +dx3*(dyi*c0015+dy*c0115))
             +dz*(
                 dxi3*(dyi*c1005+dy*c1105)
                 +dx3*(dyi*c1015+dy*c1115)))
-        +yg2/6*(
+        +yg2_over6*(
             dzi*(
                 dxi*(dyi3*c0006+dy3*c0106)
                 +dx*(dyi3*c0016+dy3*c0116))
             +dz*(
                 dxi*(dyi3*c1006+dy3*c1106)
                 +dx*(dyi3*c1016+dy3*c1116)))
-        +xg2*yg2/36*(
+        +xg2_over6*yg2_over6*(
             dzi*(
                 dxi3*(dyi3*c0007+dy3*c0107)
                 +dx3*(dyi3*c0017+dy3*c0117))
@@ -949,49 +972,49 @@ a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
         +dz*(
             (c1000  -c1100)
             -(c1010-c1110)))
-        +ygi*xg/6*(
+        +ygi*xg_over6*(
             dzi*(
                 dxi3dx*(-c0001+c0101)
                 +dx3dx*(-c0011+c0111))
             +dz*(
                 dxi3dx*(-c1001+c1101)
                 +dx3dx*(-c1011+c1111)))
-        +xgi*yg/6*(
+        +xgi*yg_over6*(
             dzi*(
                 -(dyi3dy*c0002+dy3dy*c0102)
                 +(dyi3dy*c0012+dy3dy*c0112))
             +dz*(
                 -(dyi3dy*c1002+dy3dy*c1102)
                 +(dyi3dy*c1012+dy3dy*c1112)))
-        +xgi*ygi*zg2/6*(
+        +xgi*ygi*zg2_over6*(
             dzi3*(
                 (c0003  -c0103)
                 -(c0013-c0113))
             +dz3*(
                 (c1003  -c1103)
                 -(c1013-c1113)))
-        +xg*yg/36*(
+        +xg_over6*yg_over6*(
             dzi*(
                 dxi3dx*(dyi3dy*c0004+dy3dy*c0104)
                 +dx3dx*(dyi3dy*c0014+dy3dy*c0114))
             +dz*(
                 dxi3dx*(dyi3dy*c1004+dy3dy*c1104)
                 +dx3dx*(dyi3dy*c1014+dy3dy*c1114)))
-        +ygi*xg*zg2/36*(
+        +ygi*xg_over6*zg2_over6*(
             dzi3*(
                 dxi3dx*(-c0005+c0105)
                 +dx3dx*(-c0015+c0115))
             +dz3*(
                 dxi3dx*(-c1005+c1105)
                 +dx3dx*(-c1015+c1115)))
-        +xgi*yg*zg2/36*(
+        +xgi*yg_over6*zg2_over6*(
             dzi3*(
                 -(dyi3dy*c0006+dy3dy*c0106)
                 +(dyi3dy*c0016+dy3dy*c0116))
             +dz3*(
                 -(dyi3dy*c1006+dy3dy*c1106)
                 +(dyi3dy*c1016+dy3dy*c1116)))
-        +xg*yg*zg2/216*(
+        +xg_over6*yg_over6*zg2_over6*(
             dzi3*(
                 dxi3dx*(dyi3dy*c0007+dy3dy*c0107)
                 +dx3dx*(dyi3dy*c0017+dy3dy*c0117))
@@ -1007,49 +1030,49 @@ a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
         -(
             (dyi*c1000+dy*c1100)
             -(dyi*c1010+dy*c1110)))
-        +xg*zgi/6*(
+        +xg_over6*zgi*(
             -(
                 dxi3dx*(dyi*c0001+dy*c0101)
                 +dx3dx*(dyi*c0011+dy*c0111))
             +(
                 dxi3dx*(dyi*c1001+dy*c1101)
                 +dx3dx*(dyi*c1011+dy*c1111)))
-        +xgi*yg2*zgi/6*(
+        +xgi*yg2_over6*zgi*(
             (
                 (dyi3*c0002+dy3*c0102)
                 -(dyi3*c0012+dy3*c0112))
             -(
                 (dyi3*c1002+dy3*c1102)
                 -(dyi3*c1012+dy3*c1112)))
-        +xgi*zg/6*(
+        +xgi*zg_over6*(
             dzi3dz*(
                 -(dyi*c0003+dy*c0103)
                 +(dyi*c0013+dy*c0113))
             +dz3dz*(
                 -(dyi*c1003+dy*c1103)
                 +(dyi*c1013+dy*c1113)))
-        +xg*yg2*zgi/36*(
+        +xg_over6*yg2_over6*zgi*(
             -(
                 dxi3dx*(dyi3*c0004+dy3*c0104)
                 +dx3dx*(dyi3*c0014+dy3*c0114))
             +(
                 dxi3dx*(dyi3*c1004+dy3*c1104)
                 +dx3dx*(dyi3*c1014+dy3*c1114)))
-        +xg*zg/36*(
+        +xg_over6*zg_over6*(
             dzi3dz*(
                 dxi3dx*(dyi*c0005+dy*c0105)
                 +dx3dx*(dyi*c0015+dy*c0115))
             +dz3dz*(
                 dxi3dx*(dyi*c1005+dy*c1105)
                 +dx3dx*(dyi*c1015+dy*c1115)))
-        +xgi*yg2*zg/36*(
+        +xgi*yg2_over6*zg_over6*(
             dzi3dz*(
                 -(dyi3*c0006+dy3*c0106)
                 +(dyi3*c0016+dy3*c0116))
             +dz3dz*(
                 -(dyi3*c1006+dy3*c1106)
                 +(dyi3*c1016+dy3*c1116)))
-        +xg*yg2*zg/216*(
+        +xg_over6*yg2_over6*zg_over6*(
             dzi3dz*(
                 dxi3dx*(dyi3*c0007+dy3*c0107)
                 +dx3dx*(dyi3*c0017+dy3*c0117))
@@ -1065,49 +1088,49 @@ a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
         -(
             dxi*(c1000  -c1100)
             +dx*(c1010-c1110)))
-        +ygi*xg2*zgi/6*(
+        +ygi*xg2_over6*zgi*(
             (
                 dxi3*(c0001  -c0101)
                 +dx3*(c0011-c0111))
             -(
                 dxi3*(c1001  -c1101)
                 +dx3*(c1011-c1111)))
-        +yg*zgi/6*(
+        +yg_over6*zgi*(
             -(
                 dxi*(dyi3dy*c0002+dy3dy*c0102)
                 +dx*(dyi3dy*c0012+dy3dy*c0112))
             +(
                 dxi*(dyi3dy*c1002+dy3dy*c1102)
                 +dx*(dyi3dy*c1012+dy3dy*c1112)))
-        +ygi*zg/6*(
+        +ygi*zg_over6*(
             dzi3dz*(
                 dxi*(-c0003+c0103)
                 +dx*(-c0013+c0113))
             +dz3dz*(
                 dxi*(-c1003+c1103)
                 +dx*(-c1013+c1113)))
-        +xg2*yg*zgi/36*(
+        +xg2_over6*yg_over6*zgi*(
             -(
                 dxi3*(dyi3dy*c0004+dy3dy*c0104)
                 +dx3*(dyi3dy*c0014+dy3dy*c0114))
             +(
                 dxi3*(dyi3dy*c1004+dy3dy*c1104)
                 +dx3*(dyi3dy*c1014+dy3dy*c1114)))
-        +ygi*xg2*zg/36*(
+        +ygi*xg2_over6*zg_over6*(
             dzi3dz*(
                 dxi3*(-c0005+c0105)
                 +dx3*(-c0015+c0115))
             +dz3dz*(
                 dxi3*(-c1005+c1105)
                 +dx3*(-c1015+c1115)))
-        +yg*zg/36*(
+        +yg_over6*zg_over6*(
             dzi3dz*(
                 dxi*(dyi3dy*c0006+dy3dy*c0106)
                 +dx*(dyi3dy*c0016+dy3dy*c0116))
             +dz3dz*(
                 dxi*(dyi3dy*c1006+dy3dy*c1106)
                 +dx*(dyi3dy*c1016+dy3dy*c1116)))
-        +xg2*yg*zg/216*(
+        +xg2_over6*yg_over6*zg_over6*(
             dzi3dz*(
                 dxi3*(dyi3dy*c0007+dy3dy*c0107)
                 +dx3*(dyi3dy*c0017+dy3dy*c0117))
