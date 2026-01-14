@@ -102,7 +102,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
             if(!errflag) {
                 /* errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], */
                 /*                             t0 + h[i]/2.0, Bdata); */
-                errflag = B_3DS_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], &(Bdata->B3DS));
+                errflag = B_3DS_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], &(Bdata->B3DS));
 		if(errflag) {
 		  /* In case of error, return some reasonable values to avoid further
 		     complications */
@@ -125,7 +125,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
             if(!errflag) {
                 /* errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], */
                 /*                             t0 + h[i]/2.0, Bdata); */
-                errflag = B_3DS_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], &(Bdata->B3DS));
+                errflag = B_3DS_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], &(Bdata->B3DS));
 		if(errflag) {
 		  /* In case of error, return some reasonable values to avoid further
 		     complications */
@@ -148,7 +148,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
             if(!errflag) {
                 /* errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], */
                 /*                             t0 + h[i], Bdata); */
-                errflag = B_3DS_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], &(Bdata->B3DS));
+                errflag = B_3DS_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], &(Bdata->B3DS));
 		if(errflag) {
 		  /* In case of error, return some reasonable values to avoid further
 		     complications */
