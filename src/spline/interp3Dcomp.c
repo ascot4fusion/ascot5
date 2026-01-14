@@ -439,6 +439,15 @@ a5err interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
     return err;
 }
 
+#pragma acc routine seq
+static inline real wrap_periodic(real v, real vmin, real vmax)
+{
+    const real L = vmax - vmin;
+    real t = (v - vmin) / L;   /* peut être négatif */
+    t = t - floor(t);          /* frac dans [0,1) */
+    return vmin + t * L;
+}
+
 /**
  * @brief Evaluate interpolated value of 3D field and 1st and 2nd derivatives
  *
@@ -469,19 +478,15 @@ a5err interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
 a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
                          real x, real y, real z) {
 
-    /* Make sure periodic coordinates are within [min, max] region. */
-    if(str->bc_x == PERIODICBC) {
-        x = fmod(x - str->x_min, str->x_max - str->x_min) + str->x_min;
-        x = x + (x < str->x_min) * (str->x_max - str->x_min);
-    }
-    if(str->bc_y == PERIODICBC) {
-        y = fmod(y - str->y_min, str->y_max - str->y_min) + str->y_min;
-        y = y + (y < str->y_min) * (str->y_max - str->y_min);
-    }
-    if(str->bc_z == PERIODICBC) {
-        z = fmod(z - str->z_min, str->z_max - str->z_min) + str->z_min;
-        z = z + (z < str->z_min) * (str->z_max - str->z_min);
-    }
+    /* 1) BC périodiques: éviter fmod */
+    if (str->bc_x == PERIODICBC) x = wrap_periodic(x, str->x_min, str->x_max);
+    if (str->bc_y == PERIODICBC) y = wrap_periodic(y, str->y_min, str->y_max);
+    if (str->bc_z == PERIODICBC) z = wrap_periodic(z, str->z_min, str->z_max);
+
+    /* 2) NATURALBC: early exit */
+    if (str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max)) return 1;
+    if (str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max)) return 1;
+    if (str->bc_z == NATURALBC && (z < str->z_min || z > str->z_max)) return 1;
 
     const real xg2_over6 = str->xg2_over6;
     const real yg2_over6 = str->yg2_over6;
@@ -541,104 +546,60 @@ a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
 
     int err = 0;
 
-    /* Enforce periodic BC or check that the coordinate is within the domain. */
-    if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
-        x1 = -(str->n_x-1)*x1;
-    }
-    else if( str->bc_x == NATURALBC && !(x >= str->x_min && x <= str->x_max) ) {
-        err = 1;
-    }
-    if( str->bc_y == PERIODICBC && i_y == str->n_y-1 ) {
-        y1 = -(str->n_y-1)*y1;
-    }
-    else if( str->bc_y == NATURALBC && !(y >= str->y_min && y <= str->y_max) ) {
-        err = 1;
-    }
-    if( str->bc_z == PERIODICBC && i_z == str->n_z-1 ) {
-        z1 = -(str->n_z-1)*z1;
-    }
-    else if( str->bc_z == NATURALBC && !(z >= str->z_min && z <= str->z_max) ) {
-        err = 1;
-    }
+    if (str->bc_x == PERIODICBC && i_x == str->n_x - 1) x1 = -(str->n_x - 1) * x1;
+    if (str->bc_y == PERIODICBC && i_y == str->n_y - 1) y1 = -(str->n_y - 1) * y1;
+    if (str->bc_z == PERIODICBC && i_z == str->n_z - 1) z1 = -(str->n_z - 1) * z1;
 
-    if(!err) {
-
-        /* Fetch coefficients explicitly to fetch those that are adjacent
+    /* Fetch coefficients explicitly to fetch those that are adjacent
            subsequently and to store in temporary variables coefficients that
            will be used multiple times. This is to decrease computational time,
            by exploiting simultaneous extraction of adjacent memory and by
            avoiding going through the long str->c array repeatedly. */
-        real c0000 = str->c[n+0];
-        real c0001 = str->c[n+1];
-        real c0002 = str->c[n+2];
-        real c0003 = str->c[n+3];
-        real c0004 = str->c[n+4];
-        real c0005 = str->c[n+5];
-        real c0006 = str->c[n+6];
-        real c0007 = str->c[n+7];
+    const real* __restrict__ c = str->c;
 
-        real c0010 = str->c[n+x1+0];
-        real c0011 = str->c[n+x1+1];
-        real c0012 = str->c[n+x1+2];
-        real c0013 = str->c[n+x1+3];
-        real c0014 = str->c[n+x1+4];
-        real c0015 = str->c[n+x1+5];
-        real c0016 = str->c[n+x1+6];
-        real c0017 = str->c[n+x1+7];
+    /* offsets coins */
+    const int o000 = n;
+    const int o001 = n + x1;
+    const int o010 = n + y1;
+    const int o011 = n + y1 + x1;
+    const int o100 = n + z1;
+    const int o101 = n + z1 + x1;
+    const int o110 = n + z1 + y1;
+    const int o111 = n + z1 + y1 + x1;
 
-        real c0100 = str->c[n+y1+0];
-        real c0101 = str->c[n+y1+1];
-        real c0102 = str->c[n+y1+2];
-        real c0103 = str->c[n+y1+3];
-        real c0104 = str->c[n+y1+4];
-        real c0105 = str->c[n+y1+5];
-        real c0106 = str->c[n+y1+6];
-        real c0107 = str->c[n+y1+7];
+    /* 8) Charger 64 coeff (8 coins x 8) */
+    /* coin 000 */
+    real c0000 = c[o000+0]; real c0001 = c[o000+1]; real c0002 = c[o000+2]; real c0003 = c[o000+3];
+    real c0004 = c[o000+4]; real c0005 = c[o000+5]; real c0006 = c[o000+6]; real c0007 = c[o000+7];
 
-        real c1000 = str->c[n+z1+0];
-        real c1001 = str->c[n+z1+1];
-        real c1002 = str->c[n+z1+2];
-        real c1003 = str->c[n+z1+3];
-        real c1004 = str->c[n+z1+4];
-        real c1005 = str->c[n+z1+5];
-        real c1006 = str->c[n+z1+6];
-        real c1007 = str->c[n+z1+7];
+    /* coin 001 (x + 1) */
+    real c0010 = c[o001+0]; real c0011 = c[o001+1]; real c0012 = c[o001+2]; real c0013 = c[o001+3];
+    real c0014 = c[o001+4]; real c0015 = c[o001+5]; real c0016 = c[o001+6]; real c0017 = c[o001+7];
 
-        real c0110 = str->c[n+y1+x1+0];
-        real c0111 = str->c[n+y1+x1+1];
-        real c0112 = str->c[n+y1+x1+2];
-        real c0113 = str->c[n+y1+x1+3];
-        real c0114 = str->c[n+y1+x1+4];
-        real c0115 = str->c[n+y1+x1+5];
-        real c0116 = str->c[n+y1+x1+6];
-        real c0117 = str->c[n+y1+x1+7];
+    /* coin 010 (y + 1) */
+    real c0100 = c[o010+0]; real c0101 = c[o010+1]; real c0102 = c[o010+2]; real c0103 = c[o010+3];
+    real c0104 = c[o010+4]; real c0105 = c[o010+5]; real c0106 = c[o010+6]; real c0107 = c[o010+7];
 
-        real c1010 = str->c[n+z1+x1+0];
-        real c1011 = str->c[n+z1+x1+1];
-        real c1012 = str->c[n+z1+x1+2];
-        real c1013 = str->c[n+z1+x1+3];
-        real c1014 = str->c[n+z1+x1+4];
-        real c1015 = str->c[n+z1+x1+5];
-        real c1016 = str->c[n+z1+x1+6];
-        real c1017 = str->c[n+z1+x1+7];
+    /* coin 100 (z + 1) */
+    real c1000 = c[o100+0]; real c1001 = c[o100+1]; real c1002 = c[o100+2]; real c1003 = c[o100+3];
+    real c1004 = c[o100+4]; real c1005 = c[o100+5]; real c1006 = c[o100+6]; real c1007 = c[o100+7];
 
-        real c1100 = str->c[n+z1+y1+0];
-        real c1101 = str->c[n+z1+y1+1];
-        real c1102 = str->c[n+z1+y1+2];
-        real c1103 = str->c[n+z1+y1+3];
-        real c1104 = str->c[n+z1+y1+4];
-        real c1105 = str->c[n+z1+y1+5];
-        real c1106 = str->c[n+z1+y1+6];
-        real c1107 = str->c[n+z1+y1+7];
+    /* coin 011 (y+1, x+1) */
+    real c0110 = c[o011+0]; real c0111 = c[o011+1]; real c0112 = c[o011+2]; real c0113 = c[o011+3];
+    real c0114 = c[o011+4]; real c0115 = c[o011+5]; real c0116 = c[o011+6]; real c0117 = c[o011+7];
 
-        real c1110 = str->c[n+z1+y1+x1+0];
-        real c1111 = str->c[n+z1+y1+x1+1];
-        real c1112 = str->c[n+z1+y1+x1+2];
-        real c1113 = str->c[n+z1+y1+x1+3];
-        real c1114 = str->c[n+z1+y1+x1+4];
-        real c1115 = str->c[n+z1+y1+x1+5];
-        real c1116 = str->c[n+z1+y1+x1+6];
-        real c1117 = str->c[n+z1+y1+x1+7];
+    /* coin 101 (z+1, x+1) */
+    real c1010 = c[o101+0]; real c1011 = c[o101+1]; real c1012 = c[o101+2]; real c1013 = c[o101+3];
+    real c1014 = c[o101+4]; real c1015 = c[o101+5]; real c1016 = c[o101+6]; real c1017 = c[o101+7];
+
+    /* coin 110 (z+1, y+1) */
+    real c1100 = c[o110+0]; real c1101 = c[o110+1]; real c1102 = c[o110+2]; real c1103 = c[o110+3];
+    real c1104 = c[o110+4]; real c1105 = c[o110+5]; real c1106 = c[o110+6]; real c1107 = c[o110+7];
+
+    /* coin 111 (z+1, y+1, x+1) */
+    real c1110 = c[o111+0]; real c1111 = c[o111+1]; real c1112 = c[o111+2]; real c1113 = c[o111+3];
+    real c1114 = c[o111+4]; real c1115 = c[o111+5]; real c1116 = c[o111+6]; real c1117 = c[o111+7];
+
 
         /* Evaluate spline values */
 
@@ -1137,17 +1098,7 @@ a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
             +dz3dz*(
                 dxi3*(dyi3dy*c1007+dy3dy*c1107)
                 +dx3*(dyi3dy*c1017+dy3dy*c1117)));
-    }
-
-    return err;
-}
-#pragma acc routine seq
-static inline real wrap_periodic(real v, real vmin, real vmax)
-{
-    const real L = vmax - vmin;
-    real t = (v - vmin) / L;   /* peut être négatif */
-    t = t - floor(t);          /* frac dans [0,1) */
-    return vmin + t * L;
+    return 0;
 }
 
 a5err interp3Dcomp_eval_df_opt(
