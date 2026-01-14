@@ -459,17 +459,17 @@ void afsi_sample_beam_2d(histogram* hist, real mass, real vol, int nsample,
                          + i2*hist->strides[2]
                          + ip1*hist->strides[p1coord]
                          + ip2*hist->strides[p2coord];
-            if(ip1 == 0 && ip2 == 0) {
+            size_t j = ip1*hist->axes[p2coord].n+ip2;
+            if(j == 0) {
                 cumdist[0] = hist->bins[index];
             } else {
-                cumdist[ip1*hist->axes[p2coord].n+ip2] =
-                      cumdist[ip1*hist->axes[p2coord].n+ip2-1]
-                    + hist->bins[index];
+                cumdist[j] = cumdist[j - 1] + hist->bins[index];
             }
             *density += hist->bins[index] / vol;
         }
     }
     if(*density == 0) {
+        free(cumdist);
         return;
     }
 
@@ -479,15 +479,15 @@ void afsi_sample_beam_2d(histogram* hist, real mass, real vol, int nsample,
         for(size_t j = 0; j < hist->axes[p1coord].n*hist->axes[p2coord].n; j++) {
             if(cumdist[j] > r) {
                 if(mom_space == PPARPPERP) {
-                    ppara[i] = hist->axes[5].min + (j / hist->axes[5].n + 0.5)
+                    ppara[i] = hist->axes[5].min + (j / hist->axes[6].n + 0.5)
                         * (hist->axes[5].max - hist->axes[5].min) / hist->axes[5].n;
                     pperp[i] = hist->axes[6].min + (j % hist->axes[6].n + 0.5)
                         * (hist->axes[6].max - hist->axes[6].min) / hist->axes[6].n;
                 }
                 else {
-                    real ekin = hist->axes[10].min + (j / hist->axes[10].n + 0.5)
+                    real ekin = hist->axes[10].min + (j / hist->axes[11].n + 0.5)
                         * (hist->axes[10].max - hist->axes[10].min) / hist->axes[10].n;
-                    real pitch = hist->axes[11].min + (j / hist->axes[11].n + 0.5)
+                    real pitch = hist->axes[11].min + (j % hist->axes[11].n + 0.5)
                         * (hist->axes[11].max - hist->axes[11].min) / hist->axes[11].n;
                     real gamma = physlib_gamma_Ekin(mass, ekin);
                     real pnorm = sqrt(gamma * gamma - 1.0) * mass * CONST_C;
