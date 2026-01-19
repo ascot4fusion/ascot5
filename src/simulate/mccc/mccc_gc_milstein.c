@@ -40,8 +40,9 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
     const real* qb = plasma_get_species_charge(pdata);
     const real* mb = plasma_get_species_mass(pdata);
 
-    #pragma omp simd
-    for(int i = 0; i < NSIMD; i++) {
+    GPU_DATA_IS_MAPPED(hin[0:p->n_mrk], hout[0:p->n_mrk], rnd[0:5*p->n_mrk], w[0:p->n_mrk])
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for(int i = 0; i < p->n_mrk; i++) {
         if(p->running[i]) {
             a5err errflag = 0;
 
@@ -87,6 +88,7 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
             real gyrofreq = phys_gyrofreq_pnorm(p->mass[i], p->charge[i], pin,
                                                 Bnorm);
             real K = 0, Dpara = 0, dDpara = 0, dQ = 0, nu = 0, DX = 0;
+	    GPU_SEQUENTIAL_LOOP
             for(int j = 0; j < n_species; j++) {
                 real vb = sqrt( 2 * Tb[j] / mb[j] );
                 real x  = vin / vb;
@@ -123,7 +125,7 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
             }
             real dW[5] = {0, 0, 0, 0, 0};
             if(!errflag) {
-                dW[0] = w[i].wiener[tindex*5 + 0] - w[i].wiener[0]; // For X_1
+	      dW[0] = w[i].wiener[tindex*5 + 0] - w[i].wiener[0]; // For X_1
                 dW[1] = w[i].wiener[tindex*5 + 1] - w[i].wiener[1]; // For X_2
                 dW[2] = w[i].wiener[tindex*5 + 2] - w[i].wiener[2]; // For X_3
                 dW[3] = w[i].wiener[tindex*5 + 3] - w[i].wiener[3]; // For v

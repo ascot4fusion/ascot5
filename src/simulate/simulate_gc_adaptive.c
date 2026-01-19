@@ -127,6 +127,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
     particle_offload_gc(&p);
     particle_offload_gc(&p0);
     GPU_MAP_TO_DEVICE(hin[0:mrk_array_size],rnd[0:5*mrk_array_size],hout_orb[0:mrk_array_size],hout_col[0:mrk_array_size],hout_rfof[0:mrk_array_size],hnext[0:mrk_array_size],cycle[0:mrk_array_size])
+    mccc_wiener_offload(wienarr,mrk_array_size);   
     while(n_running > 0) {
 
         /* Store marker states in case time step will be rejected */
@@ -323,6 +324,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
     }
     particle_onload_gc(&p);
     n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
+    mccc_wiener_onload(wienarr,mrk_array_size);   
 #endif
     free(cycle);
     free(hin);

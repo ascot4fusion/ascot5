@@ -49,6 +49,36 @@ void mccc_wiener_initialize(mccc_wienarr* w, real initime){
 }
 
 /**
+ * @brief Offload data to the accelerator.
+ *
+ * @param w pointer to the data struct
+ * @param size of the data struct
+ */
+void mccc_wiener_offload(mccc_wienarr* w, int mrk_array_size) {
+  GPU_MAP_TO_DEVICE(w[0:mrk_array_size])
+    for (int i = 0; i < mrk_array_size; i++) {
+      GPU_MAP_TO_DEVICE( w[i].nextslot[0:MCCC_NSLOTS] )
+      GPU_MAP_TO_DEVICE( w[i].time[0:MCCC_NSLOTS] )
+      GPU_MAP_TO_DEVICE( w[i].wiener[0:MCCC_NDIM*MCCC_NSLOTS] )
+     }
+    
+}
+
+/**
+ * @brief Onload data from the GPU.
+ *
+ * @param w pointer to the data struct
+ * @param size of the data struct
+ */
+void mccc_wiener_onload(mccc_wienarr* w, int mrk_array_size) {
+    for (int i = 0; i < mrk_array_size; i++) {
+      GPU_UPDATE_FROM_DEVICE( w[i].nextslot] )
+      GPU_UPDATE_FROM_DEVICE( w[i].time )
+      GPU_UPDATE_FROM_DEVICE( w[i].wiener )
+     }
+}
+
+ /**
  * @brief Generates a new Wiener process at a given time instant
  *
  * Generates a new Wiener process. The generated process is drawn from

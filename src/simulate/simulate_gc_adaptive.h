@@ -8,7 +8,7 @@
 #include "../ascot5.h"
 #include "../simulate.h"
 #include "../particle.h"
-
+#include "mccc/mccc_wiener.h"
 void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size);
 
 #endif
