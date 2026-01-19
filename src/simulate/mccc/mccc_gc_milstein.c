@@ -125,7 +125,7 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
             }
             real dW[5] = {0, 0, 0, 0, 0};
             if(!errflag) {
-	      dW[0] = w[i].wiener[tindex*5 + 0] - w[i].wiener[0]; // For X_1
+  	        dW[0] = w[i].wiener[tindex*5 + 0] - w[i].wiener[0]; // For X_1
                 dW[1] = w[i].wiener[tindex*5 + 1] - w[i].wiener[1]; // For X_2
                 dW[2] = w[i].wiener[tindex*5 + 2] - w[i].wiener[2]; // For X_3
                 dW[3] = w[i].wiener[tindex*5 + 3] - w[i].wiener[3]; // For v
