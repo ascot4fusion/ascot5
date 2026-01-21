@@ -14,8 +14,10 @@ try:
 except ImportError:
     warnings.warn("Could not import pyvista. 3D wall plotting disabled.")
 import unyt
+from scipy.spatial import cKDTree
 
 from a5py.exceptions import AscotNoDataException
+from a5py.ascot5io.coreio.fileapi import VERSION
 
 import a5py.routines.plotting as a5plt
 from a5py.ascot5io import Marker, State, Orbits, Dist
@@ -326,11 +328,11 @@ class RunMixin(DistMixin):
             Only return markers that have given end condition.
         """
         self._require("_endstate")
-        return np.array([self._endstate.get("x", endcond=endcond),
-                         self._endstate.get("y", endcond=endcond),
-                         self._endstate.get("z", endcond=endcond)]).T
+        return np.array([self.getstate("x", state="end", endcond=endcond),
+                         self.getstate("y", state ="end", endcond=endcond),
+                         self.getstate("z", state="end", endcond=endcond)]).T
 
-    def getstate_markers(self, mrktype, ids=None):
+    def getstate_markers(self, mrktype, ids=None, state="end"):
         """Convert endstate to marker input.
 
         Parameters
@@ -339,6 +341,8 @@ class RunMixin(DistMixin):
             Type of marker input to be created.
         ids : array_like, optional
             Select only these markers for the output.
+        state : {"ini", "end"}
+            Use initial or final state.
 
         Returns
         -------
@@ -353,13 +357,13 @@ class RunMixin(DistMixin):
         if mrktype == "prt":
             qnt = ["r", "phi", "z", "weight", "time", "vr", "vphi", "vz",
                    "mass", "charge", "anum", "znum"]
-            state = self.getstate(*qnt, mode="prt", state="end", ids=ids)
+            state = self.getstate(*qnt, mode="prt", state=state, ids=ids)
             for i, q in enumerate(qnt):
                 mrk[q] = state[i]
         elif mrktype == "gc":
             qnt = ["r", "phi", "z", "weight", "time", "ekin", "pitch", "zeta",
                    "mass", "charge", "anum", "znum"]
-            state = self.getstate(*qnt, mode="gc", state="end", ids=ids)
+            state = self.getstate(*qnt, mode="gc", state=state, ids=ids)
             for i, q in enumerate(qnt):
                 if q == "ekin":
                     mrk["energy"] = state[i]
@@ -367,7 +371,7 @@ class RunMixin(DistMixin):
                     mrk[q] = state[i]
         elif mrktype == "fl":
             qnt = ["r", "phi", "z", "weight", "time", "pitch"]
-            state = self.getstate(*qnt, mode="gc", state="end", ids=ids)
+            state = self.getstate(*qnt, mode="gc", state=state, ids=ids)
             for i, q in enumerate(qnt):
                 mrk[q] = state[i]
         return mrk
@@ -457,7 +461,7 @@ class RunMixin(DistMixin):
         r = r[i1-1:i2]
         z = z[i1-1:i2]
         p = p[i1-1:i2]
-        x, y, _ = physlib.pol2cart(r, p)
+        x, y = physlib.pol2cart(r, p)
         ds = np.sqrt(np.diff(x)**2 + np.diff(y)**2 + np.diff(z)**2)
         avg = np.sum(val[1:]*ds) / np.sum(ds)
         return mileage-mileage[0], r, z, val, avg
@@ -759,8 +763,8 @@ class RunMixin(DistMixin):
             v1, v2, v3 = np.meshgrid(
                 p[1:] - p[:-1], r[1:]**2 - r[:-1]**2, z[1:] - z[:-1])
             volume = 0.5 * v1 * v2 * v3
-            r, phi, z = np.meshgrid(
-                dist.abscissa("r"), dist.abscissa("phi"), dist.abscissa("z"))
+            phi, r, z = np.meshgrid(
+                dist.abscissa("phi"), dist.abscissa("r"), dist.abscissa("z"))
             out = DistMoment(
                 dist.abscissa_edges("r"), dist.abscissa_edges("phi"),
                 dist.abscissa_edges("z"), r, phi, z, area, volume, rhodist)
@@ -790,10 +794,10 @@ class RunMixin(DistMixin):
             Dist.electronpowerdep(self._root._ascot, mass, dist, out)
         if "ionpowerdep" in moments:
             Dist.ionpowerdep(self._root._ascot, mass, dist, out)
-        #if "jxbtorque" in moments:
-        #    Dist.jxbtorque(self._root._ascot, mass, dist, out)
-        #if "colltorque" in moments:
-        #    Dist.collTorque(self._root._ascot, mass, dist, out)
+        if "jxbtorque" in moments:
+            Dist.jxbtorque(self._root._ascot, mass, dist, out)
+        if "colltorque" in moments:
+            Dist.collTorque(self._root._ascot, mass, dist, out)
         #if "canmomtorque" in moments:
         #    Dist.canMomentTorque(dist, out)
         return out
@@ -856,7 +860,7 @@ class RunMixin(DistMixin):
     def plotstate_scatter(self, x, y, z=None, c=None, xmode="gc", ymode="gc",
                           zmode="gc", cmode="gc", endcond=None, ids=None,
                           cint=9, cmap=None, axesequal=False, axes=None,
-                          cax=None):
+                          cax=None, markersize=4.0):
         """Make a scatter plot of marker state coordinates.
 
         The plot is either 2D+1D or 3D+1D, where the extra coordinate is color,
@@ -980,14 +984,14 @@ class RunMixin(DistMixin):
         if z is None:
             a5plt.scatter2d(xc, yc, c=cc, xlog=xlog, ylog=ylog, clog=clog,
                             xlabel=x, ylabel=y, clabel=c, cint=cint, cmap=cmap,
-                            axesequal=axesequal, axes=axes, cax=cax)
+                            axesequal=axesequal, axes=axes, cax=cax, markersize=markersize)
         else:
             z, zc, zlog = parsearg(z)
             z = z + " [" + str(zc.units) + "]"
             a5plt.scatter3d(xc, yc, zc, c=cc, xlog=xlog, ylog=ylog,
                             zlog=zlog, clog=clog, xlabel=x, ylabel=y, zlabel=z,
                             clabel=c, cint=cint, cmap=cmap,
-                            axesequal=axesequal, axes=axes, cax=cax)
+                            axesequal=axesequal, axes=axes, cax=cax, markersize=markersize)
 
     def plotstate_histogram(self, x, y=None, xbins=10, ybins=10, xmode="gc",
                             ymode="gc", endcond=None, ids=None, weight=False,
@@ -1267,11 +1271,11 @@ class RunMixin(DistMixin):
         bbox = [xmin, xmax, ymin, ymax, None, None]
         if z is not None:
             zc, zlog, zmin, zmax = parsevals(zc, zlog, zlabel, z)
-            zlabel + " [" + str(zc[0].units) + "]"
+            zlabel += " [" + str(zc[0].units) + "]"
             bbox = [xmin, xmax, ymin, ymax, zmin, zmax, None, None]
         if c is not None:
             cc, clog, bbox[-2], bbox[-1] = parsevals(cc, clog, clabel, c)
-            clabel + " [" + str(cc[0].units) + "]"
+            clabel += " [" + str(cc[0].units) + "]"
 
         if z is None:
             a5plt.line2d(xc, yc, c=cc, xlog=xlog, ylog=ylog, clog=clog,
@@ -1403,6 +1407,143 @@ class RunMixin(DistMixin):
                        markersize=markersize, axesequal=axesequal, axes=axes,
                        cax=cax)
 
+    def plot_lost_power(self, endcond,
+                        max_initial_rho=100,
+                        logscale=True,
+                        cumulative=True,
+                        axes=None,
+                        ):
+        """Plot the cumulative or non-cumulative lost power.
+
+        Parameters
+        ----------
+        endcond : str
+            Probably "rhomax" or "wall" or ["rhomax", "wall"].
+        max_initial_rho : float, optional
+            Maximum initial rho for the markers that are included. For instance,
+            if the markers are only simulated up to rho=1.0, it does not make
+            sense to count the ones that are initially outside rho=1.0 as lost.
+            Instead, you probably want to include just the markers that started
+            inside rho=1.0.
+        logscale : bool, optional
+            Whether to plot the cumulative or non-cumulative lost power in
+            logarithmic x-scale.
+        cumulative : bool, optional
+            Whether to plot the cumulative or non-cumulative lost power.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        """
+
+        # Get mileage, weight, and Ekin of markers that count as lost
+        ids_lost, lost_initial_rho = self.getstate("ids",
+                                                   "rho",
+                                                   state="ini",
+                                                   endcond=endcond,
+                                                   )
+        ids_lost = ids_lost[lost_initial_rho <= max_initial_rho]
+        mileage_lost, w_lost, ekin_lost = self.getstate("mileage",
+                                                        "weight",
+                                                        "ekin",
+                                                        state="end",
+                                                        ids=ids_lost)
+        ekin_lost = ekin_lost.to("MJ")
+
+        # Craft the time array
+        nbins=300
+        plot_max_time = np.amax(mileage_lost)*1.2
+        if logscale:
+            t_array= np.logspace(-8,
+                                 np.log10(plot_max_time),
+                                 nbins,
+                                 dtype=np.float64,
+                                 )
+            xlog="log"
+        else:
+            t_array= np.linspace(0,
+                                 plot_max_time,
+                                 nbins,
+                                 dtype=np.float64,
+                                 )
+            xlog="linear"
+
+
+        if cumulative:
+            cumulative_lost_power = np.zeros(nbins, dtype=np.float64)*unyt.MW
+            for i in range(nbins):
+                indices_to_sum = (mileage_lost < t_array[i])
+                cumulative_lost_power[i] = np.sum(ekin_lost[indices_to_sum]*w_lost[indices_to_sum])
+
+            axes = a5plt.line2d([t_array],
+                                [cumulative_lost_power],
+                                xlog=xlog,
+                                xlabel="Time [s]",
+                                ylabel=f"Cumulative power lost [{str(cumulative_lost_power.units):s}]",
+                                title=f"Run: \"{self.get_desc():s}\"",
+                                axes=axes, skipshow=True,
+                                )
+            axes.text(t_array[-1],
+                    cumulative_lost_power[-1],
+                    f" {cumulative_lost_power[-1]:.2e}",
+                    )
+            axes.grid(True)
+            axes.set_xlim([t_array[0], t_array[-1]])
+            a5plt.tight_layout(axes)
+            a5plt.show()
+        else:
+            ekin_lost_weighted = (ekin_lost*w_lost).to("MW")
+            axes = a5plt.hist1d(
+                x=mileage_lost,
+                xbins=t_array,
+                weights=ekin_lost_weighted,
+                xlog="log" if logscale else "linear",
+                xlabel="Time [s]",
+                ylabel=f"Lost power per bin [{str(ekin_lost_weighted.units):s}]",
+                title=f"Run: \"{self.get_desc():s}\"",
+                skipshow=True,
+                histtype="step",
+            )
+            axes.grid(True)
+            axes.set_xlim([t_array[0], t_array[-1]])
+            a5plt.show()
+
+    def plot_powerdep_rhoprofile(self,
+                                 distribution,
+                                 axes=None,
+                                 ylim=[None,None],
+                                 ):
+        """Plot deposited power rho distribution (ion, electron, total).
+
+        Parameters
+        ----------
+        distribution : str
+            The name of the distribution to plot. {rho5d, rho6d}
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        ylim : list, optional
+            y-axis limits
+        """
+        dist = self.getdist(distribution)
+        moments = self.getdist_moments(dist,
+                                       "powerdep",
+                                        "ionpowerdep",
+                                        "electronpowerdep")
+
+        volume_vsrho = np.sum(moments.volume, axis=(1,2))
+        tot_sum = np.sum(moments.ordinate("powerdep", toravg=True, polavg=True).to("MW/m**3")*volume_vsrho)
+        i_sum = np.sum(moments.ordinate("ionpowerdep", toravg=True, polavg=True).to("MW/m**3")*volume_vsrho)
+        e_sum = np.sum(moments.ordinate("electronpowerdep", toravg=True, polavg=True).to("MW/m**3")*volume_vsrho)
+
+        if axes is None:
+            fig, axes = a5plt.subplots()
+        moments.plot("powerdep", axes=axes, label=f"total ({tot_sum:.2e})")
+        moments.plot("ionpowerdep", axes=axes, label=f"ion ({i_sum:.2e})")
+        moments.plot("electronpowerdep", axes=axes, label=f"electron ({e_sum:.2e})")
+        axes.set_ylabel("power deposition [W/m**3]")
+        axes.legend()
+        axes.set_ylim(ylim)
+        a5plt.show()
+
+
     @a5plt.openfigureifnoaxes(projection=None)
     def plotwall_convergence(self, qnt, nmin=1000, nsample=10, axes=None,
                              flags=None):
@@ -1483,6 +1624,45 @@ class RunMixin(DistMixin):
         """
         _, area, eload, _, _ = self.getwall_loads(flags=flags)
         a5plt.loadvsarea(area, eload/area, axes=axes)
+
+
+    @a5plt.openfigureifnoaxes(projection=None)
+    def plotwall_poloidalslice(self, r, z, data=None, axes=None):
+        """Project points onto the closest segments and sum the values for each
+        segment.
+
+        Parameters
+        ----------
+        r : array-like
+            R-coordinates of the curve.
+        z : array-like
+            z-coordinates of the curve.
+        """
+        w = self.wall.read()
+        ri = np.sqrt(  np.mean(w["x1x2x3"], axis=1)**2
+                     + np.mean(w["y1y2y3"], axis=1)**2 )
+        zi = np.mean(w["z1z2z3"], axis=1)
+        ri = ri[data[0]-1]
+        zi = zi[data[0]-1]
+        ci = data[1]
+        n_segments = len(r) - 1
+        c = np.zeros(n_segments)
+
+        # Midpoints of each segment
+        midpoints = np.column_stack([(r[:-1] + r[1:]) / 2, (z[:-1] + z[1:]) / 2])
+
+        # Build KDTree for efficient nearest neighbor search
+        tree = cKDTree(midpoints)
+        # Find closest segment midpoint for each point
+        distances, indices = tree.query(np.column_stack([ri, zi]))
+
+        # Sum ci values to the corresponding segment
+        np.add.at(c, indices, ci)
+        a5plt.line2d([r], [z], c=[c],
+                     bbox=[np.amin(r), np.amax(r), np.amin(z), np.amax(z),
+                           0, np.amax(c)], axes=axes)
+        print(c)
+
 
     @a5plt.openfigureifnoaxes(projection=None)
     def plotwall_2D_parametrized(self, axes=None, particle_load=False,
@@ -1663,8 +1843,14 @@ class RunMixin(DistMixin):
 
         Parameters
         ----------
-        qnt : {'eload', 'pload', 'iangle', 'label'}, optional
+        qnt : {'eload', 'pload', 'iangle', 'label'} or tuple [int, float],
+        optional
             Quantity to plot.
+
+            One can also provide a tuple instead to plot a quantity that is
+            not predefined (e.g. sputtering yield). In this case the tuple
+            should consists of wallids and the associated value of the quantity
+            for that tile.
         getaxis : (float, float) or callable
             Location of the magnetic or geometrical axis which is used to
             determine the poloidal angle.
@@ -1703,7 +1889,7 @@ class RunMixin(DistMixin):
             color = d["flag"].ravel()
             clabel = r"Label"
             if cmap is None: cmap = 'viridis'
-        else:
+        elif isinstance(qnt, str):
             wetted, area, edepo, pdepo, iangle = self.getwall_loads()
             nelement = wetted.size
             x1x2x3 = d["x1x2x3"][wetted-1]
@@ -1721,14 +1907,28 @@ class RunMixin(DistMixin):
                 color = iangle
                 clabel = r"Angle of incidence [deg]"
                 if cmap is None: cmap = 'viridis'
+        else:
+            wetted = qnt[0]
+            nelement = wetted.size
+            x1x2x3 = d["x1x2x3"][wetted-1]
+            y1y2y3 = d["y1y2y3"][wetted-1]
+            z1z2z3 = d["z1z2z3"][wetted-1]
+            color = np.array(qnt[1])
+            clabel = r""
+            if cmap is None: cmap = 'Reds'
 
         # Toroidal angle for each vertex
         tor = np.rad2deg( np.arctan2( y1y2y3, x1x2x3 ))
 
         # Poloidal angle for each vertex
         if getaxis is None:
-            out = self._root._ascot._eval_bfield(
-                1*unyt.m, tor*unyt.deg, 1*unyt.m, 0*unyt.s, evalaxis=True)
+            dummy_input = np.ones(tor.size)
+            out = self._root._ascot._eval_bfield(dummy_input,
+                                                 np.deg2rad(tor),
+                                                 dummy_input,
+                                                 dummy_input,
+                                                 evalaxis=True,
+                                                 )
             axisr  = out["axisr"].v
             axisz  = out["axisz"].v
         elif getaxis is tuple and len(getaxis) == 2:
@@ -1772,9 +1972,21 @@ class RunMixin(DistMixin):
         axes.set_yticks([-180, -90, 0, 90, 180])
 
     def plotwall_3dstill(
-            self, wallmesh=None, points=None, orbit=None, data=None, log=False,
-            clim=None, cpos=None, cfoc=None, cang=None, p_ids=None,
-            w_indices=None, axes=None, cax=None, **kwargs):
+            self,
+            wallmesh=None,
+            points=None,
+            orbit=None,
+            data=None,
+            log=False,
+            clim=None,
+            cpos=None,
+            cfoc=None,
+            cang=None,
+            p_ids=None,
+            w_indices=None,
+            axes=None,
+            cax=None,
+            **kwargs):
         """Take a still shot of the mesh and display it using matplotlib
         backend.
 
@@ -1796,6 +2008,7 @@ class RunMixin(DistMixin):
             ID of a marker whose orbit is plotted.
         data : str, optional
             Name of the cell data in the wall mesh that is shown in color.
+            {"label", "pload", "eload", "mload", "iangle"}
         log : bool, optional
             Color range is logarithmic if True.
         clim : [float, float], optional
@@ -1834,10 +2047,31 @@ class RunMixin(DistMixin):
                     clim=clim, cpos=cpos, cfoc=cfoc, cang=cang, axes=axes,
                     cax=cax, **kwargs)
 
-    def plotwall_3dinteractive(self, wallmesh=None, *args, points=None,
-                               orbit=None, data=None, log=False, clim=None,
-                               cpos=None, cfoc=None, cang=None,
-                               p_ids=None, w_indices=None, **kwargs):
+    def plotwall_3dinteractive(
+            self,
+            wallmesh=None,
+            *args,
+            points=None,
+            orbit=None,
+            data=None,
+            log=False,
+            clim=None,
+            cmap=None,
+            cpos=None,
+            cfoc=None,
+            cang=None,
+            p_ids=None,
+            w_indices=None,
+            w_ids_to_highlight=None,
+            highlight_color="yellow",
+            plotter=None,
+            phi_lines=None,
+            const_phi_planes=None,
+            theta_lines=None,
+            a5=None,
+            skipshow=False,
+            **kwargs
+        ):
         """Open vtk window to display interactive view of the wall mesh.
 
         Parameters
@@ -1857,10 +2091,13 @@ class RunMixin(DistMixin):
             ID of a marker whose orbit is plotted.
         data : str, optional
             Name of the cell data in the wall mesh that is shown in color.
+            {"label", "pload", "eload", "mload", "iangle"}
         log : bool, optional
             Color range is logarithmic if True.
         clim : [float, float], optional
             Color [min, max] limits.
+        cmap : str, optional
+            Colormap name.
         cpos : array_like, optional
             Camera position coordinates [x, y, z].
         cfoc : array_like, optional
@@ -1871,6 +2108,20 @@ class RunMixin(DistMixin):
             List of ids of the particles for which the heat load is shown.
         w_indices : array_like, optional
             List of wall indices which are included in the wall mesh.
+        w_ids_to_highlight : array_like, optional
+            List of wall indices which are highlighted.
+        highlight_color : str, optional
+            Color of the highlighted wall elements. Default is yellow.
+        plotter : :obj:`~pyvista.Plotter`, optional
+            Plotter instance. If not given, then a new one is created.
+        phi_lines : array_like, optional
+            Number of constant phi lines with z=0, extending radially outward.
+        const_phi_planes : array_like, optional
+            Number of constant phi planes.
+        theta_lines : array_like, optional
+            Number of constant theta lines, extending radially outward from the
+            magnetic axis for phi in const_phi_planes.
+        a5 : :obj:`~a5py.A5`, optional
         **kwargs
             Keyword arguments passed to :obj:`~pyvista.Plotter`.
         """
@@ -1881,12 +2132,114 @@ class RunMixin(DistMixin):
         if orbit is not None:
             x,y,z = self.getorbit("x", "y", "z", ids=orbit)
             orbit = np.array([x,y,z]).T
+        if w_ids_to_highlight is not None and len(w_ids_to_highlight) == 0:
+            w_ids_to_highlight = None
+            print("There were 0 wall indices to highlight. No mesh will be highlighted.")
+        if w_ids_to_highlight is not None:
+            wallmesh_highlight = self.getwall_3dmesh(p_ids=p_ids,
+                                                     w_indices=w_ids_to_highlight)
+            print(f"highlighting {len(w_ids_to_highlight):d} triangles")
+            a5plt.add_highlighted_edges(plotter,
+                                        wallmesh_highlight=wallmesh_highlight,
+                                        color=highlight_color,
+                                        )
 
         (cpos0, cfoc0, cang0) = a5plt.defaultcamera(wallmesh)
         if cpos is None: cpos = cpos0
         if cfoc is None: cfoc = cfoc0
         if cang is None: cang = cang0
 
-        a5plt.interactive(wallmesh, *args, points=points, data=data,
-                          orbit=orbit, log=log, clim=clim,
-                          cpos=cpos, cfoc=cfoc, cang=cang, **kwargs)
+        if data=="eload": cbar_title=data+" W/m^2"
+
+        a5plt.interactive(wallmesh,
+                          *args,
+                          points=points,
+                          data=data,
+                          orbit=orbit,
+                          log=log,
+                          clim=clim,
+                          cmap=cmap,
+                          cbar_title=cbar_title,
+                          cpos=cpos,
+                          cfoc=cfoc,
+                          cang=cang,
+                          p=plotter,
+                          phi_lines=phi_lines,
+                          const_phi_planes=const_phi_planes,
+                          theta_lines=theta_lines,
+                          a5=a5,
+                          skipshow=skipshow,
+                          **kwargs)
+
+    def getsimmode(self):
+        """Return the simulation mode that was used to run the simulation.
+
+         - 1 Gyro-orbit
+         - 2 Guiding center
+         - 3 Hybrid
+         - 4 Magnetic field lines )
+
+        Returns
+        -------
+        mode : int
+            The simulation mode.
+        """
+        self._require("options")
+        return self.options.read()["SIM_MODE"]
+
+    def getspecies(self):
+        """Return the test particle species that was used in the simulation.
+
+        Returns
+        -------
+        species : dict
+            Dictionary with the following keys:
+            'anum' : int
+                Atomic number of the test particle-
+            'znum' : int
+                Charge number of the test particle.
+            'mass' : float
+                Mass of the test particle.
+        """
+        anum, znum, mass = self.getstate("anum", "znum", "mass")
+        return {"anum":anum[0], "znum":znum[0], "mass":mass[0]}
+
+    def getcodeversion(self):
+        """Return version of the code that was used to run the simulation.
+
+        Returns
+        -------
+        version : dict
+            Dictionary with the following keys:
+            'name' : str
+                Name of the software.
+            'description' : str
+                Short description of the software (type, purpose).
+            'commit' : str
+                Unique commit reference of the software.
+            'version' : str
+                Unique version (tag) of the software.
+            'repository' : str
+                URL of the software repository.
+        """
+        return {
+            "name": "ascot5",
+            "description": "monte carlo particle following",
+            "commit": str(VERSION),
+            "version": str(VERSION),
+            "repository":"github.com/ascot4fusion/ascot5",
+            }
+
+    def get_run_success(self):
+        """Assess if the run was successful.
+
+        Returns
+        -------
+        success : int
+            Zero if the run was successful.
+        """
+        try:
+            self._require("_endstate")
+            return 0
+        except AscotNoDataException:
+            return -1

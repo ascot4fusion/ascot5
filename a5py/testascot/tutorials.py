@@ -16,6 +16,7 @@ errors = {}
 for nb in notebooks:
     # Skip notebooks that are not standalone
     if nb in []: continue
+    print(f"Processing notebook {nb}")
     subprocess.run(["rm", "-f", "ascot.h5"])
     with open(nb) as f:
         nbin = nbformat.read(f, nbformat.NO_CONVERT)

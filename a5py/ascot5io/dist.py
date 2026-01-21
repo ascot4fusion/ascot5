@@ -485,7 +485,7 @@ class DistMoment:
                 ordinates.append(k[10:])
         return ordinates
 
-    def plot(self, ordinate, axes=None, cax=None, logscale=False):
+    def plot(self, ordinate, axes=None, cax=None, logscale=False, label=None):
         """Plot radial or (R,z) profile of a distribution moment.
 
         The plotted profile is the average of (theta, phi) or phi depending
@@ -508,7 +508,8 @@ class DistMoment:
             ylabel += " [" + str(ordinate.units) + "]"
             a5plt.mesh1d(self.rho, ordinate,
                          xlabel="Normalized poloidal flux",
-                         ylabel=ylabel, axes=axes, logscale=logscale)
+                         ylabel=ylabel, axes=axes, logscale=logscale,
+                         label=label)
         else:
             clabel = ordinate
             ordinate = self.ordinate(ordinate, toravg=True)
@@ -613,7 +614,7 @@ class Dist(DataContainer):
         ppa, ppe = np.meshgrid(dist.abscissa("ppar"), dist.abscissa("pperp"))
         pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
         ekin  = (physlib.gamma_momentum(mass, pnorm) - 1) * mass * unyt.c**2
-        dist._multiply(ekin.reshape(ppa.shape), "ppar", "pperp")
+        dist._multiply(ekin.reshape(ppa.shape).T, "ppar", "pperp")
         dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
         moment.add_ordinates(
             energydensity=dist.histogram().to("J") / moment.volume)
@@ -639,13 +640,53 @@ class Dist(DataContainer):
                 if k not in ["r", "z", "phi", "pperp", "ppar"]:
                     integrate[k] = np.s_[:]
         dist = dist.integrate(copy = True, **integrate)
-        ppa, ppe = np.meshgrid(dist.abscissa("ppar"),
-                               dist.abscissa("pperp"))
+        ppa, ppe = np.meshgrid(dist.abscissa("ppar"), dist.abscissa("pperp"),
+                               indexing="ij")
         pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
-        vnorm = physlib.velocity_momentum(mass, pnorm)
-        dist._multiply(vnorm.reshape(ppa.shape)**2 * mass / 3, "ppar", "pperp")
-        dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
-        moment.add_ordinates(pressure=dist.histogram().to("J") / moment.volume)
+        vnorm = physlib.velocity_momentum(mass, pnorm).reshape(ppa.shape)
+        vpa = ppa * vnorm / pnorm.reshape(ppa.shape)
+        vpe = ppe * vnorm / pnorm.reshape(ppa.shape)
+
+        # Evaluate density (zeroth velocity moment)
+        d = dist._copy()
+        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
+        N = d.histogram()      # Number of particles _per bin_ (not per volume)
+
+        # Evaluate first N<vpar>, then divide by number of particles per bin, N,
+        # to get <vpar>
+        d = dist._copy()
+        d._multiply(vpa, "ppar", "pperp")
+        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
+        Nvpa_avg = d.histogram()   # numb. particles per bin times <v>
+        vpa_avg = Nvpa_avg/N
+        vpa_avg[N==0] = 0
+
+        # Get N<vpar^2>
+        d = dist._copy()
+        d._multiply(vpa**2, "ppar", "pperp")
+        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
+        Nvpa2_avg = d.histogram()
+
+        # parallel pressure = m(n<vpar^2> - n<vpar>^2). Divide by volume per
+        # bin because N has units of particles per bin
+        Ppa = mass*(Nvpa2_avg-N*vpa_avg**2)/moment.volume
+        Ppa[N == 0] = 0         # Just to be sure
+        Ppa /= unyt.particles   # to get rid of the "particles"
+
+        # Get N<vper^2>
+        d = dist._copy()
+        d._multiply(vpe**2, "ppar", "pperp")
+        d.integrate(ppar=np.s_[:], pperp=np.s_[:])
+        Nvpe2_avg = d.histogram()
+
+        #Ppe = mass*(Nvpe2_avg-N*vpe_avg**2)/moment.volume
+        Ppe = mass*Nvpe2_avg/moment.volume
+        Ppe[N == 0] = 0         # Just to be sure
+        Ppe /= unyt.particles
+
+        moment.add_ordinates(
+            pressure=1/3*(Ppa+2*Ppe).to("J/m**3")
+        )
 
     @staticmethod
     def toroidalcurrent(ascot, mass, dist, moment):
@@ -750,7 +791,7 @@ class Dist(DataContainer):
         """
         dist = dist._copy()
         ppa, ppe = np.meshgrid(dist.abscissa("ppar"),
-                               dist.abscissa("pperp"))
+                               dist.abscissa("pperp"), indexing="ij")
         pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
         vnorm = physlib.velocity_momentum(mass, pnorm)
         for i, qa in enumerate(dist.abscissa("charge")):
@@ -764,7 +805,7 @@ class Dist(DataContainer):
 
         dist._distribution *= k.units * mass
         dist.integrate(charge=np.s_[:], time=np.s_[:])
-        dist._multiply(vnorm.reshape(ppa.shape).T, "ppar", "pperp")
+        dist._multiply(vnorm.reshape(ppa.shape), "ppar", "pperp")
         dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
         moment.add_ordinates(
             powerdep=(dist.histogram() / moment.volume ).to("W/m**3"))
@@ -786,7 +827,7 @@ class Dist(DataContainer):
         """
         dist = dist._copy()
         ppa, ppe = np.meshgrid(dist.abscissa("ppar"),
-                               dist.abscissa("pperp"))
+                               dist.abscissa("pperp"), indexing="ij")
         pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
         vnorm = physlib.velocity_momentum(mass, pnorm)
         for i, qa in enumerate(dist.abscissa("charge")):
@@ -800,7 +841,7 @@ class Dist(DataContainer):
 
         dist._distribution *= k.units * mass
         dist.integrate(charge=np.s_[:], time=np.s_[:])
-        dist._multiply(vnorm.reshape(ppa.shape).T, "ppar", "pperp")
+        dist._multiply(vnorm.reshape(ppa.shape), "ppar", "pperp")
         dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
         moment.add_ordinates(
             electronpowerdep=(dist.histogram() / moment.volume ).to("W/m**3"))
@@ -818,7 +859,7 @@ class Dist(DataContainer):
         """
         dist = dist._copy()
         ppa, ppe = np.meshgrid(dist.abscissa("ppar"),
-                               dist.abscissa("pperp"))
+                               dist.abscissa("pperp"), indexing="ij")
         pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
         vnorm = physlib.velocity_momentum(mass, pnorm)
         for i, qa in enumerate(dist.abscissa("charge")):
@@ -832,46 +873,81 @@ class Dist(DataContainer):
 
         dist._distribution *= k.units * mass
         dist.integrate(charge=np.s_[:], time=np.s_[:])
-        dist._multiply(vnorm.reshape(ppa.shape).T, "ppar", "pperp")
+        dist._multiply(vnorm.reshape(ppa.shape), "ppar", "pperp")
         dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
         moment.add_ordinates(
             ionpowerdep=(dist.histogram() / moment.volume ).to("W/m**3"))
 
     @staticmethod
     def jxbtorque(ascot, mass, dist, moment):
-        """Calculate j_rad x B_pol toroidal torque.
+        """Calculate j_rad x B_pol toroidal torque on the bulk plasma. A
+        positive torque is due to a force in the direction of phi.
+
+        The current responsible for this torque is a return current that flows
+        in the bulk plasma to counter the charge imblance of the fast ions. The
+        formula hear assumes, among other tinhgs, a 2D magnetic field. For
+        details, see for instance: https://doi.org/10.1016/S0375-9601(99)00453-3
+        and 10.1088/0029-5515/42/8/304
 
         Parameters
         ----------
+        ascot : :class:`Ascot`
+            Ascot object for interpolating input data.
+        mass : float
+            Test particle mass.
         dist : :class:`DistData`
             Distribution from where the moments are calculated.
         moment : class:`DistMoment`
             Moment data used in calculation and where the result is stored.
         """
         dist = dist._copy()
-        gradbr, gradbphi, gradbz, curlbr, curlbphi, curlbz, br, bphi, bz = \
+        gradbr, gradbphi, gradbz, curlbr, curlbphi, curlbz, br, bphi, bz, dpsidr, dpsidz, jphi = \
             ascot.input_eval(moment.rc.ravel(), moment.phic.ravel(), moment.zc.ravel(), 0*unyt.s,
                              "gradbr", "gradbphi", "gradbz", "curlbr",
-                             "curlbphi", "curlbz", "br", "bphi", "bz")
+                             "curlbphi", "curlbz", "br", "bphi", "bz", "psidr", "psidz", "jphi")
         bvec = unyt.unyt_array([br, bphi, bz]).T
-        bnorm = np.sqrt(np.sum(bvec**2))
-        curlb = unyt.unyt_array([gradbr, gradbphi, gradbz]).T
-        gradb = unyt.unyt_array([curlbr, curlbphi, curlbz]).T
-        curlbhat = ( np.cross(gradb, bvec/bnorm)*unyt.T/unyt.m - curlb ) / bnorm
+        bnorm = np.sqrt(np.sum(bvec**2, axis=1))
+
+        # We want to broadcast bnorm into (N_spatial, 3) array so that the
+        # multiplications work below. In some versions, broadcasting discards
+        # units.
+        bnorm = np.broadcast_to(bnorm[:,None], bvec.shape)
+        try:
+            bnorm.units
+        except:
+            bnorm *= unyt.T
+
+        gradb = unyt.unyt_array([gradbr, gradbphi, gradbz]).T
+        curlb = unyt.unyt_array([curlbr, curlbphi, curlbz]).T
+
+        # Depending on version, np.cross might discard units
+        grad_b_cross_bhat = np.cross(gradb, bvec/bnorm)
+        try:
+            grad_b_cross_bhat.units
+        except:
+            grad_b_cross_bhat *= unyt.T/unyt.m
+        curlbhat = -( grad_b_cross_bhat - curlb ) / bnorm
         for iq, q in enumerate(dist.abscissa("charge")):
             for ippa, ppa in enumerate(dist.abscissa("ppar")):
                 Bstar = bvec + (ppa / q) * curlbhat
+                b_star_par = np.sum(Bstar * bvec / bnorm, axis=1)
                 for ippe, ppe in enumerate(dist.abscissa("pperp")):
                     gamma = physlib.gamma_momentum(mass, np.sqrt(ppa**2+ppe**2))
-                    dr = (ppa / (gamma*mass)) * Bstar[:,0] \
-                        / (np.sum(Bstar * bvec / bnorm, axis=1))
-                    dz = (ppa / (gamma*mass)) * Bstar[:,2] \
-                        / (np.sum(Bstar * bvec / bnorm, axis=1))
-                    deltapsi = bz * moment.rc.ravel() * dr - br * moment.rc.ravel() * dz
-                    deltapsi = deltapsi.reshape(moment.volume.shape)
-                    dist._distribution[:,:,:,ippa, ippe, iq, 0] *= (deltapsi * q).v
+
+                    # Our goal is to evaluate -qv dot grad(psi)
+                    vr = (ppa / (gamma*mass)) * Bstar[:,0] \
+                        / (b_star_par) + \
+                            (ppe**2/(2*q*mass)*(-grad_b_cross_bhat)/bnorm)[:,0]*1/(b_star_par)
+                    vz = (ppa / (gamma*mass)) * Bstar[:,2] \
+                        / (b_star_par) + \
+                            (ppe**2/(2*q*mass)*(-grad_b_cross_bhat)/bnorm)[:,2]*1/(b_star_par)
+
+                    v_dot_nabla_psi = vr * dpsidr + vz * dpsidz
+                    v_dot_nabla_psi = v_dot_nabla_psi.reshape(moment.volume.shape)
+
+                    dist._distribution[:,:,:,ippa, ippe, iq, 0] *= -(v_dot_nabla_psi * q).v
         integrate = {}
-        dist._distribution *= (deltapsi * q).units
+        dist._distribution *= (v_dot_nabla_psi * q).units
         if moment.rhodist:
             for k in dist.abscissae:
                 if k not in ["rho", "theta", "phi"]:
@@ -881,15 +957,28 @@ class Dist(DataContainer):
                 if k not in ["r", "phi", "z"]:
                     integrate[k] = np.s_[:]
         dist.integrate(**integrate)
+
+        # The bfield expression that was used in deriving this formula assumes
+        # that the plasma current is in the positive phi direction when
+        # nabla(psi) increases towards separatrix. In the case that jphi would
+        # have negative sign, we would need to flip this torque
+        plasma_current_sign = np.sign(jphi.reshape(moment.volume.shape))
+        dist._distribution *= plasma_current_sign
+
         moment.add_ordinates(
             jxbtorque=(dist.histogram() / moment.volume).to("N*m/m**3"))
 
     @staticmethod
     def collTorque(ascot, mass, dist, moment):
-        """Calculate power deposition to ions.
+        """Calculate toroidal torque on the bulk plasma due to collisions with
+        fast ions. A positive torque is due to a force in the direction of phi.
 
         Parameters
         ----------
+        ascot : :class:`Ascot`
+            ASCOT object.
+        mass : float
+            Particle mass.
         dist : :class:`DistData`
             Distribution from where the moments are calculated.
         moment : class:`DistMoment`
@@ -901,59 +990,129 @@ class Dist(DataContainer):
             va = physlib.vnorm_gamma(
                 physlib.gamma_energy( mass, dist.abscissa("ekin") ) )
             pitch = dist.abscissa("pitch")
-            dist = dist.integrate(copy=True, pitch=np.s_[:])
             for qa in dist.abscissa("charge"):
                 coefs = ascot.input_eval_collcoefs(
-                    mass.to("kg"), qa.to("C"), moment.rc.ravel(), moment.phic.ravel(), moment.zc.ravel(),
-                    np.zeros(moment.rc.ravel().shape)*unyt.s, va)
-                K = np.sum(coefs["K"],axis=0).reshape((*moment.volume.shape,va.size))
-                nu = np.sum(coefs["nu"],axis=0).reshape((*moment.volume.shape,va.size))
+                    mass.to("kg"),
+                    qa.to("C"),
+                    moment.rc.ravel(),
+                    moment.phic.ravel(),
+                    moment.zc.ravel(),
+                    np.zeros(moment.rc.ravel().shape)*unyt.s,
+                    va,
+                    "k", "nu")
 
-                dpitch = -nu
-                dPpara = mass*K + mass*va*dpitch
+                K = np.sum(coefs[0],axis=0).reshape((*moment.volume.shape,va.size))
+                nu = np.sum(coefs[1],axis=0).reshape((*moment.volume.shape,va.size))
+
+                # K and nu arrays have shape (nrho, ntheta, nphi, nv, ntime)
+                # We must add one more dimension for pitch
+                K_units = K.units
+                nu_units = nu.units
+                shape_of_space_and_E = K.shape
+                K = np.broadcast_to(K[...,None], shape_of_space_and_E + (pitch.size,))
+                nu = np.broadcast_to(nu[...,None], shape_of_space_and_E + (pitch.size,))
+                # In some versions, broadcasting discards units
+                try:
+                    K.units
+                except:
+                    K *= K_units
+                try:
+                    nu.units
+                except:
+                    nu *= nu_units
+
+                # In a similar fashion, the shapes of pitch and va must match
+                pitch_shape=pitch.shape
+                energy_shape=va.shape
+                va_units = va.units
+                pitch = np.broadcast_to(pitch, shape_of_space_and_E + pitch_shape)
+                va = np.broadcast_to(va, shape_of_space_and_E[:-1] + energy_shape)
+                va = np.broadcast_to(va[...,None], shape_of_space_and_E + pitch_shape)
+                try:
+                    va.units
+                except:
+                    va *= va_units
+
+                # Change of ppar due to collisions (without stochastic part)
+                dpitch = -nu*pitch
+                dPpara = pitch*mass*K + mass*va*dpitch
                 units = dPpara.units
-                dist._distribution[:,:,:,:,0,0] *= dPpara.v
 
+                dist._distribution[:,:,:,:,:,0,0] *= dPpara.v
+
+            dist.integrate(ekin=np.s_[:],pitch=np.s_[:], charge=np.s_[:], time=np.s_[:])
+
+            # Multiplyin by bphi/bnorm projects onto phi direction
             bphi, bnorm = ascot.input_eval(
                 moment.rc, moment.phic, moment.zc, 0*unyt.s, "bphi", "bnorm")
             bphi   = bphi.reshape(moment.volume.shape)
             bnorm  = bnorm.reshape(moment.volume.shape)
-
-            #dist.integrate(ekin=va, charge=np.s_[:], time=np.s_[:])
-            dist.integrate(ekin=np.s_[:], charge=np.s_[:], time=np.s_[:])
-            dist._distribution *= (bphi/bnorm) *moment.rc *units
+            dist._distribution *= -(bphi/bnorm) *moment.rc *units
         else:
             va = physlib.vnorm_gamma(
                 physlib.gamma_energy( mass, dist.abscissa("ekin") ) )
             pitch = dist.abscissa("pitch")
-            dist = dist.integrate(copy=True, pitch=np.s_[:])
             for qa in dist.abscissa("charge"):
                 coefs = ascot.input_eval_collcoefs(
-                    mass.to("kg"), qa.to("C"), moment.rc.ravel(), moment.phic.ravel(), moment.zc.ravel(),
-                    np.zeros(moment.rc.ravel().shape)*unyt.s, va)
-                K = np.sum(coefs["K"],axis=0).reshape((*moment.volume.shape,va.size))
-                nu = np.sum(coefs["nu"],axis=0).reshape((*moment.volume.shape,va.size))
+                    mass.to("kg"),
+                    qa.to("C"),
+                    moment.rc.ravel(),
+                    moment.phic.ravel(),
+                    moment.zc.ravel(),
+                    np.zeros(moment.rc.ravel().shape)*unyt.s,
+                    va,
+                    "k", "nu")
+                K = np.sum(coefs[0],axis=0).reshape((*moment.volume.shape,va.size))
+                nu = np.sum(coefs[1],axis=0).reshape((*moment.volume.shape,va.size))
 
-                dpitch = -nu
-                dPpara = mass*K + mass*va*dpitch
+                K_units = K.units
+                nu_units = nu.units
+                shape_of_space_and_E = K.shape
+                K = np.broadcast_to(K[...,None], shape_of_space_and_E + (pitch.size,))
+                nu = np.broadcast_to(nu[...,None], shape_of_space_and_E + (pitch.size,))
+                # In some versions, broadcasting discards units
+                try:
+                    K.units
+                except:
+                    K *= K_units
+                try:
+                    nu.units
+                except:
+                    nu *= nu_units
+
+                pitch_shape=pitch.shape
+                energy_shape=va.shape
+                va_units = va.units
+                pitch = np.broadcast_to(pitch, shape_of_space_and_E + pitch_shape)
+                va = np.broadcast_to(va, shape_of_space_and_E[:-1] + energy_shape)
+                va = np.broadcast_to(va[...,None], shape_of_space_and_E + pitch_shape)
+                try:
+                    va.units
+                except:
+                    va *= va_units
+
+                dpitch = -nu*pitch
+                dPpara = pitch*mass*K + mass*va*dpitch
                 units = dPpara.units
-                dist._distribution[:,:,:,:,0,0] *= dPpara.v
 
+                dist._distribution[:,:,:,:,:,0,0] *= dPpara.v
+
+            dist.integrate(ekin=np.s_[:],pitch=np.s_[:], charge=np.s_[:], time=np.s_[:])
+
+            # Multiplyin by bphi/bnorm projects onto phi direction
             bphi, bnorm = ascot.input_eval(
                 moment.rc, moment.phic, moment.zc, 0*unyt.s, "bphi", "bnorm")
             bphi   = bphi.reshape(moment.volume.shape)
             bnorm  = bnorm.reshape(moment.volume.shape)
-            dist.integrate(ekin=np.s_[:], charge=np.s_[:], time=np.s_[:])
-            #dist.integrate(ekin=va, charge=np.s_[:], time=np.s_[:])
+            dist._distribution *= -(bphi/bnorm) * moment.rc * units
 
-            r = np.transpose(moment.rc, (1,0,2))
-            dist._distribution *= -(bphi/bnorm) *r *units
-
-        moment.add_ordinates(collTorque=dist.histogram().to("J") / moment.volume)
+        moment.add_ordinates(colltorque=dist.histogram().to("N*m") / moment.volume)
 
     @staticmethod
     def canMomentTorque(dist, moment):
-        """Calculate power deposition to ions.
+        """Calculate torque to bulk plasma due to changes in ftest particle canonical toroidal momentum.
+
+        WORK IN PROGRESS
 
         Parameters
         ----------
@@ -1000,7 +1159,7 @@ class Dist(DataContainer):
         ----------
         dist : :class:`DistData`
             A ppar-pperp distribution.
-        masskg : float
+        mass : float
             Mass of the species (required for energy conversion).
 
             Note that distribution is assumed to consist of markers with equal
@@ -1011,7 +1170,7 @@ class Dist(DataContainer):
             If edges are not given explicitly, the maximum energy is calculated
             from ppar or pperp abscissa (whichever gives the highest) and the
             minimum is set to zero.
-        xi_edges : array_like or int, optional
+        pitch_edges : array_like or int, optional
             Pitch grid edges or the number of bins in the new distribution.
 
             If edges are not given explicitly, the pitch is binned in the

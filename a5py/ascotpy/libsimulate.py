@@ -64,6 +64,8 @@ class LibSimulate():
         self._sim.enable_clmbcol      = int(opt["ENABLE_COULOMB_COLLISIONS"])
         self._sim.enable_mhd          = int(opt["ENABLE_MHD"])
         self._sim.enable_atomic       = int(opt["ENABLE_ATOMIC"])
+        self._sim.enable_icrh         = int(opt["ENABLE_ICRH"])
+        self._sim.enable_aldforce     = int(opt["ENABLE_ALDFORCE"])
         self._sim.disable_gctransform = int(opt["DISABLE_FIRSTORDER_GCTRANS"])
         self._sim.disable_energyccoll = int(opt["DISABLE_ENERGY_CCOLL"])
         self._sim.disable_pitchccoll  = int(opt["DISABLE_PITCH_CCOLL"])
@@ -214,7 +216,10 @@ class LibSimulate():
         self.input_init(
             bfield=bfield, plasma=plasma, neutral=neutral,
             wall=wall, asigma=asigma, switch=switch)
-        self._init(self.data, nbi=getattr(self.data, "nbi").active.get_qid())
+        if isinstance(nbi, dict):
+            self._init(self.data, nbi=nbi)
+        else:
+            self._init(self.data, nbi=getattr(self.data, "nbi").active.get_qid())
 
     def simulation_initmarkers(self, **mrk):
         """Create markers for the interactive simulations.
@@ -457,11 +462,15 @@ class LibSimulate():
         dist5d = None
         if self._sim.diag_data.dist5D_collect:
             dist5d = self._sim.diag_data.dist5D
+        distrho5d = None
+        if self._sim.diag_data.dist5D_collect:
+            distrho5d = self._sim.diag_data.distrho5D
         return VirtualRun(self, self._nmrk.value,
                           self._inistate, self._endstate,
                           VirtualInput(self._virtualoptions),
                           VirtualInput(self._virtualmarkers),
-                          diagorb=diagorb, dist5d=dist5d)
+                          diagorb=diagorb, dist5d=dist5d, dist5drho=distrho5d,
+                          )
 
     def simulation_bbnbi(self, nprt, t1=0, t2=0, printsummary=True):
         """Run BBNBI simulation.

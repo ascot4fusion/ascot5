@@ -1,8 +1,11 @@
 import numpy as np
 import scipy.constants as constants
 from a5py.physlib import species, pol2cart, cart2pol_vec
+from a5py.ascot5io import options
 import unyt
-
+import warnings
+from types import SimpleNamespace
+import warnings
 
 class a5imas:
 
@@ -10,7 +13,7 @@ class a5imas:
     def __init__(self):
         self.ids_name = "ids" #This should be overwritten by dervied classes
 
-    def open(self, user, tokamak, version, shot, run, occurrence=0):
+    def open(self, user, tokamak, version, shot, run, occurrence=0, backend=None, path=None):
 
         # Put this inside the function, not to disturb usage where imas is not available
         import imas
@@ -29,10 +32,12 @@ class a5imas:
                                 'shot'       : shot,
                                 'run'        : run,
                                 'occurrence' : occurrence,
+                                'backend'    : backend,
+                                'path'       : path,
                                 'ids_name'   : self.ids_name }
 
         if hasattr(imas, 'ids'):
-            # The "old" interface
+            # The "old" 3/4 AL
             self.ids = imas.ids(shot, run)
             self.ids.open_env(user, tokamak, version)
 
@@ -55,15 +60,18 @@ class a5imas:
                 idsdata.get(occurrence)
                 #print(idsdata)
         else:
-            # The "new" interface
+            # The "new" AL 5
 
             time=0.0
 
             from imas.imasdef import MDSPLUS_BACKEND
             from imas.imasdef import CLOSEST_SAMPLE
-            self.DB = imas.DBEntry(MDSPLUS_BACKEND, tokamak, shot, run, user_name=user)
+            #self.DB = imas.DBEntry(MDSPLUS_BACKEND, tokamak, shot, run, user_name=user)
+            self.DB = imas.DBEntry("imas:"+str(self.ids_coordinates["backend"])
+                                   +"?path="+str(self.ids_coordinates["path"]), mode="r")
             self.DB.open()
-            self.ids = self.DB.get_slice(self.ids_name, time, CLOSEST_SAMPLE)
+            self.ids = SimpleNamespace()
+            setattr(self.ids,self.ids_name, self.DB.get_slice(self.ids_name, time, CLOSEST_SAMPLE))
 
         return self.ids
 
@@ -86,12 +94,12 @@ class a5imas:
                                      'run' : "undefined", 'occurrence' : "undefined",
                                      'ids_name': self.ids_name }
 
-    def read(self, user, tokamak, version, shot, run, occurrence=0 ):
+    def read(self, user, tokamak, version, shot, run, occurrence=0, backend=None, path=None, **kwargs):
         """
         Open the IDS database and parse the data and then close it.
         """
-        self.open( user, tokamak, version, shot, run, occurrence )
-        result = self.parse()
+        self.open( user, tokamak, version, shot, run, occurrence, backend=backend, path=path )
+        result = self.parse(**kwargs)
         self.close()
 
         return result
@@ -114,11 +122,15 @@ class a5imas:
         #data_entry.open()
         self.data_entry.create()
 
+
+        # get the right imas datastructure
         if self.ids_name == 'wall':
             #ids = data_entry.get(ids_name,occurrence)
             self.ids = imas.wall()
         elif self.ids_name == 'equilibrium':
             self.ids = imas.equilibrium()
+        elif self.ids_name == 'distributions':
+            self.ids = imas.distributions()
         else:
             raise NotImplementedError("The ids {} has not been implemented in ascot5 imas.py create().".format(self.ids_name))
             # Probably easy enough to implement another ids "newids":
@@ -138,6 +150,10 @@ class a5imas:
         else:
             self.DB.close()
 
+    def fill_mandatory(self,time=[0.0]):
+        # mandatory
+        self.ids.ids_properties.homogeneous_time = 1
+        self.ids.time = np.array(time)
 
 
     def description_string(self):
@@ -146,11 +162,75 @@ class a5imas:
         return s.format(c['tokamak'], c['user'], c['ids_name'], c['shot'], c['run'], c['occurrence'])
 
 
+    def fill_species(self,target_species,anum,znum,charge):
+
+        sp = species.autodetect(anum, znum, charge)
+
+        if sp['name']=='e':
+            target_species.type.index         = 1
+            target_species.type.name          = "electron"
+            target_species.type.description   = "Electron"
+        elif round(charge) == 0:
+            target_species.type.index         = 4
+            target_species.type.name          = "neutral"
+            target_species.type.description   = "Neutral species in a single/average state; refer to neutral-structure"
+        else:
+            target_species.type.index         = 2
+            target_species.type.name          = "ion"
+            target_species.type.description   = "Ion species in a single/average state; refer to ion-structure"
+
+        if target_species.type.index == 1 or target_species.type.index == 2:
+            # ions or electrons
+
+            # We assume single nucleus for our ions. (len(element)==1 && atoms_n==1)
+            target_species.ion.element.resize(1)
+            target_species.ion.element[0].a       = float(sp['mass'])
+            target_species.ion.element[0].z_n     = float(sp['znum'])
+            target_species.ion.element[0].atoms_n = 1
+            target_species.z_ion                  = float(sp['charge'])
+        else:
+            # We assume single nucleus for our neutrals. (len(element)==1 && atoms_n==1)
+            target_species.neutral.element.resize(1)
+            target_species.neutral.element[0].a       = float(sp['mass'])
+            target_species.neutral.element[0].z_n     = float(sp['znum'])
+            target_species.neutral.element[0].atoms_n = 1
+            target_species.z_ion                      = float(sp['charge'])
+
+
+    def fill_code(self,target_code,runobject):
+        """
+        Fills in the code version information
+        """
+        codeversion = runobject.getcodeversion()
+        for field in ['name','description','commit','version','repository']:
+            setattr( target_code, field, codeversion[field] )
+
+        # List of the code specific parameters in XML format
+        # convert parameters into XML
+        _, xml_string = options.Opt.schema(runobject.options.read())
+        target_code.parameters = xml_string
+
+        #Output flag : 0 means the run is successful, other values mean some difficulty has been encountered, the exact meaning is then code specific. Negative values mean the result shall not be used. {dynamic}
+        # - output_flag : np.ndarray 1D with int)
+        # Output flag : 0 means the run is successful, other values mean some difficulty has been encountered, the exact meaning is then code specific. Negative values mean the result shall not be used.
+        target_code.output_flag = np.array( [runobject.get_run_success()] )
+
+
+
+    def fill_grid_rz(self,target_grid,r,z):
+
+        target_grid.type.index        = 0
+        target_grid.type.name         = "rectangular RZ"
+        target_grid.type.description  = "Rectangular grid in the (R,Z) coordinates;"
+
+        target_grid.r = np.array(r) #unyt arrays do not fit into imas
+        target_grid.z = np.array(z)
+
 class B_STS(a5imas):
     ''' Read stellarator 3D magnetic field with the conventions laid out in:
         git@github.com:sjjamsa/imas-ggd-b3d.git
 
-        Returns a dict modelled after write_hdf5() in  B_STS.py 
+        Returns a dict modelled after write_hdf5() in  B_STS.py
     '''
 
     def __init__(self):
@@ -216,11 +296,11 @@ class B_STS(a5imas):
 
         ldata = nR * nphi * nz
         if  len( ggd.b_field_r[   0 ].values) != ldata :
-             raise ValueError("B_R size does not match R,phi,z size") 
+             raise ValueError("B_R size does not match R,phi,z size")
         if  len( ggd.b_field_tor[   0 ].values) != ldata :
-             raise ValueError("B_tor size does not match R,phi,z size") 
+             raise ValueError("B_tor size does not match R,phi,z size")
         if  len( ggd.b_field_z[   0 ].values) != ldata :
-             raise ValueError("B_z size does not match R,phi,z size") 
+             raise ValueError("B_z size does not match R,phi,z size")
 
         B_R   = np.reshape( ggd.b_field_r[   0 ].values, newshape=shape, order=order )
         B_tor = np.reshape( ggd.b_field_tor[ 0 ].values, newshape=shape, order=order )
@@ -228,21 +308,21 @@ class B_STS(a5imas):
 
         if len( ggd.psi ) > 0 :
             if  len( ggd.psi[   0 ].values) != ldata :
-                raise ValueError("psi data size does not match R,phi,z size") 
+                raise ValueError("psi data size does not match R,phi,z size")
             psi_arr   = np.reshape( ggd.psi[   0 ].values, newshape=shape, order=order )
         else:
             psi_arr   = None
 
         if len( ggd.phi) > 0 :
             if  len( ggd.phi[   0 ].values) != ldata :
-                raise ValueError("phi data size does not match R,phi,z size") 
+                raise ValueError("phi data size does not match R,phi,z size")
             phi_arr   = np.reshape( ggd.phi[   0 ].values, newshape=shape, order=order )
         else:
             phi_arr   = None
 
         if len( ggd.theta) > 0 :
             if  len( ggd.theta[   0 ].values) != ldata :
-                raise ValueError("theta data size does not match R,phi,z size") 
+                raise ValueError("theta data size does not match R,phi,z size")
             theta_arr = np.reshape( ggd.theta[ 0 ].values, newshape=shape, order=order )
         else:
             theta_arr = None
@@ -327,8 +407,8 @@ class B_STS(a5imas):
         B["axis_phimax"]=      np.array([Pmax   ])
         B["axis_nphi"]  =      np.array([nP     ])
 
-        B["axisr"]      =      axis_R 
-        B["axisz"]      =      axis_z 
+        B["axisr"]      =      axis_R
+        B["axisz"]      =      axis_z
 
         # For the 3D-arrays, the required dimension order is (r,phi,z)
         B["br"]         =      B_R
@@ -349,6 +429,11 @@ class B_STS(a5imas):
         return B
 
     def write(self, B, user, tokamak, version, shot, run, metadata={}):
+        self.create( user, tokamak, version, shot, run)
+        self.fill(B, metadata)
+        self.write_data_entry()
+
+    def fill(self, B, metadata={}):
 
         # Check that all arrays have same size
         if B['b_nr']   != B['psi_nr']:
@@ -371,25 +456,22 @@ class B_STS(a5imas):
                 B['b_phimin'] != B['axis_phimin'] or
                 B['b_phimax'] != B['axis_phimax']   ):
             raise ValueError('b/psi/axis r/z/phi min/max do not match Expecting identical grids.')
-                
-        
+
+
         index_grids_ggd = 0
         index_time_slice = 0
         nGrids = 2
         index_ggd = 0
 
-        self.create( user, tokamak, version, shot, run)
 
         if 'ids_comment' in metadata :
             self.ids.ids_properties.comment = metadata['ids_comment']
         else:
             self.ids.ids_properties.comment = "equilibrium IDS for testing"
 
-        # mandatory
-        self.ids.ids_properties.homogeneous_time = 1
-        self.ids.time = np.array([0.0])
+        self.fill_mandatory()
 
-        
+
         # Fill data
 
         if len( self.ids.grids_ggd ) <= index_grids_ggd :
@@ -448,21 +530,21 @@ class B_STS(a5imas):
         for i in range(nz):
             grid.space[2].objects_per_dimension[0].object[i].geometry = np.array( [z[i]  ] )
             grid.space[2].objects_per_dimension[0].object[i].nodes = np.array([i+1])
-            
+
         # Todo... edges, sub-spaces
 
-            
+
         # The magnetic axis grid
         grid = self.ids.grids_ggd[index_grids_ggd].grid[1]
 
         grid.identifier.index = 1
         grid.identifier.description = 'magnetic axis'
 
-        
-        nSpaces = 1 
+
+        nSpaces = 1
         if len(grid.space) < nSpaces:
             grid.space.resize(nSpaces)
-       
+
         grid.space[0].identifier.index = 1
         grid.space[0].coordinates_type = np.array([4, 6, 5])
 
@@ -472,7 +554,7 @@ class B_STS(a5imas):
         # nodes
         if len(grid.space[0].objects_per_dimension) < objdims :
             grid.space[0].objects_per_dimension.resize(2)
-            
+
         if len(grid.space[0].objects_per_dimension[0].object) != nPhi:
             grid.space[0].objects_per_dimension[0].object.resize(nPhi)
 
@@ -486,7 +568,7 @@ class B_STS(a5imas):
             grid.space[0].objects_per_dimension[1].object.resize(1)
 
         grid.space[0].objects_per_dimension[1].object[0].nodes = np.arange( 1, nPhi+1, dtype=int )
-            
+
 
         if len(grid.grid_subset) < 1:
             grid.grid_subset.resize(1)
@@ -528,7 +610,6 @@ class B_STS(a5imas):
         ggd.b_field_tor[0].values = B['bphi'].flatten(order='F')
 
         
-        self.write_data_entry()
                                  
 class marker(a5imas):
 
@@ -595,18 +676,20 @@ class marker(a5imas):
 
         out={'n':n}
         for f in fields:
-            out[f] = np.array([],dtype=srcs[0][f].dtype)
+            out[f] = np.array([],dtype=srcs[0][f].dtype)*srcs[0][f].units
             for s in srcs:
                 if s is None:
                     continue
                 out[f] = np.concatenate( (out[f],s[f]) )
-            #if f!='vr':
-            #print(f)
-            out[f]*=s[f].units
+            try:
+                if out[f].units != srcs[0][f].units:
+                    print('Warning: unit mismatch')
+            except AttributeError:
+                # Add the missing units:
+                out[f] *= s[f].units
+
         out['ids']   = np.arange(1,n+1,dtype=int)
 
-        #print(srcs[0]['vr'])
-        #print(out['vr'])
 
 
         return out
@@ -694,7 +777,7 @@ class marker(a5imas):
         out['charge']= np.ones_like(out['weight'].v,dtype=float) * unyt.e* source.species.ion.z_ion
         out['mass']  = np.ones_like(out['weight'].v,dtype=float) * species.autodetect(
             int(source.species.ion.element[0].a),
-            int(source.species.ion.element[0].z_n) )[3]#/unyt.kg
+            int(source.species.ion.element[0].z_n) )["mass"]#/unyt.kg
 
 
         # From parameters (outside the source)
@@ -750,6 +833,123 @@ class marker(a5imas):
                 np.amin(source.markers[timeIndex].positions[:,np.argwhere(indexes==r)[0][0]]),
                 np.amax(source.markers[timeIndex].positions[:,np.argwhere(indexes==r)[0][0]])
             ))
+
+class plasma_1d(a5imas):
+
+    def __init__(self):
+        super().__init__()
+        self.ids_name = "core_profiles"
+
+
+    def parse(self,equilibrium_ids=None):
+        """
+        Read an IMAS 1D-plasma profiles into a dictionary, that is a drop-in replacement for a dict read from hdf5.
+
+        The data is read from core_profiles.profiles_1d[0]
+
+        The following keys are looked for:
+                   nrho, nion, anum, znum, mass, charge, rho,
+                   edensity, etemperature, idensity, itemperature
+
+        Ion temperature is read from species-averaged T_i or if that is not available, from the first ion species.
+
+        Rho-tor --> Rho-pol translation is done with values from equilibrium_ids; read that first, e.g.:
+           eq=a5py.ascot5io.imas.B_2DS()
+           eqdict=eq.read("akaslos","test","3",92436,306)
+        """
+
+
+
+        timeIndex = 0
+        iElement  = 0
+        iIonTemp  = 0
+
+        p1d = self.ids.core_profiles.profiles_1d[timeIndex]
+
+        nrho = len(p1d.grid.rho_tor)
+        nion = len(p1d.ion)
+
+        anum   = np.zeros(shape=(nion,))
+        znum   = np.zeros_like(anum)
+        charge = np.zeros_like(anum)
+        mass   = np.zeros_like(anum)
+        idensity = np.zeros(shape=(nrho,nion))
+        ivtor  = np.zeros_like(idensity)
+        for i in range(nion):
+            znum[i]       = p1d.ion[i].element[iElement].z_n
+            anum[i]       = p1d.ion[i].element[iElement].a
+            charge[i]     = znum[i] * unyt.e
+            #print( species.autodetect( int( anum[i] ), int( znum[i]) ) )
+            print( species.autodetect( int( anum[i] ), int( znum[i]) ) )
+            mass[i]       = species.autodetect( int( anum[i] ), int( znum[i]) )['mass'] / unyt.amu # Mass should be in AMU
+            idensity[:,i] = p1d.ion[i].density_thermal
+            if len(p1d.ion[i].rotation_frequency_tor) > 0:
+                ivtor[:,i]    = p1d.ion[i].rotation_frequency_tor # [rad.s^-1]
+
+        # Try species-averaged T_i
+        if len(p1d.t_i_average) > 0 :
+            itemperature = p1d.t_i_average
+        else:
+            # As a backup solution, use T_i of species 0 (iIonTemp)
+            itemperature = p1d.ion[iIonTemp].temperature
+
+        # take the mean of toroidal velocities
+        # This is probably all wrong, but as long as they are all zeroes, who cares?
+        vtor = ivtor.mean(axis=1)
+
+
+        edensity     = p1d.electrons.density
+        etemperature = p1d.electrons.temperature
+        warnings.warn("Reading plasma rotation not yet implemented and is assumed to be zero")
+        vtor = edensity * 0
+
+        warnings.warn("Reading plasma rotation not yet implemented and is assumed to be zero")
+        vtor = edensity * 0
+
+        rho_tor = p1d.grid.rho_tor
+
+        # https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/ids/ids2plasmabkg.F90
+        # https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/ids/ids2plasmaEqWallSimu.F90#L281
+        if equilibrium_ids is None:
+            warnings.warn("Cannot convert rho_pol to rho_tor as no equilibrium ids provided as a parameter")
+            p = {
+                "nrho"         : nrho,
+                "nion"         : nion,
+                "anum"         : anum,
+                "znum"         : znum,
+                "mass"         : mass,
+                "charge"       : charge,
+                "itemperature" : itemperature,
+                "idensity"     : idensity,
+                "etemperature" : etemperature,
+                "edensity"     : edensity,
+                "rho_tor"      : rho_tor,
+                "vtor"         : vtor,
+            }
+
+            return p
+
+
+        rho = equilibrium_ids.tor2pol(rho_tor)
+
+        rho = equilibrium_ids.tor2pol(rho_tor)
+        p = {
+            "nrho"         : nrho,
+            "nion"         : nion,
+            "anum"         : anum,
+            "znum"         : znum,
+            "mass"         : mass,
+            "charge"       : charge,
+            "itemperature" : itemperature,
+            "idensity"     : idensity,
+            "etemperature" : etemperature,
+            "edensity"     : edensity,
+            "rho"          : rho,
+            "vtor"         : vtor,
+        }
+
+        return p
+
 
 class wall_2d(a5imas):
 
@@ -810,12 +1010,12 @@ class wall_3d(a5imas):
         description_ggd_index = 0
         grid_ggd_index        = 0
         space_index           = 0
-        
-        
+
+
         desc_ggd = self.ids.wall.description_ggd[description_ggd_index]
         grid_ggd = desc_ggd.grid_ggd[grid_ggd_index]
         space    = grid_ggd.space[space_index]
-        
+
         if not np.all( space.coordinates_type == np.array([1, 2, 3]) ):
             raise ValueError("Space coordinates not [1,2,3] in IMAS (3d)wall ids u:{} db:{} v:{} s:{} r:{} o:{} desc:{} grid:{} sp:{}".format(
                 user,tokamak,version,shot,run,occurrence,description_ggd_index,grid_ggd_index,space_index ))
@@ -826,28 +1026,35 @@ class wall_3d(a5imas):
 
 
         # Convert 3D wall data to ASCOT5 format
-                             
+
         xyz = self.get_xyz(node_coordinates,tria_indexes)
-        
+
 
         nelements = xyz.shape[0]
         flag      = np.ones( (nelements,1) ) * description_ggd_index
-        w = {
-            "x1x2x3"         : xyz[:,:,0],
-            "y1y2y3"         : xyz[:,:,1],
-            "z1z2z3"         : xyz[:,:,2],
-            "nelements"      : [[nelements]],
-            "flag"           : flag,
-            "flagIdList"     : flag,
-            "flagIdStrings"  : ["IMAS 3D-wall ids u:{} db:{} v:{} s:{} r:{} o:{} desc:{} grid:{} sp:{}".format(
+        flagIdList= np.unique(flag)
+        flagIdStrings= []
+        for f in flagIdList:
+            flagIdStrings.append("IMAS 3D-wall ids u:{} db:{} v:{} s:{} r:{} o:{} desc:{} grid:{} sp:{}".format(
                 self.ids_coordinates['user'],
                 self.ids_coordinates['tokamak'],
                 self.ids_coordinates['version'],
                 self.ids_coordinates['shot'],
                 self.ids_coordinates['run'],
                 self.ids_coordinates['occurrence'],
-                description_ggd_index,grid_ggd_index,space_index )],
+                description_ggd_index,grid_ggd_index,space_index ))
+#        print(flagIdList)
+#        print(flagIdStrings)
+        labels    =  dict( zip(  flagIdStrings, flagIdList ) )
 
+
+        w = {
+            "x1x2x3"         : xyz[:,:,0],
+            "y1y2y3"         : xyz[:,:,1],
+            "z1z2z3"         : xyz[:,:,2],
+            "nelements"      : [[nelements]],
+            "flag"           : flag,
+            "labels"         : labels,
         }
 
         return w
@@ -884,7 +1091,7 @@ class wall_3d(a5imas):
         '''
         Parse out triangle corner coordinates. Assume one based indexing in the input (first = 1).
 
-        Returns  xyz[ntri,3,3], where the last dimension [ntri,ncorn,:]  is x,y,z. 
+        Returns  xyz[ntri,3,3], where the last dimension [ntri,ncorn,:]  is x,y,z.
 
 
         '''
@@ -899,20 +1106,17 @@ class wall_3d(a5imas):
         return xyz
 
     def fill_wall_3d_ids(self,xyz,metadata={}):
-        
+
         # Let's first do the conversion
         nodes,edges,faces = self.xyz_to_nodes_edges_faces(xyz)
 
         ids = self.ids
-        
+
         if 'ids_comment' in metadata :
             ids.ids_properties.comment = metadata['ids_comment']
         else:
             ids.ids_properties.comment = "wall IDS saved by ASCOT5 imas.py"
 
-        # mandatory
-        ids.ids_properties.homogeneous_time = 1
-        ids.time = np.array([0.0])
 
 
         index_description_ggd = 0
@@ -962,7 +1166,7 @@ class wall_3d(a5imas):
 
     def xyz_to_nodes_edges_faces(self,xyz):
         '''
-        Input must be xyz[ntri,3,3], where the last dimension [ntri,ncorn,:]  is x,y,z. 
+        Input must be xyz[ntri,3,3], where the last dimension [ntri,ncorn,:]  is x,y,z.
         '''
 
         #remove duplicate nodes?
@@ -998,12 +1202,16 @@ class wall_3d(a5imas):
         if remove_duplicate_edges :
             edges = np.unique(edges,axis=0)
 
-        # remember to edges++ and faces++ to get one-based indexing 
+        # remember to edges++ and faces++ to get one-based indexing
         return nodes+1,edges+1,faces+1
 
     def write(self, w, user, tokamak, version, shot, run, metadata={}):
-
         self.create( user, tokamak, version, shot, run)
+        self.fill(w, metadata)
+        self.write_data_entry()
+
+    def fill(self, w, metadata={}):
+
 
         n = w['nelements'][0][0]
         xyz=np.zeros( (n, 3, 3) )
@@ -1011,13 +1219,10 @@ class wall_3d(a5imas):
         xyz[:,:,0] = w['x1x2x3'][:,:]
         xyz[:,:,1] = w['y1y2y3'][:,:]
         xyz[:,:,2] = w['z1z2z3'][:,:]
-                                       
+
         # Save the data
         self.fill_wall_3d_ids(self.ids,xyz,metadata=metadata)
 
-                                       
-        self.write_data_entry()
-                                 
 
     def fill_wall_3d_ids(self,ids,xyz,metadata={}):
 
@@ -1081,7 +1286,7 @@ class wall_3d(a5imas):
 
     def xyz_to_nodes_edges_faces(self,xyz):
         '''
-        Input must be xyz[ntri,3,3], where the last dimension [ntri,ncorn,:]  is x,y,z. 
+        Input must be xyz[ntri,3,3], where the last dimension [ntri,ncorn,:]  is x,y,z.
         '''
 
         #remove duplicate nodes?
@@ -1117,15 +1322,15 @@ class wall_3d(a5imas):
         if remove_duplicate_edges :
             edges = np.unique(edges,axis=0)
 
-        # remember to edges++ and faces++ to get one-based indexing 
+        # remember to edges++ and faces++ to get one-based indexing
         return nodes+1,edges+1,faces+1
 
 
-class b_2d(a5imas):
+class B_2DS(a5imas):
 
     def __init__(self):
         super().__init__()
-        self.ids_name = "wall"
+        self.ids_name = "equilibrium"
 
 
     def parse(self):
@@ -1145,6 +1350,8 @@ class b_2d(a5imas):
 
         The data is read from ids.equilibrium
 
+        After parsing, the Object will contain routines to interpolate between rho_pol and rho_tor
+
         """
 
 
@@ -1156,7 +1363,7 @@ class b_2d(a5imas):
 
         # Identify a Rectangular (R,z) grid, index 1
         p2dindex = -1
-        for i,profile in self.ids.equilibrium[timeIndex].profiles_2d:
+        for i,profile in enumerate(self.ids.equilibrium.time_slice[timeIndex].profiles_2d):
             if  profile.grid_type.index == 1:
                 p2dindex = i
                 break
@@ -1167,28 +1374,61 @@ class b_2d(a5imas):
             return None
 
 
-        nr   = len(self.ids.equilibrium[timeIndex].profiles_2d[p2dindex].grid.dim1)
-        rmin =     self.ids.equilibrium[timeIndex].profiles_2d[p2dindex].grid.dim1[0]
-        rmax =     self.ids.equilibrium[timeIndex].profiles_2d[p2dindex].grid.dim1[nr-1]
+        nr   = len(self.ids.equilibrium.time_slice[timeIndex].profiles_2d[p2dindex].grid.dim1)
+        rmin =     self.ids.equilibrium.time_slice[timeIndex].profiles_2d[p2dindex].grid.dim1[0]
+        rmax =     self.ids.equilibrium.time_slice[timeIndex].profiles_2d[p2dindex].grid.dim1[nr-1]
 
-        nz   = len(self.ids.equilibrium[timeIndex].profiles_2d[p2dindex].grid.dim2)
-        zmin =     self.ids.equilibrium[timeIndex].profiles_2d[p2dindex].grid.dim2[0]
-        zmax =     self.ids.equilibrium[timeIndex].profiles_2d[p2dindex].grid.dim2[nz-1]
+        nz   = len(self.ids.equilibrium.time_slice[timeIndex].profiles_2d[p2dindex].grid.dim2)
+        zmin =     self.ids.equilibrium.time_slice[timeIndex].profiles_2d[p2dindex].grid.dim2[0]
+        zmax =     self.ids.equilibrium.time_slice[timeIndex].profiles_2d[p2dindex].grid.dim2[nz-1]
 
-        psi  =     self.ids.equilibrium[timeIndex].profiles_2d[p2dindex].psi      * psiscale
-        bphi =     self.ids.equilibrium[timeIndex].profiles_2d[p2dindex].b_field_tor
+        psi  =     self.ids.equilibrium.time_slice[timeIndex].profiles_2d[p2dindex].psi      * psiscale
+        bphi =     self.ids.equilibrium.time_slice[timeIndex].profiles_2d[p2dindex].b_field_tor
 
         # These can usually be zero
         br   = np.zeros_like(bphi)
         bz   = np.zeros_like(bphi)
 
         # values at axis
-        axisr=     self.ids.equilibrium[timeIndex].global_quantities.magnetic_axis.r
-        axisz=     self.ids.equilibrium[timeIndex].global_quantities.magnetic_axis.z
-        psi0 =     self.ids.equilibrium[timeIndex].global_quantities.psi_axis     * psiscale
+        axisr=     self.ids.equilibrium.time_slice[timeIndex].global_quantities.magnetic_axis.r
+        axisz=     self.ids.equilibrium.time_slice[timeIndex].global_quantities.magnetic_axis.z
+        psi0 =     self.ids.equilibrium.time_slice[timeIndex].global_quantities.psi_axis     * psiscale
 
         # values at separatrix
-        psi1  =    self.ids.equilibrium[timeIndex].global_quantities.psi_boundary * psiscale
+        psi1  =    self.ids.equilibrium.time_slice[timeIndex].global_quantities.psi_boundary * psiscale
+
+        # for rho_tor -- rho_pol interpolation
+        # https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/ids/ids2plasmaEqWallSimu.F90#L281
+
+        if   len( self.ids.equilibrium.time_slice[timeIndex].profiles_1d.rho_tor      ) > 0 :
+            rho_tor  = self.ids.equilibrium.time_slice[timeIndex].profiles_1d.rho_tor
+#        elif len( self.ids.equilibrium.time_slice[timeIndex].profiles_1d.rho_tor_norm ) > 0 :
+#            import warnings
+#            warnings.warn("Using equilibrium.timeslice[].profiles1d.rho_tor_norm (instead of unnormalized)")
+#            rho_tor  = self.ids.equilibrium.time_slice[timeIndex].profiles_1d.rho_tor_norm
+        else:
+            rho_tor = None
+
+        psi_prof = self.ids.equilibrium.time_slice[timeIndex].profiles_1d.psi
+        self._init_interpolator_functions(rho_tor,psi_prof)
+
+
+
+        # for rho_tor -- rho_pol interpolation
+        # https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/ids/ids2plasmaEqWallSimu.F90#L281
+
+        if   len( self.ids.equilibrium.time_slice[timeIndex].profiles_1d.rho_tor      ) > 0 :
+            rho_tor  = self.ids.equilibrium.time_slice[timeIndex].profiles_1d.rho_tor
+#        elif len( self.ids.equilibrium.time_slice[timeIndex].profiles_1d.rho_tor_norm ) > 0 :
+#            import warnings
+#            warnings.warn("Using equilibrium.timeslice[].profiles1d.rho_tor_norm (instead of unnormalized)")
+#            rho_tor  = self.ids.equilibrium.time_slice[timeIndex].profiles_1d.rho_tor_norm
+        else:
+            rho_tor = None
+
+        psi_prof = self.ids.equilibrium.time_slice[timeIndex].profiles_1d.psi
+        self._init_interpolator_functions(rho_tor,psi_prof)
+
 
 
         b = {
@@ -1209,3 +1449,159 @@ class b_2d(a5imas):
         }
 
         return b
+
+    def _init_interpolator_functions(self,rho_tor,psi_prof):
+        """
+        We try to do similar work as this routine:
+        https://version.aalto.fi/gitlab/ascot4/ascot4-trunk/-/blob/master/rhotorpol.F90
+        """
+
+
+        #TODO, ! If rho_tor doesn't start from 0.000, extrapolate
+        if rho_tor[0] > 0:
+            warnings.warn("Rho tor-profile does not start from 0.0000, this may be a problem. It was extrapolated in ASCOT4, but has not been implemented in ASCOT5.")
+
+
+        # Rho_pol as normalized psi:
+        rho_pol = np.sqrt(
+            (psi_prof     - psi_prof[0] )/
+            (psi_prof[-1] - psi_prof[0] ) )
+
+        self.poltor_rho_tor = rho_tor
+        self.poltor_rho_pol = rho_pol
+
+        # Add "public" names for the methods as they have been initialized
+        self.tor2pol = self._tor2pol
+        self.pol2tor = self._pol2tor
+
+    def _tor2pol(self,rho_tor):
+
+        return np.interp( rho_tor, self.poltor_rho_tor, self.poltor_rho_pol)
+
+    def _pol2tor(self,rho_pol):
+
+        return np.interp( rho_pol, self.poltor_rho_pol, self.poltor_rho_tor)
+
+
+class distributions(a5imas):
+
+    def __init__(self):
+        super().__init__()
+        self.ids_name = "distributions"
+
+    def write(self, user, tokamak, version, shot, run, runobject, metadata={} ):
+        self.create( user, tokamak, version, shot, run)
+        self.fill(runobject,metadata)
+        self.write_data_entry()
+
+    def fill(self,runobject,metadata={}):
+        '''
+        The distributions are the '5d' and '5drho distributions you get from the runobject Ascot.data.run_xxxxxxxxx.getdist('5d')
+        Thus, e.g. runobject=Ascot.data.run_xxxxxxxxx or a vrun
+        '''
+        timeIndex = 0
+
+        if 'ids_comment' in metadata :
+            self.ids.ids_properties.comment = metadata['ids_comment']
+        else:
+            self.ids.ids_properties.comment = "distributions IDS for testing"
+
+        self.fill_mandatory()
+
+        self.fill_code(self.ids.code,runobject)
+
+        species = runobject.getspecies()
+        anum = float(species['anum'])
+        znum = float(species['znum'])
+
+        # Defines how to interpret the spatial coordinates:
+        #    1 = given at the actual particle birth point;
+        #    2 = given at the gyro centre of the birth point {constant}
+        # Corresponds to runobject.getsimmode()=1 --> gyro_type=1
+        #                runobject.getsimmode()=2 --> gyro_type=2
+
+        warnings.warn('Not implemented yet [TODO_KONSTA<--SIMPPA]')
+        #gyro_type = runobject.getsimmode()
+        gyro_type = 1
+        if not (gyro_type == 1 or gyro_type == 2) :
+            raise ValueError("Unsupported gyro_type from runobject.getsimmode(): '{}' (should be 1 or 2).".format(gyro_type))
+
+
+        if '5d' in runobject.getdist_list()[0]:
+            d5d = runobject.getdist('5d')
+            charges5d = d5d.abscissa('charge')
+        else:
+            charges5d = []
+
+
+        warnings.warn("SKIPPING rho5d for debugging")
+        if '******rho5d******' in runobject.getdist_list()[0]:
+            drho5d = runobject.getdist('rho5d')
+            chargesrho5d = drho5d.abscissa('charge')
+        else:
+            chargesrho5d = []
+
+
+        # To append the distributions one after each other
+        distoffset = 0
+
+
+        ###########
+        # dist 5d #
+        ###########
+        for iDistribution in range(len(charges5d)):
+
+            self.ids.distribution.resize( 1 + iDistribution + distoffset ) # indexing starts from 0, but counting from 1, thus +1
+            d = self.ids.distribution[ iDistribution + distoffset ]
+
+
+            # If is_delta_f=1, then the distribution represents the deviation from a Maxwellian;
+            # is_delta_f=0, then the distribution represents all particles, i.e. the full-f solution {constant}
+            d.is_delta_f = 1
+
+            d.gyro_type = gyro_type
+
+            charge = charges5d[iDistribution]
+            self.fill_species(d.species,anum,znum,charge)
+
+            prof2d = d.profiles_2d.resize(timeIndex+1)
+            prof2d = d.profiles_2d[timeIndex]
+            self.fill_grid_rz( prof2d.grid, r=d5d.abscissa('r'), z=d5d.abscissa('z') )
+
+            ascot_names= ['density','toroidalcurrent','pressure','electronpowerdep']
+            imas_names = ['density_fast']#,'current_fast_phi','pressure_fast'] #,'collisions.electrons.powerthermal']
+
+            # Set each one of the profiles2d
+            for iname in range(len(imas_names)):
+                moment   = runobject.getdist_moments( runobject.getdist('5d'),ascot_names[iname])
+                ordinate = moment.ordinate(ascot_names[iname], toravg=True) # average in phi-direction
+                setattr(prof2d,imas_names[iname],np.array(ordinate))
+
+
+            warningtext = (
+                "5D distribution output still WIP; fill in e.g. profiles_2d:\n"
+                "density --> density_fast\n"
+                "toroidalcurrent --> current_fast_phi\n"
+                "pressure --> pressure_fast\n"
+                "electronpowerdep --> collisions.electrons.powerthermal\n"
+                "\n"
+                "The following may not be useful:\n"
+                "parallelcurrent : Parallel current\n"
+                "chargedensity : Charge density\n"
+                "energydensity : Energy density\n"
+                "powerdep : Total deposited power\n"
+                "ionpowerdep : Power deposited to ions (should be per species)\n"
+            )
+            warnings.warn(warningtext)
+        distoffset += len(charges5d)
+
+        ##############
+        # dist rho5d #
+        ##############
+        warnings.warn("Rho distribution output not implemented")
+
+        for iDistribution in range(len(chargesrho5d)):
+
+            d = self.ids.distribution[ iDistribution + distoffset ]
+
+        distoffset += len(chargesrho5d)

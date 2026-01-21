@@ -84,6 +84,8 @@ void N0_1D_free(N0_1D_data* data) {
         free(data->n0->c);
         free(data->t0->c);
     }
+    free(data->n0);
+    free(data->t0);
 }
 
 /**

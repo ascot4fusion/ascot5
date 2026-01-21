@@ -774,14 +774,18 @@ class TestMoments(unittest.TestCase):
         a5 = Ascot("unittest.h5")
         ordinates = ["density", "chargedensity", "energydensity", "pressure",
                      "toroidalcurrent", "parallelcurrent", "powerdep",
-                     "electronpowerdep", "ionpowerdep"]
-        #ordinates = ["jxbtorque"]
+                     "electronpowerdep", "ionpowerdep", "jxbtorque"]
+        ordinates_exi = ["colltorque"]
 
         a5.input_init(bfield=True, plasma=True)
         dist    = a5.data.active.getdist("5d")
         mom     = a5.data.active.getdist_moments(dist, *ordinates)
         rhodist = a5.data.active.getdist("rho5d")
         rhomom  = a5.data.active.getdist_moments(rhodist, *ordinates)
+        exidist = a5.data.active.getdist("5d", exi=True, ekin_edges=50, pitch_edges=50)
+        eximom  = a5.data.active.getdist_moments(exidist, *ordinates_exi)
+        rhoexidist = a5.data.active.getdist("rho5d", exi=True, ekin_edges=50, pitch_edges=50)
+        rhoeximom  = a5.data.active.getdist_moments(rhoexidist, *ordinates_exi)
 
         re = dist.abscissa_edges("r")
         ze = dist.abscissa_edges("z")
@@ -790,15 +794,20 @@ class TestMoments(unittest.TestCase):
 
         rho, r, z, phi, psi, weight, time,  \
         charge, energy, vphi, vnorm, vpar,  \
-        mass, p, pitch, bnorm, bphi, ppar = \
+        mass, p, pitch, bnorm, bphi, ppar, vperp = \
             a5.data.active.getorbit("rho", "r", "z", "phi", "psi", "weight",
                                     "mileage", "charge", "ekin", "vphi",
                                     "vnorm", "vpar", "mass", "pnorm", "pitch",
-                                    "bnorm", "bphi", "ppar")
-        ei, psii, Pphii = a5.data.active.getstate("ekin", "psi", "pphi",
-                                                  state="ini")
-        ef, tf = a5.data.active.getstate("ekin", "mileage", state="end")
+                                    "bnorm", "bphi", "ppar", "vperp")
+        jphi = a5.input_eval(r, phi, z, 0, "jphi")
+        ei, psii = a5.data.active.getstate("ekin", "psi", state="ini")
+        ef, tf, psie = a5.data.active.getstate("ekin", "mileage", "psi", state="end")
         dt = np.diff(time, prepend=0)
+
+        # In the online test, dt seems to have units of s already, whereas, when
+        # running locally, dt has no units
+        oldunit = dt.units
+        dt = dt/oldunit*unyt.s
 
         k, nu = a5.input_eval_collcoefs(
             mass[0], charge[0], r, phi, z, time, vnorm, "k", "nu",
@@ -814,31 +823,83 @@ class TestMoments(unittest.TestCase):
         dppar   = mass * k * pitch - p * pitch * nu
         Pphi    = ppar * r * (bphi/bnorm) + charge * psi
         dPphi   = np.diff(Pphi, prepend=Pphi[0])
+        try:
+            dPphi.units
+        except:
+            dPphi *= Pphi.units
 
         a5.input_free()
 
+        # Despite of the misleading names, these correspond to the integrated
+        # quantities, e.g. energydensity is energy density integrated over space
+        # and time, in other words, the total kinetic energy
         mrkdist = {}
         mrkdist["density"]          = weight * dt
         mrkdist["chargedensity"]    = weight * charge * dt
         mrkdist["energydensity"]    = weight * (energy * dt).to("J*s")
-        mrkdist["pressure"]         = weight * (mass * vnorm**2*dt).to("J*s")/3
+        vparmean = np.mean(vpar)
+        parpres = weight *(mass*(vpar-vparmean)**2*dt).to("J*s")
+        perppres = weight *(mass*vperp**2*dt).to("J*s")
+        mrkdist["pressure"] = (parpres + 2*perppres)/3
         mrkdist["toroidalcurrent"]  = weight * ( charge * vphi * dt ).to("A*s*m")
         mrkdist["parallelcurrent"]  = weight * ( charge * vpar * dt ).to("A*s*m")
         mrkdist["powerdep"]         = weight * dEtot_d.to("J")
         mrkdist["electronpowerdep"] = weight * dEele_d.to("J")
         mrkdist["ionpowerdep"]      = weight * dEion_d.to("J")
-        mrkdist["jxbtorque"]        = weight * (-charge * dpsi/unyt.s).to("N*m")
-        mrkdist["colltorque"]       = weight * (r*dppar*(bphi/bnorm)*dt).to("J*s")
-        mrkdist["canmomtorque"]     = weight * -charge * dPphi
+
+        # The bfield expression that was used in deriving this formula assumes
+        # that the plasma current is in the positive phi direction when
+        # nabla(psi) increases towards separatrix. In the case that jphi would
+        # have negative sign, we would need to flip this torque
+        mrkdist["jxbtorque"]        = weight * (-charge * dpsi).to("N*m*s") * np.sign(jphi)
+
+        # Multiplyin by bphi/bnorm projects onto phi direction
+        mrkdist["colltorque"]       = weight * (-r*dppar*(bphi/bnorm)*dt).to("N*m*s")
+
+        mrkdist["canmomtorque"]     = weight * (-dPphi).to("N*m*s")
 
         print(weight[0]*tf)
-        print(((ef-ei)*weight[0]).to("W"))
+        print(f"sum(E_end - E_ini) = {((ef-ei)*weight[0]).to('W'):}")
+        print("="*100)
+        print(f"rzphimom.volume = {np.sum(mom.volume):f}")
+        print(f"rhomom.volume = {np.sum(rhomom.volume):f}")
+        print("Ordinate\nintegrated")
+        print(f"{'over space':<18s}|{'rhomom':<34s}|{'mom':<34s}|{'mrkdist':<34s}")
+        print("_"*120)
         for o in ordinates:
             a1 = np.sum(rhomom.ordinate(o) * rhomom.volume)
             a2 = np.sum(mom.ordinate(o) * mom.volume)
             a3 = np.sum(mrkdist[o])
-            print(o, a1, a2, a3)
 
+            print(f"{o:18s}|{a1.v:<21.15e} {str(a1.units):12s} {a2.v:<21.15e} {str(a2.units):12s} {a3.v:<21.15e} {str(a3.units):12s}")
+
+
+        # Plot jxB evaluated from marker ini and endstate
+        # Yields the same result as from the marker orbit
+        '''
+        jxb_end_ini = weight[0] * (-charge[0] * (psie[0]-psii[0])).to("N*m*s") * np.sign(jphi)[0]
+        print(f"{"jxbtorque":18s}|{"(from ini":21.15s} {"":12s} {"and end states)":21.15s} {"":12s} {jxb_end_ini.v:<21.15e} {str(jxb_end_ini.units):12s}")
+        '''
+
+        # Collisional torque needs to be evaluated from an exi distribution
+        o = "colltorque"
+        a1 = np.sum(rhoeximom.ordinate(o) * rhoeximom.volume)
+        a2 = np.sum(eximom.ordinate(o) * eximom.volume)
+        a3 = np.sum(mrkdist[o])
+        print(f"{o:18s}|{a1.v:<21.15e} {str(a1.units):12s} {a2.v:<21.15e} {str(a2.units):12s} {a3.v:<21.15e} {str(a3.units):12s}")
+
+        # Print total rate of change in angular momentum
+        ppar_ini, R_ini, bphi_ini, bnorm_ini= a5.data.active.getstate("ppar", "r", "bphi", "bnorm", state="ini")
+        ppar_end, R_end, bphi_end, bnorm_end = a5.data.active.getstate("ppar",
+         "r", "bphi", "bnorm", state="end")
+        rate_of_cahnge_of_particle_angular_momentum = ((ppar_end*bphi_end/bnorm_end*R_end - ppar_ini*bphi_ini/bnorm_ini*R_ini)*weight).to("N*m")
+        torque_to_bulk = -rate_of_cahnge_of_particle_angular_momentum
+        a1 = np.sum(rhoeximom.ordinate("colltorque")*rhoeximom.volume
+                    +rhomom.ordinate("jxbtorque") * rhomom.volume)
+        a2 = np.sum(eximom.ordinate("colltorque")*eximom.volume
+                    +mom.ordinate("jxbtorque") * mom.volume)
+        a3 = torque_to_bulk[0]
+        print(f"{'Total torque':18s}|{a1.v:<21.15e} {str(a1.units):12s} {a2.v:<21.15e} {str(a2.units):12s} {a3.v:<21.15e} {str(a3.units):12s}")
 class TestPlotting(unittest.TestCase):
 
     def tearDown(self):

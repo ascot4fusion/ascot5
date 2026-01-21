@@ -114,3 +114,25 @@ int wall_get_n_elements(wall_data* w) {
     }
     return ret;
 }
+
+/**
+ * @brief Return the flag of a wall element.
+ *
+ * @param w pointer to wall data struct on target
+ * @param idx wall element index
+ *
+ * @return Flag of the wall element.
+ */
+int wall_get_flag(wall_data* w, int idx) {
+    int flag = 0;
+    switch(w->type) {
+        case wall_type_2D:
+            flag = w->w2d.flag[idx];
+            break;
+
+        case wall_type_3D:
+            flag = w->w3d.flag[idx];
+            break;
+    }
+    return flag;
+}

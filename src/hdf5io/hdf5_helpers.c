@@ -175,6 +175,41 @@ int hdf5_read_double(const char* var, real* ptr, hid_t file, char* qid,
 }
 
 /**
+ * @brief Read short-valued data from ASCOT5 HDF5 file.
+ *
+ * Datasets in ASCOT5 are located in the HDF5 file at paths that look like this:
+ * "/options/opt-XXXXXXXXXX/dataset", where X's is the QID value that is used
+ * differentiate between inputs of same type. This function constructs the path
+ * for a given dummy path, dataset, and qid, reads the dataset, and writes error
+ * message if the dataset could not be read.
+ *
+ * This function reads data that has type short.
+ *
+ * The file is opened and closed outside of this function.
+ *
+ * @param var "dummy" (otherwise valid but with X's) path to variable
+ * @param ptr pointer where data will be stored
+ * @param file HDF5 file
+ * @param qid QID value
+ * @param errfile use macro __FILE__ here to indicate the file this function
+ *        was called
+ * @param errline use macro __LINE__ here to indicate the line this function
+ *        was called
+ *
+ * @return zero if success
+ */
+int hdf5_read_short(const char* var, short* ptr, hid_t file, char* qid,
+                    const char* errfile, int errline) {
+    char temp[256];
+    if( H5LTread_dataset_short(file, hdf5_gen_path(var, qid, temp), ptr) < 0 ){
+        print_err("Error: could not read HDF5 dataset %s FILE %s LINE %d\n",
+                  temp, errfile, errline);
+        return 1;
+    }
+    return 0;
+}
+
+/**
  * @brief Read int-valued data from ASCOT5 HDF5 file.
  *
  * Datasets in ASCOT5 are located in the HDF5 file at paths that look like this:
@@ -183,7 +218,7 @@ int hdf5_read_double(const char* var, real* ptr, hid_t file, char* qid,
  * for a given dummy path, dataset, and qid, reads the dataset, and writes error
  * message if the dataset could not be read.
  *
- * This function reads data that has type double.
+ * This function reads data that has type int.
  *
  * The file is opened and closed outside of this function.
  *
@@ -218,7 +253,7 @@ int hdf5_read_int(const char* var, int* ptr, hid_t file, char* qid,
  * for a given dummy path, dataset, and qid, reads the dataset, and writes error
  * message if the dataset could not be read.
  *
- * This function reads data that has type double.
+ * This function reads data that has type long.
  *
  * The file is opened and closed outside of this function.
  *

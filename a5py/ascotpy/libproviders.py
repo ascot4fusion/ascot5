@@ -13,7 +13,7 @@ import numpy.ctypeslib as npctypes
 import a5py.physlib.analyticequilibrium as psifun
 
 from a5py.ascot5io.coreio import fileapi
-from .libascot import _LIBASCOT, PTR_ARR
+from .libascot import _LIBASCOT, PTR_ARR, PTR_INT
 if _LIBASCOT:
     from a5py.ascotpy import ascot2py
 
@@ -157,6 +157,8 @@ class LibProviders():
         if intdata:
             array = ctypes.cast(offload_array,
                                 ctypes.POINTER(ctypes.c_int*size) )[0]
+            offload_array = ctypes.cast(offload_array,
+                        ctypes.POINTER(ctypes.c_int) )
         else:
             array = ctypes.cast(offload_array,
                                 ctypes.POINTER(ctypes.c_double*size) )[0]
@@ -360,15 +362,18 @@ class LibProviders():
             (-1.0 * unyt.elementary_charge),
              (kwargs["charge"].flatten() * unyt.elementary_charge).to("C")
             )
+        anum = np.ascontiguousarray(kwargs["anum"], dtype=np.int32)
+        znum = np.ascontiguousarray(kwargs["znum"], dtype=np.int32)
         _LIBASCOT.plasma_1D_init(
             ctypes.byref(self._sim.plasma_data.plasma_1D), int(kwargs["nrho"]),
             int(kwargs["nion"]), kwargs["rho"].ctypes.data_as(PTR_ARR),
-            kwargs["anum"].ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
-            kwargs["anum"].ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+            anum.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
+            znum.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
             mass.ctypes.data_as(PTR_ARR), charge.ctypes.data_as(PTR_ARR),
             Te.ctypes.data_as(PTR_ARR), Ti.ctypes.data_as(PTR_ARR),
             kwargs["edensity"].ctypes.data_as(PTR_ARR),
-            kwargs["idensity"].T.ctypes.data_as(PTR_ARR)
+            kwargs["idensity"].T.ctypes.data_as(PTR_ARR),
+            kwargs["vtor"].ctypes.data_as(PTR_ARR),
             )
         self._sim.plasma_data.type = ascot2py.plasma_type_1D
 
@@ -389,11 +394,12 @@ class LibProviders():
             ctypes.byref(self._sim.plasma_data.plasma_1DS), int(kwargs["nrho"]),
             kwargs["rhomin"][0,0], kwargs["rhomax"][0,0], int(kwargs["nion"]),
             kwargs["anum"].ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
-            kwargs["anum"].ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+            kwargs["znum"].ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
             mass.ctypes.data_as(PTR_ARR), charge.ctypes.data_as(PTR_ARR),
             Te.ctypes.data_as(PTR_ARR), Ti.ctypes.data_as(PTR_ARR),
             kwargs["edensity"].ctypes.data_as(PTR_ARR),
-            kwargs["idensity"].T.ctypes.data_as(PTR_ARR)
+            kwargs["idensity"].T.ctypes.data_as(PTR_ARR),
+            kwargs["vtor"].ctypes.data_as(PTR_ARR),
         )
         self._sim.plasma_data.type = ascot2py.plasma_type_1DS
 
@@ -416,11 +422,12 @@ class LibProviders():
             kwargs["rho"].ctypes.data_as(PTR_ARR),
             kwargs["time"].ctypes.data_as(PTR_ARR),
             kwargs["anum"].ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
-            kwargs["anum"].ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+            kwargs["znum"].ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
             mass.ctypes.data_as(PTR_ARR), charge.ctypes.data_as(PTR_ARR),
             Te.ctypes.data_as(PTR_ARR), Ti.ctypes.data_as(PTR_ARR),
             kwargs["edensity"].ctypes.data_as(PTR_ARR),
-            kwargs["idensity"].T.ctypes.data_as(PTR_ARR)
+            kwargs["idensity"].T.ctypes.data_as(PTR_ARR),
+            kwargs["vtor"].ctypes.data_as(PTR_ARR),
         )
         self._sim.plasma_data.type = ascot2py.plasma_type_1Dt
 
@@ -444,8 +451,9 @@ class LibProviders():
         _LIBASCOT.wall_2d_init(
             ctypes.byref(self._sim.wall_data.w2d), int(kwargs["nelements"][0]),
             kwargs["r"].ctypes.data_as(PTR_ARR),
-            kwargs["z"].ctypes.data_as(PTR_ARR)
-            )
+            kwargs["z"].ctypes.data_as(PTR_ARR),
+            kwargs["flag"].ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+        )
         self._sim.wall_data.type = ascot2py.wall_type_2D
 
     def _provide_wall_3D(self, **kwargs):
@@ -459,7 +467,8 @@ class LibProviders():
             ctypes.byref(self._sim.wall_data.w3d), n,
             kwargs["x1x2x3"].ctypes.data_as(PTR_ARR),
             kwargs["y1y2y3"].ctypes.data_as(PTR_ARR),
-            kwargs["z1z2z3"].ctypes.data_as(PTR_ARR)
+            kwargs["z1z2z3"].ctypes.data_as(PTR_ARR),
+            kwargs["flag"].ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
             )
         self._sim.wall_data.type = ascot2py.wall_type_3D
 
@@ -563,11 +572,13 @@ class LibProviders():
     def _provide_MHD_STAT(self, **kwargs):
         """Initialize :class:`MHD_STAT` from dictionary.
         """
+        nmodes = np.ascontiguousarray(kwargs["nmodes"], dtype=np.int32)
+        mmodes = np.ascontiguousarray(kwargs["mmodes"], dtype=np.int32)
         _LIBASCOT.mhd_stat_init(
             ctypes.byref(self._sim.mhd_data.stat), int(kwargs["nmode"][0]),
             int(kwargs["nrho"][0]), kwargs["rhomin"][0], kwargs["rhomax"][0],
-            kwargs["nmodes"].ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
-            kwargs["mmodes"].ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+            nmodes.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
+            mmodes.ctypes.data_as(ctypes.POINTER(ctypes.c_int32)),
             kwargs["amplitude"].ctypes.data_as(PTR_ARR),
             kwargs["omega"].ctypes.data_as(PTR_ARR),
             kwargs["phase"].ctypes.data_as(PTR_ARR),
@@ -641,7 +652,7 @@ class LibProviders():
             Dictionary with the NBI data.
         """
         inp, data = self._find_input_based_on_kwargs(
-            ["NBI"], **kwargs)
+            ["nbi"], **kwargs)
         getattr(self, "_provide_" + inp)(**data)
         qid, _, _ = fileapi._generate_meta()
         self._sim.qid_nbi = bytes(qid, "utf-8")
@@ -649,4 +660,4 @@ class LibProviders():
     def _provide_NBI(self, **kwargs):
         """Initialize :class:`NBI` from dictionary.
         """
-        pass
+        _LIBASCOT_nbi_init()

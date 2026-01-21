@@ -6,6 +6,7 @@ import scipy.constants as constants
 import warnings
 from functools import wraps
 
+from . import species
 from a5py.exceptions import AscotUnitWarning
 
 e     = constants.elementary_charge * unyt.C
@@ -16,31 +17,39 @@ c     = unyt.c
 eps_0 = unyt.eps_0
 
 def cart2pol(x, y, z=None):
-    """Cartesian x coordinate from cylindrical coordinates.
+    """Convert a point in cartesian coordinates to polar coordinates.
     """
     return np.sqrt(x**2 + y**2), np.arctan2(y, x) * unyt.rad, z
 
 def pol2cart(r, phi, z=None):
-    """Cartesian x coordinate from cylindrical coordinates.
+    """Convert a point in polar coordinates to cartesian coordinates.
     """
+    if z is None:
+        return r * np.cos(phi), r * np.sin(phi)
     return r * np.cos(phi), r * np.sin(phi), z
 
-def pol2cart_vec(vr,r,vphi,phi,vz=None,z=None):
+def sph2cart(r, phi, theta):
+    """Convert a point in spherical coordinates to cartesian coordinates.
+    """
+    x = r * np.sin(theta) * np.cos(phi)
+    y = r * np.sin(theta) * np.sin(phi)
+    z = r * np.cos(theta)
+    return x, y, z
+
+def pol2cart_vec(vr, r, vphi, phi, vz=None, z=None):
     vx = vr * np.cos(phi) - vphi * np.sin(phi)
     vy = vr * np.sin(phi) + vphi * np.cos(phi)
-    mps = unyt.m / unyt.s
     if vz is not None:
-        return vx*mps,vy*mps,vz*mps
-    return vx*mps,vy*mps,vz
+        return vx ,vy, vz
+    return vx, vy
 
-def cart2pol_vec(vx,x,vy,y,vz=None,z=None):
-    phi = np.arctan2( y, x )
+def cart2pol_vec(vx, x, vy, y, vz=None, z=None):
+    phi = np.arctan2(y, x)
     vr  =  vx * np.cos(phi) + vy * np.sin(phi)
     vphi= -vx * np.sin(phi) + vy * np.cos(phi)
-    mps = unyt.m / unyt.s
     if vz is not None:
-        return vr*mps,vphi*mps,vz*mps
-    return vr*mps,vphi*mps,vz
+        return vr, vphi, vz
+    return vr, vphi
 
 def anglemod(angle):
     """Transfer arbitrary angle to between interval [0, 2pi].

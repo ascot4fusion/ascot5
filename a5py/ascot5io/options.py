@@ -72,6 +72,8 @@ class Opt(DataGroup):
         self._OPT_ENABLE_COULOMB_COLLISIONS  = 0
         self._OPT_ENABLE_MHD                 = 0
         self._OPT_ENABLE_ATOMIC              = 0
+        self._OPT_ENABLE_ICRH                = 0
+        self._OPT_ENABLE_ALDFORCE            = 0
         self._OPT_DISABLE_FIRSTORDER_GCTRANS = 0
         self._OPT_DISABLE_ENERGY_CCOLL       = 0
         self._OPT_DISABLE_PITCH_CCOLL        = 0
@@ -377,6 +379,28 @@ class Opt(DataGroup):
         return self._OPT_ENABLE_ATOMIC
 
     @property
+    def _ENABLE_ICRH(self):
+        """Enable ion cyclotron resonance heating operator that transfers
+        energy ("kicks") to ions when they are on the resonance
+
+        The code must be compiled with RFOF=1 and the RFOF library must be
+        present in order to use the ICRH operator.
+        """
+        return self._OPT_ENABLE_ICRH
+
+    @property
+    def _ENABLE_ALDFORCE(self):
+        """Enable radiation reaction force (synchrotron losses)
+
+        The radiation reaction force (a.k.a. Abraham-Lorentz-Dirac or ALD force)
+        causes charged particles to lose energy via radiation. The losses are
+        proportional to the particle energy and inversely proportional to the
+        particle mass, making this option mostly relevant for (runaway)
+        electrons.
+        """
+        return self._OPT_ENABLE_ALDFORCE
+
+    @property
     def _DISABLE_FIRSTORDER_GCTRANS(self):
         """Disable first order guiding center transformation in velocity space
         """
@@ -453,7 +477,6 @@ class Opt(DataGroup):
         - rho  flux surface
         - pol  poloidal angle
         - phi  toroidal angle
-        - z    z-coordinate
         - ppa  momentum component parallel to magnetic field
         - ppe  momentum component perpendicular to magnetic field
         - t    time
@@ -470,7 +493,6 @@ class Opt(DataGroup):
         - rho  flux surface
         - pol  poloidal angle
         - phi  toroidal angle
-        - z    z-coordinate
         - pR   momentum R-component
         - pphi momentum phi-component
         - pz   momentum z-component
@@ -996,6 +1018,16 @@ class Opt(DataGroup):
 
         return out
 
+    def toxml(self):
+        """Convert options to string in XML format.
+
+        Returns
+        -------
+        opt : str
+            String in XML format containing the options parameters.
+        """
+        return Opt.schema(self.read())[1]
+
     def new(self, desc=None, **kwargs):
         """Write new options with updated parameters.
 
@@ -1452,6 +1484,8 @@ class Opt(DataGroup):
                         <xs:element ref="ENABLE_COULOMB_COLLISIONS"/>
                         <xs:element ref="ENABLE_MHD"/>
                         <xs:element ref="ENABLE_ATOMIC"/>
+                        <xs:element ref="ENABLE_ICRH"/>
+                        <xs:element ref="ENABLE_ALDFORCE"/>
                         <xs:element ref="DISABLE_FIRSTORDER_GCTRANS"/>
                         <xs:element ref="DISABLE_ENERGY_CCOLL"/>
                         <xs:element ref="DISABLE_PITCH_CCOLL"/>
@@ -1464,6 +1498,8 @@ class Opt(DataGroup):
             {doc('ENABLE_COULOMB_COLLISIONS',  'IntegerBinary')}
             {doc('ENABLE_MHD',                 'IntegerBinary')}
             {doc('ENABLE_ATOMIC',              'Integer012')}
+            {doc('ENABLE_ICRH',                'IntegerBinary')}
+            {doc('ENABLE_ALDFORCE',            'IntegerBinary')}
             {doc('DISABLE_FIRSTORDER_GCTRANS', 'IntegerBinary')}
             {doc('DISABLE_ENERGY_CCOLL',       'IntegerBinary')}
             {doc('DISABLE_PITCH_CCOLL',        'IntegerBinary')}
@@ -1629,7 +1665,12 @@ class Opt(DataGroup):
             {doc('TRANSCOEF_RECORDRHO', 'IntegerBinary')}
             </xs:schema>""")
         schema = xmlschema.XMLSchema(xsd)
-        if opt is None: opt = Opt.get_default()
+        opt_default = Opt.get_default()
+        if opt is None:
+            opt = opt_default
+        opt_ordered = {k: opt[k] for k in opt_default if k in opt}
+        opt = opt_ordered
+
         opt_hierarchy = {
             "SIMULATION_MODE_AND_TIMESTEP":{}, "END_CONDITIONS":{},
             "PHYSICS":{}, "DISTRIBUTIONS":{}, "ORBIT_WRITE":{},
@@ -1647,15 +1688,16 @@ class Opt(DataGroup):
                 grp = "ORBIT_WRITE"
             elif k == "ENABLE_TRANSCOEF":
                 grp = "TRANSPORT_COEFFICIENT"
+            print(k)
             opt_hierarchy[grp][k] = v
 
         data = json.dumps({"parameters":opt_hierarchy})
         xml = xmlschema.from_json(data, schema=schema, preserve_root=True)
 
         if fnxsd is not None:
-            with open(fnxsd, 'w') as f:
+            with open(fnxsd, "w") as f:
                 f.writelines(xsd)
         if fnxml is not None:
             ET.ElementTree(xml).write(fnxml)
 
-        return schema, xml
+        return schema, ET.tostring(xml, encoding='unicode')

@@ -84,6 +84,8 @@ void mhd_stat_free(mhd_stat_data* data) {
         free(data->phi_nm[i].c);
         free(data->alpha_nm[i].c);
     }
+    free(data->phi_nm);
+    free(data->alpha_nm);
     free(data->nmode);
     free(data->mmode);
     free(data->phase_nm);

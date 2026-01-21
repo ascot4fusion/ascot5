@@ -477,7 +477,7 @@ class Ascot(Ascotpy):
         from matplotlib.lines import Line2D
         legend_elements = [
             Line2D([0], [0], marker=r'$\leftarrow$', color='C0',
-                   linestyle="none", label=r"$\mathbf{B}_\mathrm{pol}$",
+                   linestyle="none", label=r"$\mathbf{B}_\mathrm{tor}$",
                    markerfacecolor='C0', markersize=14),
             Line2D([0], [0], marker=r'$\leftarrow$', color='C1',
                    linestyle="none", label=r"$\mathbf{I}_p$",
@@ -508,7 +508,7 @@ class Ascot(Ascotpy):
         axes.set_ylabel("y [m]")
         axes.set_title("View from above")
 
-    def input_plotwallcontour(self, phi=0*unyt.deg, axes=None):
+    def input_plotwallcontour(self, phi=0*unyt.deg, axes=None, color="black",label=None):
         """Plot intersection of the wall and the poloidal plane at the given
         toroidal angle.
 
@@ -520,5 +520,5 @@ class Ascot(Ascotpy):
             The axes where figure is plotted or otherwise new figure is created.
         """
         ls = self.data.wall.active.getwallcontour(phi=phi)
-        line2d(ls[:,:,0], ls[:,:,1], c="black", axesequal=True, axes=axes,
-               xlabel="R [m]", ylabel="z [m]")
+        line2d(ls[:,:,0], ls[:,:,1], c=color, axesequal=True, axes=axes,
+               xlabel="R [m]", ylabel="z [m]",label=label)

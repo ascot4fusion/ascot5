@@ -141,7 +141,7 @@ class ContentManager(NestedNotebook):
 
             # Has 3D wall?
             tab1 = self.traverse("Losses")
-            if run.wall.get_type() != "wall_3D":
+            if hasattr(run, 'wall') and run.wall.get_type() == "wall_3D":
                 tab1.tab(1, state="disabled")
                 tab1.tab(2, state="disabled")
             else:

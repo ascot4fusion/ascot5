@@ -20,7 +20,7 @@
 #include "../E_field.h"
 #include "../boozer.h"
 #include "../mhd.h"
-
+#include "../rfof.h"
 #include "../plasma.h"
 #include "simulate_gc_adaptive.h"
 #include "step/step_gc_cashkarp.h"
@@ -59,10 +59,13 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
     /* Current time step, suggestions for the next time step and next time
      * step                                                                */
-    real hin[NSIMD]      __memalign__;
-    real hout_orb[NSIMD] __memalign__;
-    real hout_col[NSIMD] __memalign__;
-    real hnext[NSIMD]    __memalign__;
+    real hin[NSIMD]       __memalign__;
+    real hout_orb[NSIMD]  __memalign__;
+    real hout_col[NSIMD]  __memalign__;
+    real hout_rfof[NSIMD] __memalign__;
+    real hnext[NSIMD]     __memalign__;
+
+    Acceleration acceleration;
 
     /* Flag indicateing whether a new marker was initialized */
     int cycle[NSIMD]     __memalign__;
@@ -75,13 +78,22 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     particle_simd_gc p;  // This array holds current states
     particle_simd_gc p0; // This array stores previous states
 
+    rfof_marker rfof_mrk; // RFOF specific data
+
     for(int i=0; i< NSIMD; i++) {
         p.id[i] = -1;
         p.running[i] = 0;
+        acceleration.acc[i] = 1.0;
+        acceleration.orbittime[i] = -1;
+        acceleration.cross[i].crossed_once = 0;
     }
 
     /* Initialize running particles */
     int n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
+
+    if(sim->enable_icrh) {
+        rfof_set_up(&rfof_mrk, &sim->rfof_data);
+    }
 
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
@@ -104,7 +116,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
      * - Check whether time step was accepted
      *   - NO:  revert to initial state and ignore the end of the loop
      *          (except CPU_TIME_MAX end condition if this is implemented)
-     *   - YES: update particle time, clean redundant Wiener processes, and proceed
+     *   - YES: update particle time, clean redundant Wiener processes, and
+     *          proceed
      * - Check for end condition(s)
      * - Update diagnostics
      */
@@ -114,9 +127,10 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
             particle_copy_gc(&p, i, &p0, i);
-            hout_orb[i] = DUMMY_TIMESTEP_VAL;
-            hout_col[i] = DUMMY_TIMESTEP_VAL;
-            hnext[i]    = DUMMY_TIMESTEP_VAL;
+            hout_orb[i]  = DUMMY_TIMESTEP_VAL;
+            hout_col[i]  = DUMMY_TIMESTEP_VAL;
+            hout_rfof[i] = DUMMY_TIMESTEP_VAL;
+            hnext[i]     = DUMMY_TIMESTEP_VAL;
         }
 
         /*************************** Physics **********************************/
@@ -132,18 +146,20 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         /* Cash-Karp method for orbit-following */
         if(sim->enable_orbfol) {
             if(sim->enable_mhd) {
-                step_gc_cashkarp_mhd(&p, hin, hout_orb, tol_orb,
-                                     &sim->B_data, &sim->E_data,
-                                     &sim->boozer_data, &sim->mhd_data);
+                step_gc_cashkarp_mhd(
+                    &p, hin, hout_orb, tol_orb, &sim->B_data, &sim->E_data,
+                    &sim->boozer_data, &sim->mhd_data, sim->enable_aldforce);
             }
             else {
-                step_gc_cashkarp(&p, hin, hout_orb, tol_orb,
-                                 &sim->B_data, &sim->E_data);
+                step_gc_cashkarp(
+                    &p, hin, hout_orb, tol_orb, &sim->B_data, &sim->E_data,
+                    sim->enable_aldforce);
             }
             /* Check whether time step was rejected */
             #pragma omp simd
             for(int i = 0; i < NSIMD; i++) {
-                /* Switch sign of the time-step again if it was reverted earlier */
+                /* Switch sign of the time-step again if it was reverted earlier
+                */
                 if(sim->reverse_time) {
                     hout_orb[i] = -hout_orb[i];
                     hin[i]      = -hin[i];
@@ -159,15 +175,32 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         if(sim->enable_clmbcol) {
             real rnd[5*NSIMD];
             random_normal_simd(&sim->random_data, 5*NSIMD, rnd);
-            mccc_gc_milstein(&p, hin, hout_col, tol_col, wienarr, &sim->B_data,
-                             &sim->plasma_data, &sim->mccc_data, rnd);
+            mccc_gc_milstein(
+                &p, hin, acceleration.acc, acceleration.collfreq,
+                hout_col, tol_col, wienarr, &sim->B_data,
+                &sim->plasma_data, &sim->mccc_data, rnd);
 
             /* Check whether time step was rejected */
             #pragma omp simd
             for(int i = 0; i < NSIMD; i++) {
                 if(p.running[i] && hout_col[i] < 0){
                     p.running[i] = 0;
-                    hnext[i] = hout_col[i];
+                    hnext[i] =  hout_col[i];
+                }
+            }
+        }
+
+        /* Performs the ICRH kick if in resonance. */
+        if(sim->enable_icrh) {
+            rfof_resonance_check_and_kick_gc(
+                &p, hin, hout_rfof, &rfof_mrk, &sim->rfof_data, &sim->B_data);
+
+            /* Check whether time step was rejected */
+            #pragma omp simd
+            for(int i = 0; i < NSIMD; i++) {
+                if(p.running[i] && hout_rfof[i] < 0){
+                    p.running[i] = 0;
+                    hnext[i] =  hout_rfof[i];
                 }
             }
         }
@@ -191,26 +224,28 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                     }
                 }
 
-                /* Retrieve marker states in case time step was rejected */
+                /* Retrieve marker states in case time step was rejected      */
                 if(hnext[i] < 0) {
                     particle_copy_gc(&p0, i, &p, i);
-
-                    hin[i] = -hnext[i];
                 }
                 if(p.running[i]){
 
                     /* Advance time (if time step was accepted) and determine
                        next time step */
                     if(hnext[i] < 0){
-                        /* Time step was rejected, use the suggestion given by
-                           integrator */
+                        /* if hnext < 0, you screwed up and had to copy the
+                        previous state. Therefore, let us use the suggestion
+                        given by the integrator when retaking the failed step.*/
                         hin[i] = -hnext[i];
                     }
                     else {
                         p.time[i] += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) )
-                            * hin[i];
-                        p.mileage[i] += hin[i];
-
+                            * hin[i] * acceleration.acc[i];
+                        p.mileage[i] += hin[i] * acceleration.acc[i];
+                        if(acceleration.orbittime[i] >= 0)
+                            acceleration.orbittime[i] += hin[i] * acceleration.acc[i];
+                        /* In case the time step was succesful, pick the
+                        smallest recommended value for the next step */
                         if(hnext[i] > hout_orb[i]) {
                             /* Use time step suggested by the orbit-following
                                integrator */
@@ -220,6 +255,10 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                             /* Use time step suggested by the collision
                                integrator */
                             hnext[i] = hout_col[i];
+                        }
+                        if(hnext[i] > hout_rfof[i]) {
+                            /* Use time step suggested by RFOF */
+                            hnext[i] = hout_rfof[i];
                         }
                         if(hnext[i] == 1.0) {
                             /* Time step is unchanged (happens when no physics
@@ -239,6 +278,11 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         }
         cputime_last = cputime;
 
+        /* If OMP is crossed, adjust acceleration */
+        if(sim->enable_ada > 1) {
+            recalculate_acceleration(&acceleration, sim, &p, &p0);
+        }
+
         /* Check possible end conditions */
         endcond_check_gc(&p, &p0, sim);
 
@@ -253,9 +297,16 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         for(int i = 0; i < NSIMD; i++) {
             if(cycle[i] > 0) {
                 hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
+                acceleration.acc[i] = 1.0;
+                acceleration.orbittime[i] = -1;
+                acceleration.cross[i].crossed_once = 0;
                 if(sim->enable_clmbcol) {
                     /* Re-allocate array storing the Wiener processes */
                     mccc_wiener_initialize(&(wienarr[i]), p.time[i]);
+                }
+                if(sim->enable_icrh) {
+                    /* Reset icrh (rfof) resonance memory matrix. */
+                    rfof_clear_history(&rfof_mrk, i);
                 }
             }
         }
@@ -263,6 +314,10 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
     /* All markers simulated! */
 
+    /* Deallocate rfof structs */
+    if(sim->enable_icrh) {
+        rfof_tear_down(&rfof_mrk);
+    }
 }
 
 /**
@@ -300,7 +355,8 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
         /* Value calculated from collision frequency */
         if(sim->enable_clmbcol) {
             real nu = 1;
-            //mccc_collfreq_gc(p, &sim->B_data, &sim->plasma_data, sim->coldata, &nu, i);
+            /*mccc_collfreq_gc(p, &sim->B_data, &sim->plasma_data,
+                sim->coldata, &nu, i); */
 
             /* Only small angle collisions so divide this by 100 */
             real colltime = 1/(100*nu);
@@ -308,4 +364,59 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
         }
     }
     return h;
+}
+
+
+/**
+ * Recalculate acceleration factor.
+ *
+ * The acceleration is updated when crossing OMP. During the first crossing,
+ * the counter for orbit time is started. For the next crossing, we check if
+ * OMP was crossed in the same direction as first. If not, the crossing is
+ * ignored and for the third crossing we check the direction again. If this is
+ * not in the same direction as the first, the counters are nullified,
+ * acceleration is set to one, and the process is started again. This way we can
+ * account both for passing and banana particles, and for the cases where
+ * collisions have changed the orbit topology.
+ *
+ * When we have two suitable crossings, the acceleration factor is updated and
+ * the counter for the orbit time and crossings are nullified.
+ */
+void recalculate_acceleration(
+    Acceleration* acc, sim_data* sim, particle_simd_gc* p, particle_simd_gc* p0)
+{
+    real rz[2];
+    real SAFETY_FACTOR = (float)sim->enable_ada / 1000.0;
+    for(int i = 0; i < NSIMD; i++) {
+        B_field_get_axis_rz(rz, &sim->B_data, p->phi[i]);
+        int omp_crossed = ((p->z[i] - rz[1]) * (p0->z[i] - rz[1]) < 0) &&
+            p->r[i] > rz[0];
+        if(omp_crossed && acc->cross[i].crossed_twice) {
+            if( ((float)acc->cross[i].first_ppar - 0.5) * p->ppar[i] > 0 ) {
+                acc->acc[i] = fmax(1.0, SAFETY_FACTOR / (acc->orbittime[i] * acc->collfreq[i]));
+            }
+            else {
+                acc->acc[i] = 1;
+            }
+            acc->cross[i].crossed_once = 1;
+            acc->cross[i].crossed_twice = 0;
+            acc->cross[i].first_ppar = p->ppar[i] > 0;
+            acc->orbittime[i] = 0;
+        }
+        else if(omp_crossed && acc->cross[i].crossed_once) {
+            acc->cross[i].crossed_twice = 1;
+            if( ((float)acc->cross[i].first_ppar - 0.5) * p->ppar[i] > 0 ) {
+                acc->acc[i] = fmax(1.0, SAFETY_FACTOR / (acc->orbittime[i] * acc->collfreq[i]));
+                acc->cross[i].crossed_once = 1;
+                acc->cross[i].crossed_twice = 0;
+                acc->cross[i].first_ppar = p->ppar[i] > 0;
+                acc->orbittime[i] = 0;
+            }
+        }
+        else if(omp_crossed) {
+            acc->cross[i].crossed_once = 1;
+            acc->cross[i].first_ppar = p->ppar[i] > 0;
+            acc->orbittime[i] = 0;
+        }
+    }
 }

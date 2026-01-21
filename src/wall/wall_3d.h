@@ -28,8 +28,9 @@ typedef struct {
     int ngrid;           /**< Number of cells computational volume is divided
                               to in each direction. ngrid = 2^(depth-1)       */
     real* wall_tris;     /**< Array of wall triangle coordinates */
+    int* flag;           /**< Array of wall triangle flags                    */
 
-    /**@brief Array storing information what triangles given octree cell stores
+    /** @brief Array storing information what triangles given octree cell stores
      *
      * First ncell elements store the array position where data for a given cell
      * begins, where the cell index is icell = ix * ngrid**2 + iy * ngrid + iz.
@@ -42,7 +43,7 @@ typedef struct {
 } wall_3d_data;
 
 int wall_3d_init(wall_3d_data* data, int nelements, real* x1x2x3, real* y1y2y3,
-                 real* z1z2z3);
+                 real* z1z2z3, int* flag);
 void wall_3d_free(wall_3d_data* data);
 void wall_3d_offload(wall_3d_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(w)

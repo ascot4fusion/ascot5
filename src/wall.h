@@ -40,7 +40,12 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(w)
 int wall_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
                   wall_data* w, real* w_coll);
 DECLARE_TARGET_END
-
+GPU_DECLARE_TARGET_SIMD_UNIFORM(w)
+int wall_get_n_elements(wall_data* w);
+DECLARE_TARGET_END
+GPU_DECLARE_TARGET_SIMD_UNIFORM(w)
+int wall_get_flag(wall_data* w, int idx);
+DECLARE_TARGET_END
 GPU_DECLARE_TARGET_SIMD_UNIFORM(w)
 int wall_get_n_elements(wall_data* w);
 DECLARE_TARGET_END

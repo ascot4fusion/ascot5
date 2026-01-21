@@ -630,6 +630,8 @@ def read_data(group, name):
     unit = 1
     if "unit" in group[name].attrs.keys():
         unit_str = group[name].attrs["unit"]
+        if unit_str.lower() == "ev":
+            unit_str = "eV"
         unit     = unyt.Unit(unit_str)
 
     return group[name][:].ravel() * unit
@@ -663,3 +665,23 @@ def _generate_meta():
     desc = "TAG"
 
     return qid, date, desc
+
+def set_note(f, group):
+    """Set note for a group.
+
+    Parameters
+    ----------
+    f : `h5py.File`
+        Open HDF5 file.
+    group : `h5py.Group`
+        Group object.
+    """
+    qid = get_qid(group)
+    grp = get_group(f, qid)
+    current_note = grp.attrs["description"].decode('utf-8')
+    print(f"a5manage: The current note of qid {qid:s} is '{current_note:s}'" )
+    new_note = input("a5manage: Enter the new note (or leave empty to cancel):\n")
+    if new_note == "":
+        print("a5manage: note unchanged")
+    else:
+        grp.attrs["description"] = np.bytes_(new_note)

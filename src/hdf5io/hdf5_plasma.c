@@ -104,7 +104,10 @@ int hdf5_plasma_read_1D(hid_t f, plasma_1D_data* data, char* qid) {
     real* ne = (real*) malloc( n_rho*sizeof(real) );
     real* ni = (real*) malloc( n_rho*n_ions*sizeof(real) );
     real* rho = (real*) malloc( n_rho*sizeof(real) );
+    real* vtor = (real*) malloc( n_rho*sizeof(real) );
     if( hdf5_read_double(PLSPATH "rho", rho,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(PLSPATH "vtor", vtor,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(PLSPATH "etemperature", Te,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
@@ -121,11 +124,12 @@ int hdf5_plasma_read_1D(hid_t f, plasma_1D_data* data, char* qid) {
     }
 
     int err = plasma_1D_init(data, n_rho, n_ions, rho, anum, znum, mass, charge,
-                             Te, Ti, ne, ni);
+                             Te, Ti, ne, ni, vtor);
     free(Te);
     free(Ti);
     free(ne);
     free(ni);
+    free(rho);
     free(znum);
     free(anum);
     free(mass);
@@ -185,6 +189,7 @@ int hdf5_plasma_read_1Dt(hid_t f, plasma_1Dt_data* data, char* qid) {
     if( hdf5_read_double(PLSPATH "time", time,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
+    real* vtor = (real*) malloc( n_time*n_rho*sizeof(real) );
     real* Te = (real*) malloc( n_time*n_rho*sizeof(real) );
     real* Ti = (real*) malloc( n_time*n_rho*sizeof(real) );
     real* ne = (real*) malloc( n_time*n_rho*sizeof(real) );
@@ -192,6 +197,8 @@ int hdf5_plasma_read_1Dt(hid_t f, plasma_1Dt_data* data, char* qid) {
     if( hdf5_read_double(PLSPATH "etemperature", Te,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(PLSPATH "itemperature", Ti,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(PLSPATH "vtor", vtor,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     for(int i_time = 0; i_time < n_time; i_time++) {
@@ -206,11 +213,12 @@ int hdf5_plasma_read_1Dt(hid_t f, plasma_1Dt_data* data, char* qid) {
     if( hdf5_read_double(PLSPATH "idensity", ni,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     int err = plasma_1Dt_init(data, n_rho, n_time, n_ions, rho, time, anum,
-                              znum, mass, charge, Te, Ti, ne, ni);
+                              znum, mass, charge, Te, Ti, ne, ni, vtor);
     free(Te);
     free(Ti);
     free(ne);
     free(ni);
+    free(vtor);
     free(znum);
     free(anum);
     free(mass);
@@ -267,10 +275,13 @@ int hdf5_plasma_read_1DS(hid_t f, plasma_1DS_data* data, char* qid) {
     }
     free(q);
 
+    real* vtor = (real*) malloc( n_rho*sizeof(real) );
     real* Te = (real*) malloc( n_rho*sizeof(real) );
     real* Ti = (real*) malloc( n_rho*sizeof(real) );
     real* ne = (real*) malloc( n_rho*sizeof(real) );
     real* ni = (real*) malloc( n_rho*n_ions*sizeof(real) );
+    if( hdf5_read_double(PLSPATH "vtor", vtor,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(PLSPATH "etemperature", Te,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(PLSPATH "edensity", ne,
@@ -286,12 +297,13 @@ int hdf5_plasma_read_1DS(hid_t f, plasma_1DS_data* data, char* qid) {
     }
 
     int err = plasma_1DS_init(data, n_rho, rhomin, rhomax, n_ions, anum, znum,
-                              mass, charge, Te, Ti, ne, ni);
+                              mass, charge, Te, Ti, ne, ni, vtor);
 
     free(Te);
     free(Ti);
     free(ne);
     free(ni);
+    free(vtor);
     free(znum);
     free(anum);
     free(mass);

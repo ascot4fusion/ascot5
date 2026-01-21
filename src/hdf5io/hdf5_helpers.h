@@ -19,6 +19,8 @@ char* hdf5_generate_qid_path(const char* original, char* qid, char* path);
 char* hdf5_gen_path(const char* original, char* qid, char* path);
 int hdf5_read_double(const char* var, real* ptr, hid_t file, char* qid,
                      const char* errfile, int errline);
+int hdf5_read_short(const char* var, short* ptr, hid_t file, char* qid,
+                    const char* errfile, int errline);
 int hdf5_read_int(const char* var, int* ptr, hid_t file, char* qid,
                   const char* errfile, int errline);
 int hdf5_read_long(const char* var, long* ptr, hid_t file, char* qid,
