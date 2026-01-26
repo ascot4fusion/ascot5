@@ -820,8 +820,8 @@ class Dist(DataContainer):
                 moment.zc.ravel(), np.zeros(moment.rc.ravel().shape)*unyt.s,
                 vnorm, "k", grid=True)
             k = -np.sum(k, axis=0) # Minus because k is from plasma to particle
-            k = k.ravel().reshape(dist._distribution[:,:,:,:,:,i,0].shape)
-            dist._distribution[:,:,:,:,:,i,0] *= k.v
+            k = k.ravel().reshape(dist._distribution[:,:,:,:,:,0,i].shape)
+            dist._distribution[:,:,:,:,:,0,i] *= k.v
 
         dist._distribution *= k.units * mass
         dist.integrate(charge=np.s_[:], time=np.s_[:])
@@ -856,8 +856,8 @@ class Dist(DataContainer):
                 moment.zc.ravel(), np.zeros(moment.rc.ravel().shape)*unyt.s,
                 vnorm, "k", grid=True)
             k = -k[0,:,:] # Minus because k is from plasma to particle
-            k = k.ravel().reshape(dist._distribution[:,:,:,:,:,i,0].shape)
-            dist._distribution[:,:,:,:,:,i,0] *= k.v
+            k = k.ravel().reshape(dist._distribution[:,:,:,:,:,0,i].shape)
+            dist._distribution[:,:,:,:,:,0,i] *= k.v
 
         dist._distribution *= k.units * mass
         dist.integrate(charge=np.s_[:], time=np.s_[:])
@@ -888,8 +888,8 @@ class Dist(DataContainer):
                 moment.zc.ravel(), np.zeros(moment.rc.ravel().shape)*unyt.s,
                 vnorm, "k", grid=True)
             k = -np.sum(k[1:], axis=0) # Minus because k is from plasma to prt
-            k = k.ravel().reshape(dist._distribution[:,:,:,:,:,i,0].shape)
-            dist._distribution[:,:,:,:,:,i,0] *= k.v
+            k = k.ravel().reshape(dist._distribution[:,:,:,:,:,0,i].shape)
+            dist._distribution[:,:,:,:,:,0,i] *= k.v
 
         dist._distribution *= k.units * mass
         dist.integrate(charge=np.s_[:], time=np.s_[:])
@@ -965,7 +965,7 @@ class Dist(DataContainer):
                     v_dot_nabla_psi = vr * dpsidr + vz * dpsidz
                     v_dot_nabla_psi = v_dot_nabla_psi.reshape(moment.volume.shape)
 
-                    dist._distribution[:,:,:,ippa, ippe, iq, 0] *= -(v_dot_nabla_psi * q).v
+                    dist._distribution[:,:,:,ippa, ippe, 0, iq] *= -(v_dot_nabla_psi * q).v
         integrate = {}
         dist._distribution *= (v_dot_nabla_psi * q).units
         if moment.rhodist:
@@ -1010,7 +1010,7 @@ class Dist(DataContainer):
             va = physlib.vnorm_gamma(
                 physlib.gamma_energy( mass, dist.abscissa("ekin") ) )
             pitch = dist.abscissa("pitch")
-            for qa in dist.abscissa("charge"):
+            for iq, qa in enumerate(dist.abscissa("charge")):
                 coefs = ascot.input_eval_collcoefs(
                     mass.to("kg"),
                     qa.to("C"),
@@ -1058,7 +1058,7 @@ class Dist(DataContainer):
                 dPpara = pitch*mass*K + mass*va*dpitch
                 units = dPpara.units
 
-                dist._distribution[:,:,:,:,:,0,0] *= dPpara.v
+                dist._distribution[:,:,:,:,:,0,iq] *= dPpara.v
 
             dist.integrate(ekin=np.s_[:],pitch=np.s_[:], charge=np.s_[:], time=np.s_[:])
 
@@ -1072,7 +1072,7 @@ class Dist(DataContainer):
             va = physlib.vnorm_gamma(
                 physlib.gamma_energy( mass, dist.abscissa("ekin") ) )
             pitch = dist.abscissa("pitch")
-            for qa in dist.abscissa("charge"):
+            for iq, qa in enumerate(dist.abscissa("charge")):
                 coefs = ascot.input_eval_collcoefs(
                     mass.to("kg"),
                     qa.to("C"),
@@ -1115,7 +1115,7 @@ class Dist(DataContainer):
                 dPpara = pitch*mass*K + mass*va*dpitch
                 units = dPpara.units
 
-                dist._distribution[:,:,:,:,:,0,0] *= dPpara.v
+                dist._distribution[:,:,:,:,:,0,iq] *= dPpara.v
 
             dist.integrate(ekin=np.s_[:],pitch=np.s_[:], charge=np.s_[:], time=np.s_[:])
 
