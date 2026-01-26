@@ -6,9 +6,10 @@ from .poincare  import PoincareTemplates
 from .importdata import ImportData
 from .imasinterface import ImportImas
 from .convertascot4 import Ascot4Templates
+from .nextstepfusioninterface import ImportNSF
 
 class Template(AnalyticalInputs, OptionTemplates, PoincareTemplates,
-                ImportData, ImportImas, Ascot4Templates):
+                ImportData, ImportImas, Ascot4Templates, ImportNSF):
     """Class for creating input data from templates or imported data.
 
     The templates are constructed by calling :meth:`construct` and specifying

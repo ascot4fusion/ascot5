@@ -153,6 +153,83 @@ class Injector():
                     axes.quiver(x, y, dx, dy)
             plot(axes=axes)
 
+
+    @staticmethod
+    def generate_circular_beamlets(radius, d=1.0):
+        """
+        Generate a hexagonally packed lattice of points clipped to a circle.
+
+        Parameters
+        ----------
+        radius : float
+            Radius of the circular boundary.
+        d : float, optional
+            Lattice spacing between neighboring points.
+
+        Returns
+        -------
+        x : ndarray
+            x-coordinates of all lattice points inside the circle.
+        y : ndarray
+            y-coordinates of all lattice points inside the circle.
+
+        Notes
+        -----
+        The lattice is a triangular (hexagonal) grid: each row is offset by
+        half a horizontal spacing to form the hex pattern.
+        """
+        dy = d* np.sqrt(3) / 2
+        ny = int(np.floor(radius / dy))
+
+        xall = []
+        yall = []
+
+        for i in range(-ny, ny + 1):
+            y = dy * i
+            # horizontal half-width at this y
+            if i % 2 == 0:
+                nx = int(np.floor(np.sqrt(radius**2 - y**2) / d))
+                x = np.arange(-nx, nx + 1) * d
+            else:
+                nx = int(np.floor((np.sqrt(radius**2 - y**2) - d/2) / d))
+                x = (np.arange(-nx, nx+2) - 0.5) * d
+
+            xall.append(x)
+            yall.append(np.full_like(x, y, dtype="f8"))
+
+        return np.concatenate(xall), np.concatenate(yall)
+
+
+    @staticmethod
+    def generate_rectangular_beamlets(width, height, d):
+        """
+        Return arrays of x,y coordinates for a square lattice inside the
+        rectangle.
+
+        Parameters
+        ----------
+        width : float
+            Width of the rectangle.
+        height : float
+            Height of the rectangle.
+        d : float
+            Lattice spacing.
+
+        Returns
+        -------
+        x : ndarray
+            x-coordinates of all lattice points inside the rectangle.
+        y : ndarray
+            y-coordinates of all lattice points inside the rectangle.
+        """
+        dw, dh = (width % d) / 2, (height % d) / 2
+        nw, nh = int(np.floor(width / d).v), int(np.floor(height / d).v)
+        xs = dw + np.linspace(-width/2, width/2, nw)
+        ys = dh + np.linspace(-height/2, height/2, nh)
+        X, Y = np.meshgrid(xs, ys)
+        return X.ravel(), Y.ravel()
+
+
 class NBI(DataGroup):
     """Object representing a bundle of injectors used as an input in BBNBI.
 

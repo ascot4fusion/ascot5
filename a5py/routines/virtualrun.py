@@ -43,6 +43,8 @@ class VirtualRun(RunMixin, ExportIMAS):
         dist5drho : array_like, optional
             The diagnostics array containing the 5D rhodist data, if present.
         """
+        self._root = type("Dummy", (object,), {})()
+        self._root._ascot = ascot
         self.options = options
         self.markers = markers
         # There's a need for better solution here in case inputs are provided
