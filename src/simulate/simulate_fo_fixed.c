@@ -23,7 +23,20 @@
 #include "step/step_fo_vpa.h"
 #include "mccc/mccc.h"
 #include "atomic.h"
+#include <nvtx3/nvToolsExt.h>
+#include "../nvtx_colors.h"
 
+static inline void nvtxPushColorA(const char* msg, uint32_t argb)
+{
+    nvtxEventAttributes_t attr = {0};
+    attr.version = NVTX_VERSION;
+    attr.size    = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
+    attr.messageType = NVTX_MESSAGE_TYPE_ASCII;
+    attr.message.ascii = msg;
+    attr.colorType = NVTX_COLOR_ARGB;
+    attr.color = argb;
+    nvtxRangePushEx(&attr);
+}
 DECLARE_TARGET_SIMD_UNIFORM(sim)
 real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i);
 
@@ -92,10 +105,13 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     GPU_MAP_TO_DEVICE(hin[0:mrk_array_size], rnd[0:3*mrk_array_size])
     while(n_running > 0) {
         /* Store marker states */
+        nvtxPushColorA("Full time step",NVTX_COLOR_RED);
+        nvtxPushColorA("Particle copy",NVTX_COLOR_BLUE);
         GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < p.n_mrk; i++) {
             particle_copy_fo(&p, i, &p0, i);
         }
+	nvtxRangePop();
         /*************************** Physics **********************************/
 
         /* Set time-step negative if tracing backwards in time */
@@ -114,8 +130,10 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
                     &sim->mhd_data, sim->enable_aldforce);
             }
             else {
+	        nvtxPushColorA("step Full Orbit",NVTX_COLOR_GREEN);
                 step_fo_vpa(&p, hin, &sim->B_data, &sim->E_data,
                             sim->enable_aldforce);
+		nvtxRangePop();
             }
         }
 
@@ -153,12 +171,16 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         cputime_last = cputime;
 
         /* Check possible end conditions */
+	nvtxPushColorA("Check end condition",NVTX_COLOR_ORANGE);
         endcond_check_fo(&p, &p0, sim);
+	nvtxRangePop();
 
         /* Update diagnostics */
         if(!(sim->record_mode)) {
             /* Record particle coordinates */
+	    nvtxPushColorA("Diagnostics",NVTX_COLOR_PURPLE);
             diag_update_fo(&sim->diag_data, &sim->B_data, &p, &p0);
+   	    nvtxRangePop();
         }
         else {
             /* Instead of particle coordinates we record guiding center */
@@ -208,6 +230,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
             }
         }
 #endif
+	nvtxRangePop();
     }
     /* All markers simulated! */
 #ifdef GPU
