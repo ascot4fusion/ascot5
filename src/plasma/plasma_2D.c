@@ -80,7 +80,7 @@ int plasma_2D_init(plasma_2D_data* data, int nr, int nz, int nion,
 
         c = (real*) malloc(nr * nz * sizeof(real));
         for(int j = 0; j < nr * nz; j++) {
-            c[j] = ni[j + i * nion];
+            c[j] = ni[i * (nr * nz) + j];
         }
         linint2D_init(
             &data->dens[i+1], c, nr, nz, NATURALBC, NATURALBC, r_min, r_max,
