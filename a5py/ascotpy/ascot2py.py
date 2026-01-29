@@ -782,39 +782,40 @@ class struct_c__SA_particle_simd_gc(Structure):
 
 struct_c__SA_particle_simd_gc._pack_ = 1 # source:False
 struct_c__SA_particle_simd_gc._fields_ = [
-    ('r', ctypes.c_double * 16),
-    ('phi', ctypes.c_double * 16),
-    ('z', ctypes.c_double * 16),
-    ('ppar', ctypes.c_double * 16),
-    ('mu', ctypes.c_double * 16),
-    ('zeta', ctypes.c_double * 16),
-    ('mass', ctypes.c_double * 16),
-    ('charge', ctypes.c_double * 16),
-    ('time', ctypes.c_double * 16),
-    ('B_r', ctypes.c_double * 16),
-    ('B_phi', ctypes.c_double * 16),
-    ('B_z', ctypes.c_double * 16),
-    ('B_r_dr', ctypes.c_double * 16),
-    ('B_phi_dr', ctypes.c_double * 16),
-    ('B_z_dr', ctypes.c_double * 16),
-    ('B_r_dphi', ctypes.c_double * 16),
-    ('B_phi_dphi', ctypes.c_double * 16),
-    ('B_z_dphi', ctypes.c_double * 16),
-    ('B_r_dz', ctypes.c_double * 16),
-    ('B_phi_dz', ctypes.c_double * 16),
-    ('B_z_dz', ctypes.c_double * 16),
-    ('bounces', ctypes.c_int32 * 16),
-    ('weight', ctypes.c_double * 16),
-    ('cputime', ctypes.c_double * 16),
-    ('rho', ctypes.c_double * 16),
-    ('theta', ctypes.c_double * 16),
-    ('id', ctypes.c_int64 * 16),
-    ('endcond', ctypes.c_int64 * 16),
-    ('walltile', ctypes.c_int64 * 16),
-    ('mileage', ctypes.c_double * 16),
-    ('running', ctypes.c_int64 * 16),
-    ('err', ctypes.c_uint64 * 16),
-    ('index', ctypes.c_int64 * 16),
+    ('r', ctypes.POINTER(ctypes.c_double)),
+    ('phi', ctypes.POINTER(ctypes.c_double)),
+    ('z', ctypes.POINTER(ctypes.c_double)),
+    ('ppar', ctypes.POINTER(ctypes.c_double)),
+    ('mu', ctypes.POINTER(ctypes.c_double)),
+    ('zeta', ctypes.POINTER(ctypes.c_double)),
+    ('mass', ctypes.POINTER(ctypes.c_double)),
+    ('charge', ctypes.POINTER(ctypes.c_double)),
+    ('time', ctypes.POINTER(ctypes.c_double)),
+    ('B_r', ctypes.POINTER(ctypes.c_double)),
+    ('B_phi', ctypes.POINTER(ctypes.c_double)),
+    ('B_z', ctypes.POINTER(ctypes.c_double)),
+    ('B_r_dr', ctypes.POINTER(ctypes.c_double)),
+    ('B_phi_dr', ctypes.POINTER(ctypes.c_double)),
+    ('B_z_dr', ctypes.POINTER(ctypes.c_double)),
+    ('B_r_dphi', ctypes.POINTER(ctypes.c_double)),
+    ('B_phi_dphi', ctypes.POINTER(ctypes.c_double)),
+    ('B_z_dphi', ctypes.POINTER(ctypes.c_double)),
+    ('B_r_dz', ctypes.POINTER(ctypes.c_double)),
+    ('B_phi_dz', ctypes.POINTER(ctypes.c_double)),
+    ('B_z_dz', ctypes.POINTER(ctypes.c_double)),
+    ('bounces', ctypes.POINTER(ctypes.c_int32)),
+    ('weight', ctypes.POINTER(ctypes.c_double)),
+    ('cputime', ctypes.POINTER(ctypes.c_double)),
+    ('rho', ctypes.POINTER(ctypes.c_double)),
+    ('theta', ctypes.POINTER(ctypes.c_double)),
+    ('id', ctypes.POINTER(ctypes.c_int64)),
+    ('endcond', ctypes.POINTER(ctypes.c_int64)),
+    ('walltile', ctypes.POINTER(ctypes.c_int64)),
+    ('mileage', ctypes.POINTER(ctypes.c_double)),
+    ('running', ctypes.POINTER(ctypes.c_int64)),
+    ('err', ctypes.POINTER(ctypes.c_uint64)),
+    ('index', ctypes.POINTER(ctypes.c_int64)),
+    ('n_mrk', ctypes.c_uint64),
 ]
 
 particle_simd_gc = struct_c__SA_particle_simd_gc
@@ -857,6 +858,9 @@ particle_simd_ml = struct_c__SA_particle_simd_ml
 particle_allocate_fo = _libraries['libascot.so'].particle_allocate_fo
 particle_allocate_fo.restype = None
 particle_allocate_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.c_int32]
+particle_allocate_gc = _libraries['libascot.so'].particle_allocate_gc
+particle_allocate_gc.restype = None
+particle_allocate_gc.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.c_int32]
 particle_to_fo_dummy = _libraries['libascot.so'].particle_to_fo_dummy
 particle_to_fo_dummy.restype = None
 particle_to_fo_dummy.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.c_int32]
@@ -893,6 +897,12 @@ particle_offload_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo)]
 particle_onload_fo = _libraries['libascot.so'].particle_onload_fo
 particle_onload_fo.restype = None
 particle_onload_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_fo)]
+particle_offload_gc = _libraries['libascot.so'].particle_offload_gc
+particle_offload_gc.restype = None
+particle_offload_gc.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_gc)]
+particle_onload_gc = _libraries['libascot.so'].particle_onload_gc
+particle_onload_gc.restype = None
+particle_onload_gc.argtypes = [ctypes.POINTER(struct_c__SA_particle_simd_gc)]
 particle_state_to_fo = _libraries['libascot.so'].particle_state_to_fo
 particle_state_to_fo.restype = a5err
 particle_state_to_fo.argtypes = [ctypes.POINTER(struct_c__SA_particle_state), ctypes.c_int32, ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.c_int32, ctypes.POINTER(struct_c__SA_B_field_data)]
@@ -2262,7 +2272,7 @@ struct_c__SA_sim_data._fields_ = [
     ('nbi_data', nbi_data),
     ('diag_data', diag_data),
     ('rfof_data', rfof_data),
-    ('random_data', ctypes.POINTER(None)),
+    ('random_data', ctypes.POINTER(ctypes.POINTER(None))),
     ('mccc_data', struct_c__SA_mccc_data),
     ('sim_mode', ctypes.c_int32),
     ('enable_ada', ctypes.c_int32),
@@ -2683,16 +2693,17 @@ __all__ = \
     'neutral_eval_n0', 'neutral_eval_t0', 'neutral_free',
     'neutral_get_n_species', 'neutral_offload', 'neutral_type',
     'neutral_type_1D', 'neutral_type_3D', 'offload_and_simulate',
-    'particle', 'particle_allocate_fo', 'particle_copy_fo',
-    'particle_copy_gc', 'particle_copy_ml', 'particle_cycle_fo',
-    'particle_cycle_gc', 'particle_cycle_ml', 'particle_fo_to_gc',
-    'particle_fo_to_state', 'particle_gc', 'particle_gc_to_state',
-    'particle_input_gc_to_state', 'particle_input_ml_to_state',
-    'particle_input_p_to_state', 'particle_input_to_state',
-    'particle_ml', 'particle_ml_to_state', 'particle_offload_fo',
-    'particle_onload_fo', 'particle_queue', 'particle_simd_fo',
-    'particle_simd_gc', 'particle_simd_ml', 'particle_state',
-    'particle_state_to_fo', 'particle_state_to_gc',
+    'particle', 'particle_allocate_fo', 'particle_allocate_gc',
+    'particle_copy_fo', 'particle_copy_gc', 'particle_copy_ml',
+    'particle_cycle_fo', 'particle_cycle_gc', 'particle_cycle_ml',
+    'particle_fo_to_gc', 'particle_fo_to_state', 'particle_gc',
+    'particle_gc_to_state', 'particle_input_gc_to_state',
+    'particle_input_ml_to_state', 'particle_input_p_to_state',
+    'particle_input_to_state', 'particle_ml', 'particle_ml_to_state',
+    'particle_offload_fo', 'particle_offload_gc',
+    'particle_onload_fo', 'particle_onload_gc', 'particle_queue',
+    'particle_simd_fo', 'particle_simd_gc', 'particle_simd_ml',
+    'particle_state', 'particle_state_to_fo', 'particle_state_to_gc',
     'particle_state_to_ml', 'particle_to_fo_dummy',
     'particle_to_gc_dummy', 'particle_to_ml_dummy', 'plasma_1DS_data',
     'plasma_1DS_eval_dens', 'plasma_1DS_eval_densandtemp',
