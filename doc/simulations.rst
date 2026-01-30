@@ -294,11 +294,15 @@ Examples
      - Xeon-Phi, 10 nodes (MARCONI)
      - :math:`1\times10^6`
      - 24 h
-   * - Alpha particle slowing-down in 3D
+   * - Alpha particle slowing-down in 3D until LCFS, R=20 m
      - 2 x AMD Rome 7H12 per node, 20 nodes (Mahti)
-     - :math:`4\times10^6`
-     - 25-50 h (depending on plasma)
-   * -
-     -
-     -
-     -
+     - :math:`4\times10^6` GC
+     - 25-50 h (depending on collisionality)
+   * - Alpha particle wall load in 3D, starting at LCFS, R=20 m
+     - 2 x AMD Rome 7H12 per node, 20 nodes (Mahti)
+     - :math:`2\times10^6` FO
+     - 0.5 h
+   * - Alpha particle slowing-down in 3D until LCFS, R=20 m
+     - 2 x AMD Rome 7H12 per node, 200 nodes (Mahti)
+     - :math:`8\times10^6` FO
+     - 60 h (depends on collisionality)
