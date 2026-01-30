@@ -118,6 +118,16 @@ int B_3DS_init(B_3DS_data* data,
     data->axis_r = axis_r;
     data->axis_z = axis_z;
 
+    size_t nB = (size_t)b_n_r * b_n_phi * b_n_z;
+    
+    data->B_r_finp   = malloc(nB*sizeof(real));
+    data->B_phi_finp = malloc(nB*sizeof(real));
+    data->B_z_finp   = malloc(nB*sizeof(real));
+    
+    memcpy(data->B_r_finp,   B_r,   nB*sizeof(real));
+    memcpy(data->B_phi_finp, B_phi, nB*sizeof(real));
+    memcpy(data->B_z_finp,   B_z,   nB*sizeof(real));
+    
     /* Set up the splines */
     err = interp2Dcomp_setup(&data->psi, psi, p_n_r, p_n_z,
                              NATURALBC, NATURALBC,
@@ -193,6 +203,10 @@ void B_3DS_free(B_3DS_data* data) {
     free(data->B_r.c);
     free(data->B_phi.c);
     free(data->B_z.c);
+    free(data->B_r_finp);
+    free(data->B_phi_finp);
+    free(data->B_z_finp);
+    
 }
 
 /**
@@ -366,24 +380,41 @@ a5err B_3DS_eval_B_dB(real B_dB[12], real r, real phi, real z,
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
     real B_dB_temp[10];
+    real grad[3];
+    real f_spl;
+    
+    //interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_r, r, phi, z);
+    //B_dB[0] = B_dB_temp[0];
+    //B_dB[1] = B_dB_temp[1];
+    //B_dB[2] = B_dB_temp[2];
+    //B_dB[3] = B_dB_temp[3];
+    interperr += interp3Dquad_eval_f_and_grad(&f_spl, grad, &Bdata->B_r, Bdata->B_r_finp, r, phi, z);
+    B_dB[0] = f_spl;
+    B_dB[1] = grad[0];
+    B_dB[2] = grad[1];
+    B_dB[3] = grad[2];
 
-    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_r, r, phi, z);
-    B_dB[0] = B_dB_temp[0];
-    B_dB[1] = B_dB_temp[1];
-    B_dB[2] = B_dB_temp[2];
-    B_dB[3] = B_dB_temp[3];
+    //interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_phi, r, phi, z);
+    //B_dB[4] = B_dB_temp[0];
+    //B_dB[5] = B_dB_temp[1];
+    //B_dB[6] = B_dB_temp[2];
+    //B_dB[7] = B_dB_temp[3];
+    interperr += interp3Dquad_eval_f_and_grad(&f_spl, grad, &Bdata->B_phi, Bdata->B_phi_finp, r, phi, z);
+    B_dB[4] = f_spl;
+    B_dB[5] = grad[0];
+    B_dB[6] = grad[1];
+    B_dB[7] = grad[2];
 
-    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_phi, r, phi, z);
-    B_dB[4] = B_dB_temp[0];
-    B_dB[5] = B_dB_temp[1];
-    B_dB[6] = B_dB_temp[2];
-    B_dB[7] = B_dB_temp[3];
-
-    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_z, r, phi, z);
-    B_dB[8] = B_dB_temp[0];
-    B_dB[9] = B_dB_temp[1];
-    B_dB[10] = B_dB_temp[2];
-    B_dB[11] = B_dB_temp[3];
+    //interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_z, r, phi, z);    
+    //B_dB[8] = B_dB_temp[0];
+    //B_dB[9] = B_dB_temp[1];
+    //B_dB[10] = B_dB_temp[2];
+    //B_dB[11] = B_dB_temp[3];
+    interperr += interp3Dquad_eval_f_and_grad(&f_spl, grad, &Bdata->B_z, Bdata->B_z_finp, r, phi, z);
+    B_dB[8] = f_spl;
+    B_dB[9] = grad[0];
+    B_dB[10] = grad[1];
+    B_dB[11] = grad[2];
 
     /* Test for B field interpolation error */
     if(interperr) {

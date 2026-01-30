@@ -231,6 +231,10 @@ void interp3Dcomp_init_spline(interp3D_data* str, real* c,
     str->z_max  = z_max;
     str->z_grid = z_grid;
     str->c      = c;
+    str->x_inv_grid = 1.0 / str->x_grid;
+    str->y_inv_grid = 1.0 / str->y_grid;
+    str->z_inv_grid = 1.0 / str->z_grid;
+
 }
 
 /**

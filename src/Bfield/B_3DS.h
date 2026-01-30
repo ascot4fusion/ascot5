@@ -21,6 +21,10 @@ typedef struct {
     interp3D_data B_r;   /**< 3D B_r interpolation data struct                */
     interp3D_data B_phi; /**< 3D B_phi interpolation data struct              */
     interp3D_data B_z;   /**< 3D B_z interpolation data struct                */
+    real* B_r_finp;
+    real* B_phi_finp;
+    real* B_z_finp;
+
 } B_3DS_data;
 
 int B_3DS_init(B_3DS_data* data,
