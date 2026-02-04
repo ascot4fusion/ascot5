@@ -162,6 +162,18 @@ class plasma_1D(DataGroup):
                 y1legends=y1legends, y2label=r"Temperature [eV]",
                 y2legends=[r"$T_e$", r"$T_i$"], axes=axes, title=self.get_desc())
 
+    def get_zeff(self):
+        """Get effective charge."""
+        pls = self.read()
+        ne = np.sum(pls["charge"] * pls["idensity"].T, axis=0)
+        zeff = np.sum(pls["charge"]**2 * pls["idensity"].T, axis=0) / ne
+        return zeff
+
+    def get_quasineutrality(self):
+        """Get the level of quasi neutrality."""
+        pls = self.read()
+        return np.sum(pls["charge"] * pls["idensity"].T, axis=0) / pls["edensity"].ravel()
+
     @staticmethod
     def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rho, vtor,
                    edensity, etemperature, idensity, itemperature, desc=None):
