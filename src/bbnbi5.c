@@ -163,6 +163,9 @@ void bbnbi_inject_markers(particle_state* p, int nprt, int ngenerated, real t0,
             math_xyz2rpz(xyz, rpz);
             err = B_field_eval_psi(&psi, rpz[0], rpz[1], rpz[2], time,
                                    &sim->B_data);
+            if(xyz[0]*xyz[0] + xyz[1]*xyz[1] + xyz[2]*xyz[2] > 1e3) {
+                break;
+            }
         }
 
         real vrpz[3];
