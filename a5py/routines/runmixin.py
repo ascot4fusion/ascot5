@@ -823,6 +823,24 @@ class RunMixin(DistMixin):
             Dist.collTorque(self._root._ascot, mass, dist, out)
         #if "canmomtorque" in moments:
         #    Dist.canMomentTorque(dist, out)
+        if "thermalsource" in moments:
+            thermalized = ["THERMAL", "EMIN"]
+            weight = self.getstate("weight", endcond=thermalized)
+            if "rho" in dist.abscissae:
+                rho, theta, phi = self.getstate("rho", "thetamod", "phimod", state="end", endcond=thermalized)
+                hist = np.histogramdd(
+                    (rho, theta, phi),
+                    weights=weight,
+                    bins=(dist.abscissa_edges("rho"), dist.abscissa_edges("theta"), dist.abscissa_edges("phi")),
+                    )[0]
+            else:
+                r, phi, z = self.getstate("r", "phimod", "z", state="end", endcond=thermalized)
+                hist = np.histogramdd(
+                    (r, phi, z),
+                    weights=weight,
+                    bins=(dist.abscissa_edges("r"), dist.abscissa_edges("phi"), dist.abscissa_edges("z")),
+                    )[0]
+            out.add_ordinates(thermalsource=hist * (unyt.particles / unyt.s) /out.volume)
         return out
 
     def getdist_list(self, show=True):
