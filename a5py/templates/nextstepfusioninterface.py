@@ -28,7 +28,7 @@ class ImportNSF():
             "r": x_limiter / 100,
             "z": y_limiter / 100,
             }
-        return ("Wall_2D", out)
+        return ("wall_2D", out)
 
 
     def nsf_plasma(
@@ -77,9 +77,11 @@ class ImportNSF():
         itemperature = np.append(itemperature, itemperature[-1])
 
         edensity = electron_density_profile * 1e19
-        edensity = np.append(edensity, edensity[-1])
+        edensity = np.append(edensity, edensity[-1] / 1e10)
 
         # Calculate impurity fraction assuming C12
+        if zeff <= 1.0:
+            zeff = 1.000001
         nc = (zeff - 1) * edensity / (6**2 - 6)
         nh = edensity - 6*nc
         idensity = np.zeros((rho.size, 2))
@@ -87,10 +89,10 @@ class ImportNSF():
         idensity[:,1] = nc
         out = {
             "nrho": int(rho.size),
-            "nion": 1,
+            "nion": 2,
             "anum": np.array([2, 12]),
             "znum": np.array([1, 6]),
-            "mass": np.array([1.008]),
+            "mass": np.array([1.008, 12.000]),
             "charge": np.array([1.0, 6.0]),
             "rho": rho,
             "vtor": rho * 0,
@@ -99,7 +101,7 @@ class ImportNSF():
             "idensity": idensity,
             "itemperature": itemperature,
             }
-        return ("Plasma_1D", out)
+        return ("plasma_1D", out)
 
 
     def nsf_bfield(
@@ -141,6 +143,7 @@ class ImportNSF():
         """
         r = x_psi.ravel()
         bphi = np.tile(b0 * magnetic_center[0] / r, (y_psi.size,1)).T
+        scale = 1e5
         out = {
             "rmin": x_psi[0],
             "rmax": x_psi[-1],
@@ -150,9 +153,9 @@ class ImportNSF():
             "nz": y_psi.size,
             "axisr": magnetic_center[0],
             "axisz": magnetic_center[1],
-            "psi": psi,
-            "psi0": psi_axis,
-            "psi1": psi_separatrix,
+            "psi": psi / scale,
+            "psi0": psi_axis / scale,
+            "psi1": psi_separatrix / scale,
             "br": psi * 0,
             "bphi": bphi,
             "bz": psi * 0,
