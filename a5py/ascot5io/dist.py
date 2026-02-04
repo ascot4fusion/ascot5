@@ -775,6 +775,7 @@ class Dist(DataContainer):
             clogee = 31.3 - np.log(np.sqrt(ne/unyt.m**3)/(te/unyt.eV))
             q, _, _, ftrap = ascot.input_eval_safetyfactor(
                 rho, return_ftrap=True)
+            q = np.abs(q)
             aspectratio = np.sqrt(moment.rc.ravel()/rminor)
             F = Z/zeff
 
