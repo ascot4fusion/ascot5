@@ -19,6 +19,8 @@
 #include "error.h"
 #include "suzuki.h"
 
+#define N_IMPURITY_DATA 7
+
 /**
  * @brief Fitting parameters for Aijk in equation 28.
  *
@@ -75,7 +77,7 @@ real Zeffmax_imp[] = { 2.1, 5.0, 6.0, 5.0, 5.0, 5.0, 5.0 };
  *
  * See the note in the high energy table.
  */
-real B_highE[7][12] = {
+real B_highE[N_IMPURITY_DATA][12] = {
     {  0.231,     0.343,    -0.185,    -0.162e-1,  0.105,    -0.703e-1,
        0.531e-1,  0.342e-2, -0.838e-2,  0.415e-2, -0.335e-2, -0.221e-3 },
     { -0.101e1,  -0.865e-2, -0.124,    -0.145e-1,  0.391,     0.161e-1,
@@ -106,7 +108,7 @@ real B_highE[7][12] = {
  * Note: Li and Be are same in Suzuki's paper. Until it is known what the
  * correct values are, these are disabled.
  */
-real B_lowE[7][12] = {
+real B_lowE[N_IMPURITY_DATA][12] = {
     { -0.792,     0.420e-1,  0.530e-1,  -0.139e-1,  0.301,    -0.264e-1,
       -0.299e-1,  0.607e-2,  0.272e-3,   0.611e-2,  0.347e-2, -0.919e-3 },
     {  0.161,     0.598e-1, -0.336e-2,  -0.426e-2, -0.157,    -0.396e-1,
@@ -219,7 +221,7 @@ a5err suzuki_sigmav(real* sigmav, real EperAmu, real vnorm, real ne, real te,
     real sigma_Z = 0, numerator = 0, denominator = 0;
     for(int i = 0; i < n_Z; i++) {
         int ind_B = -1;
-        for(int j = 0; j < 9; j++) {
+        for(int j = 0; j < N_IMPURITY_DATA; j++) {
             if(Z_imp[j] == znum[ind_Z[i]] && Zeff > Zeffmin_imp[j]
                && Zeff < Zeffmax_imp[j]) {
                 ind_B = j;
@@ -254,3 +256,5 @@ a5err suzuki_sigmav(real* sigmav, real EperAmu, real vnorm, real ne, real te,
     if(err) { *sigmav = 0.0; }
     return err;
 }
+
+#undef N_IMPURITY_DATA
