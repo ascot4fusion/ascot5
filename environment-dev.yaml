@@ -18,7 +18,7 @@ dependencies:
   - h5py
   - mpi4py
   - xmlschema
-  - unyt
+  - unyt<3.1
   - wurlitzer
   - matplotlib
   - pyvista
