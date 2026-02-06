@@ -246,7 +246,8 @@ a5err suzuki_sigmav(real* sigmav, real EperAmu, real vnorm, real ne, real te,
                + B[ind_B][10] * logE * logE * logN
                + B[ind_B][11] * logE * logE * logN * U);
     }
-    sigma_Z = numerator / denominator;
+    if(denominator > 0)
+        sigma_Z = numerator / denominator;
 
     /* Equation 24 and convert cm^2 to m^2*/
     *sigmav = sigma_H * (1 + (Zeff - 1) * sigma_Z) * 1e-4;
