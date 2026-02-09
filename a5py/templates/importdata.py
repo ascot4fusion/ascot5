@@ -11,6 +11,7 @@ from a5py.physlib import cocos as cocosmod
 from a5py.physlib import species as physlibspecies
 from a5py.ascot5io.wall import wall_3D
 from a5py.ascot5io.nbi import Injector
+from matplotlib.path import Path
 
 try:
     import adas
@@ -1250,8 +1251,8 @@ class ImportData():
                         - np.matmul(rmnc[i,:]*np.cos(xmt), np.sin(xnz).T))
         return f
     @staticmethod
-    def vmec_field(ncfile,phimin=0,phimax=361,nphi=361,ntheta=120,
-                   nr=100,nz=100,psipad=0.0, extrapolate=True):
+    def vmec_field(ncfile,phimin=0,phimax=360,nphi=360,ntheta=120,
+                   nr=100,nz=100,psipad=0.0, psifill_factor = 1.0, extrapolate=True):
         """Load magnetic field data from a VMEC equilibrium.
 
         Notes
@@ -1296,6 +1297,9 @@ class ImportData():
            Number of vertical coordinate Z grid points. Default = 100.
         psipad : float, optional
            Padding to slightly alter flux on axis.
+        psifill_factor : float, optional
+            Factor to multiply psi1 (LCFS value) for filling regions outside LCFS.
+            Default = 1.0 (use psi1 directly). Values > 1.0 extend the flux value beyond the LCFS boundary.
         extrapolate : boolean, optional
             Whether to extrapolate the magnetic field outside LCFS (nearest
             extrapolation) or not. Without extrapolation B is set to zero
@@ -1343,8 +1347,9 @@ class ImportData():
         theta = np.linspace(0, 2.0 * np.pi, ntheta)  # rad
 
         # toroidal angle array
-        # note phi should start at 0 and end on 360, inclusive
-        phi = np.deg2rad(np.linspace(phimin, phimax, nphi, endpoint=True))  # rad
+        # endpoint neglected to avoid duplicate point at 2pi due to periodicity
+        phi = np.deg2rad(np.linspace(phimin, phimax, nphi, endpoint=False))  # rad
+
         # derivatives
         rumns = rmnc * (-1 * xm)  # drmn*cos(m*u-n*v)/du = -m*rmn*sin(m*u-n*v)
         zumnc = zmns * (xm)  # dzmn*sin(m*u-n*v)/du = m*zmn*cos(m*u-n*v)
@@ -1414,6 +1419,9 @@ class ImportData():
         # toroidal magnetic flux
         psi0 = psi_1d[0]  # axis
         psi1 = psi_1d[-1]  # LCFS
+        fill_psi = psi1*psifill_factor # Here to make sure outside LCFS is larger than psi1 (Default is 1.0, so fill_psi = psi1)
+        if psifill_factor != 1.0:
+            print(f"Psi0={psi0}, Psi1={psi1}, Fill Psi (outside LCFS)={fill_psi}")
         psi_2d = np.tile(psi_1d, (ntheta, 1)).T  # Wb
 
         # interpolate psi, B_R, B_phi, B_Z to cylindircal coordinates
@@ -1424,14 +1432,24 @@ class ImportData():
 
         # interpolate to cylindrical grid, iterate through toroidal angle
         for i in range(nphi):
-            # interpolate data inside VMEC domain
-            print(i)
-            psi[:, :, i] = griddata(
+            # define LCFS boundary at this toroidal angle
+            lcfs_path = Path(np.column_stack((lcfs_r[:, i], lcfs_z[:, i])))
+            
+            # determine which grid points are inside LCFS
+            points = np.column_stack((r_2d.flatten(), z_2d.flatten()))
+            inside = lcfs_path.contains_points(points).reshape(r_2d.shape)
+
+            # interpolate psi inside convex hull of VMEC points
+            psi_slice = griddata(
                 (r_grid[:, :, i].flatten(), z_grid[:, :, i].flatten()),
                 psi_2d.flatten(),
                 (r_2d, z_2d),
-                fill_value=psi1,
-            )
+                method='cubic')
+
+            # fill outside LCFS
+            psi_filled = psi_slice.copy()
+            psi_filled[~inside] = fill_psi 
+            psi[:, :, i] = psi_filled
             br[:, :, i] = griddata(
                 (r_grid[:, :, i].flatten(), z_grid[:, :, i].flatten()),
                 br_grid[:, :, i].flatten(),
@@ -1492,7 +1510,7 @@ class ImportData():
 
         out = {
             "axis_phimin": phimin,  # deg
-            "axis_phimax": np.rad2deg(phi[-1]),  # deg
+            "axis_phimax": phimax,  # deg
             "axis_nphi": nphi,
             "axisr": axis_r,  # m
             "axisz": axis_z,  # m
@@ -1505,7 +1523,7 @@ class ImportData():
             "b_zmax": zmax,  # m
             "b_nz": nz,
             "b_phimin": phimin,  # deg
-            "b_phimax": np.rad2deg(phi[-1]),  # deg
+            "b_phimax": phimax,  # deg 
             "b_nphi": nphi,
             "br": br,  # T
             "bphi": bphi,  # T
@@ -1520,7 +1538,7 @@ class ImportData():
             "psi_zmax": zmax,  # m
             "psi_nz": nz,
             "psi_phimin": phimin,  # deg
-            "psi_phimax": np.rad2deg(phi[-1]),  # deg
+            "psi_phimax": phimax,  # deg 
             "psi_nphi": nphi,
         }
 
