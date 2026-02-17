@@ -61,8 +61,9 @@ class AnalyticalInputs():
 
         return ("B_GS", out)
 
-    def bfield_analytical_step_ripple(self, b2d=None, ncoil=12, rcoil=8.0,
-                                      nphi=180, nperiod=1):
+    def bfield_analytical_step_ripple(
+        self, b2d=None, ncoil=12, router=8.0, rinner=0.75, nphi=180, nperiod=1,
+        ):
         """Create magnetic field ripple assuming rectangular TF-coils as in STEP.
 
         Parameters
@@ -71,8 +72,10 @@ class AnalyticalInputs():
             Dictionary containing B2DS data.
         ncoil : int, optional
             Number of TF-coils.
-        rcoil : float, optional
-            Coil width [m].
+        router : float, optional
+            Position of the outer leg of the coils [m].
+        rinner : float, optional
+            Position of the inner leg of the coils [m].
         nphi : int, optional
             Number of toroidal grid points in the output field.
         nperiod : int, optional
@@ -102,8 +105,10 @@ class AnalyticalInputs():
 
         R, P, Z = np.meshgrid(r, phi, z, indexing='ij')
 
-        dbr   = ( b0 * r0 / R ) * np.power(R/rcoil, ncoil) * np.sin(ncoil * P)
-        dbphi = ( b0 * r0 / R ) * np.power(R/rcoil, ncoil) * np.cos(ncoil * P)
+        dbr   = ( b0 * r0 / R ) * np.sin(ncoil * P) * (
+            np.power(R/router, ncoil) - np.power(rinner/R, ncoil) )
+        dbphi = ( b0 * r0 / R ) * np.cos(ncoil * P)  * (
+            np.power(rinner/R, ncoil) + np.power(R/router, ncoil) )
         dbz   = 0 * P
 
         # Add the 2D components
