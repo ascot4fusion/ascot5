@@ -673,10 +673,6 @@ class ImportImas():
             "etemperature":etemperature,
         }
 
-        pls = self._ascot.data.create_input(
-            "import plasma profiles", dryrun=True, pls=pls,
-            extrapolate=3.0, extrapolate_len=0.001
-            )
         return "plasma_1D", pls
 
     def imas_marker(self, distribution_sources_ids=None):
