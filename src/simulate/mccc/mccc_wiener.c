@@ -72,7 +72,7 @@ void mccc_wiener_offload(mccc_wienarr* w, int mrk_array_size) {
  */
 void mccc_wiener_onload(mccc_wienarr* w, int mrk_array_size) {
     for (int i = 0; i < mrk_array_size; i++) {
-      GPU_UPDATE_FROM_DEVICE( w[i].nextslot] )
+      GPU_UPDATE_FROM_DEVICE( w[i].nextslot )
       GPU_UPDATE_FROM_DEVICE( w[i].time )
       GPU_UPDATE_FROM_DEVICE( w[i].wiener )
      }
