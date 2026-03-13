@@ -769,9 +769,17 @@ class RunMixin(DistMixin):
             nrho   = dist.abscissa_edges("rho").size
             ntheta = dist.abscissa_edges("theta").size
             nphi   = dist.abscissa_edges("phi").size
+            
+            rho_edges = dist.abscissa_edges("rho")
+            minrho = float(rho_edges[0].v)  if hasattr(rho_edges[0],  "v") \
+                else float(rho_edges[0])
+            maxrho = float(rho_edges[-1].v) if hasattr(rho_edges[-1], "v") \
+                else float(rho_edges[-1])
+
             volume, area, r, phi, z = self._root._ascot.input_rhovolume(
                 method=volmethod, tol=1e-1, nrho=nrho, ntheta=ntheta, nphi=nphi,
-                return_area=True, return_coords=True)
+                return_area=True, return_coords=True,
+                minrho=minrho, maxrho=maxrho)
             volume[volume == 0] = 1e-8 # To avoid division by zero
             out = DistMoment(
                 dist.abscissa_edges("rho"), dist.abscissa_edges("theta"),
