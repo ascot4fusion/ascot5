@@ -475,11 +475,25 @@ int hdf5_bfield_read_STS(hid_t f, B_STS_data* data, char* qid) {
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(BPATH "axisz", axisz,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    /* Reading the stellarator options */
+    int Nperiods, stell_sym;
+    if( hdf5_read_int(BPATH "Nperiods", &Nperiods,
+                      f, qid, __FILE__, __LINE__) ) {
+        print_out(VERBOSE_DEBUG, "No Nperiods found, defaulting to 1.\n");
+        Nperiods = -1;
+    }
+    if( hdf5_read_int(BPATH "stell_sym", &stell_sym,
+                      f, qid, __FILE__, __LINE__) ) {
+        print_out(VERBOSE_DEBUG, "No stell_sym found, defaulting to 0.\n");
+        stell_sym = 0;
+    }
+    
     int err = B_STS_init(data, p_n_r, p_r_min, p_r_max,
                          p_n_phi, p_phi_min, p_phi_max, p_n_z, p_z_min, p_z_max,
                          b_n_r, b_r_min, b_r_max, b_n_phi, b_phi_min, b_phi_max,
                          b_n_z, b_z_min, b_z_max, naxis, axis_min, axis_max,
-                         axisr, axisz, psi0, psi1, psi, br, bphi, bz);
+                         axisr, axisz, psi0, psi1, psi, br, bphi, bz, Nperiods, stell_sym);
     free(psi);
     free(br);
     free(bphi);
