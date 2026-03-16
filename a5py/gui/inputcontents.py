@@ -22,18 +22,18 @@ class Field(ContentTab):
 
         xmin_entry = NumEntry(f1, labeltext="R [m]     = ", entrywidth=5,
                               labelwidth=12, anchor="w", defval=0.1)
-        xmax_entry = NumEntry(f1, labeltext="–",    entrywidth=5,
+        xmax_entry = NumEntry(f1, labeltext="-",    entrywidth=5,
                               labelwidth=2, anchor="c", defval=10.0)
-        xnum_entry = NumEntry(f1, labeltext="x",    entrywidth=5,
-                              labelwidth=2, anchor="c", defval=50,
+        xnum_entry = NumEntry(f1, labeltext="resolution:",    entrywidth=5,
+                              labelwidth=12, anchor="c", defval=50,
                               isint=True)
 
         ymin_entry = NumEntry(f1, labeltext="z [m]     = ", entrywidth=5,
                               labelwidth=12, anchor="w", defval=-8.0)
-        ymax_entry = NumEntry(f1, labeltext="–",    entrywidth=5,
+        ymax_entry = NumEntry(f1, labeltext="-",    entrywidth=5,
                               labelwidth=2, anchor="c", defval=8.0)
-        ynum_entry = NumEntry(f1, labeltext="x",    entrywidth=5,
-                              labelwidth=2, anchor="c", defval=50,
+        ynum_entry = NumEntry(f1, labeltext="resolution:",    entrywidth=5,
+                              labelwidth=12, anchor="c", defval=50,
                               isint=True)
 
         xmin_entry.grid(row=0, column=0)

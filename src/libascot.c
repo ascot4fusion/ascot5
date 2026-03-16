@@ -194,31 +194,47 @@ void libascot_B_field_rhotheta2rz(
             continue;
         }
 
-        real a = 0.0, b = 5.0;
         real costh = cos(theta[j]);
         real sinth = sin(theta[j]);
-        for(int i=0; i<maxiter; i++) {
-	    real c = 0.5*(a + b);
-	    real rj = axisrz[0] + c * costh;
-            real zj = axisrz[1] + c * sinth;
-	    if(rj < 0) {
-	        b = c;
-		continue;
-	    }
-	    if( B_field_eval_rho_drho(rhodrho, rj, phi[j], zj, &sim->B_data) ) {
-	        b = c;
-                continue;
-            }
-            if( fabs(rho[j] - rhodrho[0]) < tol ) {
-                r[j] = rj;
-                z[j] = zj;
+        /* Find the limit of the dataset (if it exists) so that we can use it
+         * as a boundary */
+        real maxdist = axisrz[0];
+        real b = 0.0;
+        while(b < maxdist) {
+            b += 0.01;
+            real rj = axisrz[0] + b * costh;
+            real zj = axisrz[1] + b * sinth;
+            if( B_field_eval_rho_drho(rhodrho, rj, phi[j], zj, &sim->B_data)) {
                 break;
             }
-	    if( rho[j] < rhodrho[0]) {
-	        b = c;
-	    } else {
-	        a = c;
-	    }
+            if( rhodrho[0] - rho[j] > 0 ) {
+                break;
+            }
+        }
+
+        real a = 0.0;
+        for(int i=0; i<maxiter; i++) {
+            real c = 0.5*(a + b);
+            real rj = axisrz[0] + c * costh;
+                real zj = axisrz[1] + c * sinth;
+            if(rj < 0) {
+                b = c;
+            continue;
+            }
+            if( B_field_eval_rho_drho(rhodrho, rj, phi[j], zj, &sim->B_data) ) {
+                b = c;
+                    continue;
+                }
+                if( fabs(rho[j] - rhodrho[0]) < tol ) {
+                    r[j] = rj;
+                    z[j] = zj;
+                    break;
+                }
+            if( rho[j] < rhodrho[0]) {
+                b = c;
+            } else {
+                a = c;
+            }
         }
     }
 }
@@ -243,7 +259,7 @@ void libascot_B_field_gradient_descent(
     real rz[2], real phi, real step, real tol, int maxiter, int ascent) {
 
     if(ascent) {
-        step = -1 * step;
+        step = -0.001 * step;
     }
 
     real time = 0.0;

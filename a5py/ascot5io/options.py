@@ -1018,6 +1018,16 @@ class Opt(DataGroup):
 
         return out
 
+    def toxml(self):
+        """Convert options to string in XML format.
+
+        Returns
+        -------
+        opt : str
+            String in XML format containing the options parameters.
+        """
+        return Opt.schema(self.read())[1]
+
     def new(self, desc=None, **kwargs):
         """Write new options with updated parameters.
 
@@ -1655,7 +1665,12 @@ class Opt(DataGroup):
             {doc('TRANSCOEF_RECORDRHO', 'IntegerBinary')}
             </xs:schema>""")
         schema = xmlschema.XMLSchema(xsd)
-        if opt is None: opt = Opt.get_default()
+        opt_default = Opt.get_default()
+        if opt is None:
+            opt = opt_default
+        opt_ordered = {k: opt[k] for k in opt_default if k in opt}
+        opt = opt_ordered
+
         opt_hierarchy = {
             "SIMULATION_MODE_AND_TIMESTEP":{}, "END_CONDITIONS":{},
             "PHYSICS":{}, "DISTRIBUTIONS":{}, "ORBIT_WRITE":{},
@@ -1673,15 +1688,16 @@ class Opt(DataGroup):
                 grp = "ORBIT_WRITE"
             elif k == "ENABLE_TRANSCOEF":
                 grp = "TRANSPORT_COEFFICIENT"
+            print(k)
             opt_hierarchy[grp][k] = v
 
         data = json.dumps({"parameters":opt_hierarchy})
         xml = xmlschema.from_json(data, schema=schema, preserve_root=True)
 
         if fnxsd is not None:
-            with open(fnxsd, 'w') as f:
+            with open(fnxsd, "w") as f:
                 f.writelines(xsd)
         if fnxml is not None:
             ET.ElementTree(xml).write(fnxml)
 
-        return schema, xml
+        return schema, ET.tostring(xml, encoding='unicode')

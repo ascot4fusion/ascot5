@@ -122,7 +122,7 @@ class LibSimulate():
         diag = self._sim.diag_data
         diag.dist5D_collect    = int(opt["ENABLE_DIST_5D"])
         diag.dist6D_collect    = int(opt["ENABLE_DIST_6D"]) * 0    # Not impl.
-        diag.distrho5D_collect = int(opt["ENABLE_DIST_RHO5D"])*0
+        diag.distrho5D_collect = int(opt["ENABLE_DIST_RHO5D"])
         diag.distrho6D_collect = int(opt["ENABLE_DIST_RHO6D"]) * 0 # Not impl.
         diag.distCOM_collect   = int(opt["ENABLE_DIST_COM"]) * 0   # Not impl.
         diag.diagtrcof_collect = int(opt["ENABLE_TRANSCOEF"]) * 0  # Not impl.
@@ -181,6 +181,29 @@ class LibSimulate():
         dist.max_q     = opt["DIST_MAX_CHARGE"]
         dist.n_q       = opt["DIST_NBIN_CHARGE"]
 
+        dist = diag.distrho5D
+        dist.min_rho   = opt["DIST_MIN_RHO"]
+        dist.max_rho   = opt["DIST_MAX_RHO"]
+        dist.n_rho     = opt["DIST_NBIN_RHO"]
+        dist.min_phi   = opt["DIST_MIN_PHI"] * np.pi / 180
+        dist.max_phi   = opt["DIST_MAX_PHI"] * np.pi / 180
+        dist.n_phi     = opt["DIST_NBIN_PHI"]
+        dist.min_theta = opt["DIST_MIN_Z"]
+        dist.max_theta = opt["DIST_MAX_Z"]
+        dist.n_theta   = opt["DIST_NBIN_Z"]
+        dist.min_ppara = opt["DIST_MIN_PPA"]
+        dist.max_ppara = opt["DIST_MAX_PPA"]
+        dist.n_ppara   = opt["DIST_NBIN_PPA"]
+        dist.min_pperp = opt["DIST_MIN_PPE"]
+        dist.max_pperp = opt["DIST_MAX_PPE"]
+        dist.n_pperp   = opt["DIST_NBIN_PPE"]
+        dist.min_time  = opt["DIST_MIN_TIME"]
+        dist.max_time  = opt["DIST_MAX_TIME"]
+        dist.n_time    = opt["DIST_NBIN_TIME"]
+        dist.min_q     = opt["DIST_MIN_CHARGE"]
+        dist.max_q     = opt["DIST_MAX_CHARGE"]
+        dist.n_q       = opt["DIST_NBIN_CHARGE"]
+
     def simulation_initinputs(self, bfield=True, efield=True, plasma=True,
                               neutral=True, wall=True, boozer=True, mhd=True,
                               asigma=True, switch=True):
@@ -216,7 +239,10 @@ class LibSimulate():
         self.input_init(
             bfield=bfield, plasma=plasma, neutral=neutral,
             wall=wall, asigma=asigma, switch=switch)
-        self._init(self.data, nbi=getattr(self.data, "nbi").active.get_qid())
+        if isinstance(nbi, dict):
+            self._init(self.data, nbi=nbi)
+        else:
+            self._init(self.data, nbi=getattr(self.data, "nbi").active.get_qid())
 
     def simulation_initmarkers(self, **mrk):
         """Create markers for the interactive simulations.
@@ -459,11 +485,15 @@ class LibSimulate():
         dist5d = None
         if self._sim.diag_data.dist5D_collect:
             dist5d = self._sim.diag_data.dist5D
+        distrho5d = None
+        if self._sim.diag_data.dist5D_collect:
+            distrho5d = self._sim.diag_data.distrho5D
         return VirtualRun(self, self._nmrk.value,
                           self._inistate, self._endstate,
                           VirtualInput(self._virtualoptions),
                           VirtualInput(self._virtualmarkers),
-                          diagorb=diagorb, dist5d=dist5d)
+                          diagorb=diagorb, dist5d=dist5d, dist5drho=distrho5d,
+                          )
 
     def simulation_bbnbi(self, nprt, t1=0, t2=0, printsummary=True):
         """Run BBNBI simulation.

@@ -426,7 +426,7 @@ class Ascot(Ascotpy):
     @openfigureifnoaxes(projection=None)
     def preflight_plottopview(self, hidewall=False, hidemarkers=False,
                               axes=None):
-        """Plot top view of the machine showing Ip, Bphi, and possibly markers
+        """Plot top view of the machine showing Bphi, Ip (for tokamaks), and possibly markers
         and wall if present.
 
         Assumes bfield is initialized in ascotpy.
@@ -440,48 +440,77 @@ class Ascot(Ascotpy):
         axes : :obj:`~matplotlib.axes.Axes`, optional
             The axes where figure is plotted or otherwise new figure is created.
         """
-        r0, z0 = self.input_eval(1*unyt.m, 0*unyt.deg, 0*unyt.m, 0*unyt.s,
-                                 "axisr", "axisz")
-        rmin = r0-r0/10
-        rmax = r0+r0/10
-        dphi = 10 * np.pi/180 * unyt.rad # So that b and j quivers dont overlap
+        if self.data.bfield.active.get_type() == "B_STS":
+            phi = np.linspace(0, 360, 18, endpoint=False) * np.pi/180
+            phi = phi.ravel() * unyt.rad
+            raxis, zaxis = self.input_eval(1*unyt.m,
+                                        phi, 0*unyt.m,
+                                        0*unyt.s,
+                                        "axisr",
+                                        "axisz")
+            t   = 0 * unyt.s
 
-        r   = np.linspace(rmin, rmax, 2)
-        phi = np.linspace(0, 360, 18, endpoint=False) * np.pi/180
-        phi = phi.ravel() * unyt.rad
-        t   = 0 * unyt.s
+            br   = np.squeeze(self.input_eval(raxis, phi, zaxis, t, "br"))
+            bphi = np.squeeze(self.input_eval(raxis, phi, zaxis, t, "bphi"))
 
-        br   = np.squeeze(self.input_eval(r[0], phi, z0, t, "br"))
-        bphi = np.squeeze(self.input_eval(r[0], phi, z0, t, "bphi"))
-        jr   = np.squeeze(self.input_eval(r[1], phi + dphi, z0, t, "jr"))
-        jphi = np.squeeze(self.input_eval(r[1], phi + dphi, z0, t, "jphi"))
+            x  = np.cos(phi) * raxis
+            y  = np.sin(phi) * raxis
+            bx = np.cos(phi) * br - np.sin(phi) * bphi
+            by = np.sin(phi) * br + np.cos(phi) * bphi
+            bnorm = np.sqrt(bx**2 + by**2)
 
-        x  = np.cos(phi) * r[0]
-        y  = np.sin(phi) * r[0]
-        bx = np.cos(phi) * br - np.sin(phi) * bphi
-        by = np.sin(phi) * br + np.cos(phi) * bphi
-        bnorm = np.sqrt(bx**2 + by**2)
+            axes.quiver(x,y, bx/bnorm, by/bnorm,
+                        color="C0", scale=20)
 
-        xj = np.cos(phi+dphi) * r[1]
-        yj = np.sin(phi+dphi) * r[1]
-        jx = np.cos(phi+dphi) * jr - np.sin(phi+dphi) * jphi
-        jy = np.sin(phi+dphi) * jr + np.cos(phi+dphi) * jphi
-        jnorm = np.sqrt(jx**2 + jy**2)
+            axes.set_aspect("equal", adjustable="box")
+            from matplotlib.lines import Line2D
+            legend_elements = [
+                Line2D([0], [0], marker=r'$\leftarrow$', color='C0',
+                    linestyle="none", label=r"$\mathbf{B}_\mathrm{tor}$",
+                    markerfacecolor='C0', markersize=14)]
+        else:
+            r0, z0 = self.input_eval(1*unyt.m, 0*unyt.deg, 0*unyt.m, 0*unyt.s,
+                                    "axisr", "axisz")
+            rmin = r0-r0/10
+            rmax = r0+r0/10
+            dphi = 10 * np.pi/180 * unyt.rad # So that b and j quivers dont overlap
 
-        axes.quiver(x,y, bx/bnorm, by/bnorm,
-                    color="C0", scale=20)
-        axes.quiver(xj,yj, jx/jnorm, jy/jnorm,
-                    color="C1", scale=20)
+            r   = np.linspace(rmin, rmax, 2)
+            phi = np.linspace(0, 360, 18, endpoint=False) * np.pi/180
+            phi = phi.ravel() * unyt.rad
+            t   = 0 * unyt.s
 
-        axes.set_aspect("equal", adjustable="box")
-        from matplotlib.lines import Line2D
-        legend_elements = [
-            Line2D([0], [0], marker=r'$\leftarrow$', color='C0',
-                   linestyle="none", label=r"$\mathbf{B}_\mathrm{pol}$",
-                   markerfacecolor='C0', markersize=14),
-            Line2D([0], [0], marker=r'$\leftarrow$', color='C1',
-                   linestyle="none", label=r"$\mathbf{I}_p$",
-                   markerfacecolor='C1', markersize=14) ]
+            br   = np.squeeze(self.input_eval(r[0], phi, z0, t, "br"))
+            bphi = np.squeeze(self.input_eval(r[0], phi, z0, t, "bphi"))
+            jr   = np.squeeze(self.input_eval(r[1], phi + dphi, z0, t, "jr"))
+            jphi = np.squeeze(self.input_eval(r[1], phi + dphi, z0, t, "jphi"))
+
+            x  = np.cos(phi) * r[0]
+            y  = np.sin(phi) * r[0]
+            bx = np.cos(phi) * br - np.sin(phi) * bphi
+            by = np.sin(phi) * br + np.cos(phi) * bphi
+            bnorm = np.sqrt(bx**2 + by**2)
+
+            xj = np.cos(phi+dphi) * r[1]
+            yj = np.sin(phi+dphi) * r[1]
+            jx = np.cos(phi+dphi) * jr - np.sin(phi+dphi) * jphi
+            jy = np.sin(phi+dphi) * jr + np.cos(phi+dphi) * jphi
+            jnorm = np.sqrt(jx**2 + jy**2)
+
+            axes.quiver(x,y, bx/bnorm, by/bnorm,
+                        color="C0", scale=20)
+            axes.quiver(xj,yj, jx/jnorm, jy/jnorm,
+                        color="C1", scale=20)
+
+            axes.set_aspect("equal", adjustable="box")
+            from matplotlib.lines import Line2D
+            legend_elements = [
+                Line2D([0], [0], marker=r'$\leftarrow$', color='C0',
+                    linestyle="none", label=r"$\mathbf{B}_\mathrm{tor}$",
+                    markerfacecolor='C0', markersize=14),
+                Line2D([0], [0], marker=r'$\leftarrow$', color='C1',
+                    linestyle="none", label=r"$\mathbf{I}_p$",
+                    markerfacecolor='C1', markersize=14) ]
 
         if "marker" in self.data and not hidemarkers:
             marker = self.data.marker.active.read()
@@ -495,8 +524,15 @@ class Ascot(Ascotpy):
                        label="Marker", markerfacecolor='black', markersize=2))
 
         if "wall" in self.data and not hidewall:
-            ls = self.data.wall.active.getwalloutline(z=0)
-            line2d(ls[:,:,0], ls[:,:,1], c="black", axes=axes)
+            if self.data.wall.active.get_type() == "wall_2D":
+                phigrid = np.linspace(0,2*np.pi,360)*unyt.rad
+                r_min, r_max = self.data.wall.active.getwalloutline(phigrid=phigrid)
+                line2d((r_min*np.cos(phigrid), r_max*np.cos(phigrid)),
+                       (r_min*np.sin(phigrid), r_max*np.sin(phigrid)),
+                        c="black", axes=axes)
+            else:
+                ls = self.data.wall.active.getwalloutline(z=0)
+                line2d(ls[:,:,0], ls[:,:,1], c="black", axes=axes)
 
         axes.legend(handles=legend_elements, ncol=1, frameon=False,
                     loc='center left', bbox_to_anchor=(1, 0.5))
@@ -508,7 +544,7 @@ class Ascot(Ascotpy):
         axes.set_ylabel("y [m]")
         axes.set_title("View from above")
 
-    def input_plotwallcontour(self, phi=0*unyt.deg, axes=None):
+    def input_plotwallcontour(self, phi=0*unyt.deg, axes=None, color="black",label=None):
         """Plot intersection of the wall and the poloidal plane at the given
         toroidal angle.
 
@@ -520,5 +556,5 @@ class Ascot(Ascotpy):
             The axes where figure is plotted or otherwise new figure is created.
         """
         ls = self.data.wall.active.getwallcontour(phi=phi)
-        line2d(ls[:,:,0], ls[:,:,1], c="black", axesequal=True, axes=axes,
-               xlabel="R [m]", ylabel="z [m]")
+        line2d(ls[:,:,0], ls[:,:,1], c=color, axesequal=True, axes=axes,
+               xlabel="R [m]", ylabel="z [m]",label=label)

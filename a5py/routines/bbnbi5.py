@@ -488,8 +488,13 @@ class BBNBIMixin(DistMixin):
         tor = np.rad2deg( np.arctan2( y1y2y3, x1x2x3 ))
 
         # Poloidal angle for each vertex
-        out = self._root._ascot._eval_bfield(
-            1*unyt.m, tor*unyt.deg, 1*unyt.m, 0*unyt.s, evalaxis=True)
+        dummy_input = np.ones(tor.size)
+        out = self._root._ascot._eval_bfield(dummy_input,
+                                                np.deg2rad(tor),
+                                                dummy_input,
+                                                dummy_input,
+                                                evalaxis=True,
+                                                )
         axisr  = out["axisr"].v
         axisz  = out["axisz"].v
         rmajor = np.sqrt( x1x2x3**2 + y1y2y3**2 )

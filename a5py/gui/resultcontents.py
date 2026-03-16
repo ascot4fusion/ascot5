@@ -144,10 +144,10 @@ class StateScatter(ContentTab):
         self.columnconfigure(1, weight=1)
 
         # Choose coordinate for [x,y,z,c] and tick if log scale is used
-        self.xcrd = DropdownMenu(f1, log=True, label="x: ", width=12)
-        self.ycrd = DropdownMenu(f1, log=True, label="y: ", width=12)
-        self.zcrd = DropdownMenu(f1, log=True, label="z: ", width=12)
-        self.ccrd = DropdownMenu(f1, log=True, label="c: ", width=12)
+        self.xcrd = DropdownMenu(f1, log=True, label=" x: ", width=18, labelwidth=4)
+        self.ycrd = DropdownMenu(f1, log=True, label=" y: ", width=18, labelwidth=4)
+        self.zcrd = DropdownMenu(f1, log=True, label=" z: ", width=18, labelwidth=4)
+        self.ccrd = DropdownMenu(f1, log=True, label=" c: ", width=18, labelwidth=4)
 
         self.xcrd.grid(row=0, column=0)
         self.ycrd.grid(row=1, column=0)
@@ -172,10 +172,10 @@ class StateScatter(ContentTab):
         self.savebutton.pack(anchor="nw")
 
         # Only markers with this endstate are plotted
-        self.endc = DropdownMenu(f3, label="Endcond: ", width=12,
-                                 labelwidth=8)
+        self.endc = DropdownMenu(f3, label=" Endcond: ", width=12,
+                                 labelwidth=10)
         # Set x,y,z axes equal aspect ration
-        self.axeq = Tickbox(f3, label=" Axis equal")
+        self.axeq = Tickbox(f3, label=" Axes equal", width=10)
 
         self.endc.pack(side="left", anchor="w")
         self.axeq.pack(side="left", anchor="w")
@@ -290,10 +290,10 @@ class StateHistogram(ContentTab):
         self.columnconfigure(1, weight=1)
 
         # Coordinate selection
-        self.xcrd = DropdownMenu(f1, log=True, label="x: ", width=18,
-                                 trace=self.newxcoord)
-        self.ycrd = DropdownMenu(f1, log=True, label="y: ", width=18,
-                                 trace=self.newycoord)
+        self.xcrd = DropdownMenu(f1, log=True, label=" x: ", width=18,
+                                 trace=self.newxcoord, labelwidth=4)
+        self.ycrd = DropdownMenu(f1, log=True, label=" y: ", width=18,
+                                 trace=self.newycoord, labelwidth=4)
 
         # Coordinate taken from ini or endstate
         self.xbtn = ToggleButton(f1, label1text="Ini", label2text="End")
@@ -311,45 +311,66 @@ class StateHistogram(ContentTab):
         self.plotbutton.pack(anchor="nw")
         self.savebutton.pack(anchor="nw")
 
-        # Weighted histogram (or no), axes equal aspect ratio (or no)
-        self.wght = Tickbox(f4, width=1)
-        self.axeq = Tickbox(f4, width=1)
-        self.zlog = Tickbox(f4, width=1)
-
-        self.wght.grid(row=0,column=0,sticky="w")
-        tk.Label(f4, text="With weights").grid(row=0,column=1,sticky="w")
-        self.axeq.grid(row=1,column=0,sticky="w")
-        tk.Label(f4, text="Axis equal").grid(row=1,column=1,sticky="w")
-        self.zlog.grid(row=2,column=0,sticky="w")
-        tk.Label(f4, text="log10 scale").grid(row=2,column=1,sticky="w")
 
         # Set NumEntries for xmin, xmax, and nx inputs
-        self.xmin_entry = NumEntry(
-            f3, labeltext="rho [1] = ", entrywidth=5, labelwidth=22,
-            anchor="e", defval=0.0)
-        self.xmax_entry = NumEntry(f3, labeltext="–", entrywidth=5,
-                                   labelwidth=2, anchor="c", defval=1.0)
-        self.xnum_entry = NumEntry(f3, labeltext="x", entrywidth=5,
-                                   labelwidth=2, anchor="c", defval=50,
-                                   isint=True)
+        self.xquantity = tk.Label(f3, text="rho [1]", anchor="w")
+        self.xmin_entry = NumEntry(f3,
+                                   labeltext="  min: ",
+                                   entrywidth=5,
+                                   labelwidth=7,
+                                   anchor="c",
+                                   defval=0.0,
+                                   )
+        self.xmax_entry = NumEntry(f3,
+                                   labeltext="  max: ",
+                                   entrywidth=5,
+                                   labelwidth=7,
+                                   anchor="c",
+                                   defval=1.0,
+                                   )
+        self.xnum_entry = NumEntry(f3,
+                                   labeltext="  res: ",
+                                   entrywidth=5,
+                                   labelwidth=7,
+                                   anchor="c",
+                                   defval=50,
+                                   isint=True,
+                                   )
 
         # Set NumEntries for ymin, ymax, and ny inputs
-        self.ymin_entry = NumEntry(
-            f3, labeltext="* = ", entrywidth=5, labelwidth=22,
-            anchor="e", defval=0.0)
-        self.ymax_entry = NumEntry(f3, labeltext="–", entrywidth=5,
-                                   labelwidth=2, anchor="c", defval=1.0)
-        self.ynum_entry = NumEntry(f3, labeltext="x", entrywidth=5,
-                                   labelwidth=2, anchor="c", defval=50,
-                                   isint=True)
+        spacer1 = tk.Frame(f3, height=10)
+        self.yquantity = tk.Label(f3, text="None", anchor="w")
+        self.ymin_entry = NumEntry(f3,
+                                   labeltext="  min: ",
+                                   entrywidth=5,
+                                   labelwidth=7,
+                                   anchor="c",
+                                   defval=0.0,
+                                   )
+        self.ymax_entry = NumEntry(f3,
+                                   labeltext="  max: ",
+                                   entrywidth=5,
+                                   labelwidth=7,
+                                   anchor="c",
+                                   defval=1.0,
+                                   )
+        self.ynum_entry = NumEntry(f3,
+                                   labeltext="  res: ",
+                                   entrywidth=5,
+                                   labelwidth=7,
+                                   anchor="c",
+                                   defval=50,
+                                   isint=True,
+                                   )
 
-
-        self.xmin_entry.grid(row=0, column=0)
-        self.xmax_entry.grid(row=0, column=1)
-        self.xnum_entry.grid(row=0, column=2)
-        self.ymin_entry.grid(row=1, column=0)
-        self.ymax_entry.grid(row=1, column=1)
-        self.ynum_entry.grid(row=1, column=2)
+        self.xquantity.grid(row=0,column=0, columnspan=3, pady=(10,0))
+        self.xmin_entry.grid(row=1, column=0, pady=(0,10))
+        self.xmax_entry.grid(row=1, column=1, pady=(0,10))
+        self.xnum_entry.grid(row=1, column=2, pady=(0,10))
+        self.yquantity.grid(row=2, column=0, columnspan=3)
+        self.ymin_entry.grid(row=3, column=0, pady=(0,20))
+        self.ymax_entry.grid(row=3, column=1, pady=(0,20))
+        self.ynum_entry.grid(row=3, column=2, pady=(0,20))
 
         #gui.params.add(
         #output_stateplot_minr=xmin_entry.choice,
@@ -360,6 +381,18 @@ class StateHistogram(ContentTab):
         #output_stateplot_numz=ynum_entry.choice,
         #output_stateplot_qnt=xcrd.var
         #)
+
+        # Weighted histogram (or no), axes equal aspect ratio (or no)
+        self.wght = Tickbox(f4, width=1)
+        self.axeq = Tickbox(f4, width=1)
+        self.zlog = Tickbox(f4, width=1)
+
+        self.wght.grid(row=0,column=0,sticky="w")
+        tk.Label(f4, text="With weights").grid(row=0,column=1,sticky="w", pady=(5,0))
+        self.axeq.grid(row=1,column=0,sticky="w")
+        tk.Label(f4, text="Axis equal").grid(row=1,column=1,sticky="w")
+        self.zlog.grid(row=2,column=0,sticky="w")
+        tk.Label(f4, text="log10 scale").grid(row=2,column=1,sticky="w")
 
         def plot():
             """Plot the histogram for the given run using active settings.
@@ -419,7 +452,7 @@ class StateHistogram(ContentTab):
             unit = str(self.gui.ascot.data.active.getstate(val).units)
         except AttributeError:
             unit = "1"
-        self.xmin_entry.setlabel(val + " [" + unit + "]" + " = ")
+        self.xquantity.config(text=val + " [" + unit + "]")
 
 
     def newycoord(self, *args):
@@ -432,7 +465,7 @@ class StateHistogram(ContentTab):
             self.ymin_entry.disable()
             self.ymax_entry.disable()
             self.ynum_entry.disable()
-            self.ymin_entry.setlabel("* = ")
+            self.yquantity.config(text="None")
         else:
             try:
                 unit = str(self.gui.ascot.data.active.getstate(val).units)
@@ -441,7 +474,7 @@ class StateHistogram(ContentTab):
             self.ymin_entry.enable()
             self.ymax_entry.enable()
             self.ynum_entry.enable()
-            self.ymin_entry.setlabel(val + " [" + unit + "]" + " = ")
+            self.yquantity.config(text=val + " [" + unit + "]")
 
     def selecttab(self):
         """Display state frame for the run that is currently active.
@@ -497,14 +530,14 @@ class Orbit(ContentTab):
 
         self.columnconfigure(1, weight=1)
 
-        self.xcrd = DropdownMenu(f1, log=True, label="x: ", width=12,
-                                 labelwidth=2)
-        self.ycrd = DropdownMenu(f1, log=True, label="y: ", width=12,
-                                 labelwidth=2)
-        self.zcrd = DropdownMenu(f1, log=True, label="z: ", width=12,
-                                 labelwidth=2)
-        self.ccrd = DropdownMenu(f1, log=True, label="c: ", width=12,
-                                 labelwidth=2)
+        self.xcrd = DropdownMenu(f1, log=True, label=" x: ", width=18,
+                                 labelwidth=4, num_dropdown_items=15)
+        self.ycrd = DropdownMenu(f1, log=True, label=" y: ", width=18,
+                                 labelwidth=4, num_dropdown_items=15)
+        self.zcrd = DropdownMenu(f1, log=True, label=" z: ", width=18,
+                                 labelwidth=4, num_dropdown_items=15)
+        self.ccrd = DropdownMenu(f1, log=True, label=" c: ", width=18,
+                                 labelwidth=4, num_dropdown_items=15)
 
         self.xcrd.grid(row=0, column=0)
         self.ycrd.grid(row=1, column=0)
@@ -516,9 +549,9 @@ class Orbit(ContentTab):
         self.plotbutton.pack(anchor="nw")
         self.savebutton.pack(anchor="nw")
 
-        self.endc = DropdownMenu(f3, label="Endcond: ", width=12,
-                                 labelwidth=8)
-        self.axeq = Tickbox(f3, label=" Axes equal")
+        self.endc = DropdownMenu(f3, label=" Endcond: ", width=12,
+                                 labelwidth=10)
+        self.axeq = Tickbox(f3, label=" Axes equal", width=10)
 
         self.endc.pack(side="left", anchor="w")
         self.axeq.pack(side="left", anchor="w")
@@ -693,12 +726,14 @@ class Dists(ContentTab):
         self.source = DropdownMenu(f1, label="Source: ", width=24,
                                    labelwidth=8, labelanchor="w",
                                    trace=self.setcoords)
-        self.xcrd = DropdownMenu(f1, label="x: ", width=5, labelwidth=2,
+        self.xcrd = DropdownMenu(f1, label="x: ", width=5, labelwidth=3,
                                  trace=self.setxcoord)
-        self.ycrd = DropdownMenu(f1, label="y: ", width=5, labelwidth=2)
+        self.ycrd = DropdownMenu(f1, label="y: ", width=5, labelwidth=3)
+        self.logscale = Tickbox(f1, label=" log10 scale", width=12)
         self.source.grid(row=0, column=0)
         self.xcrd.grid(row=1, column=0, sticky="e")
         self.ycrd.grid(row=2, column=0, sticky="e")
+        self.logscale.grid(row=3, column=0, sticky="e")
 
         self.plotbutton = tk.Button(f2, text="Plot", width=3)
         self.savebutton = tk.Button(f2, text="Store", width=3)
@@ -719,7 +754,7 @@ class Dists(ContentTab):
             dist.integrate(**integrate)
 
             self.plot.clear()
-            run.plotdist(dist, axes=self.plot.axes)
+            dist.plot(axes=self.plot.axes, logscale=self.logscale.getval())
             self.plot.draw()
 
         self.plotbutton.configure(command=plot)
@@ -798,10 +833,10 @@ class Moments(ContentTab):
 
         self.columnconfigure(1, weight=1)
 
-        self.source = DropdownMenu(f1, label="  Source: ", width=24,
-                                   labelwidth=8, labelanchor="w")
-        self.qnt = DropdownMenu(f1, label="Quantity: ", width=24,
-                                labelwidth=8, labelanchor="w")
+        self.source = DropdownMenu(f1, label="    Source: ", width=24,
+                                   labelwidth=11, labelanchor="w")
+        self.qnt = DropdownMenu(f1, label=" Quantity: ", width=24,
+                                labelwidth=11, labelanchor="w", num_dropdown_items=15)
         self.source.grid(row=0, column=0)
         self.qnt.grid(row=1, column=0)
 
@@ -816,11 +851,15 @@ class Moments(ContentTab):
             dist = self.source.var.get()
             moment  = self.qnt.var.get()
             run  = self.gui.ascot.data.active
-            dist = run.getdist(dist)
+            if moment=="colltorque":
+                # Collisional torque evaluation needs ekin pitch dist
+                dist = run.getdist(dist, exi=True, ekin_edges=50, pitch_edges=50)
+            else:
+                dist = run.getdist(dist)
             mom  = run.getdist_moments(dist, moment)
 
             self.plot.clear()
-            run.plotdist_moments(mom, moment, axes=self.plot.axes)
+            mom.plot(ordinate=moment,axes=self.plot.axes)
             self.plot.draw()
 
         self.plotbutton.configure(command=plot)
@@ -833,7 +872,14 @@ class Moments(ContentTab):
         if "rho5d" in dists: vals += ["rho5d"]
         self.source.setvals(vals, vals[0])
 
+        mom_list = [x[0] for x in run.getdist_list(show=False)[1]]
+        if "5d" in dists or "rho5d" in dists:
+            self.qnt.setvals(mom_list, mom_list[0])
+        else:
+            self.qnt.setvals(["No 5d or rho5d dist"], "No 5d or rho5d dist")
+
         self.canvas.slideshow(self)
+
 
     class Canvas(PlotFrame):
         pass
@@ -954,7 +1000,7 @@ class Wall3D(ContentTab):
                           "Camera 1")
 
         # Interactive plot
-        self.intrbutton = tk.Button(f1, text="Interactive", width=6)
+        self.intrbutton = tk.Button(f1, text="Interactive", width=11)
         self.intrbutton.grid(row=0, column=2, sticky="e")
 
         # Camera position control

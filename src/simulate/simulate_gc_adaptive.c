@@ -65,6 +65,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
     real* hout_rfof = (real*) malloc(mrk_array_size*sizeof(real));
     real* hnext = (real*) malloc(mrk_array_size*sizeof(real));
 
+    Acceleration acceleration;
+    acceleration_allocate(&acceleration, mrk_array_size);
     /* Flag indicateing whether a new marker was initialized */
     int* cycle = (int*) malloc(mrk_array_size*sizeof(int));
 
@@ -83,6 +85,9 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
     for(int i=0; i< mrk_array_size; i++) {
         p.id[i] = -1;
         p.running[i] = 0;
+        acceleration.acc[i] = 1.0;
+        acceleration.orbittime[i] = -1;
+        acceleration.cross[i].crossed_once = 0;
     }
 
     /* Initialize running particles */
@@ -121,6 +126,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
     real* rnd = (real*) malloc(5*mrk_array_size*sizeof(real));
     particle_offload_gc(&p);
     particle_offload_gc(&p0);
+    acceleration_offload(&acceleration,mrk_array_size);
     GPU_MAP_TO_DEVICE(hin[0:mrk_array_size],rnd[0:5*mrk_array_size],hout_orb[0:mrk_array_size],hout_col[0:mrk_array_size],hout_rfof[0:mrk_array_size],hnext[0:mrk_array_size],cycle[0:mrk_array_size])
     mccc_wiener_offload(wienarr,mrk_array_size);   
     while(n_running > 0) {
@@ -176,7 +182,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
         /* Milstein method for collisions */
         if(sim->enable_clmbcol) {
             random_normal_simd(&sim->random_data, 5*p.n_mrk, rnd);
-            mccc_gc_milstein(&p, hin, hout_col, tol_col, wienarr, &sim->B_data,
+            mccc_gc_milstein(&p, hin, acceleration.acc, acceleration.collfreq,
+			     hout_col, tol_col, wienarr, &sim->B_data,
                              &sim->plasma_data, &sim->mccc_data, rnd);
 
             /* Check whether time step was rejected */
@@ -239,8 +246,10 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
                     }
                     else {
                         p.time[i] += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) )
-                            * hin[i];
-                        p.mileage[i] += hin[i];
+                            * hin[i] * acceleration.acc[i];
+                        p.mileage[i] += hin[i] * acceleration.acc[i];
+                        if(acceleration.orbittime[i] >= 0)
+                            acceleration.orbittime[i] += hin[i] * acceleration.acc[i];
                         /* In case the time step was succesful, pick the
                         smallest recommended value for the next step */
                         if(hnext[i] > hout_orb[i]) {
@@ -275,6 +284,11 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
         }
         cputime_last = cputime;
 
+        /* If OMP is crossed, adjust acceleration */
+        if(sim->enable_ada > 1) {
+            recalculate_acceleration(&acceleration, sim, &p, &p0);
+        }
+
         /* Check possible end conditions */
         endcond_check_gc(&p, &p0, sim);
 
@@ -297,6 +311,9 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
         for(int i = 0; i <p.n_mrk; i++) {
             if(cycle[i] > 0) {
                 hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
+                acceleration.acc[i] = 1.0;
+                acceleration.orbittime[i] = -1;
+                acceleration.cross[i].crossed_once = 0;
                 if(sim->enable_clmbcol) {
                     /* Re-allocate array storing the Wiener processes */
                     mccc_wiener_initialize(&(wienarr[i]), p.time[i]);
@@ -374,4 +391,90 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
         }
     }
     return h;
+}
+
+
+/**
+ * Recalculate acceleration factor.
+ *
+ * The acceleration is updated when crossing OMP. During the first crossing,
+ * the counter for orbit time is started. For the next crossing, we check if
+ * OMP was crossed in the same direction as first. If not, the crossing is
+ * ignored and for the third crossing we check the direction again. If this is
+ * not in the same direction as the first, the counters are nullified,
+ * acceleration is set to one, and the process is started again. This way we can
+ * account both for passing and banana particles, and for the cases where
+ * collisions have changed the orbit topology.
+ *
+ * When we have two suitable crossings, the acceleration factor is updated and
+ * the counter for the orbit time and crossings are nullified.
+ */
+void recalculate_acceleration(
+    Acceleration* acc, sim_data* sim, particle_simd_gc* p, particle_simd_gc* p0)
+{
+    real rz[2];
+    real SAFETY_FACTOR = (float)sim->enable_ada / 1000.0;
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for(int i = 0; i < p->n_mrk; i++) {
+        B_field_get_axis_rz(rz, &sim->B_data, p->phi[i]);
+        int omp_crossed = ((p->z[i] - rz[1]) * (p0->z[i] - rz[1]) < 0) &&
+            p->r[i] > rz[0];
+        if(omp_crossed && acc->cross[i].crossed_twice) {
+            if( ((float)acc->cross[i].first_ppar - 0.5) * p->ppar[i] > 0 ) {
+                acc->acc[i] = fmax(1.0, SAFETY_FACTOR / (acc->orbittime[i] * acc->collfreq[i]));
+            }
+            else {
+                acc->acc[i] = 1;
+            }
+            acc->cross[i].crossed_once = 1;
+            acc->cross[i].crossed_twice = 0;
+            acc->cross[i].first_ppar = p->ppar[i] > 0;
+            acc->orbittime[i] = 0;
+        }
+        else if(omp_crossed && acc->cross[i].crossed_once) {
+            acc->cross[i].crossed_twice = 1;
+            if( ((float)acc->cross[i].first_ppar - 0.5) * p->ppar[i] > 0 ) {
+                acc->acc[i] = fmax(1.0, SAFETY_FACTOR / (acc->orbittime[i] * acc->collfreq[i]));
+                acc->cross[i].crossed_once = 1;
+                acc->cross[i].crossed_twice = 0;
+                acc->cross[i].first_ppar = p->ppar[i] > 0;
+                acc->orbittime[i] = 0;
+            }
+        }
+        else if(omp_crossed) {
+            acc->cross[i].crossed_once = 1;
+            acc->cross[i].first_ppar = p->ppar[i] > 0;
+            acc->orbittime[i] = 0;
+        }
+    }
+}
+
+/**
+ * @brief Allocates struct representing acceleration struc
+ *
+ * Size used for memory allocation is NSIMD for CPU run and the total number
+ * of particles for GPU.
+ *
+ * @param Acceleration struct to allocate
+ * @param nmrk the number of markers that the struct represents
+ */
+void acceleration_allocate(Acceleration* acceleration, int nmrk){
+  acceleration->acc       = malloc(nmrk * sizeof(acceleration->acc) );
+  acceleration->orbittime = malloc(nmrk * sizeof(acceleration->orbittime) );
+  acceleration->collfreq  = malloc(nmrk * sizeof(acceleration->collfreq) );
+  acceleration->cross     = malloc(nmrk * sizeof(acceleration->cross) );
+}
+/**
+ * @brief Offload acceleration struct to GPU.
+ *
+ * @param acceleration pointer to the acceleration struct to be offloaded.
+ */
+void acceleration_offload(Acceleration* acceleration, int mrk_array_size) {
+    GPU_MAP_TO_DEVICE(
+        acceleration[0:1],\
+        acceleration->acc       [0:mrk_array_size],\
+        acceleration->orbittime [0:mrk_array_size],\
+        acceleration->collfreq  [0:mrk_array_size],\
+        acceleration->cross     [0:mrk_array_size]
+    )
 }

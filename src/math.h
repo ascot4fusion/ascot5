@@ -8,6 +8,7 @@
 #include "offload.h"
 #include <math.h>
 #include "ascot5.h"
+#include <stdlib.h>
 
 /** @brief One degree in radians */
 #define math_degrad 0.0174532925199432957692
@@ -111,6 +112,17 @@
 
 /** @brief Convert radians to degrees */
 #define math_rad2deg(a) (a * math_raddeg)
+
+/** @brief handle abs function for AMDGPU with OpenMP offload */
+#if defined(__AMDGCN__) && defined(GPU)
+  /* Device compile for AMDGPU with OpenMP offload */
+DECLARE_TARGET
+static inline int math_iabs(int x)        { return x < 0 ? -x : x; }
+DECLARE_TARGET_END
+#else
+  /* Host (or non-AMD device) */
+static inline int math_iabs(int x)        { return abs(x); }
+#endif
 
 DECLARE_TARGET
 real fmod(real x, real y);

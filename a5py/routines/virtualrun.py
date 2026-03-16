@@ -8,12 +8,13 @@ from a5py.ascot5io import State, Orbits, Dist
 from a5py.ascot5io.dist import DistData
 from .runmixin import RunMixin
 from .bbnbi5 import BBNBIMixin
+from a5py.templates.imasinterface import ExportIMAS
 
 from a5py.ascotpy.libascot import _LIBASCOT
 if _LIBASCOT:
     import a5py.ascotpy.ascot2py as ascot2py
 
-class VirtualRun(RunMixin):
+class VirtualRun(RunMixin, ExportIMAS):
     """Virtual :class:`RunGroup` whose data exists solely in the memory.
     """
 
@@ -42,6 +43,8 @@ class VirtualRun(RunMixin):
         dist5drho : array_like, optional
             The diagnostics array containing the 5D rhodist data, if present.
         """
+        self._root = type("Dummy", (object,), {})()
+        self._root._ascot = ascot
         self.options = options
         self.markers = markers
         # There's a need for better solution here in case inputs are provided
@@ -60,13 +63,15 @@ class VirtualRun(RunMixin):
             self._orbit = VirtualOrbits(ascot, ascot._nmrk, diagorb)
         if dist5d is not None:
             self._dist5d = VirtualDist("5d", dist5d)
+        if dist5drho is not None:
+            self._distrho5d = VirtualDist("rho5d", dist5drho)
 
 class VirtualBBNBIRun(BBNBIMixin):
     """Virtual :class:`BBNBIGroup` whose data exists solely in the memory.
     """
 
-    def __init__(self, ascot, nmrk, state, options, diag_offload_array,
-                 dist5d=None, dist5drho=None):
+    def __init__(self, ascot, nmrk, state, options, dist5d=None,
+                 dist5drho=None):
         """Initialize fields that allow this instance to replicate
         :class:`BBNBIGroup` behavior.
 
@@ -376,6 +381,8 @@ class VirtualDist(Dist):
         self._histogram = dist.histogram
         if disttype == "5d":
             names = ["r", "phi", "z", "ppar", "pperp", "time", "charge"]
+        if disttype == "rho5d":
+            names = ["rho", "theta", "phi", "ppar", "pperp", "time", "charge"]
 
         self._abscissa_edges = {}
         for n in names:
@@ -391,14 +398,24 @@ class VirtualDist(Dist):
                 case "z":
                     self._abscissa_edges[n] = \
                         np.linspace(dist.min_z, dist.max_z, dist.n_z+1) * unyt.m
+                case "rho":
+                    self._abscissa_edges[n] = \
+                        np.linspace(dist.min_rho, dist.max_rho, dist.n_rho+1) \
+                            * unyt.dimensionless
+                case "theta":
+                    self._abscissa_edges[n] = \
+                        np.linspace(
+                            dist.min_theta, dist.max_theta, dist.n_theta+1
+                            ) * unyt.rad
+                    self._abscissa_edges[n].convert_to_units('deg')
                 case "ppar":
                     self._abscissa_edges[n] = \
                         np.linspace(dist.min_ppara, dist.max_ppara,
-                                    dist.n_ppara+1) * unyt.kg*unyt.m**2/unyt.s
+                                    dist.n_ppara+1) * unyt.kg*unyt.m/unyt.s
                 case "pperp":
                     self._abscissa_edges[n] = \
                         np.linspace(dist.min_pperp, dist.max_pperp,
-                                    dist.n_pperp+1) * unyt.kg*unyt.m**2/unyt.s
+                                    dist.n_pperp+1) * unyt.kg*unyt.m/unyt.s
                 case "time":
                     self._abscissa_edges[n] = \
                         np.linspace(dist.min_time, dist.max_time,

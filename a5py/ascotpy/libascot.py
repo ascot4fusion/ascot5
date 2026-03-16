@@ -12,6 +12,7 @@ import os
 import warnings
 import numpy as np
 import unyt
+import traceback
 
 from scipy import interpolate
 from numpy.ctypeslib import ndpointer
@@ -77,9 +78,13 @@ except ImportError as error:
     STRUCT_HIST          = None
     STRUCT_AFSIDATA      = None
     AFSI_REACTIONS       = None
-    msg = \
-        "Failed to load libascot.so: " + str(error) + "\n" \
-        "Some functionalities of Ascot are not available"
+    
+    tb = traceback.format_exc()
+    msg = (
+        f"Failed to load libascot.so: {error}\n"
+        f"Some functionalities of Ascot are not available\n"
+        f"Traceback:\n{tb}"
+    )
     warnings.warn(msg, stacklevel=4)
 
 class LibAscot:
