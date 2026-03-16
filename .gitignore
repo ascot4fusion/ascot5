@@ -30,5 +30,4 @@ test_wall_3d
 ascot5_main
 bbnbi5
 no_sync/
-c_cpp_properties.json
-.vscode/
+.vscode

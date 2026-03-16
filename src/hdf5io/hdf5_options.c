@@ -6,6 +6,7 @@
 #include <hdf5.h>
 #include <hdf5_hl.h>
 #include "../ascot5.h"
+#include "../print.h"
 #include "../consts.h"
 #include "../diag.h"
 #include "../diag/diag_orb.h"
@@ -195,6 +196,14 @@ int hdf5_options_read(hid_t file, sim_data* sim, char* qid){
     temp = (int)tempfloat;
     sim->endcond_max_tororb = temp * 2 *CONST_PI;
 
+    /** Finite Larmor radius losses */
+    if( hdf5_read_double(OPTPATH "ENABLE_FLR_LOSSES", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->enable_flr_losses = (int)tempfloat;
+    if(sim->enable_flr_losses > 1 || sim->enable_flr_losses < 0){
+        print_err("Error: ENABLE_FLR_LOSSES must be 0 or 1.\n");
+        sim->enable_flr_losses = 0;
+    }
 
     /* See which diagnostics are active */
     diag_data* diag = &sim->diag_data;
