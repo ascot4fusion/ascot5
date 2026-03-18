@@ -16,7 +16,7 @@ void gctransform_particle2guidingcenter(
     real r, real phi, real z, real pr, real pphi, real pz,
     real* R, real* Phi, real* Z, real* ppar, real* mu, real* zeta);
 
-DECLARE_TARGET_SIMD
+GPU_DECLARE_TARGET_SIMD
 void gctransform_guidingcenter2particle(
     real mass, real charge, real* B_dB,
     real R, real Phi, real Z, real ppar, real mu, real zeta,

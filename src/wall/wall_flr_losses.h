@@ -19,6 +19,6 @@ int flr_losses_eval(real r, real phi, real z, real ppar, real mu,
                     real mass, real charge, real time,
                     B_field_data* B, wall_data* wall, random_data* rnd,
                     int* walltile_out, int* err_out);
-GPU_DECLARE_TARGET_SIMD_UNIFORM_END
+DECLARE_TARGET_END
 
 #endif 
