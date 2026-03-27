@@ -28,6 +28,7 @@ speciesdict = {
     "Ar36"  : ( 36, 18, 18*unyt.e,  35.967*unyt.amu),
     "Ar40"  : ( 40, 18, 18*unyt.e,  39.962*unyt.amu),
     "Ni59"  : ( 59, 28, 28*unyt.e,  58.934*unyt.amu),
+    "Mo96"  : ( 96, 42, 42*unyt.e,  95.905*unyt.amu),
     "Sn118" : (118, 50, 50*unyt.e, 117.901*unyt.amu),
     "Xe132" : (132, 54, 54*unyt.e, 131.904*unyt.amu),
     "W183"  : (183, 74, 74*unyt.e, 182.950*unyt.amu),
