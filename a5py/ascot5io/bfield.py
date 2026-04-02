@@ -1037,6 +1037,7 @@ class B_STS(DataGroup):
                    b_phimin, b_phimax, b_nphi, psi0, psi1,
                    br, bphi, bz, psi,
                    axis_phimin, axis_phimax, axis_nphi, axisr, axisz,
+                   Nperiods: int=None, stell_sym: bool=False,
                    psi_rmin=None, psi_rmax=None, psi_nr=None,
                    psi_zmin=None, psi_zmax=None, psi_nz=None,
                    psi_phimin=None, psi_phimax=None, psi_nphi=None,
@@ -1079,6 +1080,10 @@ class B_STS(DataGroup):
             Magnetic axis phi grid min value [deg].
         axis_phimax : float
             Magnetic axis phi grid max value [deg].
+        Nperiods : int, optional
+            Number of field periods in the stellarator.
+        stell_sym : bool, optional
+            Whether the field is stellarator symmetric or not.
         axis_nphi : float
             Number of points in magnetic axis phi grid.
         axisr : float
@@ -1131,6 +1136,10 @@ class B_STS(DataGroup):
         parent = "bfield"
         group  = "B_STS"
         gname  = ""
+
+        if Nperiods is None:
+            Nperiods = 1
+        stell_sym_int = 1 if stell_sym else 0
 
         # Define psigrid to be same as Bgrid if not stated otherwise.
         if(psi_rmin is None or psi_rmax is None or psi_nr is None
@@ -1191,6 +1200,9 @@ class B_STS(DataGroup):
             g.create_dataset("axisr", (axis_nphi,), data=axisr, dtype="f8")
             g.create_dataset("axisz", (axis_nphi,), data=axisz, dtype="f8")
 
+            g.create_dataset("Nperiods",   (1,), data=Nperiods,   dtype="i4")
+            g.create_dataset("stell_sym",  (1,), data=stell_sym_int, dtype="i4")
+
             g.create_dataset("br",         (b_nz,b_nphi,b_nr),       data=br,
                              dtype="f8")
             g.create_dataset("bphi",       (b_nz,b_nphi,b_nr),       data=bphi,
@@ -1224,7 +1236,8 @@ class B_STS(DataGroup):
                 "axisr":np.array([6,6,6]), "axisz":np.array([0,0,0]),
                 "psi_rmin":4, "psi_rmax":8, "psi_nr":3,
                 "psi_zmin":-2, "psi_zmax":2, "psi_nz":3,
-                "psi_phimin":0, "psi_phimax":360, "psi_nphi":3}
+                "psi_phimin":0, "psi_phimax":360, "psi_nphi":3,
+                "Nperiods":1, "stell_sym":0}
 
     @staticmethod
     def convert_B_GS(R0, z0, B_phi0, psi_mult, psi_coeff,
