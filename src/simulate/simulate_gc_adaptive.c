@@ -181,7 +181,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
 
         /* Milstein method for collisions */
         if(sim->enable_clmbcol) {
-            random_normal_simd(&sim->random_data, 5*p.n_mrk, rnd);
+            random_normal_simd(sim->random_data, 5*p.n_mrk, rnd);
             mccc_gc_milstein(&p, hin, acceleration.acc, acceleration.collfreq,
 			     hout_col, tol_col, wienarr, &sim->B_data,
                              &sim->plasma_data, &sim->mccc_data, rnd);

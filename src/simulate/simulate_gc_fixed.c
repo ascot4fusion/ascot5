@@ -151,7 +151,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 
         /* Euler-Maruyama method for collisions */
         if(sim->enable_clmbcol) {
-            random_normal_simd(&sim->random_data, 5*p.n_mrk, rnd);
+            random_normal_simd(sim->random_data, 5*p.n_mrk, rnd);
             mccc_gc_euler(&p, hin, &sim->B_data, &sim->plasma_data,
                           &sim->mccc_data, rnd);
         }

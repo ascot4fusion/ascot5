@@ -148,8 +148,15 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     /* 2. Meta data (e.g. random number generator) is initialized.            */
     /*                                                                        */
     /**************************************************************************/
-    random_init(&sim->random_data, 0);
-
+#ifdef GPU
+    sim->random_data = malloc(n_queue_size * sizeof(random_data));
+    for(int i = 0; i < n_queue_size; ++i) {
+        random_init(&sim->random_data[i], i);
+    }
+#else
+    sim->random_data = malloc(sizeof(random_data));
+    random_init(sim->random_data, 0);
+#endif
     /**************************************************************************/
     /* 3. Markers are put into simulation queue.                              */
     /*                                                                        */
