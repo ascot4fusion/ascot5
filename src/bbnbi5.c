@@ -58,7 +58,7 @@ void bbnbi_simulate(
 
     /* Initialize input data */
     simulate_init(sim);
-    random_init(&sim->random_data, time(NULL));
+    random_init(sim->random_data, time(NULL));
 
     /* Calculate total NBI power so that we can distribute markers along
      * the injectors according to their power */
@@ -143,11 +143,11 @@ void bbnbi_inject_markers(particle_state* p, int nprt, int ngenerated, real t0,
      * other physics) until they enter the plasma for the first time.     */
     #pragma omp parallel for
     for(int i = 0; i < nprt; i++) {
-        real time = t0 + random_uniform(&sim->random_data) * (t1-t0);
+        real time = t0 + random_uniform(sim->random_data) * (t1-t0);
 
         /* Assign initial phase-space coordinates for this marker */
         real xyz[3], vxyz[3], rpz[3], vhat[3];
-        nbi_inject(xyz, vxyz, inj, &sim->random_data);
+        nbi_inject(xyz, vxyz, inj, sim->random_data);
         math_xyz2rpz(xyz, rpz);
         math_unit(vxyz, vhat);
 
@@ -223,7 +223,7 @@ void bbnbi_trace_markers(particle_queue *pq, sim_data* sim) {
         p.id[i] = -1;
         p.running[i] = 0;
         hin[i] = 1e-10;
-        threshold[i] = random_uniform(&sim->random_data);
+        threshold[i] = random_uniform(sim->random_data);
         remaining[i] = 1.0;
         shinethrough[i] = 0;
     }
@@ -357,7 +357,7 @@ void bbnbi_trace_markers(particle_queue *pq, sim_data* sim) {
                 p.time[i] += p.mileage[i];
 
                 /* Reset these for the next marker */
-                threshold[i] = random_uniform(&sim->random_data);
+                threshold[i] = random_uniform(sim->random_data);
                 remaining[i] = 1.0;
                 shinethrough[i] = 0;
 
