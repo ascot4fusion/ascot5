@@ -149,8 +149,9 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     /*                                                                        */
     /**************************************************************************/
 #ifdef GPU
-    sim->random_data = malloc(n_queue_size * sizeof(random_data));
-    for(int i = 0; i < n_queue_size; ++i) {
+    int data_size = 5;
+    sim->random_data = malloc(data_size * n_queue_size * sizeof(random_data));
+    for(int i = 0; i < data_size; ++i) {
         random_init(&sim->random_data[i], i);
     }
 #else
