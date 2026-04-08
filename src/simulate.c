@@ -151,9 +151,10 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
 #ifdef GPU
     int data_size = 5;
     sim->random_data = malloc(data_size * n_queue_size * sizeof(random_data));
-    for(int i = 0; i < data_size; ++i) {
-        random_init(&sim->random_data[i], i);
+    for(int i = 0; i < data_size * n_queue_size; ++i) {
+        random_init(&sim->random_data[i], 0);
     }
+    GPU_MAP_TO_DEVICE(sim->random_data[0:data_size * n_queue_size])
 #else
     sim->random_data = malloc(sizeof(random_data));
     random_init(sim->random_data, 0);
