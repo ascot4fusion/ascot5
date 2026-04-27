@@ -267,7 +267,7 @@ a5err B_field_eval_rho(real rho[2], real psi, B_field_data* Bdata) {
 
     if( rho_sq <0 ) {
          err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_FIELD );
-        printf("rho_sq < 0 in B_2DS_eval_rho... Check value of  psi0")
+        printf("rho_sq < 0 in B_2DS_eval_rho... Check value of  psi0");
 
     }
         

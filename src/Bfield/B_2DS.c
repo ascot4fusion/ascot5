@@ -227,7 +227,7 @@ a5err B_2DS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
 
     if( !err && ( rho_sq < 0.0) ) {
          err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_2DS );
-         printf("rho_sq < 0 in B_2DS_eval_rho_drho... Check value of  psi0")
+         printf("rho_sq < 0 in B_2DS_eval_rho_drho... Check value of  psi0");
     }
   
     /* Normalize psi to get rho */

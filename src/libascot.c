@@ -198,7 +198,7 @@ void libascot_B_field_rhotheta2rz(
         real sinth = sin(theta[j]);
         /* Find the limit of the dataset (if it exists) so that we can use it
          * as a boundary */
-        real maxdist = axisrz[0];
+        real maxdist = 10*axisrz[0]; //needed for  dipole when R_omp -R_magaxis >> R_imp - R_magaxis
         real b = 0.0;
         while(b < maxdist) {
             b += 0.01;
