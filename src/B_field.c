@@ -263,12 +263,18 @@ a5err B_field_eval_rho(real rho[2], real psi, B_field_data* Bdata) {
     }
 
     real delta = (psi1 - psi0);
-    if( (psi - psi0) / delta < 0 ) {
+    real rho_sq = ((psi- psi0) / delta);
+
+    if( rho_sq <0 ) {
          err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_FIELD );
-    } else {
-        rho[0] = sqrt( (psi - psi0) / delta );
-        rho[1] = 1.0 / (2*delta*rho[0]);
+        printf("rho_sq < 0 in B_2DS_eval_rho... Check value of  psi0")
+
     }
+        
+    rho[0] = sqrt(fabs(rho_sq));
+    rho[1] = 1.0 / (2*delta*rho[0]);
+    
+
 
     if(err) {
         /* In case of error, return some reasonable value to avoid further

@@ -223,12 +223,15 @@ a5err B_2DS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
 
     /* Check that the values seem valid */
     real delta = Bdata->psi1 - Bdata->psi0;
-    if( !err && (psi_dpsi[0] - Bdata->psi0) / delta < 0 ) {
-         err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_2DS );
-    }
+    real rho_sq = ((psi_dpsi[0] - Bdata->psi0) / delta);
 
+    if( !err && ( rho_sq < 0.0) ) {
+         err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_2DS );
+         printf("rho_sq < 0 in B_2DS_eval_rho_drho... Check value of  psi0")
+    }
+  
     /* Normalize psi to get rho */
-    rho_drho[0] = sqrt((psi_dpsi[0] - Bdata->psi0) / delta);
+    rho_drho[0] = sqrt(fabs(rho_sq));
     rho_drho[1] = psi_dpsi[1] / (2*delta*rho_drho[0]);
     rho_drho[2] = 0;
     rho_drho[3] = psi_dpsi[2] / (2*delta*rho_drho[0]);
