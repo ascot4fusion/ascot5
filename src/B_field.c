@@ -267,7 +267,10 @@ a5err B_field_eval_rho(real rho[2], real psi, B_field_data* Bdata) {
 
     if( rho_sq <0 ) {
          err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_FIELD );
-        printf("rho_sq < 0 in B_2DS_eval_rho... Check value of  psi0");
+        #ifdef DIPOLE_FIX
+            print_err("Warning: rho_sq < 0 in B_2DS_eval_rho_drho... Check value of  psi0.\n");
+            err = 0; //set error to zero to avoid NaN propagation,. Flag DIPOLE_FIX should only be used for pre and post porcessing
+        #endif 
 
     }
         
@@ -277,10 +280,10 @@ a5err B_field_eval_rho(real rho[2], real psi, B_field_data* Bdata) {
 
 
     if(err) {
-        /* In case of error, return some reasonable value to avoid further
-           complications */
-        rho[0] = 1;
-        rho[1] = 0;
+       /* In case of error, return some reasonable value to avoid further
+         complications */
+       rho[0] = 1;
+       rho[1] = 0;
     }
 
     return err;

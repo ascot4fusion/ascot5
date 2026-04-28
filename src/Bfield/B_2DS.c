@@ -224,11 +224,15 @@ a5err B_2DS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
     /* Check that the values seem valid */
     real delta = Bdata->psi1 - Bdata->psi0;
     real rho_sq = ((psi_dpsi[0] - Bdata->psi0) / delta);
-
+    
     if( !err && ( rho_sq < 0.0) ) {
          err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_2DS );
-         printf("rho_sq < 0 in B_2DS_eval_rho_drho... Check value of  psi0");
-    }
+         #ifdef DIPOLE_FIX
+            print_err("Warning: rho_sq < 0 in B_2DS_eval_rho_drho... Check value of  psi0.\n");
+            err = 0; //set error to zero to avoid NaN propagation,. Flag DIPOLE_FIX should only be used for pre and post porcessing
+        #endif 
+}
+    
   
     /* Normalize psi to get rho */
     rho_drho[0] = sqrt(fabs(rho_sq));

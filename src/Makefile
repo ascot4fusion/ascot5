@@ -24,6 +24,10 @@ ifeq ($(SINGLEPRECISION),1)
 	DEFINES+=-DSINGLEPRECISION
 endif
 
+ifeq ($(DIPOLE_FIX),1)
+	DEFINES+=-DSINGLEPRECISION
+endif
+
 ifeq ($(RFOF),1)
 	DEFINES+=-DRFOF
 	CFLAGS+=-lgfortran -lquadmath -lxml2 -lrfof
