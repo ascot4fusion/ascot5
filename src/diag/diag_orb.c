@@ -398,6 +398,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         }
                         data->mrk_pnt[imrk]      = ipoint;
                         data->mrk_recorded[imrk] = p_f->mileage[i];
+                        data->simmode[idx]= DIAG_ORB_FO;
                     }
                 }
             }
@@ -605,6 +606,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         }
                         data->mrk_pnt[imrk]      = ipoint;
                         data->mrk_recorded[imrk] = p_f->mileage[i];
+                        data->simmode[idx]= DIAG_ORB_GC;
                     }
                 }
             }
@@ -782,7 +784,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                         if(ipoint == data->Npnt) {
                             ipoint = 0;
                         }
-
+                        data->simmode[idx]= DIAG_ORB_ML;
                         data->mrk_pnt[imrk]      = ipoint;
                         data->mrk_recorded[imrk] = p_f->mileage[i];
                     }
