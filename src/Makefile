@@ -25,7 +25,7 @@ ifeq ($(SINGLEPRECISION),1)
 endif
 
 ifeq ($(DIPOLE_FIX),1)
-	DEFINES+=-DSINGLEPRECISION
+	DEFINES+=-DDIPOLE_FIX
 endif
 
 ifeq ($(RFOF),1)
