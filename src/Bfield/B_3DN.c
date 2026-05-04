@@ -39,7 +39,8 @@
 #include "../error.h"
 #include "../print.h"
 #include "B_3DN.h"
-#include "../spline/interp.h"   // TODO: REMOVE WHEN DONE 
+#include "../spline/interp.h"   // TODO: REMOVE WHEN DONE
+#include "../neural_network/neural_network.h"
 
 int psigrid_n_r;     /**< Number of R grid points in psi data             */
     int psigrid_n_z;     /**< Number of z grid points in psi data             */
