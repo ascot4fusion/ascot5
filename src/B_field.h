@@ -16,6 +16,7 @@
 #include "Bfield/B_3DS.h"
 #include "Bfield/B_STS.h"
 #include "Bfield/B_TC.h"
+#include "Bfield/B_3DN.h"
 
 /**
  * @brief Magnetic field types
@@ -29,7 +30,8 @@ typedef enum B_field_type {
     B_field_type_2DS, /**< Spline-interpolated axisymmetric  magnetic field */
     B_field_type_3DS, /**< Spline-interpolated 3D magnetic field            */
     B_field_type_STS, /**< Spline-interpolated stellarator magnetic field   */
-    B_field_type_TC   /**< Trivial Cartesian magnetic field                 */
+    B_field_type_TC,   /**< Trivial Cartesian magnetic field                */
+    B_field_type_3DN   /**< Neural network-interpolated 3D magnetic field   */
 } B_field_type;
 
 /**
@@ -45,6 +47,7 @@ typedef struct {
     B_3DS_data B3DS;   /**< 3DS field or NULL if not active            */
     B_STS_data BSTS;   /**< STS field or NULL if not active            */
     B_TC_data BTC;     /**< TC field or NULL if not active             */
+    B_3DN_data B3DN;   /**< 3DN field or NULL if not active            */
 } B_field_data;
 
 void B_field_free(B_field_data* data);

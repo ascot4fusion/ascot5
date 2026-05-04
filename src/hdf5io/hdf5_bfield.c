@@ -26,6 +26,7 @@
 #include "../B_field.h"
 #include "../Bfield/B_2DS.h"
 #include "../Bfield/B_3DS.h"
+#include "../Bfield/B_3DN.h"
 #include "../Bfield/B_STS.h"
 #include "../Bfield/B_TC.h"
 #include "../Bfield/B_GS.h"
@@ -36,6 +37,7 @@
 
 int hdf5_bfield_read_2DS(hid_t f, B_2DS_data* data, char* qid);
 int hdf5_bfield_read_3DS(hid_t f, B_3DS_data* data, char* qid);
+int hdf5_bfield_read_3DN(hid_t f, B_3DN_data* data, char* qid);
 int hdf5_bfield_read_STS(hid_t f, B_STS_data* data, char* qid);
 int hdf5_bfield_read_TC(hid_t f, B_TC_data* data, char* qid);
 int hdf5_bfield_read_GS(hid_t f, B_GS_data* data, char* qid);
@@ -88,6 +90,12 @@ int hdf5_bfield_init(hid_t f, B_field_data* data, char* qid) {
     if( !hdf5_find_group(f, path) ) {
         data->type = B_field_type_3DS;
         err = hdf5_bfield_read_3DS(f, &(data->B3DS), qid);
+    }
+
+    hdf5_gen_path("/bfield/B_3DN_XXXXXXXXXX", qid, path);
+    if( !hdf5_find_group(f, path) ) {
+        data->type = B_field_type_3DN;
+        err = hdf5_bfield_read_3DN(f, &(data->B3DN), qid);
     }
 
     hdf5_gen_path("/bfield/B_STS_XXXXXXXXXX", qid, path);
@@ -315,6 +323,63 @@ int hdf5_bfield_read_3DS(hid_t f, B_3DS_data* data, char* qid) {
     free(br);
     free(bphi);
     free(bz);
+    return err;
+}
+
+/**
+ * @brief Read magnetic field data of type B_3DN
+ *
+ * The B_3DN data is stored in HDF5 file under the group
+ * /bfield/B_3DN-XXXXXXXXXX/ where X's mark the QID.
+ *
+ * This function assumes the group holds the following datasets:
+ * (B data refers to \f$B_R\f$, \f$B_phi\f$, and \f$B_z\f$ and psi data to
+ *  \f$\psi\f$.)
+ *
+ * TODO: update this part when done
+ *
+ * - double axisr Magnetic axis R coordinate [m]
+ * - double axisz Magnetic axis z coordinate [m]
+ * - double psi0 Poloidal magnetic flux value on magnetic axis [V*s*m^-1]
+ * - double psi1 Poloidal magnetic flux value on separatrix [V*s*m^-1]
+ *
+ * @param f HDF5 file identifier for a file which is opened and closed outside
+ *          of this function
+ * @param data pointer to data struct which is allocated here
+ * @param qid QID of the B_3DN field that is to be read
+ *
+ * @return zero if reading succeeded
+ */
+int hdf5_bfield_read_3DN(hid_t f, B_3DN_data* data, char* qid) {
+    #undef BPATH
+    #define BPATH "/bfield/B_3DN_XXXXXXXXXX/"
+
+    // TODO: read the neural network wieghts and possible other data
+
+    /* Read the poloidal flux (psi) values at magnetic axis and separatrix. */
+    real psi0, psi1, axisr, axisz;
+    if( hdf5_read_double(BPATH "psi0", &psi0,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "psi1", &psi1,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    /* Read magnetic axis R and z coordinates */
+    if( hdf5_read_double(BPATH "axisr", &axisr,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "axisz", &axisz,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+
+
+    // TODO: implement B_3DN_init and update this call
+    int err = B_3DN_init(data, axisr, axisz, psi0, psi1);
+
+    //free(psi);
+    //free(br);
+    //free(bphi);
+    //free(bz);
+    //TODO: free something else possibly
+
     return err;
 }
 

@@ -21,6 +21,7 @@
 #include "Bfield/B_GS.h"
 #include "Bfield/B_2DS.h"
 #include "Bfield/B_3DS.h"
+#include "Bfield/B_3DN.h"
 #include "Bfield/B_STS.h"
 #include "Bfield/B_TC.h"
 
@@ -50,6 +51,10 @@ void B_field_free(B_field_data* data) {
         case B_field_type_TC:
             B_TC_free(&(data->BTC));
             break;
+
+        case B_field_type_3DN:
+            B_3DN_free(&(data->B3DN));
+            break;
     }
 }
 
@@ -78,6 +83,10 @@ void B_field_offload(B_field_data* data) {
 
         case B_field_type_TC:
             B_TC_offload(&(data->BTC));
+            break;
+
+        case B_field_type_3DN:
+            B_3DN_offload(&(data->B3DN));
             break;
     }
 }
@@ -122,6 +131,10 @@ a5err B_field_eval_psi(real* psi, real r, real phi, real z, real t,
 
         case B_field_type_TC:
             err = B_TC_eval_psi(psi, r, phi, z, &(Bdata->BTC));
+            break;
+
+        case B_field_type_3DN:
+            err = B_3DN_eval_psi(psi, r, phi, z, &(Bdata->B3DN));
             break;
 
         default:
@@ -186,6 +199,10 @@ a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z, real t,
 
         case B_field_type_TC:
             err = B_TC_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BTC));
+            break;
+
+        case B_field_type_3DN:
+            err = B_3DN_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->B3DN));
             break;
 
         default:
@@ -254,6 +271,11 @@ a5err B_field_eval_rho(real rho[2], real psi, B_field_data* Bdata) {
             psi0 = Bdata->BTC.psival - Bdata->BTC.rhoval * Bdata->BTC.rhoval;
             psi1 = Bdata->BTC.psival - Bdata->BTC.rhoval * Bdata->BTC.rhoval
                    + 1.0;
+            break;
+
+        case B_field_type_3DN:
+            psi0 = Bdata->B3DN.psi0;
+            psi1 = Bdata->B3DN.psi1;
             break;
 
         default:
@@ -334,6 +356,10 @@ a5err B_field_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
             err = B_TC_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BTC));
             break;
 
+        case B_field_type_3DN:
+            err = B_3DN_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->B3DN));
+            break;
+
         default:
             /* Unregonized input. Produce error. */
             err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_B_FIELD );
@@ -394,6 +420,10 @@ a5err B_field_eval_B(real B[3], real r, real phi, real z, real t,
 
         case B_field_type_TC:
             err = B_TC_eval_B(B, r, phi, z, &(Bdata->BTC));
+            break;
+
+        case B_field_type_3DN:
+            err = B_3DN_eval_B(B, r, phi, z, &(Bdata->B3DN));
             break;
 
         default:
@@ -471,6 +501,10 @@ a5err B_field_eval_B_dB(real B_dB[15], real r, real phi, real z, real t,
             err = B_TC_eval_B_dB(B_dB, r, phi, z, &(Bdata->BTC));
             break;
 
+        case B_field_type_3DN:
+            err = B_3DN_eval_B_dB(B_dB, r, phi, z, &(Bdata->B3DN));
+            break;
+
         default:
             /* Unregonized input. Produce error. */
             err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_B_FIELD );
@@ -520,6 +554,10 @@ a5err B_field_get_axis_rz(real rz[2], B_field_data* Bdata, real phi) {
 
         case B_field_type_TC:
             err = B_TC_get_axis_rz(rz, &(Bdata->BTC));
+            break;
+
+        case B_field_type_3DN:
+            err = B_3DN_get_axis_rz(rz, &(Bdata->B3DN));
             break;
 
         default:

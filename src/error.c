@@ -199,6 +199,10 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
             sprintf(file, "B_3DS.c");
             break;
 
+        case EF_B_3DN:
+            sprintf(file, "B_3DN.c");
+            break;
+
         case EF_PARTICLE:
             sprintf(file, "particle.c");
             break;
