@@ -27,13 +27,10 @@ typedef struct {
 } B_3DN_data;
 
 int B_3DN_init(B_3DN_data* data,
-               int p_n_r, real p_r_min, real p_r_max,
-               int p_n_z, real p_z_min, real p_z_max,
-               int b_n_r, real b_r_min, real b_r_max,
-               int b_n_phi, real b_phi_min, real b_phi_max,
-               int b_n_z, real b_z_min, real b_z_max,
                real axis_r, real axis_z, real psi0, real psi1,
-               real* psi, real* B_r, real* B_phi, real* B_z);
+               real* psi_weights, real* B_rphiz_weights, int psi_n_layers,
+               int* psi_layer_dimensions, int B_rphiz_n_layers,
+               int* B_rphiz_layer_dimensions);
 void B_3DN_free(B_3DN_data* data);
 void B_3DN_offload(B_3DN_data* data);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)

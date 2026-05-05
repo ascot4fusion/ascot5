@@ -83,15 +83,16 @@ int psigrid_n_r;     /**< Number of R grid points in psi data             */
  * @param psi1 poloidal flux value at separatrix [V*s*m^-1]
  * @param psi_weights weights for the psi neural network
  * @param B_rphiz_weights weights for the B_rphiz neural network
- * @param n_psi_weights number of weights for the psi neural network
- * @param n_B_rphiz_weights number of weights for the B_rphiz neural network
- *
+ * @param psi_n_layers number of layers in the psi neural network
+ * @param psi_layer_dimensions dimensions of each layer in the psi neural network; length (n-1)
+ * @param B_rphiz_n_layers number of layers in the B_rphiz neural network
+ * @param B_rphiz_layer_dimensions dimensions of each layer in the B_rphiz neural network; length (n-1)
  * @return zero if initialization succeeded
  */
 int B_3DN_init(B_3DN_data* data,
                real axis_r, real axis_z, real psi0, real psi1,
-               real* psi_weights, real* B_rphiz_weights, int n_psi_weights,
-               int n_B_rphiz_weights) {
+               real* psi_weights, real* B_rphiz_weights, int psi_n_layers, int* psi_layer_dimensions, int B_rphiz_n_layers,
+               int* B_rphiz_layer_dimensions) {
 
     int err = 0;
     data->psi0   = psi0;
@@ -101,14 +102,16 @@ int B_3DN_init(B_3DN_data* data,
 
     /* Store the wieghts into the B_3DN_data */
     // 2D (for psi)
-    err = neural2Dsetup(&data->psi_neural_data, psi_weights, n_psi_weights);
+    err = neural2Dsetup(&data->psi_neural_data, psi_weights,
+        psi_n_layers, psi_layer_dimensions);
     if(err) {
         print_err("Error: Failed to initialize psi neural network weights.\n");
         return 1;
     }
 
     // 3D (for B_rphiz)
-    err = neural3Dcomp_setup(&data->B_rphiz_neural_data, B_rphiz_weights, n_B_rphiz_weights);
+    err = neural3Dcomp_setup(&data->B_rphiz_neural_data, B_rphiz_weights,
+        B_rphiz_n_layers, B_rphiz_layer_dimensions);
     if(err) {
         print_err("Error: Failed to initialize B_rphiz neural network weights.\n");
         return 1;
@@ -143,12 +146,9 @@ int B_3DN_init(B_3DN_data* data,
  * @param data pointer to the data struct
  */
 void B_3DN_free(B_3DN_data* data) {
-    // TODO: these psi, B_r, B_phi, B_z will not be used with neural networks
-    // ==> UPDATE when B_3DN_data is implemented
-    free(data->psi.c);
-    free(data->B_r.c);
-    free(data->B_phi.c);
-    free(data->B_z.c);
+    // TODO: Possibly update when B_3DN_data final implementaion is known
+    free(data->psi_neural_data.weights);
+    free(data->B_rphiz_neural_data.weights);
 }
 
 /**
@@ -183,9 +183,8 @@ a5err B_3DN_eval_psi(real* psi, real r, real phi, real z,
                    B_3DN_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
-    // TODO: this data->psi will not be used with neural networks
-    // ==> UPDATE when B_3DN_data is implemented
-    interperr += interp2Dcomp_eval_f(&psi[0], &Bdata->psi, r, z);
+    // TODO: update later if necessary
+    interperr += neural_network2Deval_f(&psi[0], &Bdata->psi_neural_data, r, z);
 
     if(interperr) {
         err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_3DN );
@@ -211,9 +210,8 @@ a5err B_3DN_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
     int interperr = 0;
     real psi_dpsi_temp[6];
 
-    // TODO: this data->psi will not be used with neural networks
-    // ==> UPDATE when B_3DN_data is implemented
-    interperr += interp2Dcomp_eval_df(psi_dpsi_temp, &Bdata->psi, r, z);
+    // TODO: update leter if necessary
+    interperr += neural_network2Deval_df(psi_dpsi_temp, &Bdata->psi_neural_data, r, z);
 
     psi_dpsi[0] = psi_dpsi_temp[0];
     psi_dpsi[1] = psi_dpsi_temp[1];
@@ -246,7 +244,7 @@ a5err B_3DN_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
 
     // TODO: this data->psi will not be used with neural networks
     // ==> UPDATE when B_3DN_data is implemented
-    interperr += interp2Dcomp_eval_df(psi_dpsi, &Bdata->psi, r, z);
+    interperr += neural_network2Deval_df(psi_dpsi, &Bdata->psi_neural_data, r, z);
 
     if(interperr) {
         return error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_3DN );
@@ -283,12 +281,8 @@ a5err B_3DN_eval_B(real B[3], real r, real phi, real z, B_3DN_data* Bdata) {
     a5err err = 0;
     int interperr = 0;
 
-
-    // TODO: these psi, B_r, B_phi, B_z will not be used with neural networks
-    // ==> UPDATE when B_3DN_data is implemented
-    interperr += interp3Dcomp_eval_f(&B[0], &Bdata->B_r, r, phi, z);
-    interperr += interp3Dcomp_eval_f(&B[1], &Bdata->B_phi, r, phi, z);
-    interperr += interp3Dcomp_eval_f(&B[2], &Bdata->B_z, r, phi, z);
+    // TODO: pdate later if relevant
+    interperr += neural_network3Deval_f(B, &Bdata->B_rphiz_neural_data, r, phi, z);
 
     /* Test for B field interpolation error */
     if(interperr) {
@@ -297,9 +291,8 @@ a5err B_3DN_eval_B(real B[3], real r, real phi, real z, B_3DN_data* Bdata) {
 
     if(!err) {
         real psi_dpsi[6];
-        // TODO: this data->psi will not be used with neural networks
-        // ==> UPDATE when B_3DN_data is implemented
-        interperr += interp2Dcomp_eval_df(psi_dpsi, &Bdata->psi, r, z);
+        // TODO: update later if needed
+        interperr += neural_network2Deval_df(psi_dpsi, &Bdata->psi_neural_data, r, z);
 
         B[0] = B[0] - psi_dpsi[2]/r;
         B[2] = B[2] + psi_dpsi[1]/r;
@@ -339,19 +332,19 @@ a5err B_3DN_eval_B_dB(real B_dB[12], real r, real phi, real z,
 
     // TODO: these psi, B_r, B_phi, B_z will not be used with neural networks
     // ==> UPDATE when B_3DN_data is implemented
-    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_r, r, phi, z);
-    B_dB[0] = B_dB_temp[0];
-    B_dB[1] = B_dB_temp[1];
-    B_dB[2] = B_dB_temp[2];
-    B_dB[3] = B_dB_temp[3];
+    interperr += neural_network3Deval_df(B_dB_temp, &Bdata->B_rphiz_neural_data, r, phi, z);
+    B_dB[0] = B_dB_temp[0]; // Br
+    B_dB[1] = B_dB_temp[1]; // dBr/dr
+    B_dB[2] = B_dB_temp[2]; // dBr/dphi
+    B_dB[3] = B_dB_temp[3]; // dBr/dz
 
     // TODO: these psi, B_r, B_phi, B_z will not be used with neural networks
     // ==> UPDATE when B_3DN_data is implemented
     interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_phi, r, phi, z);
-    B_dB[4] = B_dB_temp[0];
-    B_dB[5] = B_dB_temp[1];
-    B_dB[6] = B_dB_temp[2];
-    B_dB[7] = B_dB_temp[3];
+    B_dB[4] = B_dB_temp[0]; // Bphi
+    B_dB[5] = B_dB_temp[1]; // dBphi/dr
+    B_dB[6] = B_dB_temp[2]; // dBphi/dphi
+    B_dB[7] = B_dB_temp[3]; // dBphi/dz
 
     // TODO: these psi, B_r, B_phi, B_z will not be used with neural networks
     // ==> UPDATE when B_3DN_data is implemented

@@ -13,7 +13,21 @@
  * @param weights weights for the neural network
  * @param n_weights number of weights
  */
-int neural2Dsetup(neural2D_data* neural2D_data, real* weights, int n_weights) {
+int neural2Dsetup(neural2D_data* neural2D_data, real* weights,
+    int n_layers, int* matrix_dimensions) {
+
+    int n_weights = 1*1;
+
+    for (int i = 0; i < n_layers; i++) {
+        n_weights *= matrix_dimensions[i]*matrix_dimensions[i];
+    }
+
+    neural2D_data->n_layers = n_layers;
+
+    neural2D_data->matrix_dimensions = (int*)malloc((n_layers-1) * sizeof(int));
+    for (int i = 0; i < n_layers-1; i++) {
+        neural2D_data->matrix_dimensions[i] = matrix_dimensions[i];
+    }
 
     neural2D_data->weights = (real*)malloc(n_weights * sizeof(real));
 
@@ -35,7 +49,21 @@ int neural2Dsetup(neural2D_data* neural2D_data, real* weights, int n_weights) {
  * @param weights weights for the neural network
  * @param n_weights number of weights
  */
-int neural3Dsetup(neural3D_data* neural3D_data, real* weights, int n_weights) {
+int neural3Dsetup(neural3D_data* neural3D_data, real* weights,
+    int n_layers, int* matrix_dimensions) {
+
+    int n_weights = 3*3;
+
+    for (int i = 0; i < n_layers; i++) {
+        n_weights *= matrix_dimensions[i]*matrix_dimensions[i];
+    }
+
+    neural3D_data->n_layers = n_layers;
+
+    neural3D_data->matrix_dimensions = (int*)malloc((n_layers-1) * sizeof(int));
+    for (int i = 0; i < n_layers-1; i++) {
+        neural3D_data->matrix_dimensions[i] = matrix_dimensions[i];
+    }
 
     neural3D_data->weights = (real*)malloc(n_weights * sizeof(real));
 

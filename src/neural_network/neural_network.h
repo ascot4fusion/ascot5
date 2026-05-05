@@ -11,6 +11,8 @@
  * @brief Neural network parameters for 2D data
  */
 typedef struct {
+    int n_layers;      /**< number of layers */
+    int* matrix_dimensions; /**< dimensions of each layer (n_layers-1) */
     real* weights;     /**< weights */
 } neural2D_data;
 
@@ -18,13 +20,15 @@ typedef struct {
  * @brief Neural network parameters for 3D data
  */
 typedef struct {
+    int n_layers;      /**< number of layers */
+    int* matrix_dimensions; /**< dimensions of each layer (n_layers-1) */
     real* weights;     /**< weights */
 } neural3D_data;
 
 /* Setuon functions */
-int neural2Dsetup(neural2D_data* neural2D_data, real* weights, int n_weights);
+int neural2Dsetup(neural2D_data* neural2D_data, real* weights, int n_layers, int* matrix_dimensions);
 
-int neural3Dsetup(neural3D_data* neural3D_data, real* weights, int n_weights);
+int neural3Dsetup(neural3D_data* neural3D_data, real* weights, int n_layers, int* matrix_dimensions);
 
 /* Evaluation functions */
 a5err neural_network2Deval_f(real* f, neural2D_data* str, real x, real y);
