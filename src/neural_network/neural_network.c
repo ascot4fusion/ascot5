@@ -137,6 +137,33 @@ a5err neural_network2Deval_df(real* f, real* partial_f, neural2D_data* neural2D_
  */
 a5err neural_network3Deval_f(real* f, neural3D_data* neural3D_data, real x, real y, real z) {
     // TODO: implement
+
+    real output[1000], output_buff[1000]; // TODO, get max size of output of a single layer 
+    output[0] = x; 
+    output[1] = y; 
+    output[2] = z;
+    int n=3, m=1; 
+    int p=neural3D_data->matrix_dimensions[0]; 
+
+    int i, j,k, where_weight_buffer=0; 
+    for (int current_layer=0; current_layer<neural3D_data->n_layers; current_layer++){
+        // MATMUL 
+        for(i=0; i<m; i++){
+            for(j=0; j<p; j++){
+                for(k=0; k<n; k++) {
+                    output_buff[i*m + j] += output[i*n + k]*(neural3D_data -> weights[where_weight_buffer + n*j + k])
+                }
+                
+            }
+        }
+        // UPDATE n, m, p 
+        where_weight_buffer += p*n
+        n = p; 
+        p = neural3D_data->matrix_dimensions[current_layer+1];
+        m = 1; // since single particle inference now... maybe changes in future
+    }  
+    
+
 }
 
 /**
