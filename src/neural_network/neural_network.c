@@ -17,9 +17,10 @@ int neural2Dsetup(neural2D_data* neural2D_data, real* weights,
     int n_layers, int* matrix_dimensions, real x_mean, real y_mean, real f1_mean,
     real x_std, real y_std, real f1_std) {
 
-    int n_weights = 1*1;
+    int n_weights = 2*1; // always 2D input (R,z) and 1D output (psi)
 
-    for (int i = 0; i < n_layers; i++) {
+    // #weights = (2*d1) * (d1*d2) * ... * (d8*1), due to 2d --> 1d and matmul
+    for (int i = 0; i < n_layers-1; i++) {
         n_weights *= matrix_dimensions[i]*matrix_dimensions[i];
     }
 
@@ -62,9 +63,9 @@ int neural3Dsetup(neural3D_data* neural3D_data, real* weights,
     real f1_mean, real f2_mean, real f3_mean, real x_std, real y_std, real z_std,
     real f1_std, real f2_std, real f3_std) {
 
-    int n_weights = 3*3;
+    int n_weights = 3*3; // always 3D input (R,phi,z) and 3D output (Br,Bphi,Bz)
 
-    for (int i = 0; i < n_layers; i++) {
+    for (int i = 0; i < n_layers-1; i++) {
         n_weights *= matrix_dimensions[i]*matrix_dimensions[i];
     }
 
@@ -121,7 +122,7 @@ a5err neural_network2Deval_f(real* f, neural2D_data* neural2D_data, real x, real
  * @param x x-coordinate
  * @param y y-coordinate
  */
-a5err neural_network2Deval_df(real* f_df, neural2D_data* neural2D_data, real x, real y) {
+a5err neural_network2Deval_df(real* f, real* partial_f, neural2D_data* neural2D_data, real x, real y) {
     // TODO: implement
 }
 
@@ -147,6 +148,6 @@ a5err neural_network3Deval_f(real* f, neural3D_data* neural3D_data, real x, real
  * @param y y-coordinate
  * @param z z-coordinate
  */
-a5err neural_network3Deval_df(real* f_df, neural3D_data* neural3D_data, real x, real y, real z) {
+a5err neural_network3Deval_df(real* f, real* partial_f, neural3D_data* neural3D_data, real x, real y, real z) {
     // TODO: implement
 }

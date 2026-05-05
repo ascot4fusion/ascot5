@@ -55,10 +55,10 @@ int neural3Dsetup(neural3D_data* neural3D_data, real* weights, int n_layers, int
 /* Evaluation functions */
 a5err neural_network2Deval_f(real* f, neural2D_data* str, real x, real y);
 
-a5err neural_network2Deval_df(real* f_df, neural2D_data* str, real x, real y);
+a5err neural_network2Deval_df(real* f, real* partial_f, neural2D_data* str, real x, real y);
 
 a5err neural_network3Deval_f(real* f, neural3D_data* str,
                          real x, real y, real z);
 
-a5err neural_network3Deval_df(real* f_df, neural3D_data* str,
+a5err neural_network3Deval_df(real* f, real* partial_f, neural3D_data* str,
                            real x, real y, real z);

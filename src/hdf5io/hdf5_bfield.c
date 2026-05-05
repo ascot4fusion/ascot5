@@ -354,7 +354,49 @@ int hdf5_bfield_read_3DN(hid_t f, B_3DN_data* data, char* qid) {
     #undef BPATH
     #define BPATH "/bfield/B_3DN_XXXXXXXXXX/"
 
-    // TODO: read the neural network wieghts and possible other data
+    /* Read and initialize psi field Rz-grid */
+    int psi_n_layers, B_rphiz_n_layers;
+    int* psi_layer_dimensions = NULL;
+    int* B_rphiz_layer_dimensions = NULL;
+    real* psi_weights = NULL;
+    real* B_rphiz_weights = NULL;
+
+    real psi_r_mean, psi_z_mean, psi_psi_mean, psi_r_std, psi_z_std, psi_psi_std;
+    real bfield_r_mean, bfield_phi_mean, bfield_z_mean;
+    real bfield_Br_mean, bfield_Bphi_mean, bfield_Bz_mean;
+    real bfield_r_std, bfield_phi_std, bfield_z_std;
+    real bfield_Br_std, bfield_Bphi_std, bfield_Bz_std;
+
+    // TODO: read the neural network psi_n_layers and B_rphiz_n_layers
+
+    // TODO: malloc memory for reading the matrix dimensions
+
+    // TODO: read the matrix dimensions
+
+    int psi_n_weights = 2*1;   // always 2D input (R,z) and 1D output (psi)
+    for (int i = 0; i < psi_n_layers-1; i++) {
+        psi_n_weights *= matrix_dimensions[i]*matrix_dimensions[i];
+    }
+    psi_weights = (real*)malloc(psi_n_weights * sizeof(real));
+
+    if(psi_weights == NULL) {
+        return -1;
+    }
+
+    int bfield_n_weights = 3*3; // always 3D input (R,phi,z) and 3D output (Br,Bphi,Bz)
+    for (int i = 0; i < B_rphiz_n_layers-1; i++) {
+        bfield_n_weights *= matrix_dimensions[i]*matrix_dimensions[i];
+    }
+    B_rphiz_weights = (real*)malloc(bfield_n_weights * sizeof(real));
+
+    if(psi_weights == NULL || B_rphiz_weights == NULL) {
+        return -1;
+    }
+
+    // TODO: read the neural network weights
+
+    // TODO: read the mean and std data
+
 
     /* Read the poloidal flux (psi) values at magnetic axis and separatrix. */
     real psi0, psi1, axisr, axisz;
@@ -371,8 +413,16 @@ int hdf5_bfield_read_3DN(hid_t f, B_3DN_data* data, char* qid) {
 
 
 
-    // TODO: implement B_3DN_init and update this call
-    int err = B_3DN_init(data, axisr, axisz, psi0, psi1);
+    int err = B_3DN_init(data, axisr, axisz, psi0, psi1,
+                         psi_weights, B_rphiz_weights, psi_n_layers,
+                         psi_layer_dimensions, B_rphiz_n_layers,
+                         B_rphiz_layer_dimensions,
+                         psi_r_mean, psi_z_mean, psi_psi_mean,
+                         psi_r_std, psi_z_std, psi_psi_std,
+                         bfield_r_mean, bfield_phi_mean, bfield_z_mean,
+                         bfield_Br_mean, bfield_Bphi_mean, bfield_Bz_mean,
+                         bfield_r_std, bfield_phi_std, bfield_z_std,
+                         bfield_Br_std, bfield_Bphi_std, bfield_Bz_std);
 
     //free(psi);
     //free(br);
