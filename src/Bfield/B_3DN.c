@@ -340,31 +340,24 @@ a5err B_3DN_eval_B_dB(real B_dB[12], real r, real phi, real z,
                       B_3DN_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
-    real B_dB_temp[10];
+    real B_temp[3];      // Bfield values
+    real partial_B_temp[9]; // Values of first derivatives
 
-    // TODO: these psi, B_r, B_phi, B_z will not be used with neural networks
-    // ==> UPDATE when B_3DN_data is implemented
-    interperr += neural_network3Deval_df(B_dB_temp, &Bdata->B_rphiz_neural_data, r, phi, z);
-    B_dB[0] = B_dB_temp[0]; // Br
-    B_dB[1] = B_dB_temp[1]; // dBr/dr
-    B_dB[2] = B_dB_temp[2]; // dBr/dphi
-    B_dB[3] = B_dB_temp[3]; // dBr/dz
+    interperr += neural_network3Deval_df(B_temp, partial_B_temp, &Bdata->B_rphiz_neural_data, r, phi, z);
+    B_dB[0] = B_temp[0];          // Br
+    B_dB[1] = partial_B_temp[0];  // dBr/dr
+    B_dB[2] = partial_B_temp[3];  // dBr/dphi
+    B_dB[3] = partial_B_temp[6];  // dBr/dz
 
-    // TODO: these psi, B_r, B_phi, B_z will not be used with neural networks
-    // ==> UPDATE when B_3DN_data is implemented
-    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_phi, r, phi, z);
-    B_dB[4] = B_dB_temp[0]; // Bphi
-    B_dB[5] = B_dB_temp[1]; // dBphi/dr
-    B_dB[6] = B_dB_temp[2]; // dBphi/dphi
-    B_dB[7] = B_dB_temp[3]; // dBphi/dz
+    B_dB[4] = B_temp[1];          // Bphi
+    B_dB[5] = partial_B_temp[1];  // dBphi/dr
+    B_dB[6] = partial_B_temp[4];  // dBphi/dphi
+    B_dB[7] = partial_B_temp[7];  // dBphi/dz
 
-    // TODO: these psi, B_r, B_phi, B_z will not be used with neural networks
-    // ==> UPDATE when B_3DN_data is implemented
-    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_z, r, phi, z);
-    B_dB[8] = B_dB_temp[0];
-    B_dB[9] = B_dB_temp[1];
-    B_dB[10] = B_dB_temp[2];
-    B_dB[11] = B_dB_temp[3];
+    B_dB[8] = B_temp[2];          // Bz
+    B_dB[9] = partial_B_temp[2];  // dBz/dr
+    B_dB[10] = partial_B_temp[5]; // dBz/dphi
+    B_dB[11] = partial_B_temp[8]; // dBz/dz
 
     /* Test for B field interpolation error */
     if(interperr) {
@@ -372,17 +365,17 @@ a5err B_3DN_eval_B_dB(real B_dB[12], real r, real phi, real z,
     }
 
     if(!err) {
-        real psi_dpsi[6];
-        // TODO: these psi, B_r, B_phi, B_z will not be used with neural networks
-        // ==> UPDATE when B_3DN_data is implemented
-        interperr += interp2Dcomp_eval_df(psi_dpsi, &Bdata->psi, r, z);
+        real psi[3];
+        real partial_psi[3];
 
-        B_dB[0] = B_dB[0] - psi_dpsi[2]/r;
-        B_dB[1] = B_dB[1] + psi_dpsi[2]/(r*r)-psi_dpsi[5]/r;
-        B_dB[3] = B_dB[3] - psi_dpsi[4]/r;
-        B_dB[8] = B_dB[8] + psi_dpsi[1]/r;
-        B_dB[9] = B_dB[9] - psi_dpsi[1]/(r*r) + psi_dpsi[3]/r;
-        B_dB[11] = B_dB[11] + psi_dpsi[5]/r;
+        interperr += neural_network2Deval_df(psi, partial_psi, &Bdata->psi_neural_data, r, z);
+
+        B_dB[0] = B_dB[0] - psi[2]/r;
+        B_dB[1] = B_dB[1] + psi[2]/(r*r)-partial_psi[2]/r;
+        B_dB[3] = B_dB[3] - partial_psi[1]/r;
+        B_dB[8] = B_dB[8] + psi[1]/r;
+        B_dB[9] = B_dB[9] - psi[1]/(r*r) + partial_psi[0]/r;
+        B_dB[11] = B_dB[11] + partial_psi[2]/r;
 
         /* Test for psi interpolation error */
         if(interperr) {
