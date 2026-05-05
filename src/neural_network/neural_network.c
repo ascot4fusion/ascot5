@@ -14,7 +14,8 @@
  * @param n_weights number of weights
  */
 int neural2Dsetup(neural2D_data* neural2D_data, real* weights,
-    int n_layers, int* matrix_dimensions) {
+    int n_layers, int* matrix_dimensions, real x_mean, real y_mean, real f1_mean,
+    real x_std, real y_std, real f1_std) {
 
     int n_weights = 1*1;
 
@@ -39,6 +40,13 @@ int neural2Dsetup(neural2D_data* neural2D_data, real* weights,
         neural2D_data->weights[i] = weights[i];
     }
 
+    neural2D_data->x_mean = x_mean;
+    neural2D_data->y_mean = y_mean;
+    neural2D_data->f1_mean = f1_mean;
+    neural2D_data->x_std = x_std;
+    neural2D_data->y_std = y_std;
+    neural2D_data->f1_std = f1_std;
+
     return 0;
 }
 
@@ -50,7 +58,9 @@ int neural2Dsetup(neural2D_data* neural2D_data, real* weights,
  * @param n_weights number of weights
  */
 int neural3Dsetup(neural3D_data* neural3D_data, real* weights,
-    int n_layers, int* matrix_dimensions) {
+    int n_layers, int* matrix_dimensions, real x_mean, real y_mean, real z_mean,
+    real f1_mean, real f2_mean, real f3_mean, real x_std, real y_std, real z_std,
+    real f1_std, real f2_std, real f3_std) {
 
     int n_weights = 3*3;
 
@@ -74,6 +84,19 @@ int neural3Dsetup(neural3D_data* neural3D_data, real* weights,
     for (int i = 0; i < n_weights; i++) {
         neural3D_data->weights[i] = weights[i];
     }
+
+    neural3D_data->x_mean = x_mean;
+    neural3D_data->y_mean = y_mean;
+    neural3D_data->z_mean = z_mean;
+    neural3D_data->x_std = x_std;
+    neural3D_data->y_std = y_std;
+    neural3D_data->z_std = z_std;
+    neural3D_data->f1_mean = f1_mean;
+    neural3D_data->f2_mean = f2_mean;
+    neural3D_data->f3_mean = f3_mean;
+    neural3D_data->f1_std = f1_std;
+    neural3D_data->f2_std = f2_std;
+    neural3D_data->f3_std = f3_std;
 
     return 0;
 }

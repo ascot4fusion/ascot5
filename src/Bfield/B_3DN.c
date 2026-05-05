@@ -91,8 +91,15 @@ int psigrid_n_r;     /**< Number of R grid points in psi data             */
  */
 int B_3DN_init(B_3DN_data* data,
                real axis_r, real axis_z, real psi0, real psi1,
-               real* psi_weights, real* B_rphiz_weights, int psi_n_layers, int* psi_layer_dimensions, int B_rphiz_n_layers,
-               int* B_rphiz_layer_dimensions) {
+               real* psi_weights, real* B_rphiz_weights, int psi_n_layers,
+               int* psi_layer_dimensions, int B_rphiz_n_layers,
+               int* B_rphiz_layer_dimensions,
+               real psi_r_mean, real psi_z_mean, real psi_psi_mean,
+               real psi_r_std, real psi_z_std, real psi_psi_std,
+               real bfield_r_mean, real bfield_phi_mean, real bfield_z_mean,
+               real bfield_Br_mean, real bfield_Bphi_mean, real bfield_Bz_mean,
+               real bfield_r_std, real bfield_phi_std, real bfield_z_std,
+               real bfield_Br_std, real bfield_Bphi_std, real bfield_Bz_std) {
 
     int err = 0;
     data->psi0   = psi0;
@@ -103,7 +110,8 @@ int B_3DN_init(B_3DN_data* data,
     /* Store the wieghts into the B_3DN_data */
     // 2D (for psi)
     err = neural2Dsetup(&data->psi_neural_data, psi_weights,
-        psi_n_layers, psi_layer_dimensions);
+        psi_n_layers, psi_layer_dimensions, psi_r_mean, psi_z_mean, psi_psi_mean,
+        psi_r_std, psi_z_std, psi_psi_std);
     if(err) {
         print_err("Error: Failed to initialize psi neural network weights.\n");
         return 1;
@@ -111,7 +119,11 @@ int B_3DN_init(B_3DN_data* data,
 
     // 3D (for B_rphiz)
     err = neural3Dcomp_setup(&data->B_rphiz_neural_data, B_rphiz_weights,
-        B_rphiz_n_layers, B_rphiz_layer_dimensions);
+        B_rphiz_n_layers, B_rphiz_layer_dimensions, bfield_r_mean,
+        bfield_phi_mean, bfield_z_mean, bfield_Br_mean, bfield_Bphi_mean,
+        bfield_Bz_mean, bfield_r_std, bfield_phi_std, bfield_z_std,
+        bfield_Br_std, bfield_Bphi_std, bfield_Bz_std
+        );
     if(err) {
         print_err("Error: Failed to initialize B_rphiz neural network weights.\n");
         return 1;
