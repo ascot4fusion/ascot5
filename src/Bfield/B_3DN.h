@@ -20,10 +20,10 @@ typedef struct {
     real psi1;           /**< Poloidal flux value at separatrix [V*s*m^-1]    */   //THIS WILL STAY
     real axis_r;         /**< R coordinate of magnetic axis [m]               */   //THIS WILL STAY
     real axis_z;         /**< z coordinate of magnetic axis [m]               */   //THIS WILL STAY
-    neural2D_data psi;   /**< 2D psi interpolation data struct                */   // OK ?
-    neural3D_data B_r;   /**< 3D B_r interpolation data struct                */   // OK ?
-    neural3D_data B_phi; /**< 3D B_phi interpolation data struct              */   // OK ?
-    neural3D_data B_z;   /**< 3D B_z interpolation data struct                */   // OK ?
+    neural2D_data psi_neural_data;   /**< 2D psi interpolation data struct                */   // OK ?
+    neural3D_data B_rphiz_neural_data;   /**< 3D B_r interpolation data struct                */   // OK ?
+    //neural3D_data B_phi; /**< 3D B_phi interpolation data struct              */   // OK ?
+    //neural3D_data B_z;   /**< 3D B_z interpolation data struct                */   // OK ?
 } B_3DN_data;
 
 int B_3DN_init(B_3DN_data* data,

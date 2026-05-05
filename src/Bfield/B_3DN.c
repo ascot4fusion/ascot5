@@ -77,43 +77,21 @@ int psigrid_n_r;     /**< Number of R grid points in psi data             */
  *   = psi(R_i, z_j)   [V*s*m^-1]
  *
  * @param data pointer to the data struct
- * @param p_n_r number of r grid points in psi data
- * @param p_r_min minimum R coordinate in psi data grid [m]
- * @param p_r_max maximum R coordinate in psi data grid [m]
- * @param p_n_z number of z grid points in psi data
- * @param p_z_min minimum z coordinate in psi data grid [m]
- * @param p_z_max maximum z coordinate in psi data grid [m]
- * @param p_n_r number of r grid points in B data
- * @param b_r_min minimum R coordinate in B data grid [m]
- * @param b_r_max maximum R coordinate in B data grid [m]
- * @param b_n_phi number of phi grid points in B data
- * @param b_phi_min minimum phi coordinate in B data grid [rad]
- * @param b_phi_max maximum phi coordinate in B data grid [rad]
- * @param b_n_z number of z grid points in B data
- * @param b_z_min minimum z coordinate in B data grid [m]
- * @param b_z_max maximum z coordinate in B data grid [m]
  * @param axis_r R coordinate of magnetic axis [m]
  * @param axis_z z coordinate of magnetic axis [m]
- * @param psi0 poloidal flux at magnetic axis [Vs/m]
- * @param psi1 poloidal flux at separatrix [Vs/m]
- * @param psi poloidal flux psi(R_i,z_j) = arr[j*n_r + i] [Vs/m]
- * @param B_r Magnetic field R component
- *        B_r(R_i,phi_j,z_k) = arr[k*b_n_r*b_n_phi + j*b_n_r + i] [T]
- * @param B_phi Magnetic field phi component
- *        B_phi(R_i,phi_j,z_k) = arr[k*b_n_r*b_n_phi + j*b_n_r + i] [T]
- * @param B_z Magnetic field z component
- *        B_z(R_i,phi_j,z_k) = arr[k*b_n_r*b_n_phi + j*b_n_r + i] [T]
+ * @param psi0 poloidal flux value at magnetic axis [V*s*m^-1]
+ * @param psi1 poloidal flux value at separatrix [V*s*m^-1]
+ * @param psi_weights weights for the psi neural network
+ * @param B_rphiz_weights weights for the B_rphiz neural network
+ * @param n_psi_weights number of weights for the psi neural network
+ * @param n_B_rphiz_weights number of weights for the B_rphiz neural network
  *
  * @return zero if initialization succeeded
  */
 int B_3DN_init(B_3DN_data* data,
-               int p_n_r, real p_r_min, real p_r_max,
-               int p_n_z, real p_z_min, real p_z_max,
-               int b_n_r, real b_r_min, real b_r_max,
-               int b_n_phi, real b_phi_min, real b_phi_max,
-               int b_n_z, real b_z_min, real b_z_max,
                real axis_r, real axis_z, real psi0, real psi1,
-               real* psi, real* B_r, real* B_phi, real* B_z) {
+               real* psi_weights, real* B_rphiz_weights, int n_psi_weights,
+               int n_B_rphiz_weights) {
 
     int err = 0;
     data->psi0   = psi0;
@@ -121,36 +99,18 @@ int B_3DN_init(B_3DN_data* data,
     data->axis_r = axis_r;
     data->axis_z = axis_z;
 
-    /* Set up the splines */
-    err = interp2Dcomp_setup(&data->psi, psi, p_n_r, p_n_z,
-                             NATURALBC, NATURALBC,
-                             p_r_min, p_r_max, p_z_min, p_z_max);
+    /* Store the wieghts into the B_3DN_data */
+    // 2D (for psi)
+    err = neural2Dsetup(&data->psi_neural_data, psi_weights, n_psi_weights);
     if(err) {
-        print_err("Error: Failed to initialize splines.\n");
+        print_err("Error: Failed to initialize psi neural network weights.\n");
         return 1;
     }
-    err = interp3Dcomp_setup(&data->B_r, B_r, b_n_r, b_n_phi, b_n_z,
-                             NATURALBC, PERIODICBC, NATURALBC,
-                             b_r_min, b_r_max, b_phi_min, b_phi_max,
-                             b_z_min, b_z_max);
+
+    // 3D (for B_rphiz)
+    err = neural3Dcomp_setup(&data->B_rphiz_neural_data, B_rphiz_weights, n_B_rphiz_weights);
     if(err) {
-        print_err("Error: Failed to initialize splines.\n");
-        return 1;
-    }
-    err = interp3Dcomp_setup(&data->B_phi, B_phi, b_n_r, b_n_phi, b_n_z,
-                             NATURALBC, PERIODICBC, NATURALBC,
-                             b_r_min, b_r_max, b_phi_min, b_phi_max,
-                             b_z_min, b_z_max);
-    if(err) {
-        print_err("Error: Failed to initialize splines.\n");
-        return 1;
-    }
-    err = interp3Dcomp_setup(&data->B_z, B_z, b_n_r, b_n_phi, b_n_z,
-                             NATURALBC, PERIODICBC, NATURALBC,
-                             b_r_min, b_r_max, b_phi_min, b_phi_max,
-                             b_z_min, b_z_max);
-    if(err) {
-        print_err("Error: Failed to initialize splines.\n");
+        print_err("Error: Failed to initialize B_rphiz neural network weights.\n");
         return 1;
     }
 
@@ -165,16 +125,7 @@ int B_3DN_init(B_3DN_data* data,
 
     /* Print some sanity check on data */
     printf("\n3D magnetic field (B_3DN)\n");
-    print_out(VERBOSE_IO, "Psi-grid: nR = %4.d Rmin = %3.3f m Rmax = %3.3f m\n",
-              p_n_r, p_r_min, p_r_max);
-    print_out(VERBOSE_IO, "      nz = %4.d zmin = %3.3f m zmax = %3.3f m\n",
-              p_n_z, p_z_min, p_z_max);
-    print_out(VERBOSE_IO, "B-grid: nR = %4.d Rmin = %3.3f m Rmax = %3.3f m\n",
-              b_n_r, b_r_min, b_r_max);
-    print_out(VERBOSE_IO, "      nz = %4.d zmin = %3.3f m zmax = %3.3f m\n",
-              b_n_z, b_z_min, b_z_max);
-    print_out(VERBOSE_IO, "nphi = %4.d phimin = %3.3f deg phimax = %3.3f deg\n",
-              b_n_phi, math_rad2deg(b_phi_min), math_rad2deg(b_phi_max));
+    // TODO: print weights from data
     print_out(VERBOSE_IO, "Psi at magnetic axis (%1.3f m, %1.3f m)\n",
               data->axis_r, data->axis_z);
     print_out(VERBOSE_IO, "%3.3f (evaluated)\n%3.3f (given)\n",
