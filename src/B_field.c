@@ -402,33 +402,34 @@ a5err B_field_eval_B(real B[3], real r, real phi, real z, real t,
     a5err err = 0;
 
     switch(Bdata->type) {
-        case B_field_type_GS:
-            err = B_GS_eval_B(B, r, phi, z, &(Bdata->BGS));
-            break;
+        // case B_field_type_GS:
+        //     err = B_GS_eval_B(B, r, phi, z, &(Bdata->BGS));
+        //     break;
 
-        case B_field_type_2DS:
-            err = B_2DS_eval_B(B, r, phi, z, &(Bdata->B2DS));
-            break;
+        // case B_field_type_2DS:
+        //     err = B_2DS_eval_B(B, r, phi, z, &(Bdata->B2DS));
+        //     break;
 
-        case B_field_type_3DS:
-            err = B_3DS_eval_B(B, r, phi, z, &(Bdata->B3DS));
-            break;
+        // case B_field_type_3DS:
+        //     err = B_3DS_eval_B(B, r, phi, z, &(Bdata->B3DS));
+        //     break;
 
-        case B_field_type_STS:
-            err = B_STS_eval_B(B, r, phi, z, &(Bdata->BSTS));
-            break;
+        // case B_field_type_STS:
+        //     err = B_STS_eval_B(B, r, phi, z, &(Bdata->BSTS));
+        //     break;
 
-        case B_field_type_TC:
-            err = B_TC_eval_B(B, r, phi, z, &(Bdata->BTC));
-            break;
+        // case B_field_type_TC:
+        //     err = B_TC_eval_B(B, r, phi, z, &(Bdata->BTC));
+        //     break;
 
-        case B_field_type_3DN:
-            err = B_3DN_eval_B(B, r, phi, z, &(Bdata->B3DN));
-            break;
+        // case B_field_type_3DN:
+        //     err = B_3DN_eval_B(B, r, phi, z, &(Bdata->B3DN));
+        //     break;
 
         default:
+            err = B_3DS_eval_B(B, r, phi, z, &(Bdata->B3DS));
             /* Unregonized input. Produce error. */
-            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_B_FIELD );
+            // err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_B_FIELD );
             break;
     }
 
