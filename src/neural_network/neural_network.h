@@ -48,14 +48,20 @@ typedef struct {
 } neural3D_data;
 
 /* Setuon functions */
-int neural2Dsetup(neural2D_data* neural2D_data, real* weights, int n_layers, int* matrix_dimensions, real x_mean, real y_mean, real f1_mean, real x_std, real y_std, real f1_std);
+int neural2Dsetup(neural2D_data* neural2D_data, real* weights, int n_layers,
+    int* matrix_dimensions, real x_mean, real y_mean, real f1_mean, real x_std,
+    real y_std, real f1_std);
 
-int neural3Dsetup(neural3D_data* neural3D_data, real* weights, int n_layers, int* matrix_dimensions, real x_mean, real y_mean, real z_mean, real f1_mean, real f2_mean, real f3_mean, real x_std, real y_std, real z_std,  real f1_std, real f2_std, real f3_std);
+int neural3Dsetup(neural3D_data* neural3D_data, real* weights, int n_layers,
+    int* matrix_dimensions, real x_mean, real y_mean, real z_mean, real f1_mean,
+    real f2_mean, real f3_mean, real x_std, real y_std, real z_std,
+    real f1_std, real f2_std, real f3_std);
 
 /* Evaluation functions */
 a5err neural_network2Deval_f(real* f, neural2D_data* str, real x, real y);
 
-a5err neural_network2Deval_df(real* f, real* partial_f, neural2D_data* str, real x, real y);
+a5err neural_network2Deval_df(real* f, real* partial_f, neural2D_data* str,
+    real x, real y);
 
 a5err neural_network3Deval_f(real* f, neural3D_data* str,
                          real x, real y, real z);
