@@ -12,6 +12,7 @@
 #include "../../boozer.h"
 #include "../../mhd.h"
 #include "step_ml_cashkarp.h"
+#include <stdbool.h>
 
 /**
  * @brief Integrate a magnetic field line step for a struct of markers
@@ -29,14 +30,72 @@
  * @param tol error tolerance
  * @param Bdata pointer to magnetic field data
  */
+
+
+static void *persistent_mem = NULL;
+static void *model_buf      = NULL;
+static bool init            = false;
+static size_t model_size    = 0;
+
+// #if 1
+extern int tinyai_predict_into_persistent(void **persistent_memory,
+                                          const void *model_buffer,
+                                          size_t model_size,
+                                          const float *coords, size_t nrows,
+                                          size_t ncols, float *out,
+                                          size_t out_cols);
+
+static void nn_eval_B_batch1(float *out, float *in, int n) {
+
+  if (!init) {
+    FILE *f = fopen("interpolator_128gh200_100epochs_tanh_1em3.bin", "rb");
+    if (!f) {
+      fprintf(stderr, "Failed to load model file\n");
+      abort();
+    }
+    fseek(f, 0, SEEK_END);
+    model_size = ftell(f);
+    rewind(f);
+
+    model_buf = malloc(model_size);
+    if (!model_buf) {
+      fprintf(stderr, "Failed to allocate model buffer\n");
+      fclose(f);
+      abort();
+    }
+    int t = fread(model_buf, 1, model_size, f);
+    (void)t;
+    fclose(f);
+    init = true;
+  }
+
+  const size_t nrows = n;
+  const size_t ncols = 3;
+  size_t out_cols = 3;
+
+  // fprintf(stderr,"Performing inference with N = %d\n",n);
+  int t = tinyai_predict_into_persistent(&persistent_mem, model_buf, model_size,
+                                         in, nrows, ncols, out, out_cols);
+
+  for (int i = 0; i < n; ++i) {
+    printf("B(%f, %f, %f) = [%f, %f, %f]\n", in[3 * i + 0], in[3 * i + 1],
+           in[3 * i + 2],
+
+            out[3 * i + 0], out[3 * i + 1], out[3 * i + 2]);
+  }
+  (void)t;
+}
 void step_ml_cashkarp(particle_simd_ml* p, real* h, real* hnext, real tol,
                       B_field_data* Bdata) {
 
     int i;
     /* Following loop will be executed simultaneously for all i */
     #pragma omp simd
+    
     for(i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
+            float* nn_in  = malloc(3 * sizeof(float));
+            float* nn_out = malloc(3 * sizeof(float));
             a5err errflag = 0;
 
             real k1[3], k2[3], k3[3], k4[3], k5[3], k6[3];
@@ -75,10 +134,15 @@ void step_ml_cashkarp(particle_simd_ml* p, real* h, real* hnext, real tol,
             for(int j = 0; j < 3; j++) {
                 tempy[j] = yprev[j]
                     + h[i] * ( (1.0/5) * k1[j] );
+                nn_in[j] = tempy[j]; 
             }
             if(!errflag) {
-                errflag = B_field_eval_B(k2, tempy[0], tempy[1], tempy[2],
-                                         t0 + (1.0/5)*h[i], Bdata);
+                // errflag = B_field_eval_B(k2, tempy[0], tempy[1], tempy[2],
+                //                          t0 + (1.0/5)*h[i], Bdata);
+                nn_eval_B_batch1(nn_out, nn_in, 1);
+                for(int j=0; j<3; j++) {
+                    k2[j] = nn_out[j]; 
+                } 
             }
             normB = (math_normc(k2[0], k2[1], k2[2])) * direction;
             k2[0] /= normB;

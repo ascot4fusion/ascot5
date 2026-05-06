@@ -162,6 +162,11 @@ SPLINEHEADERS = $(wildcard $(SPLINEDIR)spline.h $(SPLINEDIR)interp.h)
 SPLINEOBJS = $(patsubst %.c,%.o,$(wildcard $(SPLINEDIR)spline*.c \
 	$(SPLINEDIR)interp*.c))
 
+NNDIR = neural_network/
+NNHEADERS = $(wildcard $(NNDIR)neural_network.h)
+NNOBJS = $(patsubst %.c,%.o,$(wildcard $(NNDIR)neural_network*.c \
+	$(NNDIR)interp*.c))
+
 UTESTDIR = unit_tests/
 DOCDIR = doc/
 
@@ -169,7 +174,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) \
 	$(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) $(HDF5IOHEADERS) \
 	$(PLSHEADERS) $(N0HEADERS) $(MHDHEADERS) $(ASIGMAHEADERS) \
-	$(LINTHEADERS) $(SPLINEHEADERS) \
+	$(LINTHEADERS) $(SPLINEHEADERS) $(NNHEADERS) \
 	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
 	E_field.h wall.h simulate.h diag.h offload.h boozer.h mhd.h \
 	random.h print.h hdf5_interface.h suzuki.h nbi.h biosaw.h \
@@ -179,7 +184,7 @@ OBJS= math.o list.o octree.o error.o \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
 	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS) $(HDF5IOOBJS) \
 	$(PLSOBJS) $(N0OBJS) $(MHDOBJS) $(ASIGMAOBJS) $(LINTOBJS) \
-	$(SPLINEOBJS) \
+	$(SPLINEOBJS) $(NNOBJS)\
 	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
 	E_field.o wall.o simulate.o diag.o boozer.o mhd.o \
 	random.o print.o hdf5_interface.o suzuki.o nbi.o biosaw.o \
@@ -202,7 +207,7 @@ libascot.so: libascot.o ascot5_main.o libascot_mem.o afsi.o bbnbi5.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
 ascot5_main: ascot5_main.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
+	$(CC) -o $@ $^ $(CFLAGS) /home/akadam/builds/asterix/src/libtinyai_predict.so 
 
 bbnbi5: bbnbi5_main.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
