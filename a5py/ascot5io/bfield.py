@@ -1335,3 +1335,377 @@ class B_STS(DataGroup):
                  "psi" : psi, "psi0" : psi0, "psi1"  : psi1,
                  "br"      : Br,     "bphi"    : Bphi,  "bz"    : Bz,
                  "axis_phimin":phimin, "axis_phimax":phimax, "axis_nphi":nphi}
+
+
+
+
+
+
+
+################################################################################
+# DANGER ZORE: Neural network magic below this point. Proceed with caution.
+################################################################################
+
+
+
+
+
+
+
+
+class B_3DN(DataGroup):
+    """Non-axisymmetric tokamak field.
+
+    The input consists of all the fields present in B_3DS together with the
+    neural network data. The most important part of the neural network data are
+    the neural network weights. Additionally, the number of layers and the
+    dimensions of each layer are stored as well as the means and standard
+    deviations of inputs (R,phi,z) and outputs (BR,Bphi,Bz,psi).
+
+    Since this input uses magic, the resulting B is
+    not divergence free unless this has been required in the training of the
+    network. This can be amended by using a dense grid for magnetic
+    field evaluation. Note however that it can become memory-intensive.
+    """
+
+    def read(self):
+        """Read data from HDF5 file.
+
+        Returns
+        -------
+        data : dict
+            Data read from HDF5 stored in the same format as is passed to
+            :meth:`write_hdf5`.
+        """
+        out = {}
+        with self as f:
+            for key in f:
+                out[key] = f[key][:]
+
+        out["psi"]  = np.transpose(out["psi"])
+        out["br"]   = np.transpose(out["br"],   (2,1,0))
+        out["bphi"] = np.transpose(out["bphi"], (2,1,0))
+        out["bz"]   = np.transpose(out["bz"],   (2,1,0))
+        return out
+
+    @staticmethod
+    def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
+                   b_phimin, b_phimax, b_nphi,
+                   axisr, axisz, psi, psi0, psi1, br, bphi, bz,
+                   n_bfield_layers, bfield_matrix_dimensions, bfield_weights,
+                   bfield_r_mean, bfield_phi_mean, bfield_z_mean,
+                   bfield_r_std, bfield_phi_std, bfield_z_std,
+                   bfield_Br_mean, bfield_Bphi_mean, bfield_Bz_mean,
+                   bfield_Br_std, bfield_Bphi_std, bfield_Bz_std,
+                   n_psi_layers, psi_matrix_dimensions, psi_weights,
+                   psi_r_mean, psi_z_mean,
+                   psi_r_std, psi_z_std,
+                   psi_psi_mean, psi_psi_std,
+                   psi_rmin=None, psi_rmax=None, psi_nr=None,
+                   psi_zmin=None, psi_zmax=None, psi_nz=None, desc=None,):
+        """Write input data to the HDF5 file.
+
+        The magnetic field is a mapping (R,phi,z) --> (BR,Bphi,Bz) where as
+        the psi is a mapping (R,z) --> psi. Therefore, they have their own
+        neural networks.
+
+        Parameters
+        ----------
+        fn : str
+            Full path to the HDF5 file.
+        b_rmin : float
+            Magnetic field data R grid min edge [m].
+        b_rmax : float
+            Magnetic field data R grid max edge [m].
+        b_nr : int
+            Number of R grid points in magnetic field data.
+        b_zmin : float
+            Magnetic field data z grid min edge [m].
+        b_zmax : float
+            Magnetic field data z grid max edge [m].
+        b_nz : int
+            Number of z grid points in magnetic field data.
+        b_phimin : float
+            Beginning of the toroidal period [deg].
+        b_phimax : float
+            End of the toroidal period [deg].
+        b_nphi : int
+            Number of phi grid points in magnetic field data.
+        axisr : float
+            Magnetic axis R coordinate [m].
+        axisz : float
+            Magnetic axis z coordinate [m].
+        psi0 : float
+            On-axis poloidal flux value [Vs/m].
+        psi1 : float
+            Separatrix poloidal flux value [Vs/m].
+        psi : array_like (nr, nz)
+            Poloidal flux values on the Rz grid [Vs/m].
+        br : array_like (nr,nphi,nz)
+            Magnetic field R component (excl. equilibrium comp.) on Rz grid [T].
+        bphi : array_like (nr,nphi,nz)
+            Magnetic field phi component on Rz grid [T].
+        bz : array_like (nr,nphi,nz)
+            Magnetic field z component (excl. equilibrium comp.) onRz grid [T].
+        n_bfield_layers : int
+            Number of layers in the magnetic field network.
+        bfield_matrix_dimensions : array_like (n_bfield_layers-1,)
+            Matrix dimensions of each layer of the magnetic field network.
+        bfield_weights : array_like (n_bfield_weights),)
+            Weights for the magnetic field network.
+        bfield_r_mean : float
+            R mean for the magnetic field network.
+        bfield_phi_mean : float
+            Phi mean for the magnetic field network.
+        bfield_z_mean : float
+            Z mean for the magnetic field network.
+        bfield_r_std : float
+            R standard deviation for the magnetic field network.
+        bfield_phi_std : float
+            Phi standard deviation for the magnetic field network.
+        bfield_z_std : float
+            Z standard deviation for the magnetic field network.
+        bfield_Br_mean : float
+            BR mean for the magnetic field network.
+        bfield_Bphi_mean : float
+            Bphi mean for the magnetic field network.
+        bfield_Bz_mean : float
+            Bz mean for the magnetic field network.
+        bfield_Br_std : float
+            BR standard deviation for the magnetic field network.
+        bfield_Bphi_std : float
+            Bphi standard deviation for the magnetic field network.
+        bfield_Bz_std : float
+            Bz standard deviation for the magnetic field network.
+        n_psi_layers : int
+            Number of layers in the psi network.
+        psi_matrix_dimensions : array_like (n_psi_layers-1,)
+            Matrix dimensions of each layer of the psi network.
+        psi_weights : array_like (n_psi_weights,)
+            Weights for the psi network.
+        psi_r_mean : float
+            R mean for the psi network.
+        psi_z_mean : float
+            z mean for the psi network.
+        psi_r_std : float
+            R standard deviation for the psi network.
+        psi_z_std : float
+            z standard deviation for the psi network.
+        psi_psi_mean : float
+            Psi mean for the psi network.
+        psi_psi_std : float
+            Psi standard deviation for the psi network.
+        psi_rmin : float, optional
+            Psi data R grid min edge [m].
+        psi_rmax : float, optional
+            Psi data R grid max edge [m].
+        psi_nr : int, optional
+            Number of R grid points in psi data.
+        psi_zmin : float, optional
+            Psi data z grid min edge [m].
+        psi_zmax : float, optional
+            Psi data z grid max edge [m].
+        psi_nz : int, optional
+            Number of z grid points in psi data.
+        desc : str, optional
+            Input description.
+
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
+
+        Raises
+        ------
+        ValueError
+            If inputs were not consistent.
+        """
+        parent = "bfield"
+        group  = "B_3DN"
+        gname  = ""
+
+        # Define psigrid to be same as Bgrid if not stated otherwise.
+        if(psi_rmin is None or psi_rmax is None or psi_nr is None or
+           psi_zmin is None or psi_zmax is None or psi_nz is None):
+            psi_rmin = b_rmin
+            psi_rmax = b_rmax
+            psi_nr   = b_nr
+            psi_zmin = b_zmin
+            psi_zmax = b_zmax
+            psi_nz   = b_nz
+
+        if psi.shape  != (psi_nr,psi_nz):
+            raise ValueError("Inconsistent shape for psi.")
+        if br.shape   != (b_nr,b_nphi,b_nz):
+            raise ValueError("Inconsistent shape for br.")
+        if bphi.shape != (b_nr,b_nphi,b_nz):
+            raise ValueError("Inconsistent shape for bphi.")
+        if bz.shape   != (b_nr,b_nphi,b_nz):
+            raise ValueError("Inconsistent shape for bz.")
+
+        psi  = np.transpose(psi)
+        br   = np.transpose(br,   (2,1,0))
+        bphi = np.transpose(bphi, (2,1,0))
+        bz   = np.transpose(bz,   (2,1,0))
+
+        n_bfield_weights = 3*bfield_matrix_dimensions[0] # First layer 3x?
+        for i in range(1, len(bfield_matrix_dimensions)-1):
+            n_bfield_weights += bfield_matrix_dimensions[i]*bfield_matrix_dimensions[i+1]
+        n_bfield_weights += bfield_matrix_dimensions[-1]*3 # Last layer ?x3
+
+        n_psi_weights = 2*psi_matrix_dimensions[0] # First layer 2x?
+        for i in range(1, len(psi_matrix_dimensions)-1):
+            n_psi_weights += psi_matrix_dimensions[i]*psi_matrix_dimensions[i+1]
+        n_psi_weights += psi_matrix_dimensions[-1]*1 # Last layer ?x1
+
+        with h5py.File(fn, "a") as f:
+            g = add_group(f, parent, group, desc=desc)
+            gname = g.name.split("/")[-1]
+
+            g.create_dataset("b_rmin",   (1,), data=b_rmin,   dtype="f8")
+            g.create_dataset("b_rmax",   (1,), data=b_rmax,   dtype="f8")
+            g.create_dataset("b_nr",     (1,), data=b_nr,     dtype="i4")
+            g.create_dataset("b_phimin", (1,), data=b_phimin, dtype="f8")
+            g.create_dataset("b_phimax", (1,), data=b_phimax, dtype="f8")
+            g.create_dataset("b_nphi",   (1,), data=b_nphi,   dtype="i4")
+            g.create_dataset("b_zmin",   (1,), data=b_zmin,   dtype="f8")
+            g.create_dataset("b_zmax",   (1,), data=b_zmax,   dtype="f8")
+            g.create_dataset("b_nz",     (1,), data=b_nz,     dtype="i4")
+            g.create_dataset("psi_rmin", (1,), data=psi_rmin, dtype="f8")
+            g.create_dataset("psi_rmax", (1,), data=psi_rmax, dtype="f8")
+            g.create_dataset("psi_nr",   (1,), data=psi_nr,   dtype="i4")
+            g.create_dataset("psi_zmin", (1,), data=psi_zmin, dtype="f8")
+            g.create_dataset("psi_zmax", (1,), data=psi_zmax, dtype="f8")
+            g.create_dataset("psi_nz",   (1,), data=psi_nz,   dtype="i4")
+            g.create_dataset("axisr",    (1,), data=axisr,    dtype="f8")
+            g.create_dataset("axisz",    (1,), data=axisz,    dtype="f8")
+            g.create_dataset("psi0",     (1,), data=psi0,     dtype="f8")
+            g.create_dataset("psi1",     (1,), data=psi1,     dtype="f8")
+
+            g.create_dataset("psi",  (psi_nz,psi_nr),    data=psi,  dtype="f8")
+            g.create_dataset("br",   (b_nz,b_nphi,b_nr), data=br,   dtype="f8")
+            g.create_dataset("bphi", (b_nz,b_nphi,b_nr), data=bphi, dtype="f8")
+            g.create_dataset("bz",   (b_nz,b_nphi,b_nr), data=bz,   dtype="f8")
+
+            # Neural network from (R,phi,z) --> (BR,Bphi,Bz)
+            g.create_dataset("b_n_layers", (1,), data=n_bfield_layers, dtype="i4")
+            g.create_dataset("b_layer_dimensions", (n_bfield_layers-1,), data=bfield_matrix_dimensions, dtype="f8")
+            g.create_dataset("b_neural_weights", (n_bfield_weights,), data=bfield_weights, dtype="f8")
+            g.create_dataset("b_r_mean", (1,), data=bfield_r_mean, dtype="f8")
+            g.create_dataset("b_phi_mean", (1,), data=bfield_phi_mean, dtype="f8")
+            g.create_dataset("b_z_mean", (1,), data=bfield_z_mean, dtype="f8")
+            g.create_dataset("b_r_std", (1,), data=bfield_r_std, dtype="f8")
+            g.create_dataset("b_phi_std", (1,), data=bfield_phi_std, dtype="f8")
+            g.create_dataset("b_z_std", (1,), data=bfield_z_std, dtype="f8")
+            g.create_dataset("b_br_mean", (1,), data=bfield_Br_mean, dtype="f8")
+            g.create_dataset("b_bphi_mean", (1,), data=bfield_Bphi_mean, dtype="f8")
+            g.create_dataset("b_bz_mean", (1,), data=bfield_Bz_mean, dtype="f8")
+            g.create_dataset("b_br_std", (1,), data=bfield_Br_std, dtype="f8")
+            g.create_dataset("b_bphi_std", (1,), data=bfield_Bphi_std, dtype="f8")
+            g.create_dataset("b_bz_std", (1,), data=bfield_Bz_std, dtype="f8")
+
+            # Neural network from (R,z) --> psi
+            g.create_dataset("psi_n_layers", (1,), data=n_psi_layers, dtype="i4")
+            g.create_dataset("psi_layer_dimensions", (n_psi_layers-1,), data=psi_matrix_dimensions, dtype="f8")
+            g.create_dataset("psi_neural_weights", (n_psi_weights,), data=psi_weights, dtype="f8")
+            g.create_dataset("psi_r_mean", (1,), data=psi_r_mean, dtype="f8")
+            g.create_dataset("psi_z_mean", (1,), data=psi_z_mean, dtype="f8")
+            g.create_dataset("psi_r_std", (1,), data=psi_r_std, dtype="f8")
+            g.create_dataset("psi_z_std", (1,), data=psi_z_std, dtype="f8")
+            g.create_dataset("psi_psi_mean", (1,), data=psi_psi_mean, dtype="f8")
+            g.create_dataset("psi_psi_std", (1,), data=psi_psi_std, dtype="f8")
+
+        return gname
+
+    @staticmethod
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
+        non-sensical.
+
+        This method is intended for testing purposes or to provide data whose
+        presence is needed but which is not actually used in simulation.
+
+        Returns
+        -------
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        coefficients = np.array([ 2.218e-02, -1.288e-01, -4.177e-02, -6.227e-02,
+                                  6.200e-03, -1.205e-03, -3.701e-05,  0,
+                                  0,          0,          0,          0,
+                                  -0.155])
+        gs = {"rmin":4, "rmax":8, "nr":50, "zmin":-4, "zmax":4, "nz":100,
+              "phimin":0, "phimax":360, "nphi":100,
+              "r0":6.2, "z0":0, "bphi0":5.3, "psimult":200,
+              "coefficients":coefficients, "nripple":18, "a0":2, "alpha0":2,
+              "delta0":0.05}
+        B_3DS_dummy = B_3DS.convert_B_GS(**gs)
+
+        # Add dummy data to B_3DS_dummy so that it has all the data needed for B_3DN
+
+        # Stuff related to bfield network
+        B_3DS_dummy["b_n_layers"] = 2
+        B_3DS_dummy["b_layer_dimensions"] = np.array([1])
+        B_3DS_dummy["b_neural_weights"] = np.array([0.0, 0.0])
+        B_3DS_dummy["b_r_mean"] = np.array([0.0])
+        B_3DS_dummy["b_phi_mean"] = np.array([0.0])
+        B_3DS_dummy["b_z_mean"] = np.array([0.0])
+        B_3DS_dummy["b_r_std"] = np.array([0.0])
+        B_3DS_dummy["b_phi_std"] = np.array([0.0])
+        B_3DS_dummy["b_z_std"] = np.array([0.0])
+        B_3DS_dummy["b_br_mean"] = np.array([0.0])
+        B_3DS_dummy["b_bphi_mean"] = np.array([0.0])
+        B_3DS_dummy["b_bz_mean"] = np.array([0.0])
+        B_3DS_dummy["b_br_std"] = np.array([0.0])
+        B_3DS_dummy["b_bphi_std"] = np.array([0.0])
+        B_3DS_dummy["b_bz_std"] = np.array([0.0])
+
+        # Stuff related to psi network
+        B_3DS_dummy["psi_n_layers"] = 2
+        B_3DS_dummy["psi_layer_dimensions"] = np.array([1])
+        B_3DS_dummy["psi_neural_weights"] = np.array([0.0, 0.0])
+        B_3DS_dummy["psi_r_mean"] = np.array([0.0])
+        B_3DS_dummy["psi_z_mean"] = np.array([0.0])
+        B_3DS_dummy["psi_r_std"] = np.array([0.0])
+        B_3DS_dummy["psi_z_std"] = np.array([0.0])
+        B_3DS_dummy["psi_psi_mean"] = np.array([0.0])
+        B_3DS_dummy["psi_psi_std"] = np.array([0.0])
+
+        return B_3DS_dummy
+
+    # TODO: Adam implements
+    @staticmethod
+    def convert_B_3DS(b_3ds_qid):
+        """Convert :class:`B_3DS` input to `B_3DSN` input, i.e. train the neural
+        network.
+
+        Parameters
+        ----------
+        b_3ds_qid : str
+            qid of the :class:`B_3DS` input.
+
+        Returns
+        -------
+        out : dict
+            :class:`B_3DN` converted as an input for :meth:`write_hdf5`.
+        """
+
+        # TODO: Read B_3DS data from HDF5
+
+        # TODO: Train network
+
+        # TODO: All the variables below need to be assigned
+        return {"b_rmin":rmin, "b_rmax":rmax, "b_nr":nr, "b_zmin":zmin,
+                "b_zmax":zmax, "b_nz":nz, "b_phimin":phimin, "b_phimax":phimax,
+                "b_nphi":nphi, "axisr":raxis, "axisz":zaxis, "psi":psirz,
+                "psi0":psi0, "psi1":psi1, "br":br, "bphi":bphi, "bz":bz, "b_n_layers":b_n_layers,
+                "b_layer_dimensions":b_layer_dimensions, "b_neural_weights":b_neural_weights,
+                "b_r_mean":b_r_mean, "b_phi_mean":b_phi_mean, "b_z_mean":b_z_mean,
+                "b_r_std":b_r_std, "b_phi_std":b_phi_std, "b_z_std":b_z_std,
+                "b_br_mean":b_br_mean, "b_bphi_mean":b_bphi_mean, "b_bz_mean":b_bz_mean,
+                "b_br_std":b_br_std, "b_bphi_std":b_bphi_std, "b_bz_std":b_bz_std,
+                "psi_n_layers":psi_n_layers, "psi_layer_dimensions":psi_layer_dimensions,
+                "psi_neural_weights":psi_neural_weights, "psi_r_mean":psi_r_mean,
+                "psi_z_mean":psi_z_mean, "psi_r_std":psi_r_std, "psi_z_std":psi_z_std,
+                "psi_psi_mean":psi_psi_mean, "psi_psi_std":psi_psi_std}
