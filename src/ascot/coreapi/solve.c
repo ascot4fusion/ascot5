@@ -19,14 +19,31 @@
 #include "utils/gctransform.h"
 #include "utils/mathlib.h"
 #include "utils/random.h"
+#include <signal.h>
+#include <stdatomic.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stddef.h>
 
+volatile sig_atomic_t stop_flag = 0;
+
+static void handle_signal(int sig) {
+    stop_flag = 1;
+}
+
+void ascot_setup_signal_handlers(void) {
+    struct sigaction sa;
+    sa.sa_handler = handle_signal;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+
+    sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
+}
+
 void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
 {
-
 #ifdef GPU
     if (sim->options->simulation_mode != 1)
     {

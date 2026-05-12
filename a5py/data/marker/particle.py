@@ -167,24 +167,24 @@ class ParticleMarker(InputVariant):
             ) -> None:
         self._cdata = (Structure * ids.size)()
         for i in range(ids.size):
-            setattr(self._cdata[i], "r", r[i])
-            setattr(self._cdata[i], "z", z[i])
+            setattr(self._cdata[i], "rprt", r[i])
+            setattr(self._cdata[i], "zprt", z[i])
             setattr(self._cdata[i], "id", ids[i])
-            setattr(self._cdata[i], "phi", phi[i])
+            setattr(self._cdata[i], "phiprt", phi[i])
             setattr(self._cdata[i], "time", time[i])
-            setattr(self._cdata[i], "pr", vr[i])
-            setattr(self._cdata[i], "pphi", vphi[i])
-            setattr(self._cdata[i], "pz", vz[i])
-            setattr(self._cdata[i], "charge", charge[i])
+            setattr(self._cdata[i], "pr", (vr[i] * species.mass).to("kg*m/s"))
+            setattr(self._cdata[i], "pphi", (vphi[i] * species.mass).to("kg*m/s"))
+            setattr(self._cdata[i], "pz", (vz[i] * species.mass).to("kg*m/s"))
+            setattr(self._cdata[i], "charge", charge[i].to("C"))
             setattr(self._cdata[i], "weight", weight[i])
             setattr(self._cdata[i], "anum", species.anum)
             setattr(self._cdata[i], "znum", species.znum)
-            setattr(self._cdata[i], "mass", species.mass)
+            setattr(self._cdata[i], "mass", species.mass.to("kg"))
 
     def _save_data(self) -> None:
         assert self._file is not None
         for field in [
-            "r", "z", "phi", "charge", "time", "ids", "weight", "vr", "vz",
+            "rprt", "zprt", "phiprt", "charge", "time", "ids", "weight", "vr", "vz",
             "vphi",
             ]:
             self._file.write(field, getattr(self, field))
@@ -193,7 +193,7 @@ class ParticleMarker(InputVariant):
 
     def export(self) -> dict[str, Species | np.ndarray | unyt.unyt_array]:
         fields = [
-            "r", "z", "phi", "charge", "time", "ids", "weight", "vr", "vz",
+            "rprt", "zprt", "phiprt", "charge", "time", "ids", "weight", "vr", "vz",
             "vphi", "species",
             ]
         return {field: getattr(self, field) for field in fields}

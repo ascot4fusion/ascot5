@@ -4,7 +4,7 @@ import ctypes
 import numpy as np
 import unyt
 import a5py.physlib as physlib
-from a5py.libascot import DataStruct
+from a5py.libascot import DataStruct, LIBASCOT
 
 
 class Structure(DataStruct):
@@ -330,7 +330,7 @@ class MarkerState():
     def combine(self, file=None):
         """"""
 
-    def getval(self, *qnt, filter=None):
+    def extract_fields(self, *qnt, filter=None):
         """Get queried values from the stored data.
 
         Returned values are sorted by IDs unless ``filter`` is provided. Arrays
@@ -370,6 +370,150 @@ class MarkerState():
                 val = getattr(mrk[i], field[0])
                 setattr(cdata[i], field[0], val)
         obj._cdata = cdata
+        return obj
+
+    @classmethod
+    def from_markerinput(cls, mrk, bjacb, idx=None):
+        """Initialize a new state that matches the marker input.
+
+        Parameters
+        ----------
+        mrk
+            The marker input.
+        bjacb
+            Magnetic field vector and gradient at each marker position.
+        idx
+            Index of the markers to include.
+        """
+        if idx is None:
+            idx = np.arange(mrk.n)
+
+        obj = cls()
+        obj._cdata = (Structure * idx.size)()
+
+        isfieldline = mrk._cdata[0].mass == 0
+        isparticle = not isfieldline and mrk._cdata[0].ekin == 0
+        isguidingcenter = not isfieldline and not isparticle
+        if isfieldline:
+            zeros = [
+                "pr", "pphi", "pz", "mass", "charge", "anum", "znum", "weight",
+                "theta", "endcond", "walltile", "cputime", "mileage", "ekin",
+                "zeta",
+                ]
+            for i, j in enumerate(idx):
+                ctypes.memmove(
+                    ctypes.addressof(obj._cdata[i]),
+                    ctypes.addressof(mrk._cdata[j]),
+                    ctypes.sizeof(Structure),
+                    )
+                obj._cdata[i].rprt = obj._cdata[i].r
+                obj._cdata[i].phiprt = obj._cdata[i].phi
+                obj._cdata[i].zprt = obj._cdata[i].z
+                for zero in zeros:
+                    setattr(obj._cdata[i], zero, 0)
+
+        elif isparticle:
+            zeros = ["theta", "endcond", "walltile", "cputime", "mileage"]
+            r, phi, z, ppar, mu, zeta = (
+                np.array([0.0]), np.array([0.0]), np.array([0.0]),
+                np.array([0.0]), np.array([0.0]), np.array([0.0]),
+            )
+            for i, j in enumerate(idx):
+                ctypes.memmove(
+                    ctypes.addressof(obj._cdata[i]),
+                    ctypes.addressof(mrk._cdata[j]),
+                    ctypes.sizeof(Structure),
+                    )
+                LIBASCOT.gctransform_particle2guidingcenter(
+                    obj._cdata[i].mass,
+                    obj._cdata[i].charge,
+                    bjacb,
+                    obj._cdata[i].rprt,
+                    obj._cdata[i].phiprt,
+                    obj._cdata[i].zprt,
+                    obj._cdata[i].pr,
+                    obj._cdata[i].pphi,
+                    obj._cdata[i].pz,
+                    r,
+                    phi,
+                    z,
+                    ppar,
+                    mu,
+                    zeta
+                )
+                obj._cdata[i].ekin = 0.0
+                obj._cdata[i].pitch = 0.0
+                for zero in zeros:
+                    setattr(obj._cdata[i], zero, 0)
+
+        elif isguidingcenter:
+            from a5py.physlib import Quantity
+            r, phi, z, pr, pphi, pz, pparprt, muprt, zetaprt = (
+                np.array([0.0]), np.array([0.0]), np.array([0.0]),
+                np.array([0.0]), np.array([0.0]), np.array([0.0]),
+                np.array([0.0]), np.array([0.0]), np.array([0.0]),
+            )
+            zeros = ["theta", "endcond", "walltile", "cputime", "mileage"]
+            for i, j in enumerate(idx):
+                ctypes.memmove(
+                    ctypes.addressof(obj._cdata[i]),
+                    ctypes.addressof(mrk._cdata[j]),
+                    ctypes.sizeof(Structure),
+                    )
+                pnorm = Quantity.registry["pnorm"].compute(
+                    mass=obj._cdata[i].mass*unyt.kg,
+                    energy=obj._cdata[i].ekin*unyt.J,
+                    ).to("kg*m/s")
+                ppar = Quantity.registry["ppar"].compute(
+                    pnorm=pnorm,
+                    pitch=obj._cdata[i].pitch,
+                    )
+                mu = Quantity.registry["mu"].compute(
+                    mass=obj._cdata[i].mass*unyt.kg,
+                    pitch=obj._cdata[i].pitch,
+                    pnorm=pnorm,
+                    bnorm=np.sqrt(bjacb[i,0]**2+bjacb[i,1]**2+bjacb[i,2]**2)*unyt.T,
+                    ).to("J/T")
+                bjacb0 = np.zeros((12,))
+                bjacb0[:] = bjacb[i,:]
+                LIBASCOT.gctransform_guidingcenter2particle(
+                    obj._cdata[i].mass,
+                    obj._cdata[i].charge,
+                    bjacb0,
+                    obj._cdata[i].r,
+                    obj._cdata[i].phi,
+                    obj._cdata[i].z,
+                    ppar,
+                    mu,
+                    obj._cdata[i].zeta,
+                    r,
+                    phi,
+                    z,
+                    pparprt,
+                    muprt,
+                    zetaprt,
+                )
+                LIBASCOT.gctransform_pparmuzeta2prpphipz(
+                    obj._cdata[i].mass,
+                    obj._cdata[i].charge,
+                    bjacb0,
+                    phi[0],
+                    pparprt[0],
+                    muprt[0],
+                    zetaprt[0],
+                    pr,
+                    pphi,
+                    pz,
+                )
+                obj._cdata[i].rprt = r[0]
+                obj._cdata[i].phiprt = phi[0]
+                obj._cdata[i].zprt = z[0]
+                obj._cdata[i].pr = pr[0]
+                obj._cdata[i].pphi = pphi[0]
+                obj._cdata[i].pz = pz[0]
+                for zero in zeros:
+                    setattr(obj._cdata[i], zero, 0)
+
         return obj
 
     def _get(self, *qnt, mode="gc"):
@@ -672,3 +816,62 @@ class MarkerState():
             "ptor":     "Canonical toroidal angular momentum",
         }
         return out
+
+    def _getstate(self, *quantities):
+        """Get quantities as this was a marker state."""
+        mapping = {
+            "r": "r",
+            "z": "z",
+            "phi": "phi",
+            "rprt": "r",
+            "zprt": "z",
+            "phiprt": "phi",
+            "zeta": 0.0,
+            "ekin": 0.0*unyt.eV,
+            "pitch": "direction",
+            "pr": 0.0*unyt.amu*unyt.m/unyt.s,
+            "pz": 0.0*unyt.amu*unyt.m/unyt.s,
+            "pphi": 0.0*unyt.amu*unyt.m/unyt.s,
+            "mass": 0.0*unyt.amu,
+            "charge": 0.0*unyt.e,
+            "time": "time",
+            "theta": np.nan,
+            "weight": 0.0*unyt.particles/unyt.s,
+            "mileage": 0.0*unyt.s,
+            "cputime": 0.0*unyt.s,
+            "ids": "ids",
+            "walltile": 0,
+            "endcond": 0,
+            "err": 0,
+            "anum": 0,
+            "znum": 0,
+        }
+        values = []
+        for quantity in quantities:
+            if quantity not in mapping:
+                raise ValueError(f"Unknown quantity: {quantity}")
+            if isinstance(quantity, str):
+                values.append(getattr(self, quantity))
+            else:
+                values.append(quantity * np.full(self.n, 1.))
+        return values
+
+
+def evaluate(state, qnt, filter=None):
+    """Evaluate state."""
+    marker_ids = state._getstate("ids")[0]
+    if filter is not None:
+        idx2 = np.isin(marker_ids, filter)
+        marker_ids = marker_ids[idx]
+        idx = np.argsort(marker_ids)
+    else:
+        idx = np.argsort(marker_ids)
+    evaluated = []
+    for q in qnt:
+        if filter is not None:
+            val = getattr(q)[idx2]
+        else:
+            val = state._getstate(q)[0]
+        evaluated.append(val[idx])
+
+    return evaluated

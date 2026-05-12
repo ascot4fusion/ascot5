@@ -14,27 +14,27 @@ from sphinx.util.docutils import SphinxDirective
 
 def generate_options_table(optionsdataclass):
     """Generate RST table from given the given options dataclass."""
-    cls = getattr(options, optionsdataclass)
-    attr = getattr(options.Options, optionsdataclass)
+    #cls = getattr(options, optionsdataclass)
+    #attr = getattr(options.Options, optionsdataclass)
 
     lines = []
-    lines.append(".. list-table::")
-    lines.append("   :header-rows: 1")
-    lines.append("")
-    lines.append(f"   * - ``Options.{cls.__name__}``")
-    lines.append(f"     - {attr.__doc__}")
+    #lines.append(".. list-table::")
+    #lines.append("   :header-rows: 1")
+    #lines.append("")
+    #lines.append(f"   * - ``Options.{cls.__name__}``")
+    #lines.append(f"     - {attr.__doc__}")
 
-    for name, member in cls.__dict__.items():
-        if not isinstance(member, property):
-            continue
-        indented_doc = textwrap.indent(member.__doc__, "       ").split("\n")
-        lines.append(f"   * - ``{cls.__name__}.{name}``")
-        # With literal block we can ensure white space in the generated table.
-        lines.append(f"     - | " + indented_doc[0][7:])
-        for line in indented_doc[2:]:
-            lines.append(f"{line}")
-            if line == "":
-                lines.append(f"       |")
+    #for name, member in cls.__dict__.items():
+    #    if not isinstance(member, property):
+    #        continue
+    #    indented_doc = textwrap.indent(member.__doc__, "       ").split("\n")
+    #    lines.append(f"   * - ``{cls.__name__}.{name}``")
+    #    # With literal block we can ensure white space in the generated table.
+    #    lines.append(f"     - | " + indented_doc[0][7:])
+    #    for line in indented_doc[2:]:
+    #        lines.append(f"{line}")
+    #        if line == "":
+    #            lines.append(f"       |")
 
     return "\n".join(lines)
 

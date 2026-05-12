@@ -37,6 +37,5 @@ size_t MarkerQueue_cycle(
         if(!empty_queue)
             *next_in_queue = next;
     }
-
     return idx;
 }

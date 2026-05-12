@@ -37,6 +37,7 @@
 
 """
 import ctypes
+from typing import TypeAlias
 
 from a5py.libascot import input_category
 
@@ -50,6 +51,12 @@ from .analytical import BfieldAnalytical
 from .spline2d import BfieldSpline2D
 from .spline3d import BfieldSpline3D
 from .stellarator import BfieldStellarator
+
+BfieldType: TypeAlias = (
+    BfieldCartesian | BfieldAnalytical | BfieldSpline2D | BfieldSpline3D |
+    BfieldStellarator
+    )
+"""Union of all possible magnetic field types."""
 
 
 # pylint: disable=too-few-public-methods

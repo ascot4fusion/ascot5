@@ -10,7 +10,7 @@ import scipy.optimize
 import numpy as np
 from numpy import log
 
-from a5py.plotting.plotting import openfigureifnoaxes
+from a5py.plotting import open_figure_if_no_axes
 
 
 psi_i = (
@@ -417,7 +417,7 @@ def find_axis(coefficients):
         ).x
 
 
-@openfigureifnoaxes()
+@open_figure_if_no_axes()
 def plot_equilibrium(coefficients, r0, epsilon, kappa, axes=None):
     """Plot the analytical equilibrium.
 

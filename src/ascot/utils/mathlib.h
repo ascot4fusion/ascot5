@@ -428,4 +428,21 @@ real *math_rsearch(const real key, const real *base, int num);
 DECLARE_TARGET_SIMD_UNIFORM(rv, zv, n)
 int math_point_in_polygon(real r, real z, real *rv, real *zv, int n);
 
+DECLARE_TARGET_SIMD_UNIFORM(gamma)
+/**
+ * Check if angle is between two angles.
+ *
+ * This helper function checks whether the angle is between two angles. In other
+ * words, it checks if a point on a circle is on the (smallest) arc spanned
+ * between two angles.
+ *
+ * @param alpha The first angle [rad].
+ * @param beta The second angle [rad].
+ * @param gamma The tested angle [rad].
+ *
+ * @return -1 if not between, 0 <= k <= 1 otherwise where k is defines such that
+ *          gamma = alpha + k * (beta - alpha).
+ */
+real math_crossed_plane(real alpha, real beta, real gamma);
+
 #endif

@@ -314,7 +314,7 @@ err_t Bfield_eval_axis_rz(real axisrz[2], Bfield *bfield, real phi)
     }
 
     axisrz[0] = err ? 1.0 : axisrz[0];
-    axisrz[1] = err ? 0.0 : axisrz[0];
+    axisrz[1] = err ? 0.0 : axisrz[1];
 
     return err;
 }

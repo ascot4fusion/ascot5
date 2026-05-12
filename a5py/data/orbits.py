@@ -2,19 +2,15 @@
 """
 import numpy as np
 import unyt
-import a5py.physlib as physlib
 
 import ctypes
 from typing import Optional
 
-import unyt
-import numpy as np
 from numpy.ctypeslib import ndpointer
 
 from a5py import utils
-from a5py.libascot import LIBASCOT, DataStruct
-from a5py.exceptions import AscotMeltdownError
-from a5py.data.access import InputVariant, Leaf, TreeMixin
+from a5py.physlib import formulas
+from a5py.libascot import DataStruct
 
 
 
@@ -34,9 +30,15 @@ class Struct(DataStruct):
         ("charge", ctypes.POINTER(ctypes.c_int)),
         ("poincare", ctypes.POINTER(ctypes.c_int)),
         ("simmode", ctypes.POINTER(ctypes.c_int)),
+        ("npoint", ctypes.c_size_t),
+        ("ntoroidal", ctypes.c_size_t),
+        ("npoloidal", ctypes.c_size_t),
+        ("nradial", ctypes.c_size_t),
+        ("interval", ctypes.c_double),
+        ("toroidal", ctypes.POINTER(ctypes.c_double)),
+        ("poloidal", ctypes.POINTER(ctypes.c_double)),
+        ("radial", ctypes.POINTER(ctypes.c_double)),
     ]
-
-
 
 
 class Orbit():
@@ -48,315 +50,315 @@ class Orbit():
     GUIDINGCENTER = 2
     FIELDLINE     = 3
 
+    def __init__(self):
+        self._file = None
+        self._cdata = None
 
-    def init(nmrk, npoint):
+    @property
+    def ntotal(self) -> int:
+        r"""Total size of the orbit data."""
+        if self._file is None:
+            return self._cdata.id_ref.size
+        return self._file.read("id").size
+
+    @property
+    def id(self) -> np.ndarray:
+        r"""Unique identifier for each marker."""
+        if self._file is None:
+            return self._cdata.id_ref
+        return self._file.read("id")
+
+    @property
+    def r(self) -> unyt.unyt_array:
+        r"""Marker :math:`R` coordinate."""
+        if self._file is None:
+            return self._cdata.r_ref * unyt.m
+        return self._file.read("r")
+
+    @property
+    def z(self) -> unyt.unyt_array:
+        r"""Marker :math:`z` coordinate."""
+        if self._file is None:
+            return self._cdata.z_ref * unyt.m
+        return self._file.read("z")
+
+    @property
+    def phi(self) -> unyt.unyt_array:
+        r"""Marker :math:`\phi` coordinate."""
+        if self._file is None:
+            return self._cdata.phi_ref * unyt.rad
+        return self._file.read("phi")
+
+    @property
+    def p1(self) -> unyt.unyt_array:
+        r"""Marker first momentum coordinate."""
+        if self._file is None:
+            return self._cdata.p1_ref
+        return self._file.read("p1")
+
+    @property
+    def p2(self) -> unyt.unyt_array:
+        r"""Marker second momentum coordinate."""
+        if self._file is None:
+            return self._cdata.p2_ref
+        return self._file.read("p2")
+
+    @property
+    def p3(self) -> unyt.unyt_array:
+        r"""Marker third momentum coordinate."""
+        if self._file is None:
+            return self._cdata.p3_ref
+        return self._file.read("p3")
+
+    @property
+    def charge(self) -> np.ndarray:
+        r"""Marker charge."""
+        if self._file is None:
+            return self._cdata.charge_ref * unyt.e
+        return self._file.read("charge")
+
+    @property
+    def mileage(self) -> np.ndarray:
+        r"""Marker mileage."""
+        if self._file is None:
+            return self._cdata.mileage_ref
+        return self._file.read("mileage")
+
+    @property
+    def poincare(self) -> np.ndarray:
+        r"""Poincare classification."""
+        if self._file is None:
+            return self._cdata.poincare_ref
+        return self._file.read("poincare")
+
+    @property
+    def simmode(self) -> np.ndarray:
+        r"""Simulation mode."""
+        if self._file is None:
+            return self._cdata.simmode_ref
+        return self._file.read("simmode")
+
+    def init(self, nmrk, npoint, interval, poincare, toroidal=None, poloidal=None, radial=None):
         orbit = Struct()
 
-        orbit.r = (ctypes.c_double * nmrk * npoint)()
-        orbit.z = (ctypes.c_double * nmrk * npoint)()
-        orbit.phi = (ctypes.c_double * nmrk * npoint)()
-        orbit.p1 = (ctypes.c_double * nmrk * npoint)()
-        orbit.p2 = (ctypes.c_double * nmrk * npoint)()
-        orbit.p3 = (ctypes.c_double * nmrk * npoint)()
-        orbit.mileage = (ctypes.c_double * nmrk * npoint)()
-        orbit.stamp = (ctypes.c_double * nmrk)()
-        orbit.idx = (ctypes.c_size_t * nmrk)()
-        orbit.id = (ctypes.c_size_t * nmrk * npoint)()
-        orbit.charge = (ctypes.c_int * nmrk * npoint)()
-        orbit.poincare = (ctypes.c_int * nmrk * npoint)()
-        orbit.simmode = (ctypes.c_int * nmrk * npoint)()
+        for field in ["r", "z", "phi", "p1", "p2", "p3", "mileage", "stamp",
+                      "id", "idx", "charge", "poincare", "simmode"]:
+            dtype, ctype = np.float64, ctypes.c_double
+            if field in ["id", "idx"]:
+                dtype, ctype = np.int64, ctypes.c_size_t
+            elif field in ["charge", "poincare", "simmode"]:
+                dtype, ctype = np.int32, ctypes.c_int
+            size = nmrk * npoint
+            if field in ["idx", "stamp"]:
+                size = nmrk
+            arr = np.zeros(size, dtype=dtype)
+            setattr(orbit, field, arr.ctypes.data_as(ctypes.POINTER(ctype)))
+            setattr(orbit, field + "_ref", arr)
 
-    def get(self, inistate, endstate, *qnt):
-        """Return marker quantity.
+        orbit.npoint = npoint
+        orbit.interval = interval
+        if not poincare:
+            toroidal = None
+            poloidal = None
+            radial = None
 
-        This function accesses the orbit data within the HDF5 file and uses that
-        to evaluate the queried quantity. The evaluated quantity at a given
-        position corresponds to that mode which was active at the simulation:
-        GO simulations return particle phase-space, GC guiding-center
-        phase-space and hybrid depends on whether marker was GO or GC at that
-        moment when data point was written.
+        if interval >= 0:
+            if not (toroidal is None and poloidal is None and radial is None):
+                raise ValueError("Interval must be less than zero when toroidal, poloidal or radial is not None.")
+            self._cdata = orbit
+            return
+
+        poincaredata = {"toroidal": toroidal, "poloidal": poloidal, "radial": radial}
+        for poincare, data in poincaredata.items():
+            if data is None:
+                setattr(orbit, "n" + poincare, 0)
+                continue
+            setattr(orbit, "n" + poincare, len(data))
+            arr = np.zeros(len(data), dtype=np.float64)
+            np.copyto(arr, data)
+            setattr(orbit, poincare, arr.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+            setattr(orbit, poincare + "_ref", arr)
+
+        self._cdata = orbit
+
+    def extract_fields(self, *quantities, filter=None, poincare=None):
+        """Return recorded orbit data.
+
+        This function returns the actual data that was recorded during the run.
+        The data maybe stored in the struct or in the file. The data is returned
+        as an array ordered by marker ID (major) and mileage (minor).
+
+        The evaluated quantity at a given position corresponds to that mode
+        which was active at the simulation:
+
+        - GO simulations return particle phase-space.
+        - GC guiding-center simulations return guiding-center phase-space.
+        - In hybrid simulations, the quantity corresponds to the simulation mode
+          at the moment the orbit position was recorded.
 
         Parameters
         ----------
-        inistate : :class:`State`
-            Inistate is needed to evaluate some orbit quantities.
-        endstate : :class:`State`
-            Endstate is needed to evaluate some orbit quantities.
-        *qnt : str
-            Names of the quantities.
+        *quantities : str
+            Names of the queried quantities.
+        filter : array_like, optional
+            Return values for specific marker IDs.
+        poincare : int, optional
+            Return only points that are on the given Poincaré plane.
 
         Returns
         -------
-        *value : array_like
-            The quantities as an array ordered by marker ID (major) and mileage
-            (minor).
+        **values : dict[str, array_like]
+            Dictionary values of the quantities as an array ordered by marker ID
+            (major) and mileage (minor).
         """
-        # Prepare helper variables and functions
-        def _val(q, mask=None):
-            """Read quantity from HDF5.
-            """
-            with self as h5:
-                if q in h5:
-                    qnt = fileapi.read_data(h5, q)
-                    if q == "weight":
-                        qnt *= unyt.unyt_quantity.from_string("particles/s")
-                    return qnt if mask is None else qnt[mask]
-            return None
+        ids = self.id
+        mileage = self.mileage
 
-        # Sort using the fact that inistate.get return values ordered by ID
-        # and also np.unique returns indices that produce a sorted array.
-        mode    = _val("simmode")
-        _, idx  = np.unique(_val("ids").v, return_inverse=True)
-        mass    = inistate.get("mass")[0][idx]
-        time    = inistate.get("time")[0][idx]
-        connlen = inistate.get("mileage")[0][idx] - _val("mileage")
+        order = np.lexsort((mileage, ids))
+        if filter is not None:
+            filter = np.asarray(filter, dtype=ids.dtype)
+            mask = np.isin(ids[order], filter)
+        else:
+            mask = ids[order] > 0
+        if poincare is not None:
+            mask &= self.poincare == poincare
+        order = order[mask]
 
-        # Only field lines are constant in time
-        if not Orbits.FIELDLINE in mode: time = time + _val("mileage")
+        arrays = {}
+        for name in quantities:
+            arrays[name] = getattr(self, name)[order]
 
-        def _eval(q, mask=None):
-            """Evaluate input quantities at marker position.
-            """
-            return self._root._ascot.input_eval(
-                _val("r", mask=mask), _val("phi",  mask=mask),
-                _val("z", mask=mask), time[mask], *[q])
+        return arrays
 
-        return Orbits._getactual(mass, time, connlen, mode, _val, _eval, *qnt)
-
-    @staticmethod
-    def _getactual(mass, time, totmil, mode, _val, _eval, *qnt):
+    def evaluate_quantity(self, mode, state, bfield, *quantities, filter=None, poincare=None):
         """Calculate orbit quantities using the helper functions and data.
 
         Parameters
         ----------
-        mass : array_like, (n,)
-            Marker mass repeated at each orbit point.
-        time : array_like, (n,)
-            Laboratory time at each orbit point.
-        totmil : array_like, (n,)
-            Total mileage (from endstate) repeated at each orbit point.
-        mode : array_like, (n,)
-            The simmode value at each orbit point.
-        _val : callable
-            Function that returns a stored orbit parameter at masked positions.
-
-            ``_val(qnt : str, mask : array_like) -> value``
-        _eval : callable
-            Function that returns interpolated input quantity at masked
-            positions.
-
-            ``_eval(qnt : str, mask : array_like) -> value``
-        *qnt : str
+        mode : str
+            Simulation mode.
+        state
+            State data used in evaluating derived quantities.
+        bfield
+            Magnetic field data used in evaluating derived quantities.
+        *quantities : str
             Names of the quantities.
+        filter : array_like, optional
+            Return values for specific marker IDs.
+        poincare : int, optional
+            Return only points that are on the given Poincaré plane.
 
         Returns
         -------
         *value : array_like
-            The quantities as an array ordered by marker ID (major) and mileage
+            The quantities as arrays ordered by marker ID (major) and mileage
             (minor).
         """
-        items = [None]*len(qnt)
-        def add(q, val):
-            if q in qnt:
-                i = qnt.index(q)
-                if items[i] is None:
-                    items[i] = val()
-                else:
-                    # For hybrid mode GC values are appended by GO
-                    items[i].convert_to_base("ascot")
-                    v = val().in_base("ascot")
-                    items[i] = np.append(v.v, items[i].v) * v.units
+        from a5py.engine.interpolate import evaluate
+        # Check what fields are available based on the simulation mode
+        fields = ["r", "z", "phi", "mileage", "id",]
+        if mode == "particle":
+            fields += ("pr", "pphi", "pz", "charge", "mass")
+        elif mode == "guidingcenter":
+            fields += ("ppar", "mu", "zeta", "charge", "mass")
+        elif mode == "hybrid":
+            pass
 
-        # Some helper quantities as functions so they are evaluated only
-        # when needed. Mask is used to separate GOs, GCs, and FLs since
-        # they are all stored in the same data.
-        bvec = lambda mask : unyt.unyt_array(
-            [_val("br", mask), _val("bphi", mask), _val("bz", mask)])
-        pvecprt = lambda mask : unyt.unyt_array(
-            [_val("pr", mask), _val("pphi", mask), _val("pz", mask)])
-        def pvecgc(mask):
-            bnorm = np.sqrt(np.sum(bvec(mask)**2,axis=0))
-            pnorm = physlib.momentum_muppar(
-                mass[mask], _val("mu", mask),
-                _val("ppar", mask), bnorm)
-            bhat  = bvec(mask) / bnorm
-            e1 = np.zeros(bhat.shape)
-            e1[2,:] = 1
-            e2 = np.cross(bhat.T, e1.T).T
-            e1 = e2 / np.sqrt(np.sum(e2**2, axis=0))
-            e2 = np.cross(bhat.T, e1.T).T
-            perphat = -np.sin(_val("zeta", mask))*e1 \
-                - np.cos(_val("zeta", mask))*e2
-            return bhat * _val("ppar", mask) \
-                + perphat * np.sqrt(pnorm**2 - _val("ppar", mask)**2)
-        vvecprt = lambda mask : physlib.velocity_momentum(mass[mask],
-                                                          pvecprt(mask))
-        vvecgc = lambda mask : physlib.velocity_momentum(mass[mask],
-                                                         pvecgc(mask))
-        # Common quantities
-        add("ids", lambda : _val("ids"))
-        add("r", lambda : _val("r"))
-        add("z", lambda : _val("z"))
-        add("phi", lambda : _val("phi"))
-        add("phimod", lambda : np.mod(_val("phi"), 2 * np.pi * unyt.rad))
-        add("theta", lambda : _val("theta"))
-        add("thetamod", lambda : np.mod(_val("theta"), 2 * np.pi * unyt.rad))
-        add("x", lambda : physlib.pol2cart(_val("r"), _val("phi"))[0])
-        add("y", lambda : physlib.pol2cart(_val("r"), _val("phi"))[1])
-        add("br", lambda : _val("br"))
-        add("bz", lambda : _val("bz"))
-        add("bphi", lambda : _val("bphi"))
-        add("bnorm", lambda : np.sqrt( _val("br")**2 + _val("bphi")**2
-                                       + _val("bz")**2 ))
-        add("rho", lambda : _val("rho"))
-        add("psi", lambda : _eval("psi"))
-        add("mileage", lambda : _val("mileage"))
-        add("mass", lambda : mass)
-        add("charge", lambda : _val("charge"))
-        add("weight", lambda : _val("weight"))
-        add("time", lambda : time)
-        add("pncrid", lambda : _val("pncrid"))
-        add("pncrdir", lambda : _val("pncdir"))
-        add("connlen", lambda : totmil)
+        # Add magnetic field to available quantities
+        bfield_fundamentals = (
+            "psi", "rho", "br", "bphi", "bz",
+        )
 
-        mask = mode > 0
-        if Orbits.GYROORBIT in mode:
-            mask = mode == Orbits.GYROORBIT
-            add("pr", lambda : _val("pr", mask))
-            add("pz", lambda : _val("pz", mask))
-            add("pphi", lambda : _val("pphi", mask))
-            add("ppar", lambda : physlib.ppar_momentum(pvecprt(mask),
-                                                       bvec(mask)))
-            if "pperp" in qnt:
-                pnorm2 = np.sum( pvecprt(mask)**2, axis=0 )
-                pperp2 = physlib.ppar_momentum(pvecprt(mask), bvec(mask))**2
-                add("pperp", lambda : np.sqrt(pnorm2 - pperp2))
-            add("pnorm", lambda : np.sqrt( np.sum( pvecprt(mask)**2, axis=0 ) ))
-            add("vr", lambda : vvecprt(mask)[0,:])
-            add("vz", lambda : vvecprt(mask)[2,:])
-            add("vphi", lambda : vvecprt(mask)[1,:])
-            add("vpar", lambda : physlib.vpar_momentum(
-                mass[mask], pvecprt(mask), bvec(mask)))
-            if "vperp" in qnt:
-                vpar = physlib.vpar_momentum(
-                    mass[mask], pvecprt(mask), bvec(mask))
-                pnorm = np.sqrt(np.sum(pvecprt(mask)**2, axis=0))
-                vnorm = physlib.velocity_momentum(mass[mask], pnorm)
-                add("vperp", lambda : np.sqrt(vnorm**2 - vpar**2))
-            if "vnorm" in qnt:
-                pnorm = np.sqrt(np.sum(pvecprt(mask)**2, axis=0))
-                add("vnorm", lambda : physlib.velocity_momentum(mass[mask],
-                                                                pnorm))
-            add("ekin", lambda : physlib.energy_momentum(mass[mask],
-                                                         pvecprt(mask)))
-            add("pitch", lambda : physlib.pitch_momentum(pvecprt(mask),
-                                                         bvec(mask)))
-            add("mu", lambda : physlib.mu_momentum(mass[mask], pvecprt(mask),
-                                                   bvec(mask)))
-            add("zeta", lambda : mass[mask]*np.nan) # TODO implement properly
-            add("ptor", lambda : physlib.torcanangmom_momentum(
-                _val("charge", mask), _val("r", mask), pvecprt(mask),
-                _eval("psi", mask)))
+        # Filter non-physical
+        extract = []
+        physical_quantities = []
+        for qnt in quantities:
+            if qnt in ["id", "poincare", "simmode", ]:
+                extract.append(qnt)
+            elif qnt in ["time", "connectionlength",]:
+                extract.append("mileage")
+                extract.append("id")
+            else:
+                physical_quantities.append(qnt)
 
-        if Orbits.GUIDINGCENTER in mode:
-            mask = mode == Orbits.GUIDINGCENTER
-            add("pr", lambda : pvecgc(mask)[0,:])
-            add("pz", lambda : pvecgc(mask)[2,:])
-            add("pphi", lambda : pvecgc(mask)[1,:])
-            add("ppar", lambda : _val("ppar", mask))
-            if "pperp" in qnt:
-                pnorm = physlib.momentum_muppar(
-                    mass[mask], _val("mu", mask),
-                    _val("ppar", mask), bvec(mask))
-                add("pperp", lambda : np.sqrt(pnorm**2 - _val("ppar")**2))
-            add("pnorm", lambda : physlib.momentum_muppar(
-                mass[mask], _val("mu", mask),
-                _val("ppar", mask), bvec(mask)))
-            add("vr", lambda : vvecgc(mask)[0,:])
-            add("vz", lambda : vvecgc(mask)[2,:])
-            add("vphi", lambda : vvecgc(mask)[1,:])
-            add("vpar", lambda : physlib.vpar_muppar(
-                mass[mask], _val("mu", mask), _val("ppar", mask), bvec(mask)))
-            if "vperp" in qnt:
-                pnorm = physlib.momentum_muppar(
-                    mass[mask], _val("mu", mask),
-                    _val("ppar", mask), bvec(mask))
-                pperp = np.sqrt(pnorm**2 - _val("ppar", mask)**2)
-                gamma = physlib.gamma_momentum(mass[mask], pnorm)
-                add("vperp", lambda : pperp / (gamma * mass[mask]))
-            if "vnorm" in qnt:
-                pnorm = physlib.momentum_muppar(
-                    mass[mask], _val("mu", mask),
-                    _val("ppar", mask), bvec(mask))
-                gamma = physlib.gamma_momentum(mass[mask], pnorm)
-                add("vnorm", lambda : pnorm / (gamma * mass[mask]))
-            add("ekin", lambda : physlib.energy_muppar(
-                mass[mask], _val("mu", mask), _val("ppar", mask), bvec(mask)))
-            add("pitch", lambda : physlib.pitch_muppar(
-                mass[mask], _val("mu", mask), _val("ppar", mask), bvec(mask)))
-            add("mu", lambda : _val("mu", mask))
-            add("zeta", lambda : _val("zeta", mask))
-            add("ptor", lambda : physlib.torcanangmom_ppar(
-                _val("charge", mask), _val("r", mask), _val("ppar", mask),
-                bvec(mask), _eval("psi", mask)))
+        # Resolve requested quantities
+        fundamentals = fields + list(bfield_fundamentals)
+        needed, computethese = formulas.resolve_quantities(fundamentals, physical_quantities)
 
-        for i in range(len(items)):
-            if items[i] is None:
-                raise ValueError("Unknown quantity in " + qnt[i])
-
-        # Sort first by IDs and then by mileage
-        ids  = _val("ids", mask=mask).v
-        mile = _val("mileage", mask=mask).v
-        idx  = np.lexsort((mile, ids))
-        for i in range(len(items)):
-            items[i] = items[i][idx]
-            items[i].convert_to_base("ascot")
-        return items
-
-    @staticmethod
-    def listqnts():
-        """List all available quantities.
-        """
-        out = {
-            "r":        "R coordinate",
-            "z":        "z coordinate",
-            "phi":      "Toroidal coordinate (cumulative)",
-            "phimod":   "Toroidal coordinate",
-            "theta":    "Poloidal coordinate (cumulative)",
-            "thetamod": "Poloidal coordinate",
-            "x":        "x coordinate",
-            "y":        "y coordinate",
-            "pr":       "Momentum R component",
-            "pz":       "Momentum z component",
-            "pphi":     "Momentum phi component",
-            "ppar":     "Momentum component parallel to B",
-            "pperp":    "Momentum component perpendicular to B",
-            "pnorm":    "Momentum norm",
-            "vr":       "Velocity R component",
-            "vz":       "Velocity z component",
-            "vphi":     "Velocity phi component",
-            "vpar":     "Velocity component parallel to B",
-            "vperp":    "Velocity component perpendicular to B",
-            "vnorm":    "Velocity norm",
-            "br":       "Magnetic field R component at the marker position",
-            "bz":       "Magnetic field z component at the marker position",
-            "bphi":     "Magnetic field phi component at the marker position",
-            "bnorm":    "Magnetic field strength at the marker position",
-            "ekin":     "Kinetic energy",
-            "pitch":    "vpa / vnorm",
-            "mu":       "Magnetic moment",
-            "zeta":     "Gyroangle",
-            "psi":      "Poloidal flux at the marker position",
-            "rho":      "Square root of normalized psi",
-            "ptor":     "Canonical toroidal angular momentum",
-            "mass":     "Mass",
-            "charge":   "Charge",
-            "time":     "Current laboratory time",
-            "mileage":  "Laboratory time elapsed in simulation",
-            "weight":   "How many physical particles a marker represents",
-            "ids":      "Marker ID",
-            "connlen":  "Connection length for lost markers",
-            "pncrid":   "Poincaré plane this point corresponds to",
-            "pncrdir":  "Direction at which Poincaré plane was crossed",
+        map_quantity_to_field = {
+            "particle": {
+                "p1": "pr",
+                "p2": "pphi",
+                "p3": "pz",
+            },
+            "guidingcenter": {
+                "p1": "ppar",
+                "p2": "mu",
+                "p3": "zeta",
+            },
+            "fieldline": {
+                "p1": "pitch",
+            },
         }
-        return out
+
+        evaluate_bfield = []
+        for qnt in needed:
+            if qnt in fields:
+                if qnt in map_quantity_to_field[mode].values():
+                    qnt = [q for q, v in map_quantity_to_field[mode].items() if v == qnt][0]
+                extract.append(qnt)
+            elif qnt in bfield_fundamentals:
+                evaluate_bfield.append(qnt)
+
+        if len(evaluate_bfield) > 0:
+            for qnt in ["r", "phi", "z", "mileage", "id"]:
+                if qnt not in extract:
+                    extract.append(qnt)
+
+        out = self.extract_fields(*extract, filter=filter, poincare=poincare)
+        for qnt in list(out.keys()):
+            if qnt in map_quantity_to_field[mode]:
+                name = map_quantity_to_field[mode][qnt]
+                if name in ["pr", "pphi", "pz", "ppar",]:
+                    out[qnt] *= unyt.kg * unyt.m / unyt.s
+                elif name == ["mu",]:
+                    out[qnt] *= unyt.T / unyt.eV
+                elif name == ["zeta",]:
+                    out[qnt] *= unyt.rad
+                out[name] = out[qnt]
+                del out[qnt]
+
+        # Set time
+        if "time" in quantities or len(evaluate_bfield) > 0:
+            idx = np.searchsorted(state.ids, out["id"])
+            out["time"] = state.time[idx] + (mode != "fieldline") * out["mileage"] * unyt.s
+        if "connectionlength" in quantities:
+            out["connectionlength"] = 0.0
+
+        if len(evaluate_bfield) > 0:
+            bout = evaluate(out["r"], out["phi"], out["z"], out["time"], *evaluate_bfield, bfield=bfield)
+            for qnt, val in zip(evaluate_bfield, bout):
+                out[qnt] = val
+
+        # Get mass and time from state
+        if mode != "fieldline" and "mass" in needed:
+            out["mass"] = state.mass[0]
+
+        # Calculate requested quantities
+        computed = formulas.compute_quantities(out, computethese)
+
+        # Organize and return
+        out = out | computed
+        arr = []
+        for qnt in quantities:
+            if qnt == "mileage":
+                if mode == "fieldline":
+                    out[qnt] *= unyt.m
+                else:
+                    out[qnt] *= unyt.s
+
+            arr.append(out[qnt])
+
+        if len(arr) == 1:
+            return arr[0]
+        return tuple(arr)

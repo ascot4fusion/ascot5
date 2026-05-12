@@ -49,32 +49,14 @@ typedef struct
     /** Which record mode is used. */
     int record_mode;
 
-    /** User defined value for the (initial) time-step. */
-    int use_explicit_fixedstep;
-
-    /** Time-step is gyrotime divided by this value. */
-    int gyrodefined_fixedstep;
-
     /** User defined time-step value. */
-    real explicit_fixedstep;
+    real timestep;
 
     /** Tolerance for relative error in orbit-following. */
     real adaptive_tolerance_orbit;
 
     /** Tolerance for relative error in Coulomb collisions. */
     real adaptive_tolerance_collisions;
-
-    /**
-     * Maximum rho distance marker is allowed to travel during single adaptive
-     * time-step.
-     */
-    real adaptive_max_drho;
-
-    /**
-     * Maximum phi distance marker is allowed to travel during single adaptive
-     * time-step.
-     */
-    real adaptive_max_dphi;
 
     /** Toggle orbit-following. */
     int enable_orbit_following;

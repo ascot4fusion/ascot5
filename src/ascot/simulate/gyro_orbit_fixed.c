@@ -24,6 +24,9 @@
 #include <stdlib.h>
 #include <time.h>
 
+DECLARE_TARGET_SIMD_UNIFORM(sim)
+real simulate_go_fixed_inidt(Simulation *sim, MarkerGyroOrbit *p, size_t i);
+
 /**
  * Replace markers in the simulation vector with new ones from the queue.
  *
@@ -52,13 +55,17 @@ static size_t cycle_markers(
         if (p_current->id[idx] != 0)
             MarkerGyroOrbit_to_queue(queue, p_current, idx, &sim->bfield);
         p_current->id[idx] = 0;
+        p_current->running[idx] = 0;
 
         if (next_in_queue < queue->n)
         {
             if (MarkerGyroOrbit_from_queue(
                     p_current, queue, idx, next_in_queue, &sim->bfield))
+            {
                 p_current->id[idx] = 0;
-            time_step[idx] = 0; // TODO
+                p_current->running[idx] = 0;
+            }
+            time_step[idx] = simulate_go_fixed_inidt(sim, p_current, idx); // TODO
         }
         start = idx;
     }
@@ -69,12 +76,8 @@ static size_t cycle_markers(
     {
         n_running += p_current->running[i];
     }
-
     return n_running;
 }
-
-DECLARE_TARGET_SIMD_UNIFORM(sim)
-real simulate_go_fixed_inidt(Simulation *sim, MarkerGyroOrbit *p, size_t i);
 
 int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 {
@@ -95,22 +98,12 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     /* Init dummy markers */
     for (size_t i = 0; i < vector_size; i++)
     {
-        p.id[i] = -1;
+        p.id[i] = 0;
         p.running[i] = 0;
     }
 
     /* Initialize running particles */
     size_t n_running = cycle_markers(vector_size, pq, &p, sim, hin);
-
-/* Determine simulation time-step */
-#pragma omp simd
-    for (size_t i = 0; i < vector_size; i++)
-    {
-        if (cycle[i] > 0)
-        {
-            hin[i] = simulate_go_fixed_inidt(sim, &p, i);
-        }
-    }
 
     cputime_last = A5_WTIME;
 
@@ -210,7 +203,7 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         {
             /* Record particle coordinates */
             Diag_update_go(
-                sim->diagnostics, &sim->bfield, &p, &p0);
+                &sim->diagnostics, &sim->bfield, &p, &p0);
         }
         else
         {
@@ -244,7 +237,7 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
                 }
             }
             Diag_update_gc(
-                sim->diagnostics, &sim->bfield, &gc_f, &gc_i);
+                &sim->diagnostics, &sim->bfield, &gc_f, &gc_i);
         }
 
         /* Update running particles */
@@ -305,19 +298,7 @@ real simulate_go_fixed_inidt(Simulation *sim, MarkerGyroOrbit *p, size_t i)
     real h;
 
     /* Value defined directly by user */
-    if (sim->options->use_explicit_fixedstep)
-    {
-        h = sim->options->explicit_fixedstep;
-    }
-    else
-    {
-        /* Value calculated from gyrotime */
-        real Bnorm = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
-        real pnorm = math_normc(p->p_r[i], p->p_phi[i], p->p_z[i]);
-        real gyrotime = CONST_2PI / phys_gyrofreq_pnorm(
-                                        p->mass[i], p->charge[i], pnorm, Bnorm);
-        h = gyrotime / sim->options->gyrodefined_fixedstep;
-    }
+    h = sim->options->timestep;
 
     return h;
 }

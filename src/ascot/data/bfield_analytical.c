@@ -224,7 +224,7 @@ err_t BfieldAnalytical_eval_b_db(
               C[11] * (160 * z3 - 480 * z * r2 * logr);
     b_db[5] *= -bfield->psiscaling / (r * R3);
 
-    b_db[1] = bfield->bphi * bfield->rmajor / r;
+    b_db[1] = bfield->bphi / r;
 
     b_db[6] = -bfield->bphi / r2;
     b_db[7] = 0;

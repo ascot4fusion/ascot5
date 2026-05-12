@@ -6,6 +6,7 @@ from .analyticalinputs import (
     FlatPlasma,
     PremadeMagneticField,
     )
+from .poincare import PoincareMarker, PoincareOptions
 from .optionsxml import make_simple_type, make_element_block, doc, make_schema
 
 def create_input(ascot, template, note=None, activate=False, dryrun=False, store_hdf5=False):
@@ -17,4 +18,6 @@ __all__ = [
     "TransmuteAnalyticalBfieldToSplines",
     "PremadeMagneticField",
     "FlatPlasma",
+    "PoincareMarker",
+    "PoincareOptions",
     ]

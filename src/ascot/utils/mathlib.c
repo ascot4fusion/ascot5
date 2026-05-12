@@ -1,6 +1,7 @@
 /**
  * Implements math.h.
  */
+#include "consts.h"
 #include "mathlib.h"
 #include "defines.h"
 #include <math.h>
@@ -270,4 +271,31 @@ double math_simpson_helper(
     }
     return math_simpson_helper(f, a, c, eps, Sleft, fa, fc, fd, bottom - 1) +
            math_simpson_helper(f, c, b, eps, Sright, fc, fb, fe, bottom - 1);
+}
+
+real math_crossed_plane(real alpha, real beta, real gamma)
+{
+    alpha = fmod(alpha, CONST_2PI);
+    alpha += (alpha < 0) * CONST_2PI;
+    beta = fmod(beta, CONST_2PI);
+    beta += (beta < 0) * CONST_2PI;
+
+    int crosszero = fabs(alpha - beta) >= CONST_PI;
+    alpha = crosszero ? fmod(alpha + CONST_PI, CONST_2PI) : alpha;
+    beta = crosszero ? fmod(beta + CONST_PI, CONST_2PI) : beta;
+    gamma = crosszero ? fmod(gamma + CONST_PI, CONST_2PI) : gamma;
+
+    int betaissmaller = alpha <= beta;
+    real smaller = betaissmaller ? alpha : beta;
+    real larger = betaissmaller ? beta : alpha;
+
+    real distance = gamma - smaller;
+    real arclength = larger - smaller;
+
+    int isinside = distance <= arclength;
+    real nonzeroarc = arclength + (arclength == 0.0);
+    real normalized_distance = betaissmaller ?
+        distance / nonzeroarc : 1 - distance / nonzeroarc;
+
+    return isinside * normalized_distance + (1.0 - isinside) * (-1.0);
 }

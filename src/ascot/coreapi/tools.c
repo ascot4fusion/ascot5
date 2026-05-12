@@ -4,11 +4,21 @@
 #include "parallel.h"
 #include <math.h>
 
+typedef enum {
+    SUCCESS,
+    EXTRAPOLATED,
+    FAILED_AXIS,
+    FAILED_PSI,
+    FAILED_DRHO,
+    FAILED_ITER
+} map_rhotheta_to_rz_status;
+
 size_t ascot_sizeof_real(void) { return sizeof(real); }
 
 void ascot_map_rhotheta_to_rz(
     Bfield *bfield, size_t npnt, size_t maxiter, real tol, real t,
-    real rho[npnt], real theta[npnt], real phi[npnt], real rz[2][npnt])
+    real rho[npnt], real theta[npnt], real phi[npnt], real rz[2][npnt],
+    uint8_t status[npnt])
 {
     (void)t;
     OMP_PARALLEL_CPU_ONLY
@@ -17,28 +27,33 @@ void ascot_map_rhotheta_to_rz(
         real axisrz[2], psi_dpsi[4], rho_drho[4];
         if (Bfield_eval_axis_rz(axisrz, bfield, phi[j]))
         {
+            status[j] = FAILED_AXIS;
             continue;
         }
         if (Bfield_eval_psi_dpsi(
                 psi_dpsi, axisrz[0], phi[j], axisrz[1], t, bfield))
         {
+            status[j] = FAILED_PSI;
             continue;
         }
         if (Bfield_eval_rho_drho(rho_drho, psi_dpsi, bfield))
         {
+            status[j] = FAILED_PSI;
             continue;
         }
         if (rho_drho[0] > rho[j])
         {
             rz[0][j] = axisrz[0];
             rz[1][j] = axisrz[1];
+            status[j] = EXTRAPOLATED;
             continue;
         }
 
         real a = 0.0, b = 5.0;
         real costh = cos(theta[j]);
         real sinth = sin(theta[j]);
-        for (size_t i = 0; i < maxiter; i++)
+        size_t iter;
+        for (iter = 0; iter < maxiter; iter++)
         {
             real c = 0.5 * (a + b);
             real rj = axisrz[0] + c * costh;
@@ -49,7 +64,7 @@ void ascot_map_rhotheta_to_rz(
                 continue;
             }
             if (Bfield_eval_psi_dpsi(
-                psi_dpsi, axisrz[0], phi[j], axisrz[1], t, bfield))
+                psi_dpsi, rj, phi[j], zj, t, bfield))
             {
                 b = c;
                 continue;
@@ -63,6 +78,7 @@ void ascot_map_rhotheta_to_rz(
             {
                 rz[0][j] = rj;
                 rz[1][j] = zj;
+                status[j] = SUCCESS;
                 break;
             }
             if (rho[j] < rho_drho[0])
@@ -73,6 +89,10 @@ void ascot_map_rhotheta_to_rz(
             {
                 a = c;
             }
+        }
+        if (iter == maxiter)
+        {
+            status[j] = FAILED_ITER;
         }
     }
 }

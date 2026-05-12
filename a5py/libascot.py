@@ -11,9 +11,28 @@ from pathlib import Path
 
 import unyt
 import numpy as np
+from numpy.ctypeslib import ndpointer
 
 LIBASCOT: ctypes.CDLL
 """The ctypes.CDLL object for libascot.so."""
+
+
+def _ndpointerornull(*args, **kwargs):
+    """Produce ndpointer which can also be a NULL pointer.
+
+    This wrapper is required since otherwise it is not possible to supply None
+    (indicating NULL) as an argument that requires a numpy array.
+    """
+    base = ndpointer(*args, **kwargs)
+    def from_param(_, obj):
+        if obj is None:
+            return obj
+        return base.from_param(obj)
+    return type(base.__name__, (base,), {"from_param": classmethod(from_param)})
+
+
+PTR_DOUBLE = _ndpointerornull(ctypes.c_double, flags="C_CONTIGUOUS")
+"""Double valued numpy array or None (NULL)."""
 
 
 def init_fun(name, *argtypes, restype=None):
@@ -305,3 +324,69 @@ class Spline3D(ctypes.Structure):
         ("zlim", ctypes.c_double * 2),
         ("c", ctypes.POINTER(ctypes.c_double)),
     ]
+
+init_fun(
+    "gctransform_particle2guidingcenter",
+    ctypes.c_double,
+    ctypes.c_double,
+    PTR_DOUBLE,
+    ctypes.c_double,
+    ctypes.c_double,
+    ctypes.c_double,
+    ctypes.c_double,
+    ctypes.c_double,
+    ctypes.c_double,
+    PTR_DOUBLE,
+    PTR_DOUBLE,
+    PTR_DOUBLE,
+    PTR_DOUBLE,
+    PTR_DOUBLE,
+    PTR_DOUBLE,
+    )
+
+init_fun(
+    "gctransform_guidingcenter2particle",
+    ctypes.c_double,
+    ctypes.c_double,
+    PTR_DOUBLE,
+    ctypes.c_double,
+    ctypes.c_double,
+    ctypes.c_double,
+    ctypes.c_double,
+    ctypes.c_double,
+    ctypes.c_double,
+    PTR_DOUBLE,
+    PTR_DOUBLE,
+    PTR_DOUBLE,
+    PTR_DOUBLE,
+    PTR_DOUBLE,
+    PTR_DOUBLE,
+)
+
+init_fun(
+    "gctransform_pparmuzeta2prpphipz",
+    ctypes.c_double,
+    ctypes.c_double,
+    PTR_DOUBLE,
+    ctypes.c_double,
+    ctypes.c_double,
+    ctypes.c_double,
+    ctypes.c_double,
+    PTR_DOUBLE,
+    PTR_DOUBLE,
+    PTR_DOUBLE,
+)
+
+init_fun(
+    "math_crossed_plane",
+    ctypes.c_double,
+    ctypes.c_double,
+    ctypes.c_double,
+    restype=ctypes.c_double,
+    )
+
+init_fun(
+    "ascot_setup_signal_handlers",
+)
+
+LIBASCOT.ascot_setup_signal_handlers()

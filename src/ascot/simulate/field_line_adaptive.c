@@ -106,8 +106,7 @@ int simulate_fl_adaptive(
     MarkerFieldLine_offload(&p_previous);
     while (nrunning)
     {
-
-        OMP_PARALLEL_CPU_ONLY
+        GPU_PARALLEL_LOOP_ALL_LEVELS
         for (size_t i = 0; i < vector_size; i++)
         {
             MarkerFieldLine_copy(&p_previous, &p_current, i);
@@ -121,7 +120,7 @@ int simulate_fl_adaptive(
         {
 
             /* Set time-step negative if tracing backwards in time */
-            OMP_PARALLEL_CPU_ONLY
+            GPU_PARALLEL_LOOP_ALL_LEVELS
             for (size_t i = 0; i < vector_size; i++)
             {
                 if (sim->options->reverse_time)
@@ -144,7 +143,7 @@ int simulate_fl_adaptive(
             }
 
             /* Check whether time step was rejected */
-            OMP_PARALLEL_CPU_ONLY
+            GPU_PARALLEL_LOOP_ALL_LEVELS
             for (size_t i = 0; i < vector_size; i++)
             {
                 /* Switch sign of the time-step again if it was reverted earlier
@@ -152,41 +151,22 @@ int simulate_fl_adaptive(
                 if (sim->options->reverse_time)
                 {
                     suggested_time_step[i] = -suggested_time_step[i];
-                    current_time_step[i] = -current_time_step[i];
+                    current_time_step[i] = DUMMY_STEP_VAL;//-current_time_step[i];
                 }
 
                 if (p_current.running[i] && suggested_time_step[i] < 0)
                 {
-                    p_current.running[i] = 0;
                     next_time_step[i] = suggested_time_step[i];
                 }
             }
         }
 
         current_time = A5_WTIME;
-        OMP_PARALLEL_CPU_ONLY
+        GPU_PARALLEL_LOOP_ALL_LEVELS
         for (size_t i = 0; i < vector_size; i++)
         {
             if (p_current.running[i])
             {
-                /* Check other time step limitations */
-                if (next_time_step[i] > 0)
-                {
-                    real dphi = fabs(p_previous.phi[i] - p_current.phi[i]) /
-                                sim->options->adaptive_max_dphi;
-                    real drho = fabs(p_previous.rho[i] - p_current.rho[i]) /
-                                sim->options->adaptive_max_drho;
-
-                    if (dphi > 1 && dphi > drho)
-                    {
-                        next_time_step[i] = -current_time_step[i] / dphi;
-                    }
-                    else if (drho > 1 && drho > dphi)
-                    {
-                        // hnext[i] = -hin[i]/drho;
-                    }
-                }
-
                 /* Retrieve marker states in case time step was rejected */
                 if (next_time_step[i] < 0)
                 {
@@ -231,8 +211,7 @@ int simulate_fl_adaptive(
         previous_time = current_time;
 
         endcond_check_fl(&p_current, &p_previous, sim);
-        // Diag_update_fl(sim->diagnostics, &sim->bfield, &p_current,
-        // &p_previous);
+        Diag_update_fl(&sim->diagnostics, &sim->bfield, &p_current, &p_previous);
         nrunning =
             cycle_markers(vector_size, queue, &p_current, sim, current_time_step);
     }

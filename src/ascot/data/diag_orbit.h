@@ -16,22 +16,6 @@
 #define DIAG_ORB_GC 2 /**< Data stored in GC mode */
 #define DIAG_ORB_ML 3 /**< Data stored in ML mode */
 
-DECLARE_TARGET_SIMD_UNIFORM(ang0)
-/**
- * @brief Check if marker has crossed a plane.
- *
- * This helper function checks whether the angle, either toroidal or poloidal,
- * that defines a Poincare plane is between marker's initial and final angles
- * (of single timestep).
- *
- * @param fang marker final angle in radians.
- * @param iang marker initial angle in radians.
- * @param ang0 Poincare plane angle.
- *
- * @return zero if no-crossing, number k, ang0 = k + (fang - iang), otherwise.
- */
-real diag_orb_check_plane_crossing(real fang, real iang, real ang0);
-
 DECLARE_TARGET_SIMD_UNIFORM(r0)
 /**
  * @brief Check if marker has crossed given rho

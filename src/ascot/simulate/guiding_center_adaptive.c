@@ -26,7 +26,7 @@
 #include <time.h>
 
 DECLARE_TARGET_SIMD_UNIFORM(sim)
-real simulate_gc_adaptive_inidt(Simulation *sim, MarkerGuidingCenter *p, int i);
+real simulate_gc_adaptive_inidt(Simulation *sim, MarkerGuidingCenter *p, size_t i);
 
 #define DUMMY_TIMESTEP_VAL 1.0 /**< Dummy time step value */
 
@@ -58,13 +58,17 @@ static size_t cycle_markers(
         if (p_current->id[idx] != 0)
             MarkerGuidingCenter_to_queue(queue, p_current, idx, &sim->bfield);
         p_current->id[idx] = 0;
+        p_current->running[idx] = 0;
 
         if (next_in_queue < queue->n)
         {
             if (MarkerGuidingCenter_from_queue(
                     p_current, queue, idx, next_in_queue, &sim->bfield))
+            {
                 p_current->id[idx] = 0;
-            time_step[idx] = 0; // TODO
+                p_current->running[idx] = 0;
+            }
+            time_step[idx] = simulate_gc_adaptive_inidt(sim, p_current, idx);
         }
         start = idx;
     }
@@ -262,23 +266,6 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         {
             if (p.id[i] > 0 && !p.err[i])
             {
-                /* Check other time step limitations */
-                if (hnext[i] > 0)
-                {
-                    real dphi = fabs(p0.phi[i] - p.phi[i]) /
-                                sim->options->adaptive_max_dphi;
-                    real drho = fabs(p0.rho[i] - p.rho[i]) /
-                                sim->options->adaptive_max_drho;
-
-                    if (dphi > 1 && dphi > drho)
-                    {
-                        hnext[i] = -hin[i] / dphi;
-                    }
-                    else if (drho > 1 && drho > dphi)
-                    {
-                        hnext[i] = -hin[i] / drho;
-                    }
-                }
 
                 /* Retrieve marker states in case time step was rejected      */
                 if (hnext[i] < 0)
@@ -342,7 +329,7 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         }
         cputime_last = cputime;
         endcond_check_gc(&p, &p0, sim);
-        Diag_update_gc(sim->diagnostics, &sim->bfield, &p, &p0);
+        Diag_update_gc(&sim->diagnostics, &sim->bfield, &p, &p0);
         n_running = cycle_markers(vector_size, pq, &p, sim, hin);
 
 /* Determine simulation time-step for new particles */
@@ -399,45 +386,10 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
  *
  * @return Calculated time step
  */
-real simulate_gc_adaptive_inidt(Simulation *sim, MarkerGuidingCenter *p, int i)
+real simulate_gc_adaptive_inidt(Simulation *sim, MarkerGuidingCenter *p, size_t i)
 {
     /* Just use some large value if no physics are defined */
     real h = DUMMY_TIMESTEP_VAL;
-
-    /* Value defined directly by user */
-    if (sim->options->use_explicit_fixedstep)
-    {
-        h = sim->options->explicit_fixedstep;
-    }
-    else
-    {
-        /* Value calculated from gyrotime */
-        if (sim->options->enable_orbit_following)
-        {
-            real Bnorm = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
-            real gyrotime = CONST_2PI / phys_gyrofreq_ppar(
-                                            p->mass[i], p->charge[i], p->mu[i],
-                                            p->ppar[i], Bnorm);
-            if (h > gyrotime)
-            {
-                h = gyrotime;
-            }
-        }
-
-        /* Value calculated from collision frequency */
-        if (sim->options->enable_coulomb_collisions)
-        {
-            real nu = 1;
-            /*mccc_collfreq_gc(p, &sim->B_data, &sim->plasma_data,
-                sim->coldata, &nu, i); */
-
-            /* Only small angle collisions so divide this by 100 */
-            real colltime = 1 / (100 * nu);
-            if (h > colltime)
-            {
-                h = colltime;
-            }
-        }
-    }
+    h = sim->options->timestep;
     return h;
 }

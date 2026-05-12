@@ -42,6 +42,7 @@
  */
 void gctransform_setorder(int order);
 
+DECLARE_TARGET_SIMD
 /**
  * Transform particle to guiding center  phase space.
  *
@@ -66,12 +67,12 @@ void gctransform_setorder(int order);
  * @param mu Pointer to guiding center magnetic moment [J/T].
  * @param zeta Pointer to guiding center gyroangle [rad].
  */
-DECLARE_TARGET_SIMD
 void gctransform_particle2guidingcenter(
     real mass, real charge, real *b_db, real r, real phi, real z, real pr,
     real pphi, real pz, real *R, real *Phi, real *Z, real *ppar, real *mu,
     real *zeta);
 
+DECLARE_TARGET_SIMD
 /**
  * Transform guiding center to particle phase space.
  *
@@ -96,12 +97,12 @@ void gctransform_particle2guidingcenter(
  * @param muprt Pointer to particle magnetic moment [J/T].
  * @param zetaprt Pointer to particle gyroangle [rad].
  */
-DECLARE_TARGET_SIMD
 void gctransform_guidingcenter2particle(
     real mass, real charge, real *b_db, real R, real Phi, real Z, real ppar,
     real mu, real zeta, real *r, real *phi, real *z, real *pparprt, real *muprt,
     real *zetaprt);
 
+DECLARE_TARGET_SIMD
 /**
  * Transform particle ppar, mu, and zeta to momentum vector.
  *
@@ -119,7 +120,6 @@ void gctransform_guidingcenter2particle(
  * @param pphi Pointer to particle momentum phi-component [kg m/s].
  * @param pz Pointer to particle momentum z-component [kg m/s].
  */
-DECLARE_TARGET_SIMD
 void gctransform_pparmuzeta2prpphipz(
     real mass, real charge, real *b_db, real phi, real ppar, real mu, real zeta,
     real *pr, real *pphi, real *pz);

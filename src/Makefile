@@ -45,7 +45,8 @@ endif
 CFLAGS+=-Wall -Wextra -fPIC -std=c11 -D_XOPEN_SOURCE=700 -Iinclude -Iascot $(DEFINES) $(FLAGS)
 
 ifeq ($(DEBUG),1)
-	CFLAGS+=-g
+	CFLAGS+=-g -fsanitize=address,undefined
+	LDFLAGS+=-fsanitize=address,undefined
 else
 	CFLAGS+=-O2
 endif

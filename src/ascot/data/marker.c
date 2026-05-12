@@ -58,6 +58,7 @@ int MarkerGyroOrbit_allocate(MarkerGyroOrbit *mrk, size_t vector_size)
     allocate_field(mrk->cputime);
     allocate_field(mrk->rho);
     allocate_field(mrk->theta);
+    allocate_field(mrk->weight);
     allocate_field(mrk->id);
     allocate_field(mrk->bounces);
     allocate_field(mrk->endcond);
@@ -102,6 +103,7 @@ void MarkerGyroOrbit_deallocate(MarkerGyroOrbit *mrk)
     free(mrk->cputime);
     free(mrk->rho);
     free(mrk->theta);
+    free(mrk->weight);
     free(mrk->id);
     free(mrk->bounces);
     free(mrk->endcond);
@@ -205,7 +207,6 @@ int MarkerGyroOrbit_from_queue(
         err = Bfield_eval_psi(psi, p->r, p->phi, p->z, p->time, bfield);
     if (!err)
         err = Bfield_eval_rho(rho, psi[0], bfield);
-
     if (!err)
     {
         mrk->r[mrk_index] = p->rprt;
@@ -318,6 +319,8 @@ int MarkerGuidingCenter_allocate(MarkerGuidingCenter *mrk, size_t vector_size)
     allocate_field(mrk->ppar);
     allocate_field(mrk->mu);
     allocate_field(mrk->zeta);
+    allocate_field(mrk->mass);
+    allocate_field(mrk->charge);
     allocate_field(mrk->B_r);
     allocate_field(mrk->B_phi);
     allocate_field(mrk->B_z);
@@ -333,6 +336,8 @@ int MarkerGuidingCenter_allocate(MarkerGuidingCenter *mrk, size_t vector_size)
     allocate_field(mrk->cputime);
     allocate_field(mrk->rho);
     allocate_field(mrk->theta);
+    allocate_field(mrk->weight);
+    allocate_field(mrk->time);
     allocate_field(mrk->id);
     allocate_field(mrk->bounces);
     allocate_field(mrk->endcond);
@@ -357,6 +362,8 @@ void MarkerGuidingCenter_deallocate(MarkerGuidingCenter *mrk)
     free(mrk->ppar);
     free(mrk->mu);
     free(mrk->zeta);
+    free(mrk->mass);
+    free(mrk->charge);
     free(mrk->B_r);
     free(mrk->B_phi);
     free(mrk->B_z);
@@ -372,6 +379,8 @@ void MarkerGuidingCenter_deallocate(MarkerGuidingCenter *mrk)
     free(mrk->cputime);
     free(mrk->rho);
     free(mrk->theta);
+    free(mrk->weight);
+    free(mrk->time);
     free(mrk->id);
     free(mrk->bounces);
     free(mrk->endcond);
@@ -669,9 +678,8 @@ int MarkerFieldLine_from_queue(
         err = Bfield_eval_b_db(B_dB, p->r, p->phi, p->z, p->time, bfield);
     if (!err)
         err = Bfield_eval_psi(psi, p->r, p->phi, p->z, p->time, bfield);
-    if (!err) {
+    if (!err)
         err = Bfield_eval_rho(rho, psi[0], bfield);
-    }
 
     if (!err)
     {

@@ -22,6 +22,22 @@
 #include "defines.h"
 #include <stddef.h>
 #include <stdint.h>
+#include <stdatomic.h>
+#include <signal.h>
+
+/**
+ * Global flag that indicates that the simulation should be stopped.
+ */
+extern volatile sig_atomic_t stop_flag;
+
+/**
+ * Setup signal handlers for SIGINT and SIGTERM.
+ *
+ * This initializes signal handlers so that the simulation can be stopped by
+ * SLURM or user. This function should be called once when the library is
+ * initialized.
+ */
+void ascot_setup_signal_handlers(void);
 
 /**
  * Trace markers and solve the test particle Fokker-Planck equation.
@@ -199,10 +215,15 @@ size_t ascot_sizeof_real(void);
  * @param theta Queried poloidal angle [rad].
  * @param phi Queried toroidal angle [rad].
  * @param rz Output array for (R, z) coordinates [m].
+ * @param status Output array for status code (0: success, 1: used axis location
+ *        because rho < rho_axis, 2: failed to evaluate axis, 3: failed to
+ *        evaluate psi, 4: failed to evaluate psi, failed because of too many
+ *        iterations).
  */
 void ascot_map_rhotheta_to_rz(
     Bfield *bfield, size_t npnt, size_t maxiter, real tol, real t,
-    real rho[npnt], real theta[npnt], real phi[npnt], real rz[2][npnt]);
+    real rho[npnt], real theta[npnt], real phi[npnt], real rz[2][npnt],
+    uint8_t status[npnt]);
 
 /**
  * Find psi on axis using the gradient descent method.

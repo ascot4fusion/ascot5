@@ -1,6 +1,7 @@
 /**
  * Implements endcond.h.
  */
+#include "ascot.h"
 #include "endcond.h"
 #include "consts.h"
 #include "data/marker.h"
@@ -444,6 +445,10 @@ void endcond_check_fl(
 #pragma omp simd
     for (size_t i = 0; i < NSIMD; i++)
     {
+        if(stop_flag) {
+            p_f->endcond[i] |= ENDCOND_CPUMAX;
+            p_f->running[i] = 0;
+        }
         if (p_f->running[i])
         {
             /* Check if the marker time exceeds simulation time */

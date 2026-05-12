@@ -36,6 +36,13 @@
             (arr)[(idx)] = (val);                                              \
     } while (0)
 
+#define STORE2(idx1, idx2, val, arr)                                                   \
+    do                                                                         \
+    {                                                                          \
+        if (arr)                                                               \
+            (arr)[(idx1)][(idx2)] = (val);                                              \
+    } while (0)
+
 void ascot_interpolate(
     Bfield *bfield, Efield *efield, Plasma *plasma, Neutral *neutral,
     Boozer *boozer, Mhd *mhd,
@@ -48,7 +55,8 @@ void ascot_interpolate(
     real mhd_e[3][npnt], real mhd_phi[npnt])
 {
     int ONLY_PERTURBATIONS = 1;
-    //OMP_PARALLEL_CPU_ONLY
+    //printf("B: %g %g %g %g %g %g\n", B[0], B[1], B[2], B[3], B[4], B[5]);
+    OMP_PARALLEL_CPU_ONLY
     for (size_t k = 0; k < npnt; k++)
     {
         real Bq[15], psival[4], rhoval[2], Eq[3], ns[MAX_SPECIES],
@@ -56,21 +64,20 @@ void ascot_interpolate(
             alpha_dalpha[5], Phi_dPhi[5];
         int psi_valid = 0, rho_valid = 0;
         int n_species, isinside;
-        //printf("R=%f, phi=%f, z=%f, t=%f\n", R[k], phi[k], z[k], t[k]);
         if (bfield && !Bfield_eval_b_db(Bq, R[k], phi[k], z[k], t[k], bfield))
         {
-            STORE(0 * npnt + k, Bq[0], *B);
-            STORE(1 * npnt + k, Bq[1], *B);
-            STORE(2 * npnt + k, Bq[2], *B);
-            STORE(0 * npnt + k, Bq[3], *Bjac);
-            STORE(1 * npnt + k, Bq[4], *Bjac);
-            STORE(2 * npnt + k, Bq[5], *Bjac);
-            STORE(3 * npnt + k, Bq[6], *Bjac);
-            STORE(4 * npnt + k, Bq[7], *Bjac);
-            STORE(5 * npnt + k, Bq[8], *Bjac);
-            STORE(6 * npnt + k, Bq[9], *Bjac);
-            STORE(7 * npnt + k, Bq[10], *Bjac);
-            STORE(8 * npnt + k, Bq[11], *Bjac);
+            STORE2(0, k, Bq[0], B);
+            STORE2(1, k, Bq[1], B);
+            STORE2(2, k, Bq[2], B);
+            STORE2(0, k, Bq[3], Bjac);
+            STORE2(1, k, Bq[4], Bjac);
+            STORE2(2, k, Bq[5], Bjac);
+            STORE2(3, k, Bq[6], Bjac);
+            STORE2(4, k, Bq[7], Bjac);
+            STORE2(5, k, Bq[8], Bjac);
+            STORE2(6, k, Bq[9], Bjac);
+            STORE2(7, k, Bq[10], Bjac);
+            STORE2(8, k, Bq[11], Bjac);
         }
         if (bfield &&
             !Bfield_eval_psi_dpsi(psival, R[k], phi[k], z[k], t[k], bfield))

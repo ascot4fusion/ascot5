@@ -30,9 +30,9 @@ class Efield(ctypes.Structure):
     """Wrapper for the electric field data in libascot.so."""
 
     _fields_ = [
-        ("ETC", ctypes.POINTER(cartesian.Struct)),
-        ("E1DS", ctypes.POINTER(potential1d.Struct)),
-        ("type", ctypes.c_uint32),
+        ("cartesian", ctypes.POINTER(cartesian.Struct)),
+        ("potential1d", ctypes.POINTER(potential1d.Struct)),
+        ("type", ctypes.c_int32),
     ]
 
 

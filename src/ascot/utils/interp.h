@@ -107,8 +107,8 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(linear)
  * This function evaluates the interpolated value of a 2D scalar field using
  * bilinear interpolation.
  *
- * @param f variable in which to place the evaluated value.
- * @param str data struct for data interpolation.
+ * @param f Variable in which to place the evaluated value.
+ * @param str Data struct for data interpolation.
  * @param x The query point x coordinate.
  * @param y The query point y coordinate.
  *

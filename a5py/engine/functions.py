@@ -27,6 +27,9 @@ PTR_DOUBLE = _ndpointerornull(ctypes.c_double, flags="C_CONTIGUOUS")
 PTR_INT = _ndpointerornull(ctypes.c_int32, flags="C_CONTIGUOUS")
 """Int valued numpy array or None (NULL)."""
 
+PTR_UINT8 = _ndpointerornull(ctypes.c_uint8, flags="C_CONTIGUOUS")
+"""Unsigned 8-bit int valued numpy array or None (NULL)."""
+
 
 init_fun("get_endcond", ctypes.c_char_p, restype=ctypes.c_int)
 

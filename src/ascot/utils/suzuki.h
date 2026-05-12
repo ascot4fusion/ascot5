@@ -19,7 +19,7 @@
 #define NIMPURITIES 9
 
 /**
- * @brief Fitting parameters for Aijk in equation 28.
+ * Fitting parameters for Aijk in equation 28.
  *
  * Table 2a from Suzuki's paper for H, D, and T. Note the last column in the
  * paper is for different magnetic field magnitude, whose effect was negligible
@@ -30,7 +30,7 @@
 extern const real A_highE[3][10];
 
 /**
- * @brief Fitting parameters for Aijk in equation 28.
+ * Fitting parameters for Aijk in equation 28.
  *
  * Table 3a from Suzuki's paper for H, D, and T. Note the last column in the
  * paper is for different magnetic field magnitude, whose effect was negligible
@@ -41,22 +41,22 @@ extern const real A_highE[3][10];
 extern const real A_lowE[3][10];
 
 /**
- * @brief Charge number corresponding to the tabulated values of Bijk
+ * Charge number corresponding to the tabulated values of Bijk
  */
 extern const int Z_imp[NIMPURITIES];
 
 /**
- * @brief Minimum valid Zeff corresponding to the tabulated values of Bijk
+ * Minimum valid Zeff corresponding to the tabulated values of Bijk
  */
 extern const real Zeffmin_imp[NIMPURITIES];
 
 /**
- * @brief Maximum valid Zeff corresponding to the tabulated values of Bijk
+ * Maximum valid Zeff corresponding to the tabulated values of Bijk
  */
 extern const real Zeffmax_imp[NIMPURITIES];
 
 /**
- * @brief Fitting parameters for Bijk in equation 28
+ * Fitting parameters for Bijk in equation 28
  *
  * Table 2bc (partially) from Suzuki's paper for H, D, and T.
  *
@@ -65,7 +65,7 @@ extern const real Zeffmax_imp[NIMPURITIES];
 extern const real B_highE[NIMPURITIES][12];
 
 /**
- * @brief Fitting parameters for Bijk in equation 28.
+ * Fitting parameters for Bijk in equation 28.
  *
  * Table 3bc (partially) from Suzuki's paper for H, D, and T.
  *
@@ -74,7 +74,7 @@ extern const real B_highE[NIMPURITIES][12];
 extern const real B_lowE[NIMPURITIES][12];
 
 /**
- * @brief Calculate beam-stopping cross-section according to Suzuki model
+ * Calculate beam-stopping cross-section according to Suzuki model
  *
  * @param sigmav evaluated beam stopping cross section [m^2]
  * @param EperAmu test particle energy divided by its atomic mass number [J]

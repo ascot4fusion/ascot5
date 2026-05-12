@@ -123,6 +123,45 @@ class FieldlineMarker(InputVariant):
         for field in ["r", "z", "phi", "direction", "time", "ids"]:
             self._file.write(field, getattr(self, field))
 
+    def _getstate(self, *quantities):
+        """Get quantities as this was a marker state."""
+        mapping = {
+            "r": "r",
+            "z": "z",
+            "phi": "phi",
+            "rprt": "r",
+            "zprt": "z",
+            "phiprt": "phi",
+            "zeta": 0.0,
+            "ekin": 0.0*unyt.eV,
+            "pitch": "direction",
+            "pr": 0.0*unyt.amu*unyt.m/unyt.s,
+            "pz": 0.0*unyt.amu*unyt.m/unyt.s,
+            "pphi": 0.0*unyt.amu*unyt.m/unyt.s,
+            "mass": 0.0*unyt.amu,
+            "charge": 0.0*unyt.e,
+            "time": "time",
+            "theta": np.nan,
+            "weight": 0.0*unyt.particles/unyt.s,
+            "mileage": 0.0*unyt.s,
+            "cputime": 0.0*unyt.s,
+            "ids": "ids",
+            "walltile": 0,
+            "endcond": 0,
+            "err": 0,
+            "anum": 0,
+            "znum": 0,
+        }
+        values = []
+        for quantity in quantities:
+            if quantity not in mapping:
+                raise ValueError(f"Unknown quantity: {quantity}")
+            if isinstance(mapping[quantity], str):
+                values.append(getattr(self, mapping[quantity]))
+            else:
+                values.append(mapping[quantity] * np.full(self.n, 1.))
+        return values
+
     def export(self) -> dict[str, np.ndarray | unyt.unyt_array]:
         fields = ["r", "z", "phi", "direction", "time", "ids"]
         return {field: getattr(self, field) for field in fields}
@@ -219,6 +258,8 @@ class CreateMixin(TreeMixin):
         n = 1
         for param in [r, z, phi, direction, time, ids]:
             if isinstance(param, Sized):
+                if utils.size(param) == 1:
+                    continue
                 if n != 1 and n != utils.size(param):
                     raise ValueError(
                         "Input arrays have inconsistent sizes."

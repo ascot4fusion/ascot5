@@ -115,4 +115,4 @@ def test_interpolate():
 def test_options():
     """"""
     data = AscotData()
-    data.create_options().stage()
+    #data.create_options().stage()

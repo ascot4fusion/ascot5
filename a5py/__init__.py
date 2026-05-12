@@ -5,6 +5,7 @@ import unyt
 
 from a5py.composite import Ascot
 from a5py.exceptions import AscotDataException
+from a5py.data.options import SimulationOptions
 
 
 def set_up_units():

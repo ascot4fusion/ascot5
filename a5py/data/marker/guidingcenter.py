@@ -171,16 +171,16 @@ class GuidingcenterMarker(InputVariant):
             setattr(self._cdata[i], "r", r[i])
             setattr(self._cdata[i], "z", z[i])
             setattr(self._cdata[i], "id", ids[i])
-            setattr(self._cdata[i], "phi", phi[i])
+            setattr(self._cdata[i], "phi", phi[i].to("rad"))
             setattr(self._cdata[i], "time", time[i])
             setattr(self._cdata[i], "ekin", ekin[i].to("J"))
             setattr(self._cdata[i], "pitch", pitch[i])
             setattr(self._cdata[i], "zeta", gyroangle[i])
-            setattr(self._cdata[i], "charge", charge[i])
+            setattr(self._cdata[i], "charge", charge[i].to("C"))
             setattr(self._cdata[i], "weight", weight[i])
             setattr(self._cdata[i], "anum", species.anum)
             setattr(self._cdata[i], "znum", species.znum)
-            setattr(self._cdata[i], "mass", species.mass)
+            setattr(self._cdata[i], "mass", species.mass.to("kg"))
 
     def _save_data(self) -> None:
         assert self._file is not None

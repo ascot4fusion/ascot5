@@ -25,15 +25,12 @@ from .parameters import (
     simulation,
     physics,
     endconditions,
-    distributions,
-    comdistribution,
+    histograms,
     orbit,
-    transport_coefficient,
 )
 
 parameter_groups = [
-    "simulation", "physics", "endconditions", "orbit", "distributions",
-    "comdistribution", "transport_coefficient",
+    "simulation", "physics", "endconditions", "orbit", "histograms",
     ]
 """The groups in which options parameters are categorized."""
 
@@ -50,13 +47,9 @@ class Struct(DataStruct):
         ("simulation_mode", ctypes.c_int),
         ("enable_adaptive", ctypes.c_int),
         ("record_mode", ctypes.c_int),
-        ("use_explicit_fixedstep", ctypes.c_int),
-        ("gyrodefined_fixedstep", ctypes.c_int),
-        ("explicit_fixedstep", ctypes.c_double),
+        ("timestep", ctypes.c_double),
         ("adaptive_tolerance_orbit", ctypes.c_double),
         ("adaptive_tolerance_collisions", ctypes.c_double),
-        ("adaptive_max_drho", ctypes.c_double),
-        ("adaptive_max_dphi", ctypes.c_double),
         ("enable_orbit_following", ctypes.c_int),
         ("enable_coulomb_collisions", ctypes.c_int),
         ("enable_mhd", ctypes.c_int),
@@ -81,17 +74,28 @@ class Struct(DataStruct):
         ]
 
 
-@Leaf.register
-class Options(InputVariant):
+class SimulationOptions():
     """Simulation options."""
 
-    _orbit: orbit
     _physics: physics
     _simulation: simulation
     _endconditions: endconditions
-    _distributions: distributions
-    _comdistribution: comdistribution
-    _transport_coefficient: transport_coefficient
+    _orbit: orbit
+    _histograms: histograms
+
+    def __init__(self, **parameters):
+        parameters_found = []
+        for paramgroup in parameter_groups:
+            params_for_this_group = {}
+            for k, v in parameters.items():
+                if k in globals()[paramgroup].__dict__:
+                    parameters_found.append(k)
+                    params_for_this_group["_" + k] = v
+            dataclass = globals()[paramgroup](**params_for_this_group)
+            setattr(self, "_" + paramgroup, dataclass)
+        for k in parameters.keys():
+            if k not in parameters_found:
+                raise ValueError(f"Unknown options parameter '{k}'.")
 
     @property
     def simulation(self):
@@ -109,29 +113,16 @@ class Options(InputVariant):
         return self._endconditions
 
     @property
-    def distributions(self):
+    def histograms(self):
         """Diagnostics that collect data for reproducing the particle
         distribution function.
         """
-        return self._distributions
-
-    @property
-    def comdistribution(self):
-        """Diagnostic that reproduces the particle distribution in
-        constants-of-motion phase-space."""
-        return self._comdistribution
+        return self._histograms
 
     @property
     def orbit(self):
         """Diagnostic that records the exact marker trajectory."""
         return self._orbit
-
-    @property
-    def transport_coefficient(self):
-        """Diagnostic that evaluates advection and diffusion coefficients for
-        the radial transport of the simulated particle population.
-        """
-        return self._transport_coefficient
 
     def export(self):
         """Return a dictionary with sufficient data to duplicate this instance.
@@ -154,7 +145,21 @@ class Options(InputVariant):
             data.update(dataclass_to_dict(dataclass))
         return data
 
-    def stage(self):
+    def _write(self, file):
+        """Write parameters to file."""
+        for group in parameter_groups:
+            pgroup = getattr(self, "_" + group)
+            for f in fields(pgroup):
+                no_underscore = f.name[1:]
+                file.write(no_underscore, getattr(pgroup, no_underscore))
+
+    def _read(self, file):
+        """Read parameters from file."""
+        pass
+
+    def _lock(self):
+        """Store parameters to the C struct and make the parameters immutable.
+        """
         parameters = self.export()
         map_endcond_to_param = {
             "reached_time_limit":"activate_simulation_time_limits",
@@ -175,10 +180,6 @@ class Options(InputVariant):
                 get_endcond(ec) * parameters[param]
                 )
         parameters.update({
-            #"charge_bins":np.abs(np.diff(parameters["charge_interval"])[0]) + 1,
-            #"nradialplots":parameters["radial_distances"].size,
-            #"ntoroidalplots":parameters["poloidal_angles"].size,
-            #"npoloidalplots":parameters["toroidal_angles"].size,
             "require_both_tor_and_pol":parameters["activate_orbit_limit"] == require_both_tor_and_pol,
             })
         self._cdata = Struct()
@@ -191,40 +192,6 @@ class Options(InputVariant):
                         arr[i] = v
                 else:
                     setattr(self._cdata, field, val)
-
-    def unstage(self):
-        pass
-
-    def configure(self, desc=None, **params):
-        """Write new options with updated parameters.
-
-        This method reads the current options, updates the given parameters,
-        and writes the updated options as a new input.
-
-        Parameters
-        ----------
-        desc : str, optional
-            Input description.
-        **kwargs
-            <name> : <value> pairs for each options parameter that are updated.
-
-        Returns
-        -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
-
-        Raises
-        ------
-        ValueError
-            If arguments contain unknown parameters.
-        """
-        options = self.read()
-        for o, val in kwargs.items():
-            if not o in options:
-                raise ValueError("Unknown parameter: " + o)
-            options[o] = val
-
-        return self._root.create_input("opt", desc=desc, **options)
 
     def export_as_string(self, descriptions=True, aslist=False):
         """Convert options to string representation.
@@ -287,11 +254,7 @@ class Options(InputVariant):
         cls,
         ascot: Ascot,
         text: str | list[str],
-        note: Optional[str] = None,
-        activate: bool = False,
-        dryrun: bool = False,
-        store_hdf5: Optional[bool] = None,
-        ) -> Options:
+        ):
         """Read options parameter from a text.
 
         Parameters
@@ -356,7 +319,7 @@ class CreateOptionsMixin(TreeMixin):
             preview: bool=False,
             save: Optional[bool]=None,
             **parameters,
-            ) -> Options:
+            ):
         r"""Create simulation options.
 
         This method creates a simulation options input.

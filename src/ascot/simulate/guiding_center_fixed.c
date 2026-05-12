@@ -23,7 +23,7 @@
 #include <stdlib.h>
 
 DECLARE_TARGET_SIMD_UNIFORM(sim)
-real simulate_gc_fixed_inidt(Simulation *sim, MarkerGuidingCenter *p, int i);
+real simulate_gc_fixed_inidt(Simulation *sim, MarkerGuidingCenter *p, size_t i);
 
 #define DUMMY_TIMESTEP_VAL 1.0 /**< Dummy time step value */
 
@@ -55,13 +55,17 @@ static size_t cycle_markers(
         if (p_current->id[idx] != 0)
             MarkerGuidingCenter_to_queue(queue, p_current, idx, &sim->bfield);
         p_current->id[idx] = 0;
+        p_current->running[idx] = 0;
 
         if (next_in_queue < queue->n)
         {
             if (MarkerGuidingCenter_from_queue(
                     p_current, queue, idx, next_in_queue, &sim->bfield))
+            {
                 p_current->id[idx] = 0;
-            time_step[idx] = 0; // TODO
+                p_current->running[idx] = 0;
+            }
+            time_step[idx] = simulate_gc_fixed_inidt(sim, p_current, idx);
         }
         start = idx;
     }
@@ -110,17 +114,6 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     if (sim->options->enable_icrh)
     {
         rfof_set_up(&rfof_mrk, sim->rfof);
-    }
-
-/* Determine simulation time-step */
-#pragma omp simd
-    for (size_t i = 0; i < vector_size; i++)
-    {
-        if (cycle[i] > 0)
-        {
-            hin_default[i] = simulate_gc_fixed_inidt(sim, &p, i);
-            hin[i] = hin_default[i];
-        }
     }
 
     cputime_last = A5_WTIME;
@@ -255,7 +248,7 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         endcond_check_gc(&p, &p0, sim);
 
         /* Update diagnostics */
-        Diag_update_gc(sim->diagnostics, &sim->bfield, &p, &p0);
+        Diag_update_gc(&sim->diagnostics, &sim->bfield, &p, &p0);
 
         /* Update running particles */
         n_running = cycle_markers(vector_size, pq, &p, sim, hin);
@@ -308,24 +301,9 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
  *
  * @return Calculated time step
  */
-real simulate_gc_fixed_inidt(Simulation *sim, MarkerGuidingCenter *p, int i)
+real simulate_gc_fixed_inidt(Simulation *sim, MarkerGuidingCenter *p, size_t i)
 {
     real h;
-
-    /* Value defined directly by user */
-    if (sim->options->use_explicit_fixedstep)
-    {
-        h = sim->options->explicit_fixedstep;
-    }
-    else
-    {
-        /* Value calculated from gyrotime */
-        real Bnorm = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
-        real gyrotime = CONST_2PI / phys_gyrofreq_ppar(
-                                        p->mass[i], p->charge[i], p->mu[i],
-                                        p->ppar[i], Bnorm);
-        h = gyrotime / sim->options->gyrodefined_fixedstep;
-    }
-
+    h = sim->options->timestep;
     return h;
 }

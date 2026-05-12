@@ -166,6 +166,21 @@ def compute_quantities(available, requested):
 
     return computed
 
+x = Quantity("x", "m")
+"""X coordinate in Cartesian basis."""
+
+x.add_formula(
+    lambda r, phi: r * np.cos(phi),
+    ["r", "phi"]
+    )
+
+y = Quantity("y", "m")
+"""Y coordinate in Cartesian basis."""
+
+y.add_formula(
+    lambda r, phi: r * np.sin(phi),
+    ["r", "phi"]
+    )
 
 bnorm = Quantity("bnorm", "T")
 """Magnetic field norm."""
@@ -294,6 +309,10 @@ pnorm.add_formula(
     ["gamma", "mass"]
     )
 pnorm.add_formula(
+    lambda energy, m: np.sqrt((energy / (m * c**2) + 1)**2 - 1) * m * c,
+    ["energy", "mass"]
+    )
+pnorm.add_formula(
     lambda m, mu, ppar, b: np.sqrt( 2 * m * mu * b + ppar**2 ),
     ["mass", "mu", "ppar", "bnorm"]
     )
@@ -383,6 +402,16 @@ ppar.add_formula(
     ["pr", "pphi", "pz", "br", "bphi", "bz"]
     )
 
+ppar.add_formula(
+    lambda gamma, pitch, m: pitch * np.sqrt(gamma**2 - 1) * m * c,
+    ["gamma", "pitch", "mass"]
+    )
+
+ppar.add_formula(
+    lambda pnorm, pitch: pitch * pnorm,
+    ["pnorm", "pitch"]
+    )
+
 
 mu = Quantity("mu", "T/eV")
 """Magnetic moment."""
@@ -397,11 +426,11 @@ ptor = Quantity("ptor", "kg*m^2/s")
 """Toroidal canonical angular momentum."""
 
 ptor.add_formula(
-    lambda pphi, r, q, psi: pphi * r + q * psi,
+    lambda pphi, r, q, psi: pphi * r + q * psi * unyt.rad,
     ["pphi", "r", "charge", "psi"]
     )
 ptor.add_formula(
-    lambda ppar, r, q, psi, br, bphi, bz: ppar * r * bphi / np.sqrt(br**2 + bphi**2 + bz**2) + q * psi,
+    lambda ppar, r, q, psi, br, bphi, bz: ppar * r * bphi / np.sqrt(br**2 + bphi**2 + bz**2) + q * psi * unyt.rad,
     ["ppar", "r", "charge", "psi", "br", "bphi", "bz"]
     )
 
