@@ -1320,6 +1320,106 @@ class Dist(DataContainer):
 
         return exdist
 
+    @staticmethod
+    def vpitch2ppappe(dist, mass, ppar_edges=None, pperp_edges=None):
+        """Convert (v, pitch) distribution to (ppar, pperp), preserving other axes.
+
+        Parameters
+        ----------
+        dist : :class:`DistData`
+            Distribution with abscissae including "v" and "pitch".
+        mass : float
+            Mass of the species used for the velocity->momentum conversion.
+        ppar_edges : array_like or int, optional
+            Output parallel momentum edges.
+        pperp_edges : array_like or int, optional
+            Output perpendicular momentum edges.
+
+        Returns
+        -------
+        ppardist : :class:`DistData`
+            Distribution in (ppar, pperp) basis.
+        """
+        v_edges = dist.abscissa_edges("v")
+        v_max = np.atleast_1d(v_edges[-1])
+        pmax = physlib.momentum_velocity(mass, v_max)
+        if hasattr(pmax, "size") and pmax.size == 1:
+            pmax = pmax[0]
+
+        if ppar_edges is None:
+            ppar_edges = np.linspace(-pmax.v, pmax.v, v_edges.size) * pmax.units
+        elif isinstance(ppar_edges, int):
+            ppar_edges = np.linspace(-pmax.v, pmax.v, ppar_edges) * pmax.units
+
+        if pperp_edges is None:
+            pitch_edges = dist.abscissa_edges("pitch")
+            pperp_edges = np.linspace(0, pmax.v, pitch_edges.size) * pmax.units
+        elif isinstance(pperp_edges, int):
+            pperp_edges = np.linspace(0, pmax.v, pperp_edges) * pmax.units
+
+        print(f"ppar shape: {ppar_edges.shape}, pperp shape: {pperp_edges.shape}")
+        try:
+            ppar_edges.units
+        except AttributeError:
+            ppar_edges *= pmax.units
+        try:
+            pperp_edges.units
+        except AttributeError:
+            pperp_edges *= pmax.units
+
+        dim = []
+        abscissa_edges = {}
+        for k in dist.abscissae:
+            if k == "v":
+                dim.append(ppar_edges.size - 1)
+                abscissa_edges["ppar"] = ppar_edges
+            elif k == "pitch":
+                dim.append(pperp_edges.size - 1)
+                abscissa_edges["pperp"] = pperp_edges
+            else:
+                dim.append(dist.abscissa_edges(k).size - 1)
+                abscissa_edges[k] = dist.abscissa_edges(k)
+
+        ppadist = DistData(np.zeros(dim) * unyt.particles, **abscissa_edges)
+
+        v, pitch = np.meshgrid(dist.abscissa("v"), dist.abscissa("pitch"),
+                                indexing="ij")
+        pnorm = physlib.momentum_velocity(mass, v.ravel()).reshape(v.shape)
+        ppa = (pnorm * pitch)
+        ppe = (pnorm * np.sqrt(1 - pitch**2))
+
+        ie = np.digitize(ppa.ravel(), ppar_edges) - 1
+        ip = np.digitize(ppe.ravel(), pperp_edges) - 1
+        mask = np.logical_or.reduce([
+            ie < 0, ip < 0,
+            ie >= ppar_edges.size - 1,
+            ip >= pperp_edges.size - 1
+        ])
+        ie = ie[~mask]
+        ip = ip[~mask]
+
+        vol = ppadist.phasespacevolume()
+        hist = dist.histogram()
+
+        ranges = []
+        for a in dist.abscissae:
+            if a not in ("v", "pitch"):
+                ranges.append(range(dist.abscissa(a).size))
+
+        iv_idx = dist.abscissae.index("v")
+        for itr in itertools.product(*ranges):
+            idx = [slice(None)] * (len(itr) + 2)
+            idx[:iv_idx] = itr[:iv_idx]
+            idx[iv_idx + 2:] = itr[iv_idx:]
+            idx = tuple(idx)
+
+            a = np.zeros(ppadist._distribution[idx].shape)
+            np.add.at(a, (ie, ip), hist[idx].v.ravel()[~mask])
+            ppadist._distribution[idx] = a / vol.units
+
+        ppadist._distribution /= vol.v
+        return ppadist
+
 class Dist_5D(Dist):
 
     def read(self):

@@ -102,9 +102,30 @@ class Afsi():
         E_rel = 0.5 * mu * v_rel_max**2
         reactions = {v: k for k, v in AFSI_REACTIONS.items()}
         reaction = reactions[reaction]
-        sigma = _LIBASCOT.boschhale_sigma(ctypes.c_uint32(reaction), ctypes.c_double(E_rel))
+        E_rel_arr = np.asarray(E_rel)
+        if E_rel_arr.size == 0:
+            raise ValueError("estimate_max_fusion_rate: E_rel has no values")
+        if E_rel_arr.size == 1:
+            E_rel_scalar = float(E_rel_arr.item())
+        else:
+            E_rel_scalar = float(E_rel_arr.max())
+        print(f"Estimated max relative energy: {E_rel_scalar:.2e}")
+        sigma = _LIBASCOT.boschhale_sigma(ctypes.c_uint32(reaction), ctypes.c_double(E_rel_scalar))
         S_max = (density1 * density2 * v_rel_max * sigma*unyt.m**2)*1.1
-        return S_max
+        print("density1:", density1)
+        print("density2:", density2)
+        print("v_rel_max:", v_rel_max)
+        print("sigma:", sigma)
+        print("S_max:", S_max)
+        S_max_arr = np.asarray(S_max)
+        if S_max_arr.size == 0:
+            raise ValueError("estimate_max_fusion_rate: S_max has no values")
+        if S_max_arr.size == 1:
+            S_max_scalar = float(S_max_arr.item())
+        else:
+            S_max_scalar = float(S_max_arr.max())
+        print("S_max scalar:", S_max_scalar)
+        return S_max_scalar
     
     def get_cumdist(self, beam):
         beam.integrate(time=np.s_[:], charge=np.s_[:])
