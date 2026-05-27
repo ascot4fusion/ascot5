@@ -3360,13 +3360,13 @@ afsi_data = struct_afsi_data
 try:
     afsi_run = _libraries['libascot.so'].afsi_run
     afsi_run.restype = None
-    afsi_run.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.POINTER(struct_c__SA_afsi_data), ctypes.c_int32, ctypes.POINTER(struct_c__SA_histogram), ctypes.POINTER(struct_c__SA_histogram)]
+    afsi_run.argtypes = [ctypes.POINTER(struct_sim_data), ctypes.POINTER(struct_sim_data), ctypes.c_int32, ctypes.POINTER(struct_sim_data), ctypes.POINTER(struct_sim_data)]
 except AttributeError:
     pass
 try:
     afsi_run_rejection = _libraries['libascot.so'].afsi_run_rejection
     afsi_run_rejection.restype = None
-    afsi_run_rejection.argtypes = [ctypes.POINTER(struct_c__SA_sim_data), ctypes.POINTER(struct_c__SA_afsi_data), ctypes.c_int32, real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+    afsi_run_rejection.argtypes = [ctypes.POINTER(struct_sim_data), ctypes.POINTER(struct_sim_data), ctypes.c_int32, real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
 except AttributeError:
     pass
 try:
