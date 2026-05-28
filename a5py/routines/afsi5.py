@@ -2,6 +2,7 @@
 studies in fusion devices
 """
 import ctypes
+from operator import ne
 import time as t
 import numpy as np
 import unyt
@@ -47,83 +48,109 @@ class Afsi():
         self._ascot.input_init(plasma=True)
         m1, _, m2, _, _, _, _, _, _ = self.reactions(reaction)
 
-        phic, rc, zc = 0.5*(phi[:-1]+phi[1:]), 0.5*(r[:-1]+r[1:]), 0.5*(z[:-1]+z[1:])
+        # --- Grid centers ---
+        rc = 0.5 * (r[:-1] + r[1:])
+        phic = 0.5 * (phi[:-1] + phi[1:])
+        zc = 0.5 * (z[:-1] + z[1:])
 
         ti = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'te', grid=True)
-        ti = ti[~(np.isnan(ti))].to("J")
+        ne = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'ne', grid=True)
 
-        thermal_dens = self._ascot.input_eval(rc, phic, zc, 0.0*unyt.s, 'ne', grid=True)
-        density1 = thermal_dens[~(np.isnan(thermal_dens))].max()
+        mask = ~np.isnan(ti) & ~np.isnan(ne)
+
+        ti = ti[mask].to("J")
+        ne = ne[mask].to("m**-3")
+
+        # --- Default: thermal-thermal ---
+        density1 = ne.max()
         density2 = density1
+        
+        v_max1 = np.sqrt(2 * ti / m1).max()
+        v_max2 = np.sqrt(2 * ti / m2).max()
 
-        if beam is None:
-            v_max1 = np.sqrt(2 * ti / m1).max()
-            v_max2 = np.sqrt(2 * ti / m2).max()
-        else:
-            ppar = beam.integrate(copy = True, r=np.s_[:], phi=np.s_[:], z=np.s_[:], pperp=np.s_[:], time=np.s_[:], charge=np.s_[:]).histogram()
-            pperp = beam.integrate(copy = True, r=np.s_[:], phi=np.s_[:], z=np.s_[:], ppar=np.s_[:], time=np.s_[:], charge=np.s_[:]).histogram()
+        # ============================================================
+        # --- Beam handling ---
+        # ============================================================
+        if beam is not None:
+            # Momentum distributions
+            ppar = beam.integrate(copy=True, r=np.s_[:], phi=np.s_[:], z=np.s_[:],
+                              pperp=np.s_[:], time=np.s_[:], charge=np.s_[:]).histogram()
+
+            pperp = beam.integrate(copy=True, r=np.s_[:], phi=np.s_[:], z=np.s_[:],
+                               ppar=np.s_[:], time=np.s_[:], charge=np.s_[:]).histogram()
 
             ppar_max = beam.abscissa("ppar")[np.argmax(ppar)]
             pperp_max = beam.abscissa("pperp")[np.argmax(pperp)]
 
-            r_idx = np.digitize([r[0],r[-1]], beam.abscissa_edges("r")) - 1
+            # Spatial slicing
+            r_idx = np.digitize([r[0], r[-1]], beam.abscissa_edges("r")) - 1
+            z_idx = np.digitize([z[0], z[-1]], beam.abscissa_edges("z")) - 1
+
             if beam.abscissa_edges("phi").shape[0] > 2:
-                phi_idx = np.digitize([phi[0],phi[-1]], beam.abscissa_edges("phi")) - 1
+                phi_idx = np.digitize([phi[0], phi[-1]], beam.abscissa_edges("phi")) - 1
             else:
                 phi_idx = np.array([0, 1])
 
-            z_idx = np.digitize([z[0],z[-1]], beam.abscissa_edges("z")) - 1
+            r_grid = beam.abscissa_edges("r")[r_idx[0]:r_idx[1] + 1]
+            phi_grid = beam.abscissa_edges("phi")[phi_idx[0]:phi_idx[1] + 1]
+            z_grid = beam.abscissa_edges("z")[z_idx[0]:z_idx[1] + 1]
 
-            r_grid = beam.abscissa_edges("r")[r_idx[0]:r_idx[1]+1]
-            phi_grid = beam.abscissa_edges("phi")[phi_idx[0]:phi_idx[1]+1]
-            z_grid = beam.abscissa_edges("z")[z_idx[0]:z_idx[1]+1]
+            # --- Volume element (IMPORTANT: degrees → radians!) ---
+            dphi = np.deg2rad(np.diff(phi_grid[:2]))
+            dr = np.diff(r_grid[:2])
+            dz = np.diff(z_grid[:2])
 
-            phic, rc, zc = np.meshgrid(0.5*(phi_grid[:-1]+phi_grid[1:]),
-                                       0.5*(r_grid[:-1]+r_grid[1:]),
-                                       0.5*(z_grid[:-1]+z_grid[1:]))
-            
-            vol = ( rc * np.diff(r_grid[:2]) * np.diff(z_grid[:2]) * np.diff(phi_grid[:2])* np.pi/180 )
+            rc_mesh = 0.5 * (r_grid[:-1] + r_grid[1:])
+            vol = rc_mesh * dr * dz * dphi
 
             rpzhist = beam.integrate(copy = True, ppar=np.s_[:], pperp=np.s_[:], charge=np.s_[:], time = np.s_[:]).histogram()
-            rpzhist = rpzhist[r_idx[0]:r_idx[1], phi_idx[0]:phi_idx[1], z_idx[0]:z_idx[1]]
+            rpzhist = rpzhist[
+                r_idx[0]:r_idx[1],
+                phi_idx[0]:phi_idx[1],
+                z_idx[0]:z_idx[1]
+            ]
+            
+            beam_density = (rpzhist / vol).max() #.to("m**-3")
+            print("beam_density units:", beam_density.units)
+
+            # --- Assign depending on swap ---
+            v_beam = np.sqrt(ppar_max**2 + pperp_max**2)            
             
             if not swap:
-                v_max2 = np.sqrt(2 * ti / m2).max()
-                v_max1 = np.sqrt(ppar_max**2+pperp_max**2)/m1
-                density1 = (rpzhist/vol).max()
+                v_max1 = v_beam / m1
+                density1 = beam_density
             else:
-                v_max1 = np.sqrt(2 * ti / m1).max()
-                v_max2 = np.sqrt(ppar_max**2+pperp_max**2)/m2
-                density2 = (rpzhist/vol).max()
+                v_max2 = v_beam / m2
+                density2 = beam_density
 
 
+        # ============================================================
+        # --- Reaction physics ---
+        # ============================================================
         v_rel_max = v_max1 + v_max2
         mu = (m1 * m2) / (m1 + m2)
         E_rel = 0.5 * mu * v_rel_max**2
         reactions = {v: k for k, v in AFSI_REACTIONS.items()}
-        reaction = reactions[reaction]
-        E_rel_arr = np.asarray(E_rel)
-        if E_rel_arr.size == 0:
-            raise ValueError("estimate_max_fusion_rate: E_rel has no values")
-        if E_rel_arr.size == 1:
-            E_rel_scalar = float(E_rel_arr.item())
-        else:
-            E_rel_scalar = float(E_rel_arr.max())
+        reaction_id = reactions[reaction]
+
+        E_rel_scalar = float(np.max(np.asarray(E_rel)))
         print(f"Estimated max relative energy: {E_rel_scalar:.2e}")
-        sigma = _LIBASCOT.boschhale_sigma(ctypes.c_uint32(reaction), ctypes.c_double(E_rel_scalar))
-        S_max = (density1 * density2 * v_rel_max * sigma*unyt.m**2)*1.1
+
+        sigma = _LIBASCOT.boschhale_sigma(
+            ctypes.c_uint32(reaction_id),
+        ctypes.c_double(E_rel_scalar)
+        )
+
+        S_max = density1 * density2 * v_rel_max * sigma * unyt.m**2 
+        
+        # --- Debug prints ---
         print("density1:", density1)
         print("density2:", density2)
         print("v_rel_max:", v_rel_max)
         print("sigma:", sigma)
         print("S_max:", S_max)
-        S_max_arr = np.asarray(S_max)
-        if S_max_arr.size == 0:
-            raise ValueError("estimate_max_fusion_rate: S_max has no values")
-        if S_max_arr.size == 1:
-            S_max_scalar = float(S_max_arr.item())
-        else:
-            S_max_scalar = float(S_max_arr.max())
+
+        S_max_scalar = float(np.max(np.asarray(S_max)))
         print("S_max scalar:", S_max_scalar)
         return S_max_scalar
     
@@ -142,112 +169,175 @@ class Afsi():
                     cumdist_all[ir, iphi, iz, :] = np.cumsum(hist_flat)
         return cumdist_all
     
-    def generate_markers_rejection(self,  n_markers, reaction, r = None, phi = None, z = None, marker_file = None, beam = None):
-        if r is None or z is None:
-            raise ValueError("r, and z must be given to generate 6D markers.") 
+    def generate_markers_rejection(self,  n_markers, reaction, r, z, phi = None, marker_file = None, beam = None):
         if phi is None:
             phi = np.array([0.0, 360.0])*unyt.degree
         if beam is None:
-            markers = self.products_6D_rejection(reaction, nmc=n_markers, r=r, phi=phi, z=z)
+            markers = self.products_6D_rejection(reaction, n_markers, r, phi, z)
         else:
-            markers = self.products_6D_rejection(reaction, nmc=n_markers, r=r, phi=phi, z=z, beam=beam)
+            markers = self.products_6D_rejection(reaction, n_markers, r, phi, z, beam=beam)
         if marker_file is not None:
             mrk_array = np.zeros((n_markers, 9))
             mrk_array[:, :7] = markers
             mrk_array[:,7] = 1.0
             mrk_array.astype('float64').tofile(marker_file + '.bin')
+            print(f"The markers are stored in the binary file {marker_file}.bin")
         return markers
     
-    def products_6D_rejection(self, reaction, r = None, phi = None, z = None, nmc=1000, beam=None, swap = False):
+    def products_6D_rejection(self, reaction, nmc, r, phi, z, beam=None, swap=False):
         """Calculate fusion products using rejection sampling."""
-        
+
         self._ascot.input_init(bfield=True, plasma=True)
 
-        m1, q1, m2, q2, _, qprod1, _, qprod2, _ = self.reactions(reaction)
+        try:
+            m1, q1, m2, q2, _, qprod1, _, qprod2, _ = self.reactions(reaction)
+
+            # --- SAFE scalar conversion ---
+            anum1 = int(np.round(m1.to("amu").v)[0])
+            anum2 = int(np.round(m2.to("amu").v)[0])
+            znum1 = int(np.round(q1.to("e").v)[0])
+            znum2 = int(np.round(q2.to("e").v)[0])
+
+            q1 = float(np.round(qprod1.to("e").v)[0])
+            q2 = float(np.round(qprod2.to("e").v)[0])
+
+            # --- helpers ---
+            def centers(edges):
+                return 0.5 * (edges[:-1] + edges[1:])
+
+            def compute_volume(r_edges, phi_edges, z_edges):
+                dr = np.diff(r_edges)
+                dphi = np.diff(phi_edges) * np.pi / 180.0
+                dz = np.diff(z_edges)
+
+                rc = centers(r_edges)[:, None, None]
+                return rc * dr[:, None, None] * dphi[None, :, None] * dz[None, None, :]
+
+            # --- grid selection ---
+            if beam is not None:
+                r_edges = beam.abscissa_edges("r")
+                phi_edges = beam.abscissa_edges("phi")
+                z_edges = beam.abscissa_edges("z")
+            else:
+                r_edges, phi_edges, z_edges = r, phi, z
+
+            vol = compute_volume(r_edges, phi_edges, z_edges)
+
+            nspec, _, _, anums, znums = self._ascot.input_getplasmaspecies()
+
+            def find_species(anum, znum):
+                for i in range(nspec):
+                    if anum == anums[i] and znum == znums[i]:
+                        return i
+                return None
+
+            # =========================================================
+            # 🔥 FIXED TYPE CONTRACT (CRITICAL)
+            # =========================================================
+            def to_afsi_type(x):
+                """
+                Ensures compatibility with _init_afsi_data:
+                - thermal species → np.int_
+                - beam → unchanged struct
+                """
+                if isinstance(x, int) or isinstance(x, np.integer):
+                    return np.int_(x)
+                return x
+
+            # --- reactants ---
+            if beam is None:
+
+                r1 = find_species(anum1, znum1)
+                r2 = find_species(anum2, znum2)
+
+                if r1 is None or r2 is None:
+                    raise ValueError("Reactant species not present in plasma input.")
+
+                react1 = to_afsi_type(r1)
+                react2 = to_afsi_type(r2)
+
+                mult = 0.5 if r1 == r2 else 1.0
+                Smax = self.estimate_max_fusion_rate(reaction, r, phi, z)
+
+            else:
+
+                plasma_species = find_species(
+                    anum1 if swap else anum2,
+                    znum1 if swap else znum2
+                )
+
+                if plasma_species is None:
+                    raise ValueError("Reactant species not present in plasma input.")
+
+                beam_dist = self._init_dist_5d(beam)
+
+                if swap:
+                    react1 = to_afsi_type(plasma_species)
+                    react2 = beam_dist
+                else:
+                    react1 = beam_dist
+                    react2 = to_afsi_type(plasma_species)
+
+                mult = 1.0
+                Smax = self.estimate_max_fusion_rate(
+                    reaction, r, phi, z, beam=beam
+                )
+
+            # --- reaction index ---
+            reaction_map = {v: k for k, v in AFSI_REACTIONS.items()}
+            reaction_id = reaction_map[reaction]
+
+            # --- boundaries ---
+            r_boundary = np.array([r_edges[0], r_edges[-1]])
+            phi_boundary = np.array([phi_edges[0], phi_edges[-1]])
+            z_boundary = np.array([z_edges[0], z_edges[-1]])
+
+            print(type(react1))
+            print(type(react2))
+
+            # --- init AFSI ---
+            afsi = self._init_afsi_data(
+                react1=react1,
+                react2=react2,
+                reaction=reaction_id,
+                mult=mult,
+                r=r_boundary,
+                phi=phi_boundary,
+                z=z_boundary,
+                vol=vol
+            )
+
+            # --- cumulative distribution ---
+            cumdist_all = self.get_cumdist(beam) if beam is not None else np.zeros(1)
+
+            prod2 = np.zeros((nmc, 7), dtype=np.float64)
+
+            print(f"Generating {nmc} markers...")
+            start = t.time()
+
+            _LIBASCOT.afsi_run_rejection(
+                ctypes.byref(self._ascot._sim),
+                ctypes.byref(afsi),
+                nmc,
+                ctypes.c_double(Smax),
+                cumdist_all.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                prod2.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+            )
+
+            elapsed = t.time() - start
+
+            if elapsed > 3600:
+                print(f"Done in {elapsed/3600:.2f} h")
+            else:
+                print(f"Done in {elapsed/60:.2f} min")
+
+            self._ascot.file_load(self._ascot.file_getpath())
+
+            return prod2
+
+        finally:
+            self._ascot.input_free(bfield=True, plasma=True)
         
-        anum1 = np.round(m1.to("amu").v)
-        anum2 = np.round(m2.to("amu").v)
-        znum1 = np.round(q1.to("e").v)
-        znum2 = np.round(q2.to("e").v)
-        q1 = np.round(qprod1.to("e").v)
-        q2 = np.round(qprod2.to("e").v)
-
-        if beam is not None:
-            phibeam = beam.abscissa_edges("phi")
-            rbeam = beam.abscissa_edges("r")
-            zbeam = beam.abscissa_edges("z")
-            phic, rc, zc = np.meshgrid(0.5*(phibeam[:-1]+phibeam[1:]),
-                                       0.5*(rbeam[:-1]+rbeam[1:]),
-                                       0.5*(zbeam[:-1]+zbeam[1:]))
-            # Volume of the entire beam domain
-            vol = ( rc * np.diff(rbeam[:2]) * np.diff(zbeam[:2]) * np.diff(phibeam[:2])* np.pi/180 )
-        else:
-            phic, rc, zc = np.meshgrid(0.5*(phi[:-1]+phi[1:]),
-                                       0.5*(r[:-1]+r[1:]),
-                                       0.5*(z[:-1]+z[1:]))
-            # Volume of the user defined domain
-            vol = ( rc * np.diff(r[:2]) * np.diff(z[:2]) * np.diff(phi[:2])* np.pi/180 )
-
-        nspec, _, _, anums, znums = self._ascot.input_getplasmaspecies()
-       
-        if beam is None:
-            ispecies1, ispecies2 = np.nan, np.nan
-            Smax = self.estimate_max_fusion_rate(reaction, r, phi, z)
-            for i in np.arange(nspec):
-                if( anum1 == anums[i] and znum1 == znums[i] ):
-                    ispecies1 = i
-                    react1 = ispecies1
-                if( anum2 == anums[i] and znum2 == znums[i] ):
-                    ispecies2 = i
-                    react2 = ispecies2
-            if np.isnan(ispecies1) or np.isnan(ispecies2):
-                self._ascot.input_free(bfield=True, plasma=True)
-                raise ValueError("Reactant species not present in plasma input.")
-            mult = 0.5 if ispecies1 == ispecies2 else 1.0
-        else:
-            ispecies = np.nan
-            Smax = self.estimate_max_fusion_rate(reaction, r, phi, z, beam = beam)
-            for i in np.arange(nspec):
-                if( swap and anum1 == anums[i] and znum1 == znums[i] ):
-                    ispecies = i
-                    react1 = ispecies
-                    react2 = self._init_dist_5d(beam)
-                if( not swap and anum2 == anums[i] and znum2 == znums[i] ):
-                    ispecies = i
-                    react2 = ispecies
-                    react1 = self._init_dist_5d(beam)
-            if np.isnan(ispecies):
-                self._ascot.input_free(bfield=True, plasma=True)
-                raise ValueError("Reactant species not present in plasma input.")
-            mult = 1.0
-
-        reactions = {v: k for k, v in AFSI_REACTIONS.items()}
-        reaction = reactions[reaction]
-        
-        r_boundary = np.array([r[0], r[-1]])
-        phi_boundary = np.array([phi[0], phi[-1]])
-        z_boundary = np.array([z[0], z[-1]])
-
-        afsi = self._init_afsi_data(
-        react1=react1, react2=react2, reaction=reaction, mult=mult,
-        r=r_boundary, phi=phi_boundary, z=z_boundary, vol=vol)
-
-        cumdist_all = self.get_cumdist(beam) if beam is not None else np.zeros(1)
-        prod2 = np.zeros((nmc, 7), dtype=np.float64)
-        
-        print("Started generating", nmc, "markers")
-        start = t.time()
-        _LIBASCOT.afsi_run_rejection(ctypes.byref(self._ascot._sim), ctypes.byref(afsi), nmc, ctypes.c_double(Smax), cumdist_all.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                                    prod2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
-        elapsed = t.time() - start
-        print("Neutron source successfully generated in", f"{elapsed/3600:.2f}" " hours" if elapsed > 3600 else f"{elapsed/60:.2f}" " minutes")
-        print("The markers are stored in the binary file")
-        self._ascot.input_free(bfield=True, plasma=True)
-
-        self._ascot.file_load(self._ascot.file_getpath())
-
-        return prod2
-    
     def thermal(
             self,
             reaction,
