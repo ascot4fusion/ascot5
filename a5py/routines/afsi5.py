@@ -154,37 +154,75 @@ class Afsi():
         print("S_max scalar:", S_max_scalar)
         return S_max_scalar
     
-    def get_cumdist(self, beam):
-        beam.integrate(time=np.s_[:], charge=np.s_[:])
+    # def get_cumdist(self, beam):
+    #     beam.integrate(time=np.s_[:], charge=np.s_[:])
+    #     hist = beam.histogram()
+    #     nr, nphi, nz, nppar, npperp = hist.shape
+
+    #     cumdist_all = np.zeros((nr, nphi, nz, nppar * npperp))
+
+    #     for ir in range(nr):
+    #         for iphi in range(nphi):
+    #             for iz in range(nz):
+    #                 hist_cell = hist[ir, iphi, iz, :, :] 
+    #                 hist_flat = hist_cell.flatten()
+    #                 cumdist_all[ir, iphi, iz, :] = np.cumsum(hist_flat)
+    #     return cumdist_all
+    
+    def get_cumdist(self, beam, normalize=False):
+        """
+        Build cumulative momentum-space distribution per (r, phi, z) cell.
+
+        Parameters
+        ----------
+        beam : object
+            Beam distribution object.
+        normalize : bool
+            If True, convert cumulative sum into a proper CDF [0,1].
+
+        Returns
+        -------
+        cumdist_all : np.ndarray
+            Shape: (nr, nphi, nz, nppar*nppperp)
+        """
+
+        # --- build histogram ---
+        beam = beam.integrate(copy=True, time=np.s_[:], charge=np.s_[:])
         hist = beam.histogram()
+
         nr, nphi, nz, nppar, npperp = hist.shape
+        n_mom = nppar * npperp
 
-        cumdist_all = np.zeros((nr, nphi, nz, nppar * npperp))
+        # --- reshape momentum dimensions once (vectorized flatten) ---
+        hist_flat = hist.reshape(nr, nphi, nz, n_mom, order="C")
 
-        for ir in range(nr):
-            for iphi in range(nphi):
-                for iz in range(nz):
-                    hist_cell = hist[ir, iphi, iz, :, :] 
-                    hist_flat = hist_cell.flatten()
-                    cumdist_all[ir, iphi, iz, :] = np.cumsum(hist_flat)
+        # --- cumulative sum over momentum axis ---
+        cumdist_all = np.cumsum(hist_flat, axis=-1)
+
+        # --- optional normalization (true CDF) ---
+        if normalize:
+            norm = cumdist_all[..., -1:]
+            norm = np.where(norm == 0, 1.0, norm)  # avoid divide-by-zero
+            cumdist_all = cumdist_all / norm
+
         return cumdist_all
     
-    def generate_markers_rejection(self,  n_markers, reaction, r, z, phi = None, marker_file = None, beam = None):
+    def generate_markers_rejection(self, n_markers, reaction, r, z, phi = None, marker_file = None, beam = None, position_space= "cylindrical", velocity_space = "energy_direction"):
         if phi is None:
             phi = np.array([0.0, 360.0])*unyt.degree
         if beam is None:
-            markers = self.products_6D_rejection(reaction, n_markers, r, phi, z)
+            markers = self.products_6D_rejection(reaction, n_markers, r, phi, z, position_space=position_space, velocity_space=velocity_space)
         else:
-            markers = self.products_6D_rejection(reaction, n_markers, r, phi, z, beam=beam)
+            markers = self.products_6D_rejection(reaction, n_markers, r, phi, z, beam=beam, position_space=position_space, velocity_space=velocity_space)
         if marker_file is not None:
-            mrk_array = np.zeros((n_markers, 9))
-            mrk_array[:, :7] = markers
-            mrk_array[:,7] = 1.0
-            mrk_array.astype('float64').tofile(marker_file + '.bin')
+            #mrk_array = np.zeros((n_markers, 9))
+            #mrk_array[:, :8] = markers
+            #mrk_array[:,7] = 1.0
+            markers.astype('float64').tofile(marker_file + '.bin')
             print(f"The markers are stored in the binary file {marker_file}.bin")
         return markers
     
-    def products_6D_rejection(self, reaction, nmc, r, phi, z, beam=None, swap=False):
+    def products_6D_rejection(self, reaction, nmc, r, phi, z, beam=None, swap=False, position_space="cylindrical", velocity_space="energy_direction"):
         """Calculate fusion products using rejection sampling."""
 
         self._ascot.input_init(bfield=True, plasma=True)
@@ -231,9 +269,6 @@ class Afsi():
                         return i
                 return None
 
-            # =========================================================
-            # 🔥 FIXED TYPE CONTRACT (CRITICAL)
-            # =========================================================
             def to_afsi_type(x):
                 """
                 Ensures compatibility with _init_afsi_data:
@@ -292,9 +327,6 @@ class Afsi():
             phi_boundary = np.array([phi_edges[0], phi_edges[-1]])
             z_boundary = np.array([z_edges[0], z_edges[-1]])
 
-            print(type(react1))
-            print(type(react2))
-
             # --- init AFSI ---
             afsi = self._init_afsi_data(
                 react1=react1,
@@ -309,9 +341,26 @@ class Afsi():
 
             # --- cumulative distribution ---
             cumdist_all = self.get_cumdist(beam) if beam is not None else np.zeros(1)
+            print(cumdist_all.shape)
 
-            prod2 = np.zeros((nmc, 7), dtype=np.float64)
-
+            prod2 = np.zeros((nmc, 9), dtype=np.float64)
+            
+            if (position_space == "cylindrical"):
+                position_space_id = 0
+            elif (position_space == "cartesian"):
+                position_space_id = 1
+            else:
+                raise ValueError(f"Invalid position_space: {position_space}. Must be 'cylindrical' or 'cartesian'.")
+            if (velocity_space == "energy_direction"):
+                velocity_space_id = 0
+            elif (velocity_space == "cartesian_momentum"):
+                velocity_space_id = 1
+            elif (velocity_space == "energy_angles"):
+                velocity_space_id = 2
+            else:
+                raise ValueError(f"Invalid velocity_space: {velocity_space}. Must be 'energy_direction', 'cartesian_momentum', or 'energy_angles'.")
+            print(f"Using position space: {position_space} (id={position_space_id}), velocity space: {velocity_space} (id={velocity_space_id})")
+            
             print(f"Generating {nmc} markers...")
             start = t.time()
 
@@ -319,6 +368,8 @@ class Afsi():
                 ctypes.byref(self._ascot._sim),
                 ctypes.byref(afsi),
                 nmc,
+                position_space_id,
+                velocity_space_id,
                 ctypes.c_double(Smax),
                 cumdist_all.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
                 prod2.ctypes.data_as(ctypes.POINTER(ctypes.c_double))

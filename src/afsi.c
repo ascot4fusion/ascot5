@@ -34,7 +34,7 @@ void afsi_compute_product_momenta_2d(
     real* vprod1, real* vprod2, real* prod1_p1, real* prod1_p2,
     real* prod2_p1, real* prod2_p2);
 void afsi_store_particle_data(int i, real r, real phi, real z, 
-    real* vprod2, real mprod2, real* prod2, int cartesian);
+    real* vprod2, real mprod2, real* prod2, int position_space_id, int velocity_space_id, real weight);
 void afsi_sample_reactant_momenta_2d(
     sim_data* sim, afsi_data* afsi, real mass1, real mass2,
     real vol, int nsample, size_t i0, size_t i1, size_t i2,
@@ -175,16 +175,6 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
                 }
                 for(size_t i = 0; i < n; i++) {
                     real vcom2;
-                    real vprod1[3];
-                    real vprod2[3];
-                    real B_cyl[3] = {0.0, 0.0, 0.0}; // dummy element not needed in this case
-                    int not_transformed_vel = 1; // flag to avoid using B-field aligned transformation
-
-                    afsi_compute_product_velocities_3d(
-                        i, m1, m2, mprod1, mprod2, Q,
-                        ppara1, pperp1, ppara2, pperp2, &vcom2,
-                        B_cyl, not_transformed_vel, vprod1, vprod2);
-
                     afsi_compute_product_momenta_2d(i, mprod1, mprod2, prod_mom_space,
                         vprod1, vprod2,  prod1_p1, prod1_p2, prod2_p1, prod2_p2);
                     
@@ -332,18 +322,23 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
  * @param prod2 (n*9) array to store the sampled neutrons.
  */
 
-void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n, 
+void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n,
+                int position_space_id, int velocity_space_id,
                 real Smax, real* cumdist_all, real* prod2) {
 
     random_init(&rdata, time((NULL)));
     simulate_init(sim);
 
     real m1, q1, m2, q2, mprod1, qprod1, mprod2, qprod2, Q;
+
     boschhale_reaction(
-    afsi->reaction, &m1, &q1, &m2, &q2,
-    &mprod1, &qprod1, &mprod2, &qprod2, &Q);
+        afsi->reaction, 
+        &m1, &q1, &m2, &q2,
+        &mprod1, &qprod1, &mprod2, &qprod2, &Q
+    );
     
     real time = 0.0;
+
     real rmin = afsi->r[0], rmax = afsi->r[1];
     real phimin = afsi->phi[0], phimax = afsi->phi[1];
     real zmin = afsi->z[0], zmax = afsi->z[1];
@@ -352,30 +347,48 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n,
     int n_samples = 1; 
     int not_transformed_vel = 0; // 0 -> to use B-field aligned transformation, 1 -> vz always aligned with pparall, not physical for neutronics sim.
     int cartesian = 1; // 1 -> spatial coordinate in cartesian ref frame, good for serpent. 0 -> cylindrical coord, good to visualize results.
+    int trials = 0;
 
     while (n_accepted < n){
-        real r = rmin + (rmax - rmin) * random_uniform(rdata);
+        trials++;
+        /* ---------------------------
+         * 1. Sample position uniformly
+         * --------------------------- */
+        real r   = rmin + (rmax - rmin) * random_uniform(rdata);
         real phi = phimin + (phimax - phimin) * random_uniform(rdata);
-        if (phi < 0.0){
-            phi = phi + 360.0;
-        }
+        real z   = zmin + (zmax - zmin) * random_uniform(rdata);
+        if (phi < 0.0) phi += 360.0;
         real phirad = phi * CONST_PI / 180.0;
-        real z = zmin + (zmax - zmin) * random_uniform(rdata);
 
         size_t i0 = 0, i1 = 0, i2 = 0;
-        real vol = 1;
+        real vol = 1.0;
 
-        if (afsi->type1 == 1){
-            i0 = math_bin_index(r, afsi->beam1->axes[0].n, afsi->beam1->axes[0].min, afsi->beam1->axes[0].max);
-            i1 = math_bin_index(phirad, afsi->beam1->axes[1].n, afsi->beam1->axes[1].min, afsi->beam1->axes[1].max);
-            i2 = math_bin_index(z, afsi->beam1->axes[2].n, afsi->beam1->axes[2].min, afsi->beam1->axes[2].max);
-            size_t spatial_index = i0*afsi->volshape[1]*afsi->volshape[2]
-                                        + i1*afsi->volshape[2] + i2;
+        if (afsi->type1 == 1)
+        {
+            i0 = math_bin_index(r, afsi->beam1->axes[0].n,
+                                afsi->beam1->axes[0].min,
+                                afsi->beam1->axes[0].max);
+
+            i1 = math_bin_index(phirad, afsi->beam1->axes[1].n,
+                                afsi->beam1->axes[1].min,
+                                afsi->beam1->axes[1].max);
+
+            i2 = math_bin_index(z, afsi->beam1->axes[2].n,
+                                afsi->beam1->axes[2].min,
+                                afsi->beam1->axes[2].max);
+
+            size_t spatial_index =
+                i0 * afsi->volshape[1] * afsi->volshape[2] +
+                i1 * afsi->volshape[2] +
+                i2;
+
             vol = afsi->vol[spatial_index];
         }
 
+        /* ---------------------------
+         * 3. Magnetic field evaluation
+         * --------------------------- */
         real psi, rho[2], B_cyl[3];
-
         if (B_field_eval_psi(&psi, r, phirad, z, time, &sim->B_data) ||
             B_field_eval_rho(rho, psi, &sim->B_data) || B_field_eval_B(B_cyl, r, phi, z, time, &sim->B_data)) {
             continue;
@@ -384,34 +397,69 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n,
         real B_cart[3];
         B_field_cyl_to_cartesian(B_cart, B_cyl, r, phirad);
 
+        /* ---------------------------
+         * 4. Sample reactant momenta
+         * --------------------------- */
         real density1, density2;    
         real ppara1, pperp1, ppara2, pperp2;
 
         afsi_sample_reactant_momenta_2d_alt(
-                    sim, afsi, m1, m2, vol, n_samples, i0, i1, i2,
-                    r, phirad, z, time, rho[0], cumdist_all,
-                    &density1, &ppara1, &pperp1, &density2, &ppara2, &pperp2);
-                if(density1 == 0 || density2 == 0) {
-                    continue;
-                }
+            sim, afsi, m1, m2, vol, n_samples,
+            i0, i1, i2,
+            r, phirad, z, time, rho[0],
+            cumdist_all,
+            &density1, &ppara1, &pperp1,
+            &density2, &ppara2, &pperp2
+        );
+        if(density1 == 0 || density2 == 0) {
+            continue;
+        }
 
-        real vcom2, vprod1[3], vprod2[3];
+        real vcom2;
+        real vprod1[3], vprod2[3];
         
+        /* ---------------------------
+         * 5. Product kinematics
+         * --------------------------- */
         afsi_compute_product_velocities_3d(
             0, m1, m2, mprod1, mprod2, Q,
-            &ppara1, &pperp1, &ppara2, &pperp2, &vcom2, B_cart, not_transformed_vel,
-            vprod1, vprod2);
+            &ppara1, &pperp1,
+            &ppara2, &pperp2,
+            &vcom2,
+            B_cart,
+            not_transformed_vel,
+            vprod1, vprod2
+        );
 
         real E = 0.5 * (m1 * m2) / (m1 + m2) * vcom2;
-        real source = density1 * density2 * sqrt(vcom2) * boschhale_sigma(afsi->reaction, E);
+
+        real sigma = boschhale_sigma(afsi->reaction, E);
+        
+        real S = density1 * density2 * sqrt(vcom2)*sigma;
+        /* ---------------------------
+         * 6. Rejection sampling
+         * --------------------------- */
         real u  =random_uniform(rdata);
 
-        if (u < source / Smax) {
-            afsi_store_particle_data(n_accepted, r, phirad, z, vprod2, mprod2, prod2, cartesian);
+        if (u < S / Smax) {
+            real weight = S * vol;
+            afsi_store_particle_data(
+                n_accepted,
+                r, phirad, z, 
+                vprod2, 
+                mprod2, 
+                prod2, 
+                position_space_id,
+                velocity_space_id, 
+                weight
+            );
             n_accepted++;
         }
     }
-    
+    printf("Trials: %d\n", trials);
+    printf("Accepted: %d\n", n_accepted);
+    printf("Acceptance ratio: %.3e\n", (double)n_accepted / (double)trials);
+    printf("Smax: %.3e\n", Smax);
 }
 
 /**
@@ -535,39 +583,90 @@ void afsi_compute_product_velocities_3d(
  * @param prod2 array where the sampled particle data is stored.
  */
 
-void afsi_store_particle_data(int i, real r, real phi, real z, real* vprod2, real mprod2, real* prod2, int cartesian){
-
-    // Compute the magnitude of the velocity of prod2
-    real vprod2_magnitude = sqrt(vprod2[0] * vprod2[0] +
-    vprod2[1] * vprod2[1] +
-    vprod2[2] * vprod2[2]);
+void afsi_store_particle_data(int i, real r, real phi, real z, real* vprod2, real mprod2, real* prod2, int position_space_id, int velocity_space_id, real weight){
+    /* --------------------------
+     * Velocity
+     * -------------------------- */
+    real vx = vprod2[0];
+    real vy = vprod2[1];
+    real vz = vprod2[2];
+    real v2 = vx*vx + vy*vy + vz*vz;
+    real v  = sqrt(v2);
+    if (v <= 0.0) v = 1e-30;
 
     // Compute the kinetic energy of prod2
     // real energy_prod2 = physlib_Ekin_gamma(mprod2, physlib_gamma_vnorm(vprod2_magnitude));
-    real energy_prod2 = 0.5 * mprod2 * vprod2_magnitude * vprod2_magnitude;
+    real energy_prod2 = 0.5 * mprod2 * v2 *6241506479963.2;// Convert to MeV
 
-    // Normalize vprod2 to get the direction vector
-    real u = vprod2[0] / vprod2_magnitude;
-    real v = vprod2[1] / vprod2_magnitude;
-    real w = vprod2[2] / vprod2_magnitude;
+    // Direction vector
+    real ux = vx/v;
+    real uy = vy/v;
+    real uz = vz/v;
     
-    if (cartesian){
-        prod2[(i) * 7 + 0] = r * cos(phi) * 100;
-        prod2[(i) * 7 + 1] = r * sin(phi) * 100; 
-        prod2[(i) * 7 + 2] = z * 100; 
-        prod2[(i) * 7 + 3] = u; 
-        prod2[(i) * 7 + 4] = v;
-        prod2[(i) * 7 + 5] = w;
-        prod2[(i) * 7 + 6] = energy_prod2*6241506479963.2; // Convert to MeV
-    } else {
-        prod2[(i) * 7 + 0] = r; 
-        prod2[(i) * 7 + 1] = phi * 180.0 / CONST_PI; 
-        prod2[(i) * 7 + 2] = z; 
-        prod2[(i) * 7 + 3] = u; 
-        prod2[(i) * 7 + 4] = v;
-        prod2[(i) * 7 + 5] = w;
-        prod2[(i) * 7 + 6] = energy_prod2*6241506479963.2; // Convert to MeV
-    }    
+    /* --------------------------
+     * Spherical velocity angles
+     * -------------------------- */
+    real theta = acos(uz);                 // polar angle
+    real phi_v = atan2(vy, vx);            // azimuthal angle
+    
+    /* ==========================================================
+     * POSITION SPACE
+     * ========================================================== */
+    if (position_space_id == 0){
+        /* cylindrical */
+        r = r * 100; // convert to cm
+        z = z * 100; // convert to cm
+        phi = phi * 180.0 / CONST_PI; // convert to degrees
+        prod2[(i) * 9 + 0] = r; 
+        prod2[(i) * 9 + 1] = phi * 180.0 / CONST_PI; 
+        prod2[(i) * 9 + 2] = z;
+    }
+    else if (position_space_id == 1){
+        /* cartesian */
+        real x = r * cos(phi) * 100; // convert to cm
+        real y = r * sin(phi) * 100; // convert to cm
+        z = z * 100; // convert to cm
+        prod2[(i) * 9 + 0] = x;
+        prod2[(i) * 9 + 1] = y;
+        prod2[(i) * 9 + 2] = z;
+    }
+    else {
+        print_err("Invalid position space ID.\n");
+        abort();
+    }
+    
+    /* ==========================================================
+     * VELOCITY SPACE
+     * ========================================================== */
+    if (velocity_space_id == 0) {
+        prod2[(i) * 9 + 3] = ux; 
+        prod2[(i) * 9 + 4] = uy;
+        prod2[(i) * 9 + 5] = uz;
+    }
+    else if (velocity_space_id == 1) {
+        /* momentum */
+        prod2[(i) * 9 + 3] = mprod2 * vx; 
+        prod2[(i) * 9 + 4] = mprod2 * vy;
+        prod2[(i) * 9 + 5] = mprod2 * vz;
+
+    }
+    else if (velocity_space_id == 2)
+    {
+        /* energy + angles */
+        prod2[i*9 + 3] = energy_prod2;
+        prod2[i*9 + 4] = theta;
+        prod2[i*9 + 5] = phi_v;
+    }
+    else {
+        print_err("Invalid velocity space ID.\n");
+        abort();
+    }
+    /* ==========================================================
+     * COMMON FIELDS
+     * ========================================================== */
+    prod2[i*9 + 6] = energy_prod2;
+    prod2[i*9 + 7] = weight;
+    prod2[i*9 + 8] = 0.0;   /* time */
 }
 
 /**

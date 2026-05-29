@@ -43,8 +43,9 @@ typedef struct {
 
 void afsi_run(sim_data* sim, afsi_data* data, int n,
               histogram* prod1, histogram* prod2);
-void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n, real Smax, real* cumdist_all,
-                real* prod2);
+void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n,
+                int position_space_id, int velocity_space_id,
+                real Smax, real* cumdist_all, real* prod2);
 
 #endif
 

@@ -531,7 +531,7 @@ class Dist(DataContainer):
         with self as f:
             histogram = np.sum(f["ordinate"][:], axis=0) * unyt.particles
             abscissa_edges = {}
-            for i in range(int(f["abscissa_ndim"][:])):
+            for i in range(int(f["abscissa_ndim"][()][0])):
                 abscissa = f["abscissa_vec_0"+str(i+1)]
                 name     = abscissa.attrs["name_0"+str(i)].decode("utf-8")
                 unit     = abscissa.attrs["unit_0"+str(i)].decode("utf-8")
