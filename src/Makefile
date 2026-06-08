@@ -1,6 +1,16 @@
 CC=h5cc
 LFLAGS=
 
+TORCHFORT_ROOT=../../TorchFort
+TORCHFORT_BUILD=$(TORCHFORT_ROOT)/build
+
+CFLAGS+=-I$(TORCHFORT_ROOT)/src/csrc/include
+CFLAGS+=-I$(TORCHFORT_BUILD)/include
+
+LFLAGS+=-L$(TORCHFORT_BUILD)/lib
+LFLAGS+=-ltorchfort
+CFLAGS += -DUSE_TORCHFORT_BFIELD
+
 ifdef TRAP_FPE
 	DEFINES+=-DTRAP_FPE=$(TRAP_FPE)
 	CFLAGS+= -fsignaling-nans -ftrapping-math
@@ -31,7 +41,7 @@ endif
 
 ifeq ($(MPI),1)
 	DEFINES+=-DMPI
-	CC=h5pcc
+	CC=mpicc
 endif
 
 ifneq ($(CC),h5cc)
@@ -172,7 +182,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(LINTHEADERS) $(SPLINEHEADERS) \
 	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
 	E_field.h wall.h simulate.h diag.h offload.h boozer.h mhd.h \
-	random.h print.h hdf5_interface.h suzuki.h nbi.h biosaw.h \
+	random.h print.h hdf5_interface.h suzuki.h nbi.h biosaw.h bfield_nn.h \
 	asigma.h boschhale.h mpi_interface.h libascot_mem.h bbnbi5.h rfof.h
 
 OBJS= math.o list.o octree.o error.o \
@@ -182,7 +192,7 @@ OBJS= math.o list.o octree.o error.o \
 	$(SPLINEOBJS) \
 	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
 	E_field.o wall.o simulate.o diag.o boozer.o mhd.o \
-	random.o print.o hdf5_interface.o suzuki.o nbi.o biosaw.o \
+	random.o print.o hdf5_interface.o suzuki.o nbi.o biosaw.o bfield_nn.o \
 	asigma.o mpi_interface.o boschhale.o bbnbi5.o rfof.o \
 	asigma.o mpi_interface.o boschhale.o bbnbi5.o
 
@@ -202,10 +212,10 @@ libascot.so: libascot.o ascot5_main.o libascot_mem.o afsi.o bbnbi5.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
 
 ascot5_main: ascot5_main.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
+	$(CC) -o $@ $^ $(CFLAGS) $(LFLAGS)
 
 bbnbi5: bbnbi5_main.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
+	$(CC) -o $@ $^ $(CFLAGS) $(LFLAGS)
 
 doc:
 	doxygen Doxyfile
@@ -263,7 +273,7 @@ test_asigma: $(UTESTDIR)test_asigma.o $(OBJS)
 
 ASCOT2PY_HEADERFILES=ascot5.h particle.h mpi_interface.h endcond.h simulate.h  \
 	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) $(PLSHEADERS)  \
-	$(ASIGMAHEADERS) $(N0HEADERS) $(MHDHEADERS) hdf5_interface.h           \
+	$(ASIGMAHEADERS) $(N0HEADERS) $(MHDHEADERS) hdf5_interface.h bfield_nn.h \
 	libascot_mem.h diag.h B_field.h E_field.h wall.h plasma.h neutral.h    \
 	boozer.h mhd.h nbi.h asigma.h afsi.h ascot5_main.h biosaw.h boschhale.h\
 	bbnbi5.h rfof.h

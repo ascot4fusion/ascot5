@@ -23,6 +23,9 @@
 #include "step/step_fo_vpa.h"
 #include "mccc/mccc.h"
 #include "atomic.h"
+#ifdef USE_TORCHFORT_BFIELD
+#include "../bfield_nn.h"
+#endif
 
 DECLARE_TARGET_SIMD_UNIFORM(sim)
 real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i);
@@ -88,8 +91,13 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
      */
     particle_offload_fo(&p);
     particle_offload_fo(&p0);
-    real* rnd = (real*) malloc(3*mrk_array_size*sizeof(real));
-    GPU_MAP_TO_DEVICE(hin[0:mrk_array_size], rnd[0:3*mrk_array_size])
+#ifdef USE_TORCHFORT_BFIELD
+    bfield_nn_init("config_bfield.yaml", 0);
+#endif
+ real* rnd = (real*) malloc(3*mrk_array_size*sizeof(real));
+    float* nn_input = (float*) malloc(3 * mrk_array_size * sizeof(float));
+    float* nn_label = (float*) malloc(12 * mrk_array_size * sizeof(float));
+    GPU_MAP_TO_DEVICE(hin[0:mrk_array_size],rnd[0:3*mrk_array_size],nn_input[0:3*mrk_array_size],nn_label[0:12*mrk_array_size])
     while(n_running > 0) {
         /* Store marker states */
         GPU_PARALLEL_LOOP_ALL_LEVELS
@@ -116,6 +124,33 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
             else {
                 step_fo_vpa(&p, hin, &sim->B_data, &sim->E_data,
                             sim->enable_aldforce);
+#ifdef USE_TORCHFORT_BFIELD
+GPU_PARALLEL_LOOP_ALL_LEVELS
+  for(int i = 0; i < p.n_mrk; i++) {
+    nn_input[0*p.n_mrk + i] = (float)p.r[i];
+    nn_input[1*p.n_mrk + i] = (float)p.phi[i];
+    nn_input[2*p.n_mrk + i] = (float)p.z[i];
+    
+    nn_label[i*12 + 0]  = (float)p.B_r[i];
+    nn_label[i*12 + 1]  = (float)p.B_r_dr[i];
+    nn_label[i*12 + 2]  = (float)p.B_r_dphi[i];
+    nn_label[i*12 + 3]  = (float)p.B_r_dz[i];
+    
+    nn_label[i*12 + 4]  = (float)p.B_phi[i];
+    nn_label[i*12 + 5]  = (float)p.B_phi_dr[i];
+    nn_label[i*12 + 6]  = (float)p.B_phi_dphi[i];
+    nn_label[i*12 + 7]  = (float)p.B_phi_dz[i];
+    
+    nn_label[i*12 + 8]  = (float)p.B_z[i];
+    nn_label[i*12 + 9]  = (float)p.B_z_dr[i];
+    nn_label[i*12 + 10] = (float)p.B_z_dphi[i];
+    nn_label[i*12 + 11] = (float)p.B_z_dz[i];
+  }
+#pragma acc host_data use_device(nn_input, nn_label)
+ {
+    bfield_nn_train_gpu(nn_input, nn_label, p.n_mrk);
+}
+#endif
             }
         }
 
@@ -218,6 +253,11 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     free(cycle);
     free(hin);
     free(rnd);
+#ifdef USE_TORCHFORT_BFIELD
+    bfield_nn_finalize();
+#endif
+    free(nn_input);
+    free(nn_label);
 }
 
 /**
