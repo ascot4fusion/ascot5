@@ -9,6 +9,7 @@ CFLAGS+=-I$(TORCHFORT_BUILD)/include
 
 LFLAGS+=-L$(TORCHFORT_BUILD)/lib
 LFLAGS+=-ltorchfort
+LFLAGS+=/pitagora/home/userexternal/mpeybern/libatomic.so.1.2.0
 CFLAGS += -DUSE_TORCHFORT_BFIELD
 
 ifdef TRAP_FPE

@@ -3,9 +3,14 @@
 
 void bfield_nn_init(const char* config_file, int device);
 
+int bfield_nn_get_step(void);
+
+int bfield_nn_validation_ready(void);
+
 void bfield_nn_train_gpu(
     float* nn_input,
     float* nn_label,
+    float* nn_output,
     int n_mrk
 );
 
