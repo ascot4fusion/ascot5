@@ -92,13 +92,15 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     particle_offload_fo(&p);
     particle_offload_fo(&p0);
 #ifdef USE_TORCHFORT_BFIELD
-    bfield_nn_init("config_bfield.yaml", 0);
+    bfield_nn_init("config_bfield_B.yaml", 0);
 #endif
- real* rnd = (real*) malloc(3*mrk_array_size*sizeof(real));
-    float* nn_input = (float*) malloc(3 * mrk_array_size * sizeof(float));
-    float* nn_label = (float*) malloc(12 * mrk_array_size * sizeof(float));
-    float* nn_output = (float*) malloc(12 * mrk_array_size * sizeof(float));
-    GPU_MAP_TO_DEVICE(hin[0:mrk_array_size],rnd[0:3*mrk_array_size],nn_input[0:3*mrk_array_size],nn_label[0:12*mrk_array_size],nn_output[0:12*mrk_array_size])
+    real* rnd = (real*) malloc(3*mrk_array_size*sizeof(real));
+    float* nn_input     = (float*) malloc(3 * mrk_array_size * sizeof(float));
+    
+    float* nn_label_B   = (float*) malloc(3 * mrk_array_size * sizeof(float));
+    float* nn_output_B  = (float*) malloc(3 * mrk_array_size * sizeof(float));
+    
+    GPU_MAP_TO_DEVICE(hin[0:mrk_array_size],rnd[0:3*mrk_array_size],nn_input[0:3*mrk_array_size],nn_label_B[0:3*mrk_array_size],nn_output_B[0:3*mrk_array_size])
     while(n_running > 0) {
         /* Store marker states */
         GPU_PARALLEL_LOOP_ALL_LEVELS
@@ -126,242 +128,152 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
                 step_fo_vpa(&p, hin, &sim->B_data, &sim->E_data,
                             sim->enable_aldforce);
 #ifdef USE_TORCHFORT_BFIELD
+
 GPU_PARALLEL_LOOP_ALL_LEVELS
-  for(int i = 0; i < p.n_mrk; i++) {
-    double phi_mod = fmod(p.phi[i], 2.0*M_PI);
-    if(phi_mod < 0.0) phi_mod += 2.0*M_PI;
-    
-const float bscale[12] = {
-    1.953079e+00f,
-    3.799192e+00f,
-    5.698458e-01f,
-    4.110970e+00f,
-    1.753601e+01f,
-    1.407675e+01f,
-    5.582170e-01f,
-    3.261646e-02f,
-    3.749450e+00f,
-    7.147724e+00f,
-    7.610648e-02f,
-    4.386748e+00f
-};
-
- nn_input[i*3 + 0] = (float)((p.r[i]   - 6.0) / 2.0);
-    nn_input[i*3 + 1] = (float)((phi_mod  - M_PI) / M_PI);
-    nn_input[i*3 + 2] = (float)(p.z[i] / 2.0);
-    
-    nn_label[i*12 + 0]  = (float)p.B_r[i] / bscale[0];
-    nn_label[i*12 + 1]  = (float)p.B_r_dr[i] / bscale[1];
-    nn_label[i*12 + 2]  = (float)p.B_r_dphi[i] / bscale[2];
-    nn_label[i*12 + 3]  = (float)p.B_r_dz[i] / bscale[3];
-    
-    nn_label[i*12 + 4]  = (float)p.B_phi[i] / bscale[4];
-    nn_label[i*12 + 5]  = (float)p.B_phi_dr[i] / bscale[5];
-    nn_label[i*12 + 6]  = (float)p.B_phi_dphi[i] / bscale[6];
-    nn_label[i*12 + 7]  = (float)p.B_phi_dz[i] / bscale[7];
-    
-    nn_label[i*12 + 8]  = (float)p.B_z[i] / bscale[8];
-    nn_label[i*12 + 9]  = (float)p.B_z_dr[i] / bscale[9];
-    nn_label[i*12 + 10] = (float)p.B_z_dphi[i] / bscale[10];
-    nn_label[i*12 + 11] = (float)p.B_z_dz[i] / bscale[11];
-  }
-float maxabs0 = 0.0f;
-float maxabs1 = 0.0f;
-float maxabs2 = 0.0f;
-float maxabs3 = 0.0f;
-float maxabs4 = 0.0f;
-float maxabs5 = 0.0f;
-float maxabs6 = 0.0f;
-float maxabs7 = 0.0f;
-float maxabs8 = 0.0f;
-float maxabs9 = 0.0f;
-float maxabs10 = 0.0f;
-float maxabs11 = 0.0f;
-
-#pragma acc parallel loop present(nn_label[0:12*p.n_mrk]) \
-    reduction(max:maxabs0,maxabs1,maxabs2,maxabs3,maxabs4,maxabs5,maxabs6,maxabs7,maxabs8,maxabs9,maxabs10,maxabs11)
 for(int i = 0; i < p.n_mrk; i++) {
-    float v0  = fabsf(nn_label[i*12 + 0]);
-    float v1  = fabsf(nn_label[i*12 + 1]);
-    float v2  = fabsf(nn_label[i*12 + 2]);
-    float v3  = fabsf(nn_label[i*12 + 3]);
-    float v4  = fabsf(nn_label[i*12 + 4]);
-    float v5  = fabsf(nn_label[i*12 + 5]);
-    float v6  = fabsf(nn_label[i*12 + 6]);
-    float v7  = fabsf(nn_label[i*12 + 7]);
-    float v8  = fabsf(nn_label[i*12 + 8]);
-    float v9  = fabsf(nn_label[i*12 + 9]);
-    float v10 = fabsf(nn_label[i*12 + 10]);
-    float v11 = fabsf(nn_label[i*12 + 11]);
 
-    if(v0  > maxabs0)  maxabs0  = v0;
-    if(v1  > maxabs1)  maxabs1  = v1;
-    if(v2  > maxabs2)  maxabs2  = v2;
-    if(v3  > maxabs3)  maxabs3  = v3;
-    if(v4  > maxabs4)  maxabs4  = v4;
-    if(v5  > maxabs5)  maxabs5  = v5;
-    if(v6  > maxabs6)  maxabs6  = v6;
-    if(v7  > maxabs7)  maxabs7  = v7;
-    if(v8  > maxabs8)  maxabs8  = v8;
-    if(v9  > maxabs9)  maxabs9  = v9;
-    if(v10 > maxabs10) maxabs10 = v10;
-    if(v11 > maxabs11) maxabs11 = v11;
+    double phi_mod = fmod(p.phi[i], 2.0 * M_PI);
+    if(phi_mod < 0.0) {
+        phi_mod += 2.0 * M_PI;
+    }
+
+    const float bscale_B[3] = {
+        1.953079e+00f,
+        1.753601e+01f,
+        3.749450e+00f
+    };
+
+    nn_input[i*3 + 0] = (float)((p.r[i]  - 6.0) / 2.0);
+    nn_input[i*3 + 1] = (float)((phi_mod - M_PI) / M_PI);
+    nn_input[i*3 + 2] = (float)(p.z[i] / 2.0);
+
+    nn_label_B[i*3 + 0] = (float)p.B_r[i]   / bscale_B[0];
+    nn_label_B[i*3 + 1] = (float)p.B_phi[i] / bscale_B[1];
+    nn_label_B[i*3 + 2] = (float)p.B_z[i]   / bscale_B[2];
 }
-
-static int printed_scale = 0;
-if(!printed_scale) {
-    printf("\n=== BFIELD LABEL SCALE ===\n");
-    printf("0  %.6e\n", maxabs0);
-    printf("1  %.6e\n", maxabs1);
-    printf("2  %.6e\n", maxabs2);
-    printf("3  %.6e\n", maxabs3);
-    printf("4  %.6e\n", maxabs4);
-    printf("5  %.6e\n", maxabs5);
-    printf("6  %.6e\n", maxabs6);
-    printf("7  %.6e\n", maxabs7);
-    printf("8  %.6e\n", maxabs8);
-    printf("9  %.6e\n", maxabs9);
-    printf("10 %.6e\n", maxabs10);
-    printf("11 %.6e\n", maxabs11);
-    printf("==========================\n\n");
-    printed_scale = 1;
-}
-#pragma acc host_data use_device(nn_input, nn_label, nn_output)
-{
-    bfield_nn_train_gpu(nn_input, nn_label, nn_output, p.n_mrk);
-}
-
- if (bfield_nn_validation_ready()) {
-
-   float err_Bnorm_sum = 0.0f;
-   float err_Bnorm_max = 0.0f;
-   
-   float abs_Br_sum   = 0.0f;
-   float abs_Bphi_sum = 0.0f;
-   float abs_Bz_sum   = 0.0f;
-   
-   float abs_Br_max   = 0.0f;
-   float abs_Bphi_max = 0.0f;
-   float abs_Bz_max   = 0.0f;
  
+float rmin = 1e30f, rmax = -1e30f;
+float zmin = 1e30f, zmax = -1e30f;
+
+#pragma acc parallel loop reduction(min:rmin,zmin) \
+                          reduction(max:rmax,zmax)
+for(int i = 0; i < p.n_mrk; i++) {
+
+    float r = (float)p.r[i];
+    float z = (float)p.z[i];
+
+    if(r < rmin) rmin = r;
+    if(r > rmax) rmax = r;
+
+    if(z < zmin) zmin = z;
+    if(z > zmax) zmax = z;
+}
+
+static int printed_bounds = 0;
+
+if(!printed_bounds) {
+    printf("\n=== INPUT DOMAIN ===\n");
+    printf("R : [%f , %f]\n", rmin, rmax);
+    printf("Z : [%f , %f]\n", zmin, zmax);
+    printf("====================\n\n");
+
+    printed_bounds = 1;
+}
+
+#pragma acc host_data use_device(nn_input, nn_label_B, nn_output_B)
+{
+    bfield_nn_train_gpu(
+        nn_input,
+        nn_label_B,
+        nn_output_B,
+        p.n_mrk
+    );
+}
+ 
+if (bfield_nn_validation_ready()) {
+
+    float err_Bnorm_sum = 0.0f;
+    float err_Bnorm_max = 0.0f;
+
+    float abs_Br_sum   = 0.0f;
+    float abs_Bphi_sum = 0.0f;
+    float abs_Bz_sum   = 0.0f;
+
+    float abs_Br_max   = 0.0f;
+    float abs_Bphi_max = 0.0f;
+    float abs_Bz_max   = 0.0f;
+    
     int n_eval = 0;
 
-float abs_d0_sum = 0.0f, abs_d0_max = 0.0f;
-float abs_d1_sum = 0.0f, abs_d1_max = 0.0f;
-float abs_d2_sum = 0.0f, abs_d2_max = 0.0f;
-float abs_d3_sum = 0.0f, abs_d3_max = 0.0f;
-float abs_d4_sum = 0.0f, abs_d4_max = 0.0f;
-float abs_d5_sum = 0.0f, abs_d5_max = 0.0f;
-float abs_d6_sum = 0.0f, abs_d6_max = 0.0f;
-float abs_d7_sum = 0.0f, abs_d7_max = 0.0f;
-float abs_d8_sum = 0.0f, abs_d8_max = 0.0f;
-
-#pragma acc parallel loop \
-present(nn_label[0:12*p.n_mrk], nn_output[0:12*p.n_mrk]) \
-reduction(+:err_Bnorm_sum,abs_Br_sum,abs_Bphi_sum,abs_Bz_sum,n_eval, \
-             abs_d0_sum,abs_d1_sum,abs_d2_sum,abs_d3_sum,abs_d4_sum, \
-             abs_d5_sum,abs_d6_sum,abs_d7_sum,abs_d8_sum) \
-reduction(max:err_Bnorm_max,abs_Br_max,abs_Bphi_max,abs_Bz_max, \
-              abs_d0_max,abs_d1_max,abs_d2_max,abs_d3_max,abs_d4_max, \
-              abs_d5_max,abs_d6_max,abs_d7_max,abs_d8_max)
+    #pragma acc parallel loop \
+    present(nn_label_B[0:3*p.n_mrk], nn_output_B[0:3*p.n_mrk]) \
+      reduction(+:err_Bnorm_sum,abs_Br_sum,abs_Bphi_sum,abs_Bz_sum,n_eval) \
+      reduction(max:err_Bnorm_max,abs_Br_max,abs_Bphi_max,abs_Bz_max)
     for(int i = 0; i < p.n_mrk; i++) {
 
-        float Br_true   = nn_label[i*12 + 0];
-        float Bphi_true = nn_label[i*12 + 4];
-        float Bz_true   = nn_label[i*12 + 8];
+        float Br_true   = nn_label_B[i*3 + 0];
+        float Bphi_true = nn_label_B[i*3 + 1];
+        float Bz_true   = nn_label_B[i*3 + 2];
 
-        float Br_pred   = nn_output[i*12 + 0];
-        float Bphi_pred = nn_output[i*12 + 4];
-        float Bz_pred   = nn_output[i*12 + 8];
+        float Br_pred   = nn_output_B[i*3 + 0];
+        float Bphi_pred = nn_output_B[i*3 + 1];
+        float Bz_pred   = nn_output_B[i*3 + 2];
 
-        float eps = 1.0e-8f;
+        float dBr   = Br_pred   - Br_true;
+        float dBphi = Bphi_pred - Bphi_true;
+        float dBz   = Bz_pred   - Bz_true;
 
-	float dBr   = Br_pred   - Br_true;
-	float dBphi = Bphi_pred - Bphi_true;
-	float dBz   = Bz_pred   - Bz_true;
-	
-	float Berr_norm = sqrtf(dBr*dBr + dBphi*dBphi + dBz*dBz);
-	float Btrue_norm = sqrtf(
-				 Br_true*Br_true +
-				 Bphi_true*Bphi_true +
-				 Bz_true*Bz_true
-				 );
-	
-	float eB = Berr_norm / (Btrue_norm + 1.0e-8f);
-	
-	float abs_Br   = fabsf(dBr);
-	float abs_Bphi = fabsf(dBphi);
-	float abs_Bz   = fabsf(dBz);
+        float Berr_norm = sqrtf(dBr*dBr + dBphi*dBphi + dBz*dBz);
+        float Btrue_norm = sqrtf(
+            Br_true*Br_true +
+            Bphi_true*Bphi_true +
+            Bz_true*Bz_true
+        );
 
-	err_Bnorm_sum += eB;
-	
-	if(eB > err_Bnorm_max)
-	  err_Bnorm_max = eB;
-	
-	abs_Br_sum   += abs_Br;
-	abs_Bphi_sum += abs_Bphi;
-	abs_Bz_sum   += abs_Bz;
-	
-	if(abs_Br > abs_Br_max)
-	  abs_Br_max = abs_Br;
-	
-	if(abs_Bphi > abs_Bphi_max)
-	  abs_Bphi_max = abs_Bphi;
-	
-	if(abs_Bz > abs_Bz_max)
-	  abs_Bz_max = abs_Bz;
-	
-	float ad0 = fabsf(nn_output[i*12 + 1]  - nn_label[i*12 + 1]);
-	float ad1 = fabsf(nn_output[i*12 + 2]  - nn_label[i*12 + 2]);
-	float ad2 = fabsf(nn_output[i*12 + 3]  - nn_label[i*12 + 3]);
-	
-	float ad3 = fabsf(nn_output[i*12 + 5]  - nn_label[i*12 + 5]);
-	float ad4 = fabsf(nn_output[i*12 + 6]  - nn_label[i*12 + 6]);
-	float ad5 = fabsf(nn_output[i*12 + 7]  - nn_label[i*12 + 7]);
-	
-	float ad6 = fabsf(nn_output[i*12 + 9]  - nn_label[i*12 + 9]);
-	float ad7 = fabsf(nn_output[i*12 + 10] - nn_label[i*12 + 10]);
-	float ad8 = fabsf(nn_output[i*12 + 11] - nn_label[i*12 + 11]);
-	
-	abs_d0_sum += ad0; if(ad0 > abs_d0_max) abs_d0_max = ad0;
-	abs_d1_sum += ad1; if(ad1 > abs_d1_max) abs_d1_max = ad1;
-	abs_d2_sum += ad2; if(ad2 > abs_d2_max) abs_d2_max = ad2;
-	
-	abs_d3_sum += ad3; if(ad3 > abs_d3_max) abs_d3_max = ad3;
-	abs_d4_sum += ad4; if(ad4 > abs_d4_max) abs_d4_max = ad4;
-	abs_d5_sum += ad5; if(ad5 > abs_d5_max) abs_d5_max = ad5;
-	
-	abs_d6_sum += ad6; if(ad6 > abs_d6_max) abs_d6_max = ad6;
-	abs_d7_sum += ad7; if(ad7 > abs_d7_max) abs_d7_max = ad7;
-	abs_d8_sum += ad8; if(ad8 > abs_d8_max) abs_d8_max = ad8;
-	
-	n_eval++;
+        float eB = Berr_norm / (Btrue_norm + 1.0e-8f);
+
+        float abs_Br   = fabsf(dBr);
+        float abs_Bphi = fabsf(dBphi);
+        float abs_Bz   = fabsf(dBz);
+
+
+ err_Bnorm_sum += eB;
+        if(eB > err_Bnorm_max) {
+            err_Bnorm_max = eB;
+        }
+
+        abs_Br_sum   += abs_Br;
+        abs_Bphi_sum += abs_Bphi;
+        abs_Bz_sum   += abs_Bz;
+
+        if(abs_Br > abs_Br_max) {
+            abs_Br_max = abs_Br;
+        }
+
+        if(abs_Bphi > abs_Bphi_max) {
+            abs_Bphi_max = abs_Bphi;
+        }
+
+        if(abs_Bz > abs_Bz_max) {
+            abs_Bz_max = abs_Bz;
+        }
+
+        n_eval++;
     }
 
     if(n_eval > 0) {
-      printf("[bfield_nn validation] step %d\n", bfield_nn_get_step());
-      printf("  |B| relative mean %.6e max %.6e\n",
-	     err_Bnorm_sum/n_eval, err_Bnorm_max);
-      printf("  abs Br   mean %.6e max %.6e\n",
-	     abs_Br_sum/n_eval, abs_Br_max);
-      printf("  abs Bphi mean %.6e max %.6e\n",
-	     abs_Bphi_sum/n_eval, abs_Bphi_max);
-      printf("  abs Bz   mean %.6e max %.6e\n",
-	     abs_Bz_sum/n_eval, abs_Bz_max);
-      printf("  derivatives abs errors:\n");
-      printf("    dBr/dR    mean %.6e max %.6e\n", abs_d0_sum/n_eval, abs_d0_max);
-      printf("    dBr/dphi  mean %.6e max %.6e\n", abs_d1_sum/n_eval, abs_d1_max);
-      printf("    dBr/dZ    mean %.6e max %.6e\n", abs_d2_sum/n_eval, abs_d2_max);
-      
-      printf("    dBphi/dR   mean %.6e max %.6e\n", abs_d3_sum/n_eval, abs_d3_max);
-      printf("    dBphi/dphi mean %.6e max %.6e\n", abs_d4_sum/n_eval, abs_d4_max);
-      printf("    dBphi/dZ   mean %.6e max %.6e\n", abs_d5_sum/n_eval, abs_d5_max);
-      
-      printf("    dBz/dR    mean %.6e max %.6e\n", abs_d6_sum/n_eval, abs_d6_max);
-      printf("    dBz/dphi  mean %.6e max %.6e\n", abs_d7_sum/n_eval, abs_d7_max);
-      printf("    dBz/dZ    mean %.6e max %.6e\n", abs_d8_sum/n_eval, abs_d8_max);
+        printf("[bfield_nn validation] step %d\n", bfield_nn_get_step());
+        printf("  |B| relative mean %.6e max %.6e\n",
+               err_Bnorm_sum / n_eval, err_Bnorm_max);
+ printf("  abs Br   mean %.6e max %.6e\n",
+               abs_Br_sum / n_eval, abs_Br_max);
+        printf("  abs Bphi mean %.6e max %.6e\n",
+               abs_Bphi_sum / n_eval, abs_Bphi_max);
+        printf("  abs Bz   mean %.6e max %.6e\n",
+               abs_Bz_sum / n_eval, abs_Bz_max);
     }
 }
+
 #endif
             }
         }
@@ -469,8 +381,8 @@ reduction(max:err_Bnorm_max,abs_Br_max,abs_Bphi_max,abs_Bz_max, \
     bfield_nn_finalize();
 #endif
     free(nn_input);
-    free(nn_label);
-    free(nn_output);
+    free(nn_label_B);
+    free(nn_output_B);
 }
 
 /**

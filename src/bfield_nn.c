@@ -78,17 +78,17 @@ int bfield_nn_validation_ready(void) {
     return validation_ready;
 }
 
-void bfield_nn_init(const char* config_file, int device) {
+void bfield_nn_init(const char* config_B, int device) {
     torchfort_set_cudnn_benchmark(1);
 
-    if (torchfort_create_model("bfield", config_file, device)
+    if (torchfort_create_model("bfield_B", config_B, device)
         != TORCHFORT_RESULT_SUCCESS) {
-        fprintf(stderr, "[bfield_nn] torchfort_create_model failed\n");
+        fprintf(stderr, "[bfield_nn] create bfield_B failed\n");
         exit(1);
     }
 
     initialized = 1;
-    printf("[bfield_nn] initialized on GPU device %d\n", device);
+    printf("[bfield_nn] initialized two models on GPU device %d\n", device);
 }
 
 int bfield_nn_get_step(void) {
@@ -97,51 +97,55 @@ int bfield_nn_get_step(void) {
 
 void bfield_nn_train_gpu(
     float* nn_input,
-    float* nn_label,
-    float* nn_output,
+    float* nn_label_B,
+    float* nn_output_B,
     int n_mrk
 ) {
     if (!initialized) return;
 
-    int64_t input_shape[2]  = {n_mrk, 3};
-    int64_t label_shape[2]  = {n_mrk, 12};
-    int64_t output_shape[2] = {n_mrk, 12};
+    int64_t input_shape[2]     = {n_mrk, 3};
+    int64_t label_B_shape[2]   = {n_mrk, 3};
+    int64_t output_B_shape[2]  = {n_mrk, 3};
 
-    float loss = 0.0f;
+    float loss_B = 0.0f;
+
     validation_ready = 0;
 
-    torchfort_result_t ret = torchfort_train(
-        "bfield",
+    torchfort_result_t retB = torchfort_train(
+        "bfield_B",
         nn_input, 2, input_shape,
-        nn_label, 2, label_shape,
-        &loss,
+        nn_label_B, 2, label_B_shape,
+        &loss_B,
         TORCHFORT_FLOAT,
         0
     );
 
-    if (ret != TORCHFORT_RESULT_SUCCESS) {
-        fprintf(stderr, "[bfield_nn] train failed at step %d\n", train_step);
+    if (retB != TORCHFORT_RESULT_SUCCESS) {
+        fprintf(stderr, "[bfield_nn] train B failed at step %d\n", train_step);
     }
 
     if (train_step % 10 == 0) {
-        printf("[bfield_nn] step %d loss %.6e\n", train_step, loss);
+        printf("[bfield_nn] step %d loss_B %.6e \n",
+               train_step, loss_B);
     }
 
     if ((train_step + 1) % 1000 == 0) {
         printf("[bfield_nn] running inference at step %d\n", train_step + 1);
 
-        ret = torchfort_inference(
-            "bfield",
+        retB = torchfort_inference(
+            "bfield_B",
             nn_input, 2, input_shape,
-            nn_output, 2, output_shape,
+            nn_output_B, 2, output_B_shape,
             TORCHFORT_FLOAT,
             0
         );
 
-        if (ret != TORCHFORT_RESULT_SUCCESS) {
-            fprintf(stderr, "[bfield_nn] inference failed at step %d\n",
+        if (retB != TORCHFORT_RESULT_SUCCESS) {
+            fprintf(stderr, "[bfield_nn] inference B failed at step %d\n",
                     train_step + 1);
-        } else {
+        }
+
+        if (retB == TORCHFORT_RESULT_SUCCESS) {
             validation_ready = 1;
         }
     }
@@ -151,8 +155,8 @@ void bfield_nn_train_gpu(
 
 void bfield_nn_finalize(void) {
     if (initialized) {
-        torchfort_save_model("bfield", "bfield_trained.pt");
-        torchfort_save_checkpoint("bfield", "bfield_checkpoint");
+        torchfort_save_model("bfield_B", "bfield_B_trained.pt");
+        torchfort_save_checkpoint("bfield_B", "bfield_B_checkpoint");
     }
 
     initialized = 0;
