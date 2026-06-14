@@ -44,7 +44,7 @@ class ParticleMarker(InputVariant):
     def charge(self) -> unyt.unyt_array:
         r"""Marker charge."""
         if self._cdata is not None:
-            out = unyt.unyt_array([0.]*self.n, "e")
+            out = unyt.unyt_array([0.]*self.n, "C")
             for i in range(out.size):
                 out[i] = self._cdata[i].charge
             return out
@@ -170,7 +170,7 @@ class ParticleMarker(InputVariant):
             setattr(self._cdata[i], "rprt", r[i])
             setattr(self._cdata[i], "zprt", z[i])
             setattr(self._cdata[i], "id", ids[i])
-            setattr(self._cdata[i], "phiprt", phi[i])
+            setattr(self._cdata[i], "phiprt", phi[i].to("rad"))
             setattr(self._cdata[i], "time", time[i])
             setattr(self._cdata[i], "pr", (vr[i] * species.mass).to("kg*m/s"))
             setattr(self._cdata[i], "pphi", (vphi[i] * species.mass).to("kg*m/s"))
@@ -219,13 +219,13 @@ class CreateMixin(TreeMixin):
     def create_particlemarker(
             self,
             species: str | Species,
-            charge: utils.ArrayLike,
             r: utils.ArrayLike,
             z: utils.ArrayLike,
             vr: utils.ArrayLike,
             vphi: utils.ArrayLike,
             vz: utils.ArrayLike,
             phi: Optional[utils.ArrayLike]=None,
+            charge: Optional[utils.ArrayLike]=None,
             weight: Optional[utils.ArrayLike]=None,
             time: Optional[utils.ArrayLike]=None,
             ids: Optional[utils.ArrayLike]=None,
@@ -263,6 +263,10 @@ class CreateMixin(TreeMixin):
 
             If not given, the values are randomly sampled from an uniform
             distribution between 0 and 360 degrees.
+        charge : array_like (n,) *or* scalar, *optional*
+            Marker charge (state).
+
+            Default is to assume that the marker is fully ionized.
         weight : array_like (n,) *or* scalar, *optional*
             How many physical particles each marker represents.
 
@@ -320,6 +324,12 @@ class CreateMixin(TreeMixin):
             to_array(vphi), to_array(charge), to_array(weight), to_array(time),
             to_array(vz),
             )
+        
+        if charge is not None:
+            try:
+                charge.units
+            except AttributeError:
+                charge *= unyt.e
 
         with utils.validate_variables() as v:
             r = v.validate("r", r, (n,), "m")
@@ -327,7 +337,7 @@ class CreateMixin(TreeMixin):
             vr = v.validate("vr", vr, (n,), "m/s")
             vz = v.validate("vz", vz, (n,), "m/s")
             vphi = v.validate("vphi", vphi, (n,), "m/s")
-            charge = v.validate("charge", charge, (n,), "e")
+
         with utils.validate_variables() as v:
             ids = v.validate(
                 "ids", ids, (n,), dtype="i8", default=np.arange(1, n+1),
@@ -339,6 +349,11 @@ class CreateMixin(TreeMixin):
                 "weight", weight, (n,), "particles/s", default=np.ones((n,))
                 )
             time = v.validate("time", time, (n,), "s", default=np.zeros((n,)))
+            default_charge = species.znum if species.znum != 0 else -1
+            charge = v.validate(
+                "charge", charge, (n,), "e",
+                default=np.full((n,), default_charge),
+                )
 
         leaf = ParticleMarker(note=note)
         leaf._stage(

@@ -61,9 +61,6 @@ class Ascot():
         self.preflight_check_parameters(params)
 
         required = {"bfield", "marker"}
-        mf = params.simulation.simulation_mode == 4
-        if params.physics.enable_orbit_following and not mf:
-            required.add("efield")
 
         if params.physics.enable_icrh:
             required.add("rfof")
@@ -130,8 +127,7 @@ class Ascot():
         if root:
             inputs = self.preflight_check(self.data, params, **priority_inputs)
 
-        state, inputs, unstage = setup_inputs(inputs, comm)
-        run = setup_simulation(params, inputs, state, comm)
+        run, inputs, unstage = setup(inputs, params, comm)
         execute(run, time)
         finalize(run, unstage, comm)
         self.data._treemanager.enter_leaf(run)

@@ -1,15 +1,15 @@
 """Tools to enforce constraints on option parameters.
 
 The parameters in options are subject to constraints. In order to have a single
-source of truth, these constraints are defined in the docstrings of the
-properties.
+source of truth, these constraints are defined in the docstring of each
+dataclass attribute.
 """
 import re
 
-def summarize_property(property):
-    """Get a summary of property.
+def parse(doc):
+    """Parse constraints from attribute docstring.
 
-    Assuming that the property's docstring has the following format:
+    Assuming that the attribute's docstring has the following format:
 
     "<info>: <constraint>, default=<default>.",
 
@@ -18,16 +18,16 @@ def summarize_property(property):
 
     Parameters
     ----------
-    property : Property
-        The property to summarize.
+    doc : str
+        Attribute docstring.
 
     Returns
     -------
-    dict : {"name":name, "constraint":constraint, "default":default}
+    dict : {"name", "constraint", "default"}
         The extracted summary.
     """
     parts = []
-    for line in property.__doc__.strip().splitlines():
+    for line in doc.strip().splitlines():
         if not line.strip():
             break
         parts.append(line.strip())
@@ -39,14 +39,13 @@ def summarize_property(property):
     if not match_regex:
         raise ValueError(f"Docstring format invalid: {summary_in_one_line}")
     return {
-        "name": property.__name__,
         "constraint": match_regex.group("constraint").strip(),
         "default": match_regex.group("default").strip(),
     }
 
 
-def parse_constraint(constraint: str):
-    """Parse a human-readable constraint string.
+def convert(constraint: str):
+    """Convert human-readable constraint string to machine-readable.
 
     Parameters
     ----------
@@ -76,7 +75,7 @@ def parse_constraint(constraint: str):
     raise ValueError(f"Unknown constraint format: {constraint}")
 
 
-def enforce_constraint(value, constraint: str):
+def enforce(value, constraint: str):
     """Check if a value satisfies the constraint.
 
     Parameters
@@ -99,7 +98,7 @@ def enforce_constraint(value, constraint: str):
     accepted : bool
         True if the value satisfies the constraint, False otherwise.
     """
-    kind, constraints = parse_constraint(constraint)
+    kind, constraints = convert(constraint)
 
     if kind == "set":
         items_in_the_set = constraints

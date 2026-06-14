@@ -322,7 +322,7 @@ class DataAccess():
 
         Parameters
         ----------
-        name : str, *optional*
+        name : str
             Name of the dataset as it appears in the file.
 
         Returns
@@ -339,7 +339,37 @@ class TreeFileManager():
     tree-like format.
 
     During initialization all nodes are created with empty meta data.
+
+    Parameters
+    ----------
+    root : str
+        Name of the root node.
+    filename : str
+        Name of the HDF5 file.
+    file_exists : bool
+        Assume that the file exists, otherwise try to create a new file.
+    input_categories : list[str]
+        Names of the input categories.
+
+    Attributes
+    ----------
+    filename : str
+        Name of the file.
+    root : str
+        Name of the root node.
+
+        This node is stored as :attr:`RESULTGROUP` in the file.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the file is assumed to exists when it does not exist.
+    FileExistsError
+        If the file is assumed to not exist when it does exist.
     """
+
+    root: str
+    filename: str
 
     def __init__(
             self, root: str,
@@ -347,33 +377,8 @@ class TreeFileManager():
             file_exists: bool,
             input_categories: list[str],
             ) -> None:
-        """
-        Parameters
-        ----------
-        root : str
-            Name of the root node.
-        filename : str
-            Name of the HDF5 file.
-        file_exists : bool
-            Assume that the file exists, otherwise try to create a new file.
-        input_categories : list[str]
-            Names of the input categories.
-
-        Raises
-        ------
-        FileNotFoundError
-            If the file is assumed to exists when it does not exist.
-        FileExistsError
-            If the file is assumed to not exist when it does exist.
-        """
-        self.filename: str = filename
-        """Name of the file."""
-
-        self.root: str = root
-        """Name of the root node.
-
-        This node is stored as :attr:`RESULTGROUP` in the file.
-        """
+        self.root = root
+        self.filename = filename
 
         if file_exists:
             if not os.path.isfile(filename):

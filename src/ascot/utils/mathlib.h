@@ -12,7 +12,7 @@
 /**
  * Find the bin index on a uniform grid.
  */
-#define math_bin_index(x, nx, xmin, xmax) floor(nx *(x - xmin) / (xmax - xmin))
+#define math_bin_index(x, nx, xmin, xmax) floor(nx * (x - xmin) / (xmax - xmin))
 
 /**
  * Copies elements of vector b to vector a.

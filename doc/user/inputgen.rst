@@ -264,43 +264,29 @@ Options
 =======
 ``options``
 
-.. toctree::
-   :hidden:
-
-   reference/options
-
-Options are used in every simulation.
-There is only one variant of options and it is documented `here <reference/options.rst>`_.
 
 .. tab-set::
 
    .. tab-item:: Simulation
 
-      .. options-table:: simulation
+      .. options-table:: Simulation
 
    .. tab-item:: Physics
 
-      .. options-table:: physics
+      .. options-table:: Physics
 
    .. tab-item:: End conditions
 
-      .. options-table:: endconditions
+      .. options-table:: Endconditions
 
-   .. tab-item:: Distributions
+   .. tab-item:: Histograms
 
-      .. options-table:: distributions
-
-   .. tab-item:: COM-Distribution
-
-      .. options-table:: comdistribution
+      .. options-table:: Histograms
 
    .. tab-item:: Orbit
 
-      .. options-table:: orbit
+      .. options-table:: Orbit
 
-   .. tab-item:: Transport coefficient
-
-      .. options-table:: transport_coefficient
 
 
 Templates

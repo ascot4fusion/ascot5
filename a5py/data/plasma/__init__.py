@@ -32,7 +32,7 @@ class Plasma(ctypes.Structure):
     _fields_ = [
         ("linear1d", ctypes.POINTER(linear1d.Struct)),
         ("dynamic1d", ctypes.POINTER(dynamic1d.Struct)),
-        ("type", ctypes.c_uint32),
+        ("type", ctypes.c_int32),
         ]
 
 

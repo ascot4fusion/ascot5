@@ -11,5 +11,5 @@ Analytical tokamak field
 
 .. dropdown:: The C-module (For developers)
 
-   .. doxygenstruct:: B_GS_data
+   .. doxygenstruct:: BfieldAnalytical
       :members:

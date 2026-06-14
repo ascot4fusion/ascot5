@@ -1,15 +1,17 @@
+"""Simulation options."""
 from .base import SimulationOptions, Struct as OptionsStruct
 from .parameters import (
-    simulation,
-    physics,
-    endconditions,
+    OrbitParams,
+    HistParams,
+    Dimension,
+    DIMENSIONS,
 )
 
 __all__ = [
     "SimulationOptions",
     "OptionsStruct",
-    "CreateOptionsMixin",
-    "simulation",
-    "physics",
-    "endconditions",
+    "OrbitParams",
+    "HistParams",
+    "Dimension",
+    "DIMENSIONS",
     ]

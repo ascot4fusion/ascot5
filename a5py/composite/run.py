@@ -6,15 +6,36 @@ import numpy as np
 from a5py.exceptions import AscotNoDataException
 from a5py.data.access import OutputVariant, Leaf
 from a5py.data.marker.state import MarkerState, evaluate
+from a5py.data import Orbit, Hist, SimulationOptions
 
 @Leaf.register
 class Run(OutputVariant):
+
+    _options: SimulationOptions
+
+    @property
+    def options(self):
+        return self._options
 
     def _load(self, file):
         super()._load(file)
         for name in self._file.children:
             if name == "endstate":
                 self._diagnostics[name] = MarkerState()
+                self._diagnostics[name]._file = self._file.access_data("endstate")
+            elif name == "orbit":
+                self._diagnostics[name] = Orbit()
+                self._diagnostics[name]._file = self._file.access_data("orbit")
+            elif "hist" in name:
+                self._diagnostics[name] = Hist()
+                self._diagnostics[name]._file = self._file.access_data(name)
+            elif name == "options":
+                file = self._file.access_data("options")
+                self._options = SimulationOptions.from_hdf5(file)
+                self.options._freeze()
+
+        for i, hist in enumerate(self.options.histograms):
+            self._diagnostics[f"hist_{i}"]._params = hist
 
     def _require(self, *args):
         """Check if required data is present and raise exception if not.
@@ -36,20 +57,25 @@ class Run(OutputVariant):
                 raise AscotNoDataException(
                     "Data for \"" +  arg + "\" is required but not present.")
 
-    def save(self):
-        super().save()
-        self.parameters = 0
+    def _save_data(self):
+        file = self._file.access_data("options")
+        self.options._write_hdf5(file)
         for name, diag in self._diagnostics.items():
             if name == "endstate":
                 file = self._file.access_data("endstate")
                 diag.save(file)
+            if name == "orbit":
+                file = self._file.access_data("orbit")
+                diag.save(file)
+            if "hist" in name:
+                file = self._file.access_data(name)
+                diag.save(file)
 
     def getstate(
             self, *qnt: str,
-            mode: str="gc",
             state: str="ini",
-            ids: Optional[list]=None,
-            endcond: Optional[str]=None,
+            filter: Optional[list[str | int]]=None,
+            mode: Optional[str]=None,
             ) -> np.ndarray | unyt.unyt_array:
         """Evaluate quantities from markers' ini- and endstate.
 
@@ -119,15 +145,15 @@ class Run(OutputVariant):
         if state not in ["ini", "end"]:
             raise ValueError("Unrecognized state: " + state)
         self._require("marker")
-        if endcond is not None or state == "end":
-            self._require("endstate")
+        #if endcond is not None or state == "end":
+        #    self._require("endstate")
 
         if state == "end":
             state = self._diagnostics["endstate"]
         else:
             state = self.marker
 
-        data = evaluate(state, qnt)
+        data = evaluate(state, qnt, filter)
         return data
 
     def getorbit(
@@ -141,7 +167,20 @@ class Run(OutputVariant):
         state = self["marker"]
         if bfield is None:
             bfield = self["bfield"]
+        if mode is None:
+            match self.options.simulation.mode:
+                case "guiding-center":
+                    print("duh")
+                    mode = "guidingcenter"
+                case "gyro-orbit":
+                    mode = "particle"
+                case "field-line":
+                    mode = "field-line"
+
         return orbit.evaluate_quantity(mode, state, bfield, *qnt, filter=filter)
+    
+    def getdist(self, idx, dimensions):
+        return self._diagnostics[f"hist_{idx}"].extract(dimensions)
 
     def plotorbit_trajectory(
             self,
@@ -428,20 +467,18 @@ class Run(OutputVariant):
                        cax=cax)
 
     @classmethod
-    def make_fresh(cls, mrk, inputs, params, *hist, orbit=None):
+    def make_fresh(cls, mrk, inputs, params):
         """Initialize a new run that has not been simulated.
 
         Parameters
         ----------
-        *mrk : Marker
+        mrk : Marker
             Markers to simulate.
 
             Effectively this argument is the inistate, which is then copied here
             to make an endstate. The endstate markers are simulated.
-        *hist : Hist
-            Any histogram diagnostics to include in the output.
-        orbit : Orbit, optional
-            Orbit diagnostics to include in the output.
+        inputs
+        params
 
         Returns
         -------
@@ -449,10 +486,11 @@ class Run(OutputVariant):
             The new run, ready for simulation.
         """
         run = cls(inputs=inputs)
-        run._diagnostics["endstate"] = MarkerState.from_params(mrk)
+        run._diagnostics["endstate"] = MarkerState.from_params(mrk._cdata)
+        orbit = Orbit.from_params(mrk.n, params.orbit)
         if orbit is not None:
             run._diagnostics["orbit"] = orbit
-        for i, h in enumerate(hist):
-            run._diagnostics[f"hist_{i}"] = h
-        run.options = params
+        for i, h in enumerate(params.histograms):
+            run._diagnostics[f"hist_{i}"] = Hist.from_params(h)
+        run._options = params
         return run

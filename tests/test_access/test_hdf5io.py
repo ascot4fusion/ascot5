@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from a5py.data.access.hdf5io import (
-    TreeFile, TreeFileManager, DataAccess, RESULTGROUP
+    TreeFile, TreeFileManager, RESULTGROUP
     )
 from a5py.data.access.tree import ROOT
 

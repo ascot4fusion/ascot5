@@ -149,7 +149,7 @@ typedef struct
     real min;  /**< Lower limit of the coordinate interval.                   */
     real max;  /**< Upper limit of the coordinate interval.                   */
     size_t n;  /**< Number of bins in this axis.                              */
-    int coord; /**< Coordinate mapped to this axis.                           */
+    //int coord; /**< Coordinate mapped to this axis.                           */
 } HistAxis;
 
 /**
@@ -191,7 +191,7 @@ typedef struct
      * f(x0, x1, ..., xn) = bins[i0*strides[0] + i1*strides[1] + ... + in]
      * (C order).
      */
-    real *bins;
+    real *values;
 } DiagHist;
 
 /**
@@ -200,7 +200,7 @@ typedef struct
 typedef struct
 {
     DiagOrbit *orbit; /**< Orbit diagnostics.                                 */
-    DiagHist *hist;   /**< List of histogram diagnostics to collect.          */
+    DiagHist **hist;  /**< List of histogram diagnostics to collect.          */
     size_t nhist;     /**< Number of histogram diagnostics.                   */
 } Diagnostics;
 

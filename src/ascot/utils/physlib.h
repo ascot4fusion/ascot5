@@ -5,10 +5,10 @@
 #ifndef PHYSLIB_H
 #define PHYSLIB_H
 
-#include "defines.h"
-#include "parallel.h"
 #include "consts.h"
+#include "defines.h"
 #include "mathlib.h"
+#include "parallel.h"
 #include <math.h>
 
 /**
@@ -447,8 +447,8 @@
  * - \f$n_b\f$ is plasma species density [m^-3]
  * - \f$\ln\Lambda_{ab}\f$ is Coulomb logarithm.
  */
-#define mccc_coefs_cab(qa, qb, nb, clogab) (                            \
-        nb * qa*qa * qb*qb * clogab / ( 4 * CONST_PI * CONST_E0*CONST_E0 ) )
+#define mccc_coefs_cab(qa, qb, nb, clogab)                                     \
+    (nb * qa * qa * qb * qb * clogab / (4 * CONST_PI * CONST_E0 * CONST_E0))
 
 /**
  * @brief Evaluate non-relativistic drag coefficient [m/s^2]
@@ -465,8 +465,8 @@
  * - \f$v_b\f$ is plasma species thermal velocity [m/s]
  * - \f$\ln\Lambda_{ab}\f$ is Coulomb logarithm.
  */
-#define mccc_coefs_Q(ma, qa, mb, qb, nb, vb, clogab, mu0) (           \
-        -mccc_coefs_cab(qa, qb, nb, clogab) * mu0 / ( ma * mb * vb*vb ) )
+#define mccc_coefs_Q(ma, qa, mb, qb, nb, vb, clogab, mu0)                      \
+    (-mccc_coefs_cab(qa, qb, nb, clogab) * mu0 / (ma * mb * vb * vb))
 
 /**
  * @brief Evaluate derivative of non-relativistic drag coefficient [m/s^2]
@@ -483,8 +483,8 @@
  * - \f$v_b\f$ is plasma species thermal velocity [m/s]
  * - \f$\ln\Lambda_{ab}\f$ is Coulomb logarithm.
  */
-#define mccc_coefs_dQ(ma, qa, mb, qb, nb, vb, clogab, dmu0) (           \
-        -mccc_coefs_cab(qa, qb, nb, clogab) * dmu0 / ( ma * mb * vb*vb*vb ) )
+#define mccc_coefs_dQ(ma, qa, mb, qb, nb, vb, clogab, dmu0)                    \
+    (-mccc_coefs_cab(qa, qb, nb, clogab) * dmu0 / (ma * mb * vb * vb * vb))
 
 /**
  * @brief Evaluate non-relativistic friction coefficient [m/s^2]
@@ -502,9 +502,9 @@
  * - \f$v_b\f$ is plasma species thermal velocity [m/s]
  * - \f$\ln\Lambda_{ab}\f$ is Coulomb logarithm.
  */
-#define mccc_coefs_F(ma, qa, mb, qb, nb, vb, clogab, mu0) (             \
-        -( 1/mb + 1/ma ) * mccc_coefs_cab(qa, qb, nb, clogab) * mu0     \
-        / ( ma * vb*vb ) )
+#define mccc_coefs_F(ma, qa, mb, qb, nb, vb, clogab, mu0)                      \
+    (-(1 / mb + 1 / ma) * mccc_coefs_cab(qa, qb, nb, clogab) * mu0 /           \
+     (ma * vb * vb))
 
 /**
  * @brief Evaluate non-relativistic parallel diffusion coefficient [m^2/s^3]
@@ -525,11 +525,10 @@
  * - \f$v_b\f$ is plasma species thermal velocity [m/s]
  * - \f$\ln\Lambda_{ab}\f$ is Coulomb logarithm.
  */
-#define mccc_coefs_Dpara(ma, qa, va, qb, nb, vb, clogab, mu0) (         \
-        ( va > 0 ) ?                                                    \
-        mccc_coefs_cab(qa, qb, nb, clogab) * mu0 / ( 2 * ma*ma * va ) : \
-        mccc_coefs_cab(qa, qb, nb, clogab) * 4                          \
-        / ( 6 * CONST_SQRTPI * ma*ma * vb ) )
+#define mccc_coefs_Dpara(ma, qa, va, qb, nb, vb, clogab, mu0)                  \
+    ((va > 0) ? mccc_coefs_cab(qa, qb, nb, clogab) * mu0 / (2 * ma * ma * va)  \
+              : mccc_coefs_cab(qa, qb, nb, clogab) * 4 /                       \
+                    (6 * CONST_SQRTPI * ma * ma * vb))
 
 /**
  * @brief Evaluate derivative of non-relativistic parallel diffusion
@@ -548,9 +547,9 @@
  * - \f$v_b\f$ is plasma species thermal velocity [m/s]
  * - \f$\ln\Lambda_{ab}\f$ is Coulomb logarithm.
  */
-#define mccc_coefs_dDpara(ma, qa, va, qb, nb, vb, clogab, mu0, dmu0) (  \
-        mccc_coefs_cab(qa, qb, nb, clogab) * ( dmu0/vb - mu0/va )       \
-        / ( 2 * ma*ma * va ) )
+#define mccc_coefs_dDpara(ma, qa, va, qb, nb, vb, clogab, mu0, dmu0)           \
+    (mccc_coefs_cab(qa, qb, nb, clogab) * (dmu0 / vb - mu0 / va) /             \
+     (2 * ma * ma * va))
 
 /**
  * @brief Evaluate non-relativistic perpendicular diffusion
@@ -572,11 +571,10 @@
  * - \f$v_b\f$ is plasma species thermal velocity [m/s]
  * - \f$\ln\Lambda_{ab}\f$ is Coulomb logarithm.
  */
-#define mccc_coefs_Dperp(ma, qa, va, qb, nb, vb, clogab, mu1) (         \
-        ( va > 0 ) ?                                                    \
-        mccc_coefs_cab(qa, qb, nb, clogab) * mu1 / ( 2 * ma*ma * va ) : \
-        mccc_coefs_cab(qa, qb, nb, clogab) * 4                          \
-        / ( 6 * CONST_SQRTPI * ma*ma * vb ) )
+#define mccc_coefs_Dperp(ma, qa, va, qb, nb, vb, clogab, mu1)                  \
+    ((va > 0) ? mccc_coefs_cab(qa, qb, nb, clogab) * mu1 / (2 * ma * ma * va)  \
+              : mccc_coefs_cab(qa, qb, nb, clogab) * 4 /                       \
+                    (6 * CONST_SQRTPI * ma * ma * vb))
 
 /**
  * @brief Evaluate guiding center drag coefficient [m/s^2]
@@ -589,8 +587,7 @@
  * - \f$D_parallel\f$ is  [1/s]
  * - \f$Q\f$ is  [m/s^2]
  */
-#define mccc_coefs_K(va, Dpara, dDpara, Q) (    \
-        Q + dDpara + 2*Dpara / va )
+#define mccc_coefs_K(va, Dpara, dDpara, Q) (Q + dDpara + 2 * Dpara / va)
 
 /**
  * @brief Evaluate pitch collision frequency [1/s]
@@ -602,8 +599,7 @@
  * - \f$v_a\f$ is test particle velocity [m/s]
  * - \f$D_perp\f$ is  []
  */
- #define mccc_coefs_nu(va, Dperp) (             \
-        2 * Dperp / ( va * va ) )
+#define mccc_coefs_nu(va, Dperp) (2 * Dperp / (va * va))
 
 /**
  * @brief Evaluate spatial diffusion coefficient [m^2/s]
@@ -617,18 +613,17 @@
  * - \f$D_perp\f$ is perpendicular diffusion coefficient [m^2/s^3]
  * - \f$\omega_g\f$ is gyrofrequency [1/s]
  */
-#define mccc_coefs_DX(xi, Dpara, Dperp, gyrofreq) (              \
-        ( 0.5 * ( Dpara - Dperp ) * ( 1 - xi*xi ) + Dperp )      \
-        / (gyrofreq*gyrofreq) )
+#define mccc_coefs_DX(xi, Dpara, Dperp, gyrofreq)                              \
+    ((0.5 * (Dpara - Dperp) * (1 - xi * xi) + Dperp) / (gyrofreq * gyrofreq))
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(mdata)
-static void mccc_coefs_mufun(real mufun[3], real x, mccc_data* mdata);
+static void mccc_coefs_mufun(real mufun[3], real x, mccc_data *mdata);
 DECLARE_TARGET_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(nspec, mb, qb, nb, Tb)
 inline static void mccc_coefs_clog(
-        real* clogab, real ma, real qa, real va, int nspec,
-        const real* mb, const real* qb, const real* nb, const real* Tb);
+    real *clogab, real ma, real qa, real va, int nspec, const real *mb,
+    const real *qb, const real *nb, const real *Tb);
 DECLARE_TARGET_END
 
 /**
@@ -651,31 +646,36 @@ DECLARE_TARGET_END
  * @param Tb plasma species temperatures [J]
  */
 inline static void mccc_coefs_clog(
-        real* clogab, real ma, real qa, real va, int nspec, const real* mb,
-        const real* qb, const real* nb, const real* Tb) {
+    real *clogab, real ma, real qa, real va, int nspec, const real *mb,
+    const real *qb, const real *nb, const real *Tb)
+{
 
     /* Evaluate Debye length */
     real sum = 0;
     GPU_SEQUENTIAL_LOOP
-    for(int i = 0; i < nspec; i++){
+    for (int i = 0; i < nspec; i++)
+    {
         sum += nb[i] * qb[i] * qb[i] / Tb[i];
     }
-    real debyeLength = sqrt(CONST_E0/sum);
+    real debyeLength = sqrt(CONST_E0 / sum);
 
     /* Evaluate classical and quantum mechanical impact parameter. The one *
      * that is larger is used to evaluate Coulomb logarithm.               */
     GPU_SEQUENTIAL_LOOP
-    for(int i=0; i < nspec; i++){
+    for (int i = 0; i < nspec; i++)
+    {
         real vbar = va * va + 2 * Tb[i] / mb[i];
-        real mr   = ma * mb[i] / ( ma + mb[i] );
-        real bcl  = fabs( qa * qb[i] / ( 4*CONST_PI*CONST_E0 * mr * vbar ) );
-        real bqm  = fabs( CONST_HBAR / ( 2 * mr * sqrt( vbar ) ) );
+        real mr = ma * mb[i] / (ma + mb[i]);
+        real bcl = fabs(qa * qb[i] / (4 * CONST_PI * CONST_E0 * mr * vbar));
+        real bqm = fabs(CONST_HBAR / (2 * mr * sqrt(vbar)));
 
-        if(bcl > bqm){
-            clogab[i] = log( debyeLength / bcl );
+        if (bcl > bqm)
+        {
+            clogab[i] = log(debyeLength / bcl);
         }
-        else{
-            clogab[i] = log( debyeLength / bqm );
+        else
+        {
+            clogab[i] = log(debyeLength / bqm);
         }
     }
 }
@@ -697,25 +697,27 @@ inline static void mccc_coefs_clog(
  * @param x argument for the special functions
  * @param mdata pointer to mccc data
  */
-inline static void mccc_coefs_mufun(real mufun[3], real x, mccc_data* mdata) {
+inline static void mccc_coefs_mufun(real mufun[3], real x, mccc_data *mdata)
+{
 
-    if(!mdata->usetabulated && x!= 0) {
-        real expm2x = exp(-x*x);
-        real erfx   = erf(x);
+    if (x != 0)
+    {
+        real expm2x = exp(-x * x);
+        real erfx = erf(x);
 
-        mufun[0] = ( erfx - 2 * x * expm2x / CONST_SQRTPI ) / (x*x);
+        mufun[0] = (erfx - 2 * x * expm2x / CONST_SQRTPI) / (x * x);
         mufun[1] = erfx - 0.5 * mufun[0];
         mufun[2] = 4 * expm2x / CONST_SQRTPI - 2 * mufun[0] / x;
     }
-    else if(mdata->usetabulated && x != 0) {
-        // TODO implement me
-    }
-    else {
+    // else if(mdata->usetabulated && x != 0) {
+    //  TODO implement me
+    //}
+    else
+    {
         mufun[0] = 0;
         mufun[1] = 0;
-        mufun[2] = 4 / ( 3 * CONST_SQRTPI );
+        mufun[2] = 4 / (3 * CONST_SQRTPI);
     }
-
 }
 
 /**
@@ -731,43 +733,45 @@ inline static void mccc_coefs_mufun(real mufun[3], real x, mccc_data* mdata) {
  * @param aldforce indicates whether Abraham-Lorentz-Dirac force is enabled
  */
 DECLARE_TARGET_SIMD
-inline static void step_gceom(real* ydot, real* y, real mass, real charge,
-                              real* B_dB, real* E, int aldforce) {
+inline static void step_gceom(
+    real *ydot, real *y, real mass, real charge, real *B_dB, real *E,
+    int aldforce)
+{
 
     real B[3];
     B[0] = B_dB[0];
-    B[1] = B_dB[4];
-    B[2] = B_dB[8];
+    B[1] = B_dB[1];
+    B[2] = B_dB[2];
 
     real normB = sqrt(math_dot(B, B));
     real gamma = physlib_gamma_ppar(mass, y[4], y[3], normB);
 
     real gradB[3];
-    gradB[0] = (B[0]*B_dB[1] + B[1]*B_dB[5] + B[2]*B_dB[9]) / normB;
-    gradB[1] = (B[0]*B_dB[2] + B[1]*B_dB[6] + B[2]*B_dB[10])
-               / (normB * y[0]);
-    gradB[2] = (B[0]*B_dB[3] + B[1]*B_dB[7] + B[2]*B_dB[11]) / normB;
+    gradB[0] = (B[0] * B_dB[3] + B[1] * B_dB[6] + B[2] * B_dB[9]) / normB;
+    gradB[1] =
+        (B[0] * B_dB[4] + B[1] * B_dB[7] + B[2] * B_dB[10]) / (normB * y[0]);
+    gradB[2] = (B[0] * B_dB[5] + B[1] * B_dB[8] + B[2] * B_dB[11]) / normB;
 
     real gradBcrossB[3];
     math_cross(gradB, B, gradBcrossB);
 
     real curlB[3];
-    curlB[0] = B_dB[10] / y[0] - B_dB[7];
-    curlB[1] = B_dB[3] - B_dB[9];
-    curlB[2] = (B[1] - B_dB[2]) / y[0] + B_dB[5];
+    curlB[0] = B_dB[10] / y[0] - B_dB[8];
+    curlB[1] = B_dB[5] - B_dB[9];
+    curlB[2] = (B[1] - B_dB[4]) / y[0] + B_dB[6];
 
     real Bstar[3];
-    Bstar[0] = B[0] + (y[3] / charge)
-                      * (curlB[0] / normB - gradBcrossB[0] / (normB*normB));
-    Bstar[1] = B[1] + (y[3] / charge)
-                      * (curlB[1] / normB - gradBcrossB[1] / (normB*normB));
-    Bstar[2] = B[2] + (y[3] / charge)
-                      * (curlB[2] / normB - gradBcrossB[2] / (normB*normB));
+    Bstar[0] = B[0] + (y[3] / charge) *
+                          (curlB[0] / normB - gradBcrossB[0] / (normB * normB));
+    Bstar[1] = B[1] + (y[3] / charge) *
+                          (curlB[1] / normB - gradBcrossB[1] / (normB * normB));
+    Bstar[2] = B[2] + (y[3] / charge) *
+                          (curlB[2] / normB - gradBcrossB[2] / (normB * normB));
 
     real Estar[3];
-    Estar[0] = E[0] - y[4] * gradB[0] / ( charge * gamma );
-    Estar[1] = E[1] - y[4] * gradB[1] / ( charge * gamma );
-    Estar[2] = E[2] - y[4] * gradB[2] / ( charge * gamma );
+    Estar[0] = E[0] - y[4] * gradB[0] / (charge * gamma);
+    Estar[1] = E[1] - y[4] * gradB[1] / (charge * gamma);
+    Estar[2] = E[2] - y[4] * gradB[2] / (charge * gamma);
 
     real Bhat[3];
     Bhat[0] = B[0] / normB;
@@ -779,22 +783,21 @@ inline static void step_gceom(real* ydot, real* y, real mass, real charge,
     real EstarcrossBhat[3];
     math_cross(Estar, Bhat, EstarcrossBhat);
 
-    ydot[0] = ( y[3] * Bstar[0] / ( gamma * mass )
-                + EstarcrossBhat[0] ) / BhatDotBstar;
-    ydot[1] = ( y[3] * Bstar[1] / ( gamma * mass )
-                + EstarcrossBhat[1] ) / ( y[0]*BhatDotBstar );
-    ydot[2] = ( y[3] * Bstar[2] / ( gamma * mass )
-                + EstarcrossBhat[2] ) / BhatDotBstar;
-    ydot[3] = charge * math_dot(Bstar,Estar) / BhatDotBstar;
+    ydot[0] =
+        (y[3] * Bstar[0] / (gamma * mass) + EstarcrossBhat[0]) / BhatDotBstar;
+    ydot[1] = (y[3] * Bstar[1] / (gamma * mass) + EstarcrossBhat[1]) /
+              (y[0] * BhatDotBstar);
+    ydot[2] =
+        (y[3] * Bstar[2] / (gamma * mass) + EstarcrossBhat[2]) / BhatDotBstar;
+    ydot[3] = charge * math_dot(Bstar, Estar) / BhatDotBstar;
     ydot[4] = 0;
-    ydot[5] = charge * normB / ( gamma * mass );
+    ydot[5] = charge * normB / (gamma * mass);
 
     real t_ald = phys_ald_force_chartime(charge, mass, normB, gamma) * aldforce;
     real C = 2 * y[4] * normB / (mass * CONST_C2);
     ydot[3] += -t_ald * y[3] * C;
     ydot[4] += -2 * t_ald * y[4] * (1 + C);
 }
-
 
 /**
  * @brief Calculate guiding center equations of motion for a single particle
@@ -811,8 +814,9 @@ inline static void step_gceom(real* ydot, real* y, real mass, real charge,
  */
 DECLARE_TARGET_SIMD
 inline static void step_gceom_mhd(
-    real* ydot, real* y, real mass, real charge, real* B_dB, real* E,
-    real alpha[5], real Phi[5], int aldforce) {
+    real *ydot, real *y, real mass, real charge, real *B_dB, real *E,
+    real alpha[5], real Phi[5], int aldforce)
+{
 
     real B[3];
     B[0] = B_dB[0];
@@ -823,10 +827,10 @@ inline static void step_gceom_mhd(
     real gamma = physlib_gamma_ppar(mass, y[4], y[3], normB);
 
     real gradB[3];
-    gradB[0] = (B[0]*B_dB[3] + B[1]*B_dB[6] + B[2]*B_dB[9]) / normB;
-    gradB[1] = (B[0]*B_dB[4] + B[1]*B_dB[7] + B[2]*B_dB[10])
-               / (normB * y[0]);
-    gradB[2] = (B[0]*B_dB[5] + B[1]*B_dB[8] + B[2]*B_dB[11]) / normB;
+    gradB[0] = (B[0] * B_dB[3] + B[1] * B_dB[6] + B[2] * B_dB[9]) / normB;
+    gradB[1] =
+        (B[0] * B_dB[4] + B[1] * B_dB[7] + B[2] * B_dB[10]) / (normB * y[0]);
+    gradB[2] = (B[0] * B_dB[5] + B[1] * B_dB[8] + B[2] * B_dB[11]) / normB;
 
     real gradBcrossB[3];
     math_cross(gradB, B, gradBcrossB);
@@ -836,29 +840,29 @@ inline static void step_gceom_mhd(
     curlB[1] = B_dB[5] - B_dB[9];
     curlB[2] = (B[1] - B_dB[4]) / y[0] + B_dB[6];
 
-    real* gradalpha = &alpha[2];
+    real *gradalpha = &alpha[2];
 
     real gradalphacrossB[3];
     math_cross(gradalpha, B, gradalphacrossB);
 
     real Bstar[3];
-    Bstar[0] = B[0] + gradalphacrossB[0] + alpha[0] * curlB[0]
-        + ( y[3] / charge ) * ( curlB[0] / normB
-                                - gradBcrossB[0] / (normB*normB));
-    Bstar[1] = B[1] + gradalphacrossB[1] + alpha[0] * curlB[1]
-        + ( y[3] / charge ) * ( curlB[1] / normB
-                                - gradBcrossB[0] / (normB*normB));
-    Bstar[2] = B[2] + gradalphacrossB[2] + alpha[0] * curlB[2]
-        + ( y[3] / charge ) * ( curlB[2] / normB
-                                - gradBcrossB[2] / (normB*normB));
+    Bstar[0] =
+        B[0] + gradalphacrossB[0] + alpha[0] * curlB[0] +
+        (y[3] / charge) * (curlB[0] / normB - gradBcrossB[0] / (normB * normB));
+    Bstar[1] =
+        B[1] + gradalphacrossB[1] + alpha[0] * curlB[1] +
+        (y[3] / charge) * (curlB[1] / normB - gradBcrossB[0] / (normB * normB));
+    Bstar[2] =
+        B[2] + gradalphacrossB[2] + alpha[0] * curlB[2] +
+        (y[3] / charge) * (curlB[2] / normB - gradBcrossB[2] / (normB * normB));
 
     real Estar[3];
-    Estar[0] = E[0] - Phi[2] - y[4] * gradB[0] / ( charge * gamma )
-        - B[0] * alpha[1];
-    Estar[1] = E[1] - Phi[3] - y[4] * gradB[1] / ( charge * gamma )
-        - B[1] * alpha[1];
-    Estar[2] = E[2] - Phi[4] - y[4] * gradB[2] / ( charge * gamma )
-        - B[2] * alpha[1];
+    Estar[0] =
+        E[0] - Phi[2] - y[4] * gradB[0] / (charge * gamma) - B[0] * alpha[1];
+    Estar[1] =
+        E[1] - Phi[3] - y[4] * gradB[1] / (charge * gamma) - B[1] * alpha[1];
+    Estar[2] =
+        E[2] - Phi[4] - y[4] * gradB[2] / (charge * gamma) - B[2] * alpha[1];
 
     real Bhat[3];
     Bhat[0] = B[0] / normB;
@@ -870,15 +874,15 @@ inline static void step_gceom_mhd(
     real EstarcrossBhat[3];
     math_cross(Estar, Bhat, EstarcrossBhat);
 
-    ydot[0] = (y[3] * Bstar[0] / ( gamma * mass )
-               + EstarcrossBhat[0]) / BhatDotBstar;
-    ydot[1] = (y[3] * Bstar[1] / ( gamma * mass )
-               + EstarcrossBhat[1]) / (y[0]*BhatDotBstar);
-    ydot[2] = (y[3] * Bstar[2] / ( gamma * mass )
-               + EstarcrossBhat[2]) / BhatDotBstar;
-    ydot[3] = charge * math_dot(Bstar,Estar) / BhatDotBstar;
+    ydot[0] =
+        (y[3] * Bstar[0] / (gamma * mass) + EstarcrossBhat[0]) / BhatDotBstar;
+    ydot[1] = (y[3] * Bstar[1] / (gamma * mass) + EstarcrossBhat[1]) /
+              (y[0] * BhatDotBstar);
+    ydot[2] =
+        (y[3] * Bstar[2] / (gamma * mass) + EstarcrossBhat[2]) / BhatDotBstar;
+    ydot[3] = charge * math_dot(Bstar, Estar) / BhatDotBstar;
     ydot[4] = 0;
-    ydot[5] = charge * normB / (gamma*mass);
+    ydot[5] = charge * normB / (gamma * mass);
 
     real t_ald = phys_ald_force_chartime(charge, mass, normB, gamma) * aldforce;
     real C = 2 * y[4] * normB / (mass * CONST_C2);

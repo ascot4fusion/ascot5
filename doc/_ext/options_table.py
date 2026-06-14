@@ -9,20 +9,45 @@ Following creates a table on the RST file with ``simulation`` parameters:
    .. options-table:: simulation
 """
 import textwrap
-from a5py.data import options
+from a5py.data.options.parameters import Simulation, fetch_doc
 from sphinx.util.docutils import SphinxDirective
 
 def generate_options_table(optionsdataclass):
     """Generate RST table from given the given options dataclass."""
     #cls = getattr(options, optionsdataclass)
     #attr = getattr(options.Options, optionsdataclass)
+    cls = Simulation
 
     lines = []
-    #lines.append(".. list-table::")
-    #lines.append("   :header-rows: 1")
-    #lines.append("")
-    #lines.append(f"   * - ``Options.{cls.__name__}``")
-    #lines.append(f"     - {attr.__doc__}")
+    lines.append(".. list-table::")
+    lines.append("   :header-rows: 1")
+    lines.append("")
+    lines.append(f"   * - ``Options.{cls.__name__}``")
+    lines.append(f"     - {cls.__doc__.split('Attributes')[0]}")
+    #print(lines)
+
+    # import re
+    # def find(attribute_name):
+    #     doc = cls.__doc__ or ""
+    #     pattern = rf"{attribute_name}\s*:\s*.*?\n\s+(.*)"
+    #     match = re.search(pattern, doc, re.DOTALL)
+
+    #     if match:
+    #         # stop at next attribute or blank line block
+    #         text = match.group(1).strip()
+    #         text = re.split(r"\n\s*\w+\s*:", text)[0]
+    #         return text.strip()
+
+    for name, member in cls.__dict__.items():
+        if name.startswith("_"):
+            continue
+        indented_doc = textwrap.indent(fetch_doc(cls, name), "       ").split("\n")
+        lines.append(f"   * - ``{cls.__name__}.{name}``")
+        lines.append(f"     - | " + indented_doc[0][7:])
+        for line in indented_doc[2:]:
+            lines.append(f"{line}")
+            if line == "":
+                lines.append(f"       |")
 
     #for name, member in cls.__dict__.items():
     #    if not isinstance(member, property):

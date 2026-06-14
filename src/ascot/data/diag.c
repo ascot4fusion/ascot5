@@ -13,7 +13,7 @@ void Diag_offload(Diagnostics *diag)
 {
     for (size_t i = 0; i < diag->nhist; i++)
     {
-        DiagHist_offload(&diag->hist[i]);
+        DiagHist_offload(diag->hist[i]);
     }
     if (diag->orbit != NULL)
     {
@@ -27,7 +27,7 @@ void Diag_update_go(
 {
     for (size_t i = 0; i < diag->nhist; i++)
     {
-        DiagHist_update_go(&diag->hist[i], mrk_f, mrk_i);
+        DiagHist_update_go(diag->hist[i], mrk_f, mrk_i);
     }
     if (diag->orbit != NULL)
     {
@@ -41,7 +41,7 @@ void Diag_update_gc(
 {
     for (size_t i = 0; i < diag->nhist; i++)
     {
-        DiagHist_update_gc(&diag->hist[i], mrk_f, mrk_i);
+        DiagHist_update_gc(diag->hist[i], mrk_f, mrk_i);
     }
     if (diag->orbit != NULL)
     {

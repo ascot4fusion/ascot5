@@ -3,13 +3,13 @@ Perturbed tokamak field
 
 .. rubric:: Class documentation
 
-.. autoclass:: a5py.data.bfield.Bfield3D
+.. autoclass:: a5py.data.bfield.BfieldSpline3D
 
 .. rubric:: Creation
 
-.. autofunction:: a5py.data.AscotData.create_bfield3d
+.. autofunction:: a5py.data.AscotData.create_bfieldspline3d
 
 .. dropdown:: The C-module (For developers)
 
-   .. doxygenstruct:: B_3DS_data
+   .. doxygenstruct:: BfieldSpline3D
       :members:

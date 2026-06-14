@@ -3,13 +3,13 @@ Radial neutral distribution
 
 .. rubric:: Class documentation
 
-.. autoclass:: a5py.data.neutral.Neutral1D
+.. autoclass:: a5py.data.neutral.NeutralRadial
 
 .. rubric:: Creation
 
-.. autofunction:: a5py.data.AscotData.create_neutral1d
+.. autofunction:: a5py.data.AscotData.create_neutralradial
 
 .. dropdown:: The C-module (For developers)
 
-   .. doxygenstruct:: N0_1D_data
+   .. doxygenstruct:: NeutralRadial
       :members:

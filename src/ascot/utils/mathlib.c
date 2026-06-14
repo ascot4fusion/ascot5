@@ -27,28 +27,28 @@ void math_jac_rpz2xyz(real *rpz, real *xyz, real r, real phi)
     real temp[3];
 
     xyz[0] = rpz[0] * c - rpz[4] * s;
-    xyz[4] = rpz[0] * s + rpz[4] * c;
-    xyz[8] = rpz[8];
+    xyz[1] = rpz[0] * s + rpz[4] * c;
+    xyz[2] = rpz[8];
 
     // Step 1: Vector [dBr/dx dBr/dy dBr/dz]
-    temp[0] = rpz[1] * c - rpz[5] * s;
-    temp[1] = rpz[2] * c - rpz[6] * s;
-    temp[2] = rpz[3] * c - rpz[7] * s;
+    temp[0] = rpz[3] * c - rpz[6] * s;
+    temp[1] = rpz[4] * c - rpz[7] * s;
+    temp[2] = rpz[5] * c - rpz[8] * s;
 
     // Step 2: Gradient
-    xyz[1] = temp[0] * c - temp[1] * s / r + (rpz[0] * s + rpz[4] * c) * s / r;
-    xyz[2] = temp[0] * s + temp[1] * c / r - (rpz[0] * s + rpz[4] * c) * c / r;
-    xyz[3] = temp[2];
+    xyz[3] = temp[0] * c - temp[1] * s / r + (rpz[0] * s + rpz[5] * c) * s / r;
+    xyz[4] = temp[0] * s + temp[1] * c / r - (rpz[0] * s + rpz[5] * c) * c / r;
+    xyz[5] = temp[2];
 
     // Step 1: Vector [dBphi/dx dBphi/dy dBphi/dz]
-    temp[0] = rpz[1] * s + rpz[5] * c;
-    temp[1] = rpz[2] * s + rpz[6] * c;
-    temp[2] = rpz[3] * s + rpz[7] * c;
+    temp[0] = rpz[3] * s + rpz[6] * c;
+    temp[1] = rpz[4] * s + rpz[7] * c;
+    temp[2] = rpz[5] * s + rpz[8] * c;
 
     // Step 2: Gradient
-    xyz[5] = temp[0] * c - temp[1] * s / r + (rpz[0] * c - rpz[4] * s) * s / r;
-    xyz[6] = temp[0] * s + temp[1] * c / r - (rpz[0] * c - rpz[4] * s) * c / r;
-    xyz[7] = temp[2];
+    xyz[6] = temp[0] * c - temp[1] * s / r + (rpz[0] * c - rpz[5] * s) * s / r;
+    xyz[7] = temp[0] * s + temp[1] * c / r - (rpz[0] * c - rpz[5] * s) * c / r;
+    xyz[8] = temp[2];
 
     // Step 1: Vector [dBz/dx dBz/dy dBz/dz]
     temp[0] = rpz[9];

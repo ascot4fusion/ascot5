@@ -3,13 +3,13 @@ Radial electric field
 
 .. rubric:: Class documentation
 
-.. autoclass:: a5py.data.efield.EfieldRadialPotential
+.. autoclass:: a5py.data.efield.EfieldPotential1D
 
 .. rubric:: Creation
 
-.. autofunction:: a5py.data.AscotData.create_efieldradialpotential
+.. autofunction:: a5py.data.AscotData.create_efieldpotential1d
 
 .. dropdown:: The C-module (For developers)
 
-   .. doxygenstruct:: E_1DS_data
+   .. doxygenstruct:: EfieldPotential1D
       :members:

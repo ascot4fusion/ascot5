@@ -13,6 +13,12 @@ from .mhd import Mhd
 from .boozer import BoozerMap
 from .atomic import Atomic
 from .nbi import NbiStruct
+from .orbit import Orbit
+from .hist import Hist
+
+from .options import (
+    SimulationOptions, HistParams, OrbitParams,
+)
 
 __all__ = [
     "InputVariant",
@@ -26,4 +32,9 @@ __all__ = [
     "BoozerMap",
     "Atomic",
     "NbiStruct",
+    "Orbit",
+    "Hist",
+    "OrbitParams",
+    "HistParams",
+    "SimulationOptions",
 ]

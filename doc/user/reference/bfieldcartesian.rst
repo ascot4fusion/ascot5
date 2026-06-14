@@ -11,5 +11,5 @@ Cartesian magnetic field
 
 .. dropdown:: The C-module (For developers)
 
-   .. doxygenstruct:: B_TC_data
+   .. doxygenstruct:: BfieldCartesian
       :members:

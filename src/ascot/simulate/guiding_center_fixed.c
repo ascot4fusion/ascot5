@@ -279,6 +279,9 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     free(hout_rfof);
     free(rnd);
 
+    MarkerGuidingCenter_deallocate(&p);
+    MarkerGuidingCenter_deallocate(&p0);
+
     /* Deallocate rfof structs */
     if (sim->options->enable_icrh)
     {

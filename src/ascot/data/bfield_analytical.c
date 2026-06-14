@@ -70,7 +70,6 @@ err_t BfieldAnalytical_eval_psi(
          C[10] * (3 * z * r4 - 4 * z3 * r2) +
          C[11] *
              (8 * z5 - 45 * z * r4 - 80 * z3 * r2 * logr + 60 * z * r4 * logr));
-
     return 0;
 }
 
@@ -226,7 +225,7 @@ err_t BfieldAnalytical_eval_b_db(
 
     b_db[1] = bfield->bphi / r;
 
-    b_db[6] = -bfield->bphi / r2;
+    b_db[6] = -bfield->bphi / (r2 * bfield->rmajor);
     b_db[7] = 0;
     b_db[8] = 0;
 

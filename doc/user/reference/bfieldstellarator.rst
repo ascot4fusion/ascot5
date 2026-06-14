@@ -11,5 +11,5 @@ Stellarator field
 
 .. dropdown:: The C-module (For developers)
 
-   .. doxygenstruct:: B_STS_data
+   .. doxygenstruct:: BfieldStellarator
       :members:

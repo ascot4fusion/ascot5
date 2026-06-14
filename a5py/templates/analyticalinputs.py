@@ -12,31 +12,31 @@ from .template import InputTemplate
 
 
 class PremadeMagneticField(InputTemplate):
+    """Create one of the premade magnetic fields.
+
+    Parameters
+    ----------
+    ascot : :class:`Ascot`
+        The Ascot object where the input will be created.
+    field : str
+        Name of the premade magnetic field to create.
+
+        The options are:
+        - `"iter-circular"`: Circular ITER-like field.
+        - `"iter-baseline"`: more realistic ITER-like field with elongation
+            and similar parameters as in the baseline scenario.
+        - `"nstx-doublenull"`: Double-null configuration of the NSTX field.
+    axisymmetric : bool, optional
+        If True, the field contains toroidal ripple.
+
+        Unfortunately, the model for the TF ripple is not divergence free.
+    splines : bool, optional
+        If True, the field is interpolated with splines in the simulation.
+
+        By default, the field is analytical.
+    """
 
     def __init__(self, ascot, field, axisymmetric=True, splines=False):
-        """Create one of the premade magnetic fields.
-
-        Parameters
-        ----------
-        ascot : :class:`Ascot`
-            The Ascot object where the input will be created.
-        field : str
-            Name of the premade magnetic field to create.
-
-            The options are:
-            - `"iter-circular"`: Circular ITER-like field.
-            - `"iter-baseline"`: more realistic ITER-like field with elongation
-              and similar parameters as in the baseline scenario.
-            - `"nstx-doublenull"`: Double-null configuration of the NSTX field.
-        axisymmetric : bool, optional
-            If True, the field contains toroidal ripple.
-
-            Unfortunately, the model for the TF ripple is not divergence free.
-        splines : bool, optional
-            If True, the field is interpolated with splines in the simulation.
-
-            By default, the field is analytical.
-        """
         data = {}
         if field == "iter-circular":
             c = aeq.parameters2coefficients(

@@ -5,6 +5,7 @@
 #include "consts.h"
 #include "defines.h"
 #include "marker.h"
+#include "utils/physlib.h"
 #include "parallel.h"
 #include "utils/mathlib.h"
 #include <stdlib.h>
@@ -45,10 +46,19 @@ void DiagHist_update_go(
             sqrt(
                 mrk_f->B_r[i] * mrk_f->B_r[i] + mrk_f->B_phi[i] * mrk_f->B_phi[i] +
                 mrk_f->B_z[i] * mrk_f->B_z[i]);
+        real ppar0 =
+            (mrk_i->p_r[i] * mrk_i->B_r[i] + mrk_i->p_phi[i] * mrk_i->B_phi[i] +
+             mrk_i->p_z[i] * mrk_i->B_z[i]) /
+            sqrt(
+                mrk_i->B_r[i] * mrk_i->B_r[i] + mrk_i->B_phi[i] * mrk_i->B_phi[i] +
+                mrk_i->B_z[i] * mrk_i->B_z[i]);
 
         real pperp = sqrt(
             mrk_f->p_r[i] * mrk_f->p_r[i] + mrk_f->p_phi[i] * mrk_f->p_phi[i] +
             mrk_f->p_z[i] * mrk_f->p_z[i] - ppar * ppar);
+
+        real pnorm = sqrt(ppar*ppar + pperp*pperp);
+        real gamma = physlib_gamma_pnorm(mrk_f->mass[i], pnorm);
 
         axis = &hist->axes[15];
         // size_t nq = axis->n;
@@ -67,12 +77,15 @@ void DiagHist_update_go(
         size_t i12 = 0;
 
         axis = &hist->axes[11];
-        // size_t nxi = axis->n;
-        size_t i11 = 0;
+        size_t i11 = math_bin_index(
+            ppar / pnorm, axis->n, axis->min, axis->max
+        );
 
+        real ekin = physlib_Ekin_gamma(mrk_f->mass[i], gamma);
         axis = &hist->axes[10];
-        // size_t nekin = axis->n;
-        size_t i10 = 0;
+        size_t i10 = math_bin_index(
+            ekin, axis->n, axis->min, axis->max
+        );
 
         axis = &hist->axes[9];
         size_t i9 = math_bin_index(mrk_f->p_z[i], axis->n, axis->min, axis->max);
@@ -129,7 +142,7 @@ void DiagHist_update_go(
         if (mrk_f->running[i] && index[i] < hist->nbin)
         {
             GPU_ATOMIC
-            hist->bins[index[i]] += weight[i];
+            hist->values[index[i]] += weight[i];
         }
     }
 #endif

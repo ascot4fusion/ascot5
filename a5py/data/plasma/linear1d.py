@@ -106,7 +106,7 @@ class PlasmaLinear1D(InputVariant):
         """Density for each ion species."""
         if self._cdata is not None:
             data = self._cdata.readonly_carray(
-                "density", (self.nion, self.nrho), "m**(-3)",
+                "density", (self.nion+1, self.nrho), "m**(-3)",
                 )
             return data.T[:,1:]
         assert self._file is not None
@@ -126,7 +126,7 @@ class PlasmaLinear1D(InputVariant):
         """Electron density."""
         if self._cdata is not None:
             data = self._cdata.readonly_carray(
-                "density", (self.nion, self.nrho), "m**(-3)",
+                "density", (self.nion+1, self.nrho), "m**(-3)",
                 )
             return data.T[:,0]
         assert self._file is not None
@@ -178,7 +178,7 @@ class PlasmaLinear1D(InputVariant):
         if LIBASCOT.PlasmaLinear1D_init(
             ctypes.byref(self._cdata), rhogrid.size, len(species), anum, znum,
             mass.to("kg").v, charge.to("C").v.astype("f8"), rhogrid.v,
-            Te.to("J").v, Ti.to("J").v, ni.v, ne.v, rotation.v,
+            Te.to("J").v, Ti.to("J").v, ne.v, ni.v, rotation.v,
             ):
             self._cdata = None
             raise AscotMeltdownError("Could not initialize struct.")
@@ -249,9 +249,9 @@ class CreateMixin(TreeMixin):
             Radial grid in :math:`\rho` in which the data is tabulated.
 
             This grid doesn't have to be uniform.
-        ni : array_like (nrho,nion)
+        ni : array_like (nrho,nion) or (1,nion)
             Density for each ion species.
-        Ti : array_like (nrho,)
+        Ti : array_like (nrho,) or (1,)
             Ion temperature.
         ne : array_like (nrho,), *optional*
             Electron density.
@@ -299,6 +299,8 @@ class CreateMixin(TreeMixin):
             rhogrid = v.validate("rhogrid", rhogrid, (-1,), "1")
 
         nrho = rhogrid.size
+        ni = utils.scalar2array(ni, (nrho, nion))
+        Ti = utils.scalar2array(Ti, (nrho,))
         with utils.validate_variables() as v:
             ni = v.validate("ni", ni, (nrho, nion), "m**(-3)")
             Ti = v.validate("Ti", Ti, (nrho,), "eV")
@@ -311,6 +313,8 @@ class CreateMixin(TreeMixin):
         else:
             charge_density = np.matmul(ni, charge) / unyt.e
 
+        ne = utils.scalar2array(ne, (nrho,))
+        Te = utils.scalar2array(Te, (nrho,))
         with utils.validate_variables() as v:
             ne = v.validate("ne", ne, (nrho,), "m**(-3)", default=charge_density)
             Te = v.validate("Te", Te, (nrho,), "eV", default=Ti.v)

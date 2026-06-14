@@ -36,7 +36,7 @@ void gctransform_particle2guidingcenter(
 
     /* |B| */
     real Bnorm =
-        sqrt(b_db[0] * b_db[0] + b_db[4] * b_db[4] + b_db[8] * b_db[8]);
+        sqrt(b_db[0] * b_db[0] + b_db[1] * b_db[1] + b_db[2] * b_db[2]);
 
     /* Guiding center transformation is more easily done in cartesian
      * coordinates so we switch to using those */

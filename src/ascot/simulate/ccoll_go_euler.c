@@ -17,13 +17,13 @@ void mccc_go_euler(
 {
 
     /* Get plasma information before going to the  SIMD loop */
-    int n_species = Plasma_get_n_species(plasma);
+    size_t n_species = Plasma_get_n_species(plasma);
     const real *qb = Plasma_get_species_charge(plasma);
     const real *mb = Plasma_get_species_mass(plasma);
 
     GPU_DATA_IS_MAPPED(h [0:p->n_mrk], rnd [0:3 * p->n_mrk])
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for (int i = 0; i < p->n_mrk; i++)
+    for (size_t i = 0; i < p->n_mrk; i++)
     {
         if (p->running[i])
         {
@@ -40,7 +40,7 @@ void mccc_go_euler(
                 p->p_z[i] * p->p_z[i]);
             real gamma = physlib_gamma_pnorm(p->mass[i], pnorm);
 
-            real vflow;
+            real vflow = 0;
             if (!errflag)
             {
                 errflag = Plasma_eval_flow(
@@ -84,7 +84,7 @@ void mccc_go_euler(
              * species                                               */
             real F = 0, Dpara = 0, Dperp = 0;
             GPU_SEQUENTIAL_LOOP
-            for (int j = 0; j < n_species; j++)
+            for (size_t j = 0; j < n_species; j++)
             {
                 real vb = sqrt(2 * Tb[j] / mb[j]);
                 real x = vin / vb;

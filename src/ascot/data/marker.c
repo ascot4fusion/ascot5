@@ -321,6 +321,9 @@ int MarkerGuidingCenter_allocate(MarkerGuidingCenter *mrk, size_t vector_size)
     allocate_field(mrk->zeta);
     allocate_field(mrk->mass);
     allocate_field(mrk->charge);
+    allocate_field(mrk->time);
+    allocate_field(mrk->znum);
+    allocate_field(mrk->anum);
     allocate_field(mrk->B_r);
     allocate_field(mrk->B_phi);
     allocate_field(mrk->B_z);
@@ -333,13 +336,12 @@ int MarkerGuidingCenter_allocate(MarkerGuidingCenter *mrk, size_t vector_size)
     allocate_field(mrk->B_r_dz);
     allocate_field(mrk->B_phi_dz);
     allocate_field(mrk->B_z_dz);
+    allocate_field(mrk->bounces);
+    allocate_field(mrk->weight);
     allocate_field(mrk->cputime);
     allocate_field(mrk->rho);
     allocate_field(mrk->theta);
-    allocate_field(mrk->weight);
-    allocate_field(mrk->time);
     allocate_field(mrk->id);
-    allocate_field(mrk->bounces);
     allocate_field(mrk->endcond);
     allocate_field(mrk->walltile);
     allocate_field(mrk->mileage);
@@ -364,6 +366,9 @@ void MarkerGuidingCenter_deallocate(MarkerGuidingCenter *mrk)
     free(mrk->zeta);
     free(mrk->mass);
     free(mrk->charge);
+    free(mrk->time);
+    free(mrk->anum);
+    free(mrk->znum);
     free(mrk->B_r);
     free(mrk->B_phi);
     free(mrk->B_z);
@@ -376,13 +381,12 @@ void MarkerGuidingCenter_deallocate(MarkerGuidingCenter *mrk)
     free(mrk->B_r_dz);
     free(mrk->B_phi_dz);
     free(mrk->B_z_dz);
+    free(mrk->bounces);
+    free(mrk->weight);
     free(mrk->cputime);
     free(mrk->rho);
     free(mrk->theta);
-    free(mrk->weight);
-    free(mrk->time);
     free(mrk->id);
-    free(mrk->bounces);
     free(mrk->endcond);
     free(mrk->walltile);
     free(mrk->mileage);
@@ -405,35 +409,32 @@ void MarkerGuidingCenter_copy(
     copy->ppar[index] = original->ppar[index];
     copy->mu[index] = original->mu[index];
     copy->zeta[index] = original->zeta[index];
-
     copy->time[index] = original->time[index];
     copy->mileage[index] = original->mileage[index];
     copy->weight[index] = original->weight[index];
     copy->cputime[index] = original->cputime[index];
     copy->rho[index] = original->rho[index];
     copy->theta[index] = original->theta[index];
-
     copy->mass[index] = original->mass[index];
     copy->charge[index] = original->charge[index];
-
+    copy->anum[index] = original->anum[index];
+    copy->znum[index] = original->znum[index];
     copy->id[index] = original->id[index];
+    copy->err[index] = original->err[index];
+    copy->index[index] = original->index[index];
     copy->bounces[index] = original->bounces[index];
     copy->running[index] = original->running[index];
     copy->endcond[index] = original->endcond[index];
     copy->walltile[index] = original->walltile[index];
-
     copy->B_r[index] = original->B_r[index];
     copy->B_phi[index] = original->B_phi[index];
     copy->B_z[index] = original->B_z[index];
-
     copy->B_r_dr[index] = original->B_r_dr[index];
     copy->B_r_dphi[index] = original->B_r_dphi[index];
     copy->B_r_dz[index] = original->B_r_dz[index];
-
     copy->B_phi_dr[index] = original->B_phi_dr[index];
     copy->B_phi_dphi[index] = original->B_phi_dphi[index];
     copy->B_phi_dz[index] = original->B_phi_dz[index];
-
     copy->B_z_dr[index] = original->B_z_dr[index];
     copy->B_z_dphi[index] = original->B_z_dphi[index];
     copy->B_z_dz[index] = original->B_z_dz[index];
@@ -465,6 +466,8 @@ int MarkerGuidingCenter_from_queue(
         mrk->zeta[mrk_index] = p->zeta;
         mrk->mass[mrk_index] = p->mass;
         mrk->charge[mrk_index] = p->charge;
+        mrk->anum[mrk_index] = p->anum;
+        mrk->znum[mrk_index] = p->znum;
         mrk->time[mrk_index] = p->time;
         mrk->bounces[mrk_index] = 0;
         mrk->weight[mrk_index] = p->weight;
@@ -493,6 +496,7 @@ int MarkerGuidingCenter_from_queue(
         mrk->cputime[mrk_index] = p->cputime;
         mrk->index[mrk_index] = queue_index;
         mrk->err[mrk_index] = 0;
+
     }
     if (err)
         p->err = err;

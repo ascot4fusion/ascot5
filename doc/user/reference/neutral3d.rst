@@ -3,13 +3,13 @@ Arbitrary neutral distribution
 
 .. rubric:: Class documentation
 
-.. autoclass:: a5py.data.neutral.Neutral3D
+.. autoclass:: a5py.data.neutral.NeutralArbitrary
 
 .. rubric:: Creation
 
-.. autofunction:: a5py.data.AscotData.create_neutral3d
+.. autofunction:: a5py.data.AscotData.create_neutralarbitrary
 
 .. dropdown:: The C-module (For developers)
 
-   .. doxygenstruct:: N0_3D_data
+   .. doxygenstruct:: NeutralArbitrary
       :members:

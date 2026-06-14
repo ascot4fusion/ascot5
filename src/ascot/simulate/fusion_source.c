@@ -166,15 +166,15 @@ void afsi_sample_beam_2d(
                            ip2 * hist->strides[p2coord];
             if (ip1 == 0 && ip2 == 0)
             {
-                cumdist[0] = hist->bins[index];
+                cumdist[0] = hist->values[index];
             }
             else
             {
                 cumdist[ip1 * hist->axes[p2coord].n + ip2] =
                     cumdist[ip1 * hist->axes[p2coord].n + ip2 - 1] +
-                    hist->bins[index];
+                    hist->values[index];
             }
-            *density += hist->bins[index] / vol;
+            *density += hist->values[index] / vol;
         }
     }
     if (*density == 0)

@@ -46,7 +46,7 @@ class GuidingcenterMarker(InputVariant):
     def charge(self) -> unyt.unyt_array:
         r"""Marker charge."""
         if self._cdata is not None:
-            out = unyt.unyt_array([0.]*self.n, "e")
+            out = unyt.unyt_array([0.]*self.n, "C")
             for i in range(out.size):
                 out[i] = self._cdata[i].charge
             return out
@@ -221,13 +221,13 @@ class CreateMixin(TreeMixin):
     def create_guidingcentermarker(
             self,
             species: str | Species,
-            charge: utils.ArrayLike,
             r: utils.ArrayLike,
             z: utils.ArrayLike,
             ekin: utils.ArrayLike,
             pitch: utils.ArrayLike,
             phi: Optional[utils.ArrayLike]=None,
             gyroangle: Optional[utils.ArrayLike]=None,
+            charge: Optional[utils.ArrayLike]=None,
             weight: Optional[utils.ArrayLike]=None,
             time: Optional[utils.ArrayLike]=None,
             ids: Optional[utils.ArrayLike]=None,
@@ -246,8 +246,6 @@ class CreateMixin(TreeMixin):
         ----------
         species : str *or* :class:`.Species`
             Marker species.
-        charge : array_like (n,) *or* scalar
-            Marker charge.
         r : array_like (n,) *or* scalar
             Guiding center :math:`R` coordinate.
         z : array_like (n,) *or* scalar
@@ -269,6 +267,10 @@ class CreateMixin(TreeMixin):
             includes a guiding-center to particle transformation. If not given,
             the values are randomly sampled from an uniform distribution between
             0 and 2:math:`\pi` rad.
+        charge : array_like (n,) *or* scalar, *optional*
+            Marker charge (state).
+
+            Default is to assume that the marker is fully ionized.
         weight : array_like (n,), *optional*
             How many physical particles each marker represents.
         time : array_like (n,), *optional*
@@ -330,7 +332,13 @@ class CreateMixin(TreeMixin):
             z = v.validate("z", z, (n,), "m")
             ekin = v.validate("ekin", ekin, (n,), "eV")
             pitch = v.validate("pitch", pitch, (n,), "1")
-            charge = v.validate("charge", charge, (n,), "e")
+
+        if charge is not None:
+            try:
+                charge.units
+            except AttributeError:
+                charge *= unyt.e
+
         with utils.validate_variables() as v:
             ids = v.validate(
                 "ids", ids, (n,), dtype="i8", default=np.arange(1, n+1),
@@ -345,6 +353,11 @@ class CreateMixin(TreeMixin):
             gyroangle = v.validate(
                 "gyroangle", gyroangle, (n,), "rad",
                 default=2*np.pi*np.random.rand(n)
+                )
+            default_charge = species.znum if species.znum != 0 else -1
+            charge = v.validate(
+                "charge", charge, (n,), "e",
+                default=np.full((n,), default_charge),
                 )
         leaf = GuidingcenterMarker(note=note)
         leaf._stage(

@@ -15,9 +15,9 @@ class Neutral(ctypes.Structure):
     """Wrapper for the neutral data in libascot.so."""
 
     _fields_ = [
-        ('N01D', ctypes.POINTER(radial.Struct)),
-        ('N03D', ctypes.POINTER(arbitrary.Struct)),
-        ('type', ctypes.c_uint32),
+        ("radial", ctypes.POINTER(radial.Struct)),
+        ("arbitrary", ctypes.POINTER(arbitrary.Struct)),
+        ("type", ctypes.c_int32),
         ]
 
 

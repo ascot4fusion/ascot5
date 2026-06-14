@@ -1,12 +1,15 @@
 import pytest
 import unyt
 import numpy as np
+import os
 
 from a5py import Ascot
 from a5py.data.marker.state import MarkerState
 from a5py.templates import PremadeMagneticField
 
-from a5py.data.orbits import Orbit
+from a5py.data.orbit import Orbit
+from a5py.data.options import SimulationOptions
+from a5py.data.access.hdf5io import TreeFileManager
 
 NMRK = 5
 NPOINT = 10
@@ -30,6 +33,19 @@ def generate_data(ids, quantity):
             return radii[i] * np.cos(theta) + z0
         case _:
             return np.full(NPOINT, 0)
+        
+@pytest.fixture()
+def file():
+    datamanager = TreeFileManager(
+        root="root",
+        filename="testascot.h5",
+        file_exists=False,
+        input_categories=[],
+        )
+    datamanager.set_note(name="orbit", node="root", note="") # Creates node
+    yield datamanager.access_data(name="orbit", node="root")
+
+    os.unlink("testascot.h5")
 
 @pytest.fixture
 def orbit():
@@ -39,8 +55,10 @@ def orbit():
     have all points, some have less, and some have none. The data is stored in
     random order.
     """
-    orbit = Orbit()
-    orbit.init(nmrk=NMRK, npoint=NPOINT, interval=0.01)
+    opt = SimulationOptions.from_dict(
+        orbit={"buffer_size": NPOINT, "interval": 0.01, "collect": "interval"},
+        )
+    orbit = Orbit.from_params(NMRK, opt.orbit)
     for i in np.arange(NMRK):
         idx = slice(NPOINT*i, NPOINT*(i+1))
         theta = np.linspace(0, 2*np.pi, NPOINT)
@@ -56,6 +74,13 @@ def orbit():
         arr = getattr(orbit._cdata, field + "_ref")
         arr[:] = arr[idx]
     yield orbit
+
+
+def test_init_from_params():
+    opt = SimulationOptions.from_dict(
+        orbit={"buffer_size": NPOINT, "interval": 0.01, "collect": "interval"},
+        )
+    Orbit.from_params(NMRK, opt.orbit)
 
 
 def test_all_returned_data_have_correct_number_of_points(orbit):
@@ -115,8 +140,12 @@ def test_all_quantities_have_correct_values(orbit):
         assert np.allclose(val, generate_data(1, qnt))
 
 
-def test_store_and_read_hdf5(orbit):
-    pass
+def test_store_and_read_hdf5(orbit, file):
+    r = orbit.r
+    orbit.save(file)
+    orbit2 = Orbit()
+    orbit2._file = file
+    assert all(orbit2.r == r)
 
 
 def test_returned_arrays_are_copies(orbit):
@@ -133,7 +162,7 @@ def test_evaluation_gc(orbit):
     a5 = Ascot()
     template = PremadeMagneticField(a5, field="iter-baseline")
     template.create_input()
-    mrk = a5.data.create_guidingcentermarker("alpha", 2.*unyt.e, 6.2*unyt.m, 0.*unyt.m, 10.*unyt.eV, 0.9, preview=True)#, ids=[1, 2, 3, 4, 5])
+    mrk = a5.data.create_guidingcentermarker("alpha", 6.2*unyt.m, 0.*unyt.m, 10.*unyt.eV, 0.9, preview=True)#, ids=[1, 2, 3, 4, 5])
     state = MarkerState.from_markerinput(mrk, np.full((mrk.n, 12), 1.0))
 
     quantities = ["r", "z", "phi", "bnorm", "mileage", "id", "charge", "time", "ppar", "mu", "zeta", "ptor",]

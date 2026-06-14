@@ -136,7 +136,7 @@ void endcond_check_go(
                     p_f->running[i] = 0;
                 }
                 if (active_therm &&
-                    (ekin < (params->min_local_thermal_energy * Ti)))
+                    (ekin < (params->local_thermal_limit * Ti)))
                 {
                     p_f->endcond[i] |= ENDCOND_THERM;
                     p_f->running[i] = 0;
@@ -340,7 +340,7 @@ void endcond_check_gc(
                     p_f->running[i] = 0;
                 }
                 if (active_therm &&
-                    (ekin < (params->min_local_thermal_energy * Ti)))
+                    (ekin < (params->local_thermal_limit * Ti)))
                 {
                     p_f->endcond[i] |= ENDCOND_THERM;
                     p_f->running[i] = 0;

@@ -9,6 +9,7 @@ from typing import Optional
 from numpy.ctypeslib import ndpointer
 
 from a5py import utils
+from a5py.data.options import OrbitParams
 from a5py.physlib import formulas
 from a5py.libascot import DataStruct
 
@@ -138,9 +139,13 @@ class Orbit():
             return self._cdata.simmode_ref
         return self._file.read("simmode")
 
-    def init(self, nmrk, npoint, interval, poincare, toroidal=None, poloidal=None, radial=None):
-        orbit = Struct()
+    @classmethod
+    def from_params(cls, nmrk: int, params: OrbitParams):
+        """Initialize orbit diagnostics from simulation parameters."""
+        if params.collect == "no":
+            return None
 
+        cdata = Struct()
         for field in ["r", "z", "phi", "p1", "p2", "p3", "mileage", "stamp",
                       "id", "idx", "charge", "poincare", "simmode"]:
             dtype, ctype = np.float64, ctypes.c_double
@@ -148,38 +153,48 @@ class Orbit():
                 dtype, ctype = np.int64, ctypes.c_size_t
             elif field in ["charge", "poincare", "simmode"]:
                 dtype, ctype = np.int32, ctypes.c_int
-            size = nmrk * npoint
+            size = nmrk * params.buffer_size
             if field in ["idx", "stamp"]:
                 size = nmrk
             arr = np.zeros(size, dtype=dtype)
-            setattr(orbit, field, arr.ctypes.data_as(ctypes.POINTER(ctype)))
-            setattr(orbit, field + "_ref", arr)
+            setattr(cdata, field, arr.ctypes.data_as(ctypes.POINTER(ctype)))
+            setattr(cdata, field + "_ref", arr)
 
-        orbit.npoint = npoint
-        orbit.interval = interval
-        if not poincare:
-            toroidal = None
-            poloidal = None
-            radial = None
+        cdata.npoint = params.buffer_size
+        cdata.interval = params.interval
 
-        if interval >= 0:
-            if not (toroidal is None and poloidal is None and radial is None):
-                raise ValueError("Interval must be less than zero when toroidal, poloidal or radial is not None.")
-            self._cdata = orbit
-            return
-
-        poincaredata = {"toroidal": toroidal, "poloidal": poloidal, "radial": radial}
+        poincaredata = {
+            "toroidal": params.toroidal_angles,
+            "poloidal": params.poloidal_angles,
+            "radial": params.radial_distances,
+            }
         for poincare, data in poincaredata.items():
             if data is None:
-                setattr(orbit, "n" + poincare, 0)
+                setattr(cdata, "n" + poincare, 0)
                 continue
-            setattr(orbit, "n" + poincare, len(data))
+
+            setattr(cdata, "n" + poincare, len(data))
             arr = np.zeros(len(data), dtype=np.float64)
             np.copyto(arr, data)
-            setattr(orbit, poincare, arr.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
-            setattr(orbit, poincare + "_ref", arr)
+            setattr(cdata, poincare, arr.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+            setattr(cdata, poincare + "_ref", arr)
 
-        self._cdata = orbit
+        orbit = cls()
+        orbit._cdata = cdata
+        return orbit
+
+
+    def save(self, file):
+        """"""
+        for field in ["r", "z", "phi", "p1", "p2", "p3", "mileage",
+                      "id", "charge", "poincare", "simmode"]:
+            file.write(field, getattr(self, field))
+        for field in ["stamp", "idx"]:
+            file.write(field, getattr(self._cdata, field + "_ref"))
+
+        del self._cdata
+        self._file = file
+
 
     def extract_fields(self, *quantities, filter=None, poincare=None):
         """Return recorded orbit data.

@@ -1,43 +1,30 @@
-"""Defines simulation options input class and the corresponding factory method.
-"""
+"""Defines simulation parameters."""
+
 from __future__ import annotations
 
-import re
+import copy
 import ctypes
-import inspect
-from typing import Optional
-from dataclasses import fields
-
+from pathlib import Path
+import textwrap
+import toml
+import tomli_w
 import numpy as np
+from typing import Optional
+from dataclasses import fields, field, dataclass, asdict
 
 from a5py.engine.functions import get_endcond
 
 from a5py.libascot import DataStruct
-from a5py.data.access import InputVariant, Leaf, TreeMixin
-
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from a5py import Ascot
-
 
 from .parameters import (
-    simulation,
-    physics,
-    endconditions,
-    histograms,
-    orbit,
+    Simulation,
+    Physics,
+    Endconditions,
+    HistParams,
+    OrbitParams,
+    Lockable,
 )
 
-parameter_groups = [
-    "simulation", "physics", "endconditions", "orbit", "histograms",
-    ]
-"""The groups in which options parameters are categorized."""
-
-require_both_tor_and_pol = 2
-"""Options setting that requires both toroidal and poloidal endconditions to
-be met.
-"""
 
 # pylint: disable=too-few-public-methods
 class Struct(DataStruct):
@@ -68,311 +55,394 @@ class Struct(DataStruct):
         ("max_real_time", ctypes.c_double),
         ("rho_coordinate_limits", ctypes.c_double * 2),
         ("min_energy", ctypes.c_double),
-        ("min_local_thermal_energy", ctypes.c_double),
+        ("local_thermal_limit", ctypes.c_double),
         ("max_number_of_toroidal_orbits", ctypes.c_double),
         ("max_number_of_poloidal_orbits", ctypes.c_double),
-        ]
-
-
-class SimulationOptions():
-    """Simulation options."""
-
-    _physics: physics
-    _simulation: simulation
-    _endconditions: endconditions
-    _orbit: orbit
-    _histograms: histograms
-
-    def __init__(self, **parameters):
-        parameters_found = []
-        for paramgroup in parameter_groups:
-            params_for_this_group = {}
-            for k, v in parameters.items():
-                if k in globals()[paramgroup].__dict__:
-                    parameters_found.append(k)
-                    params_for_this_group["_" + k] = v
-            dataclass = globals()[paramgroup](**params_for_this_group)
-            setattr(self, "_" + paramgroup, dataclass)
-        for k in parameters.keys():
-            if k not in parameters_found:
-                raise ValueError(f"Unknown options parameter '{k}'.")
-
-    @property
-    def simulation(self):
-        """Parameters related to simulation mode and time-step."""
-        return self._simulation
-
-    @property
-    def physics(self):
-        """Physics included in the simulation."""
-        return self._physics
-
-    @property
-    def endconditions(self):
-        """End conditions when the marker simulation is ceased."""
-        return self._endconditions
-
-    @property
-    def histograms(self):
-        """Diagnostics that collect data for reproducing the particle
-        distribution function.
-        """
-        return self._histograms
-
-    @property
-    def orbit(self):
-        """Diagnostic that records the exact marker trajectory."""
-        return self._orbit
-
-    def export(self):
-        """Return a dictionary with sufficient data to duplicate this instance.
-
-        Returns
-        -------
-        data : dict[str, np.ndarray or unyt.unyt_array]
-            Data that can be passed to create_btc to duplicate this instance.
-        """
-        def dataclass_to_dict(obj):
-            collection = {}
-            for f in fields(obj):
-                no_underscore = f.name[1:]
-                collection[no_underscore] = getattr(obj, no_underscore)
-            return collection
-
-        data = {}
-        for param_group in parameter_groups:
-            dataclass = getattr(self, param_group)
-            data.update(dataclass_to_dict(dataclass))
-        return data
-
-    def _write(self, file):
-        """Write parameters to file."""
-        for group in parameter_groups:
-            pgroup = getattr(self, "_" + group)
-            for f in fields(pgroup):
-                no_underscore = f.name[1:]
-                file.write(no_underscore, getattr(pgroup, no_underscore))
-
-    def _read(self, file):
-        """Read parameters from file."""
-        pass
-
-    def _lock(self):
-        """Store parameters to the C struct and make the parameters immutable.
-        """
-        parameters = self.export()
-        map_endcond_to_param = {
-            "reached_time_limit":"activate_simulation_time_limits",
-            "below_min_energy":"activate_energy_limits",
-            "thermalized":"activate_energy_limits",
-            "hit_wall":"activate_wall_hits",
-            "below_rho_limit":"activate_rho_limit",
-            "above_rho_limit":"activate_rho_limit",
-            "completed_poloidal_orbits":"activate_orbit_limit",
-            "completed_toroidal_orbits":"activate_orbit_limit",
-            "simulation_not_finished":"activate_real_time_limit",
-            "neutralized":"activate_neutralization",
-            "ionized":"activate_ionization",
-        }
-        parameters["endcond_active"] = 0
-        for ec, param in map_endcond_to_param.items():
-            parameters["endcond_active"] += (
-                get_endcond(ec) * parameters[param]
-                )
-        parameters.update({
-            "require_both_tor_and_pol":parameters["activate_orbit_limit"] == require_both_tor_and_pol,
-            })
-        self._cdata = Struct()
-        for field, _ in self._cdata._fields_:
-            if field in parameters:
-                val = parameters[field]
-                if isinstance(getattr(self._cdata, field), ctypes.Array):
-                    arr = getattr(self._cdata, field)
-                    for i, v in enumerate(val):
-                        arr[i] = v
-                else:
-                    setattr(self._cdata, field, val)
-
-    def export_as_string(self, descriptions=True, aslist=False):
-        """Convert options to string representation.
-
-        Parameters
-        ----------
-        descriptions : bool, optional
-            If True, section headers and descriptions are added above
-            the parameters to make options more readable.
-        aslist : bool, optional
-            Instead of line breaks, separate each line as a list item.
-
-        Returns
-        -------
-        opt : str or list [str]
-            String where option parameters are written on each line as
-            "<PARAMETER> = <VALUE>".
-        """
-        def make_banner(title: str, desc: str, width: int = 80) -> str:
-            border = "#" + "*" * (width - 2) + "#"
-            empty = "#*".ljust(width - 2) + "*#"
-
-            def center_line(text: str) -> str:
-                content = text.center(width - 4)
-                return f"#*{content}*#"
-
-            return "\n".join([
-                border,
-                center_line(title),
-                empty,
-                center_line(desc),
-                border,
-                "\n"
-            ])
-
-        text = ""
-        def clean_docstring(docstring):
-            docstring = inspect.cleandoc(docstring) + "\n"
-            docstring = "\n".join("# " + line for line in docstring.splitlines())
-            docstring = re.sub(r"``([^`]+)``", lambda m: m.group(1), docstring)
-            docstring = re.sub(r":math:`([^`]+)`", lambda m: m.group(1), docstring)
-            if docstring.splitlines()[-1].strip() != "#":
-                docstring += "\n#"
-            return docstring
-
-        for param_group in parameter_groups:
-            title = param_group
-            text += make_banner(title, getattr(Options, param_group).__doc__)
-            for name, value in globals()[param_group].__dict__.items():
-                if isinstance(value, property):
-                    attribute = getattr(self, param_group)
-                    text += clean_docstring(value.__doc__) + "\n"
-                    text += name + " = " + str(getattr(attribute, name)) + "\n"
-                    text += "\n"
-            text += "\n"
-        return text
+    ]
 
     @classmethod
-    def from_text(
-        cls,
-        ascot: Ascot,
-        text: str | list[str],
-        ):
-        """Read options parameter from a text.
+    def from_params(cls, params: SimulationOptions):
+        map_endcond_to_param = {
+            "reached_time_limit": "activate_simulation_time_limits",
+            "below_min_energy": "activate_energy_limits",
+            "thermalized": "activate_energy_limits",
+            "hit_wall": "activate_wall_hits",
+            "below_rho_limit": "activate_rho_limit",
+            "above_rho_limit": "activate_rho_limit",
+            "completed_poloidal_orbits": "activate_orbit_limit",
+            "completed_toroidal_orbits": "activate_orbit_limit",
+            "simulation_not_finished": "activate_real_time_limit",
+            "neutralized": "activate_neutralization",
+            "ionized": "activate_ionization",
+        }
 
-        Parameters
-        ----------
-        text : str or [str]
-            Parameters either as a list of strings or in a single string with
-            one parameter per line.
+        endcond_active = 0
+        for ec, param in map_endcond_to_param.items():
+            endcond = getattr(params.endconditions, param)
+            if param == "activate_orbit_limit":
+                endcond = endcond != "no"
+            endcond_active += get_endcond(ec) * endcond
+        require_both_tor_and_pol = int(
+            params.endconditions.activate_orbit_limit == "both"
+        )
 
-            The string may contain empty lines or comment lines (starting with
-            '#') as those are ignored. The parameters are expected to have the
-            format <parameter name> = <value>. The string doesn't have to
-            contain all possible parameters.
-        note : str, optional
-            A short note to document this data.
+        cdata = Struct()
+        cdata.simulation_mode = [
+            "gyro-orbit",
+            "guiding-center",
+            "hybrid",
+            "field-line",
+        ].index(params.simulation.mode) + 1
+        cdata.enable_adaptive = params.simulation.enable_adaptive
+        cdata.record_mode = params.simulation.record_mode
+        cdata.timestep = params.simulation.timestep
+        cdata.adaptive_tolerance_orbit = params.simulation.adaptive_tolerance_orbit
+        cdata.adaptive_tolerance_collisions = (
+            params.simulation.adaptive_tolerance_collisions
+        )
+        cdata.enable_orbit_following = params.physics.enable_orbit_following
+        cdata.enable_coulomb_collisions = params.physics.enable_coulomb_collisions
+        cdata.enable_mhd = params.physics.enable_mhd
+        cdata.enable_atomic = params.physics.enable_atomic
+        cdata.enable_icrh = params.physics.enable_icrh
+        cdata.enable_aldforce = params.physics.enable_aldforce
+        cdata.disable_first_order_gctransformation = (
+            params.physics.disable_first_order_gctransformation
+        )
+        cdata.disable_ccoll_gcenergy = params.physics.disable_ccoll_gcenergy
+        cdata.disable_ccoll_gcpitch = params.physics.disable_ccoll_gcpitch
+        cdata.disable_ccoll_gcspatial = params.physics.disable_ccoll_gcspatial
+        cdata.reverse_time = params.physics.reverse_time
+        cdata.endcond_active = endcond_active
+        cdata.require_both_tor_and_pol = require_both_tor_and_pol
+        cdata.lab_time_limit = params.endconditions.lab_time_limit
+        cdata.max_mileage = params.endconditions.max_mileage
+        cdata.max_real_time = params.endconditions.max_real_time
+        cdata.rho_coordinate_limits[0] = params.endconditions.rho_coordinate_limits[0]
+        cdata.rho_coordinate_limits[1] = params.endconditions.rho_coordinate_limits[1]
+        cdata.min_energy = params.endconditions.min_energy
+        cdata.local_thermal_limit = params.endconditions.local_thermal_limit
+        cdata.max_number_of_toroidal_orbits = (
+            params.endconditions.max_number_of_toroidal_orbits
+        )
+        cdata.max_number_of_poloidal_orbits = (
+            params.endconditions.max_number_of_poloidal_orbits
+        )
+        return cdata
 
-            The first word of the note is converted to a tag which you can use
-            to reference the data.
-        activate : bool, optional
-            Set this input as active on creation.
-        dryrun : bool, optional
-            Do not add this input to the `data` structure or store it on disk.
 
-            Use this flag to modify the input manually before storing it.
-        store_hdf5 : bool, optional
-            Write this input to the HDF5 file if one has been specified when
-            `Ascot` was initialized.
+@dataclass
+class SimulationOptions(Lockable):
+    """Simulation options.
 
-        Returns
-        -------
-        options : ~a5py.data.options.Options
-            Freshly minted options input.
-        """
-        if not isinstance(text, list):
-            text = text.splitlines()
+    Attributes
+    ----------
+    simulation : Simulation
+        Parameters related to simulation mode and time-step.
+    physics : Physics
+        Physics included in the simulation.
+    endconditions : Endconditions
+        End conditions when the marker simulation is ceased.
+    orbit : Orbit
+        Diagnostic that records the exact marker trajectory.
+    histograms : tuple[HistParams]
+        Diagnostics that collect data for reproducing the particle distribution function.
+    """
 
-        params_found = {}
-        for line in text:
-            is_parameter_line = (
-                len(line) > 0 and
-                not line.startswith("#") and
-                "=" in line
-            )
-            if is_parameter_line:
-                parameter, value = line.strip().split("=")
-                params_found[parameter] = value
+    simulation: Simulation = field(default_factory=Simulation)
+    physics: Physics = field(default_factory=Physics)
+    endconditions: Endconditions = field(default_factory=Endconditions)
+    orbit: OrbitParams = field(default_factory=OrbitParams)
+    histograms: tuple[HistParams] = field(default_factory=tuple[HistParams])
+    
 
-        return ascot.data.create_options(
-            note=note, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
-            **params_found
-            )
+    def __setattr__(self, name, value):
+        if name == "histograms":
+            arr = []
+            for v in value:
+                if isinstance(v, HistParams):
+                    arr.append(v)
+                elif isinstance(v, dict):
+                    arr.append(HistParams.from_dict(v))
+                else:
+                    raise TypeError(
+                        f"Invalid type for histograms: {type(v)}. "
+                        "Must be either a HistParam or a dictionary."
+                        )
+            return super().__setattr__("histograms", tuple(arr))
 
+        try:
+            self._attribute_doc(name)
+        except KeyError:
+            raise ValueError(f"Unknown parameter '{name}'.") from None
 
-# pylint: disable=too-few-public-methods
-class CreateOptionsMixin(TreeMixin):
-    """Mixin class used by `Data` to create Options input."""
-
-    #pylint: disable=protected-access, too-many-arguments
-    def create_options(
-            self,
-            note: Optional[str]=None,
-            activate: bool=False,
-            preview: bool=False,
-            save: Optional[bool]=None,
-            **parameters,
+        if (
+            (name == "simulation" and not isinstance(value, Simulation)) or
+            (name == "physics" and not isinstance(value, Physics)) or
+            (name == "endconditions" and not isinstance(value, Endconditions)) or
+            (name == "orbit" and not isinstance(value, OrbitParams))
             ):
-        r"""Create simulation options.
+            raise TypeError(f"Invalid type for {name}: {type(value)}.")
 
-        This method creates a simulation options input.
+        super().__setattr__(name, value)
+
+
+    def _write_hdf5(self, file):
+        """Write parameters to file."""
+        params = asdict(self)
+
+        for group, settings in params.items():
+            if group == "histograms":
+                for i, hist in enumerate(params["histograms"]):
+                    file.write(
+                        f"hist_{i}__charge_interval",
+                        np.asanyarray(hist["charge_interval"]),
+                        )
+                    for dim in hist["dimensions"]:
+                        name = dim["name"]
+                        file.write(
+                            f"hist_{i}_{name}_min", np.asanyarray(dim["min"]),
+                            )
+                        file.write(
+                            f"hist_{i}_{name}_max", np.asanyarray(dim["max"]),
+                            )
+                        file.write(
+                            f"hist_{i}_{name}_bins", np.asanyarray(dim["bins"]),
+                            )
+
+                continue
+
+            for setting, value in settings.items():
+                if isinstance(value, str):
+                    value = np.bytes_(value)
+                value = np.asanyarray(value)
+                file.write(f"{group}__{setting}", value)
+
+    def copy(self) -> "SimulationOptions":
+        """Make a deep copy of the parameters."""
+        return copy.deepcopy(self)
+
+    def write_toml(self, path: str | Path, include_comments="minimal") -> None:
+        """Write parameters to TOML file.
 
         Parameters
         ----------
-        note : str, optional
-            A short note to document this data.
+        path : str
+            Path to the TOML file.
+        include_comments : {"no", "minimal", "detailed"}, optional
+            Whether to include descriptions of the parameters in the output.
 
-            The first word of the note is converted to a tag which you can use
-            to reference the data.
-        note : str, *optional*
-            A short note to document this data.
+            - "no": No comments.
+            - "minimal": Include only the single-line description for each
+              parameter.
+            - "detailed": Include the full description for each parameter.
+        """
+        path = Path(path)
 
-            The first word of the note is converted to a tag which you can use
-            to reference the data.
-        activate : bool, *optional*
-            Set this input as active on creation.
-        preview : bool, *optional*
-            If ``True``, the input is created but it is not included in the data
-            structure nor saved to disk.
+        def format_docstring(doc):
+            """Convert docstring into TOML comments."""
 
-            The input cannot be used in a simulation but it can be previewed.
-        save : bool, *optional*
-            Store this input to disk.
-        **parameters
-            Options parameters and the values to be set.
+            doc = textwrap.dedent(doc).strip()
 
-            If a parameter is not set, a default value is used.
+            lines = []
+            if include_comments == "minimal":
+                parts = doc.split("\n\n", 1)
+                doc = parts[0].replace("\n", " ")
+            else:
+                lines.append("")
+
+            for line in doc.splitlines():
+
+                if line.strip() == "":
+                    lines.append("#")
+                else:
+                    lines.append(f"# {line}")
+
+            return lines
+
+        params = asdict(self)
+        for hist in params["histograms"]:
+            for dim in hist["dimensions"]:
+                dim["min"] = float(dim["min"])
+                dim["max"] = float(dim["max"])
+ 
+        if len(params["histograms"]) == 0:
+            del params["histograms"]
+        toml_text = tomli_w.dumps(params)
+        current_section = None
+
+        out, wrote_histogram_docs = [], False
+        for line in toml_text.splitlines():
+
+            stripped = line.strip()
+
+            if stripped.startswith("[") and stripped.endswith("]"):
+                section = stripped[1:-1]
+                current_section = section
+
+                if include_comments == "detailed" and section != "[histograms]":
+                    section_doc = self._attribute_doc(section)
+                    if section_doc:
+                        out.append(f"# {section_doc}")
+
+                if (include_comments == "detailed" and section == "[histograms]"
+                    and not wrote_histogram_docs):
+                    section_doc = self._attribute_doc("histograms")
+                    out.append(f"# {section_doc[:-1]}")
+                    out.append("#")
+                    import inspect
+                    doc = inspect.cleandoc(inspect.getdoc(HistParams)).split("----------")[-1]
+                    out.extend(format_docstring(doc)[1:])
+                    wrote_histogram_docs = True
+
+                out.append(line)
+                continue
+
+            if "=" in line and current_section:
+                key = line.split("=", 1)[0].strip()
+
+                if include_comments != "no" and current_section != "[histograms]":
+                    group = getattr(self, current_section)
+                    key_doc = group._attribute_doc(key)
+                    out.extend(format_docstring(key_doc))
+
+            out.append(line)
+
+        final_text = "\n".join(out)
+
+        with path.open("wb") as f:
+            f.write(final_text.encode("utf-8"))
+
+    @classmethod
+    def from_dict(
+        cls: "SimulationOptions", **params: dict[str, dict]
+    ) -> "SimulationOptions":
+        """Initialize parameters from keyword arguments (dictionary).
+
+        Parameters
+        ----------
+        **params : dict
+            Name of the parameter group and dictionary of settings related to
+            that group.
 
         Returns
         -------
-        inputdata : ~a5py.data.options.Options
-            Freshly minted input data object.
+        SimulationOptions
+            Initialized parameters.
         """
-        leaf = Options(note=note)
+        opt = cls()
+        for group, settings in params.items():
+            if group == "histograms":
+                arr = [HistParams.from_dict(hist) for hist in settings]
+                opt.histograms = tuple(arr)
+                continue
+            if group not in opt.__dict__:
+                raise ValueError(f"Unknown parameter group: {group}")
 
-        parameters_found = []
-        for paramgroup in parameter_groups:
-            params_for_this_group = {}
-            for k, v in parameters.items():
-                if k in globals()[paramgroup].__dict__:
-                    parameters_found.append(k)
-                    params_for_this_group["_" + k] = v
-            dataclass = globals()[paramgroup](**params_for_this_group)
-            setattr(leaf, "_" + paramgroup, dataclass)
-        for k in parameters.keys():
-            if k not in parameters_found:
-                raise ValueError(f"Unknown options parameter '{k}'.")
+            for setting, value in settings.items():
+                if setting not in getattr(opt, group).__dict__:
+                    raise ValueError(f"Unknown parameter in group {group}: {setting}")
+                setattr(getattr(opt, group), setting, value)
+        return opt
 
-        if preview:
-            return leaf
-        self._treemanager.enter_leaf(
-            leaf, activate=activate, save=save, category="options",
-            )
-        return leaf
+    @classmethod
+    def from_toml(cls: "SimulationOptions", path: str | Path) -> "SimulationOptions":
+        """Initialize parameters from TOML file.
+
+        Parameters
+        ----------
+        filename : str
+            Name of the TOML file.
+
+        Returns
+        -------
+        SimulationOptions
+            Initialized parameters.
+        """
+        # path = Path(path)
+        with open(path, "r") as f:
+            data = toml.load(f)
+
+        return SimulationOptions.from_dict(**data)
+
+    @classmethod
+    def from_json(cls: "SimulationOptions", filename: str) -> "SimulationOptions":
+        return cls()
+
+    @classmethod
+    def from_hdf5(cls: "SimulationOptions", file) -> "SimulationOptions":
+        """Read parameters from HDF5 file."""
+        params = {
+            "simulation": {}, "physics": {}, "endconditions": {}, "orbit": {},
+            "histograms": [],
+            }
+        def read_parameter(group, setting, convert=None):
+            try:
+                value = file.read(f"{group}__{setting}")
+            except KeyError:
+                # Todo: implement any backwards compatibility here
+                raise ValueError(f"Unknown parameter: {group}__{setting}") from None
+            if convert == "tuple":
+                value = tuple(value)
+            if convert == "str":
+                value = np.astype(value, "bytes_").decode("utf-8")
+            params[group][setting] = value
+
+
+        group = "simulation"
+        read_parameter(group, "mode", convert="str")
+        read_parameter(group, "record_mode")
+        read_parameter(group, "timestep")
+        read_parameter(group, "enable_adaptive")
+        read_parameter(group, "adaptive_tolerance_orbit")
+        read_parameter(group, "adaptive_tolerance_collisions")
+
+        group = "physics"
+        read_parameter(group, "enable_orbit_following")
+        read_parameter(group, "enable_coulomb_collisions")
+        read_parameter(group, "enable_mhd")
+        read_parameter(group, "enable_atomic")
+        read_parameter(group, "enable_icrh")
+        read_parameter(group, "enable_aldforce")
+        read_parameter(group, "disable_first_order_gctransformation")
+        read_parameter(group, "disable_ccoll_gcenergy")
+        read_parameter(group, "disable_ccoll_gcpitch")
+        read_parameter(group, "disable_ccoll_gcspatial")
+        read_parameter(group, "reverse_time")
+
+        group = "endconditions"
+        read_parameter(group, "activate_simulation_time_limits")
+        read_parameter(group, "activate_real_time_limit")
+        read_parameter(group, "activate_rho_limit")
+        read_parameter(group, "activate_energy_limits")
+        read_parameter(group, "activate_wall_hits")
+        read_parameter(group, "activate_orbit_limit", convert="str")
+        read_parameter(group, "activate_neutralization")
+        read_parameter(group, "activate_ionization")
+        read_parameter(group, "lab_time_limit")
+        read_parameter(group, "max_mileage")
+        read_parameter(group, "max_real_time")
+        read_parameter(group, "rho_coordinate_limits", convert="tuple")
+        read_parameter(group, "min_energy")
+        read_parameter(group, "local_thermal_limit")
+        read_parameter(group, "max_number_of_toroidal_orbits")
+        read_parameter(group, "max_number_of_poloidal_orbits")
+
+        group = "orbit"
+        read_parameter(group, "collect", convert="str")
+        read_parameter(group, "buffer_size")
+        read_parameter(group, "interval")
+        read_parameter(group, "poloidal_angles", convert="tuple")
+        read_parameter(group, "toroidal_angles", convert="tuple")
+        read_parameter(group, "radial_distances", convert="tuple")
+
+        i = 0
+        while True:
+            hist = HistParams.from_hdf5(file, i)
+            if hist is None:
+                break
+
+            params["histograms"].append(hist)
+            i += 1
+
+        return cls.from_dict(**params)

@@ -12,70 +12,133 @@ The parameters themselves are defined as properties since this allows us to
 generate the documentation more easily while also making the parameters
 immutable.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field, fields
+from types import MappingProxyType
 
-import numpy as np
-from .constraints import (
-    summarize_property, parse_constraint, enforce_constraint
-)
+import unyt
+from a5py.data.options import constraints
+
+from typing import Any
+from a5py.physlib import match_units
+import inspect
+import re
+
+
+class Lockable:
+    """Object (dataclass) that can be frozen to prevent modification.
+
+    Raises an exception if an attempt is made to modify a frozen object.
+    
+    Parameters
+    ----------
+    _frozen : bool
+        True if this object is frozen.
+    """
+    _frozen: bool = False
+
+    def _freeze(self):
+        """Recursively freeze this object and all nested dataclasses."""
+        for f in fields(self):
+            value = getattr(self, f.name)
+
+            if isinstance(value, Lockable):
+                value._freeze()
+
+        object.__setattr__(self, "_frozen", True)
+
+    def __setattr__(self, name: str, value: Any):
+        if getattr(self, "_frozen", False):
+            raise AttributeError(
+                f"{self.__class__.__name__} is frozen; cannot modify '{name}'"
+            )
+        super().__setattr__(name, value)
+
+    def _attribute_doc(self, attr):
+        """Return the docstring for a given attribute.
+        
+        Parameters
+        ----------
+        attr : str
+            Attribute name.
+
+        Returns
+        -------
+        str
+            Attribute docstring.
+        """
+        doc = inspect.getdoc(self.__class__)
+        if not doc:
+            raise ValueError(f"No docstring found for {self.__class__}")
+
+        pattern = re.compile(
+            rf"^\s*{re.escape(attr)}\s*:\s*.*?\n"
+            rf"((?:^(?:\s{{4,}}|\s*$).*\n?)*)",
+            re.MULTILINE,
+        )
+
+        match = pattern.search(doc)
+        if not match:
+            raise KeyError(f"Attribute '{attr}' not found in docstring")
+
+        body = inspect.cleandoc(match.group(1))
+        return body
+
+
+class ParameterClass(Lockable):
+    """Base class for option parameters.
+    
+    Raises an exception if trying to modify a parameter with an invalid value or
+    if the object is frozen.
+    """
+
+    def __setattr__(self, name, value):
+        try:
+            doc = self._attribute_doc(name)
+        except KeyError:
+            raise ValueError(f"Unknown parameter '{name}'.") from None
+
+        valid = constraints.enforce(value, constraints.parse(doc)["constraint"])
+        if not valid:
+            class_name = self.__class__.__name__.lower()
+            raise ValueError(
+                f"Invalid value for {class_name}.{name}: {value}."
+                )
+        super().__setattr__(name, value)
+
 
 @dataclass
-class simulation():
+class Simulation(ParameterClass):
+    """Parameters related to simulation mode and time-step.
 
-    _simulation_mode: int = 1
-    _record_mode: int = 0
-    _timestep: float = 1.0e-8
-    _enable_adaptive: bool = True
-    _adaptive_tolerance_orbit: float = 1.0e-8
-    _adaptive_tolerance_collisions: float = 1.0e-1
+    Attributes
+    ----------
+    mode : str
+        Simulation mode: {"gyro-orbit", "guiding-center", "hybrid",
+        "field-line"}, default="gyro-orbit".
 
-    @property
-    def simulation_mode(self):
-        """Simulation mode: {1, 2, 3, 4}, default=1.
+        - "gyro-orbit": Solve the whole gyro-motion.
+        - "guiding-center": Trace the guiding center of the gyro-motion.
+        - "hybrid": Hybrid mode where the simulation mode changes from
+           guiding-center to gyro-orbit when the marker exits the plasma region.
+        - "field-line": Trace magnetic field lines.
 
-        - 1: Gyro-orbit
-        - 2: Guiding center
-        - 3: Hybrid
-        - 4: Magnetic field lines
-        """
-        return self._simulation_mode
-
-    @simulation_mode.setter
-    def simulation_mode(self, value):
-        self._simulation_mode = value
-
-    @property
-    def record_mode(self):
-        """Change the physical picture before collecting diagnostics: {0, 1},
+    record_mode : int
+        Change the physical picture before collecting diagnostics: {0, 1},
         default=0.
 
         This option only affects the gyro-orbit simulations.
 
         - 0: Record gyro-orbits as they are.
         - 1: Instead, record the guiding center position of the gyro-orbit.
-        """
-        return self._record_mode
 
-    @record_mode.setter
-    def record_mode(self, value):
-        self._record_mode = value
-
-    @property
-    def timestep(self):
-        """User-defined time-step [s]: (> 0), default=1.0e-8.
+    timestep : float
+        User-defined time-step [s]: (> 0), default=1.0e-8.
 
         This time-step is used as the fixed time step and as an initial step for
         adaptive time-stepping.
-        """
-        return self._timestep
 
-    @timestep.setter
-    def timestep(self, value):
-        self._timestep = value
-
-    @property
-    def enable_adaptive(self):
-        """Use adaptive time-step: {0, 1}, default=1.
+    enable_adaptive : bool
+        Use adaptive time-step: {0, 1}, default=1.
 
         This option is used only if ``simulation_mode`` is 2 or 3. Gyro-orbit
         simulations are always done with fixed time-step and magnetic field line
@@ -84,83 +147,42 @@ class simulation():
 
         - 0: Use fixed time-step.
         - 1: Use adaptive time-step.
-        """
-        return self._enable_adaptive
 
-    @enable_adaptive.setter
-    def enable_adaptive(self, value):
-        self._enable_adaptive = value
-
-    @property
-    def adaptive_tolerance_orbit(self):
-        """Relative error tolerance for orbit following in adaptive scheme:
+    adaptive_tolerance_orbit : float
+        Relative error tolerance for orbit following in adaptive scheme:
         (> 0), default=1.0e-8.
-        """
-        return self._adaptive_tolerance_orbit
 
-    @adaptive_tolerance_orbit.setter
-    def adaptive_tolerance_orbit(self, value):
-        self._adaptive_tolerance_orbit = value
-
-    @property
-    def adaptive_tolerance_collisions(self):
-        """Relative error tolerance for Coulomb collisions in adaptive scheme:
+    adaptive_tolerance_collisions : float
+        Relative error tolerance for Coulomb collisions in adaptive scheme:
         (> 0), default=1.0e-1.
-        """
-        return self._adaptive_tolerance_collisions
+    """
 
-    @adaptive_tolerance_collisions.setter
-    def adaptive_tolerance_collisions(self, value):
-        self._adaptive_tolerance_collisions = value
+    mode: str = "gyro-orbit"
+    record_mode: int = 0
+    timestep: float = 1.0e-9
+    enable_adaptive: bool = True
+    adaptive_tolerance_orbit: float = 1.0e-8
+    adaptive_tolerance_collisions: float = 1.0e-1
 
 
 @dataclass
-class physics():
+class Physics(ParameterClass):
+    """Physics included in the simulation.
 
-    _enable_orbit_following: bool = 0
-    _enable_coulomb_collisions: bool = 0
-    _enable_mhd: bool = 0
-    _enable_atomic: bool = 0
-    _enable_icrh: bool = 0
-    _enable_aldforce: bool = 0
-    _disable_first_order_gctransformation: bool = 0
-    _disable_ccoll_gcenergy: bool = 0
-    _disable_ccoll_gcpitch: bool = 0
-    _disable_ccoll_gcspatial: bool = 0
-    _reverse_time: bool = 0
+    Attributes
+    ----------
+    enable_orbit_following : bool
+        Trace markers in an electromagnetic field: {0, 1}, default=0.
 
-    @property
-    def enable_orbit_following(self):
-        """Trace markers in an electromagnetic field: {0, 1}, default=0."""
-        return self._enable_orbit_following
-
-    @enable_orbit_following.setter
-    def enable_orbit_following(self, value):
-        self._enable_orbit_following = value
-
-    @property
-    def enable_coulomb_collisions(self):
-        """Markers experience Coulomb collisions with background plasma:
+    enable_coulomb_collisions : bool
+        Markers experience Coulomb collisions with background plasma:
         {0, 1}, default=0.
-        """
-        return self._enable_coulomb_collisions
 
-    @enable_coulomb_collisions.setter
-    def enable_coulomb_collisions(self, value):
-        self._enable_coulomb_collisions = value
+    enable_mhd : bool
+        Include MHD perturbations to orbit-following: {0, 1}, default=0.
 
-    @property
-    def enable_mhd(self):
-        """Include MHD perturbations to orbit-following: {0, 1}, default=0."""
-        return self._enable_mhd
-
-    @enable_mhd.setter
-    def enable_mhd(self, value):
-        self._enable_mhd = value
-
-    @property
-    def enable_atomic(self):
-        """Markers can undergo atomic reactions with background plasma
+    enable_atomic : bool
+        Markers can undergo atomic reactions with background plasma
         or neutrals: {0, 1, 2}, default=0.
 
         - 0: Atomic reactions are turned off.
@@ -168,30 +190,16 @@ class physics():
              the reaction data domain.
         - 2: Atomic reactions are on but they are ignored when marker is
              outside the reaction data domain.
-        """
-        return self._enable_atomic
 
-    @enable_atomic.setter
-    def enable_atomic(self, value):
-        self._enable_atomic = value
-
-    @property
-    def enable_icrh(self):
-        """Enable ion cyclotron resonance heating operator: {0, 1}, default=0.
+    enable_icrh : bool
+        Enable ion cyclotron resonance heating operator: {0, 1}, default=0.
 
         ICRH operator transfers energy (via "kicks") to ions when they are on
         the resonance. The code must be compiled with RFOF=1 and the RFOF
         library must be present in order to use the ICRH operator.
-        """
-        return self._enable_icrh
 
-    @enable_icrh.setter
-    def enable_icrh(self, value):
-        self._enable_icrh = value
-
-    @property
-    def enable_aldforce(self):
-        """Enable radiation reaction force (synchrotron losses): {0, 1},
+    enable_aldforce : bool
+        Enable radiation reaction force (synchrotron losses): {0, 1},
         default=0.
 
         The radiation reaction force (a.k.a. Abraham-Lorentz-Dirac or ALD force)
@@ -199,437 +207,363 @@ class physics():
         proportional to the particle energy and inversely proportional to the
         particle mass, making this option mostly relevant for (runaway)
         electrons.
-        """
-        return self._enable_aldforce
 
-    @enable_aldforce.setter
-    def enable_aldforce(self, value):
-        self._enable_aldforce = value
+    disable_first_order_gctransformation : bool
+        Disable first-order guiding center transformation: {0, 1}, default=0.
 
-    @property
-    def disable_first_order_gctransformation(self):
-        """Disable first order guiding center transformation in velocity space:
-        {0, 1}, default=0.
-        """
-        return self._disable_first_order_gctransformation
+    disable_ccoll_gcenergy : bool
+        Disable guiding center energy collisions: {0, 1}, default=0.
 
-    @disable_first_order_gctransformation.setter
-    def disable_first_order_gctransformation(self, value):
-        self._disable_first_order_gctransformation = value
+    disable_ccoll_gcpitch : bool
+        Disable guiding center pitch angle collisions: {0, 1}, default=0.
 
-    @property
-    def disable_ccoll_gcenergy(self):
-        """Disable guiding center energy collisions: {0, 1}, default=0."""
-        return self._disable_ccoll_gcenergy
+    disable_ccoll_gcspatial : bool
+        Disable guiding center spatial collisions: {0, 1}, default=0.
 
-    @disable_ccoll_gcenergy.setter
-    def disable_ccoll_gcenergy(self, value):
-        self._disable_ccoll_gcenergy = value
-
-    @property
-    def disable_ccoll_gcpitch(self):
-        """Disable guiding center pitch collisions: {0, 1}, default=0."""
-        return self._disable_ccoll_gcpitch
-
-    @disable_ccoll_gcpitch.setter
-    def disable_ccoll_gcpitch(self, value):
-        self._disable_ccoll_gcpitch = value
-
-    @property
-    def disable_ccoll_gcspatial(self):
-        """Disable guiding center spatial diffusion: {0, 1}, default=0."""
-        return self._disable_ccoll_gcspatial
-
-    @disable_ccoll_gcspatial.setter
-    def disable_ccoll_gcspatial(self, value):
-        self._disable_ccoll_gcspatial = value
-
-    @property
-    def reverse_time(self):
-         """Trace markers backwards in time: {0, 1}, default=0.
+    reverse_time : bool
+        Trace markers backwards in time: {0, 1}, default=0.
 
          Collision operator isn't reversible so disable collisions if this
          option is used. Also when tracing markers, the simulation stops when
          marker time is *below* ``simulation_time_limit``.
-         """
-         return self._reverse_time
+    """
 
-    @reverse_time.setter
-    def reverse_time(self, value):
-        self._reverse_time = value
+    enable_orbit_following: bool = 0
+    enable_coulomb_collisions: bool = 0
+    enable_mhd: bool = 0
+    enable_atomic: bool = 0
+    enable_icrh: bool = 0
+    enable_aldforce: bool = 0
+    disable_first_order_gctransformation: bool = 0
+    disable_ccoll_gcenergy: bool = 0
+    disable_ccoll_gcpitch: bool = 0
+    disable_ccoll_gcspatial: bool = 0
+    reverse_time: bool = 0
+
 
 @dataclass
-class endconditions():
+class Endconditions(ParameterClass):
+    """Conditions for terminating marker simulation.
 
-    _activate_simulation_time_limits: bool = 0
-    _activate_real_time_limit: bool = 0
-    _activate_rho_limit: bool = 0
-    _activate_energy_limits: bool = 0
-    _activate_wall_hits: bool = 0
-    _activate_orbit_limit: bool = 0
-    _activate_neutralization: bool = 0
-    _activate_ionization: bool = 0
-    _lab_time_limit: float = 1.0
-    _max_mileage: float = 1.0
-    _max_real_time: float = 3600.0
-    _rho_coordinate_limits: tuple[float, float] = (0.0, 2.0)
-    _min_energy: float = 1.0e3
-    _min_local_thermal_energy: float = 2.0
-    _max_number_of_toroidal_orbits: float = 100
-    _max_number_of_poloidal_orbits: float = 100
-
-    @property
-    def activate_simulation_time_limits(self):
-        """Terminate marker based on laboratory time or its lifetime: {0, 1},
+    Attributes
+    ----------
+    activate_simulation_time_limits : bool
+        Terminate marker based on laboratory time or its lifetime: {0, 1},
         default=0.
 
         Terminate when either of the following is true:
+        - Laboratory time exceeds ``lab_time_limit``.
+        - Marker lifetime exceeds ``max_mileage``.
 
-        1. Absolute time limit: The marker's current time (in laboratory time)
-           exceeds ``lab_time_limit``.
-
-        2. Relative lifetime limit: The marker's elapsed time since its birth
-           exceeds ``max_mileage``.
-        """
-        return self._activate_simulation_time_limits
-
-    @activate_simulation_time_limits.setter
-    def activate_simulation_time_limits(self, value):
-        self._activate_simulation_time_limits = value
-
-    @property
-    def activate_real_time_limit(self):
-        """Terminate marker when the computer has spent specified
+    activate_real_time_limit : bool
+        Terminate marker when the computer has spent specified
         amount of real time to simulate it: {0, 1}, default=0.
 
         This is not a "proper" end condition in a sense that it does not
         correspond to any physical process. This should be used just to control
         simulation duration or debugging. The limit is set by ``max_real_time``.
-        """
-        return self._activate_real_time_limit
 
-    @activate_real_time_limit.setter
-    def activate_real_time_limit(self, value):
-        self._activate_real_time_limit = value
-
-    @property
-    def activate_rho_limit(self):
-        """Terminate if marker goes outside given rho boundaries: {0, 1},
+    activate_rho_limit : bool
+        Terminate if marker goes outside given rho boundaries: {0, 1},
         default=0.
 
         The boundaries are defined by ``rho_coordinate_limits``.
-        """
-        return self._activate_rho_limit
 
-    @activate_rho_limit.setter
-    def activate_rho_limit(self, value):
-        self._activate_rho_limit = value
-
-    @property
-    def activate_energy_limits(self):
-        """Terminate when marker energy is below a user-specified value: {0, 1},
+    activate_energy_limits : bool
+        Terminate when marker energy is below a user-specified value: {0, 1},
         default=0.
 
         The user specified values are ``min_energy`` and
-        ``min_local_thermal_energy``. Marker is terminated when either
+        ``local_thermal_limit``. Marker is terminated when either
         of these limits is reached.
-        """
-        return self._activate_energy_limits
 
-    @activate_energy_limits.setter
-    def activate_energy_limits(self, value):
-        self._activate_energy_limits = value
+    activate_wall_hits : bool
+        Terminate when marker intersects a wall element: {0, 1}, default=0.
 
-    @property
-    def activate_wall_hits(self):
-        """Terminate when marker intersects a wall element: {0, 1}, default=0.
-        """
-        return self._activate_wall_hits
+    activate_orbit_limit : bool
+        Terminate when marker has completed user-specified number of orbits:
+        {"no", "either", "both"}, default="no".
 
-    @activate_wall_hits.setter
-    def activate_wall_hits(self, value):
-        self._activate_wall_hits = value
+        - "either": The number of toroidal and poloidal orbits is limited by
+          ``max_number_of_toroidal_orbits`` or
+          ``max_number_of_poloidal_orbits``, whichever is reached first.
+        - "both": Both limits must be reached.
 
-    @property
-    def activate_orbit_limit(self):
-        """Terminate when marker has completed user-specified number of orbits:
-        {0, 1, 2}, default=0.
+    activate_neutralization : bool
+        Terminate when marker becomes neutral: {0, 1}, default=0.
 
-        The number of toroidal and poloidal orbits is limited by
-        ``max_number_of_toroidal_orbits`` and ``max_number_of_poloidal_orbits``,
-        respectively.
+    activate_ionization : bool
+        Terminate when marker becomes ionized: {0, 1}, default=0.
 
-        - 0: The end condition is not active.
-        - 1: Marker is terminated when either of these limits is reached.
-        - 2: Marker is terminated when both limits are reached.
-        """
-        return self._activate_orbit_limit
+    lab_time_limit : float
+        Maximum laboratory time in seconds: (> 0), default=1.0.
 
-    @activate_orbit_limit.setter
-    def activate_orbit_limit(self, value):
-        self._activate_orbit_limit = value
-
-    @property
-    def activate_neutralization(self):
-        """Terminate when the marker becomes neutral: {0, 1}, default=0."""
-        return self._activate_neutralization
-
-    @activate_neutralization.setter
-    def activate_neutralization(self, value):
-        self._activate_neutralization = value
-
-    @property
-    def activate_ionization(self):
-        """Terminate when the marker becomes ionized: {0, 1}, default=0."""
-        return self._activate_ionization
-
-    @activate_ionization.setter
-    def activate_ionization(self, value):
-        self._activate_ionization = value
-
-    @property
-    def lab_time_limit(self):
-        """Laboratory time when the simulation stops [s]: (> 0), default=1.0."""
-        return self._lab_time_limit
-
-    @lab_time_limit.setter
-    def lab_time_limit(self, value):
-        self._lab_time_limit = value
-
-    @property
-    def max_mileage(self):
-        """The maximum amount of time this marker is simulated [s] or [m]:
+    max_mileage : float
+        The maximum amount of time this marker is simulated [s] or [m]:
         (> 0), default=1.0.
-        """
-        return self._max_mileage
 
-    @max_mileage.setter
-    def max_mileage(self, value):
-        self._max_mileage = value
-
-    @property
-    def max_real_time(self):
-        """Maximum real time spent simulating a marker [s]: (> 0),
+    max_real_time : float
+        Maximum real time spent simulating a marker [s]: (> 0),
         default=3600.0
-        """
-        return self._max_real_time
 
-    @max_real_time.setter
-    def max_real_time(self, value):
-        self._max_real_time = value
+    rho_coordinate_limits : tuple[float, float]
+        Minimum and maximum values for rho: [a >= 0, b > 0],
+        default=[0., 1.0].
 
-    @property
-    def rho_coordinate_limits(self):
-        """Minimum and maximum values for rho: [a > 0, b > 0],
-        default=[0.0, 1.0].
-        """
-        return self._rho_coordinate_limits
+    min_energy : float
+        Minimum energy [eV]: (> 0), default=1000.0.
 
-    @rho_coordinate_limits.setter
-    def rho_coordinate_limits(self, value):
-        self._rho_coordinate_limits = value
-
-    @property
-    def min_energy(self):
-        """Minimum energy [eV]: (> 0), default=1000.0."""
-        return self._min_energy
-
-    @min_energy.setter
-    def min_energy(self, value):
-        self._min_energy = value
-
-    @property
-    def min_local_thermal_energy(self):
-        """Minimum energy limit is local ion thermal energy times this value:
+    local_thermal_limit : float
+        Minimum energy is local ion thermal energy times this value:
         (> 0), default=2.0.
-        """
-        return self._min_local_thermal_energy
 
-    @min_local_thermal_energy.setter
-    def min_local_thermal_energy(self, value):
-        self._min_local_thermal_energy = value
+    max_number_of_toroidal_orbits : float
+        Maximum number of toroidal orbits: (> 0), default=100.
 
-    @property
-    def max_number_of_toroidal_orbits(self):
-        """Maximum number of toroidal orbits: (> 0), default=1000."""
-        return self._max_number_of_toroidal_orbits
+    max_number_of_poloidal_orbits : float
+        Maximum number of poloidal orbits: (> 0), default=100.
+    """
 
-    @max_number_of_toroidal_orbits.setter
-    def max_number_of_toroidal_orbits(self, value):
-        self._max_number_of_toroidal_orbits = value
+    activate_simulation_time_limits: bool = 0
+    activate_real_time_limit: bool = 0
+    activate_rho_limit: bool = 0
+    activate_energy_limits: bool = 0
+    activate_wall_hits: bool = 0
+    activate_orbit_limit: str = "no"
+    activate_neutralization: bool = 0
+    activate_ionization: bool = 0
+    lab_time_limit: float = 1.0
+    max_mileage: float = 1.0
+    max_real_time: float = 3600.0
+    rho_coordinate_limits: tuple[float, float] = (0., 1.)
+    min_energy: float = 1.0e3
+    local_thermal_limit: float = 2.0
+    max_number_of_toroidal_orbits: float = 100
+    max_number_of_poloidal_orbits: float = 100
 
-    @property
-    def max_number_of_poloidal_orbits(self):
-        """Maximum number of poloidal orbits: (> 0), default=1000."""
-        return self._max_number_of_poloidal_orbits
-
-    @max_number_of_poloidal_orbits.setter
-    def max_number_of_poloidal_orbits(self, value):
-        self._max_number_of_poloidal_orbits = value
 
 @dataclass
-class histograms():
+class OrbitParams(ParameterClass):
+    """Diagnostic that records the exact marker trajectory.
 
-    _abscissae: tuple[str, ...] = ()
-    _bins: tuple[int, ...] = ()
-    _interval: tuple[tuple[float, float], ...] = ()
-    _charge_interval: tuple[int, int] = ()
+    Attributes
+    ----------
+    collect : str
+        Enable diagnostics that store marker orbit: {"no", "interval",
+        "poincare"}, default="no".
+    buffer_size : int
+        Maximum number of orbit points stored per marker: (> 0),
+        default=100.
 
-    @property
-    def abscissae(self):
-        r"""Set of distribution abscissae coordinates.
+        When the limit is exceeded, the oldest points are overwritten, so only
+        the most recent positions are retained.
+    interval : float
+        Time interval for writing marker state [s]: (>= 0), default=0.
+
+        Used when ``collect='interval'``.
+    poloidal_angles : list[float] | tuple[float] | float
+        Poloidal angles of toroidal planes where toroidal Poincaré plots are
+        collected [deg]: [0 <= a <= 360, ...], default=[0.0, 180.0].
+
+        Used when ``collect='poincare'``.
+    toroidal_angles : list[float] | tuple[float] | float
+        Toroidal angles of poloidal planes where poloidal Poincaré plots are
+        collected [deg]: [0 <= a <= 360, ...], default=[0.0, 180.0].
+
+        Used when ``collect='poincare'``.
+    radial_distances : list[float] | tuple[float] | float
+        Minor radius coordinate where radial Poincaré plots are collected:
+        [0 < a <= 1, ...], default=[1.0].
+
+        Used when ``collect='poincare'``.
+    """
+
+    collect: str = "no"
+    buffer_size: int = 100
+    interval: float = 0.0
+    poloidal_angles: list[float] | tuple[float] | float = (0.0,)
+    toroidal_angles: list[float] | tuple[float] | float = (0.0,)
+    radial_distances: list[float] | tuple[float] | float = (1.0,)
+
+
+DIMENSIONS: MappingProxyType = MappingProxyType({
+    "r": "m",
+    "phi": "rad",
+    "z": "m",
+    "rho": "1",
+    "theta": "rad",
+    "ppar": "kg*m/s",
+    "pperp": "kg*m/s",
+    "pr": "kg*m/s",
+    "pphi": "kg*m/s",
+    "pz": "kg*m/s",
+    "ekin": "J",
+    "pitch": "1",
+    "mu": "J/T",
+    "ptor": "kg*m*m/s",
+    "time": "s",
+    "charge": 1,
+})
+"""All possible coordinate dimensions for the histogram diagnostics."""
+
+@dataclass(frozen=True)
+class Dimension():
+    r"""Histogram axis.
+
+    Attributes
+    ----------
+    name : str
+        Name of the dimension.
+    min : float
+        Minimum value of the axis interval: [x].
+    max : float
+        Maximum value of the axis interval: [x].
+    bins : int
+        Number of bins the interval [``min``, ``max``] is divided to: (> 0).
+    """
+    name: str
+    min: unyt.unyt_array
+    max: unyt.unyt_array
+    bins: int
+
+    def __post_init__(self):
+        if self.name not in DIMENSIONS or self.name == "charge":
+            raise ValueError(
+                f"Invalid histogram dimension {self.name}."
+                )
+
+        if self.bins <= 0:
+            raise ValueError(
+                f"Negative number of bins in dimension {self.name}."
+                )
+        if self.bins != int(self.bins):
+            raise ValueError(
+                f"Non-integer number of bins in dimension {self.name}."
+                )
+
+        object.__setattr__(self, "min", match_units(self.min, DIMENSIONS[self.name]))
+        object.__setattr__(self, "max", match_units(self.max, DIMENSIONS[self.name]))
+
+        if self.min >= self.max:
+            raise ValueError(
+                "Minimum value of the interval is larger than the maximum value"
+                f" in dimension {self.name}."
+                )
+
+
+@dataclass
+class HistParams(Lockable):
+    r"""A histogram.
+
+    Attributes
+    ----------
+    dimensions : list
+        Set of distribution abscissae coordinates.
 
         The available coordinates are:
 
-        - :math:`r`: major radius
-        - :math:`phi`: toroidal angle
-        - :math:`z`: axial height
-        - :math:`p_\parallel`: momentum component parallel to magnetic field
-        - :math:`p_\perp`: momentum component perpendicular to magnetic field
-        - :math:`t`: time
-        """
-        return self._abscissae
+        - 'r' (:math:`r`): Major radius [m].
+        - 'phi' (:math:`\phi`): Toroidal angle [def].
+        - 'z' (:math:`z`): Axial height [m].
+        - 'rho' (:math:`\rho`): Square root of normalized poloidal flux [1].
+        - 'theta' (:math:`\theta`): Geometrical poloidal angle [def].
+        - 'ppara' (:math:`p_\parallel`): Momentum component parallel to magnetic
+          field [kg m/s].
+        - 'pperp' (:math:`p_\perp`): Momentum component perpendicular to magnetic
+          field [kg m/s].
+        - 'pr' (:math:`p_r`): Radial component of momentum [kg m/s].
+        - 'pphi' (:math:`p_\phi`): Toroidal component of momentum [kg m/s].
+        - 'pz' (:math:`p_z`): Axial component of momentum [kg m/s].
+        - 'ekin' (:math:`E_{kin}`): Kinetic energy [eV].
+        - 'pitch' (:math:`\lambda`): Pitch angle [1].
+        - 'mu' (:math:`\mu`): Magnetic moment [eV/T].
+        - 'ptor' (:math:`P_{tor}`): Canonical toroidal angular momentum
+          [kg m**2/s].
+        - 'time' (:math:`t`): Time [s].
 
-    @abscissae.setter
-    def abscissae(self, value):
-        self._abscissae = value
-
-    @property
-    def interval(self):
-        r"""Abscissa limits for abscissa coordinates: [a > 0, b > 0],
-        default=[0.1, 10.0].
-        """
-        return self._interval
-
-    @interval.setter
-    def interval(self, value):
-        self._interval = value
-
-    @property
-    def bins(self):
-        """Number of bins the corresponding ``interval`` is divided to: (> 0),
-        default=10.
-        """
-        return self._bins
-
-    @bins.setter
-    def bins(self, value):
-        self._bins = value
-
-    @property
-    def charge_interval(self):
-        """Abscissa limits (inclusive) for test particle charge [e]: [a, b],
+    charge_interval : set
+        Histogram limits (inclusive) for test particle charge [e]: [a, b],
         default=[2, 2].
 
         For each charge state on the interval, the distribution is collected
         separately.
+    """
+    dimensions: tuple[Dimension] = field(default_factory=tuple[Dimension])
+    charge_interval: tuple[int, int] = (2, 2)
+
+    def __setattr__(self, name, value):
+        if name == "dimensions":
+            arr = []
+            for dim in value:
+                if isinstance(dim, dict):
+                    arr.append(Dimension(**dim))
+                elif isinstance(dim, Dimension):
+                    arr.append(dim)
+                else:
+                    arr.append(Dimension(*dim))
+
+            if len(value) != len(set(d.name for d in arr)):
+                raise ValueError(
+                    "Multiple dimensions with the same name."
+                    )
+            object.__setattr__(self, name, arr)
+        elif name == "charge_interval":
+            try:
+                doc = self._attribute_doc(name)
+            except KeyError:
+                raise ValueError(f"Unknown parameter '{name}'.") from None
+
+            valid = constraints.enforce(value, constraints.parse(doc)["constraint"])
+            if not valid:
+                class_name = self.__class__.__name__.lower()
+                raise ValueError(
+                    f"Invalid value for {class_name}.{name}: {value}."
+                    )
+            object.__setattr__(self, name, value)
+        else:
+            raise ValueError(
+                f"Uknown parameter {name}."
+                )
+
+    @classmethod
+    def from_dict(cls, params):
+        """Initialize parameters from a dictionary.
+        
+        Parameters
+        ----------
+        params : dict
+            Dictionary of parameters.
+
+            ``charge_interval`` is optional but there must be at least one
+            dimension.
         """
-        return self._charge_interval
+        hist = cls()
+        hist.dimensions = params["dimensions"]
+        if len(hist.dimensions) == 0:
+            raise ValueError(
+                "Histogram must have at least one dimension."
+                )
+        if "charge_interval" in params:
+            hist.charge_interval = params["charge_interval"]
+        return hist
+    
+    @classmethod
+    def from_hdf5(cls, file, index):
+        hist = {"dimensions": []}
+        try:
+            value = file.read(f"hist_{index}__charge_interval")
+            hist["charge_interval"] = (int(value[0]), int(value[1]))
+        except KeyError:
+            return None
 
-    @charge_interval.setter
-    def charge_interval(self, value):
-        self._charge_interval = value
-
-@dataclass
-class orbit():
-
-    _poincare: bool = 0
-    _interval: float = 0.0
-    _collect_orbit: bool = 0
-    _poloidal_angles: list[float] | tuple[float] | float = (0.0,)
-    _toroidal_angles: list[float] | tuple[float] | float = (0.0,)
-    _radial_distances: list[float] | tuple[float] | float = (1.0,)
-    _number_of_points_per_marker: int = 100
-
-    @property
-    def collect_orbit(self):
-        """Enable diagnostics that store marker orbit: {0, 1}, default=0.
-
-        - 0 Marker orbit diagnostics are not collected
-        - 1 Marker orbit diagnostics are collected
-        """
-        return self._collect_orbit
-
-    @collect_orbit.setter
-    def collect_orbit(self, value):
-        self._collect_orbit = value
-
-    @property
-    def poincare(self):
-        """Collect data only when a (Poincaré) plane is crossed: {0, 1},
-        default=0.
-
-        Enable this option in order to generate Poincaré plots.
-        """
-        return self._poincare
-
-    @poincare.setter
-    def poincare(self, value):
-        self._poincare = value
-
-    @property
-    def number_of_points_per_marker(self):
-        """Maximum number of points (per marker) to be written: (> 0),
-        default=100.
-
-        If this number is exceeded when marker is being simulated, the oldest
-        points will be replaced as long as the simulation continues. Thus,
-        this parameter is effectively the number of marker's last positions
-        that are stored.
-        """
-        return self._number_of_points_per_marker
-
-    @number_of_points_per_marker.setter
-    def number_of_points_per_marker(self, value):
-        self._number_of_points_per_marker = value
-
-    @property
-    def poloidal_angles(self):
-        """Poloidal angles of toroidal planes where toroidal Poincaré plots are
-        collected [deg]: [0 <= a <= 360, ...], default=[0.0, 180.0].
-
-        Used when ``poincare`` is enabled.
-        """
-        return np.asarray(self._poloidal_angles)
-
-    @poloidal_angles.setter
-    def poloidal_angles(self, value):
-        self._poloidal_angles = value
-
-    @property
-    def toroidal_angles(self):
-        """Toroidal angles of poloidal planes where poloidal Poincaré plots are
-        collected [deg]: [0 <= a <= 360, ...], default=[0.0, 180.0].
-
-        Used when ``poincare`` is enabled.
-        """
-        return np.asarray(self._toroidal_angles)
-
-    @toroidal_angles.setter
-    def toroidal_angles(self, value):
-        self._toroidal_angles = value
-
-    @property
-    def radial_distances(self):
-        """Minor radius coordinate where radial Poincaré plots are collected:
-        [0 < a <= 1, ...], default=[1.0].
-
-        Used when ``poincare`` is enabled.
-        """
-        return np.asarray(self._radial_distances).copy()
-
-    @radial_distances.setter
-    def radial_distances(self, value):
-        self._radial_distances = value
-
-    @property
-    def interval(self):
-        """Time interval for writing marker state [s]: (> 0), default=0.
-
-        Used when ENABLE_ORBITWRITE = 1 and ORBITWRITE_MODE = 1.
-        """
-        return self._interval
-
-    @interval.setter
-    def interval(self, value):
-        self._interval = value
+        for dim in DIMENSIONS.keys():
+            try:
+                hist["dimensions"].append((
+                    dim,
+                    file.read(f"hist_{index}_{dim}_min"),
+                    file.read(f"hist_{index}_{dim}_max"),
+                    int(file.read(f"hist_{index}_{dim}_bins")),
+                ))
+            except KeyError:
+                continue
+        return hist

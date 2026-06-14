@@ -8,7 +8,7 @@ from a5py.exceptions import AscotDataException
 
 from ..libascot import LIBASCOT
 from ..data.options import SimulationOptions, OptionsStruct
-import a5py.data.orbits as orbits
+import a5py.data.orbit as orbit
 import a5py.data.hist as hist
 
 from a5py.data import (
@@ -35,8 +35,8 @@ class Rfof(ctypes.Structure):
 class Diag(ctypes.Structure):
 
     _fields_ = [
-        ("orbit", ctypes.POINTER(orbits.Struct)),
-        ("hist", ctypes.POINTER(hist.Struct)),
+        ("orbit", ctypes.POINTER(orbit.Struct)),
+        ("hist", ctypes.POINTER(ctypes.POINTER(hist.Struct))),
         ("nhist", ctypes.c_size_t),
         ]
 
@@ -78,7 +78,7 @@ def _get_marker_idx(comm, nmrk):
     end   = start + count
     return np.arange(start, end)
 
-def setup_inputs(inputs, comm=None):
+def setup(inputs, params, comm=None):
     """Prepare inputs for the simulation.
 
     Parameters
@@ -104,7 +104,6 @@ def setup_inputs(inputs, comm=None):
                 inputs[variant] = AscotData.from_export(variant, exported_data)
 
     idx = _get_marker_idx(comm, inputs["marker"].n)
-    inputs["bfield"]
     bjac = np.zeros((12,idx.size))
     (
         bjac[0,:], bjac[1:,:], bjac[2:,:], bjac[3:,:], bjac[4:,:], bjac[5:],
@@ -119,33 +118,12 @@ def setup_inputs(inputs, comm=None):
         bfield=inputs["bfield"],
         )
     state = MarkerState.from_markerinput(inputs["marker"], bjac.T, idx)
-    return state, inputs, []
-
-
-def setup_simulation(params: SimulationOptions, inputs, state, comm=None):
-    """Create run object and setup diagnostics."""
-    #inputs.update({"options": params})
-
-    orbit = None
-    if params.orbit.collect_orbit:
-        orbit = orbits.Orbit()
-        orbit.init(
-            state.n,
-            params.orbit.number_of_points_per_marker,
-            params.orbit.interval,
-            params.orbit.poincare,
-            toroidal=params.orbit.toroidal_angles,
-            poloidal=params.orbit.poloidal_angles,
-            radial=params.orbit.radial_distances,
-            )
     run = Run.make_fresh(
-        mrk=state._cdata,
+        mrk=state,
         inputs=inputs,
         params=params,
-        orbit=orbit,
         )
-    run.options._lock()
-    return run
+    return run, inputs, []
 
 
 def execute(run, time=None):
@@ -162,9 +140,24 @@ def execute(run, time=None):
     for inp in ["bfield", "efield", "plasma", "neutral", "boozer", "mhd"]:
         if hasattr(run, inp):
             getattr(sim, inp).use(getattr(run, inp))
-    sim.options = ctypes.pointer(run.options._cdata)
+    options = OptionsStruct.from_params(run.options)
+    sim.options = ctypes.pointer(options)
     if "orbit" in run._diagnostics:
         sim.diagnostics.orbit = ctypes.pointer(run._diagnostics["orbit"]._cdata)
+
+    i = 0
+    while True:
+        if f"hist_{i}" not in run._diagnostics:
+            break
+        i += 1
+    sim.diagnostics.nhist = i
+    ptr_array_type = ctypes.POINTER(hist.Struct) * sim.diagnostics.nhist
+    sim.diagnostics.hist = ptr_array_type()
+
+    for i in range(sim.diagnostics.nhist):
+        obj = run._diagnostics[f"hist_{i}"]._cdata
+        sim.diagnostics.hist[i] = ctypes.pointer(obj)
+
     mrk = run._diagnostics["endstate"]
     LIBASCOT.ascot_solve_distribution(ctypes.byref(sim), mrk.n, mrk._cdata)
 

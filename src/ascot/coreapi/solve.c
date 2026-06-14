@@ -302,7 +302,7 @@ void ascot_solve_fusion(
                                        i2 * product1->strides[i2coord] +
                                        ip1 * product1->strides[p1coord] +
                                        ip2 * product1->strides[p2coord];
-                        product1->bins[index] += weight * source->mult;
+                        product1->values[index] += weight * source->mult;
                     }
 
                     ip1 = math_bin_index(
@@ -321,7 +321,7 @@ void ascot_solve_fusion(
                                        i2 * product2->strides[i2coord] +
                                        ip1 * product2->strides[p1coord] +
                                        ip2 * product2->strides[p2coord];
-                        product2->bins[index] += weight * source->mult;
+                        product2->values[index] += weight * source->mult;
                     }
                 }
             }

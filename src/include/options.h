@@ -113,7 +113,7 @@ typedef struct
     real min_energy;
 
     /** Minimum energy limit is this times local thermal energy. */
-    real min_local_thermal_energy;
+    real local_thermal_limit;
 
     /** Maximum limit for toroidal distance [rad]. */
     real max_number_of_toroidal_orbits;

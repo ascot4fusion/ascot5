@@ -25,4 +25,5 @@ set_up_units()
 __all__ = [
     "Ascot",
     "AscotDataException",
+    "SimulationOptions",
     ]

@@ -11,5 +11,5 @@ Cartesian electric field
 
 .. dropdown:: The C-module (For developers)
 
-   .. doxygenstruct:: E_TC_data
+   .. doxygenstruct:: EfieldCartesian
       :members:

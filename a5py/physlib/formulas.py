@@ -4,7 +4,7 @@ import unyt
 from unyt.physical_constants import speed_of_light as c
 
 class Quantity:
-    registry = {}
+    registry: dict[str, "Quantity"] = {}
     """Registry of all known quantities."""
 
     def __init__(self, name, units):
@@ -441,6 +441,13 @@ gyroradius = Quantity("gyroradius", "m")
 gyroradius.add_formula(
     lambda q, p, xi, b: ( np.sqrt(1 - xi**2) * p / ( b * np.abs(q) ) ),
     ["charge", "pnorm", "pitch", "bnorm"]
+    )
+
+gyroradius.add_formula(
+    lambda q, m, gamma, xi, b: (
+        np.sqrt((1 - xi**2) * (gamma**2 - 1)) * m * c / ( b * np.abs(q) )
+        ),
+    ["charge", "mass", "gamma", "pitch", "bnorm"]
     )
 
 
