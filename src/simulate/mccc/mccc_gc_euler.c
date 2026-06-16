@@ -49,7 +49,7 @@ void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
             real z0   = p->z[i];
 
             /* Move guiding center to (x, y, z, vnorm, xi) coordinates */
-            real vin, pin, vflow, gamma, ppar_flow, xiin, Xin_xyz[3];
+            real vin, pin, vflow, vpar, vperp2, xiin, Xin_xyz[3];
             Xin_xyz[0] = p->r[i] * cos(p->phi[i]);
             Xin_xyz[1] = p->r[i] * sin(p->phi[i]);
             Xin_xyz[2] = p->z[i];
@@ -58,11 +58,14 @@ void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
                     &vflow, p->rho[i], p->r[i], p->phi[i], p->z[i], p->time[i],
                     pdata);
             }
-            gamma = physlib_gamma_ppar(p->mass[i], p->mu[i], p->ppar[i], Bnorm);
-            ppar_flow = p->ppar[i] - gamma * vflow * p->mass[i];
-            pin  = physlib_gc_p(p->mass[i], p->mu[i], ppar_flow, Bnorm);
-            xiin = physlib_gc_xi(p->mass[i], p->mu[i], ppar_flow, Bnorm);
+            pin  = physlib_gc_p(p->mass[i], p->mu[i], p->ppar[i], Bnorm);
+            xiin = physlib_gc_xi(p->mass[i], p->mu[i], p->ppar[i], Bnorm);
             vin = physlib_vnorm_pnorm(p->mass[i], pin);
+            vpar = xiin * vin;
+            vperp2 = (1 - xiin * xiin) * vin * vin;
+            vin = sqrt((vpar - vflow) * (vpar - vflow) + vperp2);
+            xiin =  (vpar - vflow) / vin;
+            
 
             /* Evaluate plasma density and temperature */
             real nb[MAX_SPECIES], Tb[MAX_SPECIES];
@@ -154,6 +157,10 @@ void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
                 Xout_xyz[1] = Xin_xyz[1];
                 Xout_xyz[2] = Xin_xyz[2];
             }
+            vpar = xiout * vout;
+            vperp2 = (1 - xiout * xiout) * vout * vout;
+            vout = sqrt((vpar + vflow) * (vpar + vflow) + vperp2);
+            xiout =  (vpar + vflow) / vout;
             real pout = physlib_pnorm_vnorm(p->mass[i], vout);
 
             /* Back to cylindrical coordinates */
@@ -199,21 +206,8 @@ void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
 
                 p->r[i]    = Xout_rpz[0];
                 p->z[i]    = Xout_rpz[2];
-
-                /*Since we use xiout (in "flow frame") here, we will get the mu
-                in the "flow frame". If we assume that the flow frame has the
-                same perpendicular velocity, mu remains unchanged under the
-                co-ordinate transformation and thus this mu is then the same as
-                the mu in the lab frame.*/
                 p->mu[i]   = physlib_gc_mu(p->mass[i], pout, xiout, Bnorm);
-                gamma      = physlib_gamma_pnorm(p->mass[i], pout);
-
-                /* difference in ppar between the lab frame and "flow frame"  */
-                real dppar  = gamma * p->mass[i] * vflow;
-
-                /* p->ppar is in the lab frame; xiout and pout are in the
-                "flow frame" */
-                p->ppar[i] = physlib_gc_ppar(pout, xiout) + dppar;
+                p->ppar[i] = physlib_gc_ppar(pout, xiout);
 
                 /* Evaluate phi and theta angles so that they are cumulative */
                 real axisrz[2];
