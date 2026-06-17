@@ -45,6 +45,7 @@ real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i);
  *
  * @param pq particles to be simulated
  * @param sim simulation data
+ * @param mrk_array_size size of particle arrays
  */
 void simulate_gc_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     int* cycle = (int*) malloc(mrk_array_size*sizeof(int)); /* Flag indigating whether a new marker
@@ -109,7 +110,13 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     particle_offload_gc(&p);
     particle_offload_gc(&p0);
     real* rnd = (real*) malloc(5*mrk_array_size*sizeof(real));
-    GPU_MAP_TO_DEVICE(hin[0:mrk_array_size], rnd[0:5*mrk_array_size], hin_default[0:mrk_array_size], hnext_recom[0:mrk_array_size], hout_rfof[0:mrk_array_size])
+    GPU_MAP_TO_DEVICE(
+        hin[0:mrk_array_size],
+        rnd[0:5*mrk_array_size],
+        hin_default[0:mrk_array_size],
+        hnext_recom[0:mrk_array_size],
+        hout_rfof[0:mrk_array_size]
+    )
     while(n_running > 0) {
 
         /* Store marker states */
@@ -221,7 +228,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 #else
         n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 #endif
-	
+
 #ifndef GPU
         /* Determine simulation time-step */
         #pragma omp simd

@@ -50,7 +50,7 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
  *
  * @param pq particles to be simulated
  * @param sim simulation data
- *
+ * @param mrk_array_size size of particle arrays
  */
 void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 
@@ -79,7 +79,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
     particle_simd_gc p0; // This array stores previous states
     particle_allocate_gc(&p, mrk_array_size);
     particle_allocate_gc(&p0, mrk_array_size);
-    
+
     rfof_marker rfof_mrk; // RFOF specific data
 
     for(int i=0; i< mrk_array_size; i++) {
@@ -127,8 +127,16 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
     particle_offload_gc(&p);
     particle_offload_gc(&p0);
     acceleration_offload(&acceleration,mrk_array_size);
-    GPU_MAP_TO_DEVICE(hin[0:mrk_array_size],rnd[0:5*mrk_array_size],hout_orb[0:mrk_array_size],hout_col[0:mrk_array_size],hout_rfof[0:mrk_array_size],hnext[0:mrk_array_size],cycle[0:mrk_array_size])
-    mccc_wiener_offload(wienarr,mrk_array_size);   
+    GPU_MAP_TO_DEVICE(
+        hin[0:mrk_array_size],
+        rnd[0:5*mrk_array_size],
+        hout_orb[0:mrk_array_size],
+        hout_col[0:mrk_array_size],
+        hout_rfof[0:mrk_array_size],
+        hnext[0:mrk_array_size],
+        cycle[0:mrk_array_size]
+    )
+    mccc_wiener_offload(wienarr,mrk_array_size);
     while(n_running > 0) {
 
         /* Store marker states in case time step will be rejected */
@@ -332,7 +340,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
     GPU_MAP_FROM_DEVICE(sim[0:1])
     particle_onload_gc(&p);
     n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
-    mccc_wiener_onload(wienarr,mrk_array_size);   
+    mccc_wiener_onload(wienarr,mrk_array_size);
 #endif
     free(cycle);
     free(hin);
@@ -464,6 +472,7 @@ void acceleration_allocate(Acceleration* acceleration, int nmrk){
   acceleration->collfreq  = malloc(nmrk * sizeof(acceleration->collfreq) );
   acceleration->cross     = malloc(nmrk * sizeof(acceleration->cross) );
 }
+
 /**
  * @brief Offload acceleration struct to GPU.
  *
