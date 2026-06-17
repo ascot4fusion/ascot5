@@ -17,21 +17,25 @@ typedef struct {
 
 typedef struct {
     /** Acceleration factor. */
-    real acc[NSIMD];
+    real* acc;
 
     /** Orbit time [s]. */
-    real orbittime[NSIMD];
+    real* orbittime;
 
     /** Collision frequency [1/s]. */
-    real collfreq[NSIMD];
+    real* collfreq;
 
     /** Storage for OMP crossing data. */
-    Crossing cross[NSIMD];
+    Crossing* cross;
 } Acceleration;
 
 void recalculate_acceleration(
     Acceleration* acc, sim_data* sim, particle_simd_gc* p, particle_simd_gc* p0);
 
-void simulate_gc_adaptive(particle_queue* pq, sim_data* sim);
+void acceleration_allocate(Acceleration* acceleration, int nmrk);
+
+void acceleration_offload(Acceleration* acceleration, int nmrk);
+
+void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size);
 
 #endif
