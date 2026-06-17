@@ -59,6 +59,15 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     particle_allocate_fo(&p, mrk_array_size);
     particle_allocate_fo(&p0, mrk_array_size);
 
+    particle_simd_gc gc_f;
+    particle_simd_gc gc_i;
+    if(sim->record_mode) {
+        particle_allocate_gc(&gc_f, mrk_array_size);
+        particle_allocate_gc(&gc_i, mrk_array_size);
+        particle_offload_gc(&gc_f);
+        particle_offload_gc(&gc_i);
+    }
+
     /* Init dummy markers */
     for(int i = 0; i < mrk_array_size; i++) {
         p.id[i] = -1;
@@ -69,7 +78,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     int n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
 
     /* Determine simulation time-step */
-    #pragma omp simd
+    GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < mrk_array_size; i++) {
         if(cycle[i] > 0) {
             hin[i] = simulate_fo_fixed_inidt(sim, &p, i);
@@ -163,12 +172,8 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         else {
             /* Instead of particle coordinates we record guiding center */
 
-            // Dummy guiding centers
-            particle_simd_gc gc_f;
-            particle_simd_gc gc_i;
-
             /* Particle to guiding center transformation */
-            #pragma omp simd
+            GPU_PARALLEL_LOOP_ALL_LEVELS
             for(int i=0; i<p.n_mrk; i++) {
                 if(p.running[i]) {
                     particle_fo_to_gc(&p, i, &gc_f, &sim->B_data);
