@@ -42,6 +42,7 @@ int asigma_loc_init(asigma_loc_data* data, int nreac,
     data->sigma = (interp1D_data*) malloc( nreac * sizeof(interp1D_data) );
     data->sigmav = (interp2D_data*) malloc( nreac * sizeof(interp2D_data) );
     data->BMSsigmav = (interp3D_data*) malloc( nreac * sizeof(interp3D_data) );
+    real* pos = sigma;
     for(int i_reac = 0; i_reac < nreac; i_reac++) {
         data->z_1[i_reac] = z1[i_reac];
         data->a_1[i_reac] = a1[i_reac];
@@ -52,7 +53,6 @@ int asigma_loc_init(asigma_loc_data* data, int nreac,
         /* Initialize spline struct according to dimensionality of
            reaction data (and mark reaction availability) */
         int dim = (ne[i_reac] > 1) + (nn[i_reac] > 1) + (nT[i_reac] > 1);
-        real* pos = sigma;
         switch(dim) {
             case 1:
                 err = interp1Dcomp_setup(&data->sigma[i_reac], pos,
