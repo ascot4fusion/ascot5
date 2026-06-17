@@ -36,8 +36,9 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
 
     int i;
     /* Following loop will be executed simultaneously for all i */
-    #pragma omp simd aligned(h : 64)
-    for(i = 0; i < NSIMD; i++) {
+    GPU_DATA_IS_MAPPED(h[0:p->n_mrk])
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for(i = 0; i < p->n_mrk; i++) {
         if(p->running[i]) {
             a5err errflag = 0;
 

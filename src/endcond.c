@@ -273,8 +273,8 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
     int active_tormax    = sim->endcond_active & endcond_tormax;
     int active_cpumax    = sim->endcond_active & endcond_cpumax;
 
-    #pragma omp simd
-    for(i = 0; i < NSIMD; i++) {
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for(i = 0; i < p_f->n_mrk; i++) {
         if(p_f->running[i]) {
             /* Update bounces if pitch changed sign */
             if( p_i->ppar[i] * p_f->ppar[i] < 0 ) {

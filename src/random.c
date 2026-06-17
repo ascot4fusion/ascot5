@@ -115,10 +115,11 @@ void random_lcg_normal_simd(random_data* rdata, int n, double* r) {
     /* The geometric form */
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < n; i=i+2) {
+        random_data* ri = random_lcg_state_at(rdata, i);
         w = 2.0;
         while( w >= 1.0 ) {
-            x1 = 2*random_lcg_uniform(rdata)-1;
-            x2 = 2*random_lcg_uniform(rdata)-1;
+            x1 = 2*random_lcg_uniform(ri)-1;
+            x2 = 2*random_lcg_uniform(ri)-1;
             w = x1*x1 + x2*x2;
         }
 
@@ -133,8 +134,9 @@ void random_lcg_normal_simd(random_data* rdata, int n, double* r) {
     double s;
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < n; i=i+2) {
-        x1 = random_lcg_uniform(rdata);
-        x2 = random_lcg_uniform(rdata);
+        random_data* ri = random_lcg_state_at(rdata, i);
+        x1 = random_lcg_uniform(ri);
+        x2 = random_lcg_uniform(ri);
         w = sqrt(-2*log(x1));
         s = cos(CONST_2PI*x2);
         r[i] = w*s;
