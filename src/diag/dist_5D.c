@@ -193,76 +193,54 @@ void dist_5D_update_fo(dist_5D_data* dist, particle_simd_fo* p_f,
  */
 void dist_5D_update_gc(dist_5D_data* dist, particle_simd_gc* p_f,
                        particle_simd_gc* p_i) {
-    real phi[NSIMD];
-    real pperp[NSIMD];
 
-    int i_r[NSIMD];
-    int i_phi[NSIMD];
-    int i_z[NSIMD];
-    int i_ppara[NSIMD];
-    int i_pperp[NSIMD];
-    int i_time[NSIMD];
-    int i_q[NSIMD];
-
-    int ok[NSIMD];
-    real weight[NSIMD];
-
-    #pragma omp simd
-    for(int i = 0; i < NSIMD; i++) {
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for(int i = 0; i < p_f->n_mrk; i++) {
         if(p_f->running[i]) {
-            i_r[i] = floor((p_f->r[i] - dist->min_r)
+            int i_r = floor((p_f->r[i] - dist->min_r)
                      / ((dist->max_r - dist->min_r)/dist->n_r));
 
-            phi[i] = fmod(p_f->phi[i], 2*CONST_PI);
-            if(phi[i] < 0) {
-                phi[i] = phi[i] + 2*CONST_PI;
+            real phi = fmod(p_f->phi[i], 2*CONST_PI);
+            if(phi < 0) {
+                phi = phi + 2*CONST_PI;
             }
-            i_phi[i] = floor((phi[i] - dist->min_phi)
+            int i_phi = floor((phi - dist->min_phi)
                        / ((dist->max_phi - dist->min_phi)/dist->n_phi));
 
-            i_z[i] = floor((p_f->z[i] - dist->min_z)
+            int i_z = floor((p_f->z[i] - dist->min_z)
                     / ((dist->max_z - dist->min_z) / dist->n_z));
 
-            i_ppara[i] = floor((p_f->ppar[i] - dist->min_ppara)
+            int i_ppara = floor((p_f->ppar[i] - dist->min_ppara)
                        / ((dist->max_ppara - dist->min_ppara) / dist->n_ppara));
 
-            pperp[i] = sqrt(2 * sqrt(  p_f->B_r[i]   * p_f->B_r[i]
+            real pperp = sqrt(2 * sqrt(  p_f->B_r[i]   * p_f->B_r[i]
                                      + p_f->B_phi[i] * p_f->B_phi[i]
                                      + p_f->B_z[i]   * p_f->B_z[i] )
                             * p_f->mu[i] * p_f->mass[i]);
-            i_pperp[i] = floor((pperp[i] - dist->min_pperp)
+            int i_pperp = floor((pperp - dist->min_pperp)
                        / ((dist->max_pperp - dist->min_pperp) / dist->n_pperp));
 
-            i_time[i] = floor((p_f->time[i] - dist->min_time)
+            int i_time = floor((p_f->time[i] - dist->min_time)
                           / ((dist->max_time - dist->min_time) / dist->n_time));
 
-            i_q[i] = floor((p_f->charge[i]/CONST_E - dist->min_q)
+            int i_q = floor((p_f->charge[i]/CONST_E - dist->min_q)
                            / ((dist->max_q - dist->min_q) / dist->n_q));
 
-            if(i_r[i]     >= 0  &&  i_r[i]     <= dist->n_r - 1      &&
-               i_phi[i]   >= 0  &&  i_phi[i]   <= dist->n_phi - 1    &&
-               i_z[i]     >= 0  &&  i_z[i]     <= dist->n_z - 1      &&
-               i_ppara[i] >= 0  &&  i_ppara[i] <= dist->n_ppara - 1  &&
-               i_pperp[i] >= 0  &&  i_pperp[i] <= dist->n_pperp - 1  &&
-               i_time[i]  >= 0  &&  i_time[i]  <= dist->n_time - 1   &&
-               i_q[i]     >= 0  &&  i_q[i]     <= dist->n_q - 1        ) {
-                ok[i] = 1;
-                weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
-            }
-            else {
-                ok[i] = 0;
-            }
-        }
-    }
-
-    for(int i = 0; i < NSIMD; i++) {
-        if(p_f->running[i] && ok[i]) {
-            size_t index = dist_5D_index(
-                i_r[i], i_phi[i], i_z[i], i_ppara[i], i_pperp[i], i_time[i],
-                i_q[i], dist->step_6, dist->step_5, dist->step_4,
+            if(i_r     >= 0  &&  i_r     <= dist->n_r - 1      &&
+               i_phi   >= 0  &&  i_phi   <= dist->n_phi - 1    &&
+               i_z     >= 0  &&  i_z     <= dist->n_z - 1      &&
+               i_ppara >= 0  &&  i_ppara <= dist->n_ppara - 1  &&
+               i_pperp >= 0  &&  i_pperp <= dist->n_pperp - 1  &&
+               i_time  >= 0  &&  i_time  <= dist->n_time - 1   &&
+               i_q     >= 0  &&  i_q     <= dist->n_q - 1        ) {
+	       real weight = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
+	       size_t index = dist_5D_index(
+                i_r, i_phi, i_z, i_ppara, i_pperp, i_time,
+                i_q, dist->step_6, dist->step_5, dist->step_4,
                 dist->step_3, dist->step_2, dist->step_1);
-            #pragma omp atomic
-            dist->histogram[index] += weight[i];
+	        GPU_ATOMIC
+                dist->histogram[index] += weight;
+            }
         }
     }
 }

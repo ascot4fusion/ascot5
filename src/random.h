@@ -61,6 +61,19 @@ typedef struct {
     uint64_t r;
 } random_data;
 
+/* Return the RNG state to use for logical index i.
+ * - CPU: a single RNG state is used
+ * - GPU: one RNG state per parallel slot/lane is used
+*/
+static inline random_data* random_lcg_state_at(random_data* rdata, int i) {
+#ifdef GPU
+    return &rdata[i];
+#else
+    (void)i;
+    return rdata;
+#endif
+}
+
 void random_lcg_init(random_data* rdata, uint64_t seed);
 uint64_t random_lcg_integer(random_data* rdata);
 DECLARE_TARGET

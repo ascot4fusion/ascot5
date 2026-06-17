@@ -52,23 +52,23 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
  * @param sim simulation data
  *
  */
-void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
+void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 
     /* Wiener arrays needed for the adaptive time step */
-    mccc_wienarr wienarr[NSIMD];
+    mccc_wienarr* wienarr = (mccc_wienarr*) malloc(mrk_array_size*sizeof(mccc_wienarr));
 
     /* Current time step, suggestions for the next time step and next time
      * step                                                                */
-    real hin[NSIMD]       __memalign__;
-    real hout_orb[NSIMD]  __memalign__;
-    real hout_col[NSIMD]  __memalign__;
-    real hout_rfof[NSIMD] __memalign__;
-    real hnext[NSIMD]     __memalign__;
+    real* hin = (real*) malloc(mrk_array_size*sizeof(real));
+    real* hout_orb = (real*) malloc(mrk_array_size*sizeof(real));
+    real* hout_col = (real*) malloc(mrk_array_size*sizeof(real));
+    real* hout_rfof = (real*) malloc(mrk_array_size*sizeof(real));
+    real* hnext = (real*) malloc(mrk_array_size*sizeof(real));
 
     Acceleration acceleration;
-
+    acceleration_allocate(&acceleration, mrk_array_size);
     /* Flag indicateing whether a new marker was initialized */
-    int cycle[NSIMD]     __memalign__;
+    int* cycle = (int*) malloc(mrk_array_size*sizeof(int));
 
     real tol_col = sim->ada_tol_clmbcol;
     real tol_orb = sim->ada_tol_orbfol;
@@ -77,10 +77,12 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
     particle_simd_gc p;  // This array holds current states
     particle_simd_gc p0; // This array stores previous states
-
+    particle_allocate_gc(&p, mrk_array_size);
+    particle_allocate_gc(&p0, mrk_array_size);
+    
     rfof_marker rfof_mrk; // RFOF specific data
 
-    for(int i=0; i< NSIMD; i++) {
+    for(int i=0; i< mrk_array_size; i++) {
         p.id[i] = -1;
         p.running[i] = 0;
         acceleration.acc[i] = 1.0;
@@ -96,7 +98,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     }
 
     #pragma omp simd
-    for(int i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < mrk_array_size; i++) {
         if(cycle[i] > 0) {
             /* Determine initial time-step */
             hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
@@ -121,11 +123,17 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
      * - Check for end condition(s)
      * - Update diagnostics
      */
+    real* rnd = (real*) malloc(5*mrk_array_size*sizeof(real));
+    particle_offload_gc(&p);
+    particle_offload_gc(&p0);
+    acceleration_offload(&acceleration,mrk_array_size);
+    GPU_MAP_TO_DEVICE(hin[0:mrk_array_size],rnd[0:5*mrk_array_size],hout_orb[0:mrk_array_size],hout_col[0:mrk_array_size],hout_rfof[0:mrk_array_size],hnext[0:mrk_array_size],cycle[0:mrk_array_size])
+    mccc_wiener_offload(wienarr,mrk_array_size);   
     while(n_running > 0) {
 
         /* Store marker states in case time step will be rejected */
-        #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
+        GPU_PARALLEL_LOOP_ALL_LEVELS
+        for(int i = 0; i < p.n_mrk; i++) {
             particle_copy_gc(&p, i, &p0, i);
             hout_orb[i]  = DUMMY_TIMESTEP_VAL;
             hout_col[i]  = DUMMY_TIMESTEP_VAL;
@@ -136,8 +144,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         /*************************** Physics **********************************/
 
         /* Set time-step negative if tracing backwards in time */
-        #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
+        GPU_PARALLEL_LOOP_ALL_LEVELS
+        for(int i = 0; i < p.n_mrk; i++) {
             if(sim->reverse_time) {
                 hin[i]  = -hin[i];
             }
@@ -156,8 +164,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                     sim->enable_aldforce);
             }
             /* Check whether time step was rejected */
-            #pragma omp simd
-            for(int i = 0; i < NSIMD; i++) {
+            GPU_PARALLEL_LOOP_ALL_LEVELS
+            for(int i = 0; i < p.n_mrk; i++) {
                 /* Switch sign of the time-step again if it was reverted earlier
                 */
                 if(sim->reverse_time) {
@@ -173,16 +181,14 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
         /* Milstein method for collisions */
         if(sim->enable_clmbcol) {
-            real rnd[5*NSIMD];
-            random_normal_simd(&sim->random_data, 5*NSIMD, rnd);
-            mccc_gc_milstein(
-                &p, hin, acceleration.acc, acceleration.collfreq,
-                hout_col, tol_col, wienarr, &sim->B_data,
-                &sim->plasma_data, &sim->mccc_data, rnd);
+            random_normal_simd(sim->random_data, 5*p.n_mrk, rnd);
+            mccc_gc_milstein(&p, hin, acceleration.acc, acceleration.collfreq,
+			     hout_col, tol_col, wienarr, &sim->B_data,
+                             &sim->plasma_data, &sim->mccc_data, rnd);
 
             /* Check whether time step was rejected */
-            #pragma omp simd
-            for(int i = 0; i < NSIMD; i++) {
+            GPU_PARALLEL_LOOP_ALL_LEVELS
+            for(int i = 0; i < p.n_mrk; i++) {
                 if(p.running[i] && hout_col[i] < 0){
                     p.running[i] = 0;
                     hnext[i] =  hout_col[i];
@@ -196,8 +202,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                 &p, hin, hout_rfof, &rfof_mrk, &sim->rfof_data, &sim->B_data);
 
             /* Check whether time step was rejected */
-            #pragma omp simd
-            for(int i = 0; i < NSIMD; i++) {
+            GPU_PARALLEL_LOOP_ALL_LEVELS
+            for(int i = 0; i < p.n_mrk; i++) {
                 if(p.running[i] && hout_rfof[i] < 0){
                     p.running[i] = 0;
                     hnext[i] =  hout_rfof[i];
@@ -208,8 +214,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         /**********************************************************************/
 
         cputime = A5_WTIME;
-        #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
+        GPU_PARALLEL_LOOP_ALL_LEVELS
+        for(int i = 0; i < p.n_mrk; i++) {
             if(p.id[i] > 0 && !p.err[i]) {
                 /* Check other time step limitations */
                 if(hnext[i] > 0) {
@@ -290,11 +296,19 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         diag_update_gc(&sim->diag_data, &sim->B_data, &p, &p0);
 
         /* Update number of running particles */
+#ifdef GPU
+        n_running = 0;
+        GPU_PARALLEL_LOOP_ALL_LEVELS_REDUCTION(n_running)
+        for(int i = 0; i < p.n_mrk; i++)
+        {
+            if(p.running[i] > 0) n_running++;
+        }
+#else
         n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 
         /* Determine simulation time-step for new particles */
         #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
+        for(int i = 0; i <p.n_mrk; i++) {
             if(cycle[i] > 0) {
                 hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
                 acceleration.acc[i] = 1.0;
@@ -310,10 +324,23 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                 }
             }
         }
+#endif
     }
 
     /* All markers simulated! */
-
+#ifdef GPU
+    GPU_MAP_FROM_DEVICE(sim[0:1])
+    particle_onload_gc(&p);
+    n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
+    mccc_wiener_onload(wienarr,mrk_array_size);   
+#endif
+    free(cycle);
+    free(hin);
+    free(rnd);
+    free(hout_orb);
+    free(hout_col);
+    free(hout_rfof);
+    free(hnext);
     /* Deallocate rfof structs */
     if(sim->enable_icrh) {
         rfof_tear_down(&rfof_mrk);
@@ -387,7 +414,8 @@ void recalculate_acceleration(
 {
     real rz[2];
     real SAFETY_FACTOR = (float)sim->enable_ada / 1000.0;
-    for(int i = 0; i < NSIMD; i++) {
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for(int i = 0; i < p->n_mrk; i++) {
         B_field_get_axis_rz(rz, &sim->B_data, p->phi[i]);
         int omp_crossed = ((p->z[i] - rz[1]) * (p0->z[i] - rz[1]) < 0) &&
             p->r[i] > rz[0];
@@ -419,4 +447,34 @@ void recalculate_acceleration(
             acc->orbittime[i] = 0;
         }
     }
+}
+
+/**
+ * @brief Allocates struct representing acceleration struc
+ *
+ * Size used for memory allocation is NSIMD for CPU run and the total number
+ * of particles for GPU.
+ *
+ * @param Acceleration struct to allocate
+ * @param nmrk the number of markers that the struct represents
+ */
+void acceleration_allocate(Acceleration* acceleration, int nmrk){
+  acceleration->acc       = malloc(nmrk * sizeof(acceleration->acc) );
+  acceleration->orbittime = malloc(nmrk * sizeof(acceleration->orbittime) );
+  acceleration->collfreq  = malloc(nmrk * sizeof(acceleration->collfreq) );
+  acceleration->cross     = malloc(nmrk * sizeof(acceleration->cross) );
+}
+/**
+ * @brief Offload acceleration struct to GPU.
+ *
+ * @param acceleration pointer to the acceleration struct to be offloaded.
+ */
+void acceleration_offload(Acceleration* acceleration, int mrk_array_size) {
+    GPU_MAP_TO_DEVICE(
+        acceleration[0:1],\
+        acceleration->acc       [0:mrk_array_size],\
+        acceleration->orbittime [0:mrk_array_size],\
+        acceleration->collfreq  [0:mrk_array_size],\
+        acceleration->cross     [0:mrk_array_size]
+    )
 }

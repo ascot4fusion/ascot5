@@ -95,8 +95,8 @@ void diag_transcoef_update_fo(diag_transcoef_data* data,
  */
 void diag_transcoef_update_gc(diag_transcoef_data* data,
                               particle_simd_gc* p_f, particle_simd_gc* p_i) {
-    #pragma omp simd
-    for(int i=0; i < NSIMD; i++) {
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for(int i=0; i < p_f->n_mrk; i++) {
         real pitchsign = 1 - 2*(p_f->ppar[i] < 0);
         diag_transcoef_record(
             data, p_f->index[i], p_f->id[i], p_f->rho[i], p_f->r[i], pitchsign,
@@ -105,7 +105,8 @@ void diag_transcoef_update_gc(diag_transcoef_data* data,
 
 
     /* If marker simulation was ended, process and clean the data */
-    for(int i=0; i < NSIMD; i++) {
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for(int i=0; i < p_f->n_mrk; i++) {
 
         /* Mask dummy markers and those which are running */
         if( p_f->id[i] < 1 || p_f->running[i] > 0 ) {

@@ -71,7 +71,7 @@ typedef struct {
                                     parameters Fortran structs.               */
 
     /* Metadata */
-    random_data random_data;   /**< Random number generator                   */
+    random_data* random_data;   /**< Random number generator                   */
     mccc_data mccc_data;       /**< Tabulated special functions and collision
                                     operator parameters                       */
     /* Options - general */

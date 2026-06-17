@@ -99,8 +99,12 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     simulate_init(sim);
 
 #ifdef GPU
-    if(sim->sim_mode != 1) {
-        print_err("Only GO mode ported to GPU. Please set SIM_MODE=1.");
+    if((sim->sim_mode != 1) && (sim->sim_mode != 2)) {
+        print_err("Only GO and GC mode ported to GPU. Please set SIM_MODE=1 or 2.");
+        exit(1);
+    }
+    if(sim->enable_icrh) {
+        print_err("ENABLE_ICRH=1 not ported to GPU. Please disable it.");
         exit(1);
     }
     if(sim->record_mode) {
@@ -125,6 +129,7 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
             "ENABLE_TRANSCOEF=1 not ported to GPU. Please disable it.");
         exit(1);
     }
+    
 #endif
 
     diag_init(&sim->diag_data, n_particles);
@@ -143,8 +148,26 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
     /* 2. Meta data (e.g. random number generator) is initialized.            */
     /*                                                                        */
     /**************************************************************************/
-    random_init(&sim->random_data, 0);
-
+#ifdef GPU
+    /* On GPU we need one RNG state per parallel slot (thread/lane).
+     * data_size is a safety factor (number of RNGs used per particle/loop).
+     * Total number of RNG states = data_size * n_queue_size.
+     */
+    int data_size = 5;
+    /* Allocate an array of RNG states (one per parallel element) */
+    sim->random_data = malloc(data_size * n_queue_size * sizeof(random_data));
+    /* Initialize each RNG state with a different seed.
+     * Using i ensures independent sequences across threads.
+     */
+    for(int i = 0; i < data_size * n_queue_size; ++i) {
+        random_init(&sim->random_data[i], i);
+    }
+    /* Transfer RNG states to the GPU device memory */
+    GPU_MAP_TO_DEVICE(sim->random_data[0:data_size * n_queue_size])
+#else
+    sim->random_data = malloc(sizeof(random_data));
+    random_init(sim->random_data, 0);
+#endif
     /**************************************************************************/
     /* 3. Markers are put into simulation queue.                              */
     /*                                                                        */
@@ -192,12 +215,12 @@ void simulate(int n_particles, particle_state* p, sim_data* sim) {
             if(pq.n > 0 && (sim->sim_mode == simulate_mode_gc
                         || sim->sim_mode == simulate_mode_hybrid)) {
                 if(sim->enable_ada) {
-                    OMP_PARALLEL_CPU_ONLY
-                    simulate_gc_adaptive(&pq, sim);
+		    OMP_PARALLEL_CPU_ONLY
+		    simulate_gc_adaptive(&pq, sim, n_queue_size);
                 }
                 else {
                     OMP_PARALLEL_CPU_ONLY
-                    simulate_gc_fixed(&pq, sim);
+                    simulate_gc_fixed(&pq, sim, n_queue_size);
                 }
             }
             else if(pq.n > 0 && sim->sim_mode == simulate_mode_fo) {

@@ -9,6 +9,6 @@
 #include "../simulate.h"
 #include "../particle.h"
 
-void simulate_gc_fixed(particle_queue* pq, sim_data* sim);
+void simulate_gc_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size);
 
 #endif
