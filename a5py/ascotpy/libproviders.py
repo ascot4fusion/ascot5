@@ -299,7 +299,8 @@ class LibProviders():
             kwargs["psi"].ctypes.data_as(PTR_ARR),
             kwargs["br"].ctypes.data_as(PTR_ARR),
             kwargs["bphi"].ctypes.data_as(PTR_ARR),
-            kwargs["bz"].ctypes.data_as(PTR_ARR)
+            kwargs["bz"].ctypes.data_as(PTR_ARR),
+            int(kwargs["nperiod"][0])
             )
         self._sim.B_data.type = ascot2py.B_field_type_STS
 

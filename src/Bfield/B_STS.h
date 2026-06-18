@@ -21,6 +21,7 @@ typedef struct {
     interp3D_data B_r;   /**< 3D B_r interpolation data struct                */
     interp3D_data B_phi ;/**< 3D B_phi interpolation data struct              */
     interp3D_data B_z;   /**< 3D B_z interpolation data struct                */
+    int nperiod;        /**< Number of periods in the stellarator            */
 } B_STS_data;
 
 int B_STS_init(B_STS_data* data,
@@ -32,9 +33,11 @@ int B_STS_init(B_STS_data* data,
                int b_n_z, real b_z_min, real b_z_max,
                int naxis, real axis_min, real axis_max,
                real* axis_r, real* axis_z, real psi0, real psi1,
-               real* psi, real* B_r, real* B_phi, real* B_z);
+               real* psi, real* B_r, real* B_phi, real* B_z,
+               int nperiod);
 void B_STS_free(B_STS_data* data);
 void B_STS_offload(B_STS_data* data);
+
 GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
 a5err B_STS_eval_psi(real* psi, real r, real phi, real z, B_STS_data* Bdata);
 DECLARE_TARGET_END

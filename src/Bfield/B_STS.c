@@ -30,6 +30,7 @@
 #include <math.h>
 #include <string.h>
 #include "../math.h"
+#include "../offload.h"
 #include "../ascot5.h"
 #include "../error.h"
 #include "../print.h"
@@ -37,6 +38,12 @@
 #include "B_STS.h"
 #include "../linint/linint.h"
 #include "../spline/interp.h"
+
+GPU_DECLARE_TARGET_SIMD_UNIFORM(Bdata)
+a5err B_STS_reduce_symm(real r, real phi, real z,
+                        real* r_out, real* phi_out, real* z_out, real* flip,
+                        B_STS_data* Bdata);
+DECLARE_TARGET_END
 
 /**
  * @brief Initialize magnetic field data
@@ -75,6 +82,7 @@
  *        B_phi(R_i,phi_j,z_k) = arr[k*b_n_r*b_n_phi + j*b_n_r + i] [T]
  * @param B_z Magnetic field z component
  *        B_z(R_i,phi_j,z_k) = arr[k*b_n_r*b_n_phi + j*b_n_r + i] [T]
+ * @param Nperiods Number of periods in the stellarator
  *
  * @return zero if initialization succeeded
  */
@@ -87,14 +95,20 @@ int B_STS_init(B_STS_data* data,
                int b_n_z, real b_z_min, real b_z_max,
                int naxis, real axis_min, real axis_max,
                real* axis_r, real* axis_z, real psi0, real psi1,
-               real* psi, real* B_r, real* B_phi, real* B_z) {
+               real* psi, real* B_r, real* B_phi, real* B_z,
+               int nperiod) {
 
     /* Spline initialization. */
     int err = 0;
     data->psi0 = psi0;
     data->psi1 = psi1;
+    int PHI_INTERP_CONDITION = PERIODICBC;
+    if(nperiod > 0){
+        PHI_INTERP_CONDITION = NATURALBC;
+    }
+
     err = interp3Dcomp_setup(&data->psi, psi, p_n_r, p_n_phi, p_n_z,
-                             NATURALBC, PERIODICBC, NATURALBC,
+                             NATURALBC, PHI_INTERP_CONDITION, NATURALBC,
                              p_r_min, p_r_max, p_phi_min, p_phi_max,
                              p_z_min, p_z_max);
     if(err) {
@@ -103,7 +117,7 @@ int B_STS_init(B_STS_data* data,
     }
     interp3Dcomp_setup(
         &data->B_r, B_r, b_n_r, b_n_phi, b_n_z,
-        NATURALBC, PERIODICBC, NATURALBC,
+        NATURALBC, PHI_INTERP_CONDITION, NATURALBC,
         b_r_min, b_r_max, b_phi_min, b_phi_max, b_z_min, b_z_max);
     if(err) {
         print_err("Error: Failed to initialize splines.\n");
@@ -111,7 +125,7 @@ int B_STS_init(B_STS_data* data,
     }
     interp3Dcomp_setup(
         &data->B_phi, B_phi, b_n_r, b_n_phi, b_n_z,
-        NATURALBC, PERIODICBC, NATURALBC,
+        NATURALBC, PHI_INTERP_CONDITION, NATURALBC,
         b_r_min, b_r_max, b_phi_min, b_phi_max, b_z_min, b_z_max);
     if(err) {
         print_err("Error: Failed to initialize splines.\n");
@@ -119,7 +133,7 @@ int B_STS_init(B_STS_data* data,
     }
     interp3Dcomp_setup(
         &data->B_z, B_z, b_n_r, b_n_phi, b_n_z,
-        NATURALBC, PERIODICBC, NATURALBC,
+        NATURALBC, PHI_INTERP_CONDITION, NATURALBC,
         b_r_min, b_r_max, b_phi_min, b_phi_max, b_z_min, b_z_max);
     if(err) {
         print_err("Error: Failed to initialize splines.\n");
@@ -134,6 +148,9 @@ int B_STS_init(B_STS_data* data,
     }
     linint1D_init(&data->axis_r, c1, naxis, PERIODICBC, axis_min, axis_max);
     linint1D_init(&data->axis_z, c2, naxis, PERIODICBC, axis_min, axis_max);
+
+    /** Setting the symmetry properties */
+    data->nperiod = nperiod;
 
     /* Evaluate psi and magnetic field on axis for checks */
     real psival[1], Bval[3], axis[2];
@@ -165,6 +182,10 @@ int B_STS_init(B_STS_data* data,
     print_out(VERBOSE_IO, "Magnetic field on axis:\n"
               "B_R = %3.3f B_phi = %3.3f B_z = %3.3f\n",
               Bval[0], Bval[1], Bval[2]);
+    if(data->nperiod > 0){
+        print_out(VERBOSE_IO, "Stellarator with %d periods.\n",
+                  data->nperiod);
+    }
 
     return 0;
 }
@@ -199,6 +220,59 @@ void B_STS_offload(B_STS_data* data) {
 }
 
 /**
+ * @brief Reduce coordinates to stellarator symmetry region
+ * 
+ * In the stellarator symmetry, the following symmetry holds:
+ * \Psi(R, \phi, z) = \Psi(R, -\phi, -z)
+ * B_R(R, \phi, z)  = - B_R(R, -\phi, -z)
+ * B_\phi(R, \phi, z) =  B_\phi(R, -\phi, -z)
+ * B_z(R, \phi, z)  = B_z(R, -\phi, -z)
+ * 
+ * This function will reduce the coordinates (R, phi, z) to the 
+ * fundamental domain of the stellarator symmetry, i.e.,
+ * phi in [0, pi/Nperiods] and z >= 0.
+ *
+ * @param r R coordinate [m]
+ * @param phi phi coordinate [rad]
+ * @param z z coordinate [m]
+ * @param r_out pointer to reduced R coordinate [m]
+ * @param phi_out pointer to reduced phi coordinate [rad]
+ * @param z_out pointer to reduced z coordinate [m]
+ * @param flip pointer to sign flip factor for B_R and derivatives
+ * @param Bdata pointer to magnetic field data struct
+ *
+ * @return Non-zero a5err value if evaluation failed, zero otherwise
+ */
+a5err B_STS_reduce_symm(real r, real phi, real z,
+                        real* r_out, real* phi_out, real* z_out, real* flip,
+                        B_STS_data* Bdata){
+    a5err err = 0;
+
+    phi = fmod(phi, CONST_2PI);
+    phi += (phi < 0) * CONST_2PI;
+
+    if(Bdata->nperiod <= 0){
+        // No stellarator symmetry to apply
+        *r_out = r;
+        *phi_out = phi;
+        *z_out = z;
+        *flip = 1.0;
+        return err;
+    }
+    
+    real half_period = (CONST_PI / Bdata->nperiod);
+    real phi_mod = fmod(phi, 2.0*half_period);
+    real reflected = (phi_mod > half_period);
+
+    *phi_out = phi_mod + reflected * (2.0 * (half_period - phi_mod));
+    *r_out = r;
+    *z_out   = z * (1.0 - 2.0 * reflected);
+    *flip    = 1.0 - 2.0 * reflected;
+
+    return err;
+}
+
+/**
  * @brief Evaluate poloidal flux psi
  *
  * @param psi pointer where psi [V*s*m^-1] value will be stored
@@ -214,7 +288,10 @@ a5err B_STS_eval_psi(real* psi, real r, real phi, real z,
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
 
-    interperr += interp3Dcomp_eval_f(&psi[0], &Bdata->psi, r, phi, z);
+    real r_red, phi_red, z_red, flip;
+    err += B_STS_reduce_symm(r, phi, z, &r_red, &phi_red, &z_red, &flip, Bdata);
+
+    interperr += interp3Dcomp_eval_f(&psi[0], &Bdata->psi, r_red, phi_red, z_red);
 
 #ifdef B_STS_CLAMP_RHO_NONNEGATIVE
     if ( psi[0] < Bdata->psi0 ){
@@ -247,13 +324,15 @@ a5err B_STS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
     int interperr = 0; /* If error happened during interpolation */
     real psi_dpsi_temp[10];
 
-    interperr += interp3Dcomp_eval_df(psi_dpsi_temp, &Bdata->psi, r, phi, z);
+    real r_red, phi_red, z_red, flip;
+    err += B_STS_reduce_symm(r, phi, z, &r_red, &phi_red, &z_red, &flip, Bdata);
 
+    interperr += interp3Dcomp_eval_df(psi_dpsi_temp, &Bdata->psi, r_red, phi_red, z_red);
 
     psi_dpsi[0] = psi_dpsi_temp[0];
     psi_dpsi[1] = psi_dpsi_temp[1];
-    psi_dpsi[2] = psi_dpsi_temp[2];
-    psi_dpsi[3] = psi_dpsi_temp[3];
+    psi_dpsi[2] = flip * psi_dpsi_temp[2];
+    psi_dpsi[3] = flip * psi_dpsi_temp[3];
 
 #ifdef B_STS_CLAMP_RHO_NONNEGATIVE
     if ( psi_dpsi_temp[0] < Bdata->psi0 ){
@@ -288,7 +367,10 @@ a5err B_STS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
     a5err err = 0;
     real psi_dpsi[4];
 
-    err = B_STS_eval_psi_dpsi(psi_dpsi, r, phi, z, Bdata);
+    real r_red, phi_red, z_red, flip;
+    err += B_STS_reduce_symm(r, phi, z, &r_red, &phi_red, &z_red, &flip, Bdata);
+
+    err = B_STS_eval_psi_dpsi(psi_dpsi, r_red, phi_red, z_red, Bdata);
     if(err){
         return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_STS );
     }
@@ -315,8 +397,8 @@ a5err B_STS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
     rho_drho[0] = sqrt( (psi_dpsi[0] - Bdata->psi0) / delta );
 
     rho_drho[1] = psi_dpsi[1] / (2*delta*rho_drho[0]);
-    rho_drho[2] = psi_dpsi[2] / (2*delta*rho_drho[0]);
-    rho_drho[3] = psi_dpsi[3] / (2*delta*rho_drho[0]);
+    rho_drho[2] = flip * psi_dpsi[2] / (2*delta*rho_drho[0]);
+    rho_drho[3] = flip * psi_dpsi[3] / (2*delta*rho_drho[0]);
 
     return err;
 }
@@ -336,14 +418,18 @@ a5err B_STS_eval_B(real B[3], real r, real phi, real z, B_STS_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
 
-    interperr += interp3Dcomp_eval_f(&B[0], &Bdata->B_r, r, phi, z);
-    interperr += interp3Dcomp_eval_f(&B[1], &Bdata->B_phi, r, phi, z);
-    interperr += interp3Dcomp_eval_f(&B[2], &Bdata->B_z, r, phi, z);
+    real r_red, phi_red, z_red, flip;
+    err += B_STS_reduce_symm(r, phi, z, &r_red, &phi_red, &z_red, &flip, Bdata);
 
+    interperr += interp3Dcomp_eval_f(&B[0], &Bdata->B_r, r_red, phi_red, z_red);
+    interperr += interp3Dcomp_eval_f(&B[1], &Bdata->B_phi, r_red, phi_red, z_red);
+    interperr += interp3Dcomp_eval_f(&B[2], &Bdata->B_z, r_red, phi_red, z_red);
     /* Test for B field interpolation error */
     if(interperr) {
         return error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_STS );
     }
+
+    B[0] = flip * B[0]; // B_R changes sign under stellarator symmetry
 
     /* Check that magnetic field seems valid */
     int check = 0;
@@ -373,26 +459,29 @@ a5err B_STS_eval_B_dB(real B_dB[12], real r, real phi, real z,
     int interperr = 0; /* If error happened during interpolation */
     real B_dB_temp[10];
 
-    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_r, r, phi, z);
+    real r_red, phi_red, z_red, flip;
+    err += B_STS_reduce_symm(r, phi, z, &r_red, &phi_red, &z_red, &flip, Bdata);
 
-    B_dB[0] = B_dB_temp[0];
-    B_dB[1] = B_dB_temp[1];
+    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_r, r_red, phi_red, z_red);
+
+    B_dB[0] = flip * B_dB_temp[0];
+    B_dB[1] = flip * B_dB_temp[1];
     B_dB[2] = B_dB_temp[2];
     B_dB[3] = B_dB_temp[3];
 
-    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_phi, r, phi, z);
+    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_phi, r_red, phi_red, z_red);
 
     B_dB[4] = B_dB_temp[0];
     B_dB[5] = B_dB_temp[1];
-    B_dB[6] = B_dB_temp[2];
-    B_dB[7] = B_dB_temp[3];
+    B_dB[6] = flip * B_dB_temp[2];
+    B_dB[7] = flip * B_dB_temp[3];
 
-    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_z, r, phi, z);
+    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_z, r_red, phi_red, z_red);
 
     B_dB[8] = B_dB_temp[0];
     B_dB[9] = B_dB_temp[1];
-    B_dB[10] = B_dB_temp[2];
-    B_dB[11] = B_dB_temp[3];
+    B_dB[10] = flip * B_dB_temp[2];
+    B_dB[11] = flip * B_dB_temp[3];
 
     /* Test for B field interpolation error */
     if(interperr) {
