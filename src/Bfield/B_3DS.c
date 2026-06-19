@@ -365,7 +365,7 @@ a5err B_3DS_eval_B_dB(real B_dB[12], real r, real phi, real z,
                       B_3DS_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
-    real B_dB_temp[10];
+    real B_dB_temp[4];
 
     interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_r, r, phi, z);
     B_dB[0] = B_dB_temp[0];

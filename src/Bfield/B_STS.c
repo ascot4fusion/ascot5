@@ -245,7 +245,7 @@ a5err B_STS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
                           B_STS_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
-    real psi_dpsi_temp[10];
+    real psi_dpsi_temp[4];
 
     interperr += interp3Dcomp_eval_df(psi_dpsi_temp, &Bdata->psi, r, phi, z);
 
@@ -371,7 +371,7 @@ a5err B_STS_eval_B_dB(real B_dB[12], real r, real phi, real z,
                       B_STS_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
-    real B_dB_temp[10];
+    real B_dB_temp[4];
 
     interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_r, r, phi, z);
 
