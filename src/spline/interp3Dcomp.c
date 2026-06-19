@@ -425,6 +425,431 @@ a5err interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
 }
 
 /**
+ * @brief Evaluate interpolated value of 3D field and 1st and 1st derivatives
+ *
+ * This function evaluates the interpolated value of a 3D scalar field and
+ * its 1st derivatives using bicubic spline interpolation coefficients
+ * of the compact form.
+ *
+ * The evaluated  values are returned in an array with following elements:
+ * - f_df[0] = f
+ * - f_df[1] = f_x
+ * - f_df[2] = f_y
+ * - f_df[3] = f_z
+ *
+ * @param f_df array in which to place the evaluated values
+ * @param str data struct for data interpolation
+ * @param x x-coordinate
+ * @param y y-coordinate
+ * @param z z-coordinate
+ *
+ * @return zero on success and one if (x,y,z) point is outside the grid.
+ */
+a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
+                         real x, real y, real z) {
+
+    /* Make sure periodic coordinates are within [min, max] region. */
+    if(str->bc_x == PERIODICBC) {
+        x = fmod(x - str->x_min, str->x_max - str->x_min) + str->x_min;
+        x = x + (x < str->x_min) * (str->x_max - str->x_min);
+    }
+    if(str->bc_y == PERIODICBC) {
+        y = fmod(y - str->y_min, str->y_max - str->y_min) + str->y_min;
+        y = y + (y < str->y_min) * (str->y_max - str->y_min);
+    }
+    if(str->bc_z == PERIODICBC) {
+        z = fmod(z - str->z_min, str->z_max - str->z_min) + str->z_min;
+        z = z + (z < str->z_min) * (str->z_max - str->z_min);
+    }
+
+    /* Index for x variable. The -1 needed at exactly grid end. */
+    int i_x     = (x - str->x_min) / str->x_grid - 1*(x==str->x_max);
+    /* Normalized x coordinate in current cell */
+    real dx     = ( x - (str->x_min + i_x*str->x_grid) ) / str->x_grid;
+    /* Helper variables */
+    real dx3    = dx*dx*dx - dx;
+    real dx3dx  = 3*dx*dx - 1.0;
+    real dxi    = 1.0 - dx;
+    real dxi3   = dxi*dxi*dxi - dxi;
+    real dxi3dx = -3*dxi*dxi + 1.0;
+    real xg     = str->x_grid;
+    real xg2    = xg*xg;
+    real xgi    = 1.0 / xg;
+
+    /* Index for y variable. The -1 needed at exactly grid end. */
+    int i_y     = (y - str->y_min) / str->y_grid - 1*(y==str->y_max);
+    /* Normalized y coordinate in current cell */
+    real dy     = ( y - (str->y_min + i_y*str->y_grid) ) / str->y_grid;
+    /* Helper variables */
+    real dy3    = dy*dy*dy-dy;
+    real dy3dy  = 3*dy*dy - 1.0;
+    real dyi    = 1.0 - dy;
+    real dyi3   = dyi*dyi*dyi - dyi;
+    real dyi3dy = -3*dyi*dyi + 1.0;
+    real yg     = str->y_grid;
+    real yg2    = yg*yg;
+    real ygi    = 1.0 / yg;
+
+    /* Index for z variable. The -1 needed at exactly grid end. */
+    int i_z     = (z - str->z_min) / str->z_grid - 1*(z==str->z_max);
+    /* Normalized z coordinate in current cell */
+    real dz     = ( z - (str->z_min + i_z*str->z_grid) ) / str->z_grid;
+    /* Helper variables */
+    real dz3    = dz*dz*dz - dz;
+    real dz3dz  = 3*dz*dz - 1.0;
+    real dzi    = 1.0 - dz;
+    real dzi3   = dzi*dzi*dzi - dzi;
+    real dzi3dz = -3*dzi*dzi + 1.0;
+    real zg     = str->z_grid;
+    real zg2    = zg*zg;
+    real zgi    = 1.0 / zg;
+
+    /* Index jump to cell */
+    int n  = i_z*str->n_y*str->n_x*8 + i_y*str->n_x*8 + i_x*8;
+    int x1 = 8;                   /* Index jump one x forward */
+    int y1 = str->n_x*8;          /* Index jump one y forward */
+    int z1 = str->n_y*str->n_x*8; /* Index jump one z forward */
+
+    int err = 0;
+
+    /* Enforce periodic BC or check that the coordinate is within the domain. */
+    if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
+        x1 = -(str->n_x-1)*x1;
+    }
+    else if( str->bc_x == NATURALBC && !(x >= str->x_min && x <= str->x_max) ) {
+        err = 1;
+    }
+    if( str->bc_y == PERIODICBC && i_y == str->n_y-1 ) {
+        y1 = -(str->n_y-1)*y1;
+    }
+    else if( str->bc_y == NATURALBC && !(y >= str->y_min && y <= str->y_max) ) {
+        err = 1;
+    }
+    if( str->bc_z == PERIODICBC && i_z == str->n_z-1 ) {
+        z1 = -(str->n_z-1)*z1;
+    }
+    else if( str->bc_z == NATURALBC && !(z >= str->z_min && z <= str->z_max) ) {
+        err = 1;
+    }
+
+    if(!err) {
+
+        /* Fetch coefficients explicitly to fetch those that are adjacent
+           subsequently and to store in temporary variables coefficients that
+           will be used multiple times. This is to decrease computational time,
+           by exploiting simultaneous extraction of adjacent memory and by
+           avoiding going through the long str->c array repeatedly. */
+        real c0000 = str->c[n+0];
+        real c0001 = str->c[n+1];
+        real c0002 = str->c[n+2];
+        real c0003 = str->c[n+3];
+        real c0004 = str->c[n+4];
+        real c0005 = str->c[n+5];
+        real c0006 = str->c[n+6];
+        real c0007 = str->c[n+7];
+
+        real c0010 = str->c[n+x1+0];
+        real c0011 = str->c[n+x1+1];
+        real c0012 = str->c[n+x1+2];
+        real c0013 = str->c[n+x1+3];
+        real c0014 = str->c[n+x1+4];
+        real c0015 = str->c[n+x1+5];
+        real c0016 = str->c[n+x1+6];
+        real c0017 = str->c[n+x1+7];
+
+        real c0100 = str->c[n+y1+0];
+        real c0101 = str->c[n+y1+1];
+        real c0102 = str->c[n+y1+2];
+        real c0103 = str->c[n+y1+3];
+        real c0104 = str->c[n+y1+4];
+        real c0105 = str->c[n+y1+5];
+        real c0106 = str->c[n+y1+6];
+        real c0107 = str->c[n+y1+7];
+
+        real c1000 = str->c[n+z1+0];
+        real c1001 = str->c[n+z1+1];
+        real c1002 = str->c[n+z1+2];
+        real c1003 = str->c[n+z1+3];
+        real c1004 = str->c[n+z1+4];
+        real c1005 = str->c[n+z1+5];
+        real c1006 = str->c[n+z1+6];
+        real c1007 = str->c[n+z1+7];
+
+        real c0110 = str->c[n+y1+x1+0];
+        real c0111 = str->c[n+y1+x1+1];
+        real c0112 = str->c[n+y1+x1+2];
+        real c0113 = str->c[n+y1+x1+3];
+        real c0114 = str->c[n+y1+x1+4];
+        real c0115 = str->c[n+y1+x1+5];
+        real c0116 = str->c[n+y1+x1+6];
+        real c0117 = str->c[n+y1+x1+7];
+
+        real c1010 = str->c[n+z1+x1+0];
+        real c1011 = str->c[n+z1+x1+1];
+        real c1012 = str->c[n+z1+x1+2];
+        real c1013 = str->c[n+z1+x1+3];
+        real c1014 = str->c[n+z1+x1+4];
+        real c1015 = str->c[n+z1+x1+5];
+        real c1016 = str->c[n+z1+x1+6];
+        real c1017 = str->c[n+z1+x1+7];
+
+        real c1100 = str->c[n+z1+y1+0];
+        real c1101 = str->c[n+z1+y1+1];
+        real c1102 = str->c[n+z1+y1+2];
+        real c1103 = str->c[n+z1+y1+3];
+        real c1104 = str->c[n+z1+y1+4];
+        real c1105 = str->c[n+z1+y1+5];
+        real c1106 = str->c[n+z1+y1+6];
+        real c1107 = str->c[n+z1+y1+7];
+
+        real c1110 = str->c[n+z1+y1+x1+0];
+        real c1111 = str->c[n+z1+y1+x1+1];
+        real c1112 = str->c[n+z1+y1+x1+2];
+        real c1113 = str->c[n+z1+y1+x1+3];
+        real c1114 = str->c[n+z1+y1+x1+4];
+        real c1115 = str->c[n+z1+y1+x1+5];
+        real c1116 = str->c[n+z1+y1+x1+6];
+        real c1117 = str->c[n+z1+y1+x1+7];
+
+        /* Evaluate spline values */
+
+        /* f */
+        f_df[0] = (
+               dzi*(
+                   dxi*(dyi*c0000+dy*c0100)
+                   +dx*(dyi*c0010+dy*c0110))
+               +dz*(
+                   dxi*(dyi*c1000+dy*c1100)
+                   +dx*(dyi*c1010+dy*c1110)))
+        +xg2/6*(
+            dzi*(
+                dxi3*(dyi*c0001+dy*c0101)
+                +dx3*(dyi*c0011+dy*c0111))
+            +dz*(
+                dxi3*(dyi*c1001+dy*c1101)
+                +dx3*(dyi*c1011+dy*c1111)))
+        +yg2/6*(
+            dzi*(
+                dxi*(dyi3*c0002+dy3*c0102)
+                +dx*(dyi3*c0012+dy3*c0112))
+            +dz*(
+                dxi*(dyi3*c1002+dy3*c1102)
+                +dx*(dyi3*c1012+dy3*c1112)))
+        +zg2/6*(
+            dzi3*(
+                dxi*(dyi*c0003+dy*c0103)
+                +dx*(dyi*c0013+dy*c0113))
+            +dz3*(
+                dxi*(dyi*c1003+dy*c1103)
+                +dx*(dyi*c1013+dy*c1113)))
+        +xg2*yg2/36*(
+            dzi*(
+                dxi3*(dyi3*c0004+dy3*c0104)
+                +dx3*(dyi3*c0014+dy3*c0114))
+            +dz*(
+                dxi3*(dyi3*c1004+dy3*c1104)
+                +dx3*(dyi3*c1014+dy3*c1114)))
+        +xg2*zg2/36*(
+            dzi3*(
+                dxi3*(dyi*c0005+dy*c0105)
+                +dx3*(dyi*c0015+dy*c0115))
+            +dz3*(
+                dxi3*(dyi*c1005+dy*c1105)
+                +dx3*(dyi*c1015+dy*c1115)))
+        +yg2*zg2/36*(
+            dzi3*(
+                dxi*(dyi3*c0006+dy3*c0106)
+                +dx*(dyi3*c0016+dy3*c0116))
+            +dz3*(
+                dxi*(dyi3*c1006+dy3*c1106)
+                +dx*(dyi3*c1016+dy3*c1116)))
+        +xg2*yg2*zg2/216*(
+            dzi3*(
+                dxi3*(dyi3*c0007+dy3*c0107)
+                +dx3*(dyi3*c0017+dy3*c0117))
+            +dz3*(
+                dxi3*(dyi3*c1007+dy3*c1107)
+                +dx3*(dyi3*c1017+dy3*c1117)));
+
+    /* df/dx */
+    f_df[1] = xgi*(
+        dzi*(
+            -(dyi*c0000+dy*c0100)
+            +(dyi*c0010+dy*c0110))
+        +dz*(
+            -(dyi*c1000+dy*c1100)
+            +(dyi*c1010+dy*c1110)))
+        +xg/6*(
+            dzi*(
+                dxi3dx*(dyi*c0001+dy*c0101)
+                +dx3dx*(dyi*c0011+dy*c0111))
+            +dz*(
+                dxi3dx*(dyi*c1001  +dy*c1101)
+                +dx3dx*(dyi*c1011+dy*c1111)))
+        +xgi*yg2/6*(
+            dzi*(
+                -(dyi3*c0002+dy3*c0102)
+                +(dyi3*c0012+dy3*c0112))
+            +dz*(
+                -(dyi3*c1002+dy3*c1102)
+                +(dyi3*c1012+dy3*c1112)))
+        +xgi*zg2/6*(
+            dzi3*(
+                -(dyi*c0003+dy*c0103)
+                +(dyi*c0013+dy*c0113))
+            +dz3*(
+                -(dyi*c1003+dy*c1103)
+                +(dyi*c1013+dy*c1113)))
+        +xg*yg2/36*(
+            dzi*(
+                dxi3dx*(dyi3*c0004+dy3*c0104)
+                +dx3dx*(dyi3*c0014+dy3*c0114))
+            +dz*(
+                dxi3dx*(dyi3*c1004+dy3*c1104)
+                +dx3dx*(dyi3*c1014+dy3*c1114)))
+        +xg*zg2/36*(
+            dzi3*(
+                dxi3dx*(dyi*c0005+dy*c0105)
+                +dx3dx*(dyi*c0015+dy*c0115))
+            +dz3*(
+                dxi3dx*(dyi*c1005+dy*c1105)
+                +dx3dx*(dyi*c1015+dy*c1115)))
+        +xgi*yg2*zg2/36*(
+            dzi3*(
+                -(dyi3*c0006+dy3*c0106)
+                +(dyi3*c0016+dy3*c0116))
+            +dz3*(
+                -(dyi3*c1006+dy3*c1106)
+                +(dyi3*c1016+dy3*c1116)))
+        +xg*yg2*zg2/216*(
+            dzi3*(
+                dxi3dx*(dyi3*c0007+dy3*c0107)
+                +dx3dx*(dyi3*c0017+dy3*c0117))
+            +dz3*(
+                dxi3dx*(dyi3*c1007+dy3*c1107)
+                +dx3dx*(dyi3*c1017+dy3*c1117)));
+
+    /* df/dy */
+    f_df[2] = ygi*(
+        dzi*(
+            dxi*(-c0000+c0100)
+            +dx*(-c0010+c0110))
+        +dz*(
+            dxi*(-c1000+c1100)
+            +dx*(-c1010+c1110)))
+        +ygi*xg2/6*(
+            dzi*(
+                dxi3*(-c0001+c0101)
+                +dx3*(-c0011+c0111))
+            +dz*(
+                dxi3*(-c1001+c1101)
+                +dx3*(-c1011+c1111)))
+        +yg/6*(
+            dzi*(
+                dxi*(dyi3dy*c0002+dy3dy*c0102)
+                +dx*(dyi3dy*c0012+dy3dy*c0112))
+            +dz*(
+                dxi*(dyi3dy*c1002+dy3dy*c1102)
+                +dx*(dyi3dy*c1012+dy3dy*c1112)))
+        +ygi*zg2/6*(
+            dzi3*(
+                dxi*(-c0003+c0103)
+                +dx*(-c0013+c0113))
+            +dz3*(
+                dxi*(-c1003+c1103)
+                +dx*(-c1013+c1113)))
+        +xg2*yg/36*(
+            dzi*(
+                dxi3*(dyi3dy*c0004+dy3dy*c0104)
+                +dx3*(dyi3dy*c0014+dy3dy*c0114))
+            +dz*(
+                dxi3*(dyi3dy*c1004+dy3dy*c1104)
+                +dx3*(dyi3dy*c1014+dy3dy*c1114)))
+        +ygi*xg2*zg2/36*(
+            dzi3*(
+                dxi3*(-c0005+c0105)
+                +dx3*(-c0015+c0115))
+            +dz3*(
+                dxi3*(-c1005+c1105)
+                +dx3*(-c1015+c1115)))
+        +yg*zg2/36*(
+            dzi3*(
+                dxi*(dyi3dy*c0006+dy3dy*c0106)
+                +dx*(dyi3dy*c0016+dy3dy*c0116))
+            +dz3*(
+                dxi*(dyi3dy*c1006+dy3dy*c1106)
+                +dx*(dyi3dy*c1016+dy3dy*c1116)))
+        +xg2*yg*zg2/216*(
+            dzi3*(
+                dxi3*(dyi3dy*c0007+dy3dy*c0107)
+                +dx3*(dyi3dy*c0017+dy3dy*c0117))
+            +dz3*(
+                dxi3*(dyi3dy*c1007+dy3dy*c1107)
+                +dx3*(dyi3dy*c1017+dy3dy*c1117)));
+
+    /* df/dz */
+    f_df[3] = zgi*(
+        -(
+            dxi*(dyi*c0000+dy*c0100)
+            +dx*(dyi*c0010+dy*c0110))
+        +(
+            dxi*(dyi*c1000+dy*c1100)
+            +dx*(dyi*c1010+dy*c1110)))
+        +xg2*zgi/6*(
+            -(
+                dxi3*(dyi*c0001+dy*c0101)
+                +dx3*(dyi*c0011+dy*c0111))
+            +(
+                dxi3*(dyi*c1001+dy*c1101)
+                +dx3*(dyi*c1011+dy*c1111)))
+        +yg2*zgi/6*(
+            -(
+                dxi*(dyi3*c0002+dy3*c0102)
+                +dx*(dyi3*c0012+dy3*c0112))
+            +(
+                dxi*(dyi3*c1002+dy3*c1102)
+                +dx*(dyi3*c1012+dy3*c1112)))
+        +zg/6*(
+            dzi3dz*(
+                dxi*(dyi*c0003+dy*c0103)
+                +dx*(dyi*c0013+dy*c0113))
+            +dz3dz*(
+                dxi*(dyi*c1003+dy*c1103)
+                +dx*(dyi*c1013+dy*c1113)))
+        +xg2*yg2*zgi/36*(
+            -(
+                dxi3*(dyi3*c0004+dy3*c0104)
+                +dx3*(dyi3*c0014+dy3*c0114))
+            +(
+                dxi3*(dyi3*c1004+dy3*c1104)
+                +dx3*(dyi3*c1014+dy3*c1114)))
+        +xg2*zg/36*(
+            dzi3dz*(
+                dxi3*(dyi*c0005+dy*c0105)
+                +dx3*(dyi*c0015+dy*c0115))
+            +dz3dz*(
+                dxi3*(dyi*c1005+dy*c1105)
+                +dx3*(dyi*c1015+dy*c1115)))
+        +yg2*zg/36*(
+            dzi3dz*(
+                dxi*(dyi3*c0006+dy3*c0106)
+                +dx*(dyi3*c0016+dy3*c0116))
+            +dz3dz*(
+                dxi*(dyi3*c1006+dy3*c1106)
+                +dx*(dyi3*c1016+dy3*c1116)))
+        +xg2*yg2*zg/216*(
+            dzi3dz*(
+                dxi3*(dyi3*c0007+dy3*c0107)
+                +dx3*(dyi3*c0017+dy3*c0117))
+            +dz3dz*(
+                dxi3*(dyi3*c1007+dy3*c1107)
+                +dx3*(dyi3*c1017+dy3*c1117)));
+    }
+
+    return err;
+}
+
+/**
  * @brief Evaluate interpolated value of 3D field and 1st and 2nd derivatives
  *
  * This function evaluates the interpolated value of a 3D scalar field and
@@ -451,8 +876,8 @@ a5err interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
  *
  * @return zero on success and one if (x,y,z) point is outside the grid.
  */
-a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
-                         real x, real y, real z) {
+a5err interp3Dcomp_eval_ddf(real* f_df, interp3D_data* str,
+                            real x, real y, real z) {
 
     /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {

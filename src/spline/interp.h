@@ -206,6 +206,10 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
                            real x, real y, real z);
 DECLARE_TARGET_END
+GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
+a5err interp3Dcomp_eval_ddf(real* f_df, interp3D_data* str,
+                            real x, real y, real z);
+DECLARE_TARGET_END
 
 DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp1Dexpl_eval_df(real* f_df, interp1D_data* str, real x);
