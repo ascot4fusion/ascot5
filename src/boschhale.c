@@ -79,6 +79,8 @@ void boschhale_reaction(
 /**
  * @brief Estimate cross-section for a given fusion reaction.
  *
+ * See: Bosch and Hale, 1992, Nuclear Fusion. Vol. 32, No.4. Section 4.2
+ *
  * @param reaction reaction for which the cross-section is estimated.
  * @param E ion energy [J].
  *
@@ -93,7 +95,7 @@ real boschhale_sigma(Reaction reaction, real E) {
     switch(reaction) {
 
     case DT_He4n:
-        if(E <= 530) {
+        if(E <= 550) {
             BG = 34.3827;
             A[0] = 6.927e4;
             A[1] = 7.454e8;
@@ -202,6 +204,7 @@ real boschhale_sigma(Reaction reaction, real E) {
         return 0;
     }
 
+    /* "With E in keV, the sigma is given in millibarns", hence 1e-31 */
     real sigma = S / (E * exp(BG / sqrt(E))) * 1e-31;
 
     return sigma;
@@ -210,10 +213,14 @@ real boschhale_sigma(Reaction reaction, real E) {
 /**
  * @brief Estimate reactivity for a given fusion reaction.
  *
+ * For two Maxwellian distributions with temperature Ti.
+ *
+ * See: Bosch and Hale, 1992, Nuclear Fusion. Vol. 32, No.4. Section 5.2
+ *
  * @param reaction reaction for which the reactivity is estimated.
  * @param Ti ion temperature [keV].
  *
- * @return reactivity.
+ * @return reactivity [m^3/s].
  */
 real boschhale_sigmav(Reaction reaction, real Ti) {
 
