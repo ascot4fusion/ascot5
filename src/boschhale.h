@@ -22,5 +22,6 @@ void boschhale_reaction(
     real* mprod1, real* qprod1, real* mprod2, real* qprod2, real* Q);
 real boschhale_sigma(Reaction reaction, real E);
 real boschhale_sigmav(Reaction reaction, real Ti);
+real boschhale_sigmav_beam_bulk(Reaction reaction, real ti, real vf, int N);
 
 #endif

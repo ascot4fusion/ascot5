@@ -10,6 +10,10 @@
 #include "consts.h"
 #include "boschhale.h"
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 /**
  * @brief Get masses and charges of particles participating in the reaction and
  * the released energy
@@ -82,7 +86,7 @@ void boschhale_reaction(
  * See: Bosch and Hale, 1992, Nuclear Fusion. Vol. 32, No.4. Section 4.2
  *
  * @param reaction reaction for which the cross-section is estimated.
- * @param E ion energy [J].
+ * @param E Sum of ion kinetic energies in the CM frame [J].
  *
  * @return cross-section [m^2].
  */
@@ -289,4 +293,98 @@ real boschhale_sigmav(Reaction reaction, real Ti) {
                   * exp(-3*xi) * 1.e-6;
 
     return sigmav;
+}
+
+/**
+ * @brief Estimate reactivity for a given fusion reaction for single ion-bulk
+ *
+ * The bulk plasma is assumed to have a Maxwellian distribution with thermal
+ * speed vt. For evaluating the reactivity integral, Bosch-Hale cross section is
+ * used.
+ *
+ * See: Bosch and Hale, 1992, Nuclear Fusion. Vol. 32, No.4. Section 4.2
+ *
+ * @param reaction reaction for which the reactivity is estimated.
+ * @param vt Bulk plasma thermal speed [m/s]
+ * @param vf Fast ion speed in the rest frame of the background plasma [m/s]
+ * @param N Number of intervals for trapezoidal integration
+ *
+ * @return reactivity <sigma*u> [m^3/s].
+ */
+real boschhale_sigmav_beam_bulk(
+    Reaction reaction,
+    real vt,
+    real vf,
+    int N)
+{
+    if (N < 2) {
+        return 0.0;
+    }
+
+    // Based on reaction, get the constants
+    real mu = -1.0;   // Reduced mass of the fusion reactants [kg]
+    real Emin = -1.0; // Minimum energy for which Bosch-Hale is valid [J]
+    real Emax = -1.0; // Maximum energy for which Bosch-Hale is valid [J]
+
+    switch(reaction) {
+    case DT_He4n:
+        mu = 2.0048659575986528e-27;
+        Emin = 0.5e3 * CONST_E;
+        Emax = 4700e3 * CONST_E;
+        break;
+
+    case DHe3_He4p:
+        mu = 2.004714615900972e-27;
+        Emin = 0.3e3 * CONST_E;
+        Emax = 4800e3 * CONST_E;
+        break;
+
+    case DD_Tp:
+        mu = 1.671791818550634e-27;
+        Emin = 0.5e3 * CONST_E;
+        Emax = 5000e3 * CONST_E;
+        break;
+
+    case DD_He3n:
+        mu = 1.671791818550634e-27;
+        Emin = 0.5e3 * CONST_E;
+        Emax = 4900e3 * CONST_E;
+        break;
+
+    default:
+        return -1;
+    }
+
+    const real dE = (Emax - Emin) / (N - 1);
+
+    const real prefactor =
+        1.0 / (sqrt(2.0 * M_PI) * vt * vf * mu * sqrt(mu));
+
+    real integral = 0.0;
+
+    for (int i = 0; i < N; ++i) {
+
+        const real E = Emin + i * dE;
+
+        const real sigma = boschhale_sigma(reaction, E);
+
+        const real a = (vf / vt) * (vf / vt);
+        const real b = 2.0 * E / (mu * vt * vt);
+        const real c = 2.0 * vf / (vt * vt)
+                       * sqrt(2.0 * E / mu);
+
+        const real f =
+            sqrt(E) * sigma *
+            (exp(c - a - b) - exp(-c - a - b))
+            * prefactor;
+
+        /* trapezoidal weights */
+        if (i == 0 || i == N - 1) {
+            integral += 0.5 * f;
+        } else {
+            integral += f;
+        }
+    }
+
+    return integral * dE;
 }
