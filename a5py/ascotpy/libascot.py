@@ -1032,8 +1032,8 @@ class LibAscot:
             Axis z-coordinate.
         '''
         phiarray = np.linspace(phimin, phimax,nphi+1)[:-1]
-        rout = np.NaN * np.zeros((nphi,), dtype="f8") * unyt.m
-        zout = np.NaN * np.zeros((nphi,), dtype="f8") * unyt.m
+        rout = np.nan * np.zeros((nphi,), dtype="f8") * unyt.m
+        zout = np.nan * np.zeros((nphi,), dtype="f8") * unyt.m
         for i in range(nphi):
             phi = phiarray[i]
             # Get the R and z co-ordinates of the magnetic axis in this phi value

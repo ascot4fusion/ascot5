@@ -1419,6 +1419,86 @@ class Dist(DataContainer):
 
         ppadist._distribution /= vol.v
         return ppadist
+    
+    def vpitch2epitch(dist, mass, ekin_edges=10, pitch_edges=None):
+        """Convert (v, pitch) distribution to (ekin, pitch), preserving other axes."""
+        if isinstance(ekin_edges, int):
+            vmax = np.atleast_1d(dist.abscissa_edges("v")[-1])
+            vmin = np.atleast_1d(dist.abscissa_edges("v")[0])
+
+            ekin_max = ((physlib.gamma_velocity(v=vmax) - 1) *
+                        mass * unyt.c**2).to("eV")
+            ekin_min = ((physlib.gamma_velocity(v=vmin) - 1) *
+            mass * unyt.c**2).to("eV")
+            if hasattr(ekin_max, "size") and ekin_max.size == 1:
+                ekin_max = ekin_max[0]
+            if hasattr(ekin_min, "size") and ekin_min.size == 1:
+                ekin_min = ekin_min[0]
+            ekin_edges = np.linspace(ekin_min.v, ekin_max.v, ekin_edges) * ekin_max.units
+
+        if pitch_edges is None:
+            pitch_edges = dist.abscissa_edges("pitch")
+        elif isinstance(pitch_edges, int):
+            pitch_edges = np.linspace(-1, 1, pitch_edges) * unyt.dimensionless
+
+        try:
+            ekin_edges.units
+        except AttributeError:
+            ekin_edges *= unyt.eV
+        try:
+            pitch_edges.units
+        except AttributeError:
+            pitch_edges *= unyt.dimensionless
+
+        dim = []
+        abscissa_edges = {}
+        for k in dist.abscissae:
+            if k == "v":
+                dim.append(ekin_edges.size - 1)
+                abscissa_edges["ekin"] = ekin_edges
+            elif k == "pitch":
+                dim.append(pitch_edges.size - 1)
+                abscissa_edges["pitch"] = pitch_edges
+            else:
+                dim.append(dist.abscissa_edges(k).size - 1)
+                abscissa_edges[k] = dist.abscissa_edges(k)
+
+        epdist = DistData(np.zeros(dim) * unyt.particles, **abscissa_edges)
+
+        v, pitch = np.meshgrid(dist.abscissa("v"), dist.abscissa("pitch"),
+                                indexing="ij")
+        gamma = physlib.gamma_velocity(v=v.ravel()).reshape(v.shape)
+        ekin = ((gamma - 1) * mass * unyt.c**2).to("eV")
+
+        ie = np.digitize(ekin.ravel(), ekin_edges) - 1
+        ip = np.digitize(pitch.ravel(), pitch_edges) - 1
+        mask = np.logical_or.reduce([
+            ie < 0, ip < 0,
+            ie >= ekin_edges.size - 1,
+            ip >= pitch_edges.size - 1
+        ])
+        ie = ie[~mask]
+        ip = ip[~mask]
+
+        vol = epdist.phasespacevolume()
+        hist = dist.histogram()
+
+        other_axes = [a for a in dist.abscissae if a not in ("v", "pitch")]
+        ranges = [range(dist.abscissa(a).size) for a in other_axes]
+        axis_positions = {a: dist.abscissae.index(a) for a in other_axes}
+
+        for itr in itertools.product(*ranges):
+            idx = [slice(None)] * len(dist.abscissae)
+            for a, val in zip(other_axes, itr):
+                idx[axis_positions[a]] = val
+            idx = tuple(idx)
+
+            a = np.zeros(epdist._distribution[idx].shape)
+            np.add.at(a, (ie, ip), hist[idx].v.ravel()[~mask])
+            epdist._distribution[idx] = a / vol.units
+
+        epdist._distribution /= vol.v
+        return epdist
 
 class Dist_5D(Dist):
 

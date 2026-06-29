@@ -107,6 +107,14 @@ int hdf5_hist_write(hid_t f, char* path, histogram* hist) {
             abscissa_names[k] = "charge";
             abscissa_units[k] = "e";
             break;
+        case THETA_V:
+            abscissa_names[k] = "theta_v";
+            abscissa_units[k] = "1";
+            break;
+        case PHI_V:
+            abscissa_names[k] = "phi_v";
+            abscissa_units[k] = "1";
+            break;
         }
         k++;
     }

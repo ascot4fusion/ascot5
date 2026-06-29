@@ -9,7 +9,7 @@
 #include "../ascot5.h"
 #include "../particle.h"
 
-#define HIST_ALLDIM 16
+#define HIST_ALLDIM 18
 
 /**
  * @brief Quantities that can be used as histogram axis coordinates.
@@ -31,6 +31,8 @@ typedef enum {
     PTOR,   /**< Canonical toroidal angular momentum [kg*m/s].                */
     TIME,   /**< Time instant (laboratory time) [s].                          */
     CHARGE, /**< Charge state [e].                                            */
+    THETA_V,
+    PHI_V,                                     
 } hist_coordinate;
 
 /**

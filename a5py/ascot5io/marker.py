@@ -285,7 +285,7 @@ class Marker(DataGroup):
 
 
     @staticmethod
-    def generate(mrktype, n, species=None):
+    def generate(mrktype, n, species=None, dist6d = False):
         """Generate dummy marker input of given type and species.
 
         Parameters
@@ -318,6 +318,15 @@ class Marker(DataGroup):
         else:
             species = getspecies(species)
 
+        if (dist6d):
+            mrk["energy"] = np.zeros((n,)) * unyt.eV
+            mrk["theta_v"] = np.zeros((n,)) * unyt.rad
+            mrk["phi_v"]   = np.zeros((n,)) * unyt.rad
+            mrk["mass"]   = species["mass"] * np.ones((n,))
+            mrk["charge"] = species["charge"] * np.ones((n,), dtype=np.int16)
+            mrk["anum"]   = species["anum"]   * np.ones((n,), dtype=np.int16)
+            mrk["znum"]   = species["znum"]   * np.ones((n,), dtype=np.int16)
+            return mrk
         if mrktype == "prt":
             mrk["vr"]     = np.zeros((n,)) * unyt.m/unyt.s
             mrk["vz"]     = np.zeros((n,)) * unyt.m/unyt.s

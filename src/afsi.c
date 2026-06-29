@@ -29,10 +29,14 @@ void afsi_compute_product_velocities_3d(
     int i, real m1, real m2, real mprod1, real mprod2, real Q,
     real* ppara1, real* pperp1, real* ppara2, real* pperp2, real* vcom2,
     real* B_cyl, int not_transformed_vel, real* vprod1, real* vprod2);
+// void afsi_compute_product_momenta_2d(
+//     int i, real mprod1, real mprod2, int prodmomspace,
+//     real* vprod1, real* vprod2, real* prod1_p1, real* prod1_p2,
+//     real* prod2_p1, real* prod2_p2);
 void afsi_compute_product_momenta_2d(
-    int i, real mprod1, real mprod2, int prodmomspace,
-    real* vprod1, real* vprod2, real* prod1_p1, real* prod1_p2,
-    real* prod2_p1, real* prod2_p2);
+    int i, real m1, real m2, real mprod1, real mprod2, real Q, int prodmomspace,
+    real* ppara1, real* pperp1, real* ppara2, real* pperp2, real* vcom2,
+    real* prod1_p1, real* prod1_p2, real* prod2_p1, real* prod2_p2);
 void afsi_store_particle_data(int i, real r, real phi, real z, 
     real* vprod2, real mprod2, real* prod2, int position_space_id, int velocity_space_id, real weight);
 void afsi_sample_reactant_momenta_2d(
@@ -139,6 +143,15 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
     }
 
     real time = 0.0;
+    int fail_count = 0;
+    for (int ax = 0; ax < HIST_ALLDIM; ax++) {
+        printf("Axis %d: n=%ld min=%e max=%e\n",
+           ax,
+           prod2->axes[ax].n,
+           prod2->axes[ax].min,
+           prod2->axes[ax].max);
+    } 
+    printf("Mult: %e\n", afsi->mult);
     #pragma omp parallel for
     for(size_t i0 = 0; i0 < afsi->volshape[0]; i0++) {
         real* ppara1 = (real*) malloc(n*sizeof(real));
@@ -175,9 +188,10 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
                 }
                 for(size_t i = 0; i < n; i++) {
                     real vcom2;
-                    afsi_compute_product_momenta_2d(i, mprod1, mprod2, prod_mom_space,
-                        vprod1, vprod2,  prod1_p1, prod1_p2, prod2_p1, prod2_p2);
-                    
+                    afsi_compute_product_momenta_2d(
+                        i, m1, m2, mprod1, mprod2, Q, prod_mom_space,
+                        ppara1, pperp1, ppara2, pperp2, &vcom2,
+                        prod1_p1, prod1_p2, prod2_p1, prod2_p2);
                     real E = 0.5 * ( m1 * m2 ) / ( m1 + m2 ) * vcom2;
 
                     real weight = density1 * density2 * sqrt(vcom2)
@@ -214,6 +228,11 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
                                         + ip2*prod2->strides[p2coord];
                         prod2->bins[index] += weight * afsi->mult;
                     }
+                    else {
+                        printf("BIN FAIL: prod2_p1=%f prod2_p2=%f | ip1=%ld ip2=%ld\n",
+                        prod2_p1[i], prod2_p2[i], ip1, ip2);
+                        fail_count++;
+                    }
                 }
             }
         }
@@ -226,6 +245,7 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
         free(prod2_p1);
         free(prod2_p2);
     }
+    printf("Number of samples that did not fit in the histogram: %d\n", fail_count);
 
     m1     = m1 / CONST_U;
     m2     = m2 / CONST_U;
@@ -308,6 +328,272 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
     print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "\nDone\n");
 }
 
+void afsi_run_6d(sim_data* sim, afsi_data* afsi, int n,
+                 histogram* prod2){
+    /* QID for this run */
+    char qid[11];
+    hdf5_generate_qid(qid);
+    strcpy(sim->qid, qid);
+
+    int mpi_rank = 0, mpi_root = 0; /* AFSI does not support MPI */
+    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "AFSI5\n");
+    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
+               "Tag %s\nBranch %s\n\n", GIT_VERSION, GIT_BRANCH);
+
+    random_init(&rdata, time((NULL)));
+    strcpy(sim->hdf5_out, sim->hdf5_in);
+    simulate_init(sim);
+
+    if( hdf5_interface_init_results(sim, qid, "afsi") ) {
+        print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root,
+                   "\nInitializing output failed.\n"
+                   "See stderr for details.\n");
+        /* Free data and terminate */
+        abort();
+    }
+    
+    real m1, q1, m2, q2, mprod1, qprod1, mprod2, qprod2, Q;
+
+    boschhale_reaction(
+        afsi->reaction,
+        &m1, &q1, &m2, &q2,
+        &mprod1, &qprod1, &mprod2, &qprod2, &Q
+    );
+
+    real time = 0.0;
+    // printf("Mult: %e\n", afsi->mult);
+    // for (int ax = 0; ax < HIST_ALLDIM; ax++) {
+    // printf("Axis %d: n=%ld min=%e max=%e\n",
+    //        ax,
+    //        prod2->axes[ax].n,
+    //        prod2->axes[ax].min,
+    //        prod2->axes[ax].max);
+    // } 
+    int fail_count = 0;
+    #pragma omp parallel for
+    for (size_t i0 = 0; i0 < afsi->volshape[0]; i0++)
+    {
+        real* ppara1 = malloc(n*sizeof(real));
+        real* pperp1 = malloc(n*sizeof(real));
+        real* ppara2 = malloc(n*sizeof(real));
+        real* pperp2 = malloc(n*sizeof(real));
+
+        for (size_t i1 = 0; i1 < afsi->volshape[1]; i1++)
+        {
+            for (size_t i2 = 0; i2 < afsi->volshape[2]; i2++)
+            {
+                size_t spatial_index =
+                    i0 * afsi->volshape[1] * afsi->volshape[2] +
+                    i1 * afsi->volshape[2] + i2;
+
+                real r   = afsi->r[spatial_index];
+                real phi = afsi->phi[spatial_index];
+                real z   = afsi->z[spatial_index];
+                real vol = afsi->vol[spatial_index];
+
+                /* --- Magnetic field --- */
+                real psi, rho[2], B_cyl[3], B_cart[3];
+
+                if (B_field_eval_psi(&psi, r, phi, z, time, &sim->B_data) ||
+                    B_field_eval_rho(rho, psi, &sim->B_data) ||
+                    B_field_eval_B(B_cyl, r, phi, z, time, &sim->B_data))
+                    continue;
+
+                B_field_cyl_to_cartesian(B_cart, B_cyl, r, phi);
+
+                /* --- Sample reactants --- */
+                real density1, density2;
+
+                afsi_sample_reactant_momenta_2d(
+                    sim, afsi, m1, m2, vol, n,
+                    i0, i1, i2,
+                    r, phi, z, time, rho[0],
+                    &density1, ppara1, pperp1,
+                    &density2, ppara2, pperp2
+                );
+
+                if (density1 == 0 || density2 == 0)
+                    continue;
+                for (size_t i = 0; i < n; i++)
+                {
+                    real vprod1[3], vprod2[3], vcom2;
+
+                    /* --- Compute product velocities --- */
+                    afsi_compute_product_velocities_3d(
+                        i,
+                        m1, m2, mprod1, mprod2, Q,
+                        ppara1, pperp1,
+                        ppara2, pperp2,
+                        &vcom2,
+                        B_cart,
+                        0,
+                        vprod1, vprod2
+                    );
+
+                    /* --- Convert to (pr, pphi, pz) --- */
+                    real vx = vprod2[0];
+                    real vy = vprod2[1];
+                    real vz = vprod2[2];
+
+                    real v2 = vx*vx + vy*vy + vz*vz;
+                    real v  = sqrt(v2);
+
+                    /* --- Convert to (E, theta, phi) --- */
+                    if (v == 0.0)
+                        continue;
+
+                    real Ekin = 0.5 * mprod2 * v2;
+
+                    real cos_theta = vz / v;
+
+                    /* Clamp to valid domain of acos */
+                    if (cos_theta > 1.0)  cos_theta = 1.0;
+                    if (cos_theta < -1.0) cos_theta = -1.0;
+
+                    real theta = acos(cos_theta);
+                    real phi_v = atan2(vy, vx);
+                    
+
+                    /* --- Reaction weight --- */
+                    real Ecom = 0.5 * (m1 * m2) / (m1 + m2) * vcom2;
+
+                    real weight =
+                        density1 * density2 * sqrt(vcom2) *
+                        boschhale_sigma(afsi->reaction, Ecom) / n * vol;
+
+                    /* --- Bin indices --- */
+                    size_t iE = math_bin_index(
+                        Ekin,
+                        prod2->axes[10].n,
+                        prod2->axes[10].min,
+                        prod2->axes[10].max
+                    );
+
+                    size_t iT = math_bin_index(
+                        theta,
+                        prod2->axes[16].n,
+                        prod2->axes[16].min,
+                        prod2->axes[16].max
+                    );
+
+                    size_t iP = math_bin_index(
+                        phi_v,
+                        prod2->axes[17].n,
+                        prod2->axes[17].min,
+                        prod2->axes[17].max
+                    );
+                    
+                    if (iE < prod2->axes[10].n &&
+                        iT < prod2->axes[16].n &&
+                        iP < prod2->axes[17].n)
+                    {
+                        size_t index =
+                              i0 * prod2->strides[0]
+                            + i1 * prod2->strides[1]
+                            + i2 * prod2->strides[2]
+                            + iE * prod2->strides[10]
+                            + iT * prod2->strides[16]
+                            + iP; //* prod2->strides[17];
+                        #pragma omp atomic
+                        prod2->bins[index] += weight * afsi->mult;
+                    }
+                    else {
+                        printf("BIN FAIL: E=%e T=%e P=%e | iE=%ld iT=%ld iP=%ld\n",
+                        Ekin, theta, phi_v,
+                        iE, iT, iP);
+                        fail_count++;
+                    }
+                }
+            }
+        }
+        free(ppara1);
+        free(ppara2);
+        free(pperp1);
+        free(pperp2);
+    }
+    // printf("Fail count: %d", fail_count);
+    m1     = m1 / CONST_U;
+    m2     = m2 / CONST_U;
+    mprod1 = mprod1 / CONST_U;
+    mprod2 = mprod2 / CONST_U;
+    int c1     = (int)rint(q1 / CONST_E);
+    int c2     = (int)rint(q2 / CONST_E);
+    int cprod1 = (int)rint(qprod1 / CONST_E);
+    int cprod2 = (int)rint(qprod2 / CONST_E);
+
+    hid_t f = hdf5_open(sim->hdf5_out);
+    if(f < 0) {
+        print_err("Error: File not found.\n");
+        abort();
+    }
+    char path[300];
+    sprintf(path, "/results/afsi_%s/reaction", sim->qid);
+    hid_t reactiondata = H5Gcreate2(f, path, H5P_DEFAULT, H5P_DEFAULT,
+                                    H5P_DEFAULT);
+    if(reactiondata < 0) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    hsize_t size = 1;
+    real q = Q / CONST_E;
+    if(H5LTmake_dataset_double(reactiondata, "m1", 1, &size, &m1)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    if(H5LTmake_dataset_double(reactiondata, "m2", 1, &size, &m2)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    if(H5LTmake_dataset_double(reactiondata, "mprod1", 1, &size, &mprod1)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    if(H5LTmake_dataset_double(reactiondata, "mprod2", 1, &size, &mprod2)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    if(H5LTmake_dataset_double(reactiondata, "q", 1, &size, &q)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    if(H5LTmake_dataset_int(reactiondata, "q1", 1, &size, &c1)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    if(H5LTmake_dataset_int(reactiondata, "q2", 1, &size, &c2)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    if(H5LTmake_dataset_int(reactiondata, "qprod1", 1, &size, &cprod1)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    if(H5LTmake_dataset_int(reactiondata, "qprod2", 1, &size, &cprod2)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+    if(H5Gclose(reactiondata)) {
+        print_err("Failed to write reaction data.\n");
+        abort();
+    }
+
+    // sprintf(path, "/results/afsi_%s/prod1dist5d", sim->qid);
+    // if( hdf5_hist_write(f, path, prod1) ) {
+    //     print_err("Warning: 5D distribution could not be written.\n");
+    // }
+    sprintf(path, "/results/afsi_%s/prod2dist5d", sim->qid);
+    if( hdf5_hist_write(f, path, prod2) ) {
+        print_err("Warning: 5D distribution could not be written.\n");
+    }
+    if(hdf5_close(f)) {
+        print_err("Failed to close the file.\n");
+        abort();
+    }
+
+    print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "\nDone\n");
+}
+
+
 /**
  * @brief Calculate fusion source from two arbitrary ion distributions using rejection sampling.
  *
@@ -346,7 +632,7 @@ void afsi_run_rejection(sim_data* sim, afsi_data* afsi, int n,
     int n_accepted = 0 ;
     int n_samples = 1; 
     int not_transformed_vel = 0; // 0 -> to use B-field aligned transformation, 1 -> vz always aligned with pparall, not physical for neutronics sim.
-    int cartesian = 1; // 1 -> spatial coordinate in cartesian ref frame, good for serpent. 0 -> cylindrical coord, good to visualize results.
+    //int cartesian = 1; // 1 -> spatial coordinate in cartesian ref frame, good for serpent. 0 -> cylindrical coord, good to visualize results.
     int trials = 0;
 
     while (n_accepted < n){
@@ -485,6 +771,18 @@ void afsi_compute_product_velocities_3d(
     real* ppara1, real* pperp1, real* ppara2, real* pperp2, real* vcom2,
     real* B, int not_transformed_vel, real* vprod1, real* vprod2) {
     
+    const real EPS = 1e-20;
+    // --- Checking masses ---
+    if (m1 <= 0 || m2 <= 0 || mprod1 <= 0 || mprod2 <= 0) {
+        printf("Warning: Non-positive mass encountered"
+               " (marker %d, m1=%e, m2=%e, mprod1=%e, mprod2=%e).\n",
+               i, m1, m2, mprod1, mprod2);
+        vprod1[0]=vprod1[1]=vprod1[2]=0.0;
+        vprod2[0]=vprod2[1]=vprod2[2]=0.0;
+        *vcom2 = 0.0;
+        return;
+    }
+    
     real rn1 = CONST_2PI * random_uniform(rdata);
     real rn2 = CONST_2PI * random_uniform(rdata);
     real v1x, v1y, v1z, v2x, v2y, v2z;
@@ -499,16 +797,44 @@ void afsi_compute_product_velocities_3d(
         v2z = ppara2[i] / m2;
     } else {
         real Bmag = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
-        real bx = B[0] / Bmag;
-        real by = B[1] / Bmag;
-        real bz = B[2] / Bmag;
-        
-        real ex1, ey1, ez1;
-        ex1 = -by;
-        ey1 = bx;
-        ez1 = 0.0;
 
+        real bx, by, bz;
+        if (Bmag < EPS || !isfinite(Bmag)){
+            printf("Warning: Bmag near zero or non-finite. (marker %d)\n", i);
+            bx = by = 0.0;
+            bz = 1.0; // Default to z-direction if B is negligible
+        }
+        else {
+            bx = B[0] / Bmag;
+            by = B[1] / Bmag;
+            bz = B[2] / Bmag;
+        }
+        
+        // Vector e1 perpendicular to B
+        real ex1, ey1, ez1;
+        if (fabs(bx) > fabs(bz)){
+            ex1 = -by;
+            ey1 = bx;
+            ez1 = 0.0;
+        }
+        else {
+            //printf("Note: bx > bz. (marker %d)\n", i);
+            ex1 = 0.0;
+            ey1 = -bz;
+            ez1 = by;
+        }
+        
         real e1mag = sqrt(ex1*ex1 + ey1*ey1 + ez1*ez1);
+       if (e1mag < EPS || !isfinite(e1mag)) {
+            // fallback orthogonal vector
+            printf("Warning: e1mag near zero or non-finite. Using fallback orthogonal vector. (marker %d)\n", i);
+            if (fabs(bz) < 0.9) {
+                ex1 = -by; ey1 = bx; ez1 = 0.0;
+            } else {
+                ex1 = 1.0; ey1 = 0.0; ez1 = 0.0;
+            }
+            e1mag = sqrt(ex1*ex1 + ey1*ey1 + ez1*ez1);
+        }
         ex1 /= e1mag;
         ey1 /= e1mag;
         ez1 /= e1mag;
@@ -518,6 +844,12 @@ void afsi_compute_product_velocities_3d(
         real ez2 = bx * ey1 - by * ex1;
 
         real e2mag = sqrt(ex2*ex2 + ey2*ey2 + ez2*ez2);
+        if (e2mag < EPS || !isfinite(e2mag)) {
+            // fallback perpendicular
+            printf("Warning: e2mag near zero or non-finite. Using fallback perpendicular vector. (marker %d)\n", i);
+            ex2 = 0.0; ey2 = 1.0; ez2 = 0.0;
+            e2mag = 1.0;
+        }
         ex2 /= e2mag;
         ey2 /= e2mag;
         ez2 /= e2mag;
@@ -530,10 +862,32 @@ void afsi_compute_product_velocities_3d(
         v2y = ppara2[i] / m2 * by + pperp2[i] / m2 * (cos(rn2) * ey1 + sin(rn2) * ey2);
         v2z = ppara2[i] / m2 * bz + pperp2[i] / m2 * (cos(rn2) * ez1 + sin(rn2) * ez2);
     }
-    
-    *vcom2 =   (v1x - v2x) * (v1x - v2x)
-             + (v1y - v2y) * (v1y - v2y)
-             + (v1z - v2z) * (v1z - v2z);
+
+    if (!isfinite(v1x) || !isfinite(v1y) || !isfinite(v1z) ||
+        !isfinite(v2x) || !isfinite(v2y) || !isfinite(v2z)) {
+        printf("Warning: Non-finite velocity component computed for reactants (marker %d). pppara1=%e, pperp1=%e, ppara2=%e, pperp2=%e\n", i, ppara1[i], pperp1[i], ppara2[i], pperp2[i]);
+
+    }
+    real dvx = v1x - v2x;
+    real dvy = v1y - v2y;
+    real dvz = v1z - v2z;
+    *vcom2 = dvx*dvx + dvy*dvy + dvz*dvz;
+    if (!isfinite(*vcom2)) {
+        printf("DEBUG: vcom2 non-finite (marker %d)\n", i);
+    }
+
+    if ((*vcom2) > 1e200) {
+        printf("WARNING: vcom2 huge (marker %d): %e\n", i, (*vcom2));
+    }
+    // reduced mass
+    real mu = (m1 * m2) / (m1 + m2);
+
+    real ekin = Q + 0.5 * mu * (*vcom2);
+
+    if (!isfinite(ekin) || ekin < 0.0) {
+        printf("Warning: Non-physical kinetic energy computed in CM frame (marker %d, ekin=%e). Setting ekin to zero.\n", i, ekin);
+        ekin = 0.0;
+    }
 
     // Velocity of the system's center of mass
     real v_cm[3];
@@ -541,20 +895,14 @@ void afsi_compute_product_velocities_3d(
     v_cm[1]  = ( m1 * v1y + m2 * v2y ) / ( m1 + m2 );
     v_cm[2]  = ( m1 * v1z + m2 * v2z ) / ( m1 + m2 );
 
-    // Total kinetic energy after the reaction in CM frame
-    real ekin = Q
-        + 0.5 * m1 * (   (v1x - v_cm[0])*(v1x - v_cm[0])
-                       + (v1y - v_cm[1])*(v1y - v_cm[1])
-                       + (v1z - v_cm[2])*(v1z - v_cm[2]) )
-        + 0.5 * m2 * (   (v2x - v_cm[0])*(v2x - v_cm[0])
-                       + (v2y - v_cm[1])*(v2y - v_cm[1])
-                       + (v2z - v_cm[2])*(v2z - v_cm[2]) );
-
     // Speed and velocity of product 2 in CM frame
     rn1 = random_uniform(&rdata);
     rn2 = random_uniform(&rdata);
-    real phi   = CONST_2PI * rn1;
-    real theta = acos( 2 * ( rn2 - 0.5 ) );
+    real phi = CONST_2PI * rn1;
+
+    real arg = 2.0*(rn2 - 0.5);
+    arg = fmax(-1.0, fmin(1.0, arg));
+    real theta = acos(arg);
     real vnorm = sqrt( 2.0 * ekin / ( mprod2 * ( 1.0 + mprod2 / mprod1 ) ) );
 
     real v2_cm[3];
@@ -569,6 +917,9 @@ void afsi_compute_product_velocities_3d(
     vprod2[0] = v2_cm[0] + v_cm[0];
     vprod2[1] = v2_cm[1] + v_cm[1];
     vprod2[2] = v2_cm[2] + v_cm[2];
+    if (!isfinite(vprod2[0]) || !isfinite(vprod2[1]) || !isfinite(vprod2[2])){
+        printf("Warning: Non-finite velocity computed for product 2 (marker %d).\n", i);
+    }
 }
 
 /**
@@ -669,40 +1020,133 @@ void afsi_store_particle_data(int i, real r, real phi, real z, real* vprod2, rea
     prod2[i*9 + 8] = 0.0;   /* time */
 }
 
-/**
- * @brief Compute momenyta of reaction products.
- *
- * @param i marker index on input velocity and output momentum arrays.
- * @param mprod1 mass of product 1 [kg].
- * @param mprod2 mass of product 2 [kg].
- * @param prodmomspace momentum space type, either PPARPPERP or EKINXI.
- * @param vprod1 array with velocity of product 1.
- * @param vprod2 array with velocity of product 2.
- * @param prod1_p1 array where parallel momentum of product 1 is stored.
- * @param prod1_p2 array where perpendicular momentum of product 1 is stored.
- * @param prod2_p1 array where parallel momentum of product 2 is stored.
- * @param prod2_p2 array where perpendicular momentum of product 2 is stored.
- */
+// /**
+//  * @brief Compute momenyta of reaction products.
+//  *
+//  * @param i marker index on input velocity and output momentum arrays.
+//  * @param mprod1 mass of product 1 [kg].
+//  * @param mprod2 mass of product 2 [kg].
+//  * @param prodmomspace momentum space type, either PPARPPERP or EKINXI.
+//  * @param vprod1 array with velocity of product 1.
+//  * @param vprod2 array with velocity of product 2.
+//  * @param prod1_p1 array where parallel momentum of product 1 is stored.
+//  * @param prod1_p2 array where perpendicular momentum of product 1 is stored.
+//  * @param prod2_p1 array where parallel momentum of product 2 is stored.
+//  * @param prod2_p2 array where perpendicular momentum of product 2 is stored.
+//  */
+
+// /**
+//  * @brief Compute momenyta of reaction products.
+//  *
+//  * @param i marker index on input velocity and output momentum arrays.
+//  * @param mprod1 mass of product 1 [kg].
+//  * @param mprod2 mass of product 2 [kg].
+//  * @param prodmomspace momentum space type, either PPARPPERP or EKINXI.
+//  * @param vprod1 array with velocity of product 1.
+//  * @param vprod2 array with velocity of product 2.
+//  * @param prod1_p1 array where parallel momentum of product 1 is stored.
+//  * @param prod1_p2 array where perpendicular momentum of product 1 is stored.
+//  * @param prod2_p1 array where parallel momentum of product 2 is stored.
+//  * @param prod2_p2 array where perpendicular momentum of product 2 is stored.
+//  */
+
+// void afsi_compute_product_momenta_2d(
+//     int i, real mprod1, real mprod2, int prodmomspace,
+//     real* vprod1, real* vprod2, real* prod1_p1, real* prod1_p2,
+//     real* prod2_p1, real* prod2_p2) {
+
+//     if(prodmomspace == PPARPPERP) {
+//         prod1_p1[i] = vprod1[2] * mprod1;
+//         prod1_p2[i] = sqrt(vprod1[0]*vprod1[0] + vprod1[1]*vprod1[1]) * mprod1;
+//         prod2_p1[i] = vprod2[2] * mprod2;
+//         prod2_p2[i] = sqrt(vprod2[0]*vprod2[0] + vprod2[1]*vprod2[1]) * mprod2;
+//     }
+//     else {
+//         real vnorm1 = math_norm(vprod1);
+//         prod1_p2[i] = vprod1[2] / vnorm1;
+//         prod1_p1[i] = physlib_Ekin_gamma(mprod1, physlib_gamma_vnorm(vnorm1));
+
+//         real vnorm2 = math_norm(vprod2);
+//         prod2_p2[i] = vprod2[2] / vnorm2;
+//         prod2_p1[i] = physlib_Ekin_gamma(mprod2, physlib_gamma_vnorm(vnorm2));
+//     }
+// }
+
 
 /**
- * @brief Compute momenyta of reaction products.
+ * @brief Compute momenta of reaction products.
  *
  * @param i marker index on input velocity and output momentum arrays.
+ * @param m1 mass of reactant 1 [kg].
+ * @param m2 mass of reactant 2 [kg].
  * @param mprod1 mass of product 1 [kg].
  * @param mprod2 mass of product 2 [kg].
- * @param prodmomspace momentum space type, either PPARPPERP or EKINXI.
- * @param vprod1 array with velocity of product 1.
- * @param vprod2 array with velocity of product 2.
- * @param prod1_p1 array where parallel momentum of product 1 is stored.
- * @param prod1_p2 array where perpendicular momentum of product 1 is stored.
- * @param prod2_p1 array where parallel momentum of product 2 is stored.
- * @param prod2_p2 array where perpendicular momentum of product 2 is stored.
+ * @param Q energy released in the reaction [eV].
+ * @param ppara1 the parallel momentum of react1
+ * @param pperp1 the perpendicular momentum of react1
+ * @param ppara2 the parallel momentum of react2
+ * @param pperp2 the perpendicular momentum of react2
+ * @param vcom2 pointer for storing relative velocity of i'th reactants
+ * @param pparaprod1 array where parallel momentum of product 1 is stored.
+ * @param pperpprod1 array where perpendicular momentum of product 1 is stored.
+ * @param pparaprod2 array where parallel momentum of product 2 is stored.
+ * @param pperpprod2 array where perpendicular momentum of product 2 is stored.
  */
-
 void afsi_compute_product_momenta_2d(
-    int i, real mprod1, real mprod2, int prodmomspace,
-    real* vprod1, real* vprod2, real* prod1_p1, real* prod1_p2,
-    real* prod2_p1, real* prod2_p2) {
+    int i, real m1, real m2, real mprod1, real mprod2, real Q, int prodmomspace,
+    real* ppara1, real* pperp1, real* ppara2, real* pperp2, real* vcom2,
+    real* prod1_p1, real* prod1_p2, real* prod2_p1, real* prod2_p2) {
+
+    real rn1 = CONST_2PI * random_uniform(&rdata);
+    real rn2 = CONST_2PI * random_uniform(&rdata);
+
+    real v1x = cos(rn1) * pperp1[i] / m1;
+    real v1y = sin(rn1) * pperp1[i] / m1;
+    real v1z = ppara1[i] / m1;
+
+    real v2x = cos(rn2) * pperp2[i] / m2;
+    real v2y = sin(rn2) * pperp2[i] / m2;
+    real v2z = ppara2[i] / m2;
+
+    *vcom2 =   (v1x - v2x) * (v1x - v2x)
+             + (v1y - v2y) * (v1y - v2y)
+             + (v1z - v2z) * (v1z - v2z);
+
+    // Velocity of the system's center of mass
+    real v_cm[3];
+    v_cm[0]  = ( m1 * v1x + m2 * v2x ) / ( m1 + m2 );
+    v_cm[1]  = ( m1 * v1y + m2 * v2y ) / ( m1 + m2 );
+    v_cm[2]  = ( m1 * v1z + m2 * v2z ) / ( m1 + m2 );
+
+    // Total kinetic energy after the reaction in CM frame
+    real ekin = Q
+        + 0.5 * m1 * (   (v1x - v_cm[0])*(v1x - v_cm[0])
+                       + (v1y - v_cm[1])*(v1y - v_cm[1])
+                       + (v1z - v_cm[2])*(v1z - v_cm[2]) )
+        + 0.5 * m2 * (   (v2x - v_cm[0])*(v2x - v_cm[0])
+                       + (v2y - v_cm[1])*(v2y - v_cm[1])
+                       + (v2z - v_cm[2])*(v2z - v_cm[2]) );
+
+    // Speed and velocity of product 2 in CM frame
+    rn1 = random_uniform(&rdata);
+    rn2 = random_uniform(&rdata);
+    real phi   = CONST_2PI * rn1;
+    real theta = acos( 2 * ( rn2 - 0.5 ) );
+    real vnorm = sqrt( 2.0 * ekin / ( mprod2 * ( 1.0 + mprod2 / mprod1 ) ) );
+
+    real v2_cm[3];
+    v2_cm[0] = vnorm * sin(theta) * cos(phi);
+    v2_cm[1] = vnorm * sin(theta) * sin(phi);
+    v2_cm[2] = vnorm * cos(theta);
+
+    // Products' velocities in lab frame
+    real vprod1[3], vprod2[3];
+    vprod1[0] = -(mprod2/mprod1) * v2_cm[0] + v_cm[0];
+    vprod1[1] = -(mprod2/mprod1) * v2_cm[1] + v_cm[1];
+    vprod1[2] = -(mprod2/mprod1) * v2_cm[2] + v_cm[2];
+    vprod2[0] = v2_cm[0] + v_cm[0];
+    vprod2[1] = v2_cm[1] + v_cm[1];
+    vprod2[2] = v2_cm[2] + v_cm[2];
 
     if(prodmomspace == PPARPPERP) {
         prod1_p1[i] = vprod1[2] * mprod1;

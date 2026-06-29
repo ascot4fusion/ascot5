@@ -108,7 +108,7 @@ class MarkerGenerator():
 
 
     def generate(self, nmrk, mass, charge, anum, znum, particledist,
-                 markerdist=None, mode='gc', minweight=0, return_dists=False):
+                 markerdist=None, mode='gc', minweight=0, return_dists=False, dist6d = False):
         """Generate weighted markers from marker and particle distributions.
 
         This function takes two 5D distributions that must have identical grids.
@@ -202,7 +202,7 @@ class MarkerGenerator():
         weight = weight[idx].ravel()
 
         # Init marker species
-        mrk = Marker.generate(mode, n=nmrk)
+        mrk = Marker.generate(mode, n=nmrk, dist6d = dist6d)
         mrk["anum"][:]   = anum
         mrk["znum"][:]   = znum
         mrk["mass"][:]   = mass
@@ -210,8 +210,12 @@ class MarkerGenerator():
         mrk["weight"][:] = weight
 
         # Randomize initial coordinates
-        ic1, ic2, ic3, ip1, ip2 = \
-            np.unravel_index(icell, markerdist.distribution().shape)
+        if (dist6d):
+            ic1, ic2, ic3, ip1, ip2, ip3 = \
+                np.unravel_index(icell, markerdist.distribution().shape)
+        else:
+            ic1, ic2, ic3, ip1, ip2 = \
+                np.unravel_index(icell, markerdist.distribution().shape)
         def randomize(edges, idx):
             """Picks a random value between [edges[idx+1], edges[idx]]
             """
@@ -260,7 +264,10 @@ class MarkerGenerator():
                 mrk['vr']   = pvec[0,:] / mrk['mass']
                 mrk['vphi'] = pvec[1,:] / mrk['mass']
                 mrk['vz']   = pvec[2,:] / mrk['mass']
-
+        elif ("theta_v" in markerdist.abscissae) and ("phi_v" in markerdist.abscissae):
+            mrk["energy"] = randomize(markerdist.abscissa_edges("ekin"), ip1)
+            mrk["theta_v"] = randomize(markerdist.abscissa_edges("theta_v"), ip2)
+            mrk["phi_v"]   = randomize(markerdist.abscissa_edges("phi_v"), ip3)
         else:
             if mode == 'gc':
                 mrk["energy"] = \

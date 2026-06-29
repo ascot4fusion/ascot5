@@ -587,6 +587,158 @@ class Afsi():
         self._ascot.file_load(self._ascot.file_getpath())
         return prod1, prod2
 
+    def thermal_6d(
+        self,
+        reaction,
+        r=None,
+        phi=np.array([0, 360])*unyt.deg,
+        z=None,
+        ekin=None,
+        theta_v=None,
+        phi_v=None,
+        nmc=1000
+        ):
+        """Calculate thermonuclear fusion between two thermal (Maxwellian)
+        species with 6D product distribution."""
+        ekin = np.linspace(0.1e6, 20e6, 40)*unyt.eV if ekin is None else ekin
+        theta_v = np.linspace(0, np.pi, 20)*unyt.rad if theta_v is None else theta_v
+        phi_v = np.linspace(-np.pi, np.pi, 30)*unyt.rad if phi_v is None else phi_v
+        
+        self._ascot.input_init(bfield=True, plasma=True)
+
+        phic, rc, zc = np.meshgrid(0.5*(phi[:-1]+phi[1:]),
+                                       0.5*(r[:-1]+r[1:]),
+                                       0.5*(z[:-1]+z[1:]))
+        phic *= np.pi/180
+        vol = ( rc * np.diff(r[:2]) * np.diff(z[:2]) * np.diff(phi[:2])
+                       * np.pi/180 )
+        
+        m1, q1, m2, q2, _, qprod1, _, qprod2, _ = self.reactions(reaction)
+        reactions = {v: k for k, v in AFSI_REACTIONS.items()}
+        reaction = reactions[reaction]
+        anum1 = np.round(m1.to("amu").v)
+        anum2 = np.round(m2.to("amu").v)
+        znum1 = np.round(q1.to("e").v)
+        znum2 = np.round(q2.to("e").v)
+        q1 = np.round(qprod1.to("e").v)
+        q2 = np.round(qprod2.to("e").v)
+
+        nspec, _, _, anums, znums = self._ascot.input_getplasmaspecies()
+        ispecies1, ispecies2 = np.nan, np.nan
+        for i in np.arange(nspec):
+            if( anum1 == anums[i] and znum1 == znums[i] ):
+                ispecies1 = i
+            if( anum2 == anums[i] and znum2 == znums[i] ):
+                ispecies2 = i
+        if np.isnan(ispecies1) or np.isnan(ispecies2):
+            self._ascot.input_free(bfield=True, plasma=True)
+            raise ValueError("Reactant species not present in plasma input.")
+        mult = 0.5 if ispecies1 == ispecies2 else 1.0
+        
+        afsi = self._init_afsi_data(
+            react1=ispecies1, react2=ispecies2, reaction=reaction, mult=mult,
+            r=rc, phi=phic, z=zc, vol=vol,
+            )
+        
+        ekin_J = ekin.to("J")
+        print("init histogram")
+        prod2 = self._init_histogram_6d(
+            r,
+            phi*np.pi/180,
+            z,
+            ekin_J,
+            theta_v,
+            phi_v
+            )
+        
+        _LIBASCOT.afsi_run_6d(ctypes.byref(self._ascot._sim),
+                            ctypes.byref(afsi), nmc, prod2,
+                            )
+        # Reload Ascot
+        self._ascot.file_load(self._ascot.file_getpath())
+        return prod2
+    
+    def beamthermal_6d(    
+        self,
+        reaction,
+        beam,
+        swap=False,
+        nmc=1000,
+        ekin=None,
+        theta_v=None,
+        phi_v=None):
+        
+        ekin = np.linspace(0.1e6, 20e6, 40)*unyt.eV if ekin is None else ekin
+        theta_v = np.linspace(0, np.pi, 20)*unyt.rad if theta_v is None else theta_v
+        phi_v = np.linspace(-np.pi, np.pi, 30)*unyt.rad if phi_v is None else phi_v
+        
+        m1, q1, m2, q2, _, qprod1, _, qprod2, _ = self.reactions(reaction)
+        reactions = {v: k for k, v in AFSI_REACTIONS.items()}
+        reaction = reactions[reaction]
+        anum1 = np.round(m1.to("amu").v)
+        anum2 = np.round(m2.to("amu").v)
+        znum1 = np.round(q1.to("e").v)
+        znum2 = np.round(q2.to("e").v)
+        q1 = np.round(qprod1.to("e").v)
+        q2 = np.round(qprod2.to("e").v)
+
+        self._ascot.input_init(bfield=True, plasma=True)
+        nspec, _, _, anums, znums = self._ascot.input_getplasmaspecies()
+        ispecies = np.nan
+        for i in np.arange(nspec):
+            if( swap and anum1 == anums[i] and znum1 == znums[i] ):
+                ispecies = i
+                react1 = ispecies
+                react2 = self._init_dist_5d(beam)
+            if( not swap and anum2 == anums[i] and znum2 == znums[i] ):
+                ispecies = i
+                react2 = ispecies
+                react1 = self._init_dist_5d(beam)
+        if np.isnan(ispecies):
+            self._ascot.input_free(bfield=True, plasma=True)
+            raise ValueError("Reactant species not present in plasma input.")
+        print(react1.axes[10].max)
+        mult = 1.0
+        r, z, phi = ( beam.abscissa_edges("r"), beam.abscissa_edges("z"),
+                      beam.abscissa_edges("phi").to("rad") )
+        phic, rc, zc = np.meshgrid(0.5*(phi[:-1]+phi[1:]),
+                                       0.5*(r[:-1]+r[1:]),
+                                       0.5*(z[:-1]+z[1:]))
+        vol = ( rc * np.diff(r[:2]) * np.diff(z[:2]) * np.diff(phi[:2]) )
+        afsi = self._init_afsi_data(
+            react1=react1, react2=react2, reaction=reaction, mult=mult,
+            r=rc, phi=phic, z=zc, vol=vol,
+            )
+
+        # prod1 = self._init_histogram_6d(
+        #     beam.abscissa_edges("r"),
+        #     beam.abscissa_edges("phi").to("rad"),
+        #     beam.abscissa_edges("z"),
+        #     ekin,
+        #     theta_v,
+        #     phi_v,
+        #     charge=q1
+        #     )
+        ekin_J = ekin.to("J")
+        print("init histogram")
+        prod2 = self._init_histogram_6d(
+            beam.abscissa_edges("r"),
+            beam.abscissa_edges("phi").to("rad"),
+            beam.abscissa_edges("z"),
+            ekin_J,
+            theta_v,
+            phi_v
+            )
+        
+        _LIBASCOT.afsi_run_6d(ctypes.byref(self._ascot._sim),
+                            ctypes.byref(afsi), nmc, prod2,
+                            )
+        self._ascot.input_free(bfield=True, plasma=True)
+
+        # Reload Ascot
+        self._ascot.file_load(self._ascot.file_getpath())
+        return prod2
+
 
     def beamthermal(
             self,
@@ -836,22 +988,42 @@ class Afsi():
 
     def _init_dist_5d(self, dist):
         data = STRUCT_HIST()
-        coordinates = np.array([0, 1, 2, 5, 6, 14, 15], dtype="uint32")
-        nbin = np.array([
-            dist.abscissa("r").size, dist.abscissa("phi").size,
-            dist.abscissa("z").size, dist.abscissa("ppar").size,
-            dist.abscissa("pperp").size, dist.abscissa("time").size,
-            dist.abscissa("charge").size], dtype="u8")
-        binmin = np.array([
-            dist.abscissa_edges("r")[0], dist.abscissa_edges("phi").to("rad")[0],
-            dist.abscissa_edges("z")[0], dist.abscissa_edges("ppar")[0],
-            dist.abscissa_edges("pperp")[0], dist.abscissa_edges("time")[0],
-            dist.abscissa_edges("charge")[0]])
-        binmax = np.array([
-            dist.abscissa_edges("r")[-1], dist.abscissa_edges("phi").to("rad")[-1],
-            dist.abscissa_edges("z")[-1], dist.abscissa_edges("ppar")[-1],
-            dist.abscissa_edges("pperp")[-1], dist.abscissa_edges("time")[-1],
-            dist.abscissa_edges("charge")[-1]])
+        if ("ppar" and "pperp" in dist.abscissae):
+            coordinates = np.array([0, 1, 2, 5, 6, 14, 15], dtype="uint32")
+            nbin = np.array([
+                dist.abscissa("r").size, dist.abscissa("phi").size,
+                dist.abscissa("z").size, dist.abscissa("ppar").size,
+                dist.abscissa("pperp").size, dist.abscissa("time").size,
+                dist.abscissa("charge").size], dtype="u8")
+            binmin = np.array([
+                dist.abscissa_edges("r")[0], dist.abscissa_edges("phi").to("rad")[0],
+                dist.abscissa_edges("z")[0], dist.abscissa_edges("ppar")[0],
+                dist.abscissa_edges("pperp")[0], dist.abscissa_edges("time")[0],
+                dist.abscissa_edges("charge")[0]])
+            binmax = np.array([
+                dist.abscissa_edges("r")[-1], dist.abscissa_edges("phi").to("rad")[-1],
+                dist.abscissa_edges("z")[-1], dist.abscissa_edges("ppar")[-1],
+                dist.abscissa_edges("pperp")[-1], dist.abscissa_edges("time")[-1],
+                dist.abscissa_edges("charge")[-1]])
+        elif ("ekin" and "pitch" in dist.abscissae):
+            coordinates = np.array([0, 1, 2, 10, 11, 14, 15], dtype="uint32")
+            nbin = np.array([
+                dist.abscissa("r").size, dist.abscissa("phi").size,
+                dist.abscissa("z").size, dist.abscissa("ekin").size,
+                dist.abscissa("pitch").size, dist.abscissa("time").size,
+                dist.abscissa("charge").size], dtype="u8")
+            binmin = np.array([
+                dist.abscissa_edges("r")[0], dist.abscissa_edges("phi").to("rad")[0],
+                dist.abscissa_edges("z")[0], dist.abscissa_edges("ekin")[0].to("J"),
+                dist.abscissa_edges("pitch")[0], dist.abscissa_edges("time")[0],
+                dist.abscissa_edges("charge")[0]])
+            binmax = np.array([
+                dist.abscissa_edges("r")[-1], dist.abscissa_edges("phi").to("rad")[-1],
+                dist.abscissa_edges("z")[-1], dist.abscissa_edges("ekin")[-1].to("J"),
+                dist.abscissa_edges("pitch")[-1], dist.abscissa_edges("time")[-1],
+                dist.abscissa_edges("charge")[-1]])
+        else:
+            raise ValueError("Unknown momentum abscissae")
         _LIBASCOT.hist_init(
             ctypes.byref(data),
             coordinates.size,
@@ -865,6 +1037,40 @@ class Afsi():
         # for i in range(data.nbin):
         #     data.bins[i] = d[i]
         return data
+    
+    def _init_histogram_6d(self, r, phi, z, ekin, theta_v, phi_v,
+                           charge=None, time=None):
+        prod = STRUCT_HIST()
+        if time is None:
+            time = np.array([0, 1])
+        nbin = np.array([
+            r.size-1, phi.size-1, z.size-1,
+            ekin.size-1, theta_v.size-1, phi_v.size-1,
+#            time.size-1, 1
+            ], dtype="u8")
+        binmin = np.array([
+            r[0], phi[0], z[0],
+            ekin[0], theta_v[0], phi_v[0],
+#            time[0], charge[0] - 1
+        ])
+        binmax = np.array([
+            r[-1], phi[-1], z[-1],
+            ekin[-1], theta_v[-1], phi_v[-1],
+#            time[-1], charge[0] + 1
+        ])
+        #coordinates = np.array([0, 1, 2, 10, 4, 1, 14, 15], dtype="uint32")
+        coordinates = np.array([0, 1, 2, 10, 16, 17], dtype="uint32")
+
+
+        _LIBASCOT.hist_init(
+            ctypes.byref(prod),
+            coordinates.size,
+            coordinates.ctypes.data_as(ctypes.POINTER(ctypes.c_uint)),
+            binmin.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+            binmax.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+            nbin.ctypes.data_as(ctypes.POINTER(ctypes.c_size_t))
+            )
+        return prod
 
     def _init_histogram(self, *args, charge=None, time=None, exi=False,
                         toroidal=False):
@@ -920,10 +1126,11 @@ class Afsi():
         m2 : float
             Mass of reactant 2.
         q2 : float
-            Charge of reactant 2.
+        phi_v=None,
+        charge=None):
         mprod1 : float
             Mass of product 1.
-        qprod1 : float
+        phi_v = np.linspace(-np.pi, np.pi, 30) if phi_v is None else phi_v
             Charge of product 1.
         mprod2 : float
             Mass of product 2.

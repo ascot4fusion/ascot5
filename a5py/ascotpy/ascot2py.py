@@ -3141,6 +3141,8 @@ hist_coordinate__enumvalues = {
     13: 'PTOR',
     14: 'TIME',
     15: 'CHARGE',
+    16: 'THETA_V',
+    17: 'PHI_V'
 }
 R = 0
 PHI = 1
@@ -3158,6 +3160,8 @@ MU = 12
 PTOR = 13
 TIME = 14
 CHARGE = 15
+THETA_V = 16
+PHI_V = 17
 hist_coordinate = ctypes.c_uint32 # enum
 class struct_hist_axis(Structure):
     pass
@@ -3177,8 +3181,8 @@ class struct_histogram(Structure):
 
 struct_histogram._pack_ = 1 # source:False
 struct_histogram._fields_ = [
-    ('axes', struct_hist_axis * 16),
-    ('strides', ctypes.c_uint64 * 15),
+    ('axes', struct_hist_axis * 18),
+    ('strides', ctypes.c_uint64 * 17),
     ('nbin', ctypes.c_uint64),
     ('bins', ctypes.POINTER(ctypes.c_double)),
 ]
@@ -3364,6 +3368,12 @@ try:
 except AttributeError:
     pass
 try:
+    afsi_run_6d = _libraries['libascot.so'].afsi_run_6d
+    afsi_run_6d.restype = None
+    afsi_run_6d.argtypes = [ctypes.POINTER(struct_sim_data), ctypes.POINTER(struct_afsi_data), ctypes.c_int32, ctypes.POINTER(struct_histogram)]
+except AttributeError:
+    pass
+try:
     afsi_run_rejection = _libraries['libascot.so'].afsi_run_rejection
     afsi_run_rejection.restype = None
     afsi_run_rejection.argtypes = [ctypes.POINTER(struct_sim_data), ctypes.POINTER(struct_afsi_data), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
@@ -3445,7 +3455,7 @@ __all__ = \
     'N0_3D_init', 'N0_3D_offload', 'PHI', 'PPAR', 'PPARPPERP',
     'PPERP', 'PPHI', 'PR', 'PTOR', 'PZ', 'R', 'RHO', 'Reaction',
     'SIMULATION_MODE', 'THETA', 'TIME', 'XI', 'Z', 'a5err',
-    'afsi_data', 'afsi_run', 'afsi_run_rejection', 'asigma_data',
+    'afsi_data', 'afsi_run', 'afsi_run_6d','afsi_run_rejection', 'asigma_data',
     'asigma_eval_bms', 'asigma_eval_cx', 'asigma_eval_sigma',
     'asigma_eval_sigmav', 'asigma_extrapolate', 'asigma_free',
     'asigma_loc_data', 'asigma_loc_eval_bms', 'asigma_loc_eval_cx',

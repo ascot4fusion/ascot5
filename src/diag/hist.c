@@ -35,6 +35,8 @@ int hist_init(histogram* data, int dimensions, hist_coordinate* coordinates,
     data->axes[13].name = PTOR;
     data->axes[14].name = TIME;
     data->axes[15].name = CHARGE;
+    data->axes[16].name = THETA_V;
+    data->axes[17].name = PHI_V;
 
     data->nbin = 1;
     for(int i = HIST_ALLDIM-1; i >= 0; i--) {
