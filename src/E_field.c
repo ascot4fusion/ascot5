@@ -21,6 +21,7 @@
 #include "B_field.h"
 #include "Efield/E_TC.h"
 #include "Efield/E_1DS.h"
+#include "Efield/E_2DS.h"
 
 /**
  * @brief Free allocated resources
@@ -29,6 +30,9 @@
  */
 void E_field_free(E_field_data* data) {
     switch(data->type) {
+        case E_field_type_2DS:
+            E_2DS_free(&data->E2DS);
+            break;
         case E_field_type_1DS:
             E_1DS_free(&data->E1DS);
             break;
@@ -45,6 +49,9 @@ void E_field_free(E_field_data* data) {
  */
 void E_field_offload(E_field_data* data) {
     switch(data->type) {
+        case E_field_type_2DS:
+            E_2DS_offload(&data->E2DS);
+            break;
         case E_field_type_1DS:
             E_1DS_offload(&data->E1DS);
             break;
@@ -84,6 +91,10 @@ a5err E_field_eval_E(real E[3], real r, real phi, real z, real t,
     a5err err = 0;
 
     switch(Edata->type) {
+
+        case E_field_type_2DS:
+            err = E_2DS_eval_E(E, r, z, &(Edata->E2DS));
+            break;
 
         case E_field_type_1DS:
             err = E_1DS_eval_E(E, r, phi, z, &(Edata->E1DS), Bdata);

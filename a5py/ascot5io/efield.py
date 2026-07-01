@@ -96,6 +96,109 @@ class E_TC(DataGroup):
         """
         return {"exyz":np.array([0,0,0])}
 
+class E_2DS(DataGroup):
+    """Electric field that is calculated from 2D potential.
+    """
+
+    def read(self):
+        """Read data from HDF5 file.
+
+        Returns
+        -------
+        data : dict
+            Data read from HDF5 stored in the same format as is passed to
+            :meth:`write_hdf5`.
+        """
+        fn   = self._root._ascot.file_getpath()
+        path = self._path
+
+        out = {}
+        with h5py.File(fn,"r") as f:
+            for key in f[path]:
+                out[key] = f[path][key][:]
+
+        out["vpot"] = out["vpot"].T
+        return out
+
+    @staticmethod
+    def write_hdf5(fn, rmin, rmax, nr, zmin, zmax, nz, vpot, desc=None):
+        """Write input data to the HDF5 file.
+
+        Parameters
+        ----------
+        fn : str
+            Full path to the HDF5 file.
+        rmin : float
+            Minimum value in R grid [m].
+        rmax : float
+            Maximum value in R grid [m].
+        nr : int
+            Number of R grid points.
+        zmin : float
+            Minimum value in z grid [m].
+        zmax : float
+            Maximum value in z grid [m].
+        nz : int
+            Number of z grid points.
+        vpot : array_like (nr,nz)
+            Electric field potential [V].
+        desc : str, optional
+            Input description.
+
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
+
+        Raises
+        ------
+        ValueError
+            If inputs were not consistent.
+        """
+        if vpot.shape   != (nr,nz):
+            raise ValueError("vpot has an inconsinstent shape.")
+
+        parent = "efield"
+        group  = "E_2DS"
+        gname  = ""
+
+        vpot = vpot.T
+
+        # Create a group for this input.
+        with h5py.File(fn, "a") as f:
+            g = add_group(f, parent, group, desc=desc)
+            gname = g.name.split("/")[-1]
+
+            g.create_dataset("rmin", (1,),     data=rmin, dtype="f8")
+            g.create_dataset("rmax", (1,),     data=rmax, dtype="f8")
+            g.create_dataset("nr",   (1,),     data=nr,   dtype="i4")
+            g.create_dataset("zmin", (1,),     data=zmin, dtype="f8")
+            g.create_dataset("zmax", (1,),     data=zmax, dtype="f8")
+            g.create_dataset("nz",   (1,),     data=nz,   dtype="i4")
+            g.create_dataset("vpot", (nz, nr), data=vpot, dtype="f8")
+
+        return gname
+
+    @staticmethod
+    def create_dummy():
+        """Create dummy data that has correct format and is valid, but can be
+        non-sensical.
+
+        This method is intended for testing purposes or to provide data whose
+        presence is needed but which is not actually used in simulation.
+
+        This dummy input sets electric field to zero everywhere.
+
+        Returns
+        -------
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        return {"rmin":1, "rmax":10, "nr":3, "zmin":-10, "zmax":10,
+                "nz":3,
+                "vpot":np.zeros((3,3))}
+
 class E_3D(DataGroup):
     """3D electric field that is linearly interpolated.
 

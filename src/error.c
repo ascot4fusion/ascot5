@@ -227,6 +227,10 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
             sprintf(file, "asigma_loc.c");
             break;
 
+        case EF_E_2DS:
+            sprintf(file, "E_2DS.c");
+            break;
+
         default:
             sprintf(file, "unknown file");
             break;
