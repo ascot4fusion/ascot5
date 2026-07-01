@@ -72,7 +72,7 @@ CFLAGS+=-Wall -fPIC -std=c11 -D_XOPEN_SOURCE=700 $(DEFINES) $(FLAGS)
 ifeq ($(DEBUG),1)
 	CFLAGS+=-g -fsanitize=address,undefined
 else
-	CFLAGS+=-O2
+	CFLAGS+=-g
 endif
 
 ifeq ($(CC), $(filter $(CC), h5cc h5pcc))

@@ -14,6 +14,7 @@
 #include "B_field.h"
 #include "Efield/E_TC.h"
 #include "Efield/E_1DS.h"
+#include "Efield/E_2DS.h"
 
 /**
  * @brief Electric field types
@@ -23,8 +24,9 @@
  * field instance must have a corresponding type.
  */
 typedef enum E_field_type {
-    E_field_type_TC, /**< Trivial Cartesian electric field */
-    E_field_type_1DS /**< Spline-interpolated radial electric field */
+    E_field_type_TC,  /**< Trivial Cartesian electric field */
+    E_field_type_1DS, /**< Spline-interpolated radial electric field */
+    E_field_type_2DS  /**< Spline-interpolated radial electric field */
 } E_field_type;
 
 /**
@@ -37,6 +39,7 @@ typedef struct {
     E_field_type type; /**< Electric field type wrapped by this struct */
     E_TC_data ETC;     /**< TC field or NULL if not active             */
     E_1DS_data E1DS;   /**< 1DS field or NULL if not active            */
+    E_2DS_data E2DS;   /**< 1DS field or NULL if not active            */
 } E_field_data;
 
 void E_field_free(E_field_data* data);

@@ -22,12 +22,14 @@
 #include "../E_field.h"
 #include "../Efield/E_TC.h"
 #include "../Efield/E_1DS.h"
+#include "../Efield/E_2DS.h"
 #include "../print.h"
 #include "hdf5_helpers.h"
 #include "hdf5_efield.h"
 
 #define EPATH /**< Macro that is used to store paths to data groups */
 
+int hdf5_efield_read_2DS(hid_t f, E_2DS_data* data, char* qid);
 int hdf5_efield_read_1DS(hid_t f, E_1DS_data* data, char* qid);
 int hdf5_efield_read_TC(hid_t f, E_TC_data* data, char* qid);
 
@@ -65,6 +67,47 @@ int hdf5_efield_init(hid_t f, E_field_data* data, char* qid) {
         data->type = E_field_type_1DS;
         err = hdf5_efield_read_1DS(f, &data->E1DS, qid);
     }
+    hdf5_gen_path("/efield/E_2DS_XXXXXXXXXX", qid, path);
+    if(hdf5_find_group(f, path) == 0) {
+        data->type = E_field_type_2DS;
+        err = hdf5_efield_read_2DS(f, &data->E2DS, qid);
+    }
+    return err;
+}
+
+/**
+ * @brief Read E2DS electric field data from HDF5 file.
+ *
+ * @param f HDF5 file from which data is read
+ * @param data pointer to the data
+ * @param qid QID of the data
+ *
+ * @return Zero if reading succeeded
+ */
+int hdf5_efield_read_2DS(hid_t f, E_2DS_data* data, char* qid) {
+    #undef EPATH
+    #define EPATH "/efield/E_2DS_XXXXXXXXXX/"
+
+    int nr, nz;
+    real rmin, rmax, zmin, zmax;
+    if( hdf5_read_int(EPATH "nr", &nr,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(EPATH "rmin", &rmin,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(EPATH "rmax", &rmax,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(EPATH "nz", &nz,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(EPATH "zmin", &zmin,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(EPATH "zmax", &zmax,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    real* vpot = (real*) malloc( nr*nz*sizeof(real) );
+    if( hdf5_read_double(EPATH "vpot", vpot,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    int err = E_2DS_init(data, nr, rmin, rmax, nz, zmin, zmax, vpot);
+    free(vpot);
     return err;
 }
 

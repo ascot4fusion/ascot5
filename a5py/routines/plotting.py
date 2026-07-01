@@ -596,7 +596,7 @@ def hist2d(x, y, xbins=None, ybins=None, weights=None, xlog="linear",
 
 @openfigureifnoaxes(projection=None)
 def mesh1d(x, y, xlabel=None, ylabel=None, axes=None,
-           logscale=False, label=None):
+           logscale=False, label=None, color=None):
     """Plot 1D distribution.
 
     Parameters
@@ -615,6 +615,8 @@ def mesh1d(x, y, xlabel=None, ylabel=None, axes=None,
         Whether the plot is in logarithmic scale.
     label : str, optional
         Label if you are using a legend.
+    color : str, optional
+        Color of the line.
     """
     xc = np.zeros((y.size*2,))
     xc[1:-1:2] = x[1:-1]
@@ -630,7 +632,7 @@ def mesh1d(x, y, xlabel=None, ylabel=None, axes=None,
     axes.set_xlim(x[0], x[-1])
     if logscale:
         axes.set_yscale('log')
-    axes.plot(xc, yc,label=label)
+    axes.plot(xc, yc, label=label, color=color)
 
 @openfigureifnoaxes(projection=None)
 def mesh2d(x, y, z, logscale=False, diverging=False, xlabel=None, ylabel=None,

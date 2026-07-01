@@ -1,7 +1,7 @@
 """Interface for accessing data in ASCOT5 HDF5 files.
 """
 from .bfield  import B_TC, B_GS, B_2DS, B_3DS, B_3DST, B_STS
-from .efield  import E_TC, E_1DS, E_3D, E_3DS, E_3DST
+from .efield  import E_TC, E_1DS, E_2DS, E_3D, E_3DS, E_3DST
 from .marker  import Marker, Prt, GC, FL
 from .plasma  import plasma_1D, plasma_2D, plasma_1DS, plasma_1Dt
 from .wall    import wall_2D, wall_3D
@@ -31,7 +31,7 @@ from a5py.templates.imasinterface import ExportIMAS
 HDF5TOOBJ = {
     "B_TC" : B_TC, "B_GS" : B_GS, "B_2DS" : B_2DS, "B_3DS" : B_3DS,
     "B_3DST" : B_3DST, "B_STS" : B_STS,
-    "E_TC" : E_TC, "E_1DS" : E_1DS,
+    "E_TC" : E_TC, "E_1DS" : E_1DS, "E_2DS" : E_2DS,
     #"E_3D" : E_3D, "E_3DS" : E_3DS, "E_3DST" : E_3DST,
     "prt" : Prt, "gc" : GC, "fl" : FL,
     "wall_2D" : wall_2D, "wall_3D" : wall_3D,

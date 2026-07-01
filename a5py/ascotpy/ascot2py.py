@@ -553,14 +553,35 @@ E_1DS_offload.argtypes = [ctypes.POINTER(struct_c__SA_E_1DS_data)]
 E_1DS_eval_E = _libraries['libascot.so'].E_1DS_eval_E
 E_1DS_eval_E.restype = a5err
 E_1DS_eval_E.argtypes = [ctypes.c_double * 3, real, real, real, ctypes.POINTER(struct_c__SA_E_1DS_data), ctypes.POINTER(struct_c__SA_B_field_data)]
+class struct_c__SA_E_2DS_data(Structure):
+    _pack_ = 1 # source:False
+    _fields_ = [
+    ('vpot', struct_c__SA_interp2D_data),
+     ]
+
+E_2DS_data = struct_c__SA_E_2DS_data
+E_2DS_init = _libraries['libascot.so'].E_2DS_init
+E_2DS_init.restype = ctypes.c_int32
+E_2DS_init.argtypes = [ctypes.POINTER(struct_c__SA_E_2DS_data), ctypes.c_int32, real, real, ctypes.c_int32, real, real, ctypes.POINTER(ctypes.c_double)]
+E_2DS_free = _libraries['libascot.so'].E_2DS_free
+E_2DS_free.restype = None
+E_2DS_free.argtypes = [ctypes.POINTER(struct_c__SA_E_2DS_data)]
+E_2DS_offload = _libraries['libascot.so'].E_2DS_offload
+E_2DS_offload.restype = None
+E_2DS_offload.argtypes = [ctypes.POINTER(struct_c__SA_E_2DS_data)]
+E_2DS_eval_E = _libraries['libascot.so'].E_2DS_eval_E
+E_2DS_eval_E.restype = a5err
+E_2DS_eval_E.argtypes = [ctypes.c_double * 3, real, real, ctypes.POINTER(struct_c__SA_E_2DS_data)]
 
 # values for enumeration 'E_field_type'
 E_field_type__enumvalues = {
     0: 'E_field_type_TC',
     1: 'E_field_type_1DS',
+    2: 'E_field_type_2DS',
 }
 E_field_type_TC = 0
 E_field_type_1DS = 1
+E_field_type_2DS = 2
 E_field_type = ctypes.c_uint32 # enum
 class struct_c__SA_E_field_data(Structure):
     pass
@@ -571,6 +592,7 @@ struct_c__SA_E_field_data._fields_ = [
     ('PADDING_0', ctypes.c_ubyte * 4),
     ('ETC', E_TC_data),
     ('E1DS', E_1DS_data),
+    ('E2DS', E_2DS_data),
 ]
 
 E_field_data = struct_c__SA_E_field_data
@@ -2614,20 +2636,21 @@ __all__ = \
     'B_field_type_TC', 'CHARGE', 'DD_He3n', 'DD_Tp', 'DHe3_He4p',
     'DT_He4n', 'EKIN', 'EKINXI', 'ENDCOND_FLAG', 'E_1DS_data',
     'E_1DS_eval_E', 'E_1DS_free', 'E_1DS_init', 'E_1DS_offload',
-    'E_TC_data', 'E_TC_eval_E', 'E_TC_free', 'E_TC_init',
-    'E_TC_offload', 'E_field_data', 'E_field_eval_E', 'E_field_free',
-    'E_field_offload', 'E_field_type', 'E_field_type_1DS',
-    'E_field_type_TC', 'MU', 'N0_1D_data', 'N0_1D_eval_n0',
-    'N0_1D_eval_t0', 'N0_1D_free', 'N0_1D_get_n_species',
-    'N0_1D_init', 'N0_1D_offload', 'N0_3D_data', 'N0_3D_eval_n0',
-    'N0_3D_eval_t0', 'N0_3D_free', 'N0_3D_get_n_species',
-    'N0_3D_init', 'N0_3D_offload', 'PHI', 'PPAR', 'PPARPPERP',
-    'PPERP', 'PPHI', 'PR', 'PTOR', 'PZ', 'R', 'RHO', 'Reaction',
-    'SIMULATION_MODE', 'THETA', 'TIME', 'XI', 'Z', 'a5err',
-    'afsi_data', 'afsi_run', 'asigma_data', 'asigma_eval_bms',
-    'asigma_eval_cx', 'asigma_eval_sigma', 'asigma_eval_sigmav',
-    'asigma_extrapolate', 'asigma_free', 'asigma_loc_data',
-    'asigma_loc_eval_bms', 'asigma_loc_eval_cx',
+    'E_2DS_data', 'E_2DS_eval_E', 'E_2DS_free', 'E_2DS_init',
+    'E_2DS_offload', 'E_TC_data', 'E_TC_eval_E', 'E_TC_free',
+    'E_TC_init', 'E_TC_offload', 'E_field_data', 'E_field_eval_E',
+    'E_field_free', 'E_field_offload', 'E_field_type',
+    'E_field_type_1DS', 'E_field_type_2DS', 'E_field_type_TC', 'MU',
+    'N0_1D_data', 'N0_1D_eval_n0', 'N0_1D_eval_t0', 'N0_1D_free',
+    'N0_1D_get_n_species', 'N0_1D_init', 'N0_1D_offload',
+    'N0_3D_data', 'N0_3D_eval_n0', 'N0_3D_eval_t0', 'N0_3D_free',
+    'N0_3D_get_n_species', 'N0_3D_init', 'N0_3D_offload', 'PHI',
+    'PPAR', 'PPARPPERP', 'PPERP', 'PPHI', 'PR', 'PTOR', 'PZ', 'R',
+    'RHO', 'Reaction', 'SIMULATION_MODE', 'THETA', 'TIME', 'XI', 'Z',
+    'a5err', 'afsi_data', 'afsi_run', 'asigma_data',
+    'asigma_eval_bms', 'asigma_eval_cx', 'asigma_eval_sigma',
+    'asigma_eval_sigmav', 'asigma_extrapolate', 'asigma_free',
+    'asigma_loc_data', 'asigma_loc_eval_bms', 'asigma_loc_eval_cx',
     'asigma_loc_eval_sigma', 'asigma_loc_eval_sigmav',
     'asigma_loc_free', 'asigma_loc_init', 'asigma_loc_offload',
     'asigma_offload', 'asigma_reac_type', 'asigma_type',
@@ -2737,38 +2760,38 @@ __all__ = \
     'struct_c__SA_B_3DS_data', 'struct_c__SA_B_GS_data',
     'struct_c__SA_B_STS_data', 'struct_c__SA_B_TC_data',
     'struct_c__SA_B_field_data', 'struct_c__SA_E_1DS_data',
-    'struct_c__SA_E_TC_data', 'struct_c__SA_E_field_data',
-    'struct_c__SA_N0_1D_data', 'struct_c__SA_N0_3D_data',
-    'struct_c__SA_afsi_data', 'struct_c__SA_asigma_data',
-    'struct_c__SA_asigma_loc_data', 'struct_c__SA_boozer_data',
-    'struct_c__SA_diag_data', 'struct_c__SA_diag_orb_data',
-    'struct_c__SA_diag_transcoef_data', 'struct_c__SA_dist_5D_data',
-    'struct_c__SA_dist_6D_data', 'struct_c__SA_dist_COM_data',
-    'struct_c__SA_dist_rho5D_data', 'struct_c__SA_dist_rho6D_data',
-    'struct_c__SA_hist_axis', 'struct_c__SA_histogram',
-    'struct_c__SA_input_particle', 'struct_c__SA_interp1D_data',
-    'struct_c__SA_interp2D_data', 'struct_c__SA_interp3D_data',
-    'struct_c__SA_linint1D_data', 'struct_c__SA_linint2D_data',
-    'struct_c__SA_linint3D_data', 'struct_c__SA_mccc_data',
-    'struct_c__SA_mhd_data', 'struct_c__SA_mhd_nonstat_data',
-    'struct_c__SA_mhd_stat_data', 'struct_c__SA_nbi_data',
-    'struct_c__SA_nbi_injector', 'struct_c__SA_neutral_data',
-    'struct_c__SA_particle', 'struct_c__SA_particle_gc',
-    'struct_c__SA_particle_ml', 'struct_c__SA_particle_queue',
-    'struct_c__SA_particle_simd_fo', 'struct_c__SA_particle_simd_gc',
-    'struct_c__SA_particle_simd_ml', 'struct_c__SA_particle_state',
-    'struct_c__SA_plasma_1DS_data', 'struct_c__SA_plasma_1D_data',
-    'struct_c__SA_plasma_1Dt_data', 'struct_c__SA_plasma_2D_data',
-    'struct_c__SA_plasma_data', 'struct_c__SA_rfof_data',
-    'struct_c__SA_sim_data', 'struct_c__SA_wall_2d_data',
-    'struct_c__SA_wall_3d_data', 'struct_c__SA_wall_data',
-    'struct_diag_transcoef_link', 'struct_rfof_marker',
-    'union_c__SA_input_particle_0', 'wall_2d_data',
-    'wall_2d_find_intersection', 'wall_2d_free', 'wall_2d_hit_wall',
-    'wall_2d_init', 'wall_2d_inside', 'wall_2d_offload',
-    'wall_3d_data', 'wall_3d_free', 'wall_3d_hit_wall',
-    'wall_3d_hit_wall_full', 'wall_3d_init', 'wall_3d_init_tree',
-    'wall_3d_offload', 'wall_3d_quad_collision',
+    'struct_c__SA_E_2DS_data', 'struct_c__SA_E_TC_data',
+    'struct_c__SA_E_field_data', 'struct_c__SA_N0_1D_data',
+    'struct_c__SA_N0_3D_data', 'struct_c__SA_afsi_data',
+    'struct_c__SA_asigma_data', 'struct_c__SA_asigma_loc_data',
+    'struct_c__SA_boozer_data', 'struct_c__SA_diag_data',
+    'struct_c__SA_diag_orb_data', 'struct_c__SA_diag_transcoef_data',
+    'struct_c__SA_dist_5D_data', 'struct_c__SA_dist_6D_data',
+    'struct_c__SA_dist_COM_data', 'struct_c__SA_dist_rho5D_data',
+    'struct_c__SA_dist_rho6D_data', 'struct_c__SA_hist_axis',
+    'struct_c__SA_histogram', 'struct_c__SA_input_particle',
+    'struct_c__SA_interp1D_data', 'struct_c__SA_interp2D_data',
+    'struct_c__SA_interp3D_data', 'struct_c__SA_linint1D_data',
+    'struct_c__SA_linint2D_data', 'struct_c__SA_linint3D_data',
+    'struct_c__SA_mccc_data', 'struct_c__SA_mhd_data',
+    'struct_c__SA_mhd_nonstat_data', 'struct_c__SA_mhd_stat_data',
+    'struct_c__SA_nbi_data', 'struct_c__SA_nbi_injector',
+    'struct_c__SA_neutral_data', 'struct_c__SA_particle',
+    'struct_c__SA_particle_gc', 'struct_c__SA_particle_ml',
+    'struct_c__SA_particle_queue', 'struct_c__SA_particle_simd_fo',
+    'struct_c__SA_particle_simd_gc', 'struct_c__SA_particle_simd_ml',
+    'struct_c__SA_particle_state', 'struct_c__SA_plasma_1DS_data',
+    'struct_c__SA_plasma_1D_data', 'struct_c__SA_plasma_1Dt_data',
+    'struct_c__SA_plasma_2D_data', 'struct_c__SA_plasma_data',
+    'struct_c__SA_rfof_data', 'struct_c__SA_sim_data',
+    'struct_c__SA_wall_2d_data', 'struct_c__SA_wall_3d_data',
+    'struct_c__SA_wall_data', 'struct_diag_transcoef_link',
+    'struct_rfof_marker', 'union_c__SA_input_particle_0',
+    'wall_2d_data', 'wall_2d_find_intersection', 'wall_2d_free',
+    'wall_2d_hit_wall', 'wall_2d_init', 'wall_2d_inside',
+    'wall_2d_offload', 'wall_3d_data', 'wall_3d_free',
+    'wall_3d_hit_wall', 'wall_3d_hit_wall_full', 'wall_3d_init',
+    'wall_3d_init_tree', 'wall_3d_offload', 'wall_3d_quad_collision',
     'wall_3d_tri_collision', 'wall_3d_tri_in_cube', 'wall_data',
     'wall_free', 'wall_get_flag', 'wall_get_n_elements',
     'wall_hit_wall', 'wall_offload', 'wall_type', 'wall_type_2D',
