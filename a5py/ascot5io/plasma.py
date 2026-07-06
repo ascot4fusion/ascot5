@@ -345,15 +345,15 @@ class plasma_2D(DataGroup):
             Ion species mass [amu].
         charge : array_like (nion,1)
             Ion species charge [e].
-        vtor : array_like (nrho,1)
+        vtor : array_like (nr,nz,1)
             Plasma rotation [rad/s].
         edensity : array_like (nrho,1)
             Electron density [m^-3].
-        etemperature : array_like (nrho,1)
+        etemperature : array_like (nr,nz,1)
             Electron temperature [eV].
-        idensity : array_like (nrho,nion)
+        idensity : array_like (nr,nz,nion)
             Ion density [m^-3].
-        itemperature : array_like (nrho,1)
+        itemperature : array_like (nr,nz)
             Ion temperature [ev].
         desc : str, optional
             Input description.

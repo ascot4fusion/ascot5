@@ -4,6 +4,8 @@ import numpy as np
 import h5py
 import unyt
 
+from a5py.physlib import species
+
 class ImportNovatron():
 
     def novatron_bfield(self, filename=None):
@@ -58,4 +60,36 @@ class ImportNovatron():
         with h5py.File(filename) as h5:
             r = h5["r"][:]
             z = h5["z"][:]
-            #psi = h5["psi_p"][:]
+            Te = h5["T_e"][:]
+            Ti = h5["T_i"][:]
+            density = h5["density_total"][:]
+
+        z = np.hstack((-z[::-1], z[1:]))
+        Te = np.hstack((np.fliplr(Te[:, 1:]), Te))
+        Ti = np.hstack((np.fliplr(Ti[:, 1:]), Ti))
+        density = np.hstack((np.fliplr(density[:, 1:]), density))
+
+        ni = np.zeros((r.size, z.size, 2))
+        ni[:, :, 0] = density / 2
+        ni[:, :, 1] = density / 2
+
+        D, T = species.species("D"), species.species("T")
+        pls = {
+            "rmin": r[0],
+            "rmax": r[-1],
+            "nr": r.size,
+            "zmin": z[0],
+            "zmax": z[-1],
+            "nz": z.size,
+            "nion": 2,
+            "anum": [D["anum"], T["anum"]],
+            "znum": [D["znum"], T["znum"]],
+            "mass": [D["mass"], T["mass"]],
+            "charge": [1, 1],
+            "vtor": density * 0,
+            "edensity": density,
+            "etemperature": Te,
+            "idensity": ni,
+            "itemperature": Ti,
+        }
+        return "plasma_2D", pls
