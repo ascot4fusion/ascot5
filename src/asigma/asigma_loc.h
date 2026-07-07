@@ -7,6 +7,7 @@
 
 #include "../ascot5.h"
 #include "../error.h"
+#include "../offload.h"
 #include "../spline/interp.h"
 
 /**
@@ -32,28 +33,20 @@ int asigma_loc_init(asigma_loc_data* data, int nreac,
                     int* nT, real* Tmin, real* Tmax, real* sigma);
 void asigma_loc_free(asigma_loc_data* data);
 void asigma_loc_offload(asigma_loc_data* data);
-#pragma omp declare target
-DECLARE_TARGET_SIMD_UNIFORM(asigma_data, reac_type, z_2, a_2,\
+GPU_DECLARE_TARGET_SIMD_UNIFORM(asigmadata, z_1, a_1, mass, nspec, znum, anum,
     extrapolate)
-a5err asigma_loc_eval_sigma(
-    real* sigma, int z_1, int a_1, int z_2, int a_2, real E_coll_per_amu,
-    int reac_type, int extrapolate, asigma_loc_data* asigma_data);
-DECLARE_TARGET_SIMD_UNIFORM(asigma_data, reac_type, z_2, a_2,\
-    extrapolate)
-a5err asigma_loc_eval_sigmav(
-    real* sigmav, int z_1, int a_1, real m_1, int z_2, int a_2,
-    real E, real T_e, real T_0, real n_i, int reac_type, int extrapolate,
-    asigma_loc_data* asigma_data);
-#pragma omp declare simd uniform(asigmadata, znum, anum, nspec, extrapolate)
 a5err asigma_loc_eval_cx(
     real* ratecoeff, int z_1, int a_1, real E, real mass, int nspec,
     const int* znum, const int* anum, real T_0, real* n_0, int extrapolate,
     asigma_loc_data* asigmadata);
-#pragma omp declare simd uniform(asigma_data, znum, anum, nion, extrapolate)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(asigmadata, z_1, a_1, mass, nion, znum, anum,
+    extrapolate)
 a5err asigma_loc_eval_bms(
     real* sigmav, int z_1, int a_1, real E, real mass, int nion,
     const int* znum, const int* anum, real T_e, real* n_i, int extrapolate,
-    asigma_loc_data* asigma_data);
-#pragma omp end declare target
-
+    asigma_loc_data* asigmadata);
+GPU_DECLARE_TARGET_SIMD_UNIFORM(asigmadata, z_1, a_1, mass, extrapolate)
+a5err asigma_loc_eval_eii(
+    real* sigmav, int z_1, int a_1, real E, real mass, real Te, real ne,
+    int extrapolate, asigma_loc_data* asigmadata);
 #endif
