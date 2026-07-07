@@ -73,103 +73,6 @@ void asigma_offload(asigma_data* data) {
 }
 
 /**
- * @brief Evaluate atomic reaction cross-section
- *
- * This function evaluates the cross-section (sigma) for the atomic reaction
- * corresponding to the reaction identifiers given as parameters at the
- * given mass-normalized collision energy.
- *
- * This is a SIMD function.
- *
- * @param sigma pointer to evaluated cross-section
- * @param z_1 atomic number of fast particle
- * @param a_1 atomic mass number of fast particle
- * @param z_2 atomic number of bulk particle
- * @param a_2 atomic mass number of bulk particle
- * @param E_coll_per_amu energy per amu corresponding to collision speed
- * @param reac_type reaction type
- * @param asigma_data pointer to atomic data struct
- *
- * @return Non-zero a5err value if evaluation failed, zero otherwise
- */
-a5err asigma_eval_sigma(
-    real* sigma, int z_1, int a_1, int z_2, int a_2, real E_coll_per_amu,
-    asigma_reac_type reac_type, asigma_data* asigma_data) {
-    a5err err = 0;
-
-    switch(asigma_data->type) {
-        case asigma_type_loc:
-            err = asigma_loc_eval_sigma(
-                sigma, z_1, a_1, z_2, a_2, E_coll_per_amu, reac_type,
-                ASIGMA_EXTRAPOLATE, &(asigma_data->asigma_loc));
-            break;
-
-        default:
-            /* Unrecognized input. Produce error. */
-            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_ASIGMA );
-            break;
-    }
-    if(err || sigma[0] < 0.0) {
-        /* In case of error or unphysical negative value, return zero value
-           to avoid further complications */
-        sigma[0] = 0.0;
-    }
-
-    return err;
-}
-
-/**
- * @brief Evaluate atomic reaction rate coefficient
- *
- * This function evaluates the rate coefficient (<sigma*v>) for the atomic
- * reaction corresponding to the reaction identifiers given as parameters
- * at the given fast particle energy and bulk plasma conditions.
- *
- * This is a SIMD function.
- *
- * @param sigmav pointer to evaluated rate coefficient
- * @param z_1 atomic number of fast particle
- * @param a_1 atomic mass number of fast particle
- * @param m_1 mass of fast particle
- * @param z_2 atomic number of bulk particle
- * @param a_2 atomic mass number of bulk particle
- * @param E energy of fast particle
- * @param T_e electron temperature of bulk plasma
- * @param T_0 temperature of bulk neutrals
- * @param n_i ion density of bulk plasma
- * @param reac_type reaction type
- * @param asigma_data pointer to atomic data struct
- *
- * @return Non-zero a5err value if evaluation failed, zero otherwise
- */
-a5err asigma_eval_sigmav(
-    real* sigmav, int z_1, int a_1, real m_1, int z_2, int a_2,
-    real E, real T_e, real T_0, real n_i, asigma_reac_type reac_type,
-    asigma_data* asigma_data) {
-    a5err err = 0;
-
-    switch(asigma_data->type) {
-        case asigma_type_loc:
-            err = asigma_loc_eval_sigmav(
-                sigmav, z_1, a_1, m_1, z_2, a_2, E, T_e, T_0, n_i,
-                reac_type, ASIGMA_EXTRAPOLATE, &(asigma_data->asigma_loc));
-            break;
-
-        default:
-            /* Unrecognized input. Produce error. */
-            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_ASIGMA );
-            break;
-    }
-    if(err || sigmav[0] < 0.0) {
-        /* In case of error or unphysical negative value, return zero value
-           to avoid further complications */
-        sigmav[0] = 0.0;
-    }
-
-    return err;
-}
-
-/**
  * @brief Evaluate charge exchange rate coefficient
  *
  * This is a SIMD function.
@@ -244,6 +147,49 @@ a5err asigma_eval_bms(
         case asigma_type_loc:
             err = asigma_loc_eval_bms(
                     ratecoeff, z_1, a_1, E, mass, nion, znum, anum, T_e, n_i,
+                    ASIGMA_EXTRAPOLATE, &(asigma_data->asigma_loc));
+            break;
+
+        default:
+            /* Unrecognized input. Produce error. */
+            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_ASIGMA );
+            break;
+    }
+    if(err || ratecoeff[0] < 0.0) {
+        /* In case of error or unphysical negative value, return zero value
+           to avoid further complications */
+        ratecoeff[0] = 0.0;
+    }
+
+    return err;
+}
+
+
+/**
+ * @brief Evaluate electron impact ionization rate coefficient
+ *
+ * This is a SIMD function.
+ *
+ * @param ratecoeff pointer to evaluated rate coefficient
+ * @param z_1 atomic number of fast particle
+ * @param a_1 atomic mass number of fast particle
+ * @param E energy of fast particle
+ * @param mass mass of fast particle
+ * @param Te electron temperature
+ * @param Te electron density
+ * @param asigma_data pointer to atomic data struct
+ *
+ * @return Non-zero a5err value if evaluation failed, zero otherwise
+ */
+a5err asigma_eval_eii(
+    real* ratecoeff, int z_1, int a_1, real E, real mass, real Te, real ne,
+    asigma_data* asigma_data) {
+    a5err err = 0;
+
+    switch(asigma_data->type) {
+        case asigma_type_loc:
+            err = asigma_loc_eval_eii(
+                    ratecoeff, z_1, a_1, E, mass, Te, ne,
                     ASIGMA_EXTRAPOLATE, &(asigma_data->asigma_loc));
             break;
 

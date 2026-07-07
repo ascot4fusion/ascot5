@@ -46,6 +46,165 @@ except:
 
 class ImportData():
 
+
+    def import_aladdin(self, filename=None):
+        """Import data from IAEA ALADDIN file.
+        """
+        from scipy.interpolate import interp1d
+        from scipy.integrate import quad
+
+        e = 1.602176634e-19      # J/eV
+        amu = 1.66053906660e-27 # kg
+        kB = 1.380649e-23       # J/K
+
+
+        def load_sigma(filename):
+            """
+            Read ALADDIN table:
+                col0 = energy [eV]
+                col1 = sigma [cm^2]
+
+            Returns interpolation function sigma(E[eV]) in m^2.
+            """
+
+            data = np.loadtxt(filename, skiprows=1)
+
+            E = data[:, 0]
+            sigma = data[:, 1] * 1e-4      # cm² -> m²
+
+            return interp1d(
+                E,
+                sigma,
+                bounds_error=False,
+                fill_value=(sigma[0], 0.0)
+            )
+
+
+        def sigma_v(Eion_eV,
+                    Tn_eV,
+                    sigma_fun,
+                    mi,
+                    mn):
+
+            """
+            Maxwellian average over neutral distribution.
+
+            Parameters
+            ----------
+            Eion_eV : float
+                Test particle energy [eV]
+
+            Tn_eV : float
+                Neutral temperature [eV]
+
+            sigma_fun : callable
+                sigma(E[eV]) -> m²
+
+            mi,mn : kg
+                ion and neutral masses
+
+            Returns
+            -------
+            <sigma v> in m³/s
+            """
+
+            mu = mi*mn/(mi+mn)
+
+            vi = np.sqrt(2*Eion_eV*e/mi)
+
+            T = Tn_eV*e
+
+            pref = 4*np.pi*(mn/(2*np.pi*T))**1.5
+
+            vth = np.sqrt(2*T/mn)
+
+            vmax = max(8*vth, 3*vi)
+
+            def angular_integral(vn):
+
+                f = pref * vn**2 * np.exp(-mn*vn**2/(2*T))
+
+                def integrand(muang):
+
+                    vr = np.sqrt(
+                        vi**2
+                        + vn**2
+                        - 2*vi*vn*muang
+                    )
+
+                    Erel = 0.5*mu*vr**2/e
+
+                    return sigma_fun(Erel)*vr
+
+                I, _ = quad(integrand, -1, 1)
+
+                return f*0.5*I
+
+            result, _ = quad(
+                angular_integral,
+                0,
+                vmax,
+                epsabs=1e-8,
+                epsrel=1e-6
+            )
+
+            return result
+
+
+        def build_table(Egrid,
+                        Tgrid,
+                        sigma_fun,
+                        mi,
+                        mn):
+
+            out = np.zeros((len(Egrid), len(Tgrid)))
+
+            for i, E in enumerate(Egrid):
+                for j, T in enumerate(Tgrid):
+
+                    out[i, j] = sigma_v(
+                        E,
+                        T,
+                        sigma_fun,
+                        mi,
+                        mn
+                    )
+
+            return out
+
+        sigma_raw = load_sigma(filename)
+        mHe = 4.0026*amu
+        mH  = 1.00784*amu
+
+        Egrid = np.geomspace(1e2,1e5,10)
+        Tgrid = np.geomspace(1e-2,100,20)
+
+        sigma = build_table(
+            Egrid,
+            Tgrid,
+            sigma_raw,
+            mHe,
+            mH
+        )
+
+        z2 = 1
+        a2 = 1
+        reac_type_sigmav_eii = 5
+        reac_type_sigmav_cx  = 6
+        reactype = reac_type_sigmav_eii
+        out = {
+            "nreac" : 1,
+            "z1" : np.array([2]), "a1" : np.array([4]), "z2" : np.array([z2]),
+            "a2" : np.array([a2]), "reactype" : np.array([reactype]),
+            "nenergy" : np.array([Egrid.size]), "energymin" : np.array([Egrid[0]]), "energymax" : np.array([Egrid[-1]]),
+            "ndensity" : np.array([1]), "densitymin" : np.array([0]), "densitymax" : np.array([1]),
+            "ntemperature" : np.array([Tgrid.size]),
+            "temperaturemin" : np.array([Tgrid[0]]), "temperaturemax" : np.array([Tgrid[-1]]),
+            "sigma" : np.array([sigma.ravel(),]),
+        }
+        return ("asigma_loc", out)
+
+
     def import_adas(self,
                     z1cx=1, a1cx=2, m1cx=2.0135, z2cx=1, a2cx=2, m2cx=2.0135,
                     ekinmincx=5e1, ekinmaxcx=1e5, nekincx=1000,

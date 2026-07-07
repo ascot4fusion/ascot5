@@ -2081,18 +2081,15 @@ asigma_loc_free.argtypes = [ctypes.POINTER(struct_c__SA_asigma_loc_data)]
 asigma_loc_offload = _libraries['libascot.so'].asigma_loc_offload
 asigma_loc_offload.restype = None
 asigma_loc_offload.argtypes = [ctypes.POINTER(struct_c__SA_asigma_loc_data)]
-asigma_loc_eval_sigma = _libraries['libascot.so'].asigma_loc_eval_sigma
-asigma_loc_eval_sigma.restype = a5err
-asigma_loc_eval_sigma.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, real, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
-asigma_loc_eval_sigmav = _libraries['libascot.so'].asigma_loc_eval_sigmav
-asigma_loc_eval_sigmav.restype = a5err
-asigma_loc_eval_sigmav.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, ctypes.c_int32, ctypes.c_int32, real, real, real, real, ctypes.c_int32, ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
 asigma_loc_eval_cx = _libraries['libascot.so'].asigma_loc_eval_cx
 asigma_loc_eval_cx.restype = a5err
 asigma_loc_eval_cx.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
 asigma_loc_eval_bms = _libraries['libascot.so'].asigma_loc_eval_bms
 asigma_loc_eval_bms.restype = a5err
 asigma_loc_eval_bms.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
+asigma_loc_eval_eii = _libraries['libascot.so'].asigma_loc_eval_eii
+asigma_loc_eval_eii.restype = a5err
+asigma_loc_eval_eii.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
 
 # values for enumeration 'asigma_type'
 asigma_type__enumvalues = {
@@ -2103,27 +2100,13 @@ asigma_type = ctypes.c_uint32 # enum
 
 # values for enumeration 'asigma_reac_type'
 asigma_reac_type__enumvalues = {
-    1: 'sigma_ioniz',
-    2: 'sigma_recomb',
-    3: 'sigma_CX',
-    4: 'sigmav_ioniz',
-    5: 'sigmav_recomb',
+    5: 'sigmav_EII',
     6: 'sigmav_CX',
     7: 'sigmav_BMS',
-    8: 'sigmaveff_ioniz',
-    9: 'sigmaveff_recomb',
-    10: 'sigmaveff_CX',
 }
-sigma_ioniz = 1
-sigma_recomb = 2
-sigma_CX = 3
-sigmav_ioniz = 4
-sigmav_recomb = 5
+sigmav_EII = 5
 sigmav_CX = 6
 sigmav_BMS = 7
-sigmaveff_ioniz = 8
-sigmaveff_recomb = 9
-sigmaveff_CX = 10
 asigma_reac_type = ctypes.c_uint32 # enum
 class struct_c__SA_asigma_data(Structure):
     pass
@@ -2145,18 +2128,15 @@ asigma_offload.argtypes = [ctypes.POINTER(struct_c__SA_asigma_data)]
 asigma_extrapolate = _libraries['libascot.so'].asigma_extrapolate
 asigma_extrapolate.restype = None
 asigma_extrapolate.argtypes = [ctypes.c_int32]
-asigma_eval_sigma = _libraries['libascot.so'].asigma_eval_sigma
-asigma_eval_sigma.restype = a5err
-asigma_eval_sigma.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, real, asigma_reac_type, ctypes.POINTER(struct_c__SA_asigma_data)]
-asigma_eval_sigmav = _libraries['libascot.so'].asigma_eval_sigmav
-asigma_eval_sigmav.restype = a5err
-asigma_eval_sigmav.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, ctypes.c_int32, ctypes.c_int32, real, real, real, real, asigma_reac_type, ctypes.POINTER(struct_c__SA_asigma_data)]
 asigma_eval_cx = _libraries['libascot.so'].asigma_eval_cx
 asigma_eval_cx.restype = a5err
 asigma_eval_cx.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(struct_c__SA_asigma_data)]
 asigma_eval_bms = _libraries['libascot.so'].asigma_eval_bms
 asigma_eval_bms.restype = a5err
 asigma_eval_bms.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(struct_c__SA_asigma_data)]
+asigma_eval_eii = _libraries['libascot.so'].asigma_eval_eii
+asigma_eval_eii.restype = a5err
+asigma_eval_eii.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, real, real, ctypes.POINTER(struct_c__SA_asigma_data)]
 class struct_c__SA_nbi_injector(Structure):
     pass
 
@@ -2648,22 +2628,21 @@ __all__ = \
     'PPAR', 'PPARPPERP', 'PPERP', 'PPHI', 'PR', 'PTOR', 'PZ', 'R',
     'RHO', 'Reaction', 'SIMULATION_MODE', 'THETA', 'TIME', 'XI', 'Z',
     'a5err', 'afsi_data', 'afsi_run', 'asigma_data',
-    'asigma_eval_bms', 'asigma_eval_cx', 'asigma_eval_sigma',
-    'asigma_eval_sigmav', 'asigma_extrapolate', 'asigma_free',
-    'asigma_loc_data', 'asigma_loc_eval_bms', 'asigma_loc_eval_cx',
-    'asigma_loc_eval_sigma', 'asigma_loc_eval_sigmav',
-    'asigma_loc_free', 'asigma_loc_init', 'asigma_loc_offload',
-    'asigma_offload', 'asigma_reac_type', 'asigma_type',
-    'asigma_type_loc', 'bbnbi_simulate', 'biosaw_calc_B',
-    'boozer_data', 'boozer_eval_psithetazeta', 'boozer_free',
-    'boozer_init', 'boozer_offload', 'boschhale_reaction',
-    'boschhale_sigma', 'boschhale_sigmav', 'c__EA_hist_coordinate',
-    'c__EA_mom_space_basis', 'diag_data', 'diag_free', 'diag_init',
-    'diag_offload', 'diag_onload', 'diag_orb_check_plane_crossing',
-    'diag_orb_check_radial_crossing', 'diag_orb_data',
-    'diag_orb_free', 'diag_orb_init', 'diag_orb_update_fo',
-    'diag_orb_update_gc', 'diag_orb_update_ml', 'diag_sum',
-    'diag_transcoef_data', 'diag_transcoef_free',
+    'asigma_eval_bms', 'asigma_eval_cx', 'asigma_eval_eii',
+    'asigma_extrapolate', 'asigma_free', 'asigma_loc_data',
+    'asigma_loc_eval_bms', 'asigma_loc_eval_cx',
+    'asigma_loc_eval_eii', 'asigma_loc_free', 'asigma_loc_init',
+    'asigma_loc_offload', 'asigma_offload', 'asigma_reac_type',
+    'asigma_type', 'asigma_type_loc', 'bbnbi_simulate',
+    'biosaw_calc_B', 'boozer_data', 'boozer_eval_psithetazeta',
+    'boozer_free', 'boozer_init', 'boozer_offload',
+    'boschhale_reaction', 'boschhale_sigma', 'boschhale_sigmav',
+    'c__EA_hist_coordinate', 'c__EA_mom_space_basis', 'diag_data',
+    'diag_free', 'diag_init', 'diag_offload', 'diag_onload',
+    'diag_orb_check_plane_crossing', 'diag_orb_check_radial_crossing',
+    'diag_orb_data', 'diag_orb_free', 'diag_orb_init',
+    'diag_orb_update_fo', 'diag_orb_update_gc', 'diag_orb_update_ml',
+    'diag_sum', 'diag_transcoef_data', 'diag_transcoef_free',
     'diag_transcoef_init', 'diag_transcoef_link',
     'diag_transcoef_update_fo', 'diag_transcoef_update_gc',
     'diag_transcoef_update_ml', 'diag_update_fo', 'diag_update_gc',
@@ -2751,10 +2730,8 @@ __all__ = \
     'rfof_clear_history', 'rfof_data', 'rfof_eval_resonance_function',
     'rfof_eval_rf_wave', 'rfof_free', 'rfof_init', 'rfof_marker',
     'rfof_resonance_check_and_kick_gc', 'rfof_set_marker_manually',
-    'rfof_set_up', 'rfof_tear_down', 'sigma_CX', 'sigma_ioniz',
-    'sigma_recomb', 'sigmav_BMS', 'sigmav_CX', 'sigmav_ioniz',
-    'sigmav_recomb', 'sigmaveff_CX', 'sigmaveff_ioniz',
-    'sigmaveff_recomb', 'sim_data', 'simulate', 'simulate_init',
+    'rfof_set_up', 'rfof_tear_down', 'sigmav_BMS', 'sigmav_CX',
+    'sigmav_EII', 'sim_data', 'simulate', 'simulate_init',
     'simulate_mode_fo', 'simulate_mode_gc', 'simulate_mode_hybrid',
     'simulate_mode_ml', 'size_t', 'struct_c__SA_B_2DS_data',
     'struct_c__SA_B_3DS_data', 'struct_c__SA_B_GS_data',

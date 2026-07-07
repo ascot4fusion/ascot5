@@ -41,7 +41,7 @@ a5err atomic_rates(
 DECLARE_TARGET_SIMD
 #endif
 a5err atomic_react(
-    int* q, real dt, real rate_eff_ion, real rate_eff_rec, int z_1, real rnd);
+    int* q, real dt, real rate_eff_ion, real rate_eff_rec, int z_1, real rnd[2]);
 
 /**
  * @brief Determine if atomic reactions occur during time-step and change charge
@@ -59,8 +59,8 @@ void atomic_fo(particle_simd_fo* p, real* h,
 
     /* Generate random numbers and get plasma information before going to the *
      * SIMD loop                                                              */
-    real rnd[NSIMD];
-    random_uniform_simd(r_data, NSIMD, rnd);
+    real rnd[NSIMD*2];
+    random_uniform_simd(r_data, NSIMD*2, rnd);
 
     int N_pls_spec  = plasma_get_n_species(p_data);
     int N_ntl_spec  = neutral_get_n_species(n_data);
@@ -117,7 +117,7 @@ void atomic_fo(particle_simd_fo* p, real* h,
             if(!errflag) {
                 int q_prev = q;
                 errflag = atomic_react(
-                    &q, h[i], rate_eff_ion, rate_eff_rec, p->znum[i], rnd[i]);
+                    &q, h[i], rate_eff_ion, rate_eff_rec, p->znum[i], &rnd[i*2]);
                 if(q != q_prev) {
                     /* A reaction has occured, change particle charge */
                     p->charge[i] = q*CONST_E;
@@ -176,21 +176,21 @@ a5err atomic_rates(
 
     /* Calculate ionization and recombination probabilities based on charge
      * state*/
-    if(q == 1) {
-        /* Only CX is implemented */
-        err = asigma_eval_cx(
-            &coeff, z_1, a_1, E, m_1, N_ntl_spec, z_2, a_2,
-            T_0[0], n_0, asigmadata);
-        *rate_eff_rec += coeff;
-    } else if(q == 0) {
-        /* Only BMS is implemented */
+    if(q == 0) {
         err = asigma_eval_bms(
             &coeff, z_1, a_1, E, m_1, (N_pls_spec-1),
             z_2, a_2, T[0], &n[1], asigmadata);
         *rate_eff_ion += coeff * n[0];
-    } else {
-        /* q > 1 not yet implemented */
-        err = error_raise( ERR_ATOMIC_EVALUATION, __LINE__, EF_ATOMIC );
+    }
+    else {
+        err = asigma_eval_cx(
+            &coeff, z_1, a_1, E, m_1, N_ntl_spec, z_2, a_2,
+            T_0[0], n_0, asigmadata);
+        *rate_eff_rec += coeff;
+
+        err = asigma_eval_eii(
+            &coeff, z_1, a_1, E, m_1, T[0], n[0], asigmadata);
+        *rate_eff_ion += coeff;
     }
 
     return err;
@@ -208,37 +208,37 @@ a5err atomic_rates(
  * @param rate_eff_ion reaction rate for ionization
  * @param rate_eff_rec reaction rate for recombination
  * @param z_1 atomic number of fast particle
- * @param rnd random number
+ * @param rnd two random numbers between [0,1]
  *
  * @return zero if evaluation succeeded
  */
 a5err atomic_react(
-    int* q, real dt, real rate_eff_ion, real rate_eff_rec, int z_1, real rnd) {
+    int* q, real dt, real rate_eff_ion, real rate_eff_rec, int z_1, real rnd[2]) {
     a5err err = 0;
 
     /* Calculate the reaction probabilities for ionizing (charge-increasing)
        and recombining (charge-decreasing) atomic reactions. But first,
        a fail-safe against zero rate values. */
-    real prob_eff_ion;
-    real prob_eff_rec;
-    if(rate_eff_ion == 0.0) {
-        prob_eff_ion = 0.0;
+    real prob;
+    if(rate_eff_rec == 0.0 || *q == 0) {
+        prob = 1.0 - exp(-rate_eff_ion*dt);
+        if(prob > rnd[0])
+            *q += 1;
+    } else if(rate_eff_ion == 0.0 || *q == z_1){
+        prob = 1.0 - exp(-rate_eff_rec*dt);
+        if(prob > rnd[0])
+            *q -= 1;
+    } else if (rate_eff_ion == 0.0 && rate_eff_rec == 0.0) {
+        prob = 0.0;
+        *q = *q;
     } else {
-        prob_eff_ion = rate_eff_ion/(rate_eff_ion+rate_eff_rec)
-                       *(1.0-exp(-(rate_eff_ion+rate_eff_rec)*dt));
-    }
-    if(rate_eff_rec == 0.0) {
-        prob_eff_rec = 0.0;
-    } else {
-        prob_eff_rec = rate_eff_rec/(rate_eff_ion+rate_eff_rec)
-                       *(1.0-exp(-(rate_eff_ion+rate_eff_rec)*dt));
-    }
-
-    /* Check if reaction occurs, and update charge state accordingly */
-    if(*q < z_1 && rnd < prob_eff_ion) {
-        *q += 1;
-    } else if(*q > 0 && rnd < (prob_eff_ion+prob_eff_rec)) {
-        *q -= 1;
+        prob = 1.0 - exp(-(rate_eff_ion + rate_eff_rec)*dt);
+        if(prob > rnd[0]) {
+            if(rnd[1] < rate_eff_ion/(rate_eff_ion+rate_eff_rec))
+                *q += 1;
+            else
+                *q -= 1;
+        }
     }
 
     return err;

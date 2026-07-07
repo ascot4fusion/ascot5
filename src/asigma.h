@@ -10,6 +10,7 @@
 
 #include "ascot5.h"
 #include "error.h"
+#include "offload.h"
 #include "asigma/asigma_loc.h"
 
 /**
@@ -32,16 +33,9 @@ typedef enum asigma_type {
  * reaction probability data.
  */
 typedef enum asigma_reac_type {
-    sigma_ioniz      = 1,  /* sigma(E), ionization (charge-increasing)    */
-    sigma_recomb     = 2,  /* sigma(E), recombination (charge-decreasing) */
-    sigma_CX         = 3,  /* sigma(E), charge exchange                   */
-    sigmav_ioniz     = 4,  /* sigmav(E,T), ionization (charge-increasing) */
-    sigmav_recomb    = 5,  /* sigmav(E,T), recombination (charge-decr.)   */
-    sigmav_CX        = 6,  /* sigmav(E,T), charge exchange                */
-    sigmav_BMS       = 7,  /* sigmav(E,Te,ne), beam-stopping coefficient  */
-    sigmaveff_ioniz  = 8,  /* sigmav(n,T), eff. ioniz. (charge-incr.)     */
-    sigmaveff_recomb = 9,  /* sigmav(n,T), eff. recomb. (charge-decr.)    */
-    sigmaveff_CX     = 10  /* sigmav(n,T), effective charge exchange      */
+    sigmav_EII = 5, /* sigmav(E,T), electron-impact ionization                */
+    sigmav_CX  = 6, /* sigmav(E,T), charge exchange                           */
+    sigmav_BMS = 7, /* sigmav(E,Te,ne), beam-stopping coefficient             */
 } asigma_reac_type;
 
 /**
@@ -58,24 +52,20 @@ typedef struct {
 void asigma_free(asigma_data* data);
 void asigma_offload(asigma_data* data);
 void asigma_extrapolate(int extrapolate);
-DECLARE_TARGET_SIMD_UNIFORM(asigmadata)
-a5err asigma_eval_sigma(
-    real* sigma, int z_1, int a_1, int z_2, int a_2, real E_coll_per_amu,
-    asigma_reac_type reac_type, asigma_data* asigmadata);
-DECLARE_TARGET_SIMD_UNIFORM(asigmadata)
-a5err asigma_eval_sigmav(
-    real* sigmav, int z_1, int a_1, real m_1, int z_2, int a_2,
-    real E, real T_e, real T_0, real n_i, asigma_reac_type reac_type,
-    asigma_data* asigmadata);
-DECLARE_TARGET_SIMD_UNIFORM(asigmadata)
+
+GPU_DECLARE_TARGET_SIMD_UNIFORM(asigmadata, z_1, a_1, mass, nspec, znum, anum)
 a5err asigma_eval_cx(
     real* ratecoeff, int z_1, int a_1, real E, real mass, int nspec,
     const int* znum, const int* anum, real T_0, real* n_0,
     asigma_data* asigmadata);
-DECLARE_TARGET_SIMD_UNIFORM(asigmadata)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(asigmadata, z_1, a_1, mass, nion, znum, anum)
 a5err asigma_eval_bms(
     real* ratecoeff, int z_1, int a_1, real E, real mass, int nion,
     const int* znum, const int* anum, real T_e, real* n_i,
+    asigma_data* asigmadata);
+GPU_DECLARE_TARGET_SIMD_UNIFORM(asigmadata)
+a5err asigma_eval_eii(
+    real* ratecoeff, int z_1, int a_1, real E, real mass, real Te, real ne,
     asigma_data* asigmadata);
 
 #endif
