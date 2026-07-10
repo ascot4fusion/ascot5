@@ -203,7 +203,7 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* acc, real* collfreq,
             vpar = xiout * vout;
             vperp2 = (1 - xiout * xiout) * vout * vout;
             vout = sqrt((vpar + vflow) * (vpar + vflow) + vperp2);
-            xiout =  (vpar + vflow) / vout;       
+            xiout =  (vpar + vflow) / vout;
             real pout = physlib_pnorm_vnorm(p->mass[i], vout);
 
             /* Back to cylindrical coordinates */
