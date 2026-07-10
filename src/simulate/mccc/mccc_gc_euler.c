@@ -65,7 +65,6 @@ void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
             vperp2 = (1 - xiin * xiin) * vin * vin;
             vin = sqrt((vpar - vflow) * (vpar - vflow) + vperp2);
             xiin =  (vpar - vflow) / vin;
-            
 
             /* Evaluate plasma density and temperature */
             real nb[MAX_SPECIES], Tb[MAX_SPECIES];
