@@ -243,7 +243,6 @@ void bbnbi_trace_markers(particle_queue *pq, sim_data* sim) {
                 /* These are needed later */
                 real pnorm = math_normc(p.p_r[i], p.p_phi[i], p.p_z[i]);
                 real gamma = physlib_gamma_pnorm(p.mass[i], pnorm);
-                real ekin  = physlib_Ekin_pnorm(p.mass[i], pnorm);
 
                 /* Advance ballistic trajectory by converting momentum to
                  * cartesian coordinates */
@@ -297,6 +296,26 @@ void bbnbi_trace_markers(particle_queue *pq, sim_data* sim) {
                         pls_dens, pls_temp, rho[0], p.r[i], p.phi[i], p.z[i],
                         p.time[i], &sim->plasma_data);
                 }
+
+                /* Compute kinetic energy in plasma frame */
+                real vflow = 0;
+                if(!err) {
+                    err = plasma_eval_flow(
+                        &vflow, p.rho[i], p.r[i], p.phi[i], p.z[i], p.time[i],
+                        &sim->plasma_data);
+                }
+                real vplasma[3];
+                real bnorm = math_normc(p.B_r[i], p.B_phi[i], p.B_z[i]);
+                vplasma[0] = ( p.p_r[i] / ( gamma * p.mass[i] )
+                    - vflow * p.B_r[i] / bnorm );
+                vplasma[1] = ( p.p_phi[i] / ( gamma * p.mass[i] )
+                    - vflow * p.B_phi[i] / bnorm );
+                vplasma[2] = p.p_z[i] / ( gamma * p.mass[i] )
+                    - vflow * p.B_z[i] / bnorm;
+
+                real vnorm = math_norm(vplasma);
+                pnorm = physlib_pnorm_vnorm(p.mass[i], vnorm);
+                real ekin  = physlib_Ekin_pnorm(p.mass[i], pnorm);
 
                 /* Calculate ionization rate */
                 real rate = 0.0;
