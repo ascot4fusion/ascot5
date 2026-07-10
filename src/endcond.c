@@ -150,22 +150,37 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
             /* Evaluate marker energy, and check if it is below the minimum
              * energy limit or local thermal energy limit */
             if(active_emin || active_therm) {
-                real pnorm = math_normc(
-                    p_f->p_r[i], p_f->p_phi[i], p_f->p_z[i]);
-                real ekin = physlib_Ekin_pnorm(p_f->mass[i], pnorm);
 
-                real Ti;
+                real Ti, vflow;
                 a5err errflag =
                     plasma_eval_temp(&Ti, p_f->rho[i], p_f->r[i], p_f->phi[i],
                                      p_f->z[i], p_f->time[i], 1,
                                      &sim->plasma_data);
+                plasma_eval_flow(&vflow, p_f->rho[i], p_f->r[i], p_f->phi[i],
+                                 p_f->z[i], p_f->time[i], &sim->plasma_data);
 
                 /* Error handling */
                 if(errflag) {
                     p_f->err[i]     = errflag;
                     p_f->running[i] = 0;
                     Ti = 0;
+                    vflow = 0;
                 }
+                real pnorm = math_normc(
+                    p_f->p_r[i], p_f->p_phi[i], p_f->p_z[i]);
+                real gamma = physlib_gamma_pnorm(p_f->mass[i], pnorm);
+                real vplasma[3];
+                real bnorm = math_normc(p_f->B_r[i], p_f->B_phi[i], p_f->B_z[i]);
+                vplasma[0] = ( p_f->p_r[i] / ( gamma * p_f->mass[i] )
+                    - vflow * p_f->B_r[i] / bnorm );
+                vplasma[1] = ( p_f->p_phi[i] / ( gamma * p_f->mass[i] )
+                    - vflow * p_f->B_phi[i] / bnorm );
+                vplasma[2] = p_f->p_z[i] / ( gamma * p_f->mass[i] )
+                    - vflow * p_f->B_z[i] / bnorm;
+
+                real vnorm = math_norm(vplasma);
+                pnorm = physlib_pnorm_vnorm(p_f->mass[i], vnorm);
+                real ekin  = physlib_Ekin_pnorm(p_f->mass[i], pnorm);
 
                 if( active_emin && (ekin < sim->endcond_min_ekin) ) {
                     p_f->endcond[i] |= endcond_emin;
@@ -328,22 +343,33 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
             if(active_emin || active_therm) {
                 real Bnorm = math_normc(
                     p_f->B_r[i], p_f->B_phi[i], p_f->B_z[i]);
-                real ekin = physlib_Ekin_ppar(p_f->mass[i], p_f->mu[i],
-                                              p_f->ppar[i], Bnorm);
 
 
-                real Ti;
-                a5err  errflag =
+                real Ti, vflow;
+                a5err errflag =
                     plasma_eval_temp(&Ti, p_f->rho[i], p_f->r[i], p_f->phi[i],
                                      p_f->z[i], p_f->time[i], 1,
                                      &sim->plasma_data);
+                plasma_eval_flow(&vflow, p_f->rho[i], p_f->r[i], p_f->phi[i],
+                                 p_f->z[i], p_f->time[i], &sim->plasma_data);
 
                 /* Error handling */
                 if(errflag) {
                     p_f->err[i]     = errflag;
                     p_f->running[i] = 0;
                     Ti = 0;
+                    vflow = 0;
                 }
+                real pnorm = physlib_gc_p(
+                    p_f->mass[i], p_f->mu[i], p_f->ppar[i], Bnorm);
+                real xi = physlib_gc_xi(
+                    p_f->mass[i], p_f->mu[i], p_f->ppar[i], Bnorm);
+                real vnorm = physlib_vnorm_pnorm(p_f->mass[i], pnorm);
+                real vpar = xi * vnorm;
+                real vperp2 = (1 - xi * xi) * vnorm * vnorm;
+                vnorm = sqrt((vpar - vflow) * (vpar - vflow) + vperp2);
+                real gamma = physlib_gamma_vnorm(vnorm);
+                real ekin = physlib_Ekin_gamma(p_f->mass[i], gamma);
 
                 if(active_emin && (ekin < sim->endcond_min_ekin) ) {
                     p_f->endcond[i] |= endcond_emin;
