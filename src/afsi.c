@@ -526,6 +526,10 @@ void afsi_sample_thermal_2d(sim_data* sim, int ispecies, real mass, int nsample,
         *density = 0.0;
         return;
     }
+
+    real vflow;
+    plasma_eval_flow(&vflow, rho, r, phi, z, time, &sim->plasma_data);
+
     *density = ni;
     for(int i = 0; i < nsample; i++) {
         real r1, r2, r3, r4, E;
@@ -537,6 +541,6 @@ void afsi_sample_thermal_2d(sim_data* sim, int ispecies, real mass, int nsample,
 
         r4 = 1.0 - 2 * random_uniform(&rdata);
         pperp[i] = sqrt( ( 1 - r4*r4 ) * 2 * E * mass);
-        ppara[i] = r4 * sqrt(2 * E * mass);
+        ppara[i] = r4 * sqrt(2 * E * mass) - vflow * mass;
     }
 }
