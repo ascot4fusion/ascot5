@@ -197,13 +197,16 @@ class DistData():
 
         if copy: return dist
 
-    def integrate(self, copy=False, **abscissae):
+    def integrate(self, copy=False, keepdim=False, **abscissae):
         """Integrate distribution along the given dimension.
 
         Parameters
         ----------
         copy : bool, optional
             Retain original distribution and return a copy which is integrated.
+        keepdim : bool, optional
+            Instead of integrating and reducing the dimensionality of the distribution,
+            combine all the bins into one bin.
         **abscissae : slice or array_like
             Name of the coordinate and corresponding slice which is integrated.
 
@@ -237,17 +240,23 @@ class DistData():
                 ds = np.diff(dist.abscissa_edges(k)) * idx
 
             dist._distribution, s = np.average(
-                dist.distribution(), axis=dim, weights=ds, returned=True)
+                dist.distribution(), axis=dim, weights=ds, returned=True,
+                keepdims=keepdim)
 
-            # np.average seems to strip units from ds most of the time but not
-            # always...
-            if hasattr(s, "units"):
-                dist._distribution *= s
+            if keepdim:
+                # Sum over a dimension but leave one (1) bin with all the mass
+                attr = "_" + k
+                setattr(dist, attr, getattr(dist, attr)[[0, -1]])
             else:
-                dist._distribution *= s * ds.units
+                # np.average seems to strip units from ds most of the time but not
+                # always...
+                if hasattr(s, "units"):
+                    dist._distribution *= s
+                else:
+                    dist._distribution *= s * ds.units
 
-            dist.abscissae.remove(k)
-            delattr(dist, "_" + k)
+                dist.abscissae.remove(k)
+                delattr(dist, "_" + k)
 
         if copy: return dist
 
