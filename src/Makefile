@@ -67,13 +67,13 @@ else ifeq ($(RANDOM),LCG)
 	DEFINES+=-DRANDOM_LCG
 endif
 
-CFLAGS+=-Wall -fPIC -std=c11 -D_XOPEN_SOURCE=700 $(DEFINES) $(FLAGS)
-
 ifeq ($(DEBUG),1)
 	CFLAGS+=-g -fsanitize=address,undefined
 else
-	CFLAGS+=-g
+	CFLAGS+=-O2 -g
 endif
+
+CFLAGS+=-Wall -fPIC -std=c11 -D_XOPEN_SOURCE=700 $(DEFINES) $(FLAGS)
 
 ifeq ($(CC), $(filter $(CC), h5cc h5pcc))
 	CFLAGS += -shlib
