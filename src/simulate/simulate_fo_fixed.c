@@ -157,7 +157,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
         // Get the atomic numbers and masses of the plasma species
         const int* plasma_Z = plasma_get_species_znum(&sim->plasma_data);
         const real* plasma_A = plasma_get_species_mass(&sim->plasma_data);
-        GPU_PARALLEL_LOOP_ALL_LEVELS
+        //GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < p.n_mrk; i++) {
             // for now, we assume that p.charge corresponds to Z (the marker is fully ionised)
 
