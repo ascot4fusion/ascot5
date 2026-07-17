@@ -67,8 +67,10 @@ int hdf5_asigma_read_loc(hid_t f, asigma_loc_data* data, char* qid) {
     int* nT = (int*) malloc( nreac * sizeof(int) );
     int* z1 = (int*) malloc( nreac * sizeof(int) );
     int* a1 = (int*) malloc( nreac * sizeof(int) );
+    int* q1 = (int*) malloc( nreac * sizeof(int) );
     int* z2 = (int*) malloc( nreac * sizeof(int) );
     int* a2 = (int*) malloc( nreac * sizeof(int) );
+    int* q2 = (int*) malloc( nreac * sizeof(int) );
     int* reactype = (int*) malloc( nreac * sizeof(int) );
     real* emin = (real*) malloc( nreac * sizeof(real) );
     real* emax = (real*) malloc( nreac * sizeof(real) );
@@ -86,9 +88,13 @@ int hdf5_asigma_read_loc(hid_t f, asigma_loc_data* data, char* qid) {
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if (hdf5_read_int(ASGMPATH "a1", a1,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
+    if (hdf5_read_int(ASGMPATH "q1", q1,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
     if (hdf5_read_int(ASGMPATH "z2", z2,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if (hdf5_read_int(ASGMPATH "a2", a2,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if (hdf5_read_int(ASGMPATH "q2", q2,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if (hdf5_read_int(ASGMPATH "reactype", reactype,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
@@ -112,7 +118,7 @@ int hdf5_asigma_read_loc(hid_t f, asigma_loc_data* data, char* qid) {
     real* sigma = (real*) malloc(nsigmadata * sizeof(real));
     if( hdf5_read_double(ASGMPATH "sigma", sigma,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    int err = asigma_loc_init(data, nreac, z1, a1, z2, a2, reactype,
+    int err = asigma_loc_init(data, nreac, z1, a1, q1, z2, a2, q2, reactype,
                               ne, emin, emax, nn, nmin, nmax, nT, Tmin, Tmax,
                               sigma);
     free(ne);
@@ -120,8 +126,10 @@ int hdf5_asigma_read_loc(hid_t f, asigma_loc_data* data, char* qid) {
     free(nT);
     free(z1);
     free(a1);
+    free(q1);
     free(z2);
     free(a2);
+    free(q2);
     free(sigma);
     free(reactype);
     free(emin);

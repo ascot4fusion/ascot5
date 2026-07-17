@@ -184,12 +184,12 @@ a5err atomic_rates(
     }
     else {
         err = asigma_eval_cx(
-            &coeff, z_1, a_1, E, m_1, N_ntl_spec, z_2, a_2,
+            &coeff, z_1, a_1, q, E, m_1, N_ntl_spec, z_2, a_2,
             T_0[0], n_0, asigmadata);
         *rate_eff_rec += coeff;
 
         err = asigma_eval_eii(
-            &coeff, z_1, a_1, E, m_1, T[0], n[0], asigmadata);
+            &coeff, z_1, a_1, q, E, m_1, T[0], n[0], asigmadata);
         *rate_eff_ion += coeff;
     }
 
@@ -220,21 +220,21 @@ a5err atomic_react(
        and recombining (charge-decreasing) atomic reactions. But first,
        a fail-safe against zero rate values. */
     real prob;
-    if(rate_eff_rec == 0.0 || *q == 0) {
-        prob = 1.0 - exp(-rate_eff_ion*dt);
-        if(prob > rnd[0])
-            *q += 1;
-    } else if(rate_eff_ion == 0.0 || *q == z_1){
+    if (rate_eff_ion == 0.0 && rate_eff_rec == 0.0) {
+        prob = 0.0;
+        *q = *q;
+    } else if((rate_eff_ion == 0.0 || *q == z_1) && *q > 0){
         prob = 1.0 - exp(-rate_eff_rec*dt);
         if(prob > rnd[0])
             *q -= 1;
-    } else if (rate_eff_ion == 0.0 && rate_eff_rec == 0.0) {
-        prob = 0.0;
-        *q = *q;
+    } else if(rate_eff_rec == 0.0 || *q == 0) {
+        prob = 1.0 - exp(-rate_eff_ion*dt);
+        if(prob > rnd[0])
+            *q += 1;
     } else {
-        prob = 1.0 - exp(-(rate_eff_ion + rate_eff_rec)*dt);
+        prob = 1.0 - exp( -(rate_eff_ion + rate_eff_rec) * dt );
         if(prob > rnd[0]) {
-            if(rnd[1] < rate_eff_ion/(rate_eff_ion+rate_eff_rec))
+            if(rnd[1] < rate_eff_ion / ( rate_eff_ion + rate_eff_rec ))
                 *q += 1;
             else
                 *q -= 1;

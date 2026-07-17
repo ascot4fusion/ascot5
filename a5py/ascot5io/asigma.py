@@ -34,7 +34,7 @@ class Asigma_loc(DataGroup):
         return out
 
     @staticmethod
-    def write_hdf5(fn, nreac, z1, a1, z2, a2, reactype, nenergy, energymin,
+    def write_hdf5(fn, nreac, z1, a1, q1, z2, a2, q2, reactype, nenergy, energymin,
                    energymax, ndensity, densitymin, densitymax, ntemperature,
                    temperaturemin, temperaturemax, sigma, desc=None):
         """Write input data to the HDF5 file.
@@ -49,10 +49,14 @@ class Asigma_loc(DataGroup):
             Atomic number of test particle.
         a1 : array_like (nreac,1)
             Atomic mass number of test particle.
+        q1 : array_like (nreac,1)
+            Test particle charge state.
         z2 : array_like (nreac,1)
             Atomic number of bulk particle.
         a2 : array_like (nreac,1)
             Atomic mass number of bulk particle.
+        q2 : array_like (nreac,1)
+            Bulk particle charge state.
         reactype : array_like (nreac,1)
             Type of atomic reaction.
         nenergy : array_like (nreac,1)
@@ -108,8 +112,10 @@ class Asigma_loc(DataGroup):
             g.create_dataset('nreac',          (1,1), data=nreac,      dtype='i4')
             g.create_dataset('z1',         (nreac,1), data=z1,         dtype='i4')
             g.create_dataset('a1',         (nreac,1), data=a1,         dtype='i4')
+            g.create_dataset('q1',         (nreac,1), data=q1,         dtype='i4')
             g.create_dataset('z2',         (nreac,1), data=z2,         dtype='i4')
             g.create_dataset('a2',         (nreac,1), data=a2,         dtype='i4')
+            g.create_dataset('q2',         (nreac,1), data=q2,         dtype='i4')
             g.create_dataset('reactype',   (nreac,1), data=reactype,   dtype='i4')
             g.create_dataset('nenergy',    (nreac,1), data=nenergy,    dtype='i4')
             g.create_dataset('energymin',  (nreac,1), data=energymin,  dtype='f8')
@@ -144,8 +150,10 @@ class Asigma_loc(DataGroup):
         N_reac    = 1
         z_1       = 0 + np.zeros(N_reac, dtype=int)
         a_1       = 0 + np.zeros(N_reac, dtype=int)
+        q_1       = 0 + np.zeros(N_reac, dtype=int)
         z_2       = 0 + np.zeros(N_reac, dtype=int)
         a_2       = 0 + np.zeros(N_reac, dtype=int)
+        q_2       = 0 + np.zeros(N_reac, dtype=int)
         reac_type = 7 + np.zeros(N_reac, dtype=int)
         N_E       = 3    + np.zeros(N_reac, dtype=int)
         E_min     = 1e3  + np.zeros(N_reac, dtype=float)
@@ -157,7 +165,8 @@ class Asigma_loc(DataGroup):
         T_min     = 1e3  + np.zeros(N_reac, dtype=float)
         T_max     = 1e4  + np.zeros(N_reac, dtype=float)
         sigma = np.zeros((1,3*4*5))
-        return {"nreac":N_reac, "z1":z_1, "a1":a_1, "z2":z_2, "a2":a_2,
+        return {"nreac":N_reac, "z1":z_1, "a1":a_1, "q1":q_1, "z2":z_2,
+                "a2":a_2, "q2":q_2,
                 "reactype":reac_type, "nenergy":N_E, "energymin":E_min,
                 "energymax":E_max, "ndensity":N_n, "densitymin":n_min,
                 "densitymax":n_max, "ntemperature":N_T, "temperaturemin":T_min,

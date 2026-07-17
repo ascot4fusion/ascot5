@@ -2063,8 +2063,10 @@ struct_c__SA_asigma_loc_data._fields_ = [
     ('PADDING_0', ctypes.c_ubyte * 4),
     ('z_1', ctypes.POINTER(ctypes.c_int32)),
     ('a_1', ctypes.POINTER(ctypes.c_int32)),
+    ('q_1', ctypes.POINTER(ctypes.c_int32)),
     ('z_2', ctypes.POINTER(ctypes.c_int32)),
     ('a_2', ctypes.POINTER(ctypes.c_int32)),
+    ('q_2', ctypes.POINTER(ctypes.c_int32)),
     ('reac_type', ctypes.POINTER(ctypes.c_int32)),
     ('sigma', ctypes.POINTER(struct_c__SA_interp1D_data)),
     ('sigmav', ctypes.POINTER(struct_c__SA_interp2D_data)),
@@ -2074,7 +2076,7 @@ struct_c__SA_asigma_loc_data._fields_ = [
 asigma_loc_data = struct_c__SA_asigma_loc_data
 asigma_loc_init = _libraries['libascot.so'].asigma_loc_init
 asigma_loc_init.restype = ctypes.c_int32
-asigma_loc_init.argtypes = [ctypes.POINTER(struct_c__SA_asigma_loc_data), ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
+asigma_loc_init.argtypes = [ctypes.POINTER(struct_c__SA_asigma_loc_data), ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)]
 asigma_loc_free = _libraries['libascot.so'].asigma_loc_free
 asigma_loc_free.restype = None
 asigma_loc_free.argtypes = [ctypes.POINTER(struct_c__SA_asigma_loc_data)]
@@ -2083,13 +2085,13 @@ asigma_loc_offload.restype = None
 asigma_loc_offload.argtypes = [ctypes.POINTER(struct_c__SA_asigma_loc_data)]
 asigma_loc_eval_cx = _libraries['libascot.so'].asigma_loc_eval_cx
 asigma_loc_eval_cx.restype = a5err
-asigma_loc_eval_cx.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
+asigma_loc_eval_cx.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
 asigma_loc_eval_bms = _libraries['libascot.so'].asigma_loc_eval_bms
 asigma_loc_eval_bms.restype = a5err
 asigma_loc_eval_bms.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
 asigma_loc_eval_eii = _libraries['libascot.so'].asigma_loc_eval_eii
 asigma_loc_eval_eii.restype = a5err
-asigma_loc_eval_eii.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
+asigma_loc_eval_eii.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, real, real, real, real, ctypes.c_int32, ctypes.POINTER(struct_c__SA_asigma_loc_data)]
 
 # values for enumeration 'asigma_type'
 asigma_type__enumvalues = {
@@ -2130,13 +2132,13 @@ asigma_extrapolate.restype = None
 asigma_extrapolate.argtypes = [ctypes.c_int32]
 asigma_eval_cx = _libraries['libascot.so'].asigma_eval_cx
 asigma_eval_cx.restype = a5err
-asigma_eval_cx.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(struct_c__SA_asigma_data)]
+asigma_eval_cx.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(struct_c__SA_asigma_data)]
 asigma_eval_bms = _libraries['libascot.so'].asigma_eval_bms
 asigma_eval_bms.restype = a5err
 asigma_eval_bms.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, ctypes.c_int32, ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32), real, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(struct_c__SA_asigma_data)]
 asigma_eval_eii = _libraries['libascot.so'].asigma_eval_eii
 asigma_eval_eii.restype = a5err
-asigma_eval_eii.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, real, real, real, real, ctypes.POINTER(struct_c__SA_asigma_data)]
+asigma_eval_eii.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, real, real, real, real, ctypes.POINTER(struct_c__SA_asigma_data)]
 class struct_c__SA_nbi_injector(Structure):
     pass
 

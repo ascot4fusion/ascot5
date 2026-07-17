@@ -27,7 +27,8 @@
  * @return zero if initialization success
  */
 int asigma_loc_init(asigma_loc_data* data, int nreac,
-                    int* z1, int* a1, int* z2, int* a2, int* reactype,
+                    int* z1, int* a1, int* q1, int* z2, int* a2, int* q2,
+                    int* reactype,
                     int* ne, real* emin, real* emax,
                     int* nn, real* nmin, real* nmax,
                     int* nT, real* Tmin, real* Tmax, real* sigma) {
@@ -36,8 +37,10 @@ int asigma_loc_init(asigma_loc_data* data, int nreac,
     data->N_reac = nreac;
     data->z_1 = (int*) malloc( nreac * sizeof(int) );
     data->a_1 = (int*) malloc( nreac * sizeof(int) );
+    data->q_1 = (int*) malloc( nreac * sizeof(int) );
     data->z_2 = (int*) malloc( nreac * sizeof(int) );
     data->a_2 = (int*) malloc( nreac * sizeof(int) );
+    data->q_2 = (int*) malloc( nreac * sizeof(int) );
     data->reac_type = (int*) malloc( nreac * sizeof(int) );
     data->sigma = (interp1D_data*) malloc( nreac * sizeof(interp1D_data) );
     data->sigmav = (interp2D_data*) malloc( nreac * sizeof(interp2D_data) );
@@ -46,8 +49,10 @@ int asigma_loc_init(asigma_loc_data* data, int nreac,
     for(int i_reac = 0; i_reac < nreac; i_reac++) {
         data->z_1[i_reac] = z1[i_reac];
         data->a_1[i_reac] = a1[i_reac];
+        data->q_1[i_reac] = q1[i_reac];
         data->z_2[i_reac] = z2[i_reac];
         data->a_2[i_reac] = a2[i_reac];
+        data->q_2[i_reac] = q2[i_reac];
         data->reac_type[i_reac] = reactype[i_reac];
 
         /* Initialize spline struct according to dimensionality of
@@ -89,16 +94,17 @@ int asigma_loc_init(asigma_loc_data* data, int nreac,
               data->N_reac);
     for(int i_reac = 0; i_reac < data->N_reac; i_reac++) {
         print_out(VERBOSE_IO,
-              "Reaction number / Total number of reactions = %d / %d\n"
-              "  Reactant species Z_1 / A_1, Z_2 / A_2     = %d / %d, %d / %d\n"
-              "  Min/Max energy                            = %1.2le / %1.2le\n"
-              "  Min/Max density                           = %1.2le / %1.2le\n"
-              "  Min/Max temperature                       = %1.2le / %1.2le\n"
-              "  Number of energy grid points              = %d\n"
-              "  Number of density grid points             = %d\n"
-              "  Number of temperature grid points         = %d\n",
+              "Reaction number / Total number of reactions         = %d / %d\n"
+              "  Reactant species Z_1 / A_1 / q_1, Z_2 / A_2 / q_2 = %d / %d / %d, %d / %d / %d\n"
+              "  Min/Max energy                                    = %1.2le / %1.2le\n"
+              "  Min/Max density                                   = %1.2le / %1.2le\n"
+              "  Min/Max temperature                               = %1.2le / %1.2le\n"
+              "  Number of energy grid points                      = %d\n"
+              "  Number of density grid points                     = %d\n"
+              "  Number of temperature grid points                 = %d\n",
               i_reac+1, data->N_reac, data->z_1[i_reac], data->a_1[i_reac],
-              data->z_2[i_reac], data->a_2[i_reac], emin[i_reac], emax[i_reac],
+              data->q_1[i_reac], data->z_2[i_reac], data->a_2[i_reac],
+              data->q_2[i_reac], emin[i_reac], emax[i_reac],
               nmin[i_reac], nmax[i_reac], Tmin[i_reac], Tmax[i_reac],
               ne[i_reac], nn[i_reac], nT[i_reac]);
     }
@@ -166,7 +172,7 @@ void asigma_loc_offload(asigma_loc_data* data) {
  * @return zero if evaluation succeeded
  */
 a5err asigma_loc_eval_cx(
-    real* ratecoeff, int z_1, int a_1, real E, real mass, int nspec,
+    real* ratecoeff, int z_1, int a_1, int q_1, real E, real mass, int nspec,
     const int* znum, const int* anum, real T_0, real* n_0, int extrapolate,
     asigma_loc_data* asigma_data) {
     a5err err = 0;
@@ -182,6 +188,7 @@ a5err asigma_loc_eval_cx(
         for(i_reac = 0; i_reac < asigma_data->N_reac; i_reac++) {
             if(asigma_data->z_1[i_reac] == z_1 &&
                asigma_data->a_1[i_reac] == a_1 &&
+               asigma_data->q_1[i_reac] == q_1 &&
                asigma_data->z_2[i_reac] == znum[i_spec] &&
                asigma_data->a_2[i_reac] == anum[i_spec] &&
                asigma_data->reac_type[i_reac] == sigmav_CX) {
@@ -192,7 +199,8 @@ a5err asigma_loc_eval_cx(
 
         if(reac_found < 0) {
             /* Reaction not found. Raise error. */
-            err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_ASIGMA_LOC);
+            //err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_ASIGMA_LOC);
+            *ratecoeff += 0;
         } else {
             real sigmav;
             int interperr = interp2Dcomp_eval_f(
@@ -314,13 +322,13 @@ a5err asigma_loc_eval_bms(
  * @return zero if evaluation succeeded
  */
 a5err asigma_loc_eval_eii(
-    real* ratecoeff, int z_1, int a_1, real E, real mass, real Te, real ne,
+    real* ratecoeff, int z_1, int a_1, int q_1, real E, real mass, real Te, real ne,
     int extrapolate, asigma_loc_data* asigma_data) {
 
     a5err err = 0;
 
     /* Convert Joule to eV */
-    E   /= CONST_E;
+    E /= CONST_E;
     Te /= CONST_E;
     *ratecoeff = 0;
 
@@ -329,8 +337,7 @@ a5err asigma_loc_eval_eii(
     for(i_reac = 0; i_reac < asigma_data->N_reac; i_reac++) {
         if(asigma_data->z_1[i_reac] == z_1 &&
             asigma_data->a_1[i_reac] == a_1 &&
-            asigma_data->z_2[i_reac] == 0 &&
-            asigma_data->a_2[i_reac] == 0 &&
+            asigma_data->q_1[i_reac] == q_1 &&
             asigma_data->reac_type[i_reac] == sigmav_EII) {
             reac_found = i_reac;
         }
@@ -339,7 +346,8 @@ a5err asigma_loc_eval_eii(
 
     if(reac_found < 0) {
         /* Reaction not found. Raise error. */
-        err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_ASIGMA_LOC);
+        //err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_ASIGMA_LOC);
+        *ratecoeff += 0;
     } else {
         real sigmav;
         int interperr = interp2Dcomp_eval_f(
