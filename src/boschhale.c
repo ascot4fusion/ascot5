@@ -362,12 +362,15 @@ real boschhale_sigmav_beam_bulk(
 
     real integral = 0.0;
 
+    const real inv_vt2 = 1.0 / (vt * vt);
+
     for (int i = 0; i < N; ++i) {
 
         const real E = Emin + i * dE;
 
         const real sigma = boschhale_sigma(reaction, E);
 
+        /*
         const real a = (vf / vt) * (vf / vt);
         const real b = 2.0 * E / (mu * vt * vt);
         const real c = 2.0 * vf / (vt * vt)
@@ -377,6 +380,12 @@ real boschhale_sigmav_beam_bulk(
             sqrt(E) * sigma *
             (exp(c - a - b) - exp(-c - a - b))
             * prefactor;
+        */
+
+        const real u = sqrt(2.0 * E / mu);
+        const real f =
+            sqrt(E) * sigma *
+            (exp(-inv_vt2 * (vf - u)*(vf - u)) - exp(-inv_vt2 * (vf + u)*(vf + u)));
 
         /* trapezoidal weights */
         if (i == 0 || i == N - 1) {
@@ -386,5 +395,5 @@ real boschhale_sigmav_beam_bulk(
         }
     }
 
-    return integral * dE;
+    return prefactor * integral * dE;
 }
