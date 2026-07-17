@@ -92,7 +92,7 @@ void asigma_offload(asigma_data* data) {
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
 a5err asigma_eval_cx(
-    real* ratecoeff, int z_1, int a_1, real E, real mass, int nspec,
+    real* ratecoeff, int z_1, int a_1, int q_1, real E, real mass, int nspec,
     const int* znum, const int* anum, real T_0, real* n_0,
     asigma_data* asigma_data) {
     a5err err = 0;
@@ -100,8 +100,8 @@ a5err asigma_eval_cx(
     switch(asigma_data->type) {
         case asigma_type_loc:
             err = asigma_loc_eval_cx(
-                    ratecoeff, z_1, a_1, E, mass, nspec, znum, anum, T_0, n_0,
-                    ASIGMA_EXTRAPOLATE, &(asigma_data->asigma_loc));
+                    ratecoeff, z_1, a_1, q_1, E, mass, nspec, znum, anum, T_0,
+                    n_0, ASIGMA_EXTRAPOLATE, &(asigma_data->asigma_loc));
             break;
 
         default:
@@ -182,14 +182,14 @@ a5err asigma_eval_bms(
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
 a5err asigma_eval_eii(
-    real* ratecoeff, int z_1, int a_1, real E, real mass, real Te, real ne,
-    asigma_data* asigma_data) {
+    real* ratecoeff, int z_1, int a_1, int q_1, real E, real mass, real Te,
+    real ne, asigma_data* asigma_data) {
     a5err err = 0;
 
     switch(asigma_data->type) {
         case asigma_type_loc:
             err = asigma_loc_eval_eii(
-                    ratecoeff, z_1, a_1, E, mass, Te, ne,
+                    ratecoeff, z_1, a_1, q_1, E, mass, Te, ne,
                     ASIGMA_EXTRAPOLATE, &(asigma_data->asigma_loc));
             break;
 

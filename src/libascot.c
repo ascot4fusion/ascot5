@@ -930,7 +930,7 @@ void libascot_eval_ratecoeff(
             switch (reac_type) {
             case sigmav_CX:
                 if( asigma_eval_cx(
-                        &val, Za, Aa, E, ma, nspec, Zb, Ab, T0[0], n0,
+                        &val, Za, Aa,Za,  E, ma, nspec, Zb, Ab, T0[0], n0,
                         &sim->asigma_data) ) {
                     continue;
                 }

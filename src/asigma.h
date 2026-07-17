@@ -55,7 +55,7 @@ void asigma_extrapolate(int extrapolate);
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(asigmadata, z_1, a_1, mass, nspec, znum, anum)
 a5err asigma_eval_cx(
-    real* ratecoeff, int z_1, int a_1, real E, real mass, int nspec,
+    real* ratecoeff, int z_1, int a_1, int q_1, real E, real mass, int nspec,
     const int* znum, const int* anum, real T_0, real* n_0,
     asigma_data* asigmadata);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(asigmadata, z_1, a_1, mass, nion, znum, anum)
@@ -65,7 +65,7 @@ a5err asigma_eval_bms(
     asigma_data* asigmadata);
 GPU_DECLARE_TARGET_SIMD_UNIFORM(asigmadata)
 a5err asigma_eval_eii(
-    real* ratecoeff, int z_1, int a_1, real E, real mass, real Te, real ne,
-    asigma_data* asigmadata);
+    real* ratecoeff, int z_1, int a_1, int q_1, real E, real mass, real Te,
+    real ne, asigma_data* asigmadata);
 
 #endif
