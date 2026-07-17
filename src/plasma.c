@@ -90,7 +90,7 @@ void plasma_offload(plasma_data* data) {
  * @param phi phi-coordinate [rad]
  * @param z z-coordinate [m]
  * @param t time coordinate [s]
- * @param species index of plasma species, 1 refers to electrons
+ * @param species index of plasma species, 0 refers to electrons
  * @param pls_data pointer to plasma data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
@@ -143,7 +143,7 @@ a5err plasma_eval_temp(real* temp, real rho, real r, real phi, real z, real t,
  * @param phi phi-coordinate [rad]
  * @param z z-coordinate [m]
  * @param t time coordinate [s]
- * @param species index of plasma species, 1 refers to electrons
+ * @param species index of plasma species, 0 refers to electrons
  * @param pls_data pointer to plasma data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise

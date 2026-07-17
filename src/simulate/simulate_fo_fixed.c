@@ -224,7 +224,8 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
                 // Get thermal speed for background species
                 real ti;
                 plasma_eval_temp(&ti, p.rho[i], p.r[i], p.phi[i], p.z[i],
-                    p.time[i], species_index_in_reaction[j]+2,
+                    p.time[i],
+                    species_index_in_reaction[j]+1, // index 0 is electrons
                     &sim->plasma_data);
                 real m_background = plasma_A[species_index_in_reaction[j]]*1.6605e-27;
                 real vt = sqrt(2*ti/m_background);
@@ -240,7 +241,8 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
                 // Get n_background of the corresponding reaction
                 real bulk_density;
                 plasma_eval_dens(&bulk_density, p.rho[i], p.r[i], p.phi[i],
-                    p.z[i], p.time[i], species_index_in_reaction[j]+2,
+                    p.z[i], p.time[i],
+                    species_index_in_reaction[j]+1,  // index 0 is electrons
                     &sim->plasma_data);
 
                 /* The number of fusion reactions that "eats" particles,
