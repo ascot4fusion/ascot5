@@ -127,8 +127,9 @@ static inline int math_iabs(int x)        { return abs(x); }
 DECLARE_TARGET
 real fmod(real x, real y);
 DECLARE_TARGET_END
-DECLARE_TARGET_SIMD
+GPU_DECLARE_TARGET_SIMD
 void math_jac_rpz2xyz(real* rpz, real* xyz, real r, real phi);
+DECLARE_TARGET_END
 GPU_DECLARE_TARGET_SIMD
 void math_jac_xyz2rpz(real* xyz, real* rpz, real r, real phi);
 DECLARE_TARGET_END
