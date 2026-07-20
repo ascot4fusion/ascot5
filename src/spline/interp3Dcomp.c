@@ -272,6 +272,50 @@ int interp3Dcomp_setup(interp3D_data* str, real* f,
 }
 
 /**
+ * @brief Check that three tricubic splines are defined on the same grid
+ *
+ * interp3Dcomp_eval_f3() and interp3Dcomp_eval_df3() take all grid metadata
+ * from their first spline, so they may only be used on splines whose grids are
+ * identical. This function verifies that precondition. It is meant to be called
+ * once where the splines are initialized, so that the evaluators themselves,
+ * which run on the device for every marker and every time step, need not.
+ *
+ * The grid bounds and spacings are compared exactly, which is what is wanted:
+ * the splines are required to be on the same grid, not on grids that happen to
+ * agree to some tolerance.
+ *
+ * @param str0 first spline, the one whose grid the others must match
+ * @param str1 second spline
+ * @param str2 third spline
+ *
+ * @return one if all three are defined on the same grid and zero otherwise
+ */
+int interp3Dcomp_same_grid(interp3D_data* str0, interp3D_data* str1,
+                           interp3D_data* str2) {
+    interp3D_data* str[2] = {str1, str2};
+    for(int i = 0; i < 2; i++) {
+        if(   str[i]->n_x    != str0->n_x
+           || str[i]->n_y    != str0->n_y
+           || str[i]->n_z    != str0->n_z
+           || str[i]->bc_x   != str0->bc_x
+           || str[i]->bc_y   != str0->bc_y
+           || str[i]->bc_z   != str0->bc_z
+           || str[i]->x_min  != str0->x_min
+           || str[i]->x_max  != str0->x_max
+           || str[i]->x_grid != str0->x_grid
+           || str[i]->y_min  != str0->y_min
+           || str[i]->y_max  != str0->y_max
+           || str[i]->y_grid != str0->y_grid
+           || str[i]->z_min  != str0->z_min
+           || str[i]->z_max  != str0->z_max
+           || str[i]->z_grid != str0->z_grid ) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/**
  * @brief Spline basis polynomials and cell indices for a tricubic evaluation
  *
  * These quantities depend on the evaluation point and on the grid only, not on
@@ -534,6 +578,46 @@ a5err interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
 
     if(!err) {
         interp3Dcomp_eval_comp_f(f, str, &b);
+    }
+
+    return err;
+}
+
+/**
+ * @brief Evaluate three same-grid 3D scalar fields at a single point
+ *
+ * This function evaluates the interpolated values of three 3D scalar fields
+ * whose tricubic splines are defined on one and the same grid. The periodic
+ * wrapping, the cell search and the spline basis polynomials are common to the
+ * three components and are evaluated once instead of three times; each
+ * component's coefficient sum is then evaluated by the same routine that
+ * interp3Dcomp_eval_f() uses, so the arithmetic per component is unchanged.
+ *
+ * All grid metadata is taken from str0, and str1 and str2 must be defined on
+ * that same grid, i.e. interp3Dcomp_same_grid() must hold for the three. That
+ * check belongs where the splines are initialized; it is not repeated here
+ * because this function is on the device hot path.
+ *
+ * @param f array of length 3 in which to place the evaluated values
+ * @param str0 data struct for the first component
+ * @param str1 data struct for the second component, same grid as str0
+ * @param str2 data struct for the third component, same grid as str0
+ * @param x x-coordinate
+ * @param y y-coordinate
+ * @param z z-coordinate
+ *
+ * @return zero on success and one if (x,y,z) point is outside the grid.
+ */
+a5err interp3Dcomp_eval_f3(real* f, interp3D_data* str0, interp3D_data* str1,
+                           interp3D_data* str2, real x, real y, real z) {
+
+    interp3Dcomp_basis_f b;
+    int err = interp3Dcomp_eval_basis_f(&b, str0, x, y, z);
+
+    if(!err) {
+        interp3Dcomp_eval_comp_f(&f[0], str0, &b);
+        interp3Dcomp_eval_comp_f(&f[1], str1, &b);
+        interp3Dcomp_eval_comp_f(&f[2], str2, &b);
     }
 
     return err;
@@ -1117,6 +1201,49 @@ a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
 
     if(!err) {
         interp3Dcomp_eval_comp_df(f_df, str, &b);
+    }
+
+    return err;
+}
+
+/**
+ * @brief Evaluate three same-grid 3D scalar fields and their 1st derivatives
+ *
+ * As interp3Dcomp_eval_f3(), but each component also yields its three first
+ * derivatives. The twelve evaluated values are returned as three consecutive
+ * blocks of four, one block per component, each laid out as the output of
+ * interp3Dcomp_eval_df():
+ * - f_df[4*i+0] = f
+ * - f_df[4*i+1] = f_x
+ * - f_df[4*i+2] = f_y
+ * - f_df[4*i+3] = f_z
+ *
+ * All grid metadata is taken from str0, and str1 and str2 must be defined on
+ * that same grid, i.e. interp3Dcomp_same_grid() must hold for the three. That
+ * check belongs where the splines are initialized; it is not repeated here
+ * because this function is on the device hot path.
+ *
+ * @param f_df array of length 12 in which to place the evaluated values
+ * @param str0 data struct for the first component
+ * @param str1 data struct for the second component, same grid as str0
+ * @param str2 data struct for the third component, same grid as str0
+ * @param x x-coordinate
+ * @param y y-coordinate
+ * @param z z-coordinate
+ *
+ * @return zero on success and one if (x,y,z) point is outside the grid.
+ */
+a5err interp3Dcomp_eval_df3(real* f_df, interp3D_data* str0,
+                            interp3D_data* str1, interp3D_data* str2,
+                            real x, real y, real z) {
+
+    interp3Dcomp_basis_df b;
+    int err = interp3Dcomp_eval_basis_df(&b, str0, x, y, z);
+
+    if(!err) {
+        interp3Dcomp_eval_comp_df(&f_df[0], str0, &b);
+        interp3Dcomp_eval_comp_df(&f_df[4], str1, &b);
+        interp3Dcomp_eval_comp_df(&f_df[8], str2, &b);
     }
 
     return err;
