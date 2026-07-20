@@ -173,7 +173,6 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
             /* Instead of particle coordinates we record guiding center */
 
             /* Particle to guiding center transformation */
-            GPU_PARALLEL_LOOP_ALL_LEVELS
             for(int i=0; i<p.n_mrk; i++) {
                 if(p.running[i]) {
                     particle_fo_to_gc(&p, i, &gc_f, &sim->B_data);
