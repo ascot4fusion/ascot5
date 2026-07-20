@@ -101,6 +101,7 @@ void dist_6D_update_fo(dist_6D_data* dist, particle_simd_fo* p_f,
 #else
     size_t index[NSIMD];
     real weight[NSIMD];
+    int valid[NSIMD] = {0};
 #endif
 
     GPU_PARALLEL_LOOP_ALL_LEVELS
@@ -157,14 +158,14 @@ void dist_6D_update_fo(dist_6D_data* dist, particle_simd_fo* p_f,
                     i_time, i_q, dist->step_7, dist->step_6, dist->step_5,
                     dist->step_4, dist->step_3, dist->step_2, dist->step_1);
                 weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
+                valid[i] = 1;
 #endif
             }
         }
     }
 #ifndef GPU
     for(int i = 0; i < p_f->n_mrk; i++) {
-        if(p_f->running[i] && index[i] >= 0 &&
-            index[i] < dist->step_7 * dist->n_r) {
+        if(p_f->running[i] && valid[i] == 1) {
             GPU_ATOMIC
             dist->histogram[index[i]] += weight[i];
         }
@@ -185,7 +186,7 @@ void dist_6D_update_fo(dist_6D_data* dist, particle_simd_fo* p_f,
  */
 void dist_6D_update_gc(dist_6D_data* dist, particle_simd_gc* p_f,
                        particle_simd_gc* p_i) {
-  
+
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < p_f->n_mrk; i++) {
         if(p_f->running[i]) {
