@@ -83,6 +83,7 @@ void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
 #else
     size_t index[NSIMD];
     real weight[NSIMD];
+    int valid[NSIMD] = {0};
 #endif
 
     GPU_PARALLEL_LOOP_ALL_LEVELS
@@ -127,14 +128,14 @@ void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
                 index[i] = dist_COM_index(
                     i_mu, i_Ekin, i_Ptor, dist->step_2, dist->step_1);
                 weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
+                valid[i] = 1;
 #endif
             }
         }
     }
 #ifndef GPU
     for(int i = 0; i < p_f->n_mrk; i++) {
-        if(p_f->running[i] && index[i] >= 0 &&
-            index[i] < dist->step_2 * dist->n_mu) {
+        if(p_f->running[i] && valid[i] == 1) {
             GPU_ATOMIC
             dist->histogram[index[i]] += weight[i];
         }
