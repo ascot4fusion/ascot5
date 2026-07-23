@@ -305,7 +305,7 @@ real boschhale_sigmav(Reaction reaction, real Ti) {
  * See: Bosch and Hale, 1992, Nuclear Fusion. Vol. 32, No.4. Section 4.2
  *
  * @param reaction reaction for which the reactivity is estimated.
- * @param vt Bulk plasma thermal speed [m/s]
+ * @param vt Bulk plasma thermal speed sqrt(2kT/m) [m/s]
  * @param vf Fast ion speed in the rest frame of the background plasma [m/s]
  * @param N Number of intervals for trapezoidal integration
  *
@@ -358,7 +358,7 @@ real boschhale_sigmav_beam_bulk(
     const real dE = (Emax - Emin) / (N - 1);
 
     const real prefactor =
-        1.0 / (sqrt(2.0 * M_PI) * vt * vf * mu * sqrt(mu));
+        sqrt(2.0) / (sqrt(M_PI) * vt * vf * mu * sqrt(mu));
 
     real integral = 0.0;
 

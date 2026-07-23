@@ -248,6 +248,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
                 /* The number of fusion reactions that "eats" particles,
                 i.e., decreases (weight) */
                 real N_fusions = p.weight[i] * bulk_density * sigmav * hin[i];
+                // Is it possible that this creates a race condition?
                 p.weight[i] -= N_fusions;
             }
         }
