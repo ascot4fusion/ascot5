@@ -80,7 +80,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
     particle_simd_gc p0; // This array stores previous states
     particle_allocate_gc(&p, mrk_array_size);
     particle_allocate_gc(&p0, mrk_array_size);
-    
+
     rfof_marker rfof_mrk; // RFOF specific data
 
     for(int i=0; i< mrk_array_size; i++) {
@@ -214,27 +214,25 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
 
         // Reduce weight based on the fusion reactivity
         int n_plasma_species = plasma_get_n_species(&sim->plasma_data);
-        //const int * plasma_Z = (int*) malloc(n_plasma_species*sizeof(int));
-        //const real * plasma_A = (real*) malloc(n_plasma_species*sizeof(real));
 
         // Get the atomic numbers and masses of the plasma species
         const int* plasma_Z = plasma_get_species_znum(&sim->plasma_data);
-        const real* plasma_A = plasma_get_species_mass(&sim->plasma_data);
-        GPU_PARALLEL_LOOP_ALL_LEVELS
+        const int* plasma_A = plasma_get_species_anum(&sim->plasma_data);
+        //GPU_PARALLEL_LOOP_ALL_LEVELS
         for(int i = 0; i < p.n_mrk; i++) {
-            // for now, we assume that p.charge corresponds to Z (the marker is fully ionised)
+            // for now, we assume that p.charge corresponds to Z*e (the marker is fully ionised)
 
             int Z = round(p.charge[i]/1.602202e-19);
             int A = round(p.mass[i]/1.660539e-27);
 
             // Loop through all plasma species and check if we find any of the available reaction
 
-            Reaction reaction[10];
-            int species_index_in_reaction[10];
+            Reaction reaction[3];
+            int species_index_in_reaction[3];
             int n_reactions_found = 0;
 
-            for (int j = 0; j < n_plasma_species; j++) {
-                if (plasma_Z[j] == 1 && round(plasma_A[j]/1.660539e-27) == 2) {
+            for (int j = 0; j < (n_plasma_species - 1); j++) {
+                if (plasma_Z[j] == 1 && plasma_A[j] == 2) {
                     // D background
                     if (Z == 1 && A == 2) {
                         // Marker is also D ==> add DD reactions to a list of reactions
@@ -258,7 +256,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
                         n_reactions_found++;
                     }
                 }
-                if (plasma_Z[j] == 1 && round(plasma_A[j]/1.660539e-27) == 3) {
+                if (plasma_Z[j] == 1 && plasma_A[j] == 3) {
                     // T background
                     if (Z == 1 && A == 2) {
                         // Marker is D ==> add DT_He4n reaction to a list of reactions
@@ -275,33 +273,33 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
                 }
             }
 
+            // Get the fast ion speed
+            real bnorm = sqrt(p.B_phi[i] * p.B_phi[i] + p.B_z[i] * p.B_z[i] + p.B_r[i] * p.B_r[i]);
+            real pnorm = physlib_gc_p(p.mass[i], p.mu[i], p.ppar[i], bnorm);
+            real vf = physlib_vnorm_pnorm(p.mass[i], pnorm);
+
             for (int j = 0; j < n_reactions_found; j++) {
 
                 // Get thermal speed for background species
                 real ti;
                 plasma_eval_temp(&ti, p.rho[i], p.r[i], p.phi[i], p.z[i],
-                    p.time[i], species_index_in_reaction[j],
+                    p.time[i], species_index_in_reaction[j]+1,
                     &sim->plasma_data);
-                real mT = plasma_A[species_index_in_reaction[j]];
-                real vt = sqrt(2*ti/mT);
-
-                // Get the fast ion speed
-                real bnorm = sqrt(p.B_phi[i] * p.B_phi[i] + p.B_z[i] * p.B_z[i] + p.B_r[i] * p.B_r[i]);
-                real pnorm = physlib_gc_p(p.mass[i], p.mu[i], p.ppar[i], bnorm);
-                real vf = physlib_vnorm_pnorm(p.mass[i], pnorm);
+                real m_background = plasma_A[species_index_in_reaction[j]] * 1.6605e-27;
+                real vt = sqrt(2*ti/m_background);
 
                 // Get <sigma*v> for the correct reaction
                 real sigmav = boschhale_sigmav_beam_bulk(
                     reaction[j],
                     vt,
                     vf,
-                    1000   // Fixed number of summation intervals for trapz
+                    500   // Fixed number of summation intervals for trapz
                 );
 
                 // Get n_background of the corresponding reaction
                 real bulk_density;
                 plasma_eval_dens(&bulk_density, p.rho[i], p.r[i], p.phi[i],
-                    p.z[i], p.time[i], species_index_in_reaction[j],
+                    p.z[i], p.time[i], species_index_in_reaction[j]+1,
                     &sim->plasma_data);
 
                 /* The number of fusion reactions that "eats" particles,
