@@ -16,7 +16,7 @@
 /** @brief sqrt(pi)                                                           */
 #define CONST_SQRTPI 1.7724538509055160272982
 
-/** @brief sqr(2*pi)                                                          */
+/** @brief sqrt(2*pi)                                                         */
 #define CONST_SQRT2PI 2.5066282746310005024158
 
 /** @brief Speed of light [m/s]                                               */

@@ -333,7 +333,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
 #else
         n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 #endif
-	
+
 #ifndef GPU
         /* Determine simulation time-step */
         #pragma omp simd
