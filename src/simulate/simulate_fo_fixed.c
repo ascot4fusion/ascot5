@@ -81,6 +81,10 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     /* Initialize running particles */
     int n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
 
+    /* Initialise tabulated <sigma*v> data */
+    tabulated_sigmav_data tabulated_sigmav_data;
+    int err = tabulated_sigmav_init(&tabulated_sigmav_data, &sim->plasma_data);
+
     /* Determine simulation time-step */
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for(int i = 0; i < mrk_array_size; i++) {
@@ -231,12 +235,23 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
                 real vt = sqrt(2*ti/m_background);
 
                 // Get <sigma*v> for the correct reaction
+                /*
                 real sigmav = boschhale_sigmav_beam_bulk(
                     reaction[j],
                     vt,
                     vf,
                     500   // Fixed number of summation intervals for trapz
                 );
+                */
+                real sigmav;
+                p.err[i] = boschhale_sigmav_beam_bulk_tabulated(
+                    &sigmav,
+                    reaction[j],
+                    vt,
+                    vf,
+                    &tabulated_sigmav_data
+                );
+
 
                 // Get n_background of the corresponding reaction
                 real bulk_density;
@@ -330,6 +345,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     free(cycle);
     free(hin);
     free(rnd);
+    tabulated_sigmav_free(&tabulated_sigmav_data);
 }
 
 /**

@@ -19,6 +19,7 @@
 #include "../E_field.h"
 #include "../rfof.h"
 #include "../plasma.h"
+#include "../boschhale.h"
 #include "simulate_gc_fixed.h"
 #include "step/step_gc_rk4.h"
 #include "mccc/mccc.h"
@@ -85,6 +86,10 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     if(sim->enable_icrh) {
         rfof_set_up(&rfof_mrk, &sim->rfof_data);
     }
+
+    /* Initialise tabulated <sigma*v> data */
+    tabulated_sigmav_data tabulated_sigmav_data;
+    int err = tabulated_sigmav_init(&tabulated_sigmav_data, &sim->plasma_data);
 
     /* Determine simulation time-step */
     #pragma omp simd
@@ -177,6 +182,113 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
             }
         }
 
+        // Reduce weight based on the fusion reactivity
+        int n_plasma_species = plasma_get_n_species(&sim->plasma_data);
+
+        // Get the atomic numbers and masses of the plasma species
+        const int* plasma_Z = plasma_get_species_znum(&sim->plasma_data);
+        const int* plasma_A = plasma_get_species_anum(&sim->plasma_data);
+        //GPU_PARALLEL_LOOP_ALL_LEVELS
+        for(int i = 0; i < p.n_mrk; i++) {
+            // for now, we assume that p.charge corresponds to Z*e (the marker is fully ionised)
+
+            int Z = round(p.charge[i]/1.602202e-19);
+            int A = round(p.mass[i]/1.660539e-27);
+
+            // Loop through all plasma species and check if we find any of the available reaction
+
+            Reaction reaction[3];
+            int species_index_in_reaction[3];
+            int n_reactions_found = 0;
+
+            for (int j = 0; j < (n_plasma_species - 1); j++) {
+                if (plasma_Z[j] == 1 && plasma_A[j] == 2) {
+                    // D background
+                    if (Z == 1 && A == 2) {
+                        // Marker is also D ==> add DD reactions to a list of reactions
+                        reaction[n_reactions_found] = DD_Tp;
+                        species_index_in_reaction[n_reactions_found] = j;
+                        n_reactions_found++;
+                        reaction[n_reactions_found] = DD_He3n;
+                        species_index_in_reaction[n_reactions_found] = j;
+                        n_reactions_found++;
+                    }
+                    if (Z == 2 && A == 3) {
+                        // Marker is He3 ==> add DHe3_He4p reaction to a list of reactions
+                        reaction[n_reactions_found] = DHe3_He4p;
+                        species_index_in_reaction[n_reactions_found] = j;
+                        n_reactions_found++;
+                    }
+                    if (Z == 1 && A == 3) {
+                        // Marker is T ==> add DT_He4n reaction to a list of reactions
+                        reaction[n_reactions_found] = DT_He4n;
+                        species_index_in_reaction[n_reactions_found] = j;
+                        n_reactions_found++;
+                    }
+                }
+                if (plasma_Z[j] == 1 && plasma_A[j] == 3) {
+                    // T background
+                    if (Z == 1 && A == 2) {
+                        // Marker is D ==> add DT_He4n reaction to a list of reactions
+                        reaction[n_reactions_found] = DT_He4n;
+                        species_index_in_reaction[n_reactions_found] = j;
+                        n_reactions_found++;
+                    }
+                    if (Z == 2 && A == 3) {
+                        // Marker is He3 ==> add DHe3_He4p reaction to a list of reactions
+                        reaction[n_reactions_found] = DHe3_He4p;
+                        species_index_in_reaction[n_reactions_found] = j;
+                        n_reactions_found++;
+                    }
+                }
+            }
+
+            // Get the fast ion speed
+            real bnorm = sqrt(p.B_phi[i] * p.B_phi[i] + p.B_z[i] * p.B_z[i] + p.B_r[i] * p.B_r[i]);
+            real pnorm = physlib_gc_p(p.mass[i], p.mu[i], p.ppar[i], bnorm);
+            real vf = physlib_vnorm_pnorm(p.mass[i], pnorm);
+
+            for (int j = 0; j < n_reactions_found; j++) {
+
+                // Get thermal speed for background species
+                real ti;
+                plasma_eval_temp(&ti, p.rho[i], p.r[i], p.phi[i], p.z[i],
+                    p.time[i], species_index_in_reaction[j]+1,
+                    &sim->plasma_data);
+                real m_background = plasma_A[species_index_in_reaction[j]] * 1.6605e-27;
+                real vt = sqrt(2*ti/m_background);
+
+                // Get <sigma*v> for the correct reaction
+                /*
+                real sigmav = boschhale_sigmav_beam_bulk(
+                    reaction[j],
+                    vt,
+                    vf,
+                    500   // Fixed number of summation intervals for trapz
+                );
+                */
+                real sigmav;
+                p.err[i] = boschhale_sigmav_beam_bulk_tabulated(
+                    &sigmav,
+                    reaction[j],
+                    vt,
+                    vf,
+                    &tabulated_sigmav_data
+                );
+
+                // Get n_background of the corresponding reaction
+                real bulk_density;
+                plasma_eval_dens(&bulk_density, p.rho[i], p.r[i], p.phi[i],
+                    p.z[i], p.time[i], species_index_in_reaction[j]+1,
+                    &sim->plasma_data);
+
+                /* The number of fusion reactions that "eats" particles,
+                i.e., decreases (weight) */
+                real N_fusions = p.weight[i] * bulk_density * sigmav * hin[i];
+                p.weight[i] -= N_fusions;
+            }
+        }
+
         /**********************************************************************/
 
 
@@ -252,6 +364,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     if(sim->enable_icrh) {
         rfof_tear_down(&rfof_mrk);
     }
+    tabulated_sigmav_free(&tabulated_sigmav_data);
 }
 
 /**

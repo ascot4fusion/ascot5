@@ -98,6 +98,10 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
         rfof_set_up(&rfof_mrk, &sim->rfof_data);
     }
 
+    /* Initialise tabulated <sigma*v> data */
+    tabulated_sigmav_data tabulated_sigmav_data;
+    int err = tabulated_sigmav_init(&tabulated_sigmav_data, &sim->plasma_data);
+
     #pragma omp simd
     for(int i = 0; i < mrk_array_size; i++) {
         if(cycle[i] > 0) {
@@ -289,11 +293,21 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
                 real vt = sqrt(2*ti/m_background);
 
                 // Get <sigma*v> for the correct reaction
+                /*
                 real sigmav = boschhale_sigmav_beam_bulk(
                     reaction[j],
                     vt,
                     vf,
                     500   // Fixed number of summation intervals for trapz
+                );
+                */
+                real sigmav;
+                p.err[i] = boschhale_sigmav_beam_bulk_tabulated(
+                    &sigmav,
+                    reaction[j],
+                    vt,
+                    vf,
+                    &tabulated_sigmav_data
                 );
 
                 // Get n_background of the corresponding reaction
@@ -443,6 +457,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim, int mrk_array_size)
     if(sim->enable_icrh) {
         rfof_tear_down(&rfof_mrk);
     }
+    tabulated_sigmav_free(&tabulated_sigmav_data);
 }
 
 /**
