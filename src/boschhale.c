@@ -5,6 +5,7 @@
  * The model is adapted from here:
  * https://www.doi.org/10.1088/0029-5515/32/4/I07
  */
+#include <stdlib.h>
 #include "ascot5.h"
 #include <math.h>
 #include "consts.h"
@@ -396,4 +397,158 @@ real boschhale_sigmav_beam_bulk(
     }
 
     return prefactor * integral * dE;
+}
+
+/**
+ * @brief Estimate reactivity for a given fusion reaction for single ion-bulk
+ *
+ * The bulk plasma is assumed to have a Maxwellian distribution with thermal
+ * speed vt. For evaluating the reactivity integral, Bosch-Hale cross section is
+ * used.
+ *
+ * See: Bosch and Hale, 1992, Nuclear Fusion. Vol. 32, No.4. Section 4.2
+ *
+ * @param sigmav Pointer to the reactivity <sigma*u> [m^3/s]
+ * @param reaction reaction for which the reactivity is estimated.
+ * @param vt Bulk plasma thermal speed sqrt(2kT/m) [m/s]
+ * @param vf Fast ion speed in the rest frame of the background plasma [m/s]
+ * @param data Pointer to the tabulated data struct
+ *
+ * @return zero if evaluation succeeded, non-zero otherwise
+ */
+a5err boschhale_sigmav_beam_bulk_tabulated(
+    real* sigmav,
+    Reaction reaction,
+    real vt,
+    real vf,
+    tabulated_sigmav_data* data)
+{
+    a5err err = 0;
+    switch(reaction) {
+    case DT_He4n:
+        int interperr = linint2D_eval_f(sigmav, data->DT_He4n, vt, vf);
+        if(interperr) {
+            err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_BOSCHHALE);
+        }
+        break;
+
+    case DHe3_He4p:
+        interperr = linint2D_eval_f(sigmav, data->DHe3_He4p, vt, vf);
+        if(interperr) {
+            err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_BOSCHHALE);
+        }
+        break;
+
+    case DD_Tp:
+        interperr = linint2D_eval_f(sigmav, data->DD_Tp, vt, vf);
+        if(interperr) {
+            err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_BOSCHHALE);
+        }
+        break;
+
+    case DD_He3n:
+        interperr = linint2D_eval_f(sigmav, data->DD_He3n, vt, vf);
+        if(interperr) {
+            err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_BOSCHHALE);
+        }
+        break;
+
+    default:
+        err = -1;
+    }
+
+    return err;
+}
+
+/**
+ * @brief Initialize 2D plasma data and check inputs
+ *
+ * @param data pointer to the data struct
+ *
+ * @return zero if initialization succes
+ */
+int tabulated_sigmav_init(tabulated_sigmav_data* data, plasma_data* plasma_data)
+    {
+
+    int nvt = 300;
+    int nvf = 300;
+    real vt_min = 1e-6;
+    real vf_min = 1e-6;
+    real vf_max = sqrt(2*6*1e6*CONST_E/CONST_U);   // 6 MeV proton (current Bosch-Hale sigma data ends at ~5MeV)
+    real vt_max = 1.1*sqrt(2*plasma_get_max_ion_temp(plasma_data)/CONST_U);
+
+    if (data == NULL)
+        return 1;
+
+    if (!(vt_max > vt_min) || !(vf_max > vf_min))
+        return 1;
+
+    data->DT_He4n = (linint2D_data*) malloc( sizeof(linint2D_data) );
+    data->DHe3_He4p = (linint2D_data*) malloc( sizeof(linint2D_data) );
+    data->DD_Tp = (linint2D_data*) malloc( sizeof(linint2D_data) );
+    data->DD_He3n = (linint2D_data*) malloc( sizeof(linint2D_data) );
+
+    if (!data->DT_He4n || !data->DHe3_He4p ||
+        !data->DD_Tp || !data->DD_He3n)
+        return 1;
+
+    int N = 500;   // Number of trapz intervals when evaluating the integral
+
+    real* c_DT_He4n = (real*) malloc(nvt * nvf * sizeof(real));
+    real* c_DHe3_He4p = (real*) malloc(nvt * nvf * sizeof(real));
+    real* c_DD_Tp = (real*) malloc(nvt * nvf * sizeof(real));
+    real* c_DD_He3n = (real*) malloc(nvt * nvf * sizeof(real));
+    real dvt = (vt_max - vt_min) / (nvt - 1);
+    real dvf = (vf_max - vf_min) / (nvf - 1);
+    for (int j = 0; j < nvf; j++) {
+        real vf = vf_min + j * dvf;
+
+        for (int i = 0; i < nvt; i++) {
+            real vt = vt_min + i * dvt;
+
+            c_DT_He4n[j * nvt + i] = boschhale_sigmav_beam_bulk(
+                DT_He4n, vt, vf, N);
+            c_DHe3_He4p[j * nvt + i] = boschhale_sigmav_beam_bulk(
+                DHe3_He4p, vt, vf, N);
+            c_DD_Tp[j * nvt + i] = boschhale_sigmav_beam_bulk(
+                DD_Tp, vt, vf, N);
+            c_DD_He3n[j * nvt + i] = boschhale_sigmav_beam_bulk(
+                DD_He3n, vt, vf, N);
+
+            if (!isfinite(c_DT_He4n[j*nvt+i])) {
+                printf("DT: NaN/Inf at vt=%g vf=%g\n", vt, vf);
+                return 1;
+            }
+        }
+    }
+
+    linint2D_init(
+        data->DT_He4n, c_DT_He4n, nvt, nvf, NATURALBC, NATURALBC, vt_min,
+        vt_max, vf_min, vf_max);
+
+    linint2D_init(
+        data->DHe3_He4p, c_DHe3_He4p, nvt, nvf, NATURALBC, NATURALBC, vt_min,
+        vt_max, vf_min, vf_max);
+
+    linint2D_init(
+        data->DD_Tp, c_DD_Tp, nvt, nvf, NATURALBC, NATURALBC, vt_min, vt_max,
+        vf_min, vf_max);
+
+    linint2D_init(
+        data->DD_He3n, c_DD_He3n, nvt, nvf, NATURALBC, NATURALBC, vt_min,
+        vt_max, vf_min, vf_max);
+
+    return 0;
+}
+
+/**
+ * @brief Free allocated resources
+ *
+ * @param data pointer to the data struct
+ */
+void tabulated_sigmav_free(tabulated_sigmav_data* data) {
+    free(data->DT_He4n);
+    free(data->DHe3_He4p);
+    free(data->DD_Tp);
+    free(data->DD_He3n);
 }

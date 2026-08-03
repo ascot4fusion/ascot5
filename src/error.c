@@ -231,6 +231,10 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
             sprintf(file, "E_2DS.c");
             break;
 
+        case EF_BOSCHHALE:
+            sprintf(file, "boschhale.c");
+            break;
+
         default:
             sprintf(file, "unknown file");
             break;

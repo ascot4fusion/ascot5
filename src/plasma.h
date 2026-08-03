@@ -73,5 +73,6 @@ DECLARE_TARGET_END
 GPU_DECLARE_TARGET_SIMD_UNIFORM(pls_data)
 const int* plasma_get_species_anum(plasma_data* pls_data);
 DECLARE_TARGET_END
+real plasma_get_max_ion_temp(const plasma_data* pls_data);
 
 #endif

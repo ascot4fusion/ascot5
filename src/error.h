@@ -52,7 +52,8 @@ typedef enum error_file {
     EF_ASIGMA_LOC        =  27, /**< Error is from asigma_loc.c               */
     EF_SUZUKI            =  28, /**< Error is from suzuki.c                   */
     EF_PLASMA_2D         =  29, /**< Error is from plasma_2D.c                */
-    EF_E_2DS             =  30  /**< Error is from suzuki.c                   */
+    EF_E_2DS             =  30,  /**< Error is from suzuki.c                  */
+    EF_BOSCHHALE         =  31  /**< Error is from boschhale.c                */
 }error_file;
 
 /**

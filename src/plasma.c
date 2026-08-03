@@ -462,3 +462,87 @@ const int* plasma_get_species_anum(plasma_data* pls_data) {
 
     return anum;
 }
+
+/**
+ * @brief Get maximum ion temperature
+ *
+ * @param pls_data pointer to plasma data struct
+ *
+ * @return Maximum ion temperature
+ */
+real plasma_get_max_ion_temp(const plasma_data* pls_data) {
+
+    switch (pls_data->type)
+    {
+    case plasma_type_1D:
+    {
+        plasma_1D_data *pls = &pls_data->plasma_1D;
+
+        real vt_max = pls->temp[pls->n_rho];   // first ion temperature
+
+        for (int i = 1; i < pls->n_rho; i++) {
+            if (pls->temp[pls->n_rho + i] > vt_max) {
+                vt_max = pls->temp[pls->n_rho + i];
+            }
+        }
+
+        return vt_max;
+    }
+    case plasma_type_2D:
+    {
+        linint2D_data *ion = &pls_data->plasma_2D.temp[1];
+
+        real vt_max = ion->c[0];
+
+        for (int i = 1; i < ion->n_x * ion->n_y; i++) {
+            if (ion->c[i] > vt_max) {
+                vt_max = ion->c[i];
+            }
+        }
+
+        return vt_max;
+    }
+    case plasma_type_1Dt:
+    {
+        plasma_1Dt_data *pls = &pls_data->plasma_1Dt;
+
+        real vt_max = pls->temp[pls->n_rho];   // t = 0, ion profile, rho = 0
+
+        for (int it = 0; it < pls->n_time; it++) {
+            int offset = it * 2 * pls->n_rho + pls->n_rho;
+
+            for (int ir = 0; ir < pls->n_rho; ir++) {
+                if (pls->temp[offset + ir] > vt_max) {
+                    vt_max = pls->temp[offset + ir];
+                }
+            }
+        }
+
+        return vt_max;
+    }
+    case plasma_type_1DS:
+    {
+        interp1D_data *ion = &pls_data->plasma_1DS.temp[1];
+
+        real vt_max = ion->c[0];
+
+        for (int i = 1; i < ion->n_x; i++) {
+            real T = ion->c[2 * i];
+            if (T > vt_max) {
+                vt_max = T;
+            }
+        }
+
+    #if PLASMA_1DS_NONEG == PLASMA_1DS_LOG
+        vt_max = exp(vt_max);
+    #elif PLASMA_1DS_NONEG == PLASMA_1DS_SQRT
+        vt_max = vt_max * vt_max;
+    #endif
+
+        return vt_max;
+    }
+
+    default:
+        return 0.0;
+    }
+}
