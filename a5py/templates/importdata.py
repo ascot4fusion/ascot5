@@ -47,7 +47,7 @@ except:
 class ImportData():
 
 
-    def import_aladdin(self, filename=None):
+    def import_aladdin(self, filename=None, q1=2, z2=-1):
         """Import data from IAEA ALADDIN file.
         """
         from scipy.interpolate import interp1d
@@ -175,32 +175,42 @@ class ImportData():
         sigma_raw = load_sigma(filename)
         mHe = 4.0026*amu
         mH  = 1.00784*amu
+        me = 0.0005486
 
-        Egrid = np.geomspace(1e2,1e5,10)
-        Tgrid = np.geomspace(1e-2,100,20)
+        reac_type_sigmav_eii = 5
+        reac_type_sigmav_cx  = 6
+        if z2 == -1:
+            a2 = 0
+            q2 = -1
+            reactype = reac_type_sigmav_eii
+            mn = me
+        else:
+            a2 = 1
+            q2 = 0
+            reactype = reac_type_sigmav_cx
+            mn = mH
+
+
+        Egrid = np.linspace(1e2,1e5,100)
+        Tgrid = np.linspace(1e3,20e3,5)
 
         sigma = build_table(
             Egrid,
             Tgrid,
             sigma_raw,
             mHe,
-            mH
+            mn
         )
 
-        z2 = 1
-        a2 = 1
-        reac_type_sigmav_eii = 5
-        reac_type_sigmav_cx  = 6
-        reactype = reac_type_sigmav_eii
         out = {
             "nreac" : 1,
-            "z1" : np.array([2]), "a1" : np.array([4]), "z2" : np.array([z2]),
-            "a2" : np.array([a2]), "reactype" : np.array([reactype]),
+            "z1" : np.array([2]), "a1" : np.array([4]), "q1" : np.array([q1]), "z2" : np.array([z2]),
+            "a2" : np.array([a2]), "q2" : np.array([q2]), "reactype" : np.array([reactype]),
             "nenergy" : np.array([Egrid.size]), "energymin" : np.array([Egrid[0]]), "energymax" : np.array([Egrid[-1]]),
             "ndensity" : np.array([1]), "densitymin" : np.array([0]), "densitymax" : np.array([1]),
             "ntemperature" : np.array([Tgrid.size]),
             "temperaturemin" : np.array([Tgrid[0]]), "temperaturemax" : np.array([Tgrid[-1]]),
-            "sigma" : np.array([sigma.ravel(),]),
+            "sigma" : np.array([sigma.T.ravel(),]),
         }
         return ("asigma_loc", out)
 
@@ -519,8 +529,10 @@ class ImportData():
         # Initialize arrays for reaction identifiers and abscissae
         z1       = np.zeros(nreac, dtype=int)
         a1       = np.zeros(nreac, dtype=int)
+        q1       = np.zeros(nreac, dtype=int)
         z2       = np.zeros(nreac, dtype=int)
         a2       = np.zeros(nreac, dtype=int)
+        q2       = np.zeros(nreac, dtype=int)
         reactype = np.zeros(nreac, dtype=int)
         nekin    = np.zeros(nreac, dtype=int)
         ekinmin  = np.zeros(nreac, dtype=float)
@@ -547,20 +559,25 @@ class ImportData():
                 if(items[0] == 'H'):
                     z1[ireac] = 1
                     a1[ireac] = 1
+                    q1[ireac] = 1
                 elif(items[0] == 'He'):
                     z1[ireac] = 2
                     a1[ireac] = 4
+                    q1[ireac] = 2
                 else:
                     raise(Exception("Unsupported beam species in BMS."))
                 if(items[2] == 'H'):
                     z2[ireac] = 1
                     a2[ireac] = 1
+                    q2[ireac] = 1
                 elif(items[2] == 'He'):
                     z2[ireac] = 2
                     a2[ireac] = 4
+                    q2[ireac] = 2
                 elif(items[2] == 'C'):
                     z2[ireac] = 6
                     a2[ireac] = 12
+                    q2[ireac] = 6
                 else:
                     raise(Exception("Unsupported target species in BMS."))
                 # Read Open ADAS BMS data file
@@ -727,7 +744,8 @@ class ImportData():
 
         out = {
             "nreac" : nreac,
-            "z1" : z1, "a1" : a1, "z2" : z2, "a2" : a2, "reactype" : reactype,
+            "z1" : z1, "a1" : a1, "q1": q1, "z2" : z2, "a2" : a2, "q2" : q2,
+            "reactype" : reactype,
             "nenergy" : nekin, "energymin" : ekinmin, "energymax" : ekinmax,
             "ndensity" : ndens, "densitymin" : densmin, "densitymax" : densmax,
             "ntemperature" : ntemp,
