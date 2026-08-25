@@ -194,6 +194,23 @@
 #endif
 
 /**
+ * @brief Forces a function to be inlined into its callers
+ *
+ * For a helper that is called from inside a routine carrying an "omp declare
+ * simd" contract, being inlined is part of the contract rather than an
+ * optimization preference: if the compiler leaves the helper out of line, the
+ * SIMD clone of the caller degenerates into a per-lane scalar call and the
+ * vectorization the contract exists to obtain is lost. gcc applies its -O2
+ * size limits to "static inline" and will do exactly that for a helper of any
+ * size, so say what is meant instead of hinting at it.
+ */
+#if defined(__GNUC__)
+#define FORCE_INLINE __attribute__((always_inline))
+#else
+#define FORCE_INLINE
+#endif
+
+/**
  * @brief Makes a parallel region (CPU only)
  */
 #if defined(GPU)

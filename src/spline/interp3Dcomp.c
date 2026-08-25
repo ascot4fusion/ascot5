@@ -272,12 +272,87 @@ int interp3Dcomp_setup(interp3D_data* str, real* f,
 }
 
 /**
- * @brief Evaluate interpolated value of 3D scalar field
+ * @brief Check that three tricubic splines are defined on the same grid
  *
- * This function evaluates the interpolated value of a 3D scalar field using
- * tricubic spline interpolation coefficients of the compact form.
+ * interp3Dcomp_eval_f3() and interp3Dcomp_eval_df3() take all grid metadata
+ * from their first spline, so they may only be used on splines whose grids are
+ * identical. This function verifies that precondition. It is meant to be called
+ * once where the splines are initialized, so that the evaluators themselves,
+ * which run on the device for every marker and every time step, need not.
  *
- * @param f variable in which to place the evaluated value
+ * The grid bounds and spacings are compared exactly, which is what is wanted:
+ * the splines are required to be on the same grid, not on grids that happen to
+ * agree to some tolerance.
+ *
+ * @param str0 first spline, the one whose grid the others must match
+ * @param str1 second spline
+ * @param str2 third spline
+ *
+ * @return one if all three are defined on the same grid and zero otherwise
+ */
+int interp3Dcomp_same_grid(interp3D_data* str0, interp3D_data* str1,
+                           interp3D_data* str2) {
+    interp3D_data* str[2] = {str1, str2};
+    for(int i = 0; i < 2; i++) {
+        if(   str[i]->n_x    != str0->n_x
+           || str[i]->n_y    != str0->n_y
+           || str[i]->n_z    != str0->n_z
+           || str[i]->bc_x   != str0->bc_x
+           || str[i]->bc_y   != str0->bc_y
+           || str[i]->bc_z   != str0->bc_z
+           || str[i]->x_min  != str0->x_min
+           || str[i]->x_max  != str0->x_max
+           || str[i]->x_grid != str0->x_grid
+           || str[i]->y_min  != str0->y_min
+           || str[i]->y_max  != str0->y_max
+           || str[i]->y_grid != str0->y_grid
+           || str[i]->z_min  != str0->z_min
+           || str[i]->z_max  != str0->z_max
+           || str[i]->z_grid != str0->z_grid ) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/**
+ * @brief Spline basis polynomials and cell indices for a tricubic evaluation
+ *
+ * These quantities depend on the evaluation point and on the grid only, not on
+ * the spline coefficients. Splines defined on one and the same grid therefore
+ * share them, which is what lets the coefficient sum be written just once.
+ */
+typedef struct {
+    real dx;   /**< Normalized x coordinate in the current cell  */
+    real dxi;  /**< 1 - dx                                       */
+    real dx3;  /**< dx^3 - dx                                    */
+    real dxi3; /**< dxi^3 - dxi                                  */
+    real xg2;  /**< Square of the x grid interval                */
+    real dy;   /**< Normalized y coordinate in the current cell  */
+    real dyi;  /**< 1 - dy                                       */
+    real dy3;  /**< dy^3 - dy                                    */
+    real dyi3; /**< dyi^3 - dyi                                  */
+    real yg2;  /**< Square of the y grid interval                */
+    real dz;   /**< Normalized z coordinate in the current cell  */
+    real dzi;  /**< 1 - dz                                       */
+    real dz3;  /**< dz^3 - dz                                    */
+    real dzi3; /**< dzi^3 - dzi                                  */
+    real zg2;  /**< Square of the z grid interval                */
+    int n;     /**< Index jump to the current cell               */
+    int x1;    /**< Index jump one x forward                     */
+    int y1;    /**< Index jump one y forward                     */
+    int z1;    /**< Index jump one z forward                     */
+} interp3Dcomp_basis_f;
+
+/**
+ * @brief Evaluate the tricubic spline basis at a given point
+ *
+ * Wraps periodic coordinates into the grid, locates the cell that contains
+ * (x,y,z) and evaluates the basis polynomials and the index jumps needed by
+ * interp3Dcomp_eval_comp_f(). Only grid metadata is read from str, so the
+ * result is valid for every spline that is defined on that same grid.
+ *
+ * @param b basis struct in which to place the evaluated values
  * @param str data struct for data interpolation
  * @param x x-coordinate
  * @param y y-coordinate
@@ -285,7 +360,10 @@ int interp3Dcomp_setup(interp3D_data* str, real* f,
  *
  * @return zero on success and one if (x,y,z) point is outside the grid.
  */
-a5err interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
+GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
+static inline FORCE_INLINE
+int interp3Dcomp_eval_basis_f(interp3Dcomp_basis_f* b, interp3D_data* str,
+                              real x, real y, real z) {
 
     /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {
@@ -359,7 +437,65 @@ a5err interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
         err = 1;
     }
 
-    if(!err) {
+    b->dx   = dx;
+    b->dxi  = dxi;
+    b->dx3  = dx3;
+    b->dxi3 = dxi3;
+    b->xg2  = xg2;
+    b->dy   = dy;
+    b->dyi  = dyi;
+    b->dy3  = dy3;
+    b->dyi3 = dyi3;
+    b->yg2  = yg2;
+    b->dz   = dz;
+    b->dzi  = dzi;
+    b->dz3  = dz3;
+    b->dzi3 = dzi3;
+    b->zg2  = zg2;
+    b->n    = n;
+    b->x1   = x1;
+    b->y1   = y1;
+    b->z1   = z1;
+
+    return err;
+}
+DECLARE_TARGET_END
+
+/**
+ * @brief Evaluate the tricubic sum of one set of spline coefficients
+ *
+ * Sums the compact-form coefficients of str against the basis in b. The sum is
+ * the sole place where the tricubic interpolation formula is written; both the
+ * single-component and the three-component evaluators call this function.
+ *
+ * @param f variable in which to place the evaluated value
+ * @param str data struct holding the coefficients to sum
+ * @param b spline basis from interp3Dcomp_eval_basis_f()
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
+static inline FORCE_INLINE
+void interp3Dcomp_eval_comp_f(real* f, interp3D_data* str,
+                              const interp3Dcomp_basis_f* b) {
+
+    real dx   = b->dx;
+    real dxi  = b->dxi;
+    real dx3  = b->dx3;
+    real dxi3 = b->dxi3;
+    real xg2  = b->xg2;
+    real dy   = b->dy;
+    real dyi  = b->dyi;
+    real dy3  = b->dy3;
+    real dyi3 = b->dyi3;
+    real yg2  = b->yg2;
+    real dz   = b->dz;
+    real dzi  = b->dzi;
+    real dz3  = b->dz3;
+    real dzi3 = b->dzi3;
+    real zg2  = b->zg2;
+    int n  = b->n;
+    int x1 = b->x1;
+    int y1 = b->y1;
+    int z1 = b->z1;
 
         /* Evaluate spline value */
         *f = (
@@ -418,26 +554,16 @@ a5err interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
                 +dz3*(
                     dxi3*(dyi3*str->c[n+z1+7]+dy3*str->c[n+y1+z1+7])
                     +dx3*(dyi3*str->c[n+x1+z1+7]+dy3*str->c[n+y1+z1+x1+7])));
-
-    }
-
-    return err;
 }
+DECLARE_TARGET_END
 
 /**
- * @brief Evaluate interpolated value of 3D field and 1st and 1st derivatives
+ * @brief Evaluate interpolated value of 3D scalar field
  *
- * This function evaluates the interpolated value of a 3D scalar field and
- * its 1st derivatives using bicubic spline interpolation coefficients
- * of the compact form.
+ * This function evaluates the interpolated value of a 3D scalar field using
+ * tricubic spline interpolation coefficients of the compact form.
  *
- * The evaluated  values are returned in an array with following elements:
- * - f_df[0] = f
- * - f_df[1] = f_x
- * - f_df[2] = f_y
- * - f_df[3] = f_z
- *
- * @param f_df array in which to place the evaluated values
+ * @param f variable in which to place the evaluated value
  * @param str data struct for data interpolation
  * @param x x-coordinate
  * @param y y-coordinate
@@ -445,8 +571,119 @@ a5err interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
  *
  * @return zero on success and one if (x,y,z) point is outside the grid.
  */
-a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
-                         real x, real y, real z) {
+a5err interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
+
+    interp3Dcomp_basis_f b;
+    int err = interp3Dcomp_eval_basis_f(&b, str, x, y, z);
+
+    if(!err) {
+        interp3Dcomp_eval_comp_f(f, str, &b);
+    }
+
+    return err;
+}
+
+/**
+ * @brief Evaluate three same-grid 3D scalar fields at a single point
+ *
+ * This function evaluates the interpolated values of three 3D scalar fields
+ * whose tricubic splines are defined on one and the same grid. The periodic
+ * wrapping, the cell search and the spline basis polynomials are common to the
+ * three components and are evaluated once instead of three times; each
+ * component's coefficient sum is then evaluated by the same routine that
+ * interp3Dcomp_eval_f() uses, so the arithmetic per component is unchanged.
+ *
+ * All grid metadata is taken from str0, and str1 and str2 must be defined on
+ * that same grid, i.e. interp3Dcomp_same_grid() must hold for the three. That
+ * check belongs where the splines are initialized; it is not repeated here
+ * because this function is on the device hot path.
+ *
+ * @param f array of length 3 in which to place the evaluated values
+ * @param str0 data struct for the first component
+ * @param str1 data struct for the second component, same grid as str0
+ * @param str2 data struct for the third component, same grid as str0
+ * @param x x-coordinate
+ * @param y y-coordinate
+ * @param z z-coordinate
+ *
+ * @return zero on success and one if (x,y,z) point is outside the grid.
+ */
+a5err interp3Dcomp_eval_f3(real* f, interp3D_data* str0, interp3D_data* str1,
+                           interp3D_data* str2, real x, real y, real z) {
+
+    interp3Dcomp_basis_f b;
+    int err = interp3Dcomp_eval_basis_f(&b, str0, x, y, z);
+
+    if(!err) {
+        interp3Dcomp_eval_comp_f(&f[0], str0, &b);
+        interp3Dcomp_eval_comp_f(&f[1], str1, &b);
+        interp3Dcomp_eval_comp_f(&f[2], str2, &b);
+    }
+
+    return err;
+}
+
+/**
+ * @brief Spline basis polynomials and cell indices for a tricubic evaluation
+ *        of the value and the first derivatives
+ *
+ * As interp3Dcomp_basis_f, but also carries the derivatives of the basis
+ * polynomials and the grid intervals and their inverses.
+ */
+typedef struct {
+    real dx;     /**< Normalized x coordinate in the current cell  */
+    real dx3;    /**< dx^3 - dx                                    */
+    real dx3dx;  /**< Derivative of dx3 with respect to dx         */
+    real dxi;    /**< 1 - dx                                       */
+    real dxi3;   /**< dxi^3 - dxi                                  */
+    real dxi3dx; /**< Derivative of dxi3 with respect to dx        */
+    real xg;     /**< x grid interval                              */
+    real xg2;    /**< Square of the x grid interval                */
+    real xgi;    /**< Inverse of the x grid interval               */
+    real dy;     /**< Normalized y coordinate in the current cell  */
+    real dy3;    /**< dy^3 - dy                                    */
+    real dy3dy;  /**< Derivative of dy3 with respect to dy         */
+    real dyi;    /**< 1 - dy                                       */
+    real dyi3;   /**< dyi^3 - dyi                                  */
+    real dyi3dy; /**< Derivative of dyi3 with respect to dy        */
+    real yg;     /**< y grid interval                              */
+    real yg2;    /**< Square of the y grid interval                */
+    real ygi;    /**< Inverse of the y grid interval               */
+    real dz;     /**< Normalized z coordinate in the current cell  */
+    real dz3;    /**< dz^3 - dz                                    */
+    real dz3dz;  /**< Derivative of dz3 with respect to dz         */
+    real dzi;    /**< 1 - dz                                       */
+    real dzi3;   /**< dzi^3 - dzi                                  */
+    real dzi3dz; /**< Derivative of dzi3 with respect to dz        */
+    real zg;     /**< z grid interval                              */
+    real zg2;    /**< Square of the z grid interval                */
+    real zgi;    /**< Inverse of the z grid interval               */
+    int n;       /**< Index jump to the current cell               */
+    int x1;      /**< Index jump one x forward                     */
+    int y1;      /**< Index jump one y forward                     */
+    int z1;      /**< Index jump one z forward                     */
+} interp3Dcomp_basis_df;
+
+/**
+ * @brief Evaluate the tricubic spline basis and its derivatives
+ *
+ * Wraps periodic coordinates into the grid, locates the cell that contains
+ * (x,y,z) and evaluates the basis polynomials, their derivatives and the index
+ * jumps needed by interp3Dcomp_eval_comp_df(). Only grid metadata is read from
+ * str, so the result is valid for every spline defined on that same grid.
+ *
+ * @param b basis struct in which to place the evaluated values
+ * @param str data struct for data interpolation
+ * @param x x-coordinate
+ * @param y y-coordinate
+ * @param z z-coordinate
+ *
+ * @return zero on success and one if (x,y,z) point is outside the grid.
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
+static inline FORCE_INLINE
+int interp3Dcomp_eval_basis_df(interp3Dcomp_basis_df* b, interp3D_data* str,
+                               real x, real y, real z) {
 
     /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {
@@ -532,7 +769,95 @@ a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
         err = 1;
     }
 
-    if(!err) {
+    b->dx     = dx;
+    b->dx3    = dx3;
+    b->dx3dx  = dx3dx;
+    b->dxi    = dxi;
+    b->dxi3   = dxi3;
+    b->dxi3dx = dxi3dx;
+    b->xg     = xg;
+    b->xg2    = xg2;
+    b->xgi    = xgi;
+    b->dy     = dy;
+    b->dy3    = dy3;
+    b->dy3dy  = dy3dy;
+    b->dyi    = dyi;
+    b->dyi3   = dyi3;
+    b->dyi3dy = dyi3dy;
+    b->yg     = yg;
+    b->yg2    = yg2;
+    b->ygi    = ygi;
+    b->dz     = dz;
+    b->dz3    = dz3;
+    b->dz3dz  = dz3dz;
+    b->dzi    = dzi;
+    b->dzi3   = dzi3;
+    b->dzi3dz = dzi3dz;
+    b->zg     = zg;
+    b->zg2    = zg2;
+    b->zgi    = zgi;
+    b->n      = n;
+    b->x1     = x1;
+    b->y1     = y1;
+    b->z1     = z1;
+
+    return err;
+}
+DECLARE_TARGET_END
+
+/**
+ * @brief Evaluate the tricubic sums of one set of spline coefficients
+ *
+ * Sums the compact-form coefficients of str against the basis in b to give the
+ * value and the three first derivatives:
+ * - f_df[0] = f
+ * - f_df[1] = f_x
+ * - f_df[2] = f_y
+ * - f_df[3] = f_z
+ *
+ * The sums are the sole place where these formulae are written; both the
+ * single-component and the three-component evaluators call this function.
+ *
+ * @param f_df array in which to place the evaluated values
+ * @param str data struct holding the coefficients to sum
+ * @param b spline basis from interp3Dcomp_eval_basis_df()
+ */
+GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
+static inline FORCE_INLINE
+void interp3Dcomp_eval_comp_df(real* f_df, interp3D_data* str,
+                               const interp3Dcomp_basis_df* b) {
+
+    real dx     = b->dx;
+    real dx3    = b->dx3;
+    real dx3dx  = b->dx3dx;
+    real dxi    = b->dxi;
+    real dxi3   = b->dxi3;
+    real dxi3dx = b->dxi3dx;
+    real xg     = b->xg;
+    real xg2    = b->xg2;
+    real xgi    = b->xgi;
+    real dy     = b->dy;
+    real dy3    = b->dy3;
+    real dy3dy  = b->dy3dy;
+    real dyi    = b->dyi;
+    real dyi3   = b->dyi3;
+    real dyi3dy = b->dyi3dy;
+    real yg     = b->yg;
+    real yg2    = b->yg2;
+    real ygi    = b->ygi;
+    real dz     = b->dz;
+    real dz3    = b->dz3;
+    real dz3dz  = b->dz3dz;
+    real dzi    = b->dzi;
+    real dzi3   = b->dzi3;
+    real dzi3dz = b->dzi3dz;
+    real zg     = b->zg;
+    real zg2    = b->zg2;
+    real zgi    = b->zgi;
+    int n  = b->n;
+    int x1 = b->x1;
+    int y1 = b->y1;
+    int z1 = b->z1;
 
         /* Fetch coefficients explicitly to fetch those that are adjacent
            subsequently and to store in temporary variables coefficients that
@@ -844,6 +1169,81 @@ a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
             +dz3dz*(
                 dxi3*(dyi3*c1007+dy3*c1107)
                 +dx3*(dyi3*c1017+dy3*c1117)));
+}
+DECLARE_TARGET_END
+
+/**
+ * @brief Evaluate interpolated value of 3D field and 1st and 1st derivatives
+ *
+ * This function evaluates the interpolated value of a 3D scalar field and
+ * its 1st derivatives using bicubic spline interpolation coefficients
+ * of the compact form.
+ *
+ * The evaluated  values are returned in an array with following elements:
+ * - f_df[0] = f
+ * - f_df[1] = f_x
+ * - f_df[2] = f_y
+ * - f_df[3] = f_z
+ *
+ * @param f_df array in which to place the evaluated values
+ * @param str data struct for data interpolation
+ * @param x x-coordinate
+ * @param y y-coordinate
+ * @param z z-coordinate
+ *
+ * @return zero on success and one if (x,y,z) point is outside the grid.
+ */
+a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
+                         real x, real y, real z) {
+
+    interp3Dcomp_basis_df b;
+    int err = interp3Dcomp_eval_basis_df(&b, str, x, y, z);
+
+    if(!err) {
+        interp3Dcomp_eval_comp_df(f_df, str, &b);
+    }
+
+    return err;
+}
+
+/**
+ * @brief Evaluate three same-grid 3D scalar fields and their 1st derivatives
+ *
+ * As interp3Dcomp_eval_f3(), but each component also yields its three first
+ * derivatives. The twelve evaluated values are returned as three consecutive
+ * blocks of four, one block per component, each laid out as the output of
+ * interp3Dcomp_eval_df():
+ * - f_df[4*i+0] = f
+ * - f_df[4*i+1] = f_x
+ * - f_df[4*i+2] = f_y
+ * - f_df[4*i+3] = f_z
+ *
+ * All grid metadata is taken from str0, and str1 and str2 must be defined on
+ * that same grid, i.e. interp3Dcomp_same_grid() must hold for the three. That
+ * check belongs where the splines are initialized; it is not repeated here
+ * because this function is on the device hot path.
+ *
+ * @param f_df array of length 12 in which to place the evaluated values
+ * @param str0 data struct for the first component
+ * @param str1 data struct for the second component, same grid as str0
+ * @param str2 data struct for the third component, same grid as str0
+ * @param x x-coordinate
+ * @param y y-coordinate
+ * @param z z-coordinate
+ *
+ * @return zero on success and one if (x,y,z) point is outside the grid.
+ */
+a5err interp3Dcomp_eval_df3(real* f_df, interp3D_data* str0,
+                            interp3D_data* str1, interp3D_data* str2,
+                            real x, real y, real z) {
+
+    interp3Dcomp_basis_df b;
+    int err = interp3Dcomp_eval_basis_df(&b, str0, x, y, z);
+
+    if(!err) {
+        interp3Dcomp_eval_comp_df(&f_df[0], str0, &b);
+        interp3Dcomp_eval_comp_df(&f_df[4], str1, &b);
+        interp3Dcomp_eval_comp_df(&f_df[8], str2, &b);
     }
 
     return err;

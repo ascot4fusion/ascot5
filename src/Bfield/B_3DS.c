@@ -151,6 +151,16 @@ int B_3DS_init(B_3DS_data* data,
         return 1;
     }
 
+    /* B_3DS_eval_B() and B_3DS_eval_B_dB() evaluate the three components with
+       interp3Dcomp_eval_f3() and interp3Dcomp_eval_df3(), which read all grid
+       metadata from the first component. The three splines are set up above
+       from the same grid parameters, so this always holds; check it here, once,
+       so that it cannot silently stop holding. */
+    if(!interp3Dcomp_same_grid(&data->B_r, &data->B_phi, &data->B_z)) {
+        print_err("Error: B components are not on the same grid.\n");
+        return 1;
+    }
+
     /* Evaluate psi and magnetic field on axis for checks */
     real psival[1], Bval[3];
     err = B_3DS_eval_psi(psival, data->axis_r, 0, data->axis_z, data);
@@ -318,9 +328,12 @@ a5err B_3DS_eval_B(real B[3], real r, real phi, real z, B_3DS_data* Bdata) {
     a5err err = 0;
     int interperr = 0;
 
-    interperr += interp3Dcomp_eval_f(&B[0], &Bdata->B_r, r, phi, z);
-    interperr += interp3Dcomp_eval_f(&B[1], &Bdata->B_phi, r, phi, z);
-    interperr += interp3Dcomp_eval_f(&B[2], &Bdata->B_z, r, phi, z);
+    /* The three components are splines on one and the same grid, so a single
+       call evaluates them all, locating the cell and evaluating the spline
+       basis polynomials once instead of three times. B_3DS_init() has checked
+       that the grids really do match. */
+    interperr += interp3Dcomp_eval_f3(B, &Bdata->B_r, &Bdata->B_phi,
+                                      &Bdata->B_z, r, phi, z);
 
     /* Test for B field interpolation error */
     if(interperr) {
@@ -365,25 +378,14 @@ a5err B_3DS_eval_B_dB(real B_dB[12], real r, real phi, real z,
                       B_3DS_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
-    real B_dB_temp[4];
 
-    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_r, r, phi, z);
-    B_dB[0] = B_dB_temp[0];
-    B_dB[1] = B_dB_temp[1];
-    B_dB[2] = B_dB_temp[2];
-    B_dB[3] = B_dB_temp[3];
-
-    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_phi, r, phi, z);
-    B_dB[4] = B_dB_temp[0];
-    B_dB[5] = B_dB_temp[1];
-    B_dB[6] = B_dB_temp[2];
-    B_dB[7] = B_dB_temp[3];
-
-    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_z, r, phi, z);
-    B_dB[8] = B_dB_temp[0];
-    B_dB[9] = B_dB_temp[1];
-    B_dB[10] = B_dB_temp[2];
-    B_dB[11] = B_dB_temp[3];
+    /* The three components are splines on one and the same grid, so a single
+       call evaluates them all, locating the cell and evaluating the spline
+       basis polynomials once instead of three times. B_3DS_init() has checked
+       that the grids really do match. Each component writes four consecutive
+       values, which is already the B_dB layout, so no temporary is needed. */
+    interperr += interp3Dcomp_eval_df3(B_dB, &Bdata->B_r, &Bdata->B_phi,
+                                       &Bdata->B_z, r, phi, z);
 
     /* Test for B field interpolation error */
     if(interperr) {
