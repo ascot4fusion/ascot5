@@ -10,11 +10,12 @@
 
 void gctransform_setorder(int order);
 
-DECLARE_TARGET_SIMD
+GPU_DECLARE_TARGET_SIMD
 void gctransform_particle2guidingcenter(
     real mass, real charge, real* B_dB,
     real r, real phi, real z, real pr, real pphi, real pz,
     real* R, real* Phi, real* Z, real* ppar, real* mu, real* zeta);
+DECLARE_TARGET_END
 
 DECLARE_TARGET_SIMD
 void gctransform_guidingcenter2particle(
