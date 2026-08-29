@@ -102,6 +102,7 @@ typedef struct {
     int enable_atomic;         /**< Are atomic reactions enabled              */
     int enable_icrh;           /**< Is RFOF enabled                           */
     int enable_aldforce;       /**< Is radiation reaction force enabled       */
+    int enable_flr_losses;     /**< Are finite Larmor radius losses enabled   */
     int disable_gctransform;   /**< Disables first order velocity terms in
                                     guiding center transformation             */
     int disable_energyccoll;   /**< Disables energy component from Coulomb
