@@ -60,7 +60,7 @@ class Ascot():
         """
         self.preflight_check_parameters(params)
 
-        required = {"bfield", "marker"}
+        required = {"bfield", "efield", "marker"}
 
         if params.physics.enable_icrh:
             required.add("rfof")

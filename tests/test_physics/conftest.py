@@ -1,4 +1,3 @@
-import os
 import pytest
 
 from a5py import Ascot
@@ -48,14 +47,11 @@ def plot(request):
 def ascot(request, inspect, dump):
 
     fn = request.node.nodeid.split("::")[1] + ".h5"
-    if inspect:
-        yield Ascot(fn)
-    else:
-        yield Ascot(fn, create=True)
+    fn = fn.replace("[", "-").replace("]", "")
+    out = fn if inspect else None
+    ascot = Ascot(out)
+    yield ascot
 
     failed = request.node.rep_call.failed
-    if failed or dump:
-        print("Writing data")
-        #obj.write(filename)
-    elif not inspect:
-        os.unlink(fn)
+    if not inspect and (failed or dump):
+        ascot.data.save(fn)

@@ -26,9 +26,9 @@ void math_jac_rpz2xyz(real *rpz, real *xyz, real r, real phi)
     real s = sin(phi);
     real temp[3];
 
-    xyz[0] = rpz[0] * c - rpz[4] * s;
-    xyz[1] = rpz[0] * s + rpz[4] * c;
-    xyz[2] = rpz[8];
+    xyz[0] = rpz[0] * c - rpz[1] * s;
+    xyz[1] = rpz[0] * s + rpz[1] * c;
+    xyz[2] = rpz[2];
 
     // Step 1: Vector [dBr/dx dBr/dy dBr/dz]
     temp[0] = rpz[3] * c - rpz[6] * s;

@@ -235,8 +235,10 @@ class Leaf():
         if len(tags) > 1:
             raise ValueError("Multiple tags found. Use single '<>'.")
 
-        raw_tag = tags[0].strip()
-        clean = re.sub(r"[^A-Za-z0-9 ]", "", raw_tag)
+        raw_tag = tags[0]
+        clean = re.sub(r"[^A-Za-z0-9_ ]", "", raw_tag)
+        if clean.startswith("_"):
+            clean = clean[1:]
         tag = clean.upper().replace(" ", "_")
 
         if len(tag) == 0:

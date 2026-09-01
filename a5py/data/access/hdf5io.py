@@ -380,6 +380,10 @@ class TreeFileManager():
         self.root = root
         self.filename = filename
 
+        self.access_file(filename, file_exists, input_categories)
+
+    def access_file(self, filename: str, file_exists: bool, input_categories: list[str],):
+
         if file_exists:
             if not os.path.isfile(filename):
                 raise FileNotFoundError(
@@ -397,10 +401,11 @@ class TreeFileManager():
                 # Creates the file
                 pass
 
-        with TreeFile(self.filename, "a") as h5:
+        with TreeFile(filename, "a") as h5:
             h5.set_node(node=RESULTGROUP)
             for category in input_categories:
                 h5.set_node(node=category)
+
 
     def access_data(
             self, name: str, node: str, subpath: Optional[str]=None

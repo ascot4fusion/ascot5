@@ -3,6 +3,7 @@ import numpy as np
 import unyt
 
 import pytest
+from matplotlib.gridspec import GridSpec
 
 from a5py import Ascot, SimulationOptions, physlib
 from a5py import plotting as a5plt
@@ -14,22 +15,28 @@ from a5py.templates import PremadeMagneticField
 )
 def test_conservation(ascot, method, inspect, plot):
     if not inspect:
-        parameters = SimulationOptions(
-                enable_orbit_following=True,
-                collect_orbit=True,
-                activate_simulation_time_limits=True,
-                max_mileage=5e-6,
-            )
+        parameters = SimulationOptions.from_dict(
+            physics={
+                "enable_orbit_following": True,
+            },
+            endconditions={
+                "activate_simulation_time_limits": True,
+                "max_mileage": 5e-6,
+            },
+            orbit={
+                "collect": "interval",
+            },
+        )
         if method == "go":
-            parameters.simulation.simulation_mode = 1
-            parameters.simulation.timestep=1e-11
-            parameters.orbit.number_of_points_per_marker=50002
-            parameters.orbit.interval=1e-10
+            parameters.simulation.mode = "gyro-orbit"
+            parameters.simulation.timestep = 1e-11
+            parameters.orbit.buffer_size = 50002
+            parameters.orbit.interval = 1e-10
         else:
-            parameters.simulation.simulation_mode = 2
+            parameters.simulation.mode = "guiding-center"
             parameters.simulation.timestep = 1e-12
-            parameters.orbit.number_of_points_per_marker=502
-            parameters.orbit.interval=1e-8
+            parameters.orbit.buffer_size = 502
+            parameters.orbit.interval = 1e-8
             if method == "gc-fixedstep":
                 parameters.simulation.enable_adaptive = False
                 parameters.simulation.adaptive_tolerance_orbit = 1e-14
@@ -42,16 +49,47 @@ def test_conservation(ascot, method, inspect, plot):
             ekin=10e6*unyt.eV,
             pitch=np.array([0.4, 0.9]),
             gyroangle=0.0*unyt.rad,
-            charge=np.array([1, -1])*unyt.e,
+            charge=np.array([1., -1.])*unyt.e,
             )
 
         PremadeMagneticField(ascot, field="iter-circular").create_input()
+        ascot.data.create_efieldcartesian(
+            exyz=np.array([0, 0, 0])*unyt.V/unyt.m,
+            )
 
-        ascot.data.bfield.active.stage()
-        ascot.data.marker.active.stage()
         run = ascot.simulate(params=parameters)
     else:
         run = ascot.data.active
+
+    t1, e1, mu1, p1, r1, z1 = run.getorbit(
+        "mileage", "ekin", "mu", "ptor", "r", "z", filter=[1])
+    t2, e2, mu2, p2, r2, z2 = run.getorbit(
+        "mileage", "ekin", "mu", "ptor", "r", "z", filter=[2])
+
+    if plot:
+        fig = a5plt.figure()
+        gs = GridSpec(3, 2, figure=fig)
+        ax1 = fig.add_subplot(gs[0,0])
+        ax2 = fig.add_subplot(gs[1,0])
+        ax3 = fig.add_subplot(gs[2,0])
+        ax4 = fig.add_subplot(gs[:,1])
+
+        def plot_difference(t, e, mu, p, color):
+            ax1.plot(t, e - e[0], color=color)
+            ax2.plot(t, mu - mu[0], color=color)
+            ax3.plot(t, p - p[0], color=color)
+
+        plot_difference(t1, e1, mu1, p1, "C0")
+        plot_difference(t2, e2, mu2, p2, "C1")
+
+        ax4.plot(r1, z1, color="C0")
+        ax4.plot(r2, z2, color="C1")
+
+        ax3.set_xlabel("Mileage [m]")
+        ax4.set_xlabel("$r$ [m]")
+        ax4.set_ylabel("$z$ [m]")
+
+        a5plt.show()
 
 #     def check_orbitfollowing(self):
 #         """Check test.

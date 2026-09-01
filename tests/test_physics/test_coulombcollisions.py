@@ -15,6 +15,9 @@ from a5py.templates import PremadeMagneticField
 def test_maxwellian(ascot: Ascot, method, inspect, plot):
     if not inspect:
         PremadeMagneticField(ascot, field="iter-circular").create_input()
+        ascot.data.create_efieldcartesian(
+            exyz=np.array([0, 0, 0])*unyt.V/unyt.m,
+            )
         ascot.data.create_plasmalinear1d(
             species=["H"],
             rhogrid=np.array([0, 2]),
@@ -38,7 +41,6 @@ def test_maxwellian(ascot: Ascot, method, inspect, plot):
             z=(0.0 + rminor * np.sin(pol))*unyt.m,
             ekin=1e3*unyt.eV,
             pitch=0.4,
-            charge=1*unyt.e,
             )
 
         parameters = SimulationOptions.from_dict(
@@ -48,14 +50,13 @@ def test_maxwellian(ascot: Ascot, method, inspect, plot):
                 },
             endconditions={
                 "activate_simulation_time_limits": True,
-                "max_mileage": 2e-3,#2
+                "max_mileage": 2e-2,#2
             },
             histograms=[
                 {
-                    "abscissae": [
-                        #("ekin", ((1e3*unyt.eV).to("J"), (4e6*unyt.eV).to("J"),), 20),
-                        ("ekin", ((0.*unyt.eV).to("J"), (1e4*unyt.eV).to("J"),), 20),
-                        ("pitch", (-1, 1), 10),
+                    "dimensions": [
+                        ("ekin", 0.*unyt.eV, 1e4*unyt.eV, 100),
+                        ("pitch", -1, 1, 10),
                         ],
                     "charge_interval": (1, 1,),
                 },
@@ -74,14 +75,42 @@ def test_maxwellian(ascot: Ascot, method, inspect, plot):
                 parameters.simulation.adaptive_tolerance_orbit = 1e-6
                 parameters.simulation.adaptive_tolerance_collisions = 1e-2
 
-        ascot.data.bfield.active.stage()
-        ascot.data.plasma.active.stage()
-        ascot.data.marker.active.stage()
         run = ascot.simulate(params=parameters)
+
+        # Analytical results
+        plasma = ascot.data.plasma.active
+        ne, Te = plasma.ne[0], plasma.Te[0]
+        m_e = unyt.me
+        m_p     = unyt.mp
+        m_a     = 4.003*unyt.amu
+        eps_0   = unyt.eps_0
+        #alphaZ  = 2
+        #clog    = 16
+        #E0      = 3.5e6*unyt.eV
+        #Emin    = 50 * Te
+
+        # Thermal distribution with correct normalization
+        dist0 = run.getdist(0, ("pitch", "ekin"))
+        time = run.options.endconditions.max_mileage * unyt.s
+        weight = np.sum(ascot.data.marker.active.weight)
+        thermal = (
+            2*np.sqrt(dist0.dimensions["ekin"]/np.pi) * np.power(Te, -3.0/2)
+            * np.exp(-dist0.dimensions["ekin"]/Te) * time * weight
+        ).to("1/eV")
+
         #ekin0 = run.getstate("ekin", state="ini")
         #ekin1 = run.getstate("ekin", state="end")
-        print(run._diagnostics["hist_0"]._cdata.bins_ref)
-        #import matplotlib.pyplot as plt
+        #print(run.getdist(0, ("ekin", "pitch")))
+        #dist = run.getdist(0, ("pitch", "ekin"))
+        dist0.integrate({"pitch": None})
+        dist1 = run.getdist(0, ("pitch", "ekin"))
+        dist1.integrate({"ekin": None})
+        _, ax = a5plt.subplots()
+        ax.plot(dist0.dimensions["ekin"].to("eV"), dist0.distribution.to("1/eV"))
+        ax.plot(dist0.dimensions["ekin"].to("eV"), thermal)
+        _, ax = a5plt.subplots()
+        ax.plot(dist1.dimensions["pitch"], dist1.histogram)
+        a5plt.show()
         #plt.hist(ekin0)
         #plt.hist(ekin1)
         #plt.show()

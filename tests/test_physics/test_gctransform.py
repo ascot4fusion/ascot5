@@ -17,6 +17,18 @@ from a5py.templates import PremadeMagneticField
 
 def test_gctransform_compare_actual(ascot, inspect, plot):
     if not inspect:
+        parameters = SimulationOptions.from_dict(
+            physics={
+                "enable_orbit_following": True,
+            },
+            endconditions={
+                "activate_simulation_time_limits": True,
+                "max_mileage": 1e-7,
+            },
+            orbit={
+                "collect": "interval",
+            },
+        )
         parameters = SimulationOptions(
                 simulation_mode=2,
                 enable_adaptive=False,

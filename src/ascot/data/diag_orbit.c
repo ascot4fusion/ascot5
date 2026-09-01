@@ -54,6 +54,7 @@ void DiagOrbit_update_go(
                     k = 1;
                 real d = 1 - k;
 
+                orbit->charge[idx] = k >= 0 ? rint(mrk_f->charge[i]/CONST_E) : orbit->charge[idx];
                 orbit->r[idx] = k >= 0 ? k * mrk_f->r[i] + d * mrk_i->r[i] : orbit->r[idx];
                 orbit->z[idx] = k >= 0 ? k * mrk_f->z[i] + d * mrk_i->z[i] : orbit->z[idx];
                 orbit->p1[idx] = k * mrk_f->p_r[i] + d * mrk_i->p_r[i];
@@ -113,6 +114,7 @@ void DiagOrbit_update_gc(
                 }
                 real d = 1 - k;
 
+                orbit->charge[idx] = k >= 0 ? rint(mrk_f->charge[i]/CONST_E) : orbit->charge[idx];
                 orbit->r[idx] = k >= 0 ? k * mrk_f->r[i] + d * mrk_i->r[i] : orbit->r[idx];
                 orbit->z[idx] = k >= 0 ? k * mrk_f->z[i] + d * mrk_i->z[i] : orbit->z[idx];
                 orbit->p1[idx] = k * mrk_f->ppar[i] + d * mrk_i->ppar[i];

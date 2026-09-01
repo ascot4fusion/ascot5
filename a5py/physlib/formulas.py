@@ -310,7 +310,7 @@ pnorm.add_formula(
     )
 pnorm.add_formula(
     lambda energy, m: np.sqrt((energy / (m * c**2) + 1)**2 - 1) * m * c,
-    ["energy", "mass"]
+    ["ekin", "mass"]
     )
 pnorm.add_formula(
     lambda m, mu, ppar, b: np.sqrt( 2 * m * mu * b + ppar**2 ),
@@ -327,6 +327,11 @@ vnorm.add_formula(
     )
 
 vnorm.add_formula(
+    lambda vr, vphi, vz: np.sqrt( vr**2 + vphi**2 + vz**2 ),
+    ["vr", "vphi", "vz"]
+    )
+
+vnorm.add_formula(
     lambda gamma: np.sqrt(1 - 1.0 / gamma**2) * c,
     ["gamma"]
     )
@@ -335,14 +340,6 @@ vnorm.add_formula(
 energy = Quantity("ekin", "eV")
 """Kinetic energy."""
 
-energy.add_formula(
-    lambda p, m: p**2 / (2*m),
-    ["pnorm", "mass"]
-    )
-energy.add_formula(
-    lambda v, m: 0.5 * m * v**2,
-    ["vnorm", "mass"]
-    )
 energy.add_formula(
     lambda gamma, m: (gamma - 1.0) * m * c**2,
     ["gamma", "mass"]
@@ -365,7 +362,7 @@ gamma = Quantity("gamma", "1")
 """Lorentz factor."""
 
 gamma.add_formula(
-    lambda m, p: np.sqrt( 1 + p / ( m * c )**2 ),
+    lambda m, p: np.sqrt( 1 + p**2 / ( m * c )**2 ),
     ["mass", "pnorm"]
     )
 gamma.add_formula(
@@ -455,7 +452,7 @@ gyrofrequency = Quantity("gyrofrequency", "rad/s")
 """Frequency of the gyromotion in uniform magnetic field."""
 
 gyrofrequency.add_formula(
-    lambda m, q, b, gamma: np.abs(q) * b / ( gamma*m ),
+    lambda m, q, b, gamma: ( np.abs(q) * b / ( gamma*m ) ) * unyt.rad,
     ["mass", "charge", "bnorm", "gamma"]
     )
 

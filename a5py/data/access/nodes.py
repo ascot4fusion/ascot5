@@ -140,8 +140,8 @@ class ImmutableNode(utils.ImmutableStorage):
     def _add_leaf(self, leaf: Leaf) -> None:
         """Add leaf to this node.
 
-        Adds the QID to the QID list, and includes references by QID and
-        name. Then reorganizes this node to update any other references.
+        Adds the name to the name list, and includes reference byname. Then
+        reorganizes this node to update any other references (i.e. by tags).
 
         Parameters
         ----------
@@ -171,8 +171,8 @@ class ImmutableNode(utils.ImmutableStorage):
     def _remove_leaf(self, leaf: Leaf) -> None:
         """Remove a leaf from this node.
 
-        Removes the QID from the QID list, and removes references by QID and
-        name. Then reorganizes this node to update any other references.
+        Removes the name from the name list, and removes reference by name.
+        Then reorganizes this node to update any other references (i.e. tags).
 
         Parameters
         ----------
@@ -303,13 +303,18 @@ class InputCategory(ImmutableNode):
         escape sequences.
         """
         contents = ""
-        for index, leaf in enumerate(self):
+        for leaf in self:
             contents += utils.decorate(f"{leaf.name.ljust(15)}", bold=True)
             contents += f" {leaf.date}"
             if self.active == leaf:
                 contents += utils.decorate(" [active]", color="green")
 
-            contents += f"\n{self._tags[index]}\n{leaf.note}\n\n"
+            for tag in self._tags:
+                if self[tag] == leaf:
+                    contents += f"\n{tag}\n{leaf.note}\n\n"
+                    break
+            else:
+                contents += f"\n<no tag>\n{leaf.note}\n\n"
 
         if not contents:
             contents = "No data in this category.\n"
@@ -424,6 +429,9 @@ class Tree(ImmutableNode):
         of all simulation runs.
         """
         print(self._get_decorated_contents())
+
+    def save(self, filename: str) -> None:
+        self._treemanager.save(filename)
 
     def _get_decorated_contents(self) -> str:
         """Get a string representation of the contents decorated with ANSI

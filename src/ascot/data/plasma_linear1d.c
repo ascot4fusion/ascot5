@@ -134,7 +134,7 @@ err_t PlasmaLinear1D_eval_nT(
     size_t i_rho = 0;
     for (size_t i = 0; i < plasma->nrho; ++i)
         i_rho += (plasma->rho[i] <= rho);
-    //i_rho--;
+    i_rho--;
 
     real t_rho = (rho - plasma->rho[i_rho]) /
                  (plasma->rho[i_rho + 1] - plasma->rho[i_rho]);

@@ -579,7 +579,7 @@ class Hist():
         if self._file is None:
             return self._cdata.values_ref
         return self._file.read("values")
-    
+
     def save(self, file):
         """"""
         file.write("values", self.values)
@@ -641,7 +641,6 @@ class Hist():
             projected = np.transpose(projected)
 
         projected_axes = {dim: hist_dimensions[dim] for dim in dimensions}
-        print(projected_axes, projected.shape)
         return Dist(projected, projected_axes, species=species, charge=charge)
 
     @classmethod

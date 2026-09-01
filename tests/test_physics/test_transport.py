@@ -15,17 +15,22 @@ from a5py.templates import PremadeMagneticField
 def test_classical(ascot: Ascot, method, inspect, plot):
 
     if not inspect:
-        parameters = SimulationOptions(
-            enable_orbit_following=True,
-            activate_simulation_time_limits=True,
-            max_mileage=1e-5,
-            )
+        parameters = SimulationOptions.from_dict(
+            physics={
+                "enable_orbit_following": True,
+                "enable_coulomb_collisions": True,
+            },
+            endconditions={
+                "activate_simulation_time_limits": True,
+                "max_mileage": 1e-5,
+            },
+        )
 
         if method == "go":
-            parameters.simulation.simulation_mode = 1
+            parameters.simulation.mode = "gyro-orbit"
             parameters.simulation.timestep=1e-10
         else:
-            parameters.simulation.simulation_mode = 2
+            parameters.simulation.mode = "guiding-center"
             parameters.simulation.timestep = 1e-9
             if method == "gc-fixedstep":
                 parameters.simulation.enable_adaptive = False
@@ -37,7 +42,6 @@ def test_classical(ascot: Ascot, method, inspect, plot):
             phi=0.0*unyt.deg,
             ekin=1e3*unyt.eV,
             pitch=1.0 - 2.0 * np.random.rand(1000,),
-            charge=1.*unyt.e,
             )
 
         # Pure electron plasma to avoid proton-proton collisions

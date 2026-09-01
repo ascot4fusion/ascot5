@@ -10,8 +10,11 @@ from numpy.typing import ArrayLike
 from a5py import utils
 from a5py.physlib import Species
 from a5py.data.access import InputVariant, Leaf, TreeMixin
+from a5py.physlib.formulas import resolve_quantities, compute_quantities
+from a5py.engine.interpolate import interpolate
 
 from .state import Structure
+
 
 
 @Leaf.register
@@ -30,6 +33,21 @@ class GuidingcenterMarker(InputVariant):
             cast(int, self._file.read("znum")),
             cast(int, self._file.read("anum")),
             )
+
+    @property
+    def mass(self) -> unyt.unyt_array:
+        """Marker species mass."""
+        return self.species.mass * np.ones((self.n,))
+
+    @property
+    def anum(self) -> unyt.unyt_array:
+        """Marker species atomic mass number."""
+        return self.species.anum * np.ones((self.n,))
+
+    @property
+    def znum(self) -> unyt.unyt_array:
+        """Marker species charge number."""
+        return self.species.znum * np.ones((self.n,))
 
     @property
     def ids(self) -> np.ndarray:
@@ -211,6 +229,51 @@ class GuidingcenterMarker(InputVariant):
     def unstage(self) -> None:
         super().unstage()
         self._cdata = None
+
+
+    def evaluate(self, *qnt, filter=None, bfield=None, gc2go=False):
+        marker_ids = self.ids
+        if filter is not None:
+            marker_ids = marker_ids[np.isin(marker_ids, filter)]
+        sorter = np.argsort(marker_ids)
+
+        marker_quantities = [
+            "r", "z", "phi", "time", "charge", "weight", "ekin", "pitch",
+            "gyroangle", "mass"
+        ]
+        field_quantities = [
+            "psidr", "psidphi", "psidz", "br", "bphi", "bz", "psi", "brdr",
+            "brdphi", "brdz", "bphidr", "bphidphi", "bphidz", "bzdr", "bzdphi",
+            "bzdz",
+        ]
+
+        available = marker_quantities + field_quantities
+        fundamentals_needed, all_qnt = resolve_quantities(available, qnt)
+
+        field_quantities = list(set(fundamentals_needed) & set(field_quantities))
+        marker_quantities = list(set(fundamentals_needed) - set(field_quantities))
+
+        if field_quantities:
+            marker_quantities = list(set(marker_quantities + ["r", "z", "phi", "time"]))
+
+        evaluated = {}
+        for q in marker_quantities:
+            evaluated[q] = getattr(self, q)[sorter]
+
+        if field_quantities:
+            evaluated.update(
+                interpolate(
+                    evaluated["r"], evaluated["phi"], evaluated["z"], evaluated["time"],
+                    0, *field_quantities, bfield=bfield
+                    )
+            )
+        evaluated.update(compute_quantities(evaluated, all_qnt))
+
+        out = []
+        for q in qnt:
+            out.append(evaluated[q])
+        return out
+
 
 
 # pylint: disable=too-few-public-methods

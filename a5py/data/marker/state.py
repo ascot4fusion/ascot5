@@ -5,6 +5,8 @@ import numpy as np
 import unyt
 import a5py.physlib as physlib
 from a5py.libascot import DataStruct, LIBASCOT
+from a5py.physlib.formulas import resolve_quantities, compute_quantities
+from a5py.engine.interpolate import interpolate
 
 
 class Structure(DataStruct):
@@ -332,6 +334,52 @@ class MarkerState():
     def combine(self, file=None):
         """"""
 
+    def evaluate(self, *qnt, filter=None, bfield=None, mode=None):
+        marker_ids = self.ids
+        if filter is not None:
+            marker_ids = marker_ids[np.isin(marker_ids, filter)]
+        sorter = np.argsort(marker_ids)
+
+        marker_quantities = [
+            "r", "z", "phi", "time", "charge", "weight", "vr", "vphi",
+            "vz", "mass"
+        ]
+        marker_quantities += [
+            "gyroangle", "pitch", "ekin",
+        ]
+        field_quantities = [
+            "psidr", "psidphi", "psidz", "br", "bphi", "bz", "psi", "brdr",
+            "brdphi", "brdz", "bphidr", "bphidphi", "bphidz", "bzdr", "bzdphi",
+            "bzdz",
+        ]
+
+        available = marker_quantities + field_quantities
+        fundamentals_needed, all_qnt = resolve_quantities(available, qnt)
+
+        field_quantities = list(set(fundamentals_needed) & set(field_quantities))
+        marker_quantities = list(set(fundamentals_needed) - set(field_quantities))
+
+        if field_quantities:
+            marker_quantities = list(set(marker_quantities + ["r", "z", "phi", "time"]))
+
+        evaluated = {}
+        for q in marker_quantities:
+            evaluated[q] = getattr(self, q)[sorter]
+
+        if field_quantities:
+            evaluated.update(
+                interpolate(
+                    evaluated["r"], evaluated["phi"], evaluated["z"], evaluated["time"],
+                    0, *field_quantities, bfield=bfield
+                    )
+            )
+        evaluated.update(compute_quantities(evaluated, all_qnt))
+
+        out = []
+        for q in qnt:
+            out.append(evaluated[q])
+        return out
+
     @classmethod
     def from_params(cls, mrk):
         """"""
@@ -434,7 +482,7 @@ class MarkerState():
                     )
                 pnorm = Quantity.registry["pnorm"].compute(
                     mass=obj._cdata[i].mass*unyt.kg,
-                    energy=obj._cdata[i].ekin*unyt.J,
+                    ekin=obj._cdata[i].ekin*unyt.J,
                     ).to("kg*m/s")
                 ppar = Quantity.registry["ppar"].compute(
                     pnorm=pnorm,
@@ -487,54 +535,3 @@ class MarkerState():
                     setattr(obj._cdata[i], zero, 0)
 
         return obj
-
-def extract_fields(state, *qnt, filter=None):
-        """Get queried values from the stored data.
-
-        Returned values are sorted by IDs unless ``filter`` is provided. Arrays
-        are copies of the original data.
-
-        Parameters
-        ----------
-        qnt : str
-            Names of the quantities.
-        file : h5py.File, optional
-            If provided, read the values from file instead from memory.
-        filter : array_like, optional
-            Return values for specific marker IDs.
-        """
-        marker_ids = getattr(state, "ids")
-        if filter is not None:
-            idx2 = np.isin(marker_ids, filter)
-            marker_ids = marker_ids[idx]
-            idx = np.argsort(marker_ids)
-        else:
-            idx = np.argsort(marker_ids)
-        evaluated = []
-        for q in qnt:
-            if filter is not None:
-                val = getattr(state, q)[idx2]
-            else:
-                val = getattr(state, q)
-            evaluated.append(val[idx])
-        return evaluated
-
-
-def evaluate(state, qnt, filter=None):
-    """Evaluate state."""
-    marker_ids = extract_fields(state, "ids")[0]
-    if filter is not None:
-        idx2 = np.isin(marker_ids, filter)
-        marker_ids = marker_ids[idx]
-        idx = np.argsort(marker_ids)
-    else:
-        idx = np.argsort(marker_ids)
-    evaluated = []
-    for q in qnt:
-        if filter is not None:
-            val = getattr(q)[idx2]
-        else:
-            val = state.extract_fields(q)[0]
-        evaluated.append(val[idx])
-
-    return evaluated

@@ -12,7 +12,7 @@ from a5py import utils
 from a5py.data.options import OrbitParams
 from a5py.physlib import formulas
 from a5py.libascot import DataStruct
-
+from a5py.engine.interpolate import evaluate
 
 
 # pylint: disable=too-few-public-methods
@@ -269,7 +269,6 @@ class Orbit():
             The quantities as arrays ordered by marker ID (major) and mileage
             (minor).
         """
-        from a5py.engine.interpolate import evaluate
         # Check what fields are available based on the simulation mode
         fields = ["r", "z", "phi", "mileage", "id",]
         if mode == "particle":
@@ -318,7 +317,7 @@ class Orbit():
 
         evaluate_bfield = []
         for qnt in needed:
-            if qnt in fields:
+            if qnt in fields and qnt != "mass":
                 if qnt in map_quantity_to_field[mode].values():
                     qnt = [q for q, v in map_quantity_to_field[mode].items() if v == qnt][0]
                 extract.append(qnt)
@@ -336,9 +335,9 @@ class Orbit():
                 name = map_quantity_to_field[mode][qnt]
                 if name in ["pr", "pphi", "pz", "ppar",]:
                     out[qnt] *= unyt.kg * unyt.m / unyt.s
-                elif name == ["mu",]:
-                    out[qnt] *= unyt.T / unyt.eV
-                elif name == ["zeta",]:
+                elif name in ["mu",]:
+                    out[qnt] *= unyt.eV / unyt.T
+                elif name in ["zeta",]:
                     out[qnt] *= unyt.rad
                 out[name] = out[qnt]
                 del out[qnt]

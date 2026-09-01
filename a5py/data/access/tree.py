@@ -104,6 +104,20 @@ class TreeManager(TreeFileManager):
                 )
             self._init_from_hdf5([n for n in nodes if n != ROOT])
 
+    def save(self, filename):
+        file_exists = False
+        super().__init__(
+            root=ROOT, filename=filename, file_exists=file_exists,
+            input_categories=[n for n in self.nodes if n != ROOT]
+            )
+        for leaf in self.inputs:
+            leaf._file = self.save_leaf(leaf)
+            leaf._save_and_free_data()
+        for leaf in self.outputs:
+            leaf._file = self.save_leaf(leaf)
+            leaf._save_and_free_data()
+
+
     def __repr__(self) -> str:
         """Return a string representation of this object."""
         return (

@@ -28,7 +28,7 @@ def leaf():
     return leaf
 
 
-def test_add_leaf(node, leaf):
+def test_nodes_add_leaf(node, leaf):
     """Test that a leaf added to the node can be queried using leaf name or tag."""
     node._add_leaf(leaf)
     assert leaf is node[leaf.name]
@@ -38,7 +38,7 @@ def test_add_leaf(node, leaf):
         node._add_leaf(leaf)
 
 
-def test_contains(node, leaf):
+def test_nodes_contains(node, leaf):
     """Test that if the node contains a leaf can be checked with leaf's QID,
     'q+QID', name, tag, and with the leaf itself, and that the node can be
     iterated over.
@@ -51,7 +51,7 @@ def test_contains(node, leaf):
         assert leaf_in_node is leaf
 
 
-def test_remove_leaf(node, leaf):
+def test_nodes_remove_leaf(node, leaf):
     """Test that removing a leaf removes all references to it."""
     node._add_leaf(leaf)
     node._remove_leaf(leaf)
@@ -61,7 +61,7 @@ def test_remove_leaf(node, leaf):
     assert not len(node._names)
 
 
-def test_active_property(node):
+def test_nodes_active_property(node):
     """Test that active leaf is by default the first leaf, but removing that
     leaf sets the nextly added leaf active until all leaves are removed.
     """
@@ -87,7 +87,7 @@ def test_active_property(node):
         _ = node.active
 
 
-def test_organize_by_date(node):
+def test_nodes_organize_by_date(node):
     """Test that leafs remain organized by date."""
     leaf1 = Leaf(date=DATES[1], note="<SATURDAY>")
     leaf2 = Leaf(date=DATES[0], note="<FRIDAY>")
@@ -113,7 +113,7 @@ def test_organize_by_date(node):
     assert node._names == [f"{Leaf.__name__}_1"]
 
 
-def test_organize_same_tags(node):
+def test_nodes_organize_same_tags(node):
     """Test that tags are properly renamed when there are multiple identical
     tags.
     """
@@ -145,9 +145,8 @@ def test_organize_same_tags(node):
     assert node.TAG is leaf1
 
 
-def test_input_category_contents():
-    """Test that the contents of an input category are displayed
-    correctly.
+def test_nodes_contents():
+    """Test that the contents of an input category are displayed correctly.
     """
     inputnode = InputCategory()
     assert inputnode.contents == "No data in this category.\n"
@@ -168,6 +167,36 @@ def test_input_category_contents():
         Leaf_2          1997-08-29 02:14:00
         BENNETT_1
         Let off some steam <Bennett>
+
+        """
+    )
+    diff = "\n".join(
+        difflib.unified_diff(
+            inputnode.contents.splitlines(),
+            expected.splitlines()[1:],
+            fromfile="contents",
+            tofile="expected",
+            lineterm="",
+        )
+    )
+    assert not diff, f"Strings differ:\n{diff}"
+
+
+def test_nodes_contents_missing_tag():
+    """Test that the contents of an input category are displayed correctly even
+    when not all leaves have tags.
+    """
+    inputnode = InputCategory()
+    assert inputnode.contents == "No data in this category.\n"
+
+    leaf = Leaf(date=DATES[1], note="")
+    inputnode._add_leaf(leaf)
+
+    expected = textwrap.dedent(
+        """
+        Leaf            1997-08-30 02:14:00 [active]
+        <no tag>
+
 
         """
     )

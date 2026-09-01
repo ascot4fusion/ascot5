@@ -75,7 +75,7 @@ def _get_marker_idx(comm, nmrk):
 
     start = rank * base + min(rank, remainder)
     count = base + (1 if rank < remainder else 0)
-    end   = start + count
+    end = start + count
     return np.arange(start, end)
 
 def setup(inputs, params, comm=None):

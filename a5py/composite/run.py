@@ -5,7 +5,7 @@ import numpy as np
 
 from a5py.exceptions import AscotNoDataException
 from a5py.data.access import OutputVariant, Leaf
-from a5py.data.marker.state import MarkerState, evaluate
+from a5py.data.marker.state import MarkerState
 from a5py.data import Orbit, Hist, SimulationOptions
 
 @Leaf.register
@@ -153,7 +153,9 @@ class Run(OutputVariant):
         else:
             state = self.marker
 
-        data = evaluate(state, qnt, filter)
+        data = state.evaluate(*qnt, filter=filter, bfield=self["bfield"])
+        if len(qnt) == 1:
+            data = data[0]
         return data
 
     def getorbit(
@@ -170,7 +172,6 @@ class Run(OutputVariant):
         if mode is None:
             match self.options.simulation.mode:
                 case "guiding-center":
-                    print("duh")
                     mode = "guidingcenter"
                 case "gyro-orbit":
                     mode = "particle"

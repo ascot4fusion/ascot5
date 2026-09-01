@@ -133,7 +133,7 @@ void DiagHist_update_go(
                    i5 * n[5] + i6 * n[6] + i7 * n[7] + i8 * n[8] + i9 * n[9] +
                    i10 * n[10] + i11 * n[11] + i12 * n[12] + i13 * n[13] +
                    i14 * n[14] + i15;
-        weight[i] = mrk_f->weight[i];
+        weight[i] = mrk_f->weight[i] * (mrk_f->time[i] - mrk_i->time[i]);
 #endif
     }
 #ifndef GPU
