@@ -93,15 +93,18 @@ def setup(inputs, params, comm=None):
         input_names = list(inputs.keys())
 
     if comm is not None:
+        params = comm.bcast(params, root=0)
         input_names = comm.bcast(None if not root else input_names, root=0)
-        input_names.remove("marker")
+        #input_names.remove("marker")
 
         for variant in input_names:
             exported_data = None if not root else inputs[variant].export()
+            name = None if not root else inputs[variant].variant
 
             exported_data = comm.bcast(exported_data, root=0)
+            name = comm.bcast(name, root=0)
             if not root:
-                inputs[variant] = AscotData.from_export(variant, exported_data)
+                inputs[variant] = AscotData.from_export(name, exported_data)
 
     idx = _get_marker_idx(comm, inputs["marker"].n)
     bjac = np.zeros((12,idx.size))
@@ -165,41 +168,124 @@ def execute(run, time=None):
 def finalize(run, unstage, comm):
     """Combine results to root process and free any used resources."""
     root = True if comm is None else comm.Get_rank() == 0
-    if root:
-        pass
 
     if comm is not None:
+        from mpi4py import MPI
         mrk = run._diagnostics["endstate"]
         n_local = mrk.n
         counts = comm.gather(n_local, root=0)
+        structure_size = ctypes.sizeof(Structure)
 
         if root:
             displs = np.cumsum([0] + counts[:-1])
             n_total = sum(counts)
 
             cdata = (Structure * n_total)()
-            base_ptr = ctypes.addressof(cdata)
 
-            # copy own data first
+            # Copy root's own data
             ctypes.memmove(
-                base_ptr + displs[0] * ctypes.sizeof(Structure),
+                ctypes.addressof(cdata),
                 ctypes.addressof(mrk._cdata),
-                n_local * ctypes.sizeof(Structure)
+                n_local * structure_size
             )
 
-            # receive others
+            # Receive data from other ranks
             for i in range(1, comm.Get_size()):
-                offset = displs[i] * ctypes.sizeof(Structure)
+                nbytes = counts[i] * structure_size
+                offset = displs[i] * structure_size
+
+                # Create a ctypes byte buffer pointing into cdata
+                recv_buf = (ctypes.c_char * nbytes).from_buffer(
+                    cdata, offset
+                )
+
                 comm.Recv(
-                    [base_ptr + offset,
-                    counts[i] * ctypes.sizeof(Structure),
-                    comm.BYTE],
+                    [recv_buf, nbytes, MPI.BYTE],
                     source=i
                 )
+            run._diagnostics["endstate"] = MarkerState.from_params(cdata)
+
         else:
+            nbytes = n_local * structure_size
+            send_buf = (ctypes.c_char * nbytes).from_buffer(mrk._cdata)
+
             comm.Send(
-                [ctypes.addressof(mrk._cdata),
-                n_local * ctypes.sizeof(Structure),
-                comm.BYTE],
+                [send_buf, nbytes, MPI.BYTE],
                 dest=0
             )
+
+        i = 0
+        while True:
+            if f"hist_{i}" not in run._diagnostics:
+                break
+            values = run._diagnostics[f"hist_{i}"].values
+
+            if root:
+                values.flags.writeable = True
+                comm.Reduce(MPI.IN_PLACE, values, op=MPI.SUM, root=0)
+                values.flags.writeable = False
+            else:
+                comm.Reduce(values, None, op=MPI.SUM, root=0)
+            i += 1
+
+        if "orbit" in run._diagnostics:
+            orbit = run._diagnostics["orbit"]
+
+            # Number of elements on this process.
+            local_count = np.array(orbit.id.size, dtype=np.int64)
+
+            if root:
+                counts = np.empty(comm.size, dtype=np.int64)
+            else:
+                counts = None
+
+            # Gather the sizes first.
+            comm.Gather(
+                local_count,
+                counts,
+                root=0
+            )
+
+            for attr in ["r", "z", "phi", "p1", "p2", "p3", "mileage",
+                         "id", "charge", "poincare", "simmode"]:
+                local_array = np.ascontiguousarray(getattr(orbit, attr))
+                if root:
+                    # Displacement of each process' data in the final array.
+                    displacements = np.zeros(comm.size, dtype=np.int64)
+
+                    if comm.size > 1:
+                        displacements[1:] = np.cumsum(counts[:-1])
+
+                    # Allocate the final concatenated array.
+                    total_size = int(np.sum(counts))
+
+                    result = np.empty(
+                        total_size,
+                        dtype=local_array.dtype
+                    )
+
+                else:
+                    result = None
+                    displacements = None
+
+                # Determine the MPI datatype from the NumPy dtype.
+                mpi_dtype = MPI._typedict[local_array.dtype.char]
+
+                # Gather the actual data.
+                comm.Gatherv(
+                    local_array,
+                    (
+                        result,
+                        counts,
+                        displacements,
+                        mpi_dtype
+                    ) if root else None,
+                    root=0
+                )
+
+                if root:
+                    setattr(orbit._cdata, attr + "_ref", result)
+                    arr = getattr(orbit._cdata, attr + "_ref")
+                    arr.flags.writeable = False
+                    ctype = np.ctypeslib.as_ctypes_type(getattr(orbit._cdata, attr)._type_)
+                    setattr(orbit._cdata, attr, arr.ctypes.data_as(ctypes.POINTER(ctype)))

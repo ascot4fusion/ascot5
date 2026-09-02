@@ -281,9 +281,9 @@ class Dist():
 
         axes = tuple(axes)
         for bdim, ax in enumerate(axes):
-            if b.shape[bdim] != distribution.shape[ax]:
+            if multiplier.shape[bdim] != distribution.shape[ax]:
                 raise ValueError(
-                    f"Shape mismatch: b.shape[{bdim}]={multiplier.shape[bdim]} "
+                    f"Shape mismatch: multiplier.shape[{bdim}]={multiplier.shape[bdim]} "
                     f"!= a.shape[{ax}]={distribution.shape[ax]}"
                 )
 

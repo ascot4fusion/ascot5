@@ -119,7 +119,7 @@ class BfieldAnalytical(InputVariant):
     def rippledamping(self) -> unyt.unyt_array:
         """Ripple penetration."""
         if self._cdata is not None:
-            return self._cdata.readonly_carray("rippledamping", (), "m")
+            return self._cdata.readonly_carray("rippledamping", (), "1")
         assert self._file is not None
         return self._file.read("rippledamping")
 
@@ -127,7 +127,7 @@ class BfieldAnalytical(InputVariant):
     def ripplescaling(self) -> unyt.unyt_array:
         """Ripple scaling parameter."""
         if self._cdata is not None:
-            return self._cdata.readonly_carray("ripplescaling", (), "m")
+            return self._cdata.readonly_carray("ripplescaling", (), "1")
         assert self._file is not None
         return self._file.read("ripplescaling")
 

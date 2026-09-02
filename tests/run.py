@@ -9,25 +9,51 @@ from a5py.templates import PremadeMagneticField
 if MPI is not None:
     comm = MPI.COMM_WORLD
 
-rank = 0 if comm is None else comm.Get_rank()
-root = rank == 0
+rank = 0 if comm is None else comm.rank
+isroot = rank == 0
 
-if root:
-    a5 = Ascot()
-    template = PremadeMagneticField(a5, field="iter-baseline")
+if isroot:
+    ascot = Ascot()
+    template = PremadeMagneticField(ascot, field="iter-baseline")
     template.create_input()
+    ascot.data.create_efieldcartesian(exyz=np.array([0., 0., 0.])*unyt.V/unyt.m)
 
-    parameters = SimulationOptions(
-        enable_orbit_following=True,
-        activate_simulation_time_limits=True,
-        simulation_mode=4,
-        activate_real_time_limit=True,
-        max_real_time=1.0,
+    parameters = SimulationOptions.from_dict(
+        simulation={
+            "mode": "gyro-orbit",
+            "timestep": 1e-11,
+        },
+        physics={
+            "enable_orbit_following": True,
+        },
+        endconditions={
+            "activate_simulation_time_limits": True,
+            "max_mileage": 2e-9,
+        },
+        orbit={
+            "collect": "interval",
+            "buffer_size": 5,
+            "interval": 1e-11,
+        },
+        histograms=[
+            {
+                "dimensions": [
+                    ("ekin", 0.*unyt.eV, 1e7*unyt.eV, 5),
+                    ("pitch", -1, 1, 3),
+                    ],
+                "charge_interval": (-1, -1,),
+            },
+        ]
     )
 
-    a5.data.create_fieldlinemarker(r=6.3*unyt.m, z=0.001*unyt.m)
-    run = a5.simulate(params=parameters, comm=MPI.COMM_WORLD, time=3600)
-    print(run.getstate("r", state="end"))
+    ascot.data.create_guidingcentermarker(
+        species="electron",
+        r=np.array([6.3, 6.5])*unyt.m,
+        z=0.*unyt.m,
+        ekin=3.5e4*unyt.eV,
+        pitch=0.5,
+        )
+    run = ascot.simulate(params=parameters, comm=comm)
 else:
-    a5 = Ascot()
-    a5.simulate(comm=MPI.COMM_WORLD)
+    ascot = Ascot()
+    ascot.simulate(comm=comm)

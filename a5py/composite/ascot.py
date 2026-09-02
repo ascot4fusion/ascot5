@@ -130,7 +130,8 @@ class Ascot():
         run, inputs, unstage = setup(inputs, params, comm)
         execute(run, time)
         finalize(run, unstage, comm)
-        self.data._treemanager.enter_leaf(run)
+        if root:
+            self.data._treemanager.enter_leaf(run)
 
         return run
 
