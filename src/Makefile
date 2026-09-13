@@ -70,7 +70,7 @@ endif
 ifeq ($(DEBUG),1)
 	CFLAGS+=-g -fsanitize=address,undefined
 else
-	CFLAGS+=-O2 -g
+	CFLAGS+=-O2
 endif
 
 CFLAGS+=-Wall -fPIC -std=c11 -D_XOPEN_SOURCE=700 $(DEFINES) $(FLAGS)
