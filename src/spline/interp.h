@@ -177,6 +177,11 @@ int interp3Dcomp_setup(interp3D_data* str, real* f,
                        real x_min, real x_max, real y_min, real y_max,
                        real z_min, real z_max);
 
+/* Precondition check for interp3Dcomp_eval_f3() and interp3Dcomp_eval_df3(),
+   to be called where the splines are initialized. */
+int interp3Dcomp_same_grid(interp3D_data* str0, interp3D_data* str1,
+                           interp3D_data* str2);
+
 GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp1Dcomp_eval_f(real* f, interp1D_data* str, real x);
 DECLARE_TARGET_END
@@ -186,6 +191,10 @@ DECLARE_TARGET_END
 GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp3Dcomp_eval_f(real* f, interp3D_data* str,
                          real x, real y, real z);
+DECLARE_TARGET_END
+GPU_DECLARE_TARGET_SIMD_UNIFORM(str0, str1, str2)
+a5err interp3Dcomp_eval_f3(real* f, interp3D_data* str0, interp3D_data* str1,
+                           interp3D_data* str2, real x, real y, real z);
 DECLARE_TARGET_END
 
 DECLARE_TARGET_SIMD_UNIFORM(str)
@@ -205,6 +214,11 @@ DECLARE_TARGET_END
 GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
                            real x, real y, real z);
+DECLARE_TARGET_END
+GPU_DECLARE_TARGET_SIMD_UNIFORM(str0, str1, str2)
+a5err interp3Dcomp_eval_df3(real* f_df, interp3D_data* str0,
+                            interp3D_data* str1, interp3D_data* str2,
+                            real x, real y, real z);
 DECLARE_TARGET_END
 GPU_DECLARE_TARGET_SIMD_UNIFORM(str)
 a5err interp3Dcomp_eval_ddf(real* f_df, interp3D_data* str,
