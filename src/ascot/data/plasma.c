@@ -6,6 +6,7 @@
 #include "defines.h"
 #include "plasma_dynamic1d.h"
 #include "plasma_linear1d.h"
+#include "plasma_linear2d.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -15,6 +16,9 @@ void Plasma_free(Plasma *plasma)
     {
     case PLASMA_LINEAR1D:
         PlasmaLinear1D_free(plasma->linear1d);
+        break;
+    case PLASMA_LINEAR2D:
+        PlasmaLinear2D_free(plasma->linear2d);
         break;
     case PLASMA_DYNAMIC1D:
         PlasmaDynamic1D_free(plasma->dynamic1d);
@@ -29,6 +33,9 @@ void Plasma_offload(Plasma *plasma)
     case PLASMA_LINEAR1D:
         PlasmaLinear1D_offload(plasma->linear1d);
         break;
+    case PLASMA_LINEAR2D:
+        PlasmaLinear2D_offload(plasma->linear2d);
+        break;
     case PLASMA_DYNAMIC1D:
         PlasmaDynamic1D_offload(plasma->dynamic1d);
         break;
@@ -40,15 +47,17 @@ err_t Plasma_eval_temperature(
     size_t i_species, Plasma *plasma)
 {
     /* Unused until 3D plasma is implemented */
-    (void)r;
     (void)phi;
-    (void)z;
     err_t err = 0;
     switch (plasma->type)
     {
     case PLASMA_LINEAR1D:
         err = PlasmaLinear1D_eval_temperature(
             temperature, rho, i_species, plasma->linear1d);
+        break;
+    case PLASMA_LINEAR2D:
+        err = PlasmaLinear2D_eval_temperature(
+            temperature, r, z, i_species, plasma->linear2d);
         break;
     case PLASMA_DYNAMIC1D:
         err = PlasmaDynamic1D_eval_temperature(
@@ -65,15 +74,17 @@ err_t Plasma_eval_density(
     size_t i_species, Plasma *plasma)
 {
     /* Unused until 3D plasma is implemented */
-    (void)r;
     (void)phi;
-    (void)z;
     err_t err = 0;
     switch (plasma->type)
     {
     case PLASMA_LINEAR1D:
         err = PlasmaLinear1D_eval_density(
             density, rho, i_species, plasma->linear1d);
+        break;
+    case PLASMA_LINEAR2D:
+        err = PlasmaLinear2D_eval_density(
+            density, r, z, i_species, plasma->linear2d);
         break;
     case PLASMA_DYNAMIC1D:
         err = PlasmaDynamic1D_eval_density(
@@ -90,15 +101,17 @@ err_t Plasma_eval_nT(
     real t, Plasma *plasma)
 {
     /* Unused until 3D plasma is implemented */
-    (void)r;
     (void)phi;
-    (void)z;
     err_t err = 0;
     switch (plasma->type)
     {
     case PLASMA_LINEAR1D:
         err =
             PlasmaLinear1D_eval_nT(density, temperature, rho, plasma->linear1d);
+        break;
+    case PLASMA_LINEAR2D:
+        err = PlasmaLinear2D_eval_nT(
+            density, temperature, r, z, plasma->linear2d);
         break;
     case PLASMA_DYNAMIC1D:
         err = PlasmaDynamic1D_eval_nT(
@@ -119,12 +132,14 @@ err_t Plasma_eval_flow(
 {
     /* Unused until 3D plasma is implemented */
     (void)phi;
-    (void)z;
     err_t err = 0;
     switch (plasma->type)
     {
     case PLASMA_LINEAR1D:
         err = PlasmaLinear1D_eval_flow(vflow, rho, r, plasma->linear1d);
+        break;
+    case PLASMA_LINEAR2D:
+        err = PlasmaLinear2D_eval_flow(vflow, r, z, plasma->linear2d);
         break;
     case PLASMA_DYNAMIC1D:
         err = PlasmaDynamic1D_eval_flow(vflow, rho, t, r, plasma->dynamic1d);
@@ -143,6 +158,9 @@ size_t Plasma_get_n_species(Plasma *plasma)
     case PLASMA_LINEAR1D:
         nspecies = plasma->linear1d->nspecies;
         break;
+    case PLASMA_LINEAR2D:
+        nspecies = plasma->linear2d->nspecies;
+        break;
     case PLASMA_DYNAMIC1D:
         nspecies = plasma->dynamic1d->nspecies;
         break;
@@ -158,6 +176,9 @@ const real *Plasma_get_species_mass(Plasma *plasma)
     {
     case PLASMA_LINEAR1D:
         mass = plasma->linear1d->mass;
+        break;
+    case PLASMA_LINEAR2D:
+        mass = plasma->linear2d->mass;
         break;
     case PLASMA_DYNAMIC1D:
         mass = plasma->dynamic1d->mass;
@@ -175,6 +196,9 @@ const real *Plasma_get_species_charge(Plasma *plasma)
     case PLASMA_LINEAR1D:
         charge = plasma->linear1d->charge;
         break;
+    case PLASMA_LINEAR2D:
+        charge = plasma->linear2d->charge;
+        break;
     case PLASMA_DYNAMIC1D:
         charge = plasma->dynamic1d->charge;
         break;
@@ -191,6 +215,9 @@ const int *Plasma_get_species_znum(Plasma *plasma)
     case PLASMA_LINEAR1D:
         znum = plasma->linear1d->znum;
         break;
+    case PLASMA_LINEAR2D:
+        znum = plasma->linear2d->znum;
+        break;
     case PLASMA_DYNAMIC1D:
         znum = plasma->dynamic1d->znum;
         break;
@@ -206,6 +233,9 @@ const int *Plasma_get_species_anum(Plasma *plasma)
     {
     case PLASMA_LINEAR1D:
         anum = plasma->linear1d->anum;
+        break;
+    case PLASMA_LINEAR2D:
+        anum = plasma->linear2d->anum;
         break;
     case PLASMA_DYNAMIC1D:
         anum = plasma->dynamic1d->anum;

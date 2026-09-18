@@ -24,13 +24,11 @@ const real A_lowE[3][10] = {
     {-74.2, -1.18, 0.0843, 0.0139, 0.453, 0.491, -0.294, 0.0788, -0.0612,
      -1.85e-4}};
 
-const int Z_imp[NIMPURITIES] = {2, 6, 6, 4, 8, 7, 3, 5, 26};
+const int Z_imp[NIMPURITIES] = {2, 6, 6, 8, 7, 5, 26};
 
-const real Zeffmin_imp[NIMPURITIES] = {1.0, 1.0, 5.0, 1.0, 1.0,
-                                       1.0, 1.0, 1.0, 1.0};
+const real Zeffmin_imp[NIMPURITIES] = {1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 1.0};
 
-const real Zeffmax_imp[NIMPURITIES] = {2.1, 5.0, 6.0, 4.0, 5.0,
-                                       5.0, 3.0, 5.0, 5.0};
+const real Zeffmax_imp[NIMPURITIES] = {2.1, 5.0, 6.0, 5.0, 5.0, 5.0, 5.0};
 
 const real B_highE[NIMPURITIES][12] = {
     {0.231, 0.343, -0.185, -0.162e-1, 0.105, -0.703e-1, 0.531e-1, 0.342e-2,
@@ -39,14 +37,10 @@ const real B_highE[NIMPURITIES][12] = {
      0.332e-2, -0.248e-1, -0.104e-2, -0.152e-2, -0.189e-3},
     {-0.100e1, -0.255e-1, -0.125, -0.142e-1, 0.388, 0.206e-1, 0.297e-1,
      0.326e-2, -0.246e-1, -0.131e-2, -0.148e-2, -0.180e-3},
-    {-0.613, 0.552e-1, -0.167, -0.159e-1, 0.304, 0.154e-2, 0.436e-1, 0.378e-2,
-     -0.201e-1, -0.216e-3, -0.251e-2, -0.227e-3},
     {-0.102e1, -0.148e-1, -0.674e-1, -0.917e-2, 0.359, 0.143e-1, 0.139e-1,
      0.184e-2, -0.209e-1, -0.732e-3, -0.502e-3, -0.949e-4},
     {-0.102e1, -0.139e-1, -0.979e-1, -0.117e-1, 0.375, 0.156e-1, 0.224e-1,
      0.254e-2, -0.226e-1, -0.889e-3, -0.104e-2, -0.139e-3},
-    {-0.441, 0.129, -0.170, -0.162e-1, 0.277, -0.156e-1, 0.466e-1, 0.379e-2,
-     -0.193e-1, 0.753e-3, -0.286e-2, -0.239e-3},
     {-0.732, 0.183e-1, -0.155, -0.172e-1, 0.321, 0.946e-2, 0.397e-1, 0.420e-2,
      -0.204e-1, -0.619e-3, -0.224e-2, -0.254e-3},
     {-0.820, -0.636e-2, 0.542e-1, 0.395e-2, 0.202, 0.806e-3, -0.200e-2,
@@ -59,14 +53,10 @@ const real B_lowE[NIMPURITIES][12] = {
      0.219e-2, 0.391e-1, 0.711e-2, -0.144e-2, -0.385e-3},
     {0.158, 0.554e-1, -0.431e-2, -0.335e-2, -0.155, -0.374e-1, 0.537e-2,
      0.174e-2, 0.388e-1, 0.683e-2, -0.160e-2, -0.322e-3},
-    {0.112, 0.495e-1, 0.116e-1, -0.286e-2, -0.149, -0.331e-1, -0.426e-2,
-     0.980e-3, 0.447e-1, 0.652e-2, -0.356e-3, -0.203e-3},
     {0.111, 0.541e-1, -0.346e-3, -0.368e-2, -0.108, -0.347e-1, 0.193e-2,
      0.181e-2, 0.280e-1, 0.604e-2, -0.841e-3, -0.317e-3},
     {0.139, 0.606e-1, -0.306e-2, -0.455e-2, -0.133, -0.394e-1, 0.399e-2,
      0.236e-2, 0.335e-1, 0.690e-2, -0.124e-2, -0.405e-3},
-    {0.112, 0.495e-1, 0.116e-1, -0.286e-2, -0.149, -0.331e-1, -0.426e-2,
-     0.980e-3, 0.447e-1, 0.652e-2, -0.356e-3, -0.203e-3},
     {0.122, 0.527e-1, -0.430e-3, -0.318e-2, -0.151, -0.364e-1, 0.343e-2,
      0.151e-2, 0.420e-1, 0.692e-2, -0.141e-2, -0.290e-3},
     {-0.110e-1, 0.202e-1, 0.946e-3, -0.409e-2, -0.666e-2, -0.117e-1, -0.236e-3,
@@ -154,28 +144,27 @@ err_t suzuki_sigmav(
     sigma_H /= dens_H;
 
     /* Equations 26 & 27 for Sz */
-    real sigma_Z = 0.0;
+    real numerator = 0, denominator = 0;
     for (size_t i = 0; i < n_Z; i++)
     {
         int ind_B = -1;
-        for (size_t j = 0; j < 9; j++)
+        for (size_t j = 0; j < NIMPURITIES; j++)
         {
             if (Z_imp[j] == znum[ind_Z[i]] && Zeff > Zeffmin_imp[j] &&
                 Zeff < Zeffmax_imp[j])
-            {
                 ind_B = j;
-            }
         }
         err = ERROR_CHECK(err, ind_B < 0, ERR_PRECHECK_FAILED, UTILS_SUZUKI_C);
-        sigma_Z +=
-            ni[ind_Z[i]] / ne * znum[ind_Z[i]] *
-            (B[ind_B][0] + B[ind_B][1] * U + B[ind_B][2] * logN +
+        denominator += znum[ind_Z[i]] * (znum[ind_Z[i]] - 1) * ni[ind_Z[i]];
+        numerator += znum[ind_Z[i]] * (znum[ind_Z[i]] - 1) * ni[ind_Z[i]]
+            * (B[ind_B][0] + B[ind_B][1] * U + B[ind_B][2] * logN +
              B[ind_B][3] * logN * U + B[ind_B][4] * logE +
              B[ind_B][5] * logE * U + B[ind_B][6] * logE * logN +
              B[ind_B][7] * logE * logN * U + B[ind_B][8] * logE * logE +
              B[ind_B][9] * logE * logE * U + B[ind_B][10] * logE * logE * logN +
              B[ind_B][11] * logE * logE * logN * U);
     }
+    real sigma_Z = numerator / denominator;
 
     /* Equation 24 and convert cm^2 to m^2*/
     *sigmav = sigma_H * (1 + (Zeff - 1) * sigma_Z) * 1e-4;
@@ -183,8 +172,6 @@ err_t suzuki_sigmav(
     *sigmav *= vnorm;
 
     if (err)
-    {
         *sigmav = 0.0;
-    }
     return err;
 }

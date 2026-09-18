@@ -21,13 +21,16 @@ dependencies = [
   "scipy",
   "h5py",
   "unyt",
-  "wurlitzer",
   "xmlschema",
 ]
 
 [project.optional-dependencies]
 mpi = [
     "mpi4py",
+]
+full = [
+    "matplotlib",
+    "pyvista",
 ]
 
 [tool.setuptools.packages.find]
@@ -47,8 +50,6 @@ Changelog     = "https://github.com/ascot4fusion/ascot5/releases"
 zip-safe = false
 script-files=[
   'bin/a5manage',
-  'bin/a5editoptions',
-  'bin/a5combine',
   'bin/a5gui',
   'bin/a5update',
 ]

@@ -12,13 +12,17 @@
 void Diag_offload(Diagnostics *diag)
 {
     for (size_t i = 0; i < diag->nhist; i++)
-    {
         DiagHist_offload(diag->hist[i]);
-    }
     if (diag->orbit != NULL)
-    {
         DiagOrbit_offload(diag->orbit);
-    }
+}
+
+void Diag_onload(Diagnostics *diag)
+{
+    for (size_t i = 0; i < diag->nhist; i++)
+        DiagHist_onload(diag->hist[i]);
+    if (diag->orbit != NULL)
+        DiagOrbit_onload(diag->orbit);
 }
 
 void Diag_update_go(
@@ -26,13 +30,9 @@ void Diag_update_go(
     MarkerGyroOrbit *mrk_i)
 {
     for (size_t i = 0; i < diag->nhist; i++)
-    {
-        DiagHist_update_go(diag->hist[i], mrk_f, mrk_i);
-    }
+        DiagHist_update_go(diag->hist[i], bfield, mrk_f, mrk_i);
     if (diag->orbit != NULL)
-    {
         DiagOrbit_update_go(diag->orbit, bfield, mrk_f, mrk_i);
-    }
 }
 
 void Diag_update_gc(
@@ -40,13 +40,9 @@ void Diag_update_gc(
     MarkerGuidingCenter *mrk_i)
 {
     for (size_t i = 0; i < diag->nhist; i++)
-    {
-        DiagHist_update_gc(diag->hist[i], mrk_f, mrk_i);
-    }
+        DiagHist_update_gc(diag->hist[i], bfield, mrk_f, mrk_i);
     if (diag->orbit != NULL)
-    {
         DiagOrbit_update_gc(diag->orbit, bfield, mrk_f, mrk_i);
-    }
 }
 
 void Diag_update_fl(
@@ -54,7 +50,5 @@ void Diag_update_fl(
     MarkerFieldLine *mrk_i)
 {
     if (diag->orbit != NULL)
-    {
         DiagOrbit_update_fl(diag->orbit, bfield, mrk_f, mrk_i);
-    }
 }

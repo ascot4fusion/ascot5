@@ -5,12 +5,17 @@
 #ifndef PLASMA_DATA_H
 #define PLASMA_DATA_H
 
+#include "defines.h"
+#include "interp_data.h"
+#include <stddef.h>
+
 /**
  * Plasma data types.
  */
 typedef enum plasma_type
 {
     PLASMA_LINEAR1D = 1, /**< Corresponds to PlasmaLinear1D.                  */
+    PLASMA_LINEAR2D,     /**< Corresponds to PlasmaLinear2D.                  */
     PLASMA_DYNAMIC1D,    /**< Corresponds to PlasmaDynamic1D.                 */
 } Plasma_type;
 
@@ -81,6 +86,33 @@ typedef struct
 } PlasmaDynamic1D;
 
 /**
+ * Parameters for linearly-interpolated 2D plasma.
+ */
+typedef struct
+{
+    size_t nspecies; /**< Number of plasma species (including electrons).     */
+    int *anum;       /**< Atomic mass number of the ion species.              */
+    int *znum;       /**< Charge number of the ion species.                   */
+    real *mass;      /**< Plasma species (electrons first) mass [kg].         */
+    real *charge;    /**< Plasma species (electrons first) charge [C].        */
+
+    /**
+     * Plasma toroidal rotation [rad/s].
+     */
+    Linear2D vtor;
+
+    /**
+     * Electron and ion temperatures [J].
+     */
+    Linear2D temperature[2];
+
+    /**
+     * Electron and ion densities [m^-3].
+     */
+    Linear2D *density;
+} PlasmaLinear2D;
+
+/**
  * Plasma simulation data.
  *
  * The intended usage is that only single type of data is used at a time. This
@@ -89,6 +121,7 @@ typedef struct
 typedef struct
 {
     PlasmaLinear1D *linear1d;   /**< Linearly-interpolated 1D plasma.         */
+    PlasmaLinear2D *linear2d;   /**< Linearly-interpolated 2D plasma.         */
     PlasmaDynamic1D *dynamic1d; /**< Linear time-dependent 1D plasma.         */
     Plasma_type type;           /**< Current plasma type.                     */
 } Plasma;

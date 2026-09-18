@@ -23,7 +23,7 @@
  * @return Zero if the initialization succeeded.
  */
 int WallTriangular3D_init(
-    WallTriangular3D *wall, size_t n, real *vertices, int *flag);
+    WallTriangular3D *wall, size_t n, float vertices[n*9], int flag[n]);
 
 /**
  * Free allocated resources.

@@ -18,11 +18,10 @@ endif
 ifeq ($(GPU),1)
 	DEFINES+=-DGPU
 	RANDOM=LCG
-	CFLAGS+=-c++libs -cuda
 	ifeq ($(ACC), 1)
-		CFLAGS+=-acc -Mnoopenmp
+		CFLAGS+=-c++libs -cuda -acc -Mnoopenmp
 	else ifeq ($(OMP), 1)
-		CFLAGS+=-mp=gpu -fopenmp
+		CFLAGS+=-fopenmp
 		DEFINES+=-D_OPENMP
 	endif
 else
@@ -42,8 +41,6 @@ else ifeq ($(RANDOM),LCG)
 	DEFINES+=-DRANDOM_LCG
 endif
 
-CFLAGS+=-Wall -Wextra -fPIC -std=c11 -D_XOPEN_SOURCE=700 -Iinclude -Iascot $(DEFINES) $(FLAGS)
-
 ifeq ($(DEBUG),1)
 	CFLAGS+=-g -fsanitize=address,undefined
 	LDFLAGS+=-fsanitize=address,undefined
@@ -51,8 +48,10 @@ else
 	CFLAGS+=-O2
 endif
 
-UNAME_S := $(shell uname -s)
+CFLAGS+=-Wall -Wextra -fPIC -std=c11 -D_XOPEN_SOURCE=700 -Iinclude -Iascot \
+	$(DEFINES) $(FLAGS)
 
+UNAME_S := $(shell uname -s)
 # macOS-specific adjustments
 ifeq ($(UNAME_S),Darwin)
 	CFLAGS+=-D_DARWIN_C_SOURCE

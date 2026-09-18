@@ -60,9 +60,9 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
  *
  * @param density Evaluated density [m^-3].
  * @param rho Normalized poloidal flux coordinate of the query point [1].
- * @param r R coordinate of the query point [m].
- * @param phi phi coordinate of the query point [rad].
- * @param z z coordinate of the query point [m].
+ * @param r Radial coordinate of the query point [m].
+ * @param phi Toroidal coordinate of the query point [rad].
+ * @param z Axial coordinate of the query point [m].
  * @param t Time coordinate of the query point [s].
  * @param i_species Index of the requested species.
  *        Zero for electrons, then 1 for the first ion, etc. in the same order
@@ -87,9 +87,9 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
  * @param temperature Evaluated temperature (electrons first followed by ions)
  *        [J].
  * @param rho Normalized poloidal flux coordinate of the query point [1].
- * @param r R coordinate of the query point [m].
- * @param phi phi coordinate of the query point [rad].
- * @param z z coordinate of the query point [m].
+ * @param r Radial coordinate of the query point [m].
+ * @param phi Toroidal coordinate of the query point [rad].
+ * @param z Axial coordinate of the query point [m].
  * @param t Time coordinate of the query point [s].
  * @param plasma The plasma data.
  *
@@ -111,9 +111,9 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
  *
  * @param vflow Evaluated flow value [m/s].
  * @param rho Normalized poloidal flux coordinate of the query point [1].
- * @param r R coordinate of the query point [m].
- * @param phi phi coordinate of the query point [rad].
- * @param z z coordinate of the query point [m].
+ * @param r Radial coordinate of the query point [m].
+ * @param phi Toroidal coordinate of the query point [rad].
+ * @param z Axial coordinate of the query point [m].
  * @param t Time coordinate of the query point [s].
  * @param plasma The plasma data.
  *

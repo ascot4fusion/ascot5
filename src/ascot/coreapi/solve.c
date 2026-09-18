@@ -21,19 +21,22 @@
 #include "utils/random.h"
 #include <signal.h>
 #include <stdatomic.h>
+#include <stddef.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdio.h>
-#include <stddef.h>
 
 volatile sig_atomic_t stop_flag = 0;
 
-static void handle_signal(int sig) {
+static void handle_signal(int sig)
+{
+    (void)sig;
     stop_flag = 1;
 }
 
-void ascot_setup_signal_handlers(void) {
-    struct sigaction sa;
+void ascot_setup_signal_handlers(void)
+{
+    struct sigaction sa = {0};
     sa.sa_handler = handle_signal;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
@@ -45,11 +48,6 @@ void ascot_setup_signal_handlers(void) {
 void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
 {
 #ifdef GPU
-    if (sim->options->simulation_mode != 1)
-    {
-        print_err("Only GO mode ported to GPU. Please set SIM_MODE=1.");
-        exit(1);
-    }
     if (sim->options->record_mode)
     {
         print_err("RECORD_MODE=1 not ported to GPU. Please disable it.");
@@ -68,11 +66,6 @@ void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
     if (sim->options->collect_orbit)
     {
         print_err("ENABLE_ORBITWRITE=1 not ported to GPU. Please disable it.");
-        exit(1);
-    }
-    if (sim->options->collect_transport_coefficient)
-    {
-        print_err("ENABLE_TRANSCOEF=1 not ported to GPU. Please disable it.");
         exit(1);
     }
 #endif
@@ -105,40 +98,40 @@ void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
         queue.n++;
     }
 
-    queue.p = (State **)malloc(queue.n * sizeof(State *));
+    int err = 0;
+    queue.p = (State **)xmalloc(&err, queue.n * sizeof(State *));
     queue.finished = 0;
     queue.next = 0;
     for (size_t i = 0; i < nmrk; i++)
-    {
         queue.p[queue.next++] = &mrk[i];
-    }
+
     queue.next = 0;
-    if (queue.n > 0 && (sim->options->simulation_mode == simulate_mode_gc ||
-                        sim->options->simulation_mode == simulate_mode_hybrid))
+    if (queue.n > 0 && (sim->options->mode == simulate_mode_gc ||
+                        sim->options->mode == simulate_mode_hybrid))
     {
         if (sim->options->enable_adaptive)
         {
             OMP_PARALLEL_CPU_ONLY
-            simulate_gc_adaptive(sim, &queue, vector_size);
+            err = simulate_gc_adaptive(sim, &queue, vector_size);
         }
         else
         {
             OMP_PARALLEL_CPU_ONLY
-            simulate_gc_fixed(sim, &queue, vector_size);
+            err = simulate_gc_fixed(sim, &queue, vector_size);
         }
     }
-    else if (queue.n > 0 && sim->options->simulation_mode == simulate_mode_fo)
+    else if (queue.n > 0 && sim->options->mode == simulate_mode_fo)
     {
         OMP_PARALLEL_CPU_ONLY
-        simulate_go_fixed(sim, &queue, vector_size);
+        err = simulate_go_fixed(sim, &queue, vector_size);
     }
-    else if (queue.n > 0 && sim->options->simulation_mode == simulate_mode_ml)
+    else if (queue.n > 0 && sim->options->mode == simulate_mode_ml)
     {
-        simulate_fl_adaptive(sim, &queue, vector_size);
+        err = simulate_fl_adaptive(sim, &queue, vector_size);
     }
 
     size_t n_new = 0;
-    if (sim->options->simulation_mode == simulate_mode_hybrid)
+    if (sim->options->mode == simulate_mode_hybrid)
     {
 
         /* Determine the number markers that should be run
@@ -180,9 +173,10 @@ void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
         queue.next = 0;
         queue.finished = 0;
         OMP_PARALLEL_CPU_ONLY
-        simulate_go_fixed(sim, &queue, vector_size);
+        err = simulate_go_fixed(sim, &queue, vector_size);
     }
     free(queue.p);
+    Diag_onload(&sim->diagnostics);
 }
 
 void ascot_solve_fusion(
@@ -428,7 +422,9 @@ void ascot_solve_field(
 
         for (size_t i = 1; i < ncoil; i++)
         {
-            math_copy(p1, p2);
+            p1[0] = p2[0];
+            p1[1] = p2[1];
+            p1[2] = p2[2];
 
             p2[0] = coilxyz[0][i * 3];
             p2[1] = coilxyz[1][i * 3];

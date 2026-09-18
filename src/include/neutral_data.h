@@ -6,6 +6,7 @@
 #define NEUTRAL_DATA_H
 
 #include "interp_data.h"
+#include <stddef.h>
 
 /**
  * Neutral data types.

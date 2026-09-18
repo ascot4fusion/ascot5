@@ -4,7 +4,8 @@
 #include "parallel.h"
 #include <math.h>
 
-typedef enum {
+typedef enum
+{
     SUCCESS,
     EXTRAPOLATED,
     FAILED_AXIS,
@@ -63,8 +64,7 @@ void ascot_map_rhotheta_to_rz(
                 b = c;
                 continue;
             }
-            if (Bfield_eval_psi_dpsi(
-                psi_dpsi, rj, phi[j], zj, t, bfield))
+            if (Bfield_eval_psi_dpsi(psi_dpsi, rj, phi[j], zj, t, bfield))
             {
                 b = c;
                 continue;
@@ -98,14 +98,12 @@ void ascot_map_rhotheta_to_rz(
 }
 
 void ascot_find_psi_on_axis_2d(
-    Bfield *bfield, size_t maxiter, size_t ascent, real step, real tol,
+    Bfield *bfield, size_t maxiter, size_t ascend, real step, real tol,
     real psi[1], real rz[2])
 {
 
-    if (ascent)
-    {
+    if (ascend)
         step = -1 * step;
-    }
 
     real phi = 0.0, time = 0.0;
     real psidpsi[4], nextrz[2];

@@ -6,6 +6,7 @@
 #define BFIELD_DATA_H
 
 #include "interp_data.h"
+#include "defines.h"
 
 /**
  * Magnetic field types.

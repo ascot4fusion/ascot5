@@ -25,10 +25,73 @@
 #include <stdlib.h>
 #include <time.h>
 
-DECLARE_TARGET_SIMD_UNIFORM(sim)
-real simulate_gc_adaptive_inidt(Simulation *sim, MarkerGuidingCenter *p, size_t i);
+typedef struct
+{
+    unsigned int crossed_once : 1;
+    unsigned int crossed_twice : 1;
+    unsigned int first_ppar : 1;
+} Crossing;
 
-#define DUMMY_TIMESTEP_VAL 1.0 /**< Dummy time step value */
+typedef struct
+{
+    /** Acceleration factor. */
+    real *acc;
+
+    /** Orbit time [s]. */
+    real *orbittime;
+
+    /** Collision frequency [1/s]. */
+    real *collfreq;
+
+    /** Storage for OMP crossing data. */
+    Crossing *cross;
+} Acceleration;
+
+/**
+ * Recalculate acceleration factor.
+ *
+ * The acceleration is updated when crossing OMP. During the first crossing,
+ * the counter for orbit time is started. For the next crossing, we check if
+ * OMP was crossed in the same direction as first. If not, the crossing is
+ * ignored and for the third crossing we check the direction again. If this is
+ * not in the same direction as the first, the counters are nullified,
+ * acceleration is set to one, and the process is started again. This way we can
+ * account both for passing and banana particles, and for the cases where
+ * collisions have changed the orbit topology.
+ *
+ * When we have two suitable crossings, the acceleration factor is updated and
+ * the counter for the orbit time and crossings are nullified.
+ *
+ * @param acc acceleration struct
+ * @param sim simulation struct
+ * @param p current marker
+ * @param p0 previous marker
+ */
+void recalculate_acceleration(
+    Acceleration *acc, Simulation *sim, MarkerGuidingCenter *p,
+    MarkerGuidingCenter *p0);
+
+/**
+ * Allocates struct representing acceleration struct.
+ *
+ * Size used for memory allocation is NSIMD for CPU run and the total number
+ * of particles for GPU.
+ *
+ * @param acceleration struct to allocate
+ * @param vector_size the number of markers that the struct represents
+ */
+void acceleration_allocate(Acceleration *acceleration, size_t vector_size);
+
+/**
+ * Offload acceleration struct to GPU.
+ *
+ * @param acceleration pointer to the acceleration struct to be offloaded.
+ * @param vector_size the number of markers that the struct represents
+ */
+void acceleration_offload(Acceleration *acceleration, size_t vector_size);
+
+/** Dummy time step value [s]. */
+#define DUMMY_TIMESTEP_VAL 1.0
 
 /**
  * Replace markers in the simulation vector with new ones from the queue.
@@ -68,17 +131,15 @@ static size_t cycle_markers(
                 p_current->id[idx] = 0;
                 p_current->running[idx] = 0;
             }
-            time_step[idx] = simulate_gc_adaptive_inidt(sim, p_current, idx);
+            time_step[idx] = sim->options->timestep;
         }
         start = idx;
     }
 
     size_t n_running = 0;
 #pragma omp simd reduction(+ : n_running)
-    for (size_t i = 0; i < NSIMD; i++)
-    {
+    for (size_t i = 0; i < vector_size; i++)
         n_running += p_current->running[i];
-    }
 
     return n_running;
 }
@@ -87,18 +148,36 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 {
 
     /* Wiener arrays needed for the adaptive time step */
-    mccc_wienarr wienarr[NSIMD];
+    mccc_wienarr* wienarr = (mccc_wienarr*) malloc(vector_size*sizeof(mccc_wienarr));
+    Acceleration acceleration;
+    acceleration_allocate(&acceleration, vector_size);
 
     /* Current time step, suggestions for the next time step and next time
      * step                                                                */
-    real *hin = (real *)malloc(vector_size * sizeof(real));
-    real *hout_orb = (real *)malloc(vector_size * sizeof(real));
-    real *hout_col = (real *)malloc(vector_size * sizeof(real));
-    real *hout_rfof = (real *)malloc(vector_size * sizeof(real));
-    real *hnext = (real *)malloc(vector_size * sizeof(real));
+    int err = 0;
+    real *hin = (real *)xmalloc(&err, vector_size * sizeof(real));
+    if (err)
+        return 1;
+    real *hout_orb = (real *)xmalloc(&err, vector_size * sizeof(real));
+    if (err)
+        return 1;
+    real *hout_col = (real *)xmalloc(&err, vector_size * sizeof(real));
+    if (err)
+        return 1;
+    real *hout_rfof = (real *)xmalloc(&err, vector_size * sizeof(real));
+    if (err)
+        return 1;
+    real *hnext = (real *)xmalloc(&err, vector_size * sizeof(real));
+    if (err)
+        return 1;
+    real *rnd = (real *)xmalloc(&err, 5 * vector_size * sizeof(real));
+    if (err)
+        return 1;
 
-    /* Flag indicateing whether a new marker was initialized */
-    size_t *cycle = (size_t *)malloc(vector_size * sizeof(size_t));
+    /* Flag indicating whether a new marker was initialized */
+    size_t *cycle = (size_t *)xmalloc(&err, vector_size * sizeof(size_t));
+    if (err)
+        return 1;
 
     real tol_col = sim->options->adaptive_tolerance_collisions;
     real tol_orb = sim->options->adaptive_tolerance_orbit;
@@ -107,9 +186,9 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 
     MarkerGuidingCenter p;  // This array holds current states
     MarkerGuidingCenter p0; // This array stores previous states
-    if(MarkerGuidingCenter_allocate(&p, vector_size))
+    if (MarkerGuidingCenter_allocate(&p, vector_size))
         return 1;
-    if(MarkerGuidingCenter_allocate(&p0, vector_size))
+    if (MarkerGuidingCenter_allocate(&p0, vector_size))
         return 1;
 
     rfof_marker rfof_mrk;
@@ -118,28 +197,25 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     {
         p.id[i] = 0;
         p.running[i] = 0;
+        acceleration.acc[i] = 1.0;
+        acceleration.orbittime[i] = -1;
+        acceleration.cross[i].crossed_once = 0;
     }
 
     /* Initialize running particles */
     size_t n_running = cycle_markers(vector_size, pq, &p, sim, hin);
 
     if (sim->options->enable_icrh)
-    {
         rfof_set_up(&rfof_mrk, sim->rfof);
-    }
 
-#pragma omp simd
+    GPU_PARALLEL_LOOP_ALL_LEVELS
     for (size_t i = 0; i < vector_size; i++)
     {
         if (cycle[i] > 0)
         {
-            /* Determine initial time-step */
-            hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
+            hin[i] = sim->options->timestep;
             if (sim->options->enable_coulomb_collisions)
-            {
-                /* Allocate array storing the Wiener processes */
                 mccc_wiener_initialize(&(wienarr[i]), p.time[i]);
-            }
         }
     }
 
@@ -157,14 +233,19 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
      * - Check for end condition(s)
      * - Update diagnostics
      */
-    real *rnd = (real *)malloc(5 * vector_size * sizeof(real));
     MarkerGuidingCenter_offload(&p);
     MarkerGuidingCenter_offload(&p0);
+    acceleration_offload(&acceleration, vector_size);
+    GPU_MAP_TO_DEVICE(
+        hin [0:vector_size], rnd [0:5 * vector_size], hout_orb [0:vector_size],
+        hout_col [0:vector_size], hout_rfof [0:vector_size],
+        hnext [0:vector_size], cycle [0:vector_size])
+    mccc_wiener_offload(wienarr, vector_size);
     while (n_running > 0)
     {
 
-/* Store marker states in case time step will be rejected */
-#pragma omp simd
+        /* Store marker states in case time step will be rejected */
+        GPU_PARALLEL_LOOP_ALL_LEVELS
         for (size_t i = 0; i < vector_size; i++)
         {
             MarkerGuidingCenter_copy(&p0, &p, i);
@@ -174,35 +255,26 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
             hnext[i] = DUMMY_TIMESTEP_VAL;
         }
 
-/*************************** Physics **********************************/
+        /*************************** Physics **********************************/
 
-/* Set time-step negative if tracing backwards in time */
-#pragma omp simd
-        for (size_t i = 0; i < vector_size; i++)
-        {
-            if (sim->options->reverse_time)
-            {
-                hin[i] = -hin[i];
-            }
-        }
-
-        /* Cash-Karp method for orbit-following */
         if (sim->options->enable_orbit_following)
         {
+
+            GPU_PARALLEL_LOOP_ALL_LEVELS
+            for (size_t i = 0; i < vector_size; i++)
+                hin[i] = (1 - 2*(sim->options->reverse_time)) * hin[i];
+
             if (sim->options->enable_mhd)
-            {
                 step_gc_cashkarp_mhd(
                     &p, hin, hout_orb, tol_orb, &sim->bfield, &sim->efield,
                     sim->boozer, &sim->mhd, sim->options->enable_aldforce);
-            }
             else
-            {
                 step_gc_cashkarp(
                     &p, hin, hout_orb, tol_orb, &sim->bfield, &sim->efield,
                     sim->options->enable_aldforce);
-            }
-/* Check whether time step was rejected */
-#pragma omp simd
+
+            /* Check whether time step was rejected */
+            GPU_PARALLEL_LOOP_ALL_LEVELS
             for (size_t i = 0; i < vector_size; i++)
             {
                 /* Switch sign of the time-step again if it was reverted earlier
@@ -224,12 +296,14 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         if (sim->options->enable_coulomb_collisions)
         {
             random_normal_simd(sim->random_data, 5 * vector_size, rnd);
+            random_normal_simd(sim->random_data, 5 * p.n_mrk, rnd);
             mccc_gc_milstein(
-                &p, hin, hout_col, tol_col, wienarr, &sim->bfield, &sim->plasma,
-                sim->mccc_data, rnd);
+                &p, hin, acceleration.acc, acceleration.collfreq, hout_col,
+                tol_col, wienarr, &sim->bfield, &sim->plasma, sim->mccc_data,
+                rnd);
 
-/* Check whether time step was rejected */
-#pragma omp simd
+            /* Check whether time step was rejected */
+            GPU_PARALLEL_LOOP_ALL_LEVELS
             for (size_t i = 0; i < vector_size; i++)
             {
                 if (p.running[i] && hout_col[i] < 0)
@@ -246,8 +320,8 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
             rfof_resonance_check_and_kick_gc(
                 &p, hin, hout_rfof, &rfof_mrk, sim->rfof, &sim->bfield);
 
-/* Check whether time step was rejected */
-#pragma omp simd
+            /* Check whether time step was rejected */
+            GPU_PARALLEL_LOOP_ALL_LEVELS
             for (size_t i = 0; i < vector_size; i++)
             {
                 if (p.running[i] && hout_rfof[i] < 0)
@@ -261,13 +335,13 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         /**********************************************************************/
 
         cputime = A5_WTIME;
-#pragma omp simd
+        GPU_PARALLEL_LOOP_ALL_LEVELS
         for (size_t i = 0; i < vector_size; i++)
         {
             if (p.id[i] > 0 && !p.err[i])
             {
 
-                /* Retrieve marker states in case time step was rejected      */
+                /* Retrieve marker states in case time step was rejected */
                 if (hnext[i] < 0)
                 {
                     MarkerGuidingCenter_copy(&p, &p0, i);
@@ -288,8 +362,11 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
                     {
                         p.time[i] +=
                             (1.0 - 2.0 * (sim->options->reverse_time > 0)) *
-                            hin[i];
-                        p.mileage[i] += hin[i];
+                            hin[i] * acceleration.acc[i];
+                        p.mileage[i] += hin[i] * acceleration.acc[i];
+                        if (acceleration.orbittime[i] >= 0)
+                            acceleration.orbittime[i] +=
+                                hin[i] * acceleration.acc[i];
                         /* In case the time step was succesful, pick the
                         smallest recommended value for the next step */
                         if (hnext[i] > hout_orb[i])
@@ -327,18 +404,34 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
                 }
             }
         }
+        if (sim->options->enable_adaptive > 1)
+        {
+            recalculate_acceleration(&acceleration, sim, &p, &p0);
+        }
         cputime_last = cputime;
         endcond_check_gc(&p, &p0, sim);
         Diag_update_gc(&sim->diagnostics, &sim->bfield, &p, &p0);
+#ifdef GPU
+        n_running = 0;
+        GPU_PARALLEL_LOOP_ALL_LEVELS_REDUCTION(n_running)
+        for (size_t i = 0; i < p.n_mrk; i++)
+        {
+            if (p.running[i] > 0)
+                n_running++;
+        }
+#else
         n_running = cycle_markers(vector_size, pq, &p, sim, hin);
-
-/* Determine simulation time-step for new particles */
-#pragma omp simd
+#endif
+        /* Determine simulation time-step for new particles */
+        GPU_PARALLEL_LOOP_ALL_LEVELS
         for (size_t i = 0; i < vector_size; i++)
         {
             if (cycle[i] > 0)
             {
-                hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
+                acceleration.acc[i] = 1.0;
+                acceleration.orbittime[i] = -1;
+                acceleration.cross[i].crossed_once = 0;
+                hin[i] = sim->options->timestep;
                 if (sim->options->enable_coulomb_collisions)
                 {
                     /* Re-allocate array storing the Wiener processes */
@@ -354,6 +447,10 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     }
     MarkerGuidingCenter_onload(&p);
     MarkerGuidingCenter_onload(&p0);
+#ifdef GPU
+    GPU_MAP_FROM_DEVICE(sim [0:1])
+    n_running = cycle_markers(vector_size, pq, &p, sim, hin);
+#endif
 
     /* All markers simulated! */
     free(hin);
@@ -364,32 +461,83 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     free(cycle);
     free(rnd);
 
-    /* Deallocate rfof structs */
     if (sim->options->enable_icrh)
-    {
         rfof_tear_down(&rfof_mrk);
-    }
+
     MarkerGuidingCenter_deallocate(&p0);
     MarkerGuidingCenter_deallocate(&p);
     return 0;
 }
 
-/**
- * @brief Calculates time step value
- *
- * The returned time step is either directly user-defined, 1/100th of collision
- * frequency or user-defined fraction of gyro-motion.
- *
- * @param sim pointer to simulation data struct
- * @param p SIMD array of markers
- * @param i index of marker for which time step is assessed
- *
- * @return Calculated time step
- */
-real simulate_gc_adaptive_inidt(Simulation *sim, MarkerGuidingCenter *p, size_t i)
+void recalculate_acceleration(
+    Acceleration *acc, Simulation *sim, MarkerGuidingCenter *p,
+    MarkerGuidingCenter *p0)
 {
-    /* Just use some large value if no physics are defined */
-    real h = DUMMY_TIMESTEP_VAL;
-    h = sim->options->timestep;
-    return h;
+    real rz[2];
+    real SAFETY_FACTOR = (float)sim->options->enable_adaptive / 1000.0;
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for (size_t i = 0; i < p->n_mrk; i++)
+    {
+        Bfield_eval_axis_rz(rz, &sim->bfield, p->phi[i]);
+        int omp_crossed =
+            ((p->z[i] - rz[1]) * (p0->z[i] - rz[1]) < 0) && p->r[i] > rz[0];
+        if (omp_crossed && acc->cross[i].crossed_twice)
+        {
+            if (((float)acc->cross[i].first_ppar - 0.5) * p->ppar[i] > 0)
+            {
+                acc->acc[i] = fmax(
+                    1.0,
+                    SAFETY_FACTOR / (acc->orbittime[i] * acc->collfreq[i]));
+            }
+            else
+            {
+                acc->acc[i] = 1;
+            }
+            acc->cross[i].crossed_once = 1;
+            acc->cross[i].crossed_twice = 0;
+            acc->cross[i].first_ppar = p->ppar[i] > 0;
+            acc->orbittime[i] = 0;
+        }
+        else if (omp_crossed && acc->cross[i].crossed_once)
+        {
+            acc->cross[i].crossed_twice = 1;
+            if (((float)acc->cross[i].first_ppar - 0.5) * p->ppar[i] > 0)
+            {
+                acc->acc[i] = fmax(
+                    1.0,
+                    SAFETY_FACTOR / (acc->orbittime[i] * acc->collfreq[i]));
+                acc->cross[i].crossed_once = 1;
+                acc->cross[i].crossed_twice = 0;
+                acc->cross[i].first_ppar = p->ppar[i] > 0;
+                acc->orbittime[i] = 0;
+            }
+        }
+        else if (omp_crossed)
+        {
+            acc->cross[i].crossed_once = 1;
+            acc->cross[i].first_ppar = p->ppar[i] > 0;
+            acc->orbittime[i] = 0;
+        }
+    }
+}
+
+void acceleration_allocate(Acceleration *acceleration, size_t vector_size)
+{
+    acceleration->acc = malloc(vector_size * sizeof(acceleration->acc));
+    acceleration->orbittime =
+        malloc(vector_size * sizeof(acceleration->orbittime));
+    acceleration->collfreq =
+        malloc(vector_size * sizeof(acceleration->collfreq));
+    acceleration->cross = malloc(vector_size * sizeof(acceleration->cross));
+}
+
+void acceleration_offload(Acceleration *acceleration, size_t vector_size)
+{
+    SUPPRESS_UNUSED_WARNING(acceleration);
+    SUPPRESS_UNUSED_WARNING(vector_size);
+    GPU_MAP_TO_DEVICE(
+        acceleration [0:1], acceleration->acc [0:vector_size],
+        acceleration->orbittime [0:vector_size],
+        acceleration->collfreq [0:vector_size],
+        acceleration->cross [0:vector_size])
 }

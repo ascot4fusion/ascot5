@@ -6,6 +6,7 @@
 #include "defines.h"
 #include "efield_cartesian.h"
 #include "efield_potential1d.h"
+#include "efield_potential2d.h"
 #include <stdio.h>
 
 void Efield_free(Efield *efield)
@@ -17,6 +18,9 @@ void Efield_free(Efield *efield)
         break;
     case EFIELD_POTENTIAL1D:
         EfieldPotential1D_free(efield->potential1d);
+        break;
+    case EFIELD_POTENTIAL2D:
+        EfieldPotential2D_free(efield->potential2d);
         break;
     }
 }
@@ -30,6 +34,9 @@ void Efield_offload(Efield *efield)
         break;
     case EFIELD_POTENTIAL1D:
         EfieldPotential1D_offload(efield->potential1d);
+        break;
+    case EFIELD_POTENTIAL2D:
+        EfieldPotential2D_offload(efield->potential2d);
         break;
     }
 }
@@ -46,6 +53,9 @@ err_t Efield_eval_e(
     case EFIELD_POTENTIAL1D:
         err = EfieldPotential1D_eval_e(
             e, r, phi, z, t, efield->potential1d, bfield);
+        break;
+    case EFIELD_POTENTIAL2D:
+        err = EfieldPotential2D_eval_e(e, r, z, efield->potential2d);
         break;
     default:
         /* If electric field is not given it evaluates to zero. */

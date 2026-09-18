@@ -5,7 +5,7 @@
 #ifndef EFIELD_DATA_H
 #define EFIELD_DATA_H
 
-#include "bfield_data.h"
+#include "defines.h"
 #include "interp_data.h"
 
 /**
@@ -17,6 +17,7 @@ typedef enum Efield_type
 {
     EFIELD_CARTESIAN = 1, /**< Corresponds to EfieldCartesian.                */
     EFIELD_POTENTIAL1D,   /**< Corresponds to EfieldPotential1D.              */
+    EFIELD_POTENTIAL2D,   /**< Corresponds to EfieldPotential2D.              */
 } Efield_type;
 
 /**
@@ -36,6 +37,14 @@ typedef struct
 } EfieldPotential1D;
 
 /**
+ * Axisymmetric electric field potential data.
+ */
+typedef struct
+{
+    Spline2D potential; /**< Electric field potential in Rz basis [V].        */
+} EfieldPotential2D;
+
+/**
  * Electric field simulation data.
  *
  * The intended usage is that only single type of data is used at a time. This
@@ -45,6 +54,7 @@ typedef struct
 {
     EfieldCartesian *cartesian;     /**< Cartesian data.                      */
     EfieldPotential1D *potential1d; /**< Radial potential data.               */
+    EfieldPotential2D *potential2d; /**< Axisymmetric potential data.         */
     Efield_type type;               /**< Current electric field type.         */
 } Efield;
 

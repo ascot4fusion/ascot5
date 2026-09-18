@@ -27,20 +27,25 @@
 #include <string.h>
 
 /**
- * Store val at index idx in output array arr if the output array is not NULL.
+ * Store value on the output array.
+ *
+ * The output arrays have the format arr[icomp][ipnt], where icomp is the
+ * component index and ipnt is the point index. No value is stored if the output
+ * array is NULL.
+ *
+ * @param icomp Component index for output arrays that have multiple components
+ *        (e.g. B which has components Br, Bphi, and Bz).
+ * @param ipnt Point index corresponding to the point where the value is
+ *        evaluated.
+ * @param val Value to be stored.
+ * @param arr Pointer to the output array or NULL to skip storing this
+ *        quantiity.
  */
-#define STORE(idx, val, arr)                                                   \
+#define STORE(ipnt, icomp, val, arr)                                           \
     do                                                                         \
     {                                                                          \
         if (arr)                                                               \
-            (arr)[(idx)] = (val);                                              \
-    } while (0)
-
-#define STORE2(idx1, idx2, val, arr)                                                   \
-    do                                                                         \
-    {                                                                          \
-        if (arr)                                                               \
-            (arr)[(idx1)][(idx2)] = (val);                                              \
+            (arr)[(ipnt)][(icomp)] = (val);                                    \
     } while (0)
 
 void ascot_interpolate(
@@ -52,10 +57,9 @@ void ascot_interpolate(
     real rho[2][npnt], real E[3][npnt], real n[][npnt], real T[2][npnt],
     real n0[][npnt], real T0[][npnt], real theta[4][npnt], real zeta[4][npnt],
     real alpha[5][npnt], real Phi[5][npnt], real mhd_b[3][npnt],
-    real mhd_e[3][npnt], real mhd_phi[npnt])
+    real mhd_e[3][npnt], real mhd_phi[][npnt])
 {
     int ONLY_PERTURBATIONS = 1;
-    //printf("B: %g %g %g %g %g %g\n", B[0], B[1], B[2], B[3], B[4], B[5]);
     OMP_PARALLEL_CPU_ONLY
     for (size_t k = 0; k < npnt; k++)
     {
@@ -66,40 +70,40 @@ void ascot_interpolate(
         int n_species, isinside;
         if (bfield && !Bfield_eval_b_db(Bq, R[k], phi[k], z[k], t[k], bfield))
         {
-            STORE2(0, k, Bq[0], B);
-            STORE2(1, k, Bq[1], B);
-            STORE2(2, k, Bq[2], B);
-            STORE2(0, k, Bq[3], Bjac);
-            STORE2(1, k, Bq[4], Bjac);
-            STORE2(2, k, Bq[5], Bjac);
-            STORE2(3, k, Bq[6], Bjac);
-            STORE2(4, k, Bq[7], Bjac);
-            STORE2(5, k, Bq[8], Bjac);
-            STORE2(6, k, Bq[9], Bjac);
-            STORE2(7, k, Bq[10], Bjac);
-            STORE2(8, k, Bq[11], Bjac);
+            STORE(0, k, Bq[0], B);
+            STORE(1, k, Bq[1], B);
+            STORE(2, k, Bq[2], B);
+            STORE(0, k, Bq[3], Bjac);
+            STORE(1, k, Bq[4], Bjac);
+            STORE(2, k, Bq[5], Bjac);
+            STORE(3, k, Bq[6], Bjac);
+            STORE(4, k, Bq[7], Bjac);
+            STORE(5, k, Bq[8], Bjac);
+            STORE(6, k, Bq[9], Bjac);
+            STORE(7, k, Bq[10], Bjac);
+            STORE(8, k, Bq[11], Bjac);
         }
         if (bfield &&
             !Bfield_eval_psi_dpsi(psival, R[k], phi[k], z[k], t[k], bfield))
         {
             psi_valid = 1;
-            STORE(0 * npnt + k, psival[0], *psi);
-            STORE(1 * npnt + k, psival[1], *psi);
-            STORE(2 * npnt + k, psival[2], *psi);
-            STORE(3 * npnt + k, psival[3], *psi);
+            STORE(0, k, psival[0], psi);
+            STORE(1, k, psival[1], psi);
+            STORE(2, k, psival[2], psi);
+            STORE(3, k, psival[3], psi);
         }
         if (bfield && psi_valid && !Bfield_eval_rho(rhoval, psival[0], bfield))
         {
             rho_valid = 1;
-            STORE(0 * npnt + k, rhoval[0], *rho);
-            STORE(1 * npnt + k, rhoval[1], *rho);
+            STORE(0, k, rhoval[0], rho);
+            STORE(1, k, rhoval[1], rho);
         }
         if (efield && bfield &&
             !Efield_eval_e(Eq, R[k], phi[k], z[k], t[k], efield, bfield))
         {
-            STORE(0 * npnt + k, Eq[0], *E);
-            STORE(1 * npnt + k, Eq[1], *E);
-            STORE(2 * npnt + k, Eq[2], *E);
+            STORE(0, k, Eq[0], E);
+            STORE(1, k, Eq[1], E);
+            STORE(2, k, Eq[2], E);
         }
         if (plasma)
         {
@@ -109,11 +113,11 @@ void ascot_interpolate(
             !Plasma_eval_nT(
                 ns, Ts, rhoval[0], R[k], phi[k], z[k], t[k], plasma))
         {
-            STORE(0 * npnt + k, Ts[0] / CONST_E, *T);
-            STORE(1 * npnt + k, Ts[1] / CONST_E, *T);
+            STORE(0, k, Ts[0] / CONST_E, T);
+            STORE(1, k, Ts[1] / CONST_E, T);
             for (int i = 0; i < n_species; i++)
             {
-                STORE(i * npnt + k, ns[i], *n);
+                STORE(i, k, ns[i], n);
             }
         }
         if (neutral)
@@ -121,65 +125,68 @@ void ascot_interpolate(
             n_species = Neutral_get_n_species(neutral);
         }
         if (neutral && rho_valid &&
-            !Neutral_eval_density(ns, rhoval[0], R[k], phi[k], z[k], t[k], neutral))
+            !Neutral_eval_density(
+                ns, rhoval[0], R[k], phi[k], z[k], t[k], neutral))
         {
             for (int i = 0; i < n_species; i++)
             {
-                STORE(i * npnt + k, ns[i], *n0);
+                STORE(i, k, ns[i], n0);
             }
         }
         if (neutral && rho_valid &&
-            !Neutral_eval_temperature(Ts, rhoval[0], R[k], phi[k], z[k], t[k], neutral))
+            !Neutral_eval_temperature(
+                Ts, rhoval[0], R[k], phi[k], z[k], t[k], neutral))
         {
             for (int i = 0; i < n_species; i++)
             {
-                STORE(i * npnt + k, Ts[i], *T0);
+                STORE(i, k, Ts[i], T0);
             }
         }
         if (boozer && bfield &&
             !Boozer_map_coordinates(
-                psithetazeta, &isinside, R[k], phi[k], z[k], t[k], boozer, bfield))
+                psithetazeta, &isinside, R[k], phi[k], z[k], t[k], boozer,
+                bfield))
         {
             if (isinside)
             {
-                STORE(0 * npnt + k, psithetazeta[4], *theta);
-                STORE(0 * npnt + k, psithetazeta[8], *zeta);
-                STORE(1 * npnt + k, psithetazeta[5], *theta);
-                STORE(2 * npnt + k, psithetazeta[6], *theta);
-                STORE(3 * npnt + k, psithetazeta[7], *theta);
-                STORE(1 * npnt + k, psithetazeta[9], *zeta);
-                STORE(2 * npnt + k, psithetazeta[10], *zeta);
-                STORE(3 * npnt + k, psithetazeta[11], *zeta);
+                STORE(0, k, psithetazeta[4], theta);
+                STORE(0, k, psithetazeta[8], zeta);
+                STORE(1, k, psithetazeta[5], theta);
+                STORE(2, k, psithetazeta[6], theta);
+                STORE(3, k, psithetazeta[7], theta);
+                STORE(1, k, psithetazeta[9], zeta);
+                STORE(2, k, psithetazeta[10], zeta);
+                STORE(3, k, psithetazeta[11], zeta);
             }
         }
         if (mhd && boozer && bfield &&
             !Mhd_eval_alpha_Phi(
-                alpha_dalpha, Phi_dPhi, R[k], phi[k], z[k], t[k], modenumber, mhd,
-                bfield, boozer))
+                alpha_dalpha, Phi_dPhi, R[k], phi[k], z[k], t[k], modenumber,
+                mhd, bfield, boozer))
         {
-            STORE(0 * npnt + k, alpha_dalpha[0], *alpha);
-            STORE(1 * npnt + k, alpha_dalpha[2], *alpha);
-            STORE(2 * npnt + k, alpha_dalpha[3], *alpha);
-            STORE(3 * npnt + k, alpha_dalpha[4], *alpha);
-            STORE(4 * npnt + k, alpha_dalpha[1], *alpha);
-            STORE(0 * npnt + k, Phi_dPhi[0], *Phi);
-            STORE(1 * npnt + k, Phi_dPhi[2], *Phi);
-            STORE(2 * npnt + k, Phi_dPhi[3], *Phi);
-            STORE(3 * npnt + k, Phi_dPhi[4], *Phi);
-            STORE(4 * npnt + k, Phi_dPhi[2], *Phi);
+            STORE(0, k, alpha_dalpha[0], alpha);
+            STORE(1, k, alpha_dalpha[2], alpha);
+            STORE(2, k, alpha_dalpha[3], alpha);
+            STORE(3, k, alpha_dalpha[4], alpha);
+            STORE(4, k, alpha_dalpha[1], alpha);
+            STORE(0, k, Phi_dPhi[0], Phi);
+            STORE(1, k, Phi_dPhi[2], Phi);
+            STORE(2, k, Phi_dPhi[3], Phi);
+            STORE(3, k, Phi_dPhi[4], Phi);
+            STORE(4, k, Phi_dPhi[2], Phi);
         }
         if (mhd && boozer && bfield &&
             !Mhd_eval_perturbation(
-                bpert, epert, Phipert, R[k], phi[k], z[k], t[k], ONLY_PERTURBATIONS,
-                modenumber, mhd, bfield, boozer))
+                bpert, epert, Phipert, R[k], phi[k], z[k], t[k],
+                ONLY_PERTURBATIONS, modenumber, mhd, bfield, boozer))
         {
-            STORE(0 * npnt + k, bpert[0], *mhd_b);
-            STORE(1 * npnt + k, bpert[1], *mhd_b);
-            STORE(2 * npnt + k, bpert[2], *mhd_b);
-            STORE(0 * npnt + k, epert[0], *mhd_e);
-            STORE(1 * npnt + k, epert[1], *mhd_e);
-            STORE(2 * npnt + k, epert[2], *mhd_e);
-            STORE(0 * npnt + k, Phipert[0], mhd_phi);
+            STORE(0, k, bpert[0], mhd_b);
+            STORE(1, k, bpert[1], mhd_b);
+            STORE(2, k, bpert[2], mhd_b);
+            STORE(0, k, epert[0], mhd_e);
+            STORE(1, k, epert[1], mhd_e);
+            STORE(2, k, epert[2], mhd_e);
+            STORE(0, k, Phipert[0], mhd_phi);
         }
     }
 }
@@ -192,7 +199,6 @@ void ascot_eval_collcoefs(
     int n_species = Plasma_get_n_species(plasma);
     const real *qb = Plasma_get_species_charge(plasma);
     const real *mb = Plasma_get_species_mass(plasma);
-    mccc_data mccc;
 
     OMP_PARALLEL_CPU_ONLY
     for (size_t k = 0; k < npnt; k++)
@@ -211,8 +217,7 @@ void ascot_eval_collcoefs(
         }
 
         real nb[MAX_SPECIES], Tb[MAX_SPECIES];
-        if (Plasma_eval_nT(
-                nb, Tb, rho[0], R[k], phi[k], z[k], t[k], plasma))
+        if (Plasma_eval_nT(nb, Tb, rho[0], R[k], phi[k], z[k], t[k], plasma))
         {
             continue;
         }
@@ -228,7 +233,7 @@ void ascot_eval_collcoefs(
             /* Special functions */
             real vb = sqrt(2 * Tb[ib] / mb[ib]);
             real x = va[k] / vb;
-            mccc_coefs_mufun(mufun, x, &mccc);
+            mccc_coefs_mufun(mufun, x);
 
             (void)clog;
             (void)mu;
@@ -313,12 +318,12 @@ void ascot_eval_ratecoeff(
         {
             continue;
         }
-        if (Plasma_eval_nT(
-                n, T, rho[0], R[k], phi[k], z[k], t[k], plasma))
+        if (Plasma_eval_nT(n, T, rho[0], R[k], phi[k], z[k], t[k], plasma))
         {
             continue;
         }
-        if (Neutral_eval_temperature(T0, rho[0], R[k], phi[k], z[k], t[k], neutral))
+        if (Neutral_eval_temperature(
+                T0, rho[0], R[k], phi[k], z[k], t[k], neutral))
         {
             continue;
         }

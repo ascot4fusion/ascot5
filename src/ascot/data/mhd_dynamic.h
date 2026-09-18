@@ -50,7 +50,7 @@ void MhdDynamic_free(MhdDynamic *mhd);
  */
 void MhdDynamic_offload(MhdDynamic *mhd);
 
-DECLARE_TARGET_SIMD_UNIFORM(mhd, bfield, boozer, include_mode)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(mhd, bfield, boozer, include_mode)
 /**
  * Evaluate the MHD terms used in the guiding center equations of motion.
  *
@@ -71,5 +71,6 @@ DECLARE_TARGET_SIMD_UNIFORM(mhd, bfield, boozer, include_mode)
 err_t MhdDynamic_eval_alpha_Phi(
     real alpha[5], real Phi[5], real r, real phi, real z, real t,
     size_t include_mode, MhdDynamic *mhd, Bfield *bfield, Boozer *boozer);
+DECLARE_TARGET_END
 
 #endif

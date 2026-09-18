@@ -17,11 +17,11 @@
 #include <stdio.h>
 
 void step_go_vpa(
-    MarkerGyroOrbit *p, real *h, Bfield *bfield, Efield *efield, int aldforce)
+    MarkerGyroOrbit *p, const real *h, Bfield *bfield, Efield *efield, int aldforce)
 {
     GPU_DATA_IS_MAPPED(h [0:p->n_mrk])
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for (int i = 0; i < p->n_mrk; i++)
+    for (size_t i = 0; i < p->n_mrk; i++)
     {
         if (p->running[i])
         {
@@ -90,8 +90,7 @@ void step_go_vpa(
                 real Bhat[9] = {0,       Bxyz[2], -Bxyz[1], -Bxyz[2], 0,
                                 Bxyz[0], Bxyz[1], -Bxyz[0], 0};
                 real Bhat2[9];
-                math_matrix_multiplication(
-                    Bhat2, Bhat, Bhat, (size_t[]){3, 3, 3});
+                math_matmul(Bhat, Bhat, Bhat2);
 
                 real B2 =
                     Bxyz[0] * Bxyz[0] + Bxyz[1] * Bxyz[1] + Bxyz[2] * Bxyz[2];
@@ -104,8 +103,7 @@ void step_go_vpa(
                 }
 
                 real pplus[3];
-                math_matrix_multiplication(
-                    pplus, pminus, A, (size_t[]){1, 3, 3});
+                math_matvecmul(pminus, A, pplus);
 
                 /* Take the step */
                 real pfinal[3];
@@ -223,14 +221,13 @@ void step_go_vpa(
 }
 
 void step_go_vpa_mhd(
-    MarkerGyroOrbit *p, real *h, Bfield *bfield, Efield *efield, Boozer *boozer,
+    MarkerGyroOrbit *p, const real *h, Bfield *bfield, Efield *efield, Boozer *boozer,
     Mhd *mhd, int aldforce)
 {
-    (void)aldforce;
-
-/* Following loop will be executed simultaneously for all i */
-#pragma omp simd aligned(h : 64)
-    for (int i = 0; i < NSIMD; i++)
+    (void)aldforce; // TODO
+    GPU_DATA_IS_MAPPED(h[0:p->n_mrk])
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for (size_t i = 0; i < p->n_mrk; i++)
     {
         if (p->running[i])
         {
@@ -304,8 +301,7 @@ void step_go_vpa_mhd(
                 real Bhat[9] = {0,       Bxyz[2], -Bxyz[1], -Bxyz[2], 0,
                                 Bxyz[0], Bxyz[1], -Bxyz[0], 0};
                 real Bhat2[9];
-                math_matrix_multiplication(
-                    Bhat2, Bhat, Bhat, (size_t[]){3, 3, 3});
+                math_matmul(Bhat, Bhat, Bhat2);
 
                 real B2 =
                     Bxyz[0] * Bxyz[0] + Bxyz[1] * Bxyz[1] + Bxyz[2] * Bxyz[2];
@@ -317,8 +313,7 @@ void step_go_vpa_mhd(
                 }
 
                 real pplus[3];
-                math_matrix_multiplication(
-                    pplus, pminus, A, (size_t[]){1, 3, 3});
+                math_matvecmul(pminus, A, pplus);
 
                 /* Take the step */
                 real pfinal[3];

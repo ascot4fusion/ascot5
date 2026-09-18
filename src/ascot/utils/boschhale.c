@@ -2,13 +2,13 @@
  * Implements boschhale.h.
  */
 #include "boschhale.h"
-#include "defines.h"
 #include "consts.h"
+#include "defines.h"
 #include <math.h>
 
 void boschhale_reaction(
-    Reaction reaction, double *m1, double *q1, double *m2, double *q2, double *mprod1,
-    double *qprod1, double *mprod2, double *qprod2, double *Q)
+    Reaction reaction, double *m1, double *q1, double *m2, double *q2,
+    double *mprod1, double *qprod1, double *mprod2, double *qprod2, double *Q)
 {
     switch (reaction)
     {
@@ -69,7 +69,7 @@ double boschhale_sigma(Reaction reaction, double E)
     switch (reaction)
     {
     case DT_He4n:
-        if (E <= 530)
+        if (E <= 550)
         {
             BG = 34.3827;
             A[0] = 6.927e4;
@@ -173,7 +173,7 @@ double boschhale_sigma(Reaction reaction, double E)
     }
 
     double S = (A[0] + E2 * (A[1] + E2 * (A[2] + E2 * (A[3] + E2 * A[4])))) /
-             (1 + E2 * (B[0] + E2 * (B[1] + E2 * (B[2] + E2 * B[3]))));
+               (1 + E2 * (B[0] + E2 * (B[1] + E2 * (B[2] + E2 * B[3]))));
 
     /* Check for underflow */
     if (BG / sqrt(E2) > 700)
@@ -181,6 +181,7 @@ double boschhale_sigma(Reaction reaction, double E)
         return 0;
     }
 
+    /* "With E in keV, the sigma is given in millibarns", hence 1e-31 */
     double sigma = S / (E * exp(BG / sqrt(E))) * 1e-31;
 
     return sigma;
@@ -242,7 +243,7 @@ double boschhale_sigmav(Reaction reaction, double Ti)
     }
 
     double theta = Ti / (1 - Ti * (C2 + Ti * (C4 + Ti * C6)) /
-                               (1 + Ti * (C3 + Ti * (C5 + Ti * C7))));
+                                 (1 + Ti * (C3 + Ti * (C5 + Ti * C7))));
 
     double xi = pow((BG * BG / (4 * theta)), 1.0 / 3.0);
 

@@ -265,6 +265,22 @@ DECLARE_TARGET_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(spline)
 /**
+ * Interpolate 3D data and the first order derivatives using cubic splines.
+ *
+ * @param f_df Interpolated value and derivatives.
+ *        Layout: [f, f_x, f_y, f_z].
+ * @param spline The spline interpolant.
+ * @param x Query point x coordinate.
+ * @param y Query point y coordinate.
+ * @param z Query point z coordinate.
+ *
+ * @return Zero on success and one if the point is outside the domain.
+ */
+int Spline3D_eval_f_df(real f_df[4], Spline3D *spline, real x, real y, real z);
+DECLARE_TARGET_END
+
+GPU_DECLARE_TARGET_SIMD_UNIFORM(spline)
+/**
  * Interpolate 3D data and the first and second order derivatives using cubic
  * splines.
  *
@@ -277,7 +293,8 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(spline)
  *
  * @return Zero on success and one if the point is outside the domain.
  */
-int Spline3D_eval_f_df(real f_df[10], Spline3D *spline, real x, real y, real z);
+int Spline3D_eval_f_ddf(
+    real f_ddf[10], Spline3D *spline, real x, real y, real z);
 DECLARE_TARGET_END
 
 /**

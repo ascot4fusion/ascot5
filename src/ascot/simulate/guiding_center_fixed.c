@@ -22,10 +22,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-DECLARE_TARGET_SIMD_UNIFORM(sim)
-real simulate_gc_fixed_inidt(Simulation *sim, MarkerGuidingCenter *p, size_t i);
-
-#define DUMMY_TIMESTEP_VAL 1.0 /**< Dummy time step value */
+/** Dummy time step value for RFOF [s]. */
+#define DUMMY_TIMESTEP_VAL 1.0
 
 /**
  * Replace markers in the simulation vector with new ones from the queue.
@@ -65,28 +63,34 @@ static size_t cycle_markers(
                 p_current->id[idx] = 0;
                 p_current->running[idx] = 0;
             }
-            time_step[idx] = simulate_gc_fixed_inidt(sim, p_current, idx);
+            time_step[idx] = sim->options->timestep;
         }
         start = idx;
     }
 
     size_t n_running = 0;
 #pragma omp simd reduction(+ : n_running)
-    for (size_t i = 0; i < NSIMD; i++)
-    {
+    for (size_t i = 0; i < vector_size; i++)
         n_running += p_current->running[i];
-    }
 
     return n_running;
 }
 
 int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 {
-    size_t *cycle = (size_t *)malloc(vector_size * sizeof(size_t));
-    real *hin = (real *)malloc(vector_size * sizeof(real));
-    real *hin_default = (real *)malloc(vector_size * sizeof(real));
-    real *hnext_recom = (real *)malloc(vector_size * sizeof(real));
-    real *hout_rfof = (real *)malloc(vector_size * sizeof(real));
+    int err = 0;
+    size_t *cycle = (size_t *)xmalloc(&err, vector_size * sizeof(size_t));
+    if(err) return 1;
+    real *hin = (real *)xmalloc(&err, vector_size * sizeof(real));
+    if(err) return 1;
+    real *hin_default = (real *)xmalloc(&err, vector_size * sizeof(real));
+    if(err) return 1;
+    real *hnext_recom = (real *)xmalloc(&err, vector_size * sizeof(real));
+    if(err) return 1;
+    real *hout_rfof = (real *)xmalloc(&err, vector_size * sizeof(real));
+    if(err) return 1;
+    real *rnd = (real *)xmalloc(&err, 5 * vector_size * sizeof(real));
+    if(err) return 1;
 
     real cputime, cputime_last; // Global cpu time: recent and previous record
 
@@ -112,9 +116,7 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     size_t n_running = cycle_markers(vector_size, pq, &p, sim, hin);
 
     if (sim->options->enable_icrh)
-    {
         rfof_set_up(&rfof_mrk, sim->rfof);
-    }
 
     cputime_last = A5_WTIME;
 
@@ -127,21 +129,20 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
      * - Check for end condition(s)
      * - Update diagnostics
      */
-    real *rnd = (real *)malloc(5 * vector_size * sizeof(real));
     MarkerGuidingCenter_offload(&p);
     MarkerGuidingCenter_offload(&p0);
     while (n_running > 0)
     {
 
-/* Store marker states */
-#pragma omp simd
+        /* Store marker states */
+        GPU_PARALLEL_LOOP_ALL_LEVELS
         for (size_t i = 0; i < vector_size; i++)
             MarkerGuidingCenter_copy(&p0, &p, i);
 
-/*************************** Physics **********************************/
+        /*************************** Physics **********************************/
 
-/* Set time-step negative if tracing backwards in time */
-#pragma omp simd
+        /* Set time-step negative if tracing backwards in time */
+        GPU_PARALLEL_LOOP_ALL_LEVELS
         for (size_t i = 0; i < vector_size; i++)
         {
             if (sim->options->reverse_time)
@@ -167,8 +168,8 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
             }
         }
 
-/* Switch sign of the time-step again if it was reverted earlier */
-#pragma omp simd
+        /* Switch sign of the time-step again if it was reverted earlier */
+        GPU_PARALLEL_LOOP_ALL_LEVELS
         for (size_t i = 0; i < vector_size; i++)
         {
             if (sim->options->reverse_time)
@@ -191,9 +192,9 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
             rfof_resonance_check_and_kick_gc(
                 &p, hin, hout_rfof, &rfof_mrk, sim->rfof, &sim->bfield);
 
-/* Check whether time step was rejected */
-#pragma omp simd
-            for (int i = 0; i < NSIMD; i++)
+            /* Check whether time step was rejected */
+            GPU_PARALLEL_LOOP_ALL_LEVELS
+            for (size_t i = 0; i < vector_size; i++)
             {
                 if (p.running[i] && hout_rfof[i] < 0)
                 {
@@ -215,7 +216,7 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 
         /* Update simulation and cpu times */
         cputime = A5_WTIME;
-#pragma omp simd
+        GPU_PARALLEL_LOOP_ALL_LEVELS
         for (size_t i = 0; i < vector_size; i++)
         {
             if (hnext_recom[i] < 0)
@@ -251,15 +252,24 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         Diag_update_gc(&sim->diagnostics, &sim->bfield, &p, &p0);
 
         /* Update running particles */
+        #ifdef GPU
+        n_running = 0;
+        GPU_PARALLEL_LOOP_ALL_LEVELS_REDUCTION(n_running)
+        for(int i = 0; i < p.n_mrk; i++)
+        {
+            if(p.running[i] > 0) n_running++;
+        }
+        #else
         n_running = cycle_markers(vector_size, pq, &p, sim, hin);
+        #endif
 
-/* Determine simulation time-step */
-#pragma omp simd
+        /* Determine simulation time-step */
+        GPU_PARALLEL_LOOP_ALL_LEVELS
         for (size_t i = 0; i < vector_size; i++)
         {
             if (cycle[i] > 0)
             {
-                hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
+                hin[i] = sim->options->timestep;
                 if (sim->options->enable_icrh)
                 {
                     /* Reset icrh (rfof) resonance memory matrix. */
@@ -270,6 +280,10 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     }
     MarkerGuidingCenter_onload(&p);
     MarkerGuidingCenter_onload(&p0);
+    #ifdef GPU
+    GPU_MAP_FROM_DEVICE(sim[0:1])
+    n_running = cycle_markers(vector_size, pq, &p, sim, hin);
+    #endif
 
     /* All markers simulated! */
     free(cycle);
@@ -284,29 +298,7 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 
     /* Deallocate rfof structs */
     if (sim->options->enable_icrh)
-    {
         rfof_tear_down(&rfof_mrk);
-    }
 
     return 0;
-}
-
-/**
- * @brief Calculates time step value
- *
- * The time step is calculated as a user-defined fraction of gyro time,
- * whose formula accounts for relativity, or an user defined value
- * is used as is depending on simulation options.
- *
- * @param sim pointer to simulation data struct
- * @param p SIMD array of markers
- * @param i index of marker for which time step is assessed
- *
- * @return Calculated time step
- */
-real simulate_gc_fixed_inidt(Simulation *sim, MarkerGuidingCenter *p, size_t i)
-{
-    real h;
-    h = sim->options->timestep;
-    return h;
 }

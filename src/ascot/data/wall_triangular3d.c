@@ -25,14 +25,14 @@
 int WallTriangular3D_init_octree(WallTriangular3D *wall);
 
 int WallTriangular3D_init(
-    WallTriangular3D *wall, size_t n, real *vertices, int *flag)
+    WallTriangular3D *wall, size_t n, float vertices[n*9], int flag[n])
 {
     int err = 0;
     wall->n = n;
-    wall->vertices = (real *)malloc(9 * n * sizeof(real));
-    real xmin = vertices[0], xmax = vertices[0];
-    real ymin = vertices[1], ymax = vertices[1];
-    real zmin = vertices[2], zmax = vertices[2];
+    wall->vertices = (float *)malloc(9 * n * sizeof(float));
+    float xmin = vertices[0], xmax = vertices[0];
+    float ymin = vertices[1], ymax = vertices[1];
+    float zmin = vertices[2], zmax = vertices[2];
     for (size_t i = 0; i < n; i++)
     {
         for (size_t j = 0; j < 3; j++)
@@ -89,7 +89,7 @@ void WallTriangular3D_free(WallTriangular3D *wall)
 
 void WallTriangular3D_offload(WallTriangular3D *wall)
 {
-    (void)wall;
+    SUPPRESS_UNUSED_WARNING(wall);
     GPU_MAP_TO_DEVICE(
         data->wall_flag [0:data->n], data->vertices [0:data->n * 9],
         data->tree_array [0:data->tree_array_size])
@@ -128,19 +128,20 @@ size_t WallTriangular3D_eval_intersection(
     size_t hit_tri = 0;
     real smallest_w = 1.1;
 
-    for (size_t i = 0; i <= llabs(ix2 - ix1); i++)
-    {
-        for (size_t j = 0; j <= llabs(iy2 - iy1); j++)
-        {
-            for (size_t k = 0; k <= llabs(iz2 - iz1); k++)
-            {
-                ptrdiff_t ix = ix1 + i * ((int)copysign(1, ix2 - ix1));
-                ptrdiff_t iy = iy1 + j * ((int)copysign(1, iy2 - iy1));
-                ptrdiff_t iz = iz1 + k * ((int)copysign(1, iz2 - iz1));
+    ptrdiff_t sx = (ix2 > ix1) - (ix2 < ix1);
+    ptrdiff_t sy = (iy2 > iy1) - (iy2 < iy1);
+    ptrdiff_t sz = (iz2 > iz1) - (iz2 < iz1);
 
-                if (ix >= 0 && ix < wall->ngrid && iy >= 0 &&
-                    iy < wall->ngrid && iz >= 0 && iz < wall->ngrid)
-                {
+    for (size_t i = 0; i <= (size_t)llabs(ix2 - ix1); i++) {
+        for (size_t j = 0; j <= (size_t)llabs(iy2 - iy1); j++) {
+            for (size_t k = 0; k <= (size_t)llabs(iz2 - iz1); k++) {
+                ptrdiff_t ix = ix1 + (ptrdiff_t)i * sx;
+                ptrdiff_t iy = iy1 + (ptrdiff_t)j * sy;
+                ptrdiff_t iz = iz1 + (ptrdiff_t)k * sz;
+
+                if (ix >= 0 && ix < (ptrdiff_t)wall->ngrid &&
+                    iy >= 0 && iy < (ptrdiff_t)wall->ngrid &&
+                    iz >= 0 && iz < (ptrdiff_t)wall->ngrid) {
 
                     size_t ilist = wall->tree_array
                                        [ix * wall->ngrid * wall->ngrid +
@@ -149,7 +150,7 @@ size_t WallTriangular3D_eval_intersection(
                     for (size_t l = 0; l < wall->tree_array[ilist]; l++)
                     {
                         size_t itri = wall->tree_array[ilist + l + 1];
-                        real w = octree_tri_collision(
+                        real w = Octree_tri_collision(
                             q1, q2, &wall->vertices[9 * itri],
                             &wall->vertices[9 * itri + 3],
                             &wall->vertices[9 * itri + 6]);
@@ -169,13 +170,13 @@ int WallTriangular3D_init_octree(WallTriangular3D *wall)
 {
 
     /* Construct the octree and store triangles there */
-    octree_node *tree;
-    octree_create(
+    Octree *tree;
+    Octree_create(
         &tree, wall->xmin, wall->xmax, wall->ymin, wall->ymax, wall->zmin,
         wall->zmax, wall->depth);
     for (size_t i = 0; i < wall->n; i++)
     {
-        real t1[3], t2[3], t3[3];
+        float t1[3], t2[3], t3[3];
         t1[0] = wall->vertices[i * 9];
         t1[1] = wall->vertices[i * 9 + 1];
         t1[2] = wall->vertices[i * 9 + 2];
@@ -185,7 +186,7 @@ int WallTriangular3D_init_octree(WallTriangular3D *wall)
         t3[0] = wall->vertices[i * 9 + 6];
         t3[1] = wall->vertices[i * 9 + 7];
         t3[2] = wall->vertices[i * 9 + 8];
-        octree_add(tree, t1, t2, t3, i);
+        Octree_add(tree, t1, t2, t3, i);
     }
 
     /* Create lists for triangles in each grid square and fill the lists
@@ -206,7 +207,7 @@ int WallTriangular3D_init_octree(WallTriangular3D *wall)
 
                 int cell_index =
                     ix * wall->ngrid * wall->ngrid + iy * wall->ngrid + iz;
-                tri_list[cell_index] = octree_get(tree, p);
+                tri_list[cell_index] = Octree_get(tree, p);
             }
         }
     }
@@ -241,7 +242,7 @@ int WallTriangular3D_init_octree(WallTriangular3D *wall)
         next_empty_list += wall->tree_array[next_empty_list] + 1;
     }
     free(tri_list);
-    octree_free(&tree);
+    Octree_free(&tree);
 
     return 0;
 }

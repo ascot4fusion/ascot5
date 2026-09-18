@@ -25,6 +25,8 @@ void Linear2D_init(
     linear->c = c;
     linear->nx = nx;
     linear->ny = ny;
+    linear->xbc = xbc;
+    linear->ybc = ybc;
     linear->xlim[0] = xlim[0];
     linear->xlim[1] = xlim[1];
     linear->ylim[0] = ylim[0];

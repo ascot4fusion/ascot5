@@ -116,13 +116,13 @@ err_t BfieldSpline3D_eval_b_db(
 {
     err_t err = 0;
     int interperr = 0;
-    real b_db_temp[10];
+    real b_db_temp[4];
 
     interperr += Spline3D_eval_f_df(b_db_temp, &bfield->br, r, phi, z);
     b_db[0] = b_db_temp[0];
-    b_db[2] = b_db_temp[1];
-    b_db[3] = b_db_temp[2];
-    b_db[4] = b_db_temp[3];
+    b_db[3] = b_db_temp[1];
+    b_db[4] = b_db_temp[2];
+    b_db[5] = b_db_temp[3];
 
     interperr += Spline3D_eval_f_df(b_db_temp, &bfield->bphi, r, phi, z);
     b_db[1] = b_db_temp[0];

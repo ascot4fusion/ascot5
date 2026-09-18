@@ -63,7 +63,7 @@ err_t Boozer_map_coordinates(
     isinside[0] =
         psi_dpsi[0] < boozer->theta.ylim[1] &&
         psi_dpsi[0] > boozer->theta.ylim[0] &&
-        math_point_in_polygon(r, z, boozer->rlim, boozer->zlim, boozer->nrz);
+        math_point_in_polygon(boozer->nrz, boozer->rlim, boozer->zlim, r, z);
 
     int interperr = 0;
     real thgeo, theta_dtheta[6], nu[6];

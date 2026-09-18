@@ -292,8 +292,8 @@ void MarkerGyroOrbit_to_queue(
     B_dB[11] = mrk->B_z_dz[index];
 
     gctransform_particle2guidingcenter(
-        p->mass, p->charge, B_dB, p->rprt, p->phiprt, p->zprt, p->pr, p->pphi, p->pz,
-        &p->r, &p->phi, &p->z, &ppar, &mu, &p->zeta);
+        p->mass, p->charge, B_dB, p->rprt, p->phiprt, p->zprt, p->pr, p->pphi,
+        p->pz, &p->r, &p->phi, &p->z, &ppar, &mu, &p->zeta);
 
     if (!err)
         err = Bfield_eval_b_db(B_dB, p->r, p->phi, p->z, p->time, bfield);
@@ -396,9 +396,53 @@ void MarkerGuidingCenter_deallocate(MarkerGuidingCenter *mrk)
     mrk->n_mrk = 0;
 }
 
-void MarkerGuidingCenter_offload(MarkerGuidingCenter *mrk) { (void)mrk; }
+void MarkerGuidingCenter_offload(MarkerGuidingCenter *mrk)
+{
+    SUPPRESS_UNUSED_WARNING(mrk);
+    GPU_MAP_TO_DEVICE(
+        mrk [0:1], mrk->running [0:mrk->n_mrk], mrk->r [0:mrk->n_mrk],
+        mrk->phi [0:mrk->n_mrk], mrk->ppar [0:mrk->n_mrk],
+        mrk->mu [0:mrk->n_mrk], mrk->zeta [0:mrk->n_mrk],
+        mrk->mileage [0:mrk->n_mrk], mrk->z [0:mrk->n_mrk],
+        mrk->charge [0:mrk->n_mrk], mrk->mass [0:mrk->n_mrk],
+        mrk->B_r [0:mrk->n_mrk], mrk->B_r_dr [0:mrk->n_mrk],
+        mrk->B_r_dphi [0:mrk->n_mrk], mrk->B_r_dz [0:mrk->n_mrk],
+        mrk->B_phi [0:mrk->n_mrk], mrk->B_phi_dr [0:mrk->n_mrk],
+        mrk->B_phi_dphi [0:mrk->n_mrk], mrk->B_phi_dz [0:mrk->n_mrk],
+        mrk->B_z [0:mrk->n_mrk], mrk->B_z_dr [0:mrk->n_mrk],
+        mrk->B_z_dphi [0:mrk->n_mrk], mrk->B_z_dz [0:mrk->n_mrk],
+        mrk->rho [0:mrk->n_mrk], mrk->theta [0:mrk->n_mrk],
+        mrk->err [0:mrk->n_mrk], mrk->time [0:mrk->n_mrk],
+        mrk->weight [0:mrk->n_mrk], mrk->cputime [0:mrk->n_mrk],
+        mrk->id [0:mrk->n_mrk], mrk->endcond [0:mrk->n_mrk],
+        mrk->walltile [0:mrk->n_mrk], mrk->index [0:mrk->n_mrk],
+        mrk->znum [0:mrk->n_mrk], mrk->anum [0:mrk->n_mrk],
+        mrk->bounces [0:mrk->n_mrk])
+}
 
-void MarkerGuidingCenter_onload(MarkerGuidingCenter *mrk) { (void)mrk; }
+void MarkerGuidingCenter_onload(MarkerGuidingCenter *mrk)
+{
+    SUPPRESS_UNUSED_WARNING(mrk);
+    GPU_MAP_FROM_DEVICE(
+        mrk [0:1], mrk->running [0:mrk->n_mrk], mrk->r [0:mrk->n_mrk],
+        mrk->phi [0:mrk->n_mrk], mrk->ppar [0:mrk->n_mrk],
+        mrk->mu [0:mrk->n_mrk], mrk->zeta [0:mrk->n_mrk],
+        mrk->mileage [0:mrk->n_mrk], mrk->z [0:mrk->n_mrk],
+        mrk->charge [0:mrk->n_mrk], mrk->mass [0:mrk->n_mrk],
+        mrk->B_r [0:mrk->n_mrk], mrk->B_r_dr [0:mrk->n_mrk],
+        mrk->B_r_dphi [0:mrk->n_mrk], mrk->B_r_dz [0:mrk->n_mrk],
+        mrk->B_phi [0:mrk->n_mrk], mrk->B_phi_dr [0:mrk->n_mrk],
+        mrk->B_phi_dphi [0:mrk->n_mrk], mrk->B_phi_dz [0:mrk->n_mrk],
+        mrk->B_z [0:mrk->n_mrk], mrk->B_z_dr [0:mrk->n_mrk],
+        mrk->B_z_dphi [0:mrk->n_mrk], mrk->B_z_dz [0:mrk->n_mrk],
+        mrk->rho [0:mrk->n_mrk], mrk->theta [0:mrk->n_mrk],
+        mrk->err [0:mrk->n_mrk], mrk->time [0:mrk->n_mrk],
+        mrk->weight [0:mrk->n_mrk], mrk->cputime [0:mrk->n_mrk],
+        mrk->id [0:mrk->n_mrk], mrk->endcond [0:mrk->n_mrk],
+        mrk->walltile [0:mrk->n_mrk], mrk->index [0:mrk->n_mrk],
+        mrk->znum [0:mrk->n_mrk], mrk->anum [0:mrk->n_mrk],
+        mrk->bounces [0:mrk->n_mrk])
+}
 
 void MarkerGuidingCenter_copy(
     MarkerGuidingCenter *copy, MarkerGuidingCenter *original, size_t index)
@@ -496,7 +540,6 @@ int MarkerGuidingCenter_from_queue(
         mrk->cputime[mrk_index] = p->cputime;
         mrk->index[mrk_index] = queue_index;
         mrk->err[mrk_index] = 0;
-
     }
     if (err)
         p->err = err;
@@ -554,7 +597,8 @@ void MarkerGuidingCenter_to_queue(
         &muprt, &zetaprt);
 
     if (!err)
-        err = Bfield_eval_b_db(B_dB, p->rprt, p->phiprt, p->zprt, p->time, bfield);
+        err = Bfield_eval_b_db(
+            B_dB, p->rprt, p->phiprt, p->zprt, p->time, bfield);
 
     gctransform_pparmuzeta2prpphipz(
         p->mass, p->charge, B_dB, p->phiprt, pparprt, muprt, zetaprt, &p->pr,
@@ -634,9 +678,47 @@ void MarkerFieldLine_deallocate(MarkerFieldLine *mrk)
     mrk->n_mrk = 0;
 }
 
-void MarkerFieldLine_offload(MarkerFieldLine *mrk) { (void)mrk; }
+void MarkerFieldLine_offload(MarkerFieldLine *mrk)
+{
+    SUPPRESS_UNUSED_WARNING(mrk);
+    GPU_MAP_TO_DEVICE(
+        mrk [0:1], mrk->running [0:mrk->n_mrk], mrk->r [0:mrk->n_mrk],
+        mrk->phi [0:mrk->n_mrk], mrk->z [0:mrk->n_mrk],
+        mrk->mileage [0:mrk->n_mrk], mrk->charge [0:mrk->n_mrk],
+        mrk->mass [0:mrk->n_mrk], mrk->B_r [0:mrk->n_mrk],
+        mrk->B_r_dr [0:mrk->n_mrk], mrk->B_r_dphi [0:mrk->n_mrk],
+        mrk->B_r_dz [0:mrk->n_mrk], mrk->B_phi [0:mrk->n_mrk],
+        mrk->B_phi_dr [0:mrk->n_mrk], mrk->B_phi_dphi [0:mrk->n_mrk],
+        mrk->B_phi_dz [0:mrk->n_mrk], mrk->B_z [0:mrk->n_mrk],
+        mrk->B_z_dr [0:mrk->n_mrk], mrk->B_z_dphi [0:mrk->n_mrk],
+        mrk->B_z_dz [0:mrk->n_mrk], mrk->rho [0:mrk->n_mrk],
+        mrk->theta [0:mrk->n_mrk], mrk->err [0:mrk->n_mrk],
+        mrk->time [0:mrk->n_mrk], mrk->cputime [0:mrk->n_mrk],
+        mrk->id [0:mrk->n_mrk], mrk->endcond [0:mrk->n_mrk],
+        mrk->walltile [0:mrk->n_mrk], mrk->index [0:mrk->n_mrk],
+        mrk->bounces [0:mrk->n_mrk])
+}
 
-void MarkerFieldLine_onload(MarkerFieldLine *mrk) { (void)mrk; }
+void MarkerFieldLine_onload(MarkerFieldLine *mrk)
+{
+    SUPPRESS_UNUSED_WARNING(mrk);
+    GPU_MAP_FROM_DEVICE(
+        mrk [0:1], mrk->running [0:mrk->n_mrk], mrk->r [0:mrk->n_mrk],
+        mrk->phi [0:mrk->n_mrk], mrk->z [0:mrk->n_mrk],
+        mrk->mileage [0:mrk->n_mrk], mrk->charge [0:mrk->n_mrk],
+        mrk->mass [0:mrk->n_mrk], mrk->B_r [0:mrk->n_mrk],
+        mrk->B_r_dr [0:mrk->n_mrk], mrk->B_r_dphi [0:mrk->n_mrk],
+        mrk->B_r_dz [0:mrk->n_mrk], mrk->B_phi [0:mrk->n_mrk],
+        mrk->B_phi_dr [0:mrk->n_mrk], mrk->B_phi_dphi [0:mrk->n_mrk],
+        mrk->B_phi_dz [0:mrk->n_mrk], mrk->B_z [0:mrk->n_mrk],
+        mrk->B_z_dr [0:mrk->n_mrk], mrk->B_z_dphi [0:mrk->n_mrk],
+        mrk->B_z_dz [0:mrk->n_mrk], mrk->rho [0:mrk->n_mrk],
+        mrk->theta [0:mrk->n_mrk], mrk->err [0:mrk->n_mrk],
+        mrk->time [0:mrk->n_mrk], mrk->cputime [0:mrk->n_mrk],
+        mrk->id [0:mrk->n_mrk], mrk->endcond [0:mrk->n_mrk],
+        mrk->walltile [0:mrk->n_mrk], mrk->index [0:mrk->n_mrk],
+        mrk->bounces [0:mrk->n_mrk])
+}
 
 void MarkerFieldLine_copy(
     MarkerFieldLine *copy, MarkerFieldLine *original, size_t index)
@@ -874,6 +956,37 @@ int marker_go_to_gc(
     }
 
     return err > 0;
+}
+
+size_t MarkerQueue_cycle(
+    size_t *next_in_queue, MarkerQueue *q, size_t nmrk, size_t start,
+    size_t ids[nmrk], int running[nmrk]) {
+    size_t idx;
+    for (idx = start; idx < nmrk; idx++)
+    {
+        int marker_finished = ids[idx] > 0 && !running[idx];
+        int vector_initial_fill = ids[idx] == 0 && q->next < q->n;
+        if (marker_finished)
+        {
+            #pragma omp critical
+            q->finished++;
+            break;
+        }
+        if (vector_initial_fill)
+            break;
+    }
+
+    *next_in_queue = q->n;
+    int vector_has_empty_slot = idx < nmrk;
+    if(vector_has_empty_slot) {
+        size_t next;
+        #pragma omp critical
+        next = q->next++;
+        int empty_queue = next >= q->n;
+        if(!empty_queue)
+            *next_in_queue = next;
+    }
+    return idx;
 }
 
 #undef allocate_field

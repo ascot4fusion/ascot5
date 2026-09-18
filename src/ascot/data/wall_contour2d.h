@@ -60,5 +60,6 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(wall)
  */
 size_t WallContour2D_eval_intersection(
     real w_coll[1], real r1, real z1, real r2, real z2, WallContour2D *wall);
+DECLARE_TARGET_END
 
 #endif

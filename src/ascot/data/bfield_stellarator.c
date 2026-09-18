@@ -123,7 +123,7 @@ err_t BfieldStellarator_eval_b_db(
 {
     err_t err = 0;
     int interperr = 0;
-    real b_db_temp[10];
+    real b_db_temp[4];
 
     interperr += Spline3D_eval_f_df(b_db_temp, &bfield->br, r, phi, z);
     b_db[0] = b_db_temp[0];

@@ -17,8 +17,8 @@
 #include "plasma_data.h"
 #include "rfof_data.h"
 #include "wall_data.h"
+#include "defines.h"
 #include <stddef.h>
-#include <stdint.h>
 
 /**
  * Marker end condition bit masks.
@@ -72,20 +72,20 @@ typedef enum Reaction
  */
 typedef struct
 {
-    Mhd mhd;                  /**< MHD data interface.                        */
-    Wall wall;                /**< Wall data interface.                       */
-    Rfof *rfof;               /**< Rfof data read via RFOF library.           */
-    Bfield bfield;            /**< Magnetic field data interface.             */
-    Efield efield;            /**< Electric field data interface.             */
-    Plasma plasma;            /**< Plasma data interface.                     */
-    Boozer *boozer;           /**< Boozer data.                               */
-    Atomic *atomic;           /**< Atomic data.                               */
-    Neutral neutral;          /**< Neutral data interface.                    */
-    Options *options;         /**< Simulation options.                        */
-    Diagnostics diagnostics;  /**< Diagnostics data interface.                */
-    void *random_data;        /**< Random number generator.                   */
-    void *mccc_data;          /**< Tabulated special functions and collision
-                                   operator parameters.                       */
+    Mhd mhd;                 /**< MHD data interface.                         */
+    Wall wall;               /**< Wall data interface.                        */
+    Rfof *rfof;              /**< Rfof data read via RFOF library.            */
+    Bfield bfield;           /**< Magnetic field data interface.              */
+    Efield efield;           /**< Electric field data interface.              */
+    Plasma plasma;           /**< Plasma data interface.                      */
+    Boozer *boozer;          /**< Boozer data.                                */
+    Atomic *atomic;          /**< Atomic data.                                */
+    Neutral neutral;         /**< Neutral data interface.                     */
+    Options *options;        /**< Simulation options.                         */
+    Diagnostics diagnostics; /**< Diagnostics data interface.                 */
+    void *random_data;       /**< Random number generator.                    */
+    void *mccc_data;         /**< Tabulated special functions and collision
+                                  operator parameters.                        */
 } Simulation;
 
 /**

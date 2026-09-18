@@ -1,8 +1,8 @@
 /**
  * Implements endcond.h.
  */
-#include "ascot.h"
 #include "endcond.h"
+#include "ascot.h"
 #include "consts.h"
 #include "data/marker.h"
 #include "data/plasma.h"
@@ -113,14 +113,13 @@ void endcond_check_go(
              * energy limit or local thermal energy limit */
             if (active_emin || active_therm)
             {
-                real pnorm =
-                    math_normc(p_f->p_r[i], p_f->p_phi[i], p_f->p_z[i]);
-                real ekin = physlib_Ekin_pnorm(p_f->mass[i], pnorm);
-
-                real Ti;
+                real Ti, vflow;
                 err_t errflag = Plasma_eval_temperature(
                     &Ti, p_f->rho[i], p_f->r[i], p_f->phi[i], p_f->z[i],
                     p_f->time[i], 1, &sim->plasma);
+                Plasma_eval_flow(
+                    &vflow, p_f->rho[i], p_f->r[i], p_f->phi[i], p_f->z[i],
+                    p_f->time[i], &sim->plasma);
 
                 /* Error handling */
                 if (errflag)
@@ -128,15 +127,33 @@ void endcond_check_go(
                     p_f->err[i] = errflag;
                     p_f->running[i] = 0;
                     Ti = 0;
+                    vflow = 0;
                 }
+                real pnorm =
+                    math_normc(p_f->p_r[i], p_f->p_phi[i], p_f->p_z[i]);
+                real gamma = physlib_gamma_pnorm(p_f->mass[i], pnorm);
+                real vplasma[3];
+                real bnorm =
+                    math_normc(p_f->B_r[i], p_f->B_phi[i], p_f->B_z[i]);
+                vplasma[0] =
+                    (p_f->p_r[i] / (gamma * p_f->mass[i]) -
+                     vflow * p_f->B_r[i] / bnorm);
+                vplasma[1] =
+                    (p_f->p_phi[i] / (gamma * p_f->mass[i]) -
+                     vflow * p_f->B_phi[i] / bnorm);
+                vplasma[2] = p_f->p_z[i] / (gamma * p_f->mass[i]) -
+                             vflow * p_f->B_z[i] / bnorm;
+
+                real vnorm = math_norm(vplasma);
+                pnorm = physlib_pnorm_vnorm(p_f->mass[i], vnorm);
+                real ekin = physlib_Ekin_pnorm(p_f->mass[i], pnorm);
 
                 if (active_emin && (ekin < params->min_energy))
                 {
                     p_f->endcond[i] |= ENDCOND_EMIN;
                     p_f->running[i] = 0;
                 }
-                if (active_therm &&
-                    (ekin < (params->local_thermal_limit * Ti)))
+                if (active_therm && (ekin < (params->local_thermal_limit * Ti)))
                 {
                     p_f->endcond[i] |= ENDCOND_THERM;
                     p_f->running[i] = 0;
@@ -248,8 +265,8 @@ void endcond_check_gc(
     endcond_t active_tormax = params->endcond_active & ENDCOND_TORMAX;
     endcond_t active_cpumax = params->endcond_active & ENDCOND_CPUMAX;
 
-#pragma omp simd
-    for (size_t i = 0; i < NSIMD; i++)
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for (size_t i = 0; i < p_f->n_mrk; i++)
     {
         if (p_f->running[i])
         {
@@ -318,13 +335,14 @@ void endcond_check_gc(
             {
                 real Bnorm =
                     math_normc(p_f->B_r[i], p_f->B_phi[i], p_f->B_z[i]);
-                real ekin = physlib_Ekin_ppar(
-                    p_f->mass[i], p_f->mu[i], p_f->ppar[i], Bnorm);
 
-                real Ti;
+                real Ti, vflow;
                 err_t errflag = Plasma_eval_temperature(
                     &Ti, p_f->rho[i], p_f->r[i], p_f->phi[i], p_f->z[i],
                     p_f->time[i], 1, &sim->plasma);
+                Plasma_eval_flow(
+                    &vflow, p_f->rho[i], p_f->r[i], p_f->phi[i], p_f->z[i],
+                    p_f->time[i], &sim->plasma);
 
                 /* Error handling */
                 if (errflag)
@@ -332,15 +350,25 @@ void endcond_check_gc(
                     p_f->err[i] = errflag;
                     p_f->running[i] = 0;
                     Ti = 0;
+                    vflow = 0;
                 }
+                real pnorm =
+                    physlib_gc_p(p_f->mass[i], p_f->mu[i], p_f->ppar[i], Bnorm);
+                real xi = physlib_gc_xi(
+                    p_f->mass[i], p_f->mu[i], p_f->ppar[i], Bnorm);
+                real vnorm = physlib_vnorm_pnorm(p_f->mass[i], pnorm);
+                real vpar = xi * vnorm;
+                real vperp2 = (1 - xi * xi) * vnorm * vnorm;
+                vnorm = sqrt((vpar - vflow) * (vpar - vflow) + vperp2);
+                real gamma = physlib_gamma_vnorm(vnorm);
+                real ekin = physlib_Ekin_gamma(p_f->mass[i], gamma);
 
                 if (active_emin && (ekin < params->min_energy))
                 {
                     p_f->endcond[i] |= ENDCOND_EMIN;
                     p_f->running[i] = 0;
                 }
-                if (active_therm &&
-                    (ekin < (params->local_thermal_limit * Ti)))
+                if (active_therm && (ekin < (params->local_thermal_limit * Ti)))
                 {
                     p_f->endcond[i] |= ENDCOND_THERM;
                     p_f->running[i] = 0;
@@ -412,7 +440,7 @@ void endcond_check_gc(
 
             /* If hybrid mode is used, check whether this marker meets the
              * hybrid condition. */
-            if (params->simulation_mode == simulate_mode_hybrid)
+            if (params->mode == simulate_mode_hybrid)
             {
                 if (p_f->rho[i] > params->rho_coordinate_limits[1])
                 {
@@ -442,10 +470,11 @@ void endcond_check_fl(
     endcond_t active_tormax = params->endcond_active & ENDCOND_TORMAX;
     endcond_t active_cpumax = params->endcond_active & ENDCOND_CPUMAX;
 
-#pragma omp simd
-    for (size_t i = 0; i < NSIMD; i++)
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for (size_t i = 0; i < p_f->n_mrk; i++)
     {
-        if(stop_flag) {
+        if (stop_flag)
+        {
             p_f->endcond[i] |= ENDCOND_CPUMAX;
             p_f->running[i] = 0;
         }

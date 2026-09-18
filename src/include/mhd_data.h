@@ -5,7 +5,9 @@
 #ifndef MHD_DATA_H
 #define MHD_DATA_H
 
+#include "defines.h"
 #include "interp_data.h"
+#include <stddef.h>
 
 /**
  * MHD input data types.
@@ -58,7 +60,7 @@ typedef struct
 {
     MhdStationary *stationary; /**< Stationary eigenmodes.                    */
     MhdDynamic *dynamic;       /**< Dynamic eigenmodes.                       */
-    Mhd_type type;             /**< Current Mhd input type.                   */
+    Mhd_type type;             /**< Current MHD input type.                   */
 } Mhd;
 
 #endif

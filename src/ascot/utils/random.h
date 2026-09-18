@@ -1,6 +1,6 @@
 /**
  * @file random.h
- * @brief Header file for random.c
+ * Random number generator interface.
  */
 #ifndef RANDOM_H
 #define RANDOM_H
@@ -81,15 +81,14 @@ void random_lcg_normal_simd(random_data *rdata, int n, double *r);
 
 #else /* No RNG lib defined, use drand48 */
 
-// #define _XOPEN_SOURCE 500
 #include <stdlib.h>
 
 /** Data used by the random number generator */
 typedef void *random_data;
 
 double random_drand48_normal();
-void random_drand48_uniform_simd(int n, double *r);
-void random_drand48_normal_simd(int n, double *r);
+void random_drand48_uniform_simd(size_t n, double r[n]);
+void random_drand48_normal_simd(size_t n, double r[n]);
 
 /**
  * Initialize random number generator.
@@ -115,5 +114,40 @@ void random_drand48_normal_simd(int n, double *r);
 #define random_normal_simd(data, n, r) random_drand48_normal_simd(n, r)
 
 #endif // drand48
+
+/**
+ * Initialize random number generator.
+ *
+ * This function is for testing.
+ *
+ * @param rng Random number generator data.
+ * @param seed Seed
+ */
+void random_test_init(random_data *rng, size_t seed);
+
+/**
+ * Sample random numbers from both uniform and normal distribution.
+ *
+ * This function is for testing.
+ *
+ * @param rng Random number generator data.
+ * @param uniform Generated uniformly distributed random number.
+ * @param normal Generated normally distributed random number.
+ */
+void random_test_uniform_normal(
+    random_data *rng, size_t n, double uniform[n], double normal[n]);
+
+/**
+ * Sample random number vectors from both uniform and normal distribution.
+ *
+ * This function is for testing.
+ *
+ * @param rng Random number generator data.
+ * @param n Number of random numbers to be sampled.
+ * @param uniform Generated uniformly distributed random numbers.
+ * @param normal Generated normally distributed random numbers
+ */
+void random_test_uniform_normal_simd(
+    random_data *rng, size_t n, double uniform[n], double normal[n]);
 
 #endif

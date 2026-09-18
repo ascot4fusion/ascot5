@@ -9,6 +9,7 @@
 #define DIAG_HIST_H
 
 #include "defines.h"
+#include "bfield_data.h"
 #include "diag.h"
 #include "marker.h"
 #include <stdlib.h>
@@ -21,6 +22,13 @@
 void DiagHist_offload(DiagHist *hist);
 
 /**
+ * Onload data to the accelerator.
+ *
+ * @param hist The struct to offload.
+ */
+void DiagHist_onload(DiagHist *hist);
+
+/**
  * Update histogram for gyro-orbit markers.
  *
  * @param hist The histogram data.
@@ -29,8 +37,8 @@ void DiagHist_offload(DiagHist *hist);
  *
  */
 void DiagHist_update_go(
-    DiagHist *hist, MarkerGyroOrbit *mrk_f, MarkerGyroOrbit *mrk_i);
+    DiagHist *hist, Bfield *bfield, MarkerGyroOrbit *mrk_f, MarkerGyroOrbit *mrk_i);
 
 void DiagHist_update_gc(
-    DiagHist *hist, MarkerGuidingCenter *mrk_f, MarkerGuidingCenter *mrk_i);
+    DiagHist *hist, Bfield *bfield, MarkerGuidingCenter *mrk_f, MarkerGuidingCenter *mrk_i);
 #endif

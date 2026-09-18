@@ -23,6 +23,7 @@ from . import cartesian
 from . import potential1d
 from .cartesian import EfieldCartesian
 from .potential1d import EfieldPotential1D
+from .potential2d import EfieldPotential2D
 
 
 @input_category
@@ -32,6 +33,7 @@ class Efield(ctypes.Structure):
     _fields_ = [
         ("cartesian", ctypes.POINTER(cartesian.Struct)),
         ("potential1d", ctypes.POINTER(potential1d.Struct)),
+        ("potential2d", ctypes.POINTER(potential2d.Struct)),
         ("type", ctypes.c_int32),
     ]
 
@@ -40,6 +42,7 @@ class Efield(ctypes.Structure):
 class CreateEfieldMixin(
     cartesian.CreateMixin,
     #potential1d.CreateMixin,
+    #potential2d.CreateMixin,
     ):
     """Mixin class used by :class:`.AscotData` to create electric field input.
 
@@ -49,5 +52,6 @@ class CreateEfieldMixin(
 __all__  = [
     "CreateEfieldMixin",
     "EfieldCartesian",
-    "EfieldRadialPotential",
+    "EfieldPotential1D",
+    "EfieldPotential2D",
     ]

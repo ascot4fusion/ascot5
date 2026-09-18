@@ -16,12 +16,11 @@
 #include <stdio.h>
 
 void step_gc_rk4(
-    MarkerGuidingCenter *p, real *h, Bfield *bfield, Efield *efield,
+    MarkerGuidingCenter *p, const real *h, Bfield *bfield, Efield *efield,
     int aldforce)
 {
-
-/* Following loop will be executed simultaneously for all i */
-#pragma omp simd
+    GPU_DATA_IS_MAPPED(h[0:p->n_mrk])
+    GPU_PARALLEL_LOOP_ALL_LEVELS
     for (size_t i = 0; i < p->n_mrk; i++)
     {
         if (p->running[i])
@@ -36,8 +35,9 @@ void step_gc_rk4(
             real mass = p->mass[i];
             real charge = p->charge[i];
 
-            real B_dB[15];
-            real E[3];
+            real B_dB[15], E[3];
+            real alpha[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
+            real Phi[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
 
             real R0 = p->r[i];
             real z0 = p->z[i];
@@ -75,7 +75,7 @@ void step_gc_rk4(
             }
             if (!errflag)
             {
-                step_gceom(k1, yprev, mass, charge, B_dB, E, aldforce);
+                step_gceom(k1, yprev, mass, charge, B_dB, E, alpha, Phi, aldforce);
             }
 
             /* particle coordinates for the subsequent ydot evaluations are
@@ -99,7 +99,7 @@ void step_gc_rk4(
             }
             if (!errflag)
             {
-                step_gceom(k2, tempy, mass, charge, B_dB, E, aldforce);
+                step_gceom(k2, tempy, mass, charge, B_dB, E, alpha, Phi, aldforce);
             }
             for (int j = 0; j < 6; j++)
             {
@@ -120,7 +120,7 @@ void step_gc_rk4(
             }
             if (!errflag)
             {
-                step_gceom(k3, tempy, mass, charge, B_dB, E, aldforce);
+                step_gceom(k3, tempy, mass, charge, B_dB, E, alpha, Phi, aldforce);
             }
             for (int j = 0; j < 6; j++)
             {
@@ -139,7 +139,7 @@ void step_gc_rk4(
             }
             if (!errflag)
             {
-                step_gceom(k4, tempy, mass, charge, B_dB, E, aldforce);
+                step_gceom(k4, tempy, mass, charge, B_dB, E, alpha, Phi, aldforce);
             }
             for (int j = 0; j < 6; j++)
             {
@@ -228,14 +228,12 @@ void step_gc_rk4(
 }
 
 void step_gc_rk4_mhd(
-    MarkerGuidingCenter *p, real *h, Bfield *bfield, Efield *efield,
+    MarkerGuidingCenter *p, const real *h, Bfield *bfield, Efield *efield,
     Boozer *boozer, Mhd *mhd, int aldforce)
 {
-
-    int i;
-/* Following loop will be executed simultaneously for all i */
-#pragma omp simd aligned(h : 64)
-    for (i = 0; i < NSIMD; i++)
+    GPU_DATA_IS_MAPPED(h[0:p->n_mrk])
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for (size_t i = 0; i < p->n_mrk; i++)
     {
         if (p->running[i])
         {
@@ -248,10 +246,7 @@ void step_gc_rk4_mhd(
 
             real mass = p->mass[i];
             real charge = p->charge[i];
-
-            real B_dB[15];
-            real E[3];
-            real alpha[5], Phi[5];
+            real B_dB[15], E[3], alpha[5], Phi[5];
 
             real R0 = p->r[i];
             real z0 = p->z[i];
@@ -295,7 +290,7 @@ void step_gc_rk4_mhd(
             }
             if (!errflag)
             {
-                step_gceom_mhd(
+                step_gceom(
                     k1, yprev, mass, charge, B_dB, E, alpha, Phi, aldforce);
             }
 
@@ -326,7 +321,7 @@ void step_gc_rk4_mhd(
             }
             if (!errflag)
             {
-                step_gceom_mhd(
+                step_gceom(
                     k2, tempy, mass, charge, B_dB, E, alpha, Phi, aldforce);
             }
             for (int j = 0; j < 6; j++)
@@ -354,7 +349,7 @@ void step_gc_rk4_mhd(
             }
             if (!errflag)
             {
-                step_gceom_mhd(
+                step_gceom(
                     k3, tempy, mass, charge, B_dB, E, alpha, Phi, aldforce);
             }
             for (int j = 0; j < 6; j++)
@@ -380,7 +375,7 @@ void step_gc_rk4_mhd(
             }
             if (!errflag)
             {
-                step_gceom_mhd(
+                step_gceom(
                     k4, tempy, mass, charge, B_dB, E, alpha, Phi, aldforce);
             }
             for (int j = 0; j < 6; j++)

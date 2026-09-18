@@ -31,7 +31,7 @@ class Struct(DataStruct):
     """Python wrapper for the struct in options.h."""
 
     _fields_ = [
-        ("simulation_mode", ctypes.c_int),
+        ("mode", ctypes.c_int),
         ("enable_adaptive", ctypes.c_int),
         ("record_mode", ctypes.c_int),
         ("timestep", ctypes.c_double),
@@ -87,7 +87,7 @@ class Struct(DataStruct):
         )
 
         cdata = Struct()
-        cdata.simulation_mode = [
+        cdata.mode = [
             "gyro-orbit",
             "guiding-center",
             "hybrid",

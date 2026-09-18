@@ -1,75 +1,46 @@
 /**
  * @file consts.h
- * Physical and mathematical constants.
+ * Physical and mathematical constants used in ASCOT5.
  */
 #ifndef CONSTS_H
 #define CONSTS_H
 
 #include "defines.h"
 
-/**
- * pi.
- */
+/** pi. */
 #define CONST_PI 3.1415926535897932384626
 
-/**
- * 2*pi.
- */
+/** 2*pi. */
 #define CONST_2PI 6.2831853071795862319959
 
-/**
- * sqrt(pi).
- */
+/** sqrt(pi). */
 #define CONST_SQRTPI 1.7724538509055160272982
 
-/**
- * Speed of light [m/s].
- */
+/** Speed of light [m/s]. */
 #define CONST_C 299792458.0
 
-/**
- * Speed of light squared [m^2/s^2].
- */
+/** Speed of light squared [m^2/s^2]. */
 #define CONST_C2 89875517873681760.0
 
-/**
- * Speed of light to power of three [m^3/s^3].
- */
-#define CONST_C3 26944002417373989539335912.0
-
-/**
- * Atomic mass unit in kilograms [kg].
- */
+/** Atomic mass unit in kilograms [kg]. */
 #define CONST_U 1.660538921e-27
 
-/**
- * Elementary charge [C].
- */
+/** Elementary charge [C]. */
 #define CONST_E 1.602176565e-19
 
-/**
- * Boltzmann constant [J/K].
- */
+/** Boltzmann constant [J/K]. */
 #define CONST_KB 1.3807e-23
 
-/**
- * Electron mass [kg].
- */
+/** Electron mass [kg]. */
 #define CONST_M_E 9.1094e-31
 
-/**
- * Electric constant [m^-3*kg^-1*s^4*A^2].
- */
+/** Electric constant [m^-3*kg^-1*s^4*A^2]. */
 #define CONST_E0 8.8542e-12
 
-/**
- * Reduced Planck constant [m^2*kg/s].
- */
+/** Reduced Planck constant [m^2*kg/s]. */
 #define CONST_HBAR 1.0546e-34
 
-/**
- * Magnetic constant [kg*m*s^-2*A^-2].
- */
+/** Magnetic constant [kg*m*s^-2*A^-2]. */
 #define CONST_MU0 1.25663706212e-6
 
 #endif

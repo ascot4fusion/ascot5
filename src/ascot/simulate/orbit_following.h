@@ -17,159 +17,156 @@
 /**
  * Trace markers representing magnetic field lines for a single step.
  *
- * This function calculates a magnetic field line step for a struct of NSIMD
- * markers with Cash-Karp (adaptive RK5) simultaneously using SIMD instructions.
- * All arrays in the function are of NSIMD length so vectorization can be
- * performed directly without gather and scatter operations. Informs whether
- * time step was accepted or rejected and provides a suggestion for the next
- * time step.
+ * This function calculates a magnetic field line step simultaneously for a
+ * vector of markers with the Cash-Karp (adaptive RK5) method. All arrays in the
+ * function are of same length so vectorization can be performed directly.
+ * Informs whether time step was accepted or rejected and provides a suggestion
+ * for the next time step.
  *
  * @param mrk Markers that are advanced.
- * @param h Time steps for each marker.
- * @param hnext Suggestion for the next step size.
+ * @param h Integration step for each marker [m].
+ * @param hnext Suggestion for the next step size [m].
  *        Negative sign indicates a failed step. In this case, the suggested
  *        value for the next step is the absolute value.
  * @param tol Error tolerance for acceptance.
  * @param bfield Magnetic field data.
  */
 void step_fl_cashkarp(
-    MarkerFieldLine *mrk, real *h, real *hnext, real tol, Bfield *bfield);
+    MarkerFieldLine *mrk, const real *h, real *hnext, real tol, Bfield *bfield);
 
 /**
- * Integrate a magnetic field line step for a struct of markers
+ * Trace markers representing magnetic field lines for a single step when MHD
+ * perturbations are present.
  *
- * This function calculates a magnetic field line step for a struct of NSIMD
- * markers with Cash-Karp (adaptive RK5) simultaneously using SIMD instructions.
- * All arrays in the function are of NSIMD length so vectorization can be
- * performed directly without gather and scatter operations. Informs whether
- * time step was accepted or rejected and provides a suggestion for the next
- * time step.
+ * This function is identical to step_fl_cashkarp but with MHD perturbations.
  *
- * @param p marker struct that will be integrated
- * @param h NSIMD length array containing time step lengths
- * @param hnext suggestion for the next time step. Negative if rejected.
- * @param tol error tolerance
- * @param bfield pointer to magnetic field data
- * @param boozerdata pointer to Boozer data
- * @param mhddata pointer to MHD data
+ * @param mrk Markers that are advanced.
+ * @param h Time step for each marker [m].
+ * @param hnext Suggestion for the next step size [m].
+ *        Negative sign indicates a failed step. In this case, the suggested
+ *        value for the next step is the absolute value.
+ * @param tol Error tolerance for acceptance.
+ * @param bfield Magnetic field data.
+ * @param boozer Boozer data.
+ * @param mhd MHD data.
  */
 void step_fl_cashkarp_mhd(
-    MarkerFieldLine *p, real *h, real *hnext, real tol, Bfield *bfield,
+    MarkerFieldLine *mrk, const real *h, real *hnext, real tol, Bfield *bfield,
     Boozer *boozer, Mhd *mhd);
 
 /**
- * @brief Integrate a full orbit step for a struct of particles with VPA
+ * Integrate full orbit step with VPA.
  *
- * The integration is performed for a struct of NSIMD particles using the
+ * The integration is performed for a vector of markers simultaneously using the
  * volume preserving algorithm (Boris method for relativistic particles) see
- * Zhang 2015.
+ * Zhang 2015 https://doi.org/10.1063/1.4916570. All arrays in the function are
+ * of same length so vectorization can be performed directly.
  *
  * This algorithm is valid for neutral particles as well, in which case the
  * motion reduces to ballistic motion where momentum remains constant.
  *
- * @param p MarkerGyroOrbit struct that will be updated
- * @param h pointer to array containing time steps
- * @param bfield pointer to magnetic field data
- * @param efield pointer to electric field data
- * @param aldforce indicates whether Abraham-Lorentz-Dirac force is enabled
+ * @param mrk Markers that are advanced.
+ * @param h Time step for each marker [s].
+ * @param bfield Magnetic field data.
+ * @param efield Electric field data.
+ * @param aldforce Toggle for Abraham-Lorentz-Dirac force.
  */
 void step_go_vpa(
-    MarkerGyroOrbit *p, real *h, Bfield *bfield, Efield *efield, int aldforce);
-
-/**
- * @brief Integrate a full orbit step with VPA and MHd modes present.
- *
- * Same as previous method but with MHD present.
- *
- * @param p MarkerGyroOrbit struct that will be updated
- * @param h pointer to array containing time steps
- * @param bfield pointer to magnetic field data
- * @param efield pointer to electric field data
- * @param boozer pointer to boozer data
- * @param mhd pointer to MHD data
- * @param aldforce indicates whether Abraham-Lorentz-Dirac force is enabled
- */
-void step_go_vpa_mhd(
-    MarkerGyroOrbit *p, real *h, Bfield *bfield, Efield *efield, Boozer *boozer,
-    Mhd *mhd, int aldforce);
-
-/**
- * @brief Integrate a guiding center step for a struct of markers
- *
- * This function calculates a guiding center step for a struct of NSIMD
- * markers with Cash-Karp (adaptive RK5) simultaneously using SIMD instructions.
- * All arrays in the function are of NSIMD length so vectorization can be
- * performed directly without gather and scatter operations. Informs whther time
- * step was accepted or rejected and provides a suggestion for the next time
- * step.
- *
- * @param p marker struct that will be updated
- * @param h array containing time step lengths
- * @param hnext suggestion for the next time step. Negative sign indicates
- * current step was rejected
- * @param tol error tolerance
- * @param bfield pointer to magnetic field data
- * @param efield pointer to electric field data
- * @param aldforce indicates whether Abraham-Lorentz-Dirac force is enabled
- */
-void step_gc_cashkarp(
-    MarkerGuidingCenter *p, real *h, real *hnext, real tol, Bfield *bfield,
-    Efield *efield, int aldforce);
-
-/**
- * @brief Integrate a guiding center step for a struct of markers with MHD
- *
- * Rejected step has a negative suggestion for the next time-step. The negative
- * sign is only used to indicate a rejected step and absolute value should be
- * used for the next time-step.
- *
- * @param p marker struct that will be updated
- * @param h array containing time step lengths
- * @param hnext suggestion for the next time step.
- * @param tol error tolerance
- * @param bfield pointer to magnetic field data
- * @param efield pointer to electric field data
- * @param boozer pointer to Boozer data
- * @param mhd pointer to MHD data
- * @param aldforce indicates whether Abraham-Lorentz-Dirac force is enabled
- */
-void step_gc_cashkarp_mhd(
-    MarkerGuidingCenter *p, real *h, real *hnext, real tol, Bfield *bfield,
-    Efield *efield, Boozer *boozer, Mhd *mhd, int aldforce);
-
-/**
- * @brief Integrate a guiding center step for a struct of markers with RK4
- *
- * This function calculates a guiding center step for a struct of NSIMD
- * markers with RK4 simultaneously using SIMD instructions. All arrays in the
- * function are of NSIMD length so vectorization can be performed directly
- * without gather and scatter operations.
- *
- * @param p simd_gc struct that will be updated
- * @param h pointer to array containing time steps
- * @param bfield pointer to magnetic field data
- * @param efield pointer to electric field data
- * @param aldforce indicates whether Abraham-Lorentz-Dirac force is enabled
- */
-void step_gc_rk4(
-    MarkerGuidingCenter *p, real *h, Bfield *bfield, Efield *efield,
+    MarkerGyroOrbit *mrk, const real *h, Bfield *bfield, Efield *efield,
     int aldforce);
 
 /**
- * @brief Integrate a guiding center step with RK4 with MHD modes present.
+ * Integrate full orbit step with VPA when MHD perturbation is present.
  *
- * Same as previous function but with MHD present
+ * Identical to step_go_vpa but with MHD present.
  *
- * @param p simd_gc struct that will be updated
- * @param h pointer to array containing time steps
- * @param bfield pointer to magnetic field data
- * @param efield pointer to electric field data
- * @param boozer pointer to boozer data
- * @param mhd pointer to MHD data
- * @param aldforce indicates whether Abraham-Lorentz-Dirac force is enabled
+ * @param mrk Markers that are advanced.
+ * @param h Time step for each marker [s].
+ * @param bfield Magnetic field data.
+ * @param efield Electric field data.
+ * @param boozer Boozer data.
+ * @param mhd MHD data.
+ * @param aldforce Toggle for Abraham-Lorentz-Dirac force.
+ */
+void step_go_vpa_mhd(
+    MarkerGyroOrbit *mrk, const real *h, Bfield *bfield, Efield *efield,
+    Boozer *boozer, Mhd *mhd, int aldforce);
+
+/**
+ * Integrate guiding center step with fixed time-step.
+ *
+ * The integration is performed for a vector of markers simultaneously with RK4.
+ * All arrays in the function are of same length so vectorization can be
+ * performed directly.
+ *
+ * @param mrk Markers that are advanced.
+ * @param h Time step for each marker [s].
+ * @param bfield Magnetic field data.
+ * @param efield Electric field data.
+ * @param aldforce Toggle for Abraham-Lorentz-Dirac force.
+ */
+void step_gc_rk4(
+    MarkerGuidingCenter *mrk, const real *h, Bfield *bfield, Efield *efield,
+    int aldforce);
+
+/**
+ * Integrate guiding center step with fixed time-step and with MHD present.
+ *
+ * Identical to step_gc_rk4 but with MHD present.
+ *
+ * @param mrk Markers that are advanced.
+ * @param h Time step for each marker [s].
+ * @param bfield Magnetic field data.
+ * @param efield Electric field data.
+ * @param boozer Boozer data.
+ * @param mhd MHD data.
+ * @param aldforce Toggle for Abraham-Lorentz-Dirac force.
  */
 void step_gc_rk4_mhd(
-    MarkerGuidingCenter *p, real *h, Bfield *bfield, Efield *efield,
+    MarkerGuidingCenter *mrk, const real *h, Bfield *bfield, Efield *efield,
     Boozer *boozer, Mhd *mhd, int aldforce);
+
+/**
+ * Integrate guiding center step with adaptive time-step.
+ *
+ * The integration is performed for a vector of markers simultaneously with
+ * Cash-Karp method. All arrays in the function are of same length so
+ * vectorization can be performed directly. Informs whether time step was
+ * accepted or rejected and provides a suggestion for the next time step.
+ *
+ * @param mrk Markers that are advanced.
+ * @param h Time step for each marker [s].
+ * @param hnext Suggestion for the next step size [s].
+ *        Negative sign indicates a failed step. In this case, the suggested
+ *        value for the next step is the absolute value.
+ * @param tol Error tolerance for acceptance.
+ * @param bfield Magnetic field data.
+ * @param efield Electric field data.
+ * @param aldforce Toggle for Abraham-Lorentz-Dirac force.
+ */
+void step_gc_cashkarp(
+    MarkerGuidingCenter *mrk, const real *h, real *hnext, real tol,
+    Bfield *bfield, Efield *efield, int aldforce);
+
+/**
+ * Integrate guiding center step with adaptive time-step and with MHD present.
+ *
+ * Identical to step_gc_cashkarp but with MHD present.
+ *
+ * @param mrk Markers that are advanced.
+ * @param h Time step for each marker [s].
+ * @param hnext Suggestion for the next step size [s].
+ *        Negative sign indicates a failed step. In this case, the suggested
+ *        value for the next step is the absolute value.
+ * @param tol Error tolerance for acceptance.
+ * @param bfield Magnetic field data.
+ * @param efield Electric field data.
+ * @param boozer Boozer data.
+ * @param mhd MHD data.
+ * @param aldforce Toggle for Abraham-Lorentz-Dirac force.
+ */
+void step_gc_cashkarp_mhd(
+    MarkerGuidingCenter *mrk, const real *h, real *hnext, real tol,
+    Bfield *bfield, Efield *efield, Boozer *boozer, Mhd *mhd, int aldforce);
 
 #endif

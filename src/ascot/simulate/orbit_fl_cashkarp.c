@@ -14,12 +14,11 @@
 #include <stdlib.h>
 
 void step_fl_cashkarp(
-    MarkerFieldLine *p, real *h, real *hnext, real tol, Bfield *bfield)
+    MarkerFieldLine *p, const real *h, real *hnext, real tol, Bfield *bfield)
 {
-
-/* Following loop will be executed simultaneously for all i */
-#pragma omp simd
-    for (int i = 0; i < NSIMD; i++)
+    GPU_DATA_IS_MAPPED(h[0:p->n_mrk], hnext[0:p->n_mrk])
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for (size_t i = 0; i < p->n_mrk; i++)
     {
         if (p->running[i])
         {
@@ -225,14 +224,12 @@ void step_fl_cashkarp(
 
 
 void step_fl_cashkarp_mhd(
-    MarkerFieldLine *p, real *h, real *hnext, real tol, Bfield *bfield,
+    MarkerFieldLine *p, const real *h, real *hnext, real tol, Bfield *bfield,
     Boozer *boozerdata, Mhd *mhddata)
 {
-
-    int i;
-/* Following loop will be executed simultaneously for all i */
-#pragma omp simd
-    for (i = 0; i < NSIMD; i++)
+    GPU_DATA_IS_MAPPED(h[0:p->n_mrk], h_next[0:p->n_mrk])
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for (size_t i = 0; i < p->n_mrk; i++)
     {
         if (p->running[i])
         {

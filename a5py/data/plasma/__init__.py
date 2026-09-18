@@ -6,9 +6,21 @@
     ~PlasmaLinear1D
     ~CreatePlasmaMixin.create_plasmalinear1d
 
+    ~PlasmaLinear2D
+    ~CreatePlasmaMixin.create_plasmalinear2d
+
+    ~PlasmaDynamic1D
+    ~CreatePlasmaMixin.create_plasmadynamic1d
+
 .. rubric:: Classes
 
 .. autoclass:: PlasmaLinear1D
+    :members:
+
+.. autoclass:: PlasmaLinear2D
+    :members:
+
+.. autoclass:: PlasmaDynamic1D
     :members:
 
 .. autoclass:: CreatePlasmaMixin
@@ -22,6 +34,7 @@ from a5py.libascot import input_category
 from . import linear1d
 from . import dynamic1d
 from .linear1d import PlasmaLinear1D
+from .linear2d import PlasmaLinear2D
 from .dynamic1d import PlasmaDynamic1D
 
 
@@ -31,6 +44,7 @@ class Plasma(ctypes.Structure):
 
     _fields_ = [
         ("linear1d", ctypes.POINTER(linear1d.Struct)),
+        ("linear2d", ctypes.POINTER(linear2d.Struct)),
         ("dynamic1d", ctypes.POINTER(dynamic1d.Struct)),
         ("type", ctypes.c_int32),
         ]
@@ -39,7 +53,8 @@ class Plasma(ctypes.Structure):
 # pylint: disable=too-many-ancestors
 class CreatePlasmaMixin(
     linear1d.CreateMixin,
-    #radialdynamic.CreateMixin,
+    linear2d.CreateMixin,
+    dynamic1d.CreateMixin,
     ):
     """Mixin class used by :class:`.AscotData` to create plasma input.
 
@@ -49,5 +64,6 @@ class CreatePlasmaMixin(
 __all__  = [
     "CreatePlasmaMixin",
     "PlasmaLinear1D",
+    "PlasmaLinear2D",
     "PlasmaDynamic1D",
     ]

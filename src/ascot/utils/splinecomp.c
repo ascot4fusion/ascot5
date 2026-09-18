@@ -17,7 +17,7 @@ int solve_compact_cubic_spline(size_t n, real c[2 * n], real f[n], int bc)
         free(rhs);
         return 1;
     }
-    real *p = (real *)xmalloc(&err, (n-1) * sizeof(real));
+    real *p = (real *)xmalloc(&err, (n - 1) * sizeof(real));
     if (err)
     {
         free(rhs);
@@ -63,7 +63,14 @@ int solve_compact_cubic_spline(size_t n, real c[2 * n], real f[n], int bc)
         /* Last diagonal value        */
         real dlast = 4.0;
         /* Matrix right column values */
-        real *r = malloc((n - 2) * sizeof(real));
+        real *r = xmalloc(&err, (n - 2) * sizeof(real));
+        if (err)
+        {
+            free(rhs);
+            free(second_derivative);
+            free(p);
+            return 1;
+        }
         /* Last subdiagonal value     */
         real blast;
 

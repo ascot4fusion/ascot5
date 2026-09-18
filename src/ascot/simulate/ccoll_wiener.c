@@ -44,6 +44,17 @@ void mccc_wiener_initialize(mccc_wienarr *w, real initime)
     }
 }
 
+void mccc_wiener_offload(mccc_wienarr* w, size_t vector_size) {
+    SUPPRESS_UNUSED_WARNING(w);
+    GPU_MAP_TO_DEVICE(w[0:mrk_array_size])
+    for (size_t i = 0; i < vector_size; i++) {
+        GPU_MAP_TO_DEVICE( w[i].nextslot[0:MCCC_NSLOTS] )
+        GPU_MAP_TO_DEVICE( w[i].time[0:MCCC_NSLOTS] )
+        GPU_MAP_TO_DEVICE( w[i].wiener[0:MCCC_NDIM*MCCC_NSLOTS] )
+    }
+
+}
+
 err_t mccc_wiener_generate(mccc_wienarr *w, real t, int *windex, real *rand5)
 {
     err_t err = 0;

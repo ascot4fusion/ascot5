@@ -194,10 +194,6 @@ typedef struct
     size_t n_mrk; /**< How many markers this struct contains.            */
 } MarkerFieldLine;
 
-size_t MarkerQueue_cycle(
-    size_t *next_in_queue, MarkerQueue *q, size_t nmrk, size_t start,
-    size_t ids[nmrk], int running[nmrk]);
-
 /**
  * Allocate field line marker simulation vector.
  *
@@ -229,7 +225,7 @@ void MarkerGyroOrbit_offload(MarkerGyroOrbit *mrk);
  */
 void MarkerGyroOrbit_onload(MarkerGyroOrbit *mrk);
 
-DECLARE_TARGET_SIMD_UNIFORM(copy, original)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(copy, original)
 /**
  * Copy field line marker from one simulation vector to another.
  *
@@ -240,8 +236,9 @@ DECLARE_TARGET_SIMD_UNIFORM(copy, original)
  */
 void MarkerGyroOrbit_copy(
     MarkerGyroOrbit *copy, MarkerGyroOrbit *original, size_t index);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
-DECLARE_TARGET_SIMD_UNIFORM(mrk, queue, bfield)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(mrk, queue, bfield)
 /**
  * Retrieve field line marker from a queue of marker states.
  *
@@ -261,8 +258,9 @@ DECLARE_TARGET_SIMD_UNIFORM(mrk, queue, bfield)
 int MarkerGyroOrbit_from_queue(
     MarkerGyroOrbit *mrk, MarkerQueue *queue, size_t mrk_index,
     size_t queue_index, Bfield *bfield);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
-DECLARE_TARGET_SIMD_UNIFORM(queue, mrk)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(queue, mrk)
 /**
  * Return field line marker back to queue and convert it to a state.
  *
@@ -275,6 +273,7 @@ DECLARE_TARGET_SIMD_UNIFORM(queue, mrk)
  */
 void MarkerGyroOrbit_to_queue(
     MarkerQueue *queue, MarkerGyroOrbit *mrk, size_t index, Bfield *bfield);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
 /**
  * Allocate field line marker simulation vector.
@@ -307,7 +306,7 @@ void MarkerGuidingCenter_offload(MarkerGuidingCenter *mrk);
  */
 void MarkerGuidingCenter_onload(MarkerGuidingCenter *mrk);
 
-DECLARE_TARGET_SIMD_UNIFORM(copy, original)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(copy, original)
 /**
  * Copy field line marker from one simulation vector to another.
  *
@@ -318,8 +317,9 @@ DECLARE_TARGET_SIMD_UNIFORM(copy, original)
  */
 void MarkerGuidingCenter_copy(
     MarkerGuidingCenter *copy, MarkerGuidingCenter *original, size_t index);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
-DECLARE_TARGET_SIMD_UNIFORM(mrk, queue, bfield)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(mrk, queue, bfield)
 /**
  * Retrieve field line marker from a queue of marker states.
  *
@@ -339,8 +339,9 @@ DECLARE_TARGET_SIMD_UNIFORM(mrk, queue, bfield)
 int MarkerGuidingCenter_from_queue(
     MarkerGuidingCenter *mrk, MarkerQueue *queue, size_t mrk_index,
     size_t queue_index, Bfield *bfield);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
-DECLARE_TARGET_SIMD_UNIFORM(queue, mrk)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(queue, mrk)
 /**
  * Return field line marker back to queue and convert it to a state.
  *
@@ -353,6 +354,7 @@ DECLARE_TARGET_SIMD_UNIFORM(queue, mrk)
  */
 void MarkerGuidingCenter_to_queue(
     MarkerQueue *queue, MarkerGuidingCenter *mrk, size_t index, Bfield *bfield);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
 /**
  * Allocate field line marker simulation vector.
@@ -385,7 +387,7 @@ void MarkerFieldLine_offload(MarkerFieldLine *mrk);
  */
 void MarkerFieldLine_onload(MarkerFieldLine *mrk);
 
-DECLARE_TARGET_SIMD_UNIFORM(copy, original)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(copy, original)
 /**
  * Copy field line marker from one simulation vector to another.
  *
@@ -396,8 +398,9 @@ DECLARE_TARGET_SIMD_UNIFORM(copy, original)
  */
 void MarkerFieldLine_copy(
     MarkerFieldLine *copy, MarkerFieldLine *original, size_t index);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
-DECLARE_TARGET_SIMD_UNIFORM(mrk, queue, bfield)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(mrk, queue, bfield)
 /**
  * Retrieve field line marker from a queue of marker states.
  *
@@ -417,8 +420,9 @@ DECLARE_TARGET_SIMD_UNIFORM(mrk, queue, bfield)
 int MarkerFieldLine_from_queue(
     MarkerFieldLine *mrk, MarkerQueue *queue, size_t mrk_index,
     size_t queue_index, Bfield *bfield);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
-DECLARE_TARGET_SIMD_UNIFORM(queue, mrk)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(queue, mrk)
 /**
  * Return field line marker back to queue and convert it to a state.
  *
@@ -430,10 +434,32 @@ DECLARE_TARGET_SIMD_UNIFORM(queue, mrk)
  */
 void MarkerFieldLine_to_queue(
     MarkerQueue *queue, MarkerFieldLine *mrk, size_t index);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
-DECLARE_TARGET_SIMD_UNIFORM(p_fo, bfield)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(p_fo, bfield)
 int marker_go_to_gc(
     MarkerGyroOrbit *p_fo, size_t index, MarkerGuidingCenter *p_gc,
     Bfield *bfield);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
+
+GPU_DECLARE_TARGET_SIMD_UNIFORM(q)
+/**
+ * Iterate through marker array and return index of the finished marker.
+ *
+ * This function iterates through the markers that are currently being simulated
+ * and stops when it finds the first marker that is finished.
+ *
+ * @param next_in_queue Pointer to the index of the next marker in the queue.
+ * @param q Marker queue.
+ * @param nmrk Total number of markers in the queue.
+ * @param start Starting index.
+ * @param ids Array of marker ids.
+ * @param running Array of marker running flags.
+ * @return Index of the first marker that is finished.
+ */
+size_t MarkerQueue_cycle(
+    size_t *next_in_queue, MarkerQueue *q, size_t nmrk, size_t start,
+    size_t ids[nmrk], int running[nmrk]);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
 #endif

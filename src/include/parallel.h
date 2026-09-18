@@ -18,7 +18,7 @@
  * Apply parallel execution to loops.
  */
 #if defined(GPU) && defined(_OPENMP)
-#define GPU_PARALLEL_LOOP_ALL_LEVELS \
+#define GPU_PARALLEL_LOOP_ALL_LEVELS                                           \
     str_pragma(omp target teams distribute parallel for simd)
 #elif defined(GPU) && defined(_OPENACC)
 #define GPU_PARALLEL_LOOP_ALL_LEVELS str_pragma(acc parallel loop)
@@ -30,12 +30,12 @@
  * Apply parallel execution to loops with reduction.
  */
 #if defined(GPU) && defined(_OPENMP)
-#define GPU_PARALLEL_LOOP_ALL_LEVELS_REDUCTION(...) \
+#define GPU_PARALLEL_LOOP_ALL_LEVELS_REDUCTION(...)                            \
     str_pragma(omp target teams distribute parallel for simd \
     reduction(+:__VA_ARGS__))
 #elif defined(GPU) && defined(_OPENACC)
-#define GPU_PARALLEL_LOOP_ALL_LEVELS_REDUCTION(...) \
-    str_pragma(acc parallel loop reduction(+:__VA_ARGS__))
+#define GPU_PARALLEL_LOOP_ALL_LEVELS_REDUCTION(...)                            \
+    str_pragma(acc parallel loop reduction(+ : __VA_ARGS__))
 #else
 #define GPU_PARALLEL_LOOP_ALL_LEVELS_REDUCTION(...)
 #endif
@@ -66,10 +66,10 @@
  * Map variables to the target device.
  */
 #if defined(GPU) && defined(_OPENMP)
-#define GPU_MAP_TO_DEVICE(...) \
-    str_pragma(omp target enter data map (to: __VA_ARGS__))
+#define GPU_MAP_TO_DEVICE(...)                                                 \
+    str_pragma(omp target enter data map(to : __VA_ARGS__))
 #elif defined(GPU) && defined(_OPENACC)
-#define GPU_MAP_TO_DEVICE(...) str_pragma(acc enter data copyin (__VA_ARGS__))
+#define GPU_MAP_TO_DEVICE(...) str_pragma(acc enter data copyin(__VA_ARGS__))
 #else
 #define GPU_MAP_TO_DEVICE(...)
 #endif
@@ -78,10 +78,10 @@
  * Update host variables from the target device.
  */
 #if defined(GPU) && defined(_OPENMP)
-#define GPU_UPDATE_FROM_DEVICE(...) \
-    str_pragma(omp target update from (__VA_ARGS__))
+#define GPU_UPDATE_FROM_DEVICE(...)                                            \
+    str_pragma(omp target update from(__VA_ARGS__))
 #elif defined(GPU) && defined(_OPENACC)
-#define GPU_UPDATE_FROM_DEVICE(...) str_pragma(acc update host (__VA_ARGS__))
+#define GPU_UPDATE_FROM_DEVICE(...) str_pragma(acc update host(__VA_ARGS__))
 #else
 #define GPU_UPDATE_FROM_DEVICE(...)
 #endif
@@ -90,11 +90,10 @@
  * Map variables from the target device back to the host.
  */
 #if defined(GPU) && defined(_OPENMP)
-#define GPU_MAP_FROM_DEVICE(...) \
-    str_pragma(omp target exit data map (from: __VA_ARGS__))
+#define GPU_MAP_FROM_DEVICE(...)                                               \
+    str_pragma(omp target exit data map(from : __VA_ARGS__))
 #elif defined(GPU) && defined(_OPENACC)
-#define GPU_MAP_FROM_DEVICE(...) \
-    str_pragma(acc exit data copyout (__VA_ARGS__))
+#define GPU_MAP_FROM_DEVICE(...) str_pragma(acc exit data copyout(__VA_ARGS__))
 #else
 #define GPU_MAP_FROM_DEVICE(...)
 #endif
@@ -103,10 +102,10 @@
  * Delete mappings of variables from the target device.
  */
 #if defined(GPU) && defined(_OPENMP)
-#define GPU_MAP_DELETE_DEVICE(...) \
-    str_pragma(omp target exit data (delete: __VA_ARGS__))
+#define GPU_MAP_DELETE_DEVICE(...)                                             \
+    str_pragma(omp target exit data(delete : __VA_ARGS__))
 #elif defined(GPU) && defined(_OPENACC)
-#define GPU_MAP_DELETE_DEVICE(...) \
+#define GPU_MAP_DELETE_DEVICE(...)                                             \
     str_pragma(acc exit data delete (__VA_ARGS__))
 #else
 #define GPU_MAP_DELETE_DEVICE(...)
@@ -130,6 +129,9 @@
 #define DECLARE_TARGET_SIMD
 #elif defined(GPU) && defined(_OPENACC)
 #define DECLARE_TARGET_SIMD
+#elif defined(__INTEL_LLVM_COMPILER)
+// icx: avoid vector-function ABI (fixes _ZGV... undefined references)
+#define DECLARE_TARGET_SIMD
 #else
 #define DECLARE_TARGET_SIMD str_pragma(omp declare simd)
 #endif
@@ -140,8 +142,8 @@
 #if defined(GPU) && defined(_OPENMP)
 #define DECLARE_TARGET_SIMD_UNIFORM(...)
 #elif defined(GPU) && defined(_OPENACC)
-#define DECLARE_TARGET_SIMD_UNIFORM(...) \
-    str_pragma(omp declare simd uniform (__VA_ARGS__))
+#define DECLARE_TARGET_SIMD_UNIFORM(...)                                       \
+    str_pragma(omp declare simd uniform(__VA_ARGS__))
 #else
 #define DECLARE_TARGET_SIMD_UNIFORM(...)
 #endif
@@ -153,6 +155,9 @@
 #define GPU_DECLARE_TARGET_SIMD str_pragma(omp declare target)
 #elif defined(GPU) && defined(_OPENACC)
 #define GPU_DECLARE_TARGET_SIMD str_pragma(acc routine seq)
+#elif defined(__INTEL_LLVM_COMPILER)
+// icx: avoid vector-function ABI (fixes _ZGV... undefined references)
+#define GPU_DECLARE_TARGET_SIMD
 #else
 #define GPU_DECLARE_TARGET_SIMD str_pragma(omp declare simd)
 #endif
@@ -175,9 +180,11 @@
 #define GPU_DECLARE_TARGET_SIMD_UNIFORM(...) str_pragma(omp declare target)
 #elif defined(GPU) && defined(_OPENACC)
 #define GPU_DECLARE_TARGET_SIMD_UNIFORM(...) str_pragma(acc routine seq)
+#elif defined(__INTEL_LLVM_COMPILER)
+#define GPU_DECLARE_TARGET_SIMD_UNIFORM(...)
 #else
-#define GPU_DECLARE_TARGET_SIMD_UNIFORM(...) \
-    str_pragma(omp declare simd uniform (__VA_ARGS__))
+#define GPU_DECLARE_TARGET_SIMD_UNIFORM(...)                                   \
+    str_pragma(omp declare simd uniform(__VA_ARGS__))
 #endif
 
 /**

@@ -2,8 +2,8 @@
  * Implements gctransform.h.
  */
 #include "gctransform.h"
-#include "defines.h"
 #include "consts.h"
+#include "defines.h"
 #include "mathlib.h"
 #include "parallel.h"
 #include "physlib.h"
@@ -24,14 +24,12 @@ DECLARE_TARGET_END
 static int GCTRANSFORM_ORDER = 1;
 #endif
 
-
 void gctransform_setorder(int order) { GCTRANSFORM_ORDER = order; }
 
-
 void gctransform_particle2guidingcenter(
-    real mass, real charge, real *b_db, real r, real phi, real z, real pr,
-    real pphi, real pz, real *R, real *Phi, real *Z, real *ppar, real *mu,
-    real *zeta)
+    real mass, real charge, const real b_db[12], real r, real phi, real z,
+    real pr, real pphi, real pz, real R[1], real Phi[1], real Z[1],
+    real ppar[1], real mu[1], real zeta[1])
 {
 
     /* |B| */
@@ -47,7 +45,7 @@ void gctransform_particle2guidingcenter(
     real b_dbxyz[12];
     math_rpz2xyz(rpz, xyz);
     math_vec_rpz2xyz(prpz, pxyz, phi);
-    math_jac_rpz2xyz(b_db, b_dbxyz, r, phi);
+    math_jac_rpz2xyz(b_dbxyz, b_db, r, phi);
 
     /* bhat = Unit vector of B */
     real bhat[3] = {b_dbxyz[0] / Bnorm, b_dbxyz[4] / Bnorm, b_dbxyz[8] / Bnorm};
@@ -242,11 +240,10 @@ void gctransform_particle2guidingcenter(
     *zeta = fmod(CONST_2PI + (*zeta), CONST_2PI);
 }
 
-
 void gctransform_guidingcenter2particle(
-    real mass, real charge, real *b_db, real R, real Phi, real Z, real ppar,
-    real mu, real zeta, real *r, real *phi, real *z, real *pparprt, real *muprt,
-    real *zetaprt)
+    real mass, real charge, const real b_db[12], real R, real Phi, real Z,
+    real ppar, real mu, real zeta, real r[1], real phi[1], real z[1],
+    real pparprt[1], real muprt[1], real zetaprt[1])
 {
 
     /* |B| */
@@ -259,7 +256,7 @@ void gctransform_guidingcenter2particle(
     real XYZ[3];
     real b_dbxyz[12];
     math_rpz2xyz(RPZ, XYZ);
-    math_jac_rpz2xyz(b_db, b_dbxyz, R, Phi);
+    math_jac_rpz2xyz(b_dbxyz, b_db, R, Phi);
 
     /* bhat = Unit vector of B */
     real bhat[3] = {b_dbxyz[0] / Bnorm, b_dbxyz[1] / Bnorm, b_dbxyz[2] / Bnorm};
@@ -449,10 +446,9 @@ void gctransform_guidingcenter2particle(
     *zetaprt = zeta;
 }
 
-
 void gctransform_pparmuzeta2prpphipz(
-    real mass, real charge, real *b_db, real phi, real ppar, real mu, real zeta,
-    real *pr, real *pphi, real *pz)
+    real mass, real charge, const real b_db[12], real phi, real ppar, real mu,
+    real zeta, real pr[1], real pphi[1], real pz[1])
 {
     /* Find magnetic field norm and unit vector */
     real Brpz[3] = {b_db[0], b_db[1], b_db[2]};

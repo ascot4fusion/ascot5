@@ -1,122 +1,74 @@
 /**
  * Implements math.h.
  */
-#include "consts.h"
 #include "mathlib.h"
+#include "consts.h"
 #include "defines.h"
 #include <math.h>
 #include <stdlib.h>
 
-/**
- * Maximum recursion depth for the simpson integral rule.
- */
-#define math_maxSimpsonDepth 20
-
-int rcomp(const void *a, const void *b);
-double math_simpson_helper(
-    double (*f)(double), double a, double b, double eps, double S, double fa,
-    double fb, double fc, int bottom);
-
-real fmod(real x, real y) { return x - y * floor(x / y); }
-
-void math_jac_rpz2xyz(real *rpz, real *xyz, real r, real phi)
+void math_jac_rpz2xyz(
+    real a_daxyz[12], const real a_darpz[12], real r, real phi)
 {
-    // Temporary variables
-    real c = cos(phi);
-    real s = sin(phi);
-    real temp[3];
+    const real c = cos(phi);
+    const real s = sin(phi);
+    const real ir = 1.0 / r;
+    const real cc = c * c;
+    const real ss = s * s;
+    const real sc = s * c;
 
-    xyz[0] = rpz[0] * c - rpz[1] * s;
-    xyz[1] = rpz[0] * s + rpz[1] * c;
-    xyz[2] = rpz[2];
-
-    // Step 1: Vector [dBr/dx dBr/dy dBr/dz]
-    temp[0] = rpz[3] * c - rpz[6] * s;
-    temp[1] = rpz[4] * c - rpz[7] * s;
-    temp[2] = rpz[5] * c - rpz[8] * s;
-
-    // Step 2: Gradient
-    xyz[3] = temp[0] * c - temp[1] * s / r + (rpz[0] * s + rpz[5] * c) * s / r;
-    xyz[4] = temp[0] * s + temp[1] * c / r - (rpz[0] * s + rpz[5] * c) * c / r;
-    xyz[5] = temp[2];
-
-    // Step 1: Vector [dBphi/dx dBphi/dy dBphi/dz]
-    temp[0] = rpz[3] * s + rpz[6] * c;
-    temp[1] = rpz[4] * s + rpz[7] * c;
-    temp[2] = rpz[5] * s + rpz[8] * c;
-
-    // Step 2: Gradient
-    xyz[6] = temp[0] * c - temp[1] * s / r + (rpz[0] * c - rpz[5] * s) * s / r;
-    xyz[7] = temp[0] * s + temp[1] * c / r - (rpz[0] * c - rpz[5] * s) * c / r;
-    xyz[8] = temp[2];
-
-    // Step 1: Vector [dBz/dx dBz/dy dBz/dz]
-    temp[0] = rpz[9];
-    temp[1] = rpz[10];
-    temp[2] = rpz[11];
-
-    // Step 2: Gradient
-    xyz[9] = temp[0] * c - temp[1] * s / r;
-    xyz[10] = temp[0] * s + temp[1] * c / r;
-    xyz[11] = temp[2];
+    a_daxyz[0] = a_darpz[0] * c - a_darpz[1] * s;
+    a_daxyz[1] = a_darpz[0] * s + a_darpz[1] * c;
+    a_daxyz[2] = a_darpz[2];
+    a_daxyz[3] = a_darpz[3] * cc - a_darpz[6] * sc +
+                 ir * (-a_darpz[4] * sc + a_darpz[7] * ss + a_darpz[0] * ss +
+                       a_darpz[1] * sc);
+    a_daxyz[4] = a_darpz[3] * sc - a_darpz[6] * ss +
+                 ir * (a_darpz[4] * cc - a_darpz[7] * sc - a_darpz[0] * sc -
+                       a_darpz[1] * cc);
+    a_daxyz[5] = a_darpz[5] * c - a_darpz[8] * s;
+    a_daxyz[6] = a_darpz[3] * sc + a_darpz[6] * cc +
+                 ir * (-a_darpz[4] * ss - a_darpz[7] * sc - a_darpz[0] * sc +
+                       a_darpz[1] * ss);
+    a_daxyz[7] = a_darpz[3] * ss + a_darpz[6] * sc +
+                 ir * (a_darpz[4] * sc + a_darpz[7] * cc + a_darpz[0] * cc -
+                       a_darpz[1] * sc);
+    a_daxyz[8] = a_darpz[5] * s + a_darpz[8] * c;
+    a_daxyz[9] = a_darpz[9] * c - a_darpz[10] * s * ir;
+    a_daxyz[10] = a_darpz[9] * s + a_darpz[10] * c * ir;
+    a_daxyz[11] = a_darpz[11];
 }
 
-void math_cart2cyl_gradient(
-    real *gcyl, const real *gcart, const real *bcart, real r, real phi)
+void math_jac_xyz2rpz(
+    real a_darpz[12], const real a_daxyz[12], real r, real phi)
 {
-    real c = cos(phi), s = sin(phi);
-    real dBxdx = gcart[0], dBxdy = gcart[1], dBxdz = gcart[2];
-    real dBydx = gcart[3], dBydy = gcart[4], dBydz = gcart[5];
-    real dBzdx = gcart[6], dBzdy = gcart[7], dBzdz = gcart[8];
+    const real c = cos(phi);
+    const real s = sin(phi);
+    const real cc = c * c;
+    const real ss = s * s;
+    const real sc = s * c;
 
-    real dBxdphi = (-dBxdx * s + dBxdy * c) * r;
-    real dBydphi = (-dBydx * s + dBydy * c) * r;
-    real dBzdphi = (-dBzdx * s + dBzdy * c) * r;
-
-    gcyl[0] = c * (dBxdx * c + dBxdy * s) + s * (dBydx * c + dBydy * s);
-    gcyl[3] = -s * (dBxdx * c + dBxdy * s) + c * (dBydx * c + dBydy * s);
-    gcyl[6] = dBzdx * c + dBzdy * s;
-
-    gcyl[1] = c * dBxdphi + s * dBydphi - bcart[0] * s + bcart[1] * c;
-    gcyl[4] = -s * dBxdphi + c * dBydphi - bcart[0] * c - bcart[1] * s;
-    gcyl[7] = dBzdphi;
-
-    gcyl[2] = c * dBxdz + s * dBydz;
-    gcyl[5] = -s * dBxdz + c * dBydz;
-    gcyl[8] = dBzdz;
+    a_darpz[0] = a_daxyz[0] * c + a_daxyz[1] * s;
+    a_darpz[1] = -a_daxyz[0] * s + a_daxyz[1] * c;
+    a_darpz[2] = a_daxyz[2];
+    a_darpz[3] =
+        a_daxyz[3] * cc + (a_daxyz[4] + a_daxyz[6]) * sc + a_daxyz[7] * ss;
+    a_darpz[6] =
+        -a_daxyz[3] * sc + a_daxyz[6] * cc - a_daxyz[4] * ss + a_daxyz[7] * sc;
+    a_darpz[9] = a_daxyz[9] * c + a_daxyz[10] * s;
+    a_darpz[4] = r * (-a_daxyz[3] * sc + a_daxyz[4] * cc - a_daxyz[6] * ss +
+                      a_daxyz[7] * sc) -
+                 a_daxyz[0] * s + a_daxyz[1] * c;
+    a_darpz[7] = r * (a_daxyz[3] * ss - a_daxyz[4] * sc - a_daxyz[6] * sc +
+                      a_daxyz[7] * cc) -
+                 a_daxyz[0] * c - a_daxyz[1] * s;
+    a_darpz[10] = r * (-a_daxyz[9] * s + a_daxyz[10] * c);
+    a_darpz[5] = a_daxyz[5] * c + a_daxyz[8] * s;
+    a_darpz[8] = -a_daxyz[5] * s + a_daxyz[8] * c;
+    a_darpz[11] = a_daxyz[11];
 }
 
-void test_matrix_multiplication(real *C, real *A, real *B, const size_t dim[3])
-{
-    math_matrix_multiplication(C, A, B, dim);
-}
-
-real math_normal_rand(void)
-{
-    real X;
-    real v1, v2, s;
-    do
-    {
-        v1 = drand48() * 2 - 1;
-        v2 = drand48() * 2 - 1;
-        s = v1 * v1 + v2 * v2;
-    } while (s >= 1);
-
-    X = v1 * sqrt(-2 * log(s) / s);
-
-    return X;
-}
-
-double math_simpson(double (*f)(double), double a, double b, double eps)
-{
-    double c = (a + b) / 2, h = b - a;
-    double fa = f(a), fb = f(b), fc = f(c);
-    double S = (h / 6) * (fa + 4 * fc + fb);
-    return math_simpson_helper(
-        f, a, b, eps, S, fa, fb, fc, math_maxSimpsonDepth);
-}
-
-void math_linspace(real *vec, real a, real b, int n)
+void math_linspace(real *vec, real a, real b, size_t n)
 {
     if (n == 1)
     {
@@ -125,152 +77,37 @@ void math_linspace(real *vec, real a, real b, int n)
     else
     {
         real d = (b - a) / (n - 1);
-        int i;
-        for (i = 0; i < n; i++)
-        {
+        for (size_t i = 0; i < n; i++)
             vec[i] = a + i * d;
-        }
     }
 }
 
-void math_uniquecount(int *in, int *unique, int *count, int n)
+int math_point_in_polygon(
+    size_t n, const real xv[n], const real yv[n], real x, real y)
 {
+    int winding = 0;
 
-    for (int i = 0; i < n; i++)
+    for (size_t i = 0; i < n; ++i)
     {
-        unique[i] = 0;
-        count[i] = 0;
-    }
+        size_t j = (i + 1) % n;
 
-    int n_unique = 0;
-    for (int i = 0; i < n; i++)
-    {
+        real y1 = yv[i] - y;
+        real y2 = yv[j] - y;
+        real x1 = xv[i] - x;
+        real x2 = xv[j] - x;
 
-        int test = in[i];
-        int isunique = 1;
-        for (int j = 0; j < n_unique; j++)
+        if (y1 <= 0 && y2 > 0)
         {
-            if (test == unique[j])
-            {
-                isunique = 0;
-                count[j] += 1;
-            }
+            real xi = x1 - y1 * (x2 - x1) / (y2 - y1);
+            winding += (xi > 0);
         }
-
-        if (isunique)
+        else if (y1 > 0 && y2 <= 0)
         {
-            unique[n_unique] = test;
-            count[n_unique] = 1;
-            n_unique++;
+            real xi = x1 - y1 * (x2 - x1) / (y2 - y1);
+            winding -= (xi > 0);
         }
     }
-}
-
-int math_point_on_plane(real q[3], real t1[3], real t2[3], real t3[3])
-{
-    real x = q[0], y = q[1], z = q[2];
-    real x1 = t1[0], y1 = t1[1], z1 = t1[2];
-    real x2 = t2[0], y2 = t2[1], z2 = t2[2];
-    real x3 = t3[0], y3 = t3[1], z3 = t3[2];
-
-    int val = 0;
-    if (math_determinant3x3(
-            x - x1, y - y1, z - z1, x2 - x1, y2 - y1, z2 - z1, x3 - x1, y3 - y1,
-            z3 - z1) != 0.0)
-    {
-        return val;
-    }
-    if (math_determinant3x3(
-            x - x1, y - y1, z - z1, x - x2, y - y2, z - z2, x - x3, y - y3,
-            z - z3) != 0.0)
-    {
-        return val;
-    }
-    return val;
-}
-
-void math_barycentric_coords_triangle(
-    real AP[3], real AB[3], real AC[3], real n[3], real *s, real *t)
-{
-    real n0[3], area;
-    math_unit(n, n0);
-    area = math_scalar_triple_product(AB, AC, n0);
-    *s = math_scalar_triple_product(AP, AC, n0) / area;
-    *t = math_scalar_triple_product(AB, AP, n0) / area;
-}
-
-/**
- * Helper comparison routine for "math_rsearch".
- *
- * This function checks if a key value is between two consecutive values in a
- * real array. The array to be searched has to be in ascending sorted order.
- *
- * @param a First comparison value (key).
- * @param b First value in array.
- *
- * @return 0 if key is between the consecutive values, 1 if key is greater than
- * the first value, and -1 if key is smaller than the first value.
- */
-int rcomp(const void *a, const void *b)
-{
-    real a_val = *((real *)a);
-    real b_val = *((real *)b);
-    real c_val = *((real *)b + 1);
-
-    if (a_val >= b_val && a_val < c_val)
-    {
-        return 0;
-    }
-    return a_val > b_val ? 1 : -1;
-}
-
-real *math_rsearch(const real key, const real *base, int num)
-{
-    return (real *)bsearch(&key, base, num - 1, sizeof(real), rcomp);
-}
-
-int math_point_in_polygon(real r, real z, real *rv, real *zv, int n)
-{
-    int hits = 0;
-
-    int i;
-    for (i = 0; i < n - 1; i++)
-    {
-        real z1 = zv[i] - z;
-        real z2 = zv[i + 1] - z;
-        real r1 = rv[i] - r;
-        real r2 = rv[i + 1] - r;
-        if (z1 * z2 < 0)
-        {
-            real ri = r1 + (z1 * (r2 - r1)) / (z1 - z2);
-            if (ri > 0)
-            {
-                hits++;
-            }
-        }
-    }
-    return hits % 2;
-}
-
-/**
- * Helper routine for "math_simpson".
- */
-double math_simpson_helper(
-    double (*f)(double), double a, double b, double eps, double S, double fa,
-    double fb, double fc, int bottom)
-{
-    double c = (a + b) / 2, h = b - a;
-    double d = (a + c) / 2, e = (c + b) / 2;
-    double fd = f(d), fe = f(e);
-    double Sleft = (h / 12) * (fa + 4 * fd + fc);
-    double Sright = (h / 12) * (fc + 4 * fe + fb);
-    double S2 = Sleft + Sright;
-    if (bottom <= 0 || fabs(S2 - S) <= eps * fabs(S))
-    {
-        return S2 + (S2 - S) / 15;
-    }
-    return math_simpson_helper(f, a, c, eps, Sleft, fa, fc, fd, bottom - 1) +
-           math_simpson_helper(f, c, b, eps, Sright, fc, fb, fe, bottom - 1);
+    return winding != 0;
 }
 
 real math_crossed_plane(real alpha, real beta, real gamma)
@@ -294,8 +131,44 @@ real math_crossed_plane(real alpha, real beta, real gamma)
 
     int isinside = distance <= arclength;
     real nonzeroarc = arclength + (arclength == 0.0);
-    real normalized_distance = betaissmaller ?
-        distance / nonzeroarc : 1 - distance / nonzeroarc;
+    real normalized_distance =
+        betaissmaller ? distance / nonzeroarc : 1 - distance / nonzeroarc;
 
     return isinside * normalized_distance + (1.0 - isinside) * (-1.0);
 }
+
+void math_test_eval_vector_operations(
+    const real a[3], const real b[3], const real c[3], real dot[1],
+    real cross[3], real triple[1], real det[1], real norm[1], real normc[1],
+    real unit[3])
+{
+    dot[0] = math_dot(a, b);
+    math_cross(a, b, cross);
+    triple[0] = math_scalar_triple_product(a, b, c);
+    det[0] = math_determinant3x3(
+        a[0], b[0], c[0], a[1], b[1], c[1], a[2], b[2], c[2]);
+    norm[0] = math_norm(a);
+    normc[0] = math_normc(a[0], a[1], a[2]);
+    math_unit(a, unit);
+}
+
+void math_test_eval_vector_transformations(
+    const real xyz[3], const real rpz[3], const real vxyz[3],
+    const real vrpz[3], real xyz_out[3], real rpz_out[3], real vxyz_out[3],
+    real vrpz_out[3])
+{
+    math_rpz2xyz(rpz, xyz_out);
+    math_xyz2rpz(xyz, rpz_out);
+    math_vec_rpz2xyz(vrpz, vxyz_out, rpz[1]);
+    math_vec_xyz2rpz(vxyz, vrpz_out, rpz[1]);
+}
+
+void math_test_eval_bin_index(
+    size_t nx, real xmin, real xmax, real x, size_t bin_index[1])
+{
+    bin_index[0] = math_bin_index(x, nx, xmin, xmax);
+}
+
+void math_test_eval_fmod(real a, real b, real out[1]) { out[0] = fmod(a, b); }
+
+void math_test_eval_iabs(int a, int b[1]) { b[0] = math_iabs(a); }

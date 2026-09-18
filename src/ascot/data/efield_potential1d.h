@@ -8,7 +8,6 @@
 #include "defines.h"
 #include "efield.h"
 #include "parallel.h"
-#include "utils/interp.h"
 
 /**
  * Initialize the 1D potential electric field.

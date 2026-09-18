@@ -24,9 +24,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-DECLARE_TARGET_SIMD_UNIFORM(sim)
-real simulate_go_fixed_inidt(Simulation *sim, MarkerGyroOrbit *p, size_t i);
-
 /**
  * Replace markers in the simulation vector with new ones from the queue.
  *
@@ -65,7 +62,7 @@ static size_t cycle_markers(
                 p_current->id[idx] = 0;
                 p_current->running[idx] = 0;
             }
-            time_step[idx] = simulate_go_fixed_inidt(sim, p_current, idx); // TODO
+            time_step[idx] = sim->options->timestep;
         }
         start = idx;
     }
@@ -81,10 +78,13 @@ static size_t cycle_markers(
 
 int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 {
-    // Indicates whether a new marker was initialized
-    size_t *cycle = (size_t *)malloc(vector_size * sizeof(size_t));
-    // Time-step
-    real *hin = (real *)malloc(vector_size * sizeof(real));
+    int err = 0;
+    size_t *cycle = (size_t *)xmalloc(&err, vector_size * sizeof(size_t));
+    if(err) return 1;
+    real *hin = (real *)xmalloc(&err, vector_size * sizeof(real));
+    if(err) return 1;
+    real *rnd = (real *)xmalloc(&err, 3 * vector_size * sizeof(real));
+    if(err) return 1;
 
     real cputime, cputime_last; // Global cpu time: recent and previous record
 
@@ -94,6 +94,15 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         return 1;
     if(MarkerGyroOrbit_allocate(&p0, vector_size))
         return 1;
+
+    MarkerGuidingCenter gc_f, gc_i;
+    if (sim->options->record_mode)
+    {
+        MarkerGuidingCenter_allocate(&gc_f, vector_size);
+        MarkerGuidingCenter_allocate(&gc_i, vector_size);
+        MarkerGuidingCenter_offload(&gc_f);
+        MarkerGuidingCenter_offload(&gc_i);
+    }
 
     /* Init dummy markers */
     for (size_t i = 0; i < vector_size; i++)
@@ -117,7 +126,6 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
      */
     MarkerGyroOrbit_offload(&p);
     MarkerGyroOrbit_offload(&p0);
-    real *rnd = (real *)malloc(3 * vector_size * sizeof(real));
     GPU_MAP_TO_DEVICE(hin [0:vector_size], rnd [0:3 * vector_size])
     while (n_running > 0)
     {
@@ -133,9 +141,7 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         for (size_t i = 0; i < p.n_mrk; i++)
         {
             if (sim->options->reverse_time)
-            {
                 hin[i] = -hin[i];
-            }
         }
 
         /* Volume preserving algorithm for orbit-following */
@@ -209,12 +215,7 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         {
             /* Instead of particle coordinates we record guiding center */
 
-            // Dummy guiding centers
-            MarkerGuidingCenter gc_f;
-            MarkerGuidingCenter gc_i;
-
-/* Particle to guiding center transformation */
-#pragma omp simd
+            /* Particle to guiding center transformation */
             for (size_t i = 0; i < p.n_mrk; i++)
             {
                 if (p.running[i])
@@ -258,9 +259,7 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         for (size_t i = 0; i < p.n_mrk; i++)
         {
             if (cycle[i] > 0)
-            {
-                hin[i] = simulate_go_fixed_inidt(sim, &p, i);
-            }
+                hin[i] = sim->options->timestep;
         }
 #endif
     }
@@ -277,28 +276,4 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     MarkerGyroOrbit_deallocate(&p);
     MarkerGyroOrbit_deallocate(&p0);
     return 0;
-}
-
-/**
- * @brief Calculates time step value
- *
- * The time step is calculated as a user-defined fraction of gyro time,
- * whose formula accounts for relativity, or an user defined value
- * is used as is depending on simulation options.
- *
- * @param sim pointer to simulation data struct
- * @param p SIMD array of markers
- * @param i index of marker for which time step is assessed
- *
- * @return Calculated time step
- */
-real simulate_go_fixed_inidt(Simulation *sim, MarkerGyroOrbit *p, size_t i)
-{
-
-    real h;
-
-    /* Value defined directly by user */
-    h = sim->options->timestep;
-
-    return h;
 }

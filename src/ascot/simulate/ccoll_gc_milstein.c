@@ -15,17 +15,21 @@
 #include <math.h>
 
 void mccc_gc_milstein(
-    MarkerGuidingCenter *p, real *hin, real *hout, real tol, mccc_wienarr *w,
-    Bfield *bfield, Plasma *plasma, mccc_data *mdata, real *rnd)
+    MarkerGuidingCenter *p, real *hin, real *acc, real *collfreq, real *hout,
+    real tol, mccc_wienarr *w, Bfield *bfield, Plasma *plasma, mccc_data *mdata,
+    real *rnd)
 {
-
+    (void)mdata;
     /* Get plasma information before going to the  SIMD loop */
-    int n_species = Plasma_get_n_species(plasma);
+    size_t n_species = Plasma_get_n_species(plasma);
     const real *qb = Plasma_get_species_charge(plasma);
     const real *mb = Plasma_get_species_mass(plasma);
 
-#pragma omp simd
-    for (int i = 0; i < NSIMD; i++)
+    GPU_DATA_IS_MAPPED(
+        hin [0:p->n_mrk], hout [0:p->n_mrk], rnd [0:5 * p->n_mrk],
+        w [0:p->n_mrk], acc [0:p->n_mrk], collfreq [0:p->n_mrk])
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for (size_t i = 0; i < p->n_mrk; i++)
     {
         if (p->running[i])
         {
@@ -40,7 +44,7 @@ void mccc_gc_milstein(
             real z0 = p->z[i];
 
             /* Move guiding center to (x, y, z, vnorm, xi) coordinates */
-            real vin, pin, vflow, gamma, ppar_flow, xiin, Xin_xyz[3];
+            real vin, pin, vflow, xiin, Xin_xyz[3], vpar, vperp2;
             Xin_xyz[0] = p->r[i] * cos(p->phi[i]);
             Xin_xyz[1] = p->r[i] * sin(p->phi[i]);
             Xin_xyz[2] = p->z[i];
@@ -50,11 +54,13 @@ void mccc_gc_milstein(
                     &vflow, p->rho[i], p->r[i], p->phi[i], p->z[i], p->time[i],
                     plasma);
             }
-            gamma = physlib_gamma_ppar(p->mass[i], p->mu[i], p->ppar[i], Bnorm);
-            ppar_flow = p->ppar[i] - gamma * vflow * p->mass[i];
-            pin = physlib_gc_p(p->mass[i], p->mu[i], ppar_flow, Bnorm);
-            xiin = physlib_gc_xi(p->mass[i], p->mu[i], ppar_flow, Bnorm);
+            pin = physlib_gc_p(p->mass[i], p->mu[i], p->ppar[i], Bnorm);
+            xiin = physlib_gc_xi(p->mass[i], p->mu[i], p->ppar[i], Bnorm);
             vin = physlib_vnorm_pnorm(p->mass[i], pin);
+            vpar = xiin * vin;
+            vperp2 = (1 - xiin * xiin) * vin * vin;
+            vin = sqrt((vpar - vflow) * (vpar - vflow) + vperp2);
+            xiin = (vpar - vflow) / vin;
 
             /* Evaluate plasma density and temperature */
             real nb[MAX_SPECIES], Tb[MAX_SPECIES];
@@ -76,12 +82,14 @@ void mccc_gc_milstein(
             real gyrofreq =
                 phys_gyrofreq_pnorm(p->mass[i], p->charge[i], pin, Bnorm);
             real K = 0, Dpara = 0, dDpara = 0, dQ = 0, nu = 0, DX = 0;
-            for (int j = 0; j < n_species; j++)
+
+            GPU_SEQUENTIAL_LOOP
+            for (size_t j = 0; j < n_species; j++)
             {
                 real vb = sqrt(2 * Tb[j] / mb[j]);
                 real x = vin / vb;
                 real mufun[3];
-                mccc_coefs_mufun(mufun, x, mdata);
+                mccc_coefs_mufun(mufun, x);
 
                 real Qb = mccc_coefs_Q(
                     p->mass[i], p->charge[i], mb[j], qb[j], nb[j], vb,
@@ -135,11 +143,11 @@ void mccc_gc_milstein(
             Xout_xyz[0] = Xin_xyz[0] + k1 * (dW[0] - k2 * bhat[0]);
             Xout_xyz[1] = Xin_xyz[1] + k1 * (dW[1] - k2 * bhat[1]);
             Xout_xyz[2] = Xin_xyz[2] + k1 * (dW[2] - k2 * bhat[2]);
-            vout = vin + K * hin[i] + sqrt(2 * Dpara) * dW[3] +
-                   0.5 * dDpara * (dW[3] * dW[3] - hin[i]);
-            xiout = xiin - xiin * nu * hin[i] +
+            vout = vin + K * hin[i] * acc[i] + sqrt(2 * Dpara) * dW[3] +
+                   0.5 * dDpara * (dW[3] * dW[3] - hin[i] * acc[i]);
+            xiout = xiin - xiin * nu * hin[i] * acc[i] +
                     sqrt((1 - xiin * xiin) * nu) * dW[4] -
-                    0.5 * xiin * nu * (dW[4] * dW[4] - hin[i]);
+                    0.5 * xiin * nu * (dW[4] * dW[4] - hin[i] * acc[i]);
 
             /* Enforce boundary conditions */
             real cutoff = MCCC_CUTOFF * sqrt(Tb[0] / p->mass[i]);
@@ -157,7 +165,8 @@ void mccc_gc_milstein(
 
             // xi is limited to interval [-1, 1] but for v we need some value
             // to translate relative error to absolute error.
-            real v0 = (vin + fabs(K) * hin[i] + sqrt(2 * Dpara * hin[i])) +
+            real v0 = (vin + fabs(K) * hin[i] * acc[i] +
+                       sqrt(2 * Dpara * hin[i] * acc[i])) +
                       DBL_EPSILON;
             real verr = fabs(K * dQ) / (2 * tol * v0);
             real xierr = fabs(xiin * nu * nu) / (2 * tol);
@@ -166,11 +175,11 @@ void mccc_gc_milstein(
             real kappa_k;
             if (verr > xierr)
             {
-                kappa_k = verr * hin[i] * hin[i];
+                kappa_k = verr * hin[i] * hin[i] * acc[i] * acc[i];
             }
             else
             {
-                kappa_k = xierr * hin[i] * hin[i];
+                kappa_k = xierr * hin[i] * hin[i] * acc[i] * acc[i];
             }
 
             // kappa_d is error due to diffusion (v and xi are both needed)
@@ -178,7 +187,8 @@ void mccc_gc_milstein(
                 fabs(dW[3] * dW[3] * dW[3] * dDpara * dDpara / sqrt(Dpara)) /
                 (6 * tol * v0);
             real kappa_d1 = sqrt(1 - xiin * xiin) * nu * sqrt(nu) *
-                            fabs(dW[4] + sqrt(hin[i] / 3)) * hin[i] / (2 * tol);
+                            fabs(dW[4] + sqrt(hin[i] * acc[i] / 3)) * hin[i] *
+                            acc[i] / (2 * tol);
 
             /* Remove energy or pitch change or spatial diffusion from the    *
              * results if that is requested                                   */
@@ -196,6 +206,11 @@ void mccc_gc_milstein(
                 Xout_xyz[1] = Xin_xyz[1];
                 Xout_xyz[2] = Xin_xyz[2];
             }
+
+            vpar = xiout * vout;
+            vperp2 = (1 - xiout * xiout) * vout * vout;
+            vout = sqrt((vpar + vflow) * (vpar + vflow) + vperp2);
+            xiout = (vpar + vflow) / vout;
             real pout = physlib_pnorm_vnorm(p->mass[i], vout);
 
             /* Back to cylindrical coordinates */
@@ -208,13 +223,13 @@ void mccc_gc_milstein(
             {
                 errflag = Bfield_eval_b_db(
                     B_dB, Xout_rpz[0], Xout_rpz[1], Xout_rpz[2],
-                    p->time[i] + hin[i], bfield);
+                    p->time[i] + hin[i] * acc[i], bfield);
             }
             if (!errflag)
             {
                 errflag = Bfield_eval_psi(
                     psi, Xout_rpz[0], Xout_rpz[1], Xout_rpz[2],
-                    p->time[i] + hin[i], bfield);
+                    p->time[i] + hin[i] * acc[i], bfield);
             }
             if (!errflag)
             {
@@ -245,20 +260,7 @@ void mccc_gc_milstein(
 
                 p->r[i] = Xout_rpz[0];
                 p->z[i] = Xout_rpz[2];
-
-                /*Since we use xiout (in "flow frame") here, we will get the mu
-                in the "flow frame". If we assume that the flow frame has the
-                same perpendicular velocity, mu remains unchanged under the
-                co-ordinate transformation and thus this mu is then the same as
-                the mu in the lab frame.*/
-                p->mu[i] = physlib_gc_mu(p->mass[i], pout, xiout, Bnorm);
-                gamma = physlib_gamma_pnorm(p->mass[i], pout);
-                /* difference in ppar between the lab frame and "flow frame"  */
-                real dppar = gamma * p->mass[i] * vflow;
-
-                /* p->ppar is in the lab frame; xiout and pout are in the
-                "flow frame" */
-                p->ppar[i] = physlib_gc_ppar(pout, xiout) + dppar;
+                p->ppar[i] = physlib_gc_ppar(pout, xiout);
 
                 /* Evaluate phi and theta angles so that they are cumulative */
                 real axisrz[2];
@@ -308,6 +310,8 @@ void mccc_gc_milstein(
                 p->err[i] = errflag;
                 p->running[i] = 0;
             }
+
+            collfreq[i] = nu;
         }
     }
 }

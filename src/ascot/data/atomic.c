@@ -34,6 +34,7 @@ int Atomic_init(
     atomic->sigma = (Spline1D *)malloc(nreac * sizeof(Spline1D));
     atomic->sigmav = (Spline2D *)malloc(nreac * sizeof(Spline2D));
     atomic->BMSsigmav = (Spline3D *)malloc(nreac * sizeof(Spline3D));
+    real *pos = sigma;
     for (size_t i_reac = 0; i_reac < nreac; i_reac++)
     {
         atomic->z_1[i_reac] = z1[i_reac];
@@ -45,7 +46,6 @@ int Atomic_init(
         /* Initialize spline struct according to dimensionality of
            reaction data (and mark reaction availability) */
         int dim = (ne[i_reac] > 1) + (nn[i_reac] > 1) + (nT[i_reac] > 1);
-        real *pos = sigma;
         switch (dim)
         {
         case 1:

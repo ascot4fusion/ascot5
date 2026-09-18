@@ -20,6 +20,13 @@
 void Diag_offload(Diagnostics *diag);
 
 /**
+ * Offload data to the accelerator.
+ *
+ * @param diag The struct to offload.
+ */
+void Diag_onload(Diagnostics *diag);
+
+/**
  * Collect diagnostics for gyro-orbit markers.
  *
  * @param diag Diagnostics data.

@@ -13,7 +13,7 @@
 #include "utils/random.h"
 
 /**
- * @brief Defines minimum energy boundary condition
+ * Defines minimum energy boundary condition
  *
  * This times local electron temperature is minimum energy boundary. If guiding
  * center energy goes below this, it is mirrored to prevent collision
@@ -34,7 +34,7 @@
 #define MCCC_NSLOTS WIENERSLOTS
 
 /**
- * @brief Struct for storing Wiener processes.
+ * Struct for storing Wiener processes.
  *
  * Elements of this struct should not be changed outside mccc package.
  */
@@ -52,16 +52,23 @@ typedef struct
 
 DECLARE_TARGET_SIMD
 /**
- * @brief Initializes a struct that stores generated Wiener processes
+ * Initialize a struct that stores generated Wiener processes.
  *
  * @param w Wiener struct to be initialized
  * @param initime time when a Wiener process begins
  */
 void mccc_wiener_initialize(mccc_wienarr *w, real initime);
 
-DECLARE_TARGET_SIMD
 /**
- * @brief Generates a new Wiener process at a given time instant
+ * Offload a struct that stores generated Wiener processes.
+ *
+ * @param w Wiener struct to be offloaded
+ */
+void mccc_wiener_offload(mccc_wienarr *w, size_t vector_size);
+
+GPU_DECLARE_TARGET_SIMD
+/**
+ * Generates a new Wiener process at a given time instant
  *
  * Generates a new Wiener process. The generated process is drawn from
  * normal distribution unless there exists a Wiener process at future
@@ -77,9 +84,9 @@ DECLARE_TARGET_SIMD
  */
 err_t mccc_wiener_generate(mccc_wienarr *w, real t, int *windex, real *rand5);
 
-DECLARE_TARGET_SIMD
+GPU_DECLARE_TARGET_SIMD
 /**
- * @brief Removes Wiener processes from the array that are no longer required.
+ * Removes Wiener processes from the array that are no longer required.
  *
  * Processes W(t') are redundant if t' <  t, where t is the current simulation
  * time. Note that W(t) should exist before W(t') are removed. This routine
@@ -93,7 +100,7 @@ DECLARE_TARGET_SIMD
 err_t mccc_wiener_clean(mccc_wienarr *w, real t);
 
 /**
- * @brief Set collision operator data.
+ * Set collision operator data.
  *
  * @param mdata pointer to collision operator data struct
  * @param include_energy can collisions change marker energy, either 0 or 1
@@ -105,7 +112,7 @@ void mccc_init(
     int include_gcdiff);
 
 /**
- * @brief Integrate collisions for one time-step
+ * Integrate collisions for one time-step
  *
  * @param p fo struct
  * @param h time-steps for NSIMD markers
@@ -118,7 +125,7 @@ void mccc_go_euler(
     MarkerGyroOrbit *p, real *h, Plasma *plasma, mccc_data *mdata, real *rnd);
 
 /**
- * @brief Integrate collisions for one time-step
+ * Integrate collisions for one time-step
  *
  * @param p gc struct
  * @param h time-steps for NSIMD markers
@@ -133,7 +140,7 @@ void mccc_gc_euler(
     mccc_data *mdata, real *rnd);
 
 /**
- * @brief Integrate collisions for one time-step
+ * Integrate collisions for one time-step
  *
  * @param p pointer to gc simd struct
  * @param hin time-steps for NSIMD markers
@@ -147,7 +154,8 @@ void mccc_gc_euler(
  *        collisions. Values for marker i are rnd[i*NSIMD + j]
  */
 void mccc_gc_milstein(
-    MarkerGuidingCenter *p, real *hin, real *hout, real tol, mccc_wienarr *w,
-    Bfield *bfield, Plasma *plasma, mccc_data *mdata, real *rnd);
+    MarkerGuidingCenter *p, real *hin, real *acc, real *collfreq, real *hout,
+    real tol, mccc_wienarr *w, Bfield *bfield, Plasma *plasma, mccc_data *mdata,
+    real *rnd);
 
 #endif

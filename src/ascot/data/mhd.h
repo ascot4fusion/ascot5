@@ -31,7 +31,7 @@ void Mhd_free(Mhd *mhd);
  */
 void Mhd_offload(Mhd *mhd);
 
-DECLARE_TARGET_SIMD_UNIFORM(mhd, bfield, boozer, include_mode)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(mhd, bfield, boozer, include_mode)
 /**
  * Evaluate the MHD terms used in the guiding center equations of motion.
  *
@@ -54,8 +54,10 @@ DECLARE_TARGET_SIMD_UNIFORM(mhd, bfield, boozer, include_mode)
 err_t Mhd_eval_alpha_Phi(
     real alpha[5], real Phi[5], real r, real phi, real z, real t,
     size_t include_mode, Mhd *mhd, Bfield *bfield, Boozer *boozer);
+DECLARE_TARGET_END
 
-DECLARE_TARGET_SIMD_UNIFORM(mhd, bfield, boozer, pertonly, include_mode)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(
+    mhd, bfield, boozer, include_background, include_mode)
 /**
  * Evaluate perturbed fields and electric potential explicitly.
  *
@@ -81,8 +83,9 @@ err_t Mhd_eval_perturbation(
     real b[3], real e[3], real Phi[1], real r, real phi, real z, real t,
     int include_background, size_t include_mode, Mhd *mhd, Bfield *bfield,
     Boozer *boozer);
+DECLARE_TARGET_END
 
-DECLARE_TARGET_SIMD_UNIFORM(mhd)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(mhd)
 /**
  * Get number of modes.
  *
@@ -91,8 +94,9 @@ DECLARE_TARGET_SIMD_UNIFORM(mhd)
  * @return Number of modes.
  */
 size_t Mhd_get_n_modes(Mhd *mhd);
+DECLARE_TARGET_END
 
-DECLARE_TARGET_SIMD_UNIFORM(mhd)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(mhd)
 /**
  * Get mode toroidal numbers.
  *
@@ -101,8 +105,9 @@ DECLARE_TARGET_SIMD_UNIFORM(mhd)
  * @return Mode toroidal numbers.
  */
 const int *Mhd_get_nmode(Mhd *mhd);
+DECLARE_TARGET_END
 
-DECLARE_TARGET_SIMD_UNIFORM(mhd)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(mhd)
 /**
  * Get mode poloidal numbers.
  *
@@ -111,8 +116,9 @@ DECLARE_TARGET_SIMD_UNIFORM(mhd)
  * @return Mode poloidal numbers.
  */
 const int *Mhd_get_mmode(Mhd *mhd);
+DECLARE_TARGET_END
 
-DECLARE_TARGET_SIMD_UNIFORM(mhd)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(mhd)
 /**
  * Get mode amplitudes.
  *
@@ -121,8 +127,9 @@ DECLARE_TARGET_SIMD_UNIFORM(mhd)
  * @return Mode amplitudes [1].
  */
 const real *Mhd_get_amplitude(Mhd *mhd);
+DECLARE_TARGET_END
 
-DECLARE_TARGET_SIMD_UNIFORM(mhd)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(mhd)
 /**
  * Get mode frequencies.
  *
@@ -131,8 +138,9 @@ DECLARE_TARGET_SIMD_UNIFORM(mhd)
  * @return Mode frequencies [rad/s].
  */
 const real *Mhd_get_frequency(Mhd *mhd);
+DECLARE_TARGET_END
 
-DECLARE_TARGET_SIMD_UNIFORM(mhd)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(mhd)
 /**
  * Get mode phases.
  *
@@ -141,4 +149,6 @@ DECLARE_TARGET_SIMD_UNIFORM(mhd)
  * @return Mode phases [rad].
  */
 const real *Mhd_get_phase(Mhd *mhd);
+DECLARE_TARGET_END
+
 #endif

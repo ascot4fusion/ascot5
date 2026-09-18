@@ -80,15 +80,14 @@ err_t BfieldCartesian_eval_b_db(
     real rpz[3] = {r, phi, z}, xyz[3];
     math_rpz2xyz(rpz, xyz);
 
-    real bxyz[3], *jacobian = bfield->jacobian;
-    bxyz[0] = bfield->bxyz[0] + jacobian[0] * xyz[0] + jacobian[1] * xyz[1] +
+    real b_dbxyz[12], *jacobian = bfield->jacobian;
+    b_dbxyz[0] = bfield->bxyz[0] + jacobian[0] * xyz[0] + jacobian[1] * xyz[1] +
               jacobian[2] * xyz[2];
-    bxyz[1] = bfield->bxyz[1] + jacobian[3] * xyz[0] + jacobian[4] * xyz[1] +
+    b_dbxyz[1] = bfield->bxyz[1] + jacobian[3] * xyz[0] + jacobian[4] * xyz[1] +
               jacobian[5] * xyz[2];
-    bxyz[2] = bfield->bxyz[2] + jacobian[6] * xyz[0] + jacobian[7] * xyz[1] +
+    b_dbxyz[2] = bfield->bxyz[2] + jacobian[6] * xyz[0] + jacobian[7] * xyz[1] +
               jacobian[8] * xyz[2];
-    math_vec_xyz2rpz(bxyz, b_db, phi);
-    math_cart2cyl_gradient(&b_db[3], jacobian, bxyz, r, phi);
+    math_jac_xyz2rpz(b_db, b_dbxyz, r, phi);
 
     return 0;
 }

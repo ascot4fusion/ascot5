@@ -7,8 +7,6 @@
 
 #include "defines.h"
 
-#define MAXPOINCARE 32
-
 /**
  * Simulation modes.
  *
@@ -16,19 +14,30 @@
  */
 enum SIMULATION_MODE
 {
-    /** Models markers as particles using MarkerGyroOrbit struct and
-        simulate_fo_fixed.c simulation loop .                                  */
+    /**
+     * Models markers as particles using MarkerGyroOrbit struct and
+     * simulate_fo_fixed.c simulation loop.
+     */
     simulate_mode_fo = 1,
-    /** Models markers as guiding centers using MarkerGuidingCenter struct and
-        simulate_gc_fixed.c or simulate_gc_adaptive.c simulation loops.      */
+
+    /**
+     * Models markers as guiding centers using MarkerGuidingCenter struct and
+     * simulate_gc_fixed.c or simulate_gc_adaptive.c simulation loops.
+     */
     simulate_mode_gc = 2,
-    /** Models markers first like using simulate_mode_gc. Additional end
-        condition is used for markers that get close to wall. After all
-        markers are finished, simulation for markers that were close to the
-        wall is continued with using simulate_mode_fo mode.                 */
+
+    /**
+     * Models markers first like using simulate_mode_gc. Additional end
+     * condition is used for markers that get close to wall. After all
+     * markers are finished, simulation for markers that were close to the
+     * wall is continued with using simulate_mode_fo mode.
+     */
     simulate_mode_hybrid = 3,
-    /** Models markers as field lines using MarkerFieldLine struct and
-        simulate_ml_adaptive.c simulation loop.                              */
+
+    /**
+     * Models markers as field lines using MarkerFieldLine struct and
+     * simulate_ml_adaptive.c simulation loop.
+     */
     simulate_mode_ml = 4
 };
 
@@ -41,7 +50,7 @@ typedef struct
      * Indicates if we are tracing gyro orbits, guiding centers, or field lines
      * or using the hybrid mode.
      */
-    int simulation_mode;
+    int mode;
 
     /** Is adaptive time-step used. */
     int enable_adaptive;

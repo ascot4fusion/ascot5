@@ -18,8 +18,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MAGNETIC_FIELD_LINE_INISTEP 1.0e-2 /**< Initial step size in meters */
-#define DUMMY_STEP_VAL 100.0 /**< Dummy orbit step val in meters */
+/**< Dummy orbit step value [m]. */
+#define DUMMY_STEP_VAL 100.0
 
 /**
  * Replace markers in the simulation vector with new ones from the queue.
@@ -59,7 +59,7 @@ static size_t cycle_markers(
                 p_current->id[idx] = 0;
                 p_current->running[idx] = 0;
             }
-            time_step[idx] = MAGNETIC_FIELD_LINE_INISTEP;
+            time_step[idx] = sim->options->timestep;
         }
         start = idx;
     }
@@ -78,9 +78,13 @@ int simulate_fl_adaptive(
     Simulation *sim, MarkerQueue *queue, size_t vector_size)
 {
 
-    real *current_time_step = (real *)malloc(vector_size * sizeof(real));
-    real *suggested_time_step = (real *)malloc(vector_size * sizeof(real));
-    real *next_time_step = (real *)malloc(vector_size * sizeof(real));
+    int err = 0;
+    real *current_time_step = (real *)xmalloc(&err, vector_size * sizeof(real));
+    if (err) return 1;
+    real *suggested_time_step = (real *)xmalloc(&err, vector_size * sizeof(real));
+    if (err) return 1;
+    real *next_time_step = (real *)xmalloc(&err, vector_size * sizeof(real));
+    if (err) return 1;
 
     real current_time, previous_time;
 

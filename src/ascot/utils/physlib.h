@@ -12,7 +12,7 @@
 #include <math.h>
 
 /**
- * @brief Evaluate Lorentz factor from velocity norm
+ * Evaluate Lorentz factor from velocity norm.
  *
  * \f$ \gamma = \sqrt{\frac{1}{1-v^2/c^2}}\f$
  *
@@ -24,7 +24,7 @@
     (sqrt(1.0 / ((1.0 - v / CONST_C) * (1.0 + v / CONST_C))))
 
 /**
- * @brief Evaluate velocity norm from Lorentz factor
+ * Evaluate velocity norm from Lorentz factor.
  *
  * \f$ v = \sqrt{1 - \frac{1}{\gamma^2}}c\f$
  *
@@ -35,7 +35,7 @@
 #define physlib_vnorm_gamma(gamma) (sqrt(1.0 - 1.0 / (gamma * gamma)) * CONST_C)
 
 /**
- * @brief Evaluate Lorentz factor from momentum norm
+ * Evaluate Lorentz factor from momentum norm.
  *
  * \f$\gamma = \sqrt{1 + \left(\frac{p}{mc}\right)^2}\f$
  *
@@ -47,14 +47,20 @@
 #define physlib_gamma_pnorm(m, p) (sqrt(1.0 + (p * p) / (m * m * CONST_C2)))
 
 /**
- * @brief Evaluate momentum norm from Lorentz factor
+ * Evaluate momentum norm from Lorentz factor.
  *
+ * \f$p = (\gamma^2 - 1)^{1/2} m c\f$
+ *
+ * where
+ *
+ * - \f$m\f$ is mass [kg]
+ * - \f$\gamma\f$ is the Lorentz factor
  */
 #define physlib_pnorm_gamma(m, gamma)                                          \
     (sqrt((gamma * gamma - 1.0)) * m * CONST_C)
 
 /**
- * @brief Evaluate Lorentz factor from parallel velocity
+ * Evaluate Lorentz factor from parallel velocity.
  *
  * \f$\gamma = \sqrt{\frac{1 + (2\mu B/mc^2)}{1 - v_\parallel^2/c^2}}\f$
  *
@@ -71,7 +77,7 @@
         ((1.0 - vpar / CONST_C) * (1.0 + vpar / CONST_C))))
 
 /**
- * @brief Evaluate Lorentz factor from parallel momentum
+ * Evaluate Lorentz factor from parallel momentum.
  *
  * \f$\gamma = \sqrt{1 + 2\mu B/mc^2 + (p_\parallel/mc)^2}\f$
  *
@@ -86,7 +92,7 @@
     (sqrt(1.0 + 2 * mu * B / (m * CONST_C2) + ppar * ppar / (m * m * CONST_C2)))
 
 /**
- * @brief Evaluate kinetic energy [J] from Lorentz factor
+ * Evaluate kinetic energy [J] from Lorentz factor.
  *
  * \f$E_\mathrm{kin}=(\gamma - 1) * m c^2\f$
  *
@@ -98,7 +104,7 @@
 #define physlib_Ekin_gamma(m, gamma) ((gamma - 1.0) * m * CONST_C2)
 
 /**
- * @brief Evaluate Lorentz factor from kinetic energy [J]
+ * Evaluate Lorentz factor from kinetic energy [J].
  *
  * \f$\gamma = \frac{E_\mathrm{kin}}{m c^2} + 1\f$
  *
@@ -110,7 +116,7 @@
 #define physlib_gamma_Ekin(m, ekin) (ekin / (m * CONST_C2) + 1.0)
 
 /**
- * @brief Evaluate kinetic energy [J] from momentum norm
+ * Evaluate kinetic energy [J] from momentum norm.
  *
  * \f$E_\mathrm{kin}=(\gamma(p) - 1) * m c^2\f$
  *
@@ -123,7 +129,7 @@
     ((physlib_gamma_pnorm(m, p) - 1.0) * m * CONST_C2)
 
 /**
- * @brief Evaluate kinetic energy [J] from parallel momentum
+ * Evaluate kinetic energy [J] from parallel momentum.
  *
  * \f$E_\mathrm{kin}=(\gamma(m, \mu, p_\parallel, B) - 1) * m c^2\f$
  *
@@ -136,7 +142,7 @@
     ((physlib_gamma_ppar(m, mu, ppar, B) - 1.0) * m * CONST_C2)
 
 /**
- * @brief Evaluate velocity norm [m/s] from momentum norm
+ * Evaluate velocity norm [m/s] from momentum norm.
  *
  * \f$v = p/\gamma(p)m\f$
  *
@@ -148,7 +154,7 @@
 #define physlib_vnorm_pnorm(m, p) (p / sqrt(m * m + (p * p) / CONST_C2))
 
 /**
- * @brief Evaluate momentum norm [kg m/s] from velocity norm
+ * Evaluate momentum norm [kg m/s] from velocity norm.
  *
  * \f$p = \gamma(v)mv\f$
  *
@@ -160,8 +166,8 @@
 #define physlib_pnorm_vnorm(m, v) (m * v * physlib_gamma_vnorm(v))
 
 /**
- * @brief Evaluate guiding center parallel momentum [kg m/s] from momentum norm
- * and pitch
+ * Evaluate guiding center parallel momentum [kg m/s] from momentum norm
+ * and pitch.
  *
  * \f$p_\parallel = \xi p\f$
  *
@@ -173,8 +179,8 @@
 #define physlib_gc_ppar(p, xi) (p * xi)
 
 /**
- * @brief Evaluate guiding center magnetic moment [J/T] from momentum norm and
- * pitch
+ * Evaluate guiding center magnetic moment [J/T] from momentum norm and
+ * pitch.
  *
  * \f$\mu = (1-\xi^2)p/(2mB)\f$
  *
@@ -188,8 +194,8 @@
 #define physlib_gc_mu(m, p, xi, B) (p * p * (1.0 - xi * xi) / (2 * B * m))
 
 /**
- * @brief Evaluate guiding center momentum norm [kg m/s] from parallel momentum
- * and magnetic moment
+ * Evaluate guiding center momentum norm [kg m/s] from parallel momentum
+ * and magnetic moment.
  *
  * \f$p = \sqrt{\gamma(m,\mu,p_\parallel,B)^2 - 1} m c\f$
  *
@@ -204,8 +210,8 @@
     (m * CONST_C * sqrt(pow(physlib_gamma_ppar(m, mu, ppar, B), 2) - 1))
 
 /**
- * @brief Evaluate guiding center pitch from parallel momentum and magnetic
- * moment
+ * Evaluate guiding center pitch from parallel momentum and magnetic
+ * moment.
  *
  * \f$\xi = p_\parallel / p(m,\mu,p_\parallel,B) \f$
  *
@@ -219,7 +225,7 @@
 #define physlib_gc_xi(m, mu, ppar, B) (ppar / physlib_gc_p(m, mu, ppar, B))
 
 /**
- * @brief Evaluate gyroradius [m] from momentum vector
+ * Evaluate gyroradius [m] from momentum vector.
  *
  * \f$\rho_g = \frac{\mathbf{p}\cdot\mathbf{B}}{|q|B^2}\f$
  *
@@ -233,7 +239,7 @@
     (math_dot(p, B) / (fabs(q) * math_dot(B, B)))
 
 /**
- * @brief Evaluate gyroradius [m] from parallel momentum and magnetic moment
+ * Evaluate gyroradius [m] from parallel momentum and magnetic moment.
  *
  * \f$\rho_g = \frac{1}{|q|}\sqrt{\frac{2\gamma(m, \mu, p_\parallel, B) m \mu}
  *             {B}}\f$
@@ -250,7 +256,7 @@
     (sqrt(2 * m * mu * physlib_gamma_ppar(m, mu, ppar, B) / B) / fabs(q))
 
 /**
- * @brief Evaluate gyrofrequency [rad/s] from momentum norm
+ * Evaluate gyrofrequency [rad/s] from momentum norm.
  *
  * \f$\omega_g = \frac{q B}{\gamma(p) m}\f$
  *
@@ -433,7 +439,7 @@
  */
 #define phys_ald_force_chartime(q, m, B, gamma)                                \
     ((q * q * q * q) * (B * B) /                                               \
-     (6.0 * CONST_PI * CONST_E0 * gamma * (m * m * m) * CONST_C3))
+     (6.0 * CONST_PI * CONST_E0 * gamma * (m * m * m) * CONST_C * CONST_C2))
 
 /**
  * @brief Evaluate collision parameter [kg^2 m^3 / s^4]
@@ -531,7 +537,7 @@
                     (6 * CONST_SQRTPI * ma * ma * vb))
 
 /**
- * @brief Evaluate derivative of non-relativistic parallel diffusion
+ * Evaluate derivative of non-relativistic parallel diffusion
  * coefficient [m/s^2]
  *
  * \f$D_\parallel'=c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})(\mu_0'(v_a/v_b)/v_b
@@ -616,18 +622,18 @@
 #define mccc_coefs_DX(xi, Dpara, Dperp, gyrofreq)                              \
     ((0.5 * (Dpara - Dperp) * (1 - xi * xi) + Dperp) / (gyrofreq * gyrofreq))
 
-GPU_DECLARE_TARGET_SIMD_UNIFORM(mdata)
-static void mccc_coefs_mufun(real mufun[3], real x, mccc_data *mdata);
+GPU_DECLARE_TARGET_SIMD
+static void mccc_coefs_mufun(real mufun[3], real x);
 DECLARE_TARGET_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(nspec, mb, qb, nb, Tb)
 inline static void mccc_coefs_clog(
-    real *clogab, real ma, real qa, real va, int nspec, const real *mb,
+    real *clogab, real ma, real qa, real va, size_t nspec, const real *mb,
     const real *qb, const real *nb, const real *Tb);
 DECLARE_TARGET_END
 
 /**
- * @brief Evaluate Coulomb logarithm.
+ * Evaluate Coulomb logarithm.
  *
  * Coulomb logarithm is evaluated separately with respect to each plasma
  * species. It is calculated as a logarithm of the ratio of maximum and
@@ -646,14 +652,14 @@ DECLARE_TARGET_END
  * @param Tb plasma species temperatures [J]
  */
 inline static void mccc_coefs_clog(
-    real *clogab, real ma, real qa, real va, int nspec, const real *mb,
+    real *clogab, real ma, real qa, real va, size_t nspec, const real *mb,
     const real *qb, const real *nb, const real *Tb)
 {
 
     /* Evaluate Debye length */
     real sum = 0;
     GPU_SEQUENTIAL_LOOP
-    for (int i = 0; i < nspec; i++)
+    for (size_t i = 0; i < nspec; i++)
     {
         sum += nb[i] * qb[i] * qb[i] / Tb[i];
     }
@@ -662,7 +668,7 @@ inline static void mccc_coefs_clog(
     /* Evaluate classical and quantum mechanical impact parameter. The one *
      * that is larger is used to evaluate Coulomb logarithm.               */
     GPU_SEQUENTIAL_LOOP
-    for (int i = 0; i < nspec; i++)
+    for (size_t i = 0; i < nspec; i++)
     {
         real vbar = va * va + 2 * Tb[i] / mb[i];
         real mr = ma * mb[i] / (ma + mb[i]);
@@ -670,22 +676,14 @@ inline static void mccc_coefs_clog(
         real bqm = fabs(CONST_HBAR / (2 * mr * sqrt(vbar)));
 
         if (bcl > bqm)
-        {
             clogab[i] = log(debyeLength / bcl);
-        }
         else
-        {
             clogab[i] = log(debyeLength / bqm);
-        }
     }
 }
 
 /**
- * @brief Evaluate special functions needed by collision coefficients
- *
- * This function either evaluates the special functions directly or interpolates
- * them from look-up table which should be initialized with mccc_init() before
- * calling this function.
+ * Evaluate special functions needed by collision coefficients.
  *
  * Special functions are
  *
@@ -695,11 +693,9 @@ inline static void mccc_coefs_clog(
  *
  * @param mufun pointer to array where values are stored
  * @param x argument for the special functions
- * @param mdata pointer to mccc data
  */
-inline static void mccc_coefs_mufun(real mufun[3], real x, mccc_data *mdata)
+inline static void mccc_coefs_mufun(real mufun[3], real x)
 {
-
     if (x != 0)
     {
         real expm2x = exp(-x * x);
@@ -709,9 +705,6 @@ inline static void mccc_coefs_mufun(real mufun[3], real x, mccc_data *mdata)
         mufun[1] = erfx - 0.5 * mufun[0];
         mufun[2] = 4 * expm2x / CONST_SQRTPI - 2 * mufun[0] / x;
     }
-    // else if(mdata->usetabulated && x != 0) {
-    //  TODO implement me
-    //}
     else
     {
         mufun[0] = 0;
@@ -720,172 +713,81 @@ inline static void mccc_coefs_mufun(real mufun[3], real x, mccc_data *mdata)
     }
 }
 
+GPU_DECLARE_TARGET_SIMD
 /**
- * @brief Calculate guiding center equations of motion for a single particle
+ * Calculate guiding center equations of motion for a single particle.
  *
- * @param ydot output right hand side of the equations of motion in a
- *             6-length array (rdot, phidot, zdot, ppardot, mudot, zetadot)
- * @param y input coordinates in a 6-length array (r, phi, z, vpar, mu, zeta)
- * @param mass mass [kg]
- * @param charge charge [C]
- * @param B_dB magnetic field and derivatives at the guiding center location
- * @param E electric field at the guiding center location
- * @param aldforce indicates whether Abraham-Lorentz-Dirac force is enabled
+ * @param ydot Output right hand side of the equations of motion in a
+ *             6-length array (rdot, phidot, zdot, ppardot, mudot, chidot).
+ * @param y Input coordinates in a 5-length array (r, phi, z, rhopar, mu).
+ * @param mass Mass [kg].
+ * @param charge Charge [C].
+ * @param b_db Magnetic field and derivatives at the guiding center location.
+ * @param e Electric field at the guiding center location.
+ * @param alpha mhd perturbation information evaluated by mhd.c.
+ * @param Phi mhd perturbation information evaluated by mhd.c.
+ * @param aldforce indicates whether Abraham-Lorentz-Dirac force is enabled.
  */
-DECLARE_TARGET_SIMD
 inline static void step_gceom(
-    real *ydot, real *y, real mass, real charge, real *B_dB, real *E,
-    int aldforce)
+    real ydot[6], const real y[6], real mass, real charge, const real b_db[12],
+    const real e[3], const real alpha[5], const real Phi[5], int aldforce)
 {
 
-    real B[3];
-    B[0] = B_dB[0];
-    B[1] = B_dB[1];
-    B[2] = B_dB[2];
+    const real *b = b_db;
 
-    real normB = sqrt(math_dot(B, B));
-    real gamma = physlib_gamma_ppar(mass, y[4], y[3], normB);
+    real normb2 = math_dot(b, b);
+    real normb = sqrt(normb2);
+    real gamma = physlib_gamma_ppar(mass, y[4], y[3], normb);
 
-    real gradB[3];
-    gradB[0] = (B[0] * B_dB[3] + B[1] * B_dB[6] + B[2] * B_dB[9]) / normB;
-    gradB[1] =
-        (B[0] * B_dB[4] + B[1] * B_dB[7] + B[2] * B_dB[10]) / (normB * y[0]);
-    gradB[2] = (B[0] * B_dB[5] + B[1] * B_dB[8] + B[2] * B_dB[11]) / normB;
+    real gradb[3] = {
+        (b[0] * b_db[3] + b[1] * b_db[6] + b[2] * b_db[9]) / normb,
+        (b[0] * b_db[4] + b[1] * b_db[7] + b[2] * b_db[10]) / (normb * y[0]),
+        (b[0] * b_db[5] + b[1] * b_db[8] + b[2] * b_db[11]) / normb};
 
-    real gradBcrossB[3];
-    math_cross(gradB, B, gradBcrossB);
+    real gradbcrossb[3];
+    math_cross(gradb, b, gradbcrossb);
 
-    real curlB[3];
-    curlB[0] = B_dB[10] / y[0] - B_dB[8];
-    curlB[1] = B_dB[5] - B_dB[9];
-    curlB[2] = (B[1] - B_dB[4]) / y[0] + B_dB[6];
+    real curlb[3] = {
+        b_db[10] / y[0] - b_db[8], b_db[5] - b_db[9],
+        (b[1] - b_db[4]) / y[0] + b_db[6]};
 
-    real Bstar[3];
-    Bstar[0] = B[0] + (y[3] / charge) *
-                          (curlB[0] / normB - gradBcrossB[0] / (normB * normB));
-    Bstar[1] = B[1] + (y[3] / charge) *
-                          (curlB[1] / normB - gradBcrossB[1] / (normB * normB));
-    Bstar[2] = B[2] + (y[3] / charge) *
-                          (curlB[2] / normB - gradBcrossB[2] / (normB * normB));
+    const real *gradalpha = &alpha[2];
 
-    real Estar[3];
-    Estar[0] = E[0] - y[4] * gradB[0] / (charge * gamma);
-    Estar[1] = E[1] - y[4] * gradB[1] / (charge * gamma);
-    Estar[2] = E[2] - y[4] * gradB[2] / (charge * gamma);
+    real gradalphacrossb[3];
+    math_cross(gradalpha, b, gradalphacrossb);
 
-    real Bhat[3];
-    Bhat[0] = B[0] / normB;
-    Bhat[1] = B[1] / normB;
-    Bhat[2] = B[2] / normB;
+    real bstar[3] = {
+        b[0] + gradalphacrossb[0] + alpha[0] * curlb[0] +
+            (y[3] / charge) * (curlb[0] / normb - gradbcrossb[0] / normb2),
+        b[1] + gradalphacrossb[1] + alpha[0] * curlb[1] +
+            (y[3] / charge) * (curlb[1] / normb - gradbcrossb[1] / normb2),
+        b[2] + gradalphacrossb[2] + alpha[0] * curlb[2] +
+            (y[3] / charge) * (curlb[2] / normb - gradbcrossb[2] / normb2)};
 
-    real BhatDotBstar = math_dot(Bhat, Bstar);
+    real estar[3] = {
+        e[0] - Phi[2] - y[4] * gradb[0] / (charge * gamma) - b[0] * alpha[1],
+        e[1] - Phi[3] - y[4] * gradb[1] / (charge * gamma) - b[1] * alpha[1],
+        e[2] - Phi[4] - y[4] * gradb[2] / (charge * gamma) - b[2] * alpha[1]};
 
-    real EstarcrossBhat[3];
-    math_cross(Estar, Bhat, EstarcrossBhat);
+    real bhat[3] = {b[0] / normb, b[1] / normb, b[2] / normb};
+
+    real bhatdotbstar = math_dot(bhat, bstar);
+
+    real estarcrossbhat[3];
+    math_cross(estar, bhat, estarcrossbhat);
 
     ydot[0] =
-        (y[3] * Bstar[0] / (gamma * mass) + EstarcrossBhat[0]) / BhatDotBstar;
-    ydot[1] = (y[3] * Bstar[1] / (gamma * mass) + EstarcrossBhat[1]) /
-              (y[0] * BhatDotBstar);
+        (y[3] * bstar[0] / (gamma * mass) + estarcrossbhat[0]) / bhatdotbstar;
+    ydot[1] = (y[3] * bstar[1] / (gamma * mass) + estarcrossbhat[1]) /
+              (y[0] * bhatdotbstar);
     ydot[2] =
-        (y[3] * Bstar[2] / (gamma * mass) + EstarcrossBhat[2]) / BhatDotBstar;
-    ydot[3] = charge * math_dot(Bstar, Estar) / BhatDotBstar;
+        (y[3] * bstar[2] / (gamma * mass) + estarcrossbhat[2]) / bhatdotbstar;
+    ydot[3] = charge * math_dot(bstar, estar) / bhatdotbstar;
     ydot[4] = 0;
-    ydot[5] = charge * normB / (gamma * mass);
+    ydot[5] = charge * normb / (gamma * mass);
 
-    real t_ald = phys_ald_force_chartime(charge, mass, normB, gamma) * aldforce;
-    real C = 2 * y[4] * normB / (mass * CONST_C2);
-    ydot[3] += -t_ald * y[3] * C;
-    ydot[4] += -2 * t_ald * y[4] * (1 + C);
-}
-
-/**
- * @brief Calculate guiding center equations of motion for a single particle
- *
- * @param ydot output right hand side of the equations of motion in a
- *             6-length array (rdot, phidot, zdot, ppardot, mudot, chidot)
- * @param y input coordinates in a 5-length array (r, phi, z, rhopar, mu)
- * @param mass mass
- * @param charge charge
- * @param B_dB magnetic field and derivatives at the guiding center location
- * @param E electric field at the guiding center location
- * @param mhd_dmhd mhd perturbation information evaluated by mhd.c
- * @param aldforce indicates whether Abraham-Lorentz-Dirac force is enabled
- */
-DECLARE_TARGET_SIMD
-inline static void step_gceom_mhd(
-    real *ydot, real *y, real mass, real charge, real *B_dB, real *E,
-    real alpha[5], real Phi[5], int aldforce)
-{
-
-    real B[3];
-    B[0] = B_dB[0];
-    B[1] = B_dB[1];
-    B[2] = B_dB[2];
-
-    real normB = sqrt(math_dot(B, B));
-    real gamma = physlib_gamma_ppar(mass, y[4], y[3], normB);
-
-    real gradB[3];
-    gradB[0] = (B[0] * B_dB[3] + B[1] * B_dB[6] + B[2] * B_dB[9]) / normB;
-    gradB[1] =
-        (B[0] * B_dB[4] + B[1] * B_dB[7] + B[2] * B_dB[10]) / (normB * y[0]);
-    gradB[2] = (B[0] * B_dB[5] + B[1] * B_dB[8] + B[2] * B_dB[11]) / normB;
-
-    real gradBcrossB[3];
-    math_cross(gradB, B, gradBcrossB);
-
-    real curlB[3];
-    curlB[0] = B_dB[10] / y[0] - B_dB[8];
-    curlB[1] = B_dB[5] - B_dB[9];
-    curlB[2] = (B[1] - B_dB[4]) / y[0] + B_dB[6];
-
-    real *gradalpha = &alpha[2];
-
-    real gradalphacrossB[3];
-    math_cross(gradalpha, B, gradalphacrossB);
-
-    real Bstar[3];
-    Bstar[0] =
-        B[0] + gradalphacrossB[0] + alpha[0] * curlB[0] +
-        (y[3] / charge) * (curlB[0] / normB - gradBcrossB[0] / (normB * normB));
-    Bstar[1] =
-        B[1] + gradalphacrossB[1] + alpha[0] * curlB[1] +
-        (y[3] / charge) * (curlB[1] / normB - gradBcrossB[0] / (normB * normB));
-    Bstar[2] =
-        B[2] + gradalphacrossB[2] + alpha[0] * curlB[2] +
-        (y[3] / charge) * (curlB[2] / normB - gradBcrossB[2] / (normB * normB));
-
-    real Estar[3];
-    Estar[0] =
-        E[0] - Phi[2] - y[4] * gradB[0] / (charge * gamma) - B[0] * alpha[1];
-    Estar[1] =
-        E[1] - Phi[3] - y[4] * gradB[1] / (charge * gamma) - B[1] * alpha[1];
-    Estar[2] =
-        E[2] - Phi[4] - y[4] * gradB[2] / (charge * gamma) - B[2] * alpha[1];
-
-    real Bhat[3];
-    Bhat[0] = B[0] / normB;
-    Bhat[1] = B[1] / normB;
-    Bhat[2] = B[2] / normB;
-
-    real BhatDotBstar = math_dot(Bhat, Bstar);
-
-    real EstarcrossBhat[3];
-    math_cross(Estar, Bhat, EstarcrossBhat);
-
-    ydot[0] =
-        (y[3] * Bstar[0] / (gamma * mass) + EstarcrossBhat[0]) / BhatDotBstar;
-    ydot[1] = (y[3] * Bstar[1] / (gamma * mass) + EstarcrossBhat[1]) /
-              (y[0] * BhatDotBstar);
-    ydot[2] =
-        (y[3] * Bstar[2] / (gamma * mass) + EstarcrossBhat[2]) / BhatDotBstar;
-    ydot[3] = charge * math_dot(Bstar, Estar) / BhatDotBstar;
-    ydot[4] = 0;
-    ydot[5] = charge * normB / (gamma * mass);
-
-    real t_ald = phys_ald_force_chartime(charge, mass, normB, gamma) * aldforce;
-    real C = 2 * y[4] * normB / (mass * CONST_C2);
+    real t_ald = phys_ald_force_chartime(charge, mass, normb, gamma) * aldforce;
+    real C = 2 * y[4] * normb / (mass * CONST_C2);
     ydot[3] += -t_ald * y[3] * C;
     ydot[4] += -2 * t_ald * y[4] * (1 + C);
 }

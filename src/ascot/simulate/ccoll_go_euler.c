@@ -15,7 +15,7 @@
 void mccc_go_euler(
     MarkerGyroOrbit *p, real *h, Plasma *plasma, mccc_data *mdata, real *rnd)
 {
-
+    (void)mdata;
     /* Get plasma information before going to the  SIMD loop */
     size_t n_species = Plasma_get_n_species(plasma);
     const real *qb = Plasma_get_species_charge(plasma);
@@ -89,7 +89,7 @@ void mccc_go_euler(
                 real vb = sqrt(2 * Tb[j] / mb[j]);
                 real x = vin / vb;
                 real mufun[3];
-                mccc_coefs_mufun(mufun, x, mdata);
+                mccc_coefs_mufun(mufun, x);
 
                 F += mccc_coefs_F(
                     p->mass[i], p->charge[i], mb[j], qb[j], nb[j], vb,

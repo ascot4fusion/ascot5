@@ -68,9 +68,9 @@ DECLARE_TARGET_SIMD
  * @param zeta Pointer to guiding center gyroangle [rad].
  */
 void gctransform_particle2guidingcenter(
-    real mass, real charge, real *b_db, real r, real phi, real z, real pr,
-    real pphi, real pz, real *R, real *Phi, real *Z, real *ppar, real *mu,
-    real *zeta);
+    real mass, real charge, const real b_db[12], real r, real phi, real z,
+    real pr, real pphi, real pz, real R[1], real Phi[1], real Z[1],
+    real ppar[1], real mu[1], real zeta[1]);
 
 DECLARE_TARGET_SIMD
 /**
@@ -98,11 +98,11 @@ DECLARE_TARGET_SIMD
  * @param zetaprt Pointer to particle gyroangle [rad].
  */
 void gctransform_guidingcenter2particle(
-    real mass, real charge, real *b_db, real R, real Phi, real Z, real ppar,
-    real mu, real zeta, real *r, real *phi, real *z, real *pparprt, real *muprt,
-    real *zetaprt);
+    real mass, real charge, const real b_db[12], real R, real Phi, real Z,
+    real ppar, real mu, real zeta, real r[1], real phi[1], real z[1],
+    real pparprt[1], real muprt[1], real zetaprt[1]);
 
-DECLARE_TARGET_SIMD
+GPU_DECLARE_TARGET_SIMD
 /**
  * Transform particle ppar, mu, and zeta to momentum vector.
  *
@@ -121,7 +121,7 @@ DECLARE_TARGET_SIMD
  * @param pz Pointer to particle momentum z-component [kg m/s].
  */
 void gctransform_pparmuzeta2prpphipz(
-    real mass, real charge, real *b_db, real phi, real ppar, real mu, real zeta,
-    real *pr, real *pphi, real *pz);
+    real mass, real charge, const real b_db[12], real phi, real ppar, real mu,
+    real zeta, real pr[1], real pphi[1], real pz[1]);
 
 #endif

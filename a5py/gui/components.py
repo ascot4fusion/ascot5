@@ -14,7 +14,7 @@ class NumEntry(tkinter.Frame):
     """
 
     def __init__(self, master, isint=False, labeltext=None, defval=None,
-                 entrywidth=6, labelwidth=8, anchor="w"):
+                 entrywidth=6, labelwidth=8, anchor="w", linebreak=False):
         """
         Initialize a frame which accepts inputs.
 
@@ -39,7 +39,10 @@ class NumEntry(tkinter.Frame):
             width=entrywidth, textvariable=self.choice, font=("Calibri 10"))
 
         self.label.grid(row=0, column=0, sticky="W")
-        self.entry.grid(row=0, column=1, sticky="E")
+        if linebreak:
+            self.entry.grid(row=1, column=1, sticky="E")
+        else:
+            self.entry.grid(row=0, column=1, sticky="E")
 
 
     def getval(self):
@@ -138,7 +141,8 @@ class DropdownMenu(tkinter.Frame):
     """
 
     def __init__(self, master, defval=None, values=None, log=False, trace=None,
-                 label=None, width=6, labelwidth=2, labelanchor="c"):
+                 label=None, width=6, labelwidth=2, labelanchor="c",
+                 num_dropdown_items=10):
         super().__init__(master)
         self.var = tkinter.StringVar(self)
 
@@ -153,7 +157,7 @@ class DropdownMenu(tkinter.Frame):
             label.pack(side="left", anchor=labelanchor)
 
         self.menu = ttk.Combobox(self, width=width, textvariable=self.var,
-                                 state="readonly")
+                                 state="readonly", height=num_dropdown_items)
         self.menu.pack(side="left")
         if values is not None:
             self.menu["values"] = values

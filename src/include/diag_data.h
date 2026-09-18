@@ -10,18 +10,17 @@
 
 /**
  * Orbit diagnostics data.
- *
  */
 typedef struct
 {
 
-    /** Marker R coordinate (layout: [imrk*npoint + ipnt]) [m].               */
+    /** Marker R coordinate (layout: [imrk*npoint + ipnt]) [m]. */
     real *r;
 
-    /** Marker z coordinate (layout: [imrk*npoint + ipnt]) [m].               */
+    /** Marker z coordinate (layout: [imrk*npoint + ipnt]) [m]. */
     real *z;
 
-    /** Marker phi coordinate (layout: [imrk*npoint + ipnt]) [rad].           */
+    /** Marker phi coordinate (layout: [imrk*npoint + ipnt]) [rad]. */
     real *phi;
 
     /**
@@ -48,19 +47,19 @@ typedef struct
      */
     real *p3;
 
-    /** Marker mileage (layout: [imrk*npoint + ipnt]) [s].                    */
+    /** Marker mileage (layout: [imrk*npoint + ipnt]) [s]. */
     real *mileage;
 
-    /** Time marker was last updated (layout: [imrk]) [s].                    */
+    /** Time marker was last updated (layout: [imrk]) [s]. */
     real *stamp;
 
-    /** Marker ID (layout: [imrk*npoint + ipnt]) [s].                         */
+    /** Marker ID (layout: [imrk*npoint + ipnt]) [s]. */
     size_t *id;
 
-    /** Index (ipoint) of the last recorded point (layout: [imrk]) [s].       */
+    /** Index (ipoint) of the last recorded point (layout: [imrk]) [s]. */
     size_t *idx;
 
-    /** Marker charge state (layout: [imrk*npoint + ipnt]) [e].               */
+    /** Marker charge state (layout: [imrk*npoint + ipnt]) [e]. */
     int *charge;
 
     /**
@@ -88,16 +87,16 @@ typedef struct
      */
     int *simmode;
 
-    /** Number of points to record.                                           */
+    /** Number of points to record. */
     size_t npoint;
 
-    /** Number of toroidal Poincaré planes.                                   */
+    /** Number of toroidal Poincaré planes. */
     size_t ntoroidal;
 
-    /** Number of poloidal Poincaré planes.                                   */
+    /** Number of poloidal Poincaré planes. */
     size_t npoloidal;
 
-    /** Number of radial Poincaré surfaces.                                   */
+    /** Number of radial Poincaré surfaces. */
     size_t nradial;
 
     /**
@@ -107,13 +106,13 @@ typedef struct
      */
     real interval;
 
-    /** Poloidal angles of the toroidal Poincaré planes (ntoroidal) [rad].    */
+    /** Poloidal angles of the toroidal Poincaré planes (ntoroidal) [rad]. */
     real *toroidal;
 
-    /** Toroidal angles of the poloidal Poincaré planes (npoloidal) [rad].    */
+    /** Toroidal angles of the poloidal Poincaré planes (npoloidal) [rad]. */
     real *poloidal;
 
-    /** Poloidal angles of the toroidal Poincaré planes (ntoroidal) [rad].    */
+    /** Poloidal angles of the toroidal Poincaré planes (ntoroidal) [rad]. */
     real *radial;
 } DiagOrbit;
 
@@ -146,10 +145,9 @@ typedef enum
  */
 typedef struct
 {
-    real min;  /**< Lower limit of the coordinate interval.                   */
-    real max;  /**< Upper limit of the coordinate interval.                   */
-    size_t n;  /**< Number of bins in this axis.                              */
-    //int coord; /**< Coordinate mapped to this axis.                           */
+    real min; /**< Lower limit of the coordinate interval.                    */
+    real max; /**< Upper limit of the coordinate interval.                    */
+    size_t n; /**< Number of bins in this axis.                               */
 } HistAxis;
 
 /**

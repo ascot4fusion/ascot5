@@ -5,6 +5,9 @@
 #ifndef WALL_DATA_H
 #define WALL_DATA_H
 
+#include "defines.h"
+#include <stddef.h>
+
 /**
  * Wall data types.
  */
@@ -38,16 +41,16 @@ typedef struct
                               to in each direction. ngrid = 2^(depth-1).      */
     size_t n_tree_array; /**< Number of elements in tree_array.               */
     int *flag;           /**< Flags used to label wall elements.              */
-    real xmin;           /**< Minimum extend on x-direction [m].              */
-    real xmax;           /**< Maximum extend on x-direction [m].              */
-    real dx;             /**< Octree cell width in x-direction [m].           */
-    real ymin;           /**< Minimum extend on y-direction [m].              */
-    real ymax;           /**< Maximum extend on y-direction [m].              */
-    real dy;             /**< Octree cell width in y-direction [m].           */
-    real zmin;           /**< Minimum extend on z-direction [m].              */
-    real zmax;           /**< Maximum extend on z-direction [m].              */
-    real dz;             /**< Octree cell width in z-direction [m].           */
-    real *vertices;      /**< Array of wall triangle coordinates.             */
+    float xmin;          /**< Minimum extend on x-direction [m].              */
+    float xmax;          /**< Maximum extend on x-direction [m].              */
+    float dx;            /**< Octree cell width in x-direction [m].           */
+    float ymin;          /**< Minimum extend on y-direction [m].              */
+    float ymax;          /**< Maximum extend on y-direction [m].              */
+    float dy;            /**< Octree cell width in y-direction [m].           */
+    float zmin;          /**< Minimum extend on z-direction [m].              */
+    float zmax;          /**< Maximum extend on z-direction [m].              */
+    float dz;            /**< Octree cell width in z-direction [m].           */
+    float *vertices;     /**< Array of wall triangle coordinates.             */
 
     /**
      * Array storing information what triangles given octree cell stores.

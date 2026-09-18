@@ -62,7 +62,7 @@ void Boozer_free(Boozer *boozer);
  */
 void Boozer_offload(Boozer *boozer);
 
-DECLARE_TARGET_SIMD_UNIFORM(bfield, boozer)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield, boozer)
 /**
  * Find Boozer coordinates and their gradients at a given point in cylindrical
  * coordinates.

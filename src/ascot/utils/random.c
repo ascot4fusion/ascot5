@@ -1,6 +1,5 @@
 /**
- * @file random.c
- * @brief Random number generator interface
+ * Implements random.h.
  */
 #if defined(RANDOM_MKL)
 
@@ -77,8 +76,8 @@ void random_gsl_normal_simd(random_data *rdata, int n, double *r)
 
 #elif defined(RANDOM_LCG)
 
-#include "defines.h"
 #include "consts.h"
+#include "defines.h"
 #include "random.h"
 #include <math.h>
 #include <stdint.h>
@@ -125,7 +124,7 @@ void random_lcg_normal_simd(random_data *rdata, int n, double *r)
     int isEven = (n + 1) % 2; /* Indicates if even number of random numbers are
                                  requested */
 
-#if A5_CCOL_USE_GEOBM == 1
+#if USE_BOXMULLER_RNG_METHOD == 1
     /* The geometric form */
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for (int i = 0; i < n; i = i + 2)
@@ -173,14 +172,14 @@ void random_lcg_normal_simd(random_data *rdata, int n, double *r)
 
 #else /* No RNG lib defined, use drand48 */
 
-#include "defines.h"
 #include "consts.h"
+#include "defines.h"
 #include "random.h"
 #include <math.h>
 #include <stdlib.h>
 
 /**
- * @brief Initialize random generator which uses the linear congruential
+ * Initialize random generator which uses the linear congruential
  *        algorithm and 48-bit integer arithmetic.
  *
  */
@@ -192,40 +191,38 @@ double random_drand48_normal()
 }
 
 /**
- * @brief Vectorised sampling from uniform distribution
+ * Vectorised sampling from uniform distribution.
  *
  * Uses the linear congruential algorithm and 48-bit integer arithmetic.
  *
  * @param n number of numbers to be sampled
  * @param r pointer where the values are stored
  */
-void random_drand48_uniform_simd(int n, double *r)
+void random_drand48_uniform_simd(size_t n, double r[n])
 {
 #pragma omp simd
-    for (int i = 0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
     {
         r[i] = drand48();
     }
 }
 
 /**
- * @brief Vectorised sampling from normal distribution
+ * Vectorised sampling from normal distribution.
  *
  * Uses the linear congruential algorithm and 48-bit integer arithmetic.
  *
- * @param n number of numbers to be sampled
- * @param r pointer where the values are stored
+ * @param n Requested number of random numbers.
+ * @param r Array where sampled random numbers are stored.
  */
-void random_drand48_normal_simd(int n, double *r)
+void random_drand48_normal_simd(size_t n, double r[n])
 {
-    double x1, x2, w;         /* Helper variables */
-    int isEven = (n + 1) % 2; /* Indicates if even number of random numbers
-                                 are requested */
+    double x1, x2, w;
 
-#if A5_CCOL_USE_GEOBM == 1
+#if USE_BOXMULLER_RNG_METHOD
 /* The geometric form */
 #pragma omp simd
-    for (int i = 0; i < n; i = i + 2)
+    for (size_t i = 0; i < n; i = i + 2)
     {
         w = 2.0;
         while (w >= 1.0)
@@ -237,23 +234,21 @@ void random_drand48_normal_simd(int n, double *r)
 
         w = sqrt((-2 * log(w)) / w);
         r[i] = x1 * w;
-        if ((i < n - 2) || (isEven > 0))
-        {
+        if (i + 1 < n)
             r[i + 1] = x2 * w;
-        }
     }
 #else
     /* The common form */
     double s;
 #pragma omp simd
-    for (int i = 0; i < n; i = i + 2)
+    for (size_t i = 0; i < n; i = i + 2)
     {
         x1 = drand48(rdata);
         x2 = drand48(rdata);
         w = sqrt(-2 * log(x1));
         s = cos(CONST_2PI * x2);
         r[i] = w * s;
-        if ((i < n - 2) || (isEven > 0))
+        if (i + 1 < n)
         {
             if (x2 < 0.5)
             {
@@ -266,6 +261,30 @@ void random_drand48_normal_simd(int n, double *r)
         }
     }
 #endif
+}
+
+void random_test_init(random_data *rng, size_t seed) {
+    (void)rng;
+    random_init(rng, seed);
+}
+
+void random_test_uniform_normal(
+    random_data *rng, size_t n, double uniform[n], double normal[n])
+{
+    (void)rng;
+    for (size_t i = 0; i < n; i++)
+    {
+        uniform[i] = random_uniform(rng);
+        normal[i] = random_normal(rng);
+    }
+}
+
+void random_test_uniform_normal_simd(
+    random_data *rng, size_t n, double uniform[n], double normal[n])
+{
+    (void)rng;
+    random_uniform_simd(rng, n, uniform);
+    random_normal_simd(rng, n, normal);
 }
 
 #endif

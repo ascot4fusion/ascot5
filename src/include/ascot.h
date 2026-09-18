@@ -20,10 +20,10 @@
 
 #include "datatypes.h"
 #include "defines.h"
+#include <signal.h>
+#include <stdatomic.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdatomic.h>
-#include <signal.h>
 
 /**
  * Global flag that indicates that the simulation should be stopped.
@@ -166,7 +166,7 @@ void ascot_interpolate(
     real rho[2][npnt], real E[3][npnt], real n[][npnt], real T[2][npnt],
     real n0[][npnt], real T0[][npnt], real theta[4][npnt], real zeta[4][npnt],
     real alpha[5][npnt], real Phi[5][npnt], real mhd_b[3][npnt],
-    real mhd_e[3][npnt], real mhd_phi[npnt]);
+    real mhd_e[3][npnt], real mhd_phi[][npnt]);
 
 /**
  * Evaluate collision coefficients
@@ -228,19 +228,19 @@ void ascot_map_rhotheta_to_rz(
 /**
  * Find psi on axis using the gradient descent method.
  *
- * Note that the psi value is not returned in case this algorithm fails.
- *
- * @param bfield magnetic field data
- * @param psi value of psi on axis if this function did not fail
- * @param rz initial (R,z) position where also the result is stored
- * @param step the step size
- * @param tol the current position is accepted if the distance (in meters)
- * between this and the previous point is below this value
- * @param maxiter maximum number of iterations before failure
- * @param ascent if true the algorithm instead ascends to find psi0 (> psi1)
+ * @param bfield Magnetic field data.
+ * @param maxiter Maximum number of iterations before failure.
+ * @param ascend if true the algorithm instead ascends to find psi0 (> psi1)
+ * @param step The step size [m].
+ * @param tol Tolerance for accepted solution [m]. The solution is accepted if
+ *        the distance between this and the previous iteration is below this
+ *        value.
+ * @param psi Value of psi on axis on success [Wb/rad].
+ * @param rz Initial (R,z) position and also where the found axis location is
+ *        stored [m].
  */
 void ascot_find_psi_on_axis_2d(
-    Bfield *bfield, size_t maxiter, size_t ascent, real step, real tol,
+    Bfield *bfield, size_t maxiter, size_t ascend, real step, real tol,
     real psi[1], real rz[2]);
 
 /**

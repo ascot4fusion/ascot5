@@ -12,26 +12,22 @@
 #include "bfield.h"
 #include <stdio.h>
 
-#define DIAG_ORB_FO 1 /**< Data stored in FO mode */
+#define DIAG_ORB_GO 1 /**< Data stored in FO mode */
 #define DIAG_ORB_GC 2 /**< Data stored in GC mode */
-#define DIAG_ORB_ML 3 /**< Data stored in ML mode */
+#define DIAG_ORB_FL 3 /**< Data stored in ML mode */
 
-DECLARE_TARGET_SIMD_UNIFORM(r0)
+
 /**
- * @brief Check if marker has crossed given rho
  *
- * This helper function checks whether given rho that defines a Poincare plane
- * is between marker's initial and final rhos (of single timestep).
- *
- * @param frho marker final rho in metres.
- * @param irho marker initial rho in metres.
- * @param rho0 Poincare plane rho.
- *
- * @return zero if no-crossing, number k, rho0 = k * (frho - irho), otherwise.
+ * @param orbit Orbit diagnostics.
  */
-real diag_orb_check_radial_crossing(real fr, real ir, real r0);
-
 void DiagOrbit_offload(DiagOrbit *orbit);
+
+/**
+ *
+ * @param orbit Orbit diagnostics.
+ */
+void DiagOrbit_onload(DiagOrbit *orbit);
 
 /**
  * Record orbit for gyro-orbit markers.

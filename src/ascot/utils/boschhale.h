@@ -8,7 +8,6 @@
 #ifndef BOSCHHALE_H
 #define BOSCHHALE_H
 
-#include "defines.h"
 #include "datatypes.h"
 
 /**
@@ -27,27 +26,31 @@
  * @param Q energy released [J].
  */
 void boschhale_reaction(
-    Reaction reaction, real *m1, real *q1, real *m2, real *q2, real *mprod1,
-    real *qprod1, real *mprod2, real *qprod2, real *Q);
+    Reaction reaction, double *m1, double *q1, double *m2, double *q2,
+    double *mprod1, double *qprod1, double *mprod2, double *qprod2, double *Q);
 
 /**
  * Estimate cross-section for a given fusion reaction.
  *
+ * See: Bosch and Hale, 1992, Nuclear Fusion. Vol. 32, No.4. Section 4.2.
+ *
  * @param reaction Reaction for which the cross-section is estimated.
  * @param E Ion energy [J].
- *
  * @return Cross-section [m^2].
  */
-real boschhale_sigma(Reaction reaction, real E);
+double boschhale_sigma(Reaction reaction, double E);
 
 /**
- * Estimate reactivity for a given fusion reaction.
+ * Estimate reactivity for a given fusion reaction for two Maxwellian
+ * distributions with same temperature.
+ *
+ * See: Bosch and Hale, 1992, Nuclear Fusion. Vol. 32, No.4. Section 5.2.
  *
  * @param reaction Reaction for which the reactivity is estimated.
  * @param Ti Ion temperature [keV].
  *
- * @return Reactivity.
+ * @return Reactivity [m^3/s].
  */
-real boschhale_sigmav(Reaction reaction, real Ti);
+double boschhale_sigmav(Reaction reaction, double Ti);
 
 #endif

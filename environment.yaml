@@ -3,23 +3,15 @@ channels:
   - conda-forge
 dependencies:
   - c-compiler
-  - make
   - llvm-openmp
-  - python>=3.10
-  - hdf5
-  - zlib
-  - setuptools
+  - python>=3.12
+  - make
   - pip
-  - ipython
-  - numpy
+  - numpy>=2.0
+  - unyt
   - scipy
   - h5py
   - xmlschema
-  - unyt
-  - wurlitzer
+  - ipython
   - matplotlib
   - pyvista
-  - freeqdsk
-  - pip:
-    - desc-opt
-    - netCDF4

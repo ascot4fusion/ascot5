@@ -10,6 +10,7 @@
 
 #include <omp.h>
 #include <time.h>
+#include <stdlib.h>
 
 /**
  * Stringify arguments.
@@ -63,6 +64,8 @@ typedef double real;
 
 /**
  * Maximum number of plasma species.
+ *
+ * TODO remove.
  */
 #define MAX_SPECIES 16
 
@@ -93,10 +96,10 @@ typedef double real;
 #define WIENERSLOTS 20
 
 /**
- * Determine whether to use geometric method of Box-Muller to to generate normal
- * random numbers.
+ * Use Box-Muller method to generate Gaussian random numbers (alternative is
+ * the geometric method).
  */
-#define A5_CCOL_USE_GEOBM 1
+#define USE_BOXMULLER_RNG_METHOD 1
 
 /**
  * If adaptive time step falls below this value, produce an error.
@@ -128,10 +131,10 @@ typedef double real;
  */
 typedef struct
 {
-    int usetabulated;   /**< Use tabulated values for special functions    */
-    int include_energy; /**< Let collisions change energy                  */
-    int include_pitch;  /**< Let collisions change pitch                   */
-    int include_gcdiff; /**< Let collisions change guiding center position */
+    int usetabulated;   /**< Use tabulated values for special functions.      */
+    int include_energy; /**< Let GC collisions change energy.                 */
+    int include_pitch;  /**< Let GC collisions change pitch.                  */
+    int include_gcdiff; /**< Let GC collisions change position.               */
 } mccc_data;
 
 /**
@@ -180,7 +183,7 @@ typedef unsigned int err_t;
  * @param file The current file.
  */
 #define ERROR_CHECK(err, condition, type, file_id)                             \
-    ((err) ? (err) : ((condition) ? ERROR_RAISE(type, file_id) : 0))
+    ((err) ? (err) : ((condition) ? ERROR_RAISE((type), (file_id)) : 0))
 
 /**
  * Error types.
@@ -244,6 +247,7 @@ typedef enum
     DATA_EFIELD_C,
     DATA_EFIELD_CARTESIAN_C,
     DATA_EFIELD_POTENTIAL1D_C,
+    DATA_EFIELD_POTENTIAL2D_C,
     DATA_HIST_C,
     DATA_MARKER_C,
     DATA_MHD_C,
@@ -256,6 +260,7 @@ typedef enum
     DATA_PLASMA_C,
     DATA_PLASMA_DYNAMIC1D_C,
     DATA_PLASMA_LINEAR1D_C,
+    DATA_PLASMA_LINEAR2D_C,
     DATA_RFOF_C,
     DATA_WALL_C,
     DATA_WALL_CONTOUR2D_C,
