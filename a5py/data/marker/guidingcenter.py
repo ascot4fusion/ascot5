@@ -64,7 +64,7 @@ class GuidingcenterMarker(InputVariant):
     def charge(self) -> unyt.unyt_array:
         r"""Marker charge."""
         if self._cdata is not None:
-            out = unyt.unyt_array([0.]*self.n, "C")
+            out = unyt.unyt_array([0.]*self.n, "e")
             for i in range(out.size):
                 out[i] = self._cdata[i].charge
             return out
@@ -194,7 +194,7 @@ class GuidingcenterMarker(InputVariant):
             setattr(self._cdata[i], "ekin", ekin[i].to("J"))
             setattr(self._cdata[i], "pitch", pitch[i])
             setattr(self._cdata[i], "zeta", gyroangle[i])
-            setattr(self._cdata[i], "charge", charge[i].to("C"))
+            setattr(self._cdata[i], "charge", int(charge[i].to("e")))
             setattr(self._cdata[i], "weight", weight[i])
             setattr(self._cdata[i], "anum", species.anum)
             setattr(self._cdata[i], "znum", species.znum)

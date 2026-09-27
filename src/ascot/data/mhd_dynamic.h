@@ -15,11 +15,13 @@
  * Initialize dynamic MHD eigenmodes.
  *
  * @param mhd The struct to initialize.
- * @param nmode The number of modes.
+ * @param n The number of modes.
  * @param nrho Number of points in rho grid.
- * @param moden Toroidal mode numbers.
- * @param modem Poloidal mode numbers.
+ * @param ntime Number of points in time grid.
+ * @param nmode Toroidal mode numbers.
+ * @param mmode Poloidal mode numbers.
  * @param rholim Minimum and maximum values in the uniform rho grid [1].
+ * @param tlim Minimum and maximum values in the uniform time grid [s].
  * @param amplitude Mode amplitudes.
  * @param omega Mode frequencies [rad/s].
  * @param phase Mode phases [rad].

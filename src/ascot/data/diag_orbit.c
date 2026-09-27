@@ -34,7 +34,7 @@ void DiagOrbit_update_go(
             beta = orbit->poloidal[j - orbit->ntoroidal];
 
         GPU_PARALLEL_LOOP_ALL_LEVELS
-        for (size_t i = 0; i < mrk_f->n_mrk; i++)
+        for (size_t i = 0; i < mrk_f->size; i++)
         {
             if (mrk_f->running[i])
             {
@@ -58,7 +58,7 @@ void DiagOrbit_update_go(
                     k = 1;
                 real d = 1 - k;
 
-                orbit->charge[idx] = k >= 0 ? rint(mrk_f->charge[i] / CONST_E)
+                orbit->charge[idx] = k >= 0 ? rint(mrk_f->charge[i])
                                             : orbit->charge[idx];
                 orbit->r[idx] =
                     k >= 0 ? k * mrk_f->r[i] + d * mrk_i->r[i] : orbit->r[idx];
@@ -107,7 +107,7 @@ void DiagOrbit_update_gc(
             beta = orbit->poloidal[j - orbit->ntoroidal];
 
         GPU_PARALLEL_LOOP_ALL_LEVELS
-        for (size_t i = 0; i < mrk_f->n_mrk; i++)
+        for (size_t i = 0; i < mrk_f->size; i++)
         {
             if (mrk_f->running[i])
             {
@@ -133,7 +133,7 @@ void DiagOrbit_update_gc(
                 }
                 real d = 1 - k;
 
-                orbit->charge[idx] = k >= 0 ? rint(mrk_f->charge[i] / CONST_E)
+                orbit->charge[idx] = k >= 0 ? rint(mrk_f->charge[i])
                                             : orbit->charge[idx];
                 orbit->r[idx] =
                     k >= 0 ? k * mrk_f->r[i] + d * mrk_i->r[i] : orbit->r[idx];
@@ -182,7 +182,7 @@ void DiagOrbit_update_fl(
             beta = orbit->poloidal[j - orbit->ntoroidal];
 
         GPU_PARALLEL_LOOP_ALL_LEVELS
-        for (size_t i = 0; i < mrk_f->n_mrk; i++)
+        for (size_t i = 0; i < mrk_f->size; i++)
         {
             if (mrk_f->running[i])
             {

@@ -34,16 +34,16 @@ void endcond_check_go(
     endcond_t active_ioniz = params->endcond_active & ENDCOND_IONIZ;
 
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for (size_t i = 0; i < p_f->n_mrk; i++)
+    for (size_t i = 0; i < p_f->size; i++)
     {
         if (p_f->running[i])
         {
 
             /* Update bounces if pitch changed sign */
-            if ((p_i->p_r[i] * p_i->B_r[i] + p_i->p_phi[i] * p_i->B_phi[i] +
-                 p_i->p_z[i] * p_i->B_z[i]) *
-                    (p_f->p_r[i] * p_f->B_r[i] + p_f->p_phi[i] * p_f->B_phi[i] +
-                     p_f->p_z[i] * p_f->B_z[i]) <
+            if ((p_i->p_r[i] * p_i->br[i] + p_i->p_phi[i] * p_i->bphi[i] +
+                 p_i->p_z[i] * p_i->bz[i]) *
+                    (p_f->p_r[i] * p_f->br[i] + p_f->p_phi[i] * p_f->bphi[i] +
+                     p_f->p_z[i] * p_f->bz[i]) <
                 0)
             {
                 if (p_f->bounces[i] > 0)
@@ -131,22 +131,22 @@ void endcond_check_go(
                 }
                 real pnorm =
                     math_normc(p_f->p_r[i], p_f->p_phi[i], p_f->p_z[i]);
-                real gamma = physlib_gamma_pnorm(p_f->mass[i], pnorm);
+                real gamma = physlib_gamma_pnorm(p_f->mass, pnorm);
                 real vplasma[3];
                 real bnorm =
-                    math_normc(p_f->B_r[i], p_f->B_phi[i], p_f->B_z[i]);
+                    math_normc(p_f->br[i], p_f->bphi[i], p_f->bz[i]);
                 vplasma[0] =
-                    (p_f->p_r[i] / (gamma * p_f->mass[i]) -
-                     vflow * p_f->B_r[i] / bnorm);
+                    (p_f->p_r[i] / (gamma * p_f->mass) -
+                     vflow * p_f->br[i] / bnorm);
                 vplasma[1] =
-                    (p_f->p_phi[i] / (gamma * p_f->mass[i]) -
-                     vflow * p_f->B_phi[i] / bnorm);
-                vplasma[2] = p_f->p_z[i] / (gamma * p_f->mass[i]) -
-                             vflow * p_f->B_z[i] / bnorm;
+                    (p_f->p_phi[i] / (gamma * p_f->mass) -
+                     vflow * p_f->bphi[i] / bnorm);
+                vplasma[2] = p_f->p_z[i] / (gamma * p_f->mass) -
+                             vflow * p_f->bz[i] / bnorm;
 
                 real vnorm = math_norm(vplasma);
-                pnorm = physlib_pnorm_vnorm(p_f->mass[i], vnorm);
-                real ekin = physlib_Ekin_pnorm(p_f->mass[i], pnorm);
+                pnorm = physlib_pnorm_vnorm(p_f->mass, vnorm);
+                real ekin = physlib_Ekin_pnorm(p_f->mass, pnorm);
 
                 if (active_emin && (ekin < params->min_energy))
                 {
@@ -224,7 +224,7 @@ void endcond_check_go(
             /* Check if the particle has been neutralized */
             if (active_neutr)
             {
-                if (p_i->charge[i] != 0.0 && p_f->charge[i] == 0.0)
+                if (p_i->charge[i] != 0 && p_f->charge[i] == 0)
                 {
                     p_f->endcond[i] |= ENDCOND_NEUTR;
                     p_f->running[i] = 0;
@@ -234,7 +234,7 @@ void endcond_check_go(
             /* Check if the particle has been ionized */
             if (active_ioniz)
             {
-                if (p_i->charge[i] == 0.0 && p_f->charge[i] != 0.0)
+                if (p_i->charge[i] == 0 && p_f->charge[i] != 0)
                 {
                     p_f->endcond[i] |= ENDCOND_IONIZ;
                     p_f->running[i] = 0;
@@ -266,7 +266,7 @@ void endcond_check_gc(
     endcond_t active_cpumax = params->endcond_active & ENDCOND_CPUMAX;
 
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for (size_t i = 0; i < p_f->n_mrk; i++)
+    for (size_t i = 0; i < p_f->size; i++)
     {
         if (p_f->running[i])
         {
@@ -334,7 +334,7 @@ void endcond_check_gc(
             if (active_emin || active_therm)
             {
                 real Bnorm =
-                    math_normc(p_f->B_r[i], p_f->B_phi[i], p_f->B_z[i]);
+                    math_normc(p_f->br[i], p_f->bphi[i], p_f->bz[i]);
 
                 real Ti, vflow;
                 err_t errflag = Plasma_eval_temperature(
@@ -353,15 +353,15 @@ void endcond_check_gc(
                     vflow = 0;
                 }
                 real pnorm =
-                    physlib_gc_p(p_f->mass[i], p_f->mu[i], p_f->ppar[i], Bnorm);
+                    physlib_gc_p(p_f->mass, p_f->mu[i], p_f->ppar[i], Bnorm);
                 real xi = physlib_gc_xi(
-                    p_f->mass[i], p_f->mu[i], p_f->ppar[i], Bnorm);
-                real vnorm = physlib_vnorm_pnorm(p_f->mass[i], pnorm);
+                    p_f->mass, p_f->mu[i], p_f->ppar[i], Bnorm);
+                real vnorm = physlib_vnorm_pnorm(p_f->mass, pnorm);
                 real vpar = xi * vnorm;
                 real vperp2 = (1 - xi * xi) * vnorm * vnorm;
                 vnorm = sqrt((vpar - vflow) * (vpar - vflow) + vperp2);
                 real gamma = physlib_gamma_vnorm(vnorm);
-                real ekin = physlib_Ekin_gamma(p_f->mass[i], gamma);
+                real ekin = physlib_Ekin_gamma(p_f->mass, gamma);
 
                 if (active_emin && (ekin < params->min_energy))
                 {
@@ -471,7 +471,7 @@ void endcond_check_fl(
     endcond_t active_cpumax = params->endcond_active & ENDCOND_CPUMAX;
 
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for (size_t i = 0; i < p_f->n_mrk; i++)
+    for (size_t i = 0; i < p_f->size; i++)
     {
         if (stop_flag)
         {

@@ -124,12 +124,12 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
  *
  * Returns the position stored in the struct.
  *
- * @param axisrz Evaluated axis coordinates [m].
+ * @param rz Evaluated axis coordinates [m].
  * @param bfield The magnetic field data.
  *
  * @return Zero if the evaluation succeeded.
  */
-err_t BfieldCartesian_eval_axisrz(real axisrz[2], BfieldCartesian *bfield);
+err_t BfieldCartesian_eval_axisrz(real rz[2], BfieldCartesian *bfield);
 DECLARE_TARGET_END
 
 #endif

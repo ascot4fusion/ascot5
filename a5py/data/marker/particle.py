@@ -192,7 +192,7 @@ class ParticleMarker(InputVariant):
             setattr(self._cdata[i], "pr", (vr[i] * species.mass).to("kg*m/s"))
             setattr(self._cdata[i], "pphi", (vphi[i] * species.mass).to("kg*m/s"))
             setattr(self._cdata[i], "pz", (vz[i] * species.mass).to("kg*m/s"))
-            setattr(self._cdata[i], "charge", charge[i].to("C"))
+            setattr(self._cdata[i], "charge", int(charge[i].to("e")))
             setattr(self._cdata[i], "weight", weight[i])
             setattr(self._cdata[i], "anum", species.anum)
             setattr(self._cdata[i], "znum", species.znum)

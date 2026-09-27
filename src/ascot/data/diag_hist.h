@@ -1,5 +1,5 @@
 /**
- * @file hist.h
+ * @file diag_hist.h
  * Diagnostic that collects particle histograms.
  *
  * A histogram can have an arbitrary number of dimensions consisting of any
@@ -32,13 +32,21 @@ void DiagHist_onload(DiagHist *hist);
  * Update histogram for gyro-orbit markers.
  *
  * @param hist The histogram data.
+ * @param bfield Magnetic field data.
  * @param mrk_f Marker at the end of the time-step.
  * @param mrk_i Marker at the beginning of the time-step.
- *
  */
 void DiagHist_update_go(
     DiagHist *hist, Bfield *bfield, MarkerGyroOrbit *mrk_f, MarkerGyroOrbit *mrk_i);
 
+/**
+ * Update histogram for guiding-center markers.
+ *
+ * @param hist The histogram data.
+ * @param bfield Magnetic field data.
+ * @param mrk_f Marker at the end of the time-step.
+ * @param mrk_i Marker at the beginning of the time-step.
+ */
 void DiagHist_update_gc(
     DiagHist *hist, Bfield *bfield, MarkerGuidingCenter *mrk_f, MarkerGuidingCenter *mrk_i);
 #endif

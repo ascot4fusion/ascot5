@@ -87,7 +87,7 @@ void nbi_source_inject_markers(
              (1.0 / 3) * inj->efrac[2];
     real weight = (inj->power / inj->energy) / (f * nmrk);
 
-    OMP_PARALLEL_CPU_ONLY
+    #pragma omp parallel for
     for (size_t i = 0; i < nmrk; i++)
     {
         real time =
@@ -169,7 +169,7 @@ void nbi_source_trace_markers(MarkerQueue *pq, Simulation *sim)
     while (n_running > 0)
     {
 
-        OMP_PARALLEL_CPU_ONLY
+        #pragma omp parallel for
         for (size_t i = 0; i < NSIMD; i++)
         {
             MarkerGyroOrbit_copy(&p0, &p, i);
@@ -180,8 +180,8 @@ void nbi_source_trace_markers(MarkerQueue *pq, Simulation *sim)
 
                 /* These are needed later */
                 real pnorm = math_normc(p.p_r[i], p.p_phi[i], p.p_z[i]);
-                real gamma = physlib_gamma_pnorm(p.mass[i], pnorm);
-                real ekin = physlib_Ekin_pnorm(p.mass[i], pnorm);
+                real gamma = physlib_gamma_pnorm(p.mass, pnorm);
+                real ekin = physlib_Ekin_pnorm(p.mass, pnorm);
 
                 /* Advance ballistic trajectory by converting momentum to
                  * cartesian coordinates */
@@ -192,9 +192,9 @@ void nbi_source_trace_markers(MarkerQueue *pq, Simulation *sim)
                 real posrpz[3] = {p.r[i], p.phi[i], p.z[i]};
                 real posxyz[3], fposxyz[3];
                 math_rpz2xyz(posrpz, posxyz);
-                fposxyz[0] = posxyz[0] + pxyz[0] * hin[i] / (gamma * p.mass[i]);
-                fposxyz[1] = posxyz[1] + pxyz[1] * hin[i] / (gamma * p.mass[i]);
-                fposxyz[2] = posxyz[2] + pxyz[2] * hin[i] / (gamma * p.mass[i]);
+                fposxyz[0] = posxyz[0] + pxyz[0] * hin[i] / (gamma * p.mass);
+                fposxyz[1] = posxyz[1] + pxyz[1] * hin[i] / (gamma * p.mass);
+                fposxyz[2] = posxyz[2] + pxyz[2] * hin[i] / (gamma * p.mass);
 
                 /* Back to cylindrical coordinates (note phi is cumulative) */
                 p.r[i] =
@@ -247,7 +247,7 @@ void nbi_source_trace_markers(MarkerQueue *pq, Simulation *sim)
                 {
                     real sigmav;
                     if (Atomic_eval_bms(
-                            &sigmav, p.znum[i], p.anum[i], ekin, p.mass[i],
+                            &sigmav, p.znum, p.anum, ekin, p.mass,
                             n_species - 1, pls_znum, pls_anum, pls_temp[0],
                             &(pls_dens[1]), sim->atomic))
                     {
@@ -301,7 +301,7 @@ void nbi_source_trace_markers(MarkerQueue *pq, Simulation *sim)
         }
 
         /* Update markers that just finished */
-        OMP_PARALLEL_CPU_ONLY
+        #pragma omp parallel for
         for (size_t i = 0; i < NSIMD; i++)
         {
             /* Use this as a flag for which markers to update in diagnostics */
@@ -322,20 +322,20 @@ void nbi_source_trace_markers(MarkerQueue *pq, Simulation *sim)
                     Bfield_eval_b_db(
                         B_dB, p.r[i], p.phi[i], p.z[i], p.time[i],
                         &sim->bfield);
-                    p.B_r[i] = B_dB[0];
-                    p.B_r_dr[i] = B_dB[3];
-                    p.B_r_dphi[i] = B_dB[4];
-                    p.B_r_dz[i] = B_dB[5];
+                    p.br[i] = B_dB[0];
+                    p.dbrdr[i] = B_dB[3];
+                    p.dbrdphi[i] = B_dB[4];
+                    p.dbrdz[i] = B_dB[5];
 
-                    p.B_phi[i] = B_dB[1];
-                    p.B_phi_dr[i] = B_dB[6];
-                    p.B_phi_dphi[i] = B_dB[7];
-                    p.B_phi_dz[i] = B_dB[8];
+                    p.bphi[i] = B_dB[1];
+                    p.dbphidr[i] = B_dB[6];
+                    p.dbphidphi[i] = B_dB[7];
+                    p.dbphidz[i] = B_dB[8];
 
-                    p.B_z[i] = B_dB[2];
-                    p.B_z_dr[i] = B_dB[9];
-                    p.B_z_dphi[i] = B_dB[10];
-                    p.B_z_dz[i] = B_dB[11];
+                    p.bz[i] = B_dB[2];
+                    p.dbzdr[i] = B_dB[9];
+                    p.dbzdphi[i] = B_dB[10];
+                    p.dbzdz[i] = B_dB[11];
                 }
             }
             MarkerGyroOrbit_copy(&pdiag, &p, i);

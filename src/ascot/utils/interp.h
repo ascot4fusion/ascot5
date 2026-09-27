@@ -34,12 +34,11 @@
 /**
  * Initialize linear interpolation struct for scalar 1D data.
  *
- * @param str Pointer to struct to be initialized.
+ * @param linear Pointer to the struct to be initialized.
+ * @param nx Number of data points in the x direction.
+ * @param xbc Boundary condition for x axis.
+ * @param xlim Grid limits in x.
  * @param c Array where data is stored.
- * @param n_x Number of data points in the x direction.
- * @param bc_x Boundary condition for x axis.
- * @param x_min Minimum value of the x axis.
- * @param x_max Maximum value of the x axis.
  */
 void Linear1D_init(
     Linear1D *linear, size_t nx, int xbc, real xlim[2], real c[nx]);
@@ -47,16 +46,14 @@ void Linear1D_init(
 /**
  * Initialize linear interpolation struct for scalar 2D data.
  *
- * @param str Pointer to struct to be initialized.
+ * @param linear Pointer to struct to be initialized.
+ * @param nx Number of data points in the x direction.
+ * @param ny Number of data points in the y direction.
+ * @param xbc Boundary condition for x axis.
+ * @param ybc Boundary condition for y axis.
+ * @param xlim Grid limits in x.
+ * @param ylim Grid limits in y.
  * @param c Array where data is stored.
- * @param n_x Number of data points in the x direction.
- * @param n_y Number of data points in the y direction.
- * @param bc_x Boundary condition for x axis.
- * @param bc_y Boundary condition for y axis.
- * @param x_min Minimum value of the x axis.
- * @param x_max Maximum value of the x axis.
- * @param y_min Minimum value of the y axis.
- * @param y_max Maximum value of the y axis.
  */
 void Linear2D_init(
     Linear2D *linear, size_t nx, size_t ny, int xbc, int ybc, real xlim[2],
@@ -65,20 +62,17 @@ void Linear2D_init(
 /**
  * Initialize linear interpolation struct for scalar 3D data.
  *
- * @param str Pointer to struct to be initialized.
+ * @param linear Pointer to struct to be initialized.
+ * @param nx Number of data points in the x direction.
+ * @param ny Number of data points in the y direction.
+ * @param nz Number of data points in the z direction.
+ * @param xbc Boundary condition for x axis.
+ * @param ybc Boundary condition for y axis.
+ * @param zbc Boundary condition for z axis.
+ * @param xlim Grid limits in x.
+ * @param ylim Grid limits in y.
+ * @param zlim Grid limits in z.
  * @param c Array where data is stored.
- * @param n_x Number of data points in the x direction.
- * @param n_y Number of data points in the y direction.
- * @param n_z Number of data points in the z direction.
- * @param bc_x Boundary condition for x axis.
- * @param bc_y Boundary condition for y axis.
- * @param bc_z Boundary condition for z axis.
- * @param x_min Minimum value of the x axis.
- * @param x_max Maximum value of the x axis.
- * @param y_min Minimum value of the y axis.
- * @param y_max Maximum value of the y axis.
- * @param z_min Minimum value of the z axis.
- * @param z_max Maximum value of the z axis.
  */
 void Linear3D_init(
     Linear3D *linear, size_t nx, size_t ny, size_t nz, int xbc, int ybc,
@@ -92,7 +86,7 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(linear)
  * linear interpolation.
  *
  * @param f Variable in which to place the evaluated value.
- * @param str Data struct for data interpolation.
+ * @param linear Data struct for data interpolation.
  * @param x The query point x coordinate.
  *
  * @return Zero on success and one if the point is outside the grid.
@@ -108,7 +102,7 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(linear)
  * bilinear interpolation.
  *
  * @param f Variable in which to place the evaluated value.
- * @param str Data struct for data interpolation.
+ * @param linear Data struct for data interpolation.
  * @param x The query point x coordinate.
  * @param y The query point y coordinate.
  *
@@ -125,7 +119,7 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(linear)
  * trilinear interpolation.
  *
  * @param f Variable in which to place the evaluated value.
- * @param str Data struct for data interpolation.
+ * @param linear Data struct for data interpolation.
  * @param x The query point x coordinate.
  * @param y The query point y coordinate.
  * @param z The query point z coordinate.
@@ -225,7 +219,7 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(spline)
  * @param spline The spline interpolant.
  * @param x Query point x coordinate.
  * @param y Query point y coordinate.
- * @param y Query point z coordinate.
+ * @param z Query point z coordinate.
  *
  * @return Zero on success and one if the point is outside the domain.
  */
@@ -284,7 +278,7 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(spline)
  * Interpolate 3D data and the first and second order derivatives using cubic
  * splines.
  *
- * @param f_df Interpolated value and derivatives.
+ * @param f_ddf Interpolated value and derivatives.
  *        Layout: [f, f_x, f_y, f_z, f_xx, f_yy, f_zz, f_xy, f_xz, f_yz].
  * @param spline The spline interpolant.
  * @param x Query point x coordinate.
@@ -306,28 +300,28 @@ DECLARE_TARGET_END
  *
  * For natural boundary condition, the algorithm enforces
  *
- * f''_0 = f''_{n-1} = 0.
+ *   \f$f''_0 = f''_{n-1} = 0\f$.
  *
  * The internal spline coefficients satisfy the tridiagonal system:
  *
- *   f''_{i-1} + 4f''_i + f''_{i+1}
- *   = 6\,(f_{i+1} - 2f_i + f_{i-1}), \qquad i = 1, \dots, n-2.
+ *   \f$f''_{i-1} + 4f''_i + f''_{i+1}
+ *   = 6\,(f_{i+1} - 2f_i + f_{i-1}), \qquad i = 1, \dots, n-2\f$.
  *
  * This system is solved using a simplified **Thomas algorithm**.
  *
  * For periodic boundary condition, the spline enforces continuity of the
  * function and its first and second derivatives at the endpoints:
  *
- *   f_0 = f_{n},
- *   f'_0 = f'_{n},
- *   f''_0 = f''_{n}
+ *   \f$f_0 = f_{n}\f$,
+ *   \f$f'_0 = f'_{n}\f$,
+ *   \f$f''_0 = f''_{n}\f$.
  *
  *
  * The resulting **cyclic tridiagonal system** is:
  *
- *  4f''_0 + f''_1 + f''_{n-2} &= 6(f_1 - 2f_0 + f_{n-2}) \\
+ *  \f$4f''_0 + f''_1 + f''_{n-2} &= 6(f_1 - 2f_0 + f_{n-2}) \\
  *  f''_{i-1} + 4f''_i + f''_{i+1} &= 6(f_{i+1} - 2f_i + f_{i-1}), \quad i = 1,
- * \dots, n-3 \\ f''_{n-3} + 4f''_{n-2} + f''_0 &= 6(f_0 - 2f_{n-2} + f_{n-3})
+ * \dots, n-3 \\ f''_{n-3} + 4f''_{n-2} + f''_0 &= 6(f_0 - 2f_{n-2} + f_{n-3})\f$
  *
  * This system is solved by a custom elimination algorithm derived from Gaussian
  * elimination adapted for periodic constraints.

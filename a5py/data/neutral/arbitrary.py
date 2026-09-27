@@ -1,13 +1,16 @@
 """Defines Neutral3D arbitrary neutral density input class and the corresponding
 factory method.
 """
+
 import ctypes
 from typing import Tuple, List, Optional
 
 import unyt
 import numpy as np
+from numpy.ctypeslib import ndpointer
 
 from a5py import utils
+from a5py.physlib import Species
 from a5py.libascot import LIBASCOT, DataStruct, Linear3D, init_fun
 from a5py.exceptions import AscotMeltdownError
 from a5py.data.access import InputVariant, Leaf, TreeMixin
@@ -23,66 +26,83 @@ class Struct(DataStruct):
         ("znum", ctypes.POINTER(ctypes.c_int32)),
         ("n", ctypes.POINTER(Linear3D)),
         ("T", ctypes.POINTER(Linear3D)),
-        ]
+    ]
+
+
+init_fun(
+    "NeutralArbitrary_init",
+    ctypes.POINTER(Struct),
+    ctypes.c_size_t,
+    ctypes.c_size_t,
+    ctypes.c_size_t,
+    ctypes.c_size_t,
+    *(5*[ndpointer(ctypes.c_double)]),
+)
+
+init_fun("NeutralArbitrary_free", ctypes.POINTER(Struct))
 
 
 @Leaf.register
-class Neutral3D(InputVariant):
+class NeutralArbitrary(InputVariant):
     """Arbitrary neutral density in 3D."""
 
-    def __init__(self, qid, date, note) -> None:
-        super().__init__(
-            qid=qid, date=date, note=note, variant="Neutral3D",
-            struct=Neutral3D.Struct(),
-            )
-        self._species: Tuple[str]
-        self._rgrid: unyt.unyt_array
-        self._phigrid: unyt.unyt_array
-        self._zgrid: unyt.unyt_array
-        self._density: unyt.unyt_array
-        self._temperature: unyt.unyt_array
+    @property
+    def nspecies(self) -> int:
+        """Number of ion species."""
+        if self._cdata is not None:
+            return int(self._cdata.readonly_carray("nspecies", ()) - 1)
+        assert self._file is not None
+        return self._file.read("znum").size
 
     @property
-    def rgrid(self):
-        """The uniform grid in R in which data is tabulated."""
-        if self._staged:
-            return np.linspace(
-                self._struct_.n0[0].x_min,
-                self._struct_.n0[0].x_max,
-                self._struct_.n0[0].n_x
-                ) * unyt.m
-        if self._format == Format.HDF5:
-            nr, r0, r1 = self._read_hdf5("nr", "rmin", "rmax")
-            return np.linspace(r0, r1, nr)
-        return self._rgrid.copy()
+    def anum(self) -> np.ndarray:
+        """Atomic mass number of each ion species."""
+        return np.array([s.anum for s in self.species], dtype="i4")
 
     @property
-    def phigrid(self):
-        """The uniform grid in phi in which data is tabulated."""
-        if self._staged:
-            return (np.linspace(
-                self._struct_.n0[0].y_min,
-                self._struct_.n0[0].y_max,
-                self._struct_.n0[0].n_y
-                ) * unyt.rad).to("deg")
-        if self._format == Format.HDF5:
-            nr, r0, r1 = self._read_hdf5("nphi", "phimin", "phimax")
-            return np.linspace(r0, r1, nr)
-        return self._phigrid.copy()
+    def znum(self) -> np.ndarray:
+        """Atomic number of each ion species."""
+        return np.array([s.znum for s in self.species], dtype="i4")
 
     @property
-    def zgrid(self):
-        """The uniform grid in z in which data is tabulated."""
-        if self._staged:
-            return np.linspace(
-                self._struct_.n0[0].z_min,
-                self._struct_.n0[0].z_max,
-                self._struct_.n0[0].n_z
-                ) * unyt.m
-        if self._format == Format.HDF5:
-            nz, z0, z1 = self._read_hdf5("nz", "zmin", "zmax")
-            return np.linspace(z0, z1, nz)
-        return self._zgrid.copy()
+    def mass(self) -> unyt.unyt_array:
+        """Mass of each ion species."""
+        return unyt.unyt_array([s.mass for s in self.species], dtype="f8")
+
+    @property
+    def species(self) -> list[Species]:
+        """The ion species that make up the plasma."""
+        if self._cdata is not None:
+            anum = self._cdata.readonly_carray("anum", (self.nspecies,))
+            znum = self._cdata.readonly_carray("znum", (self.nspecies,))
+        else:
+            assert self._file is not None
+            anum, znum = self._file.read("anum"), self._file.read("znum")
+        return [Species.from_znumanum(z, a) for a, z in zip(anum, znum)]
+
+    @property
+    def rgrid(self) -> unyt.unyt_array:
+        """Radial grid in :math:`R` in which the data is tabulated."""
+        if self._cdata is not None:
+            return self._cdata.readonly_grid("x", "m", "density")
+        assert self._file is not None
+        return self._file.read("rgrid")
+
+    @property
+    def zgrid(self) -> unyt.unyt_array:
+        """Axial grid in :math:`z` in which the data is tabulated."""
+        if self._cdata is not None:
+            return self._cdata.readonly_grid("z", "m", "density")
+        assert self._file is not None
+        return self._file.read("zgrid")
+
+    @property
+    def phigrid(self) -> unyt.unyt_array:
+        """Toroidal grid in :math:`\phi` in which the data is tabulated."""
+        if self._cdata is not None:
+            return self._cdata.readonly_grid("y", "rad", "density").to("deg")
+        assert self._file is not None
+        return self._file.read("phigrid")
 
     @property
     def temperature(self):
@@ -109,139 +129,80 @@ class Neutral3D(InputVariant):
                 data = np.stack((data, self._from_struct_("n0", idx=i)), axis=3)
             if nspecies == 1:
                 data = np.expand_dims(data, axis=3)
-            return data * unyt.m**(-3)
+            return data * unyt.m ** (-3)
         if self._format == Format.HDF5:
             return self._read_hdf5("density")
         return self._density.copy()
 
-    @property
-    def species(self):
-        """Names of the neutral species."""
-        if self._staged:
-            nspecies = self._from_struct_("n_species", shape=())
-            anum = self._from_struct_("anum", shape=(nspecies,))
-            znum = self._from_struct_("znum", shape=(nspecies,))
-            return [physlib.properties2species(anum[i], znum[i])
-                    for i in range(nspecies)]
-        if self._format == Format.HDF5:
-            anum, znum = self._read_hdf5("anum"), self._read_hdf5("znum")
-            return [physlib.properties2species(anum[i], znum[i])
-                    for i in range(anum.size)]
-        return self._species.copy()
+    def _stage(
+        self,
+        species: list[Species],
+        rgrid: unyt.unyt_array,
+        zgrid: unyt.unyt_array,
+        phigrid: unyt.unyt_array,
+        density: unyt.unyt_array,
+        temperature: unyt.unyt_array,
+    ) -> None:
+        self._cdata = Struct()
+        if LIBASCOT.NeutralArbitrary_init(
+            ctypes.byref(self._cdata),
+            len(species),
+            rgrid.size,
+            phigrid.size,
+            zgrid.size,
+            rgrid[[0, -1]],
+            phigrid[[0, -1]],
+            zgrid[[0, -1]],
+            density,
+            temperature,
+        ):
+            self._cdata = None
+            raise AscotMeltdownError("Could not initialize struct.")
 
-    def _export_hdf5(self):
-        """Export data to HDF5 file."""
-        if self._format == Format.HDF5:
-            raise AscotIOException("Data is already stored in the file.")
-        data = self.export()
-        data["anum"], data["znum"] = [], []
-        for species in data["species"]:
-            s = physlib.species2properties(species)
-            data["anum"].append(s.anum)
-            data["znum"].append(s.znum)
-        del data["species"]
-        for grid in ["rgrid", "phigrid", "zgrid"]:
-            name = grid.replace("grid", "")
-            data["n" + name] = data[grid].size
-            data[name + "min"] = data[grid][0]
-            data[name + "max"] = data[grid][-1]
-            del data[grid]
-        self._treemanager.hdf5manager.write_datasets(
-            self.qid, self.variant, data,
-            )
-        self._format = Format.HDF5
+    def _save_data(self) -> None:
+        assert self._file is not None
+        for attr in ["rgrid", "phigrid", "zgrid", "density", "temperature"]:
+            self._file.write(attr, getattr(self, attr))
 
-    def export(self):
+    def export(self) -> dict[str, unyt.unyt_array]:
         data = {
-            "rgrid":self.rgrid,
-            "zgrid":self.zgrid,
-            "phigrid":self.phigrid,
-            "species":self.species,
-            "density":self.density,
-            "temperature":self.temperature,
+            "rgrid": self.rgrid,
+            "phigrid": self.phigrid,
+            "zgrid": self.zgrid,
+            "density": self.density,
+            "temperature": self.temperature,
         }
         return data
 
-    def stage(self):
-        init = LIBASCOT.N0_3D_init
-        init.restype = ctypes.c_int32
-        init.argtypes = [
-            ctypes.POINTER(__class__.Struct),
-            ctypes.c_int32,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_int32,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_int32,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_int32,
-            ndpointer(ctypes.c_int32),
-            ndpointer(ctypes.c_int32),
-            ndpointer(ctypes.c_double),
-            ndpointer(ctypes.c_double),
-            ]
-        if not self._staged:
-            ns = len(self.species)
-            anum, znum = np.zeros((ns,), dtype="int32"), np.zeros((ns,), dtype="int32")
-            for i, s in enumerate(self.species):
-                species = physlib.species2properties(s)
-                anum[i], znum[i] = species.anum, species.znum
-            if init(
-                ctypes.byref(self._struct_),
-                self.rgrid.size,
-                self.rgrid[0].v,
-                self.rgrid[-1].v,
-                self.phigrid.size,
-                self.phigrid[0].to("rad").v,
-                self.phigrid[-1].to("rad").v,
-                self.zgrid.size,
-                self.zgrid[0].v,
-                self.zgrid[-1].v,
-                ns,
-                anum,
-                znum,
-                self.density.v,
-                self.temperature.to("J").v,
-            ):
-                raise AscotIOException("Failed to stage data.")
-            if self._format is Format.MEMORY:
-                del self._density
-                del self._temperature
-            self._staged = True
+    def stage(self) -> None:
+        super().stage()
+        self._stage(**self.export())
 
-    def unstage(self):
-        free = LIBASCOT.N0_3D_free
-        free.restype = None
-        free.argtypes = [ctypes.POINTER(__class__.Struct)]
-
-        if self._staged:
-            if self._format is Format.MEMORY:
-                self._density = self.density
-                self._temperature = self.temperature
-            free(ctypes.byref(self._struct_))
-            self._staged = False
+    def unstage(self) -> None:
+        super().unstage()
+        assert self._cdata is not None
+        LIBASCOT.NeutralArbitrary_free(ctypes.byref(self._cdata))
+        self._cdata = None
 
 
 # pylint: disable=too-few-public-methods
 class CreateMixin(TreeMixin):
     """Mixin class used by `Data` to create Neutral3D input."""
 
-    #pylint: disable=protected-access, too-many-arguments
-    def create_neutral3d(
-            self,
-            rgrid: utils.ArrayLike | None = None,
-            phigrid: utils.ArrayLike | None = None,
-            zgrid: utils.ArrayLike | None = None,
-            species: List[str] | Tuple[str] | None = None,
-            density: utils.ArrayLike | None = None,
-            temperature: utils.ArrayLike | None = None,
-            note: Optional[str]=None,
-            activate: bool=False,
-            preview: bool=False,
-            save: Optional[bool]=None,
-            ) -> Neutral3D:
+    # pylint: disable=protected-access, too-many-arguments
+    def create_neutralarbitrary(
+        self,
+        rgrid: utils.ArrayLike,
+        phigrid: utils.ArrayLike,
+        zgrid: utils.ArrayLike,
+        species: List[str] | Tuple[str],
+        density: utils.ArrayLike,
+        temperature: utils.ArrayLike,
+        note: Optional[str] = None,
+        activate: bool = False,
+        preview: bool = False,
+        save: Optional[bool] = None,
+    ) -> NeutralArbitrary:
         r"""Create arbitrary 3D neutral density input.
 
         The data is interpolated linearly.
@@ -280,49 +241,38 @@ class CreateMixin(TreeMixin):
         inputdata : ~a5py.data.neutral.Neutral3D
             Input variant created from the given parameters.
         """
-        parameters = _variants.parse_parameters(
-            rgrid, phigrid, zgrid, species, density, temperature,
-        )
-        if parameters["species"] is not None:
-            ns = parameters["species"].size
-            for s in parameters["species"]:
-                try:
-                    physlib.species2properties(s)
-                except KeyError as e:
-                    raise e from None
-        else:
-            ns = 1
-        default_rgrid, default_phigrid, default_zgrid = (
-            np.linspace(1, 2, 45),
-            np.linspace(0, 360, 31)[:-1],
-            np.linspace(-1, 1, 90),
-        )
-        nr = (default_rgrid.size if parameters["rgrid"] is None
-              else parameters["rgrid"].size)
-        nphi = (default_phigrid.size if parameters["phigrid"] is None
-              else parameters["phigrid"].size)
-        nz = (default_zgrid.size if parameters["zgrid"] is None
-              else parameters["zgrid"].size)
-        _variants.validate_required_parameters(
-            parameters,
-            names=["rgrid", "phigrid", "zgrid", "density", "temperature",
-                   "species"],
-            units=["m", "deg", "m", "m**(-3)", "eV", ""],
-            shape=[(nr,), (nphi,), (nz,), (nr,nphi,nz,ns), (nr,nphi,nz,ns),
-                   (ns,)],
-            dtype=["f8", "f8", "f8", "f8", "f8", "s"],
-            default=[default_rgrid, default_phigrid, default_zgrid,
-                     np.ones((nr,nphi,nz,ns)), np.ones((nr,nphi,nz,ns)),
-                     np.array(["H1"])],
-        )
-        meta = _variants.new_metadata("Neutral3D", note=note)
-        obj = self._treemanager.enter_input(
-            meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
-            )
-        for parameter, value in parameters.items():
-            setattr(obj, f"_{parameter}", value)
-            getattr(obj, f"_{parameter}").flags.writeable = False
+        with utils.validate_variables() as v:
+            rgrid = v.validate("rgrid", rgrid, (-1,), "m")
+            zgrid = v.validate("zgrid", zgrid, (-1,), "m")
+            phigrid = v.validate("phigrid", phigrid, (-1,), "deg")
 
-        if store_hdf5:
-            obj._export_hdf5()
-        return obj
+        nr, nz, nphi, nspecies = rgrid.size, zgrid.size, phigrid.size, len(species)
+        with utils.validate_variables() as v:
+            density = v.validate(
+                "density", density, (nr, nphi, nz, nspecies), "m**(-3)"
+            )
+            temperature = v.validate(
+                "temperature", temperature, (nr, nphi, nz, nspecies), "eV"
+            )
+
+        utils.validate_abscissa(rgrid, "rgrid")
+        utils.validate_abscissa(zgrid, "zgrid")
+        utils.validate_abscissa(phigrid, "phigrid", periodic=True)
+        leaf = NeutralArbitrary(note=note)
+        leaf._stage(
+            rgrid=rgrid,
+            phigrid=phigrid,
+            zgrid=zgrid,
+            density=density,
+            temperature=temperature,
+            species=species,
+        )
+        if preview:
+            return leaf
+        self._treemanager.enter_leaf(
+            leaf,
+            activate=activate,
+            save=save,
+            category="neutral",
+        )
+        return leaf

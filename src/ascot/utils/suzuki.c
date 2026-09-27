@@ -63,12 +63,12 @@ const real B_lowE[NIMPURITIES][12] = {
      0.202e-2, 0.408e-2, 0.185e-2, -0.648e-4, -0.313e-3}};
 
 err_t suzuki_sigmav(
-    real *sigmav, real EperAmu, real vnorm, real ne, real te, size_t nion,
+    real *sigmav, real eperamu, real vnorm, real ne, real te, size_t nion,
     real *ni, const int *anum, const int *znum)
 {
     err_t err = 0;
     /* Convert eperamu to keV and te to eV */
-    EperAmu /= (1e3 * CONST_E);
+    eperamu /= (1e3 * CONST_E);
     te /= CONST_E;
 
     size_t ind_H[3]; /* Indices of possible hydrogen species H, D, and T */
@@ -105,12 +105,12 @@ err_t suzuki_sigmav(
     /* Select low- or high-energy coefficient tables */
     const real(*A)[10];
     const real(*B)[12];
-    if (EperAmu >= 9.0 && EperAmu < 100.0)
+    if (eperamu >= 9.0 && eperamu < 100.0)
     {
         A = A_lowE;
         B = B_lowE;
     }
-    else if (EperAmu < 10000.0)
+    else if (eperamu < 10000.0)
     {
         A = A_highE;
         B = B_highE;
@@ -123,7 +123,7 @@ err_t suzuki_sigmav(
         err = ERROR_CHECK(err, 1, ERR_SUZUKI_INAPPLICABLE, UTILS_SUZUKI_C);
     }
 
-    real logE = log(EperAmu);
+    real logE = log(eperamu);
     real N = ne * 1.0e-19;
     real logN = log(N);
     real U = log(te * 1.0e-3);
@@ -135,7 +135,7 @@ err_t suzuki_sigmav(
         const real *Aijk = A[anum[ind_H[i]] - 1];
         /* Weight with density in case we have multiple hydrogen species */
         sigma_H +=
-            ni[ind_H[i]] * (Aijk[0] * 1.e-16 / EperAmu) *
+            ni[ind_H[i]] * (Aijk[0] * 1.e-16 / eperamu) *
             (1.0 + Aijk[1] * logE + Aijk[2] * logE * logE) *
             (1.0 + pow(1.0 - exp(-Aijk[3] * N), Aijk[4]) *
                        (Aijk[5] + Aijk[6] * logE + Aijk[7] * logE * logE)) *

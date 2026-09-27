@@ -9,7 +9,7 @@ Following creates a table on the RST file with ``simulation`` parameters:
    .. options-table:: simulation
 """
 import textwrap
-from a5py.data.options.parameters import Simulation, fetch_doc
+from a5py.data.options.parameters import Simulation#, fetch_doc
 from sphinx.util.docutils import SphinxDirective
 
 def generate_options_table(optionsdataclass):
@@ -38,16 +38,16 @@ def generate_options_table(optionsdataclass):
     #         text = re.split(r"\n\s*\w+\s*:", text)[0]
     #         return text.strip()
 
-    for name, member in cls.__dict__.items():
-        if name.startswith("_"):
-            continue
-        indented_doc = textwrap.indent(fetch_doc(cls, name), "       ").split("\n")
-        lines.append(f"   * - ``{cls.__name__}.{name}``")
-        lines.append(f"     - | " + indented_doc[0][7:])
-        for line in indented_doc[2:]:
-            lines.append(f"{line}")
-            if line == "":
-                lines.append(f"       |")
+    #for name, member in cls.__dict__.items():
+    #    if name.startswith("_"):
+    #        continue
+    #    indented_doc = textwrap.indent(fetch_doc(cls, name), "       ").split("\n")
+    #    lines.append(f"   * - ``{cls.__name__}.{name}``")
+    #    lines.append(f"     - | " + indented_doc[0][7:])
+    #    for line in indented_doc[2:]:
+    #        lines.append(f"{line}")
+    #        if line == "":
+    #            lines.append(f"       |")
 
     #for name, member in cls.__dict__.items():
     #    if not isinstance(member, property):

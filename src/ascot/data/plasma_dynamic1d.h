@@ -1,6 +1,9 @@
 /**
  * @file plasma_dynamic1d.h
- * @brief Header file for plasma_1Dt.c
+ * Linearly interpolated dynamic 1D plasma implementation.
+ *
+ * Plasma that is interpolated both in rho and time in a 2D grid that doesn't
+ * have to be uniform.
  */
 #ifndef PLASMA_DYNAMIC1D_H
 #define PLASMA_DYNAMIC1D_H

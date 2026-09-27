@@ -131,6 +131,7 @@ void random_test_init(random_data *rng, size_t seed);
  * This function is for testing.
  *
  * @param rng Random number generator data.
+ * @param n Number of random numbers to be sampled.
  * @param uniform Generated uniformly distributed random number.
  * @param normal Generated normally distributed random number.
  */

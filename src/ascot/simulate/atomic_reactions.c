@@ -50,7 +50,7 @@ void atomic_go(
     const int *a_2 = Plasma_get_species_anum(plasma);
 
 #pragma omp simd
-    for (int i = 0; i < NSIMD; i++)
+    for (size_t i = 0; i < p->size; i++)
     {
         if (p->running[i])
         {
@@ -62,7 +62,7 @@ void atomic_go(
             p_comps[1] = p->p_phi[i];
             p_comps[2] = p->p_z[i];
             real p_norm = math_norm(p_comps);
-            real E = physlib_Ekin_pnorm(p->mass[i], p_norm);
+            real E = physlib_Ekin_pnorm(p->mass, p_norm);
 
             /* Evaluate plasma density and temperature */
             real n_2[MAX_SPECIES], T_2[MAX_SPECIES];
@@ -90,13 +90,13 @@ void atomic_go(
 
             /* Evaluate the reaction rates for ionizing (charge-increasing) *
                and recombining (charge-decreasing) reactions                */
-            int q = (int)round(p->charge[i] / CONST_E);
+            int q = p->charge[i];
             real rate_eff_ion, rate_eff_rec;
             if (!errflag)
             {
                 errflag = atomic_rates(
-                    &rate_eff_ion, &rate_eff_rec, p->znum[i], p->anum[i],
-                    p->mass[i], z_2, a_2, m_2, atomic, q, E, N_pls_spec,
+                    &rate_eff_ion, &rate_eff_rec, p->znum, p->anum,
+                    p->mass, z_2, a_2, m_2, atomic, q, E, N_pls_spec,
                     N_ntl_spec, T_2, T_0, n_2, n_0);
             }
 
@@ -105,11 +105,11 @@ void atomic_go(
             {
                 int q_prev = q;
                 errflag = atomic_react(
-                    &q, h[i], rate_eff_ion, rate_eff_rec, p->znum[i], rnd[i]);
+                    &q, h[i], rate_eff_ion, rate_eff_rec, p->znum, rnd[i]);
                 if (q != q_prev)
                 {
                     /* A reaction has occured, change particle charge */
-                    p->charge[i] = q * CONST_E;
+                    p->charge[i] = q;
                 }
             }
 

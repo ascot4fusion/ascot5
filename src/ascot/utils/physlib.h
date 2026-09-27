@@ -298,7 +298,7 @@
  *                     angle) \f$\phi\f$ [J s/rad]
  * \f$R\f$ is the major radius [m]
  * \f$p_{\phi}\f$ is the toroidal momentum [kg m/s]
- * \fq\f$ is the charge of the particle [C]
+ * \f$q\f$ is the charge of the particle [C]
  * \f$\psi\f$ is the poloidal magnetic flux [Tm^2]
  */
 #define phys_ptoroid_fo(q, R, pphi, psi) (R * pphi + q * psi)
@@ -316,7 +316,7 @@
  * \f$R\f$ is the major radius [m]
  * \f$B_{\phi}\f$ is the toroidal component of the magnetic flux density [T]
  * \f$B\f$ is the magnitude of the magnetic flux density [T]
- * \fq\f$ is the charge of the particle [C]
+ * \f$q\f$ is the charge of the particle [C]
  * \f$\psi\f$ is the poloidal magnetic flux [Tm^2]
  */
 #define phys_ptoroid_gc(q, R, ppar, psi, B, Bphi)                              \
@@ -359,8 +359,8 @@
  *
  * \f$abs(p_{\parallel})\f$ is the magnitude of the parallel component of
  *                           momentum
- * \f$\gammaf$ is the Lorentz factor [-]
- * \f$mf$ is the mass of the particle [kg]
+ * \f$\gamma\f$ is the Lorentz factor [-]
+ * \f$m\f$ is the mass of the particle [kg]
  * \f$c\f$ is the speed of light in vacuum [m/s]
  * \f$\mu\f$ is the magnetic moment of the particle [J/T]
  * \f$B\f$ is the magnitude of magnetic flux density [T]
@@ -381,7 +381,7 @@
  *
  * \f$v_{\perp}\f$ is the perpendicular speed [m/S]
  * \f$\mu\f$ is the magnetic moment [J/T]
- * \fB\f$ is the magnitude of the magnetic flux density [T]
+ * \f$B\f$ is the magnitude of the magnetic flux density [T]
  * \f$\m\f$ is the mass of the particle [kg]
  */
 #define phys_vperp_mu(m, mu, B) sqrt(2 * mu * B / m)
@@ -397,7 +397,7 @@
  *
  * \f$abs(p_{\parallel})\f$ is the magnitude of the parallel component of
  *                           momentum
- * \fm\f$ is the mass of the particle [kg]
+ * \f$m\f$ is the mass of the particle [kg]
  * \f$c\f$ is the speed of light in vacuum [m/s]
  * \f$q\f$ is the charge of the particle [C]
  * \f$B\f$ is the magnitude of the magnetic flux density [T]
@@ -419,12 +419,12 @@
  * where
  *
  * \f$p_{\parallel}\f$ is the parallel component of the momentum [kg m/s]
- * \fB\f$ is the magnitude of the magnetic flux density [T]
- * \fR\f$ is the major radius [m]
- * \fB_{\phi}\f$ is the toroidal component of the magnetic flux density [T]
- * \f\Pi_{\phi}\f$ is the canonical momentum conjugate to (the toroidal angle)
- *  \f$\phi\f$ [J s/rad]
- * \fq\f$ is the charge of the particle [C]
+ * \f$B\f$ is the magnitude of the magnetic flux density [T]
+ * \f$R\f$ is the major radius [m]
+ * \f$B_{\phi}\f$ is the toroidal component of the magnetic flux density [T]
+ * \f$\Pi_{\phi}\f$ is the canonical momentum conjugate to (the toroidal angle)
+ * \f$\phi\f$ [J s/rad]
+ * \f$q\f$ is the charge of the particle [C]
  * \f$\psi\f$ is the poloidal magnetic flux [Tm^2]
  */
 #define phys_ppar_pphi(B, R, B_phi, p_phi, q, psi)                             \
@@ -627,11 +627,6 @@ static void mccc_coefs_mufun(real mufun[3], real x);
 DECLARE_TARGET_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(nspec, mb, qb, nb, Tb)
-inline static void mccc_coefs_clog(
-    real *clogab, real ma, real qa, real va, size_t nspec, const real *mb,
-    const real *qb, const real *nb, const real *Tb);
-DECLARE_TARGET_END
-
 /**
  * Evaluate Coulomb logarithm.
  *
@@ -641,19 +636,24 @@ DECLARE_TARGET_END
  * and minimum impact parameter is either classical particle radius or
  * inverse of De Broglie wavelength.
  *
- * @param clogab array where evaluated values for Coulomb logarithm are stored.
- * @param ma test particle mass [kg]
- * @param qa test particle charge [C]
- * @param va test particle velocity [m/s]
- * @param nspec number of plasma species
- * @param mb plasma species masses [kg]
- * @param qb plasma species charges [C]
- * @param nb plasma species densities [m^-3]
- * @param Tb plasma species temperatures [J]
+ * @param clogab Array where evaluated values for Coulomb logarithm are stored.
+ * @param ma Test particle mass [kg].
+ * @param qa Test particle charge [C].
+ * @param va Test particle velocity [m/s].
+ * @param nspec Number of plasma species.
+ * @param mb Plasma species masses [kg].
+ * @param qb Plasma species charges [C].
+ * @param nb Plasma species densities [m^-3].
+ * @param Tb Plasma species temperatures [J].
  */
 inline static void mccc_coefs_clog(
-    real *clogab, real ma, real qa, real va, size_t nspec, const real *mb,
-    const real *qb, const real *nb, const real *Tb)
+    real* clogab, real ma, real qa, real va, size_t nspec, const real mb[nspec],
+    const real qb[nspec], const real nb[nspec], const real Tb[nspec]);
+DECLARE_TARGET_END
+
+inline static void mccc_coefs_clog(
+    real* clogab, real ma, real qa, real va, size_t nspec, const real mb[nspec],
+    const real qb[nspec], const real nb[nspec], const real Tb[nspec])
 {
 
     /* Evaluate Debye length */

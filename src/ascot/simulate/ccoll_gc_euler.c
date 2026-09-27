@@ -1,6 +1,6 @@
 /**
- * @file mccc_gc_euler.c
- * @brief Euler-Maruyama integrator for collision operator in GC picture.
+ * Implements Euler-Maruyama integrator for collision operator in GC picture
+ * (see coulomb_collisions.h).
  */
 #include "consts.h"
 #include "coulomb_collisions.h"
@@ -23,16 +23,16 @@ void mccc_gc_euler(
     const real *qb = Plasma_get_species_charge(plasma);
     const real *mb = Plasma_get_species_mass(plasma);
 
-    GPU_DATA_IS_MAPPED(h[0:p->n_mrk], rnd[0:3*p->n_mrk])
+    GPU_DATA_IS_MAPPED(h[0:p->size], rnd[0:3*p->size])
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for (size_t i = 0; i < p->n_mrk; i++)
+    for (size_t i = 0; i < p->size; i++)
     {
         if (p->running[i])
         {
             err_t errflag = 0;
 
             /* Initial (R,z) position and magnetic field are needed for later */
-            real Brpz[3] = {p->B_r[i], p->B_phi[i], p->B_z[i]};
+            real Brpz[3] = {p->br[i], p->bphi[i], p->bz[i]};
             real Bnorm = math_norm(Brpz);
             real Bxyz[3];
             math_vec_rpz2xyz(Brpz, Bxyz, p->phi[i]);
@@ -50,9 +50,9 @@ void mccc_gc_euler(
                     &vflow, p->rho[i], p->r[i], p->phi[i], p->z[i], p->time[i],
                     plasma);
             }
-            pin  = physlib_gc_p(p->mass[i], p->mu[i], p->ppar[i], Bnorm);
-            xiin = physlib_gc_xi(p->mass[i], p->mu[i], p->ppar[i], Bnorm);
-            vin = physlib_vnorm_pnorm(p->mass[i], pin);
+            pin  = physlib_gc_p(p->mass, p->mu[i], p->ppar[i], Bnorm);
+            xiin = physlib_gc_xi(p->mass, p->mu[i], p->ppar[i], Bnorm);
+            vin = physlib_vnorm_pnorm(p->mass, pin);
             vpar = xiin * vin;
             vperp2 = (1 - xiin * xiin) * vin * vin;
             vin = sqrt((vpar - vflow) * (vpar - vflow) + vperp2);
@@ -70,13 +70,13 @@ void mccc_gc_euler(
             /* Coulomb logarithm */
             real clogab[MAX_SPECIES];
             mccc_coefs_clog(
-                clogab, p->mass[i], p->charge[i], vin, n_species, mb, qb, nb,
+                clogab, p->mass, p->charge[i] * CONST_E, vin, n_species, mb, qb, nb,
                 Tb);
 
             /* Evaluate collision coefficients and sum them for each *
              * species                                               */
             real gyrofreq =
-                phys_gyrofreq_pnorm(p->mass[i], p->charge[i], pin, Bnorm);
+                phys_gyrofreq_pnorm(p->mass, p->charge[i] * CONST_E, pin, Bnorm);
             real K = 0, Dpara = 0, nu = 0, DX = 0;
             GPU_SEQUENTIAL_LOOP
             for (size_t j = 0; j < n_species; j++)
@@ -87,16 +87,16 @@ void mccc_gc_euler(
                 mccc_coefs_mufun(mufun, x); // eq. 2.83 PhD Hirvijoki
 
                 real Qb = mccc_coefs_Q(
-                    p->mass[i], p->charge[i], mb[j], qb[j], nb[j], vb,
+                    p->mass, p->charge[i] * CONST_E, mb[j], qb[j], nb[j], vb,
                     clogab[j], mufun[0]);
                 real Dparab = mccc_coefs_Dpara(
-                    p->mass[i], p->charge[i], vin, qb[j], nb[j], vb, clogab[j],
+                    p->mass, p->charge[i] * CONST_E, vin, qb[j], nb[j], vb, clogab[j],
                     mufun[0]);
                 real Dperpb = mccc_coefs_Dperp(
-                    p->mass[i], p->charge[i], vin, qb[j], nb[j], vb, clogab[j],
+                    p->mass, p->charge[i] * CONST_E, vin, qb[j], nb[j], vb, clogab[j],
                     mufun[1]);
                 real dDparab = mccc_coefs_dDpara(
-                    p->mass[i], p->charge[i], vin, qb[j], nb[j], vb, clogab[j],
+                    p->mass, p->charge[i] * CONST_E, vin, qb[j], nb[j], vb, clogab[j],
                     mufun[0], mufun[2]);
 
                 K += mccc_coefs_K(vin, Dparab, dDparab, Qb);
@@ -108,11 +108,11 @@ void mccc_gc_euler(
             /* Evaluate collisions */
             real sdt = sqrt(h[i]);
             real dW[5];
-            dW[0]=sdt*rnd[0*p->n_mrk + i]; // For X_1
-            dW[1]=sdt*rnd[1*p->n_mrk + i]; // For X_2
-            dW[2]=sdt*rnd[2*p->n_mrk + i]; // For X_3
-            dW[3]=sdt*rnd[3*p->n_mrk + i]; // For v
-            dW[4]=sdt*rnd[4*p->n_mrk + i]; // For xi
+            dW[0]=sdt*rnd[0*p->size + i]; // For X_1
+            dW[1]=sdt*rnd[1*p->size + i]; // For X_2
+            dW[2]=sdt*rnd[2*p->size + i]; // For X_3
+            dW[3]=sdt*rnd[3*p->size + i]; // For v
+            dW[4]=sdt*rnd[4*p->size + i]; // For xi
 
             real bhat[3];
             math_unit(Bxyz, bhat);
@@ -129,7 +129,7 @@ void mccc_gc_euler(
                 xiin - xiin * nu * h[i] + sqrt((1 - xiin * xiin) * nu) * dW[4];
 
             /* Enforce boundary conditions */
-            real cutoff = MCCC_CUTOFF * sqrt(Tb[0] / p->mass[i]);
+            real cutoff = MCCC_CUTOFF * sqrt(Tb[0] / p->mass);
             if (vout < cutoff)
             {
                 vout = 2 * cutoff - vout;
@@ -161,7 +161,7 @@ void mccc_gc_euler(
             vperp2 = (1 - xiout * xiout) * vout * vout;
             vout = sqrt((vpar + vflow) * (vpar + vflow) + vperp2);
             xiout =  (vpar + vflow) / vout;
-            real pout = physlib_pnorm_vnorm(p->mass[i], vout);
+            real pout = physlib_pnorm_vnorm(p->mass, vout);
 
             /* Back to cylindrical coordinates */
             real Xout_rpz[3];
@@ -189,20 +189,20 @@ void mccc_gc_euler(
             if (!errflag)
             {
                 /* Update marker coordinates at the new position */
-                p->B_r[i] = B_dB[0];
-                p->B_r_dr[i] = B_dB[3];
-                p->B_r_dphi[i] = B_dB[4];
-                p->B_r_dz[i] = B_dB[5];
+                p->br[i] = B_dB[0];
+                p->dbrdr[i] = B_dB[3];
+                p->dbrdphi[i] = B_dB[4];
+                p->dbrdz[i] = B_dB[5];
 
-                p->B_phi[i] = B_dB[1];
-                p->B_phi_dr[i] = B_dB[6];
-                p->B_phi_dphi[i] = B_dB[7];
-                p->B_phi_dz[i] = B_dB[8];
+                p->bphi[i] = B_dB[1];
+                p->dbphidr[i] = B_dB[6];
+                p->dbphidphi[i] = B_dB[7];
+                p->dbphidz[i] = B_dB[8];
 
-                p->B_z[i] = B_dB[2];
-                p->B_z_dr[i] = B_dB[9];
-                p->B_z_dphi[i] = B_dB[10];
-                p->B_z_dz[i] = B_dB[11];
+                p->bz[i] = B_dB[2];
+                p->dbzdr[i] = B_dB[9];
+                p->dbzdphi[i] = B_dB[10];
+                p->dbzdz[i] = B_dB[11];
 
                 p->rho[i] = rho[0];
 

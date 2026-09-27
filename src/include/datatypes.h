@@ -130,7 +130,6 @@ typedef struct
     real pz;           /**< Particle momentum z component [kg m/s].           */
     real pphi;         /**< Particle momentum phi component [kg m/s].         */
     real mass;         /**< Mass [kg].                                        */
-    real charge;       /**< Charge [C].                                       */
     real time;         /**< Marker simulation time [s].                       */
     real theta;        /**< Marker poloidal coordinate [rad].                 */
     real weight;       /**< Marker weight.                                    */
@@ -142,6 +141,7 @@ typedef struct
     err_t err;         /**< Error flag.                                       */
     int anum;          /**< Atomic mass number of marker species.             */
     int znum;          /**< Charge number of marker species.                  */
+    int charge;        /**< Charge state [e].                                 */
 } State;
 
 #endif

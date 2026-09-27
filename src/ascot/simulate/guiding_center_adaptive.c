@@ -25,26 +25,27 @@
 #include <stdlib.h>
 #include <time.h>
 
+/**
+ * A simple struct to keep track of when a marker crosses OMP twice in same
+ * direction.
+ */
 typedef struct
 {
-    unsigned int crossed_once : 1;
-    unsigned int crossed_twice : 1;
-    unsigned int first_ppar : 1;
+    unsigned int crossed_once : 1;  /**< Flag for first crossing.             */
+    unsigned int crossed_twice : 1; /**< Flag for second crossing.            */
+    unsigned int first_ppar : 1;    /**< Direction of the first crossing.     */
 } Crossing;
 
+/**
+ * Keeps track of acceleration factor and data necessary to update it after each
+ * poloidal orbit.
+ */
 typedef struct
 {
-    /** Acceleration factor. */
-    real *acc;
-
-    /** Orbit time [s]. */
-    real *orbittime;
-
-    /** Collision frequency [1/s]. */
-    real *collfreq;
-
-    /** Storage for OMP crossing data. */
-    Crossing *cross;
+    real *acc;       /**< Acceleration factor.                                */
+    real *orbittime; /**< Passed orbit time [s].                              */
+    real *collfreq;  /**< Average collision frequency along the orbit [1/s].  */
+    Crossing *cross; /**< Stores information about OMP crossings.             */
 } Acceleration;
 
 /**
@@ -296,7 +297,7 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         if (sim->options->enable_coulomb_collisions)
         {
             random_normal_simd(sim->random_data, 5 * vector_size, rnd);
-            random_normal_simd(sim->random_data, 5 * p.n_mrk, rnd);
+            random_normal_simd(sim->random_data, 5 * p.size, rnd);
             mccc_gc_milstein(
                 &p, hin, acceleration.acc, acceleration.collfreq, hout_col,
                 tol_col, wienarr, &sim->bfield, &sim->plasma, sim->mccc_data,
@@ -414,7 +415,7 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 #ifdef GPU
         n_running = 0;
         GPU_PARALLEL_LOOP_ALL_LEVELS_REDUCTION(n_running)
-        for (size_t i = 0; i < p.n_mrk; i++)
+        for (size_t i = 0; i < p.size; i++)
         {
             if (p.running[i] > 0)
                 n_running++;
@@ -476,7 +477,7 @@ void recalculate_acceleration(
     real rz[2];
     real SAFETY_FACTOR = (float)sim->options->enable_adaptive / 1000.0;
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for (size_t i = 0; i < p->n_mrk; i++)
+    for (size_t i = 0; i < p->size; i++)
     {
         Bfield_eval_axis_rz(rz, &sim->bfield, p->phi[i]);
         int omp_crossed =

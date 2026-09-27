@@ -49,7 +49,7 @@ class VariableValidator:
         expected_shape : tuple[int], *optional*
             Expected shape of the variable if applicable.
 
-            Special case is ``(1,)`` for when the argument is expected to be 1D
+            Special case is ``(-1,)`` for when the argument is expected to be 1D
             vector with undefined length.
         units : str, *optional*
             Units of the variable.
@@ -103,6 +103,21 @@ class VariableValidator:
                         f"Argument '{name}' has incompatible shape '{arr.shape}', "
                         f"expected 1D vector."
                         )
+            elif -1 in expected_shape:
+                if arr.ndim != len(expected_shape):
+                    raise ValueError(
+                        f"Argument '{name}' has incompatible shape '{arr.shape}', "
+                        f"expected: {expected_shape}."
+                    )
+
+                if any(
+                    expected != -1 and actual != expected
+                    for actual, expected in zip(arr.shape, expected_shape)
+                ):
+                    raise ValueError(
+                        f"Argument '{name}' has incompatible shape '{arr.shape}', "
+                        f"expected: {expected_shape}."
+                    )
             elif( arr.size > 1 and
                 arr.shape != expected_shape and
                 arr.T.shape != expected_shape ):

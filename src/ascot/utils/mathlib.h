@@ -1,5 +1,5 @@
 /**
- * @file math.h
+ * @file mathlib.h
  * Mathematical utility functions.
  */
 #ifndef MATH_H
@@ -37,6 +37,13 @@
  */
 void math_linspace(real *vec, real a, real b, size_t n);
 
+/**
+ * Matrix multiplication.
+ *
+ * @param a 3x3 matrix.
+ * @param b 3x3 matrix.
+ * @param c Result of a times b.
+ */
 #define math_matmul(a, b, c)                                                   \
     do                                                                         \
     {                                                                          \
@@ -51,6 +58,13 @@ void math_linspace(real *vec, real a, real b, size_t n);
         (c)[8] = (a)[6] * (b)[2] + (a)[7] * (b)[5] + (a)[8] * (b)[8];          \
     } while (0)
 
+/**
+ * Matrix vector multiplication.
+ *
+ * @param a 3x3 matrix.
+ * @param b 3D vector.
+ * @param c Result of a times b.
+ */
 #define math_matvecmul(a, b, c)                                                \
     do                                                                         \
     {                                                                          \
@@ -250,10 +264,10 @@ GPU_DECLARE_TARGET_SIMD
 /**
  * Convert field vector and Jacobian from cartesian to cylindrical coordinates.
  *
- * @param b_dbrpz Output Jacobian and vector (in cylindrical coordinates). Has
+ * @param a_darpz Output Jacobian and vector (in cylindrical coordinates). Has
  *        format [Ar, Aphi, Az, dAr/dr, dAr/dphi, dAr/dz, dAphi/dr, dAphi/dphi,
  *        dAphi/dz, dAz/dr, dAz/dphi, dAz/dz].
- * @param b_dbxyz Input Jacobian and vector (in cartesian coordinates). Has
+ * @param a_daxyz Input Jacobian and vector (in cartesian coordinates). Has
  *        format [Ax, Ay, Az, dAx/dx, dAx/dy, dAx/dz, dAy/dx, dAy/dy, dAy/dz,
  *        dAz/dx, dAz/dy, dAz/dz].
  * @param r Radial coordinate.
@@ -318,6 +332,7 @@ real math_crossed_plane(real alpha, real beta, real gamma);
  * @param det Result of determinant of matrix [a, b, c].
  * @param norm Result of |a|.
  * @param normc Result of |a| calculated from a[0], a[1], a[2] explicitly.
+ * @param unit Result of unit vector of a.
  */
 void math_test_eval_vector_operations(
     const real a[3], const real b[3], const real c[3], real dot[1],

@@ -16,14 +16,14 @@
 #include <stdio.h>
 
 void step_gc_rk4(
-    MarkerGuidingCenter *p, const real *h, Bfield *bfield, Efield *efield,
+    MarkerGuidingCenter *mrk, const real *h, Bfield *bfield, Efield *efield,
     int aldforce)
 {
-    GPU_DATA_IS_MAPPED(h[0:p->n_mrk])
+    GPU_DATA_IS_MAPPED(h [0:mrk->size])
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for (size_t i = 0; i < p->n_mrk; i++)
+    for (size_t i = 0; i < mrk->size; i++)
     {
-        if (p->running[i])
+        if (mrk->running[i])
         {
             err_t errflag = 0;
 
@@ -32,41 +32,41 @@ void step_gc_rk4(
             real yprev[6];
             real y[6];
 
-            real mass = p->mass[i];
-            real charge = p->charge[i];
+            real mass = mrk->mass;
+            real charge = mrk->charge[i] * CONST_E;
 
-            real B_dB[15], E[3];
+            real b_db[15], E[3];
             real alpha[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
             real Phi[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
 
-            real R0 = p->r[i];
-            real z0 = p->z[i];
-            real t0 = p->time[i];
+            real R0 = mrk->r[i];
+            real z0 = mrk->z[i];
+            real t0 = mrk->time[i];
 
             /* Coordinates are copied from the struct into an array to make
              * passing parameters easier */
-            yprev[0] = p->r[i];
-            yprev[1] = p->phi[i];
-            yprev[2] = p->z[i];
-            yprev[3] = p->ppar[i];
-            yprev[4] = p->mu[i];
-            yprev[5] = p->zeta[i];
+            yprev[0] = mrk->r[i];
+            yprev[1] = mrk->phi[i];
+            yprev[2] = mrk->z[i];
+            yprev[3] = mrk->ppar[i];
+            yprev[4] = mrk->mu[i];
+            yprev[5] = mrk->zeta[i];
 
             /* Magnetic field at initial position already known */
-            B_dB[0] = p->B_r[i];
-            B_dB[3] = p->B_r_dr[i];
-            B_dB[4] = p->B_r_dphi[i];
-            B_dB[5] = p->B_r_dz[i];
+            b_db[0] = mrk->br[i];
+            b_db[3] = mrk->dbrdr[i];
+            b_db[4] = mrk->dbrdphi[i];
+            b_db[5] = mrk->dbrdz[i];
 
-            B_dB[1] = p->B_phi[i];
-            B_dB[6] = p->B_phi_dr[i];
-            B_dB[7] = p->B_phi_dphi[i];
-            B_dB[8] = p->B_phi_dz[i];
+            b_db[1] = mrk->bphi[i];
+            b_db[6] = mrk->dbphidr[i];
+            b_db[7] = mrk->dbphidphi[i];
+            b_db[8] = mrk->dbphidz[i];
 
-            B_dB[2] = p->B_z[i];
-            B_dB[9] = p->B_z_dr[i];
-            B_dB[10] = p->B_z_dphi[i];
-            B_dB[11] = p->B_z_dz[i];
+            b_db[2] = mrk->bz[i];
+            b_db[9] = mrk->dbzdr[i];
+            b_db[10] = mrk->dbzdphi[i];
+            b_db[11] = mrk->dbzdz[i];
 
             if (!errflag)
             {
@@ -75,7 +75,8 @@ void step_gc_rk4(
             }
             if (!errflag)
             {
-                step_gceom(k1, yprev, mass, charge, B_dB, E, alpha, Phi, aldforce);
+                step_gceom(
+                    k1, yprev, mass, charge, b_db, E, alpha, Phi, aldforce);
             }
 
             /* particle coordinates for the subsequent ydot evaluations are
@@ -88,7 +89,7 @@ void step_gc_rk4(
             if (!errflag)
             {
                 errflag = Bfield_eval_b_db(
-                    B_dB, tempy[0], tempy[1], tempy[2], t0 + h[i] / 2.0,
+                    b_db, tempy[0], tempy[1], tempy[2], t0 + h[i] / 2.0,
                     bfield);
             }
             if (!errflag)
@@ -99,7 +100,8 @@ void step_gc_rk4(
             }
             if (!errflag)
             {
-                step_gceom(k2, tempy, mass, charge, B_dB, E, alpha, Phi, aldforce);
+                step_gceom(
+                    k2, tempy, mass, charge, b_db, E, alpha, Phi, aldforce);
             }
             for (int j = 0; j < 6; j++)
             {
@@ -109,7 +111,7 @@ void step_gc_rk4(
             if (!errflag)
             {
                 errflag = Bfield_eval_b_db(
-                    B_dB, tempy[0], tempy[1], tempy[2], t0 + h[i] / 2.0,
+                    b_db, tempy[0], tempy[1], tempy[2], t0 + h[i] / 2.0,
                     bfield);
             }
             if (!errflag)
@@ -120,7 +122,8 @@ void step_gc_rk4(
             }
             if (!errflag)
             {
-                step_gceom(k3, tempy, mass, charge, B_dB, E, alpha, Phi, aldforce);
+                step_gceom(
+                    k3, tempy, mass, charge, b_db, E, alpha, Phi, aldforce);
             }
             for (int j = 0; j < 6; j++)
             {
@@ -130,7 +133,7 @@ void step_gc_rk4(
             if (!errflag)
             {
                 errflag = Bfield_eval_b_db(
-                    B_dB, tempy[0], tempy[1], tempy[2], t0 + h[i], bfield);
+                    b_db, tempy[0], tempy[1], tempy[2], t0 + h[i], bfield);
             }
             if (!errflag)
             {
@@ -139,7 +142,8 @@ void step_gc_rk4(
             }
             if (!errflag)
             {
-                step_gceom(k4, tempy, mass, charge, B_dB, E, alpha, Phi, aldforce);
+                step_gceom(
+                    k4, tempy, mass, charge, b_db, E, alpha, Phi, aldforce);
             }
             for (int j = 0; j < 6; j++)
             {
@@ -158,15 +162,15 @@ void step_gc_rk4(
             /* Update gc phase space position */
             if (!errflag)
             {
-                p->r[i] = y[0];
-                p->phi[i] = y[1];
-                p->z[i] = y[2];
-                p->ppar[i] = y[3];
-                p->mu[i] = y[4];
-                p->zeta[i] = fmod(y[5], CONST_2PI);
-                if (p->zeta[i] < 0)
+                mrk->r[i] = y[0];
+                mrk->phi[i] = y[1];
+                mrk->z[i] = y[2];
+                mrk->ppar[i] = y[3];
+                mrk->mu[i] = y[4];
+                mrk->zeta[i] = fmod(y[5], CONST_2PI);
+                if (mrk->zeta[i] < 0)
                 {
-                    p->zeta[i] = CONST_2PI + p->zeta[i];
+                    mrk->zeta[i] = CONST_2PI + mrk->zeta[i];
                 }
             }
 
@@ -176,12 +180,12 @@ void step_gc_rk4(
             if (!errflag)
             {
                 errflag = Bfield_eval_b_db(
-                    B_dB, p->r[i], p->phi[i], p->z[i], t0 + h[i], bfield);
+                    b_db, mrk->r[i], mrk->phi[i], mrk->z[i], t0 + h[i], bfield);
             }
             if (!errflag)
             {
                 errflag = Bfield_eval_psi(
-                    psi, p->r[i], p->phi[i], p->z[i], t0 + h[i], bfield);
+                    psi, mrk->r[i], mrk->phi[i], mrk->z[i], t0 + h[i], bfield);
             }
             if (!errflag)
             {
@@ -190,52 +194,52 @@ void step_gc_rk4(
 
             if (!errflag)
             {
-                p->B_r[i] = B_dB[0];
-                p->B_r_dr[i] = B_dB[3];
-                p->B_r_dphi[i] = B_dB[4];
-                p->B_r_dz[i] = B_dB[5];
+                mrk->br[i] = b_db[0];
+                mrk->dbrdr[i] = b_db[3];
+                mrk->dbrdphi[i] = b_db[4];
+                mrk->dbrdz[i] = b_db[5];
 
-                p->B_phi[i] = B_dB[1];
-                p->B_phi_dr[i] = B_dB[6];
-                p->B_phi_dphi[i] = B_dB[7];
-                p->B_phi_dz[i] = B_dB[8];
+                mrk->bphi[i] = b_db[1];
+                mrk->dbphidr[i] = b_db[6];
+                mrk->dbphidphi[i] = b_db[7];
+                mrk->dbphidz[i] = b_db[8];
 
-                p->B_z[i] = B_dB[2];
-                p->B_z_dr[i] = B_dB[9];
-                p->B_z_dphi[i] = B_dB[10];
-                p->B_z_dz[i] = B_dB[11];
+                mrk->bz[i] = b_db[2];
+                mrk->dbzdr[i] = b_db[9];
+                mrk->dbzdphi[i] = b_db[10];
+                mrk->dbzdz[i] = b_db[11];
 
-                p->rho[i] = rho[0];
+                mrk->rho[i] = rho[0];
 
                 /* Evaluate theta angle so that it is cumulative */
                 real axisrz[2];
-                errflag = Bfield_eval_axis_rz(axisrz, bfield, p->phi[i]);
-                p->theta[i] += atan2(
-                    (R0 - axisrz[0]) * (p->z[i] - axisrz[1]) -
-                        (z0 - axisrz[1]) * (p->r[i] - axisrz[0]),
-                    (R0 - axisrz[0]) * (p->r[i] - axisrz[0]) +
-                        (z0 - axisrz[1]) * (p->z[i] - axisrz[1]));
+                errflag = Bfield_eval_axis_rz(axisrz, bfield, mrk->phi[i]);
+                mrk->theta[i] += atan2(
+                    (R0 - axisrz[0]) * (mrk->z[i] - axisrz[1]) -
+                        (z0 - axisrz[1]) * (mrk->r[i] - axisrz[0]),
+                    (R0 - axisrz[0]) * (mrk->r[i] - axisrz[0]) +
+                        (z0 - axisrz[1]) * (mrk->z[i] - axisrz[1]));
             }
 
             /* Error handling */
             if (errflag)
             {
-                p->err[i] = errflag;
-                p->running[i] = 0;
+                mrk->err[i] = errflag;
+                mrk->running[i] = 0;
             }
         }
     }
 }
 
 void step_gc_rk4_mhd(
-    MarkerGuidingCenter *p, const real *h, Bfield *bfield, Efield *efield,
+    MarkerGuidingCenter *mrk, const real *h, Bfield *bfield, Efield *efield,
     Boozer *boozer, Mhd *mhd, int aldforce)
 {
-    GPU_DATA_IS_MAPPED(h[0:p->n_mrk])
+    GPU_DATA_IS_MAPPED(h [0:mrk->size])
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for (size_t i = 0; i < p->n_mrk; i++)
+    for (size_t i = 0; i < mrk->size; i++)
     {
-        if (p->running[i])
+        if (mrk->running[i])
         {
             err_t errflag = 0;
 
@@ -244,38 +248,38 @@ void step_gc_rk4_mhd(
             real yprev[6];
             real y[6];
 
-            real mass = p->mass[i];
-            real charge = p->charge[i];
-            real B_dB[15], E[3], alpha[5], Phi[5];
+            real mass = mrk->mass;
+            real charge = mrk->charge[i] * CONST_E;
+            real b_db[15], E[3], alpha[5], Phi[5];
 
-            real R0 = p->r[i];
-            real z0 = p->z[i];
-            real t0 = p->time[i];
+            real R0 = mrk->r[i];
+            real z0 = mrk->z[i];
+            real t0 = mrk->time[i];
 
             /* Coordinates are copied from the struct into an array to make
              * passing parameters easier */
-            yprev[0] = p->r[i];
-            yprev[1] = p->phi[i];
-            yprev[2] = p->z[i];
-            yprev[3] = p->ppar[i];
-            yprev[4] = p->mu[i];
-            yprev[5] = p->zeta[i];
+            yprev[0] = mrk->r[i];
+            yprev[1] = mrk->phi[i];
+            yprev[2] = mrk->z[i];
+            yprev[3] = mrk->ppar[i];
+            yprev[4] = mrk->mu[i];
+            yprev[5] = mrk->zeta[i];
 
             /* Magnetic field at initial position already known */
-            B_dB[0] = p->B_r[i];
-            B_dB[3] = p->B_r_dr[i];
-            B_dB[4] = p->B_r_dphi[i];
-            B_dB[5] = p->B_r_dz[i];
+            b_db[0] = mrk->br[i];
+            b_db[3] = mrk->dbrdr[i];
+            b_db[4] = mrk->dbrdphi[i];
+            b_db[5] = mrk->dbrdz[i];
 
-            B_dB[1] = p->B_phi[i];
-            B_dB[6] = p->B_phi_dr[i];
-            B_dB[7] = p->B_phi_dphi[i];
-            B_dB[8] = p->B_phi_dz[i];
+            b_db[1] = mrk->bphi[i];
+            b_db[6] = mrk->dbphidr[i];
+            b_db[7] = mrk->dbphidphi[i];
+            b_db[8] = mrk->dbphidz[i];
 
-            B_dB[2] = p->B_z[i];
-            B_dB[9] = p->B_z_dr[i];
-            B_dB[10] = p->B_z_dphi[i];
-            B_dB[11] = p->B_z_dz[i];
+            b_db[2] = mrk->bz[i];
+            b_db[9] = mrk->dbzdr[i];
+            b_db[10] = mrk->dbzdphi[i];
+            b_db[11] = mrk->dbzdz[i];
 
             if (!errflag)
             {
@@ -291,7 +295,7 @@ void step_gc_rk4_mhd(
             if (!errflag)
             {
                 step_gceom(
-                    k1, yprev, mass, charge, B_dB, E, alpha, Phi, aldforce);
+                    k1, yprev, mass, charge, b_db, E, alpha, Phi, aldforce);
             }
 
             /* particle coordinates for the subsequent ydot evaluations are
@@ -304,7 +308,7 @@ void step_gc_rk4_mhd(
             if (!errflag)
             {
                 errflag = Bfield_eval_b_db(
-                    B_dB, tempy[0], tempy[1], tempy[2], t0 + h[i] / 2.0,
+                    b_db, tempy[0], tempy[1], tempy[2], t0 + h[i] / 2.0,
                     bfield);
             }
             if (!errflag)
@@ -322,7 +326,7 @@ void step_gc_rk4_mhd(
             if (!errflag)
             {
                 step_gceom(
-                    k2, tempy, mass, charge, B_dB, E, alpha, Phi, aldforce);
+                    k2, tempy, mass, charge, b_db, E, alpha, Phi, aldforce);
             }
             for (int j = 0; j < 6; j++)
             {
@@ -332,7 +336,7 @@ void step_gc_rk4_mhd(
             if (!errflag)
             {
                 errflag = Bfield_eval_b_db(
-                    B_dB, tempy[0], tempy[1], tempy[2], t0 + h[i] / 2.0,
+                    b_db, tempy[0], tempy[1], tempy[2], t0 + h[i] / 2.0,
                     bfield);
             }
             if (!errflag)
@@ -350,7 +354,7 @@ void step_gc_rk4_mhd(
             if (!errflag)
             {
                 step_gceom(
-                    k3, tempy, mass, charge, B_dB, E, alpha, Phi, aldforce);
+                    k3, tempy, mass, charge, b_db, E, alpha, Phi, aldforce);
             }
             for (int j = 0; j < 6; j++)
             {
@@ -360,7 +364,7 @@ void step_gc_rk4_mhd(
             if (!errflag)
             {
                 errflag = Bfield_eval_b_db(
-                    B_dB, tempy[0], tempy[1], tempy[2], t0 + h[i], bfield);
+                    b_db, tempy[0], tempy[1], tempy[2], t0 + h[i], bfield);
             }
             if (!errflag)
             {
@@ -376,7 +380,7 @@ void step_gc_rk4_mhd(
             if (!errflag)
             {
                 step_gceom(
-                    k4, tempy, mass, charge, B_dB, E, alpha, Phi, aldforce);
+                    k4, tempy, mass, charge, b_db, E, alpha, Phi, aldforce);
             }
             for (int j = 0; j < 6; j++)
             {
@@ -394,15 +398,15 @@ void step_gc_rk4_mhd(
             /* Update gc phase space position */
             if (!errflag)
             {
-                p->r[i] = y[0];
-                p->phi[i] = y[1];
-                p->z[i] = y[2];
-                p->ppar[i] = y[3];
-                p->mu[i] = y[4];
-                p->zeta[i] = fmod(y[5], CONST_2PI);
-                if (p->zeta[i] < 0)
+                mrk->r[i] = y[0];
+                mrk->phi[i] = y[1];
+                mrk->z[i] = y[2];
+                mrk->ppar[i] = y[3];
+                mrk->mu[i] = y[4];
+                mrk->zeta[i] = fmod(y[5], CONST_2PI);
+                if (mrk->zeta[i] < 0)
                 {
-                    p->zeta[i] = CONST_2PI + p->zeta[i];
+                    mrk->zeta[i] = CONST_2PI + mrk->zeta[i];
                 }
             }
 
@@ -412,12 +416,12 @@ void step_gc_rk4_mhd(
             if (!errflag)
             {
                 errflag = Bfield_eval_b_db(
-                    B_dB, p->r[i], p->phi[i], p->z[i], t0 + h[i], bfield);
+                    b_db, mrk->r[i], mrk->phi[i], mrk->z[i], t0 + h[i], bfield);
             }
             if (!errflag)
             {
                 errflag = Bfield_eval_psi(
-                    psi, p->r[i], p->phi[i], p->z[i], t0 + h[i], bfield);
+                    psi, mrk->r[i], mrk->phi[i], mrk->z[i], t0 + h[i], bfield);
             }
             if (!errflag)
             {
@@ -426,38 +430,37 @@ void step_gc_rk4_mhd(
 
             if (!errflag)
             {
-                p->B_r[i] = B_dB[0];
-                p->B_r_dr[i] = B_dB[3];
-                p->B_r_dphi[i] = B_dB[4];
-                p->B_r_dz[i] = B_dB[5];
+                mrk->br[i] = b_db[0];
+                mrk->dbrdr[i] = b_db[3];
+                mrk->dbrdphi[i] = b_db[4];
+                mrk->dbrdz[i] = b_db[5];
 
-                p->B_phi[i] = B_dB[1];
-                p->B_phi_dr[i] = B_dB[6];
-                p->B_phi_dphi[i] = B_dB[7];
-                p->B_phi_dz[i] = B_dB[8];
+                mrk->bphi[i] = b_db[1];
+                mrk->dbphidr[i] = b_db[6];
+                mrk->dbphidphi[i] = b_db[7];
+                mrk->dbphidz[i] = b_db[8];
 
-                p->B_z[i] = B_dB[2];
-                p->B_z_dr[i] = B_dB[9];
-                p->B_z_dphi[i] = B_dB[10];
-                p->B_z_dz[i] = B_dB[11];
-
-                p->rho[i] = rho[0];
+                mrk->bz[i] = b_db[2];
+                mrk->dbzdr[i] = b_db[9];
+                mrk->dbzdphi[i] = b_db[10];
+                mrk->dbzdz[i] = b_db[11];
+                mrk->rho[i] = rho[0];
 
                 /* Evaluate pol angle so that it is cumulative */
                 real axisrz[2];
-                errflag = Bfield_eval_axis_rz(axisrz, bfield, p->phi[i]);
-                p->theta[i] += atan2(
-                    (R0 - axisrz[0]) * (p->z[i] - axisrz[1]) -
-                        (z0 - axisrz[1]) * (p->r[i] - axisrz[0]),
-                    (R0 - axisrz[0]) * (p->r[i] - axisrz[0]) +
-                        (z0 - axisrz[1]) * (p->z[i] - axisrz[1]));
+                errflag = Bfield_eval_axis_rz(axisrz, bfield, mrk->phi[i]);
+                mrk->theta[i] += atan2(
+                    (R0 - axisrz[0]) * (mrk->z[i] - axisrz[1]) -
+                        (z0 - axisrz[1]) * (mrk->r[i] - axisrz[0]),
+                    (R0 - axisrz[0]) * (mrk->r[i] - axisrz[0]) +
+                        (z0 - axisrz[1]) * (mrk->z[i] - axisrz[1]));
             }
 
             /* Error handling */
             if (errflag)
             {
-                p->err[i] = errflag;
-                p->running[i] = 0;
+                mrk->err[i] = errflag;
+                mrk->running[i] = 0;
             }
         }
     }

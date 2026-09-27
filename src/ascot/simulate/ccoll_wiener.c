@@ -1,10 +1,6 @@
 /**
- * @file mccc_wiener.c
- * @brief A module for handling Wiener processes
- *
- * A module for handling Wiener processes. When adaptive time step is used (and
- * steps are rejected), Wiener processes are generated using the so-called
- * Brownian bridge. This module contains associated helper routines.
+ * Implements Brownian bridge and tracking of Wiener processes (see
+ * coulomb_collisions.h).
  */
 #include "consts.h"
 #include "coulomb_collisions.h"

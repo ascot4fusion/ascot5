@@ -290,9 +290,9 @@ err_t BfieldAnalytical_eval_b_db(
     return 0;
 }
 
-err_t BfieldAnalytical_eval_axisrz(real axisrz[2], BfieldAnalytical *bfield)
+err_t BfieldAnalytical_eval_axisrz(real rz[2], BfieldAnalytical *bfield)
 {
-    axisrz[0] = bfield->axisrz[0];
-    axisrz[1] = bfield->axisrz[1];
+    rz[0] = bfield->axisrz[0];
+    rz[1] = bfield->axisrz[1];
     return 0;
 }

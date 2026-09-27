@@ -131,14 +131,14 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     {
         /* Store marker states */
         GPU_PARALLEL_LOOP_ALL_LEVELS
-        for (size_t i = 0; i < p.n_mrk; i++)
+        for (size_t i = 0; i < p.size; i++)
             MarkerGyroOrbit_copy(&p0, &p, i);
 
         /*************************** Physics **********************************/
 
         /* Set time-step negative if tracing backwards in time */
         GPU_PARALLEL_LOOP_ALL_LEVELS
-        for (size_t i = 0; i < p.n_mrk; i++)
+        for (size_t i = 0; i < p.size; i++)
         {
             if (sim->options->reverse_time)
                 hin[i] = -hin[i];
@@ -163,7 +163,7 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 
         /* Switch sign of the time-step again if it was reverted earlier */
         GPU_PARALLEL_LOOP_ALL_LEVELS
-        for (size_t i = 0; i < p.n_mrk; i++)
+        for (size_t i = 0; i < p.size; i++)
         {
             if (sim->options->reverse_time)
             {
@@ -174,7 +174,7 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         /* Euler-Maruyama for Coulomb collisions */
         if (sim->options->enable_coulomb_collisions)
         {
-            random_normal_simd(sim->random_data, 3 * p.n_mrk, rnd);
+            random_normal_simd(sim->random_data, 3 * p.size, rnd);
             mccc_go_euler(&p, hin, &sim->plasma, sim->mccc_data, rnd);
         }
         /* Atomic reactions */
@@ -189,7 +189,7 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         /* Update simulation and cpu times */
         cputime = A5_WTIME;
         GPU_PARALLEL_LOOP_ALL_LEVELS
-        for (size_t i = 0; i < p.n_mrk; i++)
+        for (size_t i = 0; i < p.size; i++)
         {
             if (p.running[i])
             {
@@ -216,11 +216,11 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
             /* Instead of particle coordinates we record guiding center */
 
             /* Particle to guiding center transformation */
-            for (size_t i = 0; i < p.n_mrk; i++)
+            for (size_t i = 0; i < p.size; i++)
             {
                 if (p.running[i])
                 {
-                    marker_go_to_gc(&p, i, &gc_f, &sim->bfield);
+                    MarkerGyroOrbit_to_MarkerGuidingCenter(&gc_f, &p, i, &sim->bfield);
                 }
                 else
                 {
@@ -229,7 +229,7 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
                 }
                 if (p0.running[i])
                 {
-                    marker_go_to_gc(&p0, i, &gc_i, &sim->bfield);
+                    MarkerGyroOrbit_to_MarkerGuidingCenter(&gc_i, &p0, i, &sim->bfield);
                 }
                 else
                 {
@@ -245,7 +245,7 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 #ifdef GPU
         n_running = 0;
         GPU_PARALLEL_LOOP_ALL_LEVELS_REDUCTION(n_running)
-        for (size_t i = 0; i < p.n_mrk; i++)
+        for (size_t i = 0; i < p.size; i++)
         {
             if (p.running[i] > 0)
                 n_running++;
@@ -256,7 +256,7 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 #ifndef GPU
         /* Determine simulation time-step for new particles */
         GPU_PARALLEL_LOOP_ALL_LEVELS
-        for (size_t i = 0; i < p.n_mrk; i++)
+        for (size_t i = 0; i < p.size; i++)
         {
             if (cycle[i] > 0)
                 hin[i] = sim->options->timestep;

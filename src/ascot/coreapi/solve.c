@@ -227,7 +227,7 @@ void ascot_solve_fusion(
     }
 
     real time = 0.0;
-    OMP_PARALLEL_CPU_ONLY
+    #pragma omp parallel for
     for (size_t i0 = 0; i0 < source->volshape[0]; i0++)
     {
         real *ppara1 = (real *)malloc(nsample * sizeof(real));
@@ -408,7 +408,7 @@ void ascot_solve_field(
     real *y = xyz[1];
     real *z = xyz[2];
 
-    OMP_PARALLEL_CPU_ONLY
+    #pragma omp parallel for
     for (size_t ix = 0; ix < npnt; ix++)
     {
         bxyz[0][ix] = 0;

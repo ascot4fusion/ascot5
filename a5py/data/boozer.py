@@ -1,6 +1,7 @@
-"""Defines :class:`BoozerMap` Boozer coordinate mapping input class and the
+"""Defines :class:`Boozer` Boozer coordinate mapping input class and the
 corresponding factory method.
 """
+
 import ctypes
 from typing import Optional
 
@@ -12,7 +13,6 @@ from a5py import utils
 from a5py.libascot import LIBASCOT, DataStruct, Spline2D, init_fun
 from a5py.exceptions import AscotMeltdownError
 from a5py.data.access import InputVariant, Leaf, TreeMixin
-
 
 _NPADDING = 4
 """How many indices are used to "pad" the Boozer poloidal angle data to extend
@@ -32,98 +32,105 @@ have an effect. This value is the number of points that we add on both ends.
 Seeing how long this explanation is, there should be a better way to do this.
 """
 
+
 # pylint: disable=too-few-public-methods
 class Struct(DataStruct):
     """Python wrapper for the struct in boozer.h."""
 
     _fields_ = [
-        ('psi_min', ctypes.c_double),
-        ('psi_max', ctypes.c_double),
-        ('rs', ctypes.POINTER(ctypes.c_double)),
-        ('zs', ctypes.POINTER(ctypes.c_double)),
-        ('nrzs', ctypes.c_int32),
-        ('nu_psitheta', Spline2D),
-        ('theta_psithetageom', Spline2D),
-        ]
+        ("nrz", ctypes.c_size_t),
+        ("rlim", ctypes.POINTER(ctypes.c_double)),
+        ("zlim", ctypes.POINTER(ctypes.c_double)),
+        ("theta", Spline2D),
+        ("nu", Spline2D),
+    ]
+
+
+init_fun(
+    "Boozer_init",
+    ctypes.POINTER(Struct),
+    *(4 * [ctypes.c_size_t]),
+    ctypes.c_int32,
+    *(5 * [ndpointer(ctypes.c_double)]),
+)
+
+init_fun("Boozer_free", ctypes.POINTER(Struct))
 
 
 @Leaf.register
-class BoozerMap(InputVariant):
+class Boozer(InputVariant):
     """Mapping between cylindrical and Boozer coordinates."""
-
-    @property
-    def nthetag(self) -> int:
-        r"""Number of geometric poloidal angle grid values in the data."""
-        if self._staged:
-            return self._struct_.theta_psithetageom.n_y
-        if self._format == Format.HDF5:
-            return self._read_hdf5("nthetag")
-
-    @property
-    def nthetab(self) -> int:
-        r"""Number of Boozer poloidal angle grid values in the data."""
-        if self._staged:
-            return self._struct_.nu_psitheta.n_y
-        if self._format == Format.HDF5:
-            return self._read_hdf5("nthetab")
 
     @property
     def psigrid(self) -> unyt.unyt_array:
         """Radial grid in psi in which the data is tabulated."""
-        if self._staged:
-            return np.linspace(
-                self._struct_.nu_psitheta.x_min,
-                self._struct_.nu_psitheta.x_max,
-                self._struct_.nu_psitheta.n_x
-                ) * unyt.dimensionless
-        if self._format == Format.HDF5:
-            nx, x0, x1 = self._read_hdf5("npsi", "psimin", "psimax")
-            return np.linspace(x0, x1, nx)
+        if self._cdata is not None:
+            return self._cdata.readonly_grid("x", "1", "nu")
+        assert self._file is not None
+        return self._file.read("psigrid")
 
     @property
     def separatrix(self) -> unyt.unyt_array:
         """Separatrix :math:`(R,z)` coordinates."""
-        if self._staged:
-            return np.stack(
-                (self._struct_.rs[: self._struct_.nrzs],
-                 self._struct_.zs[: self._struct_.nrzs],), axis=1,
-            ) * unyt.m
-        if self._format == Format.HDF5:
-            return np.stack(self._read_hdf5("rs", "zs"))
+        if self._cdata is not None:
+            r = self._cdata.readonly_carray("rlim", (self._cdata.nrz,), "m")
+            z = self._cdata.readonly_carray("zlim", (self._cdata.nrz,), "m")
+            return np.stack((r, z), axis=1).T
+        assert self._file is not None
+        return self._file.read("separatrix")
 
     @property
     def boozertoroidal(self):
         """Boozer toroidal coordinates tabulated as a function of psi and
         the poloidal Boozer angle."""
-        if self._staged:
-            return self._from_struct_("nu_psitheta", units="rad")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("boozertoroidal")
+        if self._cdata is not None:
+            return self._cdata.readonly_interp("nu", "rad")
+        assert self._file is not None
+        return self._file.read("boozertoroidal")
 
     @property
     def boozerpoloidal(self):
         """Boozer poloidal coordinates tabulated as a function of psi and
         the geometric poloidal angle."""
-        if self._staged:
-            data = self._from_struct_("theta_psithetageom", units="rad")
-            return data[:,_NPADDING:-_NPADDING]
-        if self._format == Format.HDF5:
-            return self._read_hdf5("boozerpoloidal")[:,_NPADDING:-_NPADDING]
+        if self._cdata is not None:
+            data = self._cdata.readonly_interp("theta", "rad")
+            return data[:, _NPADDING:-_NPADDING]
+        assert self._file is not None
+        return self._file.read("boozerpoloidal")[:, _NPADDING:-_NPADDING]
 
-    def _export_hdf5(self):
-        """Export data to HDF5 file."""
-        if self._format == Format.HDF5:
-            raise AscotIOException("Data is already stored in the file.")
-        data = self.export()
-        self._treemanager.hdf5manager.write_datasets(
-            self.qid, self.variant, data,
-            )
-        self._format = Format.HDF5
+    def _stage(
+        self,
+        psigrid: unyt.unyt_array,
+        boozerpoloidal: unyt.unyt_array,
+        boozertoroidal: unyt.unyt_array,
+        separatrix: unyt.unyt_array,
+    ) -> None:
+        self._cdata = Struct()
+        if LIBASCOT.Boozer_init(
+            ctypes.byref(self._cdata),
+            psigrid.size,
+            boozertoroidal.shape[1],
+            boozerpoloidal.shape[1],
+            separatrix.shape[1],
+            _NPADDING,
+            psigrid[[0, -1]],
+            boozertoroidal,
+            boozerpoloidal,
+            separatrix[:, 0],
+            separatrix[:, 1],
+        ):
+            self._cdata = None
+            raise AscotMeltdownError("Could not initialize struct.")
 
-    def export(self):
+    def _save_data(self) -> None:
+        assert self._file is not None
+        self._file.write("psigrid", self.psigrid)
+        self._file.write("separatrix", self.separatrix)
+        self._file.write("boozerpoloidal", self.boozerpoloidal)
+        self._file.write("boozertoroidal", self.boozertoroidal)
+
+    def export(self) -> dict[str, unyt.unyt_array]:
         data = {
-            "nthetag": self.nthetag,
-            "nthetab": self.nthetab,
             "psigrid": self.psigrid,
             "separatrix": self.separatrix,
             "boozerpoloidal": self.boozerpoloidal,
@@ -131,66 +138,33 @@ class BoozerMap(InputVariant):
         }
         return data
 
-    def stage(self):
-        init = LIBASCOT.boozer_init
-        init.restype = ctypes.c_int32
-        init.argtypes = [
-            ctypes.POINTER(__class__.Struct),
-            ctypes.c_int32,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_int32,
-            ctypes.c_int32,
-            ctypes.c_int32,
-            ndpointer(ctypes.c_double),
-            ndpointer(ctypes.c_double),
-            ctypes.c_int32,
-            ndpointer(ctypes.c_double),
-            ndpointer(ctypes.c_double),
-            ndpointer(ctypes.c_double),
-            ]
-        if not self._staged:
-            if init(
-                ctypes.byref(self._struct_),
-                self.exyz,
-            ):
-                raise AscotIOException("Failed to stage data.")
-            if self._format is Format.MEMORY:
-                del self._separatrix
-                del self._boozerpoloidal
-                del self._boozertoroidal
-            self._staged = True
+    def stage(self) -> None:
+        super().stage()
+        self._stage(**self.export())
 
-    def unstage(self):
-        free = LIBASCOT.boozer_free
-        free.restype = None
-        free.argtypes = [ctypes.POINTER(__class__.Struct)]
-
-        if self._staged:
-            if self._format is Format.MEMORY:
-                self._exyz = self.exyz
-            free(ctypes.byref(self._struct_))
-            self._staged = False
+    def unstage(self) -> None:
+        super().unstage()
+        assert self._cdata is not None
+        LIBASCOT.Boozer_free(ctypes.byref(self._cdata))
+        self._cdata = None
 
 
 # pylint: disable=too-few-public-methods
 class CreateBoozerMixin(TreeMixin):
-    """Mixin class used by :class:`Data` to create :class:`BoozerMap` input."""
+    """Mixin class used by :class:`Data` to create :class:`Boozer` input."""
 
-    #pylint: disable=protected-access, too-many-arguments, too-many-locals
-    def create_boozermap(
-            self,
-            psigrid: utils.ArrayLike,
-            nthetag: int,
-            nthetab: int,
-            boozerpoloidal: utils.ArrayLike,
-            boozertoroidal: utils.ArrayLike,
-            separatrix: utils.ArrayLike,
-            note: Optional[str]=None,
-            activate: bool=False,
-            preview: bool=False,
-            save: Optional[bool]=None,
-            ) -> BoozerMap:
+    # pylint: disable=protected-access, too-many-arguments, too-many-locals
+    def create_boozer(
+        self,
+        psigrid: utils.ArrayLike,
+        boozerpoloidal: utils.ArrayLike,
+        boozertoroidal: utils.ArrayLike,
+        separatrix: utils.ArrayLike,
+        note: Optional[str] = None,
+        activate: bool = False,
+        preview: bool = False,
+        save: Optional[bool] = None,
+    ) -> Boozer:
         r"""Create an input that implements a mapping between the cylindrical
         and the Boozer coordinates.
 
@@ -209,11 +183,6 @@ class CreateBoozerMixin(TreeMixin):
         psigrid : float
             The uniform grid in psi in which the Boozer poloidal and toroidal
             coordinates are tabulated.
-        nthetag : int
-            Number of geometric poloidal angle (angle between a point and the
-            outer mid plane) grid values.
-        nthetab : int
-            Number of poloidal Boozer coordinate grid values.
         boozerpoloidal : array_like (npsi, nthetag)
             Boozer poloidal coordinates tabulated as a function of psi and
             the geometric poloidal angle.
@@ -281,51 +250,46 @@ class CreateBoozerMixin(TreeMixin):
             symbols refer to the geometrical poloidal and toroidal angle,
             respectively.
         """
-        parameters = _variants.parse_parameters(
-            psigrid, nthetag, nthetab, boozerpoloidal, boozertoroidal,
-            separatrix,
-        )
-        default_psigrid = np.linspace(0.0, 1.0, 10)
-        default_sep = np.stack(
-            (np.array([0.0, 1.0, 1.0, 0.0]), np.array([0.0, 0.0, 1.0, 1.0]))
+
+        with utils.validate_variables() as v:
+            psigrid = v.validate("psigrid", psigrid, (-1,), "1")
+            separatrix = v.validate("separatrix", separatrix, (2, 4), "m")
+
+        npsi = psigrid.size
+        with utils.validate_variables() as v:
+            boozerpoloidal = v.validate(
+                "boozerpoloidal", boozerpoloidal, (npsi, -1), "rad"
             )
-        npsi = (default_psigrid.size if parameters["psigrid"] is None
-             else parameters["psigrid"].size)
-        nsep = (default_sep.shape[1] if parameters["separatrix"] is None
-                else parameters["separatrix"].shape[0])
-        nthetag = (6 if parameters["nthetag"] is None
-                   else int(parameters["nthetag"]))
-        nthetab = (12 if parameters["nthetab"] is None
-                   else int(parameters["nthetab"]))
-        _variants.validate_required_parameters(
-            parameters,
-            names=["psigrid", "boozerpoloidal", "boozertoroidal", "separatrix",
-                   "nthetag", "nthetab",],
-            units=["1", "rad", "rad", "m", "1", "1",],
-            shape=[(npsi,), (npsi, nthetag), (npsi, nthetab), (nsep, 2),
-                   (), ()],
-            dtype=["f8", "f8", "f8", "f8", "i4", "i4"],
-            default=[default_psigrid, np.zeros((npsi, nthetag)),
-                     np.zeros((npsi, nthetab)), default_sep, nthetag, nthetab,],
-        )
+            boozertoroidal = v.validate(
+                "boozertoroidal", boozertoroidal, (npsi, -1), "rad"
+            )
+
+        utils.validate_abscissa(psigrid, "psigrid")
 
         # Extending boozerpoloidal data, see _PADDING for why we do it
-        data = np.copy(parameters["boozerpoloidal"]).T
-        parameters["boozerpoloidal"] = np.concatenate(
-            (data, data[-1,:] + data[1:_NPADDING+1,:]) )
-        parameters["boozerpoloidal"] = np.concatenate(
-            (data[int(nthetag-_NPADDING-1):-1,:] - data[-1,:],
-             parameters["boozerpoloidal"]) )
-        parameters["boozerpoloidal"] = parameters["boozerpoloidal"].T
+        nthetag = boozerpoloidal.shape[1]
+        data = np.copy(boozerpoloidal).T
+        boozerpoloidal = np.concatenate(
+            (data, data[-1, :] + data[1 : _NPADDING + 1, :])
+        )
+        boozerpoloidal = np.concatenate(
+            (data[int(nthetag - _NPADDING - 1) : -1, :] - data[-1, :], boozerpoloidal)
+        )
+        boozerpoloidal = boozerpoloidal.T
 
-        meta = _variants.new_metadata("BoozerMap", note=note)
-        obj = self._treemanager.enter_input(
-            meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
-            )
-        for parameter, value in parameters.items():
-            setattr(obj, f"_{parameter}", value)
-            getattr(obj, f"_{parameter}").flags.writeable = False
-
-        if store_hdf5:
-            obj._export_hdf5()
-        return obj
+        leaf = Boozer(note=note)
+        leaf._stage(
+            psigrid,
+            boozerpoloidal,
+            boozertoroidal,
+            separatrix,
+        )
+        if preview:
+            return leaf
+        self._treemanager.enter_leaf(
+            leaf,
+            activate=activate,
+            save=save,
+            category="boozer",
+        )
+        return leaf

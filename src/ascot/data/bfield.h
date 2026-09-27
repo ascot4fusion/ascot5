@@ -135,8 +135,9 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
  *
  * Returns the position stored in the struct.
  *
- * @param axisrz Evaluated axis coordinates [m].
+ * @param rz Evaluated axis coordinates [m].
  * @param bfield The magnetic field data.
+ * @param phi phi coordinate of the query point [rad].
  *
  * @return Zero if the evaluation succeeded.
  */

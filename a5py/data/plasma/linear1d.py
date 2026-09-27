@@ -1,6 +1,7 @@
 """Defines Plasma1D radial plasma input class and the corresponding factory
 method.
 """
+
 import ctypes
 from typing import Optional
 
@@ -30,17 +31,17 @@ class Struct(DataStruct):
         ("vtor", ctypes.POINTER(ctypes.c_double)),
         ("temperature", ctypes.POINTER(ctypes.c_double)),
         ("density", ctypes.POINTER(ctypes.c_double)),
-        ]
+    ]
 
 
 init_fun(
     "PlasmaLinear1D_init",
     ctypes.POINTER(Struct),
-    *(2*[ctypes.c_size_t]),
-    *(2*[ndpointer(ctypes.c_int32)]),
-    *(8*[ndpointer(ctypes.c_double)]),
+    *(2 * [ctypes.c_size_t]),
+    *(2 * [ndpointer(ctypes.c_int32)]),
+    *(8 * [ndpointer(ctypes.c_double)]),
     restype=ctypes.c_int32,
-    )
+)
 
 init_fun("PlasmaLinear1D_free", ctypes.POINTER(Struct))
 
@@ -106,9 +107,11 @@ class PlasmaLinear1D(InputVariant):
         """Density for each ion species."""
         if self._cdata is not None:
             data = self._cdata.readonly_carray(
-                "density", (self.nion+1, self.nrho), "m**(-3)",
-                )
-            return data.T[:,1:]
+                "density",
+                (self.nion + 1, self.nrho),
+                "m**(-3)",
+            )
+            return data.T[:, 1:]
         assert self._file is not None
         return self._file.read("ni")
 
@@ -117,7 +120,7 @@ class PlasmaLinear1D(InputVariant):
         """Ion temperature."""
         if self._cdata is not None:
             data = self._cdata.readonly_carray("temperature", (self.nrho, 2), "J")
-            return data[:,0].to("eV")
+            return data[:, 0].to("eV")
         assert self._file is not None
         return self._file.read("Ti")
 
@@ -126,9 +129,11 @@ class PlasmaLinear1D(InputVariant):
         """Electron density."""
         if self._cdata is not None:
             data = self._cdata.readonly_carray(
-                "density", (self.nion+1, self.nrho), "m**(-3)",
-                )
-            return data.T[:,0]
+                "density",
+                (self.nion + 1, self.nrho),
+                "m**(-3)",
+            )
+            return data.T[:, 0]
         assert self._file is not None
         return self._file.read("ne")
 
@@ -136,9 +141,8 @@ class PlasmaLinear1D(InputVariant):
     def Te(self) -> unyt.unyt_array:
         """Electron temperature."""
         if self._cdata is not None:
-            nrho = self.rhogrid.size
-            data = self._cdata.readonly_carray("temperature", (nrho, 2), "J")
-            return data[:,1].to("eV")
+            data = self._cdata.readonly_carray("temperature", (self.nrho, 2), "J")
+            return data[:, 1].to("eV")
         assert self._file is not None
         return self._file.read("Te")
 
@@ -146,9 +150,7 @@ class PlasmaLinear1D(InputVariant):
     def charge(self) -> unyt.unyt_array:
         """Ion charge states."""
         if self._cdata is not None:
-            return self._cdata.readonly_carray(
-                "charge", (self.nion,), "C"
-                ).to("e")
+            return self._cdata.readonly_carray("charge", (self.nion,), "C").to("e")
         assert self._file is not None
         return self._file.read("charge")
 
@@ -160,34 +162,51 @@ class PlasmaLinear1D(InputVariant):
         assert self._file is not None
         return self._file.read("rotation")
 
-    #pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments
     def _stage(
-            self, species: list[Species],
-            rhogrid: unyt.unyt_array,
-            ni: unyt.unyt_array,
-            Ti: unyt.unyt_array,
-            ne: unyt.unyt_array,
-            Te: unyt.unyt_array,
-            charge: unyt.unyt_array,
-            rotation: unyt.unyt_array,
-            ) -> None:
+        self,
+        species: list[Species],
+        rhogrid: unyt.unyt_array,
+        ni: unyt.unyt_array,
+        Ti: unyt.unyt_array,
+        ne: unyt.unyt_array,
+        Te: unyt.unyt_array,
+        charge: unyt.unyt_array,
+        rotation: unyt.unyt_array,
+    ) -> None:
         anum = np.array([s.anum for s in species], dtype="i4")
         znum = np.array([s.znum for s in species], dtype="i4")
         mass = unyt.unyt_array([s.mass for s in species], dtype="f8")
         self._cdata = Struct()
         if LIBASCOT.PlasmaLinear1D_init(
-            ctypes.byref(self._cdata), rhogrid.size, len(species), anum, znum,
-            mass.to("kg").v, charge.to("C").v.astype("f8"), rhogrid.v,
-            Te.to("J").v, Ti.to("J").v, ne.v, ni.v, rotation.v,
-            ):
+            ctypes.byref(self._cdata),
+            rhogrid.size,
+            len(species),
+            anum,
+            znum,
+            mass.to("kg").v,
+            charge.to("C").v.astype("f8"),
+            rhogrid.v,
+            Te.to("J").v,
+            Ti.to("J").v,
+            ne.v,
+            ni.v,
+            rotation.v,
+        ):
             self._cdata = None
             raise AscotMeltdownError("Could not initialize struct.")
 
     def _save_data(self) -> None:
         assert self._file is not None
         for field in [
-            "rhogrid", "ni", "Ti", "ne", "Te", "charge", "rotation",
-            ]:
+            "rhogrid",
+            "ni",
+            "Ti",
+            "ne",
+            "Te",
+            "charge",
+            "rotation",
+        ]:
             self._file.write(field, getattr(self, field))
 
         self._file.write("anum", self.anum)
@@ -195,16 +214,29 @@ class PlasmaLinear1D(InputVariant):
 
     def export(self) -> dict[str, unyt.unyt_array | list[Species]]:
         fields = [
-            "rhogrid", "ni", "Ti", "ne", "Te", "charge", "rotation", "species",
-            ]
+            "rhogrid",
+            "ni",
+            "Ti",
+            "ne",
+            "Te",
+            "charge",
+            "rotation",
+            "species",
+        ]
         return {field: getattr(self, field) for field in fields}
 
     def stage(self) -> None:
         super().stage()
         self._stage(
-            species=self.species, rhogrid=self.rhogrid, ni=self.ni, Ti=self.Ti,
-            ne=self.ne, Te=self.Te, charge=self.charge, rotation=self.rotation,
-            )
+            species=self.species,
+            rhogrid=self.rhogrid,
+            ni=self.ni,
+            Ti=self.Ti,
+            ne=self.ne,
+            Te=self.Te,
+            charge=self.charge,
+            rotation=self.rotation,
+        )
 
     def unstage(self) -> None:
         super().unstage()
@@ -217,22 +249,22 @@ class PlasmaLinear1D(InputVariant):
 class CreateMixin(TreeMixin):
     """Provides the factory method."""
 
-    #pylint: disable=protected-access, too-many-arguments, too-many-locals
+    # pylint: disable=protected-access, too-many-arguments, too-many-locals
     def create_plasmalinear1d(
-            self,
-            species: list[str] | list[Species],
-            rhogrid: unyt.unyt_array,
-            ni: unyt.unyt_array,
-            Ti: unyt.unyt_array,
-            ne: Optional[unyt.unyt_array]=None,
-            Te: Optional[unyt.unyt_array]=None,
-            charge: Optional[unyt.unyt_array]=None,
-            rotation: Optional[unyt.unyt_array]=None,
-            note: Optional[str]=None,
-            activate: bool=False,
-            preview: bool=False,
-            save: Optional[bool]=None,
-            ) -> PlasmaLinear1D:
+        self,
+        species: list[str] | list[Species],
+        rhogrid: unyt.unyt_array,
+        ni: unyt.unyt_array,
+        Ti: unyt.unyt_array,
+        ne: Optional[unyt.unyt_array] = None,
+        Te: Optional[unyt.unyt_array] = None,
+        charge: Optional[unyt.unyt_array] = None,
+        rotation: Optional[unyt.unyt_array] = None,
+        note: Optional[str] = None,
+        activate: bool = False,
+        preview: bool = False,
+        save: Optional[bool] = None,
+    ) -> PlasmaLinear1D:
         r"""Create plasma profiles that have only radial dependency.
 
         This is the most usual plasma input. The profiles should extend beyond
@@ -290,8 +322,9 @@ class CreateMixin(TreeMixin):
         inputdata : :class:`.Plasma1D`
             Input variant created from the given parameters.
         """
-        species = [s if isinstance(s, Species) else Species.from_string(s)
-                   for s in species]
+        species = [
+            s if isinstance(s, Species) else Species.from_string(s) for s in species
+        ]
         nion = len(species)
         znum = np.array([s.znum for s in species])
 
@@ -306,7 +339,8 @@ class CreateMixin(TreeMixin):
             Ti = v.validate("Ti", Ti, (nrho,), "eV")
             charge = v.validate("charge", charge, (nion,), "e", default=znum)
             rotation = v.validate(
-                "rotation", rotation, (nrho,), "rad/s", default=np.full(nrho, 0))
+                "rotation", rotation, (nrho,), "rad/s", default=np.full(nrho, 0)
+            )
 
         if charge is None:
             charge_density = np.matmul(ni, znum)
@@ -321,12 +355,21 @@ class CreateMixin(TreeMixin):
 
         leaf = PlasmaLinear1D(note=note)
         leaf._stage(
-            species=species, rhogrid=rhogrid, ni=ni, Ti=Ti, ne=ne, Te=Te,
-            charge=charge, rotation=rotation,
-            )
+            species=species,
+            rhogrid=rhogrid,
+            ni=ni,
+            Ti=Ti,
+            ne=ne,
+            Te=Te,
+            charge=charge,
+            rotation=rotation,
+        )
         if preview:
             return leaf
         self._treemanager.enter_leaf(
-            leaf, activate=activate, save=save, category="plasma",
-            )
+            leaf,
+            activate=activate,
+            save=save,
+            category="plasma",
+        )
         return leaf

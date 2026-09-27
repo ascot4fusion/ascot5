@@ -1,6 +1,6 @@
 /**
- * @file mccc_gc_milstein.c
- * @brief Milstein integrator for collision operator in GC picture.
+ * Implements Milstein integrator for collision operator in GC picture (see
+ * coulomb_collisions.h).
  */
 #include "consts.h"
 #include "coulomb_collisions.h"
@@ -26,17 +26,17 @@ void mccc_gc_milstein(
     const real *mb = Plasma_get_species_mass(plasma);
 
     GPU_DATA_IS_MAPPED(
-        hin [0:p->n_mrk], hout [0:p->n_mrk], rnd [0:5 * p->n_mrk],
-        w [0:p->n_mrk], acc [0:p->n_mrk], collfreq [0:p->n_mrk])
+        hin [0:p->size], hout [0:p->size], rnd [0:5 * p->size],
+        w [0:p->size], acc [0:p->size], collfreq [0:p->size])
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for (size_t i = 0; i < p->n_mrk; i++)
+    for (size_t i = 0; i < p->size; i++)
     {
         if (p->running[i])
         {
             err_t errflag = 0;
 
             /* Initial (R,z) position and magnetic field are needed for later */
-            real Brpz[3] = {p->B_r[i], p->B_phi[i], p->B_z[i]};
+            real Brpz[3] = {p->br[i], p->bphi[i], p->bz[i]};
             real Bnorm = math_norm(Brpz);
             real Bxyz[3];
             math_vec_rpz2xyz(Brpz, Bxyz, p->phi[i]);
@@ -54,9 +54,9 @@ void mccc_gc_milstein(
                     &vflow, p->rho[i], p->r[i], p->phi[i], p->z[i], p->time[i],
                     plasma);
             }
-            pin = physlib_gc_p(p->mass[i], p->mu[i], p->ppar[i], Bnorm);
-            xiin = physlib_gc_xi(p->mass[i], p->mu[i], p->ppar[i], Bnorm);
-            vin = physlib_vnorm_pnorm(p->mass[i], pin);
+            pin = physlib_gc_p(p->mass, p->mu[i], p->ppar[i], Bnorm);
+            xiin = physlib_gc_xi(p->mass, p->mu[i], p->ppar[i], Bnorm);
+            vin = physlib_vnorm_pnorm(p->mass, pin);
             vpar = xiin * vin;
             vperp2 = (1 - xiin * xiin) * vin * vin;
             vin = sqrt((vpar - vflow) * (vpar - vflow) + vperp2);
@@ -74,13 +74,13 @@ void mccc_gc_milstein(
             /* Coulomb logarithm */
             real clogab[MAX_SPECIES];
             mccc_coefs_clog(
-                clogab, p->mass[i], p->charge[i], vin, n_species, mb, qb, nb,
+                clogab, p->mass, p->charge[i] * CONST_E, vin, n_species, mb, qb, nb,
                 Tb);
 
             /* Evaluate collision coefficients and sum them for each *
              * species                                               */
             real gyrofreq =
-                phys_gyrofreq_pnorm(p->mass[i], p->charge[i], pin, Bnorm);
+                phys_gyrofreq_pnorm(p->mass, p->charge[i] * CONST_E, pin, Bnorm);
             real K = 0, Dpara = 0, dDpara = 0, dQ = 0, nu = 0, DX = 0;
 
             GPU_SEQUENTIAL_LOOP
@@ -92,21 +92,21 @@ void mccc_gc_milstein(
                 mccc_coefs_mufun(mufun, x);
 
                 real Qb = mccc_coefs_Q(
-                    p->mass[i], p->charge[i], mb[j], qb[j], nb[j], vb,
+                    p->mass, p->charge[i] * CONST_E, mb[j], qb[j], nb[j], vb,
                     clogab[j], mufun[0]);
                 real Dparab = mccc_coefs_Dpara(
-                    p->mass[i], p->charge[i], vin, qb[j], nb[j], vb, clogab[j],
+                    p->mass, p->charge[i] * CONST_E, vin, qb[j], nb[j], vb, clogab[j],
                     mufun[0]);
                 real Dperpb = mccc_coefs_Dperp(
-                    p->mass[i], p->charge[i], vin, qb[j], nb[j], vb, clogab[j],
+                    p->mass, p->charge[i] * CONST_E, vin, qb[j], nb[j], vb, clogab[j],
                     mufun[1]);
                 real dDparab = mccc_coefs_dDpara(
-                    p->mass[i], p->charge[i], vin, qb[j], nb[j], vb, clogab[j],
+                    p->mass, p->charge[i] * CONST_E, vin, qb[j], nb[j], vb, clogab[j],
                     mufun[0], mufun[2]);
 
                 K += mccc_coefs_K(vin, Dparab, dDparab, Qb);
                 dQ += mccc_coefs_dQ(
-                    p->mass[i], p->charge[i], mb[j], qb[j], nb[j], vb,
+                    p->mass, p->charge[i] * CONST_E, mb[j], qb[j], nb[j], vb,
                     clogab[j], mufun[2]);
                 Dpara += Dparab;
                 dDpara += dDparab;
@@ -150,7 +150,7 @@ void mccc_gc_milstein(
                     0.5 * xiin * nu * (dW[4] * dW[4] - hin[i] * acc[i]);
 
             /* Enforce boundary conditions */
-            real cutoff = MCCC_CUTOFF * sqrt(Tb[0] / p->mass[i]);
+            real cutoff = MCCC_CUTOFF * sqrt(Tb[0] / p->mass);
             if (vout < cutoff)
             {
                 vout = 2 * cutoff - vout;
@@ -211,7 +211,7 @@ void mccc_gc_milstein(
             vperp2 = (1 - xiout * xiout) * vout * vout;
             vout = sqrt((vpar + vflow) * (vpar + vflow) + vperp2);
             xiout = (vpar + vflow) / vout;
-            real pout = physlib_pnorm_vnorm(p->mass[i], vout);
+            real pout = physlib_pnorm_vnorm(p->mass, vout);
 
             /* Back to cylindrical coordinates */
             real Xout_rpz[3];
@@ -239,20 +239,20 @@ void mccc_gc_milstein(
             if (!errflag)
             {
                 /* Update marker coordinates at the new position */
-                p->B_r[i] = B_dB[0];
-                p->B_r_dr[i] = B_dB[3];
-                p->B_r_dphi[i] = B_dB[4];
-                p->B_r_dz[i] = B_dB[5];
+                p->br[i] = B_dB[0];
+                p->dbrdr[i] = B_dB[3];
+                p->dbrdphi[i] = B_dB[4];
+                p->dbrdz[i] = B_dB[5];
 
-                p->B_phi[i] = B_dB[1];
-                p->B_phi_dr[i] = B_dB[4];
-                p->B_phi_dphi[i] = B_dB[5];
-                p->B_phi_dz[i] = B_dB[6];
+                p->bphi[i] = B_dB[1];
+                p->dbphidr[i] = B_dB[4];
+                p->dbphidphi[i] = B_dB[5];
+                p->dbphidz[i] = B_dB[6];
 
-                p->B_z[i] = B_dB[2];
-                p->B_z_dr[i] = B_dB[9];
-                p->B_z_dphi[i] = B_dB[10];
-                p->B_z_dz[i] = B_dB[11];
+                p->bz[i] = B_dB[2];
+                p->dbzdr[i] = B_dB[9];
+                p->dbzdphi[i] = B_dB[10];
+                p->dbzdz[i] = B_dB[11];
 
                 p->rho[i] = rho[0];
 

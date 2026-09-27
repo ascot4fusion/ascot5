@@ -78,7 +78,6 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
  *
  * @param psi Evaluated poloidal flux [Wb/rad].
  * @param r R coordinate of the query point [m].
- * @param phi phi coordinate of the query point [rad].
  * @param z z coordinate of the query point [m].
  * @param bfield The magnetic field data.
  *
@@ -95,7 +94,6 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
  * @param psi_dpsi Evaluated poloidal flux and it's derivatives [Wb/rad].
  *        Layout: [psi, dpsi/dr, dpsi/dphi, dpsi/dz].
  * @param r R coordinate of the query point [m].
- * @param phi phi coordinate of the query point [rad].
  * @param z z coordinate of the query point [m].
  * @param bfield The magnetic field data.
  *
@@ -146,12 +144,12 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
  *
  * Returns the position stored in the struct.
  *
- * @param axisrz Evaluated axis coordinates [m].
+ * @param rz Evaluated axis coordinates [m].
  * @param bfield The magnetic field data.
  *
  * @return Zero if the evaluation succeeded.
  */
-err_t BfieldSpline3D_eval_axisrz(real axisrz[2], BfieldSpline3D *bfield);
+err_t BfieldSpline3D_eval_axisrz(real rz[2], BfieldSpline3D *bfield);
 DECLARE_TARGET_END
 
 #endif

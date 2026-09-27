@@ -255,7 +255,7 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         #ifdef GPU
         n_running = 0;
         GPU_PARALLEL_LOOP_ALL_LEVELS_REDUCTION(n_running)
-        for(int i = 0; i < p.n_mrk; i++)
+        for(int i = 0; i < p.size; i++)
         {
             if(p.running[i] > 0) n_running++;
         }

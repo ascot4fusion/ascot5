@@ -28,12 +28,14 @@
  * @param bfield The struct to initialize.
  * @param pnr Number of R grid points in ``psi``.
  * @param pnz Number of z grid points in ``psi``.
+ * @param pnphi Number of phi grid points in ``psi``.
  * @param bnr Number of R grid points in ``br``, ``bz``, and ``bphi``.
  * @param bnz Number of z grid points in ``br``, ``bz``, and ``bphi``.
  * @param bnphi Number of phi grid points in ``br``, ``bz``, and ``bphi``.´
  * @param naxis Number of grid points in ``axisr`` and ``axisz``.
  * @param prlim Limits of the uniform R abscissa in ``psi`` [m].
  * @param pzlim Limits of the uniform z abscissa in ``psi`` [m].
+ * @param pphilim Limits of the uniform phi abscissa in ``psi`` [rad].
  * @param brlim Limits of the uniform R abscissa in ``br``, ``bz``,
  *        and ``bphi`` [m].
  * @param bzlim Limits of the uniform z abscissa in ``br``, ``bz``,
@@ -155,13 +157,13 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
  * Uses linear interpolation to find the axis location from tabulated values at
  * the given toroidal position.
  *
- * @param axisrz Evaluated axis coordinates [m].
+ * @param rz Evaluated axis coordinates [m].
  * @param phi phi coordinate of the query point [rad].
  * @param bfield The magnetic field data.
  *
  * @return Zero if the evaluation succeeded.
  */
 err_t BfieldStellarator_eval_axisrz(
-    real axisrz[2], real phi, BfieldStellarator *bfield);
+    real rz[2], real phi, BfieldStellarator *bfield);
 DECLARE_TARGET_END
 #endif

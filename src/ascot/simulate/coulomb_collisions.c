@@ -1,6 +1,5 @@
 /**
- * @file mccc.c
- * @brief Interface for using mccc package within ascot5
+ * Contains initialization of the Coulomb collision data.
  */
 #include "coulomb_collisions.h"
 #include <math.h>

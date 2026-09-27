@@ -22,7 +22,7 @@ void ascot_map_rhotheta_to_rz(
     uint8_t status[npnt])
 {
     (void)t;
-    OMP_PARALLEL_CPU_ONLY
+    #pragma omp parallel for
     for (size_t j = 0; j < npnt; j++)
     {
         real axisrz[2], psi_dpsi[4], rho_drho[4];

@@ -10,7 +10,7 @@ from .plasma import Plasma
 from .neutral import Neutral
 from .wall import Wall
 from .mhd import Mhd
-from .boozer import BoozerMap
+from .boozer import Boozer
 from .atomic import Atomic
 from .nbi import NbiStruct
 from .orbit import Orbit
@@ -29,7 +29,7 @@ __all__ = [
     "Neutral",
     "Wall",
     "Mhd",
-    "BoozerMap",
+    "Boozer",
     "Atomic",
     "NbiStruct",
     "Orbit",

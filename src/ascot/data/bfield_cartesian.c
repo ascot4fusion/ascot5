@@ -87,14 +87,22 @@ err_t BfieldCartesian_eval_b_db(
               jacobian[5] * xyz[2];
     b_dbxyz[2] = bfield->bxyz[2] + jacobian[6] * xyz[0] + jacobian[7] * xyz[1] +
               jacobian[8] * xyz[2];
+    b_dbxyz[3] = jacobian[0];
+    b_dbxyz[4] = jacobian[1];
+    b_dbxyz[5] = jacobian[2];
+    b_dbxyz[6] = jacobian[3];
+    b_dbxyz[7] = jacobian[4];
+    b_dbxyz[8] = jacobian[5];
+    b_dbxyz[9] = jacobian[6];
+    b_dbxyz[10] = jacobian[7];
+    b_dbxyz[11] = jacobian[8];
     math_jac_xyz2rpz(b_db, b_dbxyz, r, phi);
-
     return 0;
 }
 
-err_t BfieldCartesian_eval_axisrz(real axisrz[2], BfieldCartesian *bfield)
+err_t BfieldCartesian_eval_axisrz(real rz[2], BfieldCartesian *bfield)
 {
-    axisrz[0] = bfield->axisrz[0];
-    axisrz[1] = bfield->axisrz[1];
+    rz[0] = bfield->axisrz[0];
+    rz[1] = bfield->axisrz[1];
     return 0;
 }

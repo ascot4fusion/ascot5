@@ -14,8 +14,8 @@
  * Allocates the spline interpolant used to evaluate the electric field.
  *
  * @param efield The struct to initialize.
- * @param nrho Number of points in the radial grid.
- * @param nrho Number of points in the axial grid.
+ * @param nr Number of points in the radial grid.
+ * @param nz Number of points in the axial grid.
  * @param rlim Range of the uniform radial grid [m].
  * @param zlim Range of the uniform axial grid [m].
  * @param vpot The electric field potential in the grid points.

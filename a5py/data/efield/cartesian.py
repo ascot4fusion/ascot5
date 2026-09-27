@@ -44,7 +44,6 @@ class EfieldCartesian(InputVariant):
         assert self._file is not None
         return self._file.read("exyz")
 
-    # pylint: disable=too-many-arguments
     def _stage(self, exyz: unyt.unyt_array) -> None:
         self._cdata = Struct()
         if LIBASCOT.EfieldCartesian_init(ctypes.byref(self._cdata), exyz.v):

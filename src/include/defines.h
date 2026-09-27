@@ -182,8 +182,8 @@ typedef unsigned int err_t;
  * @param type Type of the error.
  * @param file The current file.
  */
-#define ERROR_CHECK(err, condition, type, file_id)                             \
-    ((err) ? (err) : ((condition) ? ERROR_RAISE((type), (file_id)) : 0))
+#define ERROR_CHECK(err, condition, type, file)                                \
+    ((err) ? (err) : ((condition) ? ERROR_RAISE((type), (file)) : 0))
 
 /**
  * Error types.

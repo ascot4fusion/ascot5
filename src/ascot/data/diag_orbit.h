@@ -1,8 +1,6 @@
 /**
- * @file diag_orb.h
- * @brief Header file for diag_orb.c.
- *
- * This file also contains definitions for orbit diagnostics data structures.
+ * @file diag_orbit.h
+ * Orbit diagnostic.
  */
 #ifndef DIAG_ORB_H
 #define DIAG_ORB_H

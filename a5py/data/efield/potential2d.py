@@ -22,83 +22,85 @@ class Struct(DataStruct):
         ("potential", Spline2D),
         ]
 
+init_fun(
+    "EfieldPotential2D_init",
+    ctypes.POINTER(Struct),
+    ctypes.c_size_t,
+    ctypes.c_size_t,
+    ndpointer(ctypes.c_double),
+    ndpointer(ctypes.c_double),
+    ndpointer(ctypes.c_double),
+)
+
+init_fun("EfieldPotential2D_free", ctypes.POINTER(Struct))
 
 @Leaf.register
 class EfieldPotential2D(InputVariant):
-    """Radial electric field evaluated from the gradient of a 1D potential."""
+    """Axisymmetric electric field evaluated from 2D potential."""
 
     @property
-    def rhogrid(self) -> unyt.unyt_array:
-        """Radial grid in rho in which the data is tabulated."""
-        if self._staged:
-            return np.linspace(
-                self._struct_.dv.x_min,
-                self._struct_.dv.x_max,
-                self._struct_.dv.n_x
-                ) * unyt.dimensionless
-        if self._format == Format.HDF5:
-            nx, x0, x1 = self._read_hdf5("nrho", "rhomin", "rhomax")
-            return np.linspace(x0, x1, nx) * unyt.dimensionless
+    def rgrid(self) -> unyt.unyt_array:
+        """Radial grid in :math:`R` in which the data is tabulated."""
+        if self._cdata is not None:
+            return self._cdata.readonly_grid("x", "m", "potential")
+        assert self._file is not None
+        return self._file.read("rgrid")
 
     @property
-    def dvdrho(self) -> unyt.unyt_array:
-        """Derivative of the electric potential with respect to minor radius."""
-        if self._staged:
-            return self._from_struct_("dV", units="V/m")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("dvdrho")
+    def zgrid(self) -> unyt.unyt_array:
+        """Axial grid in :math:`z` in which the data is tabulated."""
+        if self._cdata is not None:
+            return self._cdata.readonly_grid("y", "m", "potential")
+        assert self._file is not None
+        return self._file.read("zgrid")
 
     @property
-    def reff(self) -> unyt.unyt_array:
-        """Effective minor radius."""
-        if self._staged:
-            return self._from_struct_("reff", shape=(1,), units="m")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("reff")
+    def potential(self) -> unyt.unyt_array:
+        """Electric field potential as a function of :math:`r` and :math:`z`."""
+        if self._cdata is not None:
+            return self._cdata.readonly_interp("potential", "V")
+        assert self._file is not None
+        return self._file.read("potential")
 
-    def export(self):
+
+    def _stage(
+        self, rgrid: unyt.unyt_array, zgrid: unyt.unyt_array, potential: unyt.unyt_array,
+    ) -> None:
+        self._cdata = Struct()
+        if LIBASCOT.EfieldPotential2D_init(
+            ctypes.byref(self._cdata),
+            rgrid.size,
+            zgrid.size,
+            rgrid[[0, -1]].v,
+            zgrid[[0, -1]].v,
+            potential.v,
+        ):
+            self._cdata = None
+            raise AscotMeltdownError("Could not initialize struct.")
+
+    def _save_data(self) -> None:
+        assert self._file is not None
+        self._file.write("rgrid", self.rgrid)
+        self._file.write("zgrid", self.zgrid)
+        self._file.write("potential", self.potential)
+
+    def export(self) -> dict[str, unyt.unyt_array]:
         data = {
-            "reff":self.reff,
-            "rhogrid":self.rhogrid,
-            "dvdrho":self.dvdrho,
+            "rgrid": self.rgrid,
+            "zgrid": self.zgrid,
+            "potential": self.potential,
         }
         return data
 
-    def stage(self):
-        init = LIBASCOT.EfieldPotential1D_init
-        init.restype = ctypes.c_int32
-        init.argtypes = [
-            ctypes.POINTER(__class__.Struct),
-            ctypes.c_int32,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_double,
-            ndpointer(ctypes.c_double),
-            ]
-        if not self._staged:
-            if init(
-                ctypes.byref(self._struct_),
-                self.rhogrid.size,
-                self.rhogrid[0].v,
-                self.rhogrid[-1].v,
-                self.reff[0].v,
-                self.dvdrho,
-            ):
-                raise AscotIOException("Failed to stage data.")
-            if self._format is Format.MEMORY:
-                del self._dvdrho
-            self._staged = True
+    def stage(self) -> None:
+        super().stage()
+        self._stage(**self.export())
 
-    def unstage(self):
-        free = LIBASCOT.EfieldPotential1D_free
-        free.restype = None
-        free.argtypes = [ctypes.POINTER(__class__.Struct)]
-
-        if self._staged:
-            if self._format is Format.MEMORY:
-                self._dvdrho = self.dvdrho
-            free(ctypes.byref(self._struct_))
-            self._staged = False
+    def unstage(self) -> None:
+        super().unstage()
+        assert self._cdata is not None
+        LIBASCOT.EfieldPotential2D_free(ctypes.byref(self._cdata))
+        self._cdata = None
 
 
 # pylint: disable=too-few-public-methods
@@ -108,9 +110,9 @@ class CreateMixin(TreeMixin):
     #pylint: disable=protected-access, too-many-arguments, too-many-locals
     def create_efieldpotential2d(
             self,
-            rhogrid: utils.ArrayLike,
-            dvdrho: utils.ArrayLike,
-            reff: Optional[float]=None,
+            rgrid: utils.ArrayLike,
+            zgrid: utils.ArrayLike,
+            potential: utils.ArrayLike,
             note: Optional[str]=None,
             activate: bool=False,
             preview: bool=False,
@@ -123,20 +125,12 @@ class CreateMixin(TreeMixin):
 
         Parameters
         ----------
-        rhogrid : array_like (nrho,)
-            Radial grid in rho in which the data is tabulated.
-        dvdrho : array_like (nrho,)
-            Derivative of electric potential with respect to minor radius.
-
-            If :math:`r_\mathrm{eff} = 1` m, this is essentially equal to
-            :math:`\partial V/ \partial r`.
-        reff : float, *optional*
-            Effective minor radius.
-
-            This is defined as
-            :math:`r_\mathrm{eff} = \partial r/ \partial \rho`, and it is used
-            to convert :math:`\partial V/ \partial \rho` to
-            :math:`\partial V/ \partial r`.
+        rgrid : array_like (nr,)
+            Radial grid in :math:`R` in which the data is tabulated.
+        zgrid : array_like (nz,)
+            Axial grid in :math:`z` in which the data is tabulated.
+        potential : array_like (nr, nz)
+            Electric field potential as a function of :math:`r` and :math:`z`.
         note : str, *optional*
             A short note to document this data.
 
@@ -159,36 +153,30 @@ class CreateMixin(TreeMixin):
 
         Notes
         -----
-        The electric field is evaluated from the gradient of the 1D potential
-        and the gradient of the square of the normalized poloidal flux:
+        The electric field is evaluated from the gradient of the 2D potential:
 
         .. math::
 
-            \mathbf{E} = \frac{\partial V}{\partial \rho}
-                         \nabla \rho.
+            \mathbf{E} = \frac{\partial V}{\partial \r} \hat{\mathbf{r}}
+                       + \frac{\partial V}{\partial z} \hat{\mathbf{z}}.
         """
-        parameters = _variants.parse_parameters(
-            rhogrid, dvdrho, reff,
-        )
-        default_rhogrid = np.linspace(0., 1., 3)
-        nrho = (default_rhogrid.size if parameters["rhogrid"] is None
-              else parameters["rhogrid"].size)
-        _variants.validate_required_parameters(
-            parameters,
-            names=["rhogrid", "dvdrho", "reff",],
-            units=["1", "V/m", "m",],
-            shape=[(nrho,), (nrho,), (1,)],
-            dtype="f8",
-            default=[np.array([0., 0.5, 1.]), np.zeros((3,)), 1.],
-        )
-        meta = _variants.new_metadata("EfieldRadialPotential", note=note)
-        obj = self._treemanager.enter_input(
-            meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
-            )
-        for parameter, value in parameters.items():
-            setattr(obj, f"_{parameter}", value)
-            getattr(obj, f"_{parameter}").flags.writeable = False
+        with utils.validate_variables() as v:
+            rgrid = v.validate("rgrid", rgrid, (-1,), "m")
+            zgrid = v.validate("zgrid", zgrid, (-1,), "m")
 
-        if store_hdf5:
-            obj._export_hdf5()
-        return obj
+        nr, nz = rgrid.size, zgrid.size
+        with utils.validate_variables() as v:
+            potential = v.validate("potential", potential, (nr,nz), "V")
+
+        utils.validate_abscissa(rgrid, "rgrid")
+        utils.validate_abscissa(zgrid, "zgrid")
+        leaf = EfieldPotential2D(note=note)
+        leaf._stage(
+            rgrid=rgrid, zgrid=zgrid, potential=potential,
+            )
+        if preview:
+            return leaf
+        self._treemanager.enter_leaf(
+            leaf, activate=activate, save=save, category="efield",
+            )
+        return leaf

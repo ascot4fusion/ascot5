@@ -6,8 +6,8 @@ from a5py.libascot import input_category
 
 from . import radial
 from . import arbitrary
-from .radial import Neutral1D
-from .arbitrary import Neutral3D
+from .radial import NeutralRadial
+from .arbitrary import NeutralArbitrary
 
 
 @input_category
@@ -32,5 +32,5 @@ class CreateNeutralMixin(
     """
 
 __all__  = [
-    "CreateNeutralMixin", "Neutral1D", "Neutral3D",
+    "CreateNeutralMixin", "NeutralRadial", "NeutralArbitrary",
     ]

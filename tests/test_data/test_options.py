@@ -76,7 +76,7 @@ def test_options_constraints_parse(attr):
 
     class TestParameters(ParameterClass):
         """For testing parameters.
-        
+
         Attributes
         ----------
         single_line : float

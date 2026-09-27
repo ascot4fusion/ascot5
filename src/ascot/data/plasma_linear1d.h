@@ -1,9 +1,12 @@
 /**
- * @file plasma_linear1D.h
- * Header file for PlasmaLinear1D.c
+ * @file plasma_linear1d.h
+ * Linearly interpolated 1D plasma implementation.
+ *
+ * Plasma that is interpolated in rho in a 1D grid that doesn't have to be
+ * uniform. (Non-uniform grid is better for more accurate pedestal profiles.)
  */
-#ifndef PlasmaLinear1D_H
-#define PlasmaLinear1D_H
+#ifndef PLASMA_LINEAR1D_H
+#define PLASMA_LINEAR1D_H
 
 #include "defines.h"
 #include "parallel.h"

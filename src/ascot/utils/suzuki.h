@@ -83,7 +83,7 @@ extern const real B_lowE[NIMPURITIES][12];
  * Calculate beam-stopping cross-section according to Suzuki model
  *
  * @param sigmav Evaluated beam stopping cross section [m^2].
- * @param EperAmu Test particle energy divided by its atomic mass number [J].
+ * @param eperamu Test particle energy divided by its atomic mass number [J].
  * @param vnorm Test particle velocity [m/s].
  * @param ne Electron particle density [m^-3].
  * @param te Electron temperature [J].
@@ -96,7 +96,7 @@ extern const real B_lowE[NIMPURITIES][12];
  * @return Zero if evaluation was successful.
  */
 err_t suzuki_sigmav(
-    real *sigmav, real EperAmu, real vnorm, real ne, real te, size_t nion,
-    real *ni, const int *Anum, const int *Znum);
+    real *sigmav, real eperamu, real vnorm, real ne, real te, size_t nion,
+    real *ni, const int *anum, const int *znum);
 
 #endif

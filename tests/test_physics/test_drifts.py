@@ -23,7 +23,7 @@ def test_drifts_nodrifts(ascot, inspect, plot):
         parameters = SimulationOptions.from_dict(
             simulation={
                 "mode": "gyro-orbit",
-                "timestep": 1e-11,
+                "timestep": 1e-12,
             },
             physics={
                 "enable_orbit_following": True,
@@ -140,9 +140,9 @@ def test_drifts_exb(ascot, method, inspect, plot):
 
         if method == "go":
             parameters.simulation.mode = "gyro-orbit"
-            parameters.simulation.timestep = 1e-10
-            parameters.orbit.buffer_size = 10002
-            parameters.orbit.interval = 1e-10
+            parameters.simulation.timestep = 1e-12
+            parameters.orbit.buffer_size = int(1e-7/1e-12)
+            parameters.orbit.interval = 1e-12
         else:
             parameters.simulation.mode = "guiding-center"
             parameters.simulation.timestep = 1e-9
@@ -191,6 +191,7 @@ def test_drifts_exb(ascot, method, inspect, plot):
 
     # Numerical values
     vnum_ExB = (yf - yi) / deltat
+    print(vnum_ExB, v_ExB)
 
     if plot:
 
@@ -211,8 +212,8 @@ def test_drifts_exb(ascot, method, inspect, plot):
 
         a5plt.show()
 
-    assert_isclose("E x B drift (positron)", vnum_ExB[2], v_ExB[0], 1e-3)
-    assert_isclose("E x B drift (electron)", vnum_ExB[2], v_ExB[1], 1e-3)
+    assert_isclose("E x B drift (positron)", vnum_ExB[0], v_ExB[2], 1e-3)
+    assert_isclose("E x B drift (electron)", vnum_ExB[1], v_ExB[2], 1e-3)
 
 
 @pytest.mark.parametrize(
@@ -233,6 +234,19 @@ def test_drifts_gradb(ascot, method, inspect, plot):
                 "collect": "interval",
             },
         )
+
+        if method == "go":
+            parameters.simulation.mode = "gyro-orbit"
+            parameters.simulation.timestep = 1e-11
+            parameters.orbit.buffer_size = int(1e-7/1e-11)
+            parameters.orbit.interval = 1e-11
+        else:
+            parameters.simulation.mode = "guiding-center"
+            parameters.simulation.timestep = 1e-9
+            parameters.orbit.buffer_size = 102
+            parameters.orbit.interval = 1e-9
+            #if method == "gc-fixedstep":
+            parameters.simulation.enable_adaptive = False
 
         ascot.data.create_guidingcentermarker(
             species="electron",

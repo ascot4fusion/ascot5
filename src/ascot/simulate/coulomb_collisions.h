@@ -40,29 +40,40 @@
  */
 typedef struct
 {
-    int nextslot[MCCC_NSLOTS]; /**< Integer array where each element shows
-                                    where the next wiener process is located.
-                                    Indexing starts from 0 and element points
-                                    to itself if it is the last element       */
-    real time[MCCC_NSLOTS];    /**< Time instances for different Wiener
-                                    processes                                 */
-    real wiener[MCCC_NDIM * MCCC_NSLOTS]; /**< Ndim x Nslot array of Wiener
-                                               process values */
+    /**
+     * Integer array where each element shows where the next wiener process is
+     * located.
+     *
+     * Indexing starts from 0 and element pointsto itself if it is the last
+     * element.
+     */
+    int nextslot[MCCC_NSLOTS];
+
+    /**
+     * Time instances for different Wiener processes.
+     */
+    real time[MCCC_NSLOTS];
+
+    /**
+     * Ndim x Nslot array of Wiener process values.
+     */
+    real wiener[MCCC_NDIM * MCCC_NSLOTS];
 } mccc_wienarr;
 
 DECLARE_TARGET_SIMD
 /**
  * Initialize a struct that stores generated Wiener processes.
  *
- * @param w Wiener struct to be initialized
- * @param initime time when a Wiener process begins
+ * @param w Wiener struct to be initialized.
+ * @param initime Time when a Wiener process begins.
  */
 void mccc_wiener_initialize(mccc_wienarr *w, real initime);
 
 /**
  * Offload a struct that stores generated Wiener processes.
  *
- * @param w Wiener struct to be offloaded
+ * @param w Wiener struct to be offloaded.
+ * @param vector_size The simulation vector size.
  */
 void mccc_wiener_offload(mccc_wienarr *w, size_t vector_size);
 
@@ -75,12 +86,12 @@ GPU_DECLARE_TARGET_SIMD
  * time-instance, in which case the process is created using the Brownian
  * bridge.
  *
- * @param w array that stores the Wiener processes
- * @param t time for which the new process will be generated
- * @param windex index of the generated Wiener process in the Wiener array
- * @param rand5 array of 5 normal distributed random numbers
+ * @param w Array that stores the Wiener processes.
+ * @param t Time for which the new process will be generated.
+ * @param windex Index of the generated Wiener process in the Wiener array.
+ * @param rand5 Array of 5 normal distributed random numbers.
  *
- * @return zero if generation succeeded
+ * @return Zero if generation succeeded.
  */
 err_t mccc_wiener_generate(mccc_wienarr *w, real t, int *windex, real *rand5);
 
@@ -92,20 +103,21 @@ GPU_DECLARE_TARGET_SIMD
  * time. Note that W(t) should exist before W(t') are removed. This routine
  * should be called each time when simulation time is advanced.
  *
- * @param w array that stores the Wiener processes
- * @param t time for which the new process will be generated
+ * @param w Array that stores the Wiener processes.
+ * @param t Time for which the new process will be generated.
  *
- * @return zero if cleaning succeeded
+ * @return Zero if cleaning succeeded.
  */
 err_t mccc_wiener_clean(mccc_wienarr *w, real t);
 
 /**
- * Set collision operator data.
+ * Set collision data.
  *
- * @param mdata pointer to collision operator data struct
- * @param include_energy can collisions change marker energy, either 0 or 1
- * @param include_pitch  can collisions change marker pitch, either 0 or 1
- * @param include_gcdiff can collisions change GC position, either 0 or 1
+ * @param mdata Collision data.
+ * @param include_energy Toggle whether collisions change marker energy.
+ * @param include_pitch Toggle whether collisions change marker pitch.
+ * @param include_gcdiff Toggle whether collisions change guiding-center
+ *        position.
  */
 void mccc_init(
     mccc_data *mdata, int include_energy, int include_pitch,
@@ -114,12 +126,14 @@ void mccc_init(
 /**
  * Integrate collisions for one time-step
  *
- * @param p fo struct
- * @param h time-steps for NSIMD markers
- * @param plasma pointer to plasma data
- * @param mdata pointer collision data struct
- * @param rnd array of normally distributed random numbers used to resolve
- *        collisions. Values for marker i are rnd[i*NSIMD + j]
+ * @param p Marker struct.
+ * @param h Time step.
+ * @param plasma Plasma data.
+ * @param mdata Collision data.
+ * @param rnd Array of normally distributed random numbers used to resolve
+ *        collisions.
+ *
+ *        Values for marker i are rnd[i*NSIMD + j]
  */
 void mccc_go_euler(
     MarkerGyroOrbit *p, real *h, Plasma *plasma, mccc_data *mdata, real *rnd);
@@ -127,13 +141,15 @@ void mccc_go_euler(
 /**
  * Integrate collisions for one time-step
  *
- * @param p gc struct
- * @param h time-steps for NSIMD markers
- * @param bfield pointer to magnetic field
- * @param plasma pointer to plasma data
- * @param mdata pointer to collision data struct
- * @param rnd array of normally distributed random numbers used to resolve
- *        collisions. Values for marker i are rnd[i*NSIMD + j]
+ * @param p Marker struct.
+ * @param h Time step.
+ * @param bfield Magnetic field data.
+ * @param plasma Plasma data.
+ * @param mdata Collision data.
+ * @param rnd Array of normally distributed random numbers used to resolve
+ *        collisions.
+ *
+ *        Values for marker i are rnd[i*NSIMD + j].
  */
 void mccc_gc_euler(
     MarkerGuidingCenter *p, real *h, Bfield *bfield, Plasma *plasma,
@@ -142,16 +158,20 @@ void mccc_gc_euler(
 /**
  * Integrate collisions for one time-step
  *
- * @param p pointer to gc simd struct
- * @param hin time-steps for NSIMD markers
- * @param hout suggestions for the next timesteps for NSIMD markers
- * @param tol relative error tolerance
- * @param w array holding wiener structs for NSIMD markers
- * @param bfield pointer to magnetic field data
- * @param plasma pointer to plasma data
- * @param mdata pointer to collision data struct
- * @param rnd array of normally distributed random numbers used to resolve
- *        collisions. Values for marker i are rnd[i*NSIMD + j]
+ * @param p Marker struct.
+ * @param hin Time-step.
+ * @param acc Acceleration data.
+ * @param collfreq Collision frequency to be stored.
+ * @param hout Suggestion for the next timestep.
+ * @param tol Relative error tolerance
+ * @param w Array holding wiener processes.
+ * @param bfield Magnetic field data.
+ * @param plasma Plasma data.
+ * @param mdata Collision data.
+ * @param rnd Array of normally distributed random numbers used to resolve
+ *        collisions.
+ *
+ *        Values for marker i are rnd[i*NSIMD + j].
  */
 void mccc_gc_milstein(
     MarkerGuidingCenter *p, real *hin, real *acc, real *collfreq, real *hout,

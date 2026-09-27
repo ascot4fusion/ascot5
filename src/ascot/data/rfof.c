@@ -161,18 +161,18 @@ void rfof_resonance_check_and_kick_gc(
             Bfield_eval_psi(
                 &psi, p->r[i], p->phi[i], p->z[i], p->time[i], bfield);
             psi *= CONST_2PI; // librfof is COCOS 13
-            B = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
-            v_par = p->ppar[i] / p->mass[i];
-            Ekin = p->ppar[i] * p->ppar[i] / (2 * p->mass[i]) + p->mu[i] * B;
+            B = math_normc(p->br[i], p->bphi[i], p->bz[i]);
+            v_par = p->ppar[i] / p->mass;
+            Ekin = p->ppar[i] * p->ppar[i] / (2 * p->mass) + p->mu[i] * B;
             vnorm = sqrt(
-                (p->ppar[i] / p->mass[i]) * (p->ppar[i] / p->mass[i]) +
-                2 * p->mu[i] * B / p->mass[i]);
-            v_perp = sqrt(2 * p->mu[i] * B / p->mass[i]);
+                (p->ppar[i] / p->mass) * (p->ppar[i] / p->mass) +
+                2 * p->mu[i] * B / p->mass);
+            v_perp = sqrt(2 * p->mu[i] * B / p->mass);
 
             P_phi = phys_ptoroid_gc(
-                p->charge[i], p->r[i], p->ppar[i], psi, B, p->B_phi[i]);
+                p->charge[i] * CONST_E, p->r[i], p->ppar[i], psi, B, p->bphi[i]);
             gyrof = phys_gyrofreq_ppar(
-                p->mass[i], p->charge[i], p->mu[i], p->ppar[i], B);
+                p->mass, p->charge[i] * CONST_E, p->mu[i], p->ppar[i], B);
             real q_safe = 1.0;
             real majR = 1.65; // For now AUG
             real minR = 0.6;  // AUG
@@ -190,8 +190,8 @@ void rfof_resonance_check_and_kick_gc(
             real *r_ptr = &(p->r[i]);
             real *phi_ptr = &(p->phi[i]);
             real *z_ptr = &(p->z[i]);
-            real *charge_ptr = &(p->charge[i]);
-            real *mass_ptr = &(p->mass[i]);
+            real *charge_ptr = &(p->charge[i]); // TODO this is charge state not charge
+            real *mass_ptr = &(p->mass); // TODO This is mass not mass array
             real *mu_ptr = &(p->mu[i]);
             real *Ekin_ptr = &Ekin;
             real *psi_ptr = &psi;
@@ -238,7 +238,7 @@ void rfof_resonance_check_and_kick_gc(
 
             /* Most marker phase-space coordinates are updated automatically
              * via the pointers in rfof_mrk except ppar which we update here */
-            p->ppar[i] = p->ppar[i] + p->mass[i] * (rfof_data_pack.dvpar);
+            p->ppar[i] = p->ppar[i] + p->mass * (rfof_data_pack.dvpar);
 
             if (err == 7)
             {

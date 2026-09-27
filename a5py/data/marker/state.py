@@ -26,7 +26,6 @@ class Structure(DataStruct):
         ("pz", ctypes.c_double),
         ("pphi", ctypes.c_double),
         ("mass", ctypes.c_double),
-        ("charge", ctypes.c_double),
         ("time", ctypes.c_double),
         ("theta", ctypes.c_double),
         ("weight", ctypes.c_double),
@@ -38,6 +37,7 @@ class Structure(DataStruct):
         ("err", ctypes.c_uint),
         ("anum", ctypes.c_int),
         ("znum", ctypes.c_int),
+        ("charge", ctypes.c_int),
         ]
 
 
@@ -194,7 +194,7 @@ class MarkerState():
     def charge(self) -> unyt.unyt_array:
         r"""Marker charge."""
         if self._file is None:
-            out = unyt.unyt_array([0.]*self.n, "C")
+            out = unyt.unyt_array([0.]*self.n, "e")
             for i in range(out.size):
                 out[i] = self._cdata[i].charge
             return out
@@ -498,7 +498,7 @@ class MarkerState():
                 bjacb0[:] = bjacb[i,:]
                 LIBASCOT.gctransform_guidingcenter2particle(
                     obj._cdata[i].mass,
-                    obj._cdata[i].charge,
+                    (obj._cdata[i].charge * unyt.e).to("C"),
                     bjacb0,
                     obj._cdata[i].r,
                     obj._cdata[i].phi,
@@ -515,7 +515,7 @@ class MarkerState():
                 )
                 LIBASCOT.gctransform_pparmuzeta2prpphipz(
                     obj._cdata[i].mass,
-                    obj._cdata[i].charge,
+                    (obj._cdata[i].charge * unyt.e).to("C"),
                     bjacb0,
                     phi[0],
                     pparprt[0],

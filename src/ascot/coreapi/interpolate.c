@@ -60,7 +60,7 @@ void ascot_interpolate(
     real mhd_e[3][npnt], real mhd_phi[][npnt])
 {
     int ONLY_PERTURBATIONS = 1;
-    OMP_PARALLEL_CPU_ONLY
+    #pragma omp parallel for
     for (size_t k = 0; k < npnt; k++)
     {
         real Bq[15], psival[4], rhoval[2], Eq[3], ns[MAX_SPECIES],
@@ -200,7 +200,7 @@ void ascot_eval_collcoefs(
     const real *qb = Plasma_get_species_charge(plasma);
     const real *mb = Plasma_get_species_mass(plasma);
 
-    OMP_PARALLEL_CPU_ONLY
+    #pragma omp parallel for
     for (size_t k = 0; k < npnt; k++)
     {
         real mufun[3] = {0., 0., 0.};
@@ -305,7 +305,7 @@ void ascot_eval_ratecoeff(
     int nion = Plasma_get_n_species(plasma) - 1;
     int nspec = Neutral_get_n_species(neutral);
 
-    OMP_PARALLEL_CPU_ONLY
+    #pragma omp parallel for
     for (int k = 0; k < Neval; k++)
     {
         real psi[1], rho[2], T0[1], n[MAX_SPECIES], T[MAX_SPECIES],

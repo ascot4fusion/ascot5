@@ -1,9 +1,11 @@
 /**
- * @file plasma_linear2D.h
- * Header file for PlasmaLinear2D.c
+ * @file plasma_linear2d.h
+ * Linearly interpolated 2D plasma implementation.
+ *
+ * Plasma that is interpolated in a uniform R-Z grid.
  */
-#ifndef PlasmaLinear2D_H
-#define PlasmaLinear2D_H
+#ifndef PLASMA_LINEAR2D_H
+#define PLASMA_LINEAR2D_H
 
 #include "defines.h"
 #include "parallel.h"
@@ -16,8 +18,8 @@
  * @param nr Number of radial grid points in the data.
  * @param nz Number of axial grid points in the data.
  * @param nion Number of ion species.
- * @param rmin Grid in rho in which data is tabulated [1].
- *        No need to be uniform.
+ * @param rlim Limits of the uniform R grid [m].
+ * @param zlim Limits of the uniform z grid [m].
  * @param anum Atomic mass number of the ion species.
  * @param znum Charge number of the ion species.
  * @param mass Mass of the ion species [kg].

@@ -1,5 +1,5 @@
 /**
- * Implements hist.h.
+ * Implements diag_hist.h.
  */
 #include "diag_hist.h"
 #include "consts.h"
@@ -28,7 +28,7 @@ void DiagHist_update_go(
     MarkerGyroOrbit *mrk_i)
 {
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for (size_t i = 0; i < mrk_f->n_mrk; i++)
+    for (size_t i = 0; i < mrk_f->size; i++)
     {
         HistAxis *axis;
 
@@ -36,7 +36,7 @@ void DiagHist_update_go(
         Bfield_eval_psi(
             &psi, mrk_f->r[i], mrk_f->phi[i], mrk_f->z[i], mrk_f->time[i],
             bfield);
-        real bnorm = math_normc(mrk_f->B_r[i], mrk_f->B_phi[i], mrk_f->B_z[i]);
+        real bnorm = math_normc(mrk_f->br[i], mrk_f->bphi[i], mrk_f->bz[i]);
 
         real phi = fmod(mrk_f->phi[i], 2 * CONST_PI);
         phi += (phi < 0) * 2 * CONST_PI;
@@ -45,28 +45,29 @@ void DiagHist_update_go(
         theta += (theta < 0) * 2 * CONST_PI;
 
         real ppar =
-            (mrk_f->p_r[i] * mrk_f->B_r[i] + mrk_f->p_phi[i] * mrk_f->B_phi[i] +
-             mrk_f->p_z[i] * mrk_f->B_z[i]) /
+            (mrk_f->p_r[i] * mrk_f->br[i] + mrk_f->p_phi[i] * mrk_f->bphi[i] +
+             mrk_f->p_z[i] * mrk_f->bz[i]) /
             sqrt(
-                mrk_f->B_r[i] * mrk_f->B_r[i] +
-                mrk_f->B_phi[i] * mrk_f->B_phi[i] +
-                mrk_f->B_z[i] * mrk_f->B_z[i]);
+                mrk_f->br[i] * mrk_f->br[i] +
+                mrk_f->bphi[i] * mrk_f->bphi[i] +
+                mrk_f->bz[i] * mrk_f->bz[i]);
 
         real pperp = sqrt(
             mrk_f->p_r[i] * mrk_f->p_r[i] + mrk_f->p_phi[i] * mrk_f->p_phi[i] +
             mrk_f->p_z[i] * mrk_f->p_z[i] - ppar * ppar);
 
+        real charge = mrk_f->charge[i] * CONST_E;
         real pnorm = sqrt(ppar * ppar + pperp * pperp);
-        real gamma = physlib_gamma_pnorm(mrk_f->mass[i], pnorm);
-        real ekin = physlib_Ekin_gamma(mrk_f->mass[i], gamma);
+        real gamma = physlib_gamma_pnorm(mrk_f->mass, pnorm);
+        real ekin = physlib_Ekin_gamma(mrk_f->mass, gamma);
         real pitch = ppar / pnorm;
-        real mu = physlib_gc_mu(mrk_f->mass[i], pnorm, pitch, bnorm);
+        real mu = physlib_gc_mu(mrk_f->mass, pnorm, pitch, bnorm);
         real ptor = phys_ptoroid_fo(
-            mrk_f->charge[i], mrk_f->r[i], mrk_f->p_phi[i], psi);
+            charge, mrk_f->r[i], mrk_f->p_phi[i], psi);
 
         int valid = 1;
         axis = &hist->axes[15];
-        size_t i15 = ((int)(mrk_f->charge[i] / CONST_E - axis->min) /
+        size_t i15 = ((mrk_f->charge[i] - axis->min) /
                       (axis->max - axis->min)) *
                      axis->n;
         valid *= axis->n ? 1
@@ -168,7 +169,7 @@ void DiagHist_update_gc(
     MarkerGuidingCenter *mrk_i)
 {
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for (size_t i = 0; i < mrk_f->n_mrk; i++)
+    for (size_t i = 0; i < mrk_f->size; i++)
     {
         HistAxis *axis;
 
@@ -176,7 +177,7 @@ void DiagHist_update_gc(
         Bfield_eval_psi(
             &psi, mrk_f->r[i], mrk_f->phi[i], mrk_f->z[i], mrk_f->time[i],
             bfield);
-        real bnorm = math_normc(mrk_f->B_r[i], mrk_f->B_phi[i], mrk_f->B_z[i]);
+        real bnorm = math_normc(mrk_f->br[i], mrk_f->bphi[i], mrk_f->bz[i]);
 
         real phi = fmod(mrk_f->phi[i], 2 * CONST_PI);
         phi += (phi < 0) * 2 * CONST_PI;
@@ -184,19 +185,20 @@ void DiagHist_update_gc(
         real theta = fmod(mrk_f->theta[i], 2 * CONST_PI);
         theta += (theta < 0) * 2 * CONST_PI;
 
+        real charge = mrk_f->charge[i] * CONST_E;
         real pnorm =
-            physlib_gc_p(mrk_f->mass[i], mrk_f->mu[i], mrk_f->ppar[i], bnorm);
+            physlib_gc_p(mrk_f->mass, mrk_f->mu[i], mrk_f->ppar[i], bnorm);
         real pperp = sqrt(pnorm * pnorm - mrk_f->ppar[i] * mrk_f->ppar[i]);
-        real gamma = physlib_gamma_pnorm(mrk_f->mass[i], pnorm);
-        real ekin = physlib_Ekin_gamma(mrk_f->mass[i], gamma);
+        real gamma = physlib_gamma_pnorm(mrk_f->mass, pnorm);
+        real ekin = physlib_Ekin_gamma(mrk_f->mass, gamma);
         real pitch = mrk_f->ppar[i] / pnorm;
         real ptor = phys_ptoroid_gc(
-            mrk_f->charge[i], mrk_f->r[i], mrk_f->ppar[i], psi, bnorm,
-            mrk_f->B_phi[i]);
+            charge, mrk_f->r[i], mrk_f->ppar[i], psi, bnorm,
+            mrk_f->bphi[i]);
 
         int valid = 1;
         axis = &hist->axes[15];
-        size_t i15 = ((int)(mrk_f->charge[i] / CONST_E - axis->min) /
+        size_t i15 = ((mrk_f->charge[i] - axis->min) /
                       (axis->max - axis->min)) *
                      axis->n;
         valid *= axis->n ? 1

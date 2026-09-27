@@ -1,6 +1,6 @@
 /**
- * @file mccc_fo_euler.c
- * @brief Euler-Maruyama integrator for collision operator in FO picture.
+ * Implements Euler-Maruyama integrator for collision operator in FO picture
+ * (see coulomb_collisions.h).
  */
 #include "consts.h"
 #include "coulomb_collisions.h"
@@ -21,9 +21,9 @@ void mccc_go_euler(
     const real *qb = Plasma_get_species_charge(plasma);
     const real *mb = Plasma_get_species_mass(plasma);
 
-    GPU_DATA_IS_MAPPED(h [0:p->n_mrk], rnd [0:3 * p->n_mrk])
+    GPU_DATA_IS_MAPPED(h [0:p->size], rnd [0:3 * p->size])
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for (size_t i = 0; i < p->n_mrk; i++)
+    for (size_t i = 0; i < p->size; i++)
     {
         if (p->running[i])
         {
@@ -34,11 +34,11 @@ void mccc_go_euler(
             real sinphi = sin(p->phi[i]);
             real cosphi = cos(p->phi[i]);
 
-            real bnorm = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
+            real bnorm = math_normc(p->br[i], p->bphi[i], p->bz[i]);
             real pnorm = sqrt(
                 p->p_r[i] * p->p_r[i] + p->p_phi[i] * p->p_phi[i] +
                 p->p_z[i] * p->p_z[i]);
-            real gamma = physlib_gamma_pnorm(p->mass[i], pnorm);
+            real gamma = physlib_gamma_pnorm(p->mass, pnorm);
 
             real vflow = 0;
             if (!errflag)
@@ -50,19 +50,19 @@ void mccc_go_euler(
 
             real vin_xyz[3];
             vin_xyz[0] =
-                (p->p_r[i] / (gamma * p->mass[i]) - vflow * p->B_r[i] / bnorm) *
+                (p->p_r[i] / (gamma * p->mass) - vflow * p->br[i] / bnorm) *
                     cosphi -
-                (p->p_phi[i] / (gamma * p->mass[i]) -
-                 vflow * p->B_phi[i] / bnorm) *
+                (p->p_phi[i] / (gamma * p->mass) -
+                 vflow * p->bphi[i] / bnorm) *
                     sinphi;
             vin_xyz[1] =
-                (p->p_r[i] / (gamma * p->mass[i]) - vflow * p->B_r[i] / bnorm) *
+                (p->p_r[i] / (gamma * p->mass) - vflow * p->br[i] / bnorm) *
                     sinphi +
-                (p->p_phi[i] / (gamma * p->mass[i]) -
-                 vflow * p->B_phi[i] / bnorm) *
+                (p->p_phi[i] / (gamma * p->mass) -
+                 vflow * p->bphi[i] / bnorm) *
                     cosphi;
             vin_xyz[2] =
-                p->p_z[i] / (gamma * p->mass[i]) - vflow * p->B_z[i] / bnorm;
+                p->p_z[i] / (gamma * p->mass) - vflow * p->bz[i] / bnorm;
             real vin = math_norm(vin_xyz);
 
             /* Evaluate plasma density and temperature */
@@ -77,7 +77,7 @@ void mccc_go_euler(
             /* Coulomb logarithm */
             real clogab[MAX_SPECIES];
             mccc_coefs_clog(
-                clogab, p->mass[i], p->charge[i], vin, n_species, mb, qb, nb,
+                clogab, p->mass, p->charge[i] * CONST_E, vin, n_species, mb, qb, nb,
                 Tb);
 
             /* Evaluate collision coefficients and sum them for each *
@@ -92,22 +92,22 @@ void mccc_go_euler(
                 mccc_coefs_mufun(mufun, x);
 
                 F += mccc_coefs_F(
-                    p->mass[i], p->charge[i], mb[j], qb[j], nb[j], vb,
+                    p->mass, p->charge[i] * CONST_E, mb[j], qb[j], nb[j], vb,
                     clogab[j], mufun[0]);
                 Dpara += mccc_coefs_Dpara(
-                    p->mass[i], p->charge[i], vin, qb[j], nb[j], vb, clogab[j],
+                    p->mass, p->charge[i] * CONST_E, vin, qb[j], nb[j], vb, clogab[j],
                     mufun[0]);
                 Dperp += mccc_coefs_Dperp(
-                    p->mass[i], p->charge[i], vin, qb[j], nb[j], vb, clogab[j],
+                    p->mass, p->charge[i] * CONST_E, vin, qb[j], nb[j], vb, clogab[j],
                     mufun[1]);
             }
 
             /* Evaluate collisions */
             real sdt = sqrt(h[i]);
             real dW[3];
-            dW[0] = sdt * rnd[0 * p->n_mrk + i];
-            dW[1] = sdt * rnd[1 * p->n_mrk + i];
-            dW[2] = sdt * rnd[2 * p->n_mrk + i];
+            dW[0] = sdt * rnd[0 * p->size + i];
+            dW[1] = sdt * rnd[1 * p->size + i];
+            dW[2] = sdt * rnd[2 * p->size + i];
 
             real vhat[3];
             math_unit(vin_xyz, vhat);
@@ -128,16 +128,16 @@ void mccc_go_euler(
             /* Transform back to cylindrical coordinates.  */
             real vout_rpz[3];
             math_vec_xyz2rpz(vout_xyz, vout_rpz, p->phi[i]);
-            vout_rpz[0] += vflow * p->B_r[i] / bnorm;
-            vout_rpz[1] += vflow * p->B_phi[i] / bnorm;
-            vout_rpz[2] += vflow * p->B_z[i] / bnorm;
+            vout_rpz[0] += vflow * p->br[i] / bnorm;
+            vout_rpz[1] += vflow * p->bphi[i] / bnorm;
+            vout_rpz[2] += vflow * p->bz[i] / bnorm;
             real vnorm = math_norm(vout_rpz);
             gamma = physlib_gamma_vnorm(vnorm);
             if (!errflag)
             {
-                p->p_r[i] = vout_rpz[0] * gamma * p->mass[i];
-                p->p_phi[i] = vout_rpz[1] * gamma * p->mass[i];
-                p->p_z[i] = vout_rpz[2] * gamma * p->mass[i];
+                p->p_r[i] = vout_rpz[0] * gamma * p->mass;
+                p->p_phi[i] = vout_rpz[1] * gamma * p->mass;
+                p->p_z[i] = vout_rpz[2] * gamma * p->mass;
             }
 
             /* Error handling */

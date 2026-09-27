@@ -41,8 +41,8 @@ class Efield(ctypes.Structure):
 # pylint: disable=too-many-ancestors
 class CreateEfieldMixin(
     cartesian.CreateMixin,
-    #potential1d.CreateMixin,
-    #potential2d.CreateMixin,
+    potential1d.CreateMixin,
+    potential2d.CreateMixin,
     ):
     """Mixin class used by :class:`.AscotData` to create electric field input.
 

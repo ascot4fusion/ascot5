@@ -150,12 +150,12 @@ err_t BfieldStellarator_eval_b_db(
 }
 
 err_t BfieldStellarator_eval_axisrz(
-    real axisrz[2], real phi, BfieldStellarator *bfield)
+    real rz[2], real phi, BfieldStellarator *bfield)
 {
     err_t err = 0;
     int interperr = 0;
-    interperr += Linear1D_eval_f(&axisrz[0], &bfield->axisr, phi);
-    interperr += Linear1D_eval_f(&axisrz[1], &bfield->axisz, phi);
+    interperr += Linear1D_eval_f(&rz[0], &bfield->axisr, phi);
+    interperr += Linear1D_eval_f(&rz[1], &bfield->axisz, phi);
 
     err = ERROR_CHECK(
         err, interperr, ERR_INTERPOLATED_OUTSIDE_RANGE,

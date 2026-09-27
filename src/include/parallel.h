@@ -8,6 +8,9 @@
 
 #include "defines.h"
 
+/**
+ * Apply parallel execution to loops (only in CPU).
+ */
 #if defined(GPU)
 #define CPU_PARALLELIZE_LOOP
 #else

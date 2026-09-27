@@ -150,6 +150,7 @@ class DataStruct(ctypes.Structure):
         coordinate: str,
         units: str,
         member: Optional[str] = None,
+        index: Optional[int] = None,
     ) -> unyt.unyt_array:
         """Return a read-only view on the grid within the struct.
 
@@ -166,6 +167,9 @@ class DataStruct(ctypes.Structure):
         member : str, *optional*
             A member struct (e.g. spline struct) that contains the grid if it is
             not in the main struct.
+        index : int, *optional*
+            If the member is an array of structs, this is the index on the array
+            which is read.
 
         Returns
         -------
@@ -173,6 +177,8 @@ class DataStruct(ctypes.Structure):
             Read-only view on the grid.
         """
         struct = self if member is None else getattr(self, member)
+        if index is not None:
+            struct = struct[index]
         grid = np.linspace(
             getattr(struct, f"{coordinate}lim")[0],
             getattr(struct, f"{coordinate}lim")[1],

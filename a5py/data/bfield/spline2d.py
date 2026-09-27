@@ -138,10 +138,10 @@ class BfieldSpline2D(InputVariant):
             raise AscotMeltdownError("Could not initialize struct.")
 
     def _save_data(self) -> None:
+        assert self._file is not None
         for field in [
             "rgrid", "zgrid", "axisrz", "psilimits", "psi", "bphi", "br", "bz",
         ]:
-            assert self._file is not None
             self._file.write(field, getattr(self, field))
 
     def export(self) -> dict[str, unyt.unyt_array | np.ndarray | int]:

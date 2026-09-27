@@ -25,6 +25,7 @@ dependencies:
   - sphinx-rtd-theme
   - sphinx-gallery
   - sphinx-design
+  - doxygen
   - libsanitizer
   - pylint
   - mypy

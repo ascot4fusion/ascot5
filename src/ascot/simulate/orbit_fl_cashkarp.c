@@ -14,13 +14,13 @@
 #include <stdlib.h>
 
 void step_fl_cashkarp(
-    MarkerFieldLine *p, const real *h, real *hnext, real tol, Bfield *bfield)
+    MarkerFieldLine *mrk, const real *h, real *hnext, real tol, Bfield *bfield)
 {
-    GPU_DATA_IS_MAPPED(h[0:p->n_mrk], hnext[0:p->n_mrk])
+    GPU_DATA_IS_MAPPED(h [0:mrk->size], hnext [0:mrk->size])
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for (size_t i = 0; i < p->n_mrk; i++)
+    for (size_t i = 0; i < mrk->size; i++)
     {
-        if (p->running[i])
+        if (mrk->running[i])
         {
             err_t errflag = 0;
 
@@ -29,13 +29,13 @@ void step_fl_cashkarp(
 
             real normB;
 
-            real R0 = p->r[i];
-            real z0 = p->z[i];
-            real t0 = p->time[i];
-            int direction = 1 - 2 * (p->pitch[i] < 0);
+            real R0 = mrk->r[i];
+            real z0 = mrk->z[i];
+            real t0 = mrk->time[i];
+            int direction = 1 - 2 * (mrk->pitch[i] < 0);
 
-            real yprev[3] = {p->r[i], p->phi[i], p->z[i]};
-            real k1[3] = {p->B_r[i], p->B_phi[i], p->B_z[i]};
+            real yprev[3] = {mrk->r[i], mrk->phi[i], mrk->z[i]};
+            real k1[3] = {mrk->br[i], mrk->bphi[i], mrk->bz[i]};
             normB = (math_normc(k1[0], k1[1], k1[2])) * direction;
             k1[0] /= normB;
             k1[1] /= normB * yprev[0];
@@ -161,77 +161,76 @@ void step_fl_cashkarp(
                 hnext[i] = -0.85 * h[i] * pow(err, -0.25);
             }
 
-            p->r[i] = rk5[0];
-            p->phi[i] = rk5[1];
-            p->z[i] = rk5[2];
+            mrk->r[i] = rk5[0];
+            mrk->phi[i] = rk5[1];
+            mrk->z[i] = rk5[2];
 
             /* Evaluate magnetic field (and gradient) and rho at new position */
-            real B_dB[15];
+            real b_db[15];
             if (!errflag)
             {
                 errflag = Bfield_eval_b_db(
-                    B_dB, p->r[i], p->phi[i], p->z[i], p->time[i] + h[i],
-                    bfield);
+                    b_db, mrk->r[i], mrk->phi[i], mrk->z[i],
+                    mrk->time[i] + h[i], bfield);
             }
-            p->B_r[i] = B_dB[0];
-            p->B_r_dr[i] = B_dB[3];
-            p->B_r_dphi[i] = B_dB[4];
-            p->B_r_dz[i] = B_dB[5];
+            mrk->br[i] = b_db[0];
+            mrk->dbrdr[i] = b_db[3];
+            mrk->dbrdphi[i] = b_db[4];
+            mrk->dbrdz[i] = b_db[5];
 
-            p->B_phi[i] = B_dB[1];
-            p->B_phi_dr[i] = B_dB[6];
-            p->B_phi_dphi[i] = B_dB[7];
-            p->B_phi_dz[i] = B_dB[8];
+            mrk->bphi[i] = b_db[1];
+            mrk->dbphidr[i] = b_db[6];
+            mrk->dbphidphi[i] = b_db[7];
+            mrk->dbphidz[i] = b_db[8];
 
-            p->B_z[i] = B_dB[2];
-            p->B_z_dr[i] = B_dB[9];
-            p->B_z_dphi[i] = B_dB[10];
-            p->B_z_dz[i] = B_dB[11];
+            mrk->bz[i] = b_db[2];
+            mrk->dbzdr[i] = b_db[9];
+            mrk->dbzdphi[i] = b_db[10];
+            mrk->dbzdz[i] = b_db[11];
 
             real psi[1];
             real rho[2];
             if (!errflag)
             {
                 errflag = Bfield_eval_psi(
-                    psi, p->r[i], p->phi[i], p->z[i], p->time[i] + h[i],
+                    psi, mrk->r[i], mrk->phi[i], mrk->z[i], mrk->time[i] + h[i],
                     bfield);
             }
             if (!errflag)
             {
                 errflag = Bfield_eval_rho(rho, psi[0], bfield);
             }
-            p->rho[i] = rho[0];
+            mrk->rho[i] = rho[0];
 
             /* Evaluate theta angle so that it is cumulative */
             if (!errflag)
             {
                 real axisrz[2];
-                errflag = Bfield_eval_axis_rz(axisrz, bfield, p->phi[i]);
-                p->theta[i] += atan2(
-                    (R0 - axisrz[0]) * (p->z[i] - axisrz[1]) -
-                        (z0 - axisrz[1]) * (p->r[i] - axisrz[0]),
-                    (R0 - axisrz[0]) * (p->r[i] - axisrz[0]) +
-                        (z0 - axisrz[1]) * (p->z[i] - axisrz[1]));
+                errflag = Bfield_eval_axis_rz(axisrz, bfield, mrk->phi[i]);
+                mrk->theta[i] += atan2(
+                    (R0 - axisrz[0]) * (mrk->z[i] - axisrz[1]) -
+                        (z0 - axisrz[1]) * (mrk->r[i] - axisrz[0]),
+                    (R0 - axisrz[0]) * (mrk->r[i] - axisrz[0]) +
+                        (z0 - axisrz[1]) * (mrk->z[i] - axisrz[1]));
             }
 
             if (errflag)
             {
-                p->err[i] = errflag;
+                mrk->err[i] = errflag;
             }
         }
     }
 }
 
-
 void step_fl_cashkarp_mhd(
-    MarkerFieldLine *p, const real *h, real *hnext, real tol, Bfield *bfield,
+    MarkerFieldLine *mrk, const real *h, real *hnext, real tol, Bfield *bfield,
     Boozer *boozerdata, Mhd *mhddata)
 {
-    GPU_DATA_IS_MAPPED(h[0:p->n_mrk], h_next[0:p->n_mrk])
+    GPU_DATA_IS_MAPPED(h [0:mrk->size], h_next [0:mrk->size])
     GPU_PARALLEL_LOOP_ALL_LEVELS
-    for (size_t i = 0; i < p->n_mrk; i++)
+    for (size_t i = 0; i < mrk->size; i++)
     {
-        if (p->running[i])
+        if (mrk->running[i])
         {
             err_t errflag = 0;
 
@@ -242,13 +241,13 @@ void step_fl_cashkarp_mhd(
             real normB;
             real bpert[3], epert[3], Phipert[1];
 
-            real R0 = p->r[i];
-            real z0 = p->z[i];
-            real t0 = p->time[i];
+            real R0 = mrk->r[i];
+            real z0 = mrk->z[i];
+            real t0 = mrk->time[i];
 
             /* Direction */
             int direction = 1;
-            if (p->pitch[i] < 0)
+            if (mrk->pitch[i] < 0)
             {
                 direction = -1;
             }
@@ -257,15 +256,15 @@ void step_fl_cashkarp_mhd(
 
             /* Coordinates are copied from the struct into an array to make
              * passing parameters easier */
-            yprev[0] = p->r[i];
-            yprev[1] = p->phi[i];
-            yprev[2] = p->z[i];
+            yprev[0] = mrk->r[i];
+            yprev[1] = mrk->phi[i];
+            yprev[2] = mrk->z[i];
 
             if (!errflag)
             {
                 errflag = Mhd_eval_perturbation(
-                    bpert, epert, Phipert, tempy[0], tempy[1], tempy[2], t0, pertonly,
-                    MHD_INCLUDE_ALL, mhddata, bfield, boozerdata);
+                    bpert, epert, Phipert, tempy[0], tempy[1], tempy[2], t0,
+                    pertonly, MHD_INCLUDE_ALL, mhddata, bfield, boozerdata);
             }
             k1[0] = bpert[0];
             k1[1] = bpert[1];
@@ -284,8 +283,8 @@ void step_fl_cashkarp_mhd(
             if (!errflag)
             {
                 errflag = Mhd_eval_perturbation(
-                    bpert, epert, Phipert, tempy[0], tempy[1], tempy[2], t0, pertonly,
-                    MHD_INCLUDE_ALL, mhddata, bfield, boozerdata);
+                    bpert, epert, Phipert, tempy[0], tempy[1], tempy[2], t0,
+                    pertonly, MHD_INCLUDE_ALL, mhddata, bfield, boozerdata);
             }
             k2[0] = bpert[0];
             k2[1] = bpert[1];
@@ -305,8 +304,8 @@ void step_fl_cashkarp_mhd(
             if (!errflag)
             {
                 errflag = Mhd_eval_perturbation(
-                    bpert, epert, Phipert, tempy[0], tempy[1], tempy[2], t0, pertonly,
-                    MHD_INCLUDE_ALL, mhddata, bfield, boozerdata);
+                    bpert, epert, Phipert, tempy[0], tempy[1], tempy[2], t0,
+                    pertonly, MHD_INCLUDE_ALL, mhddata, bfield, boozerdata);
             }
             k3[0] = bpert[0];
             k3[1] = bpert[1];
@@ -327,8 +326,8 @@ void step_fl_cashkarp_mhd(
             if (!errflag)
             {
                 errflag = Mhd_eval_perturbation(
-                    bpert, epert, Phipert, tempy[0], tempy[1], tempy[2], t0, pertonly,
-                    MHD_INCLUDE_ALL, mhddata, bfield, boozerdata);
+                    bpert, epert, Phipert, tempy[0], tempy[1], tempy[2], t0,
+                    pertonly, MHD_INCLUDE_ALL, mhddata, bfield, boozerdata);
             }
             k4[0] = bpert[0];
             k4[1] = bpert[1];
@@ -349,8 +348,8 @@ void step_fl_cashkarp_mhd(
             if (!errflag)
             {
                 errflag = Mhd_eval_perturbation(
-                    bpert, epert, Phipert, tempy[0], tempy[1], tempy[2], t0, pertonly,
-                    MHD_INCLUDE_ALL, mhddata, bfield, boozerdata);
+                    bpert, epert, Phipert, tempy[0], tempy[1], tempy[2], t0,
+                    pertonly, MHD_INCLUDE_ALL, mhddata, bfield, boozerdata);
             }
             k5[0] = bpert[0];
             k5[1] = bpert[1];
@@ -373,8 +372,8 @@ void step_fl_cashkarp_mhd(
             if (!errflag)
             {
                 errflag = Mhd_eval_perturbation(
-                    bpert, epert, Phipert, tempy[0], tempy[1], tempy[2], t0, pertonly,
-                    MHD_INCLUDE_ALL, mhddata, bfield, boozerdata);
+                    bpert, epert, Phipert, tempy[0], tempy[1], tempy[2], t0,
+                    pertonly, MHD_INCLUDE_ALL, mhddata, bfield, boozerdata);
             }
             k6[0] = bpert[0];
             k6[1] = bpert[1];
@@ -421,55 +420,55 @@ void step_fl_cashkarp_mhd(
                 hnext[i] = -0.85 * h[i] * pow(err, -0.25);
             }
 
-            p->r[i] = rk5[0];
-            p->phi[i] = rk5[1];
-            p->z[i] = rk5[2];
+            mrk->r[i] = rk5[0];
+            mrk->phi[i] = rk5[1];
+            mrk->z[i] = rk5[2];
 
             /* Evaluate magnetic field (and gradient) and rho at new position */
-            real B_dB[15];
+            real b_db[15];
             if (!errflag)
             {
                 errflag = Bfield_eval_b_db(
-                    B_dB, p->r[i], p->phi[i], p->z[i], p->time[i] + h[i],
-                    bfield);
+                    b_db, mrk->r[i], mrk->phi[i], mrk->z[i],
+                    mrk->time[i] + h[i], bfield);
             }
-            p->B_r[i] = B_dB[0];
-            p->B_r_dr[i] = B_dB[3];
-            p->B_r_dphi[i] = B_dB[4];
-            p->B_r_dz[i] = B_dB[5];
+            mrk->br[i] = b_db[0];
+            mrk->dbrdr[i] = b_db[3];
+            mrk->dbrdphi[i] = b_db[4];
+            mrk->dbrdz[i] = b_db[5];
 
-            p->B_phi[i] = B_dB[1];
-            p->B_phi_dr[i] = B_dB[6];
-            p->B_phi_dphi[i] = B_dB[7];
-            p->B_phi_dz[i] = B_dB[8];
+            mrk->bphi[i] = b_db[1];
+            mrk->dbphidr[i] = b_db[6];
+            mrk->dbphidphi[i] = b_db[7];
+            mrk->dbphidz[i] = b_db[8];
 
-            p->B_z[i] = B_dB[2];
-            p->B_z_dr[i] = B_dB[9];
-            p->B_z_dphi[i] = B_dB[10];
-            p->B_z_dz[i] = B_dB[11];
+            mrk->bz[i] = b_db[2];
+            mrk->dbzdr[i] = b_db[9];
+            mrk->dbzdphi[i] = b_db[10];
+            mrk->dbzdz[i] = b_db[11];
 
             real psi[1];
             real rho[2];
             if (!errflag)
             {
                 errflag = Bfield_eval_psi(
-                    psi, p->r[i], p->phi[i], p->z[i], p->time[i] + h[i],
+                    psi, mrk->r[i], mrk->phi[i], mrk->z[i], mrk->time[i] + h[i],
                     bfield);
             }
             if (!errflag)
             {
                 errflag = Bfield_eval_rho(rho, psi[0], bfield);
             }
-            p->rho[i] = rho[0];
+            mrk->rho[i] = rho[0];
 
             /* Evaluate theta angle so that it is cumulative */
             real axisrz[2];
-            errflag = Bfield_eval_axis_rz(axisrz, bfield, p->phi[i]);
-            p->theta[i] += atan2(
-                (R0 - axisrz[0]) * (p->z[i] - axisrz[1]) -
-                    (z0 - axisrz[1]) * (p->r[i] - axisrz[0]),
-                (R0 - axisrz[0]) * (p->r[i] - axisrz[0]) +
-                    (z0 - axisrz[1]) * (p->z[i] - axisrz[1]));
+            errflag = Bfield_eval_axis_rz(axisrz, bfield, mrk->phi[i]);
+            mrk->theta[i] += atan2(
+                (R0 - axisrz[0]) * (mrk->z[i] - axisrz[1]) -
+                    (z0 - axisrz[1]) * (mrk->r[i] - axisrz[0]),
+                (R0 - axisrz[0]) * (mrk->r[i] - axisrz[0]) +
+                    (z0 - axisrz[1]) * (mrk->z[i] - axisrz[1]));
         }
     }
 }

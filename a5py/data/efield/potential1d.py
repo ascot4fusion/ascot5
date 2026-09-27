@@ -1,6 +1,7 @@
 """Defines 1D potential electric field input class and the corresponding factory
 method.
 """
+
 import ctypes
 from typing import Optional
 
@@ -9,7 +10,7 @@ import numpy as np
 from numpy.ctypeslib import ndpointer
 
 from a5py import utils
-from a5py.libascot import LIBASCOT, DataStruct, Spline1D, init_fun
+from a5py.libascot import LIBASCOT, DataStruct, Linear1D, init_fun
 from a5py.exceptions import AscotMeltdownError
 from a5py.data.access import InputVariant, Leaf, TreeMixin
 
@@ -19,9 +20,19 @@ class Struct(DataStruct):
     """Python wrapper for the struct in E_1DS.h."""
 
     _fields_ = [
-        ('reff', ctypes.c_double),
-        ('dv', Spline1D),
-        ]
+        ("dvdrho", Linear1D),
+    ]
+
+
+init_fun(
+    "EfieldPotential1D_init",
+    ctypes.POINTER(Struct),
+    ctypes.c_size_t,
+    ndpointer(ctypes.c_double),
+    ndpointer(ctypes.c_double),
+)
+
+init_fun("EfieldPotential1D_free", ctypes.POINTER(Struct))
 
 
 @Leaf.register
@@ -31,92 +42,69 @@ class EfieldPotential1D(InputVariant):
     @property
     def rhogrid(self) -> unyt.unyt_array:
         """Radial grid in rho in which the data is tabulated."""
-        if self._staged:
-            return np.linspace(
-                self._struct_.dv.x_min,
-                self._struct_.dv.x_max,
-                self._struct_.dv.n_x
-                ) * unyt.dimensionless
-        if self._format == Format.HDF5:
-            nx, x0, x1 = self._read_hdf5("nrho", "rhomin", "rhomax")
-            return np.linspace(x0, x1, nx) * unyt.dimensionless
+        if self._cdata is not None:
+            return self._cdata.readonly_grid("x", "1", "dvdrho")
+        assert self._file is not None
+        return self._file.read("rhogrid")
 
     @property
     def dvdrho(self) -> unyt.unyt_array:
         """Derivative of the electric potential with respect to minor radius."""
-        if self._staged:
-            return self._from_struct_("dV", units="V/m")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("dvdrho")
+        if self._cdata is not None:
+            return self._cdata.readonly_interp("dvdrho", "V")
+        assert self._file is not None
+        return self._file.read("dvdrho")
 
-    @property
-    def reff(self) -> unyt.unyt_array:
-        """Effective minor radius."""
-        if self._staged:
-            return self._from_struct_("reff", shape=(1,), units="m")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("reff")
 
-    def export(self):
+    def _stage(
+        self, dvdrho: unyt.unyt_array, rhogrid: unyt.unyt_array
+    ) -> None:
+        self._cdata = Struct()
+        if LIBASCOT.EfieldPotential1D_init(
+            ctypes.byref(self._cdata),
+            rhogrid.size,
+            rhogrid[[0, -1]],
+            dvdrho,
+        ):
+            self._cdata = None
+            raise AscotMeltdownError("Could not initialize struct.")
+
+    def _save_data(self) -> None:
+        assert self._file is not None
+        self._file.write("exyz", self.exyz)
+
+    def export(self) -> dict[str, unyt.unyt_array]:
         data = {
-            "reff":self.reff,
-            "rhogrid":self.rhogrid,
-            "dvdrho":self.dvdrho,
+            "rhogrid": self.rhogrid,
+            "dvdrho": self.dvdrho,
         }
         return data
 
-    def stage(self):
-        init = LIBASCOT.EfieldPotential1D_init
-        init.restype = ctypes.c_int32
-        init.argtypes = [
-            ctypes.POINTER(__class__.Struct),
-            ctypes.c_int32,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_double,
-            ndpointer(ctypes.c_double),
-            ]
-        if not self._staged:
-            if init(
-                ctypes.byref(self._struct_),
-                self.rhogrid.size,
-                self.rhogrid[0].v,
-                self.rhogrid[-1].v,
-                self.reff[0].v,
-                self.dvdrho,
-            ):
-                raise AscotIOException("Failed to stage data.")
-            if self._format is Format.MEMORY:
-                del self._dvdrho
-            self._staged = True
+    def stage(self) -> None:
+        super().stage()
+        self._stage(**self.export())
 
-    def unstage(self):
-        free = LIBASCOT.EfieldPotential1D_free
-        free.restype = None
-        free.argtypes = [ctypes.POINTER(__class__.Struct)]
-
-        if self._staged:
-            if self._format is Format.MEMORY:
-                self._dvdrho = self.dvdrho
-            free(ctypes.byref(self._struct_))
-            self._staged = False
+    def unstage(self) -> None:
+        super().unstage()
+        assert self._cdata is not None
+        LIBASCOT.EfieldPotential1D_free(ctypes.byref(self._cdata))
+        self._cdata = None
 
 
 # pylint: disable=too-few-public-methods
 class CreateMixin(TreeMixin):
     """Provides the factory method."""
 
-    #pylint: disable=protected-access, too-many-arguments, too-many-locals
+    # pylint: disable=protected-access, too-many-arguments, too-many-locals
     def create_efieldpotential1d(
-            self,
-            rhogrid: utils.ArrayLike,
-            dvdrho: utils.ArrayLike,
-            reff: Optional[float]=None,
-            note: Optional[str]=None,
-            activate: bool=False,
-            preview: bool=False,
-            save: Optional[bool]=None,
-            ) -> EfieldPotential1D:
+        self,
+        rhogrid: utils.ArrayLike,
+        dvdrho: utils.ArrayLike,
+        note: Optional[str]=None,
+        activate: bool=False,
+        preview: bool=False,
+        save: Optional[bool]=None,
+    ) -> EfieldPotential1D:
         r"""Create radial electric field input that is evaluated from the
         gradient of a 1D potential.
 
@@ -130,13 +118,6 @@ class CreateMixin(TreeMixin):
             Derivative of electric potential with respect to minor radius.
 
             If :math:`r_\mathrm{eff} = 1` m, this is essentially equal to
-            :math:`\partial V/ \partial r`.
-        reff : float, *optional*
-            Effective minor radius.
-
-            This is defined as
-            :math:`r_\mathrm{eff} = \partial r/ \partial \rho`, and it is used
-            to convert :math:`\partial V/ \partial \rho` to
             :math:`\partial V/ \partial r`.
         note : str, *optional*
             A short note to document this data.
@@ -168,28 +149,21 @@ class CreateMixin(TreeMixin):
             \mathbf{E} = \frac{\partial V}{\partial \rho}
                          \nabla \rho.
         """
-        parameters = _variants.parse_parameters(
-            rhogrid, dvdrho, reff,
-        )
-        default_rhogrid = np.linspace(0., 1., 3)
-        nrho = (default_rhogrid.size if parameters["rhogrid"] is None
-              else parameters["rhogrid"].size)
-        _variants.validate_required_parameters(
-            parameters,
-            names=["rhogrid", "dvdrho", "reff",],
-            units=["1", "V/m", "m",],
-            shape=[(nrho,), (nrho,), (1,)],
-            dtype="f8",
-            default=[np.array([0., 0.5, 1.]), np.zeros((3,)), 1.],
-        )
-        meta = _variants.new_metadata("EfieldRadialPotential", note=note)
-        obj = self._treemanager.enter_input(
-            meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
-            )
-        for parameter, value in parameters.items():
-            setattr(obj, f"_{parameter}", value)
-            getattr(obj, f"_{parameter}").flags.writeable = False
+        with utils.validate_variables() as v:
+            rhogrid = v.validate("rhogrid", rhogrid, (-1,), "1")
 
-        if store_hdf5:
-            obj._export_hdf5()
-        return obj
+        nrho = rhogrid.size
+        with utils.validate_variables() as v:
+            dvdrho = v.validate("dvdrho", dvdrho, (nrho,), "V")
+
+        utils.validate_abscissa(rhogrid, "rhogrid")
+        leaf = EfieldPotential1D(note=note)
+        leaf._stage(
+            rhogrid=rhogrid, dvdrho=dvdrho,
+            )
+        if preview:
+            return leaf
+        self._treemanager.enter_leaf(
+            leaf, activate=activate, save=save, category="efield",
+            )
+        return leaf

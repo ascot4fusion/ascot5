@@ -1,11 +1,13 @@
 """Defines MhdDynamic MHD eigenmode input class and the corresponding factory
 method.
 """
+
 import ctypes
 from typing import Tuple, Optional
 
 import unyt
 import numpy as np
+from numpy.ctypeslib import ndpointer
 
 from a5py import utils
 from a5py.libascot import LIBASCOT, DataStruct, Spline2D, init_fun
@@ -13,267 +15,244 @@ from a5py.exceptions import AscotMeltdownError
 from a5py.data.access import InputVariant, Leaf, TreeMixin
 
 
-
 # pylint: disable=too-few-public-methods
 class Struct(DataStruct):
     """Python wrapper for the struct in mhdnonstat.h."""
 
     _fields_ = [
-        ('n_modes', ctypes.c_int32),
-        ('rho_min', ctypes.c_double),
-        ('rho_max', ctypes.c_double),
-        ('nmode', ctypes.POINTER(ctypes.c_int32)),
-        ('mmode', ctypes.POINTER(ctypes.c_int32)),
-        ('amplitude_nm', ctypes.POINTER(ctypes.c_double)),
-        ('omega_nm', ctypes.POINTER(ctypes.c_double)),
-        ('phase_nm', ctypes.POINTER(ctypes.c_double)),
-        ('alpha_nm', ctypes.POINTER(Spline2D)),
-        ('phi_nm', ctypes.POINTER(Spline2D)),
-        ]
+        ("n", ctypes.c_size_t),
+        ("nmode", ctypes.POINTER(ctypes.c_int32)),
+        ("mmode", ctypes.POINTER(ctypes.c_int32)),
+        ("amplitude", ctypes.POINTER(ctypes.c_double)),
+        ("omega", ctypes.POINTER(ctypes.c_double)),
+        ("phase", ctypes.POINTER(ctypes.c_double)),
+        ("alpha", ctypes.POINTER(Spline2D)),
+        ("phi", ctypes.POINTER(Spline2D)),
+    ]
+
+
+init_fun(
+    "MhdDynamic_init",
+    ctypes.POINTER(Struct),
+    ctypes.c_size_t,
+    ctypes.c_size_t,
+    ctypes.c_size_t,
+    ndpointer(ctypes.c_int32),
+    ndpointer(ctypes.c_int32),
+    ndpointer(ctypes.c_double),
+    ndpointer(ctypes.c_double),
+    ndpointer(ctypes.c_double),
+    ndpointer(ctypes.c_double),
+    ndpointer(ctypes.c_double),
+    ndpointer(ctypes.c_double),
+    ndpointer(ctypes.c_double),
+)
+
+init_fun("MhdDynamic_free", ctypes.POINTER(Struct))
 
 
 @Leaf.register
 class MhdDynamic(InputVariant):
-    """Electric field in Cartesian basis for testing purposes."""
-
-    def __init__(self, qid, date, note) -> None:
-        super().__init__(
-            qid=qid, date=date, note=note, variant="MhdDynamic",
-            struct=MhdDynamic.Struct(),
-            )
-        self._rhogrid: unyt.unyt_array
-        self._timegrid: unyt.unyt_array
-        self._toroidalnumber: unyt.unyt_array
-        self._poloidalnumber: unyt.unyt_array
-        self._magneticprofile: unyt.unyt_array
-        self._electricprofile: unyt.unyt_array
-        self._amplitude: unyt.unyt_array
-        self._frequency: unyt.unyt_array
-        self._phase: unyt.unyt_array
+    """Time-dependent MHD eigenmode input."""
 
     @property
     def rhogrid(self) -> unyt.unyt_array:
         """Radial grid in rho in which the data is tabulated."""
-        if self._staged:
-            return np.linspace(
-                self._struct_.alpha_nm[0].x_min,
-                self._struct_.alpha_nm[0].x_max,
-                self._struct_.alpha_nm[0].n_x
-                ) * unyt.dimensionless
-        if self._format == Format.HDF5:
-            nrho, rho0, rho1 = self._read_hdf5("nrho", "rhomin", "rhomax")
-            return np.linspace(rho0, rho1, nrho)
-        return self._rhogrid.copy()
+        if self._cdata is not None:
+            return self._cdata.readonly_grid("x", "1", "alpha", 0)
+        assert self._file is not None
+        return self._file.read("rhogrid")
+
+    @property
+    def number_of_modes(self):
+        r"""Number of eigenmodes."""
+        if self._cdata is not None:
+            return self._cdata.n
+        assert self._file is not None
+        return self._file.read("toroidalnumber").size
 
     @property
     def timegrid(self) -> unyt.unyt_array:
         """Time grid in in which the data is tabulated."""
-        if self._staged:
-            return np.linspace(
-                self._struct_.alpha_nm[0].y_min,
-                self._struct_.alpha_nm[0].y_max,
-                self._struct_.alpha_nm[0].n_y
-                ) * unyt.s
-        if self._format == Format.HDF5:
-            ny, y0, y1 = self._read_hdf5("ntime", "timemin", "timemax")
-            return np.linspace(y0, y1, ny)
-        return self._timegrid.copy()
+        if self._cdata is not None:
+            return self._cdata.readonly_grid("y", "s", "alpha", 0)
+        assert self._file is not None
+        return self._file.read("timegrid")
 
     @property
     def toroidalnumber(self):
         r"""Toroidal number :math:`n`."""
-        if self._staged:
-            nmode = self._from_struct_("n_modes", shape=())
-            return self._from_struct_("nmode", shape=(nmode,))
-        if self._format == Format.HDF5:
-            return self._read_hdf5("toroidalnumber")
-        return self._toroidalnumber
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("nmode", (self.number_of_modes,), "1")
+        assert self._file is not None
+        return self._file.read("toroidalnumber")
 
     @property
     def poloidalnumber(self):
         r"""Poloidal number :math:`m`."""
-        if self._staged:
-            nmode = self._from_struct_("n_modes", shape=())
-            return self._from_struct_("mmode", shape=(nmode,))
-        if self._format == Format.HDF5:
-            return self._read_hdf5("poloidalnumber")
-        return self._poloidalnumber
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("mmode", (self.number_of_modes,), "1")
+        assert self._file is not None
+        return self._file.read("poloidalnumber")
 
     @property
     def magneticprofile(self):
         r"""Magnetic eigenmode profile :math:`\alpha`."""
-        if self._staged:
+        if self._cdata is not None:
             nmode = self.toroidalnumber.size
-            data = self._from_struct_("alpha_nm", idx=0)
+            data = self._cdata.readonly_interp("alpha", "m", idx=0)
             for i in range(1, nmode):
-                data = np.stack(
-                    (data, self._from_struct_("alpha_nm", idx=i)), axis=2
-                    )
+                data = np.stack((data, self._cdata.readonly_interp("alpha", "m", idx=i)), axis=2)
             if nmode == 1:
                 data = np.expand_dims(data, axis=2)
-            return data * unyt.m
-        if self._format == Format.HDF5:
-            return self._read_hdf5("magneticprofile")
-        return self._magneticprofile.copy()
+            return data
+        assert self._file is not None
+        return self._file.read("magneticprofile")
 
     @property
     def electricprofile(self):
         r"""Electric eigenmode profile :math:`\tilde{\Phi}`."""
-        if self._staged:
+        if self._cdata is not None:
             nmode = self.toroidalnumber.size
-            data = self._from_struct_("phi_nm", idx=0)
+            data = self._cdata.readonly_interp("phi", "V", idx=0)
             for i in range(1, nmode):
-                data = np.stack(
-                    (data, self._from_struct_("phi_nm", idx=i)), axis=2
-                    )
+                data = np.stack((data, self._cdata.readonly_interp("phi", "V", idx=i)), axis=2)
             if nmode == 1:
                 data = np.expand_dims(data, axis=2)
-            return data * unyt.V
-        if self._format == Format.HDF5:
-            return self._read_hdf5("electricprofile")
-        return self._electricprofile.copy()
+            return data
+        assert self._file is not None
+        return self._file.read("electricprofile")
 
     @property
     def amplitude(self):
         r"""Mode amplitude :math:`\lambda`."""
-        if self._staged:
-            nmode = self.toroidalnumber.size
-            return self._from_struct_("amplitude_nm", shape=(nmode,))
-        if self._format == Format.HDF5:
-            return self._read_hdf5("amplitude")
-        return self._amplitude
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("amplitude", (self.number_of_modes,))
+        assert self._file is not None
+        return self._file.read("amplitude")
 
     @property
     def frequency(self):
         r"""Mode frequency :math:`\omega` [rad/s]."""
-        if self._staged:
-            nmode = self.toroidalnumber.size
-            return self._from_struct_("omega_nm", shape=(nmode,))
-        if self._format == Format.HDF5:
-            return self._read_hdf5("frequency")
-        return self._frequency
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("omega", (self.number_of_modes,))
+        assert self._file is not None
+        return self._file.read("frequency")
 
     @property
     def phase(self):
         r"""Mode phase :math:`\varphi` [rad]."""
-        if self._staged:
-            nmode = self.toroidalnumber.size
-            return self._from_struct_("phase_nm", shape=(nmode,))
-        if self._format == Format.HDF5:
-            return self._read_hdf5("phase")
-        return self._phase
+        if self._cdata is not None:
+            return self._cdata.readonly_carray("phase", (self.number_of_modes,))
+        assert self._file is not None
+        return self._file.read("phase")
 
-    def _export_hdf5(self):
-        """Export data to HDF5 file."""
-        if self._format == Format.HDF5:
-            raise AscotIOException("Data is already stored in the file.")
-        data = self.export()
-        for grid in ["rhogrid", "timegrid"]:
-            name = grid.replace("grid", "")
-            data["n" + name] = data[grid].size
-            data[name + "min"] = data[grid][0]
-            data[name + "max"] = data[grid][-1]
-            del data[grid]
-        self._treemanager.hdf5manager.write_datasets(
-            self.qid, self.variant, data,
-            )
-        self._format = Format.HDF5
+    # pylint: disable=too-many-arguments
+    def _stage(
+        self,
+        rhogrid: unyt.unyt_array,
+        timegrid: unyt.unyt_array,
+        poloidalnumber: unyt.unyt_array,
+        toroidalnumber: unyt.unyt_array,
+        magneticprofile: unyt.unyt_array,
+        electricprofile: unyt.unyt_array,
+        amplitude: unyt.unyt_array,
+        frequency: unyt.unyt_array,
+        phase: unyt.unyt_array,
+    ) -> None:
+        self._cdata = Struct()
+        if LIBASCOT.MhdDynamic_init(
+            ctypes.byref(self._cdata),
+            poloidalnumber.size,
+            rhogrid.size,
+            timegrid.size,
+            toroidalnumber,
+            poloidalnumber,
+            rhogrid[[0, -1]],
+            timegrid[[0, -1]],
+            amplitude,
+            frequency,
+            phase,
+            np.ascontiguousarray(magneticprofile.transpose((2,0,1)), dtype="f8"),
+            np.ascontiguousarray(electricprofile.transpose((2,0,1)), dtype="f8"),
+        ):
+            self._cdata = None
+            raise AscotMeltdownError("Could not initialize struct.")
 
-    def export(self):
-        data = {
-            "rhogrid":self.rhogrid,
-            "timegrid":self.timegrid,
-            "toroidalnumber":self.toroidalnumber,
-            "poloidalnumber":self.poloidalnumber,
-            "magneticprofile":self.magneticprofile,
-            "electricprofile":self.electricprofile,
-            "amplitude":self.amplitude,
-            "frequency":self.frequency,
-            "phase":self.phase,
-        }
-        return data
+    def _save_data(self) -> None:
+        assert self._file is not None
+        for field in [
+            "rhogrid",
+            "timegrid",
+            "poloidalnumber",
+            "toroidalnumber",
+            "magneticprofile",
+            "electricprofile",
+            "amplitude",
+            "frequency",
+            "phase",
+        ]:
+            self._file.write(field, getattr(self, field))
 
-    def stage(self):
-        init = LIBASCOT.mhd_nonstat_init
-        init.restype = ctypes.c_int32
-        init.argtypes = [
-            ctypes.POINTER(__class__.Struct),
-            ctypes.c_int32,
-            ctypes.c_int32,
-            ctypes.c_int32,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_double,
-            ctypes.c_double,
-            ndpointer(ctypes.c_int32),
-            ndpointer(ctypes.c_int32),
-            ndpointer(ctypes.c_double),
-            ndpointer(ctypes.c_double),
-            ndpointer(ctypes.c_double),
-            ndpointer(ctypes.c_double),
-            ndpointer(ctypes.c_double),
-            ]
-        if not self._staged:
-            if init(
-                ctypes.byref(self._struct_),
-                self.toroidalnumber.size,
-                self.rhogrid.size,
-                self.timegrid.size,
-                self.rhogrid[0].v,
-                self.rhogrid[-1].v,
-                self.timegrid[0].v,
-                self.timegrid[-1].v,
-                self.toroidalnumber,
-                self.poloidalnumber,
-                self.amplitude.v,
-                self.frequency.v,
-                self.phase.v,
-                self.magneticprofile.v,
-                self.electricprofile.v,
-            ):
-                raise AscotIOException("Failed to stage data.")
-            if self._format is Format.MEMORY:
-                del self._magneticprofile
-                del self._electricprofile
-            self._staged = True
+    def export(self) -> dict[str, unyt.unyt_array]:
+        fields = [
+            "rhogrid",
+            "timegrid",
+            "poloidalnumber",
+            "toroidalnumber",
+            "magneticprofile",
+            "electricprofile",
+            "amplitude",
+            "frequency",
+            "phase",
+        ]
+        return {field: getattr(self, field) for field in fields}
 
-    def unstage(self):
-        free = LIBASCOT.mhd_nonstat_free
-        free.restype = None
-        free.argtypes = [ctypes.POINTER(__class__.Struct)]
+    def stage(self) -> None:
+        super().stage()
+        self._stage(
+            rhogrid=self.rhogrid,
+            timegrid=self.timegrid,
+            poloidalnumber=self.poloidalnumber,
+            toroidalnumber=self.toroidalnumber,
+            magneticprofile=self.magneticprofile,
+            electricprofile=self.electricprofile,
+            amplitude=self.amplitude,
+            frequency=self.frequency,
+            phase=self.phase,
+        )
 
-        if self._staged:
-            if self._format is Format.MEMORY:
-                self._magneticprofile = self.magneticprofile
-                self._electricprofile = self.electricprofile
-            free(ctypes.byref(self._struct_))
-            self._staged = False
+    def unstage(self) -> None:
+        super().unstage()
+        assert self._cdata is not None
+        LIBASCOT.MhdDynamic_free(ctypes.byref(self._cdata))
+        self._cdata = None
 
 
 # pylint: disable=too-few-public-methods
 class CreateMixin(TreeMixin):
     """Mixin class used by `Data` to create MhdDynamic input."""
 
-    #pylint: disable=protected-access, too-many-arguments
+    # pylint: disable=protected-access, too-many-arguments
     def create_mhddynamic(
-            self,
-            rhogrid: utils.ArrayLike | None = None,
-            timegrid: utils.ArrayLike | None = None,
-            toroidalnumber: utils.ArrayLike | None = None,
-            poloidalnumber: utils.ArrayLike | None = None,
-            magneticprofile: utils.ArrayLike | None = None,
-            electricprofile: utils.ArrayLike | None = None,
-            amplitude: Optional[utils.ArrayLike]=None,
-            frequency: Optional[utils.ArrayLike]=None,
-            phase: Optional[utils.ArrayLike]=None,
-            note: Optional[str]=None,
-            activate: bool=False,
-            preview: bool=False,
-            save: Optional[bool]=None,
-            ) -> MhdDynamic:
+        self,
+        rhogrid: utils.ArrayLike,
+        timegrid: utils.ArrayLike,
+        toroidalnumber: utils.ArrayLike,
+        poloidalnumber: utils.ArrayLike,
+        magneticprofile: utils.ArrayLike,
+        electricprofile: utils.ArrayLike,
+        amplitude: Optional[utils.ArrayLike] = None,
+        frequency: Optional[utils.ArrayLike] = None,
+        phase: Optional[utils.ArrayLike] = None,
+        note: Optional[str] = None,
+        activate: bool = False,
+        preview: bool = False,
+        save: Optional[bool] = None,
+    ) -> MhdDynamic:
         r"""Create MHD eigenmode input where the modes evolve in time.
 
-        This input is otherwise equivalent to :class:`MhdStatic` except that the
+        This input is otherwise equivalent to :class:`MhdStationary` except that the
         profiles evolve in time. This slows simulation significantly if the number of modes is large.
 
         Parameters
@@ -323,46 +302,51 @@ class CreateMixin(TreeMixin):
         inputdata : ~a5py.data.mhd.MhdDynamic
             Input variant created from the given parameters.
         """
-        parameters = _variants.parse_parameters(
-            rhogrid, timegrid, toroidalnumber, poloidalnumber, magneticprofile,
-            electricprofile, amplitude, frequency, phase,
-        )
-        default_rhogrid = np.linspace(0., 1., 3)
-        default_timegrid = np.linspace(0., 1., 4)
-        nrho = (default_rhogrid.size if parameters["rhogrid"] is None
-              else parameters["rhogrid"].size)
-        ntime = (default_timegrid.size if parameters["timegrid"] is None
-              else parameters["timegrid"].size)
-        nmode = (2 if parameters["toroidalnumber"] is None
-              else parameters["toroidalnumber"].size)
-        _variants.validate_required_parameters(
-            parameters,
-            names=["rhogrid", "timegrid", "toroidalnumber", "poloidalnumber",
-                   "magneticprofile", "electricprofile",],
-            units=["1", "s", "1", "1", "m", "V",],
-            shape=[(nrho,), (ntime,), (nmode,), (nmode,), (nrho,ntime,nmode),
-                   (nrho,ntime, nmode),],
-            dtype=["f8", "f8", "i4", "i4", "f8", "f8",],
-            default=[default_rhogrid, default_timegrid, np.array([1, 2]),
-                     np.array([3,3]), np.ones((nrho,ntime,nmode)),
-                     np.ones((nrho,ntime,nmode)),],
-        )
-        _variants.validate_optional_parameters(
-            parameters,
-            names=["amplitude", "frequency", "phase",],
-            units=["1", "rad/s", "rad",],
-            shape=[(nmode,), (nmode,), (nmode,),],
-            dtype=["f8", "f8", "f8",],
-            default=[np.ones(nmode), np.zeros(nmode), np.zeros(nmode),],
-        )
-        meta = _variants.new_metadata("MhdDynamic", note=note)
-        obj = self._treemanager.enter_input(
-            meta, activate=activate, dryrun=dryrun, store_hdf5=store_hdf5,
-            )
-        for parameter, value in parameters.items():
-            setattr(obj, f"_{parameter}", value)
-            getattr(obj, f"_{parameter}").flags.writeable = False
+        with utils.validate_variables() as v:
+            rhogrid = v.validate("rhogrid", rhogrid, (-1,), "1")
+            timegrid = v.validate("timegrid", timegrid, (-1,), "s")
+            toroidalnumber = v.validate("toroidalnumber", toroidalnumber, (-1,), "1", "i4")
+            poloidalnumber = v.validate("poloidalnumber", poloidalnumber, (-1,), "1", "i4")
 
-        if store_hdf5:
-            obj._export_hdf5()
-        return obj
+        if toroidalnumber.size != poloidalnumber.size:
+            raise ValueError(
+                "There must be equal number of toroidal and poloidal modes "
+                "(toroidalnumber and poloidalnumber must have the same size)."
+            )
+
+        nrho, ntime, nmode = rhogrid.size, timegrid.size, toroidalnumber.size
+        with utils.validate_variables() as v:
+            phase = v.validate("phase", phase, (nmode,), "rad")
+            amplitude = v.validate("amplitude", amplitude, (nmode,), "1")
+            frequency = v.validate(
+                "frequency", frequency, (nmode,), "rad/s"
+            )
+            magneticprofile = v.validate(
+                "magneticprofile", magneticprofile, (nrho, ntime, nmode), "m"
+            )
+            electricprofile = v.validate(
+                "electricprofile", electricprofile, (nrho, ntime, nmode), "V"
+            )
+
+        utils.validate_abscissa(rhogrid, "rhogrid")
+        leaf = MhdDynamic(note=note)
+        leaf._stage(
+            rhogrid=rhogrid,
+            timegrid=timegrid,
+            toroidalnumber=toroidalnumber,
+            poloidalnumber=poloidalnumber,
+            magneticprofile=magneticprofile,
+            electricprofile=electricprofile,
+            amplitude=amplitude,
+            frequency=frequency,
+            phase=phase,
+        )
+        if preview:
+            return leaf
+        self._treemanager.enter_leaf(
+            leaf,
+            activate=activate,
+            save=save,
+            category="mhd",
+        )
+        return leaf
