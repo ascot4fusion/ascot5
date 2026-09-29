@@ -1,5 +1,5 @@
 /**
- * Implements bfield_spline3d.h.
+ * Implements "bfield_spline3d.h".
  */
 #include "bfield_spline3d.h"
 #include "bfield.h"

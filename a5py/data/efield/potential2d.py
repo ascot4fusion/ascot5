@@ -118,10 +118,8 @@ class CreateMixin(TreeMixin):
             preview: bool=False,
             save: Optional[bool]=None,
             ) -> EfieldPotential2D:
-        r"""Create radial electric field input that is evaluated from the
-        gradient of a 1D potential.
-
-        This input was designed to use NEOTRANSP output.
+        r"""Create axisymmetric electric field input that is evaluated from the
+        gradient of a 2D potential.
 
         Parameters
         ----------
@@ -148,7 +146,7 @@ class CreateMixin(TreeMixin):
 
         Returns
         -------
-        inputdata : ~a5py.data.efield.EfieldRadialPotential
+        inputdata : ~a5py.data.efield.EfieldPotential2D
             Input variant created from the given parameters.
 
         Notes
@@ -157,8 +155,8 @@ class CreateMixin(TreeMixin):
 
         .. math::
 
-            \mathbf{E} = \frac{\partial V}{\partial \r} \hat{\mathbf{r}}
-                       + \frac{\partial V}{\partial z} \hat{\mathbf{z}}.
+            \mathbf{E} &= \frac{\partial V}{\partial r} \hat{\mathbf{r}} \\
+                       &+ \frac{\partial V}{\partial z} \hat{\mathbf{z}}.
         """
         with utils.validate_variables() as v:
             rgrid = v.validate("rgrid", rgrid, (-1,), "m")

@@ -1,5 +1,5 @@
 /**
- * Implements endcond.h.
+ * Implements "endcond.h".
  */
 #include "endcond.h"
 #include "ascot.h"

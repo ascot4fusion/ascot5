@@ -1,7 +1,8 @@
 /**
- * Implements boschhale.h.
+ * Implements "boschhale.h".
  */
 #include "boschhale.h"
+//#include "datatypes.h"
 #include "consts.h"
 #include "defines.h"
 #include <math.h>

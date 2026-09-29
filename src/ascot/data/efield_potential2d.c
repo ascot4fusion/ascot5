@@ -1,3 +1,6 @@
+/**
+ * Implements "efield_potential2d.h".
+ */
 #include "efield_potential2d.h"
 #include "defines.h"
 #include "efield.h"

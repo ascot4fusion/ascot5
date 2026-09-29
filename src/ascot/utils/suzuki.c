@@ -1,5 +1,5 @@
 /**
- * Implements suzuki.h.
+ * Implements "suzuki.h".
  */
 #include "suzuki.h"
 #include "consts.h"

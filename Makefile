@@ -30,6 +30,7 @@ clean-doc:
 	$(MAKE) -C doc cleanall
 
 cleanall: clean
+	$(MAKE) -C doc cleanall
 	rm -rf build
 
 .PHONY: libascot ascot lint tests tutorial doc-user doc-dev doc clean \

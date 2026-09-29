@@ -39,7 +39,7 @@ void EfieldPotential1D_free(EfieldPotential1D *efield);
  */
 void EfieldPotential1D_offload(EfieldPotential1D *efield);
 
-GPU_DECLARE_TARGET_SIMD_UNIFORM(efield, bfield)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield, efield)
 /**
  * Evaluate electric field vector.
  *

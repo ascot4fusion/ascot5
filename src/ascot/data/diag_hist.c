@@ -1,5 +1,5 @@
 /**
- * Implements diag_hist.h.
+ * Implements "diag_hist.h".
  */
 #include "diag_hist.h"
 #include "consts.h"

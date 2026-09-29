@@ -1,5 +1,5 @@
 /**
- * Implements bfield_analytical.h.
+ * Implements "bfield_analytical.h".
  */
 #include "bfield_analytical.h"
 #include "consts.h"

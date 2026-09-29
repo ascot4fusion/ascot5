@@ -1,5 +1,5 @@
 /**
- * Implements the wall interface (see wall.h).
+ * Implements the wall interface (see "wall.h").
  */
 #include "wall.h"
 #include "defines.h"

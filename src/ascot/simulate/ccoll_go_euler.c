@@ -1,6 +1,6 @@
 /**
  * Implements Euler-Maruyama integrator for collision operator in FO picture
- * (see coulomb_collisions.h).
+ * (see "coulomb_collisions.h").
  */
 #include "consts.h"
 #include "coulomb_collisions.h"

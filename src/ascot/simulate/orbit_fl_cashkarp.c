@@ -1,6 +1,6 @@
 /**
  * Field line integrator implemented with adaptive Cash-Karp method
- * (see orbit_following.h).
+ * (see "orbit_following.h").
  **/
 #include "data/bfield.h"
 #include "data/boozer.h"

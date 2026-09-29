@@ -1,3 +1,6 @@
+/**
+ * Miscellaneous tools.
+ */
 #include "ascot.h"
 #include "data/bfield.h"
 #include "defines.h"

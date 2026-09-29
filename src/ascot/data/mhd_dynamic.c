@@ -1,5 +1,5 @@
 /**
- * Implements mhd_dynamic.h.
+ * Implements "mhd_dynamic.h".
  */
 #include "mhd_dynamic.h"
 #include "bfield.h"

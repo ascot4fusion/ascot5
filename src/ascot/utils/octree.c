@@ -1,5 +1,5 @@
 /**
- * Implements octree.h.
+ * Implements "octree.h".
  */
 #include "octree.h"
 #include "defines.h"
@@ -108,7 +108,7 @@ void Octree_add(Octree *node, float t1[3], float t2[3], float t3[3], size_t id)
     }
 }
 
-list_int_node *Octree_get(Octree *node, real p[3])
+ListInt *Octree_get(Octree *node, real p[3])
 {
     if (node->n000 == NULL)
     {

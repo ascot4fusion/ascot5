@@ -1,5 +1,5 @@
 /**
- * Implements diag.h.
+ * Implements "diag.h".
  */
 #include "diag.h"
 #include "bfield.h"

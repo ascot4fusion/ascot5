@@ -1,6 +1,6 @@
 /**
  * Simulate gyro-orbit or neutral particles using fixed time-step (see
- * simulate.h).
+ * "simulate.h").
  */
 #include "defines.h"
 #include "atomic_reactions.h"

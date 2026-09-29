@@ -1,5 +1,5 @@
 /**
- * Cubic 2D spline interpolation in compact form (see interp.h).
+ * Cubic 2D spline interpolation in compact form (see "interp.h").
  */
 #include "defines.h"
 #include "interp.h"

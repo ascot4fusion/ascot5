@@ -1,5 +1,5 @@
 /**
- * Simulate magnetic field-lines using adaptive time-step (see simulate.h).
+ * Simulate magnetic field-lines using adaptive time-step (see "simulate.h").
  */
 #include "consts.h"
 #include "data/bfield.h"

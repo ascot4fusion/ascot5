@@ -1,5 +1,5 @@
 /**
- * Implements wall_triangular3d.c.
+ * Implements "wall_triangular3d.c".
  */
 #include "wall_triangular3d.h"
 #include "defines.h"
@@ -91,8 +91,8 @@ void WallTriangular3D_offload(WallTriangular3D *wall)
 {
     SUPPRESS_UNUSED_WARNING(wall);
     GPU_MAP_TO_DEVICE(
-        data->wall_flag [0:data->n], data->vertices [0:data->n * 9],
-        data->tree_array [0:data->tree_array_size])
+        wall->wall_flag [0:wall->n], wall->vertices [0:wall->n * 9],
+        wall->tree_array [0:wall->tree_array_size])
 }
 
 size_t WallTriangular3D_eval_intersection(
@@ -192,8 +192,8 @@ int WallTriangular3D_init_octree(WallTriangular3D *wall)
     /* Create lists for triangles in each grid square and fill the lists
        by querying the octree in each grid point */
     size_t ncell = wall->ngrid * wall->ngrid * wall->ngrid;
-    list_int_node **tri_list =
-        (list_int_node **)malloc(ncell * sizeof(list_int_node *));
+    ListInt **tri_list =
+        (ListInt **)malloc(ncell * sizeof(ListInt *));
     for (size_t ix = 0; ix < wall->ngrid; ix++)
     {
         for (size_t iy = 0; iy < wall->ngrid; iy++)

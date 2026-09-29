@@ -1,5 +1,5 @@
 /**
- * Implements wall_contour2d.h.
+ * Implements "wall_contour2d.h".
  */
 #include "wall_contour2d.h"
 #include "defines.h"

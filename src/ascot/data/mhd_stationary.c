@@ -1,5 +1,5 @@
 /**
- * Implements mhd_stationary.h.
+ * Implements "mhd_stationary.h".
  */
 #include "mhd_stationary.h"
 #include "bfield.h"

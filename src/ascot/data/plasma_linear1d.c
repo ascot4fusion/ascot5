@@ -1,5 +1,5 @@
 /**
- * Implements plasma_linear1d.h.
+ * Implements "plasma_linear1d.h".
  */
 #include "plasma_linear1d.h"
 #include "consts.h"

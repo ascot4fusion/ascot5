@@ -15,7 +15,7 @@
  * contains enum type for the new instance.
  *
  * The interface checks which instance given data corresponds to from the
- * "type"-field in asigma_offload_data or asigma_data that is given
+ * "type"-field in "asigma_offload_data" or "asigma_data" that is given
  * as an argument, and calls the relevant function for that instance.
  */
 #ifndef ATOMIC_H

@@ -1,5 +1,5 @@
 /**
- * Cubic 3D spline interpolation in compact form (see interp.h).
+ * Cubic 3D spline interpolation in compact form (see "interp.h").
  */
 #include "consts.h"
 #include "defines.h"

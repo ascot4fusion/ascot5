@@ -1,5 +1,5 @@
 /**
- * Implements mathlib.h.
+ * Implements "mathlib.h".
  */
 #include "mathlib.h"
 #include "consts.h"

@@ -47,8 +47,6 @@
  * False which notates its simulation should be discontinued. If the end
  * condition is wall collision, the ID of the wall element the marker collided
  * with is stored in the marker fields.
- *
- * @todo Error checking would be a good idea
  */
 #ifndef ENDCOND_H
 #define ENDCOND_H

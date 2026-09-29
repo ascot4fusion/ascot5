@@ -1,5 +1,5 @@
 /**
- * Implements gctransform.h.
+ * Implements "gctransform.h".
  */
 #include "gctransform.h"
 #include "consts.h"

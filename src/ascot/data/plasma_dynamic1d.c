@@ -1,5 +1,5 @@
 /**
- * Implements plasma_dynamic1d.h.
+ * Implements "plasma_dynamic1d.h".
  */
 #include "plasma_dynamic1d.h"
 #include "consts.h"

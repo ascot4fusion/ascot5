@@ -22,7 +22,6 @@ extensions = [
     "sphinx.ext.autodoc",        # For generating doc from Python source
     "numpydoc",                  # Source docs are done in numpy style (must be loaded after autodoc)
     "sphinxcontrib.bibtex",      # Can use bibtex
-    "sphinxcontrib.mermaid",     # Graphs and diagrams
     "sphinx_design_elements",    # Additional nice widgets such as tables
     "sphinx.ext.autosummary",    # Creating summary tables
     "sphinx.ext.intersphinx",    # Link to external libraries
@@ -65,6 +64,12 @@ numpydoc_show_class_members = False # Removes table summarizing class methods
 # -- Where Doxygen generated xml files are located -----------------------------
 breathe_default_project = "ascot5"
 breathe_projects = {"ascot5": "_static/doxygen/xml"}
+#breathe_implementation_filename_extensions = []
+breathe_show_include = False
+breathe_domain_by_extension = {
+    "c" : "c",
+    "h" : "c",
+}
 intersphinx_mapping = {
     "h5py": ("https://docs.h5py.org/en/stable/", None),
     "unyt": ("https://unyt.readthedocs.io/en/stable/", None),
@@ -90,8 +95,6 @@ html_css_files = ["custom.css"]
 bibtex_bibfiles = ["ascotwork.bib"]
 nbsphinx_execute = "never"
 nbsphinx_requirejs_path = "''"
-
-mermaid_version = "10.9.0"
 
 # Thumbnails (also link images somewhere as otherwise they are not copied to
 # _images) (deprecated, now possible to display from the notebook)

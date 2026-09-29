@@ -1,5 +1,5 @@
 /**
- * Implements plasma.h.
+ * Implements "plasma.h".
  */
 #include "plasma.h"
 #include "consts.h"

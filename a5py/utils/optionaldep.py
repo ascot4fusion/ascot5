@@ -14,8 +14,8 @@ class OptionalDependency:
     only when first accessed. If the dependency is not available in the
     environment, an informative ImportError is raised *at the point of use*.
 
-    Example
-    -------
+    Examples
+    --------
     Instead of::
 
         import optionalpackage as optional

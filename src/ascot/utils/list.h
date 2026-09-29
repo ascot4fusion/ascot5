@@ -8,11 +8,14 @@
 /**
  * Linked list node that stores data of type `int`.
  */
-typedef struct list_int_node
+typedef struct ListInt ListInt;
+
+
+struct ListInt
 {
     int data;                   /**< Data that is stored in this node.        */
-    struct list_int_node *next; /**< Next node in chain or NULL if last.      */
-} list_int_node;
+    struct ListInt *next; /**< Next node in chain or NULL if last.      */
+} ;
 
 /**
  * Create an empty list.
@@ -20,7 +23,7 @@ typedef struct list_int_node
  * @param list Pointer to the created list.
  */
 DECLARE_TARGET
-void list_int_create(list_int_node **list);
+void list_int_create(ListInt **list);
 DECLARE_TARGET_END
 
 /**
@@ -29,19 +32,20 @@ DECLARE_TARGET_END
  * @param list Pointer to the list to be freed.
  */
 DECLARE_TARGET
-void list_int_free(list_int_node **list);
+void list_int_free(ListInt **list);
 DECLARE_TARGET_END
 
+DECLARE_TARGET
 /**
  * Add new node to the end of the chain.
  *
  * @param list List node to which new node is linked.
  * @param data Value to be stored in the new node.
  */
-DECLARE_TARGET
-void list_int_add(list_int_node *list, int data);
+void list_int_add(ListInt *list, int data);
 DECLARE_TARGET_END
 
+DECLARE_TARGET
 /**
  * Retrieve the data stored in a list node.
  *
@@ -50,10 +54,10 @@ DECLARE_TARGET_END
  *
  * @return The stored data.
  */
-DECLARE_TARGET
-int list_int_get(list_int_node *list, int index);
+int list_int_get(ListInt *list, int index);
 DECLARE_TARGET_END
 
+DECLARE_TARGET
 /**
  * Get number of nodes that come after this node.
  *
@@ -61,8 +65,7 @@ DECLARE_TARGET_END
  *
  * @return Number of nodes this node is followed by.
  */
-DECLARE_TARGET
-int list_int_size(list_int_node *list);
+int list_int_size(ListInt *list);
 DECLARE_TARGET_END
 
 #endif

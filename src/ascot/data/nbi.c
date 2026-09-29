@@ -1,6 +1,5 @@
 /**
- * @file nbi.c
- * @brief Functions for NBI simulation and particle generation
+ * Implements "nbi.h".
  */
 #include <stdlib.h>
 #include <math.h>

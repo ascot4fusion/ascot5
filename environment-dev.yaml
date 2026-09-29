@@ -17,7 +17,7 @@ dependencies:
   - pyvista
   - ipykernel
   - pandoc
-  - sphinx==6.*
+  - sphinx==9.*
   - numpydoc
   - nbsphinx
   - nbformat
@@ -30,3 +30,8 @@ dependencies:
   - pylint
   - mypy
   - pytest
+  - pip:
+    - tomli_w
+    - sphinx-multiproject
+    - sphinx-design-elements
+    - "breathe>=5"

@@ -1,5 +1,5 @@
 /**
- * Cubic spline interpolation coefficients of a 1D data set (see interp.h).
+ * Cubic spline interpolation coefficients of a 1D data set (see "interp.h").
  */
 #include "defines.h"
 #include "utils/interp.h"

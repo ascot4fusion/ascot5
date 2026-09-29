@@ -39,7 +39,7 @@ typedef struct Octree
     struct Octree *n111; /**< The [xmax, ymax, zmax] of child nodes [m].      */
     float bb1[3];        /**< Bounding box xyz minimum limit [m].             */
     float bb2[3];        /**< Bounding box xyz maximum limit [m].             */
-    list_int_node *list; /**< Linked list for storing triangle IDs.           */
+    ListInt *list;       /**< Linked list for storing triangle IDs.           */
 } Octree;
 
 /**
@@ -109,7 +109,7 @@ void Octree_add(Octree *node, float t1[3], float t2[3], float t3[3], size_t id);
  *
  * @return Linked list of the leaf node given point belongs to.
  */
-list_int_node *Octree_get(Octree *node, real p[3]);
+ListInt *Octree_get(Octree *node, real p[3]);
 
 DECLARE_TARGET
 /**

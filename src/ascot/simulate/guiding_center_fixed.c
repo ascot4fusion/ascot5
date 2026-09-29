@@ -1,5 +1,5 @@
 /**
- * Simulate guiding centers using fixed time-step (see simulate.h).
+ * Simulate guiding centers using fixed time-step (see "simulate.h").
  */
 #include "consts.h"
 #include "coulomb_collisions.h"

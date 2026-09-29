@@ -1,5 +1,5 @@
 /**
- * Implements fusion_source.h.
+ * Implements "fusion_source.h".
  */
 #include "fusion_source.h"
 #include "consts.h"

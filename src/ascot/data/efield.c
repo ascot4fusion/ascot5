@@ -1,5 +1,5 @@
 /**
- * Implements efield.h.
+ * Implements "efield.h".
  */
 #include "efield.h"
 #include "bfield.h"

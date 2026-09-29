@@ -1,5 +1,5 @@
 /**
- * Implements efield_potential1d.h.
+ * Implements "efield_potential1d.h".
  */
 #include "efield_potential1d.h"
 #include "bfield.h"

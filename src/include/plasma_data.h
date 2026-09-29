@@ -12,7 +12,7 @@
 /**
  * Plasma data types.
  */
-typedef enum plasma_type
+typedef enum Plasma_type
 {
     PLASMA_LINEAR1D = 1, /**< Corresponds to PlasmaLinear1D.                  */
     PLASMA_LINEAR2D,     /**< Corresponds to PlasmaLinear2D.                  */

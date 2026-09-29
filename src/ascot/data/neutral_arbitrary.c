@@ -1,5 +1,5 @@
 /**
- * Implements neutral_arbitrary.h.
+ * Implements "neutral_arbitrary.h".
  */
 #include "defines.h"
 #include "neutral.h"

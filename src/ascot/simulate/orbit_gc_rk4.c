@@ -1,6 +1,6 @@
 /**
  * Guiding center integrator implemented with RK4 with fixed time-step
- * (see orbit_following.h).
+ * (see "orbit_following.h").
  **/
 #include "consts.h"
 #include "data/bfield.h"

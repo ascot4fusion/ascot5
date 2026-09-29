@@ -48,7 +48,7 @@ class NeutralArbitrary(InputVariant):
 
     @property
     def nspecies(self) -> int:
-        """Number of ion species."""
+        r"""Number of ion species."""
         if self._cdata is not None:
             return int(self._cdata.readonly_carray("nspecies", ()) - 1)
         assert self._file is not None
@@ -56,22 +56,22 @@ class NeutralArbitrary(InputVariant):
 
     @property
     def anum(self) -> np.ndarray:
-        """Atomic mass number of each ion species."""
+        r"""Atomic mass number of each ion species."""
         return np.array([s.anum for s in self.species], dtype="i4")
 
     @property
     def znum(self) -> np.ndarray:
-        """Atomic number of each ion species."""
+        r"""Atomic number of each ion species."""
         return np.array([s.znum for s in self.species], dtype="i4")
 
     @property
     def mass(self) -> unyt.unyt_array:
-        """Mass of each ion species."""
+        r"""Mass of each ion species."""
         return unyt.unyt_array([s.mass for s in self.species], dtype="f8")
 
     @property
     def species(self) -> list[Species]:
-        """The ion species that make up the plasma."""
+        r"""The ion species that make up the plasma."""
         if self._cdata is not None:
             anum = self._cdata.readonly_carray("anum", (self.nspecies,))
             znum = self._cdata.readonly_carray("znum", (self.nspecies,))
@@ -82,7 +82,7 @@ class NeutralArbitrary(InputVariant):
 
     @property
     def rgrid(self) -> unyt.unyt_array:
-        """Radial grid in :math:`R` in which the data is tabulated."""
+        r"""Radial grid in :math:`R` in which the data is tabulated."""
         if self._cdata is not None:
             return self._cdata.readonly_grid("x", "m", "density")
         assert self._file is not None
@@ -90,7 +90,7 @@ class NeutralArbitrary(InputVariant):
 
     @property
     def zgrid(self) -> unyt.unyt_array:
-        """Axial grid in :math:`z` in which the data is tabulated."""
+        r"""Axial grid in :math:`z` in which the data is tabulated."""
         if self._cdata is not None:
             return self._cdata.readonly_grid("z", "m", "density")
         assert self._file is not None
@@ -98,7 +98,7 @@ class NeutralArbitrary(InputVariant):
 
     @property
     def phigrid(self) -> unyt.unyt_array:
-        """Toroidal grid in :math:`\phi` in which the data is tabulated."""
+        r"""Toroidal grid in :math:`\phi` in which the data is tabulated."""
         if self._cdata is not None:
             return self._cdata.readonly_grid("y", "rad", "density").to("deg")
         assert self._file is not None
@@ -106,7 +106,7 @@ class NeutralArbitrary(InputVariant):
 
     @property
     def temperature(self):
-        """Species-wise temperature."""
+        r"""Species-wise temperature."""
         if self._staged:
             nspecies = self._from_struct_("n_species", shape=())
             data = self._from_struct_("t0", idx=0)
@@ -121,7 +121,7 @@ class NeutralArbitrary(InputVariant):
 
     @property
     def density(self):
-        """Species-wise density."""
+        r"""Species-wise density."""
         if self._staged:
             nspecies = self._from_struct_("n_species", shape=())
             data = self._from_struct_("n0", idx=0)

@@ -1,5 +1,5 @@
 /**
- * Implements atomic.h.
+ * Implements "atomic.h".
  */
 #include "atomic_reactions.h"
 #include "consts.h"

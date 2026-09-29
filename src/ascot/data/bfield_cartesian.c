@@ -1,5 +1,5 @@
 /**
- * Implements bfield_cartesian.h.
+ * Implements "bfield_cartesian.h".
  */
 #include "bfield_cartesian.h"
 #include "bfield.h"

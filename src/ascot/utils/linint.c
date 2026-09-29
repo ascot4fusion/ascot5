@@ -1,5 +1,5 @@
 /**
- * Linear interpolation (see interp.h).
+ * Linear interpolation (see "interp.h").
  */
 #include "defines.h"
 #include "interp.h"

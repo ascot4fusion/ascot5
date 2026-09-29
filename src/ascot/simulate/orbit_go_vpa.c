@@ -1,6 +1,6 @@
 /**
  * Gyro-orbit integrator implemented with VPA with fixed time-step
- * (see orbit_following.h).
+ * (see "orbit_following.h").
  **/
 #include "consts.h"
 #include "data/bfield.h"

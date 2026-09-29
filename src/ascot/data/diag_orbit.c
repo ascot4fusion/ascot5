@@ -1,5 +1,5 @@
 /**
- * Implements diag_orbit.h.
+ * Implements "diag_orbit.h".
  */
 #include "diag_orbit.h"
 #include "bfield.h"

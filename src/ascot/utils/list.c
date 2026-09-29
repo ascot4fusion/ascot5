@@ -1,21 +1,21 @@
 /**
- * Implements list.h.
+ * Implements "list.h".
  */
 #include "list.h"
 #include <stdlib.h>
 
-void list_int_create(list_int_node **list)
+void list_int_create(ListInt **list)
 {
-    (*list) = (list_int_node *)malloc(sizeof(list_int_node));
+    (*list) = (ListInt *)malloc(sizeof(ListInt));
     (*list)->data = 0;
     (*list)->next = NULL;
 }
 
-void list_int_free(list_int_node **list)
+void list_int_free(ListInt **list)
 {
-    list_int_node *node = (*list);
+    ListInt *node = (*list);
     int n = list_int_size(*list);
-    list_int_node *next_node = (*list)->next;
+    ListInt *next_node = (*list)->next;
     int i;
     for (i = 0; i < n; i++)
     {
@@ -27,25 +27,25 @@ void list_int_free(list_int_node **list)
     (*list) = NULL;
 }
 
-void list_int_add(list_int_node *list, int data)
+void list_int_add(ListInt *list, int data)
 {
-    list_int_node *node = list;
+    ListInt *node = list;
     while (node->next != NULL)
     {
         node = node->next;
     }
 
-    list_int_node *new_node = (list_int_node *)malloc(sizeof(list_int_node));
+    ListInt *new_node = (ListInt *)malloc(sizeof(ListInt));
     new_node->next = NULL;
 
     node->next = new_node;
     node->data = data;
 }
 
-int list_int_get(list_int_node *list, int index)
+int list_int_get(ListInt *list, int index)
 {
     int i = 0;
-    list_int_node *node = list;
+    ListInt *node = list;
     while (i < index)
     {
         node = node->next;
@@ -54,10 +54,10 @@ int list_int_get(list_int_node *list, int index)
     return node->data;
 }
 
-int list_int_size(list_int_node *list)
+int list_int_size(ListInt *list)
 {
     int i = 0;
-    list_int_node *node = list;
+    ListInt *node = list;
     while (node->next != NULL)
     {
         node = node->next;

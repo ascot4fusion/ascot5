@@ -1,5 +1,5 @@
 /**
- * Implements neutral_radial.h.
+ * Implements "neutral_radial.h".
  */
 #include "defines.h"
 #include "neutral.h"

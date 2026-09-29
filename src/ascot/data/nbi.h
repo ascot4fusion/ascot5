@@ -1,6 +1,6 @@
 /**
  * @file nbi.h
- *
+ * Functions for NBI simulation and particle generation.
  */
 #ifndef NBI_H
 #define NBI_H

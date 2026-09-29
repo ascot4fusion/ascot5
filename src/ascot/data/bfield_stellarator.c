@@ -1,5 +1,5 @@
 /**
- * Implements bfield_stellarator.h.
+ * Implements "bfield_stellarator.h".
  */
 #include "bfield_stellarator.h"
 #include "bfield.h"

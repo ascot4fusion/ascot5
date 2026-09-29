@@ -1,5 +1,5 @@
 /**
- * Implements random.h.
+ * Implements "random.h".
  */
 #if defined(RANDOM_MKL)
 

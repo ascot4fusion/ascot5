@@ -1,5 +1,5 @@
 /**
- * Implements marker.h.
+ * Implements "marker.h".
  */
 #include "marker.h"
 #include "bfield.h"

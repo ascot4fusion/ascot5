@@ -1,5 +1,5 @@
 /**
- * Implements mhd.h.
+ * Implements "mhd.h".
  */
 #include "mhd.h"
 #include "bfield.h"

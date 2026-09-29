@@ -1,5 +1,5 @@
 /**
- * Implements neutral.h.
+ * Implements "neutral.h".
  */
 #include "neutral.h"
 #include "defines.h"

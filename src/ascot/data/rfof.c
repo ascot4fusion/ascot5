@@ -1,5 +1,5 @@
 /**
- * Implements rfof.h.
+ * Implements "rfof.h".
  */
 #include "rfof.h"
 #include "consts.h"

@@ -259,6 +259,7 @@ GPU_DECLARE_TARGET_SIMD
  */
 void math_jac_rpz2xyz(
     real a_daxyz[12], const real a_darpz[12], real r, real phi);
+DECLARE_TARGET_END
 
 GPU_DECLARE_TARGET_SIMD
 /**
@@ -317,82 +318,5 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(gamma)
  */
 real math_crossed_plane(real alpha, real beta, real gamma);
 
-/**
- * Evaluate vector operations.
- *
- * This function is used to evaluate the vector operations in the code for
- * testing.
- *
- * @param a First vector.
- * @param b Second vector.
- * @param c Third vector.
- * @param dot Result of a dot b.
- * @param cross Result of a x b.
- * @param triple Result of a x b dot c.
- * @param det Result of determinant of matrix [a, b, c].
- * @param norm Result of |a|.
- * @param normc Result of |a| calculated from a[0], a[1], a[2] explicitly.
- * @param unit Result of unit vector of a.
- */
-void math_test_eval_vector_operations(
-    const real a[3], const real b[3], const real c[3], real dot[1],
-    real cross[3], real triple[1], real det[1], real norm[1], real normc[1],
-    real unit[3]);
-
-/**
- * Evaluate vector coordinate transformations.
- *
- * This function is used to evaluate the vector transformations in the code for
- * testing.
- *
- * @param xyz Input xyz position.
- * @param rpz Input rpz position.
- * @param vxyz Input vector in cartesian basis at position rpz.
- * @param vrpz Input vector in cylindrical basis at position rpz.
- * @param xyz_out Argument rpz converted to xyz.
- * @param rpz_out Argument xyz converted to rpz.
- * @param vxyz_out Argument vrpz converted to cartesian basis.
- * @param vrpz_out Argument vxyz converted to cylindrical basis.
- */
-void math_test_eval_vector_transformations(
-    const real xyz[3], const real rpz[3], const real vxyz[3],
-    const real vrpz[3], real xyz_out[3], real rpz_out[3], real vxyz_out[3],
-    real vrpz_out[3]);
-
-/**
- * Find the bin index on a uniform grid.
- *
- * This function is for testing.
- *
- * @param x Value to find the bin index for.
- * @param nx Number of bins.
- * @param xmin Minimum value of the grid.
- * @param xmax Maximum value of the grid.
- * @param bin_index The bin index.
- */
-void math_test_eval_bin_index(
-    const size_t nx, const real xmin, const real xmax, const real x,
-    size_t bin_index[1]);
-
-/**
- * Evaluate modulus of two real numbers.
- *
- * This function is for testing.
- *
- * @param a Dividend.
- * @param b Divisor.
- * @param out Result.
- */
-void math_test_eval_fmod(real a, real b, real out[1]);
-
-/**
- * Evaluate absolute value of an integer.
- *
- * This function is for testing.
- *
- * @param a Integer.
- * @param b Result.
- */
-void math_test_eval_iabs(int a, int b[1]);
 
 #endif

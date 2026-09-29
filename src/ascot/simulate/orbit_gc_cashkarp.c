@@ -1,6 +1,6 @@
 /**
  * Guiding center integrator implemented with adaptive Cash-Karp method
- * (see orbit_following.h).
+ * (see "orbit_following.h").
  **/
 #include "consts.h"
 #include "data/bfield.h"

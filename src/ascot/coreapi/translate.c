@@ -1,3 +1,6 @@
+/**
+ * For converting enum values etc. to strings and vice versa.
+ */
 #include "datatypes.h"
 #include "defines.h"
 #include <string.h>
@@ -15,17 +18,12 @@ const char *file_names[C_FILE_COUNT] = {
     "./data/bfield_stellarator.c",
     "./data/boozer.c",
     "./data/diag.c",
-    "./data/diag_orb.c",
-    "./data/diag_transcoef.c",
-    "./data/dist_5D.c",
-    "./data/dist_6D.c",
-    "./data/dist_com.c",
-    "./data/dist_rho5D.c",
-    "./data/dist_rho6D.c",
+    "./data/diag_orbit.c",
+    "./data/diag_hist.c",
     "./data/efield.c",
     "./data/efield_cartesian.c",
     "./data/efield_potential1d.c",
-    "./data/hist.c",
+    "./data/efield_potential2d.c",
     "./data/marker.c",
     "./data/mhd.c",
     "./data/mhd_dynamic.c",

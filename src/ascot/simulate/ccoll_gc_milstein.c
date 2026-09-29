@@ -1,6 +1,6 @@
 /**
  * Implements Milstein integrator for collision operator in GC picture (see
- * coulomb_collisions.h).
+ * "coulomb_collisions.h").
  */
 #include "consts.h"
 #include "coulomb_collisions.h"
