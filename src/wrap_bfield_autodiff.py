@@ -1,70 +1,54 @@
 import torch
 import torch.nn as nn
-from typing import List
+
+from bfield_autodiff_model import BFieldAutodiffModel
 
 
-class BFieldMLP(nn.Module):
-    """Recreate the TorchFort MLP whose state is saved in the checkpoint."""
-    def __init__(self):
+class BFieldAutodiffInference(nn.Module):
+    """Restore physical B and dB from the trained TorchFort model outputs."""
+    def __init__(self, trained_model):
         super().__init__()
-        self.fc0 = nn.Linear(3, 256)
-        self.fc1 = nn.Linear(256, 256)
-        self.fc2 = nn.Linear(256, 128)
-        self.fc3 = nn.Linear(128, 3)
-        self.b0 = nn.Parameter(torch.zeros(256))
-        self.b1 = nn.Parameter(torch.zeros(256))
-        self.b2 = nn.Parameter(torch.zeros(128))
+        self.base = trained_model
 
     def forward(self, x):
-        x = torch.relu(self.fc0(x) + self.b0)
-        x = torch.relu(self.fc1(x) + self.b1)
-        x = torch.relu(self.fc2(x) + self.b2)
-        return self.fc3(x)
+        y = self.base(x)
+        b_scale = torch.tensor([1.953079, 17.53601, 3.749450], dtype=x.dtype, device=x.device)
+        grad_scale = torch.tensor(
+            [[3.55015, 0.52316, 4.50280],
+             [0.53320, 0.06598, 0.00752],
+             [2.94440, 0.12928, 2.03438]],
+            dtype=x.dtype, device=x.device)
+        deriv_coord_scale = torch.tensor(
+            (0.5, 1.0 / 3.141592653589793, 0.5),
+            dtype=x.dtype, device=x.device)
+        out = torch.jit.annotate(list[torch.Tensor], [])
+        output_base = (0, 4, 8)
+        for k in range(3):
+            out.append(y[:, output_base[k]:output_base[k] + 1] * b_scale[k])
+            grad_base = output_base[k] + 1
+            for d in range(3):
+                normalized_grad = y[:, grad_base + d:grad_base + d + 1] * grad_scale[k, d]
+                physical_grad = normalized_grad * b_scale[k] * deriv_coord_scale[d]
+                out.append(physical_grad)
+        return torch.cat(out, dim=1)
 
 
 def load_bfield_model(checkpoint_path):
-    """Restore the TorchFort weight-only checkpoint as a callable MLP."""
+    """Reconstruct the periodic model from TorchFort's saved parameters."""
     checkpoint = torch.jit.load(checkpoint_path, map_location="cpu")
     params = dict(checkpoint.named_parameters())
-    model = BFieldMLP()
+    model = BFieldAutodiffModel()
     with torch.no_grad():
-        for name in ("fc0", "fc1", "fc2", "fc3"):
-            getattr(model, name).weight.copy_(params[name + ".weight"])
-            getattr(model, name).bias.copy_(params[name + ".bias"])
-        for name in ("b0", "b1", "b2"):
-            getattr(model, name).copy_(params[name])
+        for name, parameter in model.named_parameters():
+            parameter.copy_(params[name])
     return model.eval()
 
 
-class BFieldAutodiffWrapper(nn.Module):
-    def __init__(self, base_model):
-        super().__init__()
-        self.base = base_model
-
-    def forward(self, x):
-        x = x.requires_grad_(True)
-        B = self.base(x)
-        grads = torch.jit.annotate(List[torch.Tensor], [])
-        for k in range(3):
-            g_list = torch.autograd.grad(
-                [B[:, k].sum()], [x], create_graph=False, retain_graph=True
-            )
-            g = g_list[0]
-            if g is None:
-                g = torch.zeros_like(x)
-            grads.append(g)
-        dB = torch.cat(grads, dim=1)
-        return torch.cat([
-            B[:, 0:1], dB[:, 0:1], dB[:, 1:2], dB[:, 2:3],
-            B[:, 1:2], dB[:, 3:4], dB[:, 4:5], dB[:, 5:6],
-            B[:, 2:3], dB[:, 6:7], dB[:, 7:8], dB[:, 8:9],
-        ], dim=1)
-
-
 if __name__ == "__main__":
-    base = load_bfield_model("bfield_B_trained.pt").cuda()
-    wrapped = torch.jit.script(BFieldAutodiffWrapper(base).eval())
+    base = load_bfield_model("bfield_B_periodic_dB_trained.pt").cuda()
+    wrapped = torch.jit.script(BFieldAutodiffInference(base).eval())
     x = torch.randn(1024, 3, device="cuda")
     y = wrapped(x)
-    print(y.shape)
+    assert y.shape == (1024, 12)
+    print("Inference output shape:", tuple(y.shape))
     wrapped.save("bfield_B_autodiff.pt")

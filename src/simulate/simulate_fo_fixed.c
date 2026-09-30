@@ -92,15 +92,27 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
     particle_offload_fo(&p);
     particle_offload_fo(&p0);
 #ifdef USE_TORCHFORT_BFIELD
-    bfield_nn_init("config_bfield_B.yaml", 0);
+    bfield_nn_init("config_bfield_B_dB.yaml", 0);
 #endif
     real* rnd = (real*) malloc(3*mrk_array_size*sizeof(real));
-    float* nn_input     = (float*) malloc(3 * mrk_array_size * sizeof(float));
-    
-    float* nn_label_B   = (float*) malloc(3 * mrk_array_size * sizeof(float));
-    float* nn_output_B  = (float*) malloc(3 * mrk_array_size * sizeof(float));
-    
-    GPU_MAP_TO_DEVICE(hin[0:mrk_array_size],rnd[0:3*mrk_array_size],nn_input[0:3*mrk_array_size],nn_label_B[0:3*mrk_array_size],nn_output_B[0:3*mrk_array_size])
+#ifdef USE_TORCHFORT_BFIELD
+    const int nn_batch_capacity = (mrk_array_size < 2048) ? mrk_array_size : 2048;
+    float* nn_input = (float*) malloc(3 * nn_batch_capacity * sizeof(float));
+    float* nn_label = (float*) malloc(13 * nn_batch_capacity * sizeof(float));
+    float* nn_output = (float*) malloc(13 * nn_batch_capacity * sizeof(float));
+    real nn_rmin = p.r[0], nn_rmax = p.r[0];
+    real nn_zmin = p.z[0], nn_zmax = p.z[0];
+    for(int i = 1; i < p.n_mrk; i++) {
+        if(p.r[i] < nn_rmin) nn_rmin = p.r[i];
+        if(p.r[i] > nn_rmax) nn_rmax = p.r[i];
+        if(p.z[i] < nn_zmin) nn_zmin = p.z[i];
+        if(p.z[i] > nn_zmax) nn_zmax = p.z[i];
+    }
+    printf("[bfield_nn] replay domain R=[%g,%g] Z=[%g,%g]\n", nn_rmin, nn_rmax, nn_zmin, nn_zmax);
+    GPU_MAP_TO_DEVICE(hin[0:mrk_array_size],rnd[0:3*mrk_array_size],nn_input[0:3*nn_batch_capacity],nn_label[0:13*nn_batch_capacity],nn_output[0:13*nn_batch_capacity])
+#else
+    GPU_MAP_TO_DEVICE(hin[0:mrk_array_size],rnd[0:3*mrk_array_size])
+#endif
     while(n_running > 0) {
         /* Store marker states */
         GPU_PARALLEL_LOOP_ALL_LEVELS
@@ -128,152 +140,112 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim, int mrk_array_size) {
                 step_fo_vpa(&p, hin, &sim->B_data, &sim->E_data,
                             sim->enable_aldforce);
 #ifdef USE_TORCHFORT_BFIELD
+                int nn_count = (p.n_mrk < nn_batch_capacity) ? p.n_mrk : nn_batch_capacity;
+                if(nn_count > 0) {
+                    const int step = bfield_nn_get_step();
+                    const float bscale[3] = {1.953079f, 17.53601f, 3.749450f};
+                    const float gscale[3][3] = {
+                        {3.55015f, 0.52316f, 4.50280f},
+                        {0.53320f, 0.06598f, 0.00752f},
+                        {2.94440f, 0.12928f, 2.03438f}
+                    };
+                    const int nn_marker_count = nn_count / 2;
+                    GPU_PARALLEL_LOOP_ALL_LEVELS
+                    for(int i = 0; i < nn_count; i++) {
+                        real r, phi, z;
+                        real B_dB[15];
+                        if(i < nn_marker_count) {
+                            int idx = (int)(((long long)step * nn_marker_count + i) % p.n_mrk);
+                            r = p.r[idx];
+                            phi = fmod(p.phi[idx], 2.0 * M_PI);
+                            if(phi < 0.0) phi += 2.0 * M_PI;
+                            z = p.z[idx];
+                            B_dB[0] = p.B_r[idx];
+                            B_dB[1] = p.B_r_dr[idx];
+                            B_dB[2] = p.B_r_dphi[idx];
+                            B_dB[3] = p.B_r_dz[idx];
+                            B_dB[4] = p.B_phi[idx];
+                            B_dB[5] = p.B_phi_dr[idx];
+                            B_dB[6] = p.B_phi_dphi[idx];
+                            B_dB[7] = p.B_phi_dz[idx];
+                            B_dB[8] = p.B_z[idx];
+                            B_dB[9] = p.B_z_dr[idx];
+                            B_dB[10] = p.B_z_dphi[idx];
+                            B_dB[11] = p.B_z_dz[idx];
+                        } else {
+                            int j = i - nn_marker_count;
+                            real ur = fmod((j + 1) * 0.618033989 + (step + 1) * 0.754877666, 1.0);
+                            real uz = fmod((j + 1) * 0.414213562 + (step + 1) * 0.569840291, 1.0);
+                            real up = fmod((j + 1) * 0.732050808 + (step + 1) * 0.438579021, 1.0);
+                            r = nn_rmin + ur * (nn_rmax - nn_rmin);
+                            z = nn_zmin + uz * (nn_zmax - nn_zmin);
+                            phi = 2.0 * M_PI * up;
+                            (void)B_field_eval_B_dB(B_dB, r, phi, z, 0.0, &sim->B_data);
+                        }
 
-GPU_PARALLEL_LOOP_ALL_LEVELS
-for(int i = 0; i < p.n_mrk; i++) {
+                        nn_input[i*3 + 0] = (float)((r - 6.0) / 2.0);
+                        nn_input[i*3 + 1] = (float)((phi - M_PI) / M_PI);
+                        nn_input[i*3 + 2] = (float)(z / 2.0);
 
-    double phi_mod = fmod(p.phi[i], 2.0 * M_PI);
-    if(phi_mod < 0.0) {
-        phi_mod += 2.0 * M_PI;
-    }
-
-    const float bscale_B[3] = {
-        1.953079e+00f,
-        1.753601e+01f,
-        3.749450e+00f
-    };
-
-    nn_input[i*3 + 0] = (float)((p.r[i]  - 6.0) / 2.0);
-    nn_input[i*3 + 1] = (float)((phi_mod - M_PI) / M_PI);
-    nn_input[i*3 + 2] = (float)(p.z[i] / 2.0);
-
-    nn_label_B[i*3 + 0] = (float)p.B_r[i]   / bscale_B[0];
-    nn_label_B[i*3 + 1] = (float)p.B_phi[i] / bscale_B[1];
-    nn_label_B[i*3 + 2] = (float)p.B_z[i]   / bscale_B[2];
-}
- 
-float rmin = 1e30f, rmax = -1e30f;
-float zmin = 1e30f, zmax = -1e30f;
-
-#pragma acc parallel loop reduction(min:rmin,zmin) \
-                          reduction(max:rmax,zmax)
-for(int i = 0; i < p.n_mrk; i++) {
-
-    float r = (float)p.r[i];
-    float z = (float)p.z[i];
-
-    if(r < rmin) rmin = r;
-    if(r > rmax) rmax = r;
-
-    if(z < zmin) zmin = z;
-    if(z > zmax) zmax = z;
-}
-
-static int printed_bounds = 0;
-
-if(!printed_bounds) {
-    printf("\n=== INPUT DOMAIN ===\n");
-    printf("R : [%f , %f]\n", rmin, rmax);
-    printf("Z : [%f , %f]\n", zmin, zmax);
-    printf("====================\n\n");
-
-    printed_bounds = 1;
-}
-
-#pragma acc host_data use_device(nn_input, nn_label_B, nn_output_B)
-{
-    bfield_nn_train_gpu(
-        nn_input,
-        nn_label_B,
-        nn_output_B,
-        p.n_mrk
-    );
-}
- 
-if (bfield_nn_validation_ready()) {
-
-    float err_Bnorm_sum = 0.0f;
-    float err_Bnorm_max = 0.0f;
-
-    float abs_Br_sum   = 0.0f;
-    float abs_Bphi_sum = 0.0f;
-    float abs_Bz_sum   = 0.0f;
-
-    float abs_Br_max   = 0.0f;
-    float abs_Bphi_max = 0.0f;
-    float abs_Bz_max   = 0.0f;
-    
-    int n_eval = 0;
-
-    #pragma acc parallel loop \
-    present(nn_label_B[0:3*p.n_mrk], nn_output_B[0:3*p.n_mrk]) \
-      reduction(+:err_Bnorm_sum,abs_Br_sum,abs_Bphi_sum,abs_Bz_sum,n_eval) \
-      reduction(max:err_Bnorm_max,abs_Br_max,abs_Bphi_max,abs_Bz_max)
-    for(int i = 0; i < p.n_mrk; i++) {
-
-        float Br_true   = nn_label_B[i*3 + 0];
-        float Bphi_true = nn_label_B[i*3 + 1];
-        float Bz_true   = nn_label_B[i*3 + 2];
-
-        float Br_pred   = nn_output_B[i*3 + 0];
-        float Bphi_pred = nn_output_B[i*3 + 1];
-        float Bz_pred   = nn_output_B[i*3 + 2];
-
-        float dBr   = Br_pred   - Br_true;
-        float dBphi = Bphi_pred - Bphi_true;
-        float dBz   = Bz_pred   - Bz_true;
-
-        float Berr_norm = sqrtf(dBr*dBr + dBphi*dBphi + dBz*dBz);
-        float Btrue_norm = sqrtf(
-            Br_true*Br_true +
-            Bphi_true*Bphi_true +
-            Bz_true*Bz_true
-        );
-
-        float eB = Berr_norm / (Btrue_norm + 1.0e-8f);
-
-        float abs_Br   = fabsf(dBr);
-        float abs_Bphi = fabsf(dBphi);
-        float abs_Bz   = fabsf(dBz);
+                        nn_label[i*13 + 0] = (float)(B_dB[0] / bscale[0]);
+                        nn_label[i*13 + 1] = (float)(2.0 * B_dB[1] / (bscale[0] * gscale[0][0]));
+                        nn_label[i*13 + 2] = (float)(M_PI * B_dB[2] / (bscale[0] * gscale[0][1]));
+                        nn_label[i*13 + 3] = (float)(2.0 * B_dB[3] / (bscale[0] * gscale[0][2]));
+                        nn_label[i*13 + 4] = (float)(B_dB[4] / bscale[1]);
+                        nn_label[i*13 + 5] = (float)(2.0 * B_dB[5] / (bscale[1] * gscale[1][0]));
+                        nn_label[i*13 + 6] = (float)(M_PI * B_dB[6] / (bscale[1] * gscale[1][1]));
+                        nn_label[i*13 + 7] = (float)(2.0 * B_dB[7] / (bscale[1] * gscale[1][2]));
+                        nn_label[i*13 + 8] = (float)(B_dB[8] / bscale[2]);
+                        nn_label[i*13 + 9] = (float)(2.0 * B_dB[9] / (bscale[2] * gscale[2][0]));
+                        nn_label[i*13 + 10] = (float)(M_PI * B_dB[10] / (bscale[2] * gscale[2][1]));
+                        nn_label[i*13 + 11] = (float)(2.0 * B_dB[11] / (bscale[2] * gscale[2][2]));
+                        real divB = B_dB[1] + B_dB[0] / r + B_dB[6] / r + B_dB[11];
+                        nn_label[i*13 + 12] = (float)(0.5477225575 * divB / 3.03743887);
+                    }
 
 
- err_Bnorm_sum += eB;
-        if(eB > err_Bnorm_max) {
-            err_Bnorm_max = eB;
-        }
+                    #pragma acc host_data use_device(nn_input, nn_label, nn_output)
+                    {
+                        bfield_nn_train_gpu(nn_input, nn_label, nn_output, nn_count);
+                    }
 
-        abs_Br_sum   += abs_Br;
-        abs_Bphi_sum += abs_Bphi;
-        abs_Bz_sum   += abs_Bz;
+                    if(bfield_nn_validation_ready()) {
+                        float b_rel_sum = 0.0f, b_rel_max = 0.0f;
+                        float grad_err_sum = 0.0f, grad_err_max = 0.0f;
+                        float div_err_sq_sum = 0.0f;
+                        #pragma acc parallel loop present(nn_label[0:13*nn_count], nn_output[0:13*nn_count]) \
+                            reduction(+:b_rel_sum,grad_err_sum,div_err_sq_sum) \
+                            reduction(max:b_rel_max,grad_err_max)
+                        for(int i = 0; i < nn_count; i++) {
+                            float db0 = nn_output[i*13 + 0] - nn_label[i*13 + 0];
+                            float db1 = nn_output[i*13 + 4] - nn_label[i*13 + 4];
+                            float db2 = nn_output[i*13 + 8] - nn_label[i*13 + 8];
+                            float bnorm = sqrtf(db0*db0 + db1*db1 + db2*db2);
+                            float btrue = sqrtf(nn_label[i*13 + 0]*nn_label[i*13 + 0]
+                                              + nn_label[i*13 + 4]*nn_label[i*13 + 4]
+                                              + nn_label[i*13 + 8]*nn_label[i*13 + 8]);
+                            float brel = bnorm / (btrue + 1.0e-8f);
+                            if(brel > b_rel_max) b_rel_max = brel;
+                            b_rel_sum += brel;
 
-        if(abs_Br > abs_Br_max) {
-            abs_Br_max = abs_Br;
-        }
-
-        if(abs_Bphi > abs_Bphi_max) {
-            abs_Bphi_max = abs_Bphi;
-        }
-
-        if(abs_Bz > abs_Bz_max) {
-            abs_Bz_max = abs_Bz;
-        }
-
-        n_eval++;
-    }
-
-    if(n_eval > 0) {
-        printf("[bfield_nn validation] step %d\n", bfield_nn_get_step());
-        printf("  |B| relative mean %.6e max %.6e\n",
-               err_Bnorm_sum / n_eval, err_Bnorm_max);
- printf("  abs Br   mean %.6e max %.6e\n",
-               abs_Br_sum / n_eval, abs_Br_max);
-        printf("  abs Bphi mean %.6e max %.6e\n",
-               abs_Bphi_sum / n_eval, abs_Bphi_max);
-        printf("  abs Bz   mean %.6e max %.6e\n",
-               abs_Bz_sum / n_eval, abs_Bz_max);
-    }
-}
-
+                            float gerr = 0.0f;
+                            for(int k = 0; k < 12; k++) {
+                                if(k == 0 || k == 4 || k == 8) continue;
+                                float e = nn_output[i*13 + k] - nn_label[i*13 + k];
+                                gerr += e*e;
+                            }
+                            gerr = sqrtf(gerr / 9.0f);
+                            if(gerr > grad_err_max) grad_err_max = gerr;
+                            grad_err_sum += gerr;
+                            float de = (nn_output[i*13 + 12] - nn_label[i*13 + 12]) / 0.5477225575f;
+                            div_err_sq_sum += de*de;
+                        }
+                        printf("[bfield_nn validation] step %d, markers %d\n", bfield_nn_get_step(), nn_count);
+                        printf("  |B| relative mean %.6e max %.6e\n", b_rel_sum/nn_count, b_rel_max);
+                        printf("  scaled dB gradient error mean %.6e max %.6e\n", grad_err_sum/nn_count, grad_err_max);
+                        printf("  divB error RMS / term scale %.6e\n", sqrtf(div_err_sq_sum/nn_count));
+                    }
+                }
 #endif
             }
         }
@@ -380,9 +352,11 @@ if (bfield_nn_validation_ready()) {
 #ifdef USE_TORCHFORT_BFIELD
     bfield_nn_finalize();
 #endif
+#ifdef USE_TORCHFORT_BFIELD
     free(nn_input);
-    free(nn_label_B);
-    free(nn_output_B);
+    free(nn_label);
+    free(nn_output);
+#endif
 }
 
 /**

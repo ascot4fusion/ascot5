@@ -1,0 +1,26 @@
+general:
+  report_frequency: 10
+  verbose: 1
+
+model:
+  type: torchscript
+  parameters:
+    filename: "bfield_B_periodic_dB_init.pt"
+
+loss:
+  type: mse
+
+optimizer:
+  type: adam
+  parameters:
+    learning_rate: 1.0e-5
+    beta1: 0.9
+    beta2: 0.999
+    eps: 1.0e-8
+    weight_decay: 0.0
+    amsgrad: false
+
+lr_scheduler:
+  type: cosine_annealing
+  parameters:
+    T_max: 100000
