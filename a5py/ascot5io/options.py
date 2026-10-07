@@ -892,6 +892,21 @@ class Opt(DataGroup):
         AscotIOException
             If stored options were unviable.
         """
+        def safe_cast(val, default):
+        # If default is array-like → keep as array
+            if isinstance(default, (list, tuple, np.ndarray)):
+                return np.array(val)
+
+            # If default is scalar → enforce scalar
+            if isinstance(val, np.ndarray):
+                if val.shape == ():          # already scalar
+                    val = val.item()
+                elif val.size == 1:
+                    val = val.flatten()[0]
+            else:
+                raise ValueError(f"Expected scalar but got array: {val}")
+            return type(default)(val)
+    
         fn   = self._root._ascot.file_getpath()
         path = self._path
 
@@ -908,12 +923,11 @@ class Opt(DataGroup):
                 if isinstance(defopt[key], list):
                     try:
                         val[0]
-                        out[key] = type(defopt[key])(val)
+                        out[key] = safe_cast(val, defopt[key])
                     except Exception:
-                        out[key] = val
+                        out[key] = safe_cast(val, defopt[key])
                 else:
-                    out[key] = type(defopt[key])(val)
-
+                    out[key] = safe_cast(val, defopt[key])
         for o in defopt.keys():
             if o not in out:
                 raise ValueError("Missing parameter: " + o)

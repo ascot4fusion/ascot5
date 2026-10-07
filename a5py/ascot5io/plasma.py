@@ -33,7 +33,7 @@ class plasma_1D(DataGroup):
             for key in f[path]:
                 out[key] = f[path][key][:]
                 if key in ["nion", "nrho"]:
-                    out[key] = int(out[key])
+                    out[key] = int(np.array(out[key]).squeeze())
 
         out["idensity"] = np.transpose(out["idensity"])
         return out
@@ -87,10 +87,12 @@ class plasma_1D(DataGroup):
         y1legends = ["$n_e$"]
         for i in range(pls["nion"]):
             ndens.append(pls["idensity"][:,i])
-
-            a = int(pls["anum"][i])
-            z = int(pls["znum"][i])
-            q = int(pls["charge"][i])
+            a = int(np.array(pls["anum"][i]).squeeze())
+            z = int(np.array(pls["znum"][i]).squeeze())
+            q = int(np.array(pls["charge"][i]).squeeze())
+            #a = int(pls["anum"][i])
+            #z = int(pls["znum"][i])
+            #q = int(pls["charge"][i])
             y1legends.append(formatspec("A", a, z, q))
             for s, d in speciesdict.items():
                 if d[0] == a and d[1] == z:
@@ -366,10 +368,13 @@ class plasma_1DS(DataGroup):
         y1legends = ["$n_e$"]
         for i in range(pls["nion"]):
             ndens.append(pls["idensity"][:,i])
-
-            a = int(pls["anum"][i])
-            z = int(pls["znum"][i])
-            q = int(pls["charge"][i])
+            
+            a = int(np.array(pls["anum"][i]).squeeze())
+            z = int(np.array(pls["znum"][i]).squeeze())
+            q = int(np.array(pls["charge"][i]).squeeze())
+            #a = int(pls["anum"][i])
+            #z = int(pls["znum"][i])
+            #q = int(pls["charge"][i])
             y1legends.append(formatspec("A", a, z, q))
             for s, d in speciesdict.items():
                 if d[0] == a and d[1] == z:

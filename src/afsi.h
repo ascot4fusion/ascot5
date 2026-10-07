@@ -18,7 +18,9 @@
  */
 typedef enum {
     PPARPPERP,
-    EKINXI
+    EKINXI,
+    PCYL,
+    ESPH
 } mom_space_basis;
 
 /**

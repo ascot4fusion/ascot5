@@ -205,7 +205,7 @@ class Marker(DataGroup):
                 mrk["pphi"]     = np.zeros((n,)) * unyt.kg*unyt.m/unyt.s
                 mrk["ptheta"]   = np.zeros((n,)) * unyt.kg*unyt.m/unyt.s
             elif (pcoord == "cylindrical"):
-                mrk["prho"]     = np.zeros((n,)) * unyt.kg*unyt.m/unyt.s
+                mrk["pr"]     = np.zeros((n,)) * unyt.kg*unyt.m/unyt.s
                 mrk["pphi"]     = np.zeros((n,)) * unyt.kg*unyt.m/unyt.s
                 mrk["pz"]   = np.zeros((n,)) * unyt.kg*unyt.m/unyt.s
             else:

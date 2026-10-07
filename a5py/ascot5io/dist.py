@@ -1420,6 +1420,7 @@ class Dist(DataContainer):
         ppadist._distribution /= vol.v
         return ppadist
     
+    @staticmethod
     def vpitch2epitch(dist, mass, ekin_edges=10, pitch_edges=None):
         """Convert (v, pitch) distribution to (ekin, pitch), preserving other axes."""
         if isinstance(ekin_edges, int):

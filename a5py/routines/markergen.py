@@ -88,11 +88,11 @@ class MarkerGenerator():
             mrk["py"] = randomize(markerdist.abscissa_edges("py"), ip2)
             mrk["pz"] = randomize(markerdist.abscissa_edges("pz"), ip3)
 
-        elif set(['r', 'phi', 'z', 'prho', 'pphi', 'pz']).issubset(markerdist.abscissae):
+        elif set(['r', 'phi', 'z', 'pr', 'pphi', 'pz']).issubset(markerdist.abscissae):
             mrk["r"]    = randomize(markerdist.abscissa_edges("r"), ic1)
             mrk["phi"]    = randomize(markerdist.abscissa_edges("phi"), ic2)
             mrk["z"]    = randomize(markerdist.abscissa_edges("z"), ic3)
-            mrk["prho"] = randomize(markerdist.abscissa_edges("prho"), ip1)
+            mrk["pr"] = randomize(markerdist.abscissa_edges("pr"), ip1)
             mrk["pphi"] = randomize(markerdist.abscissa_edges("pphi"), ip2)
             mrk["pz"] = randomize(markerdist.abscissa_edges("pz"), ip3)
 

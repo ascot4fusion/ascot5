@@ -144,6 +144,7 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
 
     real time = 0.0;
     int fail_count = 0;
+    /*
     for (int ax = 0; ax < HIST_ALLDIM; ax++) {
         printf("Axis %d: n=%ld min=%e max=%e\n",
            ax,
@@ -151,7 +152,8 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
            prod2->axes[ax].min,
            prod2->axes[ax].max);
     } 
-    printf("Mult: %e\n", afsi->mult);
+    
+    printf("Mult: %e\n", afsi->mult);*/
     #pragma omp parallel for
     for(size_t i0 = 0; i0 < afsi->volshape[0]; i0++) {
         real* ppara1 = (real*) malloc(n*sizeof(real));
@@ -328,6 +330,18 @@ void afsi_run(sim_data* sim, afsi_data* afsi, int n,
     print_out0(VERBOSE_MINIMAL, mpi_rank, mpi_root, "\nDone\n");
 }
 
+size_t hist_index(const histogram *hist, const size_t bins[])
+{
+    size_t index = 0;
+
+    for (int ax = 0; ax < HIST_ALLDIM; ax++) {
+        if (hist->axes[ax].n)
+            index += bins[ax] * hist->strides[ax];
+    }
+
+    return index;
+}
+
 void afsi_run_6d(sim_data* sim, afsi_data* afsi, int n,
                  histogram* prod2){
     /* QID for this run */
@@ -362,14 +376,47 @@ void afsi_run_6d(sim_data* sim, afsi_data* afsi, int n,
 
     real time = 0.0;
     // printf("Mult: %e\n", afsi->mult);
-    // for (int ax = 0; ax < HIST_ALLDIM; ax++) {
-    // printf("Axis %d: n=%ld min=%e max=%e\n",
-    //        ax,
-    //        prod2->axes[ax].n,
-    //        prod2->axes[ax].min,
-    //        prod2->axes[ax].max);
-    // } 
+    for (int ax = 0; ax < HIST_ALLDIM; ax++) {
+        if (ax < HIST_ALLDIM - 1) {
+            printf("Axis %2d: n=%3zu min=% .6e max=% .6e stride=%zu\n",
+               ax,
+               prod2->axes[ax].n,
+               prod2->axes[ax].min,
+               prod2->axes[ax].max,
+               prod2->strides[ax]);
+        }
+        else {
+            printf("Axis %2d: n=%3zu min=% .6e max=% .6e stride=LAST\n",
+               ax,
+               prod2->axes[ax].n,
+               prod2->axes[ax].min,
+               prod2->axes[ax].max);
+        }
+    }
+    /* --- Ekin,theta_v,phi_v distribution ---*/
+    int prod_mom_space;
+    int pax0, pax1, pax2;
+    if(prod2->axes[10].n) {
+        pax0 = 10;
+        pax1 = 16;
+        pax2 = 17;
+        prod_mom_space = ESPH;
+        printf("Using ESPH\n");
+    }
+    /* --- pr,pphi,pz distribution ---*/
+    else if(prod2->axes[7].n) {
+        pax0 = 7;
+        pax1 = 8;
+        pax2 = 9;
+        prod_mom_space = PCYL;
+        printf("Using PCYL\n");
+    }
+    else {
+        printf("Wrong momentum axes\n");
+        return;
+    }
     int fail_count = 0;
+    double total_weight = 0;
     #pragma omp parallel for
     for (size_t i0 = 0; i0 < afsi->volshape[0]; i0++)
     {
@@ -434,25 +481,45 @@ void afsi_run_6d(sim_data* sim, afsi_data* afsi, int n,
                     real vx = vprod2[0];
                     real vy = vprod2[1];
                     real vz = vprod2[2];
-
+                    
                     real v2 = vx*vx + vy*vy + vz*vz;
                     real v  = sqrt(v2);
 
                     /* --- Convert to (E, theta, phi) --- */
                     if (v == 0.0)
                         continue;
-
-                    real Ekin = 0.5 * mprod2 * v2;
-
-                    real cos_theta = vz / v;
-
-                    /* Clamp to valid domain of acos */
-                    if (cos_theta > 1.0)  cos_theta = 1.0;
-                    if (cos_theta < -1.0) cos_theta = -1.0;
-
-                    real theta = acos(cos_theta);
-                    real phi_v = atan2(vy, vx);
                     
+                    real p0, p1, p2;
+                    if (prod_mom_space == ESPH){
+                        // Ekin (classical)
+                        p0 = 0.5 * mprod2 * v2;
+
+                        real cos_theta = vz / v;
+
+                        /* Clamp to valid domain of acos */
+                        if (cos_theta > 1.0)  cos_theta = 1.0;
+                        if (cos_theta < -1.0) cos_theta = -1.0;
+                        
+                        // Theta_v
+                        p1 = acos(cos_theta);
+                        
+                        // Phi_v
+                        p2 = atan2(vy, vx); // Could be alternative real phi_v = atan2(vphi,vr);
+                    }
+                    else if (prod_mom_space == PCYL){
+                        /* Cylindrical velocity */
+                        real vr   =  vx*cos(phi) + vy*sin(phi);
+                        real vphi = -vx*sin(phi) + vy*cos(phi);
+
+                        /* Momentum pr, pphi, pz */ 
+                        p0   = mprod2 * vr;
+                        p1 = mprod2 * vphi;
+                        p2   = mprod2 * vz;
+                    }
+                    else {
+                        printf("Wrong momentum axes\n");
+                        continue;
+                    }
 
                     /* --- Reaction weight --- */
                     real Ecom = 0.5 * (m1 * m2) / (m1 + m2) * vcom2;
@@ -462,45 +529,48 @@ void afsi_run_6d(sim_data* sim, afsi_data* afsi, int n,
                         boschhale_sigma(afsi->reaction, Ecom) / n * vol;
 
                     /* --- Bin indices --- */
-                    size_t iE = math_bin_index(
-                        Ekin,
-                        prod2->axes[10].n,
-                        prod2->axes[10].min,
-                        prod2->axes[10].max
+                    size_t ip0 = math_bin_index(
+                        p0,
+                        prod2->axes[pax0].n,
+                        prod2->axes[pax0].min,
+                        prod2->axes[pax0].max
                     );
 
-                    size_t iT = math_bin_index(
-                        theta,
-                        prod2->axes[16].n,
-                        prod2->axes[16].min,
-                        prod2->axes[16].max
+                    size_t ip1 = math_bin_index(
+                        p1,
+                        prod2->axes[pax1].n,
+                        prod2->axes[pax1].min,
+                        prod2->axes[pax1].max
                     );
 
-                    size_t iP = math_bin_index(
-                        phi_v,
-                        prod2->axes[17].n,
-                        prod2->axes[17].min,
-                        prod2->axes[17].max
+                    size_t ip2 = math_bin_index(
+                        p2,
+                        prod2->axes[pax2].n,
+                        prod2->axes[pax2].min,
+                        prod2->axes[pax2].max
                     );
                     
-                    if (iE < prod2->axes[10].n &&
-                        iT < prod2->axes[16].n &&
-                        iP < prod2->axes[17].n)
+                    if (ip0 < prod2->axes[pax0].n &&
+                        ip1 < prod2->axes[pax1].n &&
+                        ip2 < prod2->axes[pax2].n)
                     {
+                        
                         size_t index =
                               i0 * prod2->strides[0]
                             + i1 * prod2->strides[1]
                             + i2 * prod2->strides[2]
-                            + iE * prod2->strides[10]
-                            + iT * prod2->strides[16]
-                            + iP; //* prod2->strides[17];
+                            + ip0 * prod2->strides[pax0]
+                            + ip1 * prod2->strides[pax1]
+                            + ip2;
                         #pragma omp atomic
                         prod2->bins[index] += weight * afsi->mult;
+                        #pragma omp atomic
+                        total_weight += weight* afsi->mult;
                     }
                     else {
-                        printf("BIN FAIL: E=%e T=%e P=%e | iE=%ld iT=%ld iP=%ld\n",
-                        Ekin, theta, phi_v,
-                        iE, iT, iP);
+                        printf("BIN FAIL: p0=%e p1=%e p2=%e | ip0=%ld ip1=%ld ip2=%ld\n",
+                        p0, p1, p2,
+                        ip0, ip1, ip2);
                         fail_count++;
                     }
                 }
@@ -511,7 +581,16 @@ void afsi_run_6d(sim_data* sim, afsi_data* afsi, int n,
         free(pperp1);
         free(pperp2);
     }
-    // printf("Fail count: %d", fail_count);
+    printf("Fail count: %d", fail_count);
+    double hist_sum = 0.0;
+
+    for (size_t i = 0; i < prod2->nbin; i++)
+        hist_sum += prod2->bins[i];
+
+    printf("Total sampled weight = %.15e\n", total_weight);
+    printf("Histogram sum        = %.15e\n", hist_sum);
+    printf("Difference           = %.15e\n",
+       hist_sum - total_weight);
     m1     = m1 / CONST_U;
     m2     = m2 / CONST_U;
     mprod1 = mprod1 / CONST_U;
@@ -1020,58 +1099,6 @@ void afsi_store_particle_data(int i, real r, real phi, real z, real* vprod2, rea
     prod2[i*9 + 8] = 0.0;   /* time */
 }
 
-// /**
-//  * @brief Compute momenyta of reaction products.
-//  *
-//  * @param i marker index on input velocity and output momentum arrays.
-//  * @param mprod1 mass of product 1 [kg].
-//  * @param mprod2 mass of product 2 [kg].
-//  * @param prodmomspace momentum space type, either PPARPPERP or EKINXI.
-//  * @param vprod1 array with velocity of product 1.
-//  * @param vprod2 array with velocity of product 2.
-//  * @param prod1_p1 array where parallel momentum of product 1 is stored.
-//  * @param prod1_p2 array where perpendicular momentum of product 1 is stored.
-//  * @param prod2_p1 array where parallel momentum of product 2 is stored.
-//  * @param prod2_p2 array where perpendicular momentum of product 2 is stored.
-//  */
-
-// /**
-//  * @brief Compute momenyta of reaction products.
-//  *
-//  * @param i marker index on input velocity and output momentum arrays.
-//  * @param mprod1 mass of product 1 [kg].
-//  * @param mprod2 mass of product 2 [kg].
-//  * @param prodmomspace momentum space type, either PPARPPERP or EKINXI.
-//  * @param vprod1 array with velocity of product 1.
-//  * @param vprod2 array with velocity of product 2.
-//  * @param prod1_p1 array where parallel momentum of product 1 is stored.
-//  * @param prod1_p2 array where perpendicular momentum of product 1 is stored.
-//  * @param prod2_p1 array where parallel momentum of product 2 is stored.
-//  * @param prod2_p2 array where perpendicular momentum of product 2 is stored.
-//  */
-
-// void afsi_compute_product_momenta_2d(
-//     int i, real mprod1, real mprod2, int prodmomspace,
-//     real* vprod1, real* vprod2, real* prod1_p1, real* prod1_p2,
-//     real* prod2_p1, real* prod2_p2) {
-
-//     if(prodmomspace == PPARPPERP) {
-//         prod1_p1[i] = vprod1[2] * mprod1;
-//         prod1_p2[i] = sqrt(vprod1[0]*vprod1[0] + vprod1[1]*vprod1[1]) * mprod1;
-//         prod2_p1[i] = vprod2[2] * mprod2;
-//         prod2_p2[i] = sqrt(vprod2[0]*vprod2[0] + vprod2[1]*vprod2[1]) * mprod2;
-//     }
-//     else {
-//         real vnorm1 = math_norm(vprod1);
-//         prod1_p2[i] = vprod1[2] / vnorm1;
-//         prod1_p1[i] = physlib_Ekin_gamma(mprod1, physlib_gamma_vnorm(vnorm1));
-
-//         real vnorm2 = math_norm(vprod2);
-//         prod2_p2[i] = vprod2[2] / vnorm2;
-//         prod2_p1[i] = physlib_Ekin_gamma(mprod2, physlib_gamma_vnorm(vnorm2));
-//     }
-// }
-
 
 /**
  * @brief Compute momenta of reaction products.
@@ -1161,7 +1188,9 @@ void afsi_compute_product_momenta_2d(
 
         real vnorm2 = math_norm(vprod2);
         prod2_p2[i] = vprod2[2] / vnorm2;
-        prod2_p1[i] = physlib_Ekin_gamma(mprod2, physlib_gamma_vnorm(vnorm2));
+        // Using classical kinetic energy
+        prod2_p2[i] = 0.5*mprod2*vnorm2*vnorm2;
+        //prod2_p1[i] = physlib_Ekin_gamma(mprod2, physlib_gamma_vnorm(vnorm2));
     }
 }
 

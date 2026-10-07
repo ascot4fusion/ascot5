@@ -666,11 +666,37 @@ class Afsi():
         nmc=1000,
         ekin=None,
         theta_v=None,
-        phi_v=None):
+        phi_v=None,
+        pr = None,
+        pphi = None,
+        pz = None
+        ):
         
-        ekin = np.linspace(0.1e6, 20e6, 40)*unyt.eV if ekin is None else ekin
-        theta_v = np.linspace(0, np.pi, 20)*unyt.rad if theta_v is None else theta_v
-        phi_v = np.linspace(-np.pi, np.pi, 30)*unyt.rad if phi_v is None else phi_v
+        # Energy-angle coordinates
+        if ekin is not None or theta_v is not None or phi_v is not None:
+
+            if any(x is not None for x in (pr, pphi, pz)):
+                raise ValueError(
+                    "Specify either (ekin, theta_v, phi_v) or (pr, pphi, pz), not both."
+                )
+
+            ekin = np.linspace(0.1e6, 20e6, 40) * unyt.eV if ekin is None else ekin
+            theta_v = np.linspace(0, np.pi, 20) * unyt.rad if theta_v is None else theta_v
+            phi_v = np.linspace(-np.pi, np.pi, 30) * unyt.rad if phi_v is None else phi_v
+            momentum_space = "esph"
+            coordinates = (10, 16, 17)
+
+        # Cylindrical momentum coordinates
+        else:
+            pr = np.linspace(-1e-19, 1e-19, 30) * unyt.kg*unyt.m/unyt.s if pr is None else pr
+            pphi = np.linspace(-1e-19, 1e-19, 40) * unyt.kg*unyt.m/unyt.s if pphi is None else pphi
+            pz = np.linspace(-1e-19, 1e-19, 30) * unyt.kg*unyt.m/unyt.s if pz is None else pz
+            momentum_space = "pcyl"
+            coordinates = (7, 8, 9)
+        
+        # ekin = np.linspace(0.1e6, 20e6, 40)*unyt.eV if ekin is None else ekin
+        # theta_v = np.linspace(0, np.pi, 20)*unyt.rad if theta_v is None else theta_v
+        # phi_v = np.linspace(-np.pi, np.pi, 30)*unyt.rad if phi_v is None else phi_v
         
         m1, q1, m2, q2, _, qprod1, _, qprod2, _ = self.reactions(reaction)
         reactions = {v: k for k, v in AFSI_REACTIONS.items()}
@@ -697,7 +723,6 @@ class Afsi():
         if np.isnan(ispecies):
             self._ascot.input_free(bfield=True, plasma=True)
             raise ValueError("Reactant species not present in plasma input.")
-        print(react1.axes[10].max)
         mult = 1.0
         r, z, phi = ( beam.abscissa_edges("r"), beam.abscissa_edges("z"),
                       beam.abscissa_edges("phi").to("rad") )
@@ -719,17 +744,28 @@ class Afsi():
         #     phi_v,
         #     charge=q1
         #     )
-        ekin_J = ekin.to("J")
-        print("init histogram")
-        prod2 = self._init_histogram_6d(
-            beam.abscissa_edges("r"),
-            beam.abscissa_edges("phi").to("rad"),
-            beam.abscissa_edges("z"),
-            ekin_J,
-            theta_v,
-            phi_v
+        if momentum_space == "esph":
+            ekin_J = ekin.to("J")
+            prod2 = self._init_histogram_6d(
+                beam.abscissa_edges("r"),
+                beam.abscissa_edges("phi").to("rad"),
+                beam.abscissa_edges("z"),
+                ekin_J,
+                theta_v,
+                phi_v,
+                coordinates,
             )
-        
+        else:
+            prod2 = self._init_histogram_6d(
+                beam.abscissa_edges("r"),
+                beam.abscissa_edges("phi").to("rad"),
+                beam.abscissa_edges("z"),
+                pr.to("kg*m/s"),
+                pphi.to("kg*m/s"),
+                pz.to("kg*m/s"),
+                coordinates,
+            )
+            
         _LIBASCOT.afsi_run_6d(ctypes.byref(self._ascot._sim),
                             ctypes.byref(afsi), nmc, prod2,
                             )
@@ -750,6 +786,11 @@ class Afsi():
             pperp1=None,
             ppar2=None,
             pperp2=None,
+            ekin1=None,
+            pitch1=None,
+            ekin2=None,
+            pitch2=None,
+            coordinates = "momentum"
             ):
         """Calculate beam-thermal fusion.
 
@@ -784,10 +825,16 @@ class Afsi():
         prod2 : array_like
             Fusion product 2 distribution.
         """
-        ppar1 = 1.3e-19 * np.linspace(-1., 1., 50) if ppar1 is None else ppar1
-        pperp1 = np.linspace(0, 1.3e-19, 50) if pperp1 is None else pperp1
-        ppar2 = 1.3e-19 * np.linspace(-1., 1., 50) if ppar2 is None else ppar2
-        pperp2 = np.linspace(0, 1.3e-19, 50) if pperp2 is None else pperp2
+        if (coordinates == "energy"):
+            ekin1 = np.linspace(0, 10e6) if ekin1 is None else ekin1
+            pitch1 = np.linspace(-1., 1., 20) if pitch1 is None else pitch1
+            ekin2 = np.linspace(0, 20e6) if ekin2 is None else ekin2
+            pitch2 = np.linspace(-1., 1., 20) if pitch2 is None else pitch2
+        else:    
+            ppar1 = 1.3e-19 * np.linspace(-1., 1., 50) if ppar1 is None else ppar1
+            pperp1 = np.linspace(0, 1.3e-19, 50) if pperp1 is None else pperp1
+            ppar2 = 1.3e-19 * np.linspace(-1., 1., 50) if ppar2 is None else ppar2
+            pperp2 = np.linspace(0, 1.3e-19, 50) if pperp2 is None else pperp2
 
         m1, q1, m2, q2, _, qprod1, _, qprod2, _ = self.reactions(reaction)
         reactions = {v: k for k, v in AFSI_REACTIONS.items()}
@@ -826,25 +873,44 @@ class Afsi():
             react1=react1, react2=react2, reaction=reaction, mult=mult,
             r=rc, phi=phic, z=zc, vol=vol,
             )
-
-        prod1 = self._init_histogram(
-            beam.abscissa_edges("r"),
-            beam.abscissa_edges("phi").to("rad"),
-            beam.abscissa_edges("z"),
-            ppar1,
-            pperp1,
-            charge=q1,
-            exi=False,
-            )
-        prod2 = self._init_histogram(
-            beam.abscissa_edges("r"),
-            beam.abscissa_edges("phi").to("rad"),
-            beam.abscissa_edges("z"),
-            ppar2,
-            pperp2,
-            charge=q2,
-            exi=False,
-            )
+        if (coordinates == "energy"):
+            prod1 = self._init_histogram(
+                beam.abscissa_edges("r"),
+                beam.abscissa_edges("phi").to("rad"),
+                beam.abscissa_edges("z"),
+                ekin1,
+                pitch1,
+                charge=q1,
+                exi=True,
+                )
+            prod2 = self._init_histogram(
+                beam.abscissa_edges("r"),
+                beam.abscissa_edges("phi").to("rad"),
+                beam.abscissa_edges("z"),
+                ekin2,
+                pitch2,
+                charge=q2,
+                exi=True,
+                )
+        else:
+            prod1 = self._init_histogram(
+                beam.abscissa_edges("r"),
+                beam.abscissa_edges("phi").to("rad"),
+                beam.abscissa_edges("z"),
+                ppar1,
+                pperp1,
+                charge=q1,
+                exi=False,
+                )
+            prod2 = self._init_histogram(
+                beam.abscissa_edges("r"),
+                beam.abscissa_edges("phi").to("rad"),
+                beam.abscissa_edges("z"),
+                ppar2,
+                pperp2,
+                charge=q2,
+                exi=False,
+                )
 
         _LIBASCOT.afsi_run(ctypes.byref(self._ascot._sim),
                             ctypes.byref(afsi), nmc, prod1, prod2,
@@ -1038,28 +1104,31 @@ class Afsi():
         #     data.bins[i] = d[i]
         return data
     
-    def _init_histogram_6d(self, r, phi, z, ekin, theta_v, phi_v,
-                           charge=None, time=None):
+    def _init_histogram_6d(self, r, phi, z, c0, c1, c2, coordinates):
         prod = STRUCT_HIST()
-        if time is None:
-            time = np.array([0, 1])
+        # if time is None:
+        #     time = np.array([0, 1])
         nbin = np.array([
             r.size-1, phi.size-1, z.size-1,
-            ekin.size-1, theta_v.size-1, phi_v.size-1,
+            c0.size-1, c1.size-1, c2.size-1,
 #            time.size-1, 1
             ], dtype="u8")
         binmin = np.array([
             r[0], phi[0], z[0],
-            ekin[0], theta_v[0], phi_v[0],
+            c0[0], c1[0], c2[0],
 #            time[0], charge[0] - 1
         ])
         binmax = np.array([
             r[-1], phi[-1], z[-1],
-            ekin[-1], theta_v[-1], phi_v[-1],
+            c0[-1], c1[-1], c2[-1],
 #            time[-1], charge[0] + 1
         ])
         #coordinates = np.array([0, 1, 2, 10, 4, 1, 14, 15], dtype="uint32")
-        coordinates = np.array([0, 1, 2, 10, 16, 17], dtype="uint32")
+        #coordinates = np.array([0, 1, 2, 10, 16, 17], dtype="uint32")
+        coordinates = np.array(
+            [0, 1, 2, *coordinates],
+            dtype="uint32"
+        )
 
 
         _LIBASCOT.hist_init(
