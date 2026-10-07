@@ -2,7 +2,8 @@ name: Mirror to GitLab
 
 on:
   push:
-  delete:
+    tags:
+      - '*.*.*'
 
 jobs:
   mirror:
@@ -11,8 +12,8 @@ jobs:
     steps:
       - name: Mirror repository
         env:
-          GITLAB_USERNAME: ${{ secrets.GITLAB_USERNAME }}
-          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+          GITLAB_USERNAME: ${{ secrets.EUFUSGITLAB_USERNAME }}
+          GITLAB_TOKEN: ${{ secrets.EUFUSGITLAB_TOKEN }}
         run: |
           git clone --mirror "$GITHUB_SERVER_URL/${GITHUB_REPOSITORY}.git" repo.git
           cd repo.git
