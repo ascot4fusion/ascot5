@@ -19,6 +19,6 @@ jobs:
           GITLAB_USERNAME: ${{ secrets.EUFUSGITLAB_USERNAME }}
           GITLAB_TOKEN: ${{ secrets.EUFUSGITLAB_TOKEN }}
         run: |
-          git clone --bare "https://github.com/${GITHUB_REPOSITORY}.git"
-          cd ascot5
+          git clone --bare "https://github.com/${GITHUB_REPOSITORY}.git" repo.git
+          cd repo.git
           git push --mirror "https://${GITLAB_USERNAME}:${GITLAB_TOKEN}@gitlab.eufus.psnc.pl/g2ksarki/ascot5.git"
