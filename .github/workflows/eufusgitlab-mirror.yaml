@@ -8,6 +8,9 @@ on:
 
 jobs:
   mirror:
+    concurrency:
+      group: ${{ github.workflow }}-gitlab
+      cancel-in-progress: true
     runs-on: ubuntu-latest
 
     steps:
@@ -16,8 +19,6 @@ jobs:
           GITLAB_USERNAME: ${{ secrets.EUFUSGITLAB_USERNAME }}
           GITLAB_TOKEN: ${{ secrets.EUFUSGITLAB_TOKEN }}
         run: |
-          git clone --mirror "$GITHUB_SERVER_URL/${GITHUB_REPOSITORY}.git" repo.git
-          cd repo.git
-
-          git push --mirror \
-            "https://${GITLAB_USERNAME}:${GITLAB_TOKEN}@gitlab.eufus.psnc.pl/g2ksarki/ascot5.git"
+          git clone --bare "https://github.com/${GITHUB_REPOSITORY}.git"
+          cd ascot5
+          git push --mirror "https://${GITLAB_USERNAME}:${GITLAB_TOKEN}@gitlab.eufus.psnc.pl/g2ksarki/ascot5.git"
