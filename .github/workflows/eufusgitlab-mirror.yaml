@@ -11,12 +11,19 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-gitlab
       cancel-in-progress: true
+
     runs-on: ubuntu-latest
 
+    env:
+      GITLAB_USERNAME: ${{ secrets.EUFUSGITLAB_USERNAME }}
+      GITLAB_TOKEN: ${{ secrets.EUFUSGITLAB_TOKEN }}
+
     steps:
-        env:
-          GITLAB_USERNAME: ${{ secrets.EUFUSGITLAB_USERNAME }}
-          GITLAB_TOKEN: ${{ secrets.EUFUSGITLAB_TOKEN }}
-      - run: git clone --bare "https://github.com/ascot4fusion/ascot5.git" ascot5
-      - run: cd ascot5
-      - run: git push --mirror "https://${GITLAB_USERNAME}:${GITLAB_TOKEN}@gitlab.eufus.psnc.pl/g2ksarki/ascot5.git"
+      - name: Clone GitHub repository
+        run: git clone --bare https://github.com/ascot4fusion/ascot5.git ascot5
+
+      - name: Push mirror to GitLab
+        working-directory: ascot5
+        run: |
+          git push --mirror \
+            "https://oauth2:${GITLAB_TOKEN}@gitlab.eufus.psnc.pl/g2ksarki/ascot5.git"
