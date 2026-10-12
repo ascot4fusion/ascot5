@@ -25,5 +25,5 @@ jobs:
       - name: Push mirror to GitLab
         working-directory: ascot5
         run: |
-          git push --mirror \
+          git -c http.version=HTTP/1.1 push --mirror \
             "https://oauth2:${GITLAB_TOKEN}@gitlab.eufus.psnc.pl/g2ksarki/ascot5.git"
