@@ -8,8 +8,3 @@ Perturbed tokamak field
 .. rubric:: Creation
 
 .. autofunction:: a5py.data.AscotData.create_bfieldspline3d
-
-.. dropdown:: The C-module (For developers)
-
-   .. doxygenstruct:: BfieldSpline3D
-      :members:

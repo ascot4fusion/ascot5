@@ -32,6 +32,7 @@ import ctypes
 from a5py.libascot import input_category
 
 from . import linear1d
+from . import linear2d
 from . import dynamic1d
 from .linear1d import PlasmaLinear1D
 from .linear2d import PlasmaLinear2D

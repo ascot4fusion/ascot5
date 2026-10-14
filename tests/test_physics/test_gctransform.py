@@ -15,111 +15,126 @@ from a5py import Ascot, SimulationOptions, physlib
 from a5py import plotting as a5plt
 from a5py.templates import PremadeMagneticField
 
-def test_gctransform_compare_actual(ascot, inspect, plot):
-    if not inspect:
-        parameters = SimulationOptions.from_dict(
+def create_testcase(ascot):
+    ascot.data.create_guidingcentermarker(
+        species="alpha",
+        r=7.6*unyt.m,
+        z=0.0*unyt.m,
+        phi=0.0*unyt.deg,
+        ekin=3.5e6*unyt.eV,
+        pitch=0.4,
+        gyroangle=2.0*unyt.rad,
+        charge=2*unyt.e,
+        )
+    PremadeMagneticField(ascot, field="iter-circular").create_input()
+    ascot.data.create_efieldcartesian(
+        exyz=np.array([0, 0, 0])*unyt.V/unyt.m,
+        )
+
+def create_gcparameters() -> SimulationOptions:
+    return SimulationOptions.from_dict(
+            simulation={
+                "mode": "guiding-center",
+                "timestep": 1e-10,
+                "enable_adaptive": False,
+            },
             physics={
                 "enable_orbit_following": True,
             },
             endconditions={
                 "activate_simulation_time_limits": True,
-                "max_mileage": 1e-7,
+                "max_mileage": 3e-5,
             },
             orbit={
                 "collect": "interval",
+                "interval": 4e-10,
+                "buffer_size": int(3e-5/4e-10),
             },
         )
-        parameters = SimulationOptions(
-                simulation_mode=2,
-                enable_adaptive=False,
-                timestep=1e-10,
-                enable_orbit_following=True,
-                collect_orbit=True,
-                number_of_points_per_marker=75002,
-                interval=4e-10,
-                activate_simulation_time_limits=True,
-                max_mileage=3e-5,
-            )
 
-        ascot.data.create_guidingcentermarker(
-            species="alpha",
-            r=7.6*unyt.m,
-            z=0.0*unyt.m,
-            phi=0.0*unyt.deg,
-            ekin=3.5e6*unyt.eV,
-            pitch=0.4,
-            gyroangle=2.0*unyt.rad,
-            charge=2*unyt.e,
-            )
-        PremadeMagneticField(ascot, field="iter-circular").create_input()
+
+def test_gctransform_compare_actual(ascot, inspect, plot):
+    if not inspect:
+        create_testcase(ascot)
+        parameters = create_gcparameters()
+        run_gc = ascot.simulate(params=parameters, note="<GC>")
+
+        parameters.simulation.mode = "gyro-orbit"
+        parameters.simulation.record_mode = 1
+        run_go2gc = ascot.simulate(params=parameters, note="<GO2GC>")
+    else:
+        run_gc = ascot.data["GC"]
+        run_go2gc = ascot.data["GO2GC"]
+
+    r_gc, z_gc = run_gc.getorbit("r", "z")
+    r_go2gc, z_go2gc = run_go2gc.getorbit("r", "z")
+    if plot:
+        fig = a5plt.figure()
+        gs  = a5plt.GridSpec(1, 1, figure=fig)
+        h1  = fig.add_subplot(gs[0,0])
+        h1.set_aspect("equal", adjustable="box")
+        h1.set_xlabel("R [m]")
+        h1.set_ylabel("z [m]")
+        h1.plot(r_gc, z_gc, color="C0", label="GC")
+        h1.plot(r_go2gc, z_go2gc, color="C1", label="GO2GC")
+        h1.legend()
+        a5plt.show()
 
 
 
 def test_gctransform_verify_firstorder(ascot, inspect, plot):
     if not inspect:
-        PremadeMagneticField(ascot, field="iter-circular").create_input()
+        create_testcase(ascot)
+        parameters = create_gcparameters()
 
-        ascot.data.create_guidingcentermarker(
+        parameters.simulation.mode = "gyro-orbit"
+        prerun = ascot.simulate(params=parameters)
+        r, z, phi, pr, pphi, pz = prerun.getorbit(
+            "r", "z", "phi", "pr", "pphi", "pz",
+            )
+        idx = np.arange(5, 5*10, 5)
+        markers_from_orbit = ascot.data.create_particlemarker(
             species="alpha",
-            r=7.6*unyt.m,
-            z=0.0*unyt.m,
-            phi=0.0*unyt.deg,
-            ekin=3.5e6*unyt.eV,
-            pitch=0.4,
-            gyroangle=2.0*unyt.rad,
+            r=r[idx],
+            z=z[idx],
+            phi=phi[idx],
+            pr=pr[idx],
+            pphi=pphi[idx],
+            pz=pz[idx],
             charge=2*unyt.e,
             )
 
-        nmarker = 10
-        parameters = SimulationOptions(
-            simulation_mode=1,
-            timestep=1e-11,
-            enable_orbit_following=True,
-            collect_orbit=True,
-            number_of_points_per_marker=nmarker,
-            interval=2e-10,
-            activate_simulation_time_limits=True,
-            max_mileage=2e-9,
-            )
+        parameters.simulation.record_mode = 1
+        run_go2gc = ascot.simulate(params=parameters, note="<GO2GC>")
 
-        ascot.data.bfield.active.stage()
-        ascot.data.marker.active.stage()
-        run = ascot.simulate(params=parameters)
-        r, z, phi, vr, vphi, vz = run.getorbit(
-            "r", "z", "phi", "vr", "vphi", "vz",
-            )
-
-        ascot.data.create_guidingcentermarker(
-            species="alpha",
-            r=r,
-            z=z,
-            phi=phi,
-            vr=vr,
-            vz=vz,
-            vphi=vphi,
-            charge=2*unyt.e,
-            )
-
-        parameters = SimulationOptions(
-            simulation_mode=2,
-            timestep=1e-9,
-            enable_adaptive=False,
-            enable_orbit_following=True,
-            collect_orbit=True,
-            number_of_points_per_marker=10**4,
-            interval=3e-9,
-            activate_simulation_time_limits=True,
-            max_mileage=3e-5,
-            )
-
-        ascot.data.bfield.active.stage()
-        ascot.data.marker.active.stage()
-        run = ascot.simulate(params=parameters)
+        parameters.simulation.mode = "guiding-center"
+        parameters.simulation.record_mode = 0
+        run_gc1 = ascot.simulate(params=parameters, marker=markers_from_orbit, note="<GC-FIRST>")
 
         parameters.physics.disable_first_order_gctransformation = 1
-        ascot.data.bfield.active.stage()
-        ascot.data.marker.active.stage()
-        run = ascot.simulate(params=parameters)
+        run_gc0 = ascot.simulate(params=parameters, marker=markers_from_orbit, note="<GC-ZEROTH>")
+
+    else:
+        run_go2gc = ascot.data["GO2GC"]
+        run_gc1 = ascot.data["GC-FIRST"]
+        run_gc0 = ascot.data["GC-ZEROTH"]
+
+
+    r_gc1, z_gc1 = run_gc1.getorbit("r", "z")
+    r_gc0, z_gc0 = run_gc0.getorbit("r", "z")
+    r_go2gc, z_go2gc = run_go2gc.getorbit("r", "z")
+    if plot:
+        fig = a5plt.figure()
+        gs  = a5plt.GridSpec(1, 1, figure=fig)
+        h1  = fig.add_subplot(gs[0,0])
+        h1.set_aspect("equal", adjustable="box")
+        h1.set_xlabel("R [m]")
+        h1.set_ylabel("z [m]")
+        h1.plot(r_gc1, z_gc1, color="C0", label="GC")
+        h1.plot(r_gc0, z_gc0, color="C2", label="GC-ZEROTH")
+        h1.plot(r_go2gc, z_go2gc, color="C1", label="GO2GC")
+        h1.legend()
+        a5plt.show()
 #     def check_gctransform(self):
 #         """Check test.
 #         """

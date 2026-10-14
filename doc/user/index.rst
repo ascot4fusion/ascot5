@@ -1,130 +1,87 @@
-..
-  Main page of the user documentation
+.. Main page of the user documentation
 
-.. image:: _static/promo.svg
-  :target: https://github.com/ascot4fusion/ascot5
-  :alt: repository
+User guide
+==========
+
+.. image:: ../_static/promo.svg
 
 ----------------------------------
 
-`ASCOT5 <https://arxiv.org/abs/1908.02482/>`_ is a test-particle orbit-following code for solving minority species' distribution functions, transport, and losses in tokamaks and stellarators.
-For questions related to the code or physics, please join our `Slack channel <http://ascot-workspace.slack.com/>`_.
+`ASCOT5 <https://arxiv.org/abs/1908.02482/>`_ (or simply *ASCOT*) is a test-particle orbit-following software for computing particle orbits in three-dimensional magnetic-field geometries.
+Its output includes particle orbits, phase-space distributions, and wall loads.
+ASCOT is frequently used to study fast ions, trace impurities, and runaway electrons in tokamaks, stellarators, and other magnetically confined plasmas.
+Particle orbits can be followed either fully, including the gyro-motion, or using a reduced model in which only the guiding-center trajectory is followed.
+
+The user interface and API are implemented in Python, while the computationally intensive parts of the code are written in C.
+ASCOT is extensively parallelized and optimized for both CPUs and GPUs.
+Simulation data can be stored in HDF5 format.
+ASCOT can also be directly integrated with other modelling frameworks, such as `IMAS <https://doi.org/10.1088/0029-5515/55/12/123006>`_.
+
+ASCOT is open source and `the repository <https://github.com/ascot4fusion/ascot5>`_ is maintained by `VTT Technical Research Centre of Finland <https://www.vttresearch.com/en/ourservices/fusion-energy-research-and-services>`_.
+The team at VTT also offers technical support and modeling work using ASCOT.
+
+For contact (firstname.lastname@vtt.fi):
+
+.. grid:: 1 2 3 4
+
+    .. grid-item::
+
+        .. image:: ../_static/profile_konsta.png
+            :height: 200px
+            :align: center
+
+        **Konsta Särkimäki**
+
+        Lead Developer
+
+    .. grid-item::
+
+        .. image:: ../_static/profile_antti.png
+            :height: 200px
+            :align: center
+
+        **Antti Snicker**
+
+        Group Leader
+
+.. note::
+
+    If you have done simulations where you compare ASCOT to experimental results or output of other similar software, please contact the developers!
+    We would like to maintain a record of those.
+
+Getting help
+************
+
+For questions related to the code or its physics, please join our `Slack <http://ascot-workspace.slack.com/>`_.
+We also hold ASCOT meetings every two weeks.
+These meetings are primarily intended for discussing ongoing or planned studies involving ASCOT, and everyone is welcome to join and discuss their work with other ASCOT users and experts.
+In addition, office hours ("ASCOT Garage") are held on most Wednesdays for questions related to using the code.
+The schedules and connection information for both the ASCOT meetings and the Garage are available in Slack, in the pinned post in the ascot5 channel.
+
+License
+*******
+
+This software is distributed under the `LGPLv3 <https://www.gnu.org/licenses/lgpl-3.0.html>`_ license.
 
 .. toctree::
-  :maxdepth: 2
-  :caption: Running Simulations
-  :hidden:
+    :maxdepth: 2
+    :caption: Getting started
 
-  installing
-  simulations
+    setup
 
 .. toctree::
-  :maxdepth: 2
-  :caption: Processing Data
-  :hidden:
+    :maxdepth: 2
+    :caption: Using ASCOT5
 
-  dataform
-  inputgen
-  postproc
-
-.. toctree::
-  :maxdepth: 2
-  :caption: Simulating Physics
-  :hidden:
-
-  tutorials
-  physics
+    tutorials
+    physics
+    testing
+    publications
 
 .. toctree::
-  :maxdepth: 2
-  :caption: Publications
-  :hidden:
+    :maxdepth: 2
+    :caption: API reference:
 
-  acknowledging
-  gallery
-
-.. toctree::
-  :caption: The Code
-  :hidden:
-
-  optimization
-  testing
-  developing
-
-Getting started
-===============
-
-1. Follow the :ref:`installation<Installing>` instructions and :ref:`compile<Compiling>` the code.
-2. Have some quality time by going through :ref:`the introductory simulation</tutorials/introduction.ipynb>`.
-3. Familiarize yourself on how to generate :ref:`inputs<Preprocessing>` that you need, execute :ref:`simulations<Simulations>`, and post-process :ref:`the results<Postprocessing>`.
-   Here :ref:`the examples<Examples>` and :ref:`the physics<Physics>` are good sources of help.
-4. At some point you might also want to :ref:`publish<Citing>` your work or :ref:`contribute<Codingstyle>` to the code.
-
-Features
-========
-
-**ASCOT5** is a test-particle orbit-following code for computing particle orbits in 3D geometry.
-The output includes particle orbits, phase-space distributions, transport coefficients, and wall loads. ASCOT5 is frequently applied to study fast ions, impurities, neutrals, and runaway electrons in tokamaks and stellarators.
-Particle orbits are either solved fully, i.e. including the gyro-motion, or in a reduced picture where only the guiding-center trajectory is traced.
-The code is extensively parallelized and optimized to support simulations with more than ten million markers.
-
-The code is implemented in C and consists of a main program and a library.
-Simulation input and output is stored in HDF5 format.
-All pre- and post-processing is done via the Python interface **a5py**.
-In addition the repository also contain several codes that supplement the orbit-following simulations.
-
-The repository is maintained by `Aalto University <https://www.aalto.fi/en/department-of-applied-physics/particle-orbit-simulations-ascot>`_ and `VTT Technical Research Centre of Finland <https://www.vttresearch.com/en/ourservices/future-nuclear#fusion-reactor-research>`_.
-
-.. rubric:: ASCOT5:
-
-- Can trace full gyro-orbits, guiding centers, field-lines, and neutrals.
-- Supports 3D tokamak and stellarator magnetic fields.
-- Supports 3D wall model and evaluation of particle loads on the wall.
-- Simulations assume test-particle approximation (no feedback from markers to backgrounds) but otherwise any type of particles can be traced.
-
-  - Mainly used to study fast ions, impurities and runaway electrons.
-
-- Physics include Coulomb collisions and atomic reactions where particle charge state changes.
-- Simulations may include fast ion response to MHD.
-- Output consists of various distributions (1D-6D), marker orbits, wall loads/FILD signals, and transport coefficients.
-
-.. rubric:: BBNBI
-
-- Calculates beam birth profile and shinethrough from NBI geometry.
-- Can provide a NBI source for ASCOT5 slowing-down simulations.
-
-.. rubric:: AFSI
-
-- Calculates fusion product source from thermal plasma and fast ion slowing-down distributions (as computed by ASCOT5).
-- For fusion neutronics, AFSI can be combined with `Serpent <https://serpent.vtt.fi/serpent/>`_.
-
-.. rubric:: BioSaw
-
-- Calculates magnetic field based on a coil geometry.
-- Can provide a 3D field for ASCOT5 simulations.
-
-.. rubric:: BMC
-
-- Backward Monte-Carlo simulation tool that can be thought as a time-reversed ASCOT5.
-- Effective tool for estimating FILD signals and wall loads on small but critical components.
-- Not yet fully complete.
-
-FAQ and Troubleshooting
-=======================
-
-.. rubric:: I'm receiving a fatal error when opening the input file in Python or in GUI
-
-- There might be compatibility issues if the file was made with an older version of ASCOT5 that you are currently using.
-  These can be solved by running the script ``a5update ascot.h5`` which generates a copy ``ascot_<current version>.h5`` where the data has been updated to new format.
-  Note that it might not always be possible to enforce the backwards compatibility on results so rerunning the simulation might be necessary.
-
-.. rubric:: How long does it take to run a simulation and how many markers I need
-
-- See :ref:`this table<ExampleRuntimes>` for examples.
-  Typically guiding-center simulations are faster than gyro-orbit because GC can use larger time-step.
-  This is somewhat balanced by the fact that a single GC time-step is more expensive to perform.
-  Therefore, there is roughly a factor of ten difference between required CPU time but this can vary.
-  Using 3D magnetic field instead of 2D is the single most expensive choice in terms of CPU time.
-  As for markers, the rule of thumb is that 10k - 100k markers are sufficient to get a good estimate on losses and distributions, but more than 1 million might be needed to estimate wall loads accurately.
-  For wall loads the important factors are the size of the wall triangles and how the markers were sampled.
-  Always perform some kind of convergence scan or otherwise estimate the Monte Carlo error.
+    dataform
+    inputgen
+    postproc

@@ -1,4 +1,5 @@
 """Contains classes that represent nodes of the tree data structure."""
+
 from __future__ import annotations
 
 from typing import Generator, Optional, Union, Any
@@ -72,7 +73,7 @@ class ImmutableNode(utils.ImmutableStorage):
             f"<{self.__class__.__name__}(names={self._names}, "
             f"tags={self._tags}, active={self._active!r}, "
             f"frozen={self._frozen})>"
-            )
+        )
 
     def __len__(self) -> int:
         """Return the number of leaves in this node."""
@@ -110,9 +111,7 @@ class ImmutableNode(utils.ImmutableStorage):
             If there's no active data.
         """
         if self._active is None:
-            raise AscotDataException(
-                "No active data. Perhaps this node is empty?"
-                )
+            raise AscotDataException("No active data. Perhaps this node is empty?")
         return self._active
 
     def _activate_leaf(self, leaf: Leaf) -> None:
@@ -133,7 +132,7 @@ class ImmutableNode(utils.ImmutableStorage):
         if leaf not in self:
             raise AscotMeltdownError(
                 f"Variant '{leaf.name}' does not belong to this node."
-                )
+            )
         with self._modify_attributes():
             self._active = leaf
 
@@ -157,11 +156,11 @@ class ImmutableNode(utils.ImmutableStorage):
         if leaf in self:
             raise AscotMeltdownError(
                 f"Variant '{leaf.name}' already belongs to this node."
-                )
+            )
         if leaf.name in self._names:
             raise AscotMeltdownError(
                 f"This node already has a variant named '{leaf.name}'."
-                )
+            )
         self._names.append(leaf.name)
         with self._modify_attributes():
             self[leaf.name] = leaf
@@ -187,7 +186,7 @@ class ImmutableNode(utils.ImmutableStorage):
         if leaf not in self:
             raise AscotMeltdownError(
                 f"Variant '{leaf.name}' does not belong to this node."
-                )
+            )
         self._names.remove(leaf.name)
         with self._modify_attributes():
             delattr(self, leaf.name)
@@ -206,6 +205,7 @@ class ImmutableNode(utils.ImmutableStorage):
           their tags with running index, i.e. `new_tag = tag_<index>`, counting
           from zero for the leaf with the most recent date.
         """
+
         def clear_references() -> None:
             """Remove all references."""
             self._active = None
@@ -231,11 +231,10 @@ class ImmutableNode(utils.ImmutableStorage):
             dates = [leaf.date for leaf in self]
             self._names = [
                 name for _, name in sorted(zip(dates, self._names), reverse=True)
-                ]
+            ]
 
         def update_references_by_tag() -> None:
-            """Add references by tag with unique tags and remove the old ones.
-            """
+            """Add references by tag with unique tags and remove the old ones."""
             for tag_to_be_removed in self._tags:
                 if tag_to_be_removed is not None:
                     delattr(self, tag_to_be_removed)
@@ -244,6 +243,13 @@ class ImmutableNode(utils.ImmutableStorage):
             dates = [leaf.date for leaf in self]
             unsorted_names = self._names
             unsorted_tags = [Leaf.extract_tag(leaf.note)[0] for leaf in self]
+            filtered = [
+                (tag, date, name)
+                for tag, date, name in zip(unsorted_tags, dates, unsorted_names)
+                if tag is not None
+            ]
+
+            unsorted_tags, dates, unsorted_names = map(list, zip(*filtered)) if filtered else ([], [], [])
 
             counts: dict[str, int] = {}
             dates.reverse()
@@ -273,7 +279,7 @@ class ImmutableNode(utils.ImmutableStorage):
                 sort_names_by_date()
                 update_references_by_tag()
 
-    def destroy(self, *, repack: bool=False, **kwargs: Any) -> None:
+    def destroy(self, *, repack: bool = False, **kwargs: Any) -> None:
         """Remove all data belonging to this node permanently.
 
         Parameters
@@ -284,7 +290,7 @@ class ImmutableNode(utils.ImmutableStorage):
             Repacking has some overhead but without it only the references to
             the data, not the data itself, are removed in the file.
         """
-        _ = kwargs # kwargs are required only for subclasses to have kw args
+        _ = kwargs  # kwargs are required only for subclasses to have kw args
         if self._treemanager:
             for name in list(self._names):
                 leaf = self[name]
@@ -330,7 +336,7 @@ class InputCategory(ImmutableNode):
         which input is active."""
         print(self._get_decorated_contents())
 
-    def destroy(self, repack: bool=True, **kwargs: Any) -> None:
+    def destroy(self, repack: bool = True, **kwargs: Any) -> None:
         """Remove all inputs and data within this category permanently.
 
         Parameters
@@ -349,9 +355,8 @@ class Tree(ImmutableNode):
     """The entry node for accessing simulation data."""
 
     def __init__(
-            self, input_categories: list[str],
-            hdf5file: Optional[tuple[str, bool]]=None
-            ) -> None:
+        self, input_categories: list[str], hdf5file: Optional[tuple[str, bool]] = None
+    ) -> None:
         """Initialize an empty tree structure.
 
         Parameters
@@ -361,7 +366,7 @@ class Tree(ImmutableNode):
             exists.
         """
         super().__init__()
-        nodes = {ROOT:self}
+        nodes = {ROOT: self}
         self._input_categories = input_categories
         for category in input_categories:
             self[category] = InputCategory()
@@ -375,7 +380,7 @@ class Tree(ImmutableNode):
         return (
             f"<{self.__class__.__name__}(names={self._names}, tags={self._tags}, "
             f"active={self._active!r})>"
-            )
+        )
 
     @property
     def contents(self) -> str:
@@ -396,8 +401,12 @@ class Tree(ImmutableNode):
             self._treemanager.activate_leaf(data)
 
     def destroy(
-            self, *, repack: bool=True, data: Leaf | str=ROOT, **kwargs: Any,
-            ) -> None:
+        self,
+        *,
+        repack: bool = True,
+        data: Leaf | str = ROOT,
+        **kwargs: Any,
+    ) -> None:
         """Remove data permanently.
 
         Parameters
@@ -437,6 +446,7 @@ class Tree(ImmutableNode):
         """Get a string representation of the contents decorated with ANSI
         escape sequences.
         """
+
         def print_category(category: str) -> str:
             return utils.decorate(f"{category.ljust(10)}", color="green")
 
@@ -450,7 +460,8 @@ class Tree(ImmutableNode):
         def print_name(leaf: Leaf) -> str:
             return (
                 utils.decorate(
-                    f"{leaf.name.ljust(15)}", bold=True,
+                    f"{leaf.name.ljust(15)}",
+                    bold=True,
                 )
                 + f" {leaf.date}"
             )
@@ -460,8 +471,11 @@ class Tree(ImmutableNode):
 
         def print_title(title: str) -> str:
             return utils.decorate(
-                title, color="purple", underline=True, bold=True,
-                )
+                title,
+                color="purple",
+                underline=True,
+                bold=True,
+            )
 
         contents = ""
         contents += print_title("Inputs:")

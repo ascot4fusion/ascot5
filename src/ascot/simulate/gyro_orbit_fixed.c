@@ -2,22 +2,22 @@
  * Simulate gyro-orbit or neutral particles using fixed time-step (see
  * "simulate.h").
  */
-#include "defines.h"
 #include "atomic_reactions.h"
-#include "data/bfield.h"
 #include "consts.h"
+#include "coulomb_collisions.h"
+#include "data/bfield.h"
 #include "data/diag.h"
 #include "data/efield.h"
-#include "endcond.h"
-#include "utils/mathlib.h"
-#include "coulomb_collisions.h"
 #include "data/marker.h"
-#include "utils/physlib.h"
 #include "data/plasma.h"
-#include "simulate.h"
-#include "orbit_following.h"
-#include "datatypes.h"
 #include "data/wall.h"
+#include "datatypes.h"
+#include "defines.h"
+#include "endcond.h"
+#include "orbit_following.h"
+#include "simulate.h"
+#include "utils/mathlib.h"
+#include "utils/physlib.h"
 #include <math.h>
 #include <omp.h>
 #include <stdio.h>
@@ -50,7 +50,9 @@ static size_t cycle_markers(
         if (idx == vector_size)
             break;
         if (p_current->id[idx] != 0)
-            MarkerGyroOrbit_to_queue(queue, p_current, idx, &sim->bfield);
+            MarkerGyroOrbit_to_queue(
+                queue, p_current, idx, &sim->bfield,
+                sim->options->disable_first_order_gctransformation);
         p_current->id[idx] = 0;
         p_current->running[idx] = 0;
 
@@ -80,19 +82,22 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 {
     int err = 0;
     size_t *cycle = (size_t *)xmalloc(&err, vector_size * sizeof(size_t));
-    if(err) return 1;
+    if (err)
+        return 1;
     real *hin = (real *)xmalloc(&err, vector_size * sizeof(real));
-    if(err) return 1;
+    if (err)
+        return 1;
     real *rnd = (real *)xmalloc(&err, 3 * vector_size * sizeof(real));
-    if(err) return 1;
+    if (err)
+        return 1;
 
     real cputime, cputime_last; // Global cpu time: recent and previous record
 
     MarkerGyroOrbit p;  // This array holds current states
     MarkerGyroOrbit p0; // This array stores previous states
-    if(MarkerGyroOrbit_allocate(&p, vector_size))
+    if (MarkerGyroOrbit_allocate(&p, vector_size))
         return 1;
-    if(MarkerGyroOrbit_allocate(&p0, vector_size))
+    if (MarkerGyroOrbit_allocate(&p0, vector_size))
         return 1;
 
     MarkerGuidingCenter gc_f, gc_i;
@@ -208,8 +213,7 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         if (!(sim->options->record_mode))
         {
             /* Record particle coordinates */
-            Diag_update_go(
-                &sim->diagnostics, &sim->bfield, &p, &p0);
+            Diag_update_go(&sim->diagnostics, &sim->bfield, &p, &p0);
         }
         else
         {
@@ -220,7 +224,9 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
             {
                 if (p.running[i])
                 {
-                    MarkerGyroOrbit_to_MarkerGuidingCenter(&gc_f, &p, i, &sim->bfield);
+                    MarkerGyroOrbit_to_MarkerGuidingCenter(
+                        &gc_f, &p, i, &sim->bfield,
+                        sim->options->disable_first_order_gctransformation);
                 }
                 else
                 {
@@ -229,7 +235,9 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
                 }
                 if (p0.running[i])
                 {
-                    MarkerGyroOrbit_to_MarkerGuidingCenter(&gc_i, &p0, i, &sim->bfield);
+                    MarkerGyroOrbit_to_MarkerGuidingCenter(
+                        &gc_i, &p0, i, &sim->bfield,
+                        sim->options->disable_first_order_gctransformation);
                 }
                 else
                 {
@@ -237,8 +245,7 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
                     gc_i.running[i] = 0;
                 }
             }
-            Diag_update_gc(
-                &sim->diagnostics, &sim->bfield, &gc_f, &gc_i);
+            Diag_update_gc(&sim->diagnostics, &sim->bfield, &gc_f, &gc_i);
         }
 
         /* Update running particles */

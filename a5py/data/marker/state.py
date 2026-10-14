@@ -393,7 +393,7 @@ class MarkerState():
         return obj
 
     @classmethod
-    def from_markerinput(cls, mrk, bjacb, idx=None):
+    def from_markerinput(cls, mrk, bjacb, order, idx=None):
         """Initialize a new state that matches the marker input.
 
         Parameters
@@ -444,10 +444,13 @@ class MarkerState():
                     ctypes.addressof(mrk._cdata[j]),
                     ctypes.sizeof(Structure),
                     )
+                bjacb0 = np.zeros((12,))
+                bjacb0[:] = bjacb[i,:]
                 LIBASCOT.gctransform_particle2guidingcenter(
+                    order,
                     obj._cdata[i].mass,
-                    obj._cdata[i].charge,
-                    bjacb,
+                    (obj._cdata[i].charge * unyt.e).to("C"),
+                    bjacb0,
                     obj._cdata[i].rprt,
                     obj._cdata[i].phiprt,
                     obj._cdata[i].zprt,
@@ -461,8 +464,15 @@ class MarkerState():
                     mu,
                     zeta
                 )
-                obj._cdata[i].ekin = 0.0
-                obj._cdata[i].pitch = 0.0
+                out = compute_quantities(
+                    {"ppar": ppar*unyt.kg*unyt.m/unyt.s, "mu": mu*unyt.J/unyt.T, "mass": obj._cdata[i].mass * unyt.kg, "bnorm": np.sqrt(bjacb0[0]**2 + bjacb0[1]**2 + bjacb0[2]**2)*unyt.T},
+                    ["gamma", "pitch", "ekin"])
+                obj._cdata[i].r = r[0]
+                obj._cdata[i].phi = phi[0]
+                obj._cdata[i].z = z[0]
+                obj._cdata[i].zeta = zeta[0]
+                obj._cdata[i].ekin = out["ekin"].to("J").value[0]
+                obj._cdata[i].pitch = out["pitch"].to("1").value[0]
                 for zero in zeros:
                     setattr(obj._cdata[i], zero, 0)
 
@@ -497,6 +507,7 @@ class MarkerState():
                 bjacb0 = np.zeros((12,))
                 bjacb0[:] = bjacb[i,:]
                 LIBASCOT.gctransform_guidingcenter2particle(
+                    order,
                     obj._cdata[i].mass,
                     (obj._cdata[i].charge * unyt.e).to("C"),
                     bjacb0,

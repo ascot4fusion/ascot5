@@ -8,8 +8,3 @@ Analytical tokamak field
 .. rubric:: Creation
 
 .. autofunction:: a5py.data.AscotData.create_bfieldanalytical
-
-.. dropdown:: The C-module (For developers)
-
-   .. doxygenstruct:: BfieldAnalytical
-      :members:

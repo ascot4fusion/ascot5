@@ -1,4 +1,4 @@
-a5py.exceptions
-===============
+exceptions
+==========
 
 .. automodule:: a5py.exceptions

@@ -54,7 +54,7 @@ static size_t cycle_markers(
         if (idx == vector_size)
             break;
         if (p_current->id[idx] != 0)
-            MarkerGyroOrbit_to_queue(queue, p_current, idx, &sim->bfield);
+            MarkerGyroOrbit_to_queue(queue, p_current, idx, &sim->bfield, sim->options->disable_first_order_gctransformation);
         p_current->id[idx] = 0;
 
         if (next_in_queue < queue->n)

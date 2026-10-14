@@ -1,8 +1,8 @@
 .. _Physics:
 
-=================
-Physics in ASCOT5
-=================
+==============
+Physics models
+==============
 
 Coordinate system
 =================

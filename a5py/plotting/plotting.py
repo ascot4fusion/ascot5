@@ -31,6 +31,7 @@ except ImportError:
 def _set_bbox(bbox, xmin, xmax, xscale, ymin, ymax, yscale, zmin=None, zmax=None, zscale=None):
     dx = (xmax - xmin) / 10
     dy = (ymax - ymin) / 10
+    dz = 0
     if zmin is not None and zmax is not None:
         dz = (zmax - zmin) / 10
     if bbox is None:
@@ -60,8 +61,8 @@ def _set_bbox(bbox, xmin, xmax, xscale, ymin, ymax, yscale, zmin=None, zmax=None
                     bbox[i] = find_lower_limit(ymin, dy, yscale)
                 case 2:
                     bbox[i] = (
-                        find_lower_limit(zmin, dz, zscale) if zmin is not None
-                        else find_upper_limit(xmax, dx, xscale)
+                        find_upper_limit(xmax, dx, xscale) if zmin is None
+                        else find_lower_limit(zmin, dz, zscale)
                     )
                 case 3:
                     bbox[i] = (

@@ -7,9 +7,4 @@ Guiding centers
 
 .. rubric:: Creation
 
-.. autofunction:: a5py.data.AscotData.create_gcmarker
-
-.. dropdown:: The C-module (For developers)
-
-   .. doxygenstruct:: particle_gc
-      :members:
+.. autofunction:: a5py.data.AscotData.create_guidingcentermarker

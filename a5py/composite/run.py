@@ -8,6 +8,8 @@ from a5py.data.access import OutputVariant, Leaf
 from a5py.data.marker.state import MarkerState
 from a5py.data import Orbit, Hist, SimulationOptions
 
+import a5py.plotting as a5plt
+
 @Leaf.register
 class Run(OutputVariant):
 
@@ -179,7 +181,7 @@ class Run(OutputVariant):
                     mode = "field-line"
 
         return orbit.evaluate_quantity(mode, state, bfield, *qnt, filter=filter)
-    
+
     def getdist(self, idx, dimensions):
         return self._diagnostics[f"hist_{idx}"].extract(dimensions)
 
@@ -187,13 +189,12 @@ class Run(OutputVariant):
             self,
             x: str,
             y: str,
-            z: Optional=None,
-            c: Optional=None,
-            filter: Optional=None,
-            cmap: Optional=None,
-            axesequal: bool=False,
-            axes: Optional=None,
-            cax: Optional=None,
+            z: Optional[str]=None,
+            c: Optional[str]=None,
+            filter: Optional[str]=None,
+            cmap: Optional[str]=None,
+            axes: Optional[str]=None,
+            cax: Optional[str]=None,
             ) -> None:
         """Plot orbit trajectories in given coordinates.
 
@@ -227,14 +228,13 @@ class Run(OutputVariant):
             with color.
 
             If None, markers are plotted with different colors.
-        endcond : str, array_like, optional
-            Endcond of those  markers which are plotted.
-        ids : array_like
-            IDs of the markers to be plotted.
+        filter : str, array_like, optional
+            Filter which markers are plotted.
+
+            The filter can either be a endcondition, a list of endconditions, or
+            a list of marker IDs.
         cmap : str, optional
-            Colormap.
-        axesequal : bool, optional
-            Flag whether to set aspect ratio for x and y (and z) axes equal.
+            Colormap to be used if ``c`` is not None.
         axes : :obj:`~matplotlib.axes.Axes`, optional
             The axes where figure is plotted or otherwise new figure is created.
         cax : :obj:`~matplotlib.axes.Axes`, optional
@@ -262,27 +262,22 @@ class Run(OutputVariant):
         cc = c; clabel = None; clog = "linear"# Default values passed to plotter
         x, xlabel, xlog = parsearg(x)
         y, ylabel, ylog = parsearg(y)
-        if c is not None: c, clabel, clog = parsearg(c)
-        if z is not None: z, zlabel, zlog = parsearg(z)
+        if z is not None:
+            z, zlabel, zlog = parsearg(z)
+        if c is not None:
+            c, clabel, clog = parsearg(c)
 
-        if c is not None and not c in self.getorbit_list():
-            # c is a color string, not quantity
-            c = None
-
-        # Orbit evaluation can be expensive so we try to get all coordinates
-        # with a single call
-        if z is None and c is None:
-            idarr, xc, yc = self.getorbit(
-                "ids", x, y, endcond=endcond, ids=ids)
-        elif z is not None and c is None:
-            idarr, xc, yc, zc = self.getorbit(
-                "ids", x, y, z, endcond=endcond, ids=ids)
-        elif z is None and c is not None:
-            idarr, xc, yc, cc = self.getorbit(
-                "ids", x, y, c, filter=filter)
-        elif z is not None and c is not None:
-            idarr, xc, yc, zc, cc = self.getorbit(
-                "ids", x, y, z, c, endcond=endcond, ids=ids)
+        args = [x, y]
+        if z is not None:
+            args.append(z)
+        if c is not None:
+            args.append(c)
+        idarr, *coords = self.getorbit("id", *args, filter=filter)
+        xc, yc = coords[0], coords[1]
+        if z is not None:
+            zc = coords[2]
+        if c is not None:
+            cc = coords[-1]
 
         # Find indices to map values from inistate to orbit array
         _, idarr = np.unique(idarr, return_inverse=True)
@@ -304,10 +299,10 @@ class Run(OutputVariant):
                 Mode of the quantity.
             """
             if "x/x_0" in label:
-                val0 = self.getstate(qnt, state="ini", endcond=endcond, ids=ids, mode=mode)
+                val0 = self.getstate(qnt, state="ini", filter=filter, mode=mode)
                 val = ( val / val0[idarr] ) - 1
             elif "Delta" in label:
-                val0 = self.getstate(qnt, state="ini", endcond=endcond, ids=ids, mode=mode)
+                val0 = self.getstate(qnt, state="ini", filter=filter, mode=mode)
                 val = val - val0[idarr]
 
             if any(val < 0) and log == "log":
@@ -327,24 +322,24 @@ class Run(OutputVariant):
         yc, ylog, ymin, ymax = parsevals(yc, ylog, ylabel, y)
         xlabel = xlabel + " [" + str(xc[0].units) + "]"
         ylabel = ylabel + " [" + str(yc[0].units) + "]"
-        bbox = [xmin, xmax, ymin, ymax, None, None]
+        bbox = [xmin, xmax, ymin, ymax]
         if z is not None:
             zc, zlog, zmin, zmax = parsevals(zc, zlog, zlabel, z)
             zlabel += " [" + str(zc[0].units) + "]"
-            bbox = [xmin, xmax, ymin, ymax, zmin, zmax, None, None]
+            bbox = [xmin, xmax, ymin, ymax, zmin, zmax]
         if c is not None:
             cc, clog, bbox[-2], bbox[-1] = parsevals(cc, clog, clabel, c)
             clabel += " [" + str(cc[0].units) + "]"
 
         if z is None:
-            a5plt.line2d(xc, yc, c=cc, xlog=xlog, ylog=ylog, clog=clog,
-                         xlabel=xlabel, ylabel=ylabel, clabel=clabel, bbox=bbox,
-                         cmap=cmap, axesequal=axesequal, axes=axes, cax=cax)
+            a5plt.line2d(xc, yc, c=cc, xscale=xlog, yscale=ylog, cscale=clog,
+                         xlabel=xlabel, ylabel=ylabel, clabel=clabel, #bbox=bbox,
+                         cmap=cmap, axes=axes, cax=cax)
         else:
-            a5plt.line3d(xc, yc, zc, c=cc, xlog=xlog, ylog=ylog, zlog=zlog,
-                         clog=clog, xlabel=xlabel, ylabel=ylabel, zlabel=zlabel,
+            a5plt.line3d(xc, yc, zc, c=cc, xscale=xlog, yscale=ylog, zscale=zlog,
+                         cscale=clog, xlabel=xlabel, ylabel=ylabel, zlabel=zlabel,
                          clabel=clabel, bbox=bbox, cmap=cmap,
-                         axesequal=axesequal, axes=axes, cax=cax)
+                         axes=axes, cax=cax)
 
     def plotorbit_poincare(self, plane, connlen=True, markersize=2,
                            alternative_coords=False, axes=None, cax=None):

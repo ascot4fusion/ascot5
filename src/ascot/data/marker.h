@@ -195,7 +195,7 @@ typedef struct
 } MarkerFieldLine;
 
 /**
- * Allocate field line marker simulation vector.
+ * Allocate particle marker simulation vector.
  *
  * @param mrk Allocated marker vector.
  * @param vector_size Number of markers in the vector.
@@ -205,21 +205,21 @@ typedef struct
 int MarkerGyroOrbit_allocate(MarkerGyroOrbit *mrk, size_t vector_size);
 
 /**
- * Deallocate field line marker simulation vector.
+ * Deallocate particle marker simulation vector.
  *
  * @param mrk Deallocated marker vector.
  */
 void MarkerGyroOrbit_deallocate(MarkerGyroOrbit *mrk);
 
 /**
- * Copy field line marker data from host to GPU.
+ * Copy particle marker data from host to GPU.
  *
  * @param mrk Marker vector.
  */
 void MarkerGyroOrbit_offload(MarkerGyroOrbit *mrk);
 
 /**
- * Copy field line marker data from GPU to host.
+ * Copy particle marker data from GPU to host.
  *
  * @param mrk Marker vector.
  */
@@ -227,7 +227,7 @@ void MarkerGyroOrbit_onload(MarkerGyroOrbit *mrk);
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(copy, original)
 /**
- * Copy field line marker from one simulation vector to another.
+ * Copy particle marker from one simulation vector to another.
  *
  * @param copy The simulation vector copy.
  * @param original The simulation vector to copy.
@@ -240,12 +240,11 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(mrk, queue, bfield)
 /**
- * Retrieve field line marker from a queue of marker states.
+ * Retrieve particle marker from a queue of marker states.
  *
  * The marker position in the queue is stored so that the marker can be returned
- * in the same position. In case the conversion from state to field line marker
- * failed, the error field of the state is updated and this function returns
- * non-zero value.
+ * in the same position. In case the conversion from state to marker failed, the
+ * error field of the state is updated and this function returns non-zero value.
  *
  * @param mrk Marker simulation vector.
  * @param queue The queue of marker states.
@@ -260,9 +259,9 @@ int MarkerGyroOrbit_from_queue(
     size_t queue_index, Bfield *bfield);
 GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
-GPU_DECLARE_TARGET_SIMD_UNIFORM(queue, mrk)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(queue, mrk, order)
 /**
- * Return field line marker back to queue and convert it to a state.
+ * Return particle marker back to queue and convert it to a state.
  *
  * The marker is returned on the same position it was retrieved from.
  *
@@ -270,13 +269,15 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(queue, mrk)
  * @param mrk Marker simulation vector.
  * @param index The index of the marker in the simulation vector.
  * @param bfield Magnetic field data.
+ * @param order Order of guiding center transformation in momentum space
+ *        (0 or 1).
  */
 void MarkerGyroOrbit_to_queue(
-    MarkerQueue *queue, MarkerGyroOrbit *mrk, size_t index, Bfield *bfield);
+    MarkerQueue *queue, MarkerGyroOrbit *mrk, size_t index, Bfield *bfield, int order);
 GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
 /**
- * Allocate field line marker simulation vector.
+ * Allocate guiding center marker simulation vector.
  *
  * @param mrk Allocated marker vector.
  * @param vector_size Number of markers in the vector.
@@ -286,21 +287,21 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 int MarkerGuidingCenter_allocate(MarkerGuidingCenter *mrk, size_t vector_size);
 
 /**
- * Deallocate field line marker simulation vector.
+ * Deallocate guiding center marker simulation vector.
  *
  * @param mrk Deallocated marker vector.
  */
 void MarkerGuidingCenter_deallocate(MarkerGuidingCenter *mrk);
 
 /**
- * Copy field line marker data from host to GPU.
+ * Copy guiding center marker data from host to GPU.
  *
  * @param mrk Marker vector.
  */
 void MarkerGuidingCenter_offload(MarkerGuidingCenter *mrk);
 
 /**
- * Copy field line marker data from GPU to host.
+ * Copy guiding center marker data from GPU to host.
  *
  * @param mrk Marker vector.
  */
@@ -308,7 +309,7 @@ void MarkerGuidingCenter_onload(MarkerGuidingCenter *mrk);
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(copy, original)
 /**
- * Copy field line marker from one simulation vector to another.
+ * Copy guiding center marker from one simulation vector to another.
  *
  * @param copy The simulation vector copy.
  * @param original The simulation vector to copy.
@@ -321,12 +322,11 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(mrk, queue, bfield)
 /**
- * Retrieve field line marker from a queue of marker states.
+ * Retrieve guiding center marker marker from a queue of marker states.
  *
  * The marker position in the queue is stored so that the marker can be returned
- * in the same position. In case the conversion from state to field line marker
- * failed, the error field of the state is updated and this function returns
- * non-zero value.
+ * in the same position. In case the conversion from state to marker failed, the
+ * error field of the state is updated and this function returns non-zero value.
  *
  * @param mrk Marker simulation vector.
  * @param queue The queue of marker states.
@@ -341,9 +341,9 @@ int MarkerGuidingCenter_from_queue(
     size_t queue_index, Bfield *bfield);
 GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
-GPU_DECLARE_TARGET_SIMD_UNIFORM(queue, mrk)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(queue, mrk, order)
 /**
- * Return field line marker back to queue and convert it to a state.
+ * Return guiding center marker back to queue and convert it to a state.
  *
  * The marker is returned on the same position it was retrieved from.
  *
@@ -351,9 +351,11 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(queue, mrk)
  * @param mrk Marker simulation vector.
  * @param index The index of the marker in the simulation vector.
  * @param bfield Magnetic field data.
+ * @param order Order of guiding center transformation in momentum space
+ *        (0 or 1).
  */
 void MarkerGuidingCenter_to_queue(
-    MarkerQueue *queue, MarkerGuidingCenter *mrk, size_t index, Bfield *bfield);
+    MarkerQueue *queue, MarkerGuidingCenter *mrk, size_t index, Bfield *bfield, int order);
 GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
 /**
@@ -405,9 +407,8 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(mrk, queue, bfield)
  * Retrieve field line marker from a queue of marker states.
  *
  * The marker position in the queue is stored so that the marker can be returned
- * in the same position. In case the conversion from state to field line marker
- * failed, the error field of the state is updated and this function returns
- * non-zero value.
+ * in the same position. In case the conversion from state to marker failed, the
+ * error field of the state is updated and this function returns non-zero value.
  *
  * @param mrk Marker simulation vector.
  * @param queue The queue of marker states.
@@ -436,7 +437,7 @@ void MarkerFieldLine_to_queue(
     MarkerQueue *queue, MarkerFieldLine *mrk, size_t index);
 GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
-GPU_DECLARE_TARGET_SIMD_UNIFORM(mrk_gc, mrk_go, bfield)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(mrk_gc, mrk_go, bfield, order)
 /**
  * Convert gyro-orbit marker to guiding-center marker.
  *
@@ -446,12 +447,14 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(mrk_gc, mrk_go, bfield)
  * @param mrk_go Vector of gyro-orbit markers used as input.
  * @param index Index of the marker in the vectors.
  * @param bfield Magnetic field data.
+ * @param order Order of guiding center transformation in momentum space
+ *        (0 or 1).
  *
  * @return Zero on success.
  */
 int MarkerGyroOrbit_to_MarkerGuidingCenter(
     MarkerGuidingCenter *mrk_gc, const MarkerGyroOrbit *mrk_go, size_t index,
-    Bfield *bfield);
+    Bfield *bfield, int order);
 GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(q)

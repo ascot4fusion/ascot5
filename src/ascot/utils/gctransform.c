@@ -11,24 +11,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/** Order to which guiding center transformation is done in momentum space. */
-// static int GCTRANSFORM_ORDER = 1;
-#ifdef _OPENACC
-static int GCTRANSFORM_ORDER = 1;
-#pragma acc declare copyin(GCTRANSFORM_ORDER)
-#elif defined(_OPENMP)
-DECLARE_TARGET
-static int GCTRANSFORM_ORDER = 1;
-DECLARE_TARGET_END
-#else
-static int GCTRANSFORM_ORDER = 1;
-#endif
-
-void gctransform_setorder(int order) { GCTRANSFORM_ORDER = order; }
-
 void gctransform_particle2guidingcenter(
-    real mass, real charge, const real b_db[12], real r, real phi, real z,
-    real pr, real pphi, real pz, real R[1], real Phi[1], real Z[1],
+    int order, real mass, real charge, const real b_db[12], real r, real phi,
+    real z, real pr, real pphi, real pz, real R[1], real Phi[1], real Z[1],
     real ppar[1], real mu[1], real zeta[1])
 {
 
@@ -48,7 +33,7 @@ void gctransform_particle2guidingcenter(
     math_jac_rpz2xyz(b_dbxyz, b_db, r, phi);
 
     /* bhat = Unit vector of B */
-    real bhat[3] = {b_dbxyz[0] / Bnorm, b_dbxyz[4] / Bnorm, b_dbxyz[8] / Bnorm};
+    real bhat[3] = {b_dbxyz[0] / Bnorm, b_dbxyz[1] / Bnorm, b_dbxyz[2] / Bnorm};
 
     /* Magnetic field norm gradient */
     real gradB[3];
@@ -223,7 +208,7 @@ void gctransform_particle2guidingcenter(
     }
 
     /* Choose whether to use first order transformation in momentum space */
-    if (GCTRANSFORM_ORDER)
+    if (order == 1)
     {
         *ppar = ppar0 + ppar1;
         *mu = fabs(mu0 + mu1);
@@ -241,8 +226,8 @@ void gctransform_particle2guidingcenter(
 }
 
 void gctransform_guidingcenter2particle(
-    real mass, real charge, const real b_db[12], real R, real Phi, real Z,
-    real ppar, real mu, real zeta, real r[1], real phi[1], real z[1],
+    int order, real mass, real charge, const real b_db[12], real R, real Phi,
+    real Z, real ppar, real mu, real zeta, real r[1], real phi[1], real z[1],
     real pparprt[1], real muprt[1], real zetaprt[1])
 {
 
@@ -413,7 +398,7 @@ void gctransform_guidingcenter2particle(
     }
 
     /* Choose whether to use first or zeroth order momentum transform */
-    if (GCTRANSFORM_ORDER)
+    if (order == 1)
     {
         mu = fabs(mu - mu1);
         ppar -= ppar1;

@@ -74,11 +74,10 @@ class Ascot():
 
         inputs = {}
         for req in required:
-            try:
+            if req in priority_inputs:
+                inputs[req] = priority_inputs[req]
+            else:
                 inputs[req] = data[req].active
-            except AscotDataException:
-                if req in priority_inputs:
-                    inputs[req] = priority_inputs[req]
 
         missing_inputs = {req for req in required if not req in inputs.keys()}
         if missing_inputs:
@@ -91,7 +90,7 @@ class Ascot():
         return True
 
     def simulate(
-        self, time=None, run=None, params=None, comm=None, **priority_inputs,
+        self, note=None, time=None, params=None, save=False, comm=None, **priority_inputs,
         ):
         """Let the markers loose.
 
@@ -131,7 +130,9 @@ class Ascot():
         execute(run, time)
         finalize(run, unstage, comm)
         if root:
-            self.data._treemanager.enter_leaf(run)
+            self.data._treemanager.enter_leaf(run, save=save)
+            if note is not None:
+                run.note = note
 
         return run
 

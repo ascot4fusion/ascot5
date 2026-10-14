@@ -1,7 +1,4 @@
-"""Defines Plasma1D radial plasma input class and the corresponding factory
-method.
-"""
-
+"""Defines radial plasma input class and the corresponding factory method."""
 import ctypes
 from typing import Optional
 
@@ -281,9 +278,9 @@ class CreateMixin(TreeMixin):
             Radial grid in :math:`\rho` in which the data is tabulated.
 
             This grid doesn't have to be uniform.
-        ni : array_like (nrho,nion) or (1,nion)
+        ni : array_like (nrho,nion) *or* (1,nion)
             Density for each ion species.
-        Ti : array_like (nrho,) or (1,)
+        Ti : array_like (nrho,) *or* (1,)
             Ion temperature.
         ne : array_like (nrho,), *optional*
             Electron density.
@@ -319,7 +316,7 @@ class CreateMixin(TreeMixin):
 
         Returns
         -------
-        inputdata : :class:`.Plasma1D`
+        data : :class:`.PlasmaLinear1D`
             Input variant created from the given parameters.
         """
         species = [

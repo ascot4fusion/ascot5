@@ -16,3 +16,5 @@ dependencies:
   - ipython
   - matplotlib
   - pyvista
+  - pip:
+    - tomli_w

@@ -8,8 +8,3 @@ Stellarator field
 .. rubric:: Creation
 
 .. autofunction:: a5py.data.AscotData.create_bfieldstellarator
-
-.. dropdown:: The C-module (For developers)
-
-   .. doxygenstruct:: BfieldStellarator
-      :members:

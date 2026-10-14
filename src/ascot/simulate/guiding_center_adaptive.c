@@ -120,7 +120,9 @@ static size_t cycle_markers(
         if (idx == vector_size)
             break;
         if (p_current->id[idx] != 0)
-            MarkerGuidingCenter_to_queue(queue, p_current, idx, &sim->bfield);
+            MarkerGuidingCenter_to_queue(
+                queue, p_current, idx, &sim->bfield,
+                sim->options->disable_first_order_gctransformation);
         p_current->id[idx] = 0;
         p_current->running[idx] = 0;
 
@@ -149,7 +151,8 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 {
 
     /* Wiener arrays needed for the adaptive time step */
-    mccc_wienarr* wienarr = (mccc_wienarr*) malloc(vector_size*sizeof(mccc_wienarr));
+    mccc_wienarr *wienarr =
+        (mccc_wienarr *)malloc(vector_size * sizeof(mccc_wienarr));
     Acceleration acceleration;
     acceleration_allocate(&acceleration, vector_size);
 
@@ -263,7 +266,7 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 
             GPU_PARALLEL_LOOP_ALL_LEVELS
             for (size_t i = 0; i < vector_size; i++)
-                hin[i] = (1 - 2*(sim->options->reverse_time)) * hin[i];
+                hin[i] = (1 - 2 * (sim->options->reverse_time)) * hin[i];
 
             if (sim->options->enable_mhd)
                 step_gc_cashkarp_mhd(

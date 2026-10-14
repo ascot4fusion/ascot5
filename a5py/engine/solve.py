@@ -109,8 +109,8 @@ def setup(inputs, params, comm=None):
     idx = _get_marker_idx(comm, inputs["marker"].n)
     bjac = np.zeros((12,idx.size))
     (
-        bjac[0,:], bjac[1:,:], bjac[2:,:], bjac[3:,:], bjac[4:,:], bjac[5:],
-        bjac[6:,:], bjac[7:,:], bjac[8:,:], bjac[9:,:], bjac[10:,:], bjac[11,:],
+        bjac[0,:], bjac[1,:], bjac[2,:], bjac[3,:], bjac[4,:], bjac[5,:],
+        bjac[6,:], bjac[7,:], bjac[8,:], bjac[9,:], bjac[10,:], bjac[11,:],
      ) = evaluate(
         inputs["marker"].r[idx],
         inputs["marker"].phi[idx],
@@ -120,7 +120,8 @@ def setup(inputs, params, comm=None):
         "bphidz", "bzdr", "bzdphi", "bzdz",
         bfield=inputs["bfield"],
         )
-    state = MarkerState.from_markerinput(inputs["marker"], bjac.T, idx)
+    bjac = np.ascontiguousarray(bjac.T)
+    state = MarkerState.from_markerinput(inputs["marker"], bjac, params.physics.disable_first_order_gctransformation, idx)
     run = Run.make_fresh(
         mrk=state,
         inputs=inputs,

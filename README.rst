@@ -1,53 +1,88 @@
 ASCOT5
 ======
 
-`Documentation <https://ascot4fusion.github.io/ascot5/>`_
+`ASCOT5 <https://arxiv.org/abs/1908.02482/>`_ (or simply *ASCOT*) is a test-particle orbit-following software for computing particle orbits in three-dimensional magnetic-field geometries.
+Its output includes particle orbits, phase-space distributions, and wall loads.
+ASCOT is frequently used to study fast ions, trace impurities, and runaway electrons in tokamaks, stellarators, and other magnetically confined plasmas.
+Particle orbits can be followed either fully, including the gyro-motion, or using a reduced model in which only the guiding-center trajectory is followed.
 
-High-performance orbit-following code for fusion plasma physics and engineering.
+The user interface and API are implemented in Python, while the computationally intensive parts of the code are written in C.
+ASCOT is extensively parallelized and optimized for both CPUs and GPUs.
+Simulation data can be stored in HDF5 format.
+ASCOT can also be directly integrated with other modelling frameworks, such as `IMAS <https://doi.org/10.1088/0029-5515/55/12/123006>`_.
 
-New (and old) users are welcome to join our weekly meetings or Slack channel to discuss their research and plans with regards to ASCOT5.
+ASCOT is open source and `the repository <https://github.com/ascot4fusion/ascot5>`_ is maintained by `VTT Technical Research Centre of Finland <https://www.vttresearch.com/en/ourservices/future-nuclear#fusion-reactor-research>`_.
+For contact: Konsta Särkimäki and Antti Snicker (firstname.lastname@vtt.fi).
 
-This repository is maintained by ASCOT team in Aalto University and VTT Technical Research Centre of Finland.
+The team at VTT also offers technical support and modeling work using ASCOT.
 
-Installation
-============
+Using ASCOT
+===========
 
-Most convenient way to install ASCOT5 is to use the Conda environment that comes with the source code.
-Compile the main program and the library, and install the associated Python package with ``pip``.
-Note that this installation is suitable mostly for pre- and postprocessing since it does not use MPI.
-See the `documentation <https://ascot4fusion.github.io/ascot5/installing.html>`_ for more detailed instructions.
+Installing and using ASCOT is extensively covered in the `documentation <https://ascot4fusion.github.io/ascot5/>`_.
+For a quick start, install the code using conda
 
 .. code-block:: bash
 
-   git clone https://github.com/ascot4fusion/ascot5.git
-   cd ascot5
-   conda env create -f environment.yaml
-   conda activate ascot-env
-   make libascot -j
-   make ascot5_main -j
-   pip install -e .
+    git clone https://github.com/ascot4fusion/ascot5.git
+    cd ascot5
+    conda env create -f environment.yaml
+    conda activate ascot-env
+    make ascot
+    pip install .
 
-How to Contribute
-=================
+and then you can try the code by simulating a particle in a uniform magnetic field:
 
-.. admonition:: As an User:
+.. code-block:: python
 
-   - Verify your results and report problems or physics violations in issues.
-   - Add `compiling instructions <https://ascot4fusion.github.io/ascot5/installing.html#compiling-on-different-platforms>`_ for popular platforms and consider updating `the table with example simulation times <https://ascot4fusion.github.io/ascot5/simulations.html#examples>`_ for novel entries.
-   - When `benchmarking <https://ascot4fusion.github.io/ascot5/testing.html#benchmarks>`_ ASCOT5 against other codes or `validating <https://ascot4fusion.github.io/ascot5/testing.html#validation>`_ it against experiments, please contact the maintainers to archive the simulation for use as a regression test.
+    import unyt
+    import numpy as np
+    from a5py import Ascot, SimulationOptions
 
-.. admonition:: As a Developer:
+    ascot = Ascot()
+    ascot.data.create_bfieldcartesian(
+        bxyz=np.array([0., 1., 0])*unyt.T,
+        jacobian=np.zeros((3,3))*unyt.T/unyt.m,
+        axisrz=[1., 0.]*unyt.m,
+        rhoval=0,
+        )
+    ascot.data.create_efieldcartesian(
+        exyz=np.zeros((3,))*unyt.V/unyt.m,
+        )
+    ascot.data.create_guidingcentermarker(
+        r=1.*unyt.m,
+        z=0.*unyt.m,
+        phi=0.*unyt.deg,
+        ekin=1e6*unyt.eV,
+        pitch=0.5,
+        gyroangle=0.*unyt.rad,
+        species="H",
+        )
 
-   - Don't let the code daunt you!
-     We're here to assist with any feature contributions, whether it's a small post-processing tool, a new plot, or an enhancement of an existing feature.
-   - Start by creating an issue, then (fork and) make a branch ``feature/<issuenumber>-issue`` from develop.
-   - When ready to merge, create a pull request running automated tests on your branch.
-   - Upon test completion and acceptance, your feature will be merged into develop for inclusion in the next release.
+    parameters = SimulationOptions.from_dict(
+        simulation={
+            "mode": "gyro-orbit",
+            "timestep": 1e-10,
+        },
+        physics={
+            "enable_orbit_following": True,
+        },
+        endconditions={
+            "activate_simulation_time_limits": True,
+            "max_mileage": 1e-6,
+        },
+        orbit={
+            "collect": "interval",
+            "buffer_size": int(1e-6/1e-10),
+            "interval": 1e-10,
+        },
+    )
+
+    run = ascot.simulate(params=parameters)
+    run.plotorbit_trajectory("y", "x")
 
 Licence
 =======
 
 The ASCOT5 and associated programs are distributed under the terms of the GNU Lesser General Public License (LGPL).
 Please see the files COPYING and COPYING.LESSER for more information.
-
-This has been done after the code was released to the original authors by the Dean of School of Science of Aalto University and discussion between the key contributors, including Jari Varje, Konsta Särkimäki, Antti Snicker and Simppa Äkäslompolo.

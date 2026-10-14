@@ -35,14 +35,7 @@
 #include "defines.h"
 #include "parallel.h"
 
-/**
- * Set the order of the transformation.
- *
- * @param order Order which is either zero or one.
- */
-void gctransform_setorder(int order);
-
-DECLARE_TARGET_SIMD
+GPU_DECLARE_TARGET_SIMD_UNIFORM(order)
 /**
  * Transform particle to guiding center  phase space.
  *
@@ -51,6 +44,8 @@ DECLARE_TARGET_SIMD
  * will be in zeroth order both in real and momentum space as that
  * transformation is valid when q = 0.
  *
+ * @param order Order of guiding center transformation in momentum space
+ *        (0 or 1).
  * @param mass Mass [kg].
  * @param charge Charge [C].
  * @param b_db Gradient of magnetic field vector at particle position.
@@ -68,11 +63,11 @@ DECLARE_TARGET_SIMD
  * @param zeta Pointer to guiding center gyroangle [rad].
  */
 void gctransform_particle2guidingcenter(
-    real mass, real charge, const real b_db[12], real r, real phi, real z,
-    real pr, real pphi, real pz, real R[1], real Phi[1], real Z[1],
+    int order, real mass, real charge, const real b_db[12], real r, real phi,
+    real z, real pr, real pphi, real pz, real R[1], real Phi[1], real Z[1],
     real ppar[1], real mu[1], real zeta[1]);
 
-DECLARE_TARGET_SIMD
+GPU_DECLARE_TARGET_SIMD_UNIFORM(order)
 /**
  * Transform guiding center to particle phase space.
  *
@@ -81,6 +76,8 @@ DECLARE_TARGET_SIMD
  * the transformation will be in zeroth order both in real and momentum space
  * as that transformation is valid when q = 0.
  *
+ * @param order Order of guiding center transformation in momentum space
+ *        (0 or 1).
  * @param mass Mass [kg].
  * @param charge Charge [C].
  * @param b_db Gradient of magnetic field vector at guiding center position.
@@ -98,8 +95,8 @@ DECLARE_TARGET_SIMD
  * @param zetaprt Pointer to particle gyroangle [rad].
  */
 void gctransform_guidingcenter2particle(
-    real mass, real charge, const real b_db[12], real R, real Phi, real Z,
-    real ppar, real mu, real zeta, real r[1], real phi[1], real z[1],
+    int order, real mass, real charge, const real b_db[12], real R, real Phi,
+    real Z, real ppar, real mu, real zeta, real r[1], real phi[1], real z[1],
     real pparprt[1], real muprt[1], real zetaprt[1]);
 
 GPU_DECLARE_TARGET_SIMD

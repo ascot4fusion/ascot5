@@ -49,38 +49,25 @@ else
 endif
 
 CFLAGS+=-Wall -Wextra -fPIC -std=c11 -D_XOPEN_SOURCE=700 -Iinclude -Iascot \
-	$(DEFINES) $(FLAGS)
-
-UNAME_S := $(shell uname -s)
-# macOS-specific adjustments
-ifeq ($(UNAME_S),Darwin)
-	CFLAGS+=-D_DARWIN_C_SOURCE
-endif
-# Linux/other OS adjustments
-ifeq ($(UNAME_S),Linux)
-libascot.so: CFLAGS+=-fPIC
-	LDFLAGS+=-lm -shared
-endif
-
+	-Irandom123 $(DEFINES) $(FLAGS)
 
 SRCS := $(shell find $(SRC_DIR) -name '*.c')
-OBJS := $(patsubst $(SRC_DIR)/%, $(OBJ_DIR)/%, $(SRCS:.c=.o))
+OBJS := $(patsubst $(SRC_DIR)/%,$(OBJ_DIR)/%,$(SRCS:.c=.o))
 DEPS := $(OBJS:.o=.d)
 
 all: ascot test_ascot5
 
 ascot: $(BUILD_DIR)/libascot.so
-	true
 
 test_ascot5: $(BUILD_DIR)/test_ascot5
-	true
 
 $(BUILD_DIR)/libascot.so: $(OBJS)
 	@mkdir -p $(dir $@)
-	$(CC) -shared -o $@ $^ $(LDFLAGS) -fopenmp
+	$(CC) -shared -o $@ $^ $(LDFLAGS) -lm -fopenmp
 
-$(BUILD_DIR)/test_ascot5: $(OBJS) $(OBJ_DIR)/test_ascot5.o
-	$(CC) -o $@ $^ $(LDFLAGS)
+$(BUILD_DIR)/test_ascot5: $(OBJS)
+	@mkdir -p $(dir $@)
+	$(CC) -o $@ $^ $(LDFLAGS) -lm -fopenmp
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c Makefile
 	@mkdir -p $(dir $@)
@@ -91,6 +78,6 @@ clean:
 	@rm -f $(BUILD_DIR)/test_ascot5
 	@rm -rf $(OBJ_DIR)
 
-.PHONY: all clean $(BUILD_DIR)/libascot.so $(BUILD_DIR)/test_ascot5
+.PHONY: all clean test_ascot5 libascot.so
 
 -include $(DEPS)

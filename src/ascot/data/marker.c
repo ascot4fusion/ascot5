@@ -242,7 +242,8 @@ int MarkerGyroOrbit_from_queue(
 }
 
 void MarkerGyroOrbit_to_queue(
-    MarkerQueue *queue, MarkerGyroOrbit *mrk, size_t index, Bfield *bfield)
+    MarkerQueue *queue, MarkerGyroOrbit *mrk, size_t index, Bfield *bfield,
+    int order)
 {
     err_t err = 0;
     State *p = queue->p[mrk->index[index]];
@@ -282,8 +283,8 @@ void MarkerGyroOrbit_to_queue(
     b_db[11] = mrk->dbzdz[index];
 
     gctransform_particle2guidingcenter(
-        p->mass, p->charge * CONST_E, b_db, p->rprt, p->phiprt, p->zprt, p->pr, p->pphi,
-        p->pz, &p->r, &p->phi, &p->z, &ppar, &mu, &p->zeta);
+        order, p->mass, p->charge * CONST_E, b_db, p->rprt, p->phiprt, p->zprt,
+        p->pr, p->pphi, p->pz, &p->r, &p->phi, &p->z, &ppar, &mu, &p->zeta);
 
     if (!err)
         err = Bfield_eval_b_db(b_db, p->r, p->phi, p->z, p->time, bfield);
@@ -526,7 +527,8 @@ int MarkerGuidingCenter_from_queue(
 }
 
 void MarkerGuidingCenter_to_queue(
-    MarkerQueue *queue, MarkerGuidingCenter *mrk, size_t index, Bfield *bfield)
+    MarkerQueue *queue, MarkerGuidingCenter *mrk, size_t index, Bfield *bfield,
+    int order)
 {
     err_t err = 0;
     State *p = queue->p[mrk->index[index]];
@@ -571,17 +573,17 @@ void MarkerGuidingCenter_to_queue(
 
     real pparprt, muprt, zetaprt;
     gctransform_guidingcenter2particle(
-        p->mass, p->charge * CONST_E, b_db, p->r, p->phi, p->z, mrk->ppar[index],
-        mrk->mu[index], p->zeta, &p->rprt, &p->phiprt, &p->zprt, &pparprt,
-        &muprt, &zetaprt);
+        order, p->mass, p->charge * CONST_E, b_db, p->r, p->phi, p->z,
+        mrk->ppar[index], mrk->mu[index], p->zeta, &p->rprt, &p->phiprt,
+        &p->zprt, &pparprt, &muprt, &zetaprt);
 
     if (!err)
         err = Bfield_eval_b_db(
             b_db, p->rprt, p->phiprt, p->zprt, p->time, bfield);
 
     gctransform_pparmuzeta2prpphipz(
-        p->mass, p->charge * CONST_E, b_db, p->phiprt, pparprt, muprt, zetaprt, &p->pr,
-        &p->pphi, &p->pz);
+        p->mass, p->charge * CONST_E, b_db, p->phiprt, pparprt, muprt, zetaprt,
+        &p->pr, &p->pphi, &p->pz);
 
     /* If marker already has error flag, make sure it is not overwritten here */
     p->err = mrk->err[index] ? mrk->err[index] : err;
@@ -812,7 +814,7 @@ void MarkerFieldLine_to_queue(
 
 int MarkerGyroOrbit_to_MarkerGuidingCenter(
     MarkerGuidingCenter *mrk_gc, const MarkerGyroOrbit *mrk_go, size_t index,
-    Bfield *bfield)
+    Bfield *bfield, int order)
 {
     err_t err = mrk_go->err[index];
     real axisrz[2];
@@ -848,22 +850,22 @@ int MarkerGyroOrbit_to_MarkerGuidingCenter(
         mrk_gc->cputime[index] = mrk_go->cputime[index];
 
         b_db[0] = mrk_go->br[index];
+        b_db[1] = mrk_go->bphi[index];
+        b_db[2] = mrk_go->bz[index];
         b_db[3] = mrk_go->dbrdr[index];
         b_db[4] = mrk_go->dbrdphi[index];
         b_db[5] = mrk_go->dbrdz[index];
-        b_db[1] = mrk_go->bphi[index];
         b_db[6] = mrk_go->dbphidr[index];
         b_db[7] = mrk_go->dbphidphi[index];
         b_db[8] = mrk_go->dbphidz[index];
-        b_db[2] = mrk_go->bz[index];
         b_db[9] = mrk_go->dbzdr[index];
         b_db[10] = mrk_go->dbzdphi[index];
         b_db[11] = mrk_go->dbzdz[index];
 
         /* Guiding center transformation */
         gctransform_particle2guidingcenter(
-            mrk_go->mass, charge, b_db, Rprt, phiprt, zprt, pr, pphi, pz, &r,
-            &phi, &z, &ppar, &mu, &zeta);
+            order, mrk_go->mass, charge * CONST_E, b_db, Rprt, phiprt, zprt, pr,
+            pphi, pz, &r, &phi, &z, &ppar, &mu, &zeta);
     }
     if (!err && r <= 0)
     {

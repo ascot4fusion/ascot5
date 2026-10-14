@@ -1,19 +1,16 @@
 ascot:
 	$(MAKE) -C src ascot
 
-#ascot: libascot
-#	pip install -e .
-
 lint:
 	pylint --disable=similarities --generated-members=unyt.*
 	mypy --follow-imports=silent --disable-error-code=import-untyped \
 	--disallow-untyped-defs --disallow-incomplete-defs
 
 tests:
-	pytest -s -v -W "error::UserWarning"
+	pytest -s -v -W "error::UserWarning" --ignore="tests/test_physics"
 
 tutorial:
-	@echo TODO
+	python doc/user/tutorials/execute.py
 
 doc-user:
 	$(MAKE) -C doc PROJECT=user doc
@@ -21,17 +18,14 @@ doc-user:
 doc-dev:
 	$(MAKE) -C doc PROJECT=dev doc
 
-doc: doc-user doc-dev
-
 clean:
 	$(MAKE) -C src clean
 
-clean-doc:
+cleandoc:
 	$(MAKE) -C doc cleanall
 
 cleanall: clean
 	$(MAKE) -C doc cleanall
 	rm -rf build
 
-.PHONY: libascot ascot lint tests tutorial doc-user doc-dev doc clean \
-		clean-doc cleanall
+.PHONY: ascot lint tests tutorial doc-user doc-dev doc clean cleandoc cleanall

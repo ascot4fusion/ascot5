@@ -93,28 +93,28 @@ class Struct(DataStruct):
             "hybrid",
             "field-line",
         ].index(params.simulation.mode) + 1
-        cdata.enable_adaptive = params.simulation.enable_adaptive
+        cdata.enable_adaptive = int(params.simulation.enable_adaptive)
         cdata.record_mode = params.simulation.record_mode
         cdata.timestep = params.simulation.timestep
         cdata.adaptive_tolerance_orbit = params.simulation.adaptive_tolerance_orbit
         cdata.adaptive_tolerance_collisions = (
             params.simulation.adaptive_tolerance_collisions
         )
-        cdata.enable_orbit_following = params.physics.enable_orbit_following
-        cdata.enable_coulomb_collisions = params.physics.enable_coulomb_collisions
-        cdata.enable_mhd = params.physics.enable_mhd
-        cdata.enable_atomic = params.physics.enable_atomic
-        cdata.enable_icrh = params.physics.enable_icrh
-        cdata.enable_aldforce = params.physics.enable_aldforce
-        cdata.disable_first_order_gctransformation = (
+        cdata.enable_orbit_following = int(params.physics.enable_orbit_following)
+        cdata.enable_coulomb_collisions = int(params.physics.enable_coulomb_collisions)
+        cdata.enable_mhd = int(params.physics.enable_mhd)
+        cdata.enable_atomic = int(params.physics.enable_atomic)
+        cdata.enable_icrh = int(params.physics.enable_icrh)
+        cdata.enable_aldforce = int(params.physics.enable_aldforce)
+        cdata.disable_first_order_gctransformation = int(
             params.physics.disable_first_order_gctransformation
         )
-        cdata.disable_ccoll_gcenergy = params.physics.disable_ccoll_gcenergy
-        cdata.disable_ccoll_gcpitch = params.physics.disable_ccoll_gcpitch
-        cdata.disable_ccoll_gcspatial = params.physics.disable_ccoll_gcspatial
-        cdata.reverse_time = params.physics.reverse_time
+        cdata.disable_ccoll_gcenergy = int(params.physics.disable_ccoll_gcenergy)
+        cdata.disable_ccoll_gcpitch = int(params.physics.disable_ccoll_gcpitch)
+        cdata.disable_ccoll_gcspatial = int(params.physics.disable_ccoll_gcspatial)
+        cdata.reverse_time = int(params.physics.reverse_time)
         cdata.endcond_active = endcond_active
-        cdata.require_both_tor_and_pol = require_both_tor_and_pol
+        cdata.require_both_tor_and_pol = int(require_both_tor_and_pol)
         cdata.lab_time_limit = params.endconditions.lab_time_limit
         cdata.max_mileage = params.endconditions.max_mileage
         cdata.max_real_time = params.endconditions.max_real_time

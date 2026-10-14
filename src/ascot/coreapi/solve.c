@@ -79,11 +79,6 @@ void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
     Mhd_offload(&sim->mhd);
     Atomic_offload(sim->atomic);
     random_init(&sim->random_data, 0);
-
-    if (sim->options->disable_first_order_gctransformation)
-    {
-        gctransform_setorder(0);
-    }
     Atomic_extrapolate(sim->options->enable_atomic == 2);
 
 #ifdef GPU
@@ -94,9 +89,7 @@ void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
     MarkerQueue queue;
     queue.n = 0;
     for (size_t i = 0; i < nmrk; i++)
-    {
         queue.n++;
-    }
 
     int err = 0;
     queue.p = (State **)xmalloc(&err, queue.n * sizeof(State *));

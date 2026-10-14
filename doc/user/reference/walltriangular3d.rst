@@ -8,8 +8,3 @@ Triangular 3D wall mesh
 .. rubric:: Creation
 
 .. autofunction:: a5py.data.AscotData.create_walltriangular3d
-
-.. dropdown:: The C-module (For developers)
-
-   .. doxygenstruct:: WallTriangular3D
-      :members:

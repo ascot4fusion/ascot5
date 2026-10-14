@@ -1,11 +1,11 @@
 """Defines 2D potential electric field input class and the corresponding factory
 method.
 """
+
 import ctypes
 from typing import Optional
 
 import unyt
-import numpy as np
 from numpy.ctypeslib import ndpointer
 
 from a5py import utils
@@ -20,7 +20,8 @@ class Struct(DataStruct):
 
     _fields_ = [
         ("potential", Spline2D),
-        ]
+    ]
+
 
 init_fun(
     "EfieldPotential2D_init",
@@ -33,6 +34,7 @@ init_fun(
 )
 
 init_fun("EfieldPotential2D_free", ctypes.POINTER(Struct))
+
 
 @Leaf.register
 class EfieldPotential2D(InputVariant):
@@ -62,9 +64,11 @@ class EfieldPotential2D(InputVariant):
         assert self._file is not None
         return self._file.read("potential")
 
-
     def _stage(
-        self, rgrid: unyt.unyt_array, zgrid: unyt.unyt_array, potential: unyt.unyt_array,
+        self,
+        rgrid: unyt.unyt_array,
+        zgrid: unyt.unyt_array,
+        potential: unyt.unyt_array,
     ) -> None:
         self._cdata = Struct()
         if LIBASCOT.EfieldPotential2D_init(
@@ -107,17 +111,17 @@ class EfieldPotential2D(InputVariant):
 class CreateMixin(TreeMixin):
     """Provides the factory method."""
 
-    #pylint: disable=protected-access, too-many-arguments, too-many-locals
+    # pylint: disable=protected-access, too-many-arguments, too-many-locals
     def create_efieldpotential2d(
-            self,
-            rgrid: utils.ArrayLike,
-            zgrid: utils.ArrayLike,
-            potential: utils.ArrayLike,
-            note: Optional[str]=None,
-            activate: bool=False,
-            preview: bool=False,
-            save: Optional[bool]=None,
-            ) -> EfieldPotential2D:
+        self,
+        rgrid: utils.ArrayLike,
+        zgrid: utils.ArrayLike,
+        potential: utils.ArrayLike,
+        note: Optional[str] = None,
+        activate: bool = False,
+        preview: bool = False,
+        save: Optional[bool] = None,
+    ) -> EfieldPotential2D:
         r"""Create axisymmetric electric field input that is evaluated from the
         gradient of a 2D potential.
 
@@ -127,7 +131,7 @@ class CreateMixin(TreeMixin):
             Radial grid in :math:`R` in which the data is tabulated.
         zgrid : array_like (nz,)
             Axial grid in :math:`z` in which the data is tabulated.
-        potential : array_like (nr, nz)
+        potential : array_like (nr,nz)
             Electric field potential as a function of :math:`r` and :math:`z`.
         note : str, *optional*
             A short note to document this data.
@@ -146,7 +150,7 @@ class CreateMixin(TreeMixin):
 
         Returns
         -------
-        inputdata : ~a5py.data.efield.EfieldPotential2D
+        data : :class:`.EfieldPotential2D`
             Input variant created from the given parameters.
 
         Notes
@@ -164,17 +168,22 @@ class CreateMixin(TreeMixin):
 
         nr, nz = rgrid.size, zgrid.size
         with utils.validate_variables() as v:
-            potential = v.validate("potential", potential, (nr,nz), "V")
+            potential = v.validate("potential", potential, (nr, nz), "V")
 
         utils.validate_abscissa(rgrid, "rgrid")
         utils.validate_abscissa(zgrid, "zgrid")
         leaf = EfieldPotential2D(note=note)
         leaf._stage(
-            rgrid=rgrid, zgrid=zgrid, potential=potential,
-            )
+            rgrid=rgrid,
+            zgrid=zgrid,
+            potential=potential,
+        )
         if preview:
             return leaf
         self._treemanager.enter_leaf(
-            leaf, activate=activate, save=save, category="efield",
-            )
+            leaf,
+            activate=activate,
+            save=save,
+            category="efield",
+        )
         return leaf

@@ -7,6 +7,19 @@ Contributing
 How to contribute
 *****************
 
+This is a full installation from the source (using Conda) and with the optional packages present that are required to build ``ascot2py.py`` and the documentation.
+         Note that the first step requires you to `add SSH keys on GitHub <https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account>`_ whenever on a new machine.
+
+         .. code-block:: bash
+
+            git clone git@github.com:ascot4fusion/ascot5.git
+            cd ascot5
+            conda env create -f environment-dev.yaml
+            conda activate ascot-dev
+            make libascot -j
+            make ascot5_main -j
+            pip install -e .
+
 .. tab-set::
 
    .. tab-item:: Anyone

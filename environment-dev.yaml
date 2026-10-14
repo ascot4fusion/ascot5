@@ -11,6 +11,8 @@ dependencies:
   - unyt
   - scipy
   - h5py
+  - mpi=*=*openmpi*
+  - mpi4py
   - xmlschema
   - ipython
   - matplotlib
@@ -31,7 +33,9 @@ dependencies:
   - mypy
   - pytest
   - pip:
+    - "breathe>=5"
     - tomli_w
     - sphinx-multiproject
     - sphinx-design-elements
-    - "breathe>=5"
+    - pytest-mpi
+    - pytest-mpl

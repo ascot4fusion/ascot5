@@ -6,9 +6,21 @@
     ~EfieldCartesian
     ~CreateEfieldMixin.create_efieldcartesian
 
+    ~EfieldPotential1D
+    ~CreateEfieldMixin.create_efieldpotential1d
+
+    ~EfieldPotential2D
+    ~CreateEfieldMixin.create_efieldpotential2d
+
 .. rubric:: Classes
 
 .. autoclass:: EfieldCartesian
+    :members:
+
+.. autoclass:: EfieldPotential1D
+    :members:
+
+.. autoclass:: EfieldPotential2D
     :members:
 
 .. autoclass:: CreateEfieldMixin
@@ -21,6 +33,7 @@ from a5py.libascot import input_category
 
 from . import cartesian
 from . import potential1d
+from . import potential2d
 from .cartesian import EfieldCartesian
 from .potential1d import EfieldPotential1D
 from .potential2d import EfieldPotential2D

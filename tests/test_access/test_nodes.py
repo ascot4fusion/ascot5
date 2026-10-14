@@ -39,9 +39,8 @@ def test_nodes_add_leaf(node, leaf):
 
 
 def test_nodes_contains(node, leaf):
-    """Test that if the node contains a leaf can be checked with leaf's QID,
-    'q+QID', name, tag, and with the leaf itself, and that the node can be
-    iterated over.
+    """Test that if the node contains a leaf can be checked with leaf's name,
+    tag, and with the leaf itself, and that the node can be iterated over.
     """
     node._add_leaf(leaf)
     assert leaf.name in node
@@ -143,6 +142,23 @@ def test_nodes_organize_same_tags(node):
     assert not "TAG_0" in node
     assert not "TAG_1" in node
     assert node.TAG is leaf1
+
+
+def test_nodes_organize_no_tag(node):
+    """Test that tags are organized even when there are leafs with no tags.
+    """
+    leaf1 = Leaf(date=DATES[1], note="<TAG>")
+    leaf2 = Leaf(date=DATES[0])
+    leaf3 = Leaf(date=DATES[2], note="<TAG2>")
+    leaf1._name += "_1"
+    leaf2._name += "_2"
+    leaf3._name += "_3"
+
+    node._add_leaf(leaf1)
+    node._add_leaf(leaf2)
+    node._add_leaf(leaf3)
+    assert "TAG" in node
+    assert "TAG2" in node
 
 
 def test_nodes_contents():

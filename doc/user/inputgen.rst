@@ -13,8 +13,8 @@ Alternatively, inputs can be created using existing templates, which either:
 - Provide premade inputs for common use cases (e.g. markers and simulation options for Poincaré plots).
 - Modify existing inputs (e.g. convert 2D wall to a 3D mesh).
 
-Magnetic field ``bfield``
-=========================
+Magnetic field
+==============
 
 .. currentmodule:: a5py.data.bfield
 
@@ -41,8 +41,8 @@ Note that MHD eigenmodes can be included via dedicated input.
 
    BfieldCartesian
    BfieldAnalytical
-   Bfield2D
-   Bfield3D
+   BfieldSpline2D
+   BfieldSpline3D
    BfieldStellarator
 
 
@@ -55,7 +55,8 @@ Electric field ``efield``
    :hidden:
 
    reference/efieldcartesian
-   reference/efieldradialpotential
+   reference/efieldpotential1d
+   reference/efieldpotential2d
 
 Electric field data is used always in every simulation.
 
@@ -68,7 +69,8 @@ To do that, generate :class:`.EfieldCartesian` input and set the field to zero.
    :nosignatures:
 
    EfieldCartesian
-   EfieldRadialPotential
+   EfieldPotential1D
+   EfieldPotential2D
 
 
 Plasma species
@@ -81,8 +83,9 @@ Plasma species
 .. toctree::
    :hidden:
 
-   reference/plasma1d
-   reference/plasma1ddynamic
+   reference/plasmalinear1d
+   reference/plasmalinear2d
+   reference/plasmadynamic1d
 
 Plasma input is used whenever you have ``ENABLE_CCOLL=1``, ``ENABLE_ATOMIC=1``, ``ENDCOND_EMIN=1`` or when you use AFSI.
 
@@ -91,8 +94,9 @@ Plasma input is used whenever you have ``ENABLE_CCOLL=1``, ``ENABLE_ATOMIC=1``, 
 .. autosummary::
    :nosignatures:
 
-   Plasma1D
-   Plasma1DDynamic
+   PlasmaLinear1D
+   PlasmaLinear2D
+   PlasmaDynamic2D
 
 
 Wall mesh ``wall``
@@ -103,8 +107,8 @@ Wall mesh ``wall``
 .. toctree::
    :hidden:
 
-   reference/wall2d
-   reference/wall3d
+   reference/wallcontour2d
+   reference/walltriangular3d
 
 Wall input is used when you have ``ENDCOND_WALLHIT=1``.
 
@@ -116,8 +120,8 @@ Alternatively, one can use the ``RHOMAX`` end condition to stop markers at the s
 .. autosummary::
    :nosignatures:
 
-   Wall2D
-   Wall3D
+   WallContour2D
+   WallTriangular3D
 
 
 Neutral species
@@ -130,8 +134,8 @@ Neutral species
 .. toctree::
    :hidden:
 
-   reference/neutral1d
-   reference/neutral3d
+   reference/neutralradial
+   reference/neutralarbitrary
 
 Neutral particle profiles required when atomic (CX, etc.) reactions are included.
 
@@ -140,8 +144,8 @@ Neutral particle profiles required when atomic (CX, etc.) reactions are included
 .. autosummary::
    :nosignatures:
 
-   Neutral1D
-   Neutral3D
+   NeutralRadial
+   NeutralArbitrary
 
 
 MHD eigenfunctions ``mhd``

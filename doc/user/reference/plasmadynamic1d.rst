@@ -8,8 +8,3 @@ Time-dependent radial plasma
 .. rubric:: Creation
 
 .. autofunction:: a5py.data.AscotData.create_plasmadynamic1d
-
-.. dropdown:: The C-module (For developers)
-
-   .. doxygenstruct:: PlasmaDynamic1D
-      :members:

@@ -112,7 +112,7 @@ class CreateMixin(TreeMixin):
 
         Returns
         -------
-        inputdata : :class:`.EfieldCartesian`
+        data : :class:`.EfieldCartesian`
             Input variant created from the given parameters.
 
         Notes

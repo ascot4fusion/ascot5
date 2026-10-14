@@ -1,4 +1,4 @@
-a5py.utils
-==========
+utils
+=====
 
 .. automodule:: a5py.utils

@@ -49,6 +49,7 @@ def test_leaf_cannot_change_fixed_attributes(leaf):
 @pytest.mark.parametrize(
     "note, tag",
     [
+        ("<choppa>", "CHOPPA"),
         ("get to the <choppa>", "CHOPPA"),
         ("12345note with numbers", None),
         ("<!no@#$5pec1al%^&*()character5>", "NO5PEC1ALCHARACTER5"),

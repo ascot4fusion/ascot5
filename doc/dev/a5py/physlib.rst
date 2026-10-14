@@ -1,4 +1,4 @@
-a5py.physlib
-============
+physlib
+=======
 
 .. automodule:: a5py.physlib

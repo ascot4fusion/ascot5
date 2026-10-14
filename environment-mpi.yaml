@@ -18,3 +18,5 @@ dependencies:
   - pyvista
   - mpi=*=*openmpi*
   - mpi4py
+  - pip:
+    - tomli_w

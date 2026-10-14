@@ -1,5 +1,4 @@
-"""Defines Plasma2D axisymmetric plasma input class and the corresponding
-factory method.
+"""Defines axisymmetric plasma input class and the corresponding factory method.
 """
 
 import ctypes
@@ -292,20 +291,20 @@ class CreateMixin(TreeMixin):
         ----------
         species : list[str] *or* list[:class:`.Species`] (nion,)
             The ion species that make up the plasma.
-        rhogrid : array_like (nrho,)
-            Radial grid in :math:`\rho` in which the data is tabulated.
-
-            This grid doesn't have to be uniform.
-        ni : array_like (nrho,nion) or (1,nion)
+        rgrid : array_like (nr,)
+            Radial grid in :math:`R` in which the data is tabulated.
+        zgrid : array_like (nz,)
+            Axial grid in :math:`z` in which the data is tabulated.
+        ni : array_like (nr,nz,nion)
             Density for each ion species.
-        Ti : array_like (nrho,) or (1,)
+        Ti : array_like (nr,nz,)
             Ion temperature.
-        ne : array_like (nrho,), *optional*
+        ne : array_like (nr,nz,), *optional*
             Electron density.
 
             By default, the electron density is determined from the ion charge
             density so that the plasma is quasi-neutral.
-        Te : array_like (nrho,), *optional*
+        Te : array_like (nr,nz,), *optional*
             Electron temperature.
 
             Same as ion temperature by default.
@@ -313,7 +312,7 @@ class CreateMixin(TreeMixin):
             Ion charge states.
 
             Ions are fully ionized by default.
-        rotation : array_like (nrho,), *optional*
+        rotation : array_like (nr,nz,), *optional*
             Toroidal rotation of the plasma.
 
             Zero by default.
@@ -334,7 +333,7 @@ class CreateMixin(TreeMixin):
 
         Returns
         -------
-        inputdata : :class:`.Plasma1D`
+        data : :class:`.PlasmaLinear2D`
             Input variant created from the given parameters.
         """
         species = [

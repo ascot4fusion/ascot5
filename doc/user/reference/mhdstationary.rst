@@ -8,8 +8,3 @@ Stationary MHD
 .. rubric:: Creation
 
 .. autofunction:: a5py.data.AscotData.create_mhdstationary
-
-.. dropdown:: The C-module (For developers)
-
-   .. doxygenstruct:: mhd_stat_data
-      :members:

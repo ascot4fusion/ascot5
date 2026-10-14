@@ -61,7 +61,7 @@ class ParticleMarker(InputVariant):
     def charge(self) -> unyt.unyt_array:
         r"""Marker charge."""
         if self._cdata is not None:
-            out = unyt.unyt_array([0.]*self.n, "C")
+            out = unyt.unyt_array([0.]*self.n, "e")
             for i in range(out.size):
                 out[i] = self._cdata[i].charge
             return out
@@ -74,7 +74,7 @@ class ParticleMarker(InputVariant):
         if self._cdata is not None:
             out = unyt.unyt_array([0.]*self.n, "m")
             for i in range(out.size):
-                out[i] = self._cdata[i].r
+                out[i] = self._cdata[i].rprt
             return out
         assert self._file is not None
         return self._file.read("r")
@@ -85,7 +85,7 @@ class ParticleMarker(InputVariant):
         if self._cdata is not None:
             out = unyt.unyt_array([0.]*self.n, "rad")
             for i in range(out.size):
-                out[i] = self._cdata[i].phi
+                out[i] = self._cdata[i].phiprt
 
             out.convert_to_units("deg")
             return out
@@ -98,43 +98,43 @@ class ParticleMarker(InputVariant):
         if self._cdata is not None:
             out = unyt.unyt_array([0.]*self.n, "m")
             for i in range(out.size):
-                out[i] = self._cdata[i].z
+                out[i] = self._cdata[i].zprt
             return out
         assert self._file is not None
         return self._file.read("z")
 
     @property
-    def vr(self) -> unyt.unyt_array:
-        r"""Particle velocity :math:`R` coordinate."""
+    def pr(self) -> unyt.unyt_array:
+        r"""Particle momentum :math:`R` component."""
         if self._cdata is not None:
-            out = unyt.unyt_array([0.]*self.n, "m/s")
+            out = unyt.unyt_array([0.]*self.n, "kg*m/s")
             for i in range(out.size):
                 out[i] = self._cdata[i].pr
             return out
         assert self._file is not None
-        return self._file.read("vr")
+        return self._file.read("pr")
 
     @property
-    def vphi(self) -> unyt.unyt_array:
-        r"""Particle velocity :math:`\phi` coordinate."""
+    def pphi(self) -> unyt.unyt_array:
+        r"""Particle momentum :math:`\phi` component."""
         if self._cdata is not None:
-            out = unyt.unyt_array([0.]*self.n, "m/s")
+            out = unyt.unyt_array([0.]*self.n, "kg*m/s")
             for i in range(out.size):
                 out[i] = self._cdata[i].pphi
             return out
         assert self._file is not None
-        return self._file.read("vphi")
+        return self._file.read("pphi")
 
     @property
-    def vz(self) -> unyt.unyt_array:
-        r"""Particle velocity :math:`z` coordinate."""
+    def pz(self) -> unyt.unyt_array:
+        r"""Particle momentum :math:`z` component."""
         if self._cdata is not None:
-            out = unyt.unyt_array([0.]*self.n, "m/s")
+            out = unyt.unyt_array([0.]*self.n, "kg*m/s")
             for i in range(out.size):
                 out[i] = self._cdata[i].pz
             return out
         assert self._file is not None
-        return self._file.read("vz")
+        return self._file.read("pz")
 
     @property
     def time(self) -> unyt.unyt_array:
@@ -176,9 +176,9 @@ class ParticleMarker(InputVariant):
             charge: unyt.unyt_array,
             time: unyt.unyt_array,
             ids: np.ndarray,
-            vr: unyt.unyt_array,
-            vphi: unyt.unyt_array,
-            vz: unyt.unyt_array,
+            pr: unyt.unyt_array,
+            pphi: unyt.unyt_array,
+            pz: unyt.unyt_array,
             weight: unyt.unyt_array,
             species: Species,
             ) -> None:
@@ -189,9 +189,9 @@ class ParticleMarker(InputVariant):
             setattr(self._cdata[i], "id", ids[i])
             setattr(self._cdata[i], "phiprt", phi[i].to("rad"))
             setattr(self._cdata[i], "time", time[i])
-            setattr(self._cdata[i], "pr", (vr[i] * species.mass).to("kg*m/s"))
-            setattr(self._cdata[i], "pphi", (vphi[i] * species.mass).to("kg*m/s"))
-            setattr(self._cdata[i], "pz", (vz[i] * species.mass).to("kg*m/s"))
+            setattr(self._cdata[i], "pr", pr[i])
+            setattr(self._cdata[i], "pphi", pphi[i])
+            setattr(self._cdata[i], "pz", pz[i])
             setattr(self._cdata[i], "charge", int(charge[i].to("e")))
             setattr(self._cdata[i], "weight", weight[i])
             setattr(self._cdata[i], "anum", species.anum)
@@ -201,8 +201,8 @@ class ParticleMarker(InputVariant):
     def _save_data(self) -> None:
         assert self._file is not None
         for field in [
-            "rprt", "zprt", "phiprt", "charge", "time", "ids", "weight", "vr", "vz",
-            "vphi",
+            "r", "z", "phi", "charge", "time", "ids", "weight", "pr", "pz",
+            "pphi",
             ]:
             self._file.write(field, getattr(self, field))
         self._file.write("anum", np.array(self.species.anum))
@@ -210,8 +210,8 @@ class ParticleMarker(InputVariant):
 
     def export(self) -> dict[str, Species | np.ndarray | unyt.unyt_array]:
         fields = [
-            "rprt", "zprt", "phiprt", "charge", "time", "ids", "weight", "vr", "vz",
-            "vphi", "species",
+            "rprt", "zprt", "phiprt", "charge", "time", "ids", "weight", "pr", "pz",
+            "pphi", "species",
             ]
         return {field: getattr(self, field) for field in fields}
 
@@ -219,8 +219,8 @@ class ParticleMarker(InputVariant):
         super().stage()
         self._stage(
             r=self.r, z=self.z, phi=self.phi, charge=self.charge,
-            time=self.time, ids=self.ids, vr=self.vr, vphi=self.vphi,
-            vz=self.vz, weight=self.weight, species=self.species,
+            time=self.time, ids=self.ids, pr=self.pr, pphi=self.pphi,
+            pz=self.pz, weight=self.weight, species=self.species,
         )
 
     def unstage(self) -> None:
@@ -234,8 +234,8 @@ class ParticleMarker(InputVariant):
         sorter = np.argsort(marker_ids)
 
         marker_quantities = [
-            "r", "z", "phi", "time", "charge", "weight", "vr", "vphi",
-            "vz", "mass"
+            "r", "z", "phi", "time", "charge", "weight", "pr", "pphi",
+            "pz", "mass"
         ]
         field_quantities = [
             "psidr", "psidphi", "psidz", "br", "bphi", "bz", "psi", "brdr",
@@ -281,9 +281,9 @@ class CreateMixin(TreeMixin):
             species: str | Species,
             r: utils.ArrayLike,
             z: utils.ArrayLike,
-            vr: utils.ArrayLike,
-            vphi: utils.ArrayLike,
-            vz: utils.ArrayLike,
+            pr: utils.ArrayLike,
+            pphi: utils.ArrayLike,
+            pz: utils.ArrayLike,
             phi: Optional[utils.ArrayLike]=None,
             charge: Optional[utils.ArrayLike]=None,
             weight: Optional[utils.ArrayLike]=None,
@@ -312,12 +312,12 @@ class CreateMixin(TreeMixin):
             Particle :math:`R` coordinate.
         z : array_like (n,) *or* scalar
             Particle :math:`z` coordinate.
-        vr : array_like (n,) *or* scalar
-            Velocity :math:`R` component.
-        vphi : array_like (n,) *or* scalar
-            Velocity :math:`\phi` component.
-        vz : array_like (n,) *or* scalar
-            Velocity :math:`z` component.
+        pr : array_like (n,) *or* scalar
+            Momentum :math:`R` component.
+        pphi : array_like (n,) *or* scalar
+            Momentum :math:`\phi` component.
+        pz : array_like (n,) *or* scalar
+            Momentum :math:`z` component.
         phi : array_like (n,) *or* scalar, *optional*
             Particle :math:`\phi` coordinate.
 
@@ -366,7 +366,7 @@ class CreateMixin(TreeMixin):
 
         n = 1
         for param in [
-            r, z, phi, vr, vphi, vz, weight, time, ids, charge,
+            r, z, phi, pr, pphi, pz, weight, time, ids, charge,
             ]:
             if isinstance(param, Sized):
                 if utils.size(param) == 1:
@@ -379,24 +379,18 @@ class CreateMixin(TreeMixin):
 
         to_array = lambda x: utils.scalar2array(x, n)
 
-        r, z, phi, vr, vphi, charge, weight, time, vz = (
-            to_array(r), to_array(z), to_array(phi), to_array(vr),
-            to_array(vphi), to_array(charge), to_array(weight), to_array(time),
-            to_array(vz),
+        r, z, phi, pr, pphi, charge, weight, time, pz = (
+            to_array(r), to_array(z), to_array(phi), to_array(pr),
+            to_array(pphi), to_array(charge), to_array(weight), to_array(time),
+            to_array(pz),
             )
-
-        if charge is not None:
-            try:
-                charge.units
-            except AttributeError:
-                charge *= unyt.e
 
         with utils.validate_variables() as v:
             r = v.validate("r", r, (n,), "m")
             z = v.validate("z", z, (n,), "m")
-            vr = v.validate("vr", vr, (n,), "m/s")
-            vz = v.validate("vz", vz, (n,), "m/s")
-            vphi = v.validate("vphi", vphi, (n,), "m/s")
+            pr = v.validate("pr", pr, (n,), "kg*m/s")
+            pz = v.validate("pz", pz, (n,), "kg*m/s")
+            pphi = v.validate("pphi", pphi, (n,), "kg*m/s")
 
         with utils.validate_variables() as v:
             ids = v.validate(
@@ -417,7 +411,7 @@ class CreateMixin(TreeMixin):
 
         leaf = ParticleMarker(note=note)
         leaf._stage(
-            r=r, z=z, phi=phi, vr=vr, vphi=vphi, vz=vz, charge=charge,
+            r=r, z=z, phi=phi, pr=pr, pphi=pphi, pz=pz, charge=charge,
             time=time, ids=cast(np.ndarray, ids), weight=weight,
             species=species,
             )

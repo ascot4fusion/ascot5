@@ -51,7 +51,9 @@ static size_t cycle_markers(
         if (idx == vector_size)
             break;
         if (p_current->id[idx] != 0)
-            MarkerGuidingCenter_to_queue(queue, p_current, idx, &sim->bfield);
+            MarkerGuidingCenter_to_queue(
+                queue, p_current, idx, &sim->bfield,
+                sim->options->disable_first_order_gctransformation);
         p_current->id[idx] = 0;
         p_current->running[idx] = 0;
 
@@ -80,25 +82,31 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 {
     int err = 0;
     size_t *cycle = (size_t *)xmalloc(&err, vector_size * sizeof(size_t));
-    if(err) return 1;
+    if (err)
+        return 1;
     real *hin = (real *)xmalloc(&err, vector_size * sizeof(real));
-    if(err) return 1;
+    if (err)
+        return 1;
     real *hin_default = (real *)xmalloc(&err, vector_size * sizeof(real));
-    if(err) return 1;
+    if (err)
+        return 1;
     real *hnext_recom = (real *)xmalloc(&err, vector_size * sizeof(real));
-    if(err) return 1;
+    if (err)
+        return 1;
     real *hout_rfof = (real *)xmalloc(&err, vector_size * sizeof(real));
-    if(err) return 1;
+    if (err)
+        return 1;
     real *rnd = (real *)xmalloc(&err, 5 * vector_size * sizeof(real));
-    if(err) return 1;
+    if (err)
+        return 1;
 
     real cputime, cputime_last; // Global cpu time: recent and previous record
 
     MarkerGuidingCenter p;  // This array holds current states
     MarkerGuidingCenter p0; // This array stores previous states
-    if(MarkerGuidingCenter_allocate(&p, vector_size))
+    if (MarkerGuidingCenter_allocate(&p, vector_size))
         return 1;
-    if(MarkerGuidingCenter_allocate(&p0, vector_size))
+    if (MarkerGuidingCenter_allocate(&p0, vector_size))
         return 1;
 
     rfof_marker rfof_mrk; // RFOF specific data
@@ -251,17 +259,18 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         /* Update diagnostics */
         Diag_update_gc(&sim->diagnostics, &sim->bfield, &p, &p0);
 
-        /* Update running particles */
-        #ifdef GPU
+/* Update running particles */
+#ifdef GPU
         n_running = 0;
         GPU_PARALLEL_LOOP_ALL_LEVELS_REDUCTION(n_running)
-        for(int i = 0; i < p.size; i++)
+        for (int i = 0; i < p.size; i++)
         {
-            if(p.running[i] > 0) n_running++;
+            if (p.running[i] > 0)
+                n_running++;
         }
-        #else
+#else
         n_running = cycle_markers(vector_size, pq, &p, sim, hin);
-        #endif
+#endif
 
         /* Determine simulation time-step */
         GPU_PARALLEL_LOOP_ALL_LEVELS
@@ -280,10 +289,10 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     }
     MarkerGuidingCenter_onload(&p);
     MarkerGuidingCenter_onload(&p0);
-    #ifdef GPU
-    GPU_MAP_FROM_DEVICE(sim[0:1])
+#ifdef GPU
+    GPU_MAP_FROM_DEVICE(sim [0:1])
     n_running = cycle_markers(vector_size, pq, &p, sim, hin);
-    #endif
+#endif
 
     /* All markers simulated! */
     free(cycle);

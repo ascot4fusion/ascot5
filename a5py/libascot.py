@@ -333,6 +333,7 @@ class Spline3D(ctypes.Structure):
 
 init_fun(
     "gctransform_particle2guidingcenter",
+    ctypes.c_int,
     ctypes.c_double,
     ctypes.c_double,
     PTR_DOUBLE,
@@ -352,6 +353,7 @@ init_fun(
 
 init_fun(
     "gctransform_guidingcenter2particle",
+    ctypes.c_int,
     ctypes.c_double,
     ctypes.c_double,
     PTR_DOUBLE,

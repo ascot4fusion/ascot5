@@ -322,8 +322,8 @@ vnorm = Quantity("vnorm", "m/s")
 """Velocity norm."""
 
 vnorm.add_formula(
-    lambda p, m: p / (m * c),
-    ["pnorm", "mass"]
+    lambda p, m, gamma: p / (m * gamma),
+    ["pnorm", "mass", "gamma"]
     )
 
 vnorm.add_formula(
@@ -336,6 +336,31 @@ vnorm.add_formula(
     ["gamma"]
     )
 
+vr = Quantity("vr", "m/s")
+"""Radial velocity in cylindrical basis."""
+
+vr.add_formula(
+    lambda pr, m, gamma: pr / ( m * gamma ),
+    ["pr", "mass", "gamma"]
+)
+
+
+vphi = Quantity("vphi", "m/s")
+"""Toroidal velocity in cylindrical basis."""
+
+vphi.add_formula(
+    lambda pphi, m, gamma: pphi / ( m * gamma ),
+    ["pphi", "mass", "gamma"]
+)
+
+
+vz = Quantity("vz", "m/s")
+"""Vertical velocity in cylindrical basis."""
+
+vz.add_formula(
+    lambda pz, m, gamma: pz / ( m * gamma ),
+    ["pz", "mass", "gamma"]
+)
 
 energy = Quantity("ekin", "eV")
 """Kinetic energy."""

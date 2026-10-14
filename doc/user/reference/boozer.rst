@@ -8,8 +8,3 @@ Boozer coordinate mapping
 .. rubric:: Creation
 
 .. autofunction:: a5py.data.AscotData.create_boozermap
-
-.. dropdown:: The C-module (For developers)
-
-   .. doxygenstruct:: boozer_data
-      :members:

@@ -1,5 +1,5 @@
-"""Defines Plasma1DDynamic time-dependent radial plasma input class and
-the corresponding factory method.
+"""Defines time-dependent radial plasma input class and the corresponding
+factory method.
 """
 
 import ctypes
@@ -240,13 +240,13 @@ class CreateMixin(TreeMixin):
     ) -> PlasmaDynamic1D:
         r"""Create radial plasma profiles that evolve with time.
 
-        This is the dynamic version of :class:`~a5py.data.plasma.Plasma1D`. The
-        data is interpolated linearly both in space and time.
+        This is the dynamic version of :class:`~a5py.data.plasma.PlasmaLinear1D`.
+        The data is interpolated linearly both in space and time.
 
         Parameters
         ----------
-        species : list[str] or tuple[str] (nspecies,)
-            Name(s) of the ion species.
+        species : list[str] *or* list[:class:`.Species`] (nion,)
+            The ion species that make up the plasma.
         rhogrid : array_like (nrho,)
             Radial grid in rho in which the data is tabulated.
 
@@ -259,42 +259,42 @@ class CreateMixin(TreeMixin):
             Density for each ion species.
         Ti : array_like (nrho,)
             Ion temperature.
-        ne : array_like (nrho,), optional
+        ne : array_like (nrho,), *optional*
             Electron density.
 
             By default, the electron density is determined from the ion charge
             density so that the plasma is quasi-neutral.
-        Te : array_like (nrho,), optional
+        Te : array_like (nrho,), *optional*
             Electron temperature.
 
             Same as ion temperature by default.
-        charge : array_like (nspecies,), optional
+        charge : array_like (nspecies,), *optional*
             Ion charge states.
 
             Ions are fully ionized by default.
-        rotation : array_like (nrho,1), optional
+        rotation : array_like (nrho,1), *optional*
             Toroidal rotation of the plasma.
 
             Zero by default.
-        note : str, optional
+        note : str, *optional*
             A short note to document this data.
 
             The first word of the note is converted to a tag which you can use
             to reference the data.
-        activate : bool, optional
+        activate : bool, *optional*
             Set this input as active on creation.
-        dryrun : bool, optional
+        dryrun : bool, *optional*
             Do not add this input to the `data` structure or store it on disk.
 
             Use this flag to modify the input manually before storing it.
-        store_hdf5 : bool, optional
+        store_hdf5 : bool, *optional*
             Write this input to the HDF5 file if one has been specified when
             `Ascot` was initialized.
 
         Returns
         -------
-        inputdata : ~a5py.data.plasma.Plasma1DDynamic
-            Freshly minted input data object.
+        data : :class:`.PlasmaDynamic1D`
+            Input variant created from the given parameters.
         """
         species = [
             s if isinstance(s, Species) else Species.from_string(s) for s in species

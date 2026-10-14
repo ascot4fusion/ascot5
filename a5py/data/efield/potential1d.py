@@ -136,7 +136,7 @@ class CreateMixin(TreeMixin):
 
         Returns
         -------
-        inputdata : ~a5py.data.efield.EfieldRadialPotential
+        inputdata : :class:`.EfieldPotential1D`
             Input variant created from the given parameters.
 
         Notes
