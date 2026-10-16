@@ -96,12 +96,6 @@ typedef double real;
 #define WIENERSLOTS 20
 
 /**
- * Use Box-Muller method to generate Gaussian random numbers (alternative is
- * the geometric method).
- */
-#define USE_BOXMULLER_RNG_METHOD 1
-
-/**
  * If adaptive time step falls below this value, produce an error.
  */
 #define A5_EXTREMELY_SMALL_TIMESTEP 1e-12

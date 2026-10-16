@@ -17,7 +17,6 @@ endif
 
 ifeq ($(GPU),1)
 	DEFINES+=-DGPU
-	RANDOM=LCG
 	ifeq ($(ACC), 1)
 		CFLAGS+=-c++libs -cuda -acc -Mnoopenmp
 	else ifeq ($(OMP), 1)
@@ -28,19 +27,6 @@ else
 	CFLAGS+=-fopenmp
 endif
 
-ifeq ($(RANDOM),MKL)
-	DEFINES+=-DRANDOM_MKL
-	LDFLAGS+=-mkl
-	ifdef RANDOM_MKL_RNG
-		DEFINES+=-DRANDOM_MKL_RNG=$(RANDOM_MKL_RNG)
-	endif
-else ifeq ($(RANDOM),GSL)
-	DEFINES+=-DRANDOM_GSL
-	LDFLAGS+=-lgsl -lgslcblas
-else ifeq ($(RANDOM),LCG)
-	DEFINES+=-DRANDOM_LCG
-endif
-
 ifeq ($(DEBUG),1)
 	CFLAGS+=-g -fsanitize=address,undefined
 	LDFLAGS+=-fsanitize=address,undefined
@@ -49,7 +35,7 @@ else
 endif
 
 CFLAGS+=-Wall -Wextra -fPIC -std=c11 -D_XOPEN_SOURCE=700 -Iinclude -Iascot \
-	-Irandom123 $(DEFINES) $(FLAGS)
+	-Ithirdparty $(DEFINES) $(FLAGS)
 
 SRCS := $(shell find $(SRC_DIR) -name '*.c')
 OBJS := $(patsubst $(SRC_DIR)/%,$(OBJ_DIR)/%,$(SRCS:.c=.o))

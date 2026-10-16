@@ -34,20 +34,18 @@ err_t atomic_react(
 
 void atomic_go(
     MarkerGyroOrbit *p, real *h, Plasma *plasma, Neutral *neutral,
-    random_data *r_data, Atomic *atomic)
+    Atomic *atomic)
 {
 
     /* Generate random numbers and get plasma information before going to the *
      * SIMD loop                                                              */
-    real rnd[NSIMD];
-    random_uniform_simd(r_data, NSIMD, rnd);
-    (void)r_data;
 
     int N_pls_spec = Plasma_get_n_species(plasma);
     int N_ntl_spec = Neutral_get_n_species(neutral);
     const real *m_2 = Plasma_get_species_mass(plasma);
     const int *z_2 = Plasma_get_species_znum(plasma);
     const int *a_2 = Plasma_get_species_anum(plasma);
+    real rnd[3 * p->size];
 
 #pragma omp simd
     for (size_t i = 0; i < p->size; i++)

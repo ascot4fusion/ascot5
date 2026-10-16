@@ -87,9 +87,6 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     real *hin = (real *)xmalloc(&err, vector_size * sizeof(real));
     if (err)
         return 1;
-    real *rnd = (real *)xmalloc(&err, 3 * vector_size * sizeof(real));
-    if (err)
-        return 1;
 
     real cputime, cputime_last; // Global cpu time: recent and previous record
 
@@ -131,7 +128,7 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
      */
     MarkerGyroOrbit_offload(&p);
     MarkerGyroOrbit_offload(&p0);
-    GPU_MAP_TO_DEVICE(hin [0:vector_size], rnd [0:3 * vector_size])
+    GPU_MAP_TO_DEVICE(hin [0:vector_size])
     while (n_running > 0)
     {
         /* Store marker states */
@@ -179,14 +176,13 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         /* Euler-Maruyama for Coulomb collisions */
         if (sim->options->enable_coulomb_collisions)
         {
-            random_normal_simd(sim->random_data, 3 * p.size, rnd);
-            mccc_go_euler(&p, hin, &sim->plasma, sim->mccc_data, rnd);
+            mccc_go_euler(&p, hin, &sim->plasma, sim->mccc_data);
         }
         /* Atomic reactions */
         if (sim->options->enable_atomic)
         {
             atomic_go(
-                &p, hin, &sim->plasma, &sim->neutral, sim->random_data,
+                &p, hin, &sim->plasma, &sim->neutral,
                 sim->atomic);
         }
         /**********************************************************************/
@@ -278,7 +274,6 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
 #endif
     free(cycle);
     free(hin);
-    free(rnd);
 
     MarkerGyroOrbit_deallocate(&p);
     MarkerGyroOrbit_deallocate(&p0);

@@ -14,12 +14,12 @@
 #ifndef ATOMIC_REACTIONS_H
 #define ATOMIC_REACTIONS_H
 
-#include "defines.h"
 #include "atomic_reactions.h"
 #include "data/atomic.h"
-#include "data/neutral.h"
 #include "data/marker.h"
+#include "data/neutral.h"
 #include "data/plasma.h"
+#include "defines.h"
 #include "utils/random.h"
 
 #ifndef GPU
@@ -32,12 +32,11 @@
  * @param h time-steps from NSIMD markers
  * @param p_data pointer to plasma data
  * @param n_data pointer to neutral data
- * @param r_data pointer to random-generator data
  * @param asigmadata pointer to atomic reaction data
  */
 void atomic_go(
     MarkerGyroOrbit *p, real *h, Plasma *plasma, Neutral *neutral,
-    random_data *r_data, Atomic *atomic);
+    Atomic *atomic);
 #ifndef GPU
 #pragma omp end declare target
 #endif

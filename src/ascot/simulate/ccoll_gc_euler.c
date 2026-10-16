@@ -15,7 +15,7 @@
 
 void mccc_gc_euler(
     MarkerGuidingCenter *p, real *h, Bfield *bfield, Plasma *plasma,
-    mccc_data *mdata, real *rnd)
+    mccc_data *mdata)
 {
     (void)mdata;
     /* Get plasma information before going to the  SIMD loop */
@@ -108,11 +108,13 @@ void mccc_gc_euler(
             /* Evaluate collisions */
             real sdt = sqrt(h[i]);
             real dW[5];
-            dW[0]=sdt*rnd[0*p->size + i]; // For X_1
-            dW[1]=sdt*rnd[1*p->size + i]; // For X_2
-            dW[2]=sdt*rnd[2*p->size + i]; // For X_3
-            dW[3]=sdt*rnd[3*p->size + i]; // For v
-            dW[4]=sdt*rnd[4*p->size + i]; // For xi
+            real rnd[5];
+            random_norm(rnd, 5, p->id, p->rng_count, i);
+            dW[0]=sdt*rnd[0]; // For X_1
+            dW[1]=sdt*rnd[1]; // For X_2
+            dW[2]=sdt*rnd[2]; // For X_3
+            dW[3]=sdt*rnd[3]; // For v
+            dW[4]=sdt*rnd[4]; // For xi
 
             real bhat[3];
             math_unit(Bxyz, bhat);

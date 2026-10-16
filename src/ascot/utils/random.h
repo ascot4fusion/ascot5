@@ -1,154 +1,66 @@
 /**
  * @file random.h
  * Random number generator interface.
+ *
+ * This module uses random123 library which provides counter based random number
+ * generators (as opposed to traditional state based). This means that every
+ * sampled random number is fully defined by the seed, marker ID and the RNG
+ * counter index (the counter is marker specific and advanced by this module).
+ * Therefore each marker always gets the same sequence of random numbers when
+ * using the same seed (and marker ID) irrespective of simulation size or any
+ * race conditions. This makes the simulation reproducible and deterministic
+ * as long as there are no other sources of randomness.
  */
 #ifndef RANDOM_H
 #define RANDOM_H
 
-#if defined(RANDOM_MKL)
-
-#include <mkl_vsl.h>
-
-/* Use Mersenne Twister as default RNG in MKL */
-#ifndef RANDOM_MKL_RNG
-#define RANDOM_MKL_RNG VSL_BRNG_SFMT19937
-#endif
-
-typedef struct
-{
-    VSLStreamStatePtr r;
-} random_data;
-
-void random_mkl_init(random_data *rdata, int seed);
-double random_mkl_uniform(random_data *rdata);
-double random_mkl_normal(random_data *rdata);
-void random_mkl_uniform_simd(random_data *rdata, int n, double *r);
-void random_mkl_normal_simd(random_data *rdata, int n, double *r);
-
-#define random_init(data, seed) random_mkl_init(data, seed)
-#define random_uniform(data) random_mkl_uniform(data)
-#define random_normal(data) random_mkl_normal(data)
-#define random_uniform_simd(data, n, r) random_mkl_uniform_simd(data, n, r)
-#define random_normal_simd(data, n, r) random_mkl_normal_simd(data, n, r)
-
-#elif defined(RANDOM_GSL)
-
-#include <gsl/gsl_rng.h>
-
-typedef struct
-{
-    gsl_rng *r;
-} random_data;
-
-void random_gsl_init(random_data *rdata, int seed);
-double random_gsl_uniform(random_data *rdata);
-double random_gsl_normal(random_data *rdata);
-void random_gsl_uniform_simd(random_data *rdata, int n, double *r);
-void random_gsl_normal_simd(random_data *rdata, int n, double *r);
-
-#define random_init(data, seed) random_gsl_init(data, seed)
-#define random_uniform(data) random_gsl_uniform(data)
-#define random_normal(data) random_gsl_normal(data)
-#define random_uniform_simd(data, n, r) random_gsl_uniform_simd(data, n, r)
-#define random_normal_simd(data, n, r) random_gsl_normal_simd(data, n, r)
-
-#elif defined(RANDOM_LCG)
-
-#include "parallel.h"
-#include <stdint.h>
-
-typedef struct
-{
-    uint64_t r;
-} random_data;
-
-void random_lcg_init(random_data *rdata, uint64_t seed);
-uint64_t random_lcg_integer(random_data *rdata);
-DECLARE_TARGET
-double random_lcg_uniform(random_data *rdata);
-DECLARE_TARGET_END
-double random_lcg_normal(random_data *rdata);
-DECLARE_TARGET
-void random_lcg_uniform_simd(random_data *rdata, int n, double *r);
-DECLARE_TARGET_END
-void random_lcg_normal_simd(random_data *rdata, int n, double *r);
-
-#define random_init(data, seed) random_lcg_init(data, seed)
-#define random_uniform(data) random_lcg_uniform(data)
-#define random_normal(data) random_lcg_normal(data)
-#define random_uniform_simd(data, n, r) random_lcg_uniform_simd(data, n, r)
-#define random_normal_simd(data, n, r) random_lcg_normal_simd(data, n, r)
-
-#else /* No RNG lib defined, use drand48 */
-
+#include "ascot.h"
+#include "random123/philox.h"
 #include <stdlib.h>
 
-/** Data used by the random number generator */
-typedef void *random_data;
-
-double random_drand48_normal();
-void random_drand48_uniform_simd(size_t n, double r[n]);
-void random_drand48_normal_simd(size_t n, double r[n]);
-
-/**
- * Initialize random number generator.
- */
-#define random_init(data, seed) srand48(seed)
-
-/**
- * Sample random number [0.0,1.0) from from uniform distribution.
- */
-#define random_uniform(data) drand48()
-
-/**
- * Sample from Normal distribution.
- */
-#define random_normal(data) random_drand48_normal()
-
-/** Same as random_uniform but vectorised                          */
-#define random_uniform_simd(data, n, r) random_drand48_uniform_simd(n, r)
-
-/**
- * Same as random_normal but vectorised.
- */
-#define random_normal_simd(data, n, r) random_drand48_normal_simd(n, r)
-
-#endif // drand48
-
 /**
  * Initialize random number generator.
  *
- * This function is for testing.
+ * This should only be called between simulations.
  *
- * @param rng Random number generator data.
- * @param seed Seed
+ * @param seed Seed for random number generator.
  */
-void random_test_init(random_data *rng, size_t seed);
+void random_seed(uint64_t seed);
 
 /**
- * Sample random numbers from both uniform and normal distribution.
+ * Sample random numbers from uniform distribution (0.0, 1.0].
  *
- * This function is for testing.
+ * This uses Philox4x32 random number generator which creates 32bit random
+ * numbers in blocks of four.
  *
- * @param rng Random number generator data.
- * @param n Number of random numbers to be sampled.
- * @param uniform Generated uniformly distributed random number.
- * @param normal Generated normally distributed random number.
+ * @param rnd Array of generated random numbers.
+ * @param nrnd Number of random numbers to generate.
+ * @param marker_id Array of marker IDs.
+ * @param rng_count Array of random number counters. This value is advanced as
+ *        many times as needed based on the number of random numbers requested
+ *        and underlying algorithm.
+ * @param index Index of the current marker.
  */
-void random_test_uniform_normal(
-    random_data *rng, size_t n, double uniform[n], double normal[n]);
+void random_uniform(
+    real *rnd, size_t nrnd, const size_t *marker_id, size_t *rng_count,
+    size_t index);
 
 /**
- * Sample random number vectors from both uniform and normal distribution.
+ * Sample random numbers from Normal distribution.
  *
- * This function is for testing.
+ * This uses Philox4x32 random number generator which creates 32bit random
+ * numbers in blocks of four.
  *
- * @param rng Random number generator data.
- * @param n Number of random numbers to be sampled.
- * @param uniform Generated uniformly distributed random numbers.
- * @param normal Generated normally distributed random numbers
+ * @param rnd Array of generated random numbers.
+ * @param nrnd Number of random numbers to generate.
+ * @param marker_id Array of marker IDs.
+ * @param rng_count Array of random number counters. This value is advanced as
+ *        many times as needed based on the number of random numbers requested
+ *        and underlying algorithm.
+ * @param index Index of the current marker.
  */
-void random_test_uniform_normal_simd(
-    random_data *rng, size_t n, double uniform[n], double normal[n]);
+void random_norm(
+    real *rnd, size_t nrnd, const size_t *marker_id, size_t *rng_count,
+    size_t index);
 
 #endif

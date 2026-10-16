@@ -15,6 +15,6 @@ int nbi_init(
     real *efrac, real *energy, real *div_h, real *div_v, real *div_halo_v,
     real *div_halo_h, real *div_halo_frac, size_t *nbeamlet, real *beamlet_xyz);
 void nbi_free(Nbi *nbi);
-void nbi_inject(real *xyz, real *vxyz, Nbi *inj, random_data *rng);
+void nbi_inject(real *xyz, real *vxyz, Nbi *inj);
 
 #endif

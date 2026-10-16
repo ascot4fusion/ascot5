@@ -6,7 +6,7 @@ import copy
 import ctypes
 from pathlib import Path
 import textwrap
-#import tomllib
+import tomllib
 import tomli_w
 import numpy as np
 from typing import Optional
@@ -154,7 +154,6 @@ class SimulationOptions(Lockable):
     endconditions: Endconditions = field(default_factory=Endconditions)
     orbit: OrbitParams = field(default_factory=OrbitParams)
     histograms: tuple[HistParams] = field(default_factory=tuple[HistParams])
-    
 
     def __setattr__(self, name, value):
         if name == "histograms":
@@ -265,7 +264,7 @@ class SimulationOptions(Lockable):
             for dim in hist["dimensions"]:
                 dim["min"] = float(dim["min"])
                 dim["max"] = float(dim["max"])
- 
+
         if len(params["histograms"]) == 0:
             del params["histograms"]
         toml_text = tomli_w.dumps(params)
@@ -361,7 +360,7 @@ class SimulationOptions(Lockable):
         """
         # path = Path(path)
         with open(path, "r") as f:
-            data = toml.load(f)
+            data = tomllib.load(f)
 
         return SimulationOptions.from_dict(**data)
 

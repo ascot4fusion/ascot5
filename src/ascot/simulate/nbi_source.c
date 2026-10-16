@@ -90,11 +90,13 @@ void nbi_source_inject_markers(
     #pragma omp parallel for
     for (size_t i = 0; i < nmrk; i++)
     {
-        real time =
-            tlim[0] + random_uniform(sim->random_data) * (tlim[1] - tlim[0]);
+        real rng[1];
+        size_t rng_count = 0;
+        random_uniform(rng, 1, &i, &rng_count, 0);
+        real time = tlim[0] + rng[0] * (tlim[1] - tlim[0]);
 
         real xyz[3], vxyz[3], rpz[3], vhat[3];
-        nbi_inject(xyz, vxyz, inj, sim->random_data);
+        nbi_inject(xyz, vxyz, inj);
         math_xyz2rpz(xyz, rpz);
         math_unit(vxyz, vhat);
 
@@ -155,10 +157,11 @@ void nbi_source_trace_markers(MarkerQueue *pq, Simulation *sim)
     MarkerGyroOrbit_allocate(&pdiag, NSIMD);
     for (size_t i = 0; i < NSIMD; i++)
     {
+        size_t rng_count = 0;
+        random_uniform(&threshold[i], 1, &i, &rng_count, 0);
         p.id[i] = -1;
         p.running[i] = 0;
         hin[i] = 1e-10;
-        threshold[i] = random_uniform(&sim->random_data);
         remaining[i] = 1.0;
         shinethrough[i] = 0;
     }
@@ -311,7 +314,8 @@ void nbi_source_trace_markers(MarkerQueue *pq, Simulation *sim)
                 p.time[i] += p.mileage[i];
 
                 /* Reset these for the next marker */
-                threshold[i] = random_uniform(&sim->random_data);
+                size_t rng_count = 0;
+                random_uniform(&threshold[i], 1, &i, &rng_count, 0);
                 remaining[i] = 1.0;
                 shinethrough[i] = 0;
 

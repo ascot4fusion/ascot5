@@ -86,6 +86,7 @@ typedef struct
     int *running;       /**< Is the marker currently simulated.               */
     err_t *err;         /**< Error flag, zero if no error.                    */
     size_t *index;      /**< This marker's index at the marker queue.         */
+    size_t *rng_count;  /**< Number of times this marker has called RNG.      */
 } MarkerGyroOrbit;
 
 /**
@@ -143,6 +144,7 @@ typedef struct
     int *running;       /**< Is the marker currently simulated.               */
     err_t *err;         /**< Error flag, zero if no error.                    */
     size_t *index;      /**< This marker's index at the marker queue.         */
+    size_t *rng_count;  /**< Number of times this marker has called RNG.      */
 } MarkerGuidingCenter;
 
 /**
@@ -441,7 +443,9 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(mrk_gc, mrk_go, bfield, order)
 /**
  * Convert gyro-orbit marker to guiding-center marker.
  *
- * The conversion is done using proper guiding-center transformation.
+ * The conversion is done using proper guiding-center transformation. However,
+ * the resulting marker is not suitable for simulation as some meta data is
+ * unfilled. The intention is to use the result for updating diagnostics.
  *
  * @param mrk_gc Vector of guiding-center markers where the result is stored.
  * @param mrk_go Vector of gyro-orbit markers used as input.

@@ -16,8 +16,7 @@
 
 void mccc_gc_milstein(
     MarkerGuidingCenter *p, real *hin, real *acc, real *collfreq, real *hout,
-    real tol, mccc_wienarr *w, Bfield *bfield, Plasma *plasma, mccc_data *mdata,
-    real *rnd)
+    real tol, mccc_wienarr *w, Bfield *bfield, Plasma *plasma, mccc_data *mdata)
 {
     (void)mdata;
     /* Get plasma information before going to the  SIMD loop */
@@ -116,10 +115,12 @@ void mccc_gc_milstein(
 
             /* Generate Wiener process for this step */
             int tindex;
+            real rnd[5];
+            random_norm(rnd, 5, p->id, p->rng_count, i);
             if (!errflag)
             {
                 errflag = mccc_wiener_generate(
-                    &w[i], w[i].time[0] + hin[i], &tindex, &rnd[i * 5]);
+                    &w[i], w[i].time[0] + hin[i], &tindex, rnd);
             }
             real dW[5] = {0, 0, 0, 0, 0};
             if (!errflag)

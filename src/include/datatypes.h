@@ -83,7 +83,6 @@ typedef struct
     Neutral neutral;         /**< Neutral data interface.                     */
     Options *options;        /**< Simulation options.                         */
     Diagnostics diagnostics; /**< Diagnostics data interface.                 */
-    void *random_data;       /**< Random number generator.                    */
     void *mccc_data;         /**< Tabulated special functions and collision
                                   operator parameters.                        */
 } Simulation;

@@ -96,9 +96,6 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     real *hout_rfof = (real *)xmalloc(&err, vector_size * sizeof(real));
     if (err)
         return 1;
-    real *rnd = (real *)xmalloc(&err, 5 * vector_size * sizeof(real));
-    if (err)
-        return 1;
 
     real cputime, cputime_last; // Global cpu time: recent and previous record
 
@@ -189,9 +186,8 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         /* Euler-Maruyama method for collisions */
         if (sim->options->enable_coulomb_collisions)
         {
-            random_normal_simd(sim->random_data, 5 * vector_size, rnd);
             mccc_gc_euler(
-                &p, hin, &sim->bfield, &sim->plasma, sim->mccc_data, rnd);
+                &p, hin, &sim->bfield, &sim->plasma, sim->mccc_data);
         }
 
         /* Performs the ICRH kick if in resonance. */
@@ -300,7 +296,6 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     free(hnext_recom);
     free(hin_default);
     free(hout_rfof);
-    free(rnd);
 
     MarkerGuidingCenter_deallocate(&p);
     MarkerGuidingCenter_deallocate(&p0);

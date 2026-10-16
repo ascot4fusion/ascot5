@@ -8,7 +8,6 @@
 #include <stdio.h>
 
 #include <stdint.h>
-#include <philox.h>
 
 /**
  * Run a simulation with fixed inputs.
@@ -23,15 +22,5 @@ int main(void) {
     //Simulation sim;
     //State mrk[nmrk];
     //ascot_solve_distribution(&sim, nmrk, mrk);
-    philox4x32_ctr_t counter = {{0, 0, 0, 0}};
-    philox4x32_ukey_t user_key = {{12345, 0}};
-    philox4x32_key_t key = philox4x32keyinit(user_key);
-
-    /* Generate four 32-bit pseudorandom integers. */
-    philox4x32_ctr_t result = philox4x32(counter, key);
-
-    for (int i = 0; i < 4; ++i) {
-        printf("%u\n", (unsigned)result.v[i]);
-    }
     return 0;
 }

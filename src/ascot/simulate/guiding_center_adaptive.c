@@ -174,9 +174,6 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     real *hnext = (real *)xmalloc(&err, vector_size * sizeof(real));
     if (err)
         return 1;
-    real *rnd = (real *)xmalloc(&err, 5 * vector_size * sizeof(real));
-    if (err)
-        return 1;
 
     /* Flag indicating whether a new marker was initialized */
     size_t *cycle = (size_t *)xmalloc(&err, vector_size * sizeof(size_t));
@@ -241,7 +238,7 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     MarkerGuidingCenter_offload(&p0);
     acceleration_offload(&acceleration, vector_size);
     GPU_MAP_TO_DEVICE(
-        hin [0:vector_size], rnd [0:5 * vector_size], hout_orb [0:vector_size],
+        hin [0:vector_size], hout_orb [0:vector_size],
         hout_col [0:vector_size], hout_rfof [0:vector_size],
         hnext [0:vector_size], cycle [0:vector_size])
     mccc_wiener_offload(wienarr, vector_size);
@@ -299,12 +296,9 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         /* Milstein method for collisions */
         if (sim->options->enable_coulomb_collisions)
         {
-            random_normal_simd(sim->random_data, 5 * vector_size, rnd);
-            random_normal_simd(sim->random_data, 5 * p.size, rnd);
             mccc_gc_milstein(
                 &p, hin, acceleration.acc, acceleration.collfreq, hout_col,
-                tol_col, wienarr, &sim->bfield, &sim->plasma, sim->mccc_data,
-                rnd);
+                tol_col, wienarr, &sim->bfield, &sim->plasma, sim->mccc_data);
 
             /* Check whether time step was rejected */
             GPU_PARALLEL_LOOP_ALL_LEVELS
@@ -463,7 +457,6 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     free(hout_rfof);
     free(hnext);
     free(cycle);
-    free(rnd);
 
     if (sim->options->enable_icrh)
         rfof_tear_down(&rfof_mrk);

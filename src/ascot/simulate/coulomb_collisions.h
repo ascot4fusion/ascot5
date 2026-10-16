@@ -130,13 +130,9 @@ void mccc_init(
  * @param h Time step.
  * @param plasma Plasma data.
  * @param mdata Collision data.
- * @param rnd Array of normally distributed random numbers used to resolve
- *        collisions.
- *
- *        Values for marker i are rnd[i*NSIMD + j]
  */
 void mccc_go_euler(
-    MarkerGyroOrbit *p, real *h, Plasma *plasma, mccc_data *mdata, real *rnd);
+    MarkerGyroOrbit *p, real *h, Plasma *plasma, mccc_data *mdata);
 
 /**
  * Integrate collisions for one time-step
@@ -146,14 +142,12 @@ void mccc_go_euler(
  * @param bfield Magnetic field data.
  * @param plasma Plasma data.
  * @param mdata Collision data.
- * @param rnd Array of normally distributed random numbers used to resolve
- *        collisions.
  *
  *        Values for marker i are rnd[i*NSIMD + j].
  */
 void mccc_gc_euler(
     MarkerGuidingCenter *p, real *h, Bfield *bfield, Plasma *plasma,
-    mccc_data *mdata, real *rnd);
+    mccc_data *mdata);
 
 /**
  * Integrate collisions for one time-step
@@ -168,14 +162,10 @@ void mccc_gc_euler(
  * @param bfield Magnetic field data.
  * @param plasma Plasma data.
  * @param mdata Collision data.
- * @param rnd Array of normally distributed random numbers used to resolve
- *        collisions.
- *
- *        Values for marker i are rnd[i*NSIMD + j].
  */
 void mccc_gc_milstein(
     MarkerGuidingCenter *p, real *hin, real *acc, real *collfreq, real *hout,
-    real tol, mccc_wienarr *w, Bfield *bfield, Plasma *plasma, mccc_data *mdata,
-    real *rnd);
+    real tol, mccc_wienarr *w, Bfield *bfield, Plasma *plasma,
+    mccc_data *mdata);
 
 #endif

@@ -18,7 +18,6 @@
 #include "simulate/simulate.h"
 #include "utils/gctransform.h"
 #include "utils/mathlib.h"
-#include "utils/random.h"
 #include <signal.h>
 #include <stdatomic.h>
 #include <stddef.h>
@@ -47,28 +46,6 @@ void ascot_setup_signal_handlers(void)
 
 void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
 {
-#ifdef GPU
-    if (sim->options->record_mode)
-    {
-        print_err("RECORD_MODE=1 not ported to GPU. Please disable it.");
-        exit(1);
-    }
-    if (sim->options->enable_atomic)
-    {
-        print_err("Atomic not yet ported to GPU. Please set ENABLE_ATOMIC=0.");
-        exit(1);
-    }
-    if (sim->options->enable_mhd)
-    {
-        print_err("MHD not yet ported to GPU. Please set ENABLE_MHD=0.");
-        exit(1);
-    }
-    if (sim->options->collect_orbit)
-    {
-        print_err("ENABLE_ORBITWRITE=1 not ported to GPU. Please disable it.");
-        exit(1);
-    }
-#endif
     GPU_MAP_TO_DEVICE(sim [0:1])
     Bfield_offload(&sim->bfield);
     Efield_offload(&sim->efield);
@@ -78,7 +55,6 @@ void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
     Boozer_offload(sim->boozer);
     Mhd_offload(&sim->mhd);
     Atomic_offload(sim->atomic);
-    random_init(&sim->random_data, 0);
     Atomic_extrapolate(sim->options->enable_atomic == 2);
 
 #ifdef GPU
@@ -176,8 +152,6 @@ void ascot_solve_fusion(
     Simulation *sim, FusionSource *source, size_t nsample, DiagHist *product1,
     DiagHist *product2)
 {
-
-    random_init(&rdata, time((NULL)));
 
     real m1, q1, m2, q2, mprod1, qprod1, mprod2, qprod2, Q;
     boschhale_reaction(
@@ -339,9 +313,6 @@ void ascot_solve_nbi(
     Simulation *sim, size_t ninj, Nbi injectors[ninj], real tlim[2],
     size_t nmrk, State mrk[nmrk])
 {
-
-    /* Initialize input data */
-    random_init(&sim->random_data, time(NULL));
 
     /* Calculate total NBI power so that we can distribute markers along
      * the injectors according to their power */

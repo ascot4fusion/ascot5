@@ -64,6 +64,7 @@ int MarkerGyroOrbit_allocate(MarkerGyroOrbit *mrk, size_t vector_size)
     allocate_field(mrk->running);
     allocate_field(mrk->err);
     allocate_field(mrk->index);
+    allocate_field(mrk->rng_count);
     mrk->size = vector_size;
     return 0;
 
@@ -106,6 +107,7 @@ void MarkerGyroOrbit_deallocate(MarkerGyroOrbit *mrk)
     free(mrk->running);
     free(mrk->err);
     free(mrk->index);
+    free(mrk->rng_count);
     mrk->size = 0;
 }
 
@@ -123,7 +125,7 @@ void MarkerGyroOrbit_offload(MarkerGyroOrbit *p)
         p->rho [0:p->size], p->theta [0:p->size], p->err [0:p->size],
         p->time [0:p->size], p->weight [0:p->size], p->cputime [0:p->size],
         p->id [0:p->size], p->endcond [0:p->size], p->walltile [0:p->size],
-        p->index [0:p->size], p->bounces [0:p->size])
+        p->index [0:p->size], p->bounces [0:p->size], p->rng_count [0:p->size]);
 }
 
 void MarkerGyroOrbit_onload(MarkerGyroOrbit *p)
@@ -140,7 +142,7 @@ void MarkerGyroOrbit_onload(MarkerGyroOrbit *p)
         p->rho [0:p->size], p->theta [0:p->size], p->err [0:p->size],
         p->time [0:p->size], p->weight [0:p->size], p->cputime [0:p->size],
         p->id [0:p->size], p->endcond [0:p->size], p->walltile [0:p->size],
-        p->index [0:p->size], p->bounces [0:p->size])
+        p->index [0:p->size], p->bounces [0:p->size], p->rng_count [0:p->size]);
 }
 
 void MarkerGyroOrbit_copy(
@@ -181,6 +183,7 @@ void MarkerGyroOrbit_copy(
     copy->dbzdr[index] = original->dbzdr[index];
     copy->dbzdphi[index] = original->dbzdphi[index];
     copy->dbzdz[index] = original->dbzdz[index];
+    copy->rng_count[index] = original->rng_count[index];
 }
 
 int MarkerGyroOrbit_from_queue(
@@ -233,6 +236,7 @@ int MarkerGyroOrbit_from_queue(
         mrk->running[mrk_index] = p->endcond == 0;
         mrk->cputime[mrk_index] = p->cputime;
         mrk->index[mrk_index] = queue_index;
+        mrk->rng_count[mrk_index] = 0;
         mrk->err[mrk_index] = 0;
     }
     if (err)
@@ -336,6 +340,7 @@ int MarkerGuidingCenter_allocate(MarkerGuidingCenter *mrk, size_t vector_size)
     allocate_field(mrk->running);
     allocate_field(mrk->err);
     allocate_field(mrk->index);
+    allocate_field(mrk->rng_count);
     mrk->size = vector_size;
     return 0;
 
@@ -378,6 +383,7 @@ void MarkerGuidingCenter_deallocate(MarkerGuidingCenter *mrk)
     free(mrk->running);
     free(mrk->err);
     free(mrk->index);
+    free(mrk->rng_count);
     mrk->size = 0;
 }
 
@@ -399,7 +405,7 @@ void MarkerGuidingCenter_offload(MarkerGuidingCenter *mrk)
         mrk->time [0:mrk->size], mrk->weight [0:mrk->size],
         mrk->cputime [0:mrk->size], mrk->id [0:mrk->size],
         mrk->endcond [0:mrk->size], mrk->walltile [0:mrk->size],
-        mrk->index [0:mrk->size], mrk->bounces [0:mrk->size])
+        mrk->index [0:mrk->size], mrk->bounces [0:mrk->size], mrk->rng_count [0:mrk->size]);
 }
 
 void MarkerGuidingCenter_onload(MarkerGuidingCenter *mrk)
@@ -420,7 +426,7 @@ void MarkerGuidingCenter_onload(MarkerGuidingCenter *mrk)
         mrk->time [0:mrk->size], mrk->weight [0:mrk->size],
         mrk->cputime [0:mrk->size], mrk->id [0:mrk->size],
         mrk->endcond [0:mrk->size], mrk->walltile [0:mrk->size],
-        mrk->index [0:mrk->size], mrk->bounces [0:mrk->size])
+        mrk->index [0:mrk->size], mrk->bounces [0:mrk->size], mrk->rng_count [0:mrk->size]);
 }
 
 void MarkerGuidingCenter_copy(
@@ -461,6 +467,7 @@ void MarkerGuidingCenter_copy(
     copy->dbzdr[index] = original->dbzdr[index];
     copy->dbzdphi[index] = original->dbzdphi[index];
     copy->dbzdz[index] = original->dbzdz[index];
+    copy->rng_count[index] = original->rng_count[index];
 }
 
 int MarkerGuidingCenter_from_queue(
@@ -518,6 +525,7 @@ int MarkerGuidingCenter_from_queue(
         mrk->running[mrk_index] = p->endcond == 0;
         mrk->cputime[mrk_index] = p->cputime;
         mrk->index[mrk_index] = queue_index;
+        mrk->rng_count[mrk_index] = 0;
         mrk->err[mrk_index] = 0;
     }
     if (err)

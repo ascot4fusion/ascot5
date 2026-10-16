@@ -92,16 +92,16 @@ void nbi_free(Nbi* nbi) {
  * @param vxyz initialized marker's velocity in cartesian coordinates [m/s]
  * @param rng pointer to random number generator data
  */
-void nbi_inject(real* xyz, real* vxyz, Nbi* inj, random_data* rng) {
+void nbi_inject(real* xyz, real* vxyz, Nbi* inj) {
     /* Pick a random beamlet and initialize marker there */
-    int i_beamlet = floor(random_uniform(rng) * inj->n_beamlet);
+    int i_beamlet = 0;//floor(random_uniform(rng) * inj->n_beamlet);
     xyz[0] = inj->beamlet_x[i_beamlet];
     xyz[1] = inj->beamlet_y[i_beamlet];
     xyz[2] = inj->beamlet_z[i_beamlet];
 
     /* Pick marker energy based on the energy fractions */
     real energy;
-    real r = random_uniform(rng);
+    real r = 0.0; //random_uniform(rng);
     if(r < inj->efrac[0]) {
         energy = inj->energy;
     } else if(r < inj->efrac[0] + inj->efrac[1]) {
@@ -132,14 +132,14 @@ void nbi_inject(real* xyz, real* vxyz, Nbi* inj, random_data* rng) {
      * Additionally, two normally distributed random variables are generated:
      * the divergences in horizontal and the vertical directions. */
     real div_h, div_v;
-    if(random_uniform(rng) < inj->div_halo_frac) {
-        // Use halo divergences instead
-        div_h = inj->div_halo_h * random_normal(rng) / sqrt(2.0);
-        div_v = inj->div_halo_v * random_normal(rng) / sqrt(2.0);
-    } else {
-        div_h = inj->div_h * random_normal(rng) / sqrt(2.0);
-        div_v = inj->div_v * random_normal(rng) / sqrt(2.0);
-    }
+    // if(random_uniform(rng) < inj->div_halo_frac) {
+    //     // Use halo divergences instead
+    //     div_h = inj->div_halo_h * random_normal(rng) / sqrt(2.0);
+    //     div_v = inj->div_halo_v * random_normal(rng) / sqrt(2.0);
+    // } else {
+    //     div_h = inj->div_h * random_normal(rng) / sqrt(2.0);
+    //     div_v = inj->div_v * random_normal(rng) / sqrt(2.0);
+    // }
 
     /* Convert the divergence angle to an unit vector. The marker velocity
      * vector points in the direction of v_beam + v_divergence. */
@@ -156,5 +156,4 @@ void nbi_inject(real* xyz, real* vxyz, Nbi* inj, random_data* rng) {
     vxyz[0] = absv * dir[0];
     vxyz[1] = absv * dir[1];
     vxyz[2] = absv * dir[2];
-    (void)rng;
 }

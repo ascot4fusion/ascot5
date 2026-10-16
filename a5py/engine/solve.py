@@ -55,7 +55,6 @@ class SimData(ctypes.Structure):
         ("neutral", Neutral),
         ("options", ctypes.POINTER(OptionsStruct)),
         ("diagnostics", Diag),
-        ("random_data", ctypes.c_void_p),
         ("mccc_data", ctypes.c_void_p),
         ]
 
