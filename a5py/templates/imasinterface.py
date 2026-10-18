@@ -280,10 +280,12 @@ class ImportImas():
             a corresponding type.
         """
         def fix_cocos(*psivals):
-            """Convert psi to correct COCOS."""
+            """Map DD3 COCOS11 and DD4 COCOS17 to ASCOT COCOS3."""
+            version = getattr(equilibrium_ids, "_dd_version", "")
+            sign = -1 if str(version).startswith("3.") else 1
             psivals_new = [None] * len(psivals)
             for i, psi in enumerate(psivals):
-                psivals_new[i] =  psi / ( 2*np.pi )
+                psivals_new[i] = sign * psi / ( 2*np.pi )
             return psivals_new
 
         def identify_rzgrid(profiles_2d):
@@ -295,7 +297,7 @@ class ImportImas():
                     rzgrid = profile.grid
                     try:
                         bphi = profile.b_field_tor
-                    except ValueError:
+                    except (ValueError, AttributeError):
                         bphi = profile.b_field_phi
                     return psi, bphi, rzgrid
             raise IOError(
@@ -724,6 +726,9 @@ class ImportImas():
                 )
                 del mrk["vx"], mrk["vy"]
             elif _GYRO_TYPE[int(source.gyro_type)] == "gyrocentre":
+                # Gyrocentre IDS markers have no gyrophase. The simulation
+                # API requires one even when the dynamics are gyroaveraged.
+                mrk["zeta"] = np.zeros(n) * unyt.rad
                 for field in ["r", "z", "phi", "energy_kinetic", "pitch"]:
                     units = unyt.unyt_quantity.from_string(
                         _COORDINATE_IDENTIFIERS[field][1]
@@ -738,8 +743,8 @@ class ImportImas():
             else:
                 raise ValueError(f"Unknown gyrotype = '{source.gyro_type}'")
 
-            anum = np.rint(source.species.ion.element[0].a)
-            znum = np.rint(source.species.ion.element[0].z_n)
+            anum = int(np.rint(source.species.ion.element[0].a))
+            znum = int(np.rint(source.species.ion.element[0].z_n))
             mass = physlib.species.autodetect(anum, znum)["mass"]
             charge = physlib.species.autodetect(anum, znum)["charge"]
 
