@@ -60,17 +60,17 @@ void BfieldStellarator_offload(BfieldStellarator *bfield)
 {
     (void)bfield;
     GPU_MAP_TO_DEVICE(
-        bfield->axisr, bfield->axisr.c [0:bfield->axisr.n_x], bfield->axisz,
-        bfield->axisz.c [0:bfield->axisz.n_x], bfield->psi, bfield->br,
+        bfield->axisr, bfield->axisr.c [0:bfield->axisr.nx], bfield->axisz,
+        bfield->axisz.c [0:bfield->axisz.nx], bfield->psi, bfield->br,
         bfield->bphi, bfield->bz,
         bfield->psi.c
-        [0:bfield->psi.n_x * bfield->psi.n_y * bfield->psi.n_z * NSIZE_COMP3D],
+        [0:bfield->psi.nx * bfield->psi.ny * bfield->psi.nz * NSIZE_COMP3D],
         bfield->br.c
-        [0:bfield->br.n_x * bfield->br.n_y * bfield->br.n_z * NSIZE_COMP3D],
-        bfield->bphi.c [0:bfield->bphi.n_x * bfield->bphi.n_y *
-                          bfield->bphi.n_z * NSIZE_COMP3D],
+        [0:bfield->br.nx * bfield->br.ny * bfield->br.nz * NSIZE_COMP3D],
+        bfield->bphi.c [0:bfield->bphi.nx * bfield->bphi.ny *
+                          bfield->bphi.nz * NSIZE_COMP3D],
         bfield->bz.c
-        [0:bfield->bz.n_x * bfield->bz.n_y * bfield->bz.n_z * NSIZE_COMP3D])
+        [0:bfield->bz.nx * bfield->bz.ny * bfield->bz.nz * NSIZE_COMP3D])
 }
 
 err_t BfieldStellarator_eval_psi(

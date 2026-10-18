@@ -3,6 +3,7 @@
 *.coverage
 *.code-workspace
 *~
+.venv
 /build
 /doc/_static/doxygen
 /.metadata

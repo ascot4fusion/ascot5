@@ -85,14 +85,15 @@ void WallTriangular3D_free(WallTriangular3D *wall)
 {
     free(wall->tree_array);
     free(wall->vertices);
+    free(wall->flag);
 }
 
 void WallTriangular3D_offload(WallTriangular3D *wall)
 {
     SUPPRESS_UNUSED_WARNING(wall);
     GPU_MAP_TO_DEVICE(
-        wall->wall_flag [0:wall->n], wall->vertices [0:wall->n * 9],
-        wall->tree_array [0:wall->tree_array_size])
+        wall->flag [0:wall->n], wall->vertices [0:wall->n * 9],
+        wall->tree_array [0:wall->n_tree_array])
 }
 
 size_t WallTriangular3D_eval_intersection(

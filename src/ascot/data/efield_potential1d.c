@@ -32,7 +32,7 @@ void EfieldPotential1D_offload(EfieldPotential1D *efield)
     SUPPRESS_UNUSED_WARNING(efield);
     GPU_MAP_TO_DEVICE(
         efield->dvdrho,
-        efield->dvdrho.c [0:efield->dvrho.v * efield->dvrho.n_x]);
+        efield->dvdrho.c [0:efield->dvdrho.nx]);
 }
 
 err_t EfieldPotential1D_eval_e(

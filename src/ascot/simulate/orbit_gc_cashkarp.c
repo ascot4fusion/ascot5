@@ -18,7 +18,7 @@ void step_gc_cashkarp(
     MarkerGuidingCenter *mrk, const real *h, real *hnext, real tol,
     Bfield *bfield, Efield *efield, int aldforce)
 {
-    GPU_DATA_IS_MAPPED(h [0:mrk->size], h_next [0:mrk->size])
+    GPU_DATA_IS_MAPPED(h [0:mrk->size], hnext [0:mrk->size])
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for (size_t i = 0; i < mrk->size; i++)
     {
@@ -343,7 +343,7 @@ void step_gc_cashkarp_mhd(
     MarkerGuidingCenter *mrk, const real *h, real *hnext, real tol,
     Bfield *bfield, Efield *efield, Boozer *boozer, Mhd *mhd, int aldforce)
 {
-    GPU_DATA_IS_MAPPED(h [0:mrk->size], h_next [0:mrk->size])
+    GPU_DATA_IS_MAPPED(h [0:mrk->size], hnext [0:mrk->size])
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for (size_t i = 0; i < mrk->size; i++)
     {

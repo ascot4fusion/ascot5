@@ -684,7 +684,7 @@ void MarkerFieldLine_offload(MarkerFieldLine *mrk)
         mrk->time [0:mrk->size], mrk->cputime [0:mrk->size],
         mrk->id [0:mrk->size], mrk->endcond [0:mrk->size],
         mrk->walltile [0:mrk->size], mrk->index [0:mrk->size],
-        mrk->bounces [0:mrk->size])
+        mrk->pitch [0:mrk->size])
 }
 
 void MarkerFieldLine_onload(MarkerFieldLine *mrk)
@@ -704,7 +704,7 @@ void MarkerFieldLine_onload(MarkerFieldLine *mrk)
         mrk->time [0:mrk->size], mrk->cputime [0:mrk->size],
         mrk->id [0:mrk->size], mrk->endcond [0:mrk->size],
         mrk->walltile [0:mrk->size], mrk->index [0:mrk->size],
-        mrk->bounces [0:mrk->size])
+        mrk->pitch [0:mrk->size])
 }
 
 void MarkerFieldLine_copy(
