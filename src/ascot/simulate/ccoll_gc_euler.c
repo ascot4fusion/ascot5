@@ -23,7 +23,7 @@ void mccc_gc_euler(
     const real *qb = Plasma_get_species_charge(plasma);
     const real *mb = Plasma_get_species_mass(plasma);
 
-    GPU_DATA_IS_MAPPED(h[0:p->size], rnd[0:3*p->size])
+    GPU_DATA_IS_MAPPED(h[0:p->size])
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for (size_t i = 0; i < p->size; i++)
     {

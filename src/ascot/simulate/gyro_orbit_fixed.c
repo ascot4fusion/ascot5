@@ -269,7 +269,7 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     /* All markers simulated! */
 #ifdef GPU
     GPU_MAP_FROM_DEVICE(sim [0:1])
-    marker_onload_go(&p);
+    MarkerGyroOrbit_onload(&p);
     n_running = cycle_markers(vector_size, pq, &p, sim, hin);
 #endif
     free(cycle);

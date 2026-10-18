@@ -226,7 +226,7 @@ void step_fl_cashkarp_mhd(
     MarkerFieldLine *mrk, const real *h, real *hnext, real tol, Bfield *bfield,
     Boozer *boozerdata, Mhd *mhddata)
 {
-    GPU_DATA_IS_MAPPED(h [0:mrk->size], h_next [0:mrk->size])
+    GPU_DATA_IS_MAPPED(h [0:mrk->size], hnext [0:mrk->size])
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for (size_t i = 0; i < mrk->size; i++)
     {

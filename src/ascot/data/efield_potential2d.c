@@ -27,7 +27,7 @@ void EfieldPotential2D_offload(EfieldPotential2D *efield){
     SUPPRESS_UNUSED_WARNING(efield);
     GPU_MAP_TO_DEVICE(
     efield -> potential.c
-    [0:efield->potential.nx * data->efield->potential.ny * NSIZE_COMP2D])
+    [0:efield->potential.nx * efield->potential.ny * NSIZE_COMP2D])
 }
 
 err_t EfieldPotential2D_eval_e(

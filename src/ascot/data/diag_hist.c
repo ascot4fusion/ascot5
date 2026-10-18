@@ -14,13 +14,13 @@
 void DiagHist_offload(DiagHist *hist)
 {
     SUPPRESS_UNUSED_WARNING(hist);
-    GPU_MAP_TO_DEVICE(hist->axes [0:HIST_NDIM], hist->bins [0:hist->ns], )
+    GPU_MAP_TO_DEVICE(hist->axes [0:HIST_NDIM], hist->values [0:hist->nbin])
 }
 
 void DiagHist_onload(DiagHist *hist)
 {
     SUPPRESS_UNUSED_WARNING(hist);
-    GPU_MAP_FROM_DEVICE(hist->axes [0:HIST_NDIM], hist->bins [0:hist->ns], )
+    GPU_MAP_FROM_DEVICE(hist->axes [0:HIST_NDIM], hist->values [0:hist->nbin])
 }
 
 void DiagHist_update_go(

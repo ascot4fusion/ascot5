@@ -25,7 +25,7 @@ void mccc_gc_milstein(
     const real *mb = Plasma_get_species_mass(plasma);
 
     GPU_DATA_IS_MAPPED(
-        hin [0:p->size], hout [0:p->size], rnd [0:5 * p->size],
+        hin [0:p->size], hout [0:p->size],
         w [0:p->size], acc [0:p->size], collfreq [0:p->size])
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for (size_t i = 0; i < p->size; i++)

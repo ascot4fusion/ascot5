@@ -52,13 +52,13 @@ void BfieldSpline3D_offload(BfieldSpline3D *bfield)
     (void)bfield;
     GPU_MAP_TO_DEVICE(
         bfield->psi, bfield->br, bfield->bphi, bfield->bz,
-        bfield->psi.c [0:bfield->psi.n_x * bfield->psi.n_y * NSIZE_COMP2D],
+        bfield->psi.c [0:bfield->psi.nx * bfield->psi.ny * NSIZE_COMP2D],
         bfield->br.c
-        [0:bfield->br.n_x * bfield->br.n_y * bfield->br.n_z * NSIZE_COMP3D],
-        bfield->bphi.c [0:bfield->bphi.n_x * bfield->bphi.n_y *
-                          bfield->bphi.n_z * NSIZE_COMP3D],
+        [0:bfield->br.nx * bfield->br.ny * bfield->br.nz * NSIZE_COMP3D],
+        bfield->bphi.c [0:bfield->bphi.nx * bfield->bphi.ny *
+                          bfield->bphi.nz * NSIZE_COMP3D],
         bfield->bz.c
-        [0:bfield->bz.n_x * bfield->bz.n_y * bfield->bz.n_z * NSIZE_COMP3D])
+        [0:bfield->bz.nx * bfield->bz.ny * bfield->bz.nz * NSIZE_COMP3D])
 }
 
 err_t BfieldSpline3D_eval_psi(

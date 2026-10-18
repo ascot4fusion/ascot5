@@ -25,7 +25,7 @@ void EfieldCartesian_free(EfieldCartesian *efield)
 void EfieldCartesian_offload(EfieldCartesian *efield)
 {
     SUPPRESS_UNUSED_WARNING(efield);
-    GPU_MAP_TO_DEVICE(data->exyz [0:3])
+    GPU_MAP_TO_DEVICE(efield->exyz [0:3])
 }
 
 err_t EfieldCartesian_eval_e(real e[3], real phi, EfieldCartesian *efield)

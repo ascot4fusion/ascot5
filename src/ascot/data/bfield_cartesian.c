@@ -37,7 +37,7 @@ void BfieldCartesian_free(BfieldCartesian *bfield)
 void BfieldCartesian_offload(BfieldCartesian *bfield)
 {
     (void)bfield;
-    GPU_MAP_TO_DEVICE(data->bxyz [0:3], data->jacobian [0:9])
+    GPU_MAP_TO_DEVICE(bfield->bxyz [0:3], bfield->jacobian [0:9])
 }
 
 err_t BfieldCartesian_eval_psi(real psi[1], BfieldCartesian *bfield)
