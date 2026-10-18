@@ -279,7 +279,7 @@ class State(DataContainer):
             item = _val("endcond").v
             err = _val("errormsg").v
             item = item << 2
-            item[err > 0] = item[err > 0] & State._ABORTED
+            item[err > 0] = item[err > 0] | State._ABORTED
             item[item==0] = State._NONE
             add("endcond", lambda : item)
 

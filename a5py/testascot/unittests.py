@@ -16,6 +16,72 @@ from a5py.ascot5io.coreio import fileapi
 from a5py.ascot5io.state import State
 from a5py.ascot5io.marker import Marker
 
+class TestImasField(unittest.TestCase):
+    """Read real DD3/DD4 objects with the same physical COCOS-3 field."""
+
+    def test_b2ds_data_dictionary_versions(self):
+        try:
+            import imas
+        except ImportError:
+            self.skipTest("Optional imas-python package is unavailable")
+        from a5py.templates.imasinterface import ImportImas
+
+        r = np.linspace(4, 8, 9)
+        z = np.linspace(-2, 2, 11)
+        for version in ["3.42.2", "4.1.1"]:
+            for sign in [-1, 1]:
+                with self.subTest(version=version, sign=sign):
+                    eq = imas.IDSFactory(version=version).new("equilibrium")
+                    eq.time_slice.resize(1)
+                    t = eq.time_slice[0]
+                    t.profiles_2d.resize(1)
+                    p = t.profiles_2d[0]
+                    p.grid_type.index = 1
+                    p.grid.dim1, p.grid.dim2 = r, z
+                    psi = sign*((r[:, None]-6)**2+z[None, :]**2)
+                    scale = (-1 if version.startswith("3.") else 1)*2*np.pi
+                    p.psi = scale*psi
+                    field = "b_field_tor" if version.startswith("3.") else "b_field_phi"
+                    setattr(p, field, 12/r[:, None]*np.ones((1, len(z))))
+                    q = t.global_quantities
+                    q.psi_axis, q.psi_boundary = 0, scale*sign
+                    q.magnetic_axis.r, q.magnetic_axis.z = 6, 0
+                    kind, result = ImportImas().imas_b2ds(eq)
+                    self.assertEqual(kind, "B_2DS")
+                    np.testing.assert_allclose(result["psi"], psi)
+                    self.assertAlmostEqual(float(result["psi1"]), sign)
+                    np.testing.assert_allclose(result["bphi"], 12/r[:, None]*np.ones((1, len(z))))
+
+    def test_marker_integer_species_and_gyrophase(self):
+        try:
+            import imas
+        except ImportError:
+            self.skipTest("Optional imas-python package is unavailable")
+        from a5py.templates.imasinterface import ImportImas
+        ids = imas.IDSFactory(version="4.1.1").new("distribution_sources")
+        ids.time = [0.0]
+        ids.source.resize(1)
+        source = ids.source[0]
+        source.gyro_type = 2
+        source.species.type.index = 2
+        source.species.ion.element.resize(1)
+        source.species.ion.element[0].a = 2
+        source.species.ion.element[0].z_n = 1
+        source.species.ion.z_ion = 1
+        source.markers.resize(1)
+        markers = source.markers[0]
+        markers.coordinate_identifier.resize(5)
+        for c, index in zip(markers.coordinate_identifier, [4, 5, 3, 301, 403]):
+            c.index = index
+        markers.positions = [[6.5, np.pi/2, 0, 1e4, .5]]
+        markers.weights = [1.0]
+        kind, result = ImportImas().imas_marker(ids)
+        self.assertEqual(kind, "gc")
+        self.assertTrue(np.issubdtype(result["anum"].dtype, np.integer))
+        self.assertTrue(np.issubdtype(result["znum"].dtype, np.integer))
+        np.testing.assert_array_equal(result["zeta"].to_value("rad"), [0])
+        np.testing.assert_allclose(result["phi"].to_value("deg"), [90])
+
 class TestAscot5IO(unittest.TestCase):
     """Class to test `ascot5io` module.
     """
@@ -304,6 +370,16 @@ class TestAscot5IO(unittest.TestCase):
                 ValueError,
                 msg="Failed to raise exception when endcond unknown"):
             State.endcond_check(0x2 | 0x4, "vanished")
+
+        # Stored end conditions: none (0), tlim (0x1), aborted (error raised)
+        stored = {"endcond": np.array([0, 0x1, 0], dtype=np.uint32),
+                  "errormsg": np.array([0, 0, 1]), "ids": np.array([1, 2, 3])}
+        endcond = State._getactual(
+            "gc", lambda q: unyt.unyt_array(stored[q]), None, "endcond")[0]
+        self.assertEqual(
+            [State.endcond_tostring(e) for e in endcond],
+            ["NONE", "TLIM", "ABORTED"],
+            "Aborted marker was not reported as aborted.")
 
     def test_inputs(self):
         inputs = {
