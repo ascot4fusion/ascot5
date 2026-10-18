@@ -371,6 +371,16 @@ class TestAscot5IO(unittest.TestCase):
                 msg="Failed to raise exception when endcond unknown"):
             State.endcond_check(0x2 | 0x4, "vanished")
 
+        # Stored end conditions: none (0), tlim (0x1), aborted (error raised)
+        stored = {"endcond": np.array([0, 0x1, 0], dtype=np.uint32),
+                  "errormsg": np.array([0, 0, 1]), "ids": np.array([1, 2, 3])}
+        endcond = State._getactual(
+            "gc", lambda q: unyt.unyt_array(stored[q]), None, "endcond")[0]
+        self.assertEqual(
+            [State.endcond_tostring(e) for e in endcond],
+            ["NONE", "TLIM", "ABORTED"],
+            "Aborted marker was not reported as aborted.")
+
     def test_inputs(self):
         inputs = {
             "bfield"  : ["B_TC", "B_GS", "B_2DS", "B_3DS", "B_STS",],

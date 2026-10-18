@@ -161,9 +161,10 @@ class VirtualState():
             elif q == "charge":    return arr(q) * C
             elif q == "anum":      return arr(q) * nodim
             elif q == "znum":      return arr(q) * nodim
-            elif q == "errormsg":  return arr("err") * nodim
-            elif q == "errorline": return arr("err") * nodim
-            elif q == "errormod":  return arr("err") * nodim
+            # Unpack the a5err flag as error_parse in error.c does
+            elif q == "errormsg":  return arr("err") % 256 * nodim
+            elif q == "errorline": return arr("err") // 256 % 1024 * nodim
+            elif q == "errormod":  return arr("err") // (256 * 1024) * nodim
             return arr
 
         def _eval(r, phi, z, t, *q):
