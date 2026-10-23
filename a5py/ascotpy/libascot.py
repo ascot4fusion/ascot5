@@ -911,11 +911,11 @@ class LibAscot:
             if np.isnan(psi[0]):
                 raise RuntimeError("Failed to converge.")
 
-            # Add manual padding
-            if psi1 > 0:
-                psi -= manual_pad*unyt.Wb
-            else:
+            # Pad away from psi1, i.e. beyond the extremum that was searched
+            if ascent:
                 psi += manual_pad*unyt.Wb
+            else:
+                psi -= manual_pad*unyt.Wb
 
             return (rz[0], rz[1], psi)
         elif nphi is not None and phimin is not None and phimax is not None:
@@ -968,16 +968,16 @@ class LibAscot:
                     raise RuntimeError("Failed to converge.")
 
                 # New minimum or not, save psi and the magnetic axis location
-                psiconverged[i] = psi
+                psiconverged[i] = psi[0]
                 rzphiconverged[i,:] = rzphi
 
                 psi *= np.nan    #reset for next iteration
 
-            # Add manual padding
-            if psi1 > 0:
-                psiconverged -= manual_pad*unyt.Wb
-            else:
+            # Pad away from psi1, i.e. beyond the extremum that was searched
+            if ascent:
                 psiconverged += manual_pad*unyt.Wb
+            else:
+                psiconverged -= manual_pad*unyt.Wb
 
             return (rzphiconverged[:,0]*unyt.m, rzphiconverged[:,2],
                     rzphiconverged[:,1]*unyt.m, psiconverged[:])

@@ -1072,3 +1072,39 @@ class TestPlotting(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestAxisFluxPadding(unittest.TestCase):
+    """Native quadratic fields keep the magnetic axis inside normalized flux."""
+
+    def test_padding_follows_native_extremum_search(self):
+        r = np.linspace(1.0, 3.0, 17)
+        z = np.linspace(-1.0, 1.0, 17)
+        rr, zz = np.meshgrid(r, z, indexing="ij")
+        pad = 1e-6
+        for axis, edge, curvature in [(-1., 0., 1.), (2., 1., -1.),
+                                       (0., 1., 1.), (0., -1., -1.)]:
+            field = dict(rmin=r[0], rmax=r[-1], nr=len(r), zmin=z[0],
+                         zmax=z[-1], nz=len(z), axisr=2., axisz=0.,
+                         psi0=axis, psi1=edge,
+                         psi=axis + curvature*((rr-2.)**2 + zz**2),
+                         br=-2*curvature*zz/rr, bphi=np.ones_like(rr),
+                         bz=2*curvature*(rr-2.)/rr)
+            for sectors in [False, True]:
+                with self.subTest(axis=axis, edge=edge, sectors=sectors):
+                    obj = Ascot()
+                    try:
+                        obj.input_init(bfield=field)
+                        kwargs = dict(nphi=3, phimin=0., phimax=2*np.pi) if sectors else {}
+                        result = obj.input_findpsi0(edge, manual_pad=pad, **kwargs)
+                        padded = np.asarray(result[-1])
+                        np.testing.assert_allclose(padded, axis-curvature*pad,
+                                                   rtol=0, atol=1e-12)
+                        obj.input_free()
+                        supplied = dict(field, psi0=padded.flat[0].item())
+                        obj.input_init(bfield=supplied)
+                        rho = obj.input_eval(2., 0., 0., 0., "rho")
+                        self.assertTrue(np.all(np.isfinite(rho)))
+                        self.assertTrue(np.all(np.asarray(rho) > 0))
+                    finally:
+                        obj.input_free()
