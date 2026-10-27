@@ -461,6 +461,7 @@ void mpi_gather_diag(diag_data* data, int ntotal, int mpi_rank, int mpi_size,
                         MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 }
             }
+	    data->diagorb.Nmrk = ntotal;
         }
         else {
             int start_index, n;
