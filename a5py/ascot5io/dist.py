@@ -825,18 +825,22 @@ class Dist(DataContainer):
                                dist.abscissa("pperp"), indexing="ij")
         pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
         vnorm = physlib.velocity_momentum(mass, pnorm)
+        vnorm_grid = vnorm.reshape(ppa.shape)[None, None, None, ...]
         for i, qa in enumerate(dist.abscissa("charge")):
-            k = ascot.input_eval_collcoefs(
+            k, Dparallel = ascot.input_eval_collcoefs(
                 mass, qa, moment.rc.ravel(), moment.phic.ravel(),
                 moment.zc.ravel(), np.zeros(moment.rc.ravel().shape)*unyt.s,
-                vnorm, "k", grid=True)
-            k = -np.sum(k, axis=0) # Minus because k is from plasma to particle
+                vnorm, "k", "dpara", grid=True)
+            k = np.sum(k, axis=0)
             k = k.ravel().reshape(dist._distribution[:,:,:,:,:,0,i].shape)
-            dist._distribution[:,:,:,:,:,0,i] *= k.v
+            k_times_vnorm = k * vnorm_grid
+            Dparallel = np.sum(Dparallel, axis=0)
+            Dparallel = Dparallel.ravel().reshape(dist._distribution[:,:,:,:,:,0,i].shape)
+            # Minus because (k_times_v + Dparallel) is from background to particle
+            dist._distribution[:,:,:,:,:,0,i] *= -(k_times_vnorm.v + Dparallel.v)
 
-        dist._distribution *= k.units * mass
+        dist._distribution *= k_times_vnorm.units * mass
         dist.integrate(charge=np.s_[:], time=np.s_[:])
-        dist._multiply(vnorm.reshape(ppa.shape), "ppar", "pperp")
         dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
         moment.add_ordinates(
             powerdep=(dist.histogram() / moment.volume ).to("W/m**3"))
@@ -861,18 +865,22 @@ class Dist(DataContainer):
                                dist.abscissa("pperp"), indexing="ij")
         pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
         vnorm = physlib.velocity_momentum(mass, pnorm)
+        vnorm_grid = vnorm.reshape(ppa.shape)[None, None, None, ...]
         for i, qa in enumerate(dist.abscissa("charge")):
-            k = ascot.input_eval_collcoefs(
+            k, Dparallel = ascot.input_eval_collcoefs(
                 mass, qa, moment.rc.ravel(), moment.phic.ravel(),
                 moment.zc.ravel(), np.zeros(moment.rc.ravel().shape)*unyt.s,
-                vnorm, "k", grid=True)
-            k = -k[0,:,:] # Minus because k is from plasma to particle
+                vnorm, "k", "dpara", grid=True)
+            k = k[0,:,:]
             k = k.ravel().reshape(dist._distribution[:,:,:,:,:,0,i].shape)
-            dist._distribution[:,:,:,:,:,0,i] *= k.v
+            k_times_vnorm = k * vnorm_grid
+            Dparallel = Dparallel[0,:,:]
+            Dparallel = Dparallel.ravel().reshape(dist._distribution[:,:,:,:,:,0,i].shape)
+            # Minus because (k_times_v + Dparallel) is from background to particle
+            dist._distribution[:,:,:,:,:,0,i] *= -(k_times_vnorm.v + Dparallel.v)
 
-        dist._distribution *= k.units * mass
+        dist._distribution *= k_times_vnorm.units * mass
         dist.integrate(charge=np.s_[:], time=np.s_[:])
-        dist._multiply(vnorm.reshape(ppa.shape), "ppar", "pperp")
         dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
         moment.add_ordinates(
             electronpowerdep=(dist.histogram() / moment.volume ).to("W/m**3"))
@@ -893,18 +901,22 @@ class Dist(DataContainer):
                                dist.abscissa("pperp"), indexing="ij")
         pnorm = np.sqrt(ppa.ravel()**2 + ppe.ravel()**2)
         vnorm = physlib.velocity_momentum(mass, pnorm)
+        vnorm_grid = vnorm.reshape(ppa.shape)[None, None, None, ...]
         for i, qa in enumerate(dist.abscissa("charge")):
-            k = ascot.input_eval_collcoefs(
+            k, Dparallel = ascot.input_eval_collcoefs(
                 mass, qa, moment.rc.ravel(), moment.phic.ravel(),
                 moment.zc.ravel(), np.zeros(moment.rc.ravel().shape)*unyt.s,
-                vnorm, "k", grid=True)
-            k = -np.sum(k[1:], axis=0) # Minus because k is from plasma to prt
+                vnorm, "k", "dpara", grid=True)
+            k = np.sum(k[1:], axis=0)
             k = k.ravel().reshape(dist._distribution[:,:,:,:,:,0,i].shape)
-            dist._distribution[:,:,:,:,:,0,i] *= k.v
+            k_times_vnorm = k * vnorm_grid
+            Dparallel = np.sum(Dparallel[1:], axis=0)
+            Dparallel = Dparallel.ravel().reshape(dist._distribution[:,:,:,:,:,0,i].shape)
+            # Minus because (k_times_v + Dparallel) is from background to particle
+            dist._distribution[:,:,:,:,:,0,i] *= -(k_times_vnorm.v + Dparallel.v)
 
-        dist._distribution *= k.units * mass
+        dist._distribution *= k_times_vnorm.units * mass
         dist.integrate(charge=np.s_[:], time=np.s_[:])
-        dist._multiply(vnorm.reshape(ppa.shape), "ppar", "pperp")
         dist.integrate(ppar=np.s_[:], pperp=np.s_[:])
         moment.add_ordinates(
             ionpowerdep=(dist.histogram() / moment.volume ).to("W/m**3"))
