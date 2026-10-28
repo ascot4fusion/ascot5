@@ -13,7 +13,7 @@ The coordinate system ASCOT5 uses is `COCOS3 <https://www.sciencedirect.com/scie
 
 The cylindrical coordinates that are used are right-handed meaning:
 
-  - The vertical z-axis runs through the geometrical center of the torus and the conventional azimuthal angle, here called the toroidal angle `\phi`, increases counter-clockwise. The radial coordinate corresponds to the major radius of the device, R 
+  - The vertical z-axis runs through the geometrical center of the torus and the conventional azimuthal angle, here called the toroidal angle `\phi`, increases counter-clockwise. The radial coordinate corresponds to the major radius of the device, R
   - Toroidal field and plasma current are positive when they point in the same direction as `\hat{\phi}`.
   - In the azimuthal plane, the Cartesian coordinate axes `(x,y)` are aligned so that the toroidal angle is measured from the `x`-axis, i.e., the x-axis is chosen so that `\phi=0` corresponds to `y=0`.
 
@@ -53,7 +53,7 @@ Another fact related to the directions is that the default direction of the beam
 
 To describe the features inside the plasma, instead of the cylindrical coordinate system, the flux coordinate system is adopted:
 
-  - The radial coordinate is rho, `\rho = \sqrt{(\Psi-\Psi_0) / (\Psi_1 - \Psi0)}`, where `\Psi` is the poloidal magnetic flux and `\Psi_0` and `\Psi_1` are the values on the axis and at the separatrix, respectively.
+  - The radial coordinate is rho, `\rho = \sqrt{(\Psi-\Psi_0) / (\Psi_1 - \Psi_0)}`, where `\Psi` is the poloidal magnetic flux and `\Psi_0` and `\Psi_1` are the values on the axis and at the separatrix, respectively.
   - Therefore, \rho=0 corresponds to the magnetic axis and \rho=1 to the separatrix.
   - The poloidal angle `\theta` is the geometrical one, with positive `\hat{\theta}` pointing counter-clockwise when looking at the direction of positive `\hat{\phi}`.
   - Therefore, for positive `I_p`, `\hat{\theta}` and `\hat{B}_\mathrm{pol}` point in opposite directions.
@@ -125,12 +125,12 @@ ASCOT5 has two main limitations:
 
 The test-particle approximation means that there is no feedback from test particle population to the background plasma nor there are interactions between the test particles in simulation time.
 One can relax this approximation by running short simulations repeatedly and adjusting the background quantities between the simulations based on how the test particle population evolved.
-Note that this doesn't mean that ASCOT5 is cabable of simulating minority species only: bulk plasma species can be simulated as long as one keeps these limitations in mind (e.g. estimating transport coefficients in steady-state plasma is fine).
+Note that this doesn't mean that ASCOT5 is capable of simulating minority species only: bulk plasma species can be simulated as long as one keeps these limitations in mind (e.g. estimating transport coefficients in steady-state plasma is fine).
 
 The other approximation affects how one should interpret the quantities where marker weights are involved, i.e. wall loads and distributions.
 The weight is not actually "how many physical particles this marker represents" but it is a particle flux and has units "particles/s".
 This means that the wall loads are not in units of Joule but in units of Watts.
-Again for stead-state plasmas this works perfectly fine but one must be careful when studying transient phenomena.
+Again for steady-state plasmas this works perfectly fine but one must be careful when studying transient phenomena.
 The distributions are steady-state distributions since every time a distribution is updated in a simulation, we place "weight * dt" in a bin corresponding to marker's current position.
 This means that the resulting histogram has units of "particles".
 Therefore one must be careful when interpreting distributions (or wall loads) in a simulation with an existing particle population that is not given by a constant source, e.g. runaway electrons in a disruption.
@@ -173,7 +173,7 @@ Hamiltonian dynamics yield the particle equations of motion:
     \dot{\mathbf{x}} &= \frac{1}{\gamma m} \mathbf{p}\\
     \dot{\mathbf{p}} &= q\left(\mathbf{E}+\dot{\mathbf{x}}\times\mathbf{B}\right).
 
-The numerical scheme used to solve these equations is `the Volume-Preserving Algorithm (VPA) <https://doi.org/10.1063/1.4916570>`_ which can be though as a relativistic variant of *the Boris scheme* since it preserves marker energy.
+The numerical scheme used to solve these equations is `the Volume-Preserving Algorithm (VPA) <https://doi.org/10.1063/1.4916570>`_ which can be thought of as a relativistic variant of *the Boris scheme* since it preserves marker energy.
 Usually the time-step is small (a fraction of gyro time) when using this scheme, so take care not to set it too small as then the limited machine precision starts to accumulate error.
 This probably happens somewhere below `1\times10^{-12}` s.
 
@@ -185,7 +185,7 @@ Guiding-center
 The gyro-orbit effects can be ignored to obtain faster simulations if:
 
   - Collecting guiding center distribution is sufficient.
-  - Wall loads doesn't have to be exact.
+  - Wall loads don't have to be exact.
   - Magnetic field doesn't vary *much* in time and space during a single gyro-orbit and therefore the magnetic moment is an adiabatic invariant.
 
 In this case one can use the guiding-center approximation.
@@ -213,7 +213,7 @@ The zeroth order terms in the transformation are
    :name: gc-transformation0th
 
    \mathbf{X}_0    &= \mathbf{x},\\
-   vp{\parallel,0} &= \mathbf{p}\cdot\hat{\mathbf{b}},\\
+   p_{\parallel,0} &= \mathbf{p}\cdot\hat{\mathbf{b}},\\
    \mu_0           &= \frac{p_\perp^2}{2mB},\\
    \zeta_0         &= \arctan2(-\hat{\boldsymbol{\rho}}\cdot\hat{\mathbf{e}}_2, \hat{\boldsymbol{\rho}}\cdot\hat{\mathbf{e}}_1).
 
@@ -252,17 +252,17 @@ where the vectors `\hat{\boldsymbol{\rho}}` and `\hat{\boldsymbol{\perp}}` form 
 `(\hat{\boldsymbol{\rho}},\hat{\boldsymbol{\perp}},\hat{\mathbf{b}})` and
 `\hat{\boldsymbol{\rho}}=\hat{\mathbf{b}}\times\hat{\mathbf{v}}`.
 The magnetic field torsion, `\tau_B= \hat{\mathbf{b}}\cdot \nabla\times\hat{\mathbf{b}}`,
-and the magnetic field twist, `\boldsymbol{\kappa} = \hat{\mathbf{b}}\cdot\nabla\hat{\mathbf{b}}`,
+and the magnetic field curvature, `\boldsymbol{\kappa} = \hat{\mathbf{b}}\cdot\nabla\hat{\mathbf{b}}`,
 are related by the relation, `\nabla\times\hat{\mathbf{b}} = \tau_B\hat{\mathbf{b}} + \hat{\mathbf{b}}\times\boldsymbol{\kappa}`.
 Finally, the first order gyroangle term is
 
 .. math::
    :name: gc-transformation1stang
 
-   \zeta_1 = -\boldsymbol{\rho}_g\cdot\mathbf{R} + \frac{p_{\parallel,0}}{qB} \left(\mathbf{a}_2:\nabla\hat{\mathbf{b}}\right) 
+   \zeta_1 = -\boldsymbol{\rho}_g\cdot\mathbf{R} + \frac{p_{\parallel,0}}{qB} \left(\mathbf{a}_2:\nabla\hat{\mathbf{b}}\right)
    + \frac{\rho_g}{B}\hat{\boldsymbol{\perp}}\cdot\left(\nabla B + \frac{p_{\parallel,0}^2}{2m\mu_0}\boldsymbol{\kappa}\right),
 
-where `\mathbf{R}=\nabla\hat{\mathbf{e}}_1\cdot\hat{\mathbf{e}}_2` is the *Littlejohn's gyrogauge vector* and 
+where `\mathbf{R}=\nabla\hat{\mathbf{e}}_1\cdot\hat{\mathbf{e}}_2` is the *Littlejohn's gyrogauge vector* and
 
 .. math::
    :name: gc-a2
@@ -291,8 +291,8 @@ However, the gyroangle can be included as one of the phase space coordinates, fo
 
    \dot{\mathbf{X}}         &= \frac{p_\parallel}{\gamma m} \frac{\mathbf{B}^*}{B_\parallel^*} + \mathbf{E}^*\times\frac{\hat{\mathbf{b}}}{B_\parallel^*},\\
    \dot{p}_\parallel        &= q\mathbf{E}^*\cdot\frac{\mathbf{B}^*}{B_\parallel^*},\\
-   \dot{\boldsymbol{\mu}}   &= 0,\\
-   \dot{\boldsymbol{\zeta}} &= \frac{qB}{\gamma m} + \dot{\mathbf{X}}\cdot\left(\mathbf{R} +\frac{\tau_B}{2}\hat{\mathbf{b}}\right),
+   \dot{\mu}   &= 0,\\
+   \dot{\zeta} &= \frac{qB}{\gamma m} + \dot{\mathbf{X}}\cdot\left(\mathbf{R} +\frac{\tau_B}{2}\hat{\mathbf{b}}\right),
 
 with the effective fields being defined as
 
@@ -300,12 +300,12 @@ with the effective fields being defined as
    :name: gc-effbande
 
    \mathbf{B}^*&= \mathbf{B} + \frac{p_\parallel}{q}\nabla\times\hat{\mathbf{b}},\\
-   \mathbf{E}^*&= \mathbf{E} -\frac{1}{q}\left( \frac{mc^2\mu}{\gamma}\nabla B -p_\parallel\frac{\partial \hat{\mathbf{b}}}{\partial t} \right),
+   \mathbf{E}^*&= \mathbf{E} -\frac{1}{q}\left( \frac{\mu}{\gamma}\nabla B +p_\parallel\frac{\partial \hat{\mathbf{b}}}{\partial t} \right),
 
 and `B^*_\parallel=\hat{\mathbf{b}}\cdot\mathbf{B}^*`.
 
 In the code, the guiding-center equations of motion can be solved with either RK4 (fixed time-step) or Cash-Karp (adaptive time-step).
-These methods don't preserve the marker energy, but one can choose the time-step to bee small enough so that the resulting error is insignificant.
+These methods don't preserve the marker energy, but one can choose the time-step to be small enough so that the resulting error is insignificant.
 
 Note that when tracing guiding centers, the gyro angle is not solved so this information is lost and the transformation back to particle coordinates effectively uses a random gyro angle.
 
@@ -317,7 +317,7 @@ The test particle collision operator is based on *the Landau collision operator*
 .. math::
    :name: collision-particle
 
-   d\mathbf{p} = -K\mathbf{p}dt + \left(\sqrt{2D_\parallel}\hat{\mathbf{p}}\hat{\mathbf{p}} 
+   d\mathbf{p} = -K\mathbf{p}dt + \left(\sqrt{2D_\parallel}\hat{\mathbf{p}}\hat{\mathbf{p}}
    + \sqrt{2D_\perp}\left(\mathbf{I}-\hat{\mathbf{p}}\hat{\mathbf{p}}\right)\right)\cdot d\mathbf{W},
 
 where we have assumed that the background plasma is isotropic.
@@ -371,14 +371,14 @@ where
 .. math::
    :name: collision-f
 
-   F=\sum_b\frac{2\Gamma_{b}}{m^2 v_b^2}\frac{G(v/v_b)}{v}.
+   F=\sum_b\frac{2\Gamma_{b}}{m m_b v_b^2}\frac{G(v/v_b)}{v}.
 
 The spatial diffusion coefficient corresponding to the classical diffusion is
 
 .. math::
    :name: collision-dx
 
-   D_\mathbf{X} = \left[(D_\parallel - D_\perp)\frac{1-\xi^2}{2} + D_\perp\right]\frac{c^2}{\omega_g}.
+   D_\mathbf{X} = \left[(D_\parallel - D_\perp)\frac{1-\xi^2}{2} + D_\perp\right]\frac{1}{\omega_g^2}.
 
 The guiding center collision operator is obtained by transforming the particle Fokker-Planck equation to the guiding-center phase-space and performing gyro-averaging for the result.
 Therefore collisions make the gyro angle intractable in guiding center simulations.
@@ -388,7 +388,7 @@ Note that in the code it is possible to toggle individual components in the guid
 
 The collisions are applied separately in the code right after the orbit-step has been taken.
 Physics-wise these should be evaluated simultaneously with the deterministic motion due to the Lorentz force residing inside the advection coefficient `\mathrm{K}`, but for practical applications this is not feasible.
-This is because the orbit-integration requires a high-order numerical scheme whereas those schemes does not exist or they are overly complicated in case of stochastic differential equations.
+This is because the orbit-integration requires a high-order numerical scheme whereas those schemes do not exist or they are overly complicated in case of stochastic differential equations.
 
 The collisions in the particle picture are solved with the Euler-Maruyama method (a SDE version of the Euler method),
 
@@ -400,7 +400,7 @@ The collisions in the particle picture are solved with the Euler-Maruyama method
    + \sqrt{2D_\perp\Delta t}(\boldsymbol{\beta}-(\hat{\mathbf{p}}\cdot\boldsymbol{\beta})\hat{\mathbf{p}}).
 
 Here `\boldsymbol{\beta}` is a random vector whose values are sampled from the Normal distribution.
-In the guiding center picture, the collisions are resolved with the Euler-Maruyama methdon when a fixed time-step is used.
+In the guiding center picture, the collisions are resolved with the Euler-Maruyama method when a fixed time-step is used.
 For the adaptive step it is necessary to use a higher-order method, for which we have chosen the Milstein method,
 
 .. math::
@@ -426,7 +426,7 @@ Instead the mean and the variance are given by the so-called Brownian bridge:
 
 In other words, whenever a time-step is rejected, the generated Wiener process is stored and used to generate new values until the simulation passes that moment.
 
-Finally, the collision operator have to deal with pitch being limited to range `[-1,1]` and the guiding center collision coefficients diverging at `p=0`.
+Finally, the collision operator has to deal with pitch being limited to range `[-1,1]` and the guiding center collision coefficients diverging at `p=0`.
 These are dealt with by using reflecting boundary conditions for pitch and for momentum at some small value of `p` (a fraction of thermal momentum).
 
 
@@ -466,8 +466,8 @@ TBD
 Magnetic field interpolation
 ============================
 
-ASCOT5 uses modular inputs meaning that there are no specific way that inputs are interpolated during the simulation and new schemes can be included with tolerable effort.
-However, the magnetic field data has huge impact on how accurate are the results are and how fast are the the simulations.
+ASCOT5 uses modular inputs meaning that there is no specific way that inputs are interpolated during the simulation and new schemes can be included with tolerable effort.
+However, the magnetic field data has huge impact on how accurate the results are and how fast the the simulations are.
 Therefore we review the magnetic field interpolation schemes here.
 See here for details on other inputs.
 
@@ -510,7 +510,7 @@ During the simulation, the marker cylindrical coordinates are mapped to straight
 This mapping is implemented only for stationary tokamak fields and we further assume that the field is axisymmetric (but these can be used in non-axisymmetric fields as well).
 Our choice of the coordinate system are the Boozer coordinates `(\psi,\theta,\zeta)`, where `\psi` is the poloidal flux, `\theta` is the Boozer poloidal angle which points in same direction as the geometrical poloidal angle `\theta_\mathrm{geo}` (counter-clockwise when looking at the same direction as positive `\hat{\phi}`, and `\zeta = \phi - \nu` is the Boozer toroidal angle with the same positive direction as the cylindrical toroidal angle.
 Both Boozer angular coordinates have the periodicity of `2\pi`.
-To faciliate the mapping in run-time, we precalculate `\theta(\rho,\theta_\mathrm{geo})` and `\nu(\rho,\theta)` in an uniform grid and use the tabulated values together with the cubic-spline interpolation to perform the mapping.
+To facilitate the mapping in run-time, we precalculate `\theta(\rho,\theta_\mathrm{geo})` and `\nu(\rho,\theta)` in an uniform grid and use the tabulated values together with the cubic-spline interpolation to perform the mapping.
 
 The computation of `\theta` and `\nu` is based on `these notes <https://youjunhu.github.io/research_notes/tokamak_equilibrium.pdf>`_ and is performed as follows.
 First we find an equicontour of `\psi` on the `(R,z)` plane.
@@ -524,7 +524,7 @@ The coordinate transformation requires the calculation of the Boozer Jacobian,
    J = \frac{I+qg}{B^2},
 
 where `q(\psi)` is the safety factor, `g=RB_\mathrm{phi}`, and `I(\psi)` is toroidal current function that is related to enclosed plasma current as `I_p(\psi) = (2\pi/\mu_0)I(\psi)`, where `\mu_0` is the magnetic constant.
-The safetu factor and the toroidal current function are evaluated using line integrals, where the integration starts from the outer mid-plane and proceeds in the same direction as `\hat{\theta}_\mathrm{geo}`:
+The safety factor and the toroidal current function are evaluated using line integrals, where the integration starts from the outer mid-plane and proceeds in the same direction as `\hat{\theta}_\mathrm{geo}`:
 
 .. math::
    :name: boozer-Iqg
@@ -560,7 +560,7 @@ Including MHD in orbit-following
 ********************************
 
 The perturbation is included in simulations when calculating the orbit-following part.
-In gyro-orbit and field lines simulations, the pertubation components `\tilde{\mathbf{B}}` and `\tilde{\mathbf{E}}` are computed and directly added to the background field when solving the equations of motion.
+In gyro-orbit and field lines simulations, the perturbation components `\tilde{\mathbf{B}}` and `\tilde{\mathbf{E}}` are computed and directly added to the background field when solving the equations of motion.
 Note that in the field-line simulations, the time is frozen so that the modes are not rotating and constructing field-line Poincaré plots show a snapshot of the field structure.
 
 For the guiding center simulations, the perturbation is included by modifying the effective potentials, Eq. :math:numref:`gc-effbande`:
