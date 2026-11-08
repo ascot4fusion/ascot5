@@ -48,10 +48,10 @@ def test_hist_init_from_params():
                 hist.dimensions["r"],
                 unyt.unyt_array(np.linspace(0, 1, 11), unyt.m),
                 ).all()
-            assert hist._cdata.dimensions[i].nbin == 10
+            assert hist._cdata.dimensions[i].n == 10
         else:
             assert dimension not in hist.dimensions
-            assert hist._cdata.dimensions[i].nbin == 0
+            assert hist._cdata.dimensions[i].n == 0
 
 
 def test_hist_store_hdf5(hist, file):
