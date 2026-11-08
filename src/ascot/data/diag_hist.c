@@ -67,89 +67,74 @@ void DiagHist_update_go(
 
         int valid = 1;
         axis = &hist->axes[15];
-        size_t i15 = ((mrk_f->charge[i] - axis->min) /
-                      (axis->max - axis->min)) *
-                     axis->n;
-        valid *= axis->n ? 1
-                         : (mrk_f->charge[i] >= axis->min &&
-                            mrk_f->charge[i] <= axis->max);
+        size_t i15 =
+            math_bin_index(mrk_f->charge[i], axis->n, axis->min, axis->max);
+        valid *= (mrk_f->charge[i] >= axis->min && mrk_f->charge[i] <= axis->max);
 
         axis = &hist->axes[14];
         size_t i14 =
             math_bin_index(mrk_f->time[i], axis->n, axis->min, axis->max);
-        valid *= axis->n ? 1
-                         : (mrk_f->time[i] > axis->min &&
-                            mrk_f->time[i] < axis->max);
+        valid *= (mrk_f->time[i] >= axis->min && mrk_f->time[i] <= axis->max);
 
         axis = &hist->axes[13];
         size_t i13 = math_bin_index(ptor, axis->n, axis->min, axis->max);
-        valid *= axis->n ? 1 : (ptor > axis->min && ptor < axis->max);
+        valid *= (ptor >= axis->min && ptor <= axis->max);
 
         axis = &hist->axes[12];
         size_t i12 = math_bin_index(mu, axis->n, axis->min, axis->max);
-        valid *= axis->n ? 1 : (mu > axis->min && mu < axis->max);
+        valid *= (mu >= axis->min && mu <= axis->max);
 
         axis = &hist->axes[11];
         size_t i11 = math_bin_index(pitch, axis->n, axis->min, axis->max);
-        valid *= axis->n ? 1 : (pitch > axis->min && pitch < axis->max);
+        valid *= (pitch >= axis->min && pitch <= axis->max);
 
         axis = &hist->axes[10];
         size_t i10 = math_bin_index(ekin, axis->n, axis->min, axis->max);
-        valid *= axis->n ? 1 : (ekin > axis->min && ekin < axis->max);
+        valid *= (ekin >= axis->min && ekin <= axis->max);
 
         axis = &hist->axes[9];
         size_t i9 =
             math_bin_index(mrk_f->p_z[i], axis->n, axis->min, axis->max);
-        valid *= axis->n
-                     ? 1
-                     : (mrk_f->p_z[i] > axis->min && mrk_f->p_z[i] < axis->max);
+        valid *= (mrk_f->p_z[i] >= axis->min && mrk_f->p_z[i] <= axis->max);
 
         axis = &hist->axes[8];
         size_t i8 =
             math_bin_index(mrk_f->p_phi[i], axis->n, axis->min, axis->max);
-        valid *= axis->n ? 1
-                         : (mrk_f->p_phi[i] > axis->min &&
-                            mrk_f->p_phi[i] < axis->max);
+        valid *= (mrk_f->p_phi[i] >= axis->min && mrk_f->p_phi[i] <= axis->max);
 
         axis = &hist->axes[7];
         size_t i7 =
             math_bin_index(mrk_f->p_r[i], axis->n, axis->min, axis->max);
-        valid *= axis->n
-                     ? 1
-                     : (mrk_f->p_r[i] > axis->min && mrk_f->p_r[i] < axis->max);
+        valid *= (mrk_f->p_r[i] >= axis->min && mrk_f->p_r[i] <= axis->max);
 
         axis = &hist->axes[6];
         size_t i6 = math_bin_index(pperp, axis->n, axis->min, axis->max);
-        valid *= axis->n ? 1 : (pperp > axis->min && pperp < axis->max);
+        valid *= (pperp >= axis->min && pperp <= axis->max);
 
         axis = &hist->axes[5];
         size_t i5 = math_bin_index(ppar, axis->n, axis->min, axis->max);
-        valid *= axis->n ? 1 : (ppar > axis->min && ppar < axis->max);
+        valid *= (ppar >= axis->min && ppar <= axis->max);
 
         axis = &hist->axes[4];
         size_t i4 = math_bin_index(theta, axis->n, axis->min, axis->max);
-        valid *= axis->n ? 1 : (theta > axis->min && theta < axis->max);
+        valid *= (theta >= axis->min && theta <= axis->max);
 
         axis = &hist->axes[3];
         size_t i3 =
             math_bin_index(mrk_f->rho[i], axis->n, axis->min, axis->max);
-        valid *= axis->n
-                     ? 1
-                     : (mrk_f->rho[i] > axis->min && mrk_f->rho[i] < axis->max);
+        valid *= (mrk_f->rho[i] >= axis->min && mrk_f->rho[i] <= axis->max);
 
         axis = &hist->axes[2];
         size_t i2 = math_bin_index(mrk_f->z[i], axis->n, axis->min, axis->max);
-        valid *=
-            axis->n ? 1 : (mrk_f->z[i] > axis->min && mrk_f->z[i] < axis->max);
+        valid *= (mrk_f->z[i] >= axis->min && mrk_f->z[i] <= axis->max);
 
         axis = &hist->axes[1];
         size_t i1 = math_bin_index(phi, axis->n, axis->min, axis->max);
-        valid *= axis->n ? 1 : (phi > axis->min && phi < axis->max);
+        valid *= (phi >= axis->min && phi <= axis->max);
 
         axis = &hist->axes[0];
         size_t i0 = math_bin_index(mrk_f->r[i], axis->n, axis->min, axis->max);
-        valid *=
-            axis->n ? 1 : (mrk_f->r[i] > axis->min && mrk_f->r[i] < axis->max);
+        valid *= (mrk_f->r[i] >= axis->min && mrk_f->r[i] <= axis->max);
 
         size_t *n = hist->strides;
         size_t index = i0 * n[0] + i1 * n[1] + i2 * n[2] + i3 * n[3] +
@@ -198,74 +183,64 @@ void DiagHist_update_gc(
 
         int valid = 1;
         axis = &hist->axes[15];
-        size_t i15 = ((mrk_f->charge[i] - axis->min) /
-                      (axis->max - axis->min)) *
-                     axis->n;
-        valid *= axis->n ? 1
-                         : (mrk_f->charge[i] >= axis->min &&
-                            mrk_f->charge[i] <= axis->max);
+        size_t i15 =
+            math_bin_index(mrk_f->charge[i], axis->n, axis->min, axis->max);
+        valid *= (mrk_f->charge[i] >= axis->min &&
+                  mrk_f->charge[i] <= axis->max);
 
         axis = &hist->axes[14];
         size_t i14 =
             math_bin_index(mrk_f->time[i], axis->n, axis->min, axis->max);
-        valid *= axis->n ? 1
-                         : (mrk_f->time[i] > axis->min &&
-                            mrk_f->time[i] < axis->max);
+        valid *= (mrk_f->time[i] >= axis->min && mrk_f->time[i] <= axis->max);
 
         axis = &hist->axes[13];
         size_t i13 = math_bin_index(ptor, axis->n, axis->min, axis->max);
-        valid *= axis->n ? 1 : (ptor > axis->min && ptor < axis->max);
+        valid *= (ptor >= axis->min && ptor <= axis->max);
 
         axis = &hist->axes[12];
         size_t i12 = math_bin_index(mrk_f->mu[i], axis->n, axis->min, axis->max);
-        valid *= axis->n ? 1 : (mrk_f->mu[i] > axis->min && mrk_f->mu[i] < axis->max);
+        valid *= (mrk_f->mu[i] >= axis->min && mrk_f->mu[i] <= axis->max);
 
         axis = &hist->axes[11];
         size_t i11 = math_bin_index(pitch, axis->n, axis->min, axis->max);
-        valid *= axis->n ? 1 : (pitch > axis->min && pitch < axis->max);
+        valid *= (pitch >= axis->min && pitch <= axis->max);
 
         axis = &hist->axes[10];
         size_t i10 = math_bin_index(ekin, axis->n, axis->min, axis->max);
-        valid *= axis->n ? 1 : (ekin > axis->min && ekin < axis->max);
+        valid *= (ekin >= axis->min && ekin <= axis->max);
 
         // In GC mode pr, pphi, and pz are not defined
         size_t i9 = 0, i8 = 0, i7 = 0;
 
         axis = &hist->axes[6];
         size_t i6 = math_bin_index(pperp, axis->n, axis->min, axis->max);
-        valid *= axis->n ? 1 : (pperp > axis->min && pperp < axis->max);
+        valid *= (pperp >= axis->min && pperp <= axis->max);
 
         axis = &hist->axes[5];
         size_t i5 =
             math_bin_index(mrk_f->ppar[i], axis->n, axis->min, axis->max);
-        valid *= axis->n ? 1
-                         : (mrk_f->ppar[i] > axis->min &&
-                            mrk_f->ppar[i] < axis->max);
+        valid *= (mrk_f->ppar[i] >= axis->min && mrk_f->ppar[i] <= axis->max);
 
         axis = &hist->axes[4];
         size_t i4 = math_bin_index(theta, axis->n, axis->min, axis->max);
-        valid *= axis->n ? 1 : (theta > axis->min && theta < axis->max);
+        valid *= (theta >= axis->min && theta <= axis->max);
 
         axis = &hist->axes[3];
         size_t i3 =
             math_bin_index(mrk_f->rho[i], axis->n, axis->min, axis->max);
-        valid *= axis->n
-                     ? 1
-                     : (mrk_f->rho[i] > axis->min && mrk_f->rho[i] < axis->max);
+        valid *= (mrk_f->rho[i] >= axis->min && mrk_f->rho[i] <= axis->max);
 
         axis = &hist->axes[2];
         size_t i2 = math_bin_index(mrk_f->z[i], axis->n, axis->min, axis->max);
-        valid *=
-            axis->n ? 1 : (mrk_f->z[i] > axis->min && mrk_f->z[i] < axis->max);
+        valid *= (mrk_f->z[i] >= axis->min && mrk_f->z[i] <= axis->max);
 
         axis = &hist->axes[1];
         size_t i1 = math_bin_index(phi, axis->n, axis->min, axis->max);
-        valid *= axis->n ? 1 : (phi > axis->min && phi < axis->max);
+        valid *= (phi >= axis->min && phi <= axis->max);
 
         axis = &hist->axes[0];
         size_t i0 = math_bin_index(mrk_f->r[i], axis->n, axis->min, axis->max);
-        valid *=
-            axis->n ? 1 : (mrk_f->r[i] > axis->min && mrk_f->r[i] < axis->max);
+        valid *= (mrk_f->r[i] >= axis->min && mrk_f->r[i] <= axis->max);
 
         size_t *n = hist->strides;
         size_t index = i0 * n[0] + i1 * n[1] + i2 * n[2] + i3 * n[3] +
