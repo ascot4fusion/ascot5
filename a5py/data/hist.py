@@ -661,8 +661,13 @@ class Hist():
         max_dim = len(DIMENSIONS)
         cdata.strides[max_dim - 2] = max(cdata.dimensions[max_dim-1].n, 1)
         for i in np.flip(np.arange(max_dim)):
-            cdata.dimensions[i].min = 0
-            cdata.dimensions[i].max = 1
+            # Measured charge is discrete. We offset the buckets by a half
+            if dimensions[i] == "charge":
+                cdata.dimensions[i].min = params.charge_interval[0] - 0.5
+                cdata.dimensions[i].max = params.charge_interval[1] + 0.5
+            else:
+                cdata.dimensions[i].min = np.finfo(np.float64).min
+                cdata.dimensions[i].max = np.finfo(np.float64).max
             cdata.dimensions[i].n = 0
             for j, coord in enumerate(idx):
                 if i == coord:
