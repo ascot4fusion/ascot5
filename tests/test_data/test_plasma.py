@@ -11,11 +11,12 @@ def test_plasmalinear1d_init():
     species = ["H", "He4"]
     charge = [1, 2]
     rhogrid = np.linspace(0.1, 1.0, 10)
-    ni = np.random.random((rhogrid.size, len(species))) * unyt.m**(-3)
-    Ti = np.random.random((rhogrid.size,)) * unyt.eV
-    ne = np.random.random((rhogrid.size,)) * unyt.m**(-3)
-    Te = np.random.random((rhogrid.size,)) * unyt.eV
-    rotation = np.random.random((rhogrid.size,)) * unyt.rad / unyt.s
+    rng = np.random.default_rng(123)
+    ni = rng.random((rhogrid.size, len(species))) * unyt.m**(-3)
+    Ti = rng.random((rhogrid.size,)) * unyt.eV
+    ne = rng.random((rhogrid.size,)) * unyt.m**(-3)
+    Te = rng.random((rhogrid.size,)) * unyt.eV
+    rotation = rng.random((rhogrid.size,)) * unyt.rad / unyt.s
     obj = ascot.data.create_plasmalinear1d(
         species=species,
         rhogrid=rhogrid,
@@ -35,11 +36,12 @@ def test_plasmalinear2d_init():
     charge = [1, 2]
     rgrid = np.linspace(0.1, 1.0, 10)
     zgrid = np.linspace(-1.0, 1.0, 12)
-    ni = np.random.random((rgrid.size, zgrid.size, len(species))) * unyt.m**(-3)
-    Ti = np.random.random((rgrid.size, zgrid.size)) * unyt.eV
-    ne = np.random.random((rgrid.size, zgrid.size)) * unyt.m**(-3)
-    Te = np.random.random((rgrid.size, zgrid.size)) * unyt.eV
-    rotation = np.random.random((rgrid.size, zgrid.size)) * unyt.rad / unyt.s
+    rng = np.random.default_rng(123)
+    ni = rng.random((rgrid.size, zgrid.size, len(species))) * unyt.m**(-3)
+    Ti = rng.random((rgrid.size, zgrid.size)) * unyt.eV
+    ne = rng.random((rgrid.size, zgrid.size)) * unyt.m**(-3)
+    Te = rng.random((rgrid.size, zgrid.size)) * unyt.eV
+    rotation = rng.random((rgrid.size, zgrid.size)) * unyt.rad / unyt.s
     obj = ascot.data.create_plasmalinear2d(
         species=species,
         rgrid=rgrid, zgrid=zgrid,
@@ -60,11 +62,12 @@ def test_plasmadynamic1d_init():
     charge = [1, 2]
     rhogrid = np.linspace(0.1, 1.0, 10)
     timegrid = np.linspace(-1.0, 1.0, 12)
-    ni = np.random.random((rhogrid.size, timegrid.size, len(species))) * unyt.m**(-3)
-    Ti = np.random.random((rhogrid.size, timegrid.size)) * unyt.eV
-    ne = np.random.random((rhogrid.size, timegrid.size)) * unyt.m**(-3)
-    Te = np.random.random((rhogrid.size, timegrid.size)) * unyt.eV
-    rotation = np.random.random((rhogrid.size, timegrid.size)) * unyt.rad / unyt.s
+    rng = np.random.default_rng(123)
+    ni = rng.random((rhogrid.size, timegrid.size, len(species))) * unyt.m**(-3)
+    Ti = rng.random((rhogrid.size, timegrid.size)) * unyt.eV
+    ne = rng.random((rhogrid.size, timegrid.size)) * unyt.m**(-3)
+    Te = rng.random((rhogrid.size, timegrid.size)) * unyt.eV
+    rotation = rng.random((rhogrid.size, timegrid.size)) * unyt.rad / unyt.s
     obj = ascot.data.create_plasmadynamic1d(
         species=species,
         rhogrid=rhogrid, timegrid=timegrid,

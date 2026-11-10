@@ -88,8 +88,9 @@ def test_interpolate_analytical(ascot):
     obj = template.create_input()
 
     n = 100
-    r = (4 + (8.2 - 4) * np.random.rand(n))*unyt.m
-    z = (-2 + (2 - -2) * np.random.rand(n))*unyt.m
+    rng = np.random.default_rng(123)
+    r = (4 + (8.2 - 4) * rng.random(n))*unyt.m
+    z = (-2 + (2 - -2) * rng.random(n))*unyt.m
 
     rho0, psi0 = evaluate(
         r, 0*unyt.deg, z, 0.*unyt.s, "rho", "psi", bfield=obj
