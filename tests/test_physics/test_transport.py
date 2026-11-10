@@ -35,13 +35,14 @@ def test_classical(ascot: Ascot, method, inspect, plot):
             if method == "gc-fixedstep":
                 parameters.simulation.enable_adaptive = False
 
+        rng = np.random.default_rng(123)
         ascot.data.create_guidingcentermarker(
             species="proton",
             r=5*unyt.m,
             z=0.0*unyt.m,
             phi=0.0*unyt.deg,
             ekin=1e3*unyt.eV,
-            pitch=1.0 - 2.0 * np.random.rand(1000,),
+            pitch=1.0 - 2.0 * rng.random(1000,),
             )
 
         # Pure electron plasma to avoid proton-proton collisions
@@ -70,13 +71,14 @@ def test_classical(ascot: Ascot, method, inspect, plot):
 )
 def test_neoclassical_tokamak(ascot: Ascot, method, inspect, plot):
     if not inspect:
+        rng = np.random.default_rng(123)
         ascot.data.create_guidingcentermarker(
             species="proton",
             r=7.2*unyt.m,
             z=0.0*unyt.m,
             phi=0.0*unyt.deg,
             ekin=1e3*unyt.eV,
-            pitch=1.0 - 2.0 * np.random.rand(100,),
+            pitch=1.0 - 2.0 * rng.random(100,),
             charge=1.*unyt.e,
             )
 

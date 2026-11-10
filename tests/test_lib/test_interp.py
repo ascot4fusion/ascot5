@@ -111,8 +111,9 @@ def test_solve_compact_cubic_spline():
 )
 def test_spline_1d(periodic):
     nq = 1000
+    rng = np.random.default_rng(123)
     xlim = np.array([-np.pi, np.pi], dtype=np.float64)
-    xq = xlim[0] + np.random.rand(nq) * (xlim[1] - xlim[0])
+    xq = xlim[0] + rng.random(nq) * (xlim[1] - xlim[0])
     ngrid = np.array([10, 20, 40, 80, 160])
     spline = Spline1D()
 
@@ -159,10 +160,11 @@ def test_spline_1d(periodic):
 )
 def test_spline_2d(periodic):
     nq = 1000
+    rng = np.random.default_rng(123)
     xlim = np.array([-np.pi, np.pi], dtype=np.float64)
     ylim = np.array([-np.pi/2, np.pi/2], dtype=np.float64)
-    xq = xlim[0] + np.random.rand(nq) * (xlim[1] - xlim[0])
-    yq = ylim[0] + np.random.rand(nq) * (ylim[1] - ylim[0])
+    xq = xlim[0] + rng.random(nq) * (xlim[1] - xlim[0])
+    yq = ylim[0] + rng.random(nq) * (ylim[1] - ylim[0])
     ngrid = np.array([10, 20, 40, 80, 160])
     spline = Spline2D()
 
@@ -220,14 +222,15 @@ def test_spline_2d(periodic):
 @pytest.mark.parametrize(
     "periodic", [True, False]
 )
-def test_spline_2d(periodic):
+def test_spline_3d(periodic):
     nq = 1000
+    rng = np.random.default_rng(123)
     xlim = np.array([-np.pi, np.pi], dtype=np.float64)
     ylim = np.array([-np.pi/2, np.pi/2], dtype=np.float64)
     zlim = np.array([-np.pi/3, np.pi/3], dtype=np.float64)
-    xq = xlim[0] + np.random.rand(nq) * (xlim[1] - xlim[0])
-    yq = ylim[0] + np.random.rand(nq) * (ylim[1] - ylim[0])
-    zq = zlim[0] + np.random.rand(nq) * (zlim[1] - zlim[0])
+    xq = xlim[0] + rng.random(nq) * (xlim[1] - xlim[0])
+    yq = ylim[0] + rng.random(nq) * (ylim[1] - ylim[0])
+    zq = zlim[0] + rng.random(nq) * (zlim[1] - zlim[0])
     ngrid = np.array([10, 20, 40, 80, 160])
     spline = Spline3D()
 
