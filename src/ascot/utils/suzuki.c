@@ -1,13 +1,25 @@
 /**
- * Implements "suzuki.h".
+ * Implements Suzuki BMS rate coefficient in "rate_coefficients.h".
  */
-#include "suzuki.h"
+#include "ratecoefficients.h"
 #include "consts.h"
 #include "defines.h"
+#include <float.h>
 #include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
 
+/** Number of tabulated impurity datasets (there are two for helium). */
+#define NIMPURITIES 9
+
+/**
+ * Fitting parameters for Aijk in equation 28.
+ *
+ * Table 2a from Suzuki's paper for H, D, and T. Note the last column in the
+ * paper is for different magnetic field magnitude, whose effect was negligible
+ * and so that is not included here.
+ *
+ * These values are valid in range 100 < E (keV/amu) < 10000.
+ */
 const real A_highE[3][10] = {
     {12.7, 1.25, 0.452, 0.0105, 0.547, -0.102, 0.360, -0.0298, -0.0959,
      4.21e-3},
@@ -16,6 +28,15 @@ const real A_highE[3][10] = {
     {12.7, 1.26, 0.449, 0.0105, 0.547, -0.00577, 0.336, -0.0282, -0.0974,
      4.87e-3}};
 
+/**
+ * Fitting parameters for Aijk in equation 28.
+ *
+ * Table 3a from Suzuki's paper for H, D, and T. Note the last column in the
+ * paper is for different magnetic field magnitude, whose effect was negligible
+ * and so that is not included here.
+ *
+ * These values are valid in range 10 < E (keV/amu) < 100.
+ */
 const real A_lowE[3][10] = {
     {-52.9, -1.36, 0.0719, 0.0137, 0.454, 0.403, -0.220, 0.0666, -0.0677,
      -1.48e-3},
@@ -24,12 +45,33 @@ const real A_lowE[3][10] = {
     {-74.2, -1.18, 0.0843, 0.0139, 0.453, 0.491, -0.294, 0.0788, -0.0612,
      -1.85e-4}};
 
+/**
+ * Charge number corresponding to the tabulated values of Bijk.
+ */
 const int Z_imp[NIMPURITIES] = {2, 6, 6, 8, 7, 5, 26};
 
+/**
+ * Minimum valid Zeff corresponding to the tabulated values of Bijk.
+ */
 const real Zeffmin_imp[NIMPURITIES] = {1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 1.0};
 
-const real Zeffmax_imp[NIMPURITIES] = {2.1, 5.0, 6.0, 5.0, 5.0, 5.0, 5.0};
+/**
+ * Maximum valid Zeff corresponding to the tabulated values of Bijk.
+ *
+ * Note that for He the value should be 2, but the paper itself applies the
+ * model to a plasma that has Zeff=3 (Fig. 2). Therefore we have used 3 instead.
+ */
+const real Zeffmax_imp[NIMPURITIES] = {3.0, 5.0, 6.0, 5.0, 5.0, 5.0, 5.0};
 
+/**
+ * Fitting parameters for Bijk in equation 28
+ *
+ * Table 2bc (partially) from Suzuki's paper for H, D, and T. These values are
+ * valid in range 100 < E (keV/amu) < 10000.
+ *
+ * Note: Li and Be are same in Suzuki's paper which cannot be true. Therefore
+ * these are not included here.
+ */
 const real B_highE[NIMPURITIES][12] = {
     {0.231, 0.343, -0.185, -0.162e-1, 0.105, -0.703e-1, 0.531e-1, 0.342e-2,
      -0.838e-2, 0.415e-2, -0.335e-2, -0.221e-3},
@@ -46,6 +88,15 @@ const real B_highE[NIMPURITIES][12] = {
     {-0.820, -0.636e-2, 0.542e-1, 0.395e-2, 0.202, 0.806e-3, -0.200e-2,
      -0.178e-2, -0.610e-2, 0.651e-3, 0.175e-2, 0.146e-3}};
 
+/**
+ * Fitting parameters for Bijk in equation 28.
+ *
+ * Table 3bc (partially) from Suzuki's paper for H, D, and T. These values are
+ * valid in range 10 < E (keV/amu) < 100.
+ *
+ * Note: Li and Be are same in Suzuki's paper which cannot be true. Therefore
+ * these are not included here.
+ */
 const real B_lowE[NIMPURITIES][12] = {
     {-0.792, 0.420e-1, 0.530e-1, -0.139e-1, 0.301, -0.264e-1, -0.299e-1,
      0.607e-2, 0.272e-3, 0.611e-2, 0.347e-2, -0.919e-3},
@@ -62,9 +113,9 @@ const real B_lowE[NIMPURITIES][12] = {
     {-0.110e-1, 0.202e-1, 0.946e-3, -0.409e-2, -0.666e-2, -0.117e-1, -0.236e-3,
      0.202e-2, 0.408e-2, 0.185e-2, -0.648e-4, -0.313e-3}};
 
-err_t suzuki_sigmav(
-    real *sigmav, real eperamu, real vnorm, real ne, real te, size_t nion,
-    real *ni, const int *anum, const int *znum)
+err_t suzuki_sigma(
+    real *sigmav, real eperamu, real ne, real te, size_t nion, real *ni,
+    const int *anum, const int *znum)
 {
     err_t err = 0;
     /* Convert eperamu to keV and te to eV */
@@ -144,20 +195,22 @@ err_t suzuki_sigmav(
     sigma_H /= dens_H;
 
     /* Equations 26 & 27 for Sz */
-    real numerator = 0, denominator = 0;
+    real numerator = 0, denominator = DBL_MIN;
     for (size_t i = 0; i < n_Z; i++)
     {
-        int ind_B = -1;
+        size_t ind_B = NIMPURITIES;
         for (size_t j = 0; j < NIMPURITIES; j++)
         {
-            if (Z_imp[j] == znum[ind_Z[i]] && Zeff > Zeffmin_imp[j] &&
-                Zeff < Zeffmax_imp[j])
+            if (Z_imp[j] == znum[ind_Z[i]] && Zeff >= Zeffmin_imp[j] &&
+                Zeff <= Zeffmax_imp[j])
                 ind_B = j;
         }
-        err = ERROR_CHECK(err, ind_B < 0, ERR_PRECHECK_FAILED, UTILS_SUZUKI_C);
+        err = ERROR_CHECK(
+            err, ind_B == NIMPURITIES, ERR_PRECHECK_FAILED, UTILS_SUZUKI_C);
         denominator += znum[ind_Z[i]] * (znum[ind_Z[i]] - 1) * ni[ind_Z[i]];
-        numerator += znum[ind_Z[i]] * (znum[ind_Z[i]] - 1) * ni[ind_Z[i]]
-            * (B[ind_B][0] + B[ind_B][1] * U + B[ind_B][2] * logN +
+        numerator +=
+            znum[ind_Z[i]] * (znum[ind_Z[i]] - 1) * ni[ind_Z[i]] *
+            (B[ind_B][0] + B[ind_B][1] * U + B[ind_B][2] * logN +
              B[ind_B][3] * logN * U + B[ind_B][4] * logE +
              B[ind_B][5] * logE * U + B[ind_B][6] * logE * logN +
              B[ind_B][7] * logE * logN * U + B[ind_B][8] * logE * logE +
@@ -167,11 +220,6 @@ err_t suzuki_sigmav(
     real sigma_Z = numerator / denominator;
 
     /* Equation 24 and convert cm^2 to m^2*/
-    *sigmav = sigma_H * (1 + (Zeff - 1) * sigma_Z) * 1e-4;
-    /* Multiply with velocity to get correct units */
-    *sigmav *= vnorm;
-
-    if (err)
-        *sigmav = 0.0;
+    *sigmav = err ? 0.0 : sigma_H * (1 + (Zeff - 1) * sigma_Z) * 1e-4;
     return err;
 }

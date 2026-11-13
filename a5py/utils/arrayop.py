@@ -272,7 +272,7 @@ def validate_abscissa(
         raise ValueError(f"{name} must be increasing.")
 
     dx_expected = np.diff( abscissa[[0,-1]] ) / ( nx - 1 )
-    if uniform and not np.allclose(dx, dx_expected):
+    if uniform and not np.allclose(dx, dx_expected, atol=0):
         raise ValueError(f"{name} must be uniform.")
 
     xmax, xmin = abscissa[-1] + dx[0], abscissa[0]

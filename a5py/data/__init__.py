@@ -11,7 +11,7 @@ from .neutral import Neutral
 from .wall import Wall
 from .mhd import Mhd
 from .boozer import Boozer
-from .atomic import Atomic
+from .atomic import Struct as Atomic, CXdata, BMSdata, IIdata, EIdata
 from .nbi import NbiStruct
 from .orbit import Orbit
 from .hist import Hist
@@ -37,4 +37,8 @@ __all__ = [
     "OrbitParams",
     "HistParams",
     "SimulationOptions",
+    "CXdata",
+    "BMSdata",
+    "IIdata",
+    "EIdata",
 ]

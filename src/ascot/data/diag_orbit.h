@@ -8,7 +8,6 @@
 #include "diag.h"
 #include "marker.h"
 #include "bfield.h"
-#include <stdio.h>
 
 #define DIAG_ORB_GO 1 /**< Data stored in FO mode */
 #define DIAG_ORB_GC 2 /**< Data stored in GC mode */
@@ -16,12 +15,14 @@
 
 
 /**
+ * Offload data to the accelerator.
  *
  * @param orbit Orbit diagnostics.
  */
 void DiagOrbit_offload(DiagOrbit *orbit);
 
 /**
+ * Load data from the accelerator.
  *
  * @param orbit Orbit diagnostics.
  */

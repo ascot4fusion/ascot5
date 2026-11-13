@@ -24,8 +24,8 @@ class Struct(DataStruct):
         ("nspecies", ctypes.c_int32),
         ("anum", ctypes.POINTER(ctypes.c_int32)),
         ("znum", ctypes.POINTER(ctypes.c_int32)),
-        ("n", ctypes.POINTER(Linear3D)),
-        ("T", ctypes.POINTER(Linear3D)),
+        ("density", ctypes.POINTER(Linear3D)),
+        ("temperature", ctypes.POINTER(Linear3D)),
     ]
 
 
@@ -36,7 +36,7 @@ init_fun(
     ctypes.c_size_t,
     ctypes.c_size_t,
     ctypes.c_size_t,
-    *(5*[ndpointer(ctypes.c_double)]),
+    *(5 * [ndpointer(ctypes.c_double)]),
 )
 
 init_fun("NeutralArbitrary_free", ctypes.POINTER(Struct))
@@ -48,7 +48,7 @@ class NeutralArbitrary(InputVariant):
 
     @property
     def nspecies(self) -> int:
-        r"""Number of ion species."""
+        r"""Number of neutral species."""
         if self._cdata is not None:
             return int(self._cdata.readonly_carray("nspecies", ()) - 1)
         assert self._file is not None
@@ -56,17 +56,17 @@ class NeutralArbitrary(InputVariant):
 
     @property
     def anum(self) -> np.ndarray:
-        r"""Atomic mass number of each ion species."""
+        r"""Atomic mass number of each neutral species."""
         return np.array([s.anum for s in self.species], dtype="i4")
 
     @property
     def znum(self) -> np.ndarray:
-        r"""Atomic number of each ion species."""
+        r"""Atomic number of each neutral species."""
         return np.array([s.znum for s in self.species], dtype="i4")
 
     @property
     def mass(self) -> unyt.unyt_array:
-        r"""Mass of each ion species."""
+        r"""Mass of each neutral species."""
         return unyt.unyt_array([s.mass for s in self.species], dtype="f8")
 
     @property

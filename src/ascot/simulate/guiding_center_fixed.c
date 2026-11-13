@@ -78,7 +78,7 @@ static size_t cycle_markers(
     return n_running;
 }
 
-int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
+int simulate_gc_fixed(Simulation *sim, MarkerQueue *queue, size_t vector_size)
 {
     int err = 0;
     size_t *cycle = (size_t *)xmalloc(&err, vector_size * sizeof(size_t));
@@ -118,7 +118,7 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     }
 
     /* Initialize running particles */
-    size_t n_running = cycle_markers(vector_size, pq, &p, sim, hin);
+    size_t n_running = cycle_markers(vector_size, queue, &p, sim, hin);
 
     if (sim->options->enable_icrh)
         rfof_set_up(&rfof_mrk, sim->rfof);
@@ -186,8 +186,7 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         /* Euler-Maruyama method for collisions */
         if (sim->options->enable_coulomb_collisions)
         {
-            mccc_gc_euler(
-                &p, hin, &sim->bfield, &sim->plasma, sim->mccc_data);
+            mccc_gc_euler(&p, hin, &sim->bfield, &sim->plasma, sim->mccc_data);
         }
 
         /* Performs the ICRH kick if in resonance. */
@@ -265,7 +264,7 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
                 n_running++;
         }
 #else
-        n_running = cycle_markers(vector_size, pq, &p, sim, hin);
+        n_running = cycle_markers(vector_size, queue, &p, sim, hin);
 #endif
 
         /* Determine simulation time-step */

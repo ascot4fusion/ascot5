@@ -147,13 +147,13 @@ DECLARE_TARGET_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)
 /**
- * Get charge for all plasma species.
+ * Get charge state for all plasma species.
  *
  * @param plasma The plasma data.
  *
- * @return The charge (electrons first followed by ions) [C].
+ * @return The charge state (electrons first followed by ions) [e].
  */
-const real *Plasma_get_species_charge(Plasma *plasma);
+const int *Plasma_get_species_charge(Plasma *plasma);
 DECLARE_TARGET_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(plasma)

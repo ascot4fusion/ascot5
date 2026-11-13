@@ -5,13 +5,11 @@
 #include "consts.h"
 #include "defines.h"
 #include "plasma.h"
-#include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 int PlasmaDynamic1D_init(
     PlasmaDynamic1D *plasma, size_t nrho, size_t ntime, size_t nion,
-    int anum[nion], int znum[nion], real mass[nion], real charge[nion],
+    int anum[nion], int znum[nion], real mass[nion], int charge[nion],
     real rho[nrho], real time[ntime], real Te[nrho * ntime],
     real Ti[nrho * ntime], real ne[nrho * ntime], real ni[nrho * ntime * nion],
     real vtor[nrho * ntime])
@@ -24,7 +22,7 @@ int PlasmaDynamic1D_init(
     plasma->anum = (int *)malloc(nion * sizeof(int));
     plasma->znum = (int *)malloc(nion * sizeof(int));
     plasma->mass = (real *)malloc((nion + 1) * sizeof(real));
-    plasma->charge = (real *)malloc((nion + 1) * sizeof(real));
+    plasma->charge = (int *)malloc((nion + 1) * sizeof(int));
     for (size_t i = 0; i < plasma->nspecies; i++)
     {
         if (i < nion)

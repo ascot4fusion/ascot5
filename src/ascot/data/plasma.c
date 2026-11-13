@@ -7,7 +7,6 @@
 #include "plasma_dynamic1d.h"
 #include "plasma_linear1d.h"
 #include "plasma_linear2d.h"
-#include <stdio.h>
 #include <stdlib.h>
 
 void Plasma_free(Plasma *plasma)
@@ -188,9 +187,9 @@ const real *Plasma_get_species_mass(Plasma *plasma)
     return mass;
 }
 
-const real *Plasma_get_species_charge(Plasma *plasma)
+const int *Plasma_get_species_charge(Plasma *plasma)
 {
-    const real *charge = NULL;
+    const int *charge = NULL;
     switch (plasma->type)
     {
     case PLASMA_LINEAR1D:

@@ -24,8 +24,8 @@ class Struct(DataStruct):
         ("nspecies", ctypes.c_int32),
         ("anum", ctypes.POINTER(ctypes.c_int32)),
         ("znum", ctypes.POINTER(ctypes.c_int32)),
-        ("n", ctypes.POINTER(Linear1D)),
-        ("T", ctypes.POINTER(Linear1D)),
+        ("density", ctypes.POINTER(Linear1D)),
+        ("temperature", ctypes.POINTER(Linear1D)),
     ]
 
 
@@ -34,7 +34,7 @@ init_fun(
     ctypes.POINTER(Struct),
     ctypes.c_size_t,
     ctypes.c_size_t,
-    *(3*[ndpointer(ctypes.c_double)]),
+    *(3 * [ndpointer(ctypes.c_double)]),
 )
 
 init_fun("NeutralRadial_free", ctypes.POINTER(Struct))

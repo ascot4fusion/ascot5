@@ -642,18 +642,18 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(nspec, mb, qb, nb, Tb)
  * @param va Test particle velocity [m/s].
  * @param nspec Number of plasma species.
  * @param mb Plasma species masses [kg].
- * @param qb Plasma species charges [C].
+ * @param qb Plasma species charge states [e].
  * @param nb Plasma species densities [m^-3].
  * @param Tb Plasma species temperatures [J].
  */
 inline static void mccc_coefs_clog(
     real* clogab, real ma, real qa, real va, size_t nspec, const real mb[nspec],
-    const real qb[nspec], const real nb[nspec], const real Tb[nspec]);
+    const int qb[nspec], const real nb[nspec], const real Tb[nspec]);
 DECLARE_TARGET_END
 
 inline static void mccc_coefs_clog(
     real* clogab, real ma, real qa, real va, size_t nspec, const real mb[nspec],
-    const real qb[nspec], const real nb[nspec], const real Tb[nspec])
+    const int qb[nspec], const real nb[nspec], const real Tb[nspec])
 {
 
     /* Evaluate Debye length */
@@ -661,7 +661,7 @@ inline static void mccc_coefs_clog(
     GPU_SEQUENTIAL_LOOP
     for (size_t i = 0; i < nspec; i++)
     {
-        sum += nb[i] * qb[i] * qb[i] / Tb[i];
+        sum += nb[i] * qb[i] * qb[i] * CONST_E * CONST_E / Tb[i];
     }
     real debyeLength = sqrt(CONST_E0 / sum);
 
@@ -672,7 +672,7 @@ inline static void mccc_coefs_clog(
     {
         real vbar = va * va + 2 * Tb[i] / mb[i];
         real mr = ma * mb[i] / (ma + mb[i]);
-        real bcl = fabs(qa * qb[i] / (4 * CONST_PI * CONST_E0 * mr * vbar));
+        real bcl = fabs(qa * qb[i] * CONST_E / (4 * CONST_PI * CONST_E0 * mr * vbar));
         real bqm = fabs(CONST_HBAR / (2 * mr * sqrt(vbar)));
 
         if (bcl > bqm)

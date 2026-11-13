@@ -10,7 +10,9 @@
  */
 typedef struct ListInt ListInt;
 
-
+/**
+ * Linked list node that stores data of type `int`.
+ */
 struct ListInt
 {
     int data;                   /**< Data that is stored in this node.        */

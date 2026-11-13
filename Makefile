@@ -6,10 +6,10 @@ lint:
 	mypy --follow-imports=silent --disable-error-code=import-untyped \
 	--disallow-untyped-defs --disallow-incomplete-defs
 
-tests:
+tests: ascot
 	pytest -s -v -W "error::UserWarning" --ignore="tests/test_physics"
 
-tutorial:
+tutorial: ascot
 	python doc/user/tutorials/execute.py
 
 doc-user:

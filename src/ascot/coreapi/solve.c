@@ -6,6 +6,7 @@
 #include "data/bfield.h"
 #include "data/boozer.h"
 #include "data/diag.h"
+#include "data/diag_hist.h"
 #include "data/efield.h"
 #include "data/marker.h"
 #include "data/mhd.h"
@@ -33,6 +34,26 @@ static void handle_signal(int sig)
     stop_flag = 1;
 }
 
+/**
+ * Helper function that allocates marker buffers for fusion source calculations.
+ */
+static int allocate_fusion_source_buffers(
+    size_t nsample, MarkerGyroOrbit *react1, MarkerGyroOrbit *react2,
+    MarkerGyroOrbit *prod1, MarkerGyroOrbit *prod2, MarkerGyroOrbit *mrk_copy)
+{
+    if (MarkerGyroOrbit_allocate(react1, nsample))
+        return 1;
+    if (MarkerGyroOrbit_allocate(react2, nsample))
+        return 1;
+    if (MarkerGyroOrbit_allocate(prod1, nsample))
+        return 1;
+    if (MarkerGyroOrbit_allocate(prod2, nsample))
+        return 1;
+    if (MarkerGyroOrbit_allocate(mrk_copy, nsample))
+        return 1;
+    return 0;
+}
+
 void ascot_setup_signal_handlers(void)
 {
     struct sigaction sa = {0};
@@ -44,7 +65,7 @@ void ascot_setup_signal_handlers(void)
     sigaction(SIGTERM, &sa, NULL);
 }
 
-void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
+int ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
 {
     GPU_MAP_TO_DEVICE(sim [0:1])
     Bfield_offload(&sim->bfield);
@@ -55,7 +76,6 @@ void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
     Boozer_offload(sim->boozer);
     Mhd_offload(&sim->mhd);
     Atomic_offload(sim->atomic);
-    Atomic_extrapolate(sim->options->enable_atomic == 2);
 
 #ifdef GPU
     size_t vector_size = nmrk;
@@ -146,222 +166,148 @@ void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk])
     }
     free(queue.p);
     Diag_onload(&sim->diagnostics);
+    return 0;
 }
 
-void ascot_solve_fusion(
-    Simulation *sim, FusionSource *source, size_t nsample, DiagHist *product1,
-    DiagHist *product2)
+int ascot_solve_fusion(
+    Simulation *sim, FusionSource *source, size_t nsample, real time,
+    DiagHist *product1, DiagHist *product2)
 {
 
-    real m1, q1, m2, q2, mprod1, qprod1, mprod2, qprod2, Q;
-    boschhale_reaction(
-        source->reaction, &m1, &q1, &m2, &q2, &mprod1, &qprod1, &mprod2,
-        &qprod2, &Q);
-
-    int prod_mom_space;
-    int i0coord, i1coord, i2coord, p1coord, p2coord;
-    if (product1->axes[0].n)
+    int failed = 0;
+    OMP_PARALLEL_CPU_ONLY
     {
-        i0coord = 0;
-        i1coord = 1;
-        i2coord = 2;
-    }
-    else if (product1->axes[3].n)
-    {
-        i0coord = 3;
-        i1coord = 4;
-        i2coord = 1;
-    }
-    else
-    {
-        return;
-    }
-    if (product1->axes[5].n)
-    {
-        p1coord = 5;
-        p2coord = 6;
-        prod_mom_space = PPARPPERP;
-    }
-    else if (product1->axes[10].n)
-    {
-        p1coord = 10;
-        p2coord = 11;
-        prod_mom_space = EKINXI;
-    }
-    else
-    {
-        return;
-    }
-
-    real time = 0.0;
-    #pragma omp parallel for
-    for (size_t i0 = 0; i0 < source->volshape[0]; i0++)
-    {
-        real *ppara1 = (real *)malloc(nsample * sizeof(real));
-        real *pperp1 = (real *)malloc(nsample * sizeof(real));
-        real *ppara2 = (real *)malloc(nsample * sizeof(real));
-        real *pperp2 = (real *)malloc(nsample * sizeof(real));
-        real *prod1_p1 = (real *)malloc(nsample * sizeof(real));
-        real *prod1_p2 = (real *)malloc(nsample * sizeof(real));
-        real *prod2_p1 = (real *)malloc(nsample * sizeof(real));
-        real *prod2_p2 = (real *)malloc(nsample * sizeof(real));
-
-        for (size_t i1 = 0; i1 < source->volshape[1]; i1++)
+        MarkerGyroOrbit react1, react2, prod1, prod2, mrk_copy;
+        int fail = allocate_fusion_source_buffers(
+            nsample, &react1, &react2, &prod1, &prod2, &mrk_copy);
+        if (fail)
         {
-            for (size_t i2 = 0; i2 < source->volshape[2]; i2++)
-            {
-                size_t spatial_index =
-                    i0 * source->volshape[1] * source->volshape[2] +
-                    i1 * source->volshape[2] + i2;
-                real r = source->r[spatial_index];
-                real z = source->z[spatial_index];
-                real phi = source->phi[spatial_index];
-                real vol = source->vol[spatial_index];
-
-                real psi, rho[2];
-                if (Bfield_eval_psi(&psi, r, phi, z, time, &sim->bfield) ||
-                    Bfield_eval_rho(rho, psi, &sim->bfield))
-                {
-                    continue;
-                }
-
-                real density1, density2;
-                afsi_sample_reactant_momenta_2d(
-                    sim, source, m1, m2, vol, nsample, i0, i1, i2, r, phi, z,
-                    time, rho[0], &density1, ppara1, pperp1, &density2, ppara2,
-                    pperp2);
-                if (density1 == 0 || density2 == 0)
-                {
-                    continue;
-                }
-                for (size_t i = 0; i < nsample; i++)
-                {
-                    real vcom2;
-                    afsi_compute_product_momenta_2d(
-                        i, m1, m2, mprod1, mprod2, Q, prod_mom_space, ppara1,
-                        pperp1, ppara2, pperp2, &vcom2, prod1_p1, prod1_p2,
-                        prod2_p1, prod2_p2);
-                    real E = 0.5 * (m1 * m2) / (m1 + m2) * vcom2;
-
-                    real weight = density1 * density2 * sqrt(vcom2) *
-                                  boschhale_sigma(source->reaction, E) /
-                                  nsample * vol;
-
-                    size_t ip1 = math_bin_index(
-                        prod1_p1[i], product1->axes[p1coord].n,
-                        product1->axes[p1coord].min,
-                        product1->axes[p1coord].max);
-                    size_t ip2 = math_bin_index(
-                        prod1_p2[i], product1->axes[p2coord].n,
-                        product1->axes[p2coord].min,
-                        product1->axes[p2coord].max);
-                    if (ip1 < product1->axes[p1coord].n &&
-                        ip2 < product1->axes[p2coord].n)
-                    {
-                        size_t index = i0 * product1->strides[i0coord] +
-                                       i1 * product1->strides[i1coord] +
-                                       i2 * product1->strides[i2coord] +
-                                       ip1 * product1->strides[p1coord] +
-                                       ip2 * product1->strides[p2coord];
-                        product1->values[index] += weight * source->mult;
-                    }
-
-                    ip1 = math_bin_index(
-                        prod2_p1[i], product2->axes[p1coord].n,
-                        product2->axes[p1coord].min,
-                        product2->axes[p1coord].max);
-                    ip2 = math_bin_index(
-                        prod2_p2[i], product2->axes[p2coord].n,
-                        product2->axes[p2coord].min,
-                        product2->axes[p2coord].max);
-                    if (ip1 < product2->axes[p1coord].n &&
-                        ip2 < product2->axes[p2coord].n)
-                    {
-                        size_t index = i0 * product2->strides[i0coord] +
-                                       i1 * product2->strides[i1coord] +
-                                       i2 * product2->strides[i2coord] +
-                                       ip1 * product2->strides[p1coord] +
-                                       ip2 * product2->strides[p2coord];
-                        product2->values[index] += weight * source->mult;
-                    }
-                }
-            }
+            GPU_ATOMIC
+            failed++;
         }
-        free(ppara1);
-        free(ppara2);
-        free(pperp1);
-        free(pperp2);
-        free(prod1_p1);
-        free(prod1_p2);
-        free(prod2_p1);
-        free(prod2_p2);
-    }
 
-    /*
-    m1     = m1 / CONST_U;
-    m2     = m2 / CONST_U;
-    mprod1 = mprod1 / CONST_U;
-    mprod2 = mprod2 / CONST_U;
-    int c1     = (int)rint(q1 / CONST_E);
-    int c2     = (int)rint(q2 / CONST_E);
-    int cprod1 = (int)rint(qprod1 / CONST_E);
-    int cprod2 = (int)rint(qprod2 / CONST_E);
-    */
+        OMP_BARRIER
+        if (failed)
+            goto CLEANUP;
+
+        react1.mass = source->mass[0];
+        react2.mass = source->mass[1];
+        react1.charge[0] = source->charge[0];
+        react2.charge[0] = source->charge[1];
+        prod1.mass = source->mass[2];
+        prod2.mass = source->mass[3];
+        prod1.charge[0] = source->charge[2];
+        prod2.charge[0] = source->charge[3];
+        for (size_t i = 0; i < nsample; i++)
+        {
+            react1.id[i] = 1 + i;
+            react1.time[i] = time;
+
+            prod1.id[i] = 1 + i;
+            prod1.time[i] = time;
+        }
+
+        CPU_PARALLELIZE_LOOP
+        for (size_t j = 0; j < source->nspatial; j++)
+        {
+            real r = source->r[j];
+            real z = source->z[j];
+            real phi = source->phi[j];
+            real vol = source->vol[j];
+
+            real psi, rho[2];
+            if (Bfield_eval_psi(&psi, r, phi, z, time, &sim->bfield) ||
+                Bfield_eval_rho(rho, psi, &sim->bfield))
+                continue;
+
+            for (size_t i = 0; i < nsample; i++)
+            {
+                react1.r[i] = r;
+                react1.phi[i] = phi;
+                react1.z[i] = z;
+                react1.rho[i] = rho[0];
+                react1.id[i] = 1 + i + j * nsample;
+                react1.rng_count[i] = 0;
+            }
+
+            real density1, density2;
+            if (source->beam1 == NULL)
+            {
+                size_t species = 0;
+                fusion_source_sample_thermal(sim, species, &react1, &density1);
+            }
+            else
+                fusion_source_sample_beam(
+                    source->beam1, j, vol, &react1, &density1);
+            if (source->beam2 == NULL)
+            {
+                size_t species = 0;
+                fusion_source_sample_thermal(sim, species, &react2, &density2);
+            }
+            else
+                fusion_source_sample_beam(
+                    source->beam2, j, vol, &react2, &density2);
+            if (density1 == 0 || density2 == 0)
+                continue;
+
+            fusion_source_compute_product(
+                source->reaction, vol, &react1, &react2, &prod1, &prod2);
+
+            for (size_t i = 0; i < nsample; i++)
+            {
+                MarkerGyroOrbit_copy(&mrk_copy, &prod1, i);
+                mrk_copy.time[i] = time + 1.;
+            }
+            DiagHist_update_go(product1, &sim->bfield, &prod1, &mrk_copy);
+
+            for (size_t i = 0; i < nsample; i++)
+            {
+                MarkerGyroOrbit_copy(&mrk_copy, &prod2, i);
+                mrk_copy.time[i] = time + 1.;
+            }
+            DiagHist_update_go(product2, &sim->bfield, &prod2, &mrk_copy);
+        }
+
+    CLEANUP:
+        MarkerGyroOrbit_deallocate(&react1);
+        MarkerGyroOrbit_deallocate(&react2);
+        MarkerGyroOrbit_deallocate(&prod1);
+        MarkerGyroOrbit_deallocate(&prod2);
+        MarkerGyroOrbit_deallocate(&mrk_copy);
+    }
+    return 0;
 }
 
-void ascot_solve_nbi(
-    Simulation *sim, size_t ninj, Nbi injectors[ninj], real tlim[2],
-    size_t nmrk, State mrk[nmrk])
+int ascot_solve_nbi(
+    Simulation *sim, size_t ninj, Nbi injectors[ninj], real time_step,
+    real max_dist, real tlim[2], size_t nmrk, State mrk[nmrk])
 {
 
     /* Calculate total NBI power so that we can distribute markers along
      * the injectors according to their power */
     real total_power = 0;
     for (size_t i = 0; i < ninj; i++)
-    {
         total_power += injectors[i].power;
-    }
 
     /* Generate markers at the injectors */
     size_t nprt_generated = 0;
     for (size_t i = 0; i < ninj; i++)
     {
 
-        /* Number of markers generated is proportional to NBI power */
+        /* Number of markers generated is proportional to NBI power. All
+         * "remaining" markers goes to the last injector to avoid any rounding
+         * issues. */
         size_t nprt_inj = (injectors[i].power / total_power) * nmrk;
         if (i == ninj - 1)
-        {
-            /* All "remaining" markers goes to the last injector to avoid any
-             * rounding issues */
             nprt_inj = nmrk - nprt_generated;
-        }
 
         nbi_source_inject_markers(
-            sim, &(injectors[i]), tlim, nprt_inj, &(mrk[nprt_generated]));
+            sim, &(injectors[i]), time_step, max_dist, tlim, nprt_inj,
+            &(mrk[nprt_generated]));
 
         nprt_generated += nprt_inj;
     }
-
-    MarkerQueue queue;
-    queue.n = 0;
-    for (size_t i = 0; i < nmrk; i++)
-    {
-        mrk[i].id = i + 1;
-        queue.n++;
-    }
-    queue.p = (State **)malloc(queue.n * sizeof(State *));
-    queue.finished = 0;
-
-    queue.next = 0;
-    for (size_t i = 0; i < nmrk; i++)
-    {
-        queue.p[queue.next++] = &(mrk[i]);
-    }
-    queue.next = 0;
-
-    /* Trace neutrals until they are ionized or lost to the wall */
-    OMP_PARALLEL_CPU_ONLY
-    nbi_source_trace_markers(&queue, sim);
+    return 0;
 }
 
 void ascot_solve_field(
@@ -372,7 +318,7 @@ void ascot_solve_field(
     real *y = xyz[1];
     real *z = xyz[2];
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (size_t ix = 0; ix < npnt; ix++)
     {
         bxyz[0][ix] = 0;

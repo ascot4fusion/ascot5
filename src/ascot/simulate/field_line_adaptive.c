@@ -80,11 +80,15 @@ int simulate_fl_adaptive(
 
     int err = 0;
     real *current_time_step = (real *)xmalloc(&err, vector_size * sizeof(real));
-    if (err) return 1;
-    real *suggested_time_step = (real *)xmalloc(&err, vector_size * sizeof(real));
-    if (err) return 1;
+    if (err)
+        return 1;
+    real *suggested_time_step =
+        (real *)xmalloc(&err, vector_size * sizeof(real));
+    if (err)
+        return 1;
     real *next_time_step = (real *)xmalloc(&err, vector_size * sizeof(real));
-    if (err) return 1;
+    if (err)
+        return 1;
 
     real current_time, previous_time;
 
@@ -155,7 +159,8 @@ int simulate_fl_adaptive(
                 if (sim->options->reverse_time)
                 {
                     suggested_time_step[i] = -suggested_time_step[i];
-                    current_time_step[i] = DUMMY_STEP_VAL;//-current_time_step[i];
+                    current_time_step[i] =
+                        DUMMY_STEP_VAL; //-current_time_step[i];
                 }
 
                 if (p_current.running[i] && suggested_time_step[i] < 0)
@@ -215,9 +220,10 @@ int simulate_fl_adaptive(
         previous_time = current_time;
 
         endcond_check_fl(&p_current, &p_previous, sim);
-        Diag_update_fl(&sim->diagnostics, &sim->bfield, &p_current, &p_previous);
-        nrunning =
-            cycle_markers(vector_size, queue, &p_current, sim, current_time_step);
+        Diag_update_fl(
+            &sim->diagnostics, &sim->bfield, &p_current, &p_previous);
+        nrunning = cycle_markers(
+            vector_size, queue, &p_current, sim, current_time_step);
     }
     MarkerFieldLine_onload(&p_current);
     MarkerFieldLine_onload(&p_previous);

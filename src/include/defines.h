@@ -63,31 +63,14 @@ typedef double real;
 #endif
 
 /**
- * Maximum number of plasma species.
- *
- * TODO remove.
+ * Maximum number of plasma and neutral species.
  */
 #define MAX_SPECIES 16
-
-/**
- * Maximum number of MHD modes.
- */
-#define MHD_MODES_MAX_NUM 512
 
 /**
  * Maximum number of atomic reactions.
  */
 #define MAX_ATOMIC 32
-
-/**
- * Maximum distance BBNBI traces markers in seconds.
- */
-#define NBI_MAX_DISTANCE 1e-3
-
-/**
- * Maximum number of NBI injectors.
- */
-#define NBI_MAX_INJ 32
 
 /**
  * Maximum number of Wiener processes stored (effectively number of time step
@@ -204,6 +187,9 @@ typedef enum
 
     /** Unphysical marker initialization. */
     ERR_UNPHYSICAL_MARKER,
+
+    /** Maximum injection distance reached without entering magnetic field. */
+    ERR_NBI_MAX_DIST,
 } Error_type;
 
 /**

@@ -22,7 +22,9 @@ typedef enum Neutral_type
  */
 typedef struct
 {
-    size_t n;              /**< Number of neutral species.                    */
+    size_t nspecies;       /**< Number of neutral species.                    */
+    int *anum;             /**< Atomic mass number of the neutral species.    */
+    int *znum;             /**< Charge number of the neutral species.         */
     Linear1D *density;     /**< Density interpolant for each species.         */
     Linear1D *temperature; /**< Temperature intepolant for each species.      */
 } NeutralRadial;
@@ -32,7 +34,9 @@ typedef struct
  */
 typedef struct
 {
-    size_t n;              /**< Number of neutral species.                    */
+    size_t nspecies;       /**< Number of neutral species.                    */
+    int *anum;             /**< Atomic mass number of the neutral species.    */
+    int *znum;             /**< Charge number of the neutral species.         */
     Linear3D *density;     /**< Density interpolant for each species.         */
     Linear3D *temperature; /**< Temperature intepolant for each species.      */
 } NeutralArbitrary;

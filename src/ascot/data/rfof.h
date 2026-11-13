@@ -1,5 +1,4 @@
 /**
- * @file rfof.h
  * Model for the ion cyclotron resonance heating.
  *
  * This module requires RFOF library which contain the routines that estimate
@@ -11,8 +10,8 @@
 #include "bfield.h"
 #include "defines.h"
 #include "marker.h"
-#include <stdlib.h>
 #include "rfof_data.h"
+#include <stdlib.h>
 
 /**
  * RFOF simulation output data.
@@ -36,7 +35,7 @@ typedef struct rfof_output
  * Reads the ICRH (RFOF) inputs (xml, xsd, ASCII) and initialises the wave
  * field.
  *
- * @param rfof pointer to the RFOF data structure.
+ * @param rfof RFOF data.
  */
 void rfof_init(Rfof *rfof);
 
@@ -45,6 +44,8 @@ void rfof_init(Rfof *rfof);
  *
  * There exists only one copy of this struct and therefore it is to be
  * deallocated in the simulate.c after the loop is completed.
+ *
+ * @param rfof RFOF data.
  */
 void rfof_free(Rfof *rfof);
 
@@ -53,17 +54,17 @@ void rfof_free(Rfof *rfof);
  *
  * This function is to be called before the simulation loop.
  *
- * @param rfof_mrk Pointer to the local RFOF marker data.
- * @param rfof Pointer to the shared RFOF data.
+ * @param rfof_mrk RFOF marker data.
+ * @param rfof RFOF data.
  */
-void rfof_set_up(rfof_marker *rfof_mrk, Rfof *rfof_data);
+void rfof_set_up(rfof_marker *rfof_mrk, Rfof *rfof);
 
 /**
  * Deallocate the data structs used by the RFOF marker simulation data.
  *
  * This function is to be called after the simulation loop.
  *
- * @param rfof_mrk pointer to the RFOF marker simulation data.
+ * @param rfof_mrk RFOF marker data.
  */
 void rfof_tear_down(rfof_marker *rfof_mrk);
 
@@ -75,8 +76,8 @@ void rfof_tear_down(rfof_marker *rfof_mrk);
  * resonance history must have at least two data points stored to estimate
  * the resonance location.
  *
- * @param rfof_mrk pointer to the RFOF marker simulation data.
- * @param imrk index in the NSIMD array for the marker whose history is cleared.
+ * @param rfof_mrk RFOF marker data.
+ * @param imrk Index in the NSIMD array for the marker whose history is cleared.
  */
 void rfof_clear_history(rfof_marker *rfof_mrk, int imrk);
 
@@ -94,25 +95,25 @@ void rfof_clear_history(rfof_marker *rfof_mrk, int imrk);
  *
  * The time step can fail if the marker overshoots the resonance.
  *
- * @param p Pointer to marker simulation struct.
+ * @param p Marker simulation struct.
  * @param hin Current time step.
- * @param hout Suggestion for the next time step with negative sign
- * indicating a failed step.
- * @param rfof_mrk Pointer to the rfof marker simulation struct.
- * @param rfof Pointer to the shared rfof data.
- * @param bfield Pointer to the magnetic field data needed to evaluate psi.
+ * @param hout_rfof Suggestion for the next time step with negative sign
+ *        indicating a failed step.
+ * @param rfof_mrk RFOF marker data.
+ * @param rfof RFOF data.
+ * @param bfield Magnetic field data.
  */
 void rfof_resonance_check_and_kick_gc(
     MarkerGuidingCenter *p, real *hin, real *hout_rfof, rfof_marker *rfof_mrk,
     Rfof *rfof, Bfield *bfield);
 
 /**
- * @brief Explicitly set the coordinates in a marker struct.
+ * Explicitly set the coordinates in a marker struct.
  *
  * This routine is only used for testing and in libascot. Only the first marker
  * in the NSIMD array of rfof_marker is manipulated.
  *
- * @param rfof_mrk Pointer to the RFOF marker data.
+ * @param rfof_mrk RFOF marker data.
  * @param id Marker identifier.
  * @param weight Marker weight [prt/s].
  * @param R Major radius [m].
@@ -129,11 +130,11 @@ void rfof_resonance_check_and_kick_gc(
  * @param vperp Parallel velocity [m/s].
  * @param gyrof Gyrofrequency [rad/s].
  * @param vdriftRho Drift velocity in radial direction.
- * @param acc Accleration factor, should be 1.0 always.
+ * @param acceleration Acceleration factor, should be 1.0 always.
  * @param is_accelerated Flag indicating whether acceleration is used, false
- * always.
+ *        always.
  * @param is_already_allocated Flag whether to allocate a new marker struct,
- * should be false always.
+ *        should be false always.
  */
 void rfof_set_marker_manually(
     rfof_marker *rfof_mrk, int *id, real *weight, real *R, real *phi, real *z,
@@ -151,13 +152,13 @@ void rfof_set_marker_manually(
  * called E+ which creates confusion. Afterall, in this function, E+ is a
  * complex number.
  *
- * @param e_plus_real Re("E+"") component of the local wave field.
- * @param e_minus_real Re("E-"") component of the local wave field.
- * @param e_plus_imag Im("E+"") component of the local wave field.
- * @param e_minus_imag Im("E-"") component of the local wave field.
+ * @param e_plus_real Real part of E+.
+ * @param e_minus_real Real part of E-.
+ * @param e_plus_imag Imaginary part of E+.
+ * @param e_minus_imag Imaginary part of E-.
  * @param R Major radius coordinate [m].
  * @param z z-coordinate [m].
- * @param rfof Pointer to the RFOF data structure.
+ * @param rfof RFOF data.
  */
 void rfof_eval_rf_wave(
     real *e_plus_real, real *e_minus_real, real *e_plus_imag,
@@ -172,10 +173,10 @@ void rfof_eval_rf_wave(
  * The resonance is evaluated for the first marker in the NSIMD array in
  * rfof_marker fields.
  *
- * @param cptr_marker Void pointer to the rfof_marker.
- * @param rfof_data Pointer to the RFOF data structure.
  * @param omega_res Evaluated value of the resonance function.
  * @param nharm The number of the closest harmonic found.
+ * @param rfof_mrk RFOF marker data.
+ * @param rfof RFOF data.
  */
 void rfof_eval_resonance_function(
     real *omega_res, int *nharm, rfof_marker *rfof_mrk, Rfof *rfof);

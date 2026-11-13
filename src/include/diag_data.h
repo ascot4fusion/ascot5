@@ -78,7 +78,7 @@ typedef struct
      * particle was travelling along the positive or negative direction
      * poloidally.
      */
-    int *poincare;
+    size_t *poincare;
 
     /**
      * Simulation mode when the record was made (layout: [imrk*npoint + ipnt]).

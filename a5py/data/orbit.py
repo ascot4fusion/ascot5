@@ -29,7 +29,7 @@ class Struct(DataStruct):
         ("id", ctypes.POINTER(ctypes.c_size_t)),
         ("idx", ctypes.POINTER(ctypes.c_size_t)),
         ("charge", ctypes.POINTER(ctypes.c_int)),
-        ("poincare", ctypes.POINTER(ctypes.c_int)),
+        ("poincare", ctypes.POINTER(ctypes.c_size_t)),
         ("simmode", ctypes.POINTER(ctypes.c_int)),
         ("npoint", ctypes.c_size_t),
         ("ntoroidal", ctypes.c_size_t),
@@ -149,9 +149,9 @@ class Orbit():
         for field in ["r", "z", "phi", "p1", "p2", "p3", "mileage", "stamp",
                       "id", "idx", "charge", "poincare", "simmode"]:
             dtype, ctype = np.float64, ctypes.c_double
-            if field in ["id", "idx"]:
+            if field in ["id", "idx", "poincare"]:
                 dtype, ctype = np.int64, ctypes.c_size_t
-            elif field in ["charge", "poincare", "simmode"]:
+            elif field in ["charge", "simmode"]:
                 dtype, ctype = np.int32, ctypes.c_int
             size = nmrk * params.buffer_size
             if field in ["idx", "stamp"]:

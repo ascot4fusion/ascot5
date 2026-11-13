@@ -42,23 +42,23 @@ typedef enum ENDCOND
 } ENDCOND;
 
 /**
+ * Fusion reactions available when calculating fusion source.
+ */
+typedef enum Reaction
+{
+    DT_He4n,   /**< H2 + H3 => He4 + n                                        */
+    DHe3_He4p, /**< H2 + He3 => He4 + H1                                      */
+    DD_Tp,     /**< H2 + H2 => H3 + H1                                        */
+    DD_He3n,   /**< H2 + H2 => He3 + n                                        */
+} Reaction;
+
+/**
  * Simulation end condition type.
  *
  * The error flag is a 32 bit integer where each bit represents a different
  * end condition. Multiple end conditions can activate simultaneously.
  */
 typedef unsigned int endcond_t;
-
-/**
- * Available reactions.
- */
-typedef enum Reaction
-{
-    DT_He4n = 1,
-    DHe3_He4p = 2,
-    DD_Tp = 3,
-    DD_He3n = 4,
-} Reaction;
 
 /**
  * General simulation data.
@@ -92,20 +92,16 @@ typedef struct
  */
 typedef struct
 {
-    int type1;          /**< Distribution type (1:beam, 2:thermal).           */
-    int type2;          /**< Distribution type (1:beam, 2:thermal).           */
-    int thermal1;       /**< Thermal species index for reactant 1.            */
-    int thermal2;       /**< Thermal species index for reactant 2.            */
-    DiagHist *beam1;    /**< Distribution data for reactant 1.                */
-    DiagHist *beam2;    /**< Distribution data for reactant 2.                */
-    real *r;            /**< Radial coordinate at the grid center [m].        */
-    real *phi;          /**< Toroidal coordinate at the grid center [rad].    */
-    real *z;            /**< Axial coordinate at the grid center [m].         */
-    real *vol;          /**< Grid cell volume [m^3].                          */
-    size_t volshape[3]; /**< Dimensions of r, phi, z, and volume.             */
-    Reaction reaction;  /**< The fusion reaction that is modelled.            */
-    real mult;          /**< Multiplication factor which is 0.5 if species is
-                             interacting with itself, 1.0 otherwise.          */
+    Reaction reaction; /**< Fusion reaction index.                            */
+    size_t nspatial;   /**< Dimensions of r, phi, z, and volume.              */
+    int charge[4];     /**< Charge state of reactants and products [e].       */
+    real mass[4];      /**< Mass of reactants and products [kg].              */
+    DiagHist *beam1;   /**< Histogram data for reactant 1 or NULL if thermal. */
+    DiagHist *beam2;   /**< Histogram data for reactant 2 or NULL if thermal. */
+    real *r;           /**< Radial coordinate at the grid center [m].         */
+    real *phi;         /**< Toroidal coordinate at the grid center [rad].     */
+    real *z;           /**< Axial coordinate at the grid center [m].          */
+    real *vol;         /**< Grid cell volume [m^3].                           */
 } FusionSource;
 
 /**

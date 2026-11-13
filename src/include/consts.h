@@ -34,6 +34,9 @@
 /** Electron mass [kg]. */
 #define CONST_M_E 9.1094e-31
 
+/** Proton mass [kg]. */
+#define CONST_M_P 1.673e-27
+
 /** Electric constant [m^-3*kg^-1*s^4*A^2]. */
 #define CONST_E0 8.8542e-12
 

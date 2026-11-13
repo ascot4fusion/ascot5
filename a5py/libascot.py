@@ -397,4 +397,40 @@ init_fun(
     "ascot_setup_signal_handlers",
 )
 
+init_fun(
+    "Linear3D_init",
+    ctypes.POINTER(Linear3D),
+    ctypes.c_size_t,
+    ctypes.c_size_t,
+    ctypes.c_size_t,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.POINTER(ctypes.c_double),
+    ctypes.POINTER(ctypes.c_double),
+    ctypes.POINTER(ctypes.c_double),
+    ctypes.POINTER(ctypes.c_double),
+)
+
+init_fun(
+    "Linear2D_init",
+    ctypes.POINTER(Linear2D),
+    ctypes.c_size_t,
+    ctypes.c_size_t,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.POINTER(ctypes.c_double),
+    ctypes.POINTER(ctypes.c_double),
+    ctypes.POINTER(ctypes.c_double),
+)
+
+init_fun(
+    "Linear1D_init",
+    ctypes.POINTER(Linear1D),
+    ctypes.c_size_t,
+    ctypes.c_int,
+    ctypes.POINTER(ctypes.c_double),
+    ctypes.POINTER(ctypes.c_double),
+)
+
 LIBASCOT.ascot_setup_signal_handlers()

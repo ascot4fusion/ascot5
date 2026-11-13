@@ -147,7 +147,8 @@ static size_t cycle_markers(
     return n_running;
 }
 
-int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
+int simulate_gc_adaptive(
+    Simulation *sim, MarkerQueue *queue, size_t vector_size)
 {
 
     /* Wiener arrays needed for the adaptive time step */
@@ -204,7 +205,7 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     }
 
     /* Initialize running particles */
-    size_t n_running = cycle_markers(vector_size, pq, &p, sim, hin);
+    size_t n_running = cycle_markers(vector_size, queue, &p, sim, hin);
 
     if (sim->options->enable_icrh)
         rfof_set_up(&rfof_mrk, sim->rfof);
@@ -238,9 +239,8 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     MarkerGuidingCenter_offload(&p0);
     acceleration_offload(&acceleration, vector_size);
     GPU_MAP_TO_DEVICE(
-        hin [0:vector_size], hout_orb [0:vector_size],
-        hout_col [0:vector_size], hout_rfof [0:vector_size],
-        hnext [0:vector_size], cycle [0:vector_size])
+        hin [0:vector_size], hout_orb [0:vector_size], hout_col [0:vector_size],
+        hout_rfof [0:vector_size], hnext [0:vector_size], cycle [0:vector_size])
     mccc_wiener_offload(wienarr, vector_size);
     while (n_running > 0)
     {
@@ -418,7 +418,7 @@ int simulate_gc_adaptive(Simulation *sim, MarkerQueue *pq, size_t vector_size)
                 n_running++;
         }
 #else
-        n_running = cycle_markers(vector_size, pq, &p, sim, hin);
+        n_running = cycle_markers(vector_size, queue, &p, sim, hin);
 #endif
         /* Determine simulation time-step for new particles */
         GPU_PARALLEL_LOOP_ALL_LEVELS

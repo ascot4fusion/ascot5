@@ -126,6 +126,17 @@
 #endif
 
 /**
+ * OMP Barrier.
+ */
+#if defined(GPU) && defined(_OPENMP)
+#define OMP_BARRIER str_pragma(omp barrier)
+#elif defined(GPU) && defined(_OPENACC)
+#define OMP_BARRIER
+#else
+#define OMP_BARRIER str_pragma(omp barrier)
+#endif
+
+/**
  * Declare SIMD loop.
  */
 #if defined(GPU) && defined(_OPENMP)

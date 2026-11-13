@@ -170,7 +170,8 @@ void rfof_resonance_check_and_kick_gc(
             v_perp = sqrt(2 * p->mu[i] * B / p->mass);
 
             P_phi = phys_ptoroid_gc(
-                p->charge[i] * CONST_E, p->r[i], p->ppar[i], psi, B, p->bphi[i]);
+                p->charge[i] * CONST_E, p->r[i], p->ppar[i], psi, B,
+                p->bphi[i]);
             gyrof = phys_gyrofreq_ppar(
                 p->mass, p->charge[i] * CONST_E, p->mu[i], p->ppar[i], B);
             real q_safe = 1.0;
@@ -190,7 +191,8 @@ void rfof_resonance_check_and_kick_gc(
             real *r_ptr = &(p->r[i]);
             real *phi_ptr = &(p->phi[i]);
             real *z_ptr = &(p->z[i]);
-            real *charge_ptr = &(p->charge[i]); // TODO this is charge state not charge
+            real *charge_ptr =
+                &(p->charge[i]);         // TODO this is charge state not charge
             real *mass_ptr = &(p->mass); // TODO This is mass not mass array
             real *mu_ptr = &(p->mu[i]);
             real *Ekin_ptr = &Ekin;

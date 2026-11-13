@@ -50,17 +50,16 @@
 
 void ascot_interpolate(
     Bfield *bfield, Efield *efield, Plasma *plasma, Neutral *neutral,
-    Boozer *boozer, Mhd *mhd,
-    // Atomic* atomic,
-    size_t npnt, int modenumber, real R[npnt], real phi[npnt], real z[npnt],
-    real t[npnt], real B[3][npnt], real Bjac[9][npnt], real psi[4][npnt],
-    real rho[2][npnt], real E[3][npnt], real n[][npnt], real T[2][npnt],
-    real n0[][npnt], real T0[][npnt], real theta[4][npnt], real zeta[4][npnt],
-    real alpha[5][npnt], real Phi[5][npnt], real mhd_b[3][npnt],
-    real mhd_e[3][npnt], real mhd_phi[][npnt])
+    Boozer *boozer, Mhd *mhd, size_t npnt, int modenumber, real R[npnt],
+    real phi[npnt], real z[npnt], real t[npnt], real B[3][npnt],
+    real Bjac[9][npnt], real psi[4][npnt], real rho[2][npnt], real E[3][npnt],
+    real n[][npnt], real T[2][npnt], real n0[][npnt], real T0[][npnt],
+    real theta[4][npnt], real zeta[4][npnt], real alpha[5][npnt],
+    real Phi[5][npnt], real mhd_b[3][npnt], real mhd_e[3][npnt],
+    real mhd_phi[][npnt])
 {
     int ONLY_PERTURBATIONS = 1;
-    #pragma omp parallel for
+#pragma omp parallel for
     for (size_t k = 0; k < npnt; k++)
     {
         real Bq[15], psival[4], rhoval[2], Eq[3], ns[MAX_SPECIES],
@@ -125,20 +124,12 @@ void ascot_interpolate(
             n_species = Neutral_get_n_species(neutral);
         }
         if (neutral && rho_valid &&
-            !Neutral_eval_density(
-                ns, rhoval[0], R[k], phi[k], z[k], t[k], neutral))
+            !Neutral_eval_nT(
+                ns, Ts, rhoval[0], R[k], phi[k], z[k], t[k], neutral))
         {
             for (int i = 0; i < n_species; i++)
             {
                 STORE(i, k, ns[i], n0);
-            }
-        }
-        if (neutral && rho_valid &&
-            !Neutral_eval_temperature(
-                Ts, rhoval[0], R[k], phi[k], z[k], t[k], neutral))
-        {
-            for (int i = 0; i < n_species; i++)
-            {
                 STORE(i, k, Ts[i], T0);
             }
         }
@@ -192,171 +183,56 @@ void ascot_interpolate(
 }
 
 void ascot_eval_collcoefs(
-    Bfield *bfield, Plasma *plasma, size_t npnt, real ma, real qa, real R[npnt],
-    real phi[npnt], real z[npnt], real t[npnt], real va[npnt],
-    real coefficients[6][npnt], real clog[][npnt], real mu[3][npnt])
+    size_t nspecies, size_t npnt, int qa, real ma, int qb[nspecies],
+    real mb[nspecies], real nb[nspecies], real Tb[nspecies], real va[npnt],
+    real clog[nspecies][npnt], real mu0[nspecies][npnt],
+    real dmu0[nspecies][npnt], real mu1[nspecies][npnt], real F[nspecies][npnt],
+    real Dpara[nspecies][npnt], real Dperp[nspecies][npnt],
+    real K[nspecies][npnt], real nu[nspecies][npnt], real Q[nspecies][npnt],
+    real dQ[nspecies][npnt], real dDpara[nspecies][npnt])
 {
-    int n_species = Plasma_get_n_species(plasma);
-    const real *qb = Plasma_get_species_charge(plasma);
-    const real *mb = Plasma_get_species_mass(plasma);
 
-    #pragma omp parallel for
-    for (size_t k = 0; k < npnt; k++)
+    for (size_t i = 0; i < nspecies; i++)
     {
-        real mufun[3] = {0., 0., 0.};
-
-        /* Evaluate rho as it is needed to evaluate plasma parameters */
-        real psi, rho[2];
-        if (Bfield_eval_psi(&psi, R[k], phi[k], z[k], t[k], bfield))
-        {
-            continue;
-        }
-        if (Bfield_eval_rho(rho, psi, bfield))
-        {
-            continue;
-        }
-
-        real nb[MAX_SPECIES], Tb[MAX_SPECIES];
-        if (Plasma_eval_nT(nb, Tb, rho[0], R[k], phi[k], z[k], t[k], plasma))
-        {
-            continue;
-        }
-
-        /* Loop through all plasma species */
-        for (int ib = 0; ib < n_species; ib++)
+        CPU_PARALLELIZE_LOOP
+        for (size_t k = 0; k < npnt; k++)
         {
 
-            /* Coulomb logarithm */
             real clogab[MAX_SPECIES];
-            mccc_coefs_clog(clogab, ma, qa, va[k], n_species, mb, qb, nb, Tb);
+            mccc_coefs_clog(clogab, ma, qa, va[k], nspecies, mb, qb, nb, Tb);
 
-            /* Special functions */
-            real vb = sqrt(2 * Tb[ib] / mb[ib]);
+            real vb = sqrt(2 * Tb[i] / mb[i]);
             real x = va[k] / vb;
+            real mufun[3] = {0., 0., 0.};
             mccc_coefs_mufun(mufun, x);
 
-            (void)clog;
-            (void)mu;
-            (void)coefficients;
-
-            /* Coefficients */
-            /*
             real Fb = mccc_coefs_F(
-                ma, qa, mb[ib], qb[ib], nb[ib], vb, clogab[ib], mufun[0]);
+                ma, qa, mb[i], qb[i], nb[i], vb, clogab[i], mufun[0]);
             real Qb = mccc_coefs_Q(
-                ma, qa, mb[ib], qb[ib], nb[ib], vb, clogab[ib], mufun[0]);
+                ma, qa, mb[i], qb[i], nb[i], vb, clogab[i], mufun[0]);
             real dQb = mccc_coefs_dQ(
-                ma, qa, mb[ib], qb[ib], nb[ib], vb, clogab[ib], mufun[2]);
+                ma, qa, mb[i], qb[i], nb[i], vb, clogab[i], mufun[2]);
             real Dparab = mccc_coefs_Dpara(
-                ma, qa, va[k], qb[ib], nb[ib], vb, clogab[ib], mufun[0]);
+                ma, qa, va[k], qb[i], nb[i], vb, clogab[i], mufun[0]);
             real Dperpb = mccc_coefs_Dperp(
-                ma, qa, va[k], qb[ib], nb[ib], vb, clogab[ib], mufun[1]);
+                ma, qa, va[k], qb[i], nb[i], vb, clogab[i], mufun[1]);
             real dDparab = mccc_coefs_dDpara(
-                ma, qa, va[k], qb[ib], nb[ib], vb, clogab[ib], mufun[0],
-                mufun[2]);
+                ma, qa, va[k], qb[i], nb[i], vb, clogab[i], mufun[0], mufun[2]);
             real Kb = mccc_coefs_K(va[k], Dparab, dDparab, Qb);
             real nub = mccc_coefs_nu(va[k], Dperpb);
-            */
 
-            // int idx = ib * npnt + k;
-            //  STORE(n_species*npnt*0 + ib*npnt + k, mufun[0], **mu);
-            /**
-            if(mu0 != NULL)    { mu0[idx]    = mufun[0];   }
-            if(mu1 != NULL)    { mu1[idx]    = mufun[1];   }
-            if(dmu0 != NULL)   { dmu0[idx]   = mufun[2];   }
-            if(clog != NULL)   { clog[idx]   = clogab[ib]; }
-            if(F != NULL)      { F[idx]      = Fb;         }
-            if(Dpara != NULL)  { Dpara[idx]  = Dparab;     }
-            if(Dperp != NULL)  { Dperp[idx]  = Dperpb;     }
-            if(K != NULL)      { K[idx]      = Kb;         }
-            if(nu != NULL)     { nu[idx]     = nub;        }
-            if(Q != NULL)      { Q[idx]      = Qb;         }
-            if(dQ != NULL)     { dQ[idx]     = dQb;        }
-            if(dDpara != NULL) { dDpara[idx] = dDparab;    } */
-        }
-    }
-}
-
-/**
- * Evaluate atomic reaction rate coefficient.
- *
- * @param Simulation initialized simulation data struct
- * @param Neval number of evaluation points in (R, phi, z, t).
- * @param R R coordinates of the evaluation points [m].
- * @param phi phi coordinates of the evaluation points [rad].
- * @param z z coordinates of the evaluation points [m].
- * @param t time coordinates of the evaluation points [s].
- * @param Nv number of evaluation points in velocity space.
- * @param va test particle velocities [m/s].
- * @param Aa test particle atomic mass number.
- * @param Za test particle charge number.
- * @param ma test particle mass.
- * @param reac_type reaction type
- * @param ratecoeff output array where evaluated values are stored [1/m^2].
- */
-void ascot_eval_ratecoeff(
-    Bfield *bfield, Plasma *plasma, Neutral *neutral, Atomic *atomic, int Neval,
-    real *R, real *phi, real *z, real *t, int Nv, real *va, int Aa, int Za,
-    real ma, int reac_type, real *ratecoeff)
-{
-
-    const int *Zb = Plasma_get_species_znum(plasma);
-    const int *Ab = Plasma_get_species_anum(plasma);
-    int nion = Plasma_get_n_species(plasma) - 1;
-    int nspec = Neutral_get_n_species(neutral);
-
-    #pragma omp parallel for
-    for (int k = 0; k < Neval; k++)
-    {
-        real psi[1], rho[2], T0[1], n[MAX_SPECIES], T[MAX_SPECIES],
-            n0[MAX_SPECIES];
-        if (Bfield_eval_psi(psi, R[k], phi[k], z[k], t[k], bfield))
-        {
-            continue;
-        }
-        if (Bfield_eval_rho(rho, psi[0], bfield))
-        {
-            continue;
-        }
-        if (Plasma_eval_nT(n, T, rho[0], R[k], phi[k], z[k], t[k], plasma))
-        {
-            continue;
-        }
-        if (Neutral_eval_temperature(
-                T0, rho[0], R[k], phi[k], z[k], t[k], neutral))
-        {
-            continue;
-        }
-        if (Neutral_eval_density(n0, rho[0], R[k], phi[k], z[k], t[k], neutral))
-        {
-            continue;
-        }
-        for (int j = 0; j < Nv; j++)
-        {
-            real E =
-                (physlib_gamma_vnorm(va[j]) - 1.0) * ma * CONST_C * CONST_C;
-            real val;
-            switch (reac_type)
-            {
-            case sigmav_CX:
-                if (Atomic_eval_cx(
-                        &val, Za, Aa, E, ma, nspec, Zb, Ab, T0[0], n0, atomic))
-                {
-                    continue;
-                }
-                ratecoeff[Nv * k + j] = val;
-                break;
-            case sigmav_BMS:
-                if (Atomic_eval_bms(
-                        &val, Za, Aa, E, ma, nion, Zb, Ab, T[0], n, atomic))
-                {
-                    continue;
-                }
-                ratecoeff[Nv * k + j] = val * n[0];
-                break;
-            default:
-                break;
-            }
+            STORE(i, k, mufun[0], mu0);
+            STORE(i, k, mufun[1], mu1);
+            STORE(i, k, mufun[2], dmu0);
+            STORE(i, k, clogab[i], clog);
+            STORE(i, k, Fb, F);
+            STORE(i, k, Qb, Q);
+            STORE(i, k, dQb, dQ);
+            STORE(i, k, Dparab, Dpara);
+            STORE(i, k, Dperpb, Dperp);
+            STORE(i, k, Kb, K);
+            STORE(i, k, nub, nu);
+            STORE(i, k, dDparab, dDpara);
         }
     }
 }

@@ -28,8 +28,8 @@ typedef struct
     size_t nspecies; /**< Number of plasma species (including electrons).     */
     int *anum;       /**< Atomic mass number of the ion species.              */
     int *znum;       /**< Charge number of the ion species.                   */
+    int *charge;     /**< Plasma species (electrons first) charge state.      */
     real *mass;      /**< Plasma species (electrons first) mass [kg].         */
-    real *charge;    /**< Plasma species (electrons first) charge [C].        */
     real *rho;       /**< Rho grid values [1].                                */
     real *vtor;      /**< Plasma toroidal rotation [rad/s].                   */
 
@@ -60,8 +60,8 @@ typedef struct
     size_t nspecies; /**< Number of plasma species (including electrons).     */
     int *anum;       /**< Atomic mass number of the ion species.              */
     int *znum;       /**< Charge number of the ion species.                   */
+    int *charge;     /**< Plasma species (electrons first) charge state.      */
     real *mass;      /**< Plasma species (electrons first) mass [kg].         */
-    real *charge;    /**< Plasma species (electrons first) charge [C].        */
     real *rho;       /**< Rho grid values [1].                                */
     real *time;      /**< Time grid values [s].                               */
     real *vtor;      /**< Plasma toroidal rotation [rad/s].                   */
@@ -93,8 +93,8 @@ typedef struct
     size_t nspecies; /**< Number of plasma species (including electrons).     */
     int *anum;       /**< Atomic mass number of the ion species.              */
     int *znum;       /**< Charge number of the ion species.                   */
+    int *charge;     /**< Plasma species (electrons first) charge state.      */
     real *mass;      /**< Plasma species (electrons first) mass [kg].         */
-    real *charge;    /**< Plasma species (electrons first) charge [C].        */
 
     /**
      * Plasma toroidal rotation [rad/s].

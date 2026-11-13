@@ -20,7 +20,7 @@ void mccc_gc_euler(
     (void)mdata;
     /* Get plasma information before going to the  SIMD loop */
     size_t n_species = Plasma_get_n_species(plasma);
-    const real *qb = Plasma_get_species_charge(plasma);
+    const int *qb = Plasma_get_species_charge(plasma);
     const real *mb = Plasma_get_species_mass(plasma);
 
     GPU_DATA_IS_MAPPED(h[0:p->size])
@@ -87,16 +87,16 @@ void mccc_gc_euler(
                 mccc_coefs_mufun(mufun, x); // eq. 2.83 PhD Hirvijoki
 
                 real Qb = mccc_coefs_Q(
-                    p->mass, p->charge[i] * CONST_E, mb[j], qb[j], nb[j], vb,
+                    p->mass, p->charge[i] * CONST_E, mb[j], qb[j]*CONST_E, nb[j], vb,
                     clogab[j], mufun[0]);
                 real Dparab = mccc_coefs_Dpara(
-                    p->mass, p->charge[i] * CONST_E, vin, qb[j], nb[j], vb, clogab[j],
+                    p->mass, p->charge[i] * CONST_E, vin, qb[j]*CONST_E, nb[j], vb, clogab[j],
                     mufun[0]);
                 real Dperpb = mccc_coefs_Dperp(
-                    p->mass, p->charge[i] * CONST_E, vin, qb[j], nb[j], vb, clogab[j],
+                    p->mass, p->charge[i] * CONST_E, vin, qb[j]*CONST_E, nb[j], vb, clogab[j],
                     mufun[1]);
                 real dDparab = mccc_coefs_dDpara(
-                    p->mass, p->charge[i] * CONST_E, vin, qb[j], nb[j], vb, clogab[j],
+                    p->mass, p->charge[i] * CONST_E, vin, qb[j]*CONST_E, nb[j], vb, clogab[j],
                     mufun[0], mufun[2]);
 
                 K += mccc_coefs_K(vin, Dparab, dDparab, Qb);

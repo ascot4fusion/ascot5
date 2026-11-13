@@ -11,241 +11,126 @@
 #include "utils/mathlib.h"
 #include "utils/physlib.h"
 #include "utils/random.h"
+#include <float.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifndef GPU
-#pragma omp declare target
-DECLARE_TARGET_SIMD_UNIFORM(atomic)
-#endif
-err_t atomic_rates(
-    real *rate_eff_ion, real *rate_eff_rec, int z_1, int a_1, real m_1,
-    const int *z_2, const int *a_2, const real *m_2, Atomic *atomic, int q,
-    real E, int N_pls_spec, int N_ntl_spec, real *T, real *T_0, real *n,
-    real *n_0);
-#ifndef GPU
-#pragma omp end declare target
-#endif
-#ifndef GPU
-DECLARE_TARGET_SIMD
-#endif
-err_t atomic_react(
-    int *q, real dt, real rate_eff_ion, real rate_eff_rec, int z_1, real rnd);
-
-void atomic_go(
-    MarkerGyroOrbit *p, real *h, Plasma *plasma, Neutral *neutral,
+void atomic_reactions_eval_go(
+    MarkerGyroOrbit *mrk, real *h, Plasma *plasma, Neutral *neutral,
     Atomic *atomic)
 {
-
-    /* Generate random numbers and get plasma information before going to the *
-     * SIMD loop                                                              */
-
     int N_pls_spec = Plasma_get_n_species(plasma);
     int N_ntl_spec = Neutral_get_n_species(neutral);
-    const real *m_2 = Plasma_get_species_mass(plasma);
     const int *z_2 = Plasma_get_species_znum(plasma);
     const int *a_2 = Plasma_get_species_anum(plasma);
-    real rnd[3 * p->size];
 
-#pragma omp simd
-    for (size_t i = 0; i < p->size; i++)
+    GPU_PARALLEL_LOOP_ALL_LEVELS
+    for (size_t i = 0; i < mrk->size; i++)
     {
-        if (p->running[i])
+        if (mrk->running[i])
         {
             err_t errflag = 0;
 
             /* Calculate kinetic energy of test particle */
             real p_comps[3];
-            p_comps[0] = p->p_r[i];
-            p_comps[1] = p->p_phi[i];
-            p_comps[2] = p->p_z[i];
+            p_comps[0] = mrk->p_r[i];
+            p_comps[1] = mrk->p_phi[i];
+            p_comps[2] = mrk->p_z[i];
             real p_norm = math_norm(p_comps);
-            real E = physlib_Ekin_pnorm(p->mass, p_norm);
+            real E = physlib_Ekin_pnorm(mrk->mass, p_norm);
 
-            /* Evaluate plasma density and temperature */
             real n_2[MAX_SPECIES], T_2[MAX_SPECIES];
             if (!errflag)
             {
                 errflag = Plasma_eval_nT(
-                    n_2, T_2, p->rho[i], p->r[i], p->phi[i], p->z[i],
-                    p->time[i], plasma);
+                    n_2, T_2, mrk->rho[i], mrk->r[i], mrk->phi[i], mrk->z[i],
+                    mrk->time[i], plasma);
             }
-
-            /* Evaluate neutral density and temperature */
             real n_0[MAX_SPECIES], T_0[MAX_SPECIES];
             if (!errflag)
             {
-                errflag = Neutral_eval_density(
-                    n_0, p->rho[i], p->r[i], p->phi[i], p->z[i], p->time[i],
-                    neutral);
-            }
-            if (!errflag)
-            {
-                errflag = Neutral_eval_temperature(
-                    T_0, p->rho[i], p->r[i], p->phi[i], p->z[i], p->time[i],
-                    neutral);
+                errflag = Neutral_eval_nT(
+                    n_0, T_0, mrk->rho[i], mrk->r[i], mrk->phi[i], mrk->z[i],
+                    mrk->time[i], neutral);
             }
 
             /* Evaluate the reaction rates for ionizing (charge-increasing) *
                and recombining (charge-decreasing) reactions                */
-            int q = p->charge[i];
             real rate_eff_ion, rate_eff_rec;
             if (!errflag)
             {
-                errflag = atomic_rates(
-                    &rate_eff_ion, &rate_eff_rec, p->znum, p->anum,
-                    p->mass, z_2, a_2, m_2, atomic, q, E, N_pls_spec,
+                errflag = atomic_reactions_rates(
+                    &rate_eff_ion, &rate_eff_rec, mrk->znum, mrk->anum,
+                    mrk->mass, z_2, a_2, atomic, mrk->charge[i], E, N_pls_spec,
                     N_ntl_spec, T_2, T_0, n_2, n_0);
             }
 
             /* Determine if an atomic reaction occurs */
+            real rnd[2];
+            random_uniform(rnd, 2, mrk->id, mrk->rng_count, i);
             if (!errflag)
             {
-                int q_prev = q;
-                errflag = atomic_react(
-                    &q, h[i], rate_eff_ion, rate_eff_rec, p->znum, rnd[i]);
-                if (q != q_prev)
-                {
-                    /* A reaction has occured, change particle charge */
-                    p->charge[i] = q;
-                }
+                atomic_reactions_apply(
+                    &mrk->charge[i], h[i], rate_eff_ion, rate_eff_rec,
+                    mrk->znum, rnd);
             }
 
             /* Error handling */
             if (errflag)
             {
-                p->err[i] = errflag;
-                p->running[i] = 0;
+                mrk->err[i] = errflag;
+                mrk->running[i] = 0;
             }
         }
     }
 }
 
-/**
- * @brief Determines atomic reaction rates
- *
- * The reaction rates are determined based on the charge state. The terms
- * "ionization" and "recombination" are used loosely, where "ionization" refers
- * to all charge-increasing reactions, and "recombination" to all
- * charge-decreasing reactions.
- *
- * @param rate_eff_ion pointer to evaluated reaction rate for ionization
- * @param rate_eff_rec pointer to evaluated reaction rate for recombination
- * @param z_1 atomic number of fast particle
- * @param a_1 atomic mass number of fast particle
- * @param m_1 mass of fast particle
- * @param z_2 atomic numbers of bulk particle species
- * @param a_2 atomic mass numbers of bulk particle species
- * @param m_2 masses of bulk particle species
- * @param asigmadata pointer to atomic data struct
- * @param q charge of fast particle
- * @param E energy of fast particle
- * @param N_pls_spec number of species in bulk plasma
- * @param N_ntl_spec number of species in bulk neutrals
- * @param T temperature of bulk plasma species
- * @param T_0 temperature of bulk neutral species
- * @param n density of bulk plasma species
- * @param n_0 density of bulk neutral species
- *
- * @return zero if evaluation succeeded
- */
-err_t atomic_rates(
+err_t atomic_reactions_rates(
     real *rate_eff_ion, real *rate_eff_rec, int z_1, int a_1, real m_1,
-    const int *z_2, const int *a_2, const real *m_2, Atomic *atomic, int q,
-    real E, int N_pls_spec, int N_ntl_spec, real *T, real *T_0, real *n,
-    real *n_0)
+    const int *z_2, const int *a_2, Atomic *atomic, int q, real E,
+    int N_pls_spec, int N_ntl_spec, real *T, real *T_0, real *n, real *n_0)
 {
     err_t err = 0;
-    (void)m_2;
-
-    /* Define a helper variable for storing rate coefficients, and
-       initialize the reaction rate variables */
-    real coeff;
+    real rate;
     *rate_eff_rec = 0;
     *rate_eff_ion = 0;
 
-    /* Calculate ionization and recombination probabilities based on charge
-     * state*/
-    if (q == 1)
-    {
-        /* Only CX is implemented */
-        err = Atomic_eval_cx(
-            &coeff, z_1, a_1, E, m_1, N_ntl_spec, z_2, a_2, T_0[0], n_0,
-            atomic);
-        *rate_eff_rec += coeff;
-    }
-    else if (q == 0)
-    {
-        /* Only BMS is implemented */
-        err = Atomic_eval_bms(
-            &coeff, z_1, a_1, E, m_1, (N_pls_spec - 1), z_2, a_2, T[0], &n[1],
-            atomic);
-        *rate_eff_ion += coeff * n[0];
-    }
-    else
-    {
-        /* q > 1 not yet implemented */
-        err = ERROR_CHECK(
-            err, 1, ERR_PRECHECK_FAILED, SIMULATE_ATOMIC_REACTIONS_C);
-    }
+    // ERROR_CHECK(err, condition, type, file)
+    Atomic_eval_bms(
+        &rate, E, m_1, (N_pls_spec - 1), z_2, a_2, T[0], n[0], &n[1], 0,
+        atomic);
+    *rate_eff_ion += rate * n[0];
+    err = Atomic_eval_cx(
+        &rate, q, E, N_ntl_spec, z_2, a_2, T_0[0], n_0, 0, atomic);
+    *rate_eff_rec += rate;
+    err = Atomic_eval_ei(&rate, z_1, a_1, q, T[0], n[0], 0, atomic);
+    *rate_eff_ion += rate;
 
     return err;
 }
 
-/**
- * @brief Determines if an atomic reaction occurs during one time step
- *
- * The terms ionization and recombination are used loosely in variable names.
- * Ionization (ion) stands for all charge-increasing reactions, and
- * recombination (rec) for all charge-decreasing reactions.
- *
- * @param q charge of fast particle
- * @param dt time-step
- * @param rate_eff_ion reaction rate for ionization
- * @param rate_eff_rec reaction rate for recombination
- * @param z_1 atomic number of fast particle
- * @param rnd random number
- *
- * @return zero if evaluation succeeded
- */
-err_t atomic_react(
-    int *q, real dt, real rate_eff_ion, real rate_eff_rec, int z_1, real rnd)
+void atomic_reactions_apply(
+    int *charge, int znum, real dt, real rate_ionization,
+    real rate_recombination, real rnd[2])
 {
-    err_t err = 0;
-
     /* Calculate the reaction probabilities for ionizing (charge-increasing)
        and recombining (charge-decreasing) atomic reactions. But first,
        a fail-safe against zero rate values. */
-    real prob_eff_ion;
-    real prob_eff_rec;
-    if (rate_eff_ion == 0.0)
-    {
-        prob_eff_ion = 0.0;
-    }
-    else
-    {
-        prob_eff_ion = rate_eff_ion / (rate_eff_ion + rate_eff_rec) *
-                       (1.0 - exp(-(rate_eff_ion + rate_eff_rec) * dt));
-    }
-    if (rate_eff_rec == 0.0)
-    {
-        prob_eff_rec = 0.0;
-    }
-    else
-    {
-        prob_eff_rec = rate_eff_rec / (rate_eff_ion + rate_eff_rec) *
-                       (1.0 - exp(-(rate_eff_ion + rate_eff_rec) * dt));
-    }
+    int no_reaction = rate_ionization == 0.0 && rate_recombination == 0.0;
+    int ionization = (rate_ionization == 0.0 || *charge == znum) && *charge > 0;
+    int recombination = (rate_recombination == 0.0 || *charge == 0);
+    int eitherway = !no_reaction && !ionization && !recombination;
 
-    /* Check if reaction occurs, and update charge state accordingly */
-    if (*q < z_1 && rnd < prob_eff_ion)
-    {
-        *q += 1;
-    }
-    else if (*q > 0 && rnd < (prob_eff_ion + prob_eff_rec))
-    {
-        *q -= 1;
-    }
+    int success = 1.0 - ionization * exp(-rate_recombination * dt) -
+                  recombination * exp(-rate_ionization * dt) -
+                  eitherway * exp(-(rate_ionization + rate_recombination) * dt);
 
-    return err;
+    *charge = *charge +
+              success * (ionization - recombination) * (1 - eitherway) +
+              success * eitherway;
+    *charge =
+        *charge -
+        2 * success * eitherway *
+            (rnd[1] < rate_recombination /
+                          (rate_ionization + rate_recombination + DBL_MIN));
 }

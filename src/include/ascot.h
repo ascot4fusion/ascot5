@@ -45,8 +45,10 @@ void ascot_setup_signal_handlers(void);
  * @param sim Simulation data with necessary inputs and diagnostics present.
  * @param nmrk Number of markers to be simulated.
  * @param mrk Markers to be simulated.
+ *
+ * @return 0 on success.
  */
-void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk]);
+int ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk]);
 
 /**
  * Calculate fusion source from two arbitrary ion distributions.
@@ -58,12 +60,15 @@ void ascot_solve_distribution(Simulation *sim, size_t nmrk, State mrk[nmrk]);
  * @param source Fusion source data that specifies the reactions and the
  *        reactants.
  * @param nsample Number of Monte Carlo samples to be used per one spatial cell.
+ * @param time Time instant when the inputs are interpolated [s].
  * @param product1 Output distribution for the first output species.
  * @param product2 Output distribution for the second output species.
+ *
+ * @return 0 on success.
  */
-void ascot_solve_fusion(
-    Simulation *sim, FusionSource *source, size_t nsample, DiagHist *product1,
-    DiagHist *product2);
+int ascot_solve_fusion(
+    Simulation *sim, FusionSource *source, size_t nsample, real time,
+    DiagHist *product1, DiagHist *product2);
 
 /**
  * Simulate NBI injection and calculate shinethrough and birth profile of NBI
@@ -80,20 +85,24 @@ void ascot_solve_fusion(
  * the output does not contain any information on which injector a marker
  * originated.
  *
- * @param sim The simulation data with bfield, plasma, (wall), and any used
- *        diagnostics.
+ * @param sim Simulation data.
  * @param ninj Number of injectors.
  * @param injectors Neutral beam injector(s).
+ * @param time_step Time step [s].
+ * @param max_dist Maximum distance from beamlet to follow markers before they
+ *        are aborted [m].
  * @param tlim Time interval over which the markers are injected.
  *        The marker initial time (at the point of injection) is sampled from
  *        this interval.
  * @param nmrk Number of markers to inject in total.
  * @param mrk Array where generated markers are stored.
  *        Contains all injected markers, not just those that end up ionized.
+ *
+ * @return 0 on success.
  */
-void ascot_solve_nbi(
-    Simulation *sim, size_t ninj, Nbi injectors[ninj], real tlim[2],
-    size_t nmrk, State mrk[nmrk]);
+int ascot_solve_nbi(
+    Simulation *sim, size_t ninj, Nbi injectors[ninj], real time_step,
+    real max_dist, real tlim[2], size_t nmrk, State mrk[nmrk]);
 
 /**
  * Evaluate magnetic field due to a coil at given points.
@@ -104,13 +113,9 @@ void ascot_solve_nbi(
  *
  * @param npnt Number of query points.
  * @param ncoil Number of points in coil geometry.
- * @param coilxyz Coil geometry (x, y, z) coordinates [m].
- * @param x Query point x coordinate [m].
- * @param y Query point y coordinate [m].
- * @param z Query point z coordinate [m].
- * @param Bx Evaluated magnetic field x-component [T].
- * @param By Evaluated magnetic field y-component [T].
- * @param Bz Evaluated magnetic field z-component [T].
+ * @param coilxyz Coil geometry in (x, y, z) coordinates [m].
+ * @param xyz Query point (x, y, z) coordinates [m].
+ * @param bxyz Evaluated magnetic field x, y, and z-components [T].
  */
 void ascot_solve_field(
     size_t npnt, size_t ncoil, real coilxyz[3][ncoil], real xyz[3][npnt],
@@ -128,12 +133,12 @@ void ascot_solve_field(
  * @param npnt Number of evaluation points.
  * @param modenumber Evaluate mhd perturbation only for this mode.
  *        If modenumber < 0, evaluate all modes.
- * @param R R coordinates where the inputs are interpolated [m].
+ * @param r R coordinates where the inputs are interpolated [m].
  * @param phi phi coordinates where the inputs are interpolated [rad].
  * @param z z coordinates where the inputs are interpolated [m].
  * @param t time coordinates where the inputs are interpolated [s].
- * @param B Magnetic field vector (Br, Bphi, Bz) [T].
- * @param Bjac Magnetic field Jacobian (dBr/dr, dBr/dphi, dBr/dz, dBphi/dr,
+ * @param b Magnetic field vector (Br, Bphi, Bz) [T].
+ * @param bjac Magnetic field Jacobian (dBr/dr, dBr/dphi, dBr/dz, dBphi/dr,
  *        dBphi/dphi, dBphi/dz, dBz/dr, dBz/dphi, dBz/dz) [T/m].
  * @param psi Poloidal flux and its derivatives (psi, dpsi/dr, dpsi/dphi,
  *        dpsi/dz) [Wb/rad, Wb/rad m].
@@ -151,16 +156,15 @@ void ascot_solve_field(
  *        (Phi, dPhi/dr, dPhi/dphi, dPhi/dz) [1]
  * @param Phi Electric perturbation eigenfunction and its derivatives
  *        (Phi, dPhi/dr, dPhi/dphi, dPhi/dz) [1].
- * @param mhd_br Magnetic field perturbation components due to MHD
+ * @param mhd_b Magnetic field perturbation components due to MHD
  *        (Br, Bphi, Bz) [T].
- * @param mhd_er Electric field perturbation components due to MHD
+ * @param mhd_e Electric field perturbation components due to MHD
  *        (Er, Ephi, Ez) [V/m].
  * @param mhd_phi Electric field perturbation potential [V/m].
  */
 void ascot_interpolate(
     Bfield *bfield, Efield *efield, Plasma *plasma, Neutral *neutral,
     Boozer *boozer, Mhd *mhd,
-    // Atomic* atomic,
     size_t npnt, int modenumber, real r[npnt], real phi[npnt], real z[npnt],
     real t[npnt], real b[3][npnt], real bjac[9][npnt], real psi[4][npnt],
     real rho[2][npnt], real E[3][npnt], real n[][npnt], real T[2][npnt],
@@ -169,27 +173,38 @@ void ascot_interpolate(
     real mhd_e[3][npnt], real mhd_phi[][npnt]);
 
 /**
- * Evaluate collision coefficients
+ * Evaluate collision coefficients and associated quantities.
  *
- * @param Simulation initialized simulation data struct
- * @param Neval number of evaluation points
- * @param R R coordinates of the evaluation points [m]
- * @param phi phi coordinates of the evaluation points [rad]
- * @param z z coordinates of the evaluation points [m]
- * @param t time coordinates of the evaluation points [s]
- * @param Nv number of velocity grid points
- * @param va test particle velocities at the evaluation point [m/s]
- * @param ma test particle mass [kg]
- * @param qa test particle charge [C]
- * @param coefficients The collision coefficients (F, Dpara, Dperp, K, nu, Q,
- *        dQ, dDpara, clog) [].
- * @param clog The Coulomb logarithm.
- * @param mu The special functions (mu0, mu1, dmu0)
+ * @param nspecies Number of plasma species.
+ * @param npnt Number of evaluation points in velocity.
+ * @param qa Test particle charge state.
+ * @param ma Test particle mass [kg].
+ * @param qb Plasma species charge states.
+ * @param mb Plasma species masses [kg].
+ * @param nb Plasma species densities [m^-3].
+ * @param Tb Plasma species temperatures [J].
+ * @param va Test particle velocity [m/s].
+ * @param clog Coulomb logarithm [1].
+ * @param mu0 Special function mu0 [1].
+ * @param dmu0 Derivative of the special function mu0 [1].
+ * @param mu1 Special function mu1 [1].
+ * @param F Drag coefficient F [m/s].
+ * @param Dpara Parallel diffusion coefficient [m^2/s].
+ * @param Dperp Perpendicular diffusion coefficient [m^2/s].
+ * @param K Drag coefficient K [m/s].
+ * @param nu Pitch collision frequency [1/s].
+ * @param Q Drag coefficient Q [m/s].
+ * @param dQ Derivative of the drag coefficient Q [m/s].
+ * @param dDpara Derivative of the parallel diffusion coefficient [m^2/s].
  */
 void ascot_eval_collcoefs(
-    Bfield *bfield, Plasma *plasma, size_t npnt, real ma, real qa, real R[npnt],
-    real phi[npnt], real z[npnt], real t[npnt], real va[npnt],
-    real coefficients[6][npnt], real clog[][npnt], real mu[3][npnt]);
+    size_t nspecies, size_t npnt, int qa, real ma, int qb[nspecies],
+    real mb[nspecies], real nb[nspecies], real Tb[nspecies], real va[npnt],
+    real clog[nspecies][npnt], real mu0[nspecies][npnt],
+    real dmu0[nspecies][npnt], real mu1[nspecies][npnt], real F[nspecies][npnt],
+    real Dpara[nspecies][npnt], real Dperp[nspecies][npnt],
+    real K[nspecies][npnt], real nu[nspecies][npnt], real Q[nspecies][npnt],
+    real dQ[nspecies][npnt], real dDpara[nspecies][npnt]);
 
 /**
  * Return size of the ``real`` type.
@@ -245,17 +260,20 @@ void ascot_find_psi_on_axis_2d(
 
 /**
  * Find one psi minimum using the gradient descent method for 3D field
- * inside a sector (phimin < phi < phimax). Not guaranteed to find the global
- * minimum inside the given sector.
+ * inside a sector (phimin < phi < phimax).
  *
- * @param bfield magnetic field data
- * @param psi value of psi on axis if this function did not fail
- * @param rzphi initial (R,z,phi) position where also the result is stored
- * @param step the step size
- * @param tol the current position is accepted if the distance (in meters)
- * between this and the previous point is below this value
- * @param maxiter maximum number of iterations before failure
- * @param ascent if true the algorithm instead ascends to find psi0 (> psi1)
+ * Cannot find the global minimum if it is not inside the given sector.
+ *
+ * @param bfield Magnetic field data.
+ * @param psi Value of psi on axis if this function did not fail.
+ * @param rzphi Initial (R,z,phi) position where also the result is stored.
+ * @param step The step size.
+ * @param tol The current position is accepted if the distance (in meters)
+ *        between this and the previous point is below this value.
+ * @param maxiter Maximum number of iterations before failure.
+ * @param ascent If true the algorithm instead ascends to find psi0 (> psi1).
+ * @param phimin Lower limit for toroidal angle.
+ * @param phimax Upper limit for toroidal angle.
  */
 void ascot_find_psi_on_axis_3d(
     Bfield *bfield, size_t maxiter, int ascent, real phimin, real phimax,

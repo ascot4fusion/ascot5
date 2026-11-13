@@ -48,41 +48,58 @@ void NeutralArbitrary_free(NeutralArbitrary *neutral);
  */
 void NeutralArbitrary_offload(NeutralArbitrary *neutral);
 
-DECLARE_TARGET_SIMD_UNIFORM(neutral)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(neutral)
 /**
- * Evaluate density of each neutral species.
- *
- * The evaluated values are in the same order as ions in the plasma data.
+ * Evaluate density of a neutral species.
  *
  * @param density Evaluated density [m^-3].
  * @param r R coordinate of the query point [m].
  * @param phi phi coordinate of the query point [rad].
  * @param z z coordinate of the query point [m].
+ * @param i_species Index of the requested species.
  * @param neutral The neutral data.
  *
  * @return Zero if the evaluation succeeded.
  */
 err_t NeutralArbitrary_eval_density(
-    real *density, real r, real phi, real z, NeutralArbitrary *neutral);
+    real density[1], real r, real phi, real z, size_t i_species,
+    NeutralArbitrary *neutral);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
-DECLARE_TARGET_SIMD_UNIFORM(neutral)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(neutral)
 /**
- * Evaluate temperature of each neutral species.
- *
- * Depending on the implementation, either the normalized poloidal flux
- * coordinate or the cylindrical coordinate is used in the interpolation.
- *
- * The evaluated values are in the same order as ions in the plasma data.
+ * Evaluate temperature of a neutral species.
  *
  * @param temperature Evaluated temperature [J].
  * @param r R coordinate of the query point [m].
  * @param phi phi coordinate of the query point [rad].
  * @param z z coordinate of the query point [m].
+ * @param i_species Index of the requested species.
  * @param neutral The neutral data.
  *
  * @return Zero if the evaluation succeeded.
  */
 err_t NeutralArbitrary_eval_temperature(
-    real *temperature, real r, real phi, real z, NeutralArbitrary *neutral);
+    real temperature[1], real r, real phi, real z, size_t i_species,
+    NeutralArbitrary *neutral);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
+
+GPU_DECLARE_TARGET_SIMD_UNIFORM(neutral)
+/**
+ * Evaluate density and temperature for all neutral species.
+ *
+ * @param density Evaluated density [m^-3].
+ * @param temperature Evaluated temperature [J].
+ * @param r Radial coordinate of the query point [m].
+ * @param phi Toroidal coordinate of the query point [rad].
+ * @param z Axial coordinate of the query point [m].
+ * @param neutral The neutral data.
+ *
+ * @return Zero if the evaluation succeeded.
+ */
+err_t NeutralArbitrary_eval_nT(
+    real *density, real *temperature, real r, real phi, real z,
+    NeutralArbitrary *neutral);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
 #endif

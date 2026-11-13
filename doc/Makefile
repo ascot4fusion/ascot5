@@ -8,9 +8,8 @@ DOXYGENOUTPUT = _static/doxygen/
 .PHONY: doc clean
 
 doc:
-	#doxygen Doxyfile
-	#sphinx-build --nitpicky -b html $(SOURCEDIR) $(BUILDDIR)
-	sphinx-build -E -a --nitpicky -b html -v $(SOURCEDIR) $(BUILDDIR)
+	doxygen Doxyfile
+	sphinx-build --nitpicky -b html $(SOURCEDIR) $(BUILDDIR)
 
 pdf:
 	doxygen Doxyfile

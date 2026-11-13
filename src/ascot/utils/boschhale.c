@@ -1,255 +1,122 @@
 /**
- * Implements "boschhale.h".
+ * Implements Bosch-Hale fusion cross-section and rate coefficients in
+ * "ratecoefficients.h".
  */
-#include "boschhale.h"
-//#include "datatypes.h"
+#include "ratecoefficients.h"
 #include "consts.h"
 #include "defines.h"
 #include <math.h>
+#include <stdio.h>
 
-void boschhale_reaction(
-    Reaction reaction, double *m1, double *q1, double *m2, double *q2,
-    double *mprod1, double *qprod1, double *mprod2, double *qprod2, double *Q)
+const double Q_value[4] = {17.6e6, 18.3e6, 4.03e6, 3.27e6};
+
+/**
+ * Parameters for calculating fusion reactivities.
+ *
+ * The order of the reactions is:
+ * 1. H2 + H3 => He4 + n
+ * 2. H2 + He3 => He4 + H1
+ * 3. H2 + H2 => H3 + H1
+ * 4. H2 + H2 => He3 + n
+ *
+ * The parameters themselves are in the order of B_G, m_r*c^2, C_1, C_2, C_3,
+ * C_4, C_5, C_6, C_7.
+ */
+const double sigmav_parameters[4][9] = {
+    {34.3827, 1124656.0, 1.17302e-9, 1.51361e-2, 7.51886e-2, 4.60643e-3,
+     1.35000e-2, -1.06750e-4, 1.36600e-5},
+    {68.7508, 1124572, 5.51036e-10, 6.41918e-3, -2.02896e-3, -1.91080e-5,
+     1.35776e-4, 0., 0.},
+    {31.3970, 937814, 5.65718e-12, 3.41267e-3, 1.99167e-3, 0.0, 1.05060e-5, 0.0,
+     0.0},
+    {31.3970, 937814, 5.43360e-12, 5.85778e-3, 7.68222e-3, 0.0, -2.96400e-6,
+     0.0, 0.0}};
+
+/**
+ * Parameters for calculating fusion reactivities.
+ *
+ * The order of the reactions is:
+ * 1. H2 + H3 => He4 + n
+ * 2. H2 + He3 => He4 + H1
+ * 3. H2 + H2 => H3 + H1
+ * 4. H2 + H2 => He3 + n
+ *
+ * The parameters themselves are in the order of B_G, A_1, A_2, A_3, A_4, A_5,
+ * B_1, B_2, B_3, B_4.
+ */
+const double sigma_parameters[6][10] = {
+    {34.3827, 6.927e4, 7.454e8, 2.050e6, 5.2002e4, 0., 6.38e1, -9.95e-1,
+     6.981e-5, 1.728e-4},
+    {34.3827, -1.4714e6, 0., 0., 0., 0., -8.4127e-3, 4.7983e-6, -1.0748e-9,
+     8.5184e-14},
+    {68.7508, 5.7501e6, 2.5226e3, 4.5566e1, 0., 0., -3.1995e-3, -8.5530e-6,
+     5.9014e-8, 0.},
+    {68.7508, -8.3993e5, 0., 0., 0., 0., -2.6830e-3, 1.1633e-6, -2.1332e-10,
+     1.4250e-14},
+    {31.3970, 5.5576e4, 2.1054e2, -3.2638e-2, 1.4987e-6, 1.8181e-10, 0., 0., 0.,
+     0.},
+    {31.3970, 5.3701e4, 3.3027e2, -1.2706e-1, 2.9327e-5, -2.5151e-9, 0., 0., 0.,
+     0.}};
+
+const double ekin_limits[4][2] = {
+    {0.5, 4700}, {0.3, 4800}, {0.5, 5000}, {0.5, 4900}};
+
+double boschhale_sigma(Reaction reaction, double ekin)
 {
+    double J_to_keV = 1. / (1.e3 * CONST_E);
+    ekin *= J_to_keV;
+    double E_min = ekin_limits[reaction][0], E_max = ekin_limits[reaction][1];
+
+    size_t index = 0;
     switch (reaction)
     {
     case DT_He4n:
-        *m1 = 3.344e-27; // D
-        *q1 = CONST_E;
-        *m2 = 5.008e-27; // T
-        *q2 = CONST_E;
-        *mprod1 = 6.645e-27; // He4
-        *qprod1 = 2 * CONST_E;
-        *mprod2 = 1.675e-27; // n
-        *qprod2 = 0.0;
-        *Q = 17.6e6 * CONST_E;
+        index = ekin <= 550 ? 0 : 1;
         break;
     case DHe3_He4p:
-        *m1 = 3.344e-27; // D
-        *q1 = CONST_E;
-        *m2 = 5.008e-27; // He3
-        *q2 = 2 * CONST_E;
-        *mprod1 = 6.645e-27; // He4
-        *qprod1 = 2 * CONST_E;
-        *mprod2 = 1.673e-27; // p
-        *qprod2 = CONST_E;
-        *Q = 18.3e6 * CONST_E;
+        index = ekin <= 900 ? 2 : 3;
         break;
     case DD_Tp:
-        *m1 = 3.344e-27; // D
-        *q1 = CONST_E;
-        *m2 = 3.344e-27; // D
-        *q2 = CONST_E;
-        *mprod1 = 5.008e-27; // T
-        *qprod1 = CONST_E;
-        *mprod2 = 1.673e-27; // p
-        *qprod2 = CONST_E;
-        *Q = 4.03e6 * CONST_E;
+        index = 4;
         break;
     case DD_He3n:
-        *m1 = 3.344e-27; // D
-        *q1 = CONST_E;
-        *m2 = 3.344e-27; // D
-        *q2 = CONST_E;
-        *mprod1 = 5.008e-27; // He3
-        *qprod1 = 2 * CONST_E;
-        *mprod2 = 1.675e-27; // n
-        *qprod2 = 0.0;
-        *Q = 3.27e6 * CONST_E;
-        break;
+        index = 5;
     }
-}
-
-double boschhale_sigma(Reaction reaction, double E)
-{
-
-    double BG, A[5], B[4];
-    double E_min, E_max;
-    E = E / (1.e3 * CONST_E); // Convert to keV
-
-    switch (reaction)
-    {
-    case DT_He4n:
-        if (E <= 550)
-        {
-            BG = 34.3827;
-            A[0] = 6.927e4;
-            A[1] = 7.454e8;
-            A[2] = 2.050e6;
-            A[3] = 5.2002e4;
-            A[4] = 0.0;
-            B[0] = 6.38e1;
-            B[1] = -9.95e-1;
-            B[2] = 6.981e-5;
-            B[3] = 1.728e-4;
-        }
-        else
-        {
-            BG = 34.3827;
-            A[0] = -1.4714e6;
-            A[1] = 0.0;
-            A[2] = 0.0;
-            A[3] = 0.0;
-            A[4] = 0.0;
-            B[0] = -8.4127e-3;
-            B[1] = 4.7983e-6;
-            B[2] = -1.0748e-9;
-            B[3] = 8.5184e-14;
-        }
-        E_min = 0.5;
-        E_max = 4700;
-        break;
-    case DHe3_He4p:
-        if (E <= 900)
-        {
-            BG = 68.7508;
-            A[0] = 5.7501e6;
-            A[1] = 2.5226e3;
-            A[2] = 4.5566e1;
-            A[3] = 0.0;
-            A[4] = 0.0;
-            B[0] = -3.1995e-3;
-            B[1] = -8.5530e-6;
-            B[2] = 5.9014e-8;
-            B[3] = 0.0;
-        }
-        else
-        {
-            BG = 68.7508;
-            A[0] = -8.3993e5;
-            A[1] = 0.0;
-            A[2] = 0.0;
-            A[3] = 0.0;
-            A[4] = 0.0;
-            B[0] = -2.6830e-3;
-            B[1] = 1.1633e-6;
-            B[2] = -2.1332e-10;
-            B[3] = 1.4250e-14;
-        }
-        E_min = 0.3;
-        E_max = 4800;
-        break;
-    case DD_Tp:
-        BG = 31.3970;
-        A[0] = 5.5576e4;
-        A[1] = 2.1054e2;
-        A[2] = -3.2638e-2;
-        A[3] = 1.4987e-6;
-        A[4] = 1.8181e-10;
-        B[0] = 0.0;
-        B[1] = 0.0;
-        B[2] = 0.0;
-        B[3] = 0.0;
-        E_min = 0.5;
-        E_max = 5000;
-        break;
-    case DD_He3n:
-        BG = 31.3970;
-        A[0] = 5.3701e4;
-        A[1] = 3.3027e2;
-        A[2] = -1.2706e-1;
-        A[3] = 2.9327e-5;
-        A[4] = -2.5151e-9;
-        B[0] = 0.0;
-        B[1] = 0.0;
-        B[2] = 0.0;
-        B[3] = 0.0;
-        E_min = 0.5;
-        E_max = 4900;
-        break;
-    default:
-        return -1;
-    }
-
-    if (E <= E_min)
-    {
-        return 0;
-    }
+    double BG = sigma_parameters[index][0];
+    const double *A = &sigma_parameters[index][1];
+    const double *B = &sigma_parameters[index][6];
 
     /* Cap energy for astrophysical S-factor */
-    double E2 = E;
+    double E2 = ekin;
     if (E2 > E_max)
-    {
         E2 = E_max;
-    }
 
     double S = (A[0] + E2 * (A[1] + E2 * (A[2] + E2 * (A[3] + E2 * A[4])))) /
-               (1 + E2 * (B[0] + E2 * (B[1] + E2 * (B[2] + E2 * B[3]))));
+               (1. + E2 * (B[0] + E2 * (B[1] + E2 * (B[2] + E2 * B[3]))));
 
-    /* Check for underflow */
-    if (BG / sqrt(E2) > 700)
-    {
-        return 0;
-    }
+    /* "With ekin in keV, the sigma is given in millibarns", hence 1e-31 */
+    double sigma = S / (ekin * exp(BG / sqrt(ekin))) * 1e-31;
 
-    /* "With E in keV, the sigma is given in millibarns", hence 1e-31 */
-    double sigma = S / (E * exp(BG / sqrt(E))) * 1e-31;
+    /* Check for underflow and minimum energy limit */
+    if (BG / sqrt(E2) > 700 || ekin <= E_min)
+        sigma = 0;
 
     return sigma;
 }
 
 double boschhale_sigmav(Reaction reaction, double Ti)
 {
+    Ti /= 1e3 * CONST_E;
+    double BG = sigmav_parameters[reaction][0];
+    double MRC2 = sigmav_parameters[reaction][1];
+    const double *C = &sigmav_parameters[reaction][2];
 
-    double BG, MRC2, C1, C2, C3, C4, C5, C6, C7;
-
-    switch (reaction)
-    {
-    case DT_He4n:
-        BG = 34.3827;
-        MRC2 = 1124656;
-        C1 = 1.17302E-9;
-        C2 = 1.51361E-2;
-        C3 = 7.51886E-2;
-        C4 = 4.60643E-3;
-        C5 = 1.35000E-2;
-        C6 = -1.06750E-4;
-        C7 = 1.36600E-5;
-        break;
-    case DHe3_He4p:
-        BG = 68.7508;
-        MRC2 = 1124572;
-        C1 = 5.51036E-10;
-        C2 = 6.41918E-3;
-        C3 = -2.02896E-3;
-        C4 = -1.91080E-5;
-        C5 = 1.35776E-4;
-        C6 = 0.0;
-        C7 = 0.0;
-        break;
-    case DD_Tp:
-        BG = 31.3970;
-        MRC2 = 937814;
-        C1 = 5.65718E-12;
-        C2 = 3.41267E-3;
-        C3 = 1.99167E-3;
-        C4 = 0.0;
-        C5 = 1.05060E-5;
-        C6 = 0.0;
-        C7 = 0.0;
-        break;
-    case DD_He3n:
-        BG = 31.3970;
-        MRC2 = 937814;
-        C1 = 5.43360E-12;
-        C2 = 5.85778E-3;
-        C3 = 7.68222E-3;
-        C4 = 0.0;
-        C5 = -2.96400E-6;
-        C6 = 0.0;
-        C7 = 0.0;
-        break;
-    default:
-        return -1;
-    }
-
-    double theta = Ti / (1 - Ti * (C2 + Ti * (C4 + Ti * C6)) /
-                                 (1 + Ti * (C3 + Ti * (C5 + Ti * C7))));
-
+    double cm3_to_m3 = 1.e-6;
+    double theta = Ti / (1 - Ti * (C[1] + Ti * (C[3] + Ti * C[5])) /
+                                 (1 + Ti * (C[2] + Ti * (C[4] + Ti * C[6]))));
     double xi = pow((BG * BG / (4 * theta)), 1.0 / 3.0);
-
-    double sigmav =
-        C1 * theta * sqrt(xi / (MRC2 * Ti * Ti * Ti)) * exp(-3 * xi) * 1.e-6;
+    double sigmav = C[0] * theta * sqrt(xi / (MRC2 * Ti * Ti * Ti)) *
+                    exp(-3 * xi) * cm3_to_m3;
 
     return sigmav;
 }

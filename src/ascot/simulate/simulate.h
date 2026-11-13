@@ -10,25 +10,25 @@
 #include "data/atomic.h"
 #include "data/bfield.h"
 #include "data/boozer.h"
-#include "defines.h"
 #include "data/diag.h"
 #include "data/efield.h"
 #include "data/mhd.h"
-#include "data/nbi.h"
 #include "data/neutral.h"
-#include "options.h"
 #include "data/plasma.h"
-#include "utils/random.h"
 #include "data/rfof.h"
 #include "data/wall.h"
 #include "datatypes.h"
+#include "defines.h"
+#include "options.h"
+#include "utils/random.h"
 
 /**
  * Simulate gyro orbits and neutrals using fixed time-step.
  *
  * The simulation includes:
- * - orbit-following with Volume-Preserving Algorithm
- * - Coulomb collisions with Euler-Maruyama method
+ * - orbit-following with Volume-Preserving Algorithm.
+ * - Coulomb collisions with Euler-Maruyama method.
+ * - Atomic reactions.
  *
  * The simulation is carried until all markers have met some
  * end condition or are aborted/rejected. The final state of the
@@ -38,17 +38,21 @@
  * The time-step is user-defined: either a directly given fixed value
  * or a given fraction of gyrotime.
  *
- * @param queue Simulated markers in a queue.
- *        Once a marker has finished simulation, it is returned to the queue
- *        with the state it had at the end of the simulation.
  * @param sim Simulation data.
+ * @param queue Queue from which markers are picked for simulation and where
+ *        they are returned afterwards.
  * @param vector_size Size of the marker vector array, i.e. how many markers are
- *        processed in parallel with SIMD instructions.
+ *        processed in parallel in GPU/using SIMD instructions.
  */
 int simulate_go_fixed(Simulation *sim, MarkerQueue *queue, size_t vector_size);
 
 /**
  * Trace guiding centers using fixed time-step.
+ *
+ * The simulation includes:
+ * - orbit-following with RK4.
+ * - Coulomb collisions with Euler-Maruyama method.
+ * - ICRH kicks with RFOF.
  *
  * The simulation loop proceeds as follows:
  *
@@ -58,17 +62,21 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *queue, size_t vector_size);
  * 5. Diagnostics are updated if end conditions are not met.
  * 5. Return to the beginning of the loop.
  *
- * @param queue Simulated markers in a queue.
- *        Once a marker has finished simulation, it is returned to the queue
- *        with the state it had at the end of the simulation.
  * @param sim Simulation data.
+ * @param queue Queue from which markers are picked for simulation and where
+ *        they are returned afterwards.
  * @param vector_size Size of the marker vector array, i.e. how many markers are
- *        processed in parallel with SIMD instructions.
+ *        processed in parallel in GPU/using SIMD instructions.
  */
 int simulate_gc_fixed(Simulation *sim, MarkerQueue *queue, size_t vector_size);
 
 /**
  * Simulate guiding centers using adaptive time-step.
+ *
+ * The simulation includes:
+ * - orbit-following with Cash-Karp method.
+ * - Coulomb collisions with Milstein method.
+ * - ICRH kicks with RFOF.
  *
  * The simulation loop proceeds as follows:
  *
@@ -80,18 +88,20 @@ int simulate_gc_fixed(Simulation *sim, MarkerQueue *queue, size_t vector_size);
  *    are not met.
  * 5. Return to the beginning of the loop.
  *
- * @param queue Simulated markers in a queue.
- *        Once a marker has finished simulation, it is returned to the queue
- *        with the state it had at the end of the simulation.
  * @param sim Simulation data.
+ * @param queue Queue from which markers are picked for simulation and where
+ *        they are returned afterwards.
  * @param vector_size Size of the marker vector array, i.e. how many markers are
- *        processed in parallel with SIMD instructions.
+ *        processed in parallel in GPU/using SIMD instructions.
  */
 int simulate_gc_adaptive(
     Simulation *sim, MarkerQueue *queue, size_t vector_size);
 
 /**
  * Trace magnetic field lines using adaptive time-step.
+ *
+ * The simulation includes:
+ * - orbit-following with Cash-Karp method.
  *
  * The simulation loop proceeds as follows:
  *
@@ -107,12 +117,11 @@ int simulate_gc_adaptive(
  * the step is measured in distance. Marker time does not advance in the
  * simulation as the background is assumed to be frozen.
  *
- * @param queue Simulated markers in a queue.
- *        Once a marker has finished simulation, it is returned to the queue
- *        with the state it had at the end of the simulation.
  * @param sim Simulation data.
+ * @param queue Queue from which markers are picked for simulation and where
+ *        they are returned afterwards.
  * @param vector_size Size of the marker vector array, i.e. how many markers are
- *        processed in parallel with SIMD instructions.
+ *        processed in parallel in GPU/using SIMD instructions.
  */
 int simulate_fl_adaptive(
     Simulation *sim, MarkerQueue *queue, size_t vector_size);

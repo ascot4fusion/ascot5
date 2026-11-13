@@ -6,14 +6,12 @@
 #include "defines.h"
 #include "plasma.h"
 #include "utils/interp.h"
-#include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 int PlasmaLinear2D_init(
     PlasmaLinear2D *plasma, size_t nr, size_t nz, size_t nion, real rlim[2],
     real zlim[2], int anum[nion], int znum[nion], real mass[nion],
-    real charge[nion], real Te[nr * nz], real Ti[nr * nz], real ne[nr * nz],
+    int charge[nion], real Te[nr * nz], real Ti[nr * nz], real ne[nr * nz],
     real ni[nr * nz * nion], real vtor[nr * nz])
 {
     if (nr * nz == 0)
@@ -23,10 +21,10 @@ int PlasmaLinear2D_init(
     plasma->anum = (int *)malloc(nion * sizeof(int));
     plasma->znum = (int *)malloc(nion * sizeof(int));
     plasma->mass = (real *)malloc((nion + 1) * sizeof(real));
-    plasma->charge = (real *)malloc((nion + 1) * sizeof(real));
+    plasma->charge = (int *)malloc((nion + 1) * sizeof(int));
 
     plasma->mass[0] = CONST_M_E;
-    plasma->charge[0] = -CONST_E;
+    plasma->charge[0] = -1;
     for (size_t i = 0; i < nion; i++)
     {
         plasma->znum[i] = znum[i];

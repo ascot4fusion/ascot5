@@ -8,7 +8,6 @@
 #include "data/bfield.h"
 #include "data/diag.h"
 #include "data/marker.h"
-#include "data/nbi.h"
 #include "data/neutral.h"
 #include "data/plasma.h"
 #include "data/wall.h"
@@ -20,7 +19,6 @@
 #include "utils/mathlib.h"
 #include "utils/physlib.h"
 #include "utils/random.h"
-#include "utils/suzuki.h"
 #include <getopt.h>
 #include <math.h>
 #include <omp.h>
@@ -28,339 +26,123 @@
 #include <string.h>
 #include <time.h>
 
-/**
- * Replace markers in the simulation vector with new ones from the queue.
- *
- * A marker is replaced if it is no longer running or if it is a dummy marker.
- *
- * @param vector_size Number of markers in the simulation vector.
- * @param queue Marker queue.
- * @param p_current Current marker vector.
- * @param sim Simulation data.
- * @param time_step Time step for each marker.
- *        This is set to the initial step size for newly added markers.
- */
-static size_t cycle_markers(
-    size_t vector_size, MarkerQueue *queue, MarkerGyroOrbit *p_current,
-    Simulation *sim, real time_step[vector_size])
+void nbi_source_sample_beam(real xyz[3], real vxyz[3], real rnd[5], Nbi *nbi)
 {
-    size_t start = 0;
-    while (start < vector_size)
-    {
-        size_t next_in_queue;
-        size_t idx = MarkerQueue_cycle(
-            &next_in_queue, queue, vector_size, start, p_current->id,
-            p_current->running);
-        if (idx == vector_size)
-            break;
-        if (p_current->id[idx] != 0)
-            MarkerGyroOrbit_to_queue(queue, p_current, idx, &sim->bfield, sim->options->disable_first_order_gctransformation);
-        p_current->id[idx] = 0;
 
-        if (next_in_queue < queue->n)
-        {
-            if (MarkerGyroOrbit_from_queue(
-                    p_current, queue, idx, next_in_queue, &sim->bfield))
-                p_current->id[idx] = 0;
-            time_step[idx] = 0; // TODO
-        }
-        start = idx;
-    }
+    size_t random_beamlet = floor(rnd[0] * nbi->n_beamlet);
+    xyz[0] = nbi->beamlet_x[random_beamlet];
+    xyz[1] = nbi->beamlet_y[random_beamlet];
+    xyz[2] = nbi->beamlet_z[random_beamlet];
 
-    size_t n_running = 0;
-#pragma omp simd reduction(+ : n_running)
-    for (size_t i = 0; i < NSIMD; i++)
-    {
-        n_running += p_current->running[i];
-    }
+    real ekin;
+    if (rnd[1] < nbi->efrac[0])
+        ekin = nbi->energy;
+    else if (rnd[1] < nbi->efrac[0] + nbi->efrac[1])
+        ekin = nbi->energy / 2;
+    else
+        ekin = nbi->energy / 3;
+    real gamma = physlib_gamma_Ekin(nbi->mass, ekin);
+    real vnorm = sqrt(1.0 - 1.0 / (gamma * gamma)) * CONST_C;
 
-    return n_running;
+    real dir[3] = {
+        nbi->beamlet_dx[random_beamlet],
+        nbi->beamlet_dy[random_beamlet],
+        nbi->beamlet_dz[random_beamlet],
+    };
+
+    real up[3] = {0.0, 0.0, 1.0};
+
+    real n_h[3];
+    math_cross(up, dir, n_h);
+    math_unit(n_h, n_h);
+
+    real n_v[3];
+    math_cross(dir, n_h, n_v);
+    math_unit(n_v, n_v);
+
+    real div[2];
+    div[0] = (rnd[2] < nbi->halo_fraction ? nbi->div_halo[0] : nbi->div[0]) *
+             rnd[3] / sqrt(2.);
+    div[1] = (rnd[2] < nbi->halo_fraction ? nbi->div_halo[1] : nbi->div[1]) *
+             rnd[4] / sqrt(2.);
+
+    real tmp[3] = {
+        dir[0] + div[0] * n_v[0] + div[1] * n_h[0],
+        dir[1] + div[0] * n_v[1] + div[1] * n_h[1],
+        dir[2] + div[0] * n_v[2] + div[1] * n_h[2],
+    };
+    math_unit(tmp, dir);
+
+    vxyz[0] = vnorm * dir[0];
+    vxyz[1] = vnorm * dir[1];
+    vxyz[2] = vnorm * dir[2];
 }
 
 void nbi_source_inject_markers(
-    Simulation *sim, Nbi *inj, real tlim[2], size_t nmrk, State *mrk)
+    Simulation *sim, Nbi *nbi, real time_step, real max_dist, real tlim[2],
+    size_t nmrk, State mrk[nmrk])
 {
 
     /* Set marker weights assuming a large number is created so that the energy
      * fractions of generated markers are close to the injector values */
-    real f = 1.0 * inj->efrac[0] + (1.0 / 2) * inj->efrac[1] +
-             (1.0 / 3) * inj->efrac[2];
-    real weight = (inj->power / inj->energy) / (f * nmrk);
+    real f = 1.0 * nbi->efrac[0] + (1.0 / 2) * nbi->efrac[1] +
+             (1.0 / 3) * nbi->efrac[2];
+    real weight = (nbi->power / nbi->energy) / (f * nmrk);
 
-    #pragma omp parallel for
+    CPU_PARALLELIZE_LOOP
     for (size_t i = 0; i < nmrk; i++)
     {
-        real rng[1];
+        real rnd[6];
         size_t rng_count = 0;
-        random_uniform(rng, 1, &i, &rng_count, 0);
-        real time = tlim[0] + rng[0] * (tlim[1] - tlim[0]);
+        random_uniform(rnd, 4, &i, &rng_count, 0);
+        random_norm(&rnd[3], 2, &i, &rng_count, 0);
+        real time = tlim[0] + rnd[0] * (tlim[1] - tlim[0]);
 
         real xyz[3], vxyz[3], rpz[3], vhat[3];
-        nbi_inject(xyz, vxyz, inj);
+        nbi_source_sample_beam(xyz, vxyz, &rnd[1], nbi);
         math_xyz2rpz(xyz, rpz);
         math_unit(vxyz, vhat);
 
         real psi;
-        real ds = 1e-3;
-        err_t err =
+        err_t err = 0;
+        err_t outside_field =
             Bfield_eval_psi(&psi, rpz[0], rpz[1], rpz[2], time, &sim->bfield);
-        while (err)
+        while (outside_field)
         {
-            xyz[0] += ds * vhat[0];
-            xyz[1] += ds * vhat[1];
-            xyz[2] += ds * vhat[2];
+            xyz[0] += time_step * vhat[0];
+            xyz[1] += time_step * vhat[1];
+            xyz[2] += time_step * vhat[2];
             math_xyz2rpz(xyz, rpz);
-            err = Bfield_eval_psi(
+            outside_field = Bfield_eval_psi(
                 &psi, rpz[0], rpz[1], rpz[2], time, &sim->bfield);
+            if (sqrt(xyz[0] * xyz[0] + xyz[1] * xyz[1] + xyz[2] * xyz[2]) >
+                max_dist)
+            {
+                err = ERROR_RAISE(ERR_NBI_MAX_DIST, SIMULATE_NBI_SOURCE_C);
+                break;
+            }
         }
 
         real vrpz[3];
         math_vec_xyz2rpz(vxyz, vrpz, rpz[1]);
         real gamma = physlib_gamma_vnorm(math_norm(vrpz));
 
-        mrk[i].err = 0;
+        mrk[i].err = err;
         mrk[i].rprt = rpz[0];
         mrk[i].zprt = rpz[2];
         mrk[i].phiprt = rpz[1];
-        mrk[i].pr = vrpz[0] * gamma * inj->mass;
-        mrk[i].pz = vrpz[2] * gamma * inj->mass;
-        mrk[i].pphi = vrpz[1] * gamma * inj->mass;
-        mrk[i].mass = inj->mass;
-        mrk[i].anum = inj->anum;
-        mrk[i].znum = inj->znum;
+        mrk[i].pr = vrpz[0] * gamma * nbi->mass;
+        mrk[i].pz = vrpz[2] * gamma * nbi->mass;
+        mrk[i].pphi = vrpz[1] * gamma * nbi->mass;
+        mrk[i].mass = nbi->mass;
+        mrk[i].anum = nbi->anum;
+        mrk[i].znum = nbi->znum;
         mrk[i].time = time;
         mrk[i].weight = weight;
-        mrk[i].charge = 0.0;
-        mrk[i].mileage = 0.0;
-        mrk[i].cputime = 0.0;
+        mrk[i].charge = 0;
+        mrk[i].mileage = 0.;
+        mrk[i].cputime = 0.;
         mrk[i].endcond = 0;
         mrk[i].walltile = 0;
     }
-}
-
-void nbi_source_trace_markers(MarkerQueue *pq, Simulation *sim)
-{
-    size_t cycle[NSIMD] __memalign__;
-    real hin[NSIMD] __memalign__;
-    int shinethrough[NSIMD] __memalign__;
-    real remaining[NSIMD] __memalign__;
-    real threshold[NSIMD] __memalign__;
-    MarkerGyroOrbit p, p0, pdiag;
-
-    int n_species = Plasma_get_n_species(&sim->plasma);
-    const int *pls_anum = Plasma_get_species_anum(&sim->plasma);
-    const int *pls_znum = Plasma_get_species_znum(&sim->plasma);
-
-    /* Init dummy markers */
-    MarkerGyroOrbit_allocate(&p, NSIMD);
-    MarkerGyroOrbit_allocate(&p0, NSIMD);
-    MarkerGyroOrbit_allocate(&pdiag, NSIMD);
-    for (size_t i = 0; i < NSIMD; i++)
-    {
-        size_t rng_count = 0;
-        random_uniform(&threshold[i], 1, &i, &rng_count, 0);
-        p.id[i] = -1;
-        p.running[i] = 0;
-        hin[i] = 1e-10;
-        remaining[i] = 1.0;
-        shinethrough[i] = 0;
-    }
-
-    /* Initialize running particles */
-    size_t n_running =
-        cycle_markers(NSIMD, pq, &p, sim, hin);
-    while (n_running > 0)
-    {
-
-        #pragma omp parallel for
-        for (size_t i = 0; i < NSIMD; i++)
-        {
-            MarkerGyroOrbit_copy(&p0, &p, i);
-
-            if (p.running[i])
-            {
-                err_t err = 0;
-
-                /* These are needed later */
-                real pnorm = math_normc(p.p_r[i], p.p_phi[i], p.p_z[i]);
-                real gamma = physlib_gamma_pnorm(p.mass, pnorm);
-                real ekin = physlib_Ekin_pnorm(p.mass, pnorm);
-
-                /* Advance ballistic trajectory by converting momentum to
-                 * cartesian coordinates */
-                real prpz[3] = {p.p_r[i], p.p_phi[i], p.p_z[i]};
-                real pxyz[3];
-                math_vec_rpz2xyz(prpz, pxyz, p.phi[i]);
-
-                real posrpz[3] = {p.r[i], p.phi[i], p.z[i]};
-                real posxyz[3], fposxyz[3];
-                math_rpz2xyz(posrpz, posxyz);
-                fposxyz[0] = posxyz[0] + pxyz[0] * hin[i] / (gamma * p.mass);
-                fposxyz[1] = posxyz[1] + pxyz[1] * hin[i] / (gamma * p.mass);
-                fposxyz[2] = posxyz[2] + pxyz[2] * hin[i] / (gamma * p.mass);
-
-                /* Back to cylindrical coordinates (note phi is cumulative) */
-                p.r[i] =
-                    sqrt(fposxyz[0] * fposxyz[0] + fposxyz[1] * fposxyz[1]);
-                p.phi[i] += atan2(
-                    posxyz[0] * fposxyz[1] - posxyz[1] * fposxyz[0],
-                    posxyz[0] * fposxyz[0] + posxyz[1] * fposxyz[1]);
-                p.z[i] = fposxyz[2];
-
-                real cosp = cos(p.phi[i]);
-                real sinp = sin(p.phi[i]);
-                p.p_r[i] = pxyz[0] * cosp + pxyz[1] * sinp;
-                p.p_phi[i] = -pxyz[0] * sinp + pxyz[1] * cosp;
-                p.p_z[i] = pxyz[2];
-
-                real ds = hin[i];
-                p.mileage[i] += hin[i];
-
-                /* Update background values at the new position */
-                real psi, rho[2], pls_dens[MAX_SPECIES], pls_temp[MAX_SPECIES];
-                err = Bfield_eval_psi(
-                    &psi, p.r[i], p.phi[i], p.z[i], p.time[i], &sim->bfield);
-                if (!err)
-                {
-                    err = Bfield_eval_rho(rho, psi, &sim->bfield);
-                }
-                if (!err && p.rho[i] <= 1.0 && rho[0] > 1.0)
-                {
-                    shinethrough[i] = 1;
-                }
-                p.rho[i] = rho[0];
-                /* Update theta value */
-                real axisrz[2];
-                if (!err)
-                {
-                    Bfield_eval_axis_rz(axisrz, &sim->bfield, p.phi[i]);
-                }
-                p.theta[i] = atan2(p.z[i] - axisrz[1], p.r[i] - axisrz[0]);
-
-                if (!err)
-                {
-                    err = Plasma_eval_nT(
-                        pls_dens, pls_temp, rho[0], p.r[i], p.phi[i], p.z[i],
-                        p.time[i], &sim->plasma);
-                }
-
-                /* Calculate ionization rate */
-                real rate = 0.0;
-                if (!err)
-                {
-                    real sigmav;
-                    if (Atomic_eval_bms(
-                            &sigmav, p.znum, p.anum, ekin, p.mass,
-                            n_species - 1, pls_znum, pls_anum, pls_temp[0],
-                            &(pls_dens[1]), sim->atomic))
-                    {
-                        err = 1;
-                    }
-                    rate = pls_dens[0] * sigmav;
-                }
-                remaining[i] *= exp(-rate * ds);
-
-                /* Check for end conditions */
-                if (!err)
-                {
-                    real w_coll = 0;
-                    int tile = 0;
-                    if (shinethrough[i])
-                    {
-                        tile = Wall_eval_intersection(
-                            &w_coll, p0.r[i], p0.phi[i], p0.z[i], p.r[i],
-                            p.phi[i], p.z[i], &sim->wall);
-                    }
-                    if (tile > 0)
-                    {
-                        real w = w_coll;
-                        p.time[i] = p0.time[i] + w * (p.time[i] - p0.time[i]);
-                        p.r[i] = p0.r[i] + w * (p.r[i] - p0.r[i]);
-                        p.phi[i] = p0.phi[i] + w * (p.phi[i] - p0.phi[i]);
-                        p.z[i] = p0.z[i] + w * (p.z[i] - p0.z[i]);
-
-                        p.walltile[i] = tile;
-                        p.endcond[i] |= ENDCOND_WALL;
-                        p.running[i] = 0;
-                    }
-                    if (p.mileage[i] > NBI_MAX_DISTANCE)
-                    {
-                        p.endcond[i] |= ENDCOND_TLIM;
-                        p.running[i] = 0;
-                    }
-                    if (remaining[i] < threshold[i])
-                    {
-                        p.charge[i] = 1 * CONST_E;
-                        p.endcond[i] |= ENDCOND_NEUTR;
-                        p.running[i] = 0;
-                    }
-                }
-                else
-                {
-                    p.err[i] = err;
-                    p.running[i] = 0;
-                }
-            }
-        }
-
-        /* Update markers that just finished */
-        #pragma omp parallel for
-        for (size_t i = 0; i < NSIMD; i++)
-        {
-            /* Use this as a flag for which markers to update in diagnostics */
-            pdiag.running[i] = 0;
-            if (!p.running[i] && p.id[i] > 0)
-            {
-                p.time[i] += p.mileage[i];
-
-                /* Reset these for the next marker */
-                size_t rng_count = 0;
-                random_uniform(&threshold[i], 1, &i, &rng_count, 0);
-                remaining[i] = 1.0;
-                shinethrough[i] = 0;
-
-                /* Update the magnetic field at the marker position */
-                if (!p.err[i])
-                {
-                    real B_dB[15];
-                    Bfield_eval_b_db(
-                        B_dB, p.r[i], p.phi[i], p.z[i], p.time[i],
-                        &sim->bfield);
-                    p.br[i] = B_dB[0];
-                    p.dbrdr[i] = B_dB[3];
-                    p.dbrdphi[i] = B_dB[4];
-                    p.dbrdz[i] = B_dB[5];
-
-                    p.bphi[i] = B_dB[1];
-                    p.dbphidr[i] = B_dB[6];
-                    p.dbphidphi[i] = B_dB[7];
-                    p.dbphidz[i] = B_dB[8];
-
-                    p.bz[i] = B_dB[2];
-                    p.dbzdr[i] = B_dB[9];
-                    p.dbzdphi[i] = B_dB[10];
-                    p.dbzdz[i] = B_dB[11];
-                }
-            }
-            MarkerGyroOrbit_copy(&pdiag, &p, i);
-            if (!p.running[i] && p.id[i] > 0)
-            {
-                pdiag.running[i] = 1;
-            }
-
-            /* Normalize weight with time and add hin so that we don't divide
-             * with zero when updating distributions */
-            pdiag.time[i] += hin[i];
-            pdiag.weight[i] /= hin[i];
-        }
-
-        /* Update distributions for markers that finished */
-        // diag_update_go(&sim->diag_data, &sim->bfield, &pdiag, &p);
-
-        /* Update running particles */
-        n_running = cycle_markers(NSIMD, pq, &p, sim, hin);
-    }
-    MarkerGyroOrbit_deallocate(&p);
-    MarkerGyroOrbit_deallocate(&p0);
-    MarkerGyroOrbit_deallocate(&pdiag);
 }

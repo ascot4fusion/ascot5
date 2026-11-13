@@ -7,11 +7,21 @@
 #define NBI_SOURCE_H
 
 #include "data/marker.h"
-#include "data/nbi.h"
 #include "datatypes.h"
 #include "defines.h"
 #include "simulate.h"
 #include <stddef.h>
+
+/**
+ * Sample initial phase-space coordinates for an injected marker.
+ *
+ * @param xyz Sampled positional coordinates in Cartesian basis [m].
+ * @param vxyz Sampled velocity coordinates in Cartesian basis [m/s].
+ * @param rnd Array of random numbers where first three are uniformly
+ *        distributed between (0, 1] and the last two are normally distributed.
+ * @param nbi The injector data.
+ */
+void nbi_source_sample_beam(real xyz[3], real vxyz[3], real rnd[5], Nbi *nbi);
 
 /**
  * Inject neutrals from an injector.
@@ -25,25 +35,17 @@
  * position remains unfilled).
  *
  * @param sim Simulation data.
- * @param inj Injector data.
- * @param tlim Time interval over which the markers are injected.
- *        The marker initial time (at the point of injection) is sampled from
- *        this interval.
+ * @param nbi Injector data.
+ * @param time_step Simulation time-step [s].
+ * @param max_dist Maximum distance the marker can travel without entering the
+ *        magnetic field before it is aborted.
+ * @param tlim Time interval from which markers' initial time is sampled
+ *        (separately for each marker).
  * @param nmrk Number of markers to inject.
- * @param mrk Marker struct to fill.
+ * @param mrk Marker structs to fill.
  */
 void nbi_source_inject_markers(
-    Simulation *sim, Nbi *inj, real tlim[2], size_t nmrk, State *mrk);
-
-/**
- * Trace a neutral marker until it has ionized or hit wall.
- *
- * This function is for the most part identical to simulate_fo with few
- * exceptions relevant for BBNBI.
- *
- * @param pq Pointer to the marker queue containing the initial neutrals.
- * @param sim Pointer to the simu struct with initialized data.
- */
-void nbi_source_trace_markers(MarkerQueue *pq, Simulation *sim);
+    Simulation *sim, Nbi *nbi, real time_step, real max_dist, real tlim[2],
+    size_t nmrk, State mrk[nmrk]);
 
 #endif

@@ -78,7 +78,7 @@ static size_t cycle_markers(
     return n_running;
 }
 
-int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
+int simulate_go_fixed(Simulation *sim, MarkerQueue *queue, size_t vector_size)
 {
     int err = 0;
     size_t *cycle = (size_t *)xmalloc(&err, vector_size * sizeof(size_t));
@@ -114,7 +114,7 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
     }
 
     /* Initialize running particles */
-    size_t n_running = cycle_markers(vector_size, pq, &p, sim, hin);
+    size_t n_running = cycle_markers(vector_size, queue, &p, sim, hin);
 
     cputime_last = A5_WTIME;
 
@@ -181,7 +181,7 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
         /* Atomic reactions */
         if (sim->options->enable_atomic)
         {
-            atomic_go(
+            atomic_reactions_eval_go(
                 &p, hin, &sim->plasma, &sim->neutral,
                 sim->atomic);
         }
@@ -254,7 +254,7 @@ int simulate_go_fixed(Simulation *sim, MarkerQueue *pq, size_t vector_size)
                 n_running++;
         }
 #else
-        n_running = cycle_markers(vector_size, pq, &p, sim, hin);
+        n_running = cycle_markers(vector_size, queue, &p, sim, hin);
 #endif
 #ifndef GPU
         /* Determine simulation time-step for new particles */

@@ -21,7 +21,7 @@
  * @param anum Atomic mass number of the ion species.
  * @param znum Charge number of the ion species.
  * @param mass Mass of the ion species [kg].
- * @param charge Charge of the ion species [C].
+ * @param charge Charge state of the ion species [e].
  * @param rho Grid in rho in which data is tabulated [1].
  *        Can be non-uniform.
  * @param Te Electron temperature [J].
@@ -35,7 +35,7 @@
  */
 int PlasmaLinear1D_init(
     PlasmaLinear1D *plasma, size_t nrho, size_t nion, int anum[nion],
-    int znum[nion], real mass[nion], real charge[nion], real rho[nrho],
+    int znum[nion], real mass[nion], int charge[nion], real rho[nrho],
     real Te[nrho], real Ti[nrho], real ne[nrho], real ni[nrho * nion],
     real vtor[nrho]);
 

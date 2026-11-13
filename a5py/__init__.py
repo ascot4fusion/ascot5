@@ -6,6 +6,7 @@ import unyt
 from a5py.composite import Ascot
 from a5py.exceptions import AscotDataException
 from a5py.data.options import SimulationOptions
+from a5py.data import CXdata, BMSdata, EIdata, IIdata
 
 
 def set_up_units():
@@ -26,4 +27,8 @@ __all__ = [
     "Ascot",
     "AscotDataException",
     "SimulationOptions",
+    "CXdata",
+    "BMSdata",
+    "EIdata",
+    "IIdata",
     ]

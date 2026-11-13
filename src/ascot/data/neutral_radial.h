@@ -43,37 +43,49 @@ void NeutralRadial_free(NeutralRadial *neutral);
  */
 void NeutralRadial_offload(NeutralRadial *neutral);
 
-DECLARE_TARGET_SIMD_UNIFORM(neutral)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(neutral)
 /**
- * Evaluate density of each neutral species.
- *
- * The evaluated values are in the same order as ions in the plasma data.
+ * Evaluate density of a neutral species.
  *
  * @param density Evaluated density [m^-3].
  * @param rho Normalized poloidal flux coordinate of the query point [1].
+ * @param i_species Index of the requested species.
  * @param neutral The neutral data.
  *
  * @return Zero if the evaluation succeeded.
  */
 err_t NeutralRadial_eval_density(
-    real *density, real rho, NeutralRadial *neutral);
+    real density[1], real rho, size_t i_species, NeutralRadial *neutral);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
-DECLARE_TARGET_SIMD_UNIFORM(neutral)
+GPU_DECLARE_TARGET_SIMD_UNIFORM(neutral)
 /**
- * Evaluate temperature of each neutral species.
+ * Evaluate temperature of a neutral species.
  *
- * Depending on the implementation, either the normalized poloidal flux
- * coordinate or the cylindrical coordinate is used in the interpolation.
+ * @param temperature Evaluated temperature [J].
+ * @param rho Normalized poloidal flux coordinate of the query point [1].
+ * @param i_species Index of the requested species.
+ * @param neutral The neutral data.
  *
- * The evaluated values are in the same order as ions in the plasma data.
+ * @return Zero if the evaluation succeeded.
+ */
+err_t NeutralRadial_eval_temperature(
+    real temperature[1], real rho, size_t i_species, NeutralRadial *neutral);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
+
+GPU_DECLARE_TARGET_SIMD_UNIFORM(neutral)
+/**
+ * Evaluate density and temperature for all neutral species.
  *
+ * @param density Evaluated density [m^-3].
  * @param temperature Evaluated temperature [J].
  * @param rho Normalized poloidal flux coordinate of the query point [1].
  * @param neutral The neutral data.
  *
  * @return Zero if the evaluation succeeded.
  */
-err_t NeutralRadial_eval_temperature(
-    real *temperature, real rho, NeutralRadial *neutral);
+err_t NeutralRadial_eval_nT(
+    real *density, real *temperature, real rho, NeutralRadial *neutral);
+GPU_DECLARE_TARGET_SIMD_UNIFORM_END
 
 #endif

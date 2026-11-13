@@ -9,13 +9,13 @@ from typing import Optional
 
 from .access import Tree
 from . import (
-    marker, bfield, efield, plasma, neutral, wall, boozer, mhd,
-    # nbi, asigma,
+    marker, bfield, efield, plasma, neutral, wall, boozer, mhd, atomic,
+    # nbi,
     )
 
 input_categories = {
     "bfield", "efield", "marker", "plasma", "neutral", "wall",
-    "boozer", "mhd", "asigma", "nbi",
+    "boozer", "mhd", "atomic", "nbi",
 }
 
 class AscotData(
@@ -27,7 +27,8 @@ class AscotData(
     marker.CreateMarkerMixin,
     boozer.CreateBoozerMixin,
     mhd.CreateMhdMixin,
-    #nbi.CreateNbiMixin, asigma.CreateAsigmaLocMixin,
+    atomic.CreateAtomicMixin,
+    #nbi.CreateNbiMixin,
     ):
     """Stores and manages simulation inputs and outputs.
 

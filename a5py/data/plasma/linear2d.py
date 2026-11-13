@@ -1,5 +1,4 @@
-"""Defines axisymmetric plasma input class and the corresponding factory method.
-"""
+"""Defines axisymmetric plasma input class and the corresponding factory method."""
 
 import ctypes
 from typing import Optional
@@ -23,8 +22,8 @@ class Struct(DataStruct):
         ("nspecies", ctypes.c_size_t),
         ("anum", ctypes.POINTER(ctypes.c_int32)),
         ("znum", ctypes.POINTER(ctypes.c_int32)),
+        ("charge", ctypes.POINTER(ctypes.c_int32)),
         ("mass", ctypes.POINTER(ctypes.c_double)),
-        ("charge", ctypes.POINTER(ctypes.c_double)),
         ("vtor", Spline2D),
         ("temperature", Spline2D * 2),
         ("density", ctypes.POINTER(Spline2D)),

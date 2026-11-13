@@ -23,7 +23,7 @@
  * @param anum Atomic mass number of the ion species.
  * @param znum Charge number of the ion species.
  * @param mass Mass of the ion species [kg].
- * @param charge Charge of the ion species [C].
+ * @param charge Charge state of the ion species [e].
  * @param Te Electron temperature [J].
  * @param Ti Temperature of the ion species [J].
  * @param ne Electron density [m^-3].
@@ -36,7 +36,7 @@
 int PlasmaLinear2D_init(
     PlasmaLinear2D *plasma, size_t nr, size_t nz, size_t nion, real rlim[2],
     real zlim[2], int anum[nion], int znum[nion], real mass[nion],
-    real charge[nion], real Te[nr * nz], real Ti[nr * nz], real ne[nr * nz],
+    int charge[nion], real Te[nr * nz], real Ti[nr * nz], real ne[nr * nz],
     real ni[nr * nz * nion], real vtor[nr * nz]);
 
 /**

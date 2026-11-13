@@ -5,13 +5,11 @@
 #include "consts.h"
 #include "defines.h"
 #include "plasma.h"
-#include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 int PlasmaLinear1D_init(
     PlasmaLinear1D *plasma, size_t nrho, size_t nion, int anum[nion],
-    int znum[nion], real mass[nion], real charge[nion], real rho[nrho],
+    int znum[nion], real mass[nion], int charge[nion], real rho[nrho],
     real Te[nrho], real Ti[nrho], real ne[nrho], real ni[nrho * nion],
     real vtor[nrho])
 {
@@ -22,10 +20,10 @@ int PlasmaLinear1D_init(
     plasma->anum = (int *)malloc(nion * sizeof(int));
     plasma->znum = (int *)malloc(nion * sizeof(int));
     plasma->mass = (real *)malloc((nion + 1) * sizeof(real));
-    plasma->charge = (real *)malloc((nion + 1) * sizeof(real));
+    plasma->charge = (int *)malloc((nion + 1) * sizeof(int));
 
     plasma->mass[0] = CONST_M_E;
-    plasma->charge[0] = -CONST_E;
+    plasma->charge[0] = -1;
     for (size_t i = 0; i < nion; i++)
     {
         plasma->znum[i] = znum[i];
