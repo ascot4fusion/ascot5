@@ -67,8 +67,9 @@ void DiagHist_update_go(
 
         int valid = 1;
         axis = &hist->axes[15];
-        size_t i15 =
-            math_bin_index(mrk_f->charge[i], axis->n, axis->min, axis->max);
+        size_t i15 = ((mrk_f->charge[i] - axis->min) /
+                      (axis->max - axis->min)) *
+                     axis->n;
         valid *= (mrk_f->charge[i] >= axis->min && mrk_f->charge[i] <= axis->max);
 
         axis = &hist->axes[14];
@@ -183,10 +184,10 @@ void DiagHist_update_gc(
 
         int valid = 1;
         axis = &hist->axes[15];
-        size_t i15 =
-            math_bin_index(mrk_f->charge[i], axis->n, axis->min, axis->max);
-        valid *= (mrk_f->charge[i] >= axis->min &&
-                  mrk_f->charge[i] <= axis->max);
+        size_t i15 = ((mrk_f->charge[i] - axis->min) /
+                      (axis->max - axis->min)) *
+                     axis->n;
+        valid *= (mrk_f->charge[i] >= axis->min && mrk_f->charge[i] <= axis->max);
 
         axis = &hist->axes[14];
         size_t i14 =
