@@ -146,7 +146,7 @@ err_t BfieldSpline3D_eval_b_db(
     b_db[3] += psi_dpsi[2] / (r * r) - psi_dpsi[5] / r;
     b_db[5] -= psi_dpsi[4] / r;
     b_db[2] += psi_dpsi[1] / r;
-    b_db[9] -= psi_dpsi[1] / (r * r) + psi_dpsi[3] / r;
+    b_db[9] -= psi_dpsi[1] / (r * r) - psi_dpsi[3] / r;
     b_db[11] += psi_dpsi[5] / r;
 
     err = ERROR_CHECK(
