@@ -420,7 +420,8 @@ The order must match the ``MomentType`` enum in ``diag_data.h``.
 - 'energydensity': Energy density, sum of E*w*dt.
 - 'energydensitypar': Parallel energy density, sum of E*xi^2*w*dt.
 - 'jpar': Parallel current density, sum of q*v_par*w*dt.
-- 'jphi': Toroidal current density, sum of q*v_phi*w*dt.
+- 'jphi': Toroidal current density, sum of q*v_phi*w*dt. For guiding centers
+  v_phi = v_par*B_phi/|B| (drifts are neglected).
 - 'powerdep': Collisional power deposition to plasma, sum of -dE_coll*w.
 - 'torque_jxb': j x B torque density, sum of -q*dpsi*w.
 - 'torque_coll': Collisional torque density, sum of

@@ -74,6 +74,8 @@ void DiagMoment_update_go(
 
         /*Parallel velocity*/
         real vpar_f = ppar_f / (gamma_f * mrk_f->mass);
+        /*Toroidal velocity*/
+        real vphi_f = mrk_f->p_phi[i] / (gamma_f * mrk_f->mass);
         /*Pitch xi*/
         real xi_f = pnorm_f > 0 ? ppar_f / pnorm_f : 0; 
 
@@ -130,7 +132,7 @@ void DiagMoment_update_go(
                     computed_moments[current_moment] = charge_f * vpar_f * marker_weight_w * delta_t;
                     break;
                 case MOMENT_JTOR:
-                    computed_moments[current_moment] = 0;
+                    computed_moments[current_moment] = charge_f * vphi_f * marker_weight_w * delta_t;
                     break;
                 case MOMENT_CPDEP:
                     computed_moments[current_moment] = -delta_e * marker_weight_w;
@@ -202,6 +204,9 @@ void DiagMoment_update_gc(
         /*Parallel velocity*/
         real vpar_f = ppar_f / (gamma_f * mrk_f->mass);
 
+        /*Toroidal velocity of the guiding center (parallel motion only, drifts neglected)*/
+        real vphi_f = vpar_f * mrk_f->bphi[i] / bnorm_f;
+
         /*Pitch xi*/
         real xi_f = pnorm_f > 0 ? ppar_f / pnorm_f : 0; 
 
@@ -259,7 +264,7 @@ void DiagMoment_update_gc(
                     computed_moments[current_moment] = charge_f * vpar_f * marker_weight_w * delta_t;
                     break;
                 case MOMENT_JTOR:
-                    computed_moments[current_moment] = 0;
+                    computed_moments[current_moment] = charge_f * vphi_f * marker_weight_w * delta_t;
                     break;
                 case MOMENT_CPDEP:
                     computed_moments[current_moment] = -delta_e * marker_weight_w;
