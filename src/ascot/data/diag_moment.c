@@ -14,17 +14,13 @@
 void DiagMoment_offload(DiagMoment *moment)
 {
     SUPPRESS_UNUSED_WARNING(moment);
-    GPU_MAP_TO_DEVICE(
-        moment->values[0:moment->axis.n*moment->num_moments],
-        moment->chosen_moments[0:moment->num_moments])
+    GPU_MAP_TO_DEVICE(moment->values[0:moment->axis.n*MOMENT_NUM])
 }
 
 void DiagMoment_onload(DiagMoment *moment)
 {
     SUPPRESS_UNUSED_WARNING(moment);
-    GPU_MAP_FROM_DEVICE(
-        moment->values[0:moment->axis.n*moment->num_moments],
-        moment->chosen_moments[0:moment->num_moments])
+    GPU_MAP_FROM_DEVICE(moment->values[0:moment->axis.n*MOMENT_NUM])
 }
 
 void DiagMoment_update_go(
@@ -34,8 +30,8 @@ void DiagMoment_update_go(
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for (size_t i = 0; i < mrk_f->size; i++)
     {
+        int valid = 1;
         HistAxis *axis = &(moment->axis);
-        real rho = mrk_f->rho[i];
         real computed_moments[MOMENT_NUM];
 
         /*Norm of the magnetic field |B|*/
@@ -74,8 +70,10 @@ void DiagMoment_update_go(
 
         /*Parallel velocity*/
         real vpar_f = ppar_f / (gamma_f * mrk_f->mass);
+
         /*Toroidal velocity*/
-        real vphi_f = mrk_f->p_phi[i] / (gamma_f * mrk_f->mass);
+        real vtor_f = mrk_f->p_phi[i] / (gamma_f * mrk_f->mass);
+
         /*Pitch xi*/
         real xi_f = pnorm_f > 0 ? ppar_f / pnorm_f : 0; 
 
@@ -91,21 +89,24 @@ void DiagMoment_update_go(
         /*Length of the timestep*/
         real delta_t = (mrk_f->time[i] - mrk_i->time[i]);
 
+        /*Charge e of the marker*/
+        real charge_f = CONST_E * mrk_f->charge[i];
+
+        /*Charge e of the marker at the start of the timestep*/
+        real charge_i = CONST_E * mrk_i->charge[i];
+
         /*Psi at the start and end of the timestep*/
         real psi_f, psi_i;
-        Bfield_eval_psi(&psi_f, mrk_f->r[i], mrk_f->phi[i], mrk_f->z[i], mrk_f->time[i], bfield); 
-        Bfield_eval_psi(&psi_i, mrk_i->r[i], mrk_i->phi[i], mrk_i->z[i], mrk_i->time[i], bfield); 
+        valid *= !Bfield_eval_psi(&psi_f, mrk_f->r[i], mrk_f->phi[i], mrk_f->z[i], mrk_f->time[i], bfield); 
+        valid *= !Bfield_eval_psi(&psi_i, mrk_i->r[i], mrk_i->phi[i], mrk_i->z[i], mrk_i->time[i], bfield); 
+
         /*Change in psi during the timestep*/
         real delta_psi = psi_f - psi_i;
 
         /*Change in parallel momentum during the timestep*/
         real delta_ppar = ppar_f - ppar_i; 
 
-        /*Charge e of the marker*/
-        real charge_f = CONST_E * mrk_f->charge[i];
 
-        /*Charge e of the marker at the start of the timestep*/
-        real charge_i = CONST_E * mrk_i->charge[i];
         /**Change in momentum conjugate to phi*/
         real delta_P_phi = 
              phys_ptoroid_fo(charge_f, mrk_f->r[i], mrk_f->p_phi[i], psi_f)
@@ -114,54 +115,37 @@ void DiagMoment_update_go(
         /*Weight of the marker at the end of the timestep w*/
         real marker_weight_w = mrk_f->weight[i];
 
-        for(size_t moment_index = 0; moment_index < moment->num_moments; moment_index++)
-        {
-            MomentType current_moment = moment->chosen_moments[moment_index];
-            switch(current_moment)
-            {
-                case MOMENT_DENSITY:
-                    computed_moments[current_moment] = marker_weight_w * delta_t;
-                    break;
-                case MOMENT_ENERGYDENSITY:
-                    computed_moments[current_moment] = ekin_f * marker_weight_w * delta_t;
-                    break;
-                case MOMENT_ENERGYDENSITYPAR:
-                    computed_moments[current_moment] = ekin_f * xi_f * xi_f * marker_weight_w * delta_t;
-                    break;
-                case MOMENT_JPAR:
-                    computed_moments[current_moment] = charge_f * vpar_f * marker_weight_w * delta_t;
-                    break;
-                case MOMENT_JTOR:
-                    computed_moments[current_moment] = charge_f * vphi_f * marker_weight_w * delta_t;
-                    break;
-                case MOMENT_CPDEP:
-                    computed_moments[current_moment] = -delta_e * marker_weight_w;
-                    break;
-                case MOMENT_TORTORQ:
-                    computed_moments[current_moment] = -charge_f * delta_psi * marker_weight_w;
-                    break;
-                case MOMENT_TORCTORQ:
-                    computed_moments[current_moment] = -mrk_f->r[i]*(delta_ppar*mrk_f->bphi[i]/bnorm_f) * marker_weight_w;
-                    break;
-                case MOMENT_TORCTORQPPHI:
-                    computed_moments[current_moment] = -delta_P_phi * marker_weight_w;
-                    break;
-                default:
-                    break;
+        computed_moments[MOMENT_DENSITY] = marker_weight_w * delta_t; /**Particle density W_n = w*\delta t */
+        computed_moments[MOMENT_ENERGYDENSITY] = ekin_f * marker_weight_w * delta_t; /**Energy density W_e = E*w*\delta t */
+        computed_moments[MOMENT_ENERGYDENSITYPAR] = ekin_f * xi_f * xi_f * marker_weight_w * delta_t; /**Parallel energy density W_e_|| = E*xi^2*w*\delta t */
+        computed_moments[MOMENT_JPAR] = charge_f * vpar_f * marker_weight_w * delta_t; /**Parallel current W_j_|| = e*v_||*w*\delta t */
+        computed_moments[MOMENT_JTOR] = charge_f * vtor_f * marker_weight_w * delta_t; /**Toroidal current W_j = e*v*w*\delta t*/
+        computed_moments[MOMENT_CPDEP] = -delta_e * marker_weight_w; /**Collisional power deposition to plasma W_P,c=-\delta E_d*w */
+        computed_moments[MOMENT_TORTORQ] = -charge_f * delta_psi * marker_weight_w; /**Toroidal torque j x B, W_\tau,jxB=-e*\delta\psi_p*w */
+        computed_moments[MOMENT_TORCTORQ] = -mrk_f->r[i]*(delta_ppar*mrk_f->bphi[i]/bnorm_f) * marker_weight_w; /**Toroidal collision torque W_p,c=-R*(\delta\p_||*b_\phi/|B|) */
+        computed_moments[MOMENT_TORCTORQPPHI] = -delta_P_phi * marker_weight_w; /**Toroidal torque from changes in toroidal canonical momentum W_\tau,p_\phi = -e*\delta P_\phi*w*/
+
+        real rho_f = mrk_f->rho[i];
+        real rho_i = mrk_i->rho[i];
+
+        valid = valid && (mrk_i->running[i]
+            && rho_f >= axis->min && rho_f <= axis->max
+            && rho_i >= axis->min && rho_i <= axis->max);
+
+        if(valid){
+            size_t bin_index_f = math_bin_index(rho_f, axis->n, axis->min, axis->max);
+            size_t bin_index_i = math_bin_index(rho_i, axis->n, axis->min, axis->max);
+
+            size_t start = bin_index_f < bin_index_i ? bin_index_f: bin_index_i;
+            size_t end = bin_index_f > bin_index_i ? bin_index_f: bin_index_i;
+            real bin_weight = 1 / (real)(end-start+1);
+            for(size_t final_bin_index = start; final_bin_index <= end; final_bin_index++){
+                for(size_t moment_index = 0; moment_index < MOMENT_NUM; moment_index++)
+                {
+                    GPU_ATOMIC
+                    moment->values[final_bin_index*MOMENT_NUM + moment_index] += computed_moments[moment_index] * bin_weight;
+                }
             }
-        }
-
-        int valid = (mrk_f->id[i] > 0 && rho >= axis->min && rho <= axis->max);
-
-        size_t bin_index = math_bin_index(rho, axis->n, axis->min, axis->max);
-        size_t bin_index_offset = valid ? bin_index*moment->num_moments: 0;
-
-
-        for(size_t moment_index = 0; moment_index < moment->num_moments; moment_index++)
-        {
-            size_t selected_moment = moment->chosen_moments[moment_index];
-            GPU_ATOMIC
-            moment->values[bin_index_offset + moment_index] += valid ? computed_moments[selected_moment] : 0.0;
         }
     }
 }
@@ -173,8 +157,8 @@ void DiagMoment_update_gc(
     GPU_PARALLEL_LOOP_ALL_LEVELS
     for (size_t i = 0; i < mrk_f->size; i++)
     {
+        int valid = 1;
         HistAxis *axis = &(moment->axis);
-        real rho = mrk_f->rho[i];
         real computed_moments[MOMENT_NUM];
 
         /*Norm of the magnetic field |B|*/
@@ -204,8 +188,8 @@ void DiagMoment_update_gc(
         /*Parallel velocity*/
         real vpar_f = ppar_f / (gamma_f * mrk_f->mass);
 
-        /*Toroidal velocity of the guiding center (parallel motion only, drifts neglected)*/
-        real vphi_f = vpar_f * mrk_f->bphi[i] / bnorm_f;
+        /*Toroidal velocity*/
+        real vtor_f = vpar_f * mrk_f->bphi[i] / bnorm_f;
 
         /*Pitch xi*/
         real xi_f = pnorm_f > 0 ? ppar_f / pnorm_f : 0; 
@@ -224,8 +208,8 @@ void DiagMoment_update_gc(
 
         /*Psi at the start and end of the timestep*/
         real psi_f, psi_i;
-        Bfield_eval_psi(&psi_f, mrk_f->r[i], mrk_f->phi[i], mrk_f->z[i], mrk_f->time[i], bfield); 
-        Bfield_eval_psi(&psi_i, mrk_i->r[i], mrk_i->phi[i], mrk_i->z[i], mrk_i->time[i], bfield); 
+        valid *= !Bfield_eval_psi(&psi_f, mrk_f->r[i], mrk_f->phi[i], mrk_f->z[i], mrk_f->time[i], bfield); 
+        valid *= !Bfield_eval_psi(&psi_i, mrk_i->r[i], mrk_i->phi[i], mrk_i->z[i], mrk_i->time[i], bfield); 
         /*Change in psi during the timestep*/
         real delta_psi = psi_f - psi_i;
 
@@ -246,54 +230,38 @@ void DiagMoment_update_gc(
         /*Weight of the marker at the end of the timestep w*/
         real marker_weight_w = mrk_f->weight[i];
 
-        for(size_t moment_index = 0; moment_index < moment->num_moments; moment_index++)
-        {
-            MomentType current_moment = moment->chosen_moments[moment_index];
-            switch(current_moment)
-            {
-                case MOMENT_DENSITY:
-                    computed_moments[current_moment] = marker_weight_w * delta_t;
-                    break;
-                case MOMENT_ENERGYDENSITY:
-                    computed_moments[current_moment] = ekin_f * marker_weight_w * delta_t;
-                    break;
-                case MOMENT_ENERGYDENSITYPAR:
-                    computed_moments[current_moment] = ekin_f * xi_f * xi_f * marker_weight_w * delta_t;
-                    break;
-                case MOMENT_JPAR:
-                    computed_moments[current_moment] = charge_f * vpar_f * marker_weight_w * delta_t;
-                    break;
-                case MOMENT_JTOR:
-                    computed_moments[current_moment] = charge_f * vphi_f * marker_weight_w * delta_t;
-                    break;
-                case MOMENT_CPDEP:
-                    computed_moments[current_moment] = -delta_e * marker_weight_w;
-                    break;
-                case MOMENT_TORTORQ:
-                    computed_moments[current_moment] = -charge_f * delta_psi * marker_weight_w;
-                    break;
-                case MOMENT_TORCTORQ:
-                    computed_moments[current_moment] = -mrk_f->r[i]*(delta_ppar*mrk_f->bphi[i]/bnorm_f) * marker_weight_w;
-                    break;
-                case MOMENT_TORCTORQPPHI:
-                    computed_moments[current_moment] = -delta_P_phi * marker_weight_w;
-                    break;
-                default:
-                    break;
+        computed_moments[MOMENT_DENSITY] = marker_weight_w * delta_t; /**Particle density W_n = w*\delta t */
+        computed_moments[MOMENT_ENERGYDENSITY] = ekin_f * marker_weight_w * delta_t; /**Energy density W_e = E*w*\delta t */
+        computed_moments[MOMENT_ENERGYDENSITYPAR] = ekin_f * xi_f * xi_f * marker_weight_w * delta_t; /**Parallel energy density W_e_|| = E*xi^2*w*\delta t */
+        computed_moments[MOMENT_JPAR] = charge_f * vpar_f * marker_weight_w * delta_t; /**Parallel current W_j_|| = e*v_||*w*\delta t */
+        computed_moments[MOMENT_JTOR] = charge_f * vtor_f * marker_weight_w * delta_t; /**Toroidal current W_j = e*v*w*\delta t*/
+        computed_moments[MOMENT_CPDEP] = -delta_e * marker_weight_w; /**Collisional power deposition to plasma W_P,c=-\delta E_d*w */
+        computed_moments[MOMENT_TORTORQ] = -charge_f * delta_psi * marker_weight_w; /**Toroidal torque j x B, W_\tau,jxB=-e*\delta\psi_p*w */
+        computed_moments[MOMENT_TORCTORQ] = -mrk_f->r[i]*(delta_ppar*mrk_f->bphi[i]/bnorm_f) * marker_weight_w; /**Toroidal collision torque W_p,c=-R*(\delta\p_||*b_\phi/|B|) */
+        computed_moments[MOMENT_TORCTORQPPHI] = -delta_P_phi * marker_weight_w; /**Toroidal torque from changes in toroidal canonical momentum W_\tau,p_\phi = -e*\delta P_\phi*w*/
+
+        real rho_f = mrk_f->rho[i];
+        real rho_i = mrk_i->rho[i];
+
+        valid = valid && (mrk_i->running[i]
+            && rho_f >= axis->min && rho_f <= axis->max
+            && rho_i >= axis->min && rho_i <= axis->max);
+
+
+        if(valid){
+            size_t bin_index_f = math_bin_index(rho_f, axis->n, axis->min, axis->max);
+            size_t bin_index_i = math_bin_index(rho_i, axis->n, axis->min, axis->max);
+
+            size_t start = bin_index_f < bin_index_i ? bin_index_f: bin_index_i;
+            size_t end = bin_index_f > bin_index_i ? bin_index_f: bin_index_i;
+            real bin_weight = 1 / (real)(end-start+1);
+            for(size_t final_bin_index = start; final_bin_index <= end; final_bin_index++){
+                for(size_t moment_index = 0; moment_index < MOMENT_NUM; moment_index++)
+                {
+                    GPU_ATOMIC
+                    moment->values[final_bin_index*MOMENT_NUM + moment_index] += computed_moments[moment_index] * bin_weight;
+                }
             }
-        }
-
-        int valid = (mrk_f->id[i] > 0 && rho >= axis->min && rho <= axis->max);
-
-        size_t bin_index = math_bin_index(rho, axis->n, axis->min, axis->max);
-        size_t bin_index_offset = valid ? bin_index*moment->num_moments: 0;
-
-
-        for(size_t moment_index = 0; moment_index < moment->num_moments; moment_index++)
-        {
-            size_t selected_moment = moment->chosen_moments[moment_index];
-            GPU_ATOMIC
-            moment->values[bin_index_offset + moment_index] += valid ? computed_moments[selected_moment] : 0.0; // moments can be NaN
         }
     }
 }

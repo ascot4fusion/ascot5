@@ -217,19 +217,9 @@ typedef enum
 typedef struct 
 {
     /**
-     * Total number of moments calculated.
-     */
-    size_t num_moments;
-
-    /**
      * The rho axis.
      */
     HistAxis axis;
-
-    /**
-     * List of selected moments of length num_moments.
-     */
-    MomentType *chosen_moments;
 
     /**
      * The 1d-moment bins.

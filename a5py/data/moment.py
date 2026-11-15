@@ -17,9 +17,7 @@ class Struct(DataStruct):
     """Python wrapper for the ``DiagMoment`` struct in diag_data.h."""
 
     _fields_ = [
-        ("num_moments", ctypes.c_size_t),
         ("axis", HistAxis),
-        ("chosen_moments", ctypes.POINTER(ctypes.c_int)),
         ("values", ctypes.POINTER(ctypes.c_double)),
     ]
 
@@ -131,20 +129,12 @@ class Moment():
         if params.rho_bins == 0:
             return None
 
-        nmoment = len(MOMENTS)
         cdata = Struct()
-        cdata.num_moments = nmoment
         cdata.axis.min = 0.0
         cdata.axis.max = 1.0
         cdata.axis.n = params.rho_bins
 
-        # All moments are collected, in the same order as in MOMENTS.
-        cdata.chosen_moments_ref = np.arange(nmoment, dtype=np.int32)
-        cdata.chosen_moments = cdata.chosen_moments_ref.ctypes.data_as(
-            ctypes.POINTER(ctypes.c_int)
-            )
-
-        cdata.values_ref = np.zeros((params.rho_bins, nmoment))
+        cdata.values_ref = np.zeros((params.rho_bins, len(MOMENTS)))
         cdata.values = cdata.values_ref.ctypes.data_as(
             ctypes.POINTER(ctypes.c_double)
             )
