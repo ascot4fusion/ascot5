@@ -200,19 +200,19 @@ typedef enum
     MOMENT_DENSITY,       /**< Particle density [1/m^3].                      */
     MOMENT_ENERGYDENSITY, /**< Energy density [J/m^3].                        */
     MOMENT_ENERGYDENSITYPAR, /**< Parallel energy density [J/m^3].            */
-    MOMENT_JPAR,          /**< Parallel current [e/(m^2*s)].                  */
-    MOMENT_JTOR,          /**< Toroidal current [e/(m^2*s)].                  */
-    MOMENT_CPDEP,         /**< Collisional power deposition to plasma [].     */
-    MOMENT_TORTORQ,       /**< Toroidal torque [].                            */
-    MOMENT_TORCTORQ,      /**< Toroidal collisional torque [].                */
-    MOMENT_TORCTORQPPHI,  /**< Toroidal torque from changes in toroidal canonical momentum P_phi [].*/
+    MOMENT_JPAR,          /**< Parallel current density [A/m^2].              */
+    MOMENT_JTOR,          /**< Toroidal current density [A/m^2] (always 0).   */
+    MOMENT_CPDEP,         /**< Collisional power deposition [W/m^3].          */
+    MOMENT_TORTORQ,       /**< Toroidal j x B torque [N*m/m^3].               */
+    MOMENT_TORCTORQ,      /**< Toroidal collisional torque [N*m/m^3].         */
+    MOMENT_TORCTORQPPHI,  /**< Toroidal torque from changes in toroidal canonical momentum P_phi [N*m/m^3]. */
     MOMENT_NUM,           /**< Number of moments.                             */
 } MomentType;
 
 /**
  * Moment data.
  * The bins are stored as a flattened array and indexed by bin_index(rho).
- * The moment i for rho is: values[math_bin_index(rho, axis.n, axis.min, axis.max)*MOMENT_NUM+i]. 
+ * The moment i for rho is: values[math_bin_index(rho, axis.n, axis.min, axis.max)*num_moments+i]. 
  */
 typedef struct 
 {
@@ -236,7 +236,7 @@ typedef struct
      * 
      * Each bin stores a vector of moments of length num_moments.
      * The bins are laid out in order of their rho so the second element of
-     * rho would be: values[math_bin_index(rho, axis.n, axis.min, axis.max)*MOMENT_NUM+1]. 
+     * rho would be: values[math_bin_index(rho, axis.n, axis.min, axis.max)*num_moments+1]. 
      */
     real *values;
 } DiagMoment;
