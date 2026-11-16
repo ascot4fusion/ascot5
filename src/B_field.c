@@ -263,6 +263,15 @@ a5err B_field_eval_rho(real rho[2], real psi, B_field_data* Bdata) {
     }
 
     real delta = (psi1 - psi0);
+#ifdef B_STS_CLAMP_RHO_NONNEGATIVE
+    /* B_STS_eval_psi clamps psi to psi0 next to the axis, where drho/dpsi
+       would be infinite. Return zero as B_STS_eval_rho_drho does. */
+    if( Bdata->type == B_field_type_STS && (psi - psi0) / delta <= 0 ) {
+        rho[0] = 0.0;
+        rho[1] = 0.0;
+        return err;
+    }
+#endif
     if( (psi - psi0) / delta < 0 ) {
          err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_FIELD );
     } else {

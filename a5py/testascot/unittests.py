@@ -721,6 +721,53 @@ class TestAscot(unittest.TestCase):
                                "Converting ppar-pperp to ekin-pitch failed",
                                0.001)
 
+class TestStellaratorField(unittest.TestCase):
+    """Test the normalized flux of :class:`B_STS` near the magnetic axis.
+    """
+
+    def tearDown(self):
+        subprocess.run(["rm", "-f", "unittest_sts.h5"])
+
+    def evalrho(self, psi0, psi1, psi):
+        """Write a B_STS field with the given flux and evaluate rho on the
+        midplane at R = 5.05 m (next to the axis) and R = 5.5 m.
+        """
+        nr, nphi, nz = 41, 8, 41
+        r = np.linspace(4.0, 6.0, nr)
+        z = np.linspace(-1.0, 1.0, nz)
+        rg, _, zg = np.meshgrid(r, np.zeros(nphi), z, indexing="ij")
+        ones = np.ones((nr, nphi, nz))
+        subprocess.run(["rm", "-f", "unittest_sts.h5"])
+        a5 = Ascot("unittest_sts.h5", create=True)
+        a5.data.create_input(
+            "B_STS", b_rmin=4.0, b_rmax=6.0, b_nr=nr, b_zmin=-1.0, b_zmax=1.0,
+            b_nz=nz, b_phimin=0.0, b_phimax=360.0, b_nphi=nphi,
+            psi0=psi0, psi1=psi1, br=0*ones, bphi=ones, bz=0*ones,
+            psi=psi((rg - 5.0)**2 + zg**2), axis_phimin=0.0,
+            axis_phimax=360.0, axis_nphi=nphi, axisr=5.0*np.ones((nphi,)),
+            axisz=np.zeros((nphi,)))
+        a5.input_init(bfield=True)
+        rho, rhodpsi = a5.input_eval(np.array([5.05, 5.5])*unyt.m,
+                                     0*unyt.deg, 0*unyt.m, 0*unyt.s,
+                                     "rho", "rhodpsi")
+        a5.input_free()
+        return rho.v, rhodpsi.v
+
+    def test_axis(self):
+        """Test that rho is zero where the interpolated flux undershoots its
+        axis value, and that the flux may decrease outwards.
+        """
+        # psi0 lies above the flux in the interval |R - 5 m| < 0.1 m
+        rho, rhodpsi = self.evalrho(0.01, 0.5, lambda r2: r2)
+        self.assertEqual(rho[0], 0.0, "rho not zero next to the axis")
+        self.assertTrue(np.isfinite(rhodpsi[0]), "drho/dpsi not finite")
+        self.assertAlmostEqual(rho[1], np.sqrt(0.24/0.49), places=6)
+
+        # Flux decreasing outwards
+        rho, _ = self.evalrho(0.5, 0.0, lambda r2: 0.5 - r2)
+        self.assertAlmostEqual(rho[0], np.sqrt(0.0025/0.5), places=6)
+        self.assertAlmostEqual(rho[1], np.sqrt(0.5), places=6)
+
 class TestMoments(unittest.TestCase):
     """Class for testing distribution moments.
     """

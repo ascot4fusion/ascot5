@@ -73,6 +73,10 @@ else
 	CFLAGS+=-O2
 endif
 
+# The interpolated flux of a stellarator field can undershoot its axis value
+# next to the axis, which would abort markers there
+DEFINES+=-DB_STS_CLAMP_RHO_NONNEGATIVE
+
 CFLAGS+=-Wall -fPIC -std=c11 -D_XOPEN_SOURCE=700 $(DEFINES) $(FLAGS)
 
 ifeq ($(CC), $(filter $(CC), h5cc h5pcc))
