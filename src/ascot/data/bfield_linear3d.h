@@ -17,7 +17,10 @@
 /**
  * Initialize the 3D linear3d-interpolated tokamak magnetic field data.
  *
- * Assigns the fields in the struct with the provided values.
+ * Assigns the fields in the struct with the provided values. The tabulated
+ * data (psi, br, bz, bphi) is not copied: the interpolants point directly to
+ * the given arrays, which the caller must keep alive (and eventually free)
+ * for as long as the struct is in use.
  *
  * @param bfield The struct to initialize.
  * @param pnr Number of R grid points in ``psi``.
@@ -43,8 +46,10 @@
  *        Layout: (Ri, phij, zk) = [i*nz*nphi + j*nz + k] (C order).
  * @param bphi Tabulated values of phi component of B [T].
  *        Layout: (Ri, phij, zk) = [i*nz*nphi + j*nz + k] (C order).
+ *
+ * @return Zero on success.
  */
-void BfieldLinear3D_init(BfieldLinear3D* bfield, size_t pnr, size_t pnz,
+int BfieldLinear3D_init(BfieldLinear3D* bfield, size_t pnr, size_t pnz,
                          size_t bnr, size_t bnz, size_t bnphi, real prlim[2],
                          real pzlim[2], real brlim[2], real bzlim[2],
                          real bphilim[2], real axisrz[2], real psilimits[2],
@@ -55,9 +60,10 @@ void BfieldLinear3D_init(BfieldLinear3D* bfield, size_t pnr, size_t pnz,
 );
 
 /**
- * Free allocated resources
+ * Free allocated resources.
  *
- * Linear interpolants are freed.
+ * This is a no-op since the tabulated data is owned by the caller of
+ * BfieldLinear3D_init.
  *
  * @param bfield The struct whose fields are deallocated.
  */

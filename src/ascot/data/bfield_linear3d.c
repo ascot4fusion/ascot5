@@ -9,7 +9,7 @@
 #include "defines.h"
 #include "utils/interp.h"
 
-void BfieldLinear3D_init(
+int BfieldLinear3D_init(
     BfieldLinear3D *bfield, size_t pnr, size_t pnz, size_t bnr, size_t bnz,
     size_t bnphi, real prlim[2], real pzlim[2], real brlim[2], real bzlim[2],
     real bphilim[2], real axisrz[2], real psilimits[2], real psi[pnr * pnz],
@@ -32,14 +32,13 @@ void BfieldLinear3D_init(
     Linear3D_init(
         &bfield->bphi, bnr, bnphi, bnz, NATURALBC, PERIODICBC, NATURALBC, brlim,
         bphilim, bzlim, bphi);
+    return 0;
 }
 
 void BfieldLinear3D_free(BfieldLinear3D *bfield)
 {
-    free(bfield->psi.c);
-    free(bfield->br.c);
-    free(bfield->bphi.c);
-    free(bfield->bz.c);
+    /* The data is owned by the caller of BfieldLinear3D_init. */
+    (void)bfield;
 }
 
 void BfieldLinear3D_offload(BfieldLinear3D *bfield)
@@ -47,13 +46,10 @@ void BfieldLinear3D_offload(BfieldLinear3D *bfield)
     (void)bfield;
     GPU_MAP_TO_DEVICE(
         bfield->psi, bfield->br, bfield->bphi, bfield->bz,
-        bfield->psi.c [0:bfield->psi.nx * bfield->psi.ny * NSIZE_COMP2D],
-        bfield->br.c
-        [0:bfield->br.nx * bfield->br.ny * bfield->br.nz * NSIZE_COMP3D],
-        bfield->bphi.c
-        [0:bfield->bphi.nx * bfield->bphi.ny * bfield->bphi.nz * NSIZE_COMP3D],
-        bfield->bz.c
-        [0:bfield->bz.nx * bfield->bz.ny * bfield->bz.nz * NSIZE_COMP3D])
+        bfield->psi.c [0:bfield->psi.nx * bfield->psi.ny],
+        bfield->br.c [0:bfield->br.nx * bfield->br.ny * bfield->br.nz],
+        bfield->bphi.c [0:bfield->bphi.nx * bfield->bphi.ny * bfield->bphi.nz],
+        bfield->bz.c [0:bfield->bz.nx * bfield->bz.ny * bfield->bz.nz])
 }
 
 err_t BfieldLinear3D_eval_psi(

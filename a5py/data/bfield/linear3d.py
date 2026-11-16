@@ -29,12 +29,25 @@ class Struct(DataStruct):
         ("bphi", Linear3D),
         ]
 
+    buffers: dict[str, np.ndarray]
+    """Tabulated data the interpolants point to.
+
+    The data is owned by Python and it is not copied on the C side, so these
+    arrays must be kept alive as long as the struct is.
+    """
+
+    def readonly_buffer(self, name: str, units: str) -> unyt.unyt_array:
+        """Return a read-only view on the tabulated data."""
+        arr = self.buffers[name].view()
+        arr.flags.writeable = False
+        return unyt.unyt_array(arr, units)
+
 
 init_fun(
     "BfieldLinear3D_init",
     ctypes.POINTER(Struct),
     *(5*[ctypes.c_size_t]),
-    *(11*[ndpointer(ctypes.c_double)]),
+    *(11*[ndpointer(ctypes.c_double, flags="C_CONTIGUOUS")]),
     restype=ctypes.c_int32,
     )
 
@@ -113,7 +126,7 @@ class BfieldLinear3D(InputVariant):
     def psi(self) -> unyt.unyt_array:
         """Tabulated values of poloidal flux."""
         if self._cdata is not None:
-            return self._cdata.readonly_interp("psi", "Wb/rad")
+            return self._cdata.readonly_buffer("psi", "Wb/rad")
         assert self._file is not None
         return self._file.read("psi")
 
@@ -121,7 +134,7 @@ class BfieldLinear3D(InputVariant):
     def bphi(self) -> unyt.unyt_array:
         """Tabulated values of toroidal component of the magnetic field."""
         if self._cdata is not None:
-            return self._cdata.readonly_interp("bphi", "T")
+            return self._cdata.readonly_buffer("bphi", "T")
         assert self._file is not None
         return self._file.read("bphi")
 
@@ -131,7 +144,7 @@ class BfieldLinear3D(InputVariant):
         magnetic field.
         """
         if self._cdata is not None:
-            return self._cdata.readonly_interp("br", "T")
+            return self._cdata.readonly_buffer("br", "T")
         assert self._file is not None
         return self._file.read("br")
 
@@ -141,7 +154,7 @@ class BfieldLinear3D(InputVariant):
         magnetic field.
         """
         if self._cdata is not None:
-            return self._cdata.readonly_interp("bz", "T")
+            return self._cdata.readonly_buffer("bz", "T")
         assert self._file is not None
         return self._file.read("bz")
 
@@ -159,12 +172,24 @@ class BfieldLinear3D(InputVariant):
             br: unyt.unyt_array,
             bz: unyt.unyt_array,
             ) -> None:
+        # The interpolants use the data in place, so it is copied here to make
+        # sure it is C-contiguous float64 and not shared with the caller. The
+        # struct keeps the copies alive; they are released with the struct.
+        buffers = {
+            name: np.array(data.v, dtype=np.float64, order="C", copy=True)
+            for name, data in [("psi", psi), ("br", br), ("bz", bz),
+                               ("bphi", bphi)]
+            }
+        for buffer in buffers.values():
+            buffer.flags.writeable = False
         self._cdata = Struct()
+        self._cdata.buffers = buffers
         if LIBASCOT.BfieldLinear3D_init(
             ctypes.byref(self._cdata), rgridpsi.size, zgridpsi.size, rgrid.size,
             zgrid.size, phigrid.size, rgridpsi[[0, -1]].v, zgridpsi[[0, -1]].v,
             rgrid[[0, -1]].v, zgrid[[0, -1]].v, phigrid[[0, -1]].to("rad").v,
-            axisrz.v, psilimits.v, psi.v, br.v, bz.v, bphi.v,
+            axisrz.v, psilimits.v, buffers["psi"], buffers["br"],
+            buffers["bz"], buffers["bphi"],
             ):
             self._cdata = None
             raise AscotMeltdownError("Could not initialize struct.")
@@ -205,7 +230,7 @@ class CreateMixin(TreeMixin):
     """Provides the factory method."""
 
     #pylint: disable=protected-access, too-many-arguments, too-many-locals
-    def create_bfieldLinear3d(
+    def create_bfieldlinear3d(
             self,
             rgrid: utils.ArrayLike,
             phigrid: utils.ArrayLike,
