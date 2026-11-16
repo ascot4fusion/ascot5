@@ -170,9 +170,6 @@ def test_spline_1d(periodic):
                 "struct": Linear2D,
                 "init": "Linear2D_init",
                 "eval_f_df": "Linear2D_eval_f_df",
-                # Data is stored as (y, x) in 2D and (y, z, x) in 3D
-                # TODO: fix the order in the linear interpolator
-                "axes": (1, 0),
                 "min_order": 1,
             },
             id="linear",
@@ -182,7 +179,6 @@ def test_spline_1d(periodic):
                 "struct": Spline2D,
                 "init": "Spline2D_init",
                 "eval_f_df": "Spline2D_eval_f_df",
-                "axes": (0, 1),
                 "min_order": 3,
             },
             id="spline",
@@ -216,7 +212,6 @@ def test_interpolate_2d(periodic, interpolator):
 
         X, Y = np.meshgrid(x, y, indexing="ij")
         f = np.sin(X) * np.sin(2 * Y)
-        f = np.ascontiguousarray(f.transpose(interpolator["axes"]))
 
         init(
             ctypes.byref(interp),
@@ -263,9 +258,6 @@ def test_interpolate_2d(periodic, interpolator):
                 "struct": Linear3D,
                 "init": "Linear3D_init",
                 "eval_f_df": "Linear3D_eval_f_df",
-                # Data is stored as (y, x) in 2D and (y, z, x) in 3D
-                # TODO: fix the order in the linear interpolator
-                "axes": (1, 2, 0),
                 "min_order": 1,
             },
             id="linear",
@@ -275,7 +267,6 @@ def test_interpolate_2d(periodic, interpolator):
                 "struct": Spline3D,
                 "init": "Spline3D_init",
                 "eval_f_df": "Spline3D_eval_f_df",
-                "axes": (0, 1, 2),
                 "min_order": 3,
             },
             id="spline",
@@ -312,7 +303,6 @@ def test_interpolate_3d(periodic, interpolator):
 
         X, Y, Z = np.meshgrid(x, y, z, indexing="ij")
         f = (np.sin(X) * np.sin(2 * Y) * np.sin(3 * Z))
-        f = np.ascontiguousarray(f.transpose(interpolator["axes"]))
 
         init(
             ctypes.byref(interp),

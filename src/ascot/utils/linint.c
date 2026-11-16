@@ -124,9 +124,9 @@ int Linear2D_eval_f(real f[1], Linear2D *linear, real x, real y)
     /* Normalized y coordinate in current cell */
     real dy = (y - (linear->ylim[0] + i_y * linear->dy)) / linear->dy;
 
-    size_t n = i_y * linear->nx + i_x; /* Index jump to cell       */
-    size_t x1 = 1;                     /* Index jump one x forward */
-    size_t y1 = linear->nx;            /* Index jump one y forward */
+    size_t n = i_x * linear->ny + i_y; /* Index jump to cell       */
+    size_t x1 = linear->ny;            /* Index jump one x forward */
+    size_t y1 = 1;                     /* Index jump one y forward */
 
     int err = 0;
 
@@ -204,10 +204,10 @@ int Linear3D_eval_f(real f[1], Linear3D *linear, real x, real y, real z)
     real dz = (z - (linear->zlim[0] + i_z * linear->dz)) / linear->dz;
 
     /* Index jump to cell */
-    size_t n = i_y * linear->nz * linear->nx + i_z * linear->nx + i_x;
-    size_t x1 = 1;                       /* Index jump one x forward */
-    size_t y1 = linear->nz * linear->nx; /* Index jump one y forward */
-    size_t z1 = linear->nx;              /* Index jump one z forward */
+    size_t n = i_x * linear->ny * linear->nz + i_y * linear->nz + i_z;
+    size_t x1 = linear->ny * linear->nz; /* Index jump one x forward */
+    size_t y1 = linear->nz;              /* Index jump one y forward */
+    size_t z1 = 1;                       /* Index jump one z forward */
 
     int err = 0;
 
@@ -295,9 +295,9 @@ int Linear2D_eval_f_df(real f_df[6], Linear2D* linear, real x, real y) {
   /* Normalized y coordinate in current cell */
   real dy = (y - (linear->ylim[0] + i_y * linear->dy)) / linear->dy;
 
-  size_t n = i_y * linear->nx + i_x; /* Index jump to cell       */
-  size_t x1 = 1;                     /* Index jump one x forward */
-  size_t y1 = linear->nx;            /* Index jump one y forward */
+  size_t n = i_x * linear->ny + i_y; /* Index jump to cell       */
+  size_t x1 = linear->ny;            /* Index jump one x forward */
+  size_t y1 = 1;                     /* Index jump one y forward */
 
   int err = 0;
 
@@ -379,10 +379,10 @@ int Linear3D_eval_f_df(real f_df[4], Linear3D* linear, real x, real y, real z) {
   real dz = (z - (linear->zlim[0] + i_z * linear->dz)) / linear->dz;
 
   /* Index jump to cell */
-  size_t n = i_y * linear->nz * linear->nx + i_z * linear->nx + i_x;
-  size_t x1 = 1;                       /* Index jump one x forward */
-  size_t y1 = linear->nz * linear->nx; /* Index jump one y forward */
-  size_t z1 = linear->nx;              /* Index jump one z forward */
+  size_t n = i_x * linear->ny * linear->nz + i_y * linear->nz + i_z;
+  size_t x1 = linear->ny * linear->nz; /* Index jump one x forward */
+  size_t y1 = linear->nz;              /* Index jump one y forward */
+  size_t z1 = 1;                       /* Index jump one z forward */
 
   int err = 0;
 

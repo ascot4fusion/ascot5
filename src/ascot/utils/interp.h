@@ -53,7 +53,8 @@ void Linear1D_init(
  * @param ybc Boundary condition for y axis.
  * @param xlim Grid limits in x.
  * @param ylim Grid limits in y.
- * @param c Array where data is stored.
+ * @param c Array where data is stored (not copied).
+ *        Layout: [i_x*ny + i_y] (C order).
  */
 void Linear2D_init(
     Linear2D *linear, size_t nx, size_t ny, int xbc, int ybc, real xlim[2],
@@ -72,7 +73,8 @@ void Linear2D_init(
  * @param xlim Grid limits in x.
  * @param ylim Grid limits in y.
  * @param zlim Grid limits in z.
- * @param c Array where data is stored.
+ * @param c Array where data is stored (not copied).
+ *        Layout: [i_x*ny*nz + i_y*nz + i_z] (C order).
  */
 void Linear3D_init(
     Linear3D *linear, size_t nx, size_t ny, size_t nz, int xbc, int ybc,
