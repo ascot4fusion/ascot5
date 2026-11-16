@@ -551,14 +551,18 @@ double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
     math_cross(edge12, edge13, normal);
     area = math_norm(normal);
 
+    /* The tolerances are relative to the triangle size, since CAD walls may
+       contain triangles whose edges are only a few micrometres long */
+    real scale2 = fmax(math_dot(edge12, edge12), math_dot(edge13, edge13));
     real w = -1.0;
-    if( area > WALL_EPSILON ) {
+    if( area > WALL_EPSILON * scale2 ) {
         /* If ray is parallel to the triangle, nudge it a little bit so we don't
            have to handle annoying special cases */
-        if( fabs(det) < WALL_EPSILON ) {
-            Q12[0] = q2[0] - q1[0] + 2 * WALL_EPSILON * normal[0] / area;
-            Q12[1] = q2[1] - q1[1] + 2 * WALL_EPSILON * normal[1] / area;
-            Q12[2] = q2[2] - q1[2] + 2 * WALL_EPSILON * normal[2] / area;
+        if( fabs(det) < WALL_EPSILON * area ) {
+            real len = math_norm(Q12);
+            Q12[0] = q2[0] - q1[0] + 2 * WALL_EPSILON * len * normal[0] / area;
+            Q12[1] = q2[1] - q1[1] + 2 * WALL_EPSILON * len * normal[1] / area;
+            Q12[2] = q2[2] - q1[2] + 2 * WALL_EPSILON * len * normal[2] / area;
             math_unit(Q12, q12);
             math_cross(q12, edge13, h);
             det = math_dot(h, edge12);
