@@ -151,7 +151,7 @@ class NeutralArbitrary(InputVariant):
             phigrid.size,
             zgrid.size,
             rgrid[[0, -1]],
-            phigrid[[0, -1]],
+            utils.periodic_limits(phigrid),
             zgrid[[0, -1]],
             density,
             temperature,

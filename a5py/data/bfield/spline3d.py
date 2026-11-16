@@ -163,7 +163,8 @@ class BfieldSpline3D(InputVariant):
         if LIBASCOT.BfieldSpline3D_init(
             ctypes.byref(self._cdata), rgridpsi.size, zgridpsi.size, rgrid.size,
             zgrid.size, phigrid.size, rgridpsi[[0, -1]].v, zgridpsi[[0, -1]].v,
-            rgrid[[0, -1]].v, zgrid[[0, -1]].v, phigrid[[0, -1]].to("rad").v,
+            rgrid[[0, -1]].v, zgrid[[0, -1]].v,
+            utils.periodic_limits(phigrid).to("rad").v,
             axisrz.v, psilimits.v, psi.v, br.v, bz.v, bphi.v,
             ):
             self._cdata = None
