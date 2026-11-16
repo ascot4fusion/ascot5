@@ -217,7 +217,8 @@ a5err B_STS_eval_psi(real* psi, real r, real phi, real z,
     interperr += interp3Dcomp_eval_f(&psi[0], &Bdata->psi, r, phi, z);
 
 #ifdef B_STS_CLAMP_RHO_NONNEGATIVE
-    if ( psi[0] < Bdata->psi0 ){
+    /* Clamp only on the axis side, as psi may decrease outwards */
+    if ( (psi[0] - Bdata->psi0) * (Bdata->psi1 - Bdata->psi0) < 0 ){
         psi[0] = Bdata->psi0;
     }
 #endif
@@ -256,7 +257,8 @@ a5err B_STS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
     psi_dpsi[3] = psi_dpsi_temp[3];
 
 #ifdef B_STS_CLAMP_RHO_NONNEGATIVE
-    if ( psi_dpsi_temp[0] < Bdata->psi0 ){
+    if ( (psi_dpsi_temp[0] - Bdata->psi0) * (Bdata->psi1 - Bdata->psi0)
+         < 0 ){
         psi_dpsi[0] = Bdata->psi0;
         psi_dpsi[1] = 0.0;
         psi_dpsi[2] = 0.0;
