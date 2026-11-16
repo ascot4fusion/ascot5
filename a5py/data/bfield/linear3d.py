@@ -29,7 +29,8 @@ class Struct(DataStruct):
         ("bphi", Linear3D),
         ]
 
-    buffers: dict[str, np.ndarray]
+    _buffers: dict[str, np.ndarray]
+
     """Tabulated data the interpolants point to.
 
     The data is owned by Python and it is not copied on the C side, so these
@@ -38,7 +39,7 @@ class Struct(DataStruct):
 
     def readonly_buffer(self, name: str, units: str) -> unyt.unyt_array:
         """Return a read-only view on the tabulated data."""
-        arr = self.buffers[name].view()
+        arr = self._buffers[name].view()
         arr.flags.writeable = False
         return unyt.unyt_array(arr, units)
 
@@ -183,7 +184,7 @@ class BfieldLinear3D(InputVariant):
         for buffer in buffers.values():
             buffer.flags.writeable = False
         self._cdata = Struct()
-        self._cdata.buffers = buffers
+        self._cdata._buffers = buffers
         if LIBASCOT.BfieldLinear3D_init(
             ctypes.byref(self._cdata), rgridpsi.size, zgridpsi.size, rgrid.size,
             zgrid.size, phigrid.size, rgridpsi[[0, -1]].v, zgridpsi[[0, -1]].v,
