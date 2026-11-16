@@ -661,8 +661,8 @@ class Hist():
         max_dim = len(DIMENSIONS)
         cdata.strides[max_dim - 2] = max(cdata.dimensions[max_dim-1].n, 1)
         for i in np.flip(np.arange(max_dim)):
-            cdata.dimensions[i].min = 0
-            cdata.dimensions[i].max = 1
+            cdata.dimensions[i].min = np.finfo(np.float64).min
+            cdata.dimensions[i].max = np.finfo(np.float64).max
             cdata.dimensions[i].n = 0
             for j, coord in enumerate(idx):
                 if i == coord:

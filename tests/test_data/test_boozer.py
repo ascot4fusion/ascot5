@@ -10,8 +10,9 @@ def test_boozer_init():
     ascot = Ascot()
 
     psigrid = np.linspace(0, 1, 10)
-    boozerpoloidal = np.random.random((10, 8)) * unyt.rad
-    boozertoroidal = np.random.random((10, 12)) * unyt.rad
+    rng = np.random.default_rng(123)
+    boozerpoloidal = rng.random((10, 8)) * unyt.rad
+    boozertoroidal = rng.random((10, 12)) * unyt.rad
     separatrix = np.array([[0., 0., 1., 1.], [0., 1., 1., 0.]]) * unyt.m
     obj = ascot.data.create_boozer(
         psigrid=psigrid,

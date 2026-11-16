@@ -33,7 +33,8 @@ def test_efieldpotential2d_init():
 
     rgrid = np.linspace(0, 1, 5) * unyt.m
     zgrid = np.linspace(-1, 1, 4) * unyt.m
-    potential = np.random.random((5, 4)) * unyt.V
+    rng = np.random.default_rng(123)
+    potential = rng.random((5, 4)) * unyt.V
     obj = ascot.data.create_efieldpotential2d(
         rgrid=rgrid,
         zgrid=zgrid,

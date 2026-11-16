@@ -68,7 +68,8 @@ def orbit():
         orbit._cdata.mileage_ref[idx] = generate_data(i+1, "mileage")
         orbit._cdata.id_ref[NPOINT*i:NPOINT*i+NPOINT_I[i]] = 1 + i
 
-    idx = np.random.permutation(NMRK*NPOINT)
+    rng = np.random.default_rng(123)
+    idx = rng.permutation(NMRK*NPOINT)
     for field in ["r", "z", "phi", "p1", "p2", "p3", "mileage",
                   "id", "charge", "poincare", "simmode"]:
         arr = getattr(orbit._cdata, field + "_ref")

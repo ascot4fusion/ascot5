@@ -34,7 +34,8 @@ def test_maxwellian(ascot: Ascot, method, inspect, plot):
 #             "DIST_NBIN_PPA" : 140, "DIST_MIN_PPE" : 0, "DIST_MAX_PPE" : 2.5e-21,
 #             "DIST_NBIN_PPE" : 80
 #         })
-        pol, rminor = 2*np.pi * np.random.rand(20,), 0.8
+        rng = np.random.default_rng(123)
+        pol, rminor = 2*np.pi * rng.random(20,), 0.8
         ascot.data.create_guidingcentermarker(
             species="proton",
             r=(6.2 + rminor * np.cos(pol))*unyt.m,
@@ -131,13 +132,14 @@ def test_slowingdown(method, ascot: Ascot, inspect, plot):
             )
 
         nmrk = 200
-        pol, rminor = 2*np.pi * np.random.rand(nmrk,), 0.8
+        rng = np.random.default_rng(123)
+        pol, rminor = 2*np.pi * rng.random(nmrk,), 0.8
         ascot.data.create_guidingcentermarker(
             species="alpha",
             r=(6.2 + rminor * np.cos(pol))*unyt.m,
             z=(0.0 + rminor * np.sin(pol))*unyt.m,
             ekin=3.5e3*unyt.eV,
-            pitch=1.0 - 2.0 * np.random.rand(nmrk,),
+            pitch=1.0 - 2.0 * rng.random(nmrk,),
             charge=2*unyt.e,
             )
 

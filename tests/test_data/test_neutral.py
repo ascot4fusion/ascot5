@@ -11,8 +11,9 @@ def test_neutralradial_init():
 
     rhogrid = np.linspace(0.1, 1.0, 10)
     species = ["H", "He4"]
-    density = np.random.random((rhogrid.size, 2)) * unyt.m**(-3)
-    temperature = np.random.random((rhogrid.size, 2)) * unyt.eV
+    rng = np.random.default_rng(123)
+    density = rng.random((rhogrid.size, 2)) * unyt.m**(-3)
+    temperature = rng.random((rhogrid.size, 2)) * unyt.eV
     obj = ascot.data.create_neutralradial(
         rhogrid=rhogrid,
         species=species,
@@ -33,8 +34,9 @@ def test_neutralarbitrary_init():
     zgrid = np.linspace(-1.0, 1.0, 11) * unyt.m
     phigrid = np.linspace(0., 360, 12)[:-1] * unyt.deg
     species = ["H", "He4"]
-    density = np.random.random((rgrid.size, phigrid.size, zgrid.size, 2)) * unyt.m**(-3)
-    temperature = np.random.random((rgrid.size, phigrid.size, zgrid.size, 2)) * unyt.eV
+    rng = np.random.default_rng(123)
+    density = rng.random((rgrid.size, phigrid.size, zgrid.size, 2)) * unyt.m**(-3)
+    temperature = rng.random((rgrid.size, phigrid.size, zgrid.size, 2)) * unyt.eV
     obj = ascot.data.create_neutralarbitrary(
         rgrid=rgrid,
         phigrid=phigrid,
