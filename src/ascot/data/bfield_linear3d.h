@@ -3,7 +3,7 @@
  * Linear-interpolated magnetic field implementation.
  *
  * Poloidal flux is evaluated by interpolating an uniform 2D table while
- * magnetic field components are evaluated by interpolating an uniform 3D
+ * magnetic field components are evaluated by interpolating uniform 3D
  * tables. The 2D and the 3D table have separate abscissae. The poloidal
  * component of the evaluated magnetic field includes the contribution from the
  * gradient of the poloidal flux.
@@ -15,7 +15,7 @@
 #include "parallel.h"
 
 /**
- * Initialize the 3D linear3d-interpolated tokamak magnetic field data.
+ * Initialize the linearly interpolated 3D tokamak magnetic field data.
  *
  * Assigns the fields in the struct with the provided values. The tabulated
  * data (psi, br, bz, bphi) is not copied: the interpolants point directly to
@@ -92,7 +92,7 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
 /**
  * Evaluate poloidal flux and its derivatives.
  *
- * @param psi_dpsi Evaluated poloidal flux and it's derivatives [Wb/rad].
+ * @param psi_dpsi Evaluated poloidal flux and its derivatives [Wb/rad].
  *        Layout: [psi, dpsi/dr, dpsi/dphi, dpsi/dz].
  * @param r R coordinate of the query point [m].
  * @param z z coordinate of the query point [m].
@@ -141,7 +141,7 @@ DECLARE_TARGET_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
 /**
- * Evaluated the magnetic axis (R, z) coordinates.
+ * Evaluate the magnetic axis (R, z) coordinates.
  *
  * Returns the position stored in the struct.
  *

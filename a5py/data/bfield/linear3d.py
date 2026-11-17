@@ -18,7 +18,7 @@ from a5py.data.access import InputVariant, Leaf, TreeMixin
 
 # pylint: disable=too-few-public-methods, too-many-instance-attributes
 class Struct(DataStruct):
-    """Python wrapper for the struct in B_3DS.h."""
+    """Python wrapper for the BfieldLinear3D struct in bfield_data.h."""
 
     _fields_ = [
         ("axisrz", ctypes.c_double * 2),
@@ -55,7 +55,7 @@ init_fun("BfieldLinear3D_free", ctypes.POINTER(Struct))
 
 @Leaf.register
 class BfieldLinear3D(InputVariant):
-    """Perturbed tokamak field interpolated with Linears."""
+    """Perturbed tokamak field interpolated linearly."""
 
     _cdata: Optional[Struct]
 
@@ -71,7 +71,8 @@ class BfieldLinear3D(InputVariant):
 
     @property
     def phigrid(self) -> unyt.unyt_array:
-        r"""The uniform grid in :math:`\phi` in which :math:`psi` is tabulated.
+        r"""The uniform grid in :math:`\phi` in which :math:`\mathbf{B}` is
+        tabulated.
         """
         if self._cdata is not None:
             return self._cdata.readonly_grid("y", "rad", "bphi").to("deg")
@@ -249,7 +250,7 @@ class CreateMixin(TreeMixin):
             preview: bool=False,
             save: Optional[bool]=None,
             ) -> BfieldLinear3D:
-        r"""Create Linear-interpolated non-axisymmetric tokamak field.
+        r"""Create linearly interpolated non-axisymmetric tokamak field.
 
         This method creates a tokamak magnetic field that can include arbitrary
         3D perturbations such as TF ripple or RMP coils. Using 3D magnetic field
@@ -334,11 +335,6 @@ class CreateMixin(TreeMixin):
 
             The first word of the note is converted to a tag which you can use
             to reference the data.
-        note : str, *optional*
-            A short note to document this data.
-
-            The first word of the note is converted to a tag which you can use
-            to reference the data.
         activate : bool, *optional*
             Set this input as active on creation.
         preview : bool, *optional*
@@ -358,16 +354,16 @@ class CreateMixin(TreeMixin):
         -----
         The input consists of poloidal flux psi (COCOS3) and the (perturbed)
         magnetic field defined in uniform :math:`(R,phi,z)` grid. During the
-        simulation, the values are interpolated using bicubic Linears for
-        :math:`\psi`:
+        simulation, :math:`\psi` is interpolated bilinearly:
 
         .. math::
 
-            f(x, y) = \sum_{i=0}^{3} \sum_{j=0}^{3} \
+            f(x, y) = \sum_{i=0}^{1} \sum_{j=0}^{1} \
                 a_{ij} (x - x_0)^i (y - y_0)^j
 
-        and tricubic Linears for the magnetic field components. The coefficients
-        :math:`a_{ij}` are calculated at the start of the simulation.
+        within each grid cell, and the magnetic field components are
+        interpolated trilinearly. The tabulated data is used as is, so no
+        coefficients are precomputed and the data is not duplicated.
 
         The magnetic field vector is evaluated as the sum of the explicitly
         given values of :math:`\mathbf{B}` and the contribution from the

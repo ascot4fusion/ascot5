@@ -1,5 +1,5 @@
 /**
- * Implements "bfield_Linear3D.h".
+ * Implements "bfield_linear3d.h".
  */
 #include "bfield_linear3d.h"
 
