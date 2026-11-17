@@ -4,13 +4,13 @@
 #include "bfield.h"
 #include "bfield_analytical.h"
 #include "bfield_cartesian.h"
+#include "bfield_linear3d.h"
 #include "bfield_spline2d.h"
 #include "bfield_spline3d.h"
-#include "bfield_linear3d.h"
 #include "bfield_stellarator.h"
 #include "defines.h"
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
 
 void Bfield_free(Bfield *bfield)
 {

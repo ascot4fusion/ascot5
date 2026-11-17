@@ -5,7 +5,7 @@ ascot-debug:
 	$(MAKE) -C src ascot DEBUG=1
 
 # https://stackoverflow.com/questions/75847374/using-memory-sanitizer-asan-on-c-c-library-loaded-to-python-with-ctypes
-# Run export LD_PRELOAD=$(cc -print-file-name=libasan.so) beforehand 
+# Run export LD_PRELOAD=$(cc -print-file-name=libasan.so) beforehand
 # when using AddressSanitizer as python does not compile with it
 ascot-sanitizer:
 	$(MAKE) -C src ascot SANITIZER=1

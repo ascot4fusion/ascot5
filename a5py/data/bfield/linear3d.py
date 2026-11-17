@@ -30,7 +30,6 @@ class Struct(DataStruct):
         ]
 
     _buffers: dict[str, np.ndarray]
-
     """Tabulated data the interpolants point to.
 
     The data is owned by Python and it is not copied on the C side, so these

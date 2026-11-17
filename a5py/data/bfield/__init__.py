@@ -60,8 +60,8 @@ from .linear3d import BfieldLinear3D
 from .stellarator import BfieldStellarator
 
 BfieldType: TypeAlias = (
-    BfieldCartesian | BfieldAnalytical | BfieldSpline2D | BfieldSpline3D | BfieldLinear3D | 
-    BfieldStellarator
+    BfieldCartesian | BfieldAnalytical | BfieldSpline2D | BfieldSpline3D |
+    BfieldLinear3D | BfieldStellarator
     )
 """Union of all possible magnetic field types."""
 

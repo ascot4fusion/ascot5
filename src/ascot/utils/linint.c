@@ -269,179 +269,207 @@ int Linear3D_eval_f(real f[1], Linear3D *linear, real x, real y, real z)
     return err;
 }
 
-int Linear2D_eval_f_df(real f_df[6], Linear2D* linear, real x, real y) {
-  real c00, c01, c10, c11;
-  real c0, c1;
+int Linear2D_eval_f_df(real f_df[6], Linear2D *linear, real x, real y)
+{
+    real c00, c01, c10, c11;
+    real c0, c1;
 
-  /* Make sure periodic coordinates are within [max, min] region. */
-  if (linear->xbc == PERIODICBC) {
-    x = fmod(x - linear->xlim[0], linear->xlim[1] - linear->xlim[0]) +
-        linear->xlim[0];
-    x = x + (x < linear->xlim[0]) * (linear->xlim[1] - linear->xlim[0]);
-  }
-  if (linear->ybc == PERIODICBC) {
-    y = fmod(y - linear->ylim[0], linear->ylim[1] - linear->ylim[0]) +
-        linear->ylim[0];
-    y = y + (y < linear->ylim[0]) * (linear->ylim[1] - linear->ylim[0]);
-  }
+    /* Make sure periodic coordinates are within [max, min] region. */
+    if (linear->xbc == PERIODICBC)
+    {
+        x = fmod(x - linear->xlim[0], linear->xlim[1] - linear->xlim[0]) +
+            linear->xlim[0];
+        x = x + (x < linear->xlim[0]) * (linear->xlim[1] - linear->xlim[0]);
+    }
+    if (linear->ybc == PERIODICBC)
+    {
+        y = fmod(y - linear->ylim[0], linear->ylim[1] - linear->ylim[0]) +
+            linear->ylim[0];
+        y = y + (y < linear->ylim[0]) * (linear->ylim[1] - linear->ylim[0]);
+    }
 
-  /* Index for x variable */
-  size_t i_x = (x - linear->xlim[0]) / linear->dx;
-  /* Normalized x coordinate in current cell */
-  real dx = (x - (linear->xlim[0] + i_x * linear->dx)) / linear->dx;
+    /* Index for x variable */
+    size_t i_x = (x - linear->xlim[0]) / linear->dx;
+    /* Normalized x coordinate in current cell */
+    real dx = (x - (linear->xlim[0] + i_x * linear->dx)) / linear->dx;
 
-  /* Index for y variable */
-  size_t i_y = (y - linear->ylim[0]) / linear->dy;
-  /* Normalized y coordinate in current cell */
-  real dy = (y - (linear->ylim[0] + i_y * linear->dy)) / linear->dy;
+    /* Index for y variable */
+    size_t i_y = (y - linear->ylim[0]) / linear->dy;
+    /* Normalized y coordinate in current cell */
+    real dy = (y - (linear->ylim[0] + i_y * linear->dy)) / linear->dy;
 
-  size_t n = i_x * linear->ny + i_y; /* Index jump to cell       */
-  size_t x1 = linear->ny;            /* Index jump one x forward */
-  size_t y1 = 1;                     /* Index jump one y forward */
+    size_t n = i_x * linear->ny + i_y; /* Index jump to cell       */
+    size_t x1 = linear->ny;            /* Index jump one x forward */
+    size_t y1 = 1;                     /* Index jump one y forward */
 
-  int err = 0;
+    int err = 0;
 
-  /* Enforce periodic BC or check that the coordinate is within the grid. */
-  if (linear->xbc == PERIODICBC && i_x == linear->nx - 1) {
-    x1 = -(linear->nx - 1) * x1;
-  } else if (linear->xbc == NATURALBC &&
-             !(x >= linear->xlim[0] && x <= linear->xlim[1])) {
-    err = 1;
-  }
-  if (linear->ybc == PERIODICBC && i_y == linear->ny - 1) {
-    y1 = -(linear->ny - 1) * y1;
-  } else if (linear->ybc == NATURALBC &&
-             !(y >= linear->ylim[0] && y <= linear->ylim[1])) {
-    err = 1;
-  }
+    /* Enforce periodic BC or check that the coordinate is within the grid. */
+    if (linear->xbc == PERIODICBC && i_x == linear->nx - 1)
+    {
+        x1 = -(linear->nx - 1) * x1;
+    }
+    else if (
+        linear->xbc == NATURALBC &&
+        !(x >= linear->xlim[0] && x <= linear->xlim[1]))
+    {
+        err = 1;
+    }
+    if (linear->ybc == PERIODICBC && i_y == linear->ny - 1)
+    {
+        y1 = -(linear->ny - 1) * y1;
+    }
+    else if (
+        linear->ybc == NATURALBC &&
+        !(y >= linear->ylim[0] && y <= linear->ylim[1]))
+    {
+        err = 1;
+    }
 
-  if (err) {
-    // TODO: is it OK to return early here?
-    return err;
-  }
+    if (err)
+    {
+        return err;
+    }
 
-  /* Values at grid cell corners */
-  c00 = linear->c[n];
-  c10 = linear->c[n + x1];
-  c01 = linear->c[n + y1];
-  c11 = linear->c[n + y1 + x1];
-  /* Interpolate along x */
-  c0 = c00 * (1 - dx) + c10 * dx;
-  c1 = c01 * (1 - dx) + c11 * dx;
-  /* Finally we interpolate these values along y */
-  f_df[0] = c0 * (1 - dy) + c1 * dy;
+    /* Values at grid cell corners */
+    c00 = linear->c[n];
+    c10 = linear->c[n + x1];
+    c01 = linear->c[n + y1];
+    c11 = linear->c[n + y1 + x1];
+    /* Interpolate along x */
+    c0 = c00 * (1 - dx) + c10 * dx;
+    c1 = c01 * (1 - dx) + c11 * dx;
+    /* Finally we interpolate these values along y */
+    f_df[0] = c0 * (1 - dy) + c1 * dy;
 
-  real xgi = 1.0 / linear->dx;
-  real ygi = 1.0 / linear->dy;
+    real xgi = 1.0 / linear->dx;
+    real ygi = 1.0 / linear->dy;
 
-  /* f_x */
-  f_df[1] = ((c10 - c00) * (1 - dy) + (c11 - c01) * dy) * xgi;
-  /* f_y */
-  f_df[2] = (c1 - c0) * ygi;
-  /* f_xx */
-  f_df[3] = 0;
-  /* f_yy */
-  f_df[4] = 0;
-  /* f_xy */
-  f_df[5] = (c00 - c10 - c01 + c11) * (ygi * xgi);
+    /* f_x */
+    f_df[1] = ((c10 - c00) * (1 - dy) + (c11 - c01) * dy) * xgi;
+    /* f_y */
+    f_df[2] = (c1 - c0) * ygi;
+    /* f_xx */
+    f_df[3] = 0;
+    /* f_yy */
+    f_df[4] = 0;
+    /* f_xy */
+    f_df[5] = (c00 - c10 - c01 + c11) * (ygi * xgi);
 
-  return err;
+    return 0;
 }
 
-int Linear3D_eval_f_df(real f_df[4], Linear3D* linear, real x, real y, real z) {
-  real c000, c100, c001, c101, c010, c110, c011, c111;
-  real c00, c01, c10, c11;
-  real c0, c1;
-  /* Make sure periodic coordinates are within [max, min] region. */
-  if (linear->xbc == PERIODICBC) {
-    x = fmod(x - linear->xlim[0], linear->xlim[1] - linear->xlim[0]) +
-        linear->xlim[0];
-    x = x + (x < linear->xlim[0]) * (linear->xlim[1] - linear->xlim[0]);
-  }
-  if (linear->ybc == PERIODICBC) {
-    y = fmod(y - linear->ylim[0], linear->ylim[1] - linear->ylim[0]) +
-        linear->ylim[0];
-    y = y + (y < linear->ylim[0]) * (linear->ylim[1] - linear->ylim[0]);
-  }
-  if (linear->zbc == PERIODICBC) {
-    z = fmod(z - linear->zlim[0], linear->zlim[1] - linear->zlim[0]) +
-        linear->zlim[0];
-    z = z + (z < linear->zlim[0]) * (linear->zlim[1] - linear->zlim[0]);
-  }
+int Linear3D_eval_f_df(real f_df[4], Linear3D *linear, real x, real y, real z)
+{
+    real c000, c100, c001, c101, c010, c110, c011, c111;
+    real c00, c01, c10, c11;
+    real c0, c1;
+    /* Make sure periodic coordinates are within [max, min] region. */
+    if (linear->xbc == PERIODICBC)
+    {
+        x = fmod(x - linear->xlim[0], linear->xlim[1] - linear->xlim[0]) +
+            linear->xlim[0];
+        x = x + (x < linear->xlim[0]) * (linear->xlim[1] - linear->xlim[0]);
+    }
+    if (linear->ybc == PERIODICBC)
+    {
+        y = fmod(y - linear->ylim[0], linear->ylim[1] - linear->ylim[0]) +
+            linear->ylim[0];
+        y = y + (y < linear->ylim[0]) * (linear->ylim[1] - linear->ylim[0]);
+    }
+    if (linear->zbc == PERIODICBC)
+    {
+        z = fmod(z - linear->zlim[0], linear->zlim[1] - linear->zlim[0]) +
+            linear->zlim[0];
+        z = z + (z < linear->zlim[0]) * (linear->zlim[1] - linear->zlim[0]);
+    }
 
-  size_t i_x = (x - linear->xlim[0]) / linear->dx;
-  real dx = (x - (linear->xlim[0] + i_x * linear->dx)) / linear->dx;
+    size_t i_x = (x - linear->xlim[0]) / linear->dx;
+    real dx = (x - (linear->xlim[0] + i_x * linear->dx)) / linear->dx;
 
-  size_t i_y = (y - linear->ylim[0]) / linear->dy;
-  real dy = (y - (linear->ylim[0] + i_y * linear->dy)) / linear->dy;
+    size_t i_y = (y - linear->ylim[0]) / linear->dy;
+    real dy = (y - (linear->ylim[0] + i_y * linear->dy)) / linear->dy;
 
-  size_t i_z = (z - linear->zlim[0]) / linear->dz;
-  real dz = (z - (linear->zlim[0] + i_z * linear->dz)) / linear->dz;
+    size_t i_z = (z - linear->zlim[0]) / linear->dz;
+    real dz = (z - (linear->zlim[0] + i_z * linear->dz)) / linear->dz;
 
-  /* Index jump to cell */
-  size_t n = i_x * linear->ny * linear->nz + i_y * linear->nz + i_z;
-  size_t x1 = linear->ny * linear->nz; /* Index jump one x forward */
-  size_t y1 = linear->nz;              /* Index jump one y forward */
-  size_t z1 = 1;                       /* Index jump one z forward */
+    /* Index jump to cell */
+    size_t n = i_x * linear->ny * linear->nz + i_y * linear->nz + i_z;
+    size_t x1 = linear->ny * linear->nz; /* Index jump one x forward */
+    size_t y1 = linear->nz;              /* Index jump one y forward */
+    size_t z1 = 1;                       /* Index jump one z forward */
 
-  int err = 0;
+    int err = 0;
 
-  /* Enforce periodic BC or check that the coordinate is within the grid. */
-  if (linear->xbc == PERIODICBC && i_x == linear->nx - 1) {
-    x1 = -(linear->nx - 1) * x1;
-  } else if (linear->xbc == NATURALBC &&
-             !(x >= linear->xlim[0] && x <= linear->xlim[1])) {
-    err = 1;
-  }
-  if (linear->ybc == PERIODICBC && i_y == linear->ny - 1) {
-    y1 = -(linear->ny - 1) * y1;
-  } else if (linear->ybc == NATURALBC &&
-             !(y >= linear->ylim[0] && y <= linear->ylim[1])) {
-    err = 1;
-  }
-  if (linear->zbc == PERIODICBC && i_z == linear->nz - 1) {
-    z1 = -(linear->nz - 1) * z1;
-  } else if (linear->zbc == NATURALBC &&
-             !(z >= linear->zlim[0] && z <= linear->zlim[1])) {
-    err = 1;
-  }
+    /* Enforce periodic BC or check that the coordinate is within the grid. */
+    if (linear->xbc == PERIODICBC && i_x == linear->nx - 1)
+    {
+        x1 = -(linear->nx - 1) * x1;
+    }
+    else if (
+        linear->xbc == NATURALBC &&
+        !(x >= linear->xlim[0] && x <= linear->xlim[1]))
+    {
+        err = 1;
+    }
+    if (linear->ybc == PERIODICBC && i_y == linear->ny - 1)
+    {
+        y1 = -(linear->ny - 1) * y1;
+    }
+    else if (
+        linear->ybc == NATURALBC &&
+        !(y >= linear->ylim[0] && y <= linear->ylim[1]))
+    {
+        err = 1;
+    }
+    if (linear->zbc == PERIODICBC && i_z == linear->nz - 1)
+    {
+        z1 = -(linear->nz - 1) * z1;
+    }
+    else if (
+        linear->zbc == NATURALBC &&
+        !(z >= linear->zlim[0] && z <= linear->zlim[1]))
+    {
+        err = 1;
+    }
 
-  if (err) {
-    return err;
-  }
+    if (err)
+    {
+        return err;
+    }
 
-  /* Values at grid cell corners */
-  c000 = linear->c[n];
-  c100 = linear->c[n + x1];
-  c001 = linear->c[n + y1];
-  c101 = linear->c[n + y1 + x1];
-  c010 = linear->c[n + z1];
-  c110 = linear->c[n + z1 + x1];
-  c011 = linear->c[n + y1 + z1];
-  c111 = linear->c[n + y1 + z1 + x1];
-  /* Interpolate along x */
-  c00 = c000 * (1 - dx) + c100 * dx;
-  c01 = c001 * (1 - dx) + c101 * dx;
-  c10 = c010 * (1 - dx) + c110 * dx;
-  c11 = c011 * (1 - dx) + c111 * dx;
-  /* Interpolate these values along z */
-  c0 = c00 * (1 - dz) + c10 * dz;
-  c1 = c01 * (1 - dz) + c11 * dz;
-  /* Finally we interpolate these values along y */
-  f_df[0] = c0 * (1 - dy) + c1 * dy;
+    /* Values at grid cell corners */
+    c000 = linear->c[n];
+    c100 = linear->c[n + x1];
+    c001 = linear->c[n + y1];
+    c101 = linear->c[n + y1 + x1];
+    c010 = linear->c[n + z1];
+    c110 = linear->c[n + z1 + x1];
+    c011 = linear->c[n + y1 + z1];
+    c111 = linear->c[n + y1 + z1 + x1];
+    /* Interpolate along x */
+    c00 = c000 * (1 - dx) + c100 * dx;
+    c01 = c001 * (1 - dx) + c101 * dx;
+    c10 = c010 * (1 - dx) + c110 * dx;
+    c11 = c011 * (1 - dx) + c111 * dx;
+    /* Interpolate these values along z */
+    c0 = c00 * (1 - dz) + c10 * dz;
+    c1 = c01 * (1 - dz) + c11 * dz;
+    /* Finally we interpolate these values along y */
+    f_df[0] = c0 * (1 - dy) + c1 * dy;
 
-  real xgi = 1.0 / linear->dx;
-  real ygi = 1.0 / linear->dy;
-  real zgi = 1.0 / linear->dz;
+    real xgi = 1.0 / linear->dx;
+    real ygi = 1.0 / linear->dy;
+    real zgi = 1.0 / linear->dz;
 
-  /* f_x */
-  f_df[1] = (((c100 - c000) * (1 - dz) + (c110 - c010) * dz) * (1 - dy) +
-             ((c101 - c001) * (1 - dz) + (c111 - c011) * dz) * dy) *
-            xgi;
-  /* f_y */
-  f_df[2] = (c1 - c0) * ygi;
-  /* f_z */
-  f_df[3] = ((c10 - c00) * (1 - dy) + (c11 - c01) * dy) * zgi;
+    /* f_x */
+    f_df[1] = (((c100 - c000) * (1 - dz) + (c110 - c010) * dz) * (1 - dy) +
+               ((c101 - c001) * (1 - dz) + (c111 - c011) * dz) * dy) *
+              xgi;
+    /* f_y */
+    f_df[2] = (c1 - c0) * ygi;
+    /* f_z */
+    f_df[3] = ((c10 - c00) * (1 - dy) + (c11 - c01) * dy) * zgi;
 
-  return err;
+    return 0;
 }

@@ -49,15 +49,12 @@
  *
  * @return Zero on success.
  */
-int BfieldLinear3D_init(BfieldLinear3D* bfield, size_t pnr, size_t pnz,
-                         size_t bnr, size_t bnz, size_t bnphi, real prlim[2],
-                         real pzlim[2], real brlim[2], real bzlim[2],
-                         real bphilim[2], real axisrz[2], real psilimits[2],
-                         real psi[pnr * pnz], real br[bnr * bnz * bnphi],
-                         real bz[bnr * bnz * bnphi],
-                         real bphi[bnr * bnz * bnphi]
-
-);
+int BfieldLinear3D_init(
+    BfieldLinear3D *bfield, size_t pnr, size_t pnz, size_t bnr, size_t bnz,
+    size_t bnphi, real prlim[2], real pzlim[2], real brlim[2], real bzlim[2],
+    real bphilim[2], real axisrz[2], real psilimits[2], real psi[pnr * pnz],
+    real br[bnr * bnz * bnphi], real bz[bnr * bnz * bnphi],
+    real bphi[bnr * bnz * bnphi]);
 
 /**
  * Free allocated resources.
@@ -67,14 +64,14 @@ int BfieldLinear3D_init(BfieldLinear3D* bfield, size_t pnr, size_t pnz,
  *
  * @param bfield The struct whose fields are deallocated.
  */
-void BfieldLinear3D_free(BfieldLinear3D* bfield);
+void BfieldLinear3D_free(BfieldLinear3D *bfield);
 
 /**
  * Offload data to the accelerator.
  *
  * @param bfield The struct to offload.
  */
-void BfieldLinear3D_offload(BfieldLinear3D* bfield);
+void BfieldLinear3D_offload(BfieldLinear3D *bfield);
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
 /**
@@ -87,8 +84,8 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
  *
  * @return Zero if the evaluation succeeded.
  */
-err_t BfieldLinear3D_eval_psi(real psi[1], real r, real z,
-                              BfieldLinear3D* bfield);
+err_t BfieldLinear3D_eval_psi(
+    real psi[1], real r, real z, BfieldLinear3D *bfield);
 DECLARE_TARGET_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
@@ -103,8 +100,8 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
  *
  * @return Zero if the evaluation succeeded.
  */
-err_t BfieldLinear3D_eval_psi_dpsi(real psi_dpsi[4], real r, real z,
-                                   BfieldLinear3D* bfield);
+err_t BfieldLinear3D_eval_psi_dpsi(
+    real psi_dpsi[4], real r, real z, BfieldLinear3D *bfield);
 DECLARE_TARGET_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
@@ -120,8 +117,8 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
  *
  * @return Zero if the evaluation succeeded.
  */
-err_t BfieldLinear3D_eval_b(real b[3], real r, real phi, real z,
-                            BfieldLinear3D* bfield);
+err_t BfieldLinear3D_eval_b(
+    real b[3], real r, real phi, real z, BfieldLinear3D *bfield);
 DECLARE_TARGET_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
@@ -138,8 +135,8 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
  *
  * @return Zero if the evaluation succeeded.
  */
-err_t BfieldLinear3D_eval_b_db(real b_db[12], real r, real phi, real z,
-                               BfieldLinear3D* bfield);
+err_t BfieldLinear3D_eval_b_db(
+    real b_db[12], real r, real phi, real z, BfieldLinear3D *bfield);
 DECLARE_TARGET_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
@@ -153,7 +150,7 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(bfield)
  *
  * @return Zero if the evaluation succeeded.
  */
-err_t BfieldLinear3D_eval_axisrz(real rz[2], BfieldLinear3D* bfield);
+err_t BfieldLinear3D_eval_axisrz(real rz[2], BfieldLinear3D *bfield);
 DECLARE_TARGET_END
 
 #endif

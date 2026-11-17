@@ -33,9 +33,9 @@ ifeq ($(SANITIZER),1)
 endif
 
 ifeq ($(DEBUG),1)
-    CFLAGS+=-g3 -O0
+	CFLAGS+=-g3 -O0
 else
-    CFLAGS+=-O2
+	CFLAGS+=-O2
 endif
 
 CFLAGS+=-Wall -Wextra -fPIC -std=c11 -D_XOPEN_SOURCE=700 -Iinclude -Iascot \
