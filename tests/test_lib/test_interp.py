@@ -89,8 +89,8 @@ def _make_interpolator(scheme, dim, periodic, lims, data):
     """Initialize a linear (2D or 3D) or spline (1D, 2D or 3D) interpolator.
 
     Returns a function that evaluates the interpolant and its first derivatives
-    at a point, asserts that the evaluation succeeded, and returns the output
-    array.
+    at a point, asserts that the evaluation succeeded (or failed, with
+    expect_error=True), and returns the output array.
     """
     struct = {
         ("Spline", 1): Spline1D,
@@ -108,10 +108,10 @@ def _make_interpolator(scheme, dim, periodic, lims, data):
     )
     assert not err
 
-    def evaluate(*x):
+    def evaluate(*x, expect_error=False):
         out = np.zeros({1: 3, 2: 6, 3: 4}[dim])
         err = eval_f_df(ptr(out), ctypes.byref(struct), *x)
-        assert not err, x
+        assert bool(err) == expect_error, (x, err)
         return out
 
     # The linear interpolators don't copy the data, so it must stay alive
@@ -152,7 +152,8 @@ def test_spline_1d(periodic):
     nq = 1000
     rng = np.random.default_rng(123)
     xlim = np.array([-np.pi, np.pi], dtype=np.float64)
-    xq = xlim[0] + rng.random(nq) * (xlim[1] - xlim[0])
+    shift = 2 if periodic else 0
+    xq = xlim[0] + rng.uniform(-shift, 1 + shift, nq) * (xlim[1] - xlim[0])
     ngrid = np.array([10, 20, 40, 80, 160])
 
     fx0 = np.sin(xq)
@@ -192,8 +193,9 @@ def test_interpolate_2d(periodic, scheme, min_order):
     rng = np.random.default_rng(123)
     xlim = np.array([-np.pi, np.pi], dtype=np.float64)
     ylim = np.array([-np.pi/2, np.pi/2], dtype=np.float64)
-    xq = xlim[0] + rng.random(nq) * (xlim[1] - xlim[0])
-    yq = ylim[0] + rng.random(nq) * (ylim[1] - ylim[0])
+    shift = 2 if periodic else 0
+    xq = xlim[0] + rng.uniform(-shift, 1 + shift, nq) * (xlim[1] - xlim[0])
+    yq = ylim[0] + rng.uniform(-shift, 1 + shift, nq) * (ylim[1] - ylim[0])
     ngrid = np.array([10, 20, 40, 80, 160])
 
     fx0, fy0 = np.sin(xq), np.sin(2*yq)
@@ -247,9 +249,10 @@ def test_interpolate_3d(periodic, scheme, min_order):
     xlim = np.array([-np.pi, np.pi], dtype=np.float64)
     ylim = np.array([-np.pi/2, np.pi/2], dtype=np.float64)
     zlim = np.array([-np.pi/3, np.pi/3], dtype=np.float64)
-    xq = xlim[0] + rng.random(nq) * (xlim[1] - xlim[0])
-    yq = ylim[0] + rng.random(nq) * (ylim[1] - ylim[0])
-    zq = zlim[0] + rng.random(nq) * (zlim[1] - zlim[0])
+    shift = 2 if periodic else 0
+    xq = xlim[0] + rng.uniform(-shift, 1 + shift, nq) * (xlim[1] - xlim[0])
+    yq = ylim[0] + rng.uniform(-shift, 1 + shift, nq) * (ylim[1] - ylim[0])
+    zq = zlim[0] + rng.uniform(-shift, 1 + shift, nq) * (zlim[1] - zlim[0])
     ngrid = np.array([10, 20, 40, 80, 160])
 
     fx0, fy0, fz0 = np.sin(xq), np.sin(2*yq), np.sin(3*zq)
@@ -288,3 +291,40 @@ def test_interpolate_3d(periodic, scheme, min_order):
     for k in range(4):
         assert np.all(rate_df[k,:] > a**min_orders[k]), \
             f"f_df: {labels[k]} convergence too slow"
+
+
+@pytest.mark.parametrize("dim", [2, 3], ids=["2d", "3d"])
+@pytest.mark.parametrize("scheme", ["Linear", "Spline"])
+def test_grid_edges(scheme, dim):
+    """Test the interpolators on the edges of a grid with the natural boundary
+    condition.
+
+    The grids are chosen so that the naive cell index (x - xmin) / dx rounds
+    wrong at the upper edge: on the first axis x = xlim[1] lands two cells
+    back, and on the second axis one ulp below xlim[1] lands one cell past the
+    last one.
+    """
+    lims = [[4.0, 8.5], [-4.0, 4.0], [-3.0, -1.0]][:dim]
+    ngrid = [8, 3, 5][:dim]
+    axes = [np.linspace(*l, n) for l, n in zip(lims, ngrid)]
+    f = np.random.default_rng(6).random(ngrid)
+    evaluate = _make_interpolator(scheme, dim, False, lims, f)
+
+    # Both schemes interpolate, so the grid points recover the data
+    for idx in np.ndindex(*ngrid):
+        out = evaluate(*(a[i] for a, i in zip(axes, idx)))
+        assert np.isclose(out[0], f[idx]), idx
+
+    # One ulp below the upper corner along each axis
+    for k in range(dim):
+        point = [l[1] for l in lims]
+        point[k] = np.nextafter(point[k], -np.inf)
+        out = evaluate(*point)
+        assert np.isclose(out[0], f[(-1,)*dim]), k
+
+    # Just outside each edge, and NaN
+    for k in range(dim):
+        for x in [lims[k][0] - 1e-9, lims[k][1] + 1e-9, np.nan]:
+            point = np.mean(lims, axis=1)
+            point[k] = x
+            evaluate(*point, expect_error=True)

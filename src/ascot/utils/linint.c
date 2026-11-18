@@ -67,10 +67,10 @@ int Linear1D_eval_f(real f[1], Linear1D *linear, real x)
         x = x + (x < linear->xlim[0]) * (linear->xlim[1] - linear->xlim[0]);
     }
 
-    /* index for x variable */
-    size_t i_x = (x - linear->xlim[0]) / linear->dx;
-    /**< Normalized x coordinate in current cell */
-    real dx = (x - (linear->xlim[0] + i_x * linear->dx)) / linear->dx;
+    /* Cell index and normalized coordinate within the cell */
+    real dx;
+    size_t i_x = interp_cell(
+        &dx, x, linear->xlim[0], linear->dx, linear->nx, linear->xbc);
 
     size_t x1 = 1; /* Index jump one x forward */
 
@@ -114,15 +114,15 @@ int Linear2D_eval_f(real f[1], Linear2D *linear, real x, real y)
         y = y + (y < linear->ylim[0]) * (linear->ylim[1] - linear->ylim[0]);
     }
 
-    /* Index for x variable */
-    size_t i_x = (x - linear->xlim[0]) / linear->dx;
-    /* Normalized x coordinate in current cell */
-    real dx = (x - (linear->xlim[0] + i_x * linear->dx)) / linear->dx;
+    /* Cell index and normalized coordinate within the cell */
+    real dx;
+    size_t i_x = interp_cell(
+        &dx, x, linear->xlim[0], linear->dx, linear->nx, linear->xbc);
 
-    /* Index for y variable */
-    size_t i_y = (y - linear->ylim[0]) / linear->dy;
-    /* Normalized y coordinate in current cell */
-    real dy = (y - (linear->ylim[0] + i_y * linear->dy)) / linear->dy;
+    /* Same for y */
+    real dy;
+    size_t i_y = interp_cell(
+        &dy, y, linear->ylim[0], linear->dy, linear->ny, linear->ybc);
 
     size_t n = i_x * linear->ny + i_y; /* Index jump to cell       */
     size_t x1 = linear->ny;            /* Index jump one x forward */
@@ -194,14 +194,17 @@ int Linear3D_eval_f(real f[1], Linear3D *linear, real x, real y, real z)
         z = z + (z < linear->zlim[0]) * (linear->zlim[1] - linear->zlim[0]);
     }
 
-    size_t i_x = (x - linear->xlim[0]) / linear->dx;
-    real dx = (x - (linear->xlim[0] + i_x * linear->dx)) / linear->dx;
+    real dx;
+    size_t i_x = interp_cell(
+        &dx, x, linear->xlim[0], linear->dx, linear->nx, linear->xbc);
 
-    size_t i_y = (y - linear->ylim[0]) / linear->dy;
-    real dy = (y - (linear->ylim[0] + i_y * linear->dy)) / linear->dy;
+    real dy;
+    size_t i_y = interp_cell(
+        &dy, y, linear->ylim[0], linear->dy, linear->ny, linear->ybc);
 
-    size_t i_z = (z - linear->zlim[0]) / linear->dz;
-    real dz = (z - (linear->zlim[0] + i_z * linear->dz)) / linear->dz;
+    real dz;
+    size_t i_z = interp_cell(
+        &dz, z, linear->zlim[0], linear->dz, linear->nz, linear->zbc);
 
     /* Index jump to cell */
     size_t n = i_x * linear->ny * linear->nz + i_y * linear->nz + i_z;
@@ -288,15 +291,15 @@ int Linear2D_eval_f_df(real f_df[6], Linear2D *linear, real x, real y)
         y = y + (y < linear->ylim[0]) * (linear->ylim[1] - linear->ylim[0]);
     }
 
-    /* Index for x variable */
-    size_t i_x = (x - linear->xlim[0]) / linear->dx;
-    /* Normalized x coordinate in current cell */
-    real dx = (x - (linear->xlim[0] + i_x * linear->dx)) / linear->dx;
+    /* Cell index and normalized coordinate within the cell */
+    real dx;
+    size_t i_x = interp_cell(
+        &dx, x, linear->xlim[0], linear->dx, linear->nx, linear->xbc);
 
-    /* Index for y variable */
-    size_t i_y = (y - linear->ylim[0]) / linear->dy;
-    /* Normalized y coordinate in current cell */
-    real dy = (y - (linear->ylim[0] + i_y * linear->dy)) / linear->dy;
+    /* Same for y */
+    real dy;
+    size_t i_y = interp_cell(
+        &dy, y, linear->ylim[0], linear->dy, linear->ny, linear->ybc);
 
     size_t n = i_x * linear->ny + i_y; /* Index jump to cell       */
     size_t x1 = linear->ny;            /* Index jump one x forward */
@@ -384,14 +387,17 @@ int Linear3D_eval_f_df(real f_df[4], Linear3D *linear, real x, real y, real z)
         z = z + (z < linear->zlim[0]) * (linear->zlim[1] - linear->zlim[0]);
     }
 
-    size_t i_x = (x - linear->xlim[0]) / linear->dx;
-    real dx = (x - (linear->xlim[0] + i_x * linear->dx)) / linear->dx;
+    real dx;
+    size_t i_x = interp_cell(
+        &dx, x, linear->xlim[0], linear->dx, linear->nx, linear->xbc);
 
-    size_t i_y = (y - linear->ylim[0]) / linear->dy;
-    real dy = (y - (linear->ylim[0] + i_y * linear->dy)) / linear->dy;
+    real dy;
+    size_t i_y = interp_cell(
+        &dy, y, linear->ylim[0], linear->dy, linear->ny, linear->ybc);
 
-    size_t i_z = (z - linear->zlim[0]) / linear->dz;
-    real dz = (z - (linear->zlim[0] + i_z * linear->dz)) / linear->dz;
+    real dz;
+    size_t i_z = interp_cell(
+        &dz, z, linear->zlim[0], linear->dz, linear->nz, linear->zbc);
 
     /* Index jump to cell */
     size_t n = i_x * linear->ny * linear->nz + i_y * linear->nz + i_z;

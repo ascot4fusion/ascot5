@@ -136,14 +136,12 @@ int Spline2D_eval_f(real f[1], Spline2D *spline, real x, real y)
             ? y + (y < spline->ylim[0]) * (spline->ylim[1] - spline->ylim[0])
             : y;
 
-    /* Abscissa indices. The last term is needed to include the last point in
-       the interpolation range. */
-    size_t ix = (x - spline->xlim[0]) / spline->dx - 1 * (x == spline->xlim[1]);
-    size_t iy = (y - spline->ylim[0]) / spline->dy - 1 * (y == spline->ylim[1]);
-
-    /* Normalized coordinates inside the cell */
-    real dx = (x - (spline->xlim[0] + ix * spline->dx)) / spline->dx;
-    real dy = (y - (spline->ylim[0] + iy * spline->dy)) / spline->dy;
+    /* Cell indices and normalized coordinates inside the cell */
+    real dx, dy;
+    size_t ix = interp_cell(
+        &dx, x, spline->xlim[0], spline->dx, spline->nx, spline->xbc);
+    size_t iy = interp_cell(
+        &dy, y, spline->ylim[0], spline->dy, spline->ny, spline->ybc);
 
     /* Helper variables */
     real dx3 = dx * (dx * dx - 1.0), dy3 = dy * (dy * dy - 1.0);
@@ -227,14 +225,11 @@ int Spline2D_eval_f_df(real f_df[6], Spline2D *spline, real x, real y)
               (spline->ybc == NATURALBC &&
                !(y >= spline->ylim[0] && y <= spline->ylim[1]));
 
-    /* Abscissa indices. The last term is needed to include the last point in
-       the interpolation range. */
-    size_t ix = (x - spline->xlim[0]) / spline->dx - 1 * (x == spline->xlim[1]);
-    size_t iy = (y - spline->ylim[0]) / spline->dy - 1 * (y == spline->ylim[1]);
-
-    /* Normalize coordinates inside the cell */
-    x = (x - spline->xlim[0] - ix * spline->dx) / spline->dx;
-    y = (y - spline->ylim[0] - iy * spline->dy) / spline->dy;
+    /* Cell indices and normalized coordinates inside the cell */
+    size_t ix = interp_cell(
+        &x, x, spline->xlim[0], spline->dx, spline->nx, spline->xbc);
+    size_t iy = interp_cell(
+        &y, y, spline->ylim[0], spline->dy, spline->ny, spline->ybc);
 
     /* Helper variables */
     real dx3 = x * (x * x - 1.0), dy3 = y * (y * y - 1.0);

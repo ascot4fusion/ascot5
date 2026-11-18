@@ -29,7 +29,41 @@
 #include "defines.h"
 #include "interp_data.h"
 #include "parallel.h"
+#include <math.h>
 #include <stddef.h>
+
+/**
+ * Find the grid cell containing the given coordinate.
+ *
+ * The index is clamped to the valid cells, so that the cell corners can always
+ * be read safely: with the natural boundary condition the upper edge
+ * x = xlim[1] belongs to the last cell (as its end point) instead of starting
+ * a cell beyond the grid, and coordinates outside the grid (which the callers
+ * flag as errors) or NaN do not produce invalid indices.
+ *
+ * @param t Normalized coordinate within the cell, nominally in [0, 1].
+ * @param x Coordinate.
+ * @param xmin Lower limit of the grid.
+ * @param step Grid spacing.
+ * @param n Number of grid points.
+ * @param bc Boundary condition.
+ *
+ * @return Index of the grid point at the start of the cell.
+ */
+DECLARE_TARGET
+static inline size_t
+interp_cell(real *t, real x, real xmin, real step, size_t n, int bc)
+{
+    /* With the periodic BC the last cell connects the last and first points */
+    real last = n - 1 - (bc == NATURALBC);
+    real s = (x - xmin) / step;
+    /* Rounding can put points at or just below the upper edge past the last
+       cell, and casting a negative or NaN s to size_t is undefined */
+    size_t i = (size_t)fmin(fmax(s, 0.0), last);
+    *t = s - i;
+    return i;
+}
+DECLARE_TARGET_END
 
 /**
  * Initialize linear interpolation struct for scalar 1D data.
