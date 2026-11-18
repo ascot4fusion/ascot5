@@ -85,6 +85,40 @@ for (scheme, ty2D, ty3D) in [("Linear", Linear2D, Linear3D), ("Spline", Spline2D
     )
 
 
+def _make_interpolator(scheme, dim, periodic, lims, data):
+    """Initialize a linear (2D or 3D) or spline (1D, 2D or 3D) interpolator.
+
+    Returns a function that evaluates the interpolant and its first derivatives
+    at a point, asserts that the evaluation succeeded, and returns the output
+    array.
+    """
+    struct = {
+        ("Spline", 1): Spline1D,
+        ("Linear", 2): Linear2D, ("Linear", 3): Linear3D,
+        ("Spline", 2): Spline2D, ("Spline", 3): Spline3D,
+    }[scheme, dim]()
+    init = getattr(LIBASCOT, f"{scheme}{dim}D_init")
+    eval_f_df = getattr(LIBASCOT, f"{scheme}{dim}D_eval_f_df")
+    ptr = lambda a: a.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+    data = np.ascontiguousarray(data, dtype=np.float64)
+    lims = [np.asarray(l, dtype=np.float64) for l in lims]
+    err = init(
+        ctypes.byref(struct), *data.shape, *(dim*[int(periodic)]),
+        *(ptr(l) for l in lims), ptr(data),
+    )
+    assert not err
+
+    def evaluate(*x):
+        out = np.zeros({1: 3, 2: 6, 3: 4}[dim])
+        err = eval_f_df(ptr(out), ctypes.byref(struct), *x)
+        assert not err, x
+        return out
+
+    # The linear interpolators don't copy the data, so it must stay alive
+    evaluate.keepalive = (struct, data, lims)
+    return evaluate
+
+
 def test_solve_compact_cubic_spline():
     err = []
     ngrid = np.array([10, 20, 40, 80, 160])
@@ -120,7 +154,6 @@ def test_spline_1d(periodic):
     xlim = np.array([-np.pi, np.pi], dtype=np.float64)
     xq = xlim[0] + rng.random(nq) * (xlim[1] - xlim[0])
     ngrid = np.array([10, 20, 40, 80, 160])
-    spline = Spline1D()
 
     fx0 = np.sin(xq)
     fx1 = np.cos(xq)
@@ -131,23 +164,10 @@ def test_spline_1d(periodic):
             x = np.linspace(xlim[0], xlim[1], n+1)[:-1]
         else:
             x = np.linspace(xlim[0], xlim[1], n)
-        y = np.sin(x)
-
-        LIBASCOT.Spline1D_init(
-            ctypes.byref(spline),
-            n,
-            1 if periodic else 0,
-            xlim.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-            y.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        )
+        evaluate = _make_interpolator("Spline", 1, periodic, [xlim], np.sin(x))
 
         for j in range(nq):
-            f_df = np.zeros(3)
-            LIBASCOT.Spline1D_eval_f_df(
-                f_df.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                ctypes.byref(spline),
-                xq[j],
-            )
+            f_df = evaluate(xq[j])
             err_f_df[0,i] = max(err_f_df[0,i], abs(f_df[0] - fx0[j]))
             err_f_df[1,i] = max(err_f_df[1,i], abs(f_df[1] - fx1[j]))
             err_f_df[2,i] = max(err_f_df[2,i], abs(f_df[2] - fx2[j]))
@@ -164,28 +184,10 @@ def test_spline_1d(periodic):
     "periodic", [True, False], ids=["periodic", "natural"]
 )
 @pytest.mark.parametrize(
-    "interpolator", [
-        pytest.param(
-            {
-                "struct": Linear2D,
-                "init": "Linear2D_init",
-                "eval_f_df": "Linear2D_eval_f_df",
-                "min_order": 1,
-            },
-            id="linear",
-        ),
-        pytest.param(
-            {
-                "struct": Spline2D,
-                "init": "Spline2D_init",
-                "eval_f_df": "Spline2D_eval_f_df",
-                "min_order": 3,
-            },
-            id="spline",
-        ),
-    ],
+    "scheme, min_order", [("Linear", 1), ("Spline", 3)],
+    ids=["linear", "spline"],
 )
-def test_interpolate_2d(periodic, interpolator):
+def test_interpolate_2d(periodic, scheme, min_order):
     nq = 1000
     rng = np.random.default_rng(123)
     xlim = np.array([-np.pi, np.pi], dtype=np.float64)
@@ -193,9 +195,6 @@ def test_interpolate_2d(periodic, interpolator):
     xq = xlim[0] + rng.random(nq) * (xlim[1] - xlim[0])
     yq = ylim[0] + rng.random(nq) * (ylim[1] - ylim[0])
     ngrid = np.array([10, 20, 40, 80, 160])
-    interp = interpolator["struct"]()
-    init = getattr(LIBASCOT, interpolator["init"])
-    eval_f_df = getattr(LIBASCOT, interpolator["eval_f_df"])
 
     fx0, fy0 = np.sin(xq), np.sin(2*yq)
     fx1, fy1 = np.cos(xq), 2 * np.cos(2*yq)
@@ -213,23 +212,10 @@ def test_interpolate_2d(periodic, interpolator):
         X, Y = np.meshgrid(x, y, indexing="ij")
         f = np.sin(X) * np.sin(2 * Y)
 
-        init(
-            ctypes.byref(interp),
-            nx, ny,
-            1 if periodic else 0,
-            1 if periodic else 0,
-            xlim.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-            ylim.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-            f.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-        )
+        evaluate = _make_interpolator(scheme, 2, periodic, [xlim, ylim], f)
 
         for j in range(nq):
-            f_df = np.zeros(6)
-            eval_f_df(
-                f_df.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                ctypes.byref(interp),
-                xq[j], yq[j]
-            )
+            f_df = evaluate(xq[j], yq[j])
             err_f_df[0,i] = max(err_f_df[0,i], abs(f_df[0] - (fx0*fy0)[j]))
             err_f_df[1,i] = max(err_f_df[1,i], abs(f_df[1] - (fx1*fy0)[j]))
             err_f_df[2,i] = max(err_f_df[2,i], abs(f_df[2] - (fx0*fy1)[j]))
@@ -242,7 +228,7 @@ def test_interpolate_2d(periodic, interpolator):
 
     labels = ["f value", "fx", "fy", "fxx", "fyy", "fxy"]
     # Each derivative lowers the expected order of convergence by one
-    min_orders = interpolator["min_order"] - np.array([0, 1, 1, 2, 2, 2])
+    min_orders = min_order - np.array([0, 1, 1, 2, 2, 2])
     for k in range(6):
         assert np.all(rate_df[k,:] > a**min_orders[k]), \
             f"f_df: {labels[k]} convergence too slow"
@@ -252,28 +238,10 @@ def test_interpolate_2d(periodic, interpolator):
     "periodic", [True, False], ids=["periodic", "natural"]
 )
 @pytest.mark.parametrize(
-    "interpolator", [
-        pytest.param(
-            {
-                "struct": Linear3D,
-                "init": "Linear3D_init",
-                "eval_f_df": "Linear3D_eval_f_df",
-                "min_order": 1,
-            },
-            id="linear",
-        ),
-        pytest.param(
-            {
-                "struct": Spline3D,
-                "init": "Spline3D_init",
-                "eval_f_df": "Spline3D_eval_f_df",
-                "min_order": 3,
-            },
-            id="spline",
-        ),
-    ],
+    "scheme, min_order", [("Linear", 1), ("Spline", 3)],
+    ids=["linear", "spline"],
 )
-def test_interpolate_3d(periodic, interpolator):
+def test_interpolate_3d(periodic, scheme, min_order):
     nq = 1000
     rng = np.random.default_rng(123)
     xlim = np.array([-np.pi, np.pi], dtype=np.float64)
@@ -283,9 +251,6 @@ def test_interpolate_3d(periodic, interpolator):
     yq = ylim[0] + rng.random(nq) * (ylim[1] - ylim[0])
     zq = zlim[0] + rng.random(nq) * (zlim[1] - zlim[0])
     ngrid = np.array([10, 20, 40, 80, 160])
-    interp = interpolator["struct"]()
-    init = getattr(LIBASCOT, interpolator["init"])
-    eval_f_df = getattr(LIBASCOT, interpolator["eval_f_df"])
 
     fx0, fy0, fz0 = np.sin(xq), np.sin(2*yq), np.sin(3*zq)
     fx1, fy1, fz1 = np.cos(xq), 2 * np.cos(2*yq), 3 * np.cos(3*zq)
@@ -304,25 +269,11 @@ def test_interpolate_3d(periodic, interpolator):
         X, Y, Z = np.meshgrid(x, y, z, indexing="ij")
         f = (np.sin(X) * np.sin(2 * Y) * np.sin(3 * Z))
 
-        init(
-            ctypes.byref(interp),
-            nx, ny, nz,
-            1 if periodic else 0,
-            1 if periodic else 0,
-            1 if periodic else 0,
-            xlim.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-            ylim.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-            zlim.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-            f.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-        )
+        evaluate = _make_interpolator(
+            scheme, 3, periodic, [xlim, ylim, zlim], f)
 
         for j in range(nq):
-            f_df = np.zeros(4)
-            eval_f_df(
-                f_df.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-                ctypes.byref(interp),
-                xq[j], yq[j], zq[j]
-            )
+            f_df = evaluate(xq[j], yq[j], zq[j])
             err_f_df[0,i] = max(err_f_df[0,i], abs(f_df[0] - (fx0*fy0*fz0)[j]))
             err_f_df[1,i] = max(err_f_df[1,i], abs(f_df[1] - (fx1*fy0*fz0)[j]))
             err_f_df[2,i] = max(err_f_df[2,i], abs(f_df[2] - (fx0*fy1*fz0)[j]))
@@ -333,7 +284,7 @@ def test_interpolate_3d(periodic, interpolator):
 
     labels = ["f value", "fx", "fy", "fz"]
     # Each derivative lowers the expected order of convergence by one
-    min_orders = interpolator["min_order"] - np.array([0, 1, 1, 1])
+    min_orders = min_order - np.array([0, 1, 1, 1])
     for k in range(4):
         assert np.all(rate_df[k,:] > a**min_orders[k]), \
             f"f_df: {labels[k]} convergence too slow"
