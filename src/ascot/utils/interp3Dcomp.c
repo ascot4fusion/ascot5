@@ -238,16 +238,14 @@ int Spline3D_eval_f(real f[1], Spline3D *spline, real x, real y, real z)
             ? z + (z < spline->zlim[0]) * (spline->zlim[1] - spline->zlim[0])
             : z;
 
-    /* Abscissa indices. The last term is needed to include the last point in
-       the interpolation range. */
-    size_t ix = (x - spline->xlim[0]) / spline->dx - 1 * (x == spline->xlim[1]);
-    size_t iy = (y - spline->ylim[0]) / spline->dy - 1 * (y == spline->ylim[1]);
-    size_t iz = (z - spline->zlim[0]) / spline->dz - 1 * (z == spline->zlim[1]);
-
-    /* Normalized coordinates inside the cell */
-    real dx = (x - (spline->xlim[0] + ix * spline->dx)) / spline->dx;
-    real dy = (y - (spline->ylim[0] + iy * spline->dy)) / spline->dy;
-    real dz = (z - (spline->zlim[0] + iz * spline->dz)) / spline->dz;
+    /* Cell indices and normalized coordinates inside the cell */
+    real dx, dy, dz;
+    size_t ix = interp_cell(
+        &dx, x, spline->xlim[0], spline->dx, spline->nx, spline->xbc);
+    size_t iy = interp_cell(
+        &dy, y, spline->ylim[0], spline->dy, spline->ny, spline->ybc);
+    size_t iz = interp_cell(
+        &dz, z, spline->zlim[0], spline->dz, spline->nz, spline->zbc);
 
     /* Helper variables */
     real dx3 = dx * (dx * dx - 1.0), dy3 = dy * (dy * dy - 1.0),
@@ -429,16 +427,14 @@ int Spline3D_eval_f_df(real f_df[4], Spline3D *spline, real x, real y, real z)
             ? z + (z < spline->zlim[0]) * (spline->zlim[1] - spline->zlim[0])
             : z;
 
-    /* Abscissa indices. The last term is needed to include the last point in
-       the interpolation range. */
-    size_t ix = (x - spline->xlim[0]) / spline->dx - 1 * (x == spline->xlim[1]);
-    size_t iy = (y - spline->ylim[0]) / spline->dy - 1 * (y == spline->ylim[1]);
-    size_t iz = (z - spline->zlim[0]) / spline->dz - 1 * (z == spline->zlim[1]);
-
-    /* Normalized coordinates inside the cell */
-    real dx = (x - (spline->xlim[0] + ix * spline->dx)) / spline->dx;
-    real dy = (y - (spline->ylim[0] + iy * spline->dy)) / spline->dy;
-    real dz = (z - (spline->zlim[0] + iz * spline->dz)) / spline->dz;
+    /* Cell indices and normalized coordinates inside the cell */
+    real dx, dy, dz;
+    size_t ix = interp_cell(
+        &dx, x, spline->xlim[0], spline->dx, spline->nx, spline->xbc);
+    size_t iy = interp_cell(
+        &dy, y, spline->ylim[0], spline->dy, spline->ny, spline->ybc);
+    size_t iz = interp_cell(
+        &dz, z, spline->zlim[0], spline->dz, spline->nz, spline->zbc);
 
     /* Helper variables */
     real dx3 = dx * (dx * dx - 1.0), dy3 = dy * (dy * dy - 1.0),
@@ -736,16 +732,14 @@ int Spline3D_eval_f_ddf(
             ? z + (z < spline->zlim[0]) * (spline->zlim[1] - spline->zlim[0])
             : z;
 
-    /* Abscissa indices. The last term is needed to include the last point in
-       the interpolation range. */
-    size_t ix = (x - spline->xlim[0]) / spline->dx - 1 * (x == spline->xlim[1]);
-    size_t iy = (y - spline->ylim[0]) / spline->dy - 1 * (y == spline->ylim[1]);
-    size_t iz = (z - spline->zlim[0]) / spline->dz - 1 * (z == spline->zlim[1]);
-
-    /* Normalized coordinates inside the cell */
-    real dx = (x - (spline->xlim[0] + ix * spline->dx)) / spline->dx;
-    real dy = (y - (spline->ylim[0] + iy * spline->dy)) / spline->dy;
-    real dz = (z - (spline->zlim[0] + iz * spline->dz)) / spline->dz;
+    /* Cell indices and normalized coordinates inside the cell */
+    real dx, dy, dz;
+    size_t ix = interp_cell(
+        &dx, x, spline->xlim[0], spline->dx, spline->nx, spline->xbc);
+    size_t iy = interp_cell(
+        &dy, y, spline->ylim[0], spline->dy, spline->ny, spline->ybc);
+    size_t iz = interp_cell(
+        &dz, z, spline->zlim[0], spline->dz, spline->nz, spline->zbc);
 
     /* Helper variables */
     real dx3 = dx * (dx * dx - 1.0), dy3 = dy * (dy * dy - 1.0),

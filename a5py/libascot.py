@@ -154,7 +154,7 @@ class DataStruct(ctypes.Structure):
     ) -> unyt.unyt_array:
         """Return a read-only view on the grid within the struct.
 
-        The uniform grids in libascot.so are stored as ``(xlim, nx)``.
+        The uniform grids in libascot.so are stored as ``(xlim, nx, dx)``.
         This function reads the values and converts them to (read-only) grid
         array.
 
@@ -179,11 +179,9 @@ class DataStruct(ctypes.Structure):
         struct = self if member is None else getattr(self, member)
         if index is not None:
             struct = struct[index]
-        grid = np.linspace(
-            getattr(struct, f"{coordinate}lim")[0],
-            getattr(struct, f"{coordinate}lim")[1],
-            getattr(struct, f"n{coordinate}"),
-        )
+        xmin = getattr(struct, f"{coordinate}lim")[0]
+        dx = getattr(struct, f"d{coordinate}")
+        grid = xmin + dx * np.arange(getattr(struct, f"n{coordinate}"))
         grid.flags.writeable = False
         return unyt.unyt_array(grid, units)
 

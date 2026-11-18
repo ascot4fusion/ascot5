@@ -6,8 +6,26 @@ from unyt import (T, Wb, V, m, s, deg, eV, rad, e, particles,)
 
 from a5py import Ascot
 
+# Random (rather than constant) tabulated data, so that reading it back with the
+# axes mixed up is noticed
+RNG = np.random.default_rng(0)
 
 unyt.define_unit("yomama", 1.e6 * unyt.kg**3)
+
+_bfield3d = {
+    "rgrid": np.linspace(4.0, 8.0, 10) * m,
+    "phigrid": np.linspace(0, 360, 16)[:-1] * deg,
+    "zgrid": np.linspace(-2.0, 2.0, 20) * m,
+    "psi": RNG.random((10, 20)) * Wb/rad,
+    "bphi": RNG.random((10, 15, 20)) * T,
+    "br": RNG.random((10, 15, 20)) * T,
+    "bz": RNG.random((10, 15, 20)) * T,
+    "_rgridpsi": np.linspace(4.0, 8.0, 10) * m,
+    "_zgridpsi": np.linspace(-2.0, 2.0, 20) * m,
+    "axisrz": (6.2, 0.0) * m,
+    "psilimits": (0.0, 1.0) * Wb/rad,
+    }
+"""Test data shared by the 3D field variants that take the same input."""
 
 test_data = {
     "BfieldCartesian": {
@@ -35,26 +53,15 @@ test_data = {
     "BfieldSpline2D": {
         "rgrid": np.linspace(4.0, 8.0, 10) * m,
         "zgrid": np.linspace(-2.0, 2.0, 20) * m,
-        "psi": np.full((10, 20), 1.0) * Wb/rad,
-        "bphi": np.full((10, 20), 1.0) * T,
-        "_br": np.full((10, 20), 1.0) * T,
-        "_bz": np.full((10, 20), 1.0) * T,
+        "psi": RNG.random((10, 20)) * Wb/rad,
+        "bphi": RNG.random((10, 20)) * T,
+        "_br": RNG.random((10, 20)) * T,
+        "_bz": RNG.random((10, 20)) * T,
         "axisrz": (6.2, 0.0) * m,
         "psilimits": (0.0, 1.0) * Wb/rad,
         },
-    "BfieldSpline3D": {
-        "rgrid": np.linspace(4.0, 8.0, 10) * m,
-        "phigrid": np.linspace(0, 360, 16)[:-1] * deg,
-        "zgrid": np.linspace(-2.0, 2.0, 20) * m,
-        "psi": np.full((10, 20), 1.0) * Wb/rad,
-        "bphi": np.full((10, 15, 20), 1.0) * T,
-        "br": np.full((10, 15, 20), 1.0) * T,
-        "bz": np.full((10, 15, 20), 1.0) * T,
-        "_rgridpsi": np.linspace(4.0, 8.0, 10) * m,
-        "_zgridpsi": np.linspace(-2.0, 2.0, 20) * m,
-        "axisrz": (6.2, 0.0) * m,
-        "psilimits": (0.0, 1.0) * Wb/rad,
-        },
+    "BfieldSpline3D": dict(_bfield3d),
+    "BfieldLinear3D": dict(_bfield3d),
     "BfieldStellarator": {
         "rgrid": np.linspace(4.0, 8.0, 10) * m,
         "phigrid": np.linspace(0, 360, 16)[:-1] * deg,

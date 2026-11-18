@@ -12,8 +12,7 @@ int Spline1D_init(
     real f[nx])
 {
     int err = 0;
-    spline->c =
-        (real *)xmalloc(&err, nx * NSIZE_COMP2D * sizeof(real));
+    spline->c = (real *)xmalloc(&err, nx * NSIZE_COMP1D * sizeof(real));
     if (err)
         return 1;
 
@@ -49,12 +48,10 @@ int Spline1D_eval_f(real f[1], Spline1D *spline, real x)
             ? x + (x < spline->xlim[0]) * (spline->xlim[1] - spline->xlim[0])
             : x;
 
-    /* Abscissa indices. The last term is needed to include the last point in
-       the interpolation range. */
-    size_t ix = (x - spline->xlim[0]) / spline->dx - 1 * (x == spline->xlim[1]);
-
-    /* Normalized coordinates inside the cell */
-    real dx = (x - (spline->xlim[0] + ix * spline->dx)) / spline->dx;
+    /* Cell indices and normalized coordinates inside the cell */
+    real dx;
+    size_t ix = interp_cell(
+        &dx, x, spline->xlim[0], spline->dx, spline->nx, spline->xbc);
 
     /* Helper variables */
     real dx3 = dx * (dx * dx - 1.0);
@@ -97,12 +94,10 @@ int Spline1D_eval_f_df(real f_df[3], Spline1D *spline, real x)
             ? x + (x < spline->xlim[0]) * (spline->xlim[1] - spline->xlim[0])
             : x;
 
-    /* Abscissa indices. The last term is needed to include the last point in
-       the interpolation range. */
-    size_t ix = (x - spline->xlim[0]) / spline->dx - 1 * (x == spline->xlim[1]);
-
-    /* Normalized coordinates inside the cell */
-    real dx = (x - (spline->xlim[0] + ix * spline->dx)) / spline->dx;
+    /* Cell indices and normalized coordinates inside the cell */
+    real dx;
+    size_t ix = interp_cell(
+        &dx, x, spline->xlim[0], spline->dx, spline->nx, spline->xbc);
 
     /* Helper variables */
     real dx3 = dx * (dx * dx - 1.0);

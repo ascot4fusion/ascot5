@@ -4,12 +4,13 @@
 #include "bfield.h"
 #include "bfield_analytical.h"
 #include "bfield_cartesian.h"
+#include "bfield_linear3d.h"
 #include "bfield_spline2d.h"
 #include "bfield_spline3d.h"
 #include "bfield_stellarator.h"
 #include "defines.h"
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
 
 void Bfield_free(Bfield *bfield)
 {
@@ -26,6 +27,9 @@ void Bfield_free(Bfield *bfield)
         break;
     case BFIELD_SPLINE3D:
         BfieldSpline3D_free(bfield->spline3d);
+        break;
+    case BFIELD_LINEAR3D:
+        BfieldLinear3D_free(bfield->linear3d);
         break;
     case BFIELD_STELLARATOR:
         BfieldStellarator_free(bfield->stellarator);
@@ -48,6 +52,9 @@ void Bfield_offload(Bfield *bfield)
         break;
     case BFIELD_SPLINE3D:
         BfieldSpline3D_offload(bfield->spline3d);
+        break;
+    case BFIELD_LINEAR3D:
+        BfieldLinear3D_offload(bfield->linear3d);
         break;
     case BFIELD_STELLARATOR:
         BfieldStellarator_offload(bfield->stellarator);
@@ -73,6 +80,9 @@ err_t Bfield_eval_psi(
         break;
     case BFIELD_SPLINE3D:
         err = BfieldSpline3D_eval_psi(psi, r, z, bfield->spline3d);
+        break;
+    case BFIELD_LINEAR3D:
+        err = BfieldLinear3D_eval_psi(psi, r, z, bfield->linear3d);
         break;
     case BFIELD_STELLARATOR:
         err = BfieldStellarator_eval_psi(psi, r, phi, z, bfield->stellarator);
@@ -103,6 +113,9 @@ err_t Bfield_eval_psi_dpsi(
         break;
     case BFIELD_SPLINE3D:
         err = BfieldSpline3D_eval_psi_dpsi(psi_dpsi, r, z, bfield->spline3d);
+        break;
+    case BFIELD_LINEAR3D:
+        err = BfieldLinear3D_eval_psi_dpsi(psi_dpsi, r, z, bfield->linear3d);
         break;
     case BFIELD_STELLARATOR:
         err = BfieldStellarator_eval_psi_dpsi(
@@ -140,6 +153,10 @@ err_t Bfield_eval_rho(real rho[2], real psi, Bfield *bfield)
     case BFIELD_SPLINE3D:
         psi0 = bfield->spline3d->psilimits[0];
         psi1 = bfield->spline3d->psilimits[1];
+        break;
+    case BFIELD_LINEAR3D:
+        psi0 = bfield->linear3d->psilimits[0];
+        psi1 = bfield->linear3d->psilimits[1];
         break;
     case BFIELD_STELLARATOR:
         psi0 = bfield->stellarator->psilimits[0];
@@ -181,6 +198,10 @@ err_t Bfield_eval_rho_drho(real rho_drho[4], real psi_dpsi[4], Bfield *bfield)
         psi0 = bfield->spline3d->psilimits[0];
         delta = bfield->spline3d->psilimits[1] - psi0;
         break;
+    case BFIELD_LINEAR3D:
+        psi0 = bfield->linear3d->psilimits[0];
+        delta = bfield->linear3d->psilimits[1] - psi0;
+        break;
     case BFIELD_STELLARATOR:
         psi0 = bfield->stellarator->psilimits[0];
         delta = bfield->stellarator->psilimits[1] - psi0;
@@ -219,6 +240,9 @@ err_t Bfield_eval_b(real b[3], real r, real phi, real z, real t, Bfield *bfield)
         break;
     case BFIELD_SPLINE3D:
         err = BfieldSpline3D_eval_b(b, r, phi, z, bfield->spline3d);
+        break;
+    case BFIELD_LINEAR3D:
+        err = BfieldLinear3D_eval_b(b, r, phi, z, bfield->linear3d);
         break;
     case BFIELD_STELLARATOR:
         err = BfieldStellarator_eval_b(b, r, phi, z, bfield->stellarator);
@@ -260,6 +284,12 @@ err_t Bfield_eval_b_db(
         break;
     case BFIELD_SPLINE3D:
         err = BfieldSpline3D_eval_b_db(b_db, r, phi, z, bfield->spline3d);
+        b_db[12] = 0.0;
+        b_db[13] = 0.0;
+        b_db[14] = 0.0;
+        break;
+    case BFIELD_LINEAR3D:
+        err = BfieldLinear3D_eval_b_db(b_db, r, phi, z, bfield->linear3d);
         b_db[12] = 0.0;
         b_db[13] = 0.0;
         b_db[14] = 0.0;
@@ -307,6 +337,9 @@ err_t Bfield_eval_axis_rz(real axisrz[2], Bfield *bfield, real phi)
         break;
     case BFIELD_SPLINE3D:
         err = BfieldSpline3D_eval_axisrz(axisrz, bfield->spline3d);
+        break;
+    case BFIELD_LINEAR3D:
+        err = BfieldLinear3D_eval_axisrz(axisrz, bfield->linear3d);
         break;
     case BFIELD_STELLARATOR:
         err = BfieldStellarator_eval_axisrz(axisrz, phi, bfield->stellarator);

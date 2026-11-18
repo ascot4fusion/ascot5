@@ -15,6 +15,7 @@ const char *file_names[C_FILE_COUNT] = {
     "./data/bfield_cartesian.c",
     "./data/bfield_spline2d.c",
     "./data/bfield_spline3d.c",
+    "./data/bfield_linear3d.c",
     "./data/bfield_stellarator.c",
     "./data/boozer.c",
     "./data/diag.c",
