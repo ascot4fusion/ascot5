@@ -18,7 +18,7 @@
  * @param nz Number of points in the axial grid.
  * @param rlim Range of the uniform radial grid [m].
  * @param zlim Range of the uniform axial grid [m].
- * @param vpot The electric field potential in the grid points.
+ * @param vpot The electric field potential in the grid points [V].
  *        Layout: (Ri, zj) = [i*nz + j] (C order).
  *
  * @return Zero if the initialization succeeded.

@@ -2,6 +2,7 @@
 import warnings
 from typing import Generator, Union, Any, Sized, Optional, overload
 from contextlib import contextmanager
+from unittest.mock import MagicMock, patch
 
 import unyt
 import numpy as np
@@ -44,8 +45,9 @@ class VariableValidator:
         ----------
         name : str
             Name of the variable (for generating error messages).
-        value : int | float | list | np.ndarray | unyt.unyt_array
-            Value of the variable.
+        value : int | float | list | np.ndarray | unyt.unyt_array | None
+            Value of the variable or None in which case default value is used
+            instead.
         expected_shape : tuple[int], *optional*
             Expected shape of the variable if applicable.
 
@@ -182,6 +184,101 @@ def validate_variables() -> Generator[Any, Any, Any]:
     finally:
         validator.flush()
 
+def assert_input_validation(func: callable, inputs: dict):
+    """Verify that VariableValidator.validate() was called with correct arguments.
+
+    Parameters
+    ----------
+    func : callable
+        Function to test.
+    inputs : dict[str, tuple]
+        Names of function parameters and expected validation settings.
+
+        Each tuple contains:
+            (value, expected_shape, units, dtype)
+
+        Set units or dtype to None to skip checking that argument.
+
+    Raises
+    ------
+    AssertionError
+        If the validation calls differ from the expected.
+    """
+    mock_validator = MagicMock()
+
+    func_kwargs = {
+        name: settings[0]
+        for name, settings in inputs.items()
+    }
+
+    with patch("a5py.utils.validate_variables") as mock_context:
+        mock_context.return_value.__enter__.return_value = mock_validator
+        mock_validator.validate.side_effect = (
+            lambda name, value, *args, **kwargs: value
+        )
+        func(**func_kwargs)
+
+    actual = {
+        call.args[0]: call
+        for call in mock_validator.validate.call_args_list
+    }
+
+    errors = []
+
+    # Check for missing and unexpected validations.
+    for name in inputs:
+        if name not in actual:
+            errors.append(f"Parameter '{name}' was not validated.")
+
+    for name in actual:
+        if name not in inputs:
+            errors.append(f"Unexpected validation of parameter '{name}'.")
+
+    # Check validation arguments.
+    for name, (value, shape, units, dtype) in inputs.items():
+        if name not in actual:
+            continue
+
+        call = actual[name]
+
+        received = {
+            "value": call.args[1] if len(call.args) > 1 else call.kwargs.get("value"),
+            "shape": call.args[2] if len(call.args) > 2 else call.kwargs.get("expected_shape"),
+            "units": call.args[3] if len(call.args) > 3 else call.kwargs.get("units"),
+            "dtype": call.args[4] if len(call.args) > 4 else call.kwargs.get("dtype", "f8"),
+        }
+
+        expected = {
+            "value": value,
+            "shape": shape,
+            "units": units,
+            "dtype": dtype,
+        }
+
+        for key, expected_value in expected.items():
+            # None means that this argument is not tested.
+            if expected_value is None:
+                continue
+
+            received_value = received[key]
+
+            if key == "value":
+                equal = np.array_equal(received_value, expected_value)
+            else:
+                equal = received_value == expected_value
+
+            if not equal:
+                errors.append(
+                    f"Parameter '{name}': incorrect {key}.\n"
+                    f"  Expected: {expected_value}\n"
+                    f"  Received: {received_value}"
+                )
+
+    assert not errors, (
+        f"Input validation failed in {func.__name__}:\n\n"
+        + "\n\n".join(errors)
+    )
+
 
 def size(x: Any) -> int:
     """Return the size of x.
@@ -275,7 +372,7 @@ def validate_abscissa(
     if uniform and not np.allclose(dx, dx_expected, atol=0):
         raise ValueError(f"{name} must be uniform.")
 
-    xmax, xmin = abscissa[-1] + dx[0], abscissa[0]
+    xmax, xmin = abscissa[-1], abscissa[0]
     nperiod = ( 360 * unyt.deg / (xmax - xmin) ).v
     if periodic and not np.isclose(nperiod, np.round(nperiod)):
         raise ValueError(

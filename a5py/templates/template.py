@@ -1,7 +1,9 @@
 """Templates for... templates!"""
+
 from a5py import Ascot
 
-class InputTemplate():
+
+class InputTemplate:
     """Template for input templates.
 
     The data is read and processed when this object is initialized. The methods
@@ -17,7 +19,6 @@ class InputTemplate():
     user don't have to bother about the input type.
     """
 
-
     def __init__(self, ascot: Ascot, input_type: str, data: dict):
         self._ascot: Ascot = ascot
         self._type: str = input_type
@@ -27,10 +28,14 @@ class InputTemplate():
     def input_type(self) -> str:
         return self._type
 
-    def create_input(self) -> object:
+    def create_input(
+        self, note=None, activate=False, preview=False, save=False
+    ) -> object:
         """Uses the Master to create the correct input object."""
         method_name = f"create_{self.input_type}"
         factory_method = getattr(self._ascot.data, method_name, None)
         if factory_method is None:
             raise ValueError(f"Unsupported input type: {self.input_type}")
-        return factory_method(**self.data)
+        return factory_method(
+            **self.data, note=note, activate=activate, preview=preview, save=save
+        )

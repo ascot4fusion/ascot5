@@ -33,7 +33,7 @@ typedef struct
  */
 typedef struct
 {
-    Linear1D dvdrho; /**< Gradient of the potential with respect to rho [V].  */
+    Spline1D potential; /**< E-field potential as a function of rho [V].      */
 } EfieldPotential1D;
 
 /**

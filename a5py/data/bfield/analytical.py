@@ -170,7 +170,12 @@ class BfieldAnalytical(InputVariant):
             "psilimits", "nripple", "rminor", "rippledamping",
             "ripplescaling",
             ]
-        return {field: getattr(self, field) for field in fields}
+        out = {}
+        for field in fields:
+            out[field] = getattr(self, field)
+            if field not in ["nripple",]:
+                out[field] = out[field].copy()
+        return out
 
     def stage(self) -> None:
         super().stage()
@@ -238,7 +243,7 @@ class CreateMixin(TreeMixin):
             :math:`z=0`.
         psilimits : tuple[float, float], *optional*
             Poloidal flux values on the magnetic axis and on the separatrix.
-        nripple : float, *optional*
+        nripple : int, *optional*
             Number of TF coils.
 
             If this value is set and it is larger than zero, the resulting field
@@ -375,6 +380,11 @@ class CreateMixin(TreeMixin):
                 )
             ripplescaling = v.validate(
                 "ripplescaling", ripplescaling, (), "1", default=1.0
+                )
+
+        if nripple < 0:
+            raise ValueError(
+                "Number of ripple periods 'nripple' must be non-negative."
                 )
 
         assert nripple is not None

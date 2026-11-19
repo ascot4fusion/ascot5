@@ -109,7 +109,7 @@ class BfieldCartesian(InputVariant):
 
     def export(self) -> dict[str, unyt.unyt_array]:
         fields = ["bxyz", "jacobian", "axisrz", "rhoval", "psival"]
-        return {field: getattr(self, field) for field in fields}
+        return {field: getattr(self, field).copy() for field in fields}
 
     def stage(self) -> None:
         super().stage()

@@ -90,9 +90,9 @@ class EfieldPotential2D(InputVariant):
 
     def export(self) -> dict[str, unyt.unyt_array]:
         data = {
-            "rgrid": self.rgrid,
-            "zgrid": self.zgrid,
-            "potential": self.potential,
+            "rgrid": self.rgrid.copy(),
+            "zgrid": self.zgrid.copy(),
+            "potential": self.potential.copy(),
         }
         return data
 

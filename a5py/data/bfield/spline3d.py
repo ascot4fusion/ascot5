@@ -58,10 +58,11 @@ class BfieldSpline3D(InputVariant):
 
     @property
     def phigrid(self) -> unyt.unyt_array:
-        r"""The uniform grid in :math:`\phi` in which :math:`psi` is tabulated.
+        r"""The uniform grid in :math:`\phi` in which :math:`\mathbf{B}` is
+        tabulated, including the end point.
         """
         if self._cdata is not None:
-            return self._cdata.readonly_grid("y", "rad", "bphi").to("deg")
+            return self._cdata.readonly_grid("y", "rad", "bphi", convert="deg")
         assert self._file is not None
         return self._file.read("phigrid")
 
@@ -162,7 +163,7 @@ class BfieldSpline3D(InputVariant):
         self._cdata = Struct()
         if LIBASCOT.BfieldSpline3D_init(
             ctypes.byref(self._cdata), rgridpsi.size, zgridpsi.size, rgrid.size,
-            zgrid.size, phigrid.size, rgridpsi[[0, -1]].v, zgridpsi[[0, -1]].v,
+            zgrid.size, phigrid.size-1, rgridpsi[[0, -1]].v, zgridpsi[[0, -1]].v,
             rgrid[[0, -1]].v, zgrid[[0, -1]].v, phigrid[[0, -1]].to("rad").v,
             axisrz.v, psilimits.v, psi.v, br.v, bz.v, bphi.v,
             ):
@@ -182,7 +183,7 @@ class BfieldSpline3D(InputVariant):
             "rgridpsi", "zgridpsi", "rgrid", "phigrid", "zgrid", "axisrz",
             "psilimits", "psi", "bphi", "br", "bz",
             ]
-        return {field: getattr(self, field) for field in fields}
+        return {field: getattr(self, field).copy() for field in fields}
 
     def stage(self) -> None:
         super().stage()
@@ -229,26 +230,37 @@ class CreateMixin(TreeMixin):
         3D perturbations such as TF ripple or RMP coils. Using 3D magnetic field
         increases memory consumption and simulation time significantly.
 
-        The toroidal angle is assumed to be periodic but neither the grid nor
-        the data should contain the value at :math:`\phi_\mathrm{max}` to avoid
-        unnecessary duplication of data. In other words, assuming
+        The toroidal angle is assumed to be periodic. The coordinate grid spans
+        the full interval, including both :math:`\varphi_\mathrm{min}` and
+        :math:`\varphi_\mathrm{max}`, whereas the data excludes the endpoint
+        :math:`\varphi_\mathrm{max}` to avoid unnecessary duplication.
+
+        In other words, assuming
 
         .. math::
 
-            A(\varphi=\varphi_\mathrm{min}) == A(\varphi=\varphi_\mathrm{max})
+            A(\varphi=\varphi_\mathrm{min}) = A(\varphi=\varphi_\mathrm{max}),
 
-        then value :math:`A(\varphi=\varphi_\mathrm{max}` should not be included
-        and the toroidal grid should be given by
+        the value :math:`A(\varphi=\varphi_\mathrm{max})` is not stored. The
+        coordinate grid is given by
 
         .. math::
 
-            \varphi_i = \varphi_\mathrm{min}, \varphi_\mathrm{min}
-            + \Delta \varphi, \dots, \varphi_\mathrm{min}
-            + (n-1) \Delta \varphi,
+            \varphi_i = \varphi_\mathrm{min} + i\Delta\varphi,
+            \quad i = 0, \dots, n,
 
-        where
-        :math:`\varphi_\mathrm{max} = \varphi_\mathrm{min} + n\Delta \varphi`
-        is not included.
+        whereas the data is tabulated only at
+
+        .. math::
+
+            \varphi_i = \varphi_\mathrm{min} + i\Delta\varphi,
+            \quad i = 0, \dots, n-1,
+
+        with
+
+        .. math::
+
+            \varphi_\mathrm{max} = \varphi_\mathrm{min} + n\Delta\varphi.
 
         It is possible to use different :math:`(R,z)` grids for :math:`\psi` and
         magnetic field components by giving a separate :math:`(R,z)` grid for
@@ -263,22 +275,22 @@ class CreateMixin(TreeMixin):
             :math:`psi`) are tabulated.
         phigrid : array_like (nphi,)
             The uniform grid in :math:`\phi` in which :math:`\mathbf{B}` is
-            tabulated.
+            tabulated including the "extra" end point.
         zgrid : array_like (nz,)
             The uniform grid in :math:`z` in which :math:`\mathbf{B}` (and
             :math:`psi`) are tabulated.
         psi : array_like (nr,nz) *or* (nrpsi,nzpsi)
             Tabulated values of poloidal flux.
-        bphi : array_like (nr,nphi,nz)
+        bphi : array_like (nr,nphi-1,nz)
             Tabulated values of  toroidal component of the magnetic field
             including any perturbations.
-        br : array_like (nr,nphi,nz)
+        br : array_like (nr,nphi-1,nz)
             Tabulated values of :math:`R` component of the non-equilibrium
             magnetic field.
 
             This should not include the axisymmetric contribution from the
             equilibrium.
-        bz : array_like (nr,nphi,nz)
+        bz : array_like (nr,nphi-1,nz)
             Tabulated values of :math:`z` component of the non-equilibrium
             magnetic field.
 
@@ -376,9 +388,9 @@ class CreateMixin(TreeMixin):
         nr, nphi, nz = rgrid.size, phigrid.size, zgrid.size
         with utils.validate_variables() as v:
             psi = v.validate("psi", psi, (nrpsi, nzpsi), "Wb/rad")
-            bphi = v.validate("bphi", bphi, (nr, nphi, nz), "T")
-            br = v.validate("br", br, (nr, nphi, nz), "T")
-            bz = v.validate("bz", bz, (nr, nphi, nz), "T")
+            bphi = v.validate("bphi", bphi, (nr, nphi-1, nz), "T")
+            br = v.validate("br", br, (nr, nphi-1, nz), "T")
+            bz = v.validate("bz", bz, (nr, nphi-1, nz), "T")
 
         for abscissa in ["rgrid", "phigrid", "zgrid", "rgridpsi", "zgridpsi"]:
             periodic = abscissa in ["phigrid"]

@@ -56,7 +56,7 @@ class PremadeMagneticField(InputTemplate):
             if not axisymmetric:
                 data.update({
                     "nripple":18, "rminor":2.0 * unyt.m,
-                    "ripplepenetration":0.2, "ripplescaling":0.5,
+                    "rippledamping":0.2, "ripplescaling":0.5,
                     })
                 if splines:
                     data["phigrid"] = np.linspace(0.0, 360, 180) * unyt.deg
@@ -78,7 +78,7 @@ class PremadeMagneticField(InputTemplate):
             if not axisymmetric:
                 data.update({
                     "nripple":18, "rminor":2.0 * unyt.m,
-                    "ripplepenetration":0.2, "ripplescaling":0.5,
+                    "rippledamping":0.2, "ripplescaling":0.5,
                     })
                 if splines:
                     data["phigrid"] = np.linspace(0.0, 360, 180) * unyt.deg
@@ -102,7 +102,7 @@ class PremadeMagneticField(InputTemplate):
             if not axisymmetric:
                 data.update({
                     "nripple":12, "rminor":0.68 * unyt.m,
-                    "ripplepenetration":0.2, "ripplescaling":0.5,
+                    "rippledamping":0.2, "ripplescaling":0.5,
                     })
                 if splines:
                     data["phigrid"] = np.linspace(0.0, 360, 180) * unyt.deg

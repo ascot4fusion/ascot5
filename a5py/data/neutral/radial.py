@@ -34,6 +34,7 @@ init_fun(
     ctypes.POINTER(Struct),
     ctypes.c_size_t,
     ctypes.c_size_t,
+    *(2 * [ndpointer(ctypes.c_int32)]),
     *(3 * [ndpointer(ctypes.c_double)]),
 )
 
@@ -48,7 +49,7 @@ class NeutralRadial(InputVariant):
     def nspecies(self) -> int:
         """Number of ion species."""
         if self._cdata is not None:
-            return int(self._cdata.readonly_carray("nspecies", ()) - 1)
+            return int(self._cdata.readonly_carray("nspecies", ()))
         assert self._file is not None
         return self._file.read("znum").size
 
@@ -68,7 +69,7 @@ class NeutralRadial(InputVariant):
         return unyt.unyt_array([s.mass for s in self.species], dtype="f8")
 
     @property
-    def species(self) -> list[Species]:
+    def species(self) -> tuple[Species]:
         """The ion species that make up the plasma."""
         if self._cdata is not None:
             anum = self._cdata.readonly_carray("anum", (self.nspecies,))
@@ -76,77 +77,81 @@ class NeutralRadial(InputVariant):
         else:
             assert self._file is not None
             anum, znum = self._file.read("anum"), self._file.read("znum")
-        return [Species.from_znumanum(z, a) for a, z in zip(anum, znum)]
+        return tuple(Species.from_znumanum(z, a) for a, z in zip(anum, znum))
 
     @property
     def rhogrid(self) -> unyt.unyt_array:
         """Radial grid in :math:`\rho` in which the data is tabulated."""
         if self._cdata is not None:
-            return self._cdata.readonly_grid("x", "1", "density")
+            return self._cdata.readonly_grid("x", "1", "density", 0)
         assert self._file is not None
         return self._file.read("rhogrid")
 
     @property
-    def temperature(self):
-        """Species-wise temperature."""
-        if self._staged:
-            nspecies = self._from_struct_("n_species", shape=())
-            data = self._from_struct_("t0", idx=0)
-            for i in range(1, nspecies):
-                data = np.stack((data, self._from_struct_("t0", idx=i)), axis=1)
-            if nspecies == 1:
-                data = np.expand_dims(data, axis=1)
-            return (data * unyt.J).to("eV")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("temperature")
-        return self._temperature.copy()
+    def T0(self) -> unyt.unyt_array:
+        r"""Temperature of neutral species."""
+        if self._cdata is not None:
+            nrho = self.rhogrid.size
+            nspecies = self.nspecies
+            data = np.zeros((nrho, nspecies), dtype="f8") * unyt.eV
+            for i in range(self.nspecies):
+                data[:,i] = self._cdata.readonly_interp("temperature", "eV", i)
+            data.flags.writeable = False
+            return data
+        assert self._file is not None
+        return self._file.read("T0")
 
     @property
-    def density(self):
-        """Species-wise density."""
-        if self._staged:
-            nspecies = self._from_struct_("n_species", shape=())
-            data = self._from_struct_("n0", idx=0)
-            for i in range(1, nspecies):
-                data = np.stack((data, self._from_struct_("n0", idx=i)), axis=1)
-            if nspecies == 1:
-                data = np.expand_dims(data, axis=1)
-            return data * unyt.m ** (-3)
-        if self._format == Format.HDF5:
-            return self._read_hdf5("density")
-        return self._density.copy()
+    def n0(self) -> unyt.unyt_array:
+        r"""Density of neutral species."""
+        if self._cdata is not None:
+            nrho = self.rhogrid.size
+            nspecies = self.nspecies
+            data = np.zeros((nrho, nspecies), dtype="f8") * unyt.m**-3
+            for i in range(self.nspecies):
+                data[:,i] = self._cdata.readonly_interp("density", "m**(-3)", i)
+            data.flags.writeable = False
+            return data
+        assert self._file is not None
+        return self._file.read("n0")
 
     def _stage(
         self,
         species: list[Species],
         rhogrid: unyt.unyt_array,
-        density: unyt.unyt_array,
-        temperature: unyt.unyt_array,
+        n0: unyt.unyt_array,
+        T0: unyt.unyt_array,
     ) -> None:
+        anum = np.array([s.anum for s in species], dtype="i4")
+        znum = np.array([s.znum for s in species], dtype="i4")
         self._cdata = Struct()
         if LIBASCOT.NeutralRadial_init(
             ctypes.byref(self._cdata),
             len(species),
             rhogrid.size,
+            anum,
+            znum,
             rhogrid[[0, -1]].v,
-            density.v,
-            temperature.v,
+            n0.T.v.ravel(),
+            T0.T.v.ravel(),
         ):
             self._cdata = None
             raise AscotMeltdownError("Could not initialize struct.")
 
     def _save_data(self) -> None:
         assert self._file is not None
+        self._file.write("anum", self.anum)
+        self._file.write("znum", self.znum)
         self._file.write("rhogrid", self.rhogrid)
-        self._file.write("density", self.density)
-        self._file.write("temperature", self.temperature)
+        self._file.write("n0", self.n0)
+        self._file.write("T0", self.T0)
 
     def export(self) -> dict[str, unyt.unyt_array]:
         data = {
-            "species": self.species,
-            "rhogrid": self.rhogrid,
-            "density": self.density,
-            "temperature": self.temperature,
+            "species": list(self.species),
+            "rhogrid": self.rhogrid.copy(),
+            "n0": self.n0.copy(),
+            "T0": self.T0.copy(),
         }
         return data
 
@@ -168,10 +173,10 @@ class CreateMixin(TreeMixin):
     # pylint: disable=protected-access, too-many-arguments, too-many-locals
     def create_neutralradial(
         self,
-        rhogrid: utils.ArrayLike,
         species: List[str] | Tuple[str],
-        density: utils.ArrayLike,
-        temperature: utils.ArrayLike,
+        rhogrid: utils.ArrayLike,
+        n0: utils.ArrayLike,
+        T0: utils.ArrayLike,
         note: Optional[str] = None,
         activate: bool = False,
         preview: bool = False,
@@ -183,13 +188,13 @@ class CreateMixin(TreeMixin):
 
         Parameters
         ----------
+        species : list[str] or tuple[str]
+            Neutral species.
         rhogrid : array_like (nrho,1)
             Uniform radial grid in rho in which the data is tabulated.
-        species : list[str] or tuple[str] (nspecies,)
-            Name(s) of the neutral species.
-        density : array_like (nrho,nspecies)
+        n0 : array_like (nrho,nspecies)
             Density for each species.
-        temperature : array_like (nrho,nspecies)
+        T0 : array_like (nrho,nspecies)
             Temperature of each species.
         note : str, optional
             A short note to document this data.
@@ -217,18 +222,20 @@ class CreateMixin(TreeMixin):
         species = [
             s if isinstance(s, Species) else Species.from_string(s) for s in species
         ]
+        if len(species) == 0:
+            raise ValueError("At least one species must be specified.")
 
         nrho, nspecies = rhogrid.size, len(species)
         with utils.validate_variables() as v:
-            density = v.validate("density", density, (nrho, nspecies), "m**(-3)")
-            temperature = v.validate("temperature", temperature, (nrho, nspecies), "eV")
+            n0 = v.validate("n0", n0, (nrho, nspecies), "m**(-3)")
+            T0 = v.validate("T0", T0, (nrho, nspecies), "eV")
 
         utils.validate_abscissa(rhogrid, "rhogrid")
         leaf = NeutralRadial(note=note)
         leaf._stage(
             rhogrid=rhogrid,
-            density=density,
-            temperature=temperature,
+            n0=n0,
+            T0=T0,
             species=species,
         )
         if preview:

@@ -1,6 +1,6 @@
 /**
  * @file efield_potential1d.h
- * Radial electric field evaluated from the gradient of a 1D potential.
+ * Radial electric field evaluated from a 1D potential.
  */
 #ifndef EFIELD_POTENTIAL1D_H
 #define EFIELD_POTENTIAL1D_H
@@ -17,13 +17,12 @@
  * @param efield The struct to initialize.
  * @param nrho Number of points in the rho grid.
  * @param rholim Range of the uniform rho grid [1].
- * @param dvdrho The gradient of the electric field potential with respect to
- *        rho [V].
+ * @param vpot Electric field potential as a function of rho [V].
  *
  * @return Zero if the initialization succeeded.
  */
 int EfieldPotential1D_init(
-    EfieldPotential1D *efield, size_t nrho, real rholim[2], real dvdrho[nrho]);
+    EfieldPotential1D *efield, size_t nrho, real rholim[2], real vpot[nrho]);
 
 /**
  * Free allocated resources.

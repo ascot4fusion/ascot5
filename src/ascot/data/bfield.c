@@ -8,7 +8,7 @@
 #include "bfield_spline3d.h"
 #include "bfield_stellarator.h"
 #include "defines.h"
-#include <stdio.h>
+#include <float.h>
 #include <math.h>
 
 void Bfield_free(Bfield *bfield)
@@ -120,38 +120,36 @@ err_t Bfield_eval_psi_dpsi(
 
 err_t Bfield_eval_rho(real rho[2], real psi, Bfield *bfield)
 {
-    real psi0 = 0.0, psi1 = 1.0;
+    real psi0 = 0, delta = 1;
     switch (bfield->type)
     {
     case BFIELD_CARTESIAN:
-        psi0 = bfield->cartesian->psival -
-               bfield->cartesian->rhoval * bfield->cartesian->rhoval;
-        psi1 = bfield->cartesian->psival -
-               bfield->cartesian->rhoval * bfield->cartesian->rhoval + 1.0;
+        psi0 = psi - 1.0;
+        delta = 1.0 / (bfield->cartesian->rhoval * bfield->cartesian->rhoval);
         break;
     case BFIELD_ANALYTICAL:
         psi0 = bfield->analytical->psilimits[0];
-        psi1 = bfield->analytical->psilimits[1];
+        delta = bfield->analytical->psilimits[1] - psi0;
         break;
     case BFIELD_SPLINE2D:
         psi0 = bfield->spline2d->psilimits[0];
-        psi1 = bfield->spline2d->psilimits[1];
+        delta = bfield->spline2d->psilimits[1] - psi0;
         break;
     case BFIELD_SPLINE3D:
         psi0 = bfield->spline3d->psilimits[0];
-        psi1 = bfield->spline3d->psilimits[1];
+        delta = bfield->spline3d->psilimits[1] - psi0;
         break;
     case BFIELD_STELLARATOR:
         psi0 = bfield->stellarator->psilimits[0];
-        psi1 = bfield->stellarator->psilimits[1];
+        delta = bfield->stellarator->psilimits[1] - psi0;
         break;
     }
 
     err_t err = 0;
-    real rho_squared = (psi - psi0) / (psi1 - psi0);
+    real rho_squared = (psi - psi0) / delta;
     err = ERROR_CHECK(err, rho_squared < 0, ERR_IMAGINARY_RHO, DATA_BFIELD_C);
     rho[0] = sqrt(fabs(rho_squared));
-    rho[1] = 1.0 / (2 * (psi1 - psi0) * (rho[0] + __DBL_EPSILON__));
+    rho[1] = 1.0 / (2 * delta * (rho[0] + DBL_MIN));
 
     rho[0] = err ? 1.0 : rho[0];
     rho[1] = err ? 0.0 : rho[1];
@@ -166,8 +164,8 @@ err_t Bfield_eval_rho_drho(real rho_drho[4], real psi_dpsi[4], Bfield *bfield)
     switch (bfield->type)
     {
     case BFIELD_CARTESIAN:
-        psi0 = bfield->cartesian->rhoval;
-        delta = 1.0;
+        psi0 = psi_dpsi[0] - 1.0;
+        delta = 1.0 / (bfield->cartesian->rhoval * bfield->cartesian->rhoval);
         break;
     case BFIELD_ANALYTICAL:
         psi0 = bfield->analytical->psilimits[0];
@@ -192,7 +190,7 @@ err_t Bfield_eval_rho_drho(real rho_drho[4], real psi_dpsi[4], Bfield *bfield)
     rho_drho[0] = err ? 1.0 : sqrt(fabs(rho_squared));
     rho_drho[1] = rho_drho[0] ? psi_dpsi[1] / (2 * delta * rho_drho[0]) : 0.0;
     rho_drho[2] = rho_drho[0] ? psi_dpsi[2] / (2 * delta * rho_drho[0]) : 0.0;
-    rho_drho[3] = rho_drho[0] ? psi_dpsi[2] / (2 * delta * rho_drho[0]) : 0.0;
+    rho_drho[3] = rho_drho[0] ? psi_dpsi[3] / (2 * delta * rho_drho[0]) : 0.0;
 
     rho_drho[1] = err ? 0.0 : rho_drho[1];
     rho_drho[2] = err ? 0.0 : rho_drho[2];
@@ -273,14 +271,14 @@ err_t Bfield_eval_b_db(
     }
 
     b_db[0] = err ? 1.0 : b_db[0];
-    b_db[1] = err ? 0.0 : b_db[1];
-    b_db[2] = err ? 0.0 : b_db[2];
+    b_db[1] = err ? 1.0 : b_db[1];
+    b_db[2] = err ? 1.0 : b_db[2];
     b_db[3] = err ? 0.0 : b_db[3];
-    b_db[4] = err ? 1.0 : b_db[4];
+    b_db[4] = err ? 0.0 : b_db[4];
     b_db[5] = err ? 0.0 : b_db[5];
     b_db[6] = err ? 0.0 : b_db[6];
     b_db[7] = err ? 0.0 : b_db[7];
-    b_db[8] = err ? 1.0 : b_db[8];
+    b_db[8] = err ? 0.0 : b_db[8];
     b_db[9] = err ? 0.0 : b_db[9];
     b_db[10] = err ? 0.0 : b_db[10];
     b_db[11] = err ? 0.0 : b_db[11];

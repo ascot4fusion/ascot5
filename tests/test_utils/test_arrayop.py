@@ -142,10 +142,10 @@ def test_periodic_passes_and_nonperiodic_raises():
 
     A properly periodic grid should pass, while a mismatched domain fails.
     """
-    abscissa = np.linspace(0, 360, 5)[:-1] * unyt.deg
+    abscissa = np.linspace(0, 360, 5) * unyt.deg
     utils.validate_abscissa(abscissa, "theta", periodic=True)
 
     # non-periodic grid: slightly offset
-    abscissa_bad = np.linspace(0, 360, 5) * unyt.deg
+    abscissa_bad = np.linspace(0, 360, 5)[:-1] * unyt.deg
     with pytest.raises(ValueError, match="must be periodic"):
         utils.validate_abscissa(abscissa_bad, "theta", periodic=True)

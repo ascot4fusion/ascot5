@@ -13,10 +13,12 @@
  * Initialize the linearly interpolated cylindrical neutral data.
  *
  * @param neutral The struct to initialize.
- * @param n Number of neutral species.
+ * @param nspecies Number of neutral species.
  * @param nr Number of R grid points in the data.
  * @param nphi Number of phi grid points in the data.
  * @param nz Number of z grid points in the data.
+ * @param anum Atomic mass number of the neutral species.
+ * @param znum Charge number of the neutral species.
  * @param rlim Limits of the uniform R grid [m].
  * @param philim Limits of the uniform phi grid [rad].
  * @param zlim Limits of the uniform z grid [m].
@@ -30,9 +32,10 @@
  * @return Zero if initialization succeeded.
  */
 int NeutralArbitrary_init(
-    NeutralArbitrary *neutral, size_t n, size_t nr, size_t nphi, size_t nz,
-    real rlim[2], real philim[2], real zlim[2],
-    real density[n * nr * nphi * nz], real temperature[n * nr * nphi * nz]);
+    NeutralArbitrary *neutral, size_t nspecies, size_t nr, size_t nphi,
+    size_t nz, int anum[nspecies], int znum[nspecies], real rlim[2],
+    real philim[2], real zlim[2], real density[nspecies * nr * nphi * nz],
+    real temperature[nspecies * nr * nphi * nz]);
 
 /**
  * Free allocated resources.

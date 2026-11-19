@@ -151,6 +151,7 @@ class DataStruct(ctypes.Structure):
         units: str,
         member: Optional[str] = None,
         index: Optional[int] = None,
+        convert: Optional[str] = None,
     ) -> unyt.unyt_array:
         """Return a read-only view on the grid within the struct.
 
@@ -170,6 +171,8 @@ class DataStruct(ctypes.Structure):
         index : int, *optional*
             If the member is an array of structs, this is the index on the array
             which is read.
+        convert : str, *optional*
+            Convert array to these units before returning the array.
 
         Returns
         -------
@@ -179,13 +182,16 @@ class DataStruct(ctypes.Structure):
         struct = self if member is None else getattr(self, member)
         if index is not None:
             struct = struct[index]
-        grid = np.linspace(
+        n = getattr(struct, f"n{coordinate}") + getattr(struct, f"{coordinate}bc")
+        grid = unyt.unyt_array(np.linspace(
             getattr(struct, f"{coordinate}lim")[0],
             getattr(struct, f"{coordinate}lim")[1],
-            getattr(struct, f"n{coordinate}"),
-        )
+            n,
+        ), units)
+        if convert:
+            grid.convert_to_units(convert)
         grid.flags.writeable = False
-        return unyt.unyt_array(grid, units)
+        return grid
 
     def readonly_interp(self, name: str, units: str, idx: int = None):
         """Read the tabulated values from interpolation struct.

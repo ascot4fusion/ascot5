@@ -490,10 +490,15 @@ def cart2pol(x, y, z=None):
 def cart2pol_vec(x, vx, y, vy, z=None, vz=None):
     _ = z
     phi = np.arctan2(y, x)
+    if z is not None:
+        return (
+         vx * np.cos(phi) + vy * np.sin(phi),
+        -vx * np.sin(phi) + vy * np.cos(phi),
+         vz * np.ones(z.shape),
+        )
     return (
          vx * np.cos(phi) + vy * np.sin(phi),
         -vx * np.sin(phi) + vy * np.cos(phi),
-         vz,
         )
 
 

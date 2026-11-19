@@ -79,6 +79,16 @@ init_fun(
     restype=ctypes.c_int32
 )
 
+init_fun(
+    "Spline3D_eval_f_ddf",
+    ctypes.POINTER(ctypes.c_double),
+    ctypes.POINTER(Spline3D),
+    ctypes.c_double,
+    ctypes.c_double,
+    ctypes.c_double,
+    restype=ctypes.c_int32
+)
+
 
 def test_solve_compact_cubic_spline():
     err = []
@@ -237,7 +247,8 @@ def test_spline_3d(periodic):
     fx0, fy0, fz0 = np.sin(xq), np.sin(2*yq), np.sin(3*zq)
     fx1, fy1, fz1 = np.cos(xq), 2 * np.cos(2*yq), 3 * np.cos(3*zq)
     fx2, fy2, fz2 = -np.sin(xq), -4 * np.sin(2*yq), -9 * np.sin(3*zq)
-    err_f_df = np.zeros((10, ngrid.size))
+    err_f_df = np.zeros((4, ngrid.size))
+    err_f_ddf = np.zeros((10, ngrid.size))
     for i, n in enumerate(ngrid):
         nx, ny, nz = n, n, n
         if periodic:
@@ -265,7 +276,7 @@ def test_spline_3d(periodic):
         )
 
         for j in range(nq):
-            f_df = np.zeros(10)
+            f_df = np.zeros(4)
             LIBASCOT.Spline3D_eval_f_df(
                 f_df.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
                 ctypes.byref(spline),
@@ -275,16 +286,32 @@ def test_spline_3d(periodic):
             err_f_df[1,i] = max(err_f_df[1,i], abs(f_df[1] - (fx1*fy0*fz0)[j]))
             err_f_df[2,i] = max(err_f_df[2,i], abs(f_df[2] - (fx0*fy1*fz0)[j]))
             err_f_df[3,i] = max(err_f_df[3,i], abs(f_df[3] - (fx0*fy0*fz1)[j]))
-            err_f_df[4,i] = max(err_f_df[4,i], abs(f_df[4] - (fx2*fy0*fz0)[j]))
-            err_f_df[5,i] = max(err_f_df[5,i], abs(f_df[5] - (fx0*fy2*fz0)[j]))
-            err_f_df[6,i] = max(err_f_df[6,i], abs(f_df[6] - (fx0*fy0*fz2)[j]))
-            err_f_df[7,i] = max(err_f_df[7,i], abs(f_df[7] - (fx1*fy1*fz0)[j]))
-            err_f_df[8,i] = max(err_f_df[8,i], abs(f_df[8] - (fx1*fy0*fz1)[j]))
-            err_f_df[9,i] = max(err_f_df[9,i], abs(f_df[9] - (fx0*fy1*fz1)[j]))
+
+            f_ddf = np.zeros(10)
+            LIBASCOT.Spline3D_eval_f_ddf(
+                f_ddf.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+                ctypes.byref(spline),
+                xq[j], yq[j], zq[j]
+            )
+            err_f_ddf[0,i] = max(err_f_ddf[0,i], abs(f_ddf[0] - (fx0*fy0*fz0)[j]))
+            err_f_ddf[1,i] = max(err_f_ddf[1,i], abs(f_ddf[1] - (fx1*fy0*fz0)[j]))
+            err_f_ddf[2,i] = max(err_f_ddf[2,i], abs(f_ddf[2] - (fx0*fy1*fz0)[j]))
+            err_f_ddf[3,i] = max(err_f_ddf[3,i], abs(f_ddf[3] - (fx0*fy0*fz1)[j]))
+            err_f_ddf[4,i] = max(err_f_ddf[4,i], abs(f_ddf[4] - (fx2*fy0*fz0)[j]))
+            err_f_ddf[5,i] = max(err_f_ddf[5,i], abs(f_ddf[5] - (fx0*fy2*fz0)[j]))
+            err_f_ddf[6,i] = max(err_f_ddf[6,i], abs(f_ddf[6] - (fx0*fy0*fz2)[j]))
+            err_f_ddf[7,i] = max(err_f_ddf[7,i], abs(f_ddf[7] - (fx1*fy1*fz0)[j]))
+            err_f_ddf[8,i] = max(err_f_ddf[8,i], abs(f_ddf[8] - (fx1*fy0*fz1)[j]))
+            err_f_ddf[9,i] = max(err_f_ddf[9,i], abs(f_ddf[9] - (fx0*fy1*fz1)[j]))
 
     a = ngrid[1:] / ngrid[:-1]
     rate = err_f_df[:, :-1] / err_f_df[:, 1:]
+    assert np.all(rate[0,:] > a**3), "f value convergence too slow"
+    assert np.all(rate[1,:] > a**2), "fx convergence too slow"
+    assert np.all(rate[2,:] > a**2), "fy convergence too slow"
+    assert np.all(rate[3,:] > a**2), "fz convergence too slow"
 
+    rate = err_f_ddf[:, :-1] / err_f_ddf[:, 1:]
     assert np.all(rate[0,:] > a**3), "f value convergence too slow"
     assert np.all(rate[1,:] > a**2), "fx convergence too slow"
     assert np.all(rate[2,:] > a**2), "fy convergence too slow"

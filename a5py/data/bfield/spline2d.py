@@ -148,7 +148,7 @@ class BfieldSpline2D(InputVariant):
         fields = [
             "rgrid", "zgrid", "axisrz", "psilimits", "psi", "bphi", "br", "bz",
         ]
-        return {field: getattr(self, field) for field in fields}
+        return {field: getattr(self, field).copy() for field in fields}
 
     def stage(self) -> None:
         super().stage()

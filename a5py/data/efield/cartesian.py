@@ -55,7 +55,7 @@ class EfieldCartesian(InputVariant):
         self._file.write("exyz", self.exyz)
 
     def export(self) -> dict[str, unyt.unyt_array]:
-        return {"exyz": self.exyz}
+        return {"exyz": self.exyz.copy()}
 
     def stage(self) -> None:
         super().stage()

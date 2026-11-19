@@ -238,18 +238,25 @@ class TreeFile(h5py.File):
             Datasets that was read.
         """
         dataset = self[path][name]
+        units = 1
+        try:
+            units = unyt.unyt_quantity.from_string(
+                dataset.attrs["units"].decode("utf-8")
+            )
+        except KeyError:
+            pass
+
         if dataset.shape == ():
             array = dataset[()]
         else:
             array = dataset[:]
 
+        array *= units
         try:
-            units = unyt.unyt_quantity.from_string(
-                dataset.attrs["units"].decode("utf-8")
-            )
-            array *= units
-        except KeyError:
+            array.flags.writeable = False
+        except ValueError:
             pass
+
         return array
 
 
@@ -318,7 +325,7 @@ class DataAccess():
             h5.write_dataset(self.path, name, value, compress)
 
     def read(self, name: str) -> np.ndarray | unyt.unyt_array:
-        """Read a datasets
+        """Read a dataset.
 
         Parameters
         ----------

@@ -13,8 +13,10 @@
  * Initialize the linearly interpolated radial neutral data.
  *
  * @param neutral The struct to initialize.
- * @param n Number of neutral species.
+ * @param nspecies Number of neutral species.
  * @param nrho Number of rho grid points in the data.
+ * @param anum Atomic mass number of the neutral species.
+ * @param znum Charge number of the neutral species.
  * @param rholim Limits of the uniform rho grid [1].
  * @param density Density of the neutral species (in same order as they are
  *        listed in the plasma input) [m^-3].
@@ -26,8 +28,9 @@
  * @return Zero if initialization succeeded.
  */
 int NeutralRadial_init(
-    NeutralRadial *neutral, size_t n, size_t nrho, real rholim[2],
-    real density[n * nrho], real temperature[n * nrho]);
+    NeutralRadial *neutral, size_t nspecies, size_t nrho, int anum[nspecies],
+    int znum[nspecies], real rholim[2], real density[nspecies * nrho],
+    real temperature[nspecies * nrho]);
 
 /**
  * Free allocated resources.

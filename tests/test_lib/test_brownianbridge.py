@@ -136,10 +136,6 @@ def test_generate5(sample, expected_time, expected_w, expected_err):
     assert np.allclose(bbridge.wiener[:8*5:5], expected_w, atol=1e-2)
     assert err == expected_err
 
-    #real var = (t - t0) * (1 + bridge * ((t1 - t) / (t1 - t0) - 1));
-    #real temp = bridge * (t - t0) / (t1 - t0);
-    #wiener[i] = W0[i] + temp * (W1[i] - W0[i]) + sqrt(var) * wiener[i];
-
     LIBASCOT.BrownianBridge_free(ctypes.byref(bbridge))
 
 

@@ -2,7 +2,7 @@ import numpy as np
 import unyt
 
 from scipy.interpolate import interpn
-from scipy.integrate   import quad
+from scipy.integrate import quad
 
 from a5py import Ascot
 from a5py.physlib import aeq
@@ -14,8 +14,16 @@ from .template import InputTemplate
 
 class TransmuteAnalyticalBfieldToSplines(InputTemplate):
 
-
-    def __init__(self, ascot: Ascot, field: BfieldAnalytical, nr:int, rlim, nz:int, zlim):
+    def __init__(
+        self,
+        ascot: Ascot,
+        field: BfieldAnalytical,
+        nr: int,
+        rlim,
+        nz: int,
+        zlim,
+        nphi: int = 10,
+    ):
         """Transmute analytical magnetic field to spline-interpolated one.
 
         The result is either BfieldSpline2D or BfieldSpline3D depending on
@@ -30,12 +38,25 @@ class TransmuteAnalyticalBfieldToSplines(InputTemplate):
         """
         rgrid = np.linspace(rlim[0], rlim[1], nr)
         zgrid = np.linspace(zlim[0], zlim[1], nz)
+        phigrid = (
+            0 * unyt.deg
+            if not field.nripple
+            else np.linspace(0.0, 360.0 / field.nripple, nphi - 1, endpoint=False)
+            * unyt.deg
+        )
 
         psi, bphi = evaluate(
-            rgrid, 0*unyt.deg, zgrid,
-            0.*unyt.s, "psi", "bphi", grid=True, bfield=field
+            rgrid,
+            phigrid.to("rad"),
+            zgrid,
+            0.0 * unyt.s,
+            "psi",
+            "bphi",
+            grid=True,
+            bfield=field,
         )
-        input_type = "bfieldspline3d" if field.nripple else "bfieldspline2d"
+
+        input_type = "bfieldspline2d"
         data = {
             "rgrid": rgrid,
             "zgrid": zgrid,
@@ -44,6 +65,20 @@ class TransmuteAnalyticalBfieldToSplines(InputTemplate):
             "psilimits": field.psilimits,
             "axisrz": field.axisrz,
         }
+        if field.nripple:
+            input_type = "bfieldspline3d"
+            data.update(
+                {
+                    "psi": np.squeeze(psi[:, 0, :]),
+                    "phigrid": np.linspace(
+                        0.0, 360.0 / field.nripple, nphi, endpoint=True
+                    )
+                    * unyt.deg,
+                    "br": np.zeros((nr, nphi - 1, nz)) * unyt.T,
+                    "bz": np.zeros((nr, nphi - 1, nz)) * unyt.T,
+                }
+            )
+
         super().__init__(ascot, input_type, data)
 
 
@@ -67,13 +102,21 @@ class ToroidallyAveragedBfield(InputTemplate):
             :class:`B_3DS` converted as an input for :meth:`write_hdf5`.
         """
         bphi = np.mean(kwargs["bphi"], axis=1)
-        br   = np.mean(kwargs["bphi"], axis=1) * 0
-        bz   = np.mean(kwargs["bphi"], axis=1) * 0
+        br = np.mean(kwargs["bphi"], axis=1) * 0
+        bz = np.mean(kwargs["bphi"], axis=1) * 0
         return {
-            "rmin":kwargs["b_rmin"], "rmax":kwargs["b_rmax"],
-            "nr":kwargs["b_nr"], "zmin":kwargs["b_zmin"],
-            "zmax":kwargs["b_zmax"], "nz":kwargs["b_nz"],
-            "axisr":kwargs["axisr"], "axisz":kwargs["axisz"],
-            "psi0":kwargs["psi0"], "psi1":kwargs["psi1"],
-            "psi":kwargs["psi"], "br":br, "bz":bz,
-            "bphi":bphi}
+            "rmin": kwargs["b_rmin"],
+            "rmax": kwargs["b_rmax"],
+            "nr": kwargs["b_nr"],
+            "zmin": kwargs["b_zmin"],
+            "zmax": kwargs["b_zmax"],
+            "nz": kwargs["b_nz"],
+            "axisr": kwargs["axisr"],
+            "axisz": kwargs["axisz"],
+            "psi0": kwargs["psi0"],
+            "psi1": kwargs["psi1"],
+            "psi": kwargs["psi"],
+            "br": br,
+            "bz": bz,
+            "bphi": bphi,
+        }

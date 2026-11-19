@@ -6,11 +6,10 @@ import ctypes
 from typing import Optional
 
 import unyt
-import numpy as np
 from numpy.ctypeslib import ndpointer
 
 from a5py import utils
-from a5py.libascot import LIBASCOT, DataStruct, Linear1D, init_fun
+from a5py.libascot import LIBASCOT, DataStruct, Spline1D, init_fun
 from a5py.exceptions import AscotMeltdownError
 from a5py.data.access import InputVariant, Leaf, TreeMixin
 
@@ -20,7 +19,7 @@ class Struct(DataStruct):
     """Python wrapper for the struct in E_1DS.h."""
 
     _fields_ = [
-        ("dvdrho", Linear1D),
+        ("potential", Spline1D),
     ]
 
 
@@ -43,40 +42,41 @@ class EfieldPotential1D(InputVariant):
     def rhogrid(self) -> unyt.unyt_array:
         """Radial grid in rho in which the data is tabulated."""
         if self._cdata is not None:
-            return self._cdata.readonly_grid("x", "1", "dvdrho")
+            return self._cdata.readonly_grid("x", "1", "potential")
         assert self._file is not None
         return self._file.read("rhogrid")
 
     @property
-    def dvdrho(self) -> unyt.unyt_array:
-        """Derivative of the electric potential with respect to minor radius."""
+    def potential(self) -> unyt.unyt_array:
+        """Electric potential with respect to minor radius."""
         if self._cdata is not None:
-            return self._cdata.readonly_interp("dvdrho", "V")
+            return self._cdata.readonly_interp("potential", "V")
         assert self._file is not None
-        return self._file.read("dvdrho")
+        return self._file.read("potential")
 
 
     def _stage(
-        self, dvdrho: unyt.unyt_array, rhogrid: unyt.unyt_array
+        self, potential: unyt.unyt_array, rhogrid: unyt.unyt_array
     ) -> None:
         self._cdata = Struct()
         if LIBASCOT.EfieldPotential1D_init(
             ctypes.byref(self._cdata),
             rhogrid.size,
             rhogrid[[0, -1]],
-            dvdrho,
+            potential.v,
         ):
             self._cdata = None
             raise AscotMeltdownError("Could not initialize struct.")
 
     def _save_data(self) -> None:
         assert self._file is not None
-        self._file.write("exyz", self.exyz)
+        for field in ["rhogrid", "potential"]:
+            self._file.write(field, getattr(self, field))
 
     def export(self) -> dict[str, unyt.unyt_array]:
         data = {
-            "rhogrid": self.rhogrid,
-            "dvdrho": self.dvdrho,
+            "rhogrid": self.rhogrid.copy(),
+            "potential": self.potential.copy(),
         }
         return data
 
@@ -99,26 +99,23 @@ class CreateMixin(TreeMixin):
     def create_efieldpotential1d(
         self,
         rhogrid: utils.ArrayLike,
-        dvdrho: utils.ArrayLike,
+        potential: utils.ArrayLike,
         note: Optional[str]=None,
         activate: bool=False,
         preview: bool=False,
         save: Optional[bool]=None,
     ) -> EfieldPotential1D:
-        r"""Create radial electric field input that is evaluated from the
-        gradient of a 1D potential.
+        r"""Create electric field input that is evaluated from a radial
+        potential.
 
         This input was designed to use NEOTRANSP output.
 
         Parameters
         ----------
         rhogrid : array_like (nrho,)
-            Radial grid in rho in which the data is tabulated.
-        dvdrho : array_like (nrho,)
-            Derivative of electric potential with respect to minor radius.
-
-            If :math:`r_\mathrm{eff} = 1` m, this is essentially equal to
-            :math:`\partial V/ \partial r`.
+            Radial grid in :math:`\rho` in which the data is tabulated.
+        potential : array_like (nrho,)
+            Derivative of electric potential with respect :math:`\rho`.
         note : str, *optional*
             A short note to document this data.
 
@@ -142,11 +139,11 @@ class CreateMixin(TreeMixin):
         Notes
         -----
         The electric field is evaluated from the gradient of the 1D potential
-        and the gradient of the square of the normalized poloidal flux:
+        and the gradient of the square root of the normalized poloidal flux:
 
         .. math::
 
-            \mathbf{E} = \frac{\partial V}{\partial \rho}
+            \mathbf{E} = -\frac{\partial V}{\partial \rho}
                          \nabla \rho.
         """
         with utils.validate_variables() as v:
@@ -154,12 +151,12 @@ class CreateMixin(TreeMixin):
 
         nrho = rhogrid.size
         with utils.validate_variables() as v:
-            dvdrho = v.validate("dvdrho", dvdrho, (nrho,), "V")
+            potential = v.validate("potential", potential, (nrho,), "V")
 
         utils.validate_abscissa(rhogrid, "rhogrid")
         leaf = EfieldPotential1D(note=note)
         leaf._stage(
-            rhogrid=rhogrid, dvdrho=dvdrho,
+            rhogrid=rhogrid, potential=potential,
             )
         if preview:
             return leaf

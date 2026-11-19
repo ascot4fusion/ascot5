@@ -13,7 +13,7 @@ int Spline1D_init(
 {
     int err = 0;
     spline->c =
-        (real *)xmalloc(&err, nx * NSIZE_COMP2D * sizeof(real));
+        (real *)xmalloc(&err, nx * NSIZE_COMP1D * sizeof(real));
     if (err)
         return 1;
 

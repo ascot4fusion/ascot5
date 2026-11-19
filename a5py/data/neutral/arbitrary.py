@@ -36,6 +36,7 @@ init_fun(
     ctypes.c_size_t,
     ctypes.c_size_t,
     ctypes.c_size_t,
+    *(2 * [ndpointer(ctypes.c_int32)]),
     *(5 * [ndpointer(ctypes.c_double)]),
 )
 
@@ -50,7 +51,7 @@ class NeutralArbitrary(InputVariant):
     def nspecies(self) -> int:
         r"""Number of neutral species."""
         if self._cdata is not None:
-            return int(self._cdata.readonly_carray("nspecies", ()) - 1)
+            return int(self._cdata.readonly_carray("nspecies", ()))
         assert self._file is not None
         return self._file.read("znum").size
 
@@ -70,7 +71,7 @@ class NeutralArbitrary(InputVariant):
         return unyt.unyt_array([s.mass for s in self.species], dtype="f8")
 
     @property
-    def species(self) -> list[Species]:
+    def species(self) -> tuple[Species]:
         r"""The ion species that make up the plasma."""
         if self._cdata is not None:
             anum = self._cdata.readonly_carray("anum", (self.nspecies,))
@@ -78,13 +79,13 @@ class NeutralArbitrary(InputVariant):
         else:
             assert self._file is not None
             anum, znum = self._file.read("anum"), self._file.read("znum")
-        return [Species.from_znumanum(z, a) for a, z in zip(anum, znum)]
+        return tuple(Species.from_znumanum(z, a) for a, z in zip(anum, znum))
 
     @property
     def rgrid(self) -> unyt.unyt_array:
         r"""Radial grid in :math:`R` in which the data is tabulated."""
         if self._cdata is not None:
-            return self._cdata.readonly_grid("x", "m", "density")
+            return self._cdata.readonly_grid("x", "m", "density", 0)
         assert self._file is not None
         return self._file.read("rgrid")
 
@@ -92,7 +93,7 @@ class NeutralArbitrary(InputVariant):
     def zgrid(self) -> unyt.unyt_array:
         r"""Axial grid in :math:`z` in which the data is tabulated."""
         if self._cdata is not None:
-            return self._cdata.readonly_grid("z", "m", "density")
+            return self._cdata.readonly_grid("z", "m", "density", 0)
         assert self._file is not None
         return self._file.read("zgrid")
 
@@ -100,39 +101,37 @@ class NeutralArbitrary(InputVariant):
     def phigrid(self) -> unyt.unyt_array:
         r"""Toroidal grid in :math:`\phi` in which the data is tabulated."""
         if self._cdata is not None:
-            return self._cdata.readonly_grid("y", "rad", "density").to("deg")
+            return self._cdata.readonly_grid("y", "rad", "density", 0, convert="deg")
         assert self._file is not None
         return self._file.read("phigrid")
 
     @property
-    def temperature(self):
-        r"""Species-wise temperature."""
-        if self._staged:
-            nspecies = self._from_struct_("n_species", shape=())
-            data = self._from_struct_("t0", idx=0)
-            for i in range(1, nspecies):
-                data = np.stack((data, self._from_struct_("t0", idx=i)), axis=3)
-            if nspecies == 1:
-                data = np.expand_dims(data, axis=3)
-            return (data * unyt.J).to("eV")
-        if self._format == Format.HDF5:
-            return self._read_hdf5("temperature")
-        return self._temperature.copy()
+    def T0(self) -> unyt.unyt_array:
+        r"""Temperature of neutral species."""
+        if self._cdata is not None:
+            nr, nphi, nz = self.rgrid.size, self.phigrid.size-1, self.zgrid.size
+            nspecies = self.nspecies
+            data = np.zeros((nr, nphi, nz, nspecies), dtype="f8") * unyt.eV
+            for i in range(self.nspecies):
+                data[:,:,:,i] = self._cdata.readonly_interp("temperature", "eV", i)
+            data.flags.writeable = False
+            return data
+        assert self._file is not None
+        return self._file.read("T0")
 
     @property
-    def density(self):
-        r"""Species-wise density."""
-        if self._staged:
-            nspecies = self._from_struct_("n_species", shape=())
-            data = self._from_struct_("n0", idx=0)
-            for i in range(1, nspecies):
-                data = np.stack((data, self._from_struct_("n0", idx=i)), axis=3)
-            if nspecies == 1:
-                data = np.expand_dims(data, axis=3)
-            return data * unyt.m ** (-3)
-        if self._format == Format.HDF5:
-            return self._read_hdf5("density")
-        return self._density.copy()
+    def n0(self) -> unyt.unyt_array:
+        r"""Density of neutral species."""
+        if self._cdata is not None:
+            nr, nphi, nz = self.rgrid.size, self.phigrid.size-1, self.zgrid.size
+            nspecies = self.nspecies
+            data = np.zeros((nr, nphi, nz, nspecies), dtype="f8") * unyt.m**-3
+            for i in range(self.nspecies):
+                data[:,:,:,i] = self._cdata.readonly_interp("density", "m**(-3)", i)
+            data.flags.writeable = False
+            return data
+        assert self._file is not None
+        return self._file.read("n0")
 
     def _stage(
         self,
@@ -140,37 +139,42 @@ class NeutralArbitrary(InputVariant):
         rgrid: unyt.unyt_array,
         zgrid: unyt.unyt_array,
         phigrid: unyt.unyt_array,
-        density: unyt.unyt_array,
-        temperature: unyt.unyt_array,
+        n0: unyt.unyt_array,
+        T0: unyt.unyt_array,
     ) -> None:
+        anum = np.array([s.anum for s in species], dtype="i4")
+        znum = np.array([s.znum for s in species], dtype="i4")
         self._cdata = Struct()
         if LIBASCOT.NeutralArbitrary_init(
             ctypes.byref(self._cdata),
             len(species),
             rgrid.size,
-            phigrid.size,
+            phigrid.size-1,
             zgrid.size,
+            anum,
+            znum,
             rgrid[[0, -1]],
-            phigrid[[0, -1]],
+            phigrid[[0, -1]].to("rad"),
             zgrid[[0, -1]],
-            density,
-            temperature,
+            np.ascontiguousarray(n0.transpose(3, 0, 1, 2)),
+            np.ascontiguousarray(T0.transpose(3, 0, 1, 2)),
         ):
             self._cdata = None
             raise AscotMeltdownError("Could not initialize struct.")
 
     def _save_data(self) -> None:
         assert self._file is not None
-        for attr in ["rgrid", "phigrid", "zgrid", "density", "temperature"]:
+        for attr in ["anum", "znum", "rgrid", "phigrid", "zgrid", "n0", "T0"]:
             self._file.write(attr, getattr(self, attr))
 
     def export(self) -> dict[str, unyt.unyt_array]:
         data = {
-            "rgrid": self.rgrid,
-            "phigrid": self.phigrid,
-            "zgrid": self.zgrid,
-            "density": self.density,
-            "temperature": self.temperature,
+            "species": list(self.species),
+            "rgrid": self.rgrid.copy(),
+            "phigrid": self.phigrid.copy(),
+            "zgrid": self.zgrid.copy(),
+            "n0": self.n0.copy(),
+            "T0": self.T0.copy(),
         }
         return data
 
@@ -192,12 +196,12 @@ class CreateMixin(TreeMixin):
     # pylint: disable=protected-access, too-many-arguments
     def create_neutralarbitrary(
         self,
+        species: List[str] | Tuple[str],
         rgrid: utils.ArrayLike,
         phigrid: utils.ArrayLike,
         zgrid: utils.ArrayLike,
-        species: List[str] | Tuple[str],
-        density: utils.ArrayLike,
-        temperature: utils.ArrayLike,
+        n0: utils.ArrayLike,
+        T0: utils.ArrayLike,
         note: Optional[str] = None,
         activate: bool = False,
         preview: bool = False,
@@ -209,17 +213,17 @@ class CreateMixin(TreeMixin):
 
         Parameters
         ----------
+        species : list[str] or tuple[str]
+            Neutral species.
         rgrid : array_like (nr,)
             The uniform grid in R in which data is tabulated.
         phigrid : array_like (nphi,)
             The uniform grid in phi in which data is tabulated.
         zgrid : array_like (nz,)
             The uniform grid in z in which data is tabulated.
-        species : list[str] or tuple[str]
-            Name(s) of the neutral species.
-        density : array_like (nrho,nspecies)
+        n0 : array_like (nr,nphi-1,nz,nspecies)
             Density for each species.
-        temperature : array_like (nrho,nspecies)
+        T0 : array_like (nr,nphi-1,nz,nspecies)
             Temperature of each species.
         note : str, optional
             A short note to document this data.
@@ -246,13 +250,19 @@ class CreateMixin(TreeMixin):
             zgrid = v.validate("zgrid", zgrid, (-1,), "m")
             phigrid = v.validate("phigrid", phigrid, (-1,), "deg")
 
+        species = [
+            s if isinstance(s, Species) else Species.from_string(s) for s in species
+        ]
+        if len(species) == 0:
+            raise ValueError("At least one species must be specified.")
+
         nr, nz, nphi, nspecies = rgrid.size, zgrid.size, phigrid.size, len(species)
         with utils.validate_variables() as v:
-            density = v.validate(
-                "density", density, (nr, nphi, nz, nspecies), "m**(-3)"
+            n0 = v.validate(
+                "n0", n0, (nr, nphi-1, nz, nspecies), "m**(-3)"
             )
-            temperature = v.validate(
-                "temperature", temperature, (nr, nphi, nz, nspecies), "eV"
+            T0 = v.validate(
+                "T0", T0, (nr, nphi-1, nz, nspecies), "eV"
             )
 
         utils.validate_abscissa(rgrid, "rgrid")
@@ -263,8 +273,8 @@ class CreateMixin(TreeMixin):
             rgrid=rgrid,
             phigrid=phigrid,
             zgrid=zgrid,
-            density=density,
-            temperature=temperature,
+            n0=n0,
+            T0=T0,
             species=species,
         )
         if preview:

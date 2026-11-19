@@ -228,8 +228,9 @@ def process_query_points(r, phi, z, t, grid):
         R, PHI, Z, T = np.meshgrid(
             r.ravel(), phi.ravel(), z.ravel(), t.ravel(), indexing="ij"
             )
-        # Meshgrid doesn't ensure that arrays are C_CONTIGUOUS, and in fact Z
-        # isn't, so we make a C_CONTIGUOUS copy.
+        # Meshgrid doesn't ensure that arrays are C_CONTIGUOUS, and in fact PHI
+        # and Z isn't, so we make a C_CONTIGUOUS copy.
+        PHI = np.ascontiguousarray(PHI)
         Z = np.ascontiguousarray(Z)
         return R, PHI, Z, T
 
