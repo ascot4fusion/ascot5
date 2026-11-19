@@ -74,6 +74,7 @@ class Opt(DataGroup):
         self._OPT_ENABLE_ATOMIC              = 0
         self._OPT_ENABLE_ICRH                = 0
         self._OPT_ENABLE_ALDFORCE            = 0
+        self._OPT_ENABLE_FLR_LOSSES          = 0
         self._OPT_DISABLE_FIRSTORDER_GCTRANS = 0
         self._OPT_DISABLE_ENERGY_CCOLL       = 0
         self._OPT_DISABLE_PITCH_CCOLL        = 0
@@ -423,6 +424,12 @@ class Opt(DataGroup):
         """Disable guiding center spatial diffusion
         """
         return self._OPT_DISABLE_GCDIFF_CCOLL
+    
+    @property
+    def _ENABLE_FLR_LOSSES(self):
+        """Enable finite Larmor radius losses
+        """
+        return self._OPT_ENABLE_FLR_LOSSES
 
     @property
     def _REVERSE_TIME(self):
@@ -1490,6 +1497,7 @@ class Opt(DataGroup):
                         <xs:element ref="DISABLE_ENERGY_CCOLL"/>
                         <xs:element ref="DISABLE_PITCH_CCOLL"/>
                         <xs:element ref="DISABLE_GCDIFF_CCOLL"/>
+                        <xs:element ref="ENABLE_FLR_LOSSES"/>
                         <xs:element ref="REVERSE_TIME"/>
                     </xs:all>
                     </xs:complexType>
@@ -1500,6 +1508,7 @@ class Opt(DataGroup):
             {doc('ENABLE_ATOMIC',              'Integer012')}
             {doc('ENABLE_ICRH',                'IntegerBinary')}
             {doc('ENABLE_ALDFORCE',            'IntegerBinary')}
+            {doc('ENABLE_FLR_LOSSES',          'IntegerBinary')}
             {doc('DISABLE_FIRSTORDER_GCTRANS', 'IntegerBinary')}
             {doc('DISABLE_ENERGY_CCOLL',       'IntegerBinary')}
             {doc('DISABLE_PITCH_CCOLL',        'IntegerBinary')}
