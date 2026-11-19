@@ -520,8 +520,7 @@ int MarkerGuidingCenter_from_queue(
         mrk->dbzdphi[mrk_index] = b_db[10];
         mrk->dbzdz[mrk_index] = b_db[11];
         mrk->mu[mrk_index] = physlib_gc_mu(p->mass, pnorm, p->pitch, Bnorm);
-        mrk->ppar[mrk_index] =
-            phys_ppar_Ekin(p->mass, p->ekin, mrk->mu[mrk_index], Bnorm);
+        mrk->ppar[mrk_index] = p->pitch * pnorm;
         mrk->running[mrk_index] = p->endcond == 0;
         mrk->cputime[mrk_index] = p->cputime;
         mrk->index[mrk_index] = queue_index;

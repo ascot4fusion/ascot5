@@ -15,9 +15,10 @@ from .atomic import Atomic
 from .nbi import NbiStruct
 from .orbit import Orbit
 from .hist import Hist
+from .moment import Moment
 
 from .options import (
-    SimulationOptions, HistParams, OrbitParams,
+    SimulationOptions, HistParams, OrbitParams, MomentParams,
 )
 
 __all__ = [
@@ -34,6 +35,8 @@ __all__ = [
     "NbiStruct",
     "Orbit",
     "Hist",
+    "Moment",
+    "MomentParams",
     "OrbitParams",
     "HistParams",
     "SimulationOptions",

@@ -14,6 +14,16 @@ Orbit
 .. doxygenstruct:: DiagOrbit
     :members:
 
+Moment
+******
+
+.. doxygenfile:: diag_moment.h
+
+.. doxygenstruct:: DiagMoment
+    :members:
+
+.. doxygenenum:: MomentType
+
 Histogram
 *********
 
