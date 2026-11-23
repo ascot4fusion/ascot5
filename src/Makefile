@@ -27,9 +27,13 @@ else
 	CFLAGS+=-fopenmp
 endif
 
-ifeq ($(DEBUG),1)
+ifeq ($(SANITIZER),1)
 	CFLAGS+=-g -fsanitize=address,undefined
 	LDFLAGS+=-fsanitize=address,undefined
+endif
+
+ifeq ($(DEBUG),1)
+	CFLAGS+=-g3 -O0
 else
 	CFLAGS+=-O2
 endif

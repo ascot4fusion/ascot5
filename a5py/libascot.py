@@ -120,6 +120,7 @@ class DataStruct(ctypes.Structure):
         name: str,
         shape: tuple[int, ...],
         units: Optional[str] = None,
+        convert: Optional[str] = None,
     ) -> np.ndarray | unyt.unyt_array:
         """Return a read-only view on the array within the struct.
 
@@ -131,6 +132,8 @@ class DataStruct(ctypes.Structure):
             Shape of the array.
         units : str, *optional*
             Units of the array.
+        convert : str, *optional*
+            Convert array to these units before returning the array.
 
         Returns
         -------
@@ -140,9 +143,12 @@ class DataStruct(ctypes.Structure):
         # as_array only reads data based on shape but doesn't actually reshape
         # the data, which is why we need to reshape explicitly
         arr = np.ctypeslib.as_array(getattr(self, name), shape=shape).reshape(shape)
-        arr.flags.writeable = False
         if units is not None:
-            return unyt.unyt_array(arr, units)
+            arr = unyt.unyt_array(arr, units)
+            if convert:
+                arr = arr.to(convert)
+
+        arr.flags.writeable = False
         return arr
 
     def readonly_grid(
@@ -155,7 +161,7 @@ class DataStruct(ctypes.Structure):
     ) -> unyt.unyt_array:
         """Return a read-only view on the grid within the struct.
 
-        The uniform grids in libascot.so are stored as ``(xlim, nx)``.
+        The uniform grids in libascot.so are stored as ``(xlim, nx, dx)``.
         This function reads the values and converts them to (read-only) grid
         array.
 
@@ -193,7 +199,7 @@ class DataStruct(ctypes.Structure):
         grid.flags.writeable = False
         return grid
 
-    def readonly_interp(self, name: str, units: str, idx: int = None):
+    def readonly_interp(self, name: str, units: str, idx: int = None, convert=None):
         """Read the tabulated values from interpolation struct.
 
         This does not read all values but only those that correspond to the
@@ -209,6 +215,8 @@ class DataStruct(ctypes.Structure):
         idx : int, optional
             In case the attribute is an array of structs, this is the index on
             the array which is read.
+        convert : str, *optional*
+            Convert array to these units before returning the array.
 
         Returns
         -------
@@ -222,6 +230,8 @@ class DataStruct(ctypes.Structure):
         match attribute:
             case Linear1D():
                 shape, skip = (attribute.nx,), 1
+            case Linear2D():
+                shape, skip = (attribute.nx, attribute.ny), 1
             case Linear3D():
                 shape, skip = (attribute.nx, attribute.ny, attribute.nz), 1
             case Spline1D():
@@ -237,9 +247,13 @@ class DataStruct(ctypes.Structure):
                 )
         arr = np.ctypeslib.as_array(
             attribute.c[: np.multiply.reduce(shape) * skip : skip],
-        )
+        ).reshape(shape)
+        if units is not None:
+            arr = unyt.unyt_array(arr, units)
+            if convert:
+                arr = arr.to(convert)
         arr.flags.writeable = False
-        return unyt.unyt_array(arr.reshape(shape), units)
+        return arr
 
 
 class Linear1D(ctypes.Structure):

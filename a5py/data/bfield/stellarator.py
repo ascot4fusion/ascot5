@@ -187,8 +187,9 @@ class BfieldStellarator(InputVariant):
             ctypes.byref(self._cdata), rgridpsi.size, zgridpsi.size,
             phigridpsi.size, rgrid.size, zgrid.size, phigrid.size, axisgrid.size,
             rgridpsi[[0, -1]].v, zgridpsi[[0, -1]].v,
-            phigridpsi[[0, -1]].to("rad").v, rgrid[[0, -1]].v, zgrid[[0, -1]].v,
-            phigrid[[0, -1]].to("rad").v, axisgrid[[0, -1]].to("rad").v,
+            utils.periodic_limits(phigridpsi).to("rad").v, rgrid[[0, -1]].v,
+            zgrid[[0, -1]].v, utils.periodic_limits(phigrid).to("rad").v,
+            utils.periodic_limits(axisgrid).to("rad").v,
             axisrz[:,0].v, axisrz[:,1].v, psilimits.v, psi.v, br.v, bz.v,
             bphi.v,
             ):

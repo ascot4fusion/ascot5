@@ -12,6 +12,8 @@ This module contains any tools that are
 
 .. autofunction:: validate_abscissa
 
+.. autofunction:: periodic_limits
+
 .. autofunction:: size
 
 .. autofunction:: scalar2array
@@ -43,7 +45,8 @@ from .imstorage import ImmutableStorage
 from .optionaldep import OptionalDependency
 from .stringop import decorate, undecorate, format2universaldate
 from .arrayop import (
-    ArrayLike, Scalar, validate_variables, validate_abscissa, size, scalar2array,
+    ArrayLike, Scalar, validate_variables, validate_abscissa, periodic_limits,
+    size, scalar2array,
     )
 
 __all__ = [
@@ -56,6 +59,7 @@ __all__ = [
     "undecorate",
     "scalar2array",
     "validate_abscissa",
+    "periodic_limits",
     "validate_variables",
     "format2universaldate",
     ]

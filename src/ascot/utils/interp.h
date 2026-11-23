@@ -163,6 +163,42 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(linear)
 int Linear3D_eval_f(real f[1], Linear3D *linear, real x, real y, real z);
 DECLARE_TARGET_END
 
+GPU_DECLARE_TARGET_SIMD_UNIFORM(linear)
+/**
+ * Interpolate 2D data and the first and second order derivatives using bilinear
+ * interpolation.
+ *
+ * The interpolant is linear in x and y separately, so f_xx and f_yy are always
+ * zero. They are included so that the layout matches Spline2D_eval_f_df.
+ *
+ * @param f_df Interpolated value and derivatives.
+ *        Layout: [f, f_x, f_y, f_xx, f_yy, f_xy].
+ * @param linear Data struct for data interpolation.
+ * @param x Query point x coordinate.
+ * @param y Query point y coordinate.
+ *
+ * @return Zero on success and one if the point is outside the domain.
+ */
+int Linear2D_eval_f_df(real f_df[6], Linear2D *linear, real x, real y);
+DECLARE_TARGET_END
+
+GPU_DECLARE_TARGET_SIMD_UNIFORM(linear)
+/**
+ * Interpolate 3D data and the first order derivatives using trilinear
+ * interpolation.
+ *
+ * @param f_df Interpolated value and derivatives.
+ *        Layout: [f, f_x, f_y, f_z].
+ * @param linear Data struct for data interpolation.
+ * @param x Query point x coordinate.
+ * @param y Query point y coordinate.
+ * @param z Query point z coordinate.
+ *
+ * @return Zero on success and one if the point is outside the domain.
+ */
+int Linear3D_eval_f_df(real f_df[4], Linear3D *linear, real x, real y, real z);
+DECLARE_TARGET_END
+
 /**
  * Initialize 1D spline interpolant from scalar data.
  *

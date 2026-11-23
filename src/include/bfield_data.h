@@ -19,6 +19,7 @@ typedef enum Bfield_type
     BFIELD_ANALYTICAL,    /**< Corresponds to BfieldAnalytical.               */
     BFIELD_SPLINE2D,      /**< Corresponds to BfieldSpline2D.                 */
     BFIELD_SPLINE3D,      /**< Corresponds to BfieldSpline3D.                 */
+    BFIELD_LINEAR3D,      /**< Corresponds to BfieldLinear3D.                 */
     BFIELD_STELLARATOR,   /**< Corresponds to BfieldStellarator.              */
 } Bfield_type;
 
@@ -39,6 +40,19 @@ typedef struct
      */
     real jacobian[9];
 } BfieldCartesian;
+
+/**
+ * Linear interpolated 3D magnetic field data.
+ */
+typedef struct
+{
+    real axisrz[2];    /**< Magnetic axis (R, z) coordinates [m].             */
+    real psilimits[2]; /**< Poloidal flux at axis and separatrix [Wb/rad].    */
+    Linear2D psi;      /**< Poloidal flux Linear interpolant [Wb/rad].        */
+    Linear3D br;       /**< Linear interpolant for R component of B [T].      */
+    Linear3D bz;       /**< Linear interpolant for z component of B [T].      */
+    Linear3D bphi;     /**< Linear interpolant for phi component of B [T].    */
+} BfieldLinear3D;
 
 /**
  * Analytic magnetic field data.
@@ -114,6 +128,7 @@ typedef struct
     BfieldAnalytical *analytical;   /**< Analytical data.                     */
     BfieldSpline2D *spline2d;       /**< Spline 2D data.                      */
     BfieldSpline3D *spline3d;       /**< Spline 3D data.                      */
+    BfieldLinear3D *linear3d;       /**< Linear 3D data.                      */
     BfieldStellarator *stellarator; /**< Stellarator data.                    */
     Bfield_type type;               /**< Current magnetic field type.         */
 } Bfield;

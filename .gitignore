@@ -9,3 +9,5 @@
 /.metadata
 /.vscode
 /a5py.egg-info
+compile_commands.json
+.cache/

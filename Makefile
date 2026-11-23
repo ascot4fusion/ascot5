@@ -1,13 +1,19 @@
 ascot:
 	$(MAKE) -C src ascot
 
+ascot-debug:
+	$(MAKE) -C src ascot DEBUG=1
+
+ascot-sanitizer:
+	$(MAKE) -C src ascot SANITIZER=1
+
 lint:
 	pylint --disable=similarities --generated-members=unyt.*
 	mypy --follow-imports=silent --disable-error-code=import-untyped \
 	--disallow-untyped-defs --disallow-incomplete-defs
 
 tests: ascot
-	pytest -s -v -W "error::UserWarning" --ignore="tests/test_physics"
+	python -m pytest -s -v -W "error::UserWarning" --ignore="tests/test_physics"
 
 tutorial: ascot
 	python doc/user/tutorials/execute.py

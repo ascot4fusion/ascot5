@@ -337,6 +337,28 @@ def scalar2array(x: Any, n: int) -> unyt.unyt_array | np.ndarray | None:
     return x
 
 
+def periodic_limits(abscissa: unyt.unyt_array) -> unyt.unyt_array:
+    """Return the limits of a uniform periodic abscissa.
+
+    Periodic abscissae do not include the endpoint, i.e. the abscissa is
+    ``x0, x0 + dx, ..., x0 + (n-1) dx`` and the period is ``n dx``. The
+    periodic interpolants in libascot expect the limits ``[x0, x0 + n dx]``.
+
+    Parameters
+    ----------
+    abscissa : unyt.array
+        Uniform periodic abscissa with at least two points.
+
+    Returns
+    -------
+    limits : unyt.array (2,)
+        The limits ``[x0, x0 + n dx]``.
+    """
+    limits = abscissa[[0, -1]].copy()
+    limits[1] += abscissa[1] - abscissa[0]
+    return limits
+
+
 def validate_abscissa(
         abscissa: unyt.unyt_array,
         name: str,
