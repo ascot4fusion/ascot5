@@ -18,12 +18,12 @@
  * @param nr Number of radial grid points in the data.
  * @param nz Number of axial grid points in the data.
  * @param nion Number of ion species.
- * @param rlim Limits of the uniform R grid [m].
- * @param zlim Limits of the uniform z grid [m].
  * @param anum Atomic mass number of the ion species.
  * @param znum Charge number of the ion species.
- * @param mass Mass of the ion species [kg].
  * @param charge Charge state of the ion species [e].
+ * @param mass Mass of the ion species [kg].
+ * @param rlim Limits of the uniform R grid [m].
+ * @param zlim Limits of the uniform z grid [m].
  * @param Te Electron temperature [J].
  * @param Ti Temperature of the ion species [J].
  * @param ne Electron density [m^-3].
@@ -34,9 +34,9 @@
  * @return Zero if the initialization succeeded.
  */
 int PlasmaLinear2D_init(
-    PlasmaLinear2D *plasma, size_t nr, size_t nz, size_t nion, real rlim[2],
-    real zlim[2], int anum[nion], int znum[nion], real mass[nion],
-    int charge[nion], real Te[nr * nz], real Ti[nr * nz], real ne[nr * nz],
+    PlasmaLinear2D *plasma, size_t nr, size_t nz, size_t nion, int anum[nion],
+    int znum[nion], int charge[nion], real mass[nion], real rlim[2],
+    real zlim[2], real Te[nr * nz], real Ti[nr * nz], real ne[nr * nz],
     real ni[nr * nz * nion], real vtor[nr * nz]);
 
 /**

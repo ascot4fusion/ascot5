@@ -14,7 +14,7 @@ unyt.define_unit("yomama", 1.e6 * unyt.kg**3)
 
 _bfield3d = {
     "rgrid": np.linspace(4.0, 8.0, 10) * m,
-    "phigrid": np.linspace(0, 360, 16)[:-1] * deg,
+    "phigrid": np.linspace(0, 360, 16) * deg,
     "zgrid": np.linspace(-2.0, 2.0, 20) * m,
     "psi": RNG.random((10, 20)) * Wb/rad,
     "bphi": RNG.random((10, 15, 20)) * T,

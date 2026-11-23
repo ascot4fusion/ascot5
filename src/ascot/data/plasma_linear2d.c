@@ -9,9 +9,9 @@
 #include <stdlib.h>
 
 int PlasmaLinear2D_init(
-    PlasmaLinear2D *plasma, size_t nr, size_t nz, size_t nion, real rlim[2],
-    real zlim[2], int anum[nion], int znum[nion], real mass[nion],
-    int charge[nion], real Te[nr * nz], real Ti[nr * nz], real ne[nr * nz],
+    PlasmaLinear2D *plasma, size_t nr, size_t nz, size_t nion, int anum[nion],
+    int znum[nion], int charge[nion], real mass[nion], real rlim[2],
+    real zlim[2], real Te[nr * nz], real Ti[nr * nz], real ne[nr * nz],
     real ni[nr * nz * nion], real vtor[nr * nz])
 {
     if (nr * nz == 0)
@@ -42,25 +42,22 @@ int PlasmaLinear2D_init(
 
     c = (real *)malloc(nr * nz * sizeof(real));
     for (size_t j = 0; j < nr * nz; j++)
-    {
         c[j] = Te[j];
-    }
+
     Linear2D_init(
         &plasma->temperature[0], nr, nz, NATURALBC, NATURALBC, rlim, zlim, c);
 
     c = (real *)malloc(nr * nz * sizeof(real));
     for (size_t j = 0; j < nr * nz; j++)
-    {
         c[j] = Ti[j];
-    }
+
     Linear2D_init(
         &plasma->temperature[1], nr, nz, NATURALBC, NATURALBC, rlim, zlim, c);
 
     c = (real *)malloc(nr * nz * sizeof(real));
     for (size_t j = 0; j < nr * nz; j++)
-    {
         c[j] = vtor[j];
-    }
+
     Linear2D_init(&plasma->vtor, nr, nz, NATURALBC, NATURALBC, rlim, zlim, c);
 
     for (size_t i = 0; i < nion; i++)
@@ -68,9 +65,8 @@ int PlasmaLinear2D_init(
 
         c = (real *)malloc(nr * nz * sizeof(real));
         for (size_t j = 0; j < nr * nz; j++)
-        {
             c[j] = ni[i * (nr * nz) + j];
-        }
+
         Linear2D_init(
             &plasma->density[1 + i], nr, nz, NATURALBC, NATURALBC, rlim, zlim,
             c);

@@ -69,16 +69,15 @@ err_t Boozer_map_coordinates(
     real thgeo, theta_dtheta[6], nu[6];
     thgeo = fmod(atan2(z - axisrz[1], r - axisrz[0]) + CONST_2PI, CONST_2PI);
     interperr +=
-        Spline2D_eval_f_df(theta_dtheta, &boozer->theta, psi_dpsi[0], thgeo);
+        Spline2D_eval_f_ddf(theta_dtheta, &boozer->theta, psi_dpsi[0], thgeo);
     interperr +=
-        Spline2D_eval_f_df(nu, &boozer->nu, psi_dpsi[0], theta_dtheta[0]);
+        Spline2D_eval_f_ddf(nu, &boozer->nu, psi_dpsi[0], theta_dtheta[0]);
 
     /* No need to raise error if we are outside the Boozer region */
     err = ERROR_CHECK(
         err, interperr && isinside[0], ERR_INTERPOLATED_OUTSIDE_RANGE,
         DATA_BOOZER_C);
 
-    /* Some helper variables for calucating derivatives */
     real asq, dthgeo_dr, dthgeo_dz;
     asq = (r - axisrz[0]) * (r - axisrz[0]) + (z - axisrz[1]) * (z - axisrz[1]);
     dthgeo_dr = -(z - axisrz[1]) / asq;
@@ -91,15 +90,15 @@ err_t Boozer_map_coordinates(
     psi[2] = psi_dpsi[2];
     psi[3] = psi_dpsi[3];
 
-    theta[0] = theta_dtheta[0];
-    theta[1] = theta_dtheta[1] * psi[1] + theta_dtheta[2] * dthgeo_dr;
+    theta[0] = err ? 0 : theta_dtheta[0];
+    theta[1] = err ? 0 : theta_dtheta[1] * psi[1] + theta_dtheta[2] * dthgeo_dr;
     theta[2] = 0;
-    theta[3] = theta_dtheta[1] * psi[3] + theta_dtheta[2] * dthgeo_dz;
+    theta[3] = err ? 0 : theta_dtheta[1] * psi[3] + theta_dtheta[2] * dthgeo_dz;
 
-    zeta[0] = fmod(fmod(phi + nu[0], CONST_2PI) + CONST_2PI, CONST_2PI);
-    zeta[1] = nu[1] * psi[1] + nu[2] * theta_dtheta[1];
+    zeta[0] = err ? 0 : fmod(fmod(phi + nu[0], CONST_2PI) + CONST_2PI, CONST_2PI);
+    zeta[1] = err ? 0 : nu[1] * psi[1] + nu[2] * theta_dtheta[1];
     zeta[2] = 1.0;
-    zeta[3] = nu[1] * psi[3] + nu[2] * theta_dtheta[3];
+    zeta[3] = err ? 0 : nu[1] * psi[3] + nu[2] * theta_dtheta[3];
 
     return err;
 }

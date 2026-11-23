@@ -272,7 +272,7 @@ int Linear3D_eval_f(real f[1], Linear3D *linear, real x, real y, real z)
     return err;
 }
 
-int Linear2D_eval_f_df(real f_df[6], Linear2D *linear, real x, real y)
+int Linear2D_eval_f_df(real f_df[3], Linear2D *linear, real x, real y)
 {
     real c00, c01, c10, c11;
     real c0, c1;
@@ -352,12 +352,6 @@ int Linear2D_eval_f_df(real f_df[6], Linear2D *linear, real x, real y)
     f_df[1] = ((c10 - c00) * (1 - dy) + (c11 - c01) * dy) * xgi;
     /* f_y */
     f_df[2] = (c1 - c0) * ygi;
-    /* f_xx */
-    f_df[3] = 0;
-    /* f_yy */
-    f_df[4] = 0;
-    /* f_xy */
-    f_df[5] = (c00 - c10 - c01 + c11) * (ygi * xgi);
 
     return 0;
 }

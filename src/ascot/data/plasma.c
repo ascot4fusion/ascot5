@@ -63,7 +63,7 @@ err_t Plasma_eval_temperature(
             temperature, rho, t, i_species, plasma->dynamic1d);
         break;
     }
-    temperature[0] = err ? 1e20 : temperature[0];
+    temperature[0] = err ? 1e3*CONST_E : temperature[0];
 
     return err;
 }
@@ -118,10 +118,11 @@ err_t Plasma_eval_nT(
         break;
     }
 
-    for (size_t i = 0; i < MAX_SPECIES; i++)
+    size_t nspecies = Plasma_get_n_species(plasma);
+    for (size_t i = 0; i < nspecies; i++)
     {
         density[i] = err ? 1e20 : density[i];
-        temperature[i] = err ? 1.6e-16 : temperature[i];
+        temperature[i] = err ? 1e3*CONST_E : temperature[i];
     }
     return err;
 }

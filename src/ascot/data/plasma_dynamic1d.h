@@ -25,8 +25,8 @@
  *        No need to be uniform.
  * @param anum Atomic mass number of the ion species.
  * @param znum Charge number of the ion species.
- * @param mass Mass of the ion species [kg].
  * @param charge Charge state of the ion species [e].
+ * @param mass Mass of the ion species [kg].
  * @param Te Electron temperature [J].
  *        Layout is (rhoi, tj) = [j*nrho + i] (C order).
  * @param Ti Temperature of the ion species [J].
@@ -42,7 +42,7 @@
  */
 int PlasmaDynamic1D_init(
     PlasmaDynamic1D *plasma, size_t nrho, size_t ntime, size_t nion,
-    int anum[nion], int znum[nion], real mass[nion], int charge[nion],
+    int anum[nion], int znum[nion], int charge[nion], real mass[nion],
     real rho[nrho], real time[ntime], real Te[nrho * ntime],
     real Ti[nrho * ntime], real ne[nrho * ntime], real ni[nrho * ntime * nion],
     real vtor[nrho * ntime]);

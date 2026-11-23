@@ -75,7 +75,9 @@ class Boozer(InputVariant):
         if self._cdata is not None:
             r = self._cdata.readonly_carray("rlim", (self._cdata.nrz,), "m")
             z = self._cdata.readonly_carray("zlim", (self._cdata.nrz,), "m")
-            return np.stack((r, z), axis=1).T
+            out = np.stack((r, z), axis=1)
+            out.flags.writeable = False
+            return out
         assert self._file is not None
         return self._file.read("separatrix")
 
@@ -96,7 +98,7 @@ class Boozer(InputVariant):
             data = self._cdata.readonly_interp("theta", "rad")
             return data[:, _NPADDING:-_NPADDING]
         assert self._file is not None
-        return self._file.read("boozerpoloidal")[:, _NPADDING:-_NPADDING]
+        return self._file.read("boozerpoloidal")
 
     def _stage(
         self,
@@ -106,12 +108,24 @@ class Boozer(InputVariant):
         separatrix: unyt.unyt_array,
     ) -> None:
         self._cdata = Struct()
+
+        # Extending boozerpoloidal data, see _PADDING for why we do it
+        nthetag = boozerpoloidal.shape[1]
+        data = np.copy(boozerpoloidal).T
+        boozerpoloidal = np.concatenate(
+            (data, data[-1, :] + data[1 : _NPADDING + 1, :])
+        )
+        boozerpoloidal = np.concatenate(
+            (data[int(nthetag - _NPADDING - 1) : -1, :] - data[-1, :], boozerpoloidal)
+        )
+        boozerpoloidal = boozerpoloidal.T
+
         if LIBASCOT.Boozer_init(
             ctypes.byref(self._cdata),
             psigrid.size,
             boozertoroidal.shape[1],
             boozerpoloidal.shape[1],
-            separatrix.shape[1],
+            separatrix.shape[0],
             _NPADDING,
             psigrid[[0, -1]],
             boozertoroidal,
@@ -131,10 +145,10 @@ class Boozer(InputVariant):
 
     def export(self) -> dict[str, unyt.unyt_array]:
         data = {
-            "psigrid": self.psigrid,
-            "separatrix": self.separatrix,
-            "boozerpoloidal": self.boozerpoloidal,
-            "boozertoroidal": self.boozertoroidal,
+            "psigrid": self.psigrid.copy(),
+            "separatrix": self.separatrix.copy(),
+            "boozerpoloidal": self.boozerpoloidal.copy(),
+            "boozertoroidal": self.boozertoroidal.copy(),
         }
         return data
 
@@ -253,7 +267,7 @@ class CreateBoozerMixin(TreeMixin):
 
         with utils.validate_variables() as v:
             psigrid = v.validate("psigrid", psigrid, (-1,), "1")
-            separatrix = v.validate("separatrix", separatrix, (2, 4), "m")
+            separatrix = v.validate("separatrix", separatrix, (-1, 2), "m")
 
         npsi = psigrid.size
         with utils.validate_variables() as v:
@@ -265,17 +279,6 @@ class CreateBoozerMixin(TreeMixin):
             )
 
         utils.validate_abscissa(psigrid, "psigrid")
-
-        # Extending boozerpoloidal data, see _PADDING for why we do it
-        nthetag = boozerpoloidal.shape[1]
-        data = np.copy(boozerpoloidal).T
-        boozerpoloidal = np.concatenate(
-            (data, data[-1, :] + data[1 : _NPADDING + 1, :])
-        )
-        boozerpoloidal = np.concatenate(
-            (data[int(nthetag - _NPADDING - 1) : -1, :] - data[-1, :], boozerpoloidal)
-        )
-        boozerpoloidal = boozerpoloidal.T
 
         leaf = Boozer(note=note)
         leaf._stage(

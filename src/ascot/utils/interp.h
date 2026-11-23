@@ -168,18 +168,15 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(linear)
  * Interpolate 2D data and the first and second order derivatives using bilinear
  * interpolation.
  *
- * The interpolant is linear in x and y separately, so f_xx and f_yy are always
- * zero. They are included so that the layout matches Spline2D_eval_f_df.
- *
  * @param f_df Interpolated value and derivatives.
- *        Layout: [f, f_x, f_y, f_xx, f_yy, f_xy].
+ *        Layout: [f, f_x, f_y].
  * @param linear Data struct for data interpolation.
  * @param x Query point x coordinate.
  * @param y Query point y coordinate.
  *
  * @return Zero on success and one if the point is outside the domain.
  */
-int Linear2D_eval_f_df(real f_df[6], Linear2D *linear, real x, real y);
+int Linear2D_eval_f_df(real f_df[3], Linear2D *linear, real x, real y);
 DECLARE_TARGET_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(linear)
@@ -310,7 +307,7 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(spline)
  *
  * @return Zero on success and one if the point is outside the domain.
  */
-int Spline1D_eval_f_df(real f_df[3], Spline1D *spline, real x);
+int Spline1D_eval_f_ddf(real f_df[3], Spline1D *spline, real x);
 DECLARE_TARGET_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(spline)
@@ -326,7 +323,7 @@ GPU_DECLARE_TARGET_SIMD_UNIFORM(spline)
  *
  * @return Zero on success and one if the point is outside the domain.
  */
-int Spline2D_eval_f_df(real f_df[6], Spline2D *spline, real x, real y);
+int Spline2D_eval_f_ddf(real f_df[6], Spline2D *spline, real x, real y);
 DECLARE_TARGET_END
 
 GPU_DECLARE_TARGET_SIMD_UNIFORM(spline)

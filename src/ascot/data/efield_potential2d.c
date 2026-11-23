@@ -34,7 +34,7 @@ err_t EfieldPotential2D_eval_e(
     real e[3], real r, real z, EfieldPotential2D *efield)
 {
     real vdv[6];
-    int interperr = Spline2D_eval_f_df(vdv, &efield->potential, r, z);
+    int interperr = Spline2D_eval_f_ddf(vdv, &efield->potential, r, z);
     e[0] = -vdv[1];
     e[1] = 0;
     e[2] = -vdv[2];

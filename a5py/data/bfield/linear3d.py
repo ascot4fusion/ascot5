@@ -1,5 +1,5 @@
-"""Defines the perturbed magnetic field input class and the corresponding
-factory method.
+"""Defines the perturbed magnetic field (linear interpolation) input class and
+the corresponding factory method.
 """
 import ctypes
 from typing import Optional
@@ -75,7 +75,7 @@ class BfieldLinear3D(InputVariant):
         tabulated.
         """
         if self._cdata is not None:
-            return self._cdata.readonly_grid("y", "rad", "bphi").to("deg")
+            return self._cdata.readonly_grid("y", "rad", "bphi", convert="deg")
         assert self._file is not None
         return self._file.read("phigrid")
 
@@ -187,9 +187,9 @@ class BfieldLinear3D(InputVariant):
         self._cdata._buffers = buffers
         if LIBASCOT.BfieldLinear3D_init(
             ctypes.byref(self._cdata), rgridpsi.size, zgridpsi.size, rgrid.size,
-            zgrid.size, phigrid.size, rgridpsi[[0, -1]].v, zgridpsi[[0, -1]].v,
+            zgrid.size, phigrid.size-1, rgridpsi[[0, -1]].v, zgridpsi[[0, -1]].v,
             rgrid[[0, -1]].v, zgrid[[0, -1]].v,
-            utils.periodic_limits(phigrid).to("rad").v,
+            phigrid[[0, -1]].to("rad").v,
             axisrz.v, psilimits.v, buffers["psi"], buffers["br"],
             buffers["bz"], buffers["bphi"],
             ):
@@ -252,36 +252,11 @@ class CreateMixin(TreeMixin):
             ) -> BfieldLinear3D:
         r"""Create linearly interpolated non-axisymmetric tokamak field.
 
-        This method creates a tokamak magnetic field that can include arbitrary
-        3D perturbations such as TF ripple or RMP coils. Using 3D magnetic field
-        increases memory consumption and simulation time significantly.
-
-        The toroidal angle is assumed to be periodic but neither the grid nor
-        the data should contain the value at :math:`\phi_\mathrm{max}` to avoid
-        unnecessary duplication of data. In other words, assuming
-
-        .. math::
-
-            A(\varphi=\varphi_\mathrm{min}) == A(\varphi=\varphi_\mathrm{max})
-
-        then value :math:`A(\varphi=\varphi_\mathrm{max}` should not be included
-        and the toroidal grid should be given by
-
-        .. math::
-
-            \varphi_i = \varphi_\mathrm{min}, \varphi_\mathrm{min}
-            + \Delta \varphi, \dots, \varphi_\mathrm{min}
-            + (n-1) \Delta \varphi,
-
-        where
-        :math:`\varphi_\mathrm{max} = \varphi_\mathrm{min} + n\Delta \varphi`
-        is not included.
-
-        It is possible to use different :math:`(R,z)` grids for :math:`\psi` and
-        magnetic field components by giving a separate :math:`(R,z)` grid for
-        :math:`\psi`. 3D data can be memory intensive which necessitates sparser
-        grid for :math:`\mathbf{B}` components, but :math:`\psi` can still be
-        evaluated on a dense grid.
+        The input created by this method is equivalent to
+        :class:`BfieldSpline3D` with the exception that here the magnetic field
+        is interpolated linearly. Linear interpolation is faster but at the same
+        time less accurate and less smooth. The poloidal flux is still
+        interpolated with splines.
 
         Parameters
         ----------
@@ -349,35 +324,6 @@ class CreateMixin(TreeMixin):
         -------
         data : :class:`.BfieldLinear3D`
             Input variant created from the given parameters.
-
-        Notes
-        -----
-        The input consists of poloidal flux psi (COCOS3) and the (perturbed)
-        magnetic field defined in uniform :math:`(R,phi,z)` grid. During the
-        simulation, :math:`\psi` is interpolated bilinearly:
-
-        .. math::
-
-            f(x, y) = \sum_{i=0}^{1} \sum_{j=0}^{1} \
-                a_{ij} (x - x_0)^i (y - y_0)^j
-
-        within each grid cell, and the magnetic field components are
-        interpolated trilinearly. The tabulated data is used as is, so no
-        coefficients are precomputed and the data is not duplicated.
-
-        The magnetic field vector is evaluated as the sum of the explicitly
-        given values of :math:`\mathbf{B}` and the contribution from the
-        gradient of :math:`\psi`:
-
-        .. math::
-
-            \mathbf{B} = \frac{1}{R}\nabla\psi\times\hat{\mathbf{e}}_\phi \
-                + B_\phi\hat{\mathbf{e}}_\phi
-
-        This means that by default `br` and `bz` should contain only the
-        perturbation component as the equilibrium component of :math:`B_\theta`
-        is calculated from the poloidal flux. Since the 3D magnetic field is
-        interpolated directly, the resulting field is not divergence free.
         """
         with utils.validate_variables() as v:
             rgrid = v.validate("rgrid", rgrid, (-1,), "m")
@@ -395,7 +341,7 @@ class CreateMixin(TreeMixin):
         assert isinstance(rgridpsi, unyt.unyt_array)
         assert isinstance(zgridpsi, unyt.unyt_array)
         nrpsi, nzpsi = rgridpsi.size, zgridpsi.size
-        nr, nphi, nz = rgrid.size, phigrid.size, zgrid.size
+        nr, nphi, nz = rgrid.size, phigrid.size-1, zgrid.size
         with utils.validate_variables() as v:
             psi = v.validate("psi", psi, (nrpsi, nzpsi), "Wb/rad")
             bphi = v.validate("bphi", bphi, (nr, nphi, nz), "T")

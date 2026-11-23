@@ -5,11 +5,12 @@
 #include "consts.h"
 #include "defines.h"
 #include "plasma.h"
+#include <stdio.h>
 #include <stdlib.h>
 
 int PlasmaDynamic1D_init(
     PlasmaDynamic1D *plasma, size_t nrho, size_t ntime, size_t nion,
-    int anum[nion], int znum[nion], real mass[nion], int charge[nion],
+    int anum[nion], int znum[nion], int charge[nion], real mass[nion],
     real rho[nrho], real time[ntime], real Te[nrho * ntime],
     real Ti[nrho * ntime], real ne[nrho * ntime], real ni[nrho * ntime * nion],
     real vtor[nrho * ntime])
@@ -23,26 +24,24 @@ int PlasmaDynamic1D_init(
     plasma->znum = (int *)malloc(nion * sizeof(int));
     plasma->mass = (real *)malloc((nion + 1) * sizeof(real));
     plasma->charge = (int *)malloc((nion + 1) * sizeof(int));
-    for (size_t i = 0; i < plasma->nspecies; i++)
+
+    plasma->mass[0] = CONST_M_E;
+    plasma->charge[0] = -1;
+    for (size_t i = 0; i < nion; i++)
     {
-        if (i < nion)
-        {
-            plasma->znum[i] = znum[i];
-            plasma->anum[i] = anum[i];
-        }
-        plasma->mass[i] = mass[i];
-        plasma->charge[i] = charge[i];
+        plasma->znum[i] = znum[i];
+        plasma->anum[i] = anum[i];
+        plasma->mass[i + 1] = mass[i];
+        plasma->charge[i + 1] = charge[i];
     }
     plasma->rho = (real *)malloc(nrho * sizeof(real));
     for (size_t i = 0; i < nrho; i++)
-    {
         plasma->rho[i] = rho[i];
-    }
+
     plasma->time = (real *)malloc(ntime * sizeof(real));
     for (size_t i = 0; i < ntime; i++)
-    {
         plasma->time[i] = time[i];
-    }
+
     plasma->vtor = (real *)malloc(nrho * ntime * sizeof(real));
     plasma->density = (real *)malloc((nion + 1) * nrho * ntime * sizeof(real));
     plasma->temperature = (real *)malloc(2 * nrho * ntime * sizeof(real));
@@ -50,14 +49,15 @@ int PlasmaDynamic1D_init(
     {
         for (size_t j = 0; j < ntime; j++)
         {
-            plasma->vtor[j * nrho + i] = vtor[j * nrho + i];
-            plasma->density[j * nrho + i] = ne[j * nrho + i];
-            plasma->temperature[j * 2 * nrho + i] = Te[j * nrho + i];
-            plasma->temperature[(j * 2 + 1) * nrho + i] = Ti[j * nrho + i];
+            plasma->vtor[i * ntime + j] = vtor[i * ntime + j];
+            plasma->density[i * ntime + j] = ne[i * ntime + j];
+            plasma->temperature[i * ntime + j] = Te[i * ntime + j];
+            plasma->temperature[nrho * ntime + i * ntime + j] =
+                Ti[i * ntime + j];
             for (size_t k = 0; k < nion; k++)
             {
-                plasma->density[(k + 1) * nrho * ntime + j * nrho + i] =
-                    ni[k * nrho * ntime + j * nrho + i];
+                plasma->density[(k + 1) * nrho * ntime + i * ntime + j] =
+                    ni[k * nrho * ntime + i * ntime + j];
             }
         }
     }
@@ -117,70 +117,61 @@ err_t PlasmaDynamic1D_eval_nT(
     err_t err = 0;
     err = ERROR_CHECK(
         err,
-        (rho < plasma->rho[0]) | (rho >= plasma->rho[plasma->nrho - 1]) |
-            (t < plasma->time[0]) | (t >= plasma->time[plasma->ntime - 1]),
+        (rho < plasma->rho[0]) || (rho >= plasma->rho[plasma->nrho - 1]) ||
+            (t < plasma->time[0]) || (t >= plasma->time[plasma->ntime - 1]),
         ERR_INTERPOLATED_OUTSIDE_RANGE, DATA_PLASMA_DYNAMIC1D_C);
 
     size_t i_rho = 0;
-    for (size_t i = 1; i < plasma->nrho; ++i)
+    for (size_t i = 0; i < plasma->nrho; ++i)
         i_rho += (plasma->rho[i] <= rho);
     i_rho--;
 
-    real t_rho = (rho - plasma->rho[i_rho]) /
-                 (plasma->rho[i_rho + 1] - plasma->rho[i_rho]);
-
     size_t i_time = 0;
-    for (size_t i = 1; i < plasma->ntime; ++i)
+    for (size_t i = 0; i < plasma->ntime; ++i)
         i_time += (plasma->time[i] <= t);
     i_time--;
 
+    i_rho = err ? 0 : i_rho;
+    i_time = err ? 0 : i_time;
+
+    real t_rho = (rho - plasma->rho[i_rho]) /
+                 (plasma->rho[i_rho + 1] - plasma->rho[i_rho]);
     real t_time = (t - plasma->time[i_time]) /
                   (plasma->time[i_time + 1] - plasma->time[i_time]);
 
     for (size_t i = 0; i < plasma->nspecies; i++)
     {
-        /* Density is different for each species */
         real p11, p12, p21, p22, p1, p2;
-        p11 = plasma->density
-                  [i_time * plasma->nspecies * plasma->nrho + i * plasma->nrho +
-                   i_rho];
-        p12 = plasma->density
-                  [i_time * plasma->nspecies * plasma->nrho + i * plasma->nrho +
-                   i_rho + 1];
-        p21 = plasma->density
-                  [(i_time + 1) * plasma->nspecies * plasma->nrho +
-                   i * plasma->nrho + i_rho];
-        p22 = plasma->density
-                  [(i_time + 1) * plasma->nspecies * plasma->nrho +
-                   i * plasma->nrho + i_rho + 1];
 
-        p1 = p11 + t_rho * (p12 - p11);
-        p2 = p21 + t_rho * (p22 - p21);
-        density[i] = p1 + t_time * (p2 - p1);
+        /* Density: [species][rho][time] */
+        size_t offset =
+            i * plasma->nrho * plasma->ntime + i_rho * plasma->ntime + i_time;
 
-        /* Ions and electrons have separate temperature; all ions have same */
-        if (i < 2)
-        {
-            p11 = plasma->temperature
-                      [i_time * 2 * plasma->nrho + i * plasma->nrho + i_rho];
-            p12 =
-                plasma->temperature
-                    [i_time * 2 * plasma->nrho + i * plasma->nrho + i_rho + 1];
-            p21 = plasma->temperature
-                      [(i_time + 1) * 2 * plasma->nrho + i * plasma->nrho +
-                       i_rho];
-            p22 = plasma->temperature
-                      [(i_time + 1) * 2 * plasma->nrho + i * plasma->nrho +
-                       i_rho + 1];
+        p11 = plasma->density[offset];
+        p12 = plasma->density[offset + 1];
+        p21 = plasma->density[offset + plasma->ntime];
+        p22 = plasma->density[offset + plasma->ntime + 1];
 
-            p1 = p11 + t_rho * (p12 - p11);
-            p2 = p21 + t_rho * (p22 - p21);
-            temperature[i] = p1 + t_time * (p2 - p1);
-        }
-        else
-        {
-            temperature[i] = temperature[1];
-        }
+        p1 = p11 + t_time * (p12 - p11);
+        p2 = p21 + t_time * (p22 - p21);
+
+        density[i] = p1 + t_rho * (p2 - p1);
+
+        /* Temperature: [component][rho][time] */
+        size_t temp_component = (i == 0) ? 0 : 1;
+
+        offset = temp_component * plasma->nrho * plasma->ntime +
+                 i_rho * plasma->ntime + i_time;
+
+        p11 = plasma->temperature[offset];
+        p12 = plasma->temperature[offset + 1];
+        p21 = plasma->temperature[offset + plasma->ntime];
+        p22 = plasma->temperature[offset + plasma->ntime + 1];
+
+        p1 = p11 + t_time * (p12 - p11);
+        p2 = p21 + t_time * (p22 - p21);
+
+        temperature[i] = p1 + t_rho * (p2 - p1);
     }
 
     return err;
@@ -192,31 +183,34 @@ err_t PlasmaDynamic1D_eval_flow(
     err_t err = 0;
     err = ERROR_CHECK(
         err,
-        (rho < plasma->rho[0]) | (rho >= plasma->rho[plasma->nrho - 1]) |
-            (t < plasma->time[0]) | (t >= plasma->time[plasma->ntime - 1]),
+        (rho < plasma->rho[0]) || (rho >= plasma->rho[plasma->nrho - 1]) ||
+            (t < plasma->time[0]) || (t >= plasma->time[plasma->ntime - 1]),
         ERR_INTERPOLATED_OUTSIDE_RANGE, DATA_PLASMA_DYNAMIC1D_C);
 
     size_t i_rho = 0;
-    for (size_t i = 1; i < plasma->nrho; ++i)
+    for (size_t i = 0; i < plasma->nrho; ++i)
         i_rho += (plasma->rho[i] <= rho);
     i_rho--;
 
-    real t_rho = (rho - plasma->rho[i_rho]) /
-                 (plasma->rho[i_rho + 1] - plasma->rho[i_rho]);
-
     size_t i_time = 0;
-    for (size_t i = 1; i < plasma->ntime; ++i)
+    for (size_t i = 0; i < plasma->ntime; ++i)
         i_time += (plasma->time[i] <= t);
     i_time--;
+
+    i_rho = err ? 0 : i_rho;
+    i_time = err ? 0 : i_time;
+
+    real t_rho = (rho - plasma->rho[i_rho]) /
+                 (plasma->rho[i_rho + 1] - plasma->rho[i_rho]);
 
     real t_time = (t - plasma->time[i_time]) /
                   (plasma->time[i_time + 1] - plasma->time[i_time]);
 
     real p11, p12, p21, p22, p1, p2;
-    p11 = plasma->vtor[i_time * plasma->nrho + i_rho];
-    p12 = plasma->vtor[(i_time + 1) * plasma->nrho + i_rho];
-    p21 = plasma->vtor[i_time * plasma->nrho + i_rho + 1];
-    p22 = plasma->vtor[(i_time + 1) * plasma->nrho + i_rho + 1];
+    p11 = plasma->vtor[i_rho * plasma->ntime + i_time];
+    p12 = plasma->vtor[(i_rho + 1) * plasma->ntime + i_time];
+    p21 = plasma->vtor[i_rho * plasma->ntime + i_time + 1];
+    p22 = plasma->vtor[(i_rho + 1) * plasma->ntime + i_time + 1];
 
     p1 = p11 + t_rho * (p12 - p11);
     p2 = p21 + t_rho * (p22 - p21);

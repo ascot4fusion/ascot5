@@ -77,7 +77,7 @@ err_t BfieldSpline3D_eval_psi_dpsi(
 {
     err_t err = 0;
     real psi_dpsi_temp[6];
-    int interperr = Spline2D_eval_f_df(psi_dpsi_temp, &bfield->psi, r, z);
+    int interperr = Spline2D_eval_f_ddf(psi_dpsi_temp, &bfield->psi, r, z);
     psi_dpsi[0] = psi_dpsi_temp[0];
     psi_dpsi[1] = psi_dpsi_temp[1];
     psi_dpsi[2] = 0;
@@ -102,7 +102,7 @@ err_t BfieldSpline3D_eval_b(
         err, interperr, ERR_INTERPOLATED_OUTSIDE_RANGE, DATA_BFIELD_SPLINE3D_C);
 
     real psi_dpsi[6];
-    interperr = Spline2D_eval_f_df(psi_dpsi, &bfield->psi, r, z);
+    interperr = Spline2D_eval_f_ddf(psi_dpsi, &bfield->psi, r, z);
     b[0] -= psi_dpsi[2] / r;
     b[2] += psi_dpsi[1] / r;
 
@@ -140,7 +140,7 @@ err_t BfieldSpline3D_eval_b_db(
         err, interperr, ERR_INTERPOLATED_OUTSIDE_RANGE, DATA_BFIELD_SPLINE3D_C);
 
     real psi_dpsi[6];
-    interperr = Spline2D_eval_f_df(psi_dpsi, &bfield->psi, r, z);
+    interperr = Spline2D_eval_f_ddf(psi_dpsi, &bfield->psi, r, z);
 
     b_db[0] -= psi_dpsi[2] / r;
     b_db[3] += psi_dpsi[2] / (r * r) - psi_dpsi[5] / r;

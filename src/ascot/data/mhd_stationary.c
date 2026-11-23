@@ -84,8 +84,8 @@ err_t MhdStationary_eval_alpha_Phi(
         }
 
         real a_da[3], phi_dphi[3];
-        interperr += Spline1D_eval_f_df(a_da, &(mhd->alpha[i]), rho[0]);
-        interperr += Spline1D_eval_f_df(phi_dphi, &(mhd->phi[i]), rho[0]);
+        interperr += Spline1D_eval_f_ddf(a_da, &(mhd->alpha[i]), rho[0]);
+        interperr += Spline1D_eval_f_ddf(phi_dphi, &(mhd->phi[i]), rho[0]);
 
         /* The interpolation returns dx/drho but we require dx/dpsi. The second
            order derivatives are not needed anywhere */

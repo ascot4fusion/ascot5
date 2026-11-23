@@ -24,7 +24,8 @@ def test_input_create_write_read(tree):
     tree.create_inputprototype(bval=data)
     assert all(tree[CATEGORY].active.bval == data)
     assert not tree[CATEGORY].active.bval is data
-    tree[CATEGORY].active.bval[0] = 1
+    with pytest.raises(ValueError):
+        tree[CATEGORY].active.bval[0] = 1
     assert all(tree[CATEGORY].active.bval == data)
 
 

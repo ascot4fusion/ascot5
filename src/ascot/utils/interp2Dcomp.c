@@ -200,7 +200,7 @@ int Spline2D_eval_f(real f[1], Spline2D *spline, real x, real y)
     return err;
 }
 
-int Spline2D_eval_f_df(real f_df[6], Spline2D *spline, real x, real y)
+int Spline2D_eval_f_ddf(real f_df[6], Spline2D *spline, real x, real y)
 {
 
     /* Make sure periodic coordinates are within [min, max] region. */

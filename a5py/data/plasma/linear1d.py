@@ -36,8 +36,8 @@ init_fun(
     "PlasmaLinear1D_init",
     ctypes.POINTER(Struct),
     *(2 * [ctypes.c_size_t]),
-    *(2 * [ndpointer(ctypes.c_int32)]),
-    *(8 * [ndpointer(ctypes.c_double)]),
+    *(3 * [ndpointer(ctypes.c_int32)]),
+    *(7 * [ndpointer(ctypes.c_double)]),
     restype=ctypes.c_int32,
 )
 
@@ -82,7 +82,7 @@ class PlasmaLinear1D(InputVariant):
         return unyt.unyt_array([s.mass for s in self.species], dtype="f8")
 
     @property
-    def species(self) -> list[Species]:
+    def species(self) -> tuple[Species]:
         """The ion species that make up the plasma."""
         if self._cdata is not None:
             anum = self._cdata.readonly_carray("anum", (self.nion,))
@@ -90,7 +90,7 @@ class PlasmaLinear1D(InputVariant):
         else:
             assert self._file is not None
             anum, znum = self._file.read("anum"), self._file.read("znum")
-        return [Species.from_znumanum(z, a) for a, z in zip(anum, znum)]
+        return tuple(Species.from_znumanum(z, a) for a, z in zip(anum, znum))
 
     @property
     def rhogrid(self) -> unyt.unyt_array:
@@ -109,7 +109,7 @@ class PlasmaLinear1D(InputVariant):
                 (self.nion + 1, self.nrho),
                 "m**(-3)",
             )
-            return data.T[:, 1:]
+            return data[1:, :].T
         assert self._file is not None
         return self._file.read("ni")
 
@@ -117,8 +117,8 @@ class PlasmaLinear1D(InputVariant):
     def Ti(self) -> unyt.unyt_array:
         """Ion temperature."""
         if self._cdata is not None:
-            data = self._cdata.readonly_carray("temperature", (self.nrho, 2), "J")
-            return data[:, 0].to("eV")
+            data = self._cdata.readonly_carray("temperature", (2, self.nrho), "J", convert="eV")
+            return data[1, :]
         assert self._file is not None
         return self._file.read("Ti")
 
@@ -131,7 +131,7 @@ class PlasmaLinear1D(InputVariant):
                 (self.nion + 1, self.nrho),
                 "m**(-3)",
             )
-            return data.T[:, 0]
+            return data[0, :]
         assert self._file is not None
         return self._file.read("ne")
 
@@ -139,8 +139,8 @@ class PlasmaLinear1D(InputVariant):
     def Te(self) -> unyt.unyt_array:
         """Electron temperature."""
         if self._cdata is not None:
-            data = self._cdata.readonly_carray("temperature", (self.nrho, 2), "J")
-            return data[:, 1].to("eV")
+            data = self._cdata.readonly_carray("temperature", (2, self.nrho), "J", convert="eV")
+            return data[0,:]
         assert self._file is not None
         return self._file.read("Te")
 
@@ -148,7 +148,7 @@ class PlasmaLinear1D(InputVariant):
     def charge(self) -> unyt.unyt_array:
         """Ion charge states."""
         if self._cdata is not None:
-            return self._cdata.readonly_carray("charge", (self.nion,), "C").to("e")
+            return self._cdata.readonly_carray("charge", (self.nion+1,), "e")[1:]
         assert self._file is not None
         return self._file.read("charge")
 
@@ -182,13 +182,13 @@ class PlasmaLinear1D(InputVariant):
             len(species),
             anum,
             znum,
+            charge.to("e").v.astype("int32"),
             mass.to("kg").v,
-            charge.to("C").v.astype("f8"),
             rhogrid.v,
             Te.to("J").v,
             Ti.to("J").v,
             ne.v,
-            ni.v,
+            np.ascontiguousarray(ni.v.T),
             rotation.v,
         ):
             self._cdata = None
@@ -202,13 +202,12 @@ class PlasmaLinear1D(InputVariant):
             "Ti",
             "ne",
             "Te",
+            "anum",
+            "znum",
             "charge",
             "rotation",
         ]:
             self._file.write(field, getattr(self, field))
-
-        self._file.write("anum", self.anum)
-        self._file.write("znum", self.znum)
 
     def export(self) -> dict[str, unyt.unyt_array | list[Species]]:
         fields = [
@@ -219,9 +218,10 @@ class PlasmaLinear1D(InputVariant):
             "Te",
             "charge",
             "rotation",
-            "species",
         ]
-        return {field: getattr(self, field) for field in fields}
+        out = {field: getattr(self, field).copy() for field in fields}
+        out["species"] = list(self.species)
+        return out
 
     def stage(self) -> None:
         super().stage()
@@ -323,6 +323,9 @@ class CreateMixin(TreeMixin):
         species = [
             s if isinstance(s, Species) else Species.from_string(s) for s in species
         ]
+        if len(species) == 0:
+            raise ValueError("At least one species must be specified.")
+
         nion = len(species)
         znum = np.array([s.znum for s in species])
 
@@ -335,7 +338,7 @@ class CreateMixin(TreeMixin):
         with utils.validate_variables() as v:
             ni = v.validate("ni", ni, (nrho, nion), "m**(-3)")
             Ti = v.validate("Ti", Ti, (nrho,), "eV")
-            charge = v.validate("charge", charge, (nion,), "e", default=znum)
+            charge = v.validate("charge", charge, (nion,), "e", "i4", default=znum)
             rotation = v.validate(
                 "rotation", rotation, (nrho,), "rad/s", default=np.full(nrho, 0)
             )

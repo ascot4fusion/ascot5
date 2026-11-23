@@ -21,18 +21,18 @@ class Struct(DataStruct):
     """Python wrapper for the struct in plasma_1Dt.h."""
 
     _fields_ = [
-        ("nrho", ctypes.c_int32),
-        ("ntime", ctypes.c_int32),
-        ("nspecies", ctypes.c_int32),
+        ("nrho", ctypes.c_size_t),
+        ("ntime", ctypes.c_size_t),
+        ("nspecies", ctypes.c_size_t),
         ("anum", ctypes.POINTER(ctypes.c_int32)),
         ("znum", ctypes.POINTER(ctypes.c_int32)),
         ("charge", ctypes.POINTER(ctypes.c_int32)),
         ("mass", ctypes.POINTER(ctypes.c_double)),
         ("rho", ctypes.POINTER(ctypes.c_double)),
         ("time", ctypes.POINTER(ctypes.c_double)),
-        ("temp", ctypes.POINTER(ctypes.c_double)),
-        ("dens", ctypes.POINTER(ctypes.c_double)),
         ("vtor", ctypes.POINTER(ctypes.c_double)),
+        ("temperature", ctypes.POINTER(ctypes.c_double)),
+        ("density", ctypes.POINTER(ctypes.c_double)),
     ]
 
 
@@ -40,8 +40,8 @@ init_fun(
     "PlasmaDynamic1D_init",
     ctypes.POINTER(Struct),
     *(3 * [ctypes.c_size_t]),
-    *(2 * [ndpointer(ctypes.c_int32)]),
-    *(9 * [ndpointer(ctypes.c_double)]),
+    *(3 * [ndpointer(ctypes.c_int32)]),
+    *(8 * [ndpointer(ctypes.c_double)]),
 )
 
 init_fun("PlasmaDynamic1D_free", ctypes.POINTER(Struct))
@@ -52,6 +52,56 @@ class PlasmaDynamic1D(InputVariant):
     """Time-dependent radial plasma profile."""
 
     @property
+    def nrho(self) -> int:
+        """Number of radial grid points."""
+        if self._cdata is not None:
+            return int(self._cdata.readonly_carray("nrho", ()))
+        assert self._file is not None
+        return self._file.read("rhogrid").size
+
+    @property
+    def ntime(self) -> int:
+        """Number of axial grid points."""
+        if self._cdata is not None:
+            return int(self._cdata.readonly_carray("ntime", ()))
+        assert self._file is not None
+        return self._file.read("timegrid").size
+
+    @property
+    def nion(self) -> int:
+        """Number of ion species."""
+        if self._cdata is not None:
+            return int(self._cdata.readonly_carray("nspecies", ()) - 1)
+        assert self._file is not None
+        return self._file.read("znum").size
+
+    @property
+    def anum(self) -> np.ndarray:
+        """Atomic mass number of each ion species."""
+        return np.array([s.anum for s in self.species], dtype="i4")
+
+    @property
+    def znum(self) -> np.ndarray:
+        """Atomic number of each ion species."""
+        return np.array([s.znum for s in self.species], dtype="i4")
+
+    @property
+    def mass(self) -> unyt.unyt_array:
+        """Mass of each ion species."""
+        return unyt.unyt_array([s.mass for s in self.species], dtype="f8")
+
+    @property
+    def species(self) -> tuple[Species]:
+        """The ion species that make up the plasma."""
+        if self._cdata is not None:
+            anum = self._cdata.readonly_carray("anum", (self.nion,))
+            znum = self._cdata.readonly_carray("znum", (self.nion,))
+        else:
+            assert self._file is not None
+            anum, znum = self._file.read("anum"), self._file.read("znum")
+        return tuple(Species.from_znumanum(z, a) for a, z in zip(anum, znum))
+
+    @property
     def rhogrid(self) -> unyt.unyt_array:
         r"""Radial grid in :math:`\rho` which the data is tabulated."""
         if self._cdata is not None:
@@ -60,10 +110,10 @@ class PlasmaDynamic1D(InputVariant):
         return self._file.read("rhogrid")
 
     @property
-    def rhogrid(self) -> unyt.unyt_array:
+    def timegrid(self) -> unyt.unyt_array:
         r"""Time grid in which the data is tabulated."""
         if self._cdata is not None:
-            return self._cdata.readonly_carray("rho", (self.ntime,), "s")
+            return self._cdata.readonly_carray("time", (self.ntime,), "s")
         assert self._file is not None
         return self._file.read("timegrid")
 
@@ -76,7 +126,7 @@ class PlasmaDynamic1D(InputVariant):
                 (self.nion + 1, self.nrho, self.ntime),
                 "m**(-3)",
             )
-            return data.T[:, 1:]
+            return data[1:, :].transpose(1,2,0)
         assert self._file is not None
         return self._file.read("ni")
 
@@ -85,9 +135,9 @@ class PlasmaDynamic1D(InputVariant):
         """Ion temperature."""
         if self._cdata is not None:
             data = self._cdata.readonly_carray(
-                "temperature", (self.nrho, self.ntime, 2), "J"
+                "temperature", (2, self.nrho, self.ntime), "J", convert="eV",
             )
-            return data[:, 0].to("eV")
+            return data[1, :]
         assert self._file is not None
         return self._file.read("Ti")
 
@@ -100,7 +150,7 @@ class PlasmaDynamic1D(InputVariant):
                 (self.nion + 1, self.nrho, self.ntime),
                 "m**(-3)",
             )
-            return data.T[:, 0]
+            return data[0, :]
         assert self._file is not None
         return self._file.read("ne")
 
@@ -109,9 +159,9 @@ class PlasmaDynamic1D(InputVariant):
         """Electron temperature."""
         if self._cdata is not None:
             data = self._cdata.readonly_carray(
-                "temperature", (self.nrho, self.ntime, 2), "J"
+                "temperature", (2, self.nrho, self.ntime), "J", convert="eV",
             )
-            return data[:, 1].to("eV")
+            return data[0, :]
         assert self._file is not None
         return self._file.read("Te")
 
@@ -119,7 +169,7 @@ class PlasmaDynamic1D(InputVariant):
     def charge(self) -> unyt.unyt_array:
         """Ion charge states."""
         if self._cdata is not None:
-            return self._cdata.readonly_carray("charge", (self.nion,), "C").to("e")
+            return self._cdata.readonly_carray("charge", (self.nion+1,), "e")[1:]
         assert self._file is not None
         return self._file.read("charge")
 
@@ -136,6 +186,7 @@ class PlasmaDynamic1D(InputVariant):
         self,
         species: list[Species],
         rhogrid: unyt.unyt_array,
+        timegrid: unyt.unyt_array,
         ni: unyt.unyt_array,
         Ti: unyt.unyt_array,
         ne: unyt.unyt_array,
@@ -150,16 +201,18 @@ class PlasmaDynamic1D(InputVariant):
         if LIBASCOT.PlasmaDynamic1D_init(
             ctypes.byref(self._cdata),
             rhogrid.size,
+            timegrid.size,
             len(species),
             anum,
             znum,
+            charge.to("e").v.astype("int32"),
             mass.to("kg").v,
-            charge.to("C").v.astype("f8"),
             rhogrid.v,
+            timegrid.v,
             Te.to("J").v,
             Ti.to("J").v,
-            ne.v,
-            ni.v,
+            np.ascontiguousarray(ne.v),
+            np.ascontiguousarray(ni.transpose(2,0,1).v),
             rotation.v,
         ):
             self._cdata = None
@@ -174,13 +227,12 @@ class PlasmaDynamic1D(InputVariant):
             "Ti",
             "ne",
             "Te",
+            "anum",
+            "znum",
             "charge",
             "rotation",
         ]:
             self._file.write(field, getattr(self, field))
-
-        self._file.write("anum", self.anum)
-        self._file.write("znum", self.znum)
 
     def export(self) -> dict[str, unyt.unyt_array | list[Species]]:
         fields = [
@@ -192,9 +244,10 @@ class PlasmaDynamic1D(InputVariant):
             "Te",
             "charge",
             "rotation",
-            "species",
         ]
-        return {field: getattr(self, field) for field in fields}
+        out = {field: getattr(self, field).copy() for field in fields}
+        out["species"] = list(self.species)
+        return out
 
     def stage(self) -> None:
         super().stage()
@@ -299,12 +352,15 @@ class CreateMixin(TreeMixin):
         species = [
             s if isinstance(s, Species) else Species.from_string(s) for s in species
         ]
+        if len(species) == 0:
+            raise ValueError("At least one species must be specified.")
+
         nion = len(species)
         znum = np.array([s.znum for s in species])
 
         with utils.validate_variables() as v:
-            rhogrid = v.validate("rhogrid", rhogrid, (-1,), "m")
-            timegrid = v.validate("timegrid", timegrid, (-1,), "m")
+            rhogrid = v.validate("rhogrid", rhogrid, (-1,), "1")
+            timegrid = v.validate("timegrid", timegrid, (-1,), "s")
 
         nrho, ntime = rhogrid.size, timegrid.size
         ni = utils.scalar2array(ni, (nrho, ntime, nion))
@@ -312,13 +368,13 @@ class CreateMixin(TreeMixin):
         with utils.validate_variables() as v:
             ni = v.validate("ni", ni, (nrho, ntime, nion), "m**(-3)")
             Ti = v.validate("Ti", Ti, (nrho, ntime), "eV")
-            charge = v.validate("charge", charge, (nion,), "e", default=znum)
+            charge = v.validate("charge", charge, (nion,), "e", "i4", default=znum)
             rotation = v.validate(
                 "rotation",
                 rotation,
                 (nrho, ntime),
                 "rad/s",
-                default=np.full(nrho, ntime, 0),
+                default=np.full((nrho, ntime), 0),
             )
 
         if charge is None:

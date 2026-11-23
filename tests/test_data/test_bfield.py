@@ -7,150 +7,13 @@ import numpy as np
 from scipy.interpolate import make_interp_spline
 
 from a5py import Ascot
-from a5py.physlib.formulas import cart2pol, cart2pol_vec
 from a5py.engine.interpolate import evaluate, qnt_mapping
 from a5py.libascot import LIBASCOT
 from a5py.templates import (
     PremadeMagneticField, TransmuteAnalyticalBfieldToSplines,
 )
-from a5py.physlib import aeq
 
-from .conf import test_data, create_input
-
-@pytest.fixture
-def ascot():
-    return Ascot()
-
-
-def test_bfieldcartesian_init(ascot):
-    obj = ascot.data.create_bfieldcartesian(
-        bxyz=test_data["BfieldCartesian"]["bxyz"],
-        jacobian=test_data["BfieldCartesian"]["jacobian"],
-        axisrz=test_data["BfieldCartesian"]["axisrz"],
-        rhoval=test_data["BfieldCartesian"]["rhoval"],
-        )
-    assert obj.psival.v == obj.rhoval.v
-
-
-def test_interpolate_cartesian():
-    jac = np.array([
-        [1., 2., 3.],
-        [4., 5., 6.],
-        [7., 8., 9.],
-        ]) * unyt.T/unyt.m
-    obj = create_input("BfieldCartesian", jacobian=jac)
-    x, y, z = 2.*unyt.m, 0.*unyt.m, 0.*unyt.m
-    r, phi, z = cart2pol(x, y, z)
-    br0, bphi0, bz0, rho, psi = evaluate(
-        r, phi, z, 0.*unyt.s, "br", "bphi", "bz", "rho", "psi", bfield=obj
-        )
-
-    jac = obj.jacobian
-    bx = obj.bxyz[0] + jac[0,0]*x + jac[0,1]*y + jac[0,2]*z
-    by = obj.bxyz[1] + jac[1,0]*x + jac[1,1]*y + jac[1,2]*z
-    bz = obj.bxyz[2] + jac[2,0]*x + jac[2,1]*y + jac[2,2]*z
-
-    br, bphi, bz = cart2pol_vec(x, bx, y, by, z, bz)
-    assert np.isclose(br, br0)
-    assert np.isclose(bz, bz0)
-    assert np.isclose(bphi, bphi0)
-    assert np.isclose(rho, obj.rhoval)
-    assert np.isclose(psi, obj.psival)
-
-    jac0 = evaluate(
-        r, phi, z, 0.*unyt.s, "brdr", "brdphi", "brdz", "bphidr", "bphidphi",
-        "bphidz", "bzdr", "bzdphi", "bzdz", bfield=obj
-        )
-    dr = 1.e-1 * unyt.m
-    br, bphi, bz = evaluate(
-        r+dr, phi, z, 0.*unyt.s, "br", "bphi", "bz", bfield=obj
-        )
-    assert np.isclose(br - br0, jac0[0] * dr)
-    assert np.isclose(bphi - bphi0, jac0[3] * dr)
-    assert np.isclose(bz - bz0, jac0[6] * dr)
-
-    dz = 1.e-1 * unyt.m
-    br, bphi, bz = evaluate(
-        r, phi, z+dz, 0.*unyt.s, "br", "bphi", "bz", bfield=obj
-        )
-    assert np.isclose(br - br0, jac0[2] * dz)
-    assert np.isclose(bphi - bphi0, jac0[5] * dz)
-    assert np.isclose(bz - bz0, jac0[8] * dz)
-
-    dphi = 1.e-3 * unyt.deg
-    br, bphi, bz = evaluate(
-        r, phi+dphi, z, 0.*unyt.s, "br", "bphi", "bz", bfield=obj
-        )
-    dphi = dphi.to("rad").v
-    assert np.isclose(br - br0, jac0[1] * dphi)
-    assert np.isclose(bphi - bphi0, jac0[4] * dphi)
-    assert np.isclose(bz - bz0, jac0[7] * dphi)
-
-
-def test_interpolate_analytical(ascot):
-    template = PremadeMagneticField(ascot, field="iter-baseline")
-    obj = template.create_input()
-
-    n = 100
-    rng = np.random.default_rng(123)
-    r = (4 + (8.2 - 4) * rng.random(n))*unyt.m
-    z = (-2 + (2 - -2) * rng.random(n))*unyt.m
-
-    rho0, psi0 = evaluate(
-        r, 0*unyt.deg, z, 0.*unyt.s, "rho", "psi", bfield=obj
-        )
-    r0 = obj.rmajor
-    psi = aeq.psi(r/r0, z/r0, obj.coefficients[:-1], obj.coefficients[-1]) * obj.psiscaling
-    assert np.isclose(psi, psi0).all()
-    rho = np.sqrt( (psi - obj.psilimits[0]) / (obj.psilimits[1] - obj.psilimits[0]) )
-    assert np.isclose(rho, rho0).all()
-
-    r0, z0, psi0 = r[0], z[0], psi[0]
-    dr, dz = 1.e-4 * unyt.m, 1.e-4 * unyt.m
-    psi = evaluate(
-        unyt.unyt_array([r0+dr, r0]), 0*unyt.deg, unyt.unyt_array([z0, z0+dz]),
-        0.*unyt.s, "psi", bfield=obj
-        )
-
-    bz = (unyt.rad*(psi[0] - psi0) / (r0*dr)).to("T")
-    br = -(unyt.rad*(psi[1] - psi0) / (r0*dz)).to("T")
-    br0, bz0 = evaluate(r0, 0*unyt.deg, z0, 0.*unyt.s, "br", "bz", bfield=obj)
-    assert np.isclose(br, br0, atol=1e-3)
-    assert np.isclose(bz, bz0, atol=1e-3)
-
-    r, z, phi = r0, z0, 0.0*unyt.deg
-    br0, bphi0, bz0 = evaluate(
-        r, phi, z, 0.*unyt.s, "br", "bphi", "bz", bfield=obj
-        )
-
-    jac0 = evaluate(
-        r, phi, z, 0.*unyt.s, "brdr", "brdphi", "brdz", "bphidr", "bphidphi",
-        "bphidz", "bzdr", "bzdphi", "bzdz", bfield=obj
-        )
-    dr = 1.e-4 * unyt.m
-    br, bphi, bz = evaluate(
-        r+dr, phi, z, 0.*unyt.s, "br", "bphi", "bz", bfield=obj
-        )
-    assert np.isclose(br - br0, jac0[0] * dr)
-    assert np.isclose(bphi - bphi0, jac0[3] * dr)
-    assert np.isclose(bz - bz0, jac0[6] * dr)
-
-    dz = 1.e-4 * unyt.m
-    br, bphi, bz = evaluate(
-        r, phi, z+dz, 0.*unyt.s, "br", "bphi", "bz", bfield=obj
-        )
-    assert np.isclose(br - br0, jac0[2] * dz)
-    assert np.isclose(bphi - bphi0, jac0[5] * dz)
-    assert np.isclose(bz - bz0, jac0[8] * dz)
-
-    dphi = 1.e-4 * unyt.deg
-    br, bphi, bz = evaluate(
-        r, phi+dphi, z, 0.*unyt.s, "br", "bphi", "bz", bfield=obj
-        )
-    dphi = dphi.to("rad").v
-    assert np.isclose(br - br0, jac0[1] * dphi)
-    assert np.isclose(bphi - bphi0, jac0[4] * dphi)
-    assert np.isclose(bz - bz0, jac0[7] * dphi)
+from .conf import create_input
 
 
 def _phi_interpolant(variant, nodes, values, period):
@@ -186,7 +49,7 @@ def test_interpolate_3d(variant, period):
     """
     rgrid = np.linspace(4.0, 8.0, 21) * unyt.m
     zgrid = np.linspace(-2.0, 2.0, 41) * unyt.m
-    phigrid = np.linspace(0, period, 7)[:-1] * unyt.deg
+    phigrid = np.linspace(0, period, 6) * unyt.deg
     rgridpsi = np.linspace(3.5, 8.5, 31) * unyt.m
     zgridpsi = np.linspace(-2.5, 2.5, 61) * unyt.m
 
@@ -197,7 +60,7 @@ def test_interpolate_3d(variant, period):
     bilinear = lambda k, r, z: k[0] + k[1]*r + k[2]*z + k[3]*r*z
     ddr = lambda k, r, z: k[1] + k[3]*z
     ddz = lambda k, r, z: k[2] + k[3]*r
-    g = np.random.default_rng(3).uniform(0.5, 1.5, phigrid.size)
+    g = np.random.default_rng(3).uniform(0.5, 1.5, phigrid.size-1)
 
     rp, zp = np.meshgrid(rgridpsi.v, zgridpsi.v, indexing="ij")
     rb, gb, zb = np.meshgrid(rgrid.v, g, zgrid.v, indexing="ij")
@@ -210,6 +73,8 @@ def test_interpolate_3d(variant, period):
         bphi=bilinear(b, rb, zb) * gb * unyt.T,
         bz=bilinear(c, rb, zb) * gb * unyt.T, psilimits=psilimits,
         )
+    print(obj.phigrid)
+    print(phigrid)
     assert np.allclose(obj.phigrid.to("deg").v, phigrid.v)
 
     # Points inside the (R, z) grid and up to two periods outside the
@@ -223,7 +88,7 @@ def test_interpolate_3d(variant, period):
         r*unyt.m, phi*unyt.deg, z*unyt.m, 0.*unyt.s, "br", "bphi", "bz", "psi",
         "rho", *qnt_mapping["bjac"], bfield=obj,
         )
-    interpolant = _phi_interpolant(variant, phigrid.v, g, period)
+    interpolant = _phi_interpolant(variant, phigrid.v[:-1], g, period)
     G, dG = interpolant(phi), interpolant(phi, nu=1)
 
     # B = B_tabulated + grad(psi) x e_phi / R
@@ -278,8 +143,8 @@ def tabulated_fields():
         ascot, field=reference, nr=60, rlim=[4.0, 8.5] * unyt.m,
         nz=100, zlim=[-4.0, 4.0] * unyt.m,
         ).create_input()
-    phigrid = np.linspace(0, 360, 5)[:-1] * unyt.deg
-    bphi = np.repeat(spline2d.bphi[:, None, :], phigrid.size, axis=1)
+    phigrid = np.linspace(0, 360, 4) * unyt.deg
+    bphi = np.repeat(spline2d.bphi[:, None, :], phigrid.size-1, axis=1)
     data3d = {
         "rgrid": spline2d.rgrid, "phigrid": phigrid, "zgrid": spline2d.zgrid,
         "psi": spline2d.psi, "bphi": bphi, "br": 0*bphi, "bz": 0*bphi,

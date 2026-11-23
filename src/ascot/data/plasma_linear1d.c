@@ -9,7 +9,7 @@
 
 int PlasmaLinear1D_init(
     PlasmaLinear1D *plasma, size_t nrho, size_t nion, int anum[nion],
-    int znum[nion], real mass[nion], int charge[nion], real rho[nrho],
+    int znum[nion], int charge[nion], real mass[nion], real rho[nrho],
     real Te[nrho], real Ti[nrho], real ne[nrho], real ni[nrho * nion],
     real vtor[nrho])
 {
@@ -28,8 +28,8 @@ int PlasmaLinear1D_init(
     {
         plasma->znum[i] = znum[i];
         plasma->anum[i] = anum[i];
-        plasma->mass[i+1] = mass[i];
-        plasma->charge[i+1] = charge[i];
+        plasma->mass[i + 1] = mass[i];
+        plasma->charge[i + 1] = charge[i];
     }
     plasma->rho = (real *)malloc(nrho * sizeof(real));
     plasma->vtor = (real *)malloc(nrho * sizeof(real));
@@ -85,7 +85,7 @@ err_t PlasmaLinear1D_eval_temperature(
     size_t i_rho = 0;
     for (size_t i = 0; i < plasma->nrho; ++i)
         i_rho += (plasma->rho[i] <= rho);
-    //i_rho--;
+    i_rho--;
 
     real t_rho = (rho - plasma->rho[i_rho]) /
                  (plasma->rho[i_rho + 1] - plasma->rho[i_rho]);
@@ -103,13 +103,13 @@ err_t PlasmaLinear1D_eval_density(
 
     err_t err = 0;
     err = ERROR_CHECK(
-        err, (rho < plasma->rho[0]) | (rho >= plasma->rho[plasma->nrho - 1]),
+        err, (rho < plasma->rho[0]) || (rho >= plasma->rho[plasma->nrho - 1]),
         ERR_INTERPOLATED_OUTSIDE_RANGE, DATA_PLASMA_LINEAR1D_C);
 
     size_t i_rho = 0;
     for (size_t i = 0; i < plasma->nrho; ++i)
         i_rho += (plasma->rho[i] <= rho);
-    //i_rho--;
+    i_rho--;
 
     real t_rho = (rho - plasma->rho[i_rho]) /
                  (plasma->rho[i_rho + 1] - plasma->rho[i_rho]);
@@ -126,13 +126,14 @@ err_t PlasmaLinear1D_eval_nT(
 {
     err_t err = 0;
     err = ERROR_CHECK(
-        err, (rho < plasma->rho[0]) | (rho >= plasma->rho[plasma->nrho - 1]),
+        err, (rho < plasma->rho[0]) || (rho >= plasma->rho[plasma->nrho - 1]),
         ERR_INTERPOLATED_OUTSIDE_RANGE, DATA_PLASMA_LINEAR1D_C);
 
     size_t i_rho = 0;
     for (size_t i = 0; i < plasma->nrho; ++i)
         i_rho += (plasma->rho[i] <= rho);
     i_rho--;
+    i_rho = err ? 0 : i_rho;
 
     real t_rho = (rho - plasma->rho[i_rho]) /
                  (plasma->rho[i_rho + 1] - plasma->rho[i_rho]);
@@ -165,7 +166,7 @@ err_t PlasmaLinear1D_eval_flow(
 {
     err_t err = 0;
     err = ERROR_CHECK(
-        err, (rho < plasma->rho[0]) | (rho >= plasma->rho[plasma->nrho - 1]),
+        err, (rho < plasma->rho[0]) || (rho >= plasma->rho[plasma->nrho - 1]),
         ERR_INTERPOLATED_OUTSIDE_RANGE, DATA_PLASMA_LINEAR1D_C);
 
     size_t i_rho = 0;

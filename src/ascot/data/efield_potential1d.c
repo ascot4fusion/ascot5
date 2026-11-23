@@ -41,7 +41,7 @@ err_t EfieldPotential1D_eval_e(
     rho_drho[2] = rho_drho[2] / r;
 
     real vpot[3];
-    int interperr = Spline1D_eval_f_df(vpot, &efield->potential, rho_drho[0]);
+    int interperr = Spline1D_eval_f_ddf(vpot, &efield->potential, rho_drho[0]);
     e[0] = -vpot[1] * rho_drho[1];
     e[1] = -vpot[1] * rho_drho[2];
     e[2] = -vpot[1] * rho_drho[3];

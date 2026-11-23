@@ -86,8 +86,8 @@ err_t MhdDynamic_eval_alpha_Phi(
 
         /* Get interpolated values */
         real a_da[6], phi_dphi[6];
-        interperr += Spline2D_eval_f_df(a_da, &(mhd->alpha[i]), rho[0], t);
-        interperr += Spline2D_eval_f_df(phi_dphi, &(mhd->phi[i]), rho[0], t);
+        interperr += Spline2D_eval_f_ddf(a_da, &(mhd->alpha[i]), rho[0], t);
+        interperr += Spline2D_eval_f_ddf(phi_dphi, &(mhd->phi[i]), rho[0], t);
 
         /* The interpolation returns dx/drho but we require dx/dpsi. Second
            order derivatives are not needed. */

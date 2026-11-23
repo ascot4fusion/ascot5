@@ -67,7 +67,7 @@ err_t BfieldSpline2D_eval_psi_dpsi(
 {
     err_t err = 0;
     real psi_dpsi_temp[6];
-    int interperr = Spline2D_eval_f_df(psi_dpsi_temp, &bfield->psi, r, z);
+    int interperr = Spline2D_eval_f_ddf(psi_dpsi_temp, &bfield->psi, r, z);
     psi_dpsi[0] = psi_dpsi_temp[0];
     psi_dpsi[1] = psi_dpsi_temp[1];
     psi_dpsi[2] = 0;
@@ -90,7 +90,7 @@ err_t BfieldSpline2D_eval_b(real b[3], real r, real z, BfieldSpline2D *bfield)
         err, interperr, ERR_INTERPOLATED_OUTSIDE_RANGE, DATA_BFIELD_SPLINE2D_C);
 
     real psi_dpsi[6];
-    interperr = Spline2D_eval_f_df(psi_dpsi, &bfield->psi, r, z);
+    interperr = Spline2D_eval_f_ddf(psi_dpsi, &bfield->psi, r, z);
     b[0] -= psi_dpsi[2] / r;
     b[2] += psi_dpsi[1] / r;
 
@@ -106,19 +106,19 @@ err_t BfieldSpline2D_eval_b_db(
     real b_db_temp[6];
     int interperr = 0;
 
-    interperr += Spline2D_eval_f_df(b_db_temp, &bfield->br, r, z);
+    interperr += Spline2D_eval_f_ddf(b_db_temp, &bfield->br, r, z);
     b_db[0] = b_db_temp[0];
     b_db[3] = b_db_temp[1];
     b_db[4] = 0;
     b_db[5] = b_db_temp[2];
 
-    interperr += Spline2D_eval_f_df(b_db_temp, &bfield->bphi, r, z);
+    interperr += Spline2D_eval_f_ddf(b_db_temp, &bfield->bphi, r, z);
     b_db[1] = b_db_temp[0];
     b_db[6] = b_db_temp[1];
     b_db[7] = 0;
     b_db[8] = b_db_temp[2];
 
-    interperr += Spline2D_eval_f_df(b_db_temp, &bfield->bz, r, z);
+    interperr += Spline2D_eval_f_ddf(b_db_temp, &bfield->bz, r, z);
     b_db[2] = b_db_temp[0];
     b_db[9] = b_db_temp[1];
     b_db[10] = 0;
@@ -128,7 +128,7 @@ err_t BfieldSpline2D_eval_b_db(
         err, interperr, ERR_INTERPOLATED_OUTSIDE_RANGE, DATA_BFIELD_SPLINE2D_C);
 
     real psi_dpsi[6];
-    interperr = Spline2D_eval_f_df(psi_dpsi, &bfield->psi, r, z);
+    interperr = Spline2D_eval_f_ddf(psi_dpsi, &bfield->psi, r, z);
     b_db[0] += -psi_dpsi[2] / r;
     b_db[3] += psi_dpsi[2] / (r * r) - psi_dpsi[5] / r;
     b_db[5] += -psi_dpsi[4] / r;
