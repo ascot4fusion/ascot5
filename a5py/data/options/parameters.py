@@ -386,6 +386,50 @@ class OrbitParams(ParameterClass):
     radial_distances: list[float] | tuple[float] | float = (1.0,)
 
 
+@dataclass
+class MomentParams(ParameterClass):
+    r"""Diagnostic that collects 1D radial moments of the distribution.
+
+    All moments listed in ``MOMENTS`` are collected on the same equally spaced
+    rho grid on [0, 1]. Markers outside this interval are not counted.
+
+    Attributes
+    ----------
+    rho_bins : int
+        Number of rho bins on the interval: (>= 0), default=0.
+   """
+
+    rho_bins: int = 0
+
+
+MOMENTS: MappingProxyType = MappingProxyType({
+    "density": "1",
+    "energydensity": "J",
+    "energydensitypar": "J",
+    "jpar": "A*m",
+    "jphi": "A*m",
+    "powerdep": "W",
+    "torque_jxb": "N*m",
+    "torque_coll": "N*m",
+    "torque_pphi": "N*m",
+})
+"""All moments collected by the moment diagnostics.
+The order must match the ``MomentType`` enum in ``diag_data.h``.
+
+- 'density': Particle density, sum of w*dt.
+- 'energydensity': Energy density, sum of E*w*dt.
+- 'energydensitypar': Parallel energy density, sum of E*xi^2*w*dt.
+- 'jpar': Parallel current density, sum of q*v_par*w*dt.
+- 'jphi': Toroidal current density, sum of q*v_phi*w*dt. For guiding centers
+  v_phi = v_par*B_phi/|B| (drifts are neglected).
+- 'powerdep': Collisional power deposition to plasma, sum of -dE_coll*w.
+- 'torque_jxb': j x B torque density, sum of -q*dpsi*w.
+- 'torque_coll': Collisional torque density, sum of
+  -R*dppar_coll*(B_phi/|B|)*w.
+- 'torque_pphi': Torque density from changes in canonical toroidal momentum,
+  sum of -dP_phi*w.
+"""
+
 DIMENSIONS: MappingProxyType = MappingProxyType({
     "r": "m",
     "phi": "rad",

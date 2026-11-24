@@ -250,17 +250,17 @@ class Dist():
             or the distribution.
         """
         distribution = self.distribution
-        multiplier = np.asarray(multiplier)
+        multiplier = np.asanyarray(multiplier)
         if (
             (multiplier.size == 1 or multiplier.shape == distribution.shape)
-             and axes is None
+             and dimensions is None
              ):
             self._distribution *= multiplier
             return
-        elif axes is None:
-            raise ValueError("axes must be specified if b is not a scalar")
+        elif dimensions is None:
+            raise ValueError("dimensions must be specified if b is not a scalar")
 
-        if len(axes) != multiplier.ndim:
+        if len(dimensions) != multiplier.ndim:
             raise ValueError(
                 "The number of `dimensions` must match the number of dimensions"
                 " of `multiplier`."
@@ -269,15 +269,9 @@ class Dist():
         if distribution.ndim < multiplier.ndim:
             raise ValueError("b.ndim cannot exceed a.ndim")
 
-        axes = []
-        for i, dimension in enumerate(self.dimensions):
-            if dimension in dimensions:
-                axes.append(i)
+        names = list(self.bin_edges)
+        axes = [names.index(d) for d in dimensions]
 
-        if len(axes) != len(dimensions):
-            raise ValueError(
-                "asdadad"
-            )
 
         axes = tuple(axes)
         for bdim, ax in enumerate(axes):
@@ -287,9 +281,11 @@ class Dist():
                     f"!= a.shape[{ax}]={distribution.shape[ax]}"
                 )
 
+        multiplier = np.transpose(multiplier, np.argsort(axes))
+
         shape = [1] * distribution.ndim
-        for bdim, ax in enumerate(axes):
-            shape[ax] = multiplier.shape[bdim]
+        for ax in axes:
+            shape[ax] = distribution.shape[ax]
 
         self._distribution *= multiplier.reshape(shape)
 
@@ -306,12 +302,12 @@ class Dist():
         unknown = set(slices) - set(bin_edges)
         if unknown:
             raise KeyError(
-                f"Unknown dimension(s): {unknown}. The dimensions of "
+                f"Unknown dimension(s): {', '.join(map(repr, sorted(unknown)))}. The dimensions of "
                 f"the distribution are: {bin_edges}"
                 )
 
         new_bin_edges = {}
-        for dimension, edges in self.bin_edges.items():
+        for axis, (dimension, edges) in enumerate(self.bin_edges.items()):
             if dimension not in slices:
                 new_bin_edges[dimension] = edges
                 continue
@@ -323,13 +319,17 @@ class Dist():
                     f"slice, got {type(sel).__name__}"
                 )
 
-            if isinstance(sel, int):
-                sel = slice(sel, sel + 1) if sel >= 0 else slice(sel, None)
+            if isinstance(sel, (int, np.integer)):
+                if not -(len(edges)-1) <= sel < (len(edges)-1):
+                    raise ValueError(
+                        f"index {sel} is out of bounds for axis {axis} with size {len(edges)-1}"
+                    )
+                sel = slice(sel % (len(edges)-1), sel % (len(edges)-1) + 1)
                 slices[dimension] = sel
 
             start, stop, step = sel.indices(len(edges) - 1)
             new_bin_edges[dimension] = edges[start : stop + 1 : step]
-            if (start < 0 or stop < 0 or start >= len(edges) - 1 or stop >= len(edges) - 1):
+            if (start >= stop):
                 raise ValueError(
                     f"Requested slice is out of bounds for dimension {dimension!r}"
                 )
@@ -664,6 +664,12 @@ class Hist():
             cdata.dimensions[i].min = np.finfo(np.float64).min
             cdata.dimensions[i].max = np.finfo(np.float64).max
             cdata.dimensions[i].n = 0
+
+            # Measured charge is discrete. We offset the buckets by a half
+            if dimensions[i] == "charge":
+                cdata.dimensions[i].min = params.charge_interval[0] - 0.5
+                cdata.dimensions[i].max = params.charge_interval[1] + 0.5
+
             for j, coord in enumerate(idx):
                 if i == coord:
                     nbins = params.dimensions[j].bins

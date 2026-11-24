@@ -1,6 +1,7 @@
 import pytest
 import unyt
 import numpy as np
+import re
 
 from a5py.data.hist import Dist
 
@@ -126,11 +127,11 @@ def test_dist_copy():
     "multiplier, dimensions, result",
     [
         pytest.param(
-            np.linspace(0, 1, 1), (0,), np.full((1, 2, 3, 2), 0.0), id="first-axis"
+            np.linspace(0, 1, 1), ("x1",), np.full((1, 2, 3, 2), 0.0), id="first-axis"
         ),
         pytest.param(
             np.linspace(0, 1, 2),
-            (1,),
+            ("x2",),
             np.array(
                 [
                     [
@@ -143,7 +144,7 @@ def test_dist_copy():
         ),
         pytest.param(
             np.linspace(0, 1, 3)*unyt.m,
-            (2,),
+            ("x3",),
             np.array(
                 [
                     [
@@ -189,9 +190,17 @@ def test_dist_copy():
         ),
         pytest.param(
             np.array([[1.0, 2.0, 1.0], [2.0, 1.0, 2.0]]),
-            (1, 2),
-            np.array([[[1.0, 4.0, 3.0], [8.0, 5.0, 12.0]]]),
+            ("x2", "x3"),
+            np.array([[[[1.0, 2.0], [6.0, 8.0], [5.0, 6.0]],
+                     [[14.0, 16.0], [9.0, 10.0], [22.0, 24.0]]]]),
             id="partial-matrix",
+        ),
+        pytest.param(
+            np.arange(1.0, 7.0).reshape(3, 2),
+            ("x3", "x2"),
+            np.array([[[[1.0, 2.0], [9.0, 12.0], [25.0, 30.0]],
+                       [[14.0, 16.0], [36.0, 40.0], [66.0, 72.0]]]]),
+            id="reversed-dimensions",
         ),
     ],
 )
@@ -211,7 +220,6 @@ def test_dist_multiply(multiplier, dimensions, result):
     histogram += np.arange(histogram.size).reshape(histogram.shape)
     dist = Dist(histogram, bin_edges)
     dist.multiply(multiplier, dimensions)
-    print(dist.histogram)
     assert np.isclose(dist.histogram, result).all()
 
 def test_dist_multiply_raises():
@@ -237,8 +245,12 @@ def test_dist_multiply_raises():
             {"x1": 1, "x3": -1},
             {"x1": np.arange(4)[1:3], "x2": np.arange(5), "x3": np.arange(6)[-2:]},
         ),
+        (
+            {"x1": -2},
+            {"x1": np.arange(4)[1:3], "x2": np.arange(5), "x3": np.arange(6)},
+        ),
     ],
-    ids=["slice-integer", "slice-end", "slice-slice", "two-slices"],
+    ids=["slice-integer", "slice-end", "slice-slice", "two-slices", "slice-negative"],
 )
 def test_slice_valid(slices, expected_edges):
     bin_edges = {
@@ -275,7 +287,7 @@ def test_slice_valid(slices, expected_edges):
     [
         ({"x1": 4}, ValueError, "index 4 is out of bounds for axis 0 with size 3"),
         ({"x1": -4}, ValueError, "index -4 is out of bounds for axis 0 with size 3"),
-        ({"x4": 1}, KeyError, "Unknown dimension(s): 'x4'"),
+        ({"x4": 1}, KeyError, re.escape("Unknown dimension(s): 'x4'")),
         ({"x1": (3,4)}, TypeError, "Slice for dimension 'x1' must be int or slice"),
     ]
 )
@@ -302,7 +314,7 @@ def test_dist_integrate():
         }
     )
     dist.integrate({"x1": None, "x2": None, "x3": None})
-    print(dist.distribution)
+    assert dist.distribution == 60
 
 def test_dist_integrate_raises():
     pass

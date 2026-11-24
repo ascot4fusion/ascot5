@@ -10,6 +10,7 @@ from ..libascot import LIBASCOT
 from ..data.options import SimulationOptions, OptionsStruct
 import a5py.data.orbit as orbit
 import a5py.data.hist as hist
+import a5py.data.moment as moment
 
 from a5py.data import (
     AscotData, Bfield, Efield, Plasma, Neutral, Wall, Mhd, Atomic,
@@ -36,6 +37,7 @@ class Diag(ctypes.Structure):
 
     _fields_ = [
         ("orbit", ctypes.POINTER(orbit.Struct)),
+        ("moment", ctypes.POINTER(moment.Struct)),
         ("hist", ctypes.POINTER(ctypes.POINTER(hist.Struct))),
         ("nhist", ctypes.c_size_t),
         ]
@@ -147,6 +149,8 @@ def execute(run, time=None):
     sim.options = ctypes.pointer(options)
     if "orbit" in run._diagnostics:
         sim.diagnostics.orbit = ctypes.pointer(run._diagnostics["orbit"]._cdata)
+    if "moment" in run._diagnostics:
+        sim.diagnostics.moment = ctypes.pointer(run._diagnostics["moment"]._cdata)
 
     i = 0
     while True:
@@ -227,6 +231,15 @@ def finalize(run, unstage, comm):
             else:
                 comm.Reduce(values, None, op=MPI.SUM, root=0)
             i += 1
+
+        if "moment" in run._diagnostics:
+            values = run._diagnostics["moment"].values
+            if root:
+                values.flags.writeable = True
+                comm.Reduce(MPI.IN_PLACE, values, op=MPI.SUM, root=0)
+                values.flags.writeable = False
+            else:
+                comm.Reduce(values, None, op=MPI.SUM, root=0)
 
         if "orbit" in run._diagnostics:
             orbit = run._diagnostics["orbit"]

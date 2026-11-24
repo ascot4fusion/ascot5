@@ -80,6 +80,52 @@ def rhotheta2rz(
     return rz[0,:], rz[1,:]
 
 
+@physlib.parse_units(rho="1", time="s")
+def rhovolume(
+    bfield: BfieldType,
+    rho: utils.ArrayLike,
+    time: utils.ArrayLike=0*unyt.s,
+    ntheta: int=360,
+    nphi: int=1,
+    ) -> unyt.unyt_array:
+    r"""Evaluate the volume between consecutive flux surfaces.
+
+    The volume enclosed by each flux surface is computed from its contour
+    with Green's theorem, :math:`V = \frac{\Delta\phi}{2}\oint R^2 dz`, in
+    ``nphi`` toroidal sectors. For axisymmetric fields ``nphi=1`` is enough.
+
+    Parameters
+    ----------
+    rho : array_like (n,)
+        Flux surfaces (bin edges) in increasing order.
+    time : float, optional
+        Time slice.
+    ntheta : int, optional
+        Number of poloidal points used to trace each flux surface.
+    nphi : int, optional
+        Number of toroidal sectors.
+
+    Returns
+    -------
+    volume : unyt_array (n-1,)
+        Volume between ``rho[i]`` and ``rho[i+1]``.
+    """
+    theta = np.linspace(0, 2*np.pi, ntheta, endpoint=False)
+    phi = (np.arange(nphi) + 0.5) * 2*np.pi / nphi
+    rho, phi, theta = np.meshgrid(np.ravel(rho), phi, theta, indexing="ij")
+    r, z = rhotheta2rz(
+        bfield, rho.ravel(), theta.ravel()*unyt.rad, phi.ravel()*unyt.rad,
+        time,
+        )
+    r, z = r.reshape(rho.shape), z.reshape(rho.shape)
+
+    # Integral of R^2 dz along each straight segment of the contour
+    r1, z1 = np.roll(r, -1, axis=2), np.roll(z, -1, axis=2)
+    enclosed = np.abs(np.sum((r**2 + r*r1 + r1**2) * (z1 - z), axis=2)) / 3
+    enclosed = np.pi / nphi * np.sum(enclosed, axis=1)
+    return np.diff(enclosed)
+
+
 # @physlib.parse_units(ma="kg", qa="C", r="m", phi="rad", z="m", t="s", va="m/s")
 # def input_eval_collcoefs(self, ma, qa, r, phi, z, t, va, *coefs, grid=True):
 #     """Evaluate Coulomb collision coefficients for a given test particle.

@@ -7,6 +7,7 @@
 #include "defines.h"
 #include "diag_hist.h"
 #include "diag_orbit.h"
+#include "diag_moment.h"
 #include "marker.h"
 
 void Diag_offload(Diagnostics *diag)
@@ -15,6 +16,8 @@ void Diag_offload(Diagnostics *diag)
         DiagHist_offload(diag->hist[i]);
     if (diag->orbit != NULL)
         DiagOrbit_offload(diag->orbit);
+    if (diag->moment != NULL)
+        DiagMoment_offload(diag->moment);
 }
 
 void Diag_onload(Diagnostics *diag)
@@ -23,6 +26,8 @@ void Diag_onload(Diagnostics *diag)
         DiagHist_onload(diag->hist[i]);
     if (diag->orbit != NULL)
         DiagOrbit_onload(diag->orbit);
+    if (diag->moment != NULL)
+        DiagMoment_onload(diag->moment);
 }
 
 void Diag_update_go(
@@ -33,6 +38,8 @@ void Diag_update_go(
         DiagHist_update_go(diag->hist[i], bfield, mrk_f, mrk_i);
     if (diag->orbit != NULL)
         DiagOrbit_update_go(diag->orbit, bfield, mrk_f, mrk_i);
+    if (diag->moment != NULL)
+        DiagMoment_update_go(diag->moment, bfield, mrk_f, mrk_i);
 }
 
 void Diag_update_gc(
@@ -43,6 +50,8 @@ void Diag_update_gc(
         DiagHist_update_gc(diag->hist[i], bfield, mrk_f, mrk_i);
     if (diag->orbit != NULL)
         DiagOrbit_update_gc(diag->orbit, bfield, mrk_f, mrk_i);
+    if (diag->moment != NULL)
+        DiagMoment_update_gc(diag->moment, bfield, mrk_f, mrk_i);
 }
 
 void Diag_update_fl(

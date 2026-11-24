@@ -22,6 +22,7 @@ from .parameters import (
     Endconditions,
     HistParams,
     OrbitParams,
+    MomentParams,
     Lockable,
 )
 
@@ -145,6 +146,8 @@ class SimulationOptions(Lockable):
         End conditions when the marker simulation is ceased.
     orbit : Orbit
         Diagnostic that records the exact marker trajectory.
+    moments : Moments
+        Diagnostic that collects 1D radial moments of the distribution.
     histograms : tuple[HistParams]
         Diagnostics that collect data for reproducing the particle distribution function.
     """
@@ -153,6 +156,7 @@ class SimulationOptions(Lockable):
     physics: Physics = field(default_factory=Physics)
     endconditions: Endconditions = field(default_factory=Endconditions)
     orbit: OrbitParams = field(default_factory=OrbitParams)
+    moments: MomentParams = field(default_factory=MomentParams)
     histograms: tuple[HistParams] = field(default_factory=tuple[HistParams])
 
     def __setattr__(self, name, value):
@@ -179,7 +183,8 @@ class SimulationOptions(Lockable):
             (name == "simulation" and not isinstance(value, Simulation)) or
             (name == "physics" and not isinstance(value, Physics)) or
             (name == "endconditions" and not isinstance(value, Endconditions)) or
-            (name == "orbit" and not isinstance(value, OrbitParams))
+            (name == "orbit" and not isinstance(value, OrbitParams)) or
+            (name == "moments" and not isinstance(value, MomentParams))
             ):
             raise TypeError(f"Invalid type for {name}: {type(value)}.")
 
@@ -373,7 +378,7 @@ class SimulationOptions(Lockable):
         """Read parameters from HDF5 file."""
         params = {
             "simulation": {}, "physics": {}, "endconditions": {}, "orbit": {},
-            "histograms": [],
+            "moments": {}, "histograms": [],
             }
         def read_parameter(group, setting, convert=None):
             try:
@@ -434,6 +439,9 @@ class SimulationOptions(Lockable):
         read_parameter(group, "poloidal_angles", convert="tuple")
         read_parameter(group, "toroidal_angles", convert="tuple")
         read_parameter(group, "radial_distances", convert="tuple")
+
+        group = "moments"
+        read_parameter(group, "rho_bins")
 
         i = 0
         while True:
