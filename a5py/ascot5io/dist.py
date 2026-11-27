@@ -798,20 +798,20 @@ class Dist(DataContainer):
             # from where it crosses the midplane through the magnetic axis, on
             # the outboard (theta = 0) and inboard (theta = pi) sides
             phi = moment.phic.ravel().to("rad")
-            rout, _ = ascot.input_rhotheta2rz(
+            r_out, _ = ascot.input_rhotheta2rz(
                 rho_pol_norm,
                 np.zeros(rho_pol_norm.shape) * unyt.rad,
                 phi,
                 0 * unyt.s,
             )
-            rin, _ = ascot.input_rhotheta2rz(
+            r_in, _ = ascot.input_rhotheta2rz(
                 rho_pol_norm,
                 np.pi * np.ones(rho_pol_norm.shape) * unyt.rad,
                 phi,
                 0 * unyt.s,
             )
-            r_geo = 0.5 * (rout + rin)
-            epsilon = (rout - rin) / (rout + rin)
+            r_geo = 0.5 * (r_out + r_in)
+            inverse_aspect_ratio = (r_out - r_in) / (r_out + r_in)
             F = Z / zeff
 
             # Electron collisionality
@@ -834,7 +834,7 @@ class Dist(DataContainer):
                 * ne
                 * zeff
                 * clogee
-                / (te**2 * epsilon**1.5)
+                / (te**2 * inverse_aspect_ratio**1.5)
             ).to("dimensionless")
             X = ftrap / (
                 1.0
