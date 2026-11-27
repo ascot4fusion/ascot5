@@ -777,34 +777,82 @@ class Dist(DataContainer):
                     integrate[k] = np.s_[:]
         dist.integrate(**integrate)
 
-        if(drive):
-            rho, zeff, ne, te, rminor = ascot.input_eval(
-                moment.rc.ravel(), moment.phic.ravel(), moment.zc.ravel(), 0,
-                "rho", "zeff", "ne", "te", "rminor",
-                )
-            clogee = 31.3 - np.log(np.sqrt(ne/unyt.m**3)/(te/unyt.eV))
+        if drive:
+            rho_pol_norm, zeff, ne, te = ascot.input_eval(
+                moment.rc.ravel(),
+                moment.phic.ravel(),
+                moment.zc.ravel(),
+                0,
+                "rho",
+                "zeff",
+                "ne",
+                "te",
+            )
+            clogee = 31.3 - np.log(np.sqrt(ne / unyt.m**3) / (te / unyt.eV))
             q, _, _, ftrap = ascot.input_eval_safetyfactor(
-                rho, return_ftrap=True)
+                rho_pol_norm, return_ftrap=True
+            )
             q = np.abs(q)
-            aspectratio = np.sqrt(moment.rc.ravel()/rminor)
-            F = Z/zeff
 
-            nu_eff = (  1.779e-55 * unyt.J**2 * unyt.m**2 * q * moment.rc.ravel() * ne
-                      * clogee / (te**2 * aspectratio**(3/2)))
-            X = ftrap / (1 + ( 1 - 0.1*ftrap ) * np.sqrt(nu_eff)
-                           + 0.5 * ( 1 -  ftrap ) * nu_eff / zeff )
-            zeffplusone = zeff+1
-            G = (  ( 1 + 1.4 / zeffplusone ) * X
-                 - (1.9 / zeffplusone) * X**2
-                 + (0.3 / zeffplusone) * X**3
-                 + (0.2 / zeffplusone) * X**4
-                 )
+            # Geometric centre and inverse aspect ratio of each flux surface,
+            # from where it crosses the midplane through the magnetic axis, on
+            # the outboard (theta = 0) and inboard (theta = pi) sides
+            phi = moment.phic.ravel().to("rad")
+            r_out, _ = ascot.input_rhotheta2rz(
+                rho_pol_norm,
+                np.zeros(rho_pol_norm.shape) * unyt.rad,
+                phi,
+                0 * unyt.s,
+            )
+            r_in, _ = ascot.input_rhotheta2rz(
+                rho_pol_norm,
+                np.pi * np.ones(rho_pol_norm.shape) * unyt.rad,
+                phi,
+                0 * unyt.s,
+            )
+            r_geo = 0.5 * (r_out + r_in)
+            inverse_aspect_ratio = (r_out - r_in) / (r_out + r_in)
+            F = Z / zeff
 
-            #Since F and G are flattened due to input_eval(), we need to reshape
-            F   = F.reshape(moment.volume.shape)
-            G   = G.reshape(moment.volume.shape)
+            # Electron collisionality
+            # Sauter et al., Phys. Plasmas 6, 2834 (1999), Eq. 18b
+            # https://doi.org/10.1063/1.873240
+            #
+            # The prefactor comes from a combination of physical constants and
+            # is also recorded in Sauter et al., Phys. Plasmas 6, 2834 (1999).
+            # However, Sauter's prefactor is 0.13% lower:
+            # nu_e_star_prefactor = e^4 / (6 sqrt(2) pi^1.5 epsilon_0^2)
+            #                                              = 6.930e-18 eV^2 m^2
+            #                             sauter_prefactor = 6.921e-18 eV^2 m^2
+            nu_e_star_prefactor = physlib.e**4 / (
+                6.0 * np.sqrt(2.0) * np.pi**1.5 * physlib.eps_0**2
+            )
+            nu_e_star = (
+                nu_e_star_prefactor
+                * q
+                * r_geo
+                * ne
+                * zeff
+                * clogee
+                / (te**2 * inverse_aspect_ratio**1.5)
+            ).to("dimensionless")
+            X = ftrap / (
+                1.0
+                + (1.0 - 0.1 * ftrap) * np.sqrt(nu_e_star)
+                + 0.5 * (1.0 - ftrap) * nu_e_star / zeff
+            )
+            G = (
+                (1.0 + 1.4 / (zeff + 1.0)) * X
+                - (1.9 / (zeff + 1.0)) * X**2
+                + (0.3 / (zeff + 1.0)) * X**3
+                + (0.2 / (zeff + 1.0)) * X**4
+            )
+
+            # Since F and G are flattened due to input_eval(), we need to reshape
+            F = F.reshape(moment.volume.shape)
+            G = G.reshape(moment.volume.shape)
             jpar = (dist.histogram() / moment.volume).to("A/m**2")
-            moment.add_ordinates(currentdrive=(1 - F *(1 - G))*jpar)
+            moment.add_ordinates(currentdrive=(1 - F * (1.0 - G)) * jpar)
         else:
             moment.add_ordinates(
                 parallelcurrent=(dist.histogram() / moment.volume).to("A/m**2"))
